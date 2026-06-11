@@ -135,7 +135,9 @@ describe('resolver: canonical-name mismatches must not drop cards', () => {
       vi.fn((input: string | URL | Request, init?: RequestInit) => {
         const url = urlOf(input);
         if (url.includes('/cards/collection')) {
-          collectionBodies.push(JSON.parse(String(init?.body)));
+          collectionBodies.push(
+            typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : null,
+          );
           return Promise.resolve(
             jsonResponse({
               object: 'list',
