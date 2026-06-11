@@ -185,9 +185,24 @@ function applyJapanesePrint(base: CardDef, jaCard: ScryfallCard): CardDef {
 }
 
 /**
+ * Returns the front-face name of a double-faced card's full name
+ * (e.g. "Fable of the Mirror-Breaker // Reflection of Kiki-Jiki" ->
+ * "Fable of the Mirror-Breaker"), or the name unchanged if it has no "//".
+ */
+function frontFaceName(name: string): string {
+  return name.split(' // ')[0];
+}
+
+/**
  * Resolve a batch of ASCII (English) card names via the /cards/collection endpoint.
  * Returns a map from the requested name to its resolved card, plus the list of
  * names that Scryfall reported as not_found.
+ *
+ * /cards/collection matches names case-insensitively and resolves DFCs by their
+ * front face, but always returns the canonical full name in `card.name`. To keep
+ * every requested name accounted for under its own lookup key, results are
+ * matched back to the requested names leniently: lower-cased exact match, or
+ * lower-cased match against the front face of `card.name`.
  */
 async function resolveAsciiBatch(
   names: string[],
@@ -224,13 +239,40 @@ async function resolveAsciiBatch(
     }
 
     const list = json as ScryfallList<ScryfallCard>;
+
+    // Build a lookup from lower-cased candidate names (full name and, for DFCs,
+    // the front face) to the returned card.
+    const cardsByLowerName = new Map<string, ScryfallCard>();
     for (const card of list.data) {
-      found.set(card.name, card);
-    }
-    for (const item of list.not_found ?? []) {
-      if (item.name) {
-        notFound.push(item.name);
+      cardsByLowerName.set(card.name.toLowerCase(), card);
+      const front = frontFaceName(card.name);
+      if (front !== card.name) {
+        cardsByLowerName.set(front.toLowerCase(), card);
       }
+    }
+
+    const reportedNotFound = new Set(
+      (list.not_found ?? []).map((item) => item.name).filter((name): name is string => !!name),
+    );
+
+    // Match each requested name in this batch against the returned cards, so
+    // every entry ends up either found (under its own lookup key) or not_found,
+    // even if Scryfall's `not_found` list omits it.
+    for (const requestedName of batch) {
+      const card = cardsByLowerName.get(requestedName.toLowerCase());
+      if (card) {
+        found.set(requestedName, card);
+        continue;
+      }
+      notFound.push(requestedName);
+      reportedNotFound.delete(requestedName);
+    }
+
+    // Any remaining names Scryfall explicitly reported as not_found that don't
+    // correspond to one of our requested names (shouldn't normally happen, but
+    // keep them so nothing silently disappears).
+    for (const name of reportedNotFound) {
+      notFound.push(name);
     }
   }
 
@@ -238,11 +280,14 @@ async function resolveAsciiBatch(
 }
 
 /**
- * Resolve a single Japanese card name via /cards/search using printed_name.
+ * Resolve a single Japanese card name via /cards/search using an exact-name
+ * lookup. `printed_name:` is not a valid Scryfall search keyword (it is
+ * silently ignored, matching ~30k cards), so we use the `!"<name>"`
+ * exact-name operator instead, scoped to Japanese prints with `lang:ja`.
  * Returns undefined if no match was found.
  */
 async function resolveJapaneseName(name: string): Promise<ScryfallCard | undefined> {
-  const query = `lang:ja printed_name:"${name}"`;
+  const query = `lang:ja !"${name}"`;
   const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(query)}`;
 
   const response = await fetchWithRetry(url);

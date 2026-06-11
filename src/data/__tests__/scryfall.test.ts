@@ -128,15 +128,15 @@ describe('resolveDeck', () => {
     expect(result.unresolved).toEqual([]);
   });
 
-  it('resolves a japanese card name via printed_name search', async () => {
+  it('resolves a japanese card name via lang:ja exact-name search', async () => {
     const entries = [makeEntry({ name: '稲妻', line: 1 })];
 
     const fetchMock = vi.fn((input: string | URL | Request) => {
       const url = urlOf(input);
 
       if (url.includes('/cards/search')) {
-        expect(url).toContain('printed_name');
-        expect(url).toContain(encodeURIComponent('稲妻'));
+        const query = new URL(url).searchParams.get('q') ?? '';
+        expect(query).toBe('lang:ja !"稲妻"');
         return jsonResponse({
           object: 'list',
           data: [

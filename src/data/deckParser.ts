@@ -67,6 +67,45 @@ const QUANTITY_PREFIX_RE = /^(\d+)\s*[xX]?\s+(.+)$/;
 // Matches a bare quantity with no name (e.g. just "4" or "4x").
 const QUANTITY_ONLY_RE = /^(\d+)\s*[xX]?$/;
 
+// Matches a trailing "*MARKER*" annotation (e.g. "*F*", "*CMDR*"), possibly
+// preceded by whitespace.
+const TRAILING_MARKER_RE = /\s*\*([^*]+)\*\s*$/;
+// Matches a trailing " (SETCODE) COLLECTOR" suffix as produced by Arena/Moxfield
+// exports, e.g. " (C21) 263" or " (CMM) 1080". The set code is 2-6 alphanumeric
+// characters; the collector token is mostly digits but may include trailing
+// letters or symbols like "★".
+const SET_COLLECTOR_SUFFIX_RE = /\s+\(([A-Za-z0-9]{2,6})\)\s+([A-Za-z0-9★]*\d[A-Za-z0-9★]*)$/;
+const CMDR_MARKER = 'CMDR';
+
+/**
+ * Strip Arena/Moxfield export suffixes from a card name:
+ *  - trailing "*MARKER*" annotations (e.g. "*F*", "*CMDR*")
+ *  - a trailing " (SETCODE) COLLECTOR" suffix, only when both the set code and
+ *    collector number are present (so card names like
+ *    "B.F.M. (Big Furry Monster)" are left untouched)
+ *
+ * Returns the cleaned name and whether a "*CMDR*" marker was present.
+ */
+function stripExportSuffixes(name: string): { name: string; isCommander: boolean } {
+  let result = name;
+  let isCommander = false;
+
+  let markerMatch: RegExpExecArray | null;
+  while ((markerMatch = TRAILING_MARKER_RE.exec(result))) {
+    if (markerMatch[1].toUpperCase() === CMDR_MARKER) {
+      isCommander = true;
+    }
+    result = result.slice(0, markerMatch.index);
+  }
+
+  const setMatch = SET_COLLECTOR_SUFFIX_RE.exec(result);
+  if (setMatch) {
+    result = result.slice(0, setMatch.index);
+  }
+
+  return { name: result.trim(), isCommander };
+}
+
 export function parseDeckList(text: string): ParsedDeck {
   const entries: DeckEntry[] = [];
   const errors: ParseError[] = [];
@@ -129,7 +168,16 @@ export function parseDeckList(text: string): ParsedDeck {
     const match = QUANTITY_PREFIX_RE.exec(normalized);
     if (match) {
       const quantity = Number.parseInt(match[1], 10);
-      const name = match[2].trim();
+      const rawName = match[2].trim();
+      if (rawName === '') {
+        errors.push({
+          line: lineNumber,
+          text: rawLine,
+          reason: 'Missing card name',
+        });
+        continue;
+      }
+      const { name, isCommander } = stripExportSuffixes(rawName);
       if (name === '') {
         errors.push({
           line: lineNumber,
@@ -141,7 +189,7 @@ export function parseDeckList(text: string): ParsedDeck {
       entries.push({
         quantity,
         name,
-        section: currentSection,
+        section: isCommander ? 'commander' : currentSection,
         line: lineNumber,
       });
       continue;
