@@ -128,6 +128,38 @@ describe('resolver: canonical-name mismatches must not drop cards', () => {
     );
   });
 
+  it('requests full DFC input names by front face (collection rejects "A // B")', async () => {
+    const collectionBodies: unknown[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string | URL | Request, init?: RequestInit) => {
+        const url = urlOf(input);
+        if (url.includes('/cards/collection')) {
+          collectionBodies.push(JSON.parse(String(init?.body)));
+          return Promise.resolve(
+            jsonResponse({
+              object: 'list',
+              data: [
+                card('Valakut Awakening // Valakut Stoneforge', { layout: 'modal_dfc' }),
+              ],
+              not_found: [],
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse(emptyList, 404));
+      }),
+    );
+    const fullName = 'Valakut Awakening // Valakut Stoneforge';
+    const result = await resolveDeck([
+      { quantity: 1, name: fullName, section: 'main', line: 1 },
+    ]);
+    expect(collectionBodies).toEqual([
+      { identifiers: [{ name: 'Valakut Awakening' }] },
+    ]);
+    expect(result.unresolved).toEqual([]);
+    expect(result.resolved.get(fullName)?.name).toBe(fullName);
+  });
+
   it('accounts for every entry exactly once (resolved XOR unresolved) and finishes progress', async () => {
     stubCollectionFetch([card('Sol Ring')], ['Definitely Not A Card']);
     const entries = [

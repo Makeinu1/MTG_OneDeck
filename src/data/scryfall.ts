@@ -212,8 +212,11 @@ async function resolveAsciiBatch(
 
   for (let offset = 0; offset < names.length; offset += COLLECTION_BATCH_SIZE) {
     const batch = names.slice(offset, offset + COLLECTION_BATCH_SIZE);
+    // /cards/collection rejects full DFC names ("A // B"); it only accepts the
+    // front-face name, so always request by front face. The lenient matching
+    // below maps results back to the original requested names either way.
     const body = JSON.stringify({
-      identifiers: batch.map((name) => ({ name })),
+      identifiers: batch.map((name) => ({ name: frontFaceName(name) })),
     });
 
     if (offset > 0) {

@@ -1,0 +1,99 @@
+# G1 acceptance fixture: The Ur-Dragon EDH (100 cards)
+# Mixed Japanese/English names, Arena-style suffixes, 1x prefix, MDFC, token makers
+統率者
+1 The Ur-Dragon
+
+デッキ
+1 Sol Ring (C21) 263
+1 Arcane Signet
+1x Fellwar Stone
+1 Mind Stone
+1 Thought Vessel
+1 Gilded Lotus
+1 Thran Dynamo
+1 Dragon's Hoard
+1 Herald's Horn
+1 Vanquisher's Banner
+1 Coalition Relic
+1 Commander's Sphere
+1 Darksteel Ingot
+1 稲妻
+1 耕作
+1 木霊の手の内
+1 思案
+1 定業
+1 渦まく知識
+1 対抗呪文
+1 悪魔の教示者
+1 吸血の教示者
+1 神秘の教示者
+1 剣を鍬に
+1 流刑への道
+1 内にいる獣
+1 混沌のねじれ
+1 サイクロンの裂け目
+1 自然の知識
+1 三顧の礼
+1 遥か見
+1 不屈の自然
+1 桜族の長老
+1 ラノワールのエルフ
+1 極楽鳥
+1 龍王ドロモカ
+1 龍王アタルカ
+1 龍王オジュタイ
+1 龍王シルムガル
+1 龍王コラガン
+1 始祖ドラゴンの末裔
+1 統率の塔
+1 彩色の灯籠
+1 Skyshroud Claim
+1 Explosive Vegetation
+1 Circuitous Route
+1 Migration Path
+1 Utvara Hellkite
+1 Lathliss, Dragon Queen
+1 Terror of the Peaks
+1 Goldspan Dragon
+1 Old Gnawbone
+1 Ancient Copper Dragon
+1 Ancient Brass Dragon
+1 Ancient Bronze Dragon
+1 Ancient Gold Dragon
+1 Ancient Silver Dragon
+1 Tiamat
+1 Miirym, Sentinel Wyrm
+1 Dragonlord's Servant
+1 Dragonspeaker Shaman
+1 Sarkhan, Fireblood
+1 Sarkhan Unbroken
+1 The Great Henge
+1 Rhythm of the Wild
+1 Temur Ascendancy
+1 Dragon Tempest
+1 Scourge of Valkas
+1 Balefire Dragon
+1 Hellkite Charger
+1 Savage Ventmaw
+1 Atarka, World Render
+1 Dromoka, the Eternal
+1 Ojutai, Soul of Winter
+1 Silumgar, the Drifting Death
+1 Kolaghan, the Storm's Fury
+1 Valakut Awakening // Valakut Stoneforge
+1 Agadeem's Awakening
+1 Exotic Orchard
+1 Path of Ancestry
+1 Haven of the Spirit Dragon
+1 Reflecting Pool
+1 City of Brass
+1 Mana Confluence
+1 Crucible of the Spirit Dragon
+1 Rogue's Passage
+1 Evolving Wilds
+1 Terramorphic Expanse
+3 山
+2 島
+2 森
+2 平地
+2 沼
