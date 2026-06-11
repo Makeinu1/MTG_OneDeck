@@ -1,0 +1,435 @@
+import type { CardDef, CardFace, ManaColor } from '../types/card';
+import type { DeckEntry } from './deckParser';
+import { getCachedByName, putCardDef } from './cache';
+
+export interface ResolveProgress {
+  done: number;
+  total: number;
+}
+
+export interface ResolveResult {
+  resolved: Map<string, CardDef>; // key: DeckEntry.name (trim済みの入力名)
+  unresolved: { name: string; line: number; reason: string }[];
+}
+
+const SCRYFALL_API_BASE = 'https://api.scryfall.com';
+const COLLECTION_BATCH_SIZE = 75;
+const REQUEST_INTERVAL_MS = 100;
+const MAX_RETRIES = 3;
+const VALID_MANA_COLORS: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
+
+// --- Minimal Scryfall API response shapes (only fields we use) ---
+
+interface ScryfallImageUris {
+  normal?: string;
+}
+
+interface ScryfallCardFace {
+  name: string;
+  printed_name?: string;
+  mana_cost?: string;
+  type_line?: string;
+  printed_type_line?: string;
+  oracle_text?: string;
+  printed_text?: string;
+  power?: string;
+  toughness?: string;
+  loyalty?: string;
+  image_uris?: ScryfallImageUris;
+}
+
+interface ScryfallCard {
+  id: string;
+  oracle_id?: string;
+  name: string;
+  printed_name?: string;
+  lang: string;
+  layout: string;
+  cmc: number;
+  color_identity?: string[];
+  type_line: string;
+  produced_mana?: string[];
+  image_uris?: ScryfallImageUris;
+  card_faces?: ScryfallCardFace[];
+}
+
+interface ScryfallList<T> {
+  object: 'list';
+  data: T[];
+  not_found?: { name?: string }[];
+}
+
+interface ScryfallError {
+  object: 'error';
+  status: number;
+  code: string;
+  details: string;
+}
+
+// --- Type guards / helpers ---
+
+function isScryfallError(value: unknown): value is ScryfallError {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as { object?: unknown }).object === 'error'
+  );
+}
+
+function isAscii(text: string): boolean {
+  // eslint-disable-next-line no-control-regex
+  return /^[\x00-\x7F]*$/.test(text);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch a URL with rate limiting (caller is responsible for spacing requests)
+ * and exponential backoff retry on 429/503 responses.
+ */
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  let attempt = 0;
+  for (;;) {
+    const response = await fetch(url, init);
+    if (response.status !== 429 && response.status !== 503) {
+      return response;
+    }
+    if (attempt >= MAX_RETRIES) {
+      return response;
+    }
+    const backoffMs = REQUEST_INTERVAL_MS * 2 ** attempt * 5;
+    await sleep(backoffMs);
+    attempt += 1;
+  }
+}
+
+/**
+ * Convert a raw Scryfall card object into our CardDef shape.
+ * `lang` and the image/printed-name overrides for the face(s) may be supplied
+ * separately when a Japanese print was fetched after an English match.
+ */
+function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
+  const producedMana = card.produced_mana?.filter((color): color is ManaColor =>
+    (VALID_MANA_COLORS as readonly string[]).includes(color),
+  );
+
+  let faces: CardFace[];
+  if (card.card_faces && card.card_faces.length > 0) {
+    faces = card.card_faces.map((face) => ({
+      name: face.name,
+      printedName: face.printed_name,
+      manaCost: face.mana_cost,
+      typeLine: face.type_line ?? card.type_line,
+      printedTypeLine: face.printed_type_line,
+      oracleText: face.oracle_text,
+      printedText: face.printed_text,
+      imageUrl: face.image_uris?.normal ?? card.image_uris?.normal,
+      power: face.power,
+      toughness: face.toughness,
+      loyalty: face.loyalty,
+    }));
+  } else {
+    faces = [
+      {
+        name: card.name,
+        printedName: card.printed_name,
+        typeLine: card.type_line,
+        imageUrl: card.image_uris?.normal,
+      },
+    ];
+  }
+
+  return {
+    scryfallId: card.id,
+    oracleId: card.oracle_id ?? card.id,
+    name: card.name,
+    printedName: card.printed_name,
+    lang: card.lang === 'ja' ? 'ja' : 'en',
+    layout: card.layout,
+    cmc: card.cmc,
+    colorIdentity: card.color_identity ?? [],
+    typeLine: card.type_line,
+    producedMana,
+    faces,
+  };
+}
+
+/**
+ * Apply a Japanese print's display fields (printed names, ja images/text) onto
+ * an existing CardDef that was resolved via its English print.
+ */
+function applyJapanesePrint(base: CardDef, jaCard: ScryfallCard): CardDef {
+  const jaDef = mapScryfallCardToCardDef(jaCard);
+  const faces: CardFace[] = base.faces.map((face, index) => {
+    const jaFace = jaDef.faces[index];
+    if (!jaFace) {
+      return face;
+    }
+    return {
+      ...face,
+      printedName: jaFace.printedName ?? face.printedName,
+      printedTypeLine: jaFace.printedTypeLine ?? face.printedTypeLine,
+      printedText: jaFace.printedText ?? face.printedText,
+      imageUrl: jaFace.imageUrl ?? face.imageUrl,
+    };
+  });
+
+  return {
+    ...base,
+    printedName: jaDef.printedName ?? base.printedName,
+    lang: 'ja',
+    faces,
+  };
+}
+
+/**
+ * Resolve a batch of ASCII (English) card names via the /cards/collection endpoint.
+ * Returns a map from the requested name to its resolved card, plus the list of
+ * names that Scryfall reported as not_found.
+ */
+async function resolveAsciiBatch(
+  names: string[],
+): Promise<{ found: Map<string, ScryfallCard>; notFound: string[] }> {
+  const found = new Map<string, ScryfallCard>();
+  const notFound: string[] = [];
+
+  for (let offset = 0; offset < names.length; offset += COLLECTION_BATCH_SIZE) {
+    const batch = names.slice(offset, offset + COLLECTION_BATCH_SIZE);
+    const body = JSON.stringify({
+      identifiers: batch.map((name) => ({ name })),
+    });
+
+    if (offset > 0) {
+      await sleep(REQUEST_INTERVAL_MS);
+    }
+
+    const response = await fetchWithRetry(`${SCRYFALL_API_BASE}/cards/collection`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+
+    if (!response.ok) {
+      // Treat the whole batch as not found if the request itself failed.
+      notFound.push(...batch);
+      continue;
+    }
+
+    const json: unknown = await response.json();
+    if (isScryfallError(json)) {
+      notFound.push(...batch);
+      continue;
+    }
+
+    const list = json as ScryfallList<ScryfallCard>;
+    for (const card of list.data) {
+      found.set(card.name, card);
+    }
+    for (const item of list.not_found ?? []) {
+      if (item.name) {
+        notFound.push(item.name);
+      }
+    }
+  }
+
+  return { found, notFound };
+}
+
+/**
+ * Resolve a single Japanese card name via /cards/search using printed_name.
+ * Returns undefined if no match was found.
+ */
+async function resolveJapaneseName(name: string): Promise<ScryfallCard | undefined> {
+  const query = `lang:ja printed_name:"${name}"`;
+  const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(query)}`;
+
+  const response = await fetchWithRetry(url);
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const json: unknown = await response.json();
+  if (isScryfallError(json)) {
+    return undefined;
+  }
+
+  const list = json as ScryfallList<ScryfallCard>;
+  if (list.data.length === 0) {
+    return undefined;
+  }
+
+  const exactMatch = list.data.find((card) => card.printed_name === name);
+  return exactMatch ?? list.data[0];
+}
+
+/**
+ * Fetch the Japanese print of a card by oracle id, for use as the display
+ * image/text after an English-name match. Returns undefined if none exists.
+ */
+async function fetchJapanesePrintByOracleId(oracleId: string): Promise<ScryfallCard | undefined> {
+  const query = `oracleid:${oracleId} lang:ja`;
+  const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(query)}&unique=prints`;
+
+  const response = await fetchWithRetry(url);
+  if (!response.ok) {
+    return undefined;
+  }
+
+  const json: unknown = await response.json();
+  if (isScryfallError(json)) {
+    return undefined;
+  }
+
+  const list = json as ScryfallList<ScryfallCard>;
+  return list.data[0];
+}
+
+interface PendingEntry {
+  entry: DeckEntry;
+  lookupKey: string;
+}
+
+/**
+ * Resolve deck entries against the Scryfall API, using the IndexedDB cache to
+ * avoid redundant network requests. On total network failure, anything not
+ * already cached is reported as unresolved with reason 'network error'.
+ */
+export async function resolveDeck(
+  entries: DeckEntry[],
+  onProgress?: (p: ResolveProgress) => void,
+): Promise<ResolveResult> {
+  const resolved = new Map<string, CardDef>();
+  const unresolved: { name: string; line: number; reason: string }[] = [];
+
+  const total = entries.length;
+  let done = 0;
+  const reportProgress = (): void => {
+    onProgress?.({ done, total });
+  };
+  reportProgress();
+
+  // De-duplicate by lookup name, but keep all entries so every line gets a result.
+  const pending: PendingEntry[] = entries.map((entry) => ({
+    entry,
+    lookupKey: entry.name.trim(),
+  }));
+
+  const stillNeeded = new Map<string, DeckEntry[]>();
+  for (const { entry, lookupKey } of pending) {
+    // Check cache first.
+    const cached = await getCachedByName(lookupKey);
+    if (cached) {
+      resolved.set(lookupKey, cached);
+      done += 1;
+      reportProgress();
+      continue;
+    }
+    const list = stillNeeded.get(lookupKey);
+    if (list) {
+      list.push(entry);
+    } else {
+      stillNeeded.set(lookupKey, [entry]);
+    }
+  }
+
+  if (stillNeeded.size === 0) {
+    return { resolved, unresolved };
+  }
+
+  const namesToResolve = [...stillNeeded.keys()];
+  const asciiNames = namesToResolve.filter((name) => isAscii(name));
+  const nonAsciiNames = namesToResolve.filter((name) => !isAscii(name));
+
+  let networkFailure = false;
+
+  // --- ASCII names: batch resolve via /cards/collection ---
+  if (asciiNames.length > 0) {
+    try {
+      const { found, notFound } = await resolveAsciiBatch(asciiNames);
+
+      for (const [lookupKey, card] of found) {
+        let cardDef = mapScryfallCardToCardDef(card);
+
+        if (cardDef.lang !== 'ja' && cardDef.oracleId) {
+          await sleep(REQUEST_INTERVAL_MS);
+          try {
+            const jaCard = await fetchJapanesePrintByOracleId(cardDef.oracleId);
+            if (jaCard) {
+              cardDef = applyJapanesePrint(cardDef, jaCard);
+            }
+          } catch {
+            // Non-fatal: keep the English print if the ja lookup fails.
+          }
+        }
+
+        await putCardDef(lookupKey, cardDef);
+        resolved.set(lookupKey, cardDef);
+        const entriesForName = stillNeeded.get(lookupKey) ?? [];
+        done += entriesForName.length;
+        reportProgress();
+      }
+
+      for (const name of notFound) {
+        const entriesForName = stillNeeded.get(name) ?? [];
+        for (const entry of entriesForName) {
+          unresolved.push({ name, line: entry.line, reason: 'not_found' });
+        }
+        done += entriesForName.length;
+        reportProgress();
+      }
+    } catch {
+      networkFailure = true;
+      for (const name of asciiNames) {
+        const entriesForName = stillNeeded.get(name) ?? [];
+        for (const entry of entriesForName) {
+          unresolved.push({ name, line: entry.line, reason: 'network error' });
+        }
+        done += entriesForName.length;
+        reportProgress();
+      }
+    }
+  }
+
+  // --- Non-ASCII (Japanese) names: resolve individually via /cards/search ---
+  for (const name of nonAsciiNames) {
+    const entriesForName = stillNeeded.get(name) ?? [];
+
+    if (networkFailure) {
+      for (const entry of entriesForName) {
+        unresolved.push({ name, line: entry.line, reason: 'network error' });
+      }
+      done += entriesForName.length;
+      reportProgress();
+      continue;
+    }
+
+    try {
+      await sleep(REQUEST_INTERVAL_MS);
+      const card = await resolveJapaneseName(name);
+      if (!card) {
+        for (const entry of entriesForName) {
+          unresolved.push({ name, line: entry.line, reason: 'not_found' });
+        }
+        done += entriesForName.length;
+        reportProgress();
+        continue;
+      }
+
+      const cardDef = mapScryfallCardToCardDef(card);
+      await putCardDef(name, cardDef);
+      resolved.set(name, cardDef);
+      done += entriesForName.length;
+      reportProgress();
+    } catch {
+      for (const entry of entriesForName) {
+        unresolved.push({ name, line: entry.line, reason: 'network error' });
+      }
+      done += entriesForName.length;
+      reportProgress();
+    }
+  }
+
+  return { resolved, unresolved };
+}
