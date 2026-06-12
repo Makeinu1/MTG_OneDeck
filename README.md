@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# MTG OneDeck
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+統率者戦(EDH)のデッキを一人回し(ゴールドフィッシュ)するためのWebアプリです。
+サーバー不要の純フロントエンド(React + TypeScript + Vite)で、カードデータと画像は [Scryfall API](https://scryfall.com/docs/api) から取得します(日本語版カード優先)。
 
-Currently, two official plugins are available:
+**Demo (GitHub Pages):** https://makeinu1.github.io/MTG_OneDeck/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 主な機能
 
-## React Compiler
+- **デッキインポート**: Arena/Moxfield形式のテキスト(`1 Sol Ring (C21) 263` 等)、日本語カード名対応。IndexedDBにキャッシュ
+- **プレイマット**: 1画面完結レイアウト。戦場(非土地/土地)・手札・統率領域・ライブラリ/墓地/追放・折りたたみログ
+- **半自動ルール**: ターン/フェイズ進行(アンタップ・ドロー自動)、マナプールとコスト自動支払い(混成・ファイレクシア・X対応)、統率者税、各種カウンター。ルールを強制しないサンドボックス方針(不足時も強行可)
+- **操作**: 右クリック=全操作メニュー / ダブルクリック=クイック操作(土地プレイ・キャスト・マナ生成タップ等) / ドラッグ&ドロップ / キーボードショートカット(Space=次のフェイズ、Cmd+Z=undo、D=ドロー)
+- **その他**: ロンドンマリガン、undo/redo(スナップショット履歴)、トークン生成、ホバー拡大プレビュー、デッキのlocalStorage保存
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 開発
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+npm install
+npm run dev        # 開発サーバー (http://localhost:5173)
+npm test           # ユニットテスト + プロパティテスト (vitest + fast-check)
+npm run build      # 本番ビルド (dist/)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## デプロイ
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+- **GitHub Pages**: `main` への push で GitHub Actions が自動ビルド・デプロイ
+- **Hugging Face Spaces (Static)**: `npm run build` の `dist/` をそのままアップロード可能
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+## アーキテクチャ
+
 ```
+src/
+├─ data/      Scryfallクライアント・デッキリストパーサ・IndexedDBキャッシュ
+├─ engine/    ゲームエンジン(純粋関数・イミュータブル。docs/engine-spec.md が仕様)
+├─ store/     Zustandストア(スナップショット undo/redo)
+├─ components/ プレイマットUI
+└─ hooks/     ショートカット・ホバープレビュー
+```
+
+カードデータ・画像は Scryfall のAPIを利用しています。本プロジェクトは Wizards of the Coast 非公式のファンコンテンツです。
