@@ -1,11 +1,39 @@
 import { useState } from 'react';
-import type { GameState } from '../../engine/types';
+import { useDroppable } from '@dnd-kit/core';
+import type { GameState, ZoneId } from '../../engine/types';
 import type { useGameStore } from '../../store/gameStore';
 import { CardView } from '../CardView';
 import { commanderTax, isCommander } from '../../engine/commander';
 import { LibraryMenu } from './dialogs';
 
 type Store = ReturnType<typeof useGameStore.getState>;
+
+/** Make a zone card a drop target for card drag-and-drop. */
+function DroppableZoneCard({
+  zone,
+  className,
+  testId,
+  onClick,
+  children,
+}: {
+  zone: ZoneId;
+  className?: string;
+  testId: string;
+  onClick?: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${zone}-zone`, data: { zone } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`zone-card ${className ?? ''} ${isOver ? 'zone-card--over' : ''}`}
+      data-testid={testId}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
+}
 
 export interface ZonesProps {
   state: GameState;
@@ -24,16 +52,17 @@ export function Zones({ state, store, onOpenViewer, onCommanderClick }: ZonesPro
 
   return (
     <div className="zones">
-      <div
-        className="zone-card zone-card--library"
-        data-testid="zone-library"
+      <DroppableZoneCard
+        zone="library"
+        className="zone-card--library"
+        testId="zone-library"
         onClick={(e) => setLibraryMenu({ x: e.clientX, y: e.clientY })}
       >
         <div className="zone-card__face zone-card__face--library">
           <span className="zone-card__count">{state.zones.library.length}</span>
         </div>
         <span className="zone-card__label">ライブラリ</span>
-      </div>
+      </DroppableZoneCard>
       {libraryMenu && (
         <LibraryMenu
           x={libraryMenu.x}
@@ -45,7 +74,7 @@ export function Zones({ state, store, onOpenViewer, onCommanderClick }: ZonesPro
         />
       )}
 
-      <div className="zone-card" data-testid="zone-graveyard" onClick={() => onOpenViewer('graveyard')}>
+      <DroppableZoneCard zone="graveyard" testId="zone-graveyard" onClick={() => onOpenViewer('graveyard')}>
         <div className="zone-card__face zone-card__face--graveyard">
           {graveyard.length > 0 ? (
             <CardView instance={state.cards[graveyard[graveyard.length - 1]]} def={state.defs[state.cards[graveyard[graveyard.length - 1]].defId]} size="small" />
@@ -54,9 +83,9 @@ export function Zones({ state, store, onOpenViewer, onCommanderClick }: ZonesPro
           )}
         </div>
         <span className="zone-card__label">墓地 ({graveyard.length})</span>
-      </div>
+      </DroppableZoneCard>
 
-      <div className="zone-card" data-testid="zone-exile" onClick={() => onOpenViewer('exile')}>
+      <DroppableZoneCard zone="exile" testId="zone-exile" onClick={() => onOpenViewer('exile')}>
         <div className="zone-card__face zone-card__face--exile">
           {exile.length > 0 ? (
             <CardView instance={state.cards[exile[exile.length - 1]]} def={state.defs[state.cards[exile[exile.length - 1]].defId]} size="small" />
@@ -65,9 +94,9 @@ export function Zones({ state, store, onOpenViewer, onCommanderClick }: ZonesPro
           )}
         </div>
         <span className="zone-card__label">追放 ({exile.length})</span>
-      </div>
+      </DroppableZoneCard>
 
-      <div className="zone-card zone-card--command" data-testid="zone-command">
+      <DroppableZoneCard zone="command" className="zone-card--command" testId="zone-command">
         <div className="zone-card__face zone-card__face--command">
           {command.length === 0 && <span className="zone-card__count">0</span>}
           {command.map((id) => {
@@ -91,7 +120,7 @@ export function Zones({ state, store, onOpenViewer, onCommanderClick }: ZonesPro
           })}
         </div>
         <span className="zone-card__label">統率領域</span>
-      </div>
+      </DroppableZoneCard>
     </div>
   );
 }
