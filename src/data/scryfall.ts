@@ -95,18 +95,28 @@ function sleep(ms: number): Promise<void> {
 /**
  * Fetch a URL with rate limiting (caller is responsible for spacing requests)
  * and exponential backoff retry on 429/503 responses.
+ *
+ * Throttled Scryfall responses can arrive without CORS headers, in which case
+ * the browser surfaces them as a thrown TypeError rather than an HTTP status —
+ * so network-level rejections are retried with the same backoff policy.
  */
 async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
   let attempt = 0;
   for (;;) {
-    const response = await fetch(url, init);
-    if (response.status !== 429 && response.status !== 503) {
-      return response;
+    try {
+      const response = await fetch(url, init);
+      if (response.status !== 429 && response.status !== 503) {
+        return response;
+      }
+      if (attempt >= MAX_RETRIES) {
+        return response;
+      }
+    } catch (err) {
+      if (attempt >= MAX_RETRIES) {
+        throw err;
+      }
     }
-    if (attempt >= MAX_RETRIES) {
-      return response;
-    }
-    const backoffMs = REQUEST_INTERVAL_MS * 2 ** attempt * 5;
+    const backoffMs = REQUEST_INTERVAL_MS * 2 ** attempt * 10;
     await sleep(backoffMs);
     attempt += 1;
   }

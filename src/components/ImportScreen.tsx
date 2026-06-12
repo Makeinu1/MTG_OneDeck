@@ -81,7 +81,7 @@ export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
         <p className="import-screen__kicker">MTG OneDeck</p>
         <h1>統率者戦・一人回し</h1>
         <p className="import-screen__lede">
-          デッキリストを貼り付けて、プレイマット上でゴルダン体験を一人で再現します。
+          デッキリストを貼り付けて、プレイマット上でゴールドフィッシュ(一人回し)を再現します。
         </p>
       </div>
 

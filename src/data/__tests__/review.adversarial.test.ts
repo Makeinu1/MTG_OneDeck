@@ -188,6 +188,47 @@ describe('resolver: canonical-name mismatches must not drop cards', () => {
   });
 });
 
+describe('resolver: throttled fetches that reject are retried', () => {
+  it('recovers when fetch throws (CORS-less 429) before eventually succeeding', async () => {
+    let searchCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string | URL | Request) => {
+        const url = urlOf(input);
+        if (url.includes('/cards/search')) {
+          searchCalls += 1;
+          if (searchCalls <= 2) {
+            return Promise.reject(new TypeError('Failed to fetch'));
+          }
+          return Promise.resolve(
+            jsonResponse({
+              object: 'list',
+              total_cards: 1,
+              data: [
+                card('Beast Within', {
+                  lang: 'ja',
+                  printed_name: '内にいる獣',
+                  type_line: 'Instant',
+                  mana_cost: '{2}{G}',
+                  color_identity: ['G'],
+                }),
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse(emptyList, 404));
+      }),
+    );
+
+    const result = await resolveDeck([
+      { quantity: 1, name: '内にいる獣', section: 'main', line: 1 },
+    ]);
+    expect(searchCalls).toBe(3);
+    expect(result.unresolved).toEqual([]);
+    expect(result.resolved.get('内にいる獣')?.name).toBe('Beast Within');
+  }, 15000);
+});
+
 describe('resolver: Japanese exact-name query syntax', () => {
   it('uses lang:ja !"<name>" (printed_name: is not a real Scryfall keyword)', async () => {
     const searchQueries: string[] = [];

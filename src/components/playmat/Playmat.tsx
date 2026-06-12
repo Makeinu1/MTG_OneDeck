@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { DndContext, DragOverlay, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
 import { useGameStore } from '../../store/gameStore';
 import type { ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
@@ -19,8 +28,10 @@ import {
   TokenCreateDialog,
   ZoneViewerDialog,
   MulliganBottomDialog,
+  ConfirmDialog,
 } from './dialogs';
 import type { ManaColor } from '../../types/card';
+import { useShortcuts } from '../../hooks/useShortcuts';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingCast =
@@ -40,6 +51,30 @@ export function Playmat() {
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const isDialogOpen =
+    manaChoice !== null ||
+    pendingCast !== null ||
+    commanderMove !== null ||
+    tokenDialogOpen ||
+    zoneViewer !== null ||
+    mulliganBottomCount !== null ||
+    confirmAction !== null;
+
+  useShortcuts({
+    onNextPhase: () => store.nextPhase(),
+    onNextTurn: () => store.nextTurn(),
+    onUndo: () => store.undo(),
+    onRedo: () => store.redo(),
+    onDraw: () => store.draw(1),
+    isDialogOpen,
+  });
 
   if (!state) return null;
 
@@ -218,7 +253,7 @@ export function Playmat() {
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="playmat" onClick={closeMenu}>
         <SidePanel
           state={state}
@@ -227,6 +262,8 @@ export function Playmat() {
             store.mulligan();
             setMulliganBottomCount(state.mulliganCount + 1);
           }}
+          onRestart={() => setConfirmAction('restart')}
+          onBackToImport={() => setConfirmAction('back-to-import')}
         />
 
         <div className="playmat__center">
@@ -338,6 +375,34 @@ export function Playmat() {
               store.putBottomForMulligan(chosen);
               setMulliganBottomCount(null);
             }}
+          />
+        )}
+
+        {confirmAction === 'restart' && (
+          <ConfirmDialog
+            title="最初からやり直す"
+            message="このゲームを終了し、同じデッキで最初からやり直します。現在の進行状況は失われます。よろしいですか?"
+            confirmLabel="やり直す"
+            onConfirm={() => {
+              store.restart();
+              setConfirmAction(null);
+            }}
+            onCancel={() => setConfirmAction(null)}
+            testId="restart-confirm-dialog"
+          />
+        )}
+
+        {confirmAction === 'back-to-import' && (
+          <ConfirmDialog
+            title="デッキ選択に戻る"
+            message="このゲームを終了し、デッキ選択画面に戻ります。現在の進行状況は失われます。よろしいですか?"
+            confirmLabel="デッキ選択に戻る"
+            onConfirm={() => {
+              useGameStore.setState({ state: null, warnings: [], canUndo: false, canRedo: false });
+              setConfirmAction(null);
+            }}
+            onCancel={() => setConfirmAction(null)}
+            testId="back-to-import-confirm-dialog"
           />
         )}
 

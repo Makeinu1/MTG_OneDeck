@@ -24,10 +24,12 @@ export interface SidePanelProps {
   state: GameState;
   store: Store;
   onMulligan: () => void;
+  onRestart: () => void;
+  onBackToImport: () => void;
 }
 
 /** Left-hand control panel: life, counters, commander damage, mana, turn/phase, history. */
-export function SidePanel({ state, store, onMulligan }: SidePanelProps) {
+export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport }: SidePanelProps) {
   const [opponentLabels, setOpponentLabels] = useState<string[]>(() =>
     Object.keys(state.commanderDamage).length > 0 ? Object.keys(state.commanderDamage) : ['対戦相手A'],
   );
@@ -174,6 +176,16 @@ export function SidePanel({ state, store, onMulligan }: SidePanelProps) {
         </div>
         <button type="button" className="btn btn--ghost" data-testid="mulligan" onClick={onMulligan}>
           マリガン
+        </button>
+      </section>
+
+      <section className="side-panel__section">
+        <h3>ゲーム管理</h3>
+        <button type="button" className="btn btn--ghost" data-testid="restart-game" onClick={onRestart}>
+          最初からやり直す
+        </button>
+        <button type="button" className="btn btn--ghost" data-testid="back-to-import" onClick={onBackToImport}>
+          デッキ選択に戻る
         </button>
       </section>
     </aside>

@@ -77,6 +77,42 @@ export function ShortfallDialog({
   );
 }
 
+/** Generic yes/no confirmation dialog (e.g. restart, return to deck selection). */
+export function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  testId,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  testId?: string;
+}) {
+  return (
+    <Modal title={title} onClose={onCancel} width="sm" testId={testId}>
+      <p>{message}</p>
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel} data-testid={`${testId}-cancel`}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--danger"
+          onClick={onConfirm}
+          data-testid={`${testId}-confirm`}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 /** Dialog for choosing where a moving commander should go (incl. command zone). */
 export function CommanderMoveDialog({
   cardName,
@@ -216,7 +252,17 @@ const ZONE_TITLES: Record<ZoneId, string> = {
   command: '統率領域',
 };
 
-/** Modal listing every card in a zone with a per-card move menu. */
+/** Returns every display name (printed + English, both faces) for a card, for search matching. */
+function searchableNames(def: CardDef | undefined): string[] {
+  if (!def) return [];
+  const names = [def.name, def.printedName ?? ''];
+  for (const face of def.faces) {
+    names.push(face.name, face.printedName ?? '');
+  }
+  return names.filter((n) => n !== '');
+}
+
+/** Modal listing every card in a zone with a per-card move menu. Library view includes a name search/filter. */
 export function ZoneViewerDialog({
   zone,
   cardIds,
@@ -230,6 +276,8 @@ export function ZoneViewerDialog({
   onMove: (cardId: string, to: ZoneId) => void;
   onClose: () => void;
 }) {
+  const [search, setSearch] = useState('');
+
   const allTargets: { zone: ZoneId; label: string }[] = [
     { zone: 'hand', label: '手札へ' },
     { zone: 'battlefield', label: '戦場へ' },
@@ -240,13 +288,38 @@ export function ZoneViewerDialog({
   ];
   const targets = allTargets.filter((t) => t.zone !== zone);
 
+  const query = search.trim().toLowerCase();
+  const filteredIds = query
+    ? cardIds.filter((id) => {
+        const card = state.cards[id];
+        const def = card ? state.defs[card.defId] : undefined;
+        return searchableNames(def).some((n) => n.toLowerCase().includes(query));
+      })
+    : cardIds;
+
   return (
     <Modal title={ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={`${zone}-viewer-dialog`}>
+      {zone === 'library' && cardIds.length > 0 && (
+        <div className="zone-viewer__search">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="カード名で検索…"
+            data-testid="zone-viewer-search"
+          />
+          <span className="zone-viewer__search-count">
+            {filteredIds.length} / {cardIds.length} 枚
+          </span>
+        </div>
+      )}
       {cardIds.length === 0 ? (
         <p className="zone-viewer__empty">カードはありません。</p>
+      ) : filteredIds.length === 0 ? (
+        <p className="zone-viewer__empty">該当するカードはありません。</p>
       ) : (
         <ul className="zone-viewer__list">
-          {cardIds.map((id) => {
+          {filteredIds.map((id) => {
             const card: CardInstance | undefined = state.cards[id];
             const def: CardDef | undefined = card ? state.defs[card.defId] : undefined;
             const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
