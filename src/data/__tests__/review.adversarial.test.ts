@@ -23,6 +23,10 @@ interface MockCard {
   layout: string;
   cmc: number;
   type_line: string;
+  mana_cost?: string;
+  oracle_text?: string;
+  power?: string;
+  toughness?: string;
   color_identity: string[];
   image_uris?: { normal: string };
 }
@@ -202,6 +206,8 @@ describe('resolver: Japanese exact-name query syntax', () => {
                   lang: 'ja',
                   printed_name: '稲妻',
                   type_line: 'Instant',
+                  mana_cost: '{R}',
+                  oracle_text: 'Lightning Bolt deals 3 damage to any target.',
                   color_identity: ['R'],
                 }),
               ],
@@ -219,7 +225,12 @@ describe('resolver: Japanese exact-name query syntax', () => {
     expect(searchQueries).toHaveLength(1);
     expect(searchQueries[0]).toBe('lang:ja !"稲妻"');
     expect(result.unresolved).toEqual([]);
-    expect(result.resolved.get('稲妻')?.name).toBe('Lightning Bolt');
-    expect(result.resolved.get('稲妻')?.printedName).toBe('稲妻');
+    const def = result.resolved.get('稲妻');
+    expect(def?.name).toBe('Lightning Bolt');
+    expect(def?.printedName).toBe('稲妻');
+    // Single-faced cards must carry cost/text onto their synthesized face —
+    // a missing manaCost makes every cast free in the engine.
+    expect(def?.faces[0]?.manaCost).toBe('{R}');
+    expect(def?.faces[0]?.oracleText).toContain('3 damage');
   });
 });

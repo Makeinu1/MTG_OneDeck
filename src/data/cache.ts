@@ -2,7 +2,9 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { CardDef } from '../types/card';
 
 // Bump this when the stored CardDef shape changes in a backwards-incompatible way.
-export const CACHE_SCHEMA_VERSION = 1;
+// v2: single-faced cards now carry manaCost/oracleText on faces[0]; v1 entries
+// lack them and must be discarded.
+export const CACHE_SCHEMA_VERSION = 2;
 
 const DB_NAME = 'mtg-onedeck-cache';
 const NAME_STORE = 'cardsByName';
@@ -31,7 +33,16 @@ let dbPromise: Promise<IDBPDatabase<CardCacheSchema>> | undefined;
 function getDb(): Promise<IDBPDatabase<CardCacheSchema>> {
   if (!dbPromise) {
     dbPromise = openDB<CardCacheSchema>(DB_NAME, CACHE_SCHEMA_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // Schema change: drop stale stores so old-shaped CardDefs are discarded.
+        if (oldVersion > 0 && oldVersion < CACHE_SCHEMA_VERSION) {
+          if (db.objectStoreNames.contains(NAME_STORE)) {
+            db.deleteObjectStore(NAME_STORE);
+          }
+          if (db.objectStoreNames.contains(ORACLE_STORE)) {
+            db.deleteObjectStore(ORACLE_STORE);
+          }
+        }
         if (!db.objectStoreNames.contains(NAME_STORE)) {
           db.createObjectStore(NAME_STORE);
         }

@@ -48,6 +48,13 @@ interface ScryfallCard {
   cmc: number;
   color_identity?: string[];
   type_line: string;
+  printed_type_line?: string;
+  mana_cost?: string;
+  oracle_text?: string;
+  printed_text?: string;
+  power?: string;
+  toughness?: string;
+  loyalty?: string;
   produced_mana?: string[];
   image_uris?: ScryfallImageUris;
   card_faces?: ScryfallCardFace[];
@@ -135,8 +142,15 @@ function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
       {
         name: card.name,
         printedName: card.printed_name,
+        manaCost: card.mana_cost,
         typeLine: card.type_line,
+        printedTypeLine: card.printed_type_line,
+        oracleText: card.oracle_text,
+        printedText: card.printed_text,
         imageUrl: card.image_uris?.normal,
+        power: card.power,
+        toughness: card.toughness,
+        loyalty: card.loyalty,
       },
     ];
   }
