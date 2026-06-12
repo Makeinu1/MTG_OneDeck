@@ -377,6 +377,11 @@ function applyCast(
       ? `マナが${shortfall}点不足していますが強行しました。`
       : `マナが${shortfall}点不足(強行)。`;
     draft.warnings.push(msg);
+  } else if (forced) {
+    // The store passes forced=true when the solver could not fully pay; the
+    // payment itself never exceeds the pool, so warn off the flag, not the
+    // pool subtraction.
+    draft.warnings.push('マナ不足のまま強行でキャストしました。');
   }
 
   const typeLine = typeLineOf(draft, card);
