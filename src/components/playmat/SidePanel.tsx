@@ -26,10 +26,11 @@ export interface SidePanelProps {
   onMulligan: () => void;
   onRestart: () => void;
   onBackToImport: () => void;
+  onCreateToken: () => void;
 }
 
 /** Left-hand control panel: life, counters, commander damage, mana, turn/phase, history. */
-export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport }: SidePanelProps) {
+export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport, onCreateToken }: SidePanelProps) {
   const [opponentLabels, setOpponentLabels] = useState<string[]>(() =>
     Object.keys(state.commanderDamage).length > 0 ? Object.keys(state.commanderDamage) : ['対戦相手A'],
   );
@@ -88,23 +89,21 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport 
       </section>
 
       <section className="side-panel__section">
-        <h3>ライフ</h3>
-        <div className="stat-row">
-          <button type="button" className="stat-row__btn" onClick={() => adjustLife(-1)} aria-label="ライフを減らす">
-            −
-          </button>
-          <span className="stat-row__value stat-row__value--life" data-testid="life-value">
-            {state.life}
-          </span>
-          <button type="button" className="stat-row__btn" onClick={() => adjustLife(1)} aria-label="ライフを増やす">
-            +
-          </button>
+        <div className="side-panel__life-row">
+          <h3>ライフ</h3>
+          <div className="stat-row stat-row--life">
+            <button type="button" className="stat-row__btn" onClick={() => adjustLife(-1)} aria-label="ライフを減らす">
+              −
+            </button>
+            <span className="stat-row__value stat-row__value--life" data-testid="life-value">
+              {state.life}
+            </span>
+            <button type="button" className="stat-row__btn" onClick={() => adjustLife(1)} aria-label="ライフを増やす">
+              +
+            </button>
+          </div>
         </div>
-      </section>
-
-      <section className="side-panel__section">
-        <h3>カウンター</h3>
-        <div className="counter-list">
+        <div className="counter-list counter-list--grid">
           <CounterRow label="毒" value={state.poison} onChange={(d) => adjustCounter('poison', d)} testId="poison" />
           <CounterRow label="エネルギー" value={state.energy} onChange={(d) => adjustCounter('energy', d)} testId="energy" />
           <CounterRow
@@ -116,7 +115,7 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport 
         </div>
       </section>
 
-      <section className="side-panel__section">
+      <section className="side-panel__section side-panel__section--scroll">
         <h3>統率者ダメージ</h3>
         <div className="counter-list">
           {opponentLabels.map((label) => (
@@ -165,7 +164,6 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport 
       </section>
 
       <section className="side-panel__section">
-        <h3>履歴・マリガン</h3>
         <div className="side-panel__buttons">
           <button type="button" className="btn" data-testid="undo" disabled={!store.canUndo} onClick={() => store.undo()}>
             戻す
@@ -174,19 +172,22 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport 
             やり直す
           </button>
         </div>
-        <button type="button" className="btn btn--ghost" data-testid="mulligan" onClick={onMulligan}>
-          マリガン
-        </button>
-      </section>
-
-      <section className="side-panel__section">
-        <h3>ゲーム管理</h3>
-        <button type="button" className="btn btn--ghost" data-testid="restart-game" onClick={onRestart}>
-          最初からやり直す
-        </button>
-        <button type="button" className="btn btn--ghost" data-testid="back-to-import" onClick={onBackToImport}>
-          デッキ選択に戻る
-        </button>
+        <div className="side-panel__buttons">
+          <button type="button" className="btn btn--ghost" data-testid="mulligan" onClick={onMulligan}>
+            マリガン
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={onCreateToken} data-testid="create-token">
+            トークン生成
+          </button>
+        </div>
+        <div className="side-panel__buttons">
+          <button type="button" className="btn btn--ghost" data-testid="restart-game" onClick={onRestart}>
+            最初からやり直す
+          </button>
+          <button type="button" className="btn btn--ghost" data-testid="back-to-import" onClick={onBackToImport}>
+            デッキ選択に戻る
+          </button>
+        </div>
       </section>
     </aside>
   );

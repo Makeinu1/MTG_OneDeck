@@ -15,6 +15,7 @@ import { isCommander } from '../../engine/commander';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
 import type { MenuTarget } from '../types';
 import { CardView } from '../CardView';
+import { CardPreview } from '../CardPreview';
 import { SidePanel } from './SidePanel';
 import { Battlefield } from './Battlefield';
 import { Hand } from './Hand';
@@ -32,6 +33,7 @@ import {
 } from './dialogs';
 import type { ManaColor } from '../../types/card';
 import { useShortcuts } from '../../hooks/useShortcuts';
+import { useHoverPreview } from '../../hooks/useHoverPreview';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingCast =
@@ -52,6 +54,9 @@ export function Playmat() {
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
+  const [logExpanded, setLogExpanded] = useState(false);
+
+  const hoverPreview = useHoverPreview();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -91,18 +96,81 @@ export function Playmat() {
     store.moveCard(move.cardId, move.to);
   }
 
-  function handleCardClick(cardId: string, e: React.MouseEvent): void {
+  function handleCardContextMenu(cardId: string, e: React.MouseEvent): void {
     e.stopPropagation();
+    hoverPreview.suppress();
     setMenu({ cardId, x: e.clientX, y: e.clientY });
   }
 
-  function handleCommanderZoneClick(cardId: string, e: React.MouseEvent): void {
+  function handleCommanderContextMenu(cardId: string, e: React.MouseEvent): void {
     e.stopPropagation();
+    hoverPreview.suppress();
     setMenu({ cardId, x: e.clientX, y: e.clientY });
   }
 
   function closeMenu(): void {
     setMenu(null);
+  }
+
+  /**
+   * Double-click quick actions:
+   * - hand land -> play as land
+   * - hand spell -> cast
+   * - battlefield untapped mana source -> tap for mana (color picker if multiple)
+   * - battlefield other card -> toggle tap
+   * - command zone commander -> cast commander
+   */
+  function handleCardDoubleClick(cardId: string, e: React.MouseEvent): void {
+    e.stopPropagation();
+    hoverPreview.suppress();
+    const card = cards[cardId];
+    if (!card) return;
+    const def = state!.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+
+    if (card.zone === 'hand') {
+      const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+      if (typeLine.includes('Land')) {
+        performMove({ cardId, to: 'battlefield' });
+      } else {
+        const result = store.castFromHand(cardId);
+        if (result !== 'ok') {
+          setPendingCast({ kind: 'hand', cardId, shortfall: result.shortfall });
+        }
+      }
+      return;
+    }
+
+    if (card.zone === 'battlefield') {
+      const produced = def?.producedMana ?? [];
+      if (!card.tapped && produced.length > 0) {
+        const result = store.tapForMana(cardId);
+        if (result === 'needs-choice') {
+          setManaChoice({ cardId, options: produced });
+        }
+        return;
+      }
+      store.toggleTap(cardId);
+      return;
+    }
+
+    if (card.zone === 'command' && isCommander(state!, cardId)) {
+      const result = store.castCommander(cardId);
+      if (result !== 'ok') {
+        setPendingCast({ kind: 'commander', cardId, shortfall: result.shortfall });
+      }
+      return;
+    }
+
+    if (card.zone === 'library') {
+      store.draw(1);
+    }
+  }
+
+  function handleLibraryDoubleClick(e: React.MouseEvent): void {
+    e.stopPropagation();
+    hoverPreview.suppress();
+    store.draw(1);
   }
 
   function buildMenuItems(cardId: string): { title: string; items: MenuItem[] } {
@@ -231,6 +299,7 @@ export function Playmat() {
 
   // --- Drag & drop ---
   function handleDragStart(e: DragStartEvent): void {
+    hoverPreview.suppress();
     setActiveDragId(String(e.active.id));
   }
 
@@ -264,17 +333,22 @@ export function Playmat() {
           }}
           onRestart={() => setConfirmAction('restart')}
           onBackToImport={() => setConfirmAction('back-to-import')}
+          onCreateToken={() => setTokenDialogOpen(true)}
         />
 
         <div className="playmat__center">
-          <div className="playmat__top-bar">
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTokenDialogOpen(true)} data-testid="create-token">
-              トークン生成
-            </button>
-          </div>
-
-          <Battlefield state={state} onCardClick={handleCardClick} />
-          <Hand state={state} onCardClick={handleCardClick} />
+          <Battlefield
+            state={state}
+            onCardContextMenu={handleCardContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            hoverPreview={hoverPreview}
+          />
+          <Hand
+            state={state}
+            onCardContextMenu={handleCardContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            hoverPreview={hoverPreview}
+          />
         </div>
 
         <div className="playmat__right">
@@ -282,10 +356,25 @@ export function Playmat() {
             state={state}
             store={store}
             onOpenViewer={(zone) => setZoneViewer(zone)}
-            onCommanderClick={handleCommanderZoneClick}
+            onCommanderContextMenu={handleCommanderContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            onLibraryDoubleClick={handleLibraryDoubleClick}
+            hoverPreview={hoverPreview}
           />
-          <GameLog log={state.log} />
+          <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
         </div>
+
+        {hoverPreview.target &&
+          !menu &&
+          !isDialogOpen &&
+          !activeDragId &&
+          cards[hoverPreview.target.cardId] && (
+            <CardPreview
+              instance={cards[hoverPreview.target.cardId]}
+              def={state.defs[cards[hoverPreview.target.cardId].defId]}
+              anchorRect={hoverPreview.target.rect}
+            />
+          )}
 
         {menu && (
           <ContextMenu

@@ -7,7 +7,12 @@ export interface CardViewProps {
   def: CardDef | undefined;
   /** Whether to render at hand size (slightly larger) vs battlefield size. */
   size?: 'hand' | 'battlefield' | 'small';
-  onClick?: (e: React.MouseEvent) => void;
+  /** Right-click: opens the action menu. */
+  onContextMenu?: (e: React.MouseEvent) => void;
+  /** Double-click: quick action (play land / cast / tap / etc.). */
+  onDoubleClick?: (e: React.MouseEvent) => void;
+  onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
+  onMouseLeave?: () => void;
   draggable?: boolean;
   /** Extra label rendered in a corner ribbon, e.g. "統率者". */
   badge?: string;
@@ -30,7 +35,10 @@ export function CardView({
   instance,
   def,
   size = 'battlefield',
-  onClick,
+  onContextMenu,
+  onDoubleClick,
+  onMouseEnter,
+  onMouseLeave,
   draggable = false,
   badge,
   faded = false,
@@ -70,7 +78,13 @@ export function CardView({
       ref={setNodeRef}
       className={classes.join(' ')}
       style={style}
-      onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu?.(e);
+      }}
+      onDoubleClick={onDoubleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       data-testid={`card-${instance.id}`}
       title={displayName}
       {...attributes}

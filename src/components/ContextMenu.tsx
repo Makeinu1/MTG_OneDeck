@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface MenuItem {
   key: string;
@@ -24,6 +24,7 @@ export interface ContextMenuProps {
  */
 export function ContextMenu({ x, y, title, items, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: x, top: y });
 
   useEffect(() => {
     function handlePointer(e: MouseEvent): void {
@@ -42,11 +43,19 @@ export function ContextMenu({ x, y, title, items, onClose }: ContextMenuProps) {
     };
   }, [onClose]);
 
-  // Clamp into viewport.
-  const style: React.CSSProperties = {
-    left: Math.min(x, window.innerWidth - 240),
-    top: Math.min(y, window.innerHeight - 24),
-  };
+  // Clamp into viewport using the menu's actual rendered size, so menus
+  // opened near the bottom/right edge (e.g. hand cards) stay fully visible.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    setPos({
+      left: Math.max(0, Math.min(x, window.innerWidth - width - 8)),
+      top: Math.max(0, Math.min(y, window.innerHeight - height - 8)),
+    });
+  }, [x, y, items.length]);
+
+  const style: React.CSSProperties = pos;
 
   return (
     <div className="context-menu" style={style} ref={ref} role="menu">

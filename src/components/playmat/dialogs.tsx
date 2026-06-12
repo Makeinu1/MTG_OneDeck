@@ -359,69 +359,6 @@ export function ZoneViewerDialog({
   );
 }
 
-/** Small floating menu near the library zone: draw / shuffle / open viewer. */
-export function LibraryMenu({
-  x,
-  y,
-  onDraw,
-  onShuffle,
-  onView,
-  onClose,
-}: {
-  x: number;
-  y: number;
-  onDraw: () => void;
-  onShuffle: () => void;
-  onView: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="context-menu" style={{ left: x, top: y }} role="menu">
-      <ul>
-        <li>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              onDraw();
-              onClose();
-            }}
-            data-testid="library-draw"
-          >
-            1枚引く
-          </button>
-        </li>
-        <li>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              onShuffle();
-              onClose();
-            }}
-            data-testid="library-shuffle"
-          >
-            シャッフル
-          </button>
-        </li>
-        <li>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              onView();
-              onClose();
-            }}
-            data-testid="library-view"
-          >
-            ライブラリを見る
-          </button>
-        </li>
-      </ul>
-    </div>
-  );
-}
-
 /** Mulligan: choose which cards from hand go to the bottom of the library. */
 export function MulliganBottomDialog({
   cardIds,

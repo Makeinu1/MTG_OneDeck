@@ -2,14 +2,18 @@ import { useDroppable } from '@dnd-kit/core';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
 import { isCommander } from '../../engine/commander';
+import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 export interface BattlefieldProps {
   state: GameState;
-  onCardClick: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
+  hoverPreview: HoverPreviewState;
 }
 
-/** The battlefield: lands on one row, non-lands on another, both droppable. */
-export function Battlefield({ state, onCardClick }: BattlefieldProps) {
+/** The battlefield: lands on one row, non-lands on another, both droppable. Both rows fill the
+ *  available height and shrink their cards evenly so the playmat never scrolls. */
+export function Battlefield({ state, onCardContextMenu, onCardDoubleClick, hoverPreview }: BattlefieldProps) {
   const ids = state.zones.battlefield;
   const lands: string[] = [];
   const nonLands: string[] = [];
@@ -29,8 +33,24 @@ export function Battlefield({ state, onCardClick }: BattlefieldProps) {
 
   return (
     <div className="battlefield" data-testid="zone-battlefield">
-      <BattlefieldRow title="非土地" cardIds={nonLands} state={state} onCardClick={onCardClick} dropId="battlefield-nonland" />
-      <BattlefieldRow title="土地" cardIds={lands} state={state} onCardClick={onCardClick} dropId="battlefield-land" />
+      <BattlefieldRow
+        title="非土地"
+        cardIds={nonLands}
+        state={state}
+        onCardContextMenu={onCardContextMenu}
+        onCardDoubleClick={onCardDoubleClick}
+        hoverPreview={hoverPreview}
+        dropId="battlefield-nonland"
+      />
+      <BattlefieldRow
+        title="土地"
+        cardIds={lands}
+        state={state}
+        onCardContextMenu={onCardContextMenu}
+        onCardDoubleClick={onCardDoubleClick}
+        hoverPreview={hoverPreview}
+        dropId="battlefield-land"
+      />
     </div>
   );
 }
@@ -39,13 +59,17 @@ function BattlefieldRow({
   title,
   cardIds,
   state,
-  onCardClick,
+  onCardContextMenu,
+  onCardDoubleClick,
+  hoverPreview,
   dropId,
 }: {
   title: string;
   cardIds: string[];
   state: GameState;
-  onCardClick: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
+  hoverPreview: HoverPreviewState;
   dropId: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dropId, data: { zone: 'battlefield' } });
@@ -66,7 +90,10 @@ function BattlefieldRow({
                 def={def}
                 size="battlefield"
                 draggable
-                onClick={(e) => onCardClick(id, e)}
+                onContextMenu={(e) => onCardContextMenu(id, e)}
+                onDoubleClick={(e) => onCardDoubleClick(id, e)}
+                onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
+                onMouseLeave={hoverPreview.onMouseLeave}
                 badge={isCommander(state, id) ? '統率者' : undefined}
               />
               {attachments.map((attId) => {
@@ -78,7 +105,10 @@ function BattlefieldRow({
                       instance={attCard}
                       def={attDef}
                       size="small"
-                      onClick={(e) => onCardClick(attId, e)}
+                      onContextMenu={(e) => onCardContextMenu(attId, e)}
+                      onDoubleClick={(e) => onCardDoubleClick(attId, e)}
+                      onMouseEnter={(e) => hoverPreview.onMouseEnter(attId, e)}
+                      onMouseLeave={hoverPreview.onMouseLeave}
                     />
                   </div>
                 );

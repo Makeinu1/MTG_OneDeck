@@ -1,14 +1,18 @@
 import { useDroppable } from '@dnd-kit/core';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
+import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 export interface HandProps {
   state: GameState;
-  onCardClick: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
+  hoverPreview: HoverPreviewState;
 }
 
-/** The hand row, rendered along the bottom of the playmat. Droppable for D&D. */
-export function Hand({ state, onCardClick }: HandProps) {
+/** The hand row, rendered along the bottom of the playmat. Droppable for D&D.
+ *  Cards overlap when there isn't enough room and lift on hover. */
+export function Hand({ state, onCardContextMenu, onCardDoubleClick, hoverPreview }: HandProps) {
   const { setNodeRef, isOver } = useDroppable({ id: 'hand-zone', data: { zone: 'hand' } });
   const ids = state.zones.hand;
 
@@ -25,14 +29,18 @@ export function Hand({ state, onCardClick }: HandProps) {
           const card = state.cards[id];
           const def = state.defs[card.defId];
           return (
-            <CardView
-              key={id}
-              instance={card}
-              def={def}
-              size="hand"
-              draggable
-              onClick={(e) => onCardClick(id, e)}
-            />
+            <div key={id} className="hand__slot">
+              <CardView
+                instance={card}
+                def={def}
+                size="hand"
+                draggable
+                onContextMenu={(e) => onCardContextMenu(id, e)}
+                onDoubleClick={(e) => onCardDoubleClick(id, e)}
+                onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
+                onMouseLeave={hoverPreview.onMouseLeave}
+              />
+            </div>
           );
         })}
       </div>
