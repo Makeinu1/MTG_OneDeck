@@ -25,7 +25,10 @@ export type GameCommand =
   | { type: 'payMana'; payment: ManaPool }
   | { type: 'clearManaPool' }
   | { type: 'draw'; count: number }
+  | { type: 'mill'; count: number }
   | { type: 'shuffle'; order: string[] }
+  | { type: 'untapAll' }
+  | { type: 'discard'; cardIds: string[] }
   | { type: 'putOnBottom'; cardIds: string[] }
   | { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean }
   | { type: 'arrangeTop'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
@@ -328,7 +331,7 @@ function untapAll(draft: Draft): void {
   }
   if (changed) {
     draft.state.cards = cards;
-    pushLog(draft, '戦場のすべてのパーマネントをアンタップしました。');
+    pushLog(draft, 'すべてのパーマネントをアンタップした。');
   }
 }
 
@@ -369,6 +372,40 @@ function drawCards(draft: Draft, count: number): number {
     drawn++;
   }
   return drawn;
+}
+
+function applyMill(draft: Draft, count: number): void {
+  const requested = Math.max(0, Math.floor(count));
+  if (requested <= 0) return;
+
+  const available = draft.state.zones.library.length;
+  const milled = Math.min(requested, available);
+  const topIds = draft.state.zones.library.slice(0, milled);
+
+  for (const cardId of topIds) {
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
+  }
+
+  pushLog(draft, `切削: ライブラリの上から${milled}枚を墓地に置いた。`);
+  if (requested > available) {
+    draft.warnings.push(
+      `ライブラリが${requested}枚に満たないため${milled}枚を切削した。`
+    );
+  }
+}
+
+function applyDiscard(draft: Draft, cardIds: string[]): void {
+  let discarded = 0;
+
+  for (const cardId of cardIds) {
+    if (!draft.state.cards[cardId]) continue;
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
+    discarded += 1;
+  }
+
+  if (discarded > 0) {
+    pushLog(draft, `${discarded}枚を捨てた。`);
+  }
 }
 
 function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
@@ -817,8 +854,20 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       }
       break;
     }
+    case 'mill': {
+      applyMill(draft, cmd.count);
+      break;
+    }
     case 'shuffle': {
       applyShuffle(draft, cmd.order);
+      break;
+    }
+    case 'untapAll': {
+      untapAll(draft);
+      break;
+    }
+    case 'discard': {
+      applyDiscard(draft, cmd.cardIds);
       break;
     }
     case 'putOnBottom': {

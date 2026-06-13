@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '../../store/gameStore';
+import { createRng, shuffledOrder } from '../random';
 import { makeDef, makeDeck } from './helpers';
 
 const store = () => useGameStore.getState();
@@ -13,6 +14,10 @@ describe('GameStore', () => {
       canRedo: false,
       autoAdvanceToMain: true,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('newGame initializes and draws 7', () => {
@@ -267,6 +272,18 @@ describe('GameStore', () => {
     store().crackTreasure(treasureId, 'R');
     expect(store().state!.manaPool.R).toBe(1);
     expect(store().state!.cards[treasureId]).toBeUndefined();
+  });
+
+  it('discardRandom is deterministic for a fixed seed', () => {
+    store().newGame(makeDeck(12), 1);
+    const handBefore = store().state!.zones.hand.slice();
+    const expected = shuffledOrder(handBefore, createRng(1)).slice(0, 3);
+
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    store().discardRandom(3);
+
+    expect(store().state!.zones.graveyard.slice(-3)).toEqual(expected);
+    expect(expected.every((id) => store().state!.cards[id].zone === 'graveyard')).toBe(true);
   });
 
   it('clearWarnings empties warnings', () => {

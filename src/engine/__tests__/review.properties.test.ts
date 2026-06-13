@@ -101,6 +101,9 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'crackTreasure',
     'adjustOpponentLife',
     'arrangeTop',
+    'mill',
+    'untapAll',
+    'discard',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -219,6 +222,15 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
         else toGraveyard.push(id);
       }
       return { type: 'arrangeTop', topOrder, toBottom, toGraveyard };
+    }
+    case 'mill':
+      return { type: 'mill', count: Math.floor(rng() * 4) };
+    case 'untapAll':
+      return { type: 'untapAll' };
+    case 'discard': {
+      if (state.zones.hand.length === 0) return { type: 'nextPhase' };
+      const k = 1 + Math.floor(rng() * Math.min(2, state.zones.hand.length));
+      return { type: 'discard', cardIds: state.zones.hand.slice(0, k) };
     }
     case 'castSpell': {
       if (state.zones.hand.length === 0) return { type: 'nextPhase' };

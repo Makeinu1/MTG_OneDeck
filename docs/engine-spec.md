@@ -419,3 +419,37 @@ declareAttack(attackerIds: string[], targetLabel: string): void;
 adjustOpponentLife(label: string, delta: number): void;   // dispatch ラッパー
 arrangeTop(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;  // dispatch ラッパー
 ```
+
+---
+
+## 9. M4.8 追補(A層プリミティブの拡充)— この節も契約である
+
+設計指針: 確定的・プレイヤー起動の状態書き換えのみ。カード個別実装はしない(汎用アクション)。
+
+### 9.1 コマンドの追加(`src/engine/commands.ts`)
+```ts
+| { type: 'mill'; count: number }
+//   ライブラリ上から min(count, library.length) 枚を、上から順に墓地へ移動(moveCardInternal 経由)。
+//   ログ「切削: ライブラリの上から{n}枚を墓地に置いた。」(n=実際に動いた枚数)。
+//   count > library.length のとき warning「ライブラリが{count}枚に満たないため{n}枚を切削した。」。
+//   count<=0 は no-op(ログなし)。
+
+| { type: 'untapAll' }
+//   battlefield 全カードの tapped=false。既存の untapAll(draft) ヘルパー(commands.ts L319)を再利用。
+//   何か変化した時のみログ「すべてのパーマネントをアンタップした。」。
+
+| { type: 'discard'; cardIds: string[] }
+//   指定 cardIds を配列順に墓地へ(moveCardInternal 経由)。存在しない id は無視(throw しない)。
+//   ログ「{n}枚を捨てた。」(n=実際に動いた枚数、>0 のときのみ)。手札以外でも拒否しない(サンドボックス)。
+```
+- I1/I2 を維持(いずれも moveCardInternal 経由。mill/discard 対象は非トークン想定だが、万一トークンでも既存の消滅挙動に従う)。
+
+### 9.2 ストア(`src/store/gameStore.ts`)
+```ts
+mill(count: number): void;                  // dispatch({ type: 'mill', count })
+untapAllPermanents(): void;                  // dispatch({ type: 'untapAll' })
+discard(cardIds: string[]): void;            // dispatch({ type: 'discard', cardIds })(単一コミット)
+discardRandom(count: number): void;
+//   現在の手札から createRng(randomSeed()) + shuffledOrder で min(count, hand.length) 枚を選び、
+//   discard コマンドを dispatch(mulligan/shuffleLibrary と同じ乱数パターン)。
+```

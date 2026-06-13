@@ -46,6 +46,8 @@ export interface ZonesProps {
   store: Store;
   onOpenViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
   onArrangeTop: () => void;
+  onMill: () => void;
+  onPeek: () => void;
   onCommanderContextMenu: (cardId: string, e: React.MouseEvent) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   onLibraryDoubleClick: (e: React.MouseEvent) => void;
@@ -59,6 +61,8 @@ export function Zones({
   store,
   onOpenViewer,
   onArrangeTop,
+  onMill,
+  onPeek,
   onCommanderContextMenu,
   onCardDoubleClick,
   onLibraryDoubleClick,
@@ -155,6 +159,28 @@ export function Zones({
               }}
             >
               上から見る
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              data-testid="peek"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPeek();
+              }}
+            >
+              上を見る
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              data-testid="mill"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMill();
+              }}
+            >
+              切削
             </button>
           </div>
         </DroppableZoneCard>

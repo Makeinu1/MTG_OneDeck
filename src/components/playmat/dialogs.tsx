@@ -128,6 +128,65 @@ export function XCostDialog({
   );
 }
 
+export function CountDialog({
+  title,
+  label,
+  description,
+  defaultValue = 1,
+  confirmLabel = '決定',
+  inputTestId,
+  confirmTestId,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  label: string;
+  description?: string;
+  defaultValue?: number;
+  confirmLabel?: string;
+  inputTestId: string;
+  confirmTestId: string;
+  onConfirm: (count: number) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(String(Math.max(1, Math.floor(defaultValue))));
+
+  function parsedCount(): number {
+    return Math.max(1, Number.parseInt(value, 10) || 1);
+  }
+
+  return (
+    <Modal title={title} onClose={onCancel} width="sm" testId={`${confirmTestId}-dialog`}>
+      {description && <p>{description}</p>}
+      <label className="dialog__field">
+        {label}
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          data-testid={inputTestId}
+          autoFocus
+        />
+      </label>
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(parsedCount())}
+          data-testid={confirmTestId}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function LandTapChoiceDialog({
   cardName,
   onChoose,
@@ -722,15 +781,26 @@ export function ZoneViewerDialog({
   cardIds,
   state,
   onMove,
+  onCardContextMenu,
   onClose,
+  readOnly = false,
+  searchEnabled,
+  title,
+  testId,
 }: {
   zone: ZoneId;
   cardIds: string[];
   state: GameState;
-  onMove: (cardId: string, to: ZoneId) => void;
+  onMove?: (cardId: string, to: ZoneId) => void;
+  onCardContextMenu?: (cardId: string, e: React.MouseEvent) => void;
   onClose: () => void;
+  readOnly?: boolean;
+  searchEnabled?: boolean;
+  title?: string;
+  testId?: string;
 }) {
   const [search, setSearch] = useState('');
+  const shouldShowSearch = searchEnabled ?? (zone === 'library' && !readOnly);
 
   const allTargets: { zone: ZoneId; label: string }[] = [
     { zone: 'hand', label: '手札へ' },
@@ -752,8 +822,8 @@ export function ZoneViewerDialog({
     : cardIds;
 
   return (
-    <Modal title={ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={`${zone}-viewer-dialog`}>
-      {zone === 'library' && cardIds.length > 0 && (
+    <Modal title={title ?? ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={testId ?? `${zone}-viewer-dialog`}>
+      {shouldShowSearch && cardIds.length > 0 && (
         <div className="zone-viewer__search">
           <input
             type="text"
@@ -781,7 +851,18 @@ export function ZoneViewerDialog({
             return (
               <li key={id} className="zone-viewer__item">
                 <div className="zone-viewer__thumb">
-                  {card && def && <CardView instance={card} def={def} size="small" />}
+                  {card && def && (
+                    <CardView
+                      instance={card}
+                      def={def}
+                      size="small"
+                      onContextMenu={
+                        onCardContextMenu
+                          ? (e) => onCardContextMenu(id, e)
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
                 <div className="zone-viewer__info">
                   <span className="zone-viewer__name">
@@ -790,19 +871,21 @@ export function ZoneViewerDialog({
                       <span className="zone-viewer__badge">統率者</span>
                     )}
                   </span>
-                  <div className="zone-viewer__targets">
-                    {targets.map((t) => (
-                      <button
-                        key={t.zone}
-                        type="button"
-                        className="btn btn--ghost btn--sm"
-                        onClick={() => onMove(id, t.zone)}
-                        data-testid={`move-${id}-${t.zone}`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+                  {!readOnly && onMove && (
+                    <div className="zone-viewer__targets">
+                      {targets.map((t) => (
+                        <button
+                          key={t.zone}
+                          type="button"
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => onMove(id, t.zone)}
+                          data-testid={`move-${id}-${t.zone}`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </li>
             );

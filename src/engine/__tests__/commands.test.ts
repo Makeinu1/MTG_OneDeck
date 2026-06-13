@@ -127,6 +127,74 @@ describe('mana pool', () => {
   });
 });
 
+describe('mill', () => {
+  it('moves the top N cards to the graveyard in order', () => {
+    const state = freshGame(10, 2);
+    const topIds = state.zones.library.slice(0, 3);
+    const res = applyCommand(state, { type: 'mill', count: 3 });
+
+    expect(res.state.zones.graveyard.slice(-3)).toEqual(topIds);
+    expect(res.state.zones.library).not.toEqual(state.zones.library);
+    expect(topIds.every((id) => res.state.cards[id].zone === 'graveyard')).toBe(true);
+  });
+
+  it('clamps to the available library size and warns', () => {
+    const state = initGame(makeDeck(3), 1);
+    const res = applyCommand(state, { type: 'mill', count: 5 });
+
+    expect(res.state.zones.library).toHaveLength(0);
+    expect(res.state.zones.graveyard).toHaveLength(3);
+    expect(res.warnings).toContain('ライブラリが5枚に満たないため3枚を切削した。');
+    expect(res.state.log[res.state.log.length - 1].message).toBe(
+      '切削: ライブラリの上から3枚を墓地に置いた。'
+    );
+  });
+});
+
+describe('untapAll', () => {
+  it('untaps every battlefield permanent', () => {
+    const state = freshGame();
+    const firstId = state.zones.hand[0];
+    const secondId = state.zones.hand[1];
+    let s = applyCommand(state, {
+      type: 'moveCard',
+      cardId: firstId,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+    s = applyCommand(s, { type: 'moveCard', cardId: secondId, to: 'battlefield', position: 'bottom' }).state;
+    s = applyCommand(s, { type: 'setTapped', cardId: firstId, tapped: true }).state;
+    s = applyCommand(s, { type: 'setTapped', cardId: secondId, tapped: true }).state;
+
+    const res = applyCommand(s, { type: 'untapAll' });
+    expect(res.state.cards[firstId].tapped).toBe(false);
+    expect(res.state.cards[secondId].tapped).toBe(false);
+    expect(res.state.log[res.state.log.length - 1].message).toBe('すべてのパーマネントをアンタップした。');
+  });
+
+  it('is idempotent when everything is already untapped', () => {
+    const state = freshGame();
+    const first = applyCommand(state, { type: 'untapAll' });
+    const second = applyCommand(first.state, { type: 'untapAll' });
+
+    expect(second.state.zones.battlefield).toEqual(first.state.zones.battlefield);
+    expect(second.state.log).toHaveLength(first.state.log.length);
+  });
+});
+
+describe('discard', () => {
+  it('moves multiple cards to the graveyard and ignores unknown ids', () => {
+    const state = freshGame(10, 4);
+    const [firstId, secondId] = state.zones.hand;
+    const res = applyCommand(state, { type: 'discard', cardIds: [firstId, 'missing', secondId] });
+
+    expect(res.state.cards[firstId].zone).toBe('graveyard');
+    expect(res.state.cards[secondId].zone).toBe('graveyard');
+    expect(res.state.zones.graveyard.slice(-2)).toEqual([firstId, secondId]);
+    expect(res.state.log[res.state.log.length - 1].message).toBe('2枚を捨てた。');
+  });
+});
+
 describe('castSpell', () => {
   it('moves instant/sorcery to graveyard, others to battlefield', () => {
     const sorceryDef = makeDef({ scryfallId: 'sorc', typeLine: 'Sorcery' });

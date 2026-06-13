@@ -33,6 +33,7 @@ export interface SidePanelProps {
   onBackToImport: () => void;
   onCreateToken: () => void;
   onAttack: () => void;
+  onDiscardRandom: () => void;
 }
 
 function opponentLabelsFromState(state: GameState): string[] {
@@ -50,6 +51,7 @@ export function SidePanel({
   onBackToImport,
   onCreateToken,
   onAttack,
+  onDiscardRandom,
 }: SidePanelProps) {
   const [newLabel, setNewLabel] = useState('');
   const opponentLabels = opponentLabelsFromState(state);
@@ -113,6 +115,16 @@ export function SidePanel({
             次のターン
           </button>
         </div>
+        <div className="side-panel__buttons">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            data-testid="untap-all"
+            onClick={() => store.untapAllPermanents()}
+          >
+            全アンタップ
+          </button>
+        </div>
         <label className="side-panel__toggle">
           <input
             type="checkbox"
@@ -125,6 +137,14 @@ export function SidePanel({
         <div className="side-panel__buttons">
           <button type="button" className="btn btn--ghost" data-testid="attack-button" onClick={onAttack}>
             攻撃
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            data-testid="discard-random"
+            onClick={onDiscardRandom}
+          >
+            ランダムに捨てる
           </button>
         </div>
       </section>

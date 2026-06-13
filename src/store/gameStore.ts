@@ -35,8 +35,12 @@ export interface GameStore {
   redo(): void;
 
   draw(count: number): void;
+  mill(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
+  untapAllPermanents(): void;
+  discard(cardIds: string[]): void;
+  discardRandom(count: number): void;
   playLand(
     cardId: string,
     opts?: { force?: boolean; entersTapped?: boolean }
@@ -292,6 +296,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'draw', count });
     },
 
+    mill(count) {
+      dispatch({ type: 'mill', count });
+    },
+
     shuffleLibrary() {
       const cur = get().state;
       if (!cur) return;
@@ -302,6 +310,27 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     moveCard(cardId, to, position = 'top') {
       dispatch({ type: 'moveCard', cardId, to, position });
+    },
+
+    untapAllPermanents() {
+      dispatch({ type: 'untapAll' });
+    },
+
+    discard(cardIds) {
+      dispatch({ type: 'discard', cardIds });
+    },
+
+    discardRandom(count) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const requested = Math.max(0, Math.floor(count));
+      const discardCount = Math.min(requested, cur.zones.hand.length);
+      if (discardCount <= 0) return;
+
+      const rng = createRng(randomSeed());
+      const selected = shuffledOrder(cur.zones.hand, rng).slice(0, discardCount);
+      dispatch({ type: 'discard', cardIds: selected });
     },
 
     playLand(cardId, opts) {

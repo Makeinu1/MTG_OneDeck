@@ -25,6 +25,7 @@ import { Toasts } from './Toasts';
 import {
   ArrangeTopDialog,
   AttackDialog,
+  CountDialog,
   ManaChoiceDialog,
   ShortfallDialog,
   CommanderMoveDialog,
@@ -51,6 +52,10 @@ type ManaChoiceRequest = {
 };
 type PendingXCast = { kind: 'hand' | 'commander'; cardId: string };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
+type CountDialogState = {
+  kind: 'mill' | 'peek' | 'discard-random';
+  defaultValue: number;
+};
 
 function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>): string[] {
   return Array.from(
@@ -73,6 +78,8 @@ export function Playmat() {
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
+  const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
+  const [peekCount, setPeekCount] = useState<number | null>(null);
   const [attackDialogOpen, setAttackDialogOpen] = useState(false);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -96,6 +103,8 @@ export function Playmat() {
     tokenDialogOpen ||
     zoneViewer !== null ||
     arrangeTopOpen ||
+    countDialog !== null ||
+    peekCount !== null ||
     attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
@@ -360,6 +369,12 @@ export function Playmat() {
           separator: true,
         });
       }
+
+      items.push({
+        key: 'discard',
+        label: '捨てる(墓地へ)',
+        onSelect: () => store.discard([cardId]),
+      });
     }
 
     if (card.zone === 'command' && isCommander(state!, cardId)) {
@@ -470,7 +485,32 @@ export function Playmat() {
   const activeDef = activeCard ? state.defs[activeCard.defId] : undefined;
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
+  const peekIds =
+    peekCount === null ? [] : state.zones.library.slice(0, Math.min(peekCount, state.zones.library.length));
   const opponentLabels = opponentLabelsFromState(state);
+  const countDialogConfig =
+    countDialog?.kind === 'mill'
+      ? {
+          title: '切削',
+          label: '枚数',
+          inputTestId: 'mill-n',
+          confirmTestId: 'mill-confirm',
+        }
+      : countDialog?.kind === 'peek'
+        ? {
+            title: 'ライブラリの上を見る',
+            label: '枚数',
+            inputTestId: 'peek-n',
+            confirmTestId: 'peek-confirm',
+          }
+        : countDialog?.kind === 'discard-random'
+          ? {
+              title: 'ランダムに捨てる',
+              label: '枚数',
+              inputTestId: 'discard-random-n',
+              confirmTestId: 'discard-random-confirm',
+            }
+          : null;
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -488,6 +528,7 @@ export function Playmat() {
           onBackToImport={() => setConfirmAction('back-to-import')}
           onCreateToken={() => setTokenDialogOpen(true)}
           onAttack={() => setAttackDialogOpen(true)}
+          onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
         />
 
         <div className="playmat__center">
@@ -511,6 +552,8 @@ export function Playmat() {
             store={store}
             onOpenViewer={(zone) => setZoneViewer(zone)}
             onArrangeTop={() => setArrangeTopOpen(true)}
+            onMill={() => setCountDialog({ kind: 'mill', defaultValue: 1 })}
+            onPeek={() => setCountDialog({ kind: 'peek', defaultValue: 3 })}
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
             onLibraryDoubleClick={handleLibraryDoubleClick}
@@ -670,6 +713,41 @@ export function Playmat() {
           />
         )}
 
+        {countDialog && countDialogConfig && (
+          <CountDialog
+            title={countDialogConfig.title}
+            label={countDialogConfig.label}
+            defaultValue={countDialog.defaultValue}
+            inputTestId={countDialogConfig.inputTestId}
+            confirmTestId={countDialogConfig.confirmTestId}
+            onConfirm={(count) => {
+              if (countDialog.kind === 'mill') {
+                store.mill(count);
+              } else if (countDialog.kind === 'peek') {
+                setPeekCount(count);
+              } else {
+                store.discardRandom(count);
+              }
+              setCountDialog(null);
+            }}
+            onCancel={() => setCountDialog(null)}
+          />
+        )}
+
+        {peekCount !== null && (
+          <ZoneViewerDialog
+            zone="library"
+            cardIds={peekIds}
+            state={state}
+            onCardContextMenu={handleCardContextMenu}
+            onClose={() => setPeekCount(null)}
+            readOnly
+            searchEnabled={false}
+            title={`ライブラリの上${peekIds.length}枚`}
+            testId="peek-dialog"
+          />
+        )}
+
         {zoneViewer && (
           <ZoneViewerDialog
             zone={zoneViewer}
@@ -678,6 +756,7 @@ export function Playmat() {
             onMove={(cardId, to) => {
               performMove({ cardId, to });
             }}
+            onCardContextMenu={handleCardContextMenu}
             onClose={() => setZoneViewer(null)}
           />
         )}
