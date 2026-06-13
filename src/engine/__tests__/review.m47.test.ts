@@ -3,7 +3,7 @@
  * Implementation agents must NOT modify this file.
  */
 import { describe, expect, it } from 'vitest';
-import type { CardDef, ManaColor } from '../../types/card';
+import type { CardDef } from '../../types/card';
 import { applyCommand, EngineError } from '../commands';
 import { keywords, landEntersTapped, effectivePower } from '../status';
 import { initGame, type InitDeckCard } from '../init';
