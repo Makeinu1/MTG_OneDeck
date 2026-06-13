@@ -16,6 +16,7 @@ export interface CardViewProps {
   draggable?: boolean;
   /** Extra label rendered in a corner ribbon, e.g. "統率者". */
   badge?: string;
+  summoningSick?: boolean;
   /** Render dimmed/ghosted (e.g. while a drag overlay copy exists). */
   faded?: boolean;
 }
@@ -41,6 +42,7 @@ export function CardView({
   onMouseLeave,
   draggable = false,
   badge,
+  summoningSick = false,
   faded = false,
 }: CardViewProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -55,7 +57,11 @@ export function CardView({
     ? '裏向きのカード'
     : (face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード');
   const imageUrl = instance.faceDown ? undefined : face?.imageUrl;
-  const counters = Object.entries(instance.counters).filter(([, v]) => v !== 0);
+  const counters = Object.entries(instance.counters).filter(
+    ([type, value]) => value !== 0 && type !== 'loyalty' && type !== 'lore'
+  );
+  const loyalty = instance.counters.loyalty;
+  const lore = instance.counters.lore;
 
   const style: React.CSSProperties = {
     transform: transform
@@ -106,7 +112,14 @@ export function CardView({
       </div>
 
       {badge && <div className="card-view__badge">{badge}</div>}
-      {instance.isToken && !badge && <div className="card-view__badge card-view__badge--token">T</div>}
+      {instance.isToken && <div className="card-view__badge card-view__badge--token">T</div>}
+      {summoningSick && <div className="card-view__badge card-view__badge--sick">酔</div>}
+      {typeof loyalty === 'number' && loyalty > 0 && (
+        <div className="card-view__badge card-view__badge--loyalty">{loyalty}</div>
+      )}
+      {typeof lore === 'number' && lore > 0 && (
+        <div className="card-view__badge card-view__badge--lore">第{lore}章</div>
+      )}
 
       {counters.length > 0 && (
         <div className="card-view__counters">

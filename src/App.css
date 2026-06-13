@@ -835,6 +835,39 @@
   right: -6px;
 }
 
+.card-view__badge--sick {
+  top: auto;
+  bottom: -8px;
+  background: #8f2d22;
+  color: #fff2ea;
+}
+
+.card-view__badge--loyalty {
+  top: auto;
+  left: auto;
+  right: -8px;
+  bottom: -10px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: linear-gradient(180deg, #ffe59c 0%, #d89c17 100%);
+  color: #3f2607;
+}
+
+.card-view__badge--lore {
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%);
+  background: var(--felt-1);
+  color: var(--gold-bright);
+  border: 1px solid var(--accent-border);
+}
+
 .card-view__counters {
   position: absolute;
   bottom: -8px;
@@ -1492,6 +1525,36 @@
 .mana-choice__swatch--r { color: var(--mana-r); }
 .mana-choice__swatch--g { color: var(--mana-g); }
 .mana-choice__swatch--c { color: var(--mana-c); }
+
+.token-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.token-presets__button {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--felt-2);
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+}
+
+.token-presets__button:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-border);
+}
+
+.token-presets__button--active {
+  background: var(--gold-dim);
+  border-color: var(--accent-border);
+  color: var(--gold-bright);
+}
 
 .form-grid {
   display: flex;

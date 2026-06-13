@@ -26,6 +26,8 @@ export type GameCommand =
   | { type: 'draw'; count: number }
   | { type: 'shuffle'; order: string[] }
   | { type: 'putOnBottom'; cardIds: string[] }
+  | { type: 'playLand'; cardId: string; forced: boolean }
+  | { type: 'crackTreasure'; cardId: string; color: ManaColor }
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
   | {
@@ -35,6 +37,8 @@ export type GameCommand =
       power?: string;
       toughness?: string;
       quantity: number;
+      producedMana?: ManaColor[];
+      tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
     }
   | { type: 'nextPhase'; drawnHandled?: boolean }
   | { type: 'nextTurn' }
@@ -100,10 +104,14 @@ function cardName(def: CardDef | undefined): string {
   return def.printedName ?? def.name;
 }
 
+function nameOfCard(draft: Draft, card: CardInstance): string {
+  return `《${cardName(draft.state.defs[card.defId])}》`;
+}
+
 function nameOf(draft: Draft, cardId: string): string {
   const card = draft.state.cards[cardId];
   if (!card) return '不明なカード';
-  return `《${cardName(draft.state.defs[card.defId])}》`;
+  return nameOfCard(draft, card);
 }
 
 function pushLog(draft: Draft, message: string): void {
@@ -170,6 +178,42 @@ function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
     faceIndex: 0,
     counters: {},
     attachedTo: undefined,
+    enteredTurn: 0,
+  };
+}
+
+function currentFaceOf(draft: Draft, card: CardInstance) {
+  const def = draft.state.defs[card.defId];
+  return def?.faces[card.faceIndex] ?? def?.faces[0];
+}
+
+function typeLineOf(draft: Draft, card: CardInstance): string {
+  const def = draft.state.defs[card.defId];
+  const face = currentFaceOf(draft, card);
+  return (face?.typeLine ?? def?.typeLine ?? '').toString();
+}
+
+function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardInstance {
+  const face = currentFaceOf(draft, card);
+  const counters = { ...card.counters };
+  const typeLine = typeLineOf(draft, card);
+
+  if (typeLine.includes('Planeswalker') && typeof face?.loyalty === 'string') {
+    const loyalty = Number.parseInt(face.loyalty, 10);
+    if (!Number.isNaN(loyalty)) {
+      counters.loyalty = loyalty;
+    }
+  }
+
+  if (typeLine.includes('Saga')) {
+    counters.lore = 1;
+    pushLog(draft, `${nameOfCard(draft, card)}は第I章で戦場に出た。`);
+  }
+
+  return {
+    ...card,
+    enteredTurn: draft.state.turn,
+    counters,
   };
 }
 
@@ -209,9 +253,10 @@ function moveCardInternal(
     to === 'battlefield' ? 'bottom' : position;
   insertIntoZone(dest, cardId, effectivePosition);
 
-  const updated = sameBattlefield
-    ? { ...card, zone: to }
-    : resetCardForZoneChange(card, to);
+  let updated = sameBattlefield ? { ...card, zone: to } : resetCardForZoneChange(card, to);
+  if (!sameBattlefield && to === 'battlefield') {
+    updated = applyBattlefieldEntryEffects(draft, updated);
+  }
   setCard(draft, updated);
 
   if (log && !sameBattlefield) {
@@ -284,6 +329,33 @@ function untapAll(draft: Draft): void {
   }
 }
 
+function handleUntapEntry(draft: Draft): void {
+  untapAll(draft);
+  draft.state.landsPlayedThisTurn = 0;
+
+  const cards = { ...draft.state.cards };
+  let changed = false;
+
+  for (const id of draft.state.zones.battlefield) {
+    const card = cards[id];
+    if (!card || !typeLineOf(draft, card).includes('Saga')) continue;
+    const nextLore = (card.counters.lore ?? 0) + 1;
+    cards[id] = {
+      ...card,
+      counters: {
+        ...card.counters,
+        lore: nextLore,
+      },
+    };
+    changed = true;
+    pushLog(draft, `${nameOf(draft, id)}の章カウンターが${nextLore}になった。`);
+  }
+
+  if (changed) {
+    draft.state.cards = cards;
+  }
+}
+
 function drawCards(draft: Draft, count: number): number {
   let drawn = 0;
   for (let i = 0; i < count; i++) {
@@ -299,18 +371,14 @@ function drawCards(draft: Draft, count: number): number {
 function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
   draft.state.phase = phase;
   if (phase === 'untap') {
-    untapAll(draft);
+    handleUntapEntry(draft);
   }
   if (phase === 'draw' && !drawnHandled) {
-    if (draft.state.turn === 1) {
-      // 先手想定: turn 1 はドローしない
+    const drawn = drawCards(draft, 1);
+    if (drawn > 0) {
+      pushLog(draft, 'カードを1枚引きました。');
     } else {
-      const drawn = drawCards(draft, 1);
-      if (drawn > 0) {
-        pushLog(draft, 'カードを1枚引きました。');
-      } else {
-        draft.warnings.push('ライブラリが空のためドローできません。');
-      }
+      draft.warnings.push('ライブラリが空のためドローできません。');
     }
   }
 }
@@ -341,16 +409,26 @@ function applyNextTurn(draft: Draft): void {
 // Cast handling
 // ---------------------------------------------------------------------------
 
-function typeLineOf(draft: Draft, card: CardInstance): string {
-  const def = draft.state.defs[card.defId];
-  if (!def) return '';
-  const face = def.faces[card.faceIndex] ?? def.faces[0];
-  return (face?.typeLine ?? def.typeLine ?? '').toString();
-}
-
 function castDestination(typeLine: string): ZoneId {
   if (/Instant|Sorcery/i.test(typeLine)) return 'graveyard';
   return 'battlefield';
+}
+
+function applyPlayLand(draft: Draft, cardId: string): void {
+  const card = requireCard(draft, cardId);
+  if (card.zone !== 'hand') {
+    throw new EngineError(`土地は手札からのみプレイできます: ${cardId}`);
+  }
+  if (!typeLineOf(draft, card).includes('Land')) {
+    throw new EngineError(`土地ではないカードです: ${cardId}`);
+  }
+
+  moveCardInternal(draft, cardId, 'battlefield', 'bottom', false);
+  draft.state.landsPlayedThisTurn += 1;
+  pushLog(draft, `${nameOf(draft, cardId)}を土地としてプレイしました。`);
+  if (draft.state.landsPlayedThisTurn >= 2) {
+    draft.warnings.push(`このターン${draft.state.landsPlayedThisTurn}枚目の土地です。`);
+  }
 }
 
 function applyCast(
@@ -403,6 +481,28 @@ function applyCast(
 }
 
 // ---------------------------------------------------------------------------
+// Treasure / token handling
+// ---------------------------------------------------------------------------
+
+function applyCrackTreasure(draft: Draft, cardId: string, color: ManaColor): void {
+  const card = requireCard(draft, cardId);
+  const def = draft.state.defs[card.defId];
+  if (def?.tokenKind !== 'treasure') {
+    throw new EngineError(`宝物ではないカードです: ${cardId}`);
+  }
+  if (card.zone !== 'battlefield') {
+    throw new EngineError(`宝物は戦場でのみ割れます: ${cardId}`);
+  }
+
+  draft.state.manaPool = {
+    ...draft.state.manaPool,
+    [color]: draft.state.manaPool[color] + 1,
+  };
+  moveCardInternal(draft, cardId, 'graveyard', 'top', false);
+  pushLog(draft, `${nameOfCard(draft, card)}を割って${color}マナを1点加えました。`);
+}
+
+// ---------------------------------------------------------------------------
 // Token creation
 // ---------------------------------------------------------------------------
 
@@ -434,7 +534,9 @@ function applyCreateToken(
   typeLine: string,
   power: string | undefined,
   toughness: string | undefined,
-  quantity: number
+  quantity: number,
+  producedMana: ManaColor[] | undefined,
+  tokenKind: CardDef['tokenKind']
 ): void {
   const qty = Math.max(0, Math.floor(quantity));
   if (qty === 0) return;
@@ -449,6 +551,8 @@ function applyCreateToken(
     cmc: 0,
     colorIdentity: [],
     typeLine,
+    producedMana,
+    tokenKind,
     faces: [
       {
         name,
@@ -465,7 +569,7 @@ function applyCreateToken(
   const battlefield = editZone(draft, 'battlefield');
   for (let i = 1; i <= qty; i++) {
     const id = genId(i);
-    cards[id] = {
+    const token = applyBattlefieldEntryEffects(draft, {
       id,
       defId,
       zone: 'battlefield',
@@ -475,7 +579,9 @@ function applyCreateToken(
       counters: {},
       isToken: true,
       isCommander: false,
-    };
+      enteredTurn: 0,
+    });
+    cards[id] = token;
     battlefield.push(id);
   }
   draft.state.cards = cards;
@@ -667,6 +773,14 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       applyPutOnBottom(draft, cmd.cardIds);
       break;
     }
+    case 'playLand': {
+      applyPlayLand(draft, cmd.cardId);
+      break;
+    }
+    case 'crackTreasure': {
+      applyCrackTreasure(draft, cmd.cardId, cmd.color);
+      break;
+    }
     case 'castSpell': {
       applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false);
       break;
@@ -682,7 +796,9 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.typeLine,
         cmd.power,
         cmd.toughness,
-        cmd.quantity
+        cmd.quantity,
+        cmd.producedMana,
+        cmd.tokenKind
       );
       break;
     }

@@ -97,6 +97,8 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'castCommander',
     'mulligan',
     'putOnBottom',
+    'playLand',
+    'crackTreasure',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -155,7 +157,17 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
       return { type: 'nextPhase' };
     case 'nextTurn':
       return { type: 'nextTurn' };
-    case 'createToken':
+    case 'createToken': {
+      if (rng() < 0.4) {
+        return {
+          type: 'createToken',
+          name: '宝物',
+          typeLine: 'Token Artifact — Treasure',
+          quantity: Math.floor(rng() * 3),
+          producedMana: ['W', 'U', 'B', 'R', 'G'],
+          tokenKind: 'treasure',
+        };
+      }
       return {
         type: 'createToken',
         name: 'Soldier',
@@ -164,6 +176,26 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
         toughness: '1',
         quantity: Math.floor(rng() * 3),
       };
+    }
+    case 'playLand': {
+      const handLands = state.zones.hand.filter((id) => {
+        const def = state.defs[state.cards[id].defId];
+        return (def?.typeLine ?? '').includes('Land');
+      });
+      if (handLands.length === 0) return { type: 'nextPhase' };
+      return { type: 'playLand', cardId: pick(handLands), forced: rng() < 0.5 };
+    }
+    case 'crackTreasure': {
+      const treasures = state.zones.battlefield.filter(
+        (id) => state.defs[state.cards[id].defId]?.tokenKind === 'treasure',
+      );
+      if (treasures.length === 0) return { type: 'nextPhase' };
+      return {
+        type: 'crackTreasure',
+        cardId: pick(treasures),
+        color: pick(['W', 'U', 'B', 'R', 'G']),
+      };
+    }
     case 'castSpell': {
       if (state.zones.hand.length === 0) return { type: 'nextPhase' };
       return {
@@ -235,6 +267,19 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   for (const v of Object.values(state.commanderDamage)) {
     expect(v).toBeGreaterThanOrEqual(0);
   }
+
+  // I6: lands-played counter is never negative
+  expect(state.landsPlayedThisTurn, `${label}: negative landsPlayedThisTurn`).toBeGreaterThanOrEqual(0);
+
+  // I7: enteredTurn is set on the battlefield, cleared elsewhere
+  for (const c of Object.values(state.cards)) {
+    if (c.zone === 'battlefield') {
+      expect(c.enteredTurn, `${label}: ${c.id} bad enteredTurn`).toBeGreaterThanOrEqual(1);
+      expect(c.enteredTurn, `${label}: ${c.id} enteredTurn in future`).toBeLessThanOrEqual(state.turn);
+    } else {
+      expect(c.enteredTurn, `${label}: ${c.id} enteredTurn not cleared`).toBe(0);
+    }
+  }
 }
 
 const DECK_SIZE = 24;
@@ -269,6 +314,7 @@ describe('engine invariants I1-I5 (property)', () => {
                 state.manaPool.G +
                 state.manaPool.C;
               expect(total, `step ${i}: pool not cleared on turn change`).toBe(0);
+              expect(state.landsPlayedThisTurn, `step ${i}: lands counter not reset`).toBe(0);
             }
           }
         },

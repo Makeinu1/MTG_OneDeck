@@ -32,7 +32,7 @@ function emptyZones(): Record<ZoneId, string[]> {
 /**
  * Build the initial GameState for a deck.
  * - Commanders go to the command zone; everything else is shuffled into library.
- * - turn=1, phase='main1', life=40, no opening hand (store dispatches draw 7).
+ * - turn=1, phase='untap', life=40, no opening hand (store dispatches draw 7).
  * - quantity expansion is the caller's (store's) responsibility.
  */
 export function initGame(deck: InitDeckCard[], seed: number): GameState {
@@ -57,6 +57,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
       counters: {},
       isToken: false,
       isCommander: entry.isCommander,
+      enteredTurn: 0,
     };
     cards[id] = instance;
 
@@ -75,18 +76,20 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     {
       seq: 0,
       turn: 1,
-      phase: 'main1',
+      phase: 'untap',
       message: 'ゲームを開始しました。',
     },
   ];
 
+  // EDH flow: the game opens at turn 1's untap step, so the player passes
+  // through the draw step (turn-1 draw happens, unlike 1v1 play-first rules).
   return {
     defs,
     cards,
     zones,
     commanders,
     turn: 1,
-    phase: 'main1',
+    phase: 'untap',
     life: 40,
     poison: 0,
     energy: 0,
@@ -94,6 +97,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     commanderDamage: {},
     manaPool: emptyManaPool(),
     mulliganCount: 0,
+    landsPlayedThisTurn: 0,
     log,
   };
 }

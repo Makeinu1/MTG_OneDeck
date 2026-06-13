@@ -157,7 +157,17 @@ export function TokenCreateDialog({
   onCreate,
   onCancel,
 }: {
-  onCreate: (name: string, typeLine: string, power: string, toughness: string, qty: number) => void;
+  onCreate: (
+    name: string,
+    typeLine: string,
+    power: string,
+    toughness: string,
+    qty: number,
+    opts?: {
+      producedMana?: ManaColor[];
+      tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+    }
+  ) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
@@ -165,11 +175,74 @@ export function TokenCreateDialog({
   const [power, setPower] = useState('');
   const [toughness, setToughness] = useState('');
   const [qty, setQty] = useState(1);
+  const [producedMana, setProducedMana] = useState<ManaColor[] | undefined>();
+  const [tokenKind, setTokenKind] = useState<'treasure' | 'clue' | 'food' | 'blood' | undefined>();
+
+  const presets: Array<{
+    key: 'treasure' | 'clue' | 'food' | 'blood';
+    label: string;
+    name: string;
+    typeLine: string;
+    tokenKind: 'treasure' | 'clue' | 'food' | 'blood';
+    producedMana?: ManaColor[];
+  }> = [
+    {
+      key: 'treasure',
+      label: '宝物',
+      name: '宝物',
+      typeLine: 'Token Artifact — Treasure',
+      tokenKind: 'treasure',
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+    },
+    {
+      key: 'clue',
+      label: '手掛かり',
+      name: '手掛かり',
+      typeLine: 'Token Artifact — Clue',
+      tokenKind: 'clue',
+    },
+    {
+      key: 'food',
+      label: '食物',
+      name: '食物',
+      typeLine: 'Token Artifact — Food',
+      tokenKind: 'food',
+    },
+    {
+      key: 'blood',
+      label: '血',
+      name: '血',
+      typeLine: 'Token Artifact — Blood',
+      tokenKind: 'blood',
+    },
+  ];
 
   const canCreate = name.trim() !== '' && typeLine.trim() !== '' && qty >= 1;
 
+  function applyPreset(preset: (typeof presets)[number]): void {
+    setName(preset.name);
+    setTypeLine(preset.typeLine);
+    setPower('');
+    setToughness('');
+    setProducedMana(preset.producedMana);
+    setTokenKind(preset.tokenKind);
+  }
+
   return (
     <Modal title="トークンを生成" onClose={onCancel} width="sm" testId="token-create-dialog">
+      <div className="token-presets">
+        {presets.map((preset) => (
+          <button
+            key={preset.key}
+            type="button"
+            className={`token-presets__button ${tokenKind === preset.tokenKind ? 'token-presets__button--active' : ''}`}
+            onClick={() => applyPreset(preset)}
+            data-testid={`token-preset-${preset.key}`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
       <div className="form-grid">
         <label>
           名前
@@ -233,7 +306,12 @@ export function TokenCreateDialog({
           type="button"
           className="btn btn--accent"
           disabled={!canCreate}
-          onClick={() => onCreate(name.trim(), typeLine.trim(), power.trim(), toughness.trim(), qty)}
+          onClick={() =>
+            onCreate(name.trim(), typeLine.trim(), power.trim(), toughness.trim(), qty, {
+              producedMana,
+              tokenKind,
+            })
+          }
           data-testid="token-create-confirm"
         >
           生成

@@ -39,6 +39,11 @@ type PendingMove = { cardId: string; to: ZoneId };
 type PendingCast =
   | { kind: 'hand'; cardId: string; shortfall: number }
   | { kind: 'commander'; cardId: string; shortfall: number };
+type ManaChoiceRequest = {
+  kind: 'tap' | 'treasure';
+  cardId: string;
+  options: ManaColor[];
+};
 
 /** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
 export function Playmat() {
@@ -46,8 +51,9 @@ export function Playmat() {
   const { state, warnings } = store;
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
-  const [manaChoice, setManaChoice] = useState<{ cardId: string; options: ManaColor[] } | null>(null);
+  const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
   const [pendingCast, setPendingCast] = useState<PendingCast | null>(null);
+  const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
@@ -66,6 +72,7 @@ export function Playmat() {
   const isDialogOpen =
     manaChoice !== null ||
     pendingCast !== null ||
+    pendingLandPlay !== null ||
     commanderMove !== null ||
     tokenDialogOpen ||
     zoneViewer !== null ||
@@ -85,9 +92,44 @@ export function Playmat() {
 
   const cards = state.cards;
 
+  function typeLineFor(cardId: string): string {
+    const card = cards[cardId];
+    if (!card) return '';
+    const def = state!.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    return face?.typeLine ?? def?.typeLine ?? '';
+  }
+
+  function treasureColors(cardId: string): ManaColor[] {
+    const card = cards[cardId];
+    if (!card) return ['W', 'U', 'B', 'R', 'G'];
+    const def = state!.defs[card.defId];
+    return def?.producedMana?.length ? def.producedMana : ['W', 'U', 'B', 'R', 'G'];
+  }
+
+  function requestPlayLand(cardId: string): void {
+    const result = store.playLand(cardId);
+    if (result === 'needs-confirm') {
+      setPendingLandPlay({ cardId });
+    }
+  }
+
+  function requestTreasureCrack(cardId: string): void {
+    const options = treasureColors(cardId);
+    if (options.length === 1) {
+      store.crackTreasure(cardId, options[0]);
+      return;
+    }
+    setManaChoice({ kind: 'treasure', cardId, options });
+  }
+
   function performMove(move: PendingMove): void {
     const card = cards[move.cardId];
     if (!card) return;
+    if (card.zone === 'hand' && move.to === 'battlefield' && typeLineFor(move.cardId).includes('Land')) {
+      requestPlayLand(move.cardId);
+      return;
+    }
     // Commander leaving battlefield/hand/library/graveyard/exile -> offer command zone.
     if (isCommander(state!, move.cardId) && move.to !== 'command' && card.zone !== 'command') {
       setCommanderMove({ cardId: move.cardId, to: move.to });
@@ -126,12 +168,10 @@ export function Playmat() {
     const card = cards[cardId];
     if (!card) return;
     const def = state!.defs[card.defId];
-    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
 
     if (card.zone === 'hand') {
-      const typeLine = face?.typeLine ?? def?.typeLine ?? '';
-      if (typeLine.includes('Land')) {
-        performMove({ cardId, to: 'battlefield' });
+      if (typeLineFor(cardId).includes('Land')) {
+        requestPlayLand(cardId);
       } else {
         const result = store.castFromHand(cardId);
         if (result !== 'ok') {
@@ -142,11 +182,15 @@ export function Playmat() {
     }
 
     if (card.zone === 'battlefield') {
+      if (def?.tokenKind === 'treasure') {
+        requestTreasureCrack(cardId);
+        return;
+      }
       const produced = def?.producedMana ?? [];
       if (!card.tapped && produced.length > 0) {
         const result = store.tapForMana(cardId);
         if (result === 'needs-choice') {
-          setManaChoice({ cardId, options: produced });
+          setManaChoice({ kind: 'tap', cardId, options: produced });
         }
         return;
       }
@@ -179,6 +223,13 @@ export function Playmat() {
     const face = def?.faces[card.faceIndex] ?? def?.faces[0];
     const displayName = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
     const items: MenuItem[] = [];
+    const typeLine = typeLineFor(cardId);
+    const isTreasure = def?.tokenKind === 'treasure';
+    const isSacrificeToken =
+      def?.tokenKind === 'treasure' ||
+      def?.tokenKind === 'clue' ||
+      def?.tokenKind === 'food' ||
+      def?.tokenKind === 'blood';
 
     if (card.zone === 'battlefield') {
       items.push({
@@ -188,27 +239,46 @@ export function Playmat() {
       });
 
       const produced = def?.producedMana ?? [];
-      if (produced.length > 0 && !card.tapped) {
+      if (isTreasure) {
+        items.push({
+          key: 'crack-treasure',
+          label: '割ってマナを出す',
+          onSelect: () => {
+            requestTreasureCrack(cardId);
+          },
+          separator: true,
+        });
+      } else if (produced.length > 0 && !card.tapped) {
         items.push({
           key: 'tapForMana',
           label: 'マナを生成してタップ',
           onSelect: () => {
             const result = store.tapForMana(cardId);
             if (result === 'needs-choice') {
-              setManaChoice({ cardId, options: produced });
+              setManaChoice({ kind: 'tap', cardId, options: produced });
             }
           },
+          separator: true,
+        });
+      }
+
+      if (isSacrificeToken) {
+        items.push({
+          key: 'sacrifice-token',
+          label: '生け贄に捧げる',
+          onSelect: () => store.moveCard(cardId, 'graveyard'),
+          danger: true,
+          separator: !isTreasure,
         });
       }
     }
 
     if (card.zone === 'hand') {
-      const typeLine = face?.typeLine ?? def?.typeLine ?? '';
       if (typeLine.includes('Land')) {
         items.push({
           key: 'play-land',
           label: '土地としてプレイ',
-          onSelect: () => store.moveCard(cardId, 'battlefield'),
+          onSelect: () => requestPlayLand(cardId),
           separator: true,
         });
       } else {
@@ -238,6 +308,25 @@ export function Playmat() {
         },
         separator: true,
       });
+    }
+
+    if (card.zone === 'battlefield' && typeLine.includes('Planeswalker')) {
+      items.push(
+        {
+          key: 'loyalty-plus',
+          label: '忠誠値+1',
+          onSelect: () =>
+            store.dispatch({ type: 'addCounters', cardId, counterType: 'loyalty', delta: 1 }),
+          separator: true,
+        },
+        {
+          key: 'loyalty-minus',
+          label: '忠誠値-1',
+          onSelect: () =>
+            store.dispatch({ type: 'addCounters', cardId, counterType: 'loyalty', delta: -1 }),
+          disabled: (card.counters.loyalty ?? 0) <= 0,
+        }
+      );
     }
 
     // Flip (transform / MDFC with 2 faces)
@@ -329,7 +418,9 @@ export function Playmat() {
           store={store}
           onMulligan={() => {
             store.mulligan();
-            setMulliganBottomCount(state.mulliganCount + 1);
+            const nextState = useGameStore.getState().state;
+            const bottomCount = Math.max(0, (nextState?.mulliganCount ?? 0) - 1);
+            setMulliganBottomCount(bottomCount > 0 ? bottomCount : null);
           }}
           onRestart={() => setConfirmAction('restart')}
           onBackToImport={() => setConfirmAction('back-to-import')}
@@ -390,7 +481,11 @@ export function Playmat() {
           <ManaChoiceDialog
             options={manaChoice.options}
             onChoose={(color) => {
-              store.tapForMana(manaChoice.cardId, color);
+              if (manaChoice.kind === 'treasure') {
+                store.crackTreasure(manaChoice.cardId, color);
+              } else {
+                store.tapForMana(manaChoice.cardId, color);
+              }
               setManaChoice(null);
             }}
             onCancel={() => setManaChoice(null)}
@@ -409,6 +504,20 @@ export function Playmat() {
               setPendingCast(null);
             }}
             onCancel={() => setPendingCast(null)}
+          />
+        )}
+
+        {pendingLandPlay && (
+          <ConfirmDialog
+            title="土地を続けてプレイしますか?"
+            message="このターンは既に土地を置いています。続けますか?"
+            confirmLabel="続ける"
+            onConfirm={() => {
+              store.playLand(pendingLandPlay.cardId, { force: true });
+              setPendingLandPlay(null);
+            }}
+            onCancel={() => setPendingLandPlay(null)}
+            testId="land-play-confirm-dialog"
           />
         )}
 
@@ -435,8 +544,8 @@ export function Playmat() {
 
         {tokenDialogOpen && (
           <TokenCreateDialog
-            onCreate={(name, typeLine, power, toughness, qty) => {
-              store.createToken(name, typeLine, power || undefined, toughness || undefined, qty);
+            onCreate={(name, typeLine, power, toughness, qty, opts) => {
+              store.createToken(name, typeLine, power || undefined, toughness || undefined, qty, opts);
               setTokenDialogOpen(false);
             }}
             onCancel={() => setTokenDialogOpen(false)}

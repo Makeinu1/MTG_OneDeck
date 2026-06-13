@@ -3,6 +3,7 @@ import type { GameState, ZoneId } from '../../engine/types';
 import type { useGameStore } from '../../store/gameStore';
 import { CardView } from '../CardView';
 import { commanderTax, isCommander } from '../../engine/commander';
+import { isSummoningSick } from '../../engine/status';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 type Store = ReturnType<typeof useGameStore.getState>;
@@ -78,6 +79,7 @@ export function Zones({ state, store, onOpenViewer, onCommanderContextMenu, onCa
                   onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
                   onMouseLeave={hoverPreview.onMouseLeave}
                   badge={isCommander(state, id) ? '統率者' : undefined}
+                  summoningSick={isSummoningSick(state, id)}
                 />
                 <span className="zone-card__tax" data-testid="commander-tax">
                   統率税 +{tax}

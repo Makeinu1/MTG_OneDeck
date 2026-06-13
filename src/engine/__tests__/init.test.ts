@@ -18,13 +18,15 @@ describe('initGame', () => {
   it('initializes player state', () => {
     const state = initGame(makeDeck(5), 1);
     expect(state.turn).toBe(1);
-    expect(state.phase).toBe('main1');
+    expect(state.phase).toBe('untap');
     expect(state.life).toBe(40);
     expect(state.poison).toBe(0);
     expect(state.energy).toBe(0);
     expect(state.experience).toBe(0);
     expect(state.mulliganCount).toBe(0);
+    expect(state.landsPlayedThisTurn).toBe(0);
     expect(state.manaPool).toEqual({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });
+    expect(Object.values(state.cards).every((card) => card.enteredTurn === 0)).toBe(true);
   });
 
   it('shuffles deterministically with seed', () => {

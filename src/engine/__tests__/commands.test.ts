@@ -222,7 +222,7 @@ describe('nextPhase / nextTurn', () => {
     expect(s.zones.hand.length).toBe(handBefore + 1);
   });
 
-  it('skips draw on turn 1', () => {
+  it('draws on turn 1', () => {
     const t1 = initGame(makeDeck(20), 1);
     // force phase to untap of turn 1, then walk untap -> upkeep -> draw
     const untapState = { ...t1, phase: 'untap' as const };
@@ -231,7 +231,7 @@ describe('nextPhase / nextTurn', () => {
     walk = applyCommand(walk, { type: 'nextPhase' }).state; // draw (turn 1)
     expect(walk.turn).toBe(1);
     expect(walk.phase).toBe('draw');
-    expect(walk.zones.hand.length).toBe(handBefore); // no draw on turn 1
+    expect(walk.zones.hand.length).toBe(handBefore + 1);
   });
 
   it('increments turn on end -> untap and clears pool (I5)', () => {

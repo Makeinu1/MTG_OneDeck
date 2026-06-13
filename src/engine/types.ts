@@ -33,6 +33,7 @@ export interface CardInstance {
   counters: Record<string, number>; // '+1/+1', 'loyalty', 'charge' など。値は常に >= 0
   isToken: boolean;
   isCommander: boolean;
+  enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0
   attachedTo?: string; // 装備/オーラの付与先 instance id
 }
 
@@ -62,5 +63,6 @@ export interface GameState {
   commanderDamage: Record<string, number>; // key: 対戦相手統率者のラベル(自由文字列)
   manaPool: ManaPool;
   mulliganCount: number;
+  landsPlayedThisTurn: number;
   log: LogEntry[];
 }

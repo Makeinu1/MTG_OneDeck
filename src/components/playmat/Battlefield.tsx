@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
 import { isCommander } from '../../engine/commander';
+import { isSummoningSick } from '../../engine/status';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 export interface BattlefieldProps {
@@ -95,6 +96,7 @@ function BattlefieldRow({
                 onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
                 onMouseLeave={hoverPreview.onMouseLeave}
                 badge={isCommander(state, id) ? '統率者' : undefined}
+                summoningSick={isSummoningSick(state, id)}
               />
               {attachments.map((attId) => {
                 const attCard = state.cards[attId];
@@ -109,6 +111,7 @@ function BattlefieldRow({
                       onDoubleClick={(e) => onCardDoubleClick(attId, e)}
                       onMouseEnter={(e) => hoverPreview.onMouseEnter(attId, e)}
                       onMouseLeave={hoverPreview.onMouseLeave}
+                      summoningSick={isSummoningSick(state, attId)}
                     />
                   </div>
                 );

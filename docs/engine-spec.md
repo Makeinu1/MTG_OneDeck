@@ -169,7 +169,8 @@ export function shuffledOrder(ids: string[], rng: () => number): string[]; // Fi
 export interface InitDeckCard { def: CardDef; isCommander: boolean; }
 export function initGame(deck: InitDeckCard[], seed: number): GameState;
 // - 統率者 → command ゾーン、それ以外 → library(seed でシャッフル済み)
-// - turn=1, phase='main1', life=40, 手札0枚(初手ドローはストアが draw{count:7} を発行)
+// - turn=1, phase='untap', life=40, 手札0枚(初手ドローはストアが draw{count:7} を発行)
+// - M4.6: untap 開始により T1 のドローステップを実際に通過する(EDH準拠)
 // - quantity 展開は呼び出し側(ストア)の責務
 ```
 
@@ -240,3 +241,89 @@ export function commanderTax(state: GameState, cardId: string): number; // 2 * c
    - moveCard: トークン消滅、状態リセット、library top/bottom
    - 履歴: undo/redo の往復、上限200
 3. レビュー側が fast-check プロパティテスト(I1〜I5)を追加して全パスすること(失敗したら差し戻し)
+
+---
+
+## 7. M4.6 追補(ルール補助強化)— この節も契約である
+
+### 7.1 型の追加
+```ts
+// GameState に追加
+landsPlayedThisTurn: number;   // 初期0。ターン移行(end→untap / nextTurn)で0にリセット
+
+// CardInstance に追加
+enteredTurn: number;           // battlefield に入ったターン番号。battlefield 外では 0
+
+// CardDef に追加(任意・後方互換。キャッシュスキーマ変更不要)
+tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+```
+
+### 7.2 新コマンド
+```ts
+| { type: 'playLand'; cardId: string; forced: boolean }
+//   手札の土地を battlefield へ移動し landsPlayedThisTurn += 1。
+//   実行後の枚数が2枚目以降なら warning「このターンN枚目の土地です。」(非ブロック)。
+//   手札以外/土地以外が対象なら EngineError。
+
+| { type: 'crackTreasure'; cardId: string; color: ManaColor }
+//   defs[card.defId].tokenKind === 'treasure' を検証(違えば EngineError)。
+//   指定色のマナを1点プールに加え、トークンを消滅させる(I2のトークン消滅と同じ扱い)。ログ必須。
+```
+
+### 7.3 ETB フック(moveCardInternal の battlefield 進入時。playLand/castSpell/castCommander/createToken 経由を含む)
+- `enteredTurn = state.turn`(battlefield から出るとき 0 に戻す)
+- typeLine に `Planeswalker` を含み face.loyalty が数値 → `counters.loyalty = parseInt(loyalty)`
+- typeLine に `Saga` を含む → `counters.lore = 1` + ログ「《X》は第I章で戦場に出た。」
+
+### 7.4 ターン開始処理(untap 進入時、全アンタップの後)
+- `landsPlayedThisTurn = 0`
+- battlefield 上の typeLine `Saga` 各カード: `counters.lore += 1` + ログ「《X》の章カウンターがNになった。」(自動生贄はしない)
+
+### 7.5 enterPhase の変更
+- **ターン1のドロースキップを廃止**(EDH/多人数戦準拠: turn===1 でも draw 進入で1枚引く)
+
+### 7.6 召喚酔いヘルパー(engine/commander.ts か新 engine/status.ts)
+```ts
+export function isSummoningSick(state: GameState, cardId: string): boolean;
+// battlefield かつ typeLine(現在のface)に 'Creature' を含み、enteredTurn === state.turn、
+// かつ速攻を持たない。速攻判定: いずれかの face の oracleText / printedText が
+// /\bhaste\b/i または「速攻」を含む(簡易判定で良い。誤検知より見逃し側に倒す)
+```
+
+### 7.7 自動マナタップソルバー(新 engine/autotap.ts、純粋関数)
+```ts
+export interface AutoTapPlan {
+  ok: boolean;                       // 浮きマナ+計画タップで完全支払い可能か
+  taps: { cardId: string; color: ManaColor }[];  // タップすべき供給源と出す色
+  payment: ManaPool;                 // 最終的にプールから引く量(浮き+追加分)
+  shortfall: number;
+}
+export function planAutoTap(state: GameState, cost: ParsedCost, xValue: number): AutoTapPlan;
+```
+- 候補: battlefield の未タップかつ `producedMana` 非空。ただし `isSummoningSick` と `tokenKind === 'treasure'` は除外
+- 浮きマナ(state.manaPool)を先に充当し、不足分のみタップ計画
+- 優先順位: 単色土地 → 多色土地 → 非クリーチャー非土地 → クリーチャー(同順位内は producedMana が少ない順)
+- 色拘束 pip は供給可能ソースが少ない色から割当。**単純貪欲で完全支払いを取りこぼさないこと**(solvePayment と同様、必要ならバックトラック。候補は高々数十、pip は高々十数なので全列挙可)
+- ok=false の場合も「最善の部分計画」を返す(強行用)
+
+### 7.8 ストア追加・変更
+```ts
+playLand(cardId: string, opts?: { force?: boolean }): 'ok' | 'needs-confirm';
+//   landsPlayedThisTurn >= 1 && !force → 状態変更せず 'needs-confirm'
+
+crackTreasure(cardId: string, color: ManaColor): void;
+
+// castFromHand / castCommander:
+//   solvePayment が不足 → planAutoTap。ok なら taps の setTapped+addMana と cast コマンドを
+//   順次 applyCommand し【1回の commit】(undo 1回で全復元)。ログには自動タップの内訳を残す。
+//   autotap でも不足 → 従来通り {shortfall} を返し UI が確認(強行=可能な分タップ+部分支払い)
+
+// mulligan(): フリーマリガン。UI が putBottom すべき枚数 = max(0, state.mulliganCount - 1)
+
+// toggleTap / tapForMana: 対象が isSummoningSick なら warning
+//   「《X》は召喚酔い中です。」を付与(操作は通す)
+```
+
+### 7.9 不変条件の追加(プロパティテスト対象)
+- I6: `landsPlayedThisTurn >= 0`。untap 進入直後は常に 0
+- I7: battlefield 上のカードは `enteredTurn >= 1 && enteredTurn <= turn`、battlefield 外は 0

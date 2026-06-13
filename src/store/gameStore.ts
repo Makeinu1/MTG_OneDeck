@@ -3,9 +3,11 @@ import type { ManaColor } from '../types/card';
 import { applyCommand, EngineError, type GameCommand } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
+import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
 import type { GameState, ZoneId } from '../engine/types';
+import { isSummoningSick } from '../engine/status';
 
 const HISTORY_LIMIT = 200;
 
@@ -27,8 +29,10 @@ export interface GameStore {
   draw(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
+  playLand(cardId: string, opts?: { force?: boolean }): 'ok' | 'needs-confirm';
   toggleTap(cardId: string): void;
   tapForMana(cardId: string, color?: ManaColor): 'ok' | 'needs-choice';
+  crackTreasure(cardId: string, color: ManaColor): void;
   castFromHand(
     cardId: string,
     opts?: { xValue?: number; force?: boolean }
@@ -39,7 +43,17 @@ export interface GameStore {
   ): 'ok' | { shortfall: number };
   nextPhase(): void;
   nextTurn(): void;
-  createToken(name: string, typeLine: string, p?: string, t?: string, qty?: number): void;
+  createToken(
+    name: string,
+    typeLine: string,
+    p?: string,
+    t?: string,
+    qty?: number,
+    opts?: {
+      producedMana?: ManaColor[];
+      tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+    }
+  ): void;
   clearWarnings(): void;
 }
 
@@ -53,6 +67,31 @@ interface InternalState {
 
 function randomSeed(): number {
   return (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1;
+}
+
+function cardLabel(state: GameState, cardId: string): string {
+  const card = state.cards[cardId];
+  if (!card) return '《不明なカード》';
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
+  return `《${name}》`;
+}
+
+function applySequence(
+  initial: GameState,
+  commands: GameCommand[]
+): { state: GameState; warnings: string[] } {
+  let next = initial;
+  const warnings: string[] = [];
+
+  for (const cmd of commands) {
+    const result = applyCommand(next, cmd);
+    next = result.state;
+    warnings.push(...result.warnings);
+  }
+
+  return { state: next, warnings };
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
@@ -96,6 +135,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
+  function warningForSummoningSickness(state: GameState, cardId: string): string[] {
+    if (!isSummoningSick(state, cardId)) return [];
+    return [`${cardLabel(state, cardId)}は召喚酔い中です。`];
+  }
+
   return {
     state: null,
     warnings: [],
@@ -132,8 +176,15 @@ export const useGameStore = create<GameStore>((set, get) => {
       const combined = [...cur.zones.hand, ...cur.zones.library];
       const rng = createRng(randomSeed());
       const order = shuffledOrder(combined, rng);
-      dispatch({ type: 'mulligan', order });
-      dispatch({ type: 'draw', count: 7 });
+      try {
+        const result = applySequence(cur, [
+          { type: 'mulligan', order },
+          { type: 'draw', count: 7 },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     putBottomForMulligan(cardIds) {
@@ -188,12 +239,27 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'moveCard', cardId, to, position });
     },
 
+    playLand(cardId, opts) {
+      const cur = get().state;
+      if (!cur) return 'ok';
+      if (cur.landsPlayedThisTurn >= 1 && !opts?.force) {
+        return 'needs-confirm';
+      }
+      dispatch({ type: 'playLand', cardId, forced: opts?.force === true });
+      return 'ok';
+    },
+
     toggleTap(cardId) {
       const cur = get().state;
       if (!cur) return;
       const card = cur.cards[cardId];
       if (!card) return;
-      dispatch({ type: 'setTapped', cardId, tapped: !card.tapped });
+      try {
+        const result = applyCommand(cur, { type: 'setTapped', cardId, tapped: !card.tapped });
+        commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     tapForMana(cardId, color) {
@@ -219,13 +285,19 @@ export const useGameStore = create<GameStore>((set, get) => {
       // single committed step: tap + add mana. Apply sequentially on a state
       // and commit once so undo reverts both.
       try {
-        const r1 = applyCommand(cur, { type: 'setTapped', cardId, tapped: true });
-        const r2 = applyCommand(r1.state, { type: 'addMana', color: chosen, amount: 1 });
-        commit(r2.state, [...r1.warnings, ...r2.warnings]);
+        const result = applySequence(cur, [
+          { type: 'setTapped', cardId, tapped: true },
+          { type: 'addMana', color: chosen, amount: 1 },
+        ]);
+        commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
       } catch (err) {
         console.error(err);
       }
       return 'ok';
+    },
+
+    crackTreasure(cardId, color) {
+      dispatch({ type: 'crackTreasure', cardId, color });
     },
 
     castFromHand(cardId, opts) {
@@ -238,15 +310,39 @@ export const useGameStore = create<GameStore>((set, get) => {
       const cost = parseManaCost(face?.manaCost ?? '');
       const xValue = opts?.xValue ?? 0;
       const sol = solvePayment(cur.manaPool, cost, xValue);
-      if (!sol.ok && !opts?.force) {
-        return { shortfall: sol.shortfall };
+      if (sol.ok) {
+        dispatch({
+          type: 'castSpell',
+          cardId,
+          payment: sol.payment,
+          forced: false,
+        });
+        return 'ok';
       }
-      dispatch({
-        type: 'castSpell',
-        cardId,
-        payment: sol.payment,
-        forced: !sol.ok,
-      });
+
+      const plan = planAutoTap(cur, cost, xValue);
+      if (!plan.ok && !opts?.force) {
+        return { shortfall: plan.shortfall };
+      }
+
+      try {
+        const commands: GameCommand[] = [
+          ...plan.taps.flatMap((tap) => [
+            { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
+            { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
+          ]),
+          {
+            type: 'castSpell',
+            cardId,
+            payment: plan.payment,
+            forced: !plan.ok,
+          },
+        ];
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
       return 'ok';
     },
 
@@ -264,15 +360,39 @@ export const useGameStore = create<GameStore>((set, get) => {
       const taxedCost = { ...cost, generic: cost.generic + tax };
       const xValue = opts?.xValue ?? 0;
       const sol = solvePayment(cur.manaPool, taxedCost, xValue);
-      if (!sol.ok && !opts?.force) {
-        return { shortfall: sol.shortfall };
+      if (sol.ok) {
+        dispatch({
+          type: 'castCommander',
+          cardId,
+          payment: sol.payment,
+          forced: false,
+        });
+        return 'ok';
       }
-      dispatch({
-        type: 'castCommander',
-        cardId,
-        payment: sol.payment,
-        forced: !sol.ok,
-      });
+
+      const plan = planAutoTap(cur, taxedCost, xValue);
+      if (!plan.ok && !opts?.force) {
+        return { shortfall: plan.shortfall };
+      }
+
+      try {
+        const commands: GameCommand[] = [
+          ...plan.taps.flatMap((tap) => [
+            { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
+            { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
+          ]),
+          {
+            type: 'castCommander',
+            cardId,
+            payment: plan.payment,
+            forced: !plan.ok,
+          },
+        ];
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
       return 'ok';
     },
 
@@ -284,7 +404,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'nextTurn' });
     },
 
-    createToken(name, typeLine, p, t, qty = 1) {
+    createToken(name, typeLine, p, t, qty = 1, opts) {
       dispatch({
         type: 'createToken',
         name,
@@ -292,6 +412,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         power: p,
         toughness: t,
         quantity: qty,
+        producedMana: opts?.producedMana,
+        tokenKind: opts?.tokenKind,
       });
     },
 

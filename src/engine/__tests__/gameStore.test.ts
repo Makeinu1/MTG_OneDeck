@@ -155,6 +155,114 @@ describe('GameStore', () => {
     expect(res).toEqual({ shortfall: 1 });
   });
 
+  it('playLand requests confirmation after the first land', () => {
+    const first = makeDef({
+      scryfallId: 'land-1',
+      typeLine: 'Basic Land — Plains',
+      faces: [{ name: 'land-1', typeLine: 'Basic Land — Plains' }],
+    });
+    const second = makeDef({
+      scryfallId: 'land-2',
+      typeLine: 'Basic Land — Plains',
+      faces: [{ name: 'land-2', typeLine: 'Basic Land — Plains' }],
+    });
+    store().newGame([
+      { def: first, isCommander: false },
+      { def: second, isCommander: false },
+      ...makeDeck(5),
+    ], 1);
+    const firstId = Object.values(store().state!.cards).find((c) => c.defId === 'land-1')!.id;
+    const secondId = Object.values(store().state!.cards).find((c) => c.defId === 'land-2')!.id;
+
+    expect(store().playLand(firstId)).toBe('ok');
+    expect(store().playLand(secondId)).toBe('needs-confirm');
+    expect(store().state!.cards[secondId].zone).toBe('hand');
+    expect(store().playLand(secondId, { force: true })).toBe('ok');
+    expect(store().state!.cards[secondId].zone).toBe('battlefield');
+    expect(store().warnings).toContain('このターン2枚目の土地です。');
+  });
+
+  it('castFromHand auto-taps and resolves as a single undo step', () => {
+    const mountain = makeDef({
+      scryfallId: 'mountain',
+      typeLine: 'Basic Land — Mountain',
+      producedMana: ['R'],
+      faces: [{ name: 'mountain', typeLine: 'Basic Land — Mountain' }],
+    });
+    const bolt = makeDef({
+      scryfallId: 'bolt',
+      typeLine: 'Instant',
+      faces: [{ name: 'bolt', typeLine: 'Instant', manaCost: '{R}' }],
+    });
+    store().newGame([
+      { def: mountain, isCommander: false },
+      { def: bolt, isCommander: false },
+      ...makeDeck(5),
+    ], 1);
+    const mountainId = Object.values(store().state!.cards).find((c) => c.defId === 'mountain')!.id;
+    const boltId = Object.values(store().state!.cards).find((c) => c.defId === 'bolt')!.id;
+
+    store().playLand(mountainId);
+    store().clearWarnings();
+
+    expect(store().castFromHand(boltId)).toBe('ok');
+    expect(store().state!.cards[mountainId].tapped).toBe(true);
+    expect(store().state!.cards[boltId].zone).toBe('graveyard');
+    expect(store().state!.manaPool.R).toBe(0);
+
+    store().undo();
+    expect(store().state!.cards[mountainId].zone).toBe('battlefield');
+    expect(store().state!.cards[mountainId].tapped).toBe(false);
+    expect(store().state!.cards[boltId].zone).toBe('hand');
+  });
+
+  it('warns when summoning-sick creatures are tapped manually', () => {
+    const dork = makeDef({
+      scryfallId: 'dork',
+      typeLine: 'Creature — Elf Druid',
+      producedMana: ['G'],
+      faces: [{ name: 'dork', typeLine: 'Creature — Elf Druid' }],
+    });
+    store().newGame([{ def: dork, isCommander: false }, ...makeDeck(5)], 1);
+    const dorkId = Object.values(store().state!.cards).find((c) => c.defId === 'dork')!.id;
+    store().moveCard(dorkId, 'battlefield', 'bottom');
+    store().clearWarnings();
+
+    expect(store().tapForMana(dorkId)).toBe('ok');
+    expect(store().warnings).toContain('《dork》は召喚酔い中です。');
+    expect(store().state!.cards[dorkId].tapped).toBe(true);
+    expect(store().state!.manaPool.G).toBe(1);
+
+    store().clearWarnings();
+    store().toggleTap(dorkId);
+    expect(store().warnings).toContain('《dork》は召喚酔い中です。');
+  });
+
+  it('mulligan is committed as a single free-mulligan step', () => {
+    store().newGame(makeDeck(20), 1);
+    const opening = JSON.stringify(store().state);
+
+    store().mulligan();
+    expect(store().state!.zones.hand).toHaveLength(7);
+    expect(store().state!.mulliganCount).toBe(1);
+
+    store().undo();
+    expect(JSON.stringify(store().state)).toBe(opening);
+  });
+
+  it('cracks treasure tokens through the store', () => {
+    store().newGame(makeDeck(5), 1);
+    store().createToken('宝物', 'Token Artifact — Treasure', undefined, undefined, 1, {
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+      tokenKind: 'treasure',
+    });
+    const treasureId = store().state!.zones.battlefield.find((id) => store().state!.cards[id].isToken)!;
+
+    store().crackTreasure(treasureId, 'R');
+    expect(store().state!.manaPool.R).toBe(1);
+    expect(store().state!.cards[treasureId]).toBeUndefined();
+  });
+
   it('clearWarnings empties warnings', () => {
     store().newGame(makeDeck(30), 1);
     store().dispatch({ type: 'payMana', payment: { W: 5, U: 0, B: 0, R: 0, G: 0, C: 0 } });
