@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import type { CSSProperties } from 'react';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
@@ -28,11 +29,20 @@ export function Hand({ state, onCardContextMenu, onCardDoubleClick, hoverPreview
       <span className="hand__label">手札 ({ids.length})</span>
       <div className="hand__cards">
         {ids.length === 0 && <div className="hand__placeholder">手札はありません</div>}
-        {ids.map((id) => {
+        {ids.map((id, index) => {
           const card = state.cards[id];
           const def = state.defs[card.defId];
           return (
-            <div key={id} className="hand__slot">
+            <div
+              key={id}
+              className="hand__slot"
+              style={
+                {
+                  '--hand-index': index,
+                  '--hand-count': ids.length,
+                } as CSSProperties
+              }
+            >
               <CardView
                 instance={card}
                 def={def}

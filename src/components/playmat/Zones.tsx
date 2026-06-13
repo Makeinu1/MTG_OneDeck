@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { GameState, ZoneId } from '../../engine/types';
 import type { useGameStore } from '../../store/gameStore';
@@ -7,6 +8,8 @@ import { isSummoningSick } from '../../engine/status';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 type Store = ReturnType<typeof useGameStore.getState>;
+const TOUCH_TAP_MAX_DISTANCE_PX = 8;
+const TOUCH_TAP_MAX_DURATION_MS = 220;
 
 /** Make a zone card a drop target for card drag-and-drop. */
 function DroppableZoneCard({
@@ -15,16 +18,25 @@ function DroppableZoneCard({
   testId,
   onContextMenu,
   onDoubleClick,
+  onTouchTap,
   children,
 }: {
   zone: ZoneId;
   className?: string;
   testId: string;
-  onContextMenu?: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
+  onTouchTap?: (e: React.PointerEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${zone}-zone`, data: { zone } });
+  const touchStartRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startedAt: number;
+  } | null>(null);
+
   return (
     <div
       ref={setNodeRef}
@@ -35,6 +47,41 @@ function DroppableZoneCard({
         onContextMenu?.(e);
       }}
       onDoubleClick={onDoubleClick}
+      onPointerDown={(e) => {
+        if (e.pointerType !== 'touch') {
+          touchStartRef.current = null;
+          return;
+        }
+        touchStartRef.current = {
+          pointerId: e.pointerId,
+          startX: e.clientX,
+          startY: e.clientY,
+          startedAt: performance.now(),
+        };
+      }}
+      onPointerUp={(e) => {
+        const touchStart =
+          touchStartRef.current?.pointerId === e.pointerId ? touchStartRef.current : null;
+        touchStartRef.current = null;
+        if (e.pointerType !== 'touch' || !touchStart || !onTouchTap) {
+          return;
+        }
+
+        const distance = Math.hypot(e.clientX - touchStart.startX, e.clientY - touchStart.startY);
+        const duration = performance.now() - touchStart.startedAt;
+        if (distance >= TOUCH_TAP_MAX_DISTANCE_PX || duration > TOUCH_TAP_MAX_DURATION_MS) {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        onTouchTap(e);
+      }}
+      onPointerCancel={(e) => {
+        if (touchStartRef.current?.pointerId === e.pointerId) {
+          touchStartRef.current = null;
+        }
+      }}
     >
       {children}
     </div>
@@ -72,6 +119,9 @@ export interface ZonesProps {
   state: GameState;
   store: Store;
   onOpenViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
+  onOpenLibraryMenu: (
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onArrangeTop: () => void;
   onMill: () => void;
   onPeek: () => void;
@@ -93,6 +143,7 @@ export function Zones({
   state,
   store,
   onOpenViewer,
+  onOpenLibraryMenu,
   onArrangeTop,
   onMill,
   onPeek,
@@ -142,7 +193,13 @@ export function Zones({
       </DroppableZoneCard>
 
       <div className="zones__row">
-        <DroppableZoneCard zone="library" className="zone-card--library" testId="zone-library">
+        <DroppableZoneCard
+          zone="library"
+          className="zone-card--library"
+          testId="zone-library"
+          onContextMenu={onOpenLibraryMenu}
+          onTouchTap={onOpenLibraryMenu}
+        >
           <div className="zone-card__face zone-card__face--library">
             <span className="zone-card__count">{state.zones.library.length}</span>
           </div>
@@ -165,7 +222,12 @@ export function Zones({
           </div>
         </DroppableZoneCard>
 
-        <DroppableZoneCard zone="graveyard" testId="zone-graveyard" onDoubleClick={() => onOpenViewer('graveyard')}>
+        <DroppableZoneCard
+          zone="graveyard"
+          className="zone-card--graveyard"
+          testId="zone-graveyard"
+          onDoubleClick={() => onOpenViewer('graveyard')}
+        >
           <div
             className="zone-card__face zone-card__face--graveyard"
             onClick={() => onOpenViewer('graveyard')}
@@ -197,7 +259,12 @@ export function Zones({
           </div>
         </DroppableZoneCard>
 
-        <DroppableZoneCard zone="exile" testId="zone-exile" onDoubleClick={() => onOpenViewer('exile')}>
+        <DroppableZoneCard
+          zone="exile"
+          className="zone-card--exile"
+          testId="zone-exile"
+          onDoubleClick={() => onOpenViewer('exile')}
+        >
           <div
             className="zone-card__face zone-card__face--exile"
             onClick={() => onOpenViewer('exile')}

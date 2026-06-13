@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ManaColor } from '../types/card';
+import type { CardDef, ManaColor } from '../types/card';
 import { applyCommand, EngineError, type GameCommand } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
@@ -12,6 +12,7 @@ import {
   hasVigilance,
   isSummoningSick,
   landEntersTapped,
+  cyclingCost,
 } from '../engine/status';
 
 const HISTORY_LIMIT = 200;
@@ -58,6 +59,7 @@ export interface GameStore {
   ): 'ok' | { shortfall: number };
   declareAttack(attackerIds: string[], targetLabel: string): void;
   adjustOpponentLife(label: string, delta: number): void;
+  adjustMana(color: ManaColor, delta: number): void;
   arrangeTop(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   nextPhase(): void;
   nextTurn(): void;
@@ -73,6 +75,7 @@ export interface GameStore {
     }
   ): void;
   clearWarnings(): void;
+  cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
 }
 
 interface InternalState {
@@ -94,6 +97,42 @@ function cardLabel(state: GameState, cardId: string): string {
   const face = def?.faces[card.faceIndex] ?? def?.faces[0];
   const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
   return `《${name}》`;
+}
+
+function cardTexts(def: CardDef | undefined): string[] {
+  if (!def) return [];
+  return def.faces.flatMap((face) => [face.oracleText ?? '', face.printedText ?? '']);
+}
+
+function splitRulesText(text: string): string[] {
+  return text
+    .split(/[.\n。]/)
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+}
+
+function manaProductionAmount(def: CardDef | undefined, color: ManaColor): number {
+  for (const text of cardTexts(def)) {
+    for (const clause of splitRulesText(text)) {
+      if (!/\badd\b/i.test(clause) && !/を加える/.test(clause)) {
+        continue;
+      }
+
+      const matches = clause.match(new RegExp(`\\{${color}\\}`, 'gi'));
+      if (matches && matches.length > 0) {
+        return matches.length;
+      }
+    }
+  }
+
+  return 1;
+}
+
+function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[] {
+  return taps.flatMap((tap) => [
+    { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
+    { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
+  ]);
 }
 
 function applySequence(
@@ -402,9 +441,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       // single committed step: tap + add mana. Apply sequentially on a state
       // and commit once so undo reverts both.
       try {
+        const amount = Math.max(1, manaProductionAmount(def, chosen));
         const result = applySequence(cur, [
           { type: 'setTapped', cardId, tapped: true },
-          { type: 'addMana', color: chosen, amount: 1 },
+          { type: 'addMana', color: chosen, amount },
         ]);
         commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
       } catch (err) {
@@ -444,10 +484,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       try {
         const commands: GameCommand[] = [
-          ...plan.taps.flatMap((tap) => [
-            { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
-            { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
-          ]),
+          ...tapCommands(plan.taps),
           {
             type: 'castSpell',
             cardId,
@@ -494,10 +531,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       try {
         const commands: GameCommand[] = [
-          ...plan.taps.flatMap((tap) => [
-            { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
-            { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
-          ]),
+          ...tapCommands(plan.taps),
           {
             type: 'castCommander',
             cardId,
@@ -538,6 +572,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'adjustOpponentLife', label, delta });
     },
 
+    adjustMana(color, delta) {
+      dispatch({ type: 'adjustMana', color, delta });
+    },
+
     arrangeTop(topOrder, toBottom, toGraveyard) {
       dispatch({ type: 'arrangeTop', topOrder, toBottom, toGraveyard });
     },
@@ -565,6 +603,52 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     clearWarnings() {
       set({ warnings: [] });
+    },
+
+    cycle(cardId, opts) {
+      const cur = get().state;
+      if (!cur) return 'ok';
+      const card = cur.cards[cardId];
+      if (!card || card.zone !== 'hand') return 'ok';
+
+      const def = cur.defs[card.defId];
+      const costLabel = cyclingCost(def);
+      if (!costLabel) return 'ok';
+
+      const cost = parseManaCost(costLabel);
+      const directPayment = solvePayment(cur.manaPool, cost, 0);
+      if (directPayment.ok) {
+        try {
+          const result = applySequence(cur, [
+            { type: 'payMana', payment: directPayment.payment },
+            { type: 'discard', cardIds: [cardId] },
+            { type: 'draw', count: 1 },
+          ]);
+          commit(result.state, result.warnings);
+        } catch (err) {
+          console.error(err);
+        }
+        return 'ok';
+      }
+
+      const plan = planAutoTap(cur, cost, 0);
+      if (!plan.ok && !opts?.force) {
+        return { shortfall: plan.shortfall };
+      }
+
+      try {
+        const result = applySequence(cur, [
+          ...tapCommands(plan.taps),
+          { type: 'payMana', payment: plan.payment },
+          { type: 'discard', cardIds: [cardId] },
+          { type: 'draw', count: 1 },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+
+      return 'ok';
     },
   };
 });

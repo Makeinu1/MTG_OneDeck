@@ -22,6 +22,7 @@ export type GameCommand =
   | { type: 'adjustCommanderDamage'; label: string; delta: number }
   | { type: 'adjustOpponentLife'; label: string; delta: number }
   | { type: 'addMana'; color: ManaColor; amount: number }
+  | { type: 'adjustMana'; color: ManaColor; delta: number }
   | { type: 'payMana'; payment: ManaPool }
   | { type: 'clearManaPool' }
   | { type: 'draw'; count: number }
@@ -832,6 +833,19 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         draft.state.manaPool = pool;
         pushLog(draft, `${cmd.color}マナを${amount}点加えました。`);
       }
+      break;
+    }
+    case 'adjustMana': {
+      if (cmd.delta === 0) break;
+      const current = draft.state.manaPool[cmd.color];
+      const next = Math.max(0, current + cmd.delta);
+      if (next === current) break;
+      draft.state.manaPool = {
+        ...draft.state.manaPool,
+        [cmd.color]: next,
+      };
+      const deltaLabel = cmd.delta > 0 ? `+${cmd.delta}` : `${cmd.delta}`;
+      pushLog(draft, `${cmd.color}マナを${deltaLabel}した(現在${next})。`);
       break;
     }
     case 'payMana': {

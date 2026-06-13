@@ -110,6 +110,28 @@ describe('GameStore', () => {
     expect(s.manaPool.G).toBe(1);
   });
 
+  it('tapForMana adds the parsed amount for multi-mana sources', () => {
+    const vault = makeDef({
+      scryfallId: 'vault',
+      typeLine: 'Artifact',
+      producedMana: ['C'],
+      faces: [
+        {
+          name: 'vault',
+          typeLine: 'Artifact',
+          oracleText: '{T}: Add {C}{C}{C}.',
+        },
+      ],
+    });
+    const deck = [{ def: vault, isCommander: false }, ...makeDeck(5)];
+    store().newGame(deck, 1);
+    const vaultId = Object.values(store().state!.cards).find((c) => c.defId === 'vault')!.id;
+    store().moveCard(vaultId, 'battlefield', 'bottom');
+
+    expect(store().tapForMana(vaultId)).toBe('ok');
+    expect(store().state!.manaPool.C).toBe(3);
+  });
+
   it('tapForMana multi-color needs choice', () => {
     const dual = makeDef({
       scryfallId: 'dual',
@@ -179,6 +201,16 @@ describe('GameStore', () => {
     expect(res).toEqual({ shortfall: 1 });
   });
 
+  it('adjustMana edits the pool through the store and clamps at 0', () => {
+    store().newGame(makeDeck(10), 1);
+
+    store().adjustMana('W', 2);
+    expect(store().state!.manaPool.W).toBe(2);
+
+    store().adjustMana('W', -5);
+    expect(store().state!.manaPool.W).toBe(0);
+  });
+
   it('playLand requests confirmation after the first land', () => {
     const first = makeDef({
       scryfallId: 'land-1',
@@ -238,6 +270,65 @@ describe('GameStore', () => {
     expect(store().state!.cards[mountainId].zone).toBe('battlefield');
     expect(store().state!.cards[mountainId].tapped).toBe(false);
     expect(store().state!.cards[boltId].zone).toBe('hand');
+  });
+
+  it('cycle discards, draws, and undoes as a single step', () => {
+    const island = makeDef({
+      scryfallId: 'island',
+      typeLine: 'Basic Land — Island',
+      producedMana: ['U'],
+      faces: [{ name: 'island', typeLine: 'Basic Land — Island' }],
+    });
+    const cycler = makeDef({
+      scryfallId: 'cycler',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'cycler',
+          typeLine: 'Creature',
+          manaCost: '{3}{U}',
+          oracleText: 'Cycling {U}',
+        },
+      ],
+    });
+    store().newGame([
+      { def: island, isCommander: false },
+      { def: cycler, isCommander: false },
+      ...makeDeck(12),
+    ], 1);
+    const islandId = Object.values(store().state!.cards).find((c) => c.defId === 'island')!.id;
+    const cyclerId = Object.values(store().state!.cards).find((c) => c.defId === 'cycler')!.id;
+
+    store().moveCard(islandId, 'battlefield', 'bottom');
+    const handBeforeCycle = store().state!.zones.hand.length;
+    expect(store().cycle(cyclerId)).toBe('ok');
+    expect(store().state!.cards[cyclerId].zone).toBe('graveyard');
+    expect(store().state!.cards[islandId].tapped).toBe(true);
+    expect(store().state!.zones.hand.length).toBe(handBeforeCycle);
+
+    store().undo();
+    expect(store().state!.cards[cyclerId].zone).toBe('hand');
+    expect(store().state!.cards[islandId].tapped).toBe(false);
+    expect(store().state!.zones.hand.length).toBe(handBeforeCycle);
+  });
+
+  it('cycle returns a shortfall when mana is missing', () => {
+    const cycler = makeDef({
+      scryfallId: 'cycler-short',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'cycler-short',
+          typeLine: 'Creature',
+          oracleText: 'Cycling {2}',
+        },
+      ],
+    });
+    store().newGame([{ def: cycler, isCommander: false }, ...makeDeck(5)], 1);
+    const cyclerId = Object.values(store().state!.cards).find((c) => c.defId === 'cycler-short')!.id;
+
+    expect(store().cycle(cyclerId)).toEqual({ shortfall: 2 });
+    expect(store().state!.cards[cyclerId].zone).toBe('hand');
   });
 
   it('warns when summoning-sick creatures are tapped manually', () => {

@@ -39,13 +39,15 @@ import {
 } from './dialogs';
 import type { ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
+import { cyclingCost } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 
 type PendingMove = { cardId: string; to: ZoneId };
-type PendingCast =
+type PendingPaymentAction =
   | { kind: 'hand'; cardId: string; shortfall: number; xValue: number }
-  | { kind: 'commander'; cardId: string; shortfall: number; xValue: number };
+  | { kind: 'commander'; cardId: string; shortfall: number; xValue: number }
+  | { kind: 'cycle'; cardId: string; shortfall: number };
 type ManaChoiceRequest = {
   kind: 'tap' | 'treasure';
   cardId: string;
@@ -73,8 +75,9 @@ export function Playmat() {
   const { state, warnings } = store;
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
+  const [libraryMenu, setLibraryMenu] = useState<{ x: number; y: number } | null>(null);
   const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
-  const [pendingCast, setPendingCast] = useState<PendingCast | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PendingPaymentAction | null>(null);
   const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
   const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
   const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(null);
@@ -100,7 +103,7 @@ export function Playmat() {
 
   const isDialogOpen =
     manaChoice !== null ||
-    pendingCast !== null ||
+    pendingPayment !== null ||
     pendingXCast !== null ||
     pendingLandPlay !== null ||
     pendingLandTapChoice !== null ||
@@ -183,7 +186,12 @@ export function Playmat() {
     const chosenXValue = xValue ?? 0;
     const result = store.castFromHand(cardId, { xValue: chosenXValue });
     if (result !== 'ok') {
-      setPendingCast({ kind: 'hand', cardId, shortfall: result.shortfall, xValue: chosenXValue });
+      setPendingPayment({
+        kind: 'hand',
+        cardId,
+        shortfall: result.shortfall,
+        xValue: chosenXValue,
+      });
     }
   }
 
@@ -196,12 +204,19 @@ export function Playmat() {
     const chosenXValue = xValue ?? 0;
     const result = store.castCommander(cardId, { xValue: chosenXValue });
     if (result !== 'ok') {
-      setPendingCast({
+      setPendingPayment({
         kind: 'commander',
         cardId,
         shortfall: result.shortfall,
         xValue: chosenXValue,
       });
+    }
+  }
+
+  function requestCycle(cardId: string): void {
+    const result = store.cycle(cardId);
+    if (result !== 'ok') {
+      setPendingPayment({ kind: 'cycle', cardId, shortfall: result.shortfall });
     }
   }
 
@@ -232,6 +247,7 @@ export function Playmat() {
   function openCardMenu(cardId: string, e: MenuTriggerEvent): void {
     e.stopPropagation();
     hoverPreview.suppress();
+    setLibraryMenu(null);
     setMenu({ cardId, x: e.clientX, y: e.clientY });
   }
 
@@ -243,8 +259,16 @@ export function Playmat() {
     openCardMenu(cardId, e);
   }
 
+  function openLibraryMenu(e: MenuTriggerEvent): void {
+    e.stopPropagation();
+    hoverPreview.suppress();
+    setMenu(null);
+    setLibraryMenu({ x: e.clientX, y: e.clientY });
+  }
+
   function closeMenu(): void {
     setMenu(null);
+    setLibraryMenu(null);
   }
 
   /**
@@ -296,6 +320,41 @@ export function Playmat() {
     if (card.zone === 'library') {
       store.draw(1);
     }
+  }
+
+  function buildLibraryMenuItems(): MenuItem[] {
+    return [
+      {
+        key: 'library-draw',
+        label: '引く',
+        onSelect: () => store.draw(1),
+      },
+      {
+        key: 'library-shuffle',
+        label: 'シャッフル',
+        onSelect: () => store.shuffleLibrary(),
+      },
+      {
+        key: 'mill',
+        label: '切削',
+        onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }),
+      },
+      {
+        key: 'scry',
+        label: '上から見る',
+        onSelect: () => setArrangeTopOpen(true),
+      },
+      {
+        key: 'peek',
+        label: '上を見る',
+        onSelect: () => setCountDialog({ kind: 'peek', defaultValue: 3 }),
+      },
+      {
+        key: 'library-search',
+        label: 'サーチ',
+        onSelect: () => setZoneViewer('library'),
+      },
+    ];
   }
 
   function buildMenuItems(cardId: string): { title: string; items: MenuItem[] } {
@@ -368,6 +427,15 @@ export function Playmat() {
           label: 'キャスト',
           onSelect: () => requestCastFromHand(cardId),
           separator: true,
+        });
+      }
+
+      const cycleCost = cyclingCost(def);
+      if (cycleCost) {
+        items.push({
+          key: 'cycle',
+          label: `サイクリング(${cycleCost})`,
+          onSelect: () => requestCycle(cardId),
         });
       }
 
@@ -516,51 +584,64 @@ export function Playmat() {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="playmat" onClick={closeMenu}>
-        <SidePanel
-          state={state}
-          store={store}
-          onMulligan={() => {
-            store.mulligan();
-            const nextState = useGameStore.getState().state;
-            const bottomCount = Math.max(0, (nextState?.mulliganCount ?? 0) - 1);
-            setMulliganBottomCount(bottomCount > 0 ? bottomCount : null);
-          }}
-          onRestart={() => setConfirmAction('restart')}
-          onBackToImport={() => setConfirmAction('back-to-import')}
-          onCreateToken={() => setTokenDialogOpen(true)}
-          onAttack={() => setAttackDialogOpen(true)}
-          onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
-        />
-
-        <div className="playmat__center">
-          <Battlefield
+        <div className="playmat__sidebar">
+          <SidePanel
             state={state}
-            onCardContextMenu={handleCardContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
-          />
-          <Hand
-            state={state}
-            onCardContextMenu={handleCardContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
+            store={store}
+            onMulligan={() => {
+              store.mulligan();
+              const nextState = useGameStore.getState().state;
+              const bottomCount = Math.max(0, (nextState?.mulliganCount ?? 0) - 1);
+              setMulliganBottomCount(bottomCount > 0 ? bottomCount : null);
+            }}
+            onRestart={() => setConfirmAction('restart')}
+            onBackToImport={() => setConfirmAction('back-to-import')}
+            onCreateToken={() => setTokenDialogOpen(true)}
+            onAttack={() => setAttackDialogOpen(true)}
+            onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
           />
         </div>
 
-        <div className="playmat__right">
-          <Zones
-            state={state}
-            store={store}
-            onOpenViewer={(zone) => setZoneViewer(zone)}
-            onArrangeTop={() => setArrangeTopOpen(true)}
-            onMill={() => setCountDialog({ kind: 'mill', defaultValue: 1 })}
-            onPeek={() => setCountDialog({ kind: 'peek', defaultValue: 3 })}
-            onCardContextMenu={handleCardContextMenu}
-            onCommanderContextMenu={handleCommanderContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
-          />
-          <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
+        <div className="playmat__main">
+          <div className="playmat__stage">
+            <Battlefield
+              state={state}
+              onCardContextMenu={handleCardContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+            />
+          </div>
+
+          <div className="playmat__hand">
+            <Hand
+              state={state}
+              onCardContextMenu={handleCardContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+            />
+          </div>
+        </div>
+
+        <div className="playmat__rail">
+          <div className="playmat__zones">
+            <Zones
+              state={state}
+              store={store}
+              onOpenViewer={(zone) => setZoneViewer(zone)}
+              onOpenLibraryMenu={openLibraryMenu}
+              onArrangeTop={() => setArrangeTopOpen(true)}
+              onMill={() => setCountDialog({ kind: 'mill', defaultValue: 1 })}
+              onPeek={() => setCountDialog({ kind: 'peek', defaultValue: 3 })}
+              onCardContextMenu={handleCardContextMenu}
+              onCommanderContextMenu={handleCommanderContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+            />
+          </div>
+
+          <div className="playmat__log">
+            <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
+          </div>
         </div>
 
         {hoverPreview.target &&
@@ -581,6 +662,16 @@ export function Playmat() {
             y={menu.y}
             title={buildMenuItems(menu.cardId).title}
             items={buildMenuItems(menu.cardId).items}
+            onClose={closeMenu}
+          />
+        )}
+
+        {libraryMenu && (
+          <ContextMenu
+            x={libraryMenu.x}
+            y={libraryMenu.y}
+            title="ライブラリ"
+            items={buildLibraryMenuItems()}
             onClose={closeMenu}
           />
         )}
@@ -616,24 +707,26 @@ export function Playmat() {
           />
         )}
 
-        {pendingCast && (
+        {pendingPayment && (
           <ShortfallDialog
-            shortfall={pendingCast.shortfall}
+            shortfall={pendingPayment.shortfall}
             onForce={() => {
-              if (pendingCast.kind === 'hand') {
-                store.castFromHand(pendingCast.cardId, {
+              if (pendingPayment.kind === 'hand') {
+                store.castFromHand(pendingPayment.cardId, {
                   force: true,
-                  xValue: pendingCast.xValue,
+                  xValue: pendingPayment.xValue,
+                });
+              } else if (pendingPayment.kind === 'commander') {
+                store.castCommander(pendingPayment.cardId, {
+                  force: true,
+                  xValue: pendingPayment.xValue,
                 });
               } else {
-                store.castCommander(pendingCast.cardId, {
-                  force: true,
-                  xValue: pendingCast.xValue,
-                });
+                store.cycle(pendingPayment.cardId, { force: true });
               }
-              setPendingCast(null);
+              setPendingPayment(null);
             }}
-            onCancel={() => setPendingCast(null)}
+            onCancel={() => setPendingPayment(null)}
           />
         )}
 

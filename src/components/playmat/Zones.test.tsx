@@ -43,7 +43,7 @@ function prepareStore() {
   return useGameStore.getState();
 }
 
-function renderZones(onOpenViewer = vi.fn()) {
+function renderZones(onOpenViewer = vi.fn(), onOpenLibraryMenu = vi.fn()) {
   const store = prepareStore();
   const state = store.state;
   if (!state) {
@@ -61,6 +61,7 @@ function renderZones(onOpenViewer = vi.fn()) {
           state={state}
           store={store}
           onOpenViewer={onOpenViewer}
+          onOpenLibraryMenu={onOpenLibraryMenu}
           onArrangeTop={vi.fn()}
           onMill={vi.fn()}
           onPeek={vi.fn()}
@@ -73,7 +74,7 @@ function renderZones(onOpenViewer = vi.fn()) {
     );
   });
 
-  return { container, root, onOpenViewer };
+  return { container, root, onOpenViewer, onOpenLibraryMenu };
 }
 
 function cleanupRender(root: Root, container: HTMLDivElement): void {
@@ -135,6 +136,26 @@ describe('Zones', () => {
     dispatchMouseEvent(drawButton, 'dblclick');
 
     expect(useGameStore.getState().state!.zones.hand.length).toBe(handBeforeZoneDoubleClick + 2);
+
+    cleanupRender(root, container);
+  });
+
+  it('opens the library menu on context menu without drawing a card', () => {
+    const onOpenLibraryMenu = vi.fn();
+    const { container, root } = renderZones(vi.fn(), onOpenLibraryMenu);
+
+    const libraryZone = container.querySelector('[data-testid="zone-library"]');
+    if (!(libraryZone instanceof HTMLDivElement)) {
+      throw new Error('library zone was not rendered');
+    }
+
+    const handBefore = useGameStore.getState().state!.zones.hand.length;
+    act(() => {
+      libraryZone.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    });
+
+    expect(onOpenLibraryMenu).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState().state!.zones.hand.length).toBe(handBefore);
 
     cleanupRender(root, container);
   });

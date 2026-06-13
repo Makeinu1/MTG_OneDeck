@@ -453,3 +453,45 @@ discardRandom(count: number): void;
 //   現在の手札から createRng(randomSeed()) + shuffledOrder で min(count, hand.length) 枚を選び、
 //   discard コマンドを dispatch(mulligan/shuffleLibrary と同じ乱数パターン)。
 ```
+
+---
+
+## 10. M4.12 追補(マナ編集・サイクリング・マナ量)— この節も契約である
+
+設計指針: A層プリミティブ(確定的・プレイヤー起動)の拡張。エンジンの既存ロジックは凍結し、下記のみ追加。
+
+### 10.1 コマンド追加(`src/engine/commands.ts`)
+```ts
+| { type: 'adjustMana'; color: ManaColor; delta: number }
+//   manaPool[color] = max(0, manaPool[color] + delta)。I3(非負)維持。
+//   変化があった時のみログ「{color}マナを{±delta}した(現在{n})。」程度。delta=0 は no-op。
+```
+
+### 10.2 status.ts へサイクリング検出を追加(純粋関数)
+```ts
+export function cyclingCost(def: CardDef | undefined): string | null;
+//   全 face の oracleText/printedText から「Cycling <cost>」/「サイクリング<コスト>」を検出し、
+//   コスト文字列(例 "{2}", "{1}{U}")を返す。複数あれば最初の1つ。
+//   {N}型・{色}型を拾えれば良い。typecycling/landcycling("Mountaincycling {1}" 等)も
+//   コスト部分を返してよい。該当なければ null。reminder文等の軽微な誤検出は許容(情報用)。
+//   日本語例: 「サイクリング{2}」。英語例: 「Cycling {2}」「Cycling {1}{U}」。
+```
+
+### 10.3 ストア(`src/store/gameStore.ts`)で実装する操作
+```ts
+adjustMana(color: ManaColor, delta: number): void;   // dispatch({ type:'adjustMana', color, delta })
+
+cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
+//   cyclingCost(def) を parseManaCost → planAutoTap で支払い計画。
+//   ok でない かつ !force → { shortfall } を返し UI が確認(castFromHand と同パターン)。
+//   支払い可(または force): 自動タップ群 + そのカードを墓地へ(discard相当 moveCard hand→graveyard)
+//   + draw(1) を applySequence で【単一コミット】(undo 1回で全復元)。ログに記録。
+//   cyclingCost が null のカードに対しては no-op('ok')。
+```
+
+### 10.4 tapForMana の産出量改善(best-effort、`src/store/gameStore.ts`)
+- 現状 `tapForMana` は常に `addMana amount:1`。これを、def の oracleText/printedText から
+  「Add {C}{C}{C}」「{C}{C}を加える」等の**産出量**をパースして反映する(単色源は本数分を addMana)。
+- 複数色を同時産出する源(例 "Add {G}{U}")は当面 各1点 or 既存の色選択にフォールバックで可。
+- **パース不能・曖昧なケースは従来通り1点**。確実な補正は §10.1 のマナプール編集に委ねる(サンドボックス)。
+- 純粋なテキストパースはUI層/ストア層に閉じてよい(engine の applyCommand は変更しない)。

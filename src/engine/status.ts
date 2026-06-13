@@ -99,6 +99,24 @@ export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' |
   return sawTappedClause ? 'always' : 'never';
 }
 
+export function cyclingCost(def: CardDef | undefined): string | null {
+  if (!def) return null;
+
+  for (const text of cardTexts(def)) {
+    const english = text.match(/\b(?:[A-Za-z]+)?cycling\b\s*((?:\{[^}]+\})+)/i);
+    if (english?.[1]) {
+      return english[1];
+    }
+
+    const japanese = text.match(/サイクリング\s*((?:\{[^}]+\})+)/);
+    if (japanese?.[1]) {
+      return japanese[1];
+    }
+  }
+
+  return null;
+}
+
 export function effectivePower(state: GameState, cardId: string): number {
   const card = state.cards[cardId];
   if (!card) return 0;

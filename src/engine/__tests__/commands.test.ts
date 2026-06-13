@@ -118,6 +118,14 @@ describe('mana pool', () => {
     expect(s.manaPool).toEqual(pool({}));
   });
 
+  it('adjustMana clamps at 0', () => {
+    const state = freshGame();
+    let s = applyCommand(state, { type: 'adjustMana', color: 'G', delta: 2 }).state;
+    expect(s.manaPool.G).toBe(2);
+    s = applyCommand(s, { type: 'adjustMana', color: 'G', delta: -5 }).state;
+    expect(s.manaPool.G).toBe(0);
+  });
+
   it('payMana clamps at 0 and warns on shortfall', () => {
     const state = freshGame();
     const s = applyCommand(state, { type: 'addMana', color: 'U', amount: 1 }).state;

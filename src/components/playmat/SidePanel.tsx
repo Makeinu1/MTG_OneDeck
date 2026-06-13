@@ -109,7 +109,7 @@ export function SidePanel({
             data-testid="next-phase"
             onClick={() => store.nextPhase()}
           >
-            次のフェイズ
+            次へ
           </button>
           <button type="button" className="btn" data-testid="next-turn" onClick={() => store.nextTurn()}>
             次のターン
@@ -149,7 +149,7 @@ export function SidePanel({
         </div>
       </section>
 
-      <section className="side-panel__section">
+      <section className="side-panel__section side-panel__section--life">
         <div className="side-panel__life-row">
           <h3>ライフ</h3>
           <div className="stat-row stat-row--life">
@@ -176,7 +176,7 @@ export function SidePanel({
         </div>
       </section>
 
-      <section className="side-panel__section side-panel__section--scroll">
+      <section className="side-panel__section side-panel__section--opponents side-panel__section--scroll">
         <h3>対戦相手ライフ</h3>
         <div className="counter-list">
           {opponentLabels.map((label) => (
@@ -227,7 +227,7 @@ export function SidePanel({
         </div>
       </section>
 
-      <section className="side-panel__section">
+      <section className="side-panel__section side-panel__section--mana">
         <h3>マナプール</h3>
         <div className="mana-pool" data-testid="mana-pool">
           {MANA_ORDER.map((color) => (
@@ -238,6 +238,26 @@ export function SidePanel({
             >
               <span className="mana-pool__symbol">{MANA_LABELS[color]}</span>
               <span className="mana-pool__count">{state.manaPool[color]}</span>
+              <div className="mana-pool__controls">
+                <button
+                  type="button"
+                  className="mana-pool__button"
+                  data-testid={`mana-minus-${color}`}
+                  aria-label={`${MANA_LABELS[color]}マナを減らす`}
+                  onClick={() => store.adjustMana(color, -1)}
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  className="mana-pool__button"
+                  data-testid={`mana-plus-${color}`}
+                  aria-label={`${MANA_LABELS[color]}マナを増やす`}
+                  onClick={() => store.adjustMana(color, 1)}
+                >
+                  +
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -248,7 +268,7 @@ export function SidePanel({
         )}
       </section>
 
-      <section className="side-panel__section">
+      <section className="side-panel__section side-panel__section--utility">
         <div className="side-panel__buttons">
           <button type="button" className="btn" data-testid="undo" disabled={!store.canUndo} onClick={() => store.undo()}>
             戻す
