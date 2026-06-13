@@ -48,7 +48,14 @@ export interface ZonesProps {
   onArrangeTop: () => void;
   onMill: () => void;
   onPeek: () => void;
-  onCommanderContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
+  onCommanderContextMenu: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   onLibraryDoubleClick: (e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
@@ -63,6 +70,7 @@ export function Zones({
   onArrangeTop,
   onMill,
   onPeek,
+  onCardContextMenu,
   onCommanderContextMenu,
   onCardDoubleClick,
   onLibraryDoubleClick,
@@ -92,6 +100,10 @@ export function Zones({
                   onDoubleClick={(e) => onCardDoubleClick(id, e)}
                   onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
                   onMouseLeave={hoverPreview.onMouseLeave}
+                  onPointerDown={(e) => hoverPreview.onPointerDown(id, e)}
+                  onPointerMove={hoverPreview.onPointerMove}
+                  onPointerUp={hoverPreview.onPointerUp}
+                  onPointerCancel={hoverPreview.onPointerCancel}
                   badge={isCommander(state, id) ? '統率者' : undefined}
                   summoningSick={isSummoningSick(state, id)}
                 />
@@ -195,8 +207,13 @@ export function Zones({
                 instance={state.cards[graveyard[graveyard.length - 1]]}
                 def={state.defs[state.cards[graveyard[graveyard.length - 1]].defId]}
                 size="small"
+                onContextMenu={(e) => onCardContextMenu(graveyard[graveyard.length - 1], e)}
                 onMouseEnter={(e) => hoverPreview.onMouseEnter(graveyard[graveyard.length - 1], e)}
                 onMouseLeave={hoverPreview.onMouseLeave}
+                onPointerDown={(e) => hoverPreview.onPointerDown(graveyard[graveyard.length - 1], e)}
+                onPointerMove={hoverPreview.onPointerMove}
+                onPointerUp={hoverPreview.onPointerUp}
+                onPointerCancel={hoverPreview.onPointerCancel}
               />
             ) : (
               <span className="zone-card__count">0</span>
@@ -215,8 +232,13 @@ export function Zones({
                 instance={state.cards[exile[exile.length - 1]]}
                 def={state.defs[state.cards[exile[exile.length - 1]].defId]}
                 size="small"
+                onContextMenu={(e) => onCardContextMenu(exile[exile.length - 1], e)}
                 onMouseEnter={(e) => hoverPreview.onMouseEnter(exile[exile.length - 1], e)}
                 onMouseLeave={hoverPreview.onMouseLeave}
+                onPointerDown={(e) => hoverPreview.onPointerDown(exile[exile.length - 1], e)}
+                onPointerMove={hoverPreview.onPointerMove}
+                onPointerUp={hoverPreview.onPointerUp}
+                onPointerCancel={hoverPreview.onPointerCancel}
               />
             ) : (
               <span className="zone-card__count">0</span>

@@ -5,7 +5,10 @@ import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 export interface HandProps {
   state: GameState;
-  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
 }
@@ -39,6 +42,10 @@ export function Hand({ state, onCardContextMenu, onCardDoubleClick, hoverPreview
                 onDoubleClick={(e) => onCardDoubleClick(id, e)}
                 onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
                 onMouseLeave={hoverPreview.onMouseLeave}
+                onPointerDown={(e) => hoverPreview.onPointerDown(id, e)}
+                onPointerMove={hoverPreview.onPointerMove}
+                onPointerUp={hoverPreview.onPointerUp}
+                onPointerCancel={hoverPreview.onPointerCancel}
               />
             </div>
           );

@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
+import { useRef } from 'react';
 import type { CardDef } from '../types/card';
 import type { CardInstance } from '../engine/types';
 import { keywords, type Keyword } from '../engine/status';
@@ -8,12 +9,16 @@ export interface CardViewProps {
   def: CardDef | undefined;
   /** Whether to render at hand size (slightly larger) vs battlefield size. */
   size?: 'hand' | 'battlefield' | 'small';
-  /** Right-click: opens the action menu. */
-  onContextMenu?: (e: React.MouseEvent) => void;
+  /** Right-click or touch tap: opens the action menu. */
+  onContextMenu?: (e: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => void;
   /** Double-click: quick action (play land / cast / tap / etc.). */
   onDoubleClick?: (e: React.MouseEvent) => void;
   onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
   onMouseLeave?: () => void;
+  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerMove?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerUp?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerCancel?: React.PointerEventHandler<HTMLDivElement>;
   draggable?: boolean;
   /** Extra label rendered in a corner ribbon, e.g. "統率者". */
   badge?: string;
@@ -46,6 +51,9 @@ const KEYWORD_BADGES: Record<Keyword, string> = {
   ward: '護',
 };
 
+const TOUCH_TAP_MAX_DISTANCE_PX = 8;
+const TOUCH_TAP_MAX_DURATION_MS = 220;
+
 function counterLabel(type: string): string {
   return COUNTER_LABELS[type] ?? type;
 }
@@ -58,11 +66,22 @@ export function CardView({
   onDoubleClick,
   onMouseEnter,
   onMouseLeave,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   draggable = false,
   badge,
   summoningSick = false,
   faded = false,
 }: CardViewProps) {
+  const touchStartRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startedAt: number;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: instance.id,
     disabled: !draggable,
@@ -98,11 +117,64 @@ export function CardView({
   if (instance.faceDown) classes.push('card-view--facedown');
   if (instance.attachedTo) classes.push('card-view--attached');
 
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>): void {
+    suppressClickRef.current = false;
+    if (e.pointerType === 'touch') {
+      touchStartRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startedAt: performance.now(),
+      };
+    } else {
+      touchStartRef.current = null;
+    }
+    onPointerDown?.(e);
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>): void {
+    const touchStart =
+      touchStartRef.current?.pointerId === e.pointerId ? touchStartRef.current : null;
+    touchStartRef.current = null;
+    onPointerUp?.(e);
+
+    if (e.pointerType !== 'touch' || !onContextMenu || !touchStart) {
+      return;
+    }
+
+    const distance = Math.hypot(e.clientX - touchStart.startX, e.clientY - touchStart.startY);
+    const duration = performance.now() - touchStart.startedAt;
+    if (distance >= TOUCH_TAP_MAX_DISTANCE_PX || duration > TOUCH_TAP_MAX_DURATION_MS) {
+      return;
+    }
+
+    suppressClickRef.current = true;
+    e.preventDefault();
+    e.stopPropagation();
+    onContextMenu(e);
+  }
+
+  function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>): void {
+    if (touchStartRef.current?.pointerId === e.pointerId) {
+      touchStartRef.current = null;
+    }
+    suppressClickRef.current = false;
+    onPointerCancel?.(e);
+  }
+
   return (
     <div
       ref={setNodeRef}
       className={classes.join(' ')}
       style={style}
+      onClick={(e) => {
+        if (!suppressClickRef.current) {
+          return;
+        }
+        suppressClickRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         onContextMenu?.(e);
@@ -110,6 +182,10 @@ export function CardView({
       onDoubleClick={onDoubleClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onPointerDown={handlePointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       data-testid={`card-${instance.id}`}
       title={displayName}
       {...attributes}

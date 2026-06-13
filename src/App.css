@@ -4,10 +4,17 @@
 
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 48px 24px 80px;
+}
+
+.playmat-shell,
+.playmat-shell__game {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app__resume {
@@ -395,12 +402,62 @@
 .playmat {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: 240px 1fr 210px;
   gap: 12px;
   padding: 12px;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.rotate-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(216, 176, 106, 0.18), transparent 44%),
+    linear-gradient(180deg, rgba(8, 13, 11, 0.96), rgba(8, 13, 11, 0.99));
+  text-align: center;
+}
+
+.rotate-notice__panel {
+  width: min(320px, 100%);
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent-border);
+  background: rgba(18, 27, 22, 0.96);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.rotate-notice__icon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.rotate-notice__title,
+.rotate-notice__body {
+  margin: 0;
+}
+
+.rotate-notice__title {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--text-h);
+}
+
+.rotate-notice__body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-dim);
 }
 
 .playmat__center {
@@ -1471,6 +1528,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
   max-height: 85vh;
+  max-height: 85dvh;
   display: flex;
   flex-direction: column;
   animation: modal-rise 0.2s ease;
@@ -1936,12 +1994,13 @@
    Responsive
    ========================================================================= */
 
-@media (max-width: 1100px) {
+@media (orientation: portrait) {
   /* The one-screen, no-scroll layout targets desktop widths; below this
      breakpoint we fall back to a scrollable single column. */
   .playmat {
     height: auto;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow: visible;
     grid-template-columns: 1fr;
   }
@@ -1964,6 +2023,359 @@
 
   .battlefield__row {
     min-height: 180px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 600px) {
+  .playmat-shell__game {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .rotate-notice {
+    display: flex;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 480px) {
+  .playmat {
+    grid-template-columns: 158px minmax(0, 1fr) 144px;
+    gap: 6px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-left: max(6px, env(safe-area-inset-left));
+  }
+
+  .playmat__center,
+  .playmat__right,
+  .side-panel,
+  .zones {
+    gap: 6px;
+  }
+
+  .playmat__right {
+    overflow: hidden;
+  }
+
+  .side-panel,
+  .zones {
+    overflow: auto;
+  }
+
+  .side-panel__section {
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .side-panel__section h3 {
+    font-size: 10px;
+  }
+
+  .side-panel__turn-value {
+    font-size: 24px;
+  }
+
+  .phase-track {
+    gap: 3px;
+  }
+
+  .phase-track__step {
+    padding: 3px 4px;
+    font-size: 9px;
+  }
+
+  .side-panel__buttons {
+    gap: 5px;
+  }
+
+  .side-panel__buttons .btn {
+    padding: 5px 6px;
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .side-panel__toggle {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .side-panel__life-row {
+    gap: 6px;
+  }
+
+  .stat-row {
+    gap: 8px;
+  }
+
+  .stat-row--life .stat-row__value {
+    font-size: 24px;
+  }
+
+  .counter-list--grid,
+  .side-panel__section--scroll .counter-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .counter-list--grid .stat-row:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-row--compact {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) 20px;
+    grid-template-rows: auto auto;
+    align-items: center;
+    justify-items: center;
+    gap: 3px 4px;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.14);
+  }
+
+  .stat-row--compact .stat-row__label {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .stat-row__value--sm {
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .stat-row__btn--sm {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .side-panel__add-opponent {
+    gap: 4px;
+  }
+
+  .side-panel__add-opponent input {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .mana-pool {
+    gap: 4px;
+  }
+
+  .mana-pool__pip {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .mana-pool__symbol {
+    font-size: 10px;
+  }
+
+  .battlefield {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .battlefield__row {
+    gap: 6px;
+    padding: 7px 20px 7px 8px;
+  }
+
+  .battlefield__row-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .battlefield__cards {
+    gap: 6px;
+  }
+
+  .battlefield__stack {
+    gap: 4px;
+    max-width: 72px;
+    min-width: 30px;
+  }
+
+  .battlefield__attachment {
+    margin-top: -3px;
+  }
+
+  .hand {
+    flex-basis: 118px;
+    height: 118px;
+    gap: 10px;
+    padding: 8px 10px;
+  }
+
+  .hand__cards {
+    padding: 4px 0;
+  }
+
+  .hand__slot {
+    flex-basis: 82px;
+  }
+
+  .card-view--battlefield {
+    max-width: 72px;
+  }
+
+  .card-view--hand,
+  .card-view--hand .card-view__face {
+    width: 82px;
+    height: 114px;
+  }
+
+  .card-view--small,
+  .card-view--small .card-view__face {
+    width: 44px;
+    height: 62px;
+  }
+
+  .card-view__badge {
+    top: -6px;
+    left: -4px;
+    font-size: 8px;
+    padding: 2px 5px;
+  }
+
+  .card-view__badge--token {
+    right: -4px;
+  }
+
+  .card-view__badge--loyalty {
+    right: -6px;
+    bottom: -6px;
+    min-width: 22px;
+    min-height: 22px;
+    font-size: 12px;
+  }
+
+  .card-view__badge--lore {
+    top: -8px;
+  }
+
+  .card-view__keyword {
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    font-size: 7px;
+  }
+
+  .card-view__counter {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+
+  .zones__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .zone-card {
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .zone-card--library {
+    grid-column: 1 / -1;
+  }
+
+  .zone-card--command {
+    padding: 8px;
+  }
+
+  .zone-card__face {
+    min-height: 44px;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .zone-card--command .zone-card__face {
+    min-height: 114px;
+  }
+
+  .zone-card__count {
+    font-size: 18px;
+  }
+
+  .zone-card__label {
+    font-size: 10px;
+  }
+
+  .zone-card__tax {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+
+  .zone-card__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .zone-card__actions .btn {
+    padding: 4px 2px;
+    font-size: 10px;
+  }
+
+  .game-log {
+    padding: 8px;
+  }
+
+  .game-log h3 {
+    font-size: 10px;
+  }
+
+  .game-log__toggle-icon {
+    font-size: 10px;
+  }
+
+  .game-log:not(.game-log--expanded) .game-log__list {
+    max-height: 88px;
+  }
+
+  .game-log__item {
+    gap: 1px;
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .game-log__meta {
+    font-size: 9px;
+  }
+
+  .toasts {
+    left: max(8px, env(safe-area-inset-left));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    max-width: 240px;
+  }
+
+  .toast {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .context-menu button,
+  .modal__close,
+  .side-panel__add-opponent input,
+  .dialog__field input,
+  .dialog__field select,
+  .form-grid input,
+  .zone-viewer__search input {
+    min-height: 40px;
+  }
+
+  .side-panel__toggle {
+    min-height: 40px;
   }
 }
 

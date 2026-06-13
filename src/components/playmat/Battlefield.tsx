@@ -7,7 +7,10 @@ import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
 export interface BattlefieldProps {
   state: GameState;
-  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
 }
@@ -68,7 +71,10 @@ function BattlefieldRow({
   title: string;
   cardIds: string[];
   state: GameState;
-  onCardContextMenu: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
   dropId: string;
@@ -95,6 +101,10 @@ function BattlefieldRow({
                 onDoubleClick={(e) => onCardDoubleClick(id, e)}
                 onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}
                 onMouseLeave={hoverPreview.onMouseLeave}
+                onPointerDown={(e) => hoverPreview.onPointerDown(id, e)}
+                onPointerMove={hoverPreview.onPointerMove}
+                onPointerUp={hoverPreview.onPointerUp}
+                onPointerCancel={hoverPreview.onPointerCancel}
                 badge={isCommander(state, id) ? '統率者' : undefined}
                 summoningSick={isSummoningSick(state, id)}
               />
@@ -111,6 +121,10 @@ function BattlefieldRow({
                       onDoubleClick={(e) => onCardDoubleClick(attId, e)}
                       onMouseEnter={(e) => hoverPreview.onMouseEnter(attId, e)}
                       onMouseLeave={hoverPreview.onMouseLeave}
+                      onPointerDown={(e) => hoverPreview.onPointerDown(attId, e)}
+                      onPointerMove={hoverPreview.onPointerMove}
+                      onPointerUp={hoverPreview.onPointerUp}
+                      onPointerCancel={hoverPreview.onPointerCancel}
                       summoningSick={isSummoningSick(state, attId)}
                     />
                   </div>

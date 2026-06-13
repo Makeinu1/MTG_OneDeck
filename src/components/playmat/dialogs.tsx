@@ -792,7 +792,10 @@ export function ZoneViewerDialog({
   cardIds: string[];
   state: GameState;
   onMove?: (cardId: string, to: ZoneId) => void;
-  onCardContextMenu?: (cardId: string, e: React.MouseEvent) => void;
+  onCardContextMenu?: (
+    cardId: string,
+    e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
+  ) => void;
   onClose: () => void;
   readOnly?: boolean;
   searchEnabled?: boolean;

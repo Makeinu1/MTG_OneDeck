@@ -3,7 +3,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -56,6 +57,9 @@ type CountDialogState = {
   kind: 'mill' | 'peek' | 'discard-random';
   defaultValue: number;
 };
+type MenuTriggerEvent =
+  | React.MouseEvent<HTMLElement>
+  | React.PointerEvent<HTMLElement>;
 
 function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>): string[] {
   return Array.from(
@@ -89,7 +93,8 @@ export function Playmat() {
   const hoverPreview = useHoverPreview();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor),
   );
 
@@ -224,16 +229,18 @@ export function Playmat() {
     store.moveCard(move.cardId, move.to);
   }
 
-  function handleCardContextMenu(cardId: string, e: React.MouseEvent): void {
+  function openCardMenu(cardId: string, e: MenuTriggerEvent): void {
     e.stopPropagation();
     hoverPreview.suppress();
     setMenu({ cardId, x: e.clientX, y: e.clientY });
   }
 
-  function handleCommanderContextMenu(cardId: string, e: React.MouseEvent): void {
-    e.stopPropagation();
-    hoverPreview.suppress();
-    setMenu({ cardId, x: e.clientX, y: e.clientY });
+  function handleCardContextMenu(cardId: string, e: MenuTriggerEvent): void {
+    openCardMenu(cardId, e);
+  }
+
+  function handleCommanderContextMenu(cardId: string, e: MenuTriggerEvent): void {
+    openCardMenu(cardId, e);
   }
 
   function closeMenu(): void {
@@ -554,6 +561,7 @@ export function Playmat() {
             onArrangeTop={() => setArrangeTopOpen(true)}
             onMill={() => setCountDialog({ kind: 'mill', defaultValue: 1 })}
             onPeek={() => setCountDialog({ kind: 'peek', defaultValue: 3 })}
+            onCardContextMenu={handleCardContextMenu}
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
             onLibraryDoubleClick={handleLibraryDoubleClick}

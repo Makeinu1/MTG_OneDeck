@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import { ImportScreen } from './components/ImportScreen';
+import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
 import { useGameStore } from './store/gameStore';
 import type { InitDeckCard } from './engine/init';
@@ -43,7 +44,14 @@ function App() {
   };
 
   if (state) {
-    return <Playmat />;
+    return (
+      <div className="playmat-shell">
+        <div className="playmat-shell__game">
+          <Playmat />
+        </div>
+        <RotateNotice />
+      </div>
+    );
   }
 
   return (
