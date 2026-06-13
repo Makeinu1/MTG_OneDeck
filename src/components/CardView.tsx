@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { CardDef } from '../types/card';
 import type { CardInstance } from '../engine/types';
+import { keywords, type Keyword } from '../engine/status';
 
 export interface CardViewProps {
   instance: CardInstance;
@@ -26,6 +27,23 @@ const COUNTER_LABELS: Record<string, string> = {
   '-1/-1': '-1/-1',
   loyalty: '忠誠',
   charge: '充填',
+};
+
+const KEYWORD_BADGES: Record<Keyword, string> = {
+  flying: '飛',
+  vigilance: '警',
+  trample: 'T',
+  deathtouch: '接',
+  lifelink: '絆',
+  menace: '威',
+  'first-strike': '先',
+  'double-strike': '二',
+  reach: '到',
+  haste: '速',
+  hexproof: '呪',
+  indestructible: '不',
+  defender: '防',
+  ward: '護',
 };
 
 function counterLabel(type: string): string {
@@ -62,6 +80,7 @@ export function CardView({
   );
   const loyalty = instance.counters.loyalty;
   const lore = instance.counters.lore;
+  const keywordList = instance.faceDown ? [] : keywords(def);
 
   const style: React.CSSProperties = {
     transform: transform
@@ -119,6 +138,16 @@ export function CardView({
       )}
       {typeof lore === 'number' && lore > 0 && (
         <div className="card-view__badge card-view__badge--lore">第{lore}章</div>
+      )}
+
+      {keywordList.length > 0 && (
+        <div className="card-view__keywords">
+          {keywordList.map((keyword) => (
+            <span key={keyword} className="card-view__keyword" title={keyword}>
+              {KEYWORD_BADGES[keyword]}
+            </span>
+          ))}
+        </div>
       )}
 
       {counters.length > 0 && (

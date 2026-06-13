@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal } from '../Modal';
 import type { ManaColor } from '../../types/card';
 import type { CardDef } from '../../types/card';
 import type { CardInstance, GameState, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
+import { parseManaCost } from '../../engine/mana';
+import { effectivePower, isSummoningSick } from '../../engine/status';
 import { CardView } from '../CardView';
 
 const MANA_LABELS: Record<ManaColor, string> = {
@@ -71,6 +73,200 @@ export function ShortfallDialog({
           data-testid="shortfall-force"
         >
           強行する
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function XCostDialog({
+  cardName,
+  manaCost,
+  onConfirm,
+  onCancel,
+}: {
+  cardName: string;
+  manaCost: string;
+  onConfirm: (xValue: number) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState('0');
+  const xSymbols = parseManaCost(manaCost).x;
+
+  return (
+    <Modal title="Xの値を選択" onClose={onCancel} width="sm" testId="x-cost-dialog">
+      <p>
+        《{cardName}》のXを入力してください。
+        {xSymbols > 1 ? ` ({X} が ${xSymbols} 個あります)` : ''}
+      </p>
+      <label className="dialog__field">
+        X
+        <input
+          type="number"
+          min={0}
+          step={1}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          data-testid="x-cost-input"
+          autoFocus
+        />
+      </label>
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(Math.max(0, Number.parseInt(value, 10) || 0))}
+          data-testid="x-cost-confirm"
+        >
+          決定
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function LandTapChoiceDialog({
+  cardName,
+  onChoose,
+  onCancel,
+}: {
+  cardName: string;
+  onChoose: (entersTapped: boolean) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal title="土地の出し方を選択" onClose={onCancel} width="sm" testId="land-tap-choice-dialog">
+      <p>《{cardName}》をタップインしますか?</p>
+      <div className="dialog__actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={() => onChoose(false)}
+          data-testid="land-tap-choice-untapped"
+        >
+          アンタップイン
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onChoose(true)}
+          data-testid="land-tap-choice-tapped"
+        >
+          タップイン
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function AttackDialog({
+  state,
+  opponentLabels,
+  onConfirm,
+  onCancel,
+}: {
+  state: GameState;
+  opponentLabels: string[];
+  onConfirm: (attackerIds: string[], targetLabel: string) => void;
+  onCancel: () => void;
+}) {
+  const creatureIds = state.zones.battlefield.filter((cardId) => {
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
+    const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+    return typeLine.includes('Creature');
+  });
+  const [selected, setSelected] = useState<string[]>([]);
+  const [targetLabel, setTargetLabel] = useState(opponentLabels[0] ?? '対戦相手A');
+
+  function toggle(cardId: string): void {
+    setSelected((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
+    );
+  }
+
+  const totalPower = selected.reduce((sum, cardId) => sum + effectivePower(state, cardId), 0);
+  const selectedWarnings = selected.filter((cardId) => isSummoningSick(state, cardId));
+
+  return (
+    <Modal title="攻撃" onClose={onCancel} width="lg" testId="attack-dialog">
+      {creatureIds.length === 0 ? (
+        <p className="zone-viewer__empty">攻撃できるクリーチャーがいません。</p>
+      ) : (
+        <>
+          <div className="attack-dialog__list">
+            {creatureIds.map((cardId) => {
+              const card = state.cards[cardId];
+              const def = state.defs[card.defId];
+              const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+              const name =
+                face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
+              const selectedNow = selected.includes(cardId);
+              return (
+                <label
+                  key={cardId}
+                  className={`attack-dialog__item ${selectedNow ? 'attack-dialog__item--selected' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedNow}
+                    onChange={() => toggle(cardId)}
+                    data-testid={`attack-select-${cardId}`}
+                  />
+                  <div className="attack-dialog__card">
+                    <CardView instance={card} def={def} size="small" />
+                    <div className="attack-dialog__meta">
+                      <strong>{name}</strong>
+                      <span>有効パワー {effectivePower(state, cardId)}</span>
+                      {isSummoningSick(state, cardId) && (
+                        <span className="attack-dialog__warning">召喚酔いのため警告付き</span>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="attack-dialog__summary">
+            <strong>合計ダメージ: {totalPower}</strong>
+            {selectedWarnings.length > 0 && (
+              <span className="attack-dialog__warning">
+                召喚酔いのクリーチャーが{selectedWarnings.length}体含まれます。
+              </span>
+            )}
+          </div>
+          <label className="dialog__field">
+            攻撃先
+            <select
+              value={targetLabel}
+              onChange={(e) => setTargetLabel(e.target.value)}
+              data-testid="attack-target-select"
+            >
+              {opponentLabels.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(selected, targetLabel)}
+          disabled={selected.length === 0 || creatureIds.length === 0}
+          data-testid="attack-confirm"
+        >
+          確定
         </button>
       </div>
     </Modal>
@@ -315,6 +511,186 @@ export function TokenCreateDialog({
           data-testid="token-create-confirm"
         >
           生成
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+type ArrangeBucket = 'top' | 'bottom' | 'graveyard';
+
+function cardDisplayName(state: GameState, cardId: string): string {
+  const card = state.cards[cardId];
+  if (!card) return '不明';
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  return face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
+}
+
+function moveWithin(ids: string[], cardId: string, delta: -1 | 1): string[] {
+  const index = ids.indexOf(cardId);
+  const nextIndex = index + delta;
+  if (index < 0 || nextIndex < 0 || nextIndex >= ids.length) {
+    return ids;
+  }
+
+  const next = ids.slice();
+  [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+  return next;
+}
+
+export function ArrangeTopDialog({
+  state,
+  onConfirm,
+  onCancel,
+}: {
+  state: GameState;
+  onConfirm: (topOrder: string[], toBottom: string[], toGraveyard: string[]) => void;
+  onCancel: () => void;
+}) {
+  const libraryCount = state.zones.library.length;
+  const initialCount = Math.min(3, libraryCount);
+  const [count, setCount] = useState(initialCount);
+  const [topOrder, setTopOrder] = useState<string[]>(state.zones.library.slice(0, initialCount));
+  const [toBottom, setToBottom] = useState<string[]>([]);
+  const [toGraveyard, setToGraveyard] = useState<string[]>([]);
+
+  function resetForCount(nextCount: number): void {
+    const clamped = Math.max(0, Math.min(libraryCount, nextCount));
+    const nextIds = state.zones.library.slice(0, clamped);
+    setCount(clamped);
+    setTopOrder(nextIds);
+    setToBottom([]);
+    setToGraveyard([]);
+  }
+
+  function moveCardTo(cardId: string, bucket: ArrangeBucket): void {
+    const nextTop = topOrder.filter((id) => id !== cardId);
+    const nextBottom = toBottom.filter((id) => id !== cardId);
+    const nextGraveyard = toGraveyard.filter((id) => id !== cardId);
+
+    if (bucket === 'top') {
+      setTopOrder([...nextTop, cardId]);
+      setToBottom(nextBottom);
+      setToGraveyard(nextGraveyard);
+    } else if (bucket === 'bottom') {
+      setTopOrder(nextTop);
+      setToBottom([...nextBottom, cardId]);
+      setToGraveyard(nextGraveyard);
+    } else {
+      setTopOrder(nextTop);
+      setToBottom(nextBottom);
+      setToGraveyard([...nextGraveyard, cardId]);
+    }
+  }
+
+  function moveCardInBucket(bucket: ArrangeBucket, cardId: string, delta: -1 | 1): void {
+    if (bucket === 'top') {
+      setTopOrder((prev) => moveWithin(prev, cardId, delta));
+    } else if (bucket === 'bottom') {
+      setToBottom((prev) => moveWithin(prev, cardId, delta));
+    } else {
+      setToGraveyard((prev) => moveWithin(prev, cardId, delta));
+    }
+  }
+
+  function renderBucket(title: string, bucket: ArrangeBucket, ids: string[]): ReactNode {
+    return (
+      <div className="arrange-top__bucket">
+        <h4>{title}</h4>
+        {ids.length === 0 ? (
+          <p className="zone-viewer__empty">カードはありません。</p>
+        ) : (
+          ids.map((cardId, index) => {
+            const card = state.cards[cardId];
+            const def = card ? state.defs[card.defId] : undefined;
+            if (!card || !def) return null;
+
+            return (
+              <div key={cardId} className="arrange-top__item">
+                <CardView instance={card} def={def} size="small" />
+                <div className="arrange-top__meta">
+                  <strong>{cardDisplayName(state, cardId)}</strong>
+                  <div className="arrange-top__actions">
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveCardTo(cardId, 'top')}>
+                      上
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => moveCardTo(cardId, 'bottom')}
+                    >
+                      下
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => moveCardTo(cardId, 'graveyard')}
+                    >
+                      墓地
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => moveCardInBucket(bucket, cardId, -1)}
+                      disabled={index === 0}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => moveCardInBucket(bucket, cardId, 1)}
+                      disabled={index === ids.length - 1}
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Modal title="上から見る" onClose={onCancel} width="lg" testId="arrange-top-dialog">
+      {libraryCount === 0 ? (
+        <p className="zone-viewer__empty">ライブラリが空です。</p>
+      ) : (
+        <>
+          <label className="dialog__field">
+            枚数
+            <input
+              type="number"
+              min={1}
+              max={libraryCount}
+              value={count}
+              onChange={(e) => resetForCount(Number.parseInt(e.target.value, 10) || 0)}
+              data-testid="scry-count"
+            />
+          </label>
+          <div className="arrange-top__grid">
+            {renderBucket('上', 'top', topOrder)}
+            {renderBucket('下', 'bottom', toBottom)}
+            {renderBucket('墓地', 'graveyard', toGraveyard)}
+          </div>
+        </>
+      )}
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(topOrder, toBottom, toGraveyard)}
+          disabled={libraryCount === 0}
+          data-testid="scry-confirm"
+        >
+          決定
         </button>
       </div>
     </Modal>

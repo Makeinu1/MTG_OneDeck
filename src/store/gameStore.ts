@@ -7,7 +7,12 @@ import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
 import type { GameState, ZoneId } from '../engine/types';
-import { isSummoningSick } from '../engine/status';
+import {
+  effectivePower,
+  hasVigilance,
+  isSummoningSick,
+  landEntersTapped,
+} from '../engine/status';
 
 const HISTORY_LIMIT = 200;
 
@@ -16,11 +21,14 @@ export interface GameStore {
   warnings: string[];
   canUndo: boolean;
   canRedo: boolean;
+  autoAdvanceToMain: boolean;
 
   newGame(cards: InitDeckCard[], seed?: number): void;
   restart(): void;
   mulligan(): void;
   putBottomForMulligan(cardIds: string[]): void;
+  setAutoAdvance(on: boolean): void;
+  addOpponent(label: string): void;
 
   dispatch(cmd: GameCommand): void;
   undo(): void;
@@ -29,7 +37,10 @@ export interface GameStore {
   draw(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
-  playLand(cardId: string, opts?: { force?: boolean }): 'ok' | 'needs-confirm';
+  playLand(
+    cardId: string,
+    opts?: { force?: boolean; entersTapped?: boolean }
+  ): 'ok' | 'needs-confirm' | 'needs-tap-choice';
   toggleTap(cardId: string): void;
   tapForMana(cardId: string, color?: ManaColor): 'ok' | 'needs-choice';
   crackTreasure(cardId: string, color: ManaColor): void;
@@ -41,6 +52,9 @@ export interface GameStore {
     cardId: string,
     opts?: { xValue?: number; force?: boolean }
   ): 'ok' | { shortfall: number };
+  declareAttack(attackerIds: string[], targetLabel: string): void;
+  adjustOpponentLife(label: string, delta: number): void;
+  arrangeTop(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   nextPhase(): void;
   nextTurn(): void;
   createToken(
@@ -94,6 +108,14 @@ function applySequence(
   return { state: next, warnings };
 }
 
+function untapToMainCommands(): GameCommand[] {
+  return [
+    { type: 'nextPhase' },
+    { type: 'nextPhase' },
+    { type: 'nextPhase' },
+  ];
+}
+
 export const useGameStore = create<GameStore>((set, get) => {
   // History stacks live in the closure (not part of the public store shape).
   const internal: InternalState = {
@@ -140,11 +162,30 @@ export const useGameStore = create<GameStore>((set, get) => {
     return [`${cardLabel(state, cardId)}は召喚酔い中です。`];
   }
 
+  function dispatchTurnTransition(cmd: Extract<GameCommand, { type: 'nextPhase' | 'nextTurn' }>): void {
+    const cur = get().state;
+    if (!cur) return;
+
+    const commands: GameCommand[] = [cmd];
+    if (get().autoAdvanceToMain && (cmd.type === 'nextTurn' || cur.phase === 'end')) {
+      commands.push(...untapToMainCommands());
+    }
+
+    try {
+      const result =
+        commands.length === 1 ? applyCommand(cur, cmd) : applySequence(cur, commands);
+      commit(result.state, result.warnings);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return {
     state: null,
     warnings: [],
     canUndo: false,
     canRedo: false,
+    autoAdvanceToMain: true,
 
     newGame(cards, seed) {
       const usedSeed = seed ?? randomSeed();
@@ -189,6 +230,30 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     putBottomForMulligan(cardIds) {
       dispatch({ type: 'putOnBottom', cardIds });
+    },
+
+    setAutoAdvance(on) {
+      set({ autoAdvanceToMain: on });
+    },
+
+    addOpponent(label) {
+      const cur = get().state;
+      if (!cur) return;
+      const trimmed = label.trim();
+      if (trimmed === '') return;
+      if (cur.opponentLife[trimmed] !== undefined && cur.commanderDamage[trimmed] !== undefined) {
+        return;
+      }
+
+      try {
+        const result = applySequence(cur, [
+          { type: 'adjustOpponentLife', label: trimmed, delta: 0 },
+          { type: 'adjustCommanderDamage', label: trimmed, delta: 0 },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     dispatch,
@@ -245,7 +310,25 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (cur.landsPlayedThisTurn >= 1 && !opts?.force) {
         return 'needs-confirm';
       }
-      dispatch({ type: 'playLand', cardId, forced: opts?.force === true });
+      const card = cur.cards[cardId];
+      const def = card ? cur.defs[card.defId] : undefined;
+      const entersTappedStatus = landEntersTapped(def);
+
+      let entersTapped = opts?.entersTapped;
+      if (entersTappedStatus === 'always') {
+        entersTapped = true;
+      } else if (entersTappedStatus === 'never') {
+        entersTapped = false;
+      } else if (entersTapped === undefined) {
+        return 'needs-tap-choice';
+      }
+
+      dispatch({
+        type: 'playLand',
+        cardId,
+        forced: opts?.force === true,
+        entersTapped,
+      });
       return 'ok';
     },
 
@@ -396,12 +479,41 @@ export const useGameStore = create<GameStore>((set, get) => {
       return 'ok';
     },
 
+    declareAttack(attackerIds, targetLabel) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const warnings = attackerIds.flatMap((cardId) => warningForSummoningSickness(cur, cardId));
+      const damage = attackerIds.reduce((total, cardId) => total + effectivePower(cur, cardId), 0);
+      const tapCommands: GameCommand[] = attackerIds
+        .filter((cardId) => !hasVigilance(cur, cardId))
+        .map((cardId) => ({ type: 'setTapped', cardId, tapped: true }));
+
+      try {
+        const result = applySequence(cur, [
+          { type: 'adjustOpponentLife', label: targetLabel, delta: -damage },
+          ...tapCommands,
+        ]);
+        commit(result.state, [...result.warnings, ...warnings]);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    adjustOpponentLife(label, delta) {
+      dispatch({ type: 'adjustOpponentLife', label, delta });
+    },
+
+    arrangeTop(topOrder, toBottom, toGraveyard) {
+      dispatch({ type: 'arrangeTop', topOrder, toBottom, toGraveyard });
+    },
+
     nextPhase() {
-      dispatch({ type: 'nextPhase' });
+      dispatchTurnTransition({ type: 'nextPhase' });
     },
 
     nextTurn() {
-      dispatch({ type: 'nextTurn' });
+      dispatchTurnTransition({ type: 'nextTurn' });
     },
 
     createToken(name, typeLine, p, t, qty = 1, opts) {

@@ -6,7 +6,13 @@ const store = () => useGameStore.getState();
 
 describe('GameStore', () => {
   beforeEach(() => {
-    useGameStore.setState({ state: null, warnings: [], canUndo: false, canRedo: false });
+    useGameStore.setState({
+      state: null,
+      warnings: [],
+      canUndo: false,
+      canRedo: false,
+      autoAdvanceToMain: true,
+    });
   });
 
   it('newGame initializes and draws 7', () => {

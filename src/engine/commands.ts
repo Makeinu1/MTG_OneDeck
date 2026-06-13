@@ -20,13 +20,15 @@ export type GameCommand =
   | { type: 'adjustLife'; delta: number }
   | { type: 'adjustPlayerCounter'; kind: 'poison' | 'energy' | 'experience'; delta: number }
   | { type: 'adjustCommanderDamage'; label: string; delta: number }
+  | { type: 'adjustOpponentLife'; label: string; delta: number }
   | { type: 'addMana'; color: ManaColor; amount: number }
   | { type: 'payMana'; payment: ManaPool }
   | { type: 'clearManaPool' }
   | { type: 'draw'; count: number }
   | { type: 'shuffle'; order: string[] }
   | { type: 'putOnBottom'; cardIds: string[] }
-  | { type: 'playLand'; cardId: string; forced: boolean }
+  | { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean }
+  | { type: 'arrangeTop'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
@@ -92,6 +94,7 @@ function makeDraft(state: GameState): Draft {
       manaPool: { ...state.manaPool },
       commanders: state.commanders,
       commanderDamage: { ...state.commanderDamage },
+      opponentLife: { ...state.opponentLife },
       log: state.log.slice(),
     },
     warnings: [],
@@ -414,7 +417,7 @@ function castDestination(typeLine: string): ZoneId {
   return 'battlefield';
 }
 
-function applyPlayLand(draft: Draft, cardId: string): void {
+function applyPlayLand(draft: Draft, cardId: string, entersTapped?: boolean): void {
   const card = requireCard(draft, cardId);
   if (card.zone !== 'hand') {
     throw new EngineError(`土地は手札からのみプレイできます: ${cardId}`);
@@ -424,11 +427,50 @@ function applyPlayLand(draft: Draft, cardId: string): void {
   }
 
   moveCardInternal(draft, cardId, 'battlefield', 'bottom', false);
+  if (entersTapped) {
+    const entered = requireCard(draft, cardId);
+    setCard(draft, { ...entered, tapped: true });
+  }
   draft.state.landsPlayedThisTurn += 1;
   pushLog(draft, `${nameOf(draft, cardId)}を土地としてプレイしました。`);
   if (draft.state.landsPlayedThisTurn >= 2) {
     draft.warnings.push(`このターン${draft.state.landsPlayedThisTurn}枚目の土地です。`);
   }
+}
+
+function applyArrangeTop(
+  draft: Draft,
+  topOrder: string[],
+  toBottom: string[],
+  toGraveyard: string[]
+): void {
+  const originalLibrary = draft.state.zones.library.slice();
+  const count = topOrder.length + toBottom.length + toGraveyard.length;
+  const originalTop = originalLibrary.slice(0, count);
+  const provided = [...topOrder, ...toBottom, ...toGraveyard];
+  const providedSet = new Set(provided);
+  const originalSet = new Set(originalTop);
+
+  const isExactMatch =
+    provided.length === count &&
+    providedSet.size === count &&
+    originalTop.length === count &&
+    originalSet.size === count &&
+    provided.every((id) => originalSet.has(id));
+
+  if (!isExactMatch) {
+    throw new EngineError('arrangeTop の対象がライブラリ先頭N枚と一致しません。');
+  }
+
+  for (const cardId of toGraveyard) {
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
+  }
+
+  draft.state.zones = {
+    ...draft.state.zones,
+    library: [...topOrder, ...originalLibrary.slice(count), ...toBottom],
+  };
+  pushLog(draft, `ライブラリの上から${count}枚を並べ替えました。`);
 }
 
 function applyCast(
@@ -735,6 +777,16 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       pushLog(draft, `統率者ダメージ(${cmd.label})を${next}にしました。`);
       break;
     }
+    case 'adjustOpponentLife': {
+      const current = draft.state.opponentLife[cmd.label] ?? 40;
+      const next = current + cmd.delta;
+      draft.state.opponentLife = {
+        ...draft.state.opponentLife,
+        [cmd.label]: next,
+      };
+      pushLog(draft, `対戦相手ライフ(${cmd.label})を${next}にしました。`);
+      break;
+    }
     case 'addMana': {
       const amount = Math.max(0, cmd.amount);
       if (amount > 0) {
@@ -774,7 +826,11 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'playLand': {
-      applyPlayLand(draft, cmd.cardId);
+      applyPlayLand(draft, cmd.cardId, cmd.entersTapped);
+      break;
+    }
+    case 'arrangeTop': {
+      applyArrangeTop(draft, cmd.topOrder, cmd.toBottom, cmd.toGraveyard);
       break;
     }
     case 'crackTreasure': {

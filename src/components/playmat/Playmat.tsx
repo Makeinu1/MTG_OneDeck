@@ -23,27 +23,40 @@ import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
 import {
+  ArrangeTopDialog,
+  AttackDialog,
   ManaChoiceDialog,
   ShortfallDialog,
   CommanderMoveDialog,
+  LandTapChoiceDialog,
   TokenCreateDialog,
+  XCostDialog,
   ZoneViewerDialog,
   MulliganBottomDialog,
   ConfirmDialog,
 } from './dialogs';
 import type { ManaColor } from '../../types/card';
+import { parseManaCost } from '../../engine/mana';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingCast =
-  | { kind: 'hand'; cardId: string; shortfall: number }
-  | { kind: 'commander'; cardId: string; shortfall: number };
+  | { kind: 'hand'; cardId: string; shortfall: number; xValue: number }
+  | { kind: 'commander'; cardId: string; shortfall: number; xValue: number };
 type ManaChoiceRequest = {
   kind: 'tap' | 'treasure';
   cardId: string;
   options: ManaColor[];
 };
+type PendingXCast = { kind: 'hand' | 'commander'; cardId: string };
+type PendingLandTapChoice = { cardId: string; force?: boolean };
+
+function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>): string[] {
+  return Array.from(
+    new Set(['対戦相手A', ...Object.keys(state.opponentLife), ...Object.keys(state.commanderDamage)])
+  );
+}
 
 /** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
 export function Playmat() {
@@ -53,10 +66,14 @@ export function Playmat() {
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
   const [pendingCast, setPendingCast] = useState<PendingCast | null>(null);
+  const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
   const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
+  const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(null);
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
+  const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
+  const [attackDialogOpen, setAttackDialogOpen] = useState(false);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
@@ -72,10 +89,14 @@ export function Playmat() {
   const isDialogOpen =
     manaChoice !== null ||
     pendingCast !== null ||
+    pendingXCast !== null ||
     pendingLandPlay !== null ||
+    pendingLandTapChoice !== null ||
     commanderMove !== null ||
     tokenDialogOpen ||
     zoneViewer !== null ||
+    arrangeTopOpen ||
+    attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
 
@@ -107,10 +128,66 @@ export function Playmat() {
     return def?.producedMana?.length ? def.producedMana : ['W', 'U', 'B', 'R', 'G'];
   }
 
-  function requestPlayLand(cardId: string): void {
-    const result = store.playLand(cardId);
+  function cardNameFor(cardId: string): string {
+    const card = cards[cardId];
+    if (!card) return '不明';
+    const def = state!.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    return face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
+  }
+
+  function manaCostFor(cardId: string): string {
+    const card = cards[cardId];
+    if (!card) return '';
+    const def = state!.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    return face?.manaCost ?? '';
+  }
+
+  function requiresXValue(cardId: string): boolean {
+    return parseManaCost(manaCostFor(cardId)).x > 0;
+  }
+
+  function requestPlayLand(
+    cardId: string,
+    opts?: { force?: boolean; entersTapped?: boolean }
+  ): void {
+    const result = store.playLand(cardId, opts);
     if (result === 'needs-confirm') {
       setPendingLandPlay({ cardId });
+    } else if (result === 'needs-tap-choice') {
+      setPendingLandTapChoice({ cardId, force: opts?.force });
+    }
+  }
+
+  function requestCastFromHand(cardId: string, xValue?: number): void {
+    if (xValue === undefined && requiresXValue(cardId)) {
+      setPendingXCast({ kind: 'hand', cardId });
+      return;
+    }
+
+    const chosenXValue = xValue ?? 0;
+    const result = store.castFromHand(cardId, { xValue: chosenXValue });
+    if (result !== 'ok') {
+      setPendingCast({ kind: 'hand', cardId, shortfall: result.shortfall, xValue: chosenXValue });
+    }
+  }
+
+  function requestCastCommander(cardId: string, xValue?: number): void {
+    if (xValue === undefined && requiresXValue(cardId)) {
+      setPendingXCast({ kind: 'commander', cardId });
+      return;
+    }
+
+    const chosenXValue = xValue ?? 0;
+    const result = store.castCommander(cardId, { xValue: chosenXValue });
+    if (result !== 'ok') {
+      setPendingCast({
+        kind: 'commander',
+        cardId,
+        shortfall: result.shortfall,
+        xValue: chosenXValue,
+      });
     }
   }
 
@@ -173,10 +250,7 @@ export function Playmat() {
       if (typeLineFor(cardId).includes('Land')) {
         requestPlayLand(cardId);
       } else {
-        const result = store.castFromHand(cardId);
-        if (result !== 'ok') {
-          setPendingCast({ kind: 'hand', cardId, shortfall: result.shortfall });
-        }
+        requestCastFromHand(cardId);
       }
       return;
     }
@@ -199,10 +273,7 @@ export function Playmat() {
     }
 
     if (card.zone === 'command' && isCommander(state!, cardId)) {
-      const result = store.castCommander(cardId);
-      if (result !== 'ok') {
-        setPendingCast({ kind: 'commander', cardId, shortfall: result.shortfall });
-      }
+      requestCastCommander(cardId);
       return;
     }
 
@@ -285,12 +356,7 @@ export function Playmat() {
         items.push({
           key: 'cast',
           label: 'キャスト',
-          onSelect: () => {
-            const result = store.castFromHand(cardId);
-            if (result !== 'ok') {
-              setPendingCast({ kind: 'hand', cardId, shortfall: result.shortfall });
-            }
-          },
+          onSelect: () => requestCastFromHand(cardId),
           separator: true,
         });
       }
@@ -300,12 +366,7 @@ export function Playmat() {
       items.push({
         key: 'cast-commander',
         label: '統率者をキャスト',
-        onSelect: () => {
-          const result = store.castCommander(cardId);
-          if (result !== 'ok') {
-            setPendingCast({ kind: 'commander', cardId, shortfall: result.shortfall });
-          }
-        },
+        onSelect: () => requestCastCommander(cardId),
         separator: true,
       });
     }
@@ -409,6 +470,7 @@ export function Playmat() {
   const activeDef = activeCard ? state.defs[activeCard.defId] : undefined;
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
+  const opponentLabels = opponentLabelsFromState(state);
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -425,6 +487,7 @@ export function Playmat() {
           onRestart={() => setConfirmAction('restart')}
           onBackToImport={() => setConfirmAction('back-to-import')}
           onCreateToken={() => setTokenDialogOpen(true)}
+          onAttack={() => setAttackDialogOpen(true)}
         />
 
         <div className="playmat__center">
@@ -447,6 +510,7 @@ export function Playmat() {
             state={state}
             store={store}
             onOpenViewer={(zone) => setZoneViewer(zone)}
+            onArrangeTop={() => setArrangeTopOpen(true)}
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
             onLibraryDoubleClick={handleLibraryDoubleClick}
@@ -492,14 +556,36 @@ export function Playmat() {
           />
         )}
 
+        {pendingXCast && (
+          <XCostDialog
+            cardName={cardNameFor(pendingXCast.cardId)}
+            manaCost={manaCostFor(pendingXCast.cardId)}
+            onConfirm={(xValue) => {
+              if (pendingXCast.kind === 'hand') {
+                requestCastFromHand(pendingXCast.cardId, xValue);
+              } else {
+                requestCastCommander(pendingXCast.cardId, xValue);
+              }
+              setPendingXCast(null);
+            }}
+            onCancel={() => setPendingXCast(null)}
+          />
+        )}
+
         {pendingCast && (
           <ShortfallDialog
             shortfall={pendingCast.shortfall}
             onForce={() => {
               if (pendingCast.kind === 'hand') {
-                store.castFromHand(pendingCast.cardId, { force: true });
+                store.castFromHand(pendingCast.cardId, {
+                  force: true,
+                  xValue: pendingCast.xValue,
+                });
               } else {
-                store.castCommander(pendingCast.cardId, { force: true });
+                store.castCommander(pendingCast.cardId, {
+                  force: true,
+                  xValue: pendingCast.xValue,
+                });
               }
               setPendingCast(null);
             }}
@@ -513,22 +599,31 @@ export function Playmat() {
             message="このターンは既に土地を置いています。続けますか?"
             confirmLabel="続ける"
             onConfirm={() => {
-              store.playLand(pendingLandPlay.cardId, { force: true });
               setPendingLandPlay(null);
+              requestPlayLand(pendingLandPlay.cardId, { force: true });
             }}
             onCancel={() => setPendingLandPlay(null)}
             testId="land-play-confirm-dialog"
           />
         )}
 
+        {pendingLandTapChoice && (
+          <LandTapChoiceDialog
+            cardName={cardNameFor(pendingLandTapChoice.cardId)}
+            onChoose={(entersTapped) => {
+              requestPlayLand(pendingLandTapChoice.cardId, {
+                force: pendingLandTapChoice.force,
+                entersTapped,
+              });
+              setPendingLandTapChoice(null);
+            }}
+            onCancel={() => setPendingLandTapChoice(null)}
+          />
+        )}
+
         {commanderMove && (
           <CommanderMoveDialog
-            cardName={(() => {
-              const card = cards[commanderMove.cardId];
-              const def = state.defs[card.defId];
-              const face = def?.faces[card.faceIndex] ?? def?.faces[0];
-              return face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
-            })()}
+            cardName={cardNameFor(commanderMove.cardId)}
             destinationLabel={ZONE_LABELS[commanderMove.to]}
             onChoose={(toCommandZone) => {
               if (toCommandZone) {
@@ -549,6 +644,29 @@ export function Playmat() {
               setTokenDialogOpen(false);
             }}
             onCancel={() => setTokenDialogOpen(false)}
+          />
+        )}
+
+        {attackDialogOpen && (
+          <AttackDialog
+            state={state}
+            opponentLabels={opponentLabels}
+            onConfirm={(attackerIds, targetLabel) => {
+              store.declareAttack(attackerIds, targetLabel);
+              setAttackDialogOpen(false);
+            }}
+            onCancel={() => setAttackDialogOpen(false)}
+          />
+        )}
+
+        {arrangeTopOpen && (
+          <ArrangeTopDialog
+            state={state}
+            onConfirm={(topOrder, toBottom, toGraveyard) => {
+              store.arrangeTop(topOrder, toBottom, toGraveyard);
+              setArrangeTopOpen(false);
+            }}
+            onCancel={() => setArrangeTopOpen(false)}
           />
         )}
 

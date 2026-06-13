@@ -61,6 +61,7 @@ export interface GameState {
   energy: number;
   experience: number;
   commanderDamage: Record<string, number>; // key: 対戦相手統率者のラベル(自由文字列)
+  opponentLife: Record<string, number>;
   manaPool: ManaPool;
   mulliganCount: number;
   landsPlayedThisTurn: number;

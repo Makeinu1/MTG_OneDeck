@@ -99,6 +99,8 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'putOnBottom',
     'playLand',
     'crackTreasure',
+    'adjustOpponentLife',
+    'arrangeTop',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -195,6 +197,28 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
         cardId: pick(treasures),
         color: pick(['W', 'U', 'B', 'R', 'G']),
       };
+    }
+    case 'adjustOpponentLife':
+      return {
+        type: 'adjustOpponentLife',
+        label: pick(['対戦相手A', 'B', 'C']),
+        delta: Math.floor(rng() * 13) - 6,
+      };
+    case 'arrangeTop': {
+      const lib = state.zones.library;
+      const n = Math.min(lib.length, 1 + Math.floor(rng() * 3));
+      if (n === 0) return { type: 'nextPhase' };
+      const top = lib.slice(0, n);
+      const topOrder: string[] = [];
+      const toBottom: string[] = [];
+      const toGraveyard: string[] = [];
+      for (const id of top) {
+        const r = rng();
+        if (r < 0.5) topOrder.push(id);
+        else if (r < 0.8) toBottom.push(id);
+        else toGraveyard.push(id);
+      }
+      return { type: 'arrangeTop', topOrder, toBottom, toGraveyard };
     }
     case 'castSpell': {
       if (state.zones.hand.length === 0) return { type: 'nextPhase' };

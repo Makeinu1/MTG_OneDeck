@@ -15,7 +15,12 @@ const PHASE_LABELS: Record<string, string> = {
 
 const MANA_ORDER: (keyof GameState['manaPool'])[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 const MANA_LABELS: Record<string, string> = {
-  W: '白', U: '青', B: '黒', R: '赤', G: '緑', C: '無',
+  W: '白',
+  U: '青',
+  B: '黒',
+  R: '赤',
+  G: '緑',
+  C: '無',
 };
 
 type Store = ReturnType<typeof useGameStore.getState>;
@@ -27,14 +32,27 @@ export interface SidePanelProps {
   onRestart: () => void;
   onBackToImport: () => void;
   onCreateToken: () => void;
+  onAttack: () => void;
+}
+
+function opponentLabelsFromState(state: GameState): string[] {
+  return Array.from(
+    new Set(['対戦相手A', ...Object.keys(state.opponentLife), ...Object.keys(state.commanderDamage)])
+  );
 }
 
 /** Left-hand control panel: life, counters, commander damage, mana, turn/phase, history. */
-export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport, onCreateToken }: SidePanelProps) {
-  const [opponentLabels, setOpponentLabels] = useState<string[]>(() =>
-    Object.keys(state.commanderDamage).length > 0 ? Object.keys(state.commanderDamage) : ['対戦相手A'],
-  );
+export function SidePanel({
+  state,
+  store,
+  onMulligan,
+  onRestart,
+  onBackToImport,
+  onCreateToken,
+  onAttack,
+}: SidePanelProps) {
   const [newLabel, setNewLabel] = useState('');
+  const opponentLabels = opponentLabelsFromState(state);
 
   function adjustLife(delta: number): void {
     store.dispatch({ type: 'adjustLife', delta });
@@ -48,10 +66,14 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport,
     store.dispatch({ type: 'adjustCommanderDamage', label, delta });
   }
 
+  function adjustOpponentLife(label: string, delta: number): void {
+    store.adjustOpponentLife(label, delta);
+  }
+
   function addOpponent(): void {
     const label = newLabel.trim();
     if (label === '' || opponentLabels.includes(label)) return;
-    setOpponentLabels((prev) => [...prev, label]);
+    store.addOpponent(label);
     setNewLabel('');
   }
 
@@ -79,11 +101,30 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport,
           ))}
         </div>
         <div className="side-panel__buttons">
-          <button type="button" className="btn btn--accent" data-testid="next-phase" onClick={() => store.nextPhase()}>
+          <button
+            type="button"
+            className="btn btn--accent"
+            data-testid="next-phase"
+            onClick={() => store.nextPhase()}
+          >
             次のフェイズ
           </button>
           <button type="button" className="btn" data-testid="next-turn" onClick={() => store.nextTurn()}>
             次のターン
+          </button>
+        </div>
+        <label className="side-panel__toggle">
+          <input
+            type="checkbox"
+            checked={store.autoAdvanceToMain}
+            onChange={(e) => store.setAutoAdvance(e.target.checked)}
+            data-testid="auto-advance-toggle"
+          />
+          <span>自動進行(メイン1まで)</span>
+        </label>
+        <div className="side-panel__buttons">
+          <button type="button" className="btn btn--ghost" data-testid="attack-button" onClick={onAttack}>
+            攻撃
           </button>
         </div>
       </section>
@@ -116,11 +157,26 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport,
       </section>
 
       <section className="side-panel__section side-panel__section--scroll">
+        <h3>対戦相手ライフ</h3>
+        <div className="counter-list">
+          {opponentLabels.map((label) => (
+            <CounterRow
+              key={`life-${label}`}
+              label={label}
+              value={state.opponentLife[label] ?? 40}
+              onChange={(d) => adjustOpponentLife(label, d)}
+              testId={`opponent-life-${label}`}
+              containerTestId={`opponent-life-${label}`}
+              danger={(state.opponentLife[label] ?? 40) <= 0}
+            />
+          ))}
+        </div>
+
         <h3>統率者ダメージ</h3>
         <div className="counter-list">
           {opponentLabels.map((label) => (
             <CounterRow
-              key={label}
+              key={`cmd-${label}`}
               label={label}
               value={state.commanderDamage[label] ?? 0}
               onChange={(d) => adjustCommanderDamage(label, d)}
@@ -140,7 +196,12 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport,
               if (e.key === 'Enter') addOpponent();
             }}
           />
-          <button type="button" className="btn btn--ghost btn--sm" onClick={addOpponent} data-testid="commander-damage-add">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={addOpponent}
+            data-testid="commander-damage-add"
+          >
             追加
           </button>
         </div>
@@ -150,7 +211,11 @@ export function SidePanel({ state, store, onMulligan, onRestart, onBackToImport,
         <h3>マナプール</h3>
         <div className="mana-pool" data-testid="mana-pool">
           {MANA_ORDER.map((color) => (
-            <div key={color} className={`mana-pool__pip mana-pool__pip--${color.toLowerCase()}`} data-testid={`mana-pool-${color}`}>
+            <div
+              key={color}
+              className={`mana-pool__pip mana-pool__pip--${color.toLowerCase()}`}
+              data-testid={`mana-pool-${color}`}
+            >
               <span className="mana-pool__symbol">{MANA_LABELS[color]}</span>
               <span className="mana-pool__count">{state.manaPool[color]}</span>
             </div>
@@ -199,15 +264,17 @@ function CounterRow({
   onChange,
   testId,
   danger,
+  containerTestId,
 }: {
   label: string;
   value: number;
   onChange: (delta: number) => void;
   testId: string;
   danger?: boolean;
+  containerTestId?: string;
 }) {
   return (
-    <div className="stat-row stat-row--compact">
+    <div className="stat-row stat-row--compact" data-testid={containerTestId}>
       <span className="stat-row__label">{label}</span>
       <button type="button" className="stat-row__btn stat-row__btn--sm" onClick={() => onChange(-1)} aria-label={`${label}を減らす`}>
         −

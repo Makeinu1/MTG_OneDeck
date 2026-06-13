@@ -327,3 +327,95 @@ crackTreasure(cardId: string, color: ManaColor): void;
 ### 7.9 不変条件の追加(プロパティテスト対象)
 - I6: `landsPlayedThisTurn >= 0`。untap 進入直後は常に 0
 - I7: battlefield 上のカードは `enteredTurn >= 1 && enteredTurn <= turn`、battlefield 外は 0
+
+---
+
+## 8. M4.7 追補(一人回し体験の仕上げ)— この節も契約である
+
+### 8.1 型の追加
+```ts
+// GameState に追加
+opponentLife: Record<string, number>;   // 対戦相手ラベル -> ライフ。init で { '対戦相手A': 40 }
+//   I3 の例外。クランプしない(0以下・負を許容 = 敗北判定用、player life と同じ扱い)
+```
+- `CardInstance` 変更なし(タップインは既存 `tapped` を使う)。
+- ストア設定 `autoAdvanceToMain: boolean` はストア内部状態。GameState/履歴には含めない。
+
+### 8.2 コマンドの追加・変更(`src/engine/commands.ts`)
+```ts
+// 追加
+| { type: 'adjustOpponentLife'; label: string; delta: number }
+//   opponentLife[label] を delta 加算(なければ 40 起点)。クランプなし。ログ必須。
+
+| { type: 'arrangeTop'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
+//   N = topOrder.length + toBottom.length + toGraveyard.length。
+//   3配列の union が library 先頭 N 枚と完全一致(集合として)でなければ EngineError。
+//   再構築: toGraveyard の各 id を墓地へ移動(moveCardInternal、順序は配列順で先頭から)。
+//   library = [...topOrder, ...(先頭N枚に含まれず触れていない残り。元の順序を保持), ...toBottom]
+//   実際には「先頭N枚を3グループに再配分」: library 先頭 N 枚を取り除き、
+//   残りライブラリの前に topOrder、後ろに toBottom を付け、toGraveyard は墓地へ。
+//   正しくは: newLibrary = [...topOrder, ...library.slice(N), ...toBottom] とし、
+//   toGraveyard のカードは library から除外して墓地末尾へ。単一コミット。ログ必須。
+
+// 変更: playLand に entersTapped を追加
+| { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean }
+//   entersTapped===true のとき、戦場進入処理の後に tapped=true を設定する。
+```
+
+### 8.3 status.ts への追加(純粋関数)
+```ts
+export type Keyword =
+  | 'flying' | 'vigilance' | 'trample' | 'deathtouch' | 'lifelink' | 'menace'
+  | 'first-strike' | 'double-strike' | 'reach' | 'haste' | 'hexproof'
+  | 'indestructible' | 'defender' | 'ward';
+
+export function keywords(def: CardDef | undefined): Keyword[];
+//   全 face の oracleText/printedText を走査し、語境界一致で検出(英 + 日)。
+//   日本語対応例: 飛行/警戒/トランプル/接死/絆魂/威迫/先制攻撃/二段攻撃/到達/速攻/呪禁/破壊不能/防衛/護法。
+//   reminder 文等による軽微な誤検知は許容(情報表示専用、ルール強制しない)。
+//   既存 hasHaste はこの検出ロジックの一部として再利用してよい。
+
+export function hasVigilance(state: GameState, cardId: string): boolean;
+//   現在の def の keywords に 'vigilance' を含むか。攻撃補助のタップ判定に使う。
+
+export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' | 'conditional';
+//   always: oracle/printed に /enters .*tapped/i または「タップ状態で戦場に出る」を含み、
+//           かつ "unless" / "でないかぎり" / "なら" 系の条件節を含まない。
+//   conditional: "enters .* tapped unless" / 「〜でないかぎり…タップ状態で」等の条件付き。
+//   never: それ以外。
+```
+
+### 8.4 有効パワー算出(`src/engine/status.ts`)
+```ts
+export function effectivePower(state: GameState, cardId: string): number;
+//   現在の face.power を parseInt(非数値/欠落は 0)
+//   + (counters['+1/+1'] ?? 0) - (counters['-1/-1'] ?? 0)。下限なし(理論上は負も返る)。
+```
+
+### 8.5 不変条件の追加・更新
+- I3 の例外に `opponentLife` を追加(クランプしない)。
+- I8: `arrangeTop` 適用後も I1(全 id がちょうど1ゾーンに出現)を維持する。先頭N枚の集合は保存され、墓地行きを除き枚数不変。
+
+### 8.6 ストア(`src/store/gameStore.ts`)で実装する操作
+```ts
+autoAdvanceToMain: boolean;                 // 既定 true
+setAutoAdvance(on: boolean): void;
+
+// nextPhase()/nextTurn() の結果 phase==='untap' かつ autoAdvanceToMain が真なら、
+// phase==='main1' になるまで nextPhase を applySequence で連結し【単一コミット】。
+// オフ時は従来通り1フェイズずつ。undo 1回で1ターン頭(=オート進行開始前)まで戻る。
+
+playLand(cardId, opts?: { force?: boolean; entersTapped?: boolean }):
+  'ok' | 'needs-confirm' | 'needs-tap-choice';
+//   landEntersTapped が 'conditional' かつ opts.entersTapped 未指定 → 'needs-tap-choice'。
+//   'always'→entersTapped:true、'never'→false を自動付与。
+//   既存の landsPlayedThisTurn 確認('needs-confirm')は据え置き。
+
+declareAttack(attackerIds: string[], targetLabel: string): void;
+//   sum = Σ effectivePower(attacker)。adjustOpponentLife(targetLabel, -sum)、
+//   各 attacker のうち hasVigilance でないものに setTapped:true、を applySequence で単一コミット。
+//   isSummoningSick の attacker は warning を付すが処理は通す(サンドボックス)。
+
+adjustOpponentLife(label: string, delta: number): void;   // dispatch ラッパー
+arrangeTop(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;  // dispatch ラッパー
+```

@@ -45,6 +45,7 @@ export interface ZonesProps {
   state: GameState;
   store: Store;
   onOpenViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
+  onArrangeTop: () => void;
   onCommanderContextMenu: (cardId: string, e: React.MouseEvent) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   onLibraryDoubleClick: (e: React.MouseEvent) => void;
@@ -53,7 +54,16 @@ export interface ZonesProps {
 
 /** Right-hand stack of non-battlefield zones, ordered: command (large, top), library,
  *  graveyard, exile. Right-click opens the action menu; library is double-click to draw. */
-export function Zones({ state, store, onOpenViewer, onCommanderContextMenu, onCardDoubleClick, onLibraryDoubleClick, hoverPreview }: ZonesProps) {
+export function Zones({
+  state,
+  store,
+  onOpenViewer,
+  onArrangeTop,
+  onCommanderContextMenu,
+  onCardDoubleClick,
+  onLibraryDoubleClick,
+  hoverPreview,
+}: ZonesProps) {
   const graveyard = state.zones.graveyard;
   const exile = state.zones.exile;
   const command = state.zones.command;
@@ -134,6 +144,17 @@ export function Zones({ state, store, onOpenViewer, onCommanderContextMenu, onCa
               }}
             >
               見る
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              data-testid="scry"
+              onClick={(e) => {
+                e.stopPropagation();
+                onArrangeTop();
+              }}
+            >
+              上から見る
             </button>
           </div>
         </DroppableZoneCard>

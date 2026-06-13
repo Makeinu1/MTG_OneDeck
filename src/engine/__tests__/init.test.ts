@@ -23,6 +23,7 @@ describe('initGame', () => {
     expect(state.poison).toBe(0);
     expect(state.energy).toBe(0);
     expect(state.experience).toBe(0);
+    expect(state.opponentLife).toEqual({ 対戦相手A: 40 });
     expect(state.mulliganCount).toBe(0);
     expect(state.landsPlayedThisTurn).toBe(0);
     expect(state.manaPool).toEqual({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });
