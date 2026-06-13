@@ -298,12 +298,6 @@ export function Playmat() {
     }
   }
 
-  function handleLibraryDoubleClick(e: React.MouseEvent): void {
-    e.stopPropagation();
-    hoverPreview.suppress();
-    store.draw(1);
-  }
-
   function buildMenuItems(cardId: string): { title: string; items: MenuItem[] } {
     const card = cards[cardId];
     const def = state!.defs[card.defId];
@@ -564,7 +558,6 @@ export function Playmat() {
             onCardContextMenu={handleCardContextMenu}
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
-            onLibraryDoubleClick={handleLibraryDoubleClick}
             hoverPreview={hoverPreview}
           />
           <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />

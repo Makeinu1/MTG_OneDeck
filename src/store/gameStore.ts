@@ -199,11 +199,16 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.future = [];
 
       const base = initGame(cards, usedSeed);
-      // draw opening 7 as a single committed step
-      const result = applyCommand(base, { type: 'draw', count: 7 });
+      // Build the initial board state as a single non-undoable setup step.
+      const openingHand = applyCommand(base, { type: 'draw', count: 7 });
+      const advanced = get().autoAdvanceToMain
+        ? applySequence(openingHand.state, untapToMainCommands())
+        : null;
       set({
-        state: result.state,
-        warnings: result.warnings,
+        state: advanced?.state ?? openingHand.state,
+        warnings: advanced
+          ? openingHand.warnings.concat(advanced.warnings)
+          : openingHand.warnings,
         canUndo: false,
         canRedo: false,
       });

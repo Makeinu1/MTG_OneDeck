@@ -20,10 +20,23 @@ describe('GameStore', () => {
     vi.restoreAllMocks();
   });
 
-  it('newGame initializes and draws 7', () => {
+  it('newGame auto-advances to main1 and draws 8 by default', () => {
     store().newGame(makeDeck(30), 1);
     const s = store().state!;
     expect(s).not.toBeNull();
+    expect(s.phase).toBe('main1');
+    expect(s.zones.hand).toHaveLength(8);
+    expect(s.zones.library).toHaveLength(22);
+    expect(store().canUndo).toBe(false);
+  });
+
+  it('newGame stays on untap with 7 cards when auto-advance is disabled', () => {
+    useGameStore.setState({ autoAdvanceToMain: false });
+
+    store().newGame(makeDeck(30), 1);
+    const s = store().state!;
+
+    expect(s.phase).toBe('untap');
     expect(s.zones.hand).toHaveLength(7);
     expect(s.zones.library).toHaveLength(23);
     expect(store().canUndo).toBe(false);

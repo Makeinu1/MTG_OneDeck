@@ -41,6 +41,33 @@ function DroppableZoneCard({
   );
 }
 
+function ZoneActionButton({
+  testId,
+  label,
+  onPress,
+}: {
+  testId: string;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="btn btn--ghost btn--sm"
+      data-testid={testId}
+      onClick={(e) => {
+        e.stopPropagation();
+        onPress();
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export interface ZonesProps {
   state: GameState;
   store: Store;
@@ -57,12 +84,11 @@ export interface ZonesProps {
     e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
   ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
-  onLibraryDoubleClick: (e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
 }
 
 /** Right-hand stack of non-battlefield zones, ordered: command (large, top), library,
- *  graveyard, exile. Right-click opens the action menu; library is double-click to draw. */
+ *  graveyard, exile. Right-click opens the action menu; explicit buttons cover mobile actions. */
 export function Zones({
   state,
   store,
@@ -73,7 +99,6 @@ export function Zones({
   onCardContextMenu,
   onCommanderContextMenu,
   onCardDoubleClick,
-  onLibraryDoubleClick,
   hoverPreview,
 }: ZonesProps) {
   const graveyard = state.zones.graveyard;
@@ -117,83 +142,26 @@ export function Zones({
       </DroppableZoneCard>
 
       <div className="zones__row">
-        <DroppableZoneCard
-          zone="library"
-          className="zone-card--library"
-          testId="zone-library"
-          onDoubleClick={onLibraryDoubleClick}
-        >
+        <DroppableZoneCard zone="library" className="zone-card--library" testId="zone-library">
           <div className="zone-card__face zone-card__face--library">
             <span className="zone-card__count">{state.zones.library.length}</span>
           </div>
           <span className="zone-card__label">ライブラリ</span>
           <div className="zone-card__actions">
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="library-draw"
-              onClick={(e) => {
-                e.stopPropagation();
-                store.draw(1);
-              }}
-            >
-              引く
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="library-shuffle"
-              onClick={(e) => {
-                e.stopPropagation();
-                store.shuffleLibrary();
-              }}
-            >
-              シャッフル
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="library-view"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenViewer('library');
-              }}
-            >
-              見る
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="scry"
-              onClick={(e) => {
-                e.stopPropagation();
-                onArrangeTop();
-              }}
-            >
-              上から見る
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="peek"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPeek();
-              }}
-            >
-              上を見る
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="mill"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMill();
-              }}
-            >
-              切削
-            </button>
+            <ZoneActionButton testId="library-draw" label="引く" onPress={() => store.draw(1)} />
+            <ZoneActionButton
+              testId="library-shuffle"
+              label="シャッフル"
+              onPress={() => store.shuffleLibrary()}
+            />
+            <ZoneActionButton
+              testId="library-view"
+              label="見る"
+              onPress={() => onOpenViewer('library')}
+            />
+            <ZoneActionButton testId="scry" label="上から見る" onPress={onArrangeTop} />
+            <ZoneActionButton testId="peek" label="上を見る" onPress={onPeek} />
+            <ZoneActionButton testId="mill" label="切削" onPress={onMill} />
           </div>
         </DroppableZoneCard>
 
@@ -220,6 +188,13 @@ export function Zones({
             )}
           </div>
           <span className="zone-card__label">墓地 ({graveyard.length})</span>
+          <div className="zone-card__actions">
+            <ZoneActionButton
+              testId="graveyard-view"
+              label="見る"
+              onPress={() => onOpenViewer('graveyard')}
+            />
+          </div>
         </DroppableZoneCard>
 
         <DroppableZoneCard zone="exile" testId="zone-exile" onDoubleClick={() => onOpenViewer('exile')}>
@@ -245,6 +220,13 @@ export function Zones({
             )}
           </div>
           <span className="zone-card__label">追放 ({exile.length})</span>
+          <div className="zone-card__actions">
+            <ZoneActionButton
+              testId="exile-view"
+              label="見る"
+              onPress={() => onOpenViewer('exile')}
+            />
+          </div>
         </DroppableZoneCard>
       </div>
     </div>
