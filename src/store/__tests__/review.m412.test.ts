@@ -80,7 +80,7 @@ describe('store.cycle (§10.3)', () => {
       st = useGameStore.getState().state!;
       cyclerInstance = st.cards[inLib.id];
     }
-    const id = cyclerInstance!.id;
+    const id = cyclerInstance.id;
     // give 2 generic mana to pay cycling {2}
     useGameStore.getState().adjustMana('C', 2);
     const handBefore = useGameStore.getState().state!.zones.hand.length;
@@ -113,11 +113,11 @@ describe('store.cycle (§10.3)', () => {
       useGameStore.getState().moveCard(inLib.id, 'hand', 'top');
       inst = useGameStore.getState().state!.cards[inLib.id];
     }
-    const res = useGameStore.getState().cycle(inst!.id);
+    const res = useGameStore.getState().cycle(inst.id);
     expect(res).not.toBe('ok');
     expect((res as { shortfall: number }).shortfall).toBeGreaterThan(0);
     // board unchanged
-    expect(useGameStore.getState().state!.cards[inst!.id].zone).toBe('hand');
+    expect(useGameStore.getState().state!.cards[inst.id].zone).toBe('hand');
   });
 });
 
