@@ -4,7 +4,9 @@ import type { CardDef } from '../types/card';
 // Bump this when the stored CardDef shape changes in a backwards-incompatible way.
 // v2: single-faced cards now carry manaCost/oracleText on faces[0]; v1 entries
 // lack them and must be discarded.
-export const CACHE_SCHEMA_VERSION = 2;
+// v3: English-only cached cards must be dropped so batched Japanese re-resolution
+// can repopulate display data.
+export const CACHE_SCHEMA_VERSION = 3;
 
 const DB_NAME = 'mtg-onedeck-cache';
 const NAME_STORE = 'cardsByName';

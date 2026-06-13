@@ -14,6 +14,7 @@ export interface ResolveResult {
 
 const SCRYFALL_API_BASE = 'https://api.scryfall.com';
 const COLLECTION_BATCH_SIZE = 75;
+const JAPANESE_PRINT_BATCH_SIZE = 15;
 const REQUEST_INTERVAL_MS = 100;
 const MAX_RETRIES = 3;
 const VALID_MANA_COLORS: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
@@ -64,6 +65,8 @@ interface ScryfallList<T> {
   object: 'list';
   data: T[];
   not_found?: { name?: string }[];
+  has_more?: boolean;
+  next_page?: string;
 }
 
 interface ScryfallError {
@@ -337,25 +340,59 @@ async function resolveJapaneseName(name: string): Promise<ScryfallCard | undefin
 }
 
 /**
- * Fetch the Japanese print of a card by oracle id, for use as the display
- * image/text after an English-name match. Returns undefined if none exists.
+ * Fetch Japanese prints for a set of oracle ids in batches, preserving DFC face
+ * data so the display layer can swap in printed names, text, and images.
  */
-async function fetchJapanesePrintByOracleId(oracleId: string): Promise<ScryfallCard | undefined> {
-  const query = `oracleid:${oracleId} lang:ja`;
-  const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(query)}&unique=prints`;
+async function fetchJapanesePrintsByOracleIds(
+  oracleIds: string[],
+): Promise<Map<string, ScryfallCard>> {
+  const japanesePrints = new Map<string, ScryfallCard>();
+  const uniqueOracleIds = [...new Set(oracleIds)];
+  let hasFetchedPage = false;
 
-  const response = await fetchWithRetry(url);
-  if (!response.ok) {
-    return undefined;
+  for (
+    let offset = 0;
+    offset < uniqueOracleIds.length;
+    offset += JAPANESE_PRINT_BATCH_SIZE
+  ) {
+    const batch = uniqueOracleIds.slice(offset, offset + JAPANESE_PRINT_BATCH_SIZE);
+    const query = `lang:ja (${batch.map((oracleId) => `oracleid:${oracleId}`).join(' or ')})`;
+    let nextPageUrl: string | undefined = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(query)}&unique=cards`;
+
+    while (nextPageUrl) {
+      if (hasFetchedPage) {
+        await sleep(REQUEST_INTERVAL_MS);
+      }
+      hasFetchedPage = true;
+
+      const response = await fetchWithRetry(nextPageUrl);
+      if (response.status === 404) {
+        break;
+      }
+      if (!response.ok) {
+        throw new Error(`failed to fetch Japanese prints: ${response.status}`);
+      }
+
+      const json: unknown = await response.json();
+      if (isScryfallError(json)) {
+        if (json.status === 404) {
+          break;
+        }
+        throw new Error(json.details);
+      }
+
+      const list = json as ScryfallList<ScryfallCard>;
+      for (const card of list.data) {
+        if (card.oracle_id) {
+          japanesePrints.set(card.oracle_id, card);
+        }
+      }
+
+      nextPageUrl = list.has_more && list.next_page ? list.next_page : undefined;
+    }
   }
 
-  const json: unknown = await response.json();
-  if (isScryfallError(json)) {
-    return undefined;
-  }
-
-  const list = json as ScryfallList<ScryfallCard>;
-  return list.data[0];
+  return japanesePrints;
 }
 
 interface PendingEntry {
@@ -420,21 +457,30 @@ export async function resolveDeck(
   if (asciiNames.length > 0) {
     try {
       const { found, notFound } = await resolveAsciiBatch(asciiNames);
+      const resolvedAsciiCards = new Map<string, CardDef>();
+      const japaneseOracleIds: string[] = [];
 
       for (const [lookupKey, card] of found) {
-        let cardDef = mapScryfallCardToCardDef(card);
-
-        if (cardDef.lang !== 'ja' && cardDef.oracleId) {
-          await sleep(REQUEST_INTERVAL_MS);
-          try {
-            const jaCard = await fetchJapanesePrintByOracleId(cardDef.oracleId);
-            if (jaCard) {
-              cardDef = applyJapanesePrint(cardDef, jaCard);
-            }
-          } catch {
-            // Non-fatal: keep the English print if the ja lookup fails.
-          }
+        const cardDef = mapScryfallCardToCardDef(card);
+        resolvedAsciiCards.set(lookupKey, cardDef);
+        if (cardDef.lang !== 'ja' && card.oracle_id) {
+          japaneseOracleIds.push(card.oracle_id);
         }
+      }
+
+      let japanesePrints = new Map<string, ScryfallCard>();
+      if (japaneseOracleIds.length > 0) {
+        await sleep(REQUEST_INTERVAL_MS);
+        try {
+          japanesePrints = await fetchJapanesePrintsByOracleIds(japaneseOracleIds);
+        } catch {
+          // Non-fatal: keep the English prints if the batch ja lookup fails.
+        }
+      }
+
+      for (const [lookupKey, baseCardDef] of resolvedAsciiCards) {
+        const jaCard = japanesePrints.get(baseCardDef.oracleId);
+        const cardDef = jaCard ? applyJapanesePrint(baseCardDef, jaCard) : baseCardDef;
 
         await putCardDef(lookupKey, cardDef);
         resolved.set(lookupKey, cardDef);

@@ -1,0 +1,17 @@
+{
+  "name": "MTG OneDeck",
+  "short_name": "OneDeck",
+  "display": "standalone",
+  "orientation": "landscape",
+  "start_url": "./",
+  "scope": "./",
+  "background_color": "#12100e",
+  "theme_color": "#12100e",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
