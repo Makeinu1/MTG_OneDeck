@@ -495,3 +495,46 @@ cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
 - 複数色を同時産出する源(例 "Add {G}{U}")は当面 各1点 or 既存の色選択にフォールバックで可。
 - **パース不能・曖昧なケースは従来通り1点**。確実な補正は §10.1 のマナプール編集に委ねる(サンドボックス)。
 - 純粋なテキストパースはUI層/ストア層に閉じてよい(engine の applyCommand は変更しない)。
+
+## 11. M4.15 追補(フェッチ土地の自動化)— この節も契約である
+
+設計指針: **新 engine コマンドは追加しない**。フェッチは既存コマンドの合成(`applySequence`)で表現する。
+engine への追加は純粋な検出ヘルパー `fetchAbility` のみ。GameState に新フィールドを足さない(新 invariant 不要、I1〜I7 はカード保存則で維持)。
+
+### 11.1 status.ts へフェッチ検出を追加(純粋関数 `src/engine/status.ts`)
+```ts
+export interface FetchAbility {
+  lifeCost: number;                                       // 既定 0
+  entersTapped: boolean;                                  // put 句が tapped/タップ状態 を含むか
+  filter: 'basic' | { subtypes: string[] } | 'any-land';  // subtypes は英語サブタイプ名(Island/Swamp/…)
+}
+export function fetchAbility(def: CardDef | undefined): FetchAbility | null;
+```
+- 全 face の `oracleText`/`printedText` を `cardTexts`/`splitRulesText` で走査(`cyclingCost`/`landEntersTapped` と同方式)。
+- **検出条件**(下記いずれかを満たす起動型能力の存在):
+  - 英: `/Search your library for .* (land|basic land) .*/i` かつ put 句 `/onto the battlefield/i` かつ `/shuffle/i`。
+  - 日: `あなたのライブラリー` を含み `.*探[しす].*` かつ `戦場に出` かつ `切り直す`。
+  - いずれも満たさなければ `null`。
+- **entersTapped**: put 句に 英 `onto the battlefield tapped` / 日 `タップ状態で(戦場に)出` を含めば `true`、無ければ `false`。
+  (寓話の小道の「…なら、その土地をアンタップする」等の**条件付きアンタップ句は無視**=`true` のまま。)
+- **lifeCost**: 英 `/Pay (\d+) life/i` / 日 `/([0-9０-９]+)\s*点のライフを支払/`。全角数字は半角化して整数化。無ければ 0。
+- **filter**(優先順): ①英 `basic land` / 日 `基本土地` を含めば `'basic'`。②①でなく、文面に既知の土地サブタイプ語が現れれば `{ subtypes: [...] }`(英語名へ正規化)。③それ以外は `'any-land'`。
+  - 土地サブタイプ ja→en マップ(最低限・基本5種): `平地→Plains, 島→Island, 沼→Swamp, 山→Mountain, 森→Forest`。英文は `Plains/Island/Swamp/Mountain/Forest` をそのまま採用。
+  - 例: 「島や沼であるカード」/「an Island or Swamp card」→ `{subtypes:['Island','Swamp']}`。
+- **解析不能・部分一致は安全側**: 検出はするが詳細が取れない場合 `filter:'any-land'`、`entersTapped:false`、`lifeCost:0`(UI で上書き可)。
+- 実 Scryfall ja 文面で裏取り済みの代表値:
+  - 進化する未開地 / 寓話の小道: `{lifeCost:0, entersTapped:true, filter:'basic'}`
+  - 汚染された三角州: `{lifeCost:1, entersTapped:false, filter:{subtypes:['Island','Swamp']}}`
+  - 虹色の眺望(Prismatic Vista): `{lifeCost:1, entersTapped:false, filter:'basic'}`
+
+### 11.2 ストア(`src/store/gameStore.ts`)で実装する操作
+```ts
+fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
+```
+- `applySequence` で **単一コミット**(undo 1回で全復元)。順序:
+  1. `opts.lifeCost > 0` のとき `{ type:'adjustLife', delta: -opts.lifeCost }`
+  2. `{ type:'moveCard', cardId: sourceId, to:'graveyard', position:'top' }`
+  3. `{ type:'moveCard', cardId: targetId, to:'battlefield', position:'top' }`(ETB フックで enteredTurn 設定)
+  4. `opts.entersTapped` のとき `{ type:'setTapped', cardId: targetId, tapped:true }`
+  5. `{ type:'shuffle', order }` — `order = shuffledOrder(現 library から targetId を除いた配列, createRng(randomSeed()))` を**呼び出し時に確定**(決定的)。
+- engine の applyCommand 群は一切変更しない(既存コマンドの再利用のみ)。

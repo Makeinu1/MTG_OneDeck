@@ -76,6 +76,7 @@ export interface GameStore {
   ): void;
   clearWarnings(): void;
   cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
+  fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
 }
 
 interface InternalState {
@@ -649,6 +650,41 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       return 'ok';
+    },
+
+    fetchLand(sourceId, targetId, opts) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const rng = createRng(randomSeed());
+      const order = shuffledOrder(
+        cur.zones.library.filter((cardId) => cardId !== targetId),
+        rng
+      );
+
+      const commands: GameCommand[] = [];
+      if (opts.lifeCost > 0) {
+        commands.push({ type: 'adjustLife', delta: -opts.lifeCost });
+      }
+      commands.push(
+        { type: 'moveCard', cardId: sourceId, to: 'graveyard', position: 'top' },
+        { type: 'moveCard', cardId: targetId, to: 'battlefield', position: 'top' }
+      );
+      if (opts.entersTapped) {
+        commands.push({ type: 'setTapped', cardId: targetId, tapped: true });
+      }
+      commands.push({ type: 'shuffle', order });
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
     },
   };
 });

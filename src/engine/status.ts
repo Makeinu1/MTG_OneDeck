@@ -60,6 +60,90 @@ function splitRulesText(text: string): string[] {
     .filter((part) => part !== '');
 }
 
+export interface FetchAbility {
+  lifeCost: number;
+  entersTapped: boolean;
+  filter: 'basic' | { subtypes: string[] } | 'any-land';
+}
+
+const FETCH_SUBTYPE_SPECS = [
+  { english: 'Plains', japanese: '平地', pattern: /\bPlains\b/i },
+  { english: 'Island', japanese: '島', pattern: /\bIsland\b/i },
+  { english: 'Swamp', japanese: '沼', pattern: /\bSwamp\b/i },
+  { english: 'Mountain', japanese: '山', pattern: /\bMountain\b/i },
+  { english: 'Forest', japanese: '森', pattern: /\bForest\b/i },
+] as const;
+
+function normalizeDigits(value: string): string {
+  return value.replace(/[０-９]/g, (digit) =>
+    String.fromCharCode(digit.charCodeAt(0) - 0xfee0)
+  );
+}
+
+function detectFetchClause(def: CardDef | undefined): string | null {
+  for (const text of cardTexts(def)) {
+    const clauses = splitRulesText(text);
+    const haystack = clauses.join(' ');
+    const hasEnglishFetch =
+      /Search your library for/i.test(haystack) &&
+      /onto the battlefield/i.test(haystack) &&
+      /shuffle/i.test(haystack);
+    const hasJapaneseFetch =
+      /あなたのライブラリー/.test(haystack) &&
+      /探[しす]/.test(haystack) &&
+      /戦場に出/.test(haystack) &&
+      /切り直す/.test(haystack);
+    if (hasEnglishFetch || hasJapaneseFetch) {
+      return haystack;
+    }
+  }
+
+  return null;
+}
+
+function fetchLifeCost(clause: string): number {
+  const english = clause.match(/\bPay (\d+) life\b/i);
+  if (english?.[1]) {
+    return Number.parseInt(english[1], 10) || 0;
+  }
+
+  const japanese = clause.match(/([0-9０-９]+)\s*点のライフを支払/);
+  if (japanese?.[1]) {
+    return Number.parseInt(normalizeDigits(japanese[1]), 10) || 0;
+  }
+
+  return 0;
+}
+
+function fetchFilter(clause: string): FetchAbility['filter'] {
+  if (/\bbasic land\b/i.test(clause) || /基本土地/.test(clause)) {
+    return 'basic';
+  }
+
+  const subtypes = FETCH_SUBTYPE_SPECS.flatMap((spec) =>
+    spec.pattern.test(clause) || clause.includes(spec.japanese) ? [spec.english] : []
+  );
+  if (subtypes.length > 0) {
+    return { subtypes: Array.from(new Set(subtypes)) };
+  }
+
+  return 'any-land';
+}
+
+export function fetchAbility(def: CardDef | undefined): FetchAbility | null {
+  const clause = detectFetchClause(def);
+  if (!clause) {
+    return null;
+  }
+
+  return {
+    lifeCost: fetchLifeCost(clause),
+    entersTapped:
+      /onto the battlefield tapped/i.test(clause) || /タップ状態で(?:戦場に)?出/.test(clause),
+    filter: fetchFilter(clause),
+  };
+}
+
 export function keywords(def: CardDef | undefined): Keyword[] {
   if (!def) return [];
   const texts = cardTexts(def);

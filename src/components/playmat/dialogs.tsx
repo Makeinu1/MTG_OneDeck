@@ -5,7 +5,7 @@ import type { CardDef } from '../../types/card';
 import type { CardInstance, GameState, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
-import { effectivePower, isSummoningSick } from '../../engine/status';
+import { effectivePower, isSummoningSick, type FetchAbility } from '../../engine/status';
 import { CardView } from '../CardView';
 
 const MANA_LABELS: Record<ManaColor, string> = {
@@ -773,6 +773,171 @@ function searchableNames(def: CardDef | undefined): string[] {
     names.push(face.name, face.printedName ?? '');
   }
   return names.filter((n) => n !== '');
+}
+
+function cardTypeLines(def: CardDef | undefined): string[] {
+  if (!def) return [];
+  return [def.typeLine, ...def.faces.map((face) => face.typeLine)].filter((line) => line !== '');
+}
+
+function isLandTypeLine(line: string): boolean {
+  return line.includes('Land');
+}
+
+function matchesFetchFilter(def: CardDef | undefined, ability: FetchAbility): boolean {
+  const typeLines = cardTypeLines(def);
+  const isLand = typeLines.some((line) => isLandTypeLine(line));
+  if (!isLand) {
+    return false;
+  }
+
+  if (ability.filter === 'basic') {
+    return typeLines.some((line) => isLandTypeLine(line) && line.includes('Basic'));
+  }
+
+  if (ability.filter === 'any-land') {
+    return true;
+  }
+
+  return ability.filter.subtypes.some((subtype) =>
+    typeLines.some((line) => isLandTypeLine(line) && line.includes(subtype))
+  );
+}
+
+function fetchFilterLabel(ability: FetchAbility): string {
+  if (ability.filter === 'basic') {
+    return '基本土地';
+  }
+
+  if (ability.filter === 'any-land') {
+    return '土地';
+  }
+
+  return ability.filter.subtypes.join(' / ');
+}
+
+export function FetchSearchDialog({
+  state,
+  sourceId,
+  ability,
+  onConfirm,
+  onClose,
+}: {
+  state: GameState;
+  sourceId: string;
+  ability: FetchAbility;
+  onConfirm: (targetId: string, opts: { entersTapped: boolean; lifeCost: number }) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [showAllCards, setShowAllCards] = useState(false);
+  const [entersTapped, setEntersTapped] = useState(ability.entersTapped);
+  const libraryIds = state.zones.library;
+
+  const eligibleIds = libraryIds.filter((cardId) => {
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    return showAllCards || matchesFetchFilter(def, ability);
+  });
+
+  const query = search.trim().toLowerCase();
+  const filteredIds = query
+    ? eligibleIds.filter((cardId) => {
+        const card = state.cards[cardId];
+        const def = card ? state.defs[card.defId] : undefined;
+        return searchableNames(def).some((name) => name.toLowerCase().includes(query));
+      })
+    : eligibleIds;
+
+  const sourceName = cardDisplayName(state, sourceId);
+  const emptyMessage =
+    libraryIds.length === 0
+      ? 'ライブラリが空です。'
+      : filteredIds.length === 0 && !showAllCards
+        ? '該当する土地がありません。「すべてのカード」をオンにすると全カードを表示できます。'
+        : '該当するカードはありません。';
+
+  return (
+    <Modal title="サーチ(フェッチ)" onClose={onClose} width="lg" testId="fetch-search-dialog">
+      <p>
+        《{sourceName}》で {fetchFilterLabel(ability)} を探します。ライフ -{ability.lifeCost}
+      </p>
+      <label className="dialog__field">
+        カード名で検索
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="カード名で検索…"
+          data-testid="fetch-search-input"
+          autoFocus
+        />
+      </label>
+      <div className="zone-viewer__search">
+        <label>
+          <input
+            type="checkbox"
+            checked={showAllCards}
+            onChange={(e) => setShowAllCards(e.target.checked)}
+            data-testid="fetch-filter-toggle"
+          />
+          すべてのカードを表示
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={entersTapped}
+            onChange={(e) => setEntersTapped(e.target.checked)}
+            data-testid="fetch-enters-tapped"
+          />
+          タップ状態で出す
+        </label>
+        <span className="zone-viewer__search-count">
+          {filteredIds.length} / {eligibleIds.length} 枚
+        </span>
+      </div>
+      {filteredIds.length === 0 ? (
+        <p className="zone-viewer__empty">{emptyMessage}</p>
+      ) : (
+        <ul className="zone-viewer__list">
+          {filteredIds.map((cardId) => {
+            const card = state.cards[cardId];
+            const def = card ? state.defs[card.defId] : undefined;
+            if (!card || !def) return null;
+
+            return (
+              <li key={cardId} className="zone-viewer__item">
+                <div className="zone-viewer__thumb">
+                  <CardView instance={card} def={def} size="small" />
+                </div>
+                <div className="zone-viewer__info">
+                  <span className="zone-viewer__name">{cardDisplayName(state, cardId)}</span>
+                  <div className="zone-viewer__targets">
+                    <button
+                      type="button"
+                      className="btn btn--accent btn--sm"
+                      onClick={() => {
+                        onConfirm(cardId, { entersTapped, lifeCost: ability.lifeCost });
+                        onClose();
+                      }}
+                      data-testid={`fetch-target-${cardId}`}
+                    >
+                      選択
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onClose}>
+          閉じる
+        </button>
+      </div>
+    </Modal>
+  );
 }
 
 /** Modal listing every card in a zone with a per-card move menu. Library view includes a name search/filter. */

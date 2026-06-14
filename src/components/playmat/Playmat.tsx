@@ -36,10 +36,12 @@ import {
   ZoneViewerDialog,
   MulliganBottomDialog,
   ConfirmDialog,
+  FetchSearchDialog,
 } from './dialogs';
 import type { ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
-import { cyclingCost } from '../../engine/status';
+import { cyclingCost, fetchAbility } from '../../engine/status';
+import type { FetchAbility } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 
@@ -84,6 +86,7 @@ export function Playmat() {
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
+  const [fetchDialog, setFetchDialog] = useState<{ sourceId: string; ability: FetchAbility } | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
@@ -110,6 +113,7 @@ export function Playmat() {
     commanderMove !== null ||
     tokenDialogOpen ||
     zoneViewer !== null ||
+    fetchDialog !== null ||
     arrangeTopOpen ||
     countDialog !== null ||
     peekCount !== null ||
@@ -371,6 +375,7 @@ export function Playmat() {
     const items: MenuItem[] = [];
     const typeLine = typeLineFor(cardId);
     const isTreasure = def?.tokenKind === 'treasure';
+    const fetch = typeLine.includes('Land') ? fetchAbility(def) : null;
     const isSacrificeToken =
       def?.tokenKind === 'treasure' ||
       def?.tokenKind === 'clue' ||
@@ -415,6 +420,16 @@ export function Playmat() {
           onSelect: () => store.moveCard(cardId, 'graveyard'),
           danger: true,
           separator: !isTreasure,
+        });
+      }
+
+      if (fetch) {
+        items.push({
+          key: 'fetch-search',
+          label: 'サーチ(フェッチ)',
+          testId: 'fetch-search',
+          onSelect: () => setFetchDialog({ sourceId: cardId, ability: fetch }),
+          separator: true,
         });
       }
     }
@@ -751,6 +766,19 @@ export function Playmat() {
               setPendingLandTapChoice(null);
             }}
             onCancel={() => setPendingLandTapChoice(null)}
+          />
+        )}
+
+        {fetchDialog && (
+          <FetchSearchDialog
+            state={state}
+            sourceId={fetchDialog.sourceId}
+            ability={fetchDialog.ability}
+            onConfirm={(targetId, opts) => {
+              store.fetchLand(fetchDialog.sourceId, targetId, opts);
+              setFetchDialog(null);
+            }}
+            onClose={() => setFetchDialog(null)}
           />
         )}
 
