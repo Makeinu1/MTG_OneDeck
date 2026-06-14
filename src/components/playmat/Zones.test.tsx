@@ -44,8 +44,7 @@ function prepareStore() {
 }
 
 function renderZones(onOpenViewer = vi.fn(), onOpenLibraryMenu = vi.fn()) {
-  const store = prepareStore();
-  const state = store.state;
+  const { state } = prepareStore();
   if (!state) {
     throw new Error('game state missing during render');
   }
@@ -59,12 +58,8 @@ function renderZones(onOpenViewer = vi.fn(), onOpenLibraryMenu = vi.fn()) {
       <DndContext>
         <Zones
           state={state}
-          store={store}
           onOpenViewer={onOpenViewer}
           onOpenLibraryMenu={onOpenLibraryMenu}
-          onArrangeTop={vi.fn()}
-          onMill={vi.fn()}
-          onPeek={vi.fn()}
           onCardContextMenu={vi.fn()}
           onCommanderContextMenu={vi.fn()}
           onCardDoubleClick={vi.fn()}
@@ -118,29 +113,7 @@ describe('Zones', () => {
     cleanupRender(root, container);
   });
 
-  it('does not add an extra draw during library double-click interactions', () => {
-    const { container, root } = renderZones();
-
-    const libraryZone = container.querySelector('[data-testid="zone-library"]');
-    const drawButton = container.querySelector('[data-testid="library-draw"]');
-    if (!(libraryZone instanceof HTMLDivElement) || !(drawButton instanceof HTMLButtonElement)) {
-      throw new Error('library controls were not rendered');
-    }
-
-    const handBeforeZoneDoubleClick = useGameStore.getState().state!.zones.hand.length;
-    dispatchMouseEvent(libraryZone, 'dblclick');
-    expect(useGameStore.getState().state!.zones.hand.length).toBe(handBeforeZoneDoubleClick);
-
-    dispatchMouseEvent(drawButton, 'click');
-    dispatchMouseEvent(drawButton, 'click');
-    dispatchMouseEvent(drawButton, 'dblclick');
-
-    expect(useGameStore.getState().state!.zones.hand.length).toBe(handBeforeZoneDoubleClick + 2);
-
-    cleanupRender(root, container);
-  });
-
-  it('opens the library menu on context menu without drawing a card', () => {
+  it('opens the library menu from the chip without drawing a card', () => {
     const onOpenLibraryMenu = vi.fn();
     const { container, root } = renderZones(vi.fn(), onOpenLibraryMenu);
 
@@ -150,11 +123,30 @@ describe('Zones', () => {
     }
 
     const handBefore = useGameStore.getState().state!.zones.hand.length;
+    dispatchMouseEvent(libraryZone, 'click');
     act(() => {
       libraryZone.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
     });
 
-    expect(onOpenLibraryMenu).toHaveBeenCalledTimes(1);
+    expect(onOpenLibraryMenu).toHaveBeenCalledTimes(2);
+    expect(useGameStore.getState().state!.zones.hand.length).toBe(handBefore);
+
+    cleanupRender(root, container);
+  });
+
+  it('does not treat library double-click as a draw action', () => {
+    const onOpenLibraryMenu = vi.fn();
+    const { container, root } = renderZones(vi.fn(), onOpenLibraryMenu);
+
+    const libraryZone = container.querySelector('[data-testid="zone-library"]');
+    if (!(libraryZone instanceof HTMLDivElement)) {
+      throw new Error('library zone was not rendered');
+    }
+
+    const handBefore = useGameStore.getState().state!.zones.hand.length;
+    dispatchMouseEvent(libraryZone, 'dblclick');
+
+    expect(onOpenLibraryMenu).not.toHaveBeenCalled();
     expect(useGameStore.getState().state!.zones.hand.length).toBe(handBefore);
 
     cleanupRender(root, container);

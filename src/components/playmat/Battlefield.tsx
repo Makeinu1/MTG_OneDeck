@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import type { ReactNode } from 'react';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
 import { isCommander } from '../../engine/commander';
@@ -13,14 +14,23 @@ export interface BattlefieldProps {
   ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
+  creatureOverlay?: ReactNode;
+  landOverlay?: ReactNode;
 }
 
-/** The battlefield: lands on one row, non-lands on another, both droppable. Both rows fill the
- *  available height and shrink their cards evenly so the playmat never scrolls. */
-export function Battlefield({ state, onCardContextMenu, onCardDoubleClick, hoverPreview }: BattlefieldProps) {
+/** The battlefield: three droppable regions sharing the same battlefield zone. */
+export function Battlefield({
+  state,
+  onCardContextMenu,
+  onCardDoubleClick,
+  hoverPreview,
+  creatureOverlay,
+  landOverlay,
+}: BattlefieldProps) {
   const ids = state.zones.battlefield;
+  const creatures: string[] = [];
   const lands: string[] = [];
-  const nonLands: string[] = [];
+  const nonCreatures: string[] = [];
 
   for (const id of ids) {
     const card = state.cards[id];
@@ -30,45 +40,64 @@ export function Battlefield({ state, onCardContextMenu, onCardDoubleClick, hover
     const typeLine = face?.typeLine ?? def?.typeLine ?? '';
     if (typeLine.includes('Land')) {
       lands.push(id);
+    } else if (typeLine.includes('Creature')) {
+      creatures.push(id);
     } else {
-      nonLands.push(id);
+      nonCreatures.push(id);
     }
   }
 
   return (
     <div className="battlefield" data-testid="zone-battlefield">
-      <BattlefieldRow
-        title="非土地"
-        cardIds={nonLands}
+      <BattlefieldSection
+        title="クリーチャー"
+        variant="creatures"
+        cardIds={creatures}
         state={state}
         onCardContextMenu={onCardContextMenu}
         onCardDoubleClick={onCardDoubleClick}
         hoverPreview={hoverPreview}
-        dropId="battlefield-nonland"
+        dropId="battlefield-creature"
+        overlay={creatureOverlay}
       />
-      <BattlefieldRow
+      <BattlefieldSection
+        title="非クリーチャー"
+        variant="noncreatures"
+        cardIds={nonCreatures}
+        state={state}
+        onCardContextMenu={onCardContextMenu}
+        onCardDoubleClick={onCardDoubleClick}
+        hoverPreview={hoverPreview}
+        dropId="battlefield-noncreature"
+      />
+      <BattlefieldSection
         title="土地"
+        variant="lands"
         cardIds={lands}
         state={state}
         onCardContextMenu={onCardContextMenu}
         onCardDoubleClick={onCardDoubleClick}
         hoverPreview={hoverPreview}
         dropId="battlefield-land"
+        overlay={landOverlay}
       />
     </div>
   );
 }
 
-function BattlefieldRow({
+function BattlefieldSection({
   title,
+  variant,
   cardIds,
   state,
   onCardContextMenu,
   onCardDoubleClick,
   hoverPreview,
   dropId,
+  overlay,
 }: {
   title: string;
+  variant: 'creatures' | 'noncreatures' | 'lands';
   cardIds: string[];
   state: GameState;
   onCardContextMenu: (
@@ -78,12 +107,21 @@ function BattlefieldRow({
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
   dropId: string;
+  overlay?: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dropId, data: { zone: 'battlefield' } });
 
   return (
-    <div ref={setNodeRef} className={`battlefield__row ${isOver ? 'battlefield__row--over' : ''}`}>
-      <span className="battlefield__row-label">{title}</span>
+    <div
+      ref={setNodeRef}
+      className={`battlefield__section battlefield__section--${variant} ${
+        isOver ? 'battlefield__section--over' : ''
+      }`}
+    >
+      <div className="battlefield__section-header">
+        <span className="battlefield__section-label">{title}</span>
+        {overlay && <div className="battlefield__section-overlay">{overlay}</div>}
+      </div>
       <div className="battlefield__cards">
         {cardIds.length === 0 && <div className="battlefield__placeholder" />}
         {cardIds.map((id) => {

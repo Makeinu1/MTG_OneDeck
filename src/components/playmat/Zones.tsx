@@ -1,13 +1,11 @@
 import { useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { GameState, ZoneId } from '../../engine/types';
-import type { useGameStore } from '../../store/gameStore';
 import { CardView } from '../CardView';
 import { commanderTax, isCommander } from '../../engine/commander';
 import { isSummoningSick } from '../../engine/status';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
 
-type Store = ReturnType<typeof useGameStore.getState>;
 const TOUCH_TAP_MAX_DISTANCE_PX = 8;
 const TOUCH_TAP_MAX_DURATION_MS = 220;
 
@@ -19,6 +17,7 @@ function DroppableZoneCard({
   onContextMenu,
   onDoubleClick,
   onTouchTap,
+  onClick,
   children,
 }: {
   zone: ZoneId;
@@ -27,6 +26,7 @@ function DroppableZoneCard({
   onContextMenu?: (e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
   onTouchTap?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${zone}-zone`, data: { zone } });
@@ -36,12 +36,22 @@ function DroppableZoneCard({
     startY: number;
     startedAt: number;
   } | null>(null);
+  const suppressClickRef = useRef(false);
 
   return (
     <div
       ref={setNodeRef}
       className={`zone-card ${className ?? ''} ${isOver ? 'zone-card--over' : ''}`}
       data-testid={testId}
+      onClick={(e) => {
+        if (suppressClickRef.current) {
+          suppressClickRef.current = false;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        onClick?.(e);
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         onContextMenu?.(e);
@@ -73,6 +83,7 @@ function DroppableZoneCard({
           return;
         }
 
+        suppressClickRef.current = true;
         e.preventDefault();
         e.stopPropagation();
         onTouchTap(e);
@@ -81,6 +92,7 @@ function DroppableZoneCard({
         if (touchStartRef.current?.pointerId === e.pointerId) {
           touchStartRef.current = null;
         }
+        suppressClickRef.current = false;
       }}
     >
       {children}
@@ -117,14 +129,10 @@ function ZoneActionButton({
 
 export interface ZonesProps {
   state: GameState;
-  store: Store;
   onOpenViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
   onOpenLibraryMenu: (
     e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
   ) => void;
-  onArrangeTop: () => void;
-  onMill: () => void;
-  onPeek: () => void;
   onCardContextMenu: (
     cardId: string,
     e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
@@ -137,16 +145,11 @@ export interface ZonesProps {
   hoverPreview: HoverPreviewState;
 }
 
-/** Right-hand stack of non-battlefield zones, ordered: command (large, top), library,
- *  graveyard, exile. Right-click opens the action menu; explicit buttons cover mobile actions. */
+/** Right-hand utility zones: commander, library chip, and linked graveyard/exile chips. */
 export function Zones({
   state,
-  store,
   onOpenViewer,
   onOpenLibraryMenu,
-  onArrangeTop,
-  onMill,
-  onPeek,
   onCardContextMenu,
   onCommanderContextMenu,
   onCardDoubleClick,
@@ -159,7 +162,10 @@ export function Zones({
   return (
     <div className="zones">
       <DroppableZoneCard zone="command" className="zone-card--command" testId="zone-command">
-        <span className="zone-card__label">統率領域</span>
+        <div className="zone-card__header">
+          <span className="zone-card__label">統率領域</span>
+          {command.length > 0 && <span className="zone-card__meta">キャスト</span>}
+        </div>
         <div className="zone-card__face zone-card__face--command">
           {command.length === 0 && <span className="zone-card__count">0</span>}
           {command.map((id) => {
@@ -192,109 +198,98 @@ export function Zones({
         </div>
       </DroppableZoneCard>
 
-      <div className="zones__row">
+      <div className="zones__stack">
         <DroppableZoneCard
           zone="library"
           className="zone-card--library"
           testId="zone-library"
           onContextMenu={onOpenLibraryMenu}
           onTouchTap={onOpenLibraryMenu}
+          onClick={onOpenLibraryMenu}
         >
+          <div className="zone-card__header">
+            <span className="zone-card__label">ライブラリ</span>
+            <span className="zone-card__meta">{state.zones.library.length}枚</span>
+          </div>
           <div className="zone-card__face zone-card__face--library">
             <span className="zone-card__count">{state.zones.library.length}</span>
-          </div>
-          <span className="zone-card__label">ライブラリ</span>
-          <div className="zone-card__actions">
-            <ZoneActionButton testId="library-draw" label="引く" onPress={() => store.draw(1)} />
-            <ZoneActionButton
-              testId="library-shuffle"
-              label="シャッフル"
-              onPress={() => store.shuffleLibrary()}
-            />
-            <ZoneActionButton
-              testId="library-view"
-              label="見る"
-              onPress={() => onOpenViewer('library')}
-            />
-            <ZoneActionButton testId="scry" label="上から見る" onPress={onArrangeTop} />
-            <ZoneActionButton testId="peek" label="上を見る" onPress={onPeek} />
-            <ZoneActionButton testId="mill" label="切削" onPress={onMill} />
+            <span className="zone-card__hint">タップで操作メニュー</span>
           </div>
         </DroppableZoneCard>
 
-        <DroppableZoneCard
-          zone="graveyard"
-          className="zone-card--graveyard"
-          testId="zone-graveyard"
-          onDoubleClick={() => onOpenViewer('graveyard')}
-        >
-          <div
-            className="zone-card__face zone-card__face--graveyard"
+        <div className="zones__cemetery">
+          <DroppableZoneCard
+            zone="graveyard"
+            className="zone-card--graveyard"
+            testId="zone-graveyard"
             onClick={() => onOpenViewer('graveyard')}
           >
-            {graveyard.length > 0 ? (
-              <CardView
-                instance={state.cards[graveyard[graveyard.length - 1]]}
-                def={state.defs[state.cards[graveyard[graveyard.length - 1]].defId]}
-                size="small"
-                onContextMenu={(e) => onCardContextMenu(graveyard[graveyard.length - 1], e)}
-                onMouseEnter={(e) => hoverPreview.onMouseEnter(graveyard[graveyard.length - 1], e)}
-                onMouseLeave={hoverPreview.onMouseLeave}
-                onPointerDown={(e) => hoverPreview.onPointerDown(graveyard[graveyard.length - 1], e)}
-                onPointerMove={hoverPreview.onPointerMove}
-                onPointerUp={hoverPreview.onPointerUp}
-                onPointerCancel={hoverPreview.onPointerCancel}
+            <div className="zone-card__header">
+              <span className="zone-card__label">墓地</span>
+              <span className="zone-card__meta">{graveyard.length}枚</span>
+            </div>
+            <div className="zone-card__face zone-card__face--graveyard">
+              {graveyard.length > 0 ? (
+                <CardView
+                  instance={state.cards[graveyard[graveyard.length - 1]]}
+                  def={state.defs[state.cards[graveyard[graveyard.length - 1]].defId]}
+                  size="small"
+                  onContextMenu={(e) => onCardContextMenu(graveyard[graveyard.length - 1], e)}
+                  onMouseEnter={(e) => hoverPreview.onMouseEnter(graveyard[graveyard.length - 1], e)}
+                  onMouseLeave={hoverPreview.onMouseLeave}
+                  onPointerDown={(e) => hoverPreview.onPointerDown(graveyard[graveyard.length - 1], e)}
+                  onPointerMove={hoverPreview.onPointerMove}
+                  onPointerUp={hoverPreview.onPointerUp}
+                  onPointerCancel={hoverPreview.onPointerCancel}
+                />
+              ) : (
+                <span className="zone-card__count">0</span>
+              )}
+            </div>
+            <div className="zone-card__actions zone-card__actions--split">
+              <ZoneActionButton
+                testId="graveyard-view"
+                label="墓地"
+                onPress={() => onOpenViewer('graveyard')}
               />
-            ) : (
-              <span className="zone-card__count">0</span>
-            )}
-          </div>
-          <span className="zone-card__label">墓地 ({graveyard.length})</span>
-          <div className="zone-card__actions">
-            <ZoneActionButton
-              testId="graveyard-view"
-              label="見る"
-              onPress={() => onOpenViewer('graveyard')}
-            />
-          </div>
-        </DroppableZoneCard>
+              <ZoneActionButton
+                testId="exile-view"
+                label="⇄追放"
+                onPress={() => onOpenViewer('exile')}
+              />
+            </div>
+          </DroppableZoneCard>
 
-        <DroppableZoneCard
-          zone="exile"
-          className="zone-card--exile"
-          testId="zone-exile"
-          onDoubleClick={() => onOpenViewer('exile')}
-        >
-          <div
-            className="zone-card__face zone-card__face--exile"
+          <DroppableZoneCard
+            zone="exile"
+            className="zone-card--exile"
+            testId="zone-exile"
             onClick={() => onOpenViewer('exile')}
           >
-            {exile.length > 0 ? (
-              <CardView
-                instance={state.cards[exile[exile.length - 1]]}
-                def={state.defs[state.cards[exile[exile.length - 1]].defId]}
-                size="small"
-                onContextMenu={(e) => onCardContextMenu(exile[exile.length - 1], e)}
-                onMouseEnter={(e) => hoverPreview.onMouseEnter(exile[exile.length - 1], e)}
-                onMouseLeave={hoverPreview.onMouseLeave}
-                onPointerDown={(e) => hoverPreview.onPointerDown(exile[exile.length - 1], e)}
-                onPointerMove={hoverPreview.onPointerMove}
-                onPointerUp={hoverPreview.onPointerUp}
-                onPointerCancel={hoverPreview.onPointerCancel}
-              />
-            ) : (
-              <span className="zone-card__count">0</span>
-            )}
-          </div>
-          <span className="zone-card__label">追放 ({exile.length})</span>
-          <div className="zone-card__actions">
-            <ZoneActionButton
-              testId="exile-view"
-              label="見る"
-              onPress={() => onOpenViewer('exile')}
-            />
-          </div>
-        </DroppableZoneCard>
+            <div className="zone-card__header">
+              <span className="zone-card__label">追放</span>
+              <span className="zone-card__meta">{exile.length}枚</span>
+            </div>
+            <div className="zone-card__face zone-card__face--exile">
+              {exile.length > 0 ? (
+                <CardView
+                  instance={state.cards[exile[exile.length - 1]]}
+                  def={state.defs[state.cards[exile[exile.length - 1]].defId]}
+                  size="small"
+                  onContextMenu={(e) => onCardContextMenu(exile[exile.length - 1], e)}
+                  onMouseEnter={(e) => hoverPreview.onMouseEnter(exile[exile.length - 1], e)}
+                  onMouseLeave={hoverPreview.onMouseLeave}
+                  onPointerDown={(e) => hoverPreview.onPointerDown(exile[exile.length - 1], e)}
+                  onPointerMove={hoverPreview.onPointerMove}
+                  onPointerUp={hoverPreview.onPointerUp}
+                  onPointerCancel={hoverPreview.onPointerCancel}
+                />
+              ) : (
+                <span className="zone-card__count">0</span>
+              )}
+            </div>
+          </DroppableZoneCard>
+        </div>
       </div>
     </div>
   );

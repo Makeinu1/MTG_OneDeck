@@ -8,6 +8,7 @@ export interface MenuItem {
   /** Visual grouping separator rendered above this item. */
   separator?: boolean;
   disabled?: boolean;
+  testId?: string;
 }
 
 export interface ContextMenuProps {
@@ -68,6 +69,7 @@ export function ContextMenu({ x, y, title, items, onClose }: ContextMenuProps) {
               type="button"
               role="menuitem"
               className={item.danger ? 'context-menu__item--danger' : ''}
+              data-testid={item.testId}
               disabled={item.disabled}
               onClick={() => {
                 item.onSelect();

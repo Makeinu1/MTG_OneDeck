@@ -17,12 +17,12 @@ import { ContextMenu, type MenuItem } from '../ContextMenu';
 import type { MenuTarget } from '../types';
 import { CardView } from '../CardView';
 import { CardPreview } from '../CardPreview';
-import { SidePanel } from './SidePanel';
 import { Battlefield } from './Battlefield';
 import { Hand } from './Hand';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
+import { ControlRail, LifeOverlay, ManaOverlay, PhaseOverlay } from './PlaymatHud';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -327,31 +327,37 @@ export function Playmat() {
       {
         key: 'library-draw',
         label: '引く',
+        testId: 'library-draw',
         onSelect: () => store.draw(1),
       },
       {
         key: 'library-shuffle',
         label: 'シャッフル',
+        testId: 'library-shuffle',
         onSelect: () => store.shuffleLibrary(),
       },
       {
         key: 'mill',
         label: '切削',
+        testId: 'mill',
         onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }),
       },
       {
         key: 'scry',
         label: '上から見る',
+        testId: 'scry',
         onSelect: () => setArrangeTopOpen(true),
       },
       {
         key: 'peek',
         label: '上を見る',
+        testId: 'peek',
         onSelect: () => setCountDialog({ kind: 'peek', defaultValue: 3 }),
       },
       {
-        key: 'library-search',
+        key: 'library-view',
         label: 'サーチ',
+        testId: 'library-view',
         onSelect: () => setZoneViewer('library'),
       },
     ];
@@ -584,9 +590,27 @@ export function Playmat() {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="playmat" onClick={closeMenu}>
-        <div className="playmat__sidebar">
-          <SidePanel
+        <div className="playmat__board">
+          <Battlefield
             state={state}
+            onCardContextMenu={handleCardContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            hoverPreview={hoverPreview}
+            creatureOverlay={<PhaseOverlay state={state} />}
+            landOverlay={<ManaOverlay state={state} store={store} />}
+          />
+
+          <Hand
+            state={state}
+            onCardContextMenu={handleCardContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            hoverPreview={hoverPreview}
+            overlay={<LifeOverlay state={state} store={store} />}
+          />
+        </div>
+
+        <div className="playmat__controls">
+          <ControlRail
             store={store}
             onMulligan={() => {
               store.mulligan();
@@ -602,46 +626,18 @@ export function Playmat() {
           />
         </div>
 
-        <div className="playmat__main">
-          <div className="playmat__stage">
-            <Battlefield
-              state={state}
-              onCardContextMenu={handleCardContextMenu}
-              onCardDoubleClick={handleCardDoubleClick}
-              hoverPreview={hoverPreview}
-            />
-          </div>
+        <div className="playmat__utility">
+          <Zones
+            state={state}
+            onOpenViewer={(zone) => setZoneViewer(zone)}
+            onOpenLibraryMenu={openLibraryMenu}
+            onCardContextMenu={handleCardContextMenu}
+            onCommanderContextMenu={handleCommanderContextMenu}
+            onCardDoubleClick={handleCardDoubleClick}
+            hoverPreview={hoverPreview}
+          />
 
-          <div className="playmat__hand">
-            <Hand
-              state={state}
-              onCardContextMenu={handleCardContextMenu}
-              onCardDoubleClick={handleCardDoubleClick}
-              hoverPreview={hoverPreview}
-            />
-          </div>
-        </div>
-
-        <div className="playmat__rail">
-          <div className="playmat__zones">
-            <Zones
-              state={state}
-              store={store}
-              onOpenViewer={(zone) => setZoneViewer(zone)}
-              onOpenLibraryMenu={openLibraryMenu}
-              onArrangeTop={() => setArrangeTopOpen(true)}
-              onMill={() => setCountDialog({ kind: 'mill', defaultValue: 1 })}
-              onPeek={() => setCountDialog({ kind: 'peek', defaultValue: 3 })}
-              onCardContextMenu={handleCardContextMenu}
-              onCommanderContextMenu={handleCommanderContextMenu}
-              onCardDoubleClick={handleCardDoubleClick}
-              hoverPreview={hoverPreview}
-            />
-          </div>
-
-          <div className="playmat__log">
-            <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
-          </div>
+          <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
         </div>
 
         {hoverPreview.target &&

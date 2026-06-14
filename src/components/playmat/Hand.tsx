@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
 import type { HoverPreviewState } from '../../hooks/useHoverPreview';
@@ -12,21 +12,21 @@ export interface HandProps {
   ) => void;
   onCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   hoverPreview: HoverPreviewState;
+  overlay?: ReactNode;
 }
 
 /** The hand row, rendered along the bottom of the playmat. Droppable for D&D.
  *  Cards overlap when there isn't enough room and lift on hover. */
-export function Hand({ state, onCardContextMenu, onCardDoubleClick, hoverPreview }: HandProps) {
+export function Hand({ state, onCardContextMenu, onCardDoubleClick, hoverPreview, overlay }: HandProps) {
   const { setNodeRef, isOver } = useDroppable({ id: 'hand-zone', data: { zone: 'hand' } });
   const ids = state.zones.hand;
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`hand ${isOver ? 'hand--over' : ''}`}
-      data-testid="zone-hand"
-    >
-      <span className="hand__label">手札 ({ids.length})</span>
+    <div ref={setNodeRef} className={`hand ${isOver ? 'hand--over' : ''}`} data-testid="zone-hand">
+      <div className="hand__topbar">
+        <span className="hand__label">手札 ({ids.length})</span>
+        {overlay && <div className="hand__overlay">{overlay}</div>}
+      </div>
       <div className="hand__cards">
         {ids.length === 0 && <div className="hand__placeholder">手札はありません</div>}
         {ids.map((id, index) => {
