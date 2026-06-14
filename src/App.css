@@ -947,8 +947,9 @@
 
 .card-view--battlefield {
   width: 100%;
-  max-width: 108px;
+  height: auto;
   aspect-ratio: 488 / 680;
+  max-height: 100%;
 }
 
 .card-view--battlefield .card-view__face {
@@ -960,6 +961,14 @@
 .card-view--hand .card-view__face {
   width: 122px;
   height: 170px;
+}
+
+.hand__slot .card-view,
+.hand__slot .card-view .card-view__face {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 488 / 680;
+  max-height: 100%;
 }
 
 .card-view--small,
@@ -1270,7 +1279,7 @@
   display: flex;
   align-items: center;
   height: 100%;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: visible;
   padding: 18px 36px 10px;
   justify-content: center;
@@ -1280,11 +1289,14 @@
 .hand__slot {
   position: relative;
   --hand-offset: calc(var(--hand-index) - ((var(--hand-count) - 1) / 2));
-  flex: 0 0 122px;
-  min-width: 64px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 122px;
   display: flex;
   justify-content: center;
-  margin-left: -30px;
+  margin-left: calc(
+    -1 * clamp(8px, calc((var(--hand-count, 1) - 4) * 6px), 64px)
+  );
   transform: rotate(calc(var(--hand-offset) * 2.6deg)) translateY(8px);
   transform-origin: center 132%;
   transition: transform 0.15s ease;
@@ -2436,9 +2448,10 @@
   }
 
   .battlefield__stack {
+    flex: 1 1 0;
     gap: 4px;
     max-width: 78px;
-    min-width: 30px;
+    min-width: 0;
   }
 
   .battlefield__attachment {
@@ -2453,16 +2466,19 @@
 
   .hand__cards {
     padding: 12px 12px 4px;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .hand__slot {
-    flex: 0 0 84px;
-    min-width: 56px;
-    margin-left: -18px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 92px;
+    margin-left: calc(
+      -1 * clamp(10px, calc((var(--hand-count, 1) - 4) * 7px), 68px)
+    );
     transform: rotate(calc(var(--hand-offset) * 2deg)) translateY(4px);
   }
 
@@ -2471,7 +2487,10 @@
   }
 
   .card-view--battlefield {
-    max-width: 78px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 488 / 680;
+    max-height: 100%;
   }
 
   .card-view--hand,
@@ -2786,7 +2805,7 @@
   align-items: flex-start;
   min-height: 0;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   padding: 4px 2px 6px;
 }
@@ -2797,9 +2816,9 @@
 }
 
 .battlefield__stack {
-  flex: 0 0 clamp(72px, 7vw, 108px);
+  flex: 1 1 0;
   max-width: 108px;
-  min-width: 66px;
+  min-width: 0;
   height: 100%;
 }
 
@@ -2838,7 +2857,9 @@
 }
 
 .hand__cards {
-  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: visible;
+  justify-content: center;
   padding: 10px 12px 10px;
 }
 
@@ -3439,8 +3460,9 @@
   }
 
   .battlefield__stack {
-    flex-basis: clamp(56px, 9vw, 78px);
-    min-width: 56px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 78px;
     gap: 4px;
   }
 
@@ -3459,13 +3481,19 @@
   }
 
   .hand__cards {
+    overflow-x: hidden;
+    overflow-y: visible;
+    justify-content: center;
     padding: 6px 8px 4px;
   }
 
   .hand__slot {
-    flex: 0 0 84px;
-    min-width: 56px;
-    margin-left: -18px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 92px;
+    margin-left: calc(
+      -1 * clamp(10px, calc((var(--hand-count, 1) - 4) * 7px), 68px)
+    );
     transform: rotate(calc(var(--hand-offset) * 2deg)) translateY(4px);
   }
 
@@ -3474,7 +3502,10 @@
   }
 
   .card-view--battlefield {
-    max-width: 78px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 488 / 680;
+    max-height: 100%;
   }
 
   .card-view--hand,
