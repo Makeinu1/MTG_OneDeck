@@ -344,20 +344,20 @@ export function MulliganDecisionDialog({
   const mulliganCount = state.mulliganCount;
 
   return (
-    <Modal title="マリガン" width="lg" testId="mulligan-decision-dialog">
+    <Modal title="マリガン" width="xl" testId="mulligan-decision-dialog">
       <p>
-        {mulliganCount === 0
-          ? '初手です。キープするか、7枚引き直すかを選んでください。'
-          : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount} 枚をライブラリの下に戻します。`}
+        {mulliganCount <= 1
+          ? '初手です。キープか7枚引き直しを選んでください。(1回目のマリガンは無料です)'
+          : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount - 1} 枚をライブラリの下に戻します。`}
       </p>
-      <div className="mulligan-grid">
+      <div className="mulligan-grid mulligan-grid--decision">
         {state.zones.hand.map((id) => {
           const card = state.cards[id];
           const def = card ? state.defs[card.defId] : undefined;
           if (!card || !def) return null;
           return (
             <div key={id} className="mulligan-grid__item mulligan-grid__item--static">
-              <CardView instance={card} def={def} size="small" />
+              <CardView instance={card} def={def} size="hand" />
             </div>
           );
         })}

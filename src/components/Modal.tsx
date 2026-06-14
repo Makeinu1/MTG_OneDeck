@@ -5,7 +5,7 @@ export interface ModalProps {
   title: string;
   onClose?: () => void;
   children: ReactNode;
-  width?: 'sm' | 'md' | 'lg';
+  width?: 'sm' | 'md' | 'lg' | 'xl';
   testId?: string;
 }
 

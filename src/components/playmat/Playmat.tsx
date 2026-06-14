@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { useGameStore } from '../../store/gameStore';
+import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
 import type { ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
@@ -22,7 +22,7 @@ import { Hand } from './Hand';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
-import { ControlRail, LifeOverlay, ManaOverlay, PhaseOverlay } from './PlaymatHud';
+import { ControlRail, LifeOverlay, ManaOverlay, MatchControls, PhaseOverlay } from './PlaymatHud';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -630,8 +630,6 @@ export function Playmat() {
             <div className="playmat__controls">
               <ControlRail
                 store={store}
-                onRestart={() => setConfirmAction('restart')}
-                onBackToImport={() => setConfirmAction('back-to-import')}
                 onCreateToken={() => setTokenDialogOpen(true)}
                 onAttack={() => setAttackDialogOpen(true)}
                 onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
@@ -649,6 +647,11 @@ export function Playmat() {
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
             hoverPreview={hoverPreview}
+          />
+          <MatchControls
+            store={store}
+            onRestart={() => setConfirmAction('restart')}
+            onBackToImport={() => setConfirmAction('back-to-import')}
           />
 
           <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
@@ -692,8 +695,11 @@ export function Playmat() {
             onKeep={() => {
               const count = useGameStore.getState().state?.mulliganCount ?? 0;
               store.keepOpeningHand();
-              if (count > 0) {
-                setMulliganBottomCount(count);
+              const bottom = freeMulliganBottomCount(count);
+              if (bottom > 0) {
+                setMulliganBottomCount(bottom);
+              } else {
+                store.beginFirstTurn();
               }
             }}
             onMulligan={() => {
@@ -902,6 +908,7 @@ export function Playmat() {
             onConfirm={(chosen) => {
               store.putBottomForMulligan(chosen);
               setMulliganBottomCount(null);
+              store.beginFirstTurn();
             }}
           />
         )}

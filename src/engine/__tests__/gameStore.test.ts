@@ -20,10 +20,22 @@ describe('GameStore', () => {
     vi.restoreAllMocks();
   });
 
-  it('newGame auto-advances to main1 and draws 8 by default', () => {
+  it('newGame draws 7 and defers auto-advance to the mulligan decision (M4.17)', () => {
     store().newGame(makeDeck(30), 1);
     const s = store().state!;
     expect(s).not.toBeNull();
+    expect(s.phase).toBe('untap');
+    expect(s.zones.hand).toHaveLength(7);
+    expect(s.zones.library).toHaveLength(23);
+    expect(store().mulliganDecisionPending).toBe(true);
+    expect(store().canUndo).toBe(false);
+  });
+
+  it('beginFirstTurn auto-advances to main1 and draws (hand 8) after keep', () => {
+    store().newGame(makeDeck(30), 1);
+    store().keepOpeningHand();
+    store().beginFirstTurn();
+    const s = store().state!;
     expect(s.phase).toBe('main1');
     expect(s.zones.hand).toHaveLength(8);
     expect(s.zones.library).toHaveLength(22);

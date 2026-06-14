@@ -1751,6 +1751,7 @@
 .modal--sm { width: min(380px, 90vw); }
 .modal--md { width: min(560px, 90vw); }
 .modal--lg { width: min(820px, 92vw); }
+.modal--xl { width: min(1100px, 94vw); }
 
 .modal__header {
   display: flex;
@@ -2129,6 +2130,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
   gap: 10px;
+}
+
+.mulligan-grid--decision {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
 }
 
 .mulligan-grid__item {
@@ -2729,7 +2734,7 @@
 
 .playmat__utility {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(118px, auto);
+  grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 10px;
   min-height: 0;
 }
@@ -2737,6 +2742,53 @@
 .playmat__utility .game-log {
   width: 100%;
   min-height: 0;
+}
+
+.match-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(216, 176, 106, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
+    linear-gradient(180deg, rgba(18, 27, 22, 0.96), rgba(12, 18, 15, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 14px 32px rgba(0, 0, 0, 0.22);
+}
+
+.match-controls__button,
+.match-controls__toggle {
+  width: 100%;
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.match-controls__button {
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-controls__toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.match-controls__toggle input {
+  width: 18px;
+  height: 18px;
 }
 
 .battlefield {
@@ -3639,6 +3691,23 @@
   .control-menu {
     width: 198px;
     padding: 8px;
+  }
+
+  .match-controls {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .match-controls__button,
+  .match-controls__toggle {
+    padding: 8px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+
+  .match-controls__toggle input {
+    width: 16px;
+    height: 16px;
   }
 
   .zones,

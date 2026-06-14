@@ -19,30 +19,46 @@ beforeEach(() => {
   useGameStore.setState({ autoAdvanceToMain: true });
 });
 
-describe('newGame first-turn auto-advance (M4.11 #3)', () => {
-  it('auto-advances to main1 (hand 8 = 7 + turn-1 draw) when autoAdvance is on', () => {
+describe('newGame defers first-turn auto-advance to the mulligan keep (M4.11 #3, updated by M4.17)', () => {
+  it('newGame draws 7 and waits on the mulligan decision (no auto-advance)', () => {
     useGameStore.setState({ autoAdvanceToMain: true });
     useGameStore.getState().newGame(deck(40), 1);
     const s = useGameStore.getState().state!;
-    expect(s.phase).toBe('main1');
+    expect(s.phase).toBe('untap');
     expect(s.turn).toBe(1);
-    expect(s.zones.hand.length).toBe(8);
+    expect(s.zones.hand.length).toBe(7);
+    expect(useGameStore.getState().mulliganDecisionPending).toBe(true);
     expect(useGameStore.getState().canUndo).toBe(false);
   });
 
-  it('starts at untap with hand 7 when autoAdvance is off', () => {
+  it('after keep, beginFirstTurn reaches main1 with hand 8 when autoAdvance is on', () => {
+    useGameStore.setState({ autoAdvanceToMain: true });
+    useGameStore.getState().newGame(deck(40), 1);
+    useGameStore.getState().keepOpeningHand();
+    useGameStore.getState().beginFirstTurn();
+    const s = useGameStore.getState().state!;
+    expect(s.phase).toBe('main1');
+    expect(s.zones.hand.length).toBe(8);
+  });
+
+  it('stays at untap with hand 7 when autoAdvance is off', () => {
     useGameStore.setState({ autoAdvanceToMain: false });
     useGameStore.getState().newGame(deck(40), 1);
+    useGameStore.getState().keepOpeningHand();
+    useGameStore.getState().beginFirstTurn();
     const s = useGameStore.getState().state!;
     expect(s.phase).toBe('untap');
     expect(s.zones.hand.length).toBe(7);
   });
 
-  it('restart inherits the auto-advance behavior', () => {
+  it('restart re-arms the mulligan decision', () => {
     useGameStore.setState({ autoAdvanceToMain: true });
     useGameStore.getState().newGame(deck(40), 1);
+    useGameStore.getState().keepOpeningHand();
+    useGameStore.getState().beginFirstTurn();
     useGameStore.getState().restart();
-    expect(useGameStore.getState().state!.phase).toBe('main1');
+    expect(useGameStore.getState().mulliganDecisionPending).toBe(true);
+    expect(useGameStore.getState().state!.phase).toBe('untap');
   });
 });
 

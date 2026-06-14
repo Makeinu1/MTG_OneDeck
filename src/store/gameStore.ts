@@ -28,6 +28,7 @@ export interface GameStore {
   newGame(cards: InitDeckCard[], seed?: number): void;
   restart(): void;
   mulligan(): void;
+  beginFirstTurn(): void;
   keepOpeningHand(): void;
   putBottomForMulligan(cardIds: string[]): void;
   setAutoAdvance(on: boolean): void;
@@ -162,6 +163,10 @@ function untapToMainCommands(): GameCommand[] {
   ];
 }
 
+export function freeMulliganBottomCount(mulliganCount: number): number {
+  return Math.max(0, mulliganCount - 1);
+}
+
 export const useGameStore = create<GameStore>((set, get) => {
   // History stacks live in the closure (not part of the public store shape).
   const internal: InternalState = {
@@ -244,14 +249,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       const base = initGame(cards, usedSeed);
       // Build the initial board state as a single non-undoable setup step.
       const openingHand = applyCommand(base, { type: 'draw', count: 7 });
-      const advanced = get().autoAdvanceToMain
-        ? applySequence(openingHand.state, untapToMainCommands())
-        : null;
       set({
-        state: advanced?.state ?? openingHand.state,
-        warnings: advanced
-          ? openingHand.warnings.concat(advanced.warnings)
-          : openingHand.warnings,
+        state: openingHand.state,
+        warnings: openingHand.warnings,
         canUndo: false,
         canRedo: false,
         mulliganDecisionPending: true,
@@ -276,6 +276,25 @@ export const useGameStore = create<GameStore>((set, get) => {
           { type: 'draw', count: 7 },
         ]);
         commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    beginFirstTurn() {
+      const cur = get().state;
+      if (!cur || !get().autoAdvanceToMain) return;
+
+      try {
+        const result = applySequence(cur, untapToMainCommands());
+        internal.past = [];
+        internal.future = [];
+        set({
+          state: result.state,
+          warnings: result.warnings,
+          canUndo: false,
+          canRedo: false,
+        });
       } catch (err) {
         console.error(err);
       }

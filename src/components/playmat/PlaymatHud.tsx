@@ -434,8 +434,6 @@ export function LifeOverlay({
 
 export interface ControlRailProps {
   store: Store;
-  onRestart: () => void;
-  onBackToImport: () => void;
   onCreateToken: () => void;
   onAttack: () => void;
   onDiscardRandom: () => void;
@@ -443,13 +441,11 @@ export interface ControlRailProps {
 
 export function ControlRail({
   store,
-  onRestart,
-  onBackToImport,
   onCreateToken,
   onAttack,
   onDiscardRandom,
 }: ControlRailProps) {
-  const [openMenu, setOpenMenu] = useState<'actions' | 'match' | null>(null);
+  const [openMenu, setOpenMenu] = useState<'actions' | null>(null);
   const ref = useDismissibleLayer<HTMLDivElement>(openMenu !== null, () => setOpenMenu(null));
 
   return (
@@ -489,12 +485,6 @@ export function ControlRail({
           label="その他の操作"
           active={openMenu === 'actions'}
           onClick={() => setOpenMenu((menu) => (menu === 'actions' ? null : 'actions'))}
-        />
-        <ControlButton
-          icon="ti-menu-2"
-          label="試合管理"
-          active={openMenu === 'match'}
-          onClick={() => setOpenMenu((menu) => (menu === 'match' ? null : 'match'))}
         />
       </div>
 
@@ -538,39 +528,46 @@ export function ControlRail({
           />
         </div>
       )}
+    </div>
+  );
+}
 
-      {openMenu === 'match' && (
-        <div className="control-menu control-menu--match">
-          <MenuButton
-            icon="ti-rotate-clockwise"
-            label="最初からやり直す"
-            testId="restart-game"
-            onClick={() => {
-              setOpenMenu(null);
-              onRestart();
-            }}
-          />
-          <MenuButton
-            icon="ti-arrow-back-up-double"
-            label="デッキ選択に戻る"
-            testId="back-to-import"
-            onClick={() => {
-              setOpenMenu(null);
-              onBackToImport();
-            }}
-          />
-          <label className="control-menu__toggle">
-            <span className="ti ti-route-alt-left" aria-hidden="true" />
-            <span>自動進行(メイン1まで)</span>
-            <input
-              type="checkbox"
-              data-testid="auto-advance-toggle"
-              checked={store.autoAdvanceToMain}
-              onChange={(event) => store.setAutoAdvance(event.target.checked)}
-            />
-          </label>
-        </div>
-      )}
+export function MatchControls({
+  store,
+  onRestart,
+  onBackToImport,
+}: {
+  store: Store;
+  onRestart: () => void;
+  onBackToImport: () => void;
+}) {
+  return (
+    <div className="match-controls" data-testid="match-controls">
+      <button
+        type="button"
+        className="match-controls__button"
+        data-testid="restart-game"
+        onClick={onRestart}
+      >
+        最初からやり直す
+      </button>
+      <button
+        type="button"
+        className="match-controls__button"
+        data-testid="back-to-import"
+        onClick={onBackToImport}
+      >
+        デッキ選択に戻る
+      </button>
+      <label className="match-controls__toggle">
+        <span>自動進行(メイン1まで)</span>
+        <input
+          type="checkbox"
+          data-testid="auto-advance-toggle"
+          checked={store.autoAdvanceToMain}
+          onChange={(event) => store.setAutoAdvance(event.target.checked)}
+        />
+      </label>
     </div>
   );
 }
