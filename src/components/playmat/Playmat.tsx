@@ -35,6 +35,7 @@ import {
   XCostDialog,
   ZoneViewerDialog,
   MulliganBottomDialog,
+  MulliganDecisionDialog,
   ConfirmDialog,
   FetchSearchDialog,
 } from './dialogs';
@@ -74,7 +75,7 @@ function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameSto
 /** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
 export function Playmat() {
   const store = useGameStore();
-  const { state, warnings } = store;
+  const { state, warnings, mulliganDecisionPending } = store;
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [libraryMenu, setLibraryMenu] = useState<{ x: number; y: number } | null>(null);
@@ -105,6 +106,7 @@ export function Playmat() {
   );
 
   const isDialogOpen =
+    mulliganDecisionPending ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
@@ -126,6 +128,7 @@ export function Playmat() {
     onNextTurn: () => store.nextTurn(),
     onUndo: () => store.undo(),
     onRedo: () => store.redo(),
+    onRestart: () => setConfirmAction('restart'),
     onDraw: () => store.draw(1),
     isDialogOpen,
   });
@@ -615,30 +618,26 @@ export function Playmat() {
             landOverlay={<ManaOverlay state={state} store={store} />}
           />
 
-          <Hand
-            state={state}
-            onCardContextMenu={handleCardContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
-            overlay={<LifeOverlay state={state} store={store} />}
-          />
-        </div>
+          <div className="playmat__handrow">
+            <Hand
+              state={state}
+              onCardContextMenu={handleCardContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+              overlay={<LifeOverlay state={state} store={store} />}
+            />
 
-        <div className="playmat__controls">
-          <ControlRail
-            store={store}
-            onMulligan={() => {
-              store.mulligan();
-              const nextState = useGameStore.getState().state;
-              const bottomCount = Math.max(0, (nextState?.mulliganCount ?? 0) - 1);
-              setMulliganBottomCount(bottomCount > 0 ? bottomCount : null);
-            }}
-            onRestart={() => setConfirmAction('restart')}
-            onBackToImport={() => setConfirmAction('back-to-import')}
-            onCreateToken={() => setTokenDialogOpen(true)}
-            onAttack={() => setAttackDialogOpen(true)}
-            onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
-          />
+            <div className="playmat__controls">
+              <ControlRail
+                store={store}
+                onRestart={() => setConfirmAction('restart')}
+                onBackToImport={() => setConfirmAction('back-to-import')}
+                onCreateToken={() => setTokenDialogOpen(true)}
+                onAttack={() => setAttackDialogOpen(true)}
+                onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="playmat__utility">
@@ -684,6 +683,22 @@ export function Playmat() {
             title="ライブラリ"
             items={buildLibraryMenuItems()}
             onClose={closeMenu}
+          />
+        )}
+
+        {mulliganDecisionPending && (
+          <MulliganDecisionDialog
+            state={state}
+            onKeep={() => {
+              const count = useGameStore.getState().state?.mulliganCount ?? 0;
+              store.keepOpeningHand();
+              if (count > 0) {
+                setMulliganBottomCount(count);
+              }
+            }}
+            onMulligan={() => {
+              store.mulligan();
+            }}
           />
         )}
 
@@ -911,7 +926,13 @@ export function Playmat() {
             message="このゲームを終了し、デッキ選択画面に戻ります。現在の進行状況は失われます。よろしいですか?"
             confirmLabel="デッキ選択に戻る"
             onConfirm={() => {
-              useGameStore.setState({ state: null, warnings: [], canUndo: false, canRedo: false });
+              useGameStore.setState({
+                state: null,
+                warnings: [],
+                canUndo: false,
+                canRedo: false,
+                mulliganDecisionPending: false,
+              });
               setConfirmAction(null);
             }}
             onCancel={() => setConfirmAction(null)}

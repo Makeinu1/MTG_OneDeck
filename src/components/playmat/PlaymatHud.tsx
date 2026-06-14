@@ -434,7 +434,6 @@ export function LifeOverlay({
 
 export interface ControlRailProps {
   store: Store;
-  onMulligan: () => void;
   onRestart: () => void;
   onBackToImport: () => void;
   onCreateToken: () => void;
@@ -444,7 +443,6 @@ export interface ControlRailProps {
 
 export function ControlRail({
   store,
-  onMulligan,
   onRestart,
   onBackToImport,
   onCreateToken,
@@ -559,15 +557,6 @@ export function ControlRail({
             onClick={() => {
               setOpenMenu(null);
               onBackToImport();
-            }}
-          />
-          <MenuButton
-            icon="ti-refresh"
-            label="マリガン"
-            testId="mulligan"
-            onClick={() => {
-              setOpenMenu(null);
-              onMulligan();
             }}
           />
           <label className="control-menu__toggle">

@@ -332,6 +332,53 @@ export function AttackDialog({
   );
 }
 
+export function MulliganDecisionDialog({
+  state,
+  onKeep,
+  onMulligan,
+}: {
+  state: GameState;
+  onKeep: () => void;
+  onMulligan: () => void;
+}) {
+  const mulliganCount = state.mulliganCount;
+
+  return (
+    <Modal title="マリガン" width="lg" testId="mulligan-decision-dialog">
+      <p>
+        {mulliganCount === 0
+          ? '初手です。キープするか、7枚引き直すかを選んでください。'
+          : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount} 枚をライブラリの下に戻します。`}
+      </p>
+      <div className="mulligan-grid">
+        {state.zones.hand.map((id) => {
+          const card = state.cards[id];
+          const def = card ? state.defs[card.defId] : undefined;
+          if (!card || !def) return null;
+          return (
+            <div key={id} className="mulligan-grid__item mulligan-grid__item--static">
+              <CardView instance={card} def={def} size="small" />
+            </div>
+          );
+        })}
+      </div>
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onKeep} data-testid="mulligan-keep">
+          キープ
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={onMulligan}
+          data-testid="mulligan-again"
+        >
+          マリガン({mulliganCount + 1}回目)
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 /** Generic yes/no confirmation dialog (e.g. restart, return to deck selection). */
 export function ConfirmDialog({
   title,

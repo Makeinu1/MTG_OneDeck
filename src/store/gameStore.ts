@@ -23,10 +23,12 @@ export interface GameStore {
   canUndo: boolean;
   canRedo: boolean;
   autoAdvanceToMain: boolean;
+  mulliganDecisionPending: boolean;
 
   newGame(cards: InitDeckCard[], seed?: number): void;
   restart(): void;
   mulligan(): void;
+  keepOpeningHand(): void;
   putBottomForMulligan(cardIds: string[]): void;
   setAutoAdvance(on: boolean): void;
   addOpponent(label: string): void;
@@ -230,6 +232,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     canUndo: false,
     canRedo: false,
     autoAdvanceToMain: true,
+    mulliganDecisionPending: false,
 
     newGame(cards, seed) {
       const usedSeed = seed ?? randomSeed();
@@ -251,6 +254,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           : openingHand.warnings,
         canUndo: false,
         canRedo: false,
+        mulliganDecisionPending: true,
       });
     },
 
@@ -275,6 +279,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       } catch (err) {
         console.error(err);
       }
+    },
+
+    keepOpeningHand() {
+      set({ mulliganDecisionPending: false });
     },
 
     putBottomForMulligan(cardIds) {

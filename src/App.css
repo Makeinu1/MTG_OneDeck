@@ -2148,6 +2148,10 @@
   background: var(--gold-dim);
 }
 
+.mulligan-grid__item--static {
+  cursor: default;
+}
+
 .mulligan-grid__check {
   font-size: 10px;
   font-weight: 700;
@@ -2677,9 +2681,9 @@
 
 .playmat {
   --playmat-utility-width: clamp(220px, 22vw, 300px);
-  --playmat-control-width: 60px;
+  --playmat-control-rail-width: 60px;
   --playmat-hand-row: clamp(196px, 25vh, 236px);
-  grid-template-columns: minmax(0, 1fr) var(--playmat-control-width) var(--playmat-utility-width);
+  grid-template-columns: minmax(0, 1fr) var(--playmat-utility-width);
   gap: 10px;
   padding-top: max(10px, env(safe-area-inset-top));
   padding-right: max(10px, env(safe-area-inset-right));
@@ -2688,6 +2692,7 @@
 }
 
 .playmat__board,
+.playmat__handrow,
 .playmat__controls,
 .playmat__utility {
   min-width: 0;
@@ -2701,9 +2706,24 @@
   min-height: 0;
 }
 
+.playmat__handrow {
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+}
+
+.playmat__handrow > .hand {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
 .playmat__controls {
   display: flex;
   align-items: stretch;
+  justify-content: flex-end;
+  flex: 0 0 var(--playmat-control-rail-width);
+  width: var(--playmat-control-rail-width);
   min-height: 0;
 }
 
@@ -3386,7 +3406,7 @@
     min-height: 100vh;
     min-height: 100dvh;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     overflow: visible;
   }
 
@@ -3394,12 +3414,17 @@
     grid-template-rows: minmax(320px, 44vh) auto;
   }
 
+  .playmat__handrow {
+    flex-direction: column;
+  }
+
   .playmat__controls {
-    order: 2;
+    width: 100%;
+    flex-basis: auto;
   }
 
   .playmat__utility {
-    order: 3;
+    order: 2;
   }
 
   .control-rail,
@@ -3423,7 +3448,7 @@
 @media (orientation: landscape) and (max-height: 480px) {
   .playmat {
     --playmat-utility-width: clamp(182px, 28vw, 220px);
-    --playmat-control-width: 50px;
+    --playmat-control-rail-width: 50px;
     --playmat-hand-row: clamp(136px, 34vh, 168px);
     gap: 8px;
     padding-top: max(6px, env(safe-area-inset-top));
@@ -3434,6 +3459,10 @@
 
   .playmat__board,
   .playmat__utility {
+    gap: 8px;
+  }
+
+  .playmat__handrow {
     gap: 8px;
   }
 
