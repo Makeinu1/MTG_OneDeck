@@ -100,33 +100,6 @@ function DroppableZoneCard({
   );
 }
 
-function ZoneActionButton({
-  testId,
-  label,
-  onPress,
-}: {
-  testId: string;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="btn btn--ghost btn--sm"
-      data-testid={testId}
-      onClick={(e) => {
-        e.stopPropagation();
-        onPress();
-      }}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
 export interface ZonesProps {
   state: GameState;
   onOpenViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
@@ -245,18 +218,6 @@ export function Zones({
               ) : (
                 <span className="zone-card__count">0</span>
               )}
-            </div>
-            <div className="zone-card__actions zone-card__actions--split">
-              <ZoneActionButton
-                testId="graveyard-view"
-                label="墓地"
-                onPress={() => onOpenViewer('graveyard')}
-              />
-              <ZoneActionButton
-                testId="exile-view"
-                label="⇄追放"
-                onPress={() => onOpenViewer('exile')}
-              />
             </div>
           </DroppableZoneCard>
 

@@ -22,7 +22,7 @@ import { Hand } from './Hand';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
-import { ControlRail, LifeOverlay, ManaOverlay, MatchControls, PhaseOverlay } from './PlaymatHud';
+import { ControlRail, LifeOverlay, ManaOverlay, MatchControls, OtherActions, PhaseOverlay } from './PlaymatHud';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -350,9 +350,9 @@ export function Playmat() {
         onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }),
       },
       {
-        key: 'scry',
-        label: '上から見る',
-        testId: 'scry',
+        key: 'scry-surveil',
+        label: '占術 / 諜報',
+        testId: 'scry-surveil',
         onSelect: () => setArrangeTopOpen(true),
       },
       {
@@ -628,12 +628,7 @@ export function Playmat() {
             />
 
             <div className="playmat__controls">
-              <ControlRail
-                store={store}
-                onCreateToken={() => setTokenDialogOpen(true)}
-                onAttack={() => setAttackDialogOpen(true)}
-                onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
-              />
+              <ControlRail store={store} />
             </div>
           </div>
         </div>
@@ -647,6 +642,12 @@ export function Playmat() {
             onCommanderContextMenu={handleCommanderContextMenu}
             onCardDoubleClick={handleCardDoubleClick}
             hoverPreview={hoverPreview}
+          />
+          <OtherActions
+            store={store}
+            onCreateToken={() => setTokenDialogOpen(true)}
+            onAttack={() => setAttackDialogOpen(true)}
+            onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
           />
           <MatchControls
             store={store}

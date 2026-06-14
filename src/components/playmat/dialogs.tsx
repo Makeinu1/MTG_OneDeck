@@ -624,6 +624,7 @@ export function TokenCreateDialog({
 }
 
 type ArrangeBucket = 'top' | 'bottom' | 'graveyard';
+type ArrangeMode = 'scry' | 'surveil';
 
 function cardDisplayName(state: GameState, cardId: string): string {
   const card = state.cards[cardId];
@@ -657,6 +658,7 @@ export function ArrangeTopDialog({
   const libraryCount = state.zones.library.length;
   const initialCount = Math.min(3, libraryCount);
   const [count, setCount] = useState(initialCount);
+  const [mode, setMode] = useState<ArrangeMode>('scry');
   const [topOrder, setTopOrder] = useState<string[]>(state.zones.library.slice(0, initialCount));
   const [toBottom, setToBottom] = useState<string[]>([]);
   const [toGraveyard, setToGraveyard] = useState<string[]>([]);
@@ -668,6 +670,14 @@ export function ArrangeTopDialog({
     setTopOrder(nextIds);
     setToBottom([]);
     setToGraveyard([]);
+  }
+
+  function changeMode(nextMode: ArrangeMode): void {
+    if (nextMode === mode) {
+      return;
+    }
+    setMode(nextMode);
+    resetForCount(count);
   }
 
   function moveCardTo(cardId: string, bucket: ArrangeBucket): void {
@@ -700,9 +710,20 @@ export function ArrangeTopDialog({
     }
   }
 
+  const moveTargets: Array<{ bucket: ArrangeBucket; label: string }> =
+    mode === 'scry'
+      ? [
+          { bucket: 'top', label: '上' },
+          { bucket: 'bottom', label: '下' },
+        ]
+      : [
+          { bucket: 'top', label: '上' },
+          { bucket: 'graveyard', label: '墓地' },
+        ];
+
   function renderBucket(title: string, bucket: ArrangeBucket, ids: string[]): ReactNode {
     return (
-      <div className="arrange-top__bucket">
+      <div key={bucket} className="arrange-top__bucket">
         <h4>{title}</h4>
         {ids.length === 0 ? (
           <p className="zone-viewer__empty">カードはありません。</p>
@@ -718,23 +739,16 @@ export function ArrangeTopDialog({
                 <div className="arrange-top__meta">
                   <strong>{cardDisplayName(state, cardId)}</strong>
                   <div className="arrange-top__actions">
-                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveCardTo(cardId, 'top')}>
-                      上
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => moveCardTo(cardId, 'bottom')}
-                    >
-                      下
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => moveCardTo(cardId, 'graveyard')}
-                    >
-                      墓地
-                    </button>
+                    {moveTargets.map((target) => (
+                      <button
+                        key={target.bucket}
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => moveCardTo(cardId, target.bucket)}
+                      >
+                        {target.label}
+                      </button>
+                    ))}
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm"
@@ -761,27 +775,59 @@ export function ArrangeTopDialog({
     );
   }
 
+  const visibleBuckets =
+    mode === 'scry'
+      ? [
+          { title: '上', bucket: 'top' as const, ids: topOrder },
+          { title: '下', bucket: 'bottom' as const, ids: toBottom },
+        ]
+      : [
+          { title: '上', bucket: 'top' as const, ids: topOrder },
+          { title: '墓地', bucket: 'graveyard' as const, ids: toGraveyard },
+        ];
+
   return (
-    <Modal title="上から見る" onClose={onCancel} width="lg" testId="arrange-top-dialog">
+    <Modal
+      title={`${mode === 'scry' ? '占術' : '諜報'} ${count}`}
+      onClose={onCancel}
+      width="lg"
+      testId="arrange-top-dialog"
+    >
       {libraryCount === 0 ? (
         <p className="zone-viewer__empty">ライブラリが空です。</p>
       ) : (
         <>
-          <label className="dialog__field">
-            枚数
-            <input
-              type="number"
-              min={1}
-              max={libraryCount}
-              value={count}
-              onChange={(e) => resetForCount(Number.parseInt(e.target.value, 10) || 0)}
-              data-testid="scry-count"
-            />
-          </label>
+          <div className="arrange-top__toolbar">
+            <div className="arrange-top__mode" data-testid="scry-surveil-mode">
+              <button
+                type="button"
+                className={`arrange-top__mode-button ${mode === 'scry' ? 'arrange-top__mode-button--active' : ''}`}
+                onClick={() => changeMode('scry')}
+              >
+                占術
+              </button>
+              <button
+                type="button"
+                className={`arrange-top__mode-button ${mode === 'surveil' ? 'arrange-top__mode-button--active' : ''}`}
+                onClick={() => changeMode('surveil')}
+              >
+                諜報
+              </button>
+            </div>
+            <label className="dialog__field arrange-top__count">
+              枚数
+              <input
+                type="number"
+                min={1}
+                max={libraryCount}
+                value={count}
+                onChange={(e) => resetForCount(Number.parseInt(e.target.value, 10) || 0)}
+                data-testid="scry-count"
+              />
+            </label>
+          </div>
           <div className="arrange-top__grid">
-            {renderBucket('上', 'top', topOrder)}
-            {renderBucket('下', 'bottom', toBottom)}
-            {renderBucket('墓地', 'graveyard', toGraveyard)}
+            {visibleBuckets.map((bucket) => renderBucket(bucket.title, bucket.bucket, bucket.ids))}
           </div>
         </>
       )}
@@ -792,7 +838,9 @@ export function ArrangeTopDialog({
         <button
           type="button"
           className="btn btn--accent"
-          onClick={() => onConfirm(topOrder, toBottom, toGraveyard)}
+          onClick={() =>
+            onConfirm(topOrder, mode === 'scry' ? toBottom : [], mode === 'surveil' ? toGraveyard : [])
+          }
           disabled={libraryCount === 0}
           data-testid="scry-confirm"
         >

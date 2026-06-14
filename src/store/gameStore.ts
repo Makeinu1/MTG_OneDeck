@@ -77,6 +77,9 @@ export interface GameStore {
       tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
     }
   ): void;
+  announce(message: string): void;
+  rollDie(sides: number): void;
+  flipCoin(): void;
   clearWarnings(): void;
   cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
   fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
@@ -115,6 +118,34 @@ function splitRulesText(text: string): string[] {
     .filter((part) => part !== '');
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
+function normalizeDigits(text: string): string {
+  return text.replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - 0xff10));
+}
+
+function parseAmountToken(token: string): number | null {
+  const normalized = normalizeDigits(token).toLowerCase();
+  if (NUMBER_WORDS[normalized] !== undefined) {
+    return NUMBER_WORDS[normalized];
+  }
+  if (/^\d+$/.test(normalized)) {
+    return Number.parseInt(normalized, 10);
+  }
+  return null;
+}
+
 function manaProductionAmount(def: CardDef | undefined, color: ManaColor): number {
   for (const text of cardTexts(def)) {
     for (const clause of splitRulesText(text)) {
@@ -125,6 +156,26 @@ function manaProductionAmount(def: CardDef | undefined, color: ManaColor): numbe
       const matches = clause.match(new RegExp(`\\{${color}\\}`, 'gi'));
       if (matches && matches.length > 0) {
         return matches.length;
+      }
+
+      const englishAmount = clause.match(
+        /add\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+mana\s+of\s+any/i
+      );
+      if (englishAmount) {
+        const parsed = parseAmountToken(englishAmount[1]);
+        if (parsed !== null) {
+          return parsed;
+        }
+      }
+
+      const japaneseAmount = clause.match(
+        /(?:好きな色|いずれか(?:の)?[0-9０-９]?色|あなたが選んだ色)[^。]*?マナ\s*([0-9０-９]+)\s*点/
+      );
+      if (japaneseAmount) {
+        const parsed = parseAmountToken(japaneseAmount[1]);
+        if (parsed !== null) {
+          return parsed;
+        }
       }
     }
   }
@@ -627,6 +678,19 @@ export const useGameStore = create<GameStore>((set, get) => {
         producedMana: opts?.producedMana,
         tokenKind: opts?.tokenKind,
       });
+    },
+
+    announce(message) {
+      set({ warnings: [...get().warnings, message] });
+    },
+
+    rollDie(sides) {
+      const result = Math.floor(Math.random() * sides) + 1;
+      get().announce(`🎲 d${sides} → ${result}`);
+    },
+
+    flipCoin() {
+      get().announce(Math.random() < 0.5 ? '🪙 コイン → 表' : '🪙 コイン → 裏');
     },
 
     clearWarnings() {

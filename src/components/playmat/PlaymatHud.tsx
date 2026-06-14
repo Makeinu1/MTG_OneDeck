@@ -160,16 +160,18 @@ function MenuButton({
   label,
   testId,
   onClick,
+  className,
 }: {
   icon: string;
   label: string;
   testId?: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
       type="button"
-      className="control-menu__button"
+      className={className ? `control-menu__button ${className}` : 'control-menu__button'}
       data-testid={testId}
       onClick={(event) => {
         event.stopPropagation();
@@ -434,22 +436,11 @@ export function LifeOverlay({
 
 export interface ControlRailProps {
   store: Store;
-  onCreateToken: () => void;
-  onAttack: () => void;
-  onDiscardRandom: () => void;
 }
 
-export function ControlRail({
-  store,
-  onCreateToken,
-  onAttack,
-  onDiscardRandom,
-}: ControlRailProps) {
-  const [openMenu, setOpenMenu] = useState<'actions' | null>(null);
-  const ref = useDismissibleLayer<HTMLDivElement>(openMenu !== null, () => setOpenMenu(null));
-
+export function ControlRail({ store }: ControlRailProps) {
   return (
-    <div className="control-rail" ref={ref} onClick={(event) => event.stopPropagation()}>
+    <div className="control-rail" onClick={(event) => event.stopPropagation()}>
       <div className="control-rail__primary">
         <ControlButton
           icon="ti-player-play-filled"
@@ -478,53 +469,99 @@ export function ControlRail({
           onClick={() => store.redo()}
         />
       </div>
+    </div>
+  );
+}
 
-      <div className="control-rail__toggles">
-        <ControlButton
-          icon="ti-dots"
-          label="その他の操作"
-          active={openMenu === 'actions'}
-          onClick={() => setOpenMenu((menu) => (menu === 'actions' ? null : 'actions'))}
-        />
-      </div>
+export interface OtherActionsProps {
+  store: Store;
+  onCreateToken: () => void;
+  onAttack: () => void;
+  onDiscardRandom: () => void;
+}
 
-      {openMenu === 'actions' && (
-        <div className="control-menu control-menu--actions">
+export function OtherActions({
+  store,
+  onCreateToken,
+  onAttack,
+  onDiscardRandom,
+}: OtherActionsProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useDismissibleLayer<HTMLDivElement>(open, () => setOpen(false));
+
+  function run(action: () => void): void {
+    setOpen(false);
+    action();
+  }
+
+  return (
+    <div className="other-actions" ref={ref} onClick={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        className="match-controls__button other-actions__toggle"
+        data-testid="other-actions"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="other-actions__toggle-label">
+          <span className="ti ti-dots" aria-hidden="true" />
+          <span>その他の操作</span>
+        </span>
+        <span className="other-actions__chevron" aria-hidden="true">
+          {open ? '▴' : '▾'}
+        </span>
+      </button>
+
+      {open && (
+        <div className="other-actions__menu">
           <MenuButton
             icon="ti-swords"
             label="攻撃"
             testId="attack-button"
-            onClick={() => {
-              setOpenMenu(null);
-              onAttack();
-            }}
+            className="other-actions__button"
+            onClick={() => run(onAttack)}
           />
           <MenuButton
             icon="ti-cards"
             label="トークン生成"
             testId="create-token"
-            onClick={() => {
-              setOpenMenu(null);
-              onCreateToken();
-            }}
+            className="other-actions__button"
+            onClick={() => run(onCreateToken)}
           />
           <MenuButton
             icon="ti-tilt-shift"
             label="全アンタップ"
             testId="untap-all"
-            onClick={() => {
-              setOpenMenu(null);
-              store.untapAllPermanents();
-            }}
+            className="other-actions__button"
+            onClick={() => run(() => store.untapAllPermanents())}
+          />
+          <MenuButton
+            icon="ti-arrow-back-up-double"
+            label="ランダムに捨てる"
+            testId="discard-random"
+            className="other-actions__button"
+            onClick={() => run(onDiscardRandom)}
           />
           <MenuButton
             icon="ti-dice-5"
-            label="ランダムに捨てる"
-            testId="discard-random"
-            onClick={() => {
-              setOpenMenu(null);
-              onDiscardRandom();
-            }}
+            label="6面ダイス"
+            testId="roll-d6"
+            className="other-actions__button"
+            onClick={() => run(() => store.rollDie(6))}
+          />
+          <MenuButton
+            icon="ti-dice-5"
+            label="20面ダイス"
+            testId="roll-d20"
+            className="other-actions__button"
+            onClick={() => run(() => store.rollDie(20))}
+          />
+          <MenuButton
+            icon="ti-coin"
+            label="コイン投げ"
+            testId="coin-flip"
+            className="other-actions__button"
+            onClick={() => run(() => store.flipCoin())}
           />
         </div>
       )}

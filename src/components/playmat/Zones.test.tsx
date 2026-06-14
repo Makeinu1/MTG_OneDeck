@@ -94,19 +94,18 @@ describe('Zones', () => {
     document.body.innerHTML = '';
   });
 
-  it('shows explicit view buttons for graveyard and exile', () => {
+  it('opens graveyard and exile viewers from the zone chips', () => {
     const onOpenViewer = vi.fn();
     const { container, root } = renderZones(onOpenViewer);
 
-    const graveyardView = container.querySelector('[data-testid="graveyard-view"]');
-    const exileView = container.querySelector('[data-testid="exile-view"]');
-    if (!(graveyardView instanceof HTMLButtonElement) || !(exileView instanceof HTMLButtonElement)) {
-      throw new Error('zone view buttons were not rendered');
+    const graveyardZone = container.querySelector('[data-testid="zone-graveyard"]');
+    const exileZone = container.querySelector('[data-testid="zone-exile"]');
+    if (!(graveyardZone instanceof HTMLDivElement) || !(exileZone instanceof HTMLDivElement)) {
+      throw new Error('zone chips were not rendered');
     }
 
-    dispatchMouseEvent(graveyardView, 'click');
-    dispatchMouseEvent(exileView, 'click');
-    dispatchMouseEvent(graveyardView, 'dblclick');
+    dispatchMouseEvent(graveyardZone, 'click');
+    dispatchMouseEvent(exileZone, 'click');
 
     expect(onOpenViewer.mock.calls).toEqual([['graveyard'], ['exile']]);
 
