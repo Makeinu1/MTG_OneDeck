@@ -3601,7 +3601,7 @@
 
 @media (orientation: landscape) and (max-height: 480px) {
   .playmat {
-    --playmat-utility-width: clamp(182px, 28vw, 220px);
+    --playmat-utility-width: clamp(148px, 22vw, 178px);
     --playmat-control-rail-width: 50px;
     --playmat-hand-row: clamp(136px, 34vh, 168px);
     gap: 8px;
@@ -3719,12 +3719,17 @@
   }
 
   .phase-overlay__turn {
-    gap: 6px;
-    padding: 5px 9px;
+    gap: 4px;
+    padding: 3px 6px;
+  }
+
+  .phase-overlay__turn-label {
+    font-size: 9px;
+    white-space: nowrap;
   }
 
   .phase-overlay__turn-value {
-    font-size: 20px;
+    font-size: 14px;
   }
 
   .phase-track {
@@ -3742,32 +3747,50 @@
   }
 
   .mana-overlay__panel {
-    gap: 6px;
+    gap: 4px;
   }
 
   .mana-pool {
-    gap: 4px;
+    gap: 3px;
   }
 
+  /* Compact single-row pips (override the 2-row mobile layout above). */
   .mana-pool__pip {
-    gap: 4px;
-    padding: 4px 6px;
+    grid-template-columns: auto auto auto;
+    grid-template-areas: none;
+    gap: 3px;
+    padding: 2px 5px;
+    border-radius: 9px;
+    font-size: 10px;
+  }
+
+  .mana-pool__symbol {
+    font-size: 8px;
   }
 
   .mana-pool__count {
-    font-size: 14px;
+    grid-area: auto;
+    justify-self: center;
+    font-size: 11px;
+    min-width: 10px;
+  }
+
+  .mana-pool__controls {
+    grid-area: auto;
+    display: inline-flex;
+    gap: 2px;
   }
 
   .mana-pool__button {
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
   }
 
   .overlay-chip__action {
-    min-height: 28px;
-    padding: 5px 8px;
-    font-size: 10px;
+    min-height: 24px;
+    padding: 4px 7px;
+    font-size: 9px;
   }
 
   .life-overlay {
