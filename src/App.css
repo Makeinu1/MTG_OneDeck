@@ -2498,7 +2498,7 @@
   .battlefield__stack {
     flex: 1 1 0;
     gap: 4px;
-    max-width: 78px;
+    max-width: 42px;
     min-width: 0;
   }
 
@@ -3660,7 +3660,7 @@
   .battlefield__stack {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 78px;
+    max-width: 42px;
     gap: 4px;
   }
 
