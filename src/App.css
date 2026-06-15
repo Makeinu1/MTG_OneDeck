@@ -3628,8 +3628,23 @@
   }
 
   .battlefield__section {
-    gap: 8px;
+    /* Short phone-landscape regions: float the whole header (label + phase/mana
+       overlay) so it no longer consumes flow height and collapses the card row.
+       The card area then uses the full region height; info layers over the top
+       per the M4.13 design. (M4.19) */
+    gap: 0;
     padding: 10px;
+    position: relative;
+  }
+
+  .battlefield__section-header {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    z-index: 5;
+    align-items: flex-start;
+    pointer-events: none;
   }
 
   .battlefield__section-label {
