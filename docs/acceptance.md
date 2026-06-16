@@ -225,3 +225,11 @@ M4.5以降、シングル左クリックはメニューを開かない(右クリ
 | H1 | 描画中に例外が発生 | トップの ErrorBoundary がフォールバック(`error-boundary`)を表示。「リロード」「デッキ選択に戻る」で復帰でき白画面にならない |
 | H2 | 通常起動 | ErrorBoundary は透過(インポート/プレイマットが従来どおり表示) |
 | H3 | CI | `npm run lint` がCIで実行される。GitHub Actions は Node24 対応版(checkout@v5/setup-node@v5/configure-pages@v6/upload-pages-artifact@v5/deploy-pages@v5) |
+
+## M4.24 進行中ゲームの永続化&復元(G2リグレッション時に再確認)
+| # | 操作 | 期待結果 |
+|---|------|---------|
+| GP1 | ゲーム進行(キャスト/ライフ変更等)後にリロード | インポート画面に「ゲームを再開」(`restore-game`)が「前回のデッキで開始(新規)」と並んで表示 |
+| GP2 | 「ゲームを再開」を押す | 盤面/ターン/ライフ/手札/ログが中断時と一致して復元(マリガン判定は出ない)。undo履歴は新規 |
+| GP3 | デッキ選択に戻る | snapshot がクリアされ、次回起動で「再開」は出ない |
+| GP4 | 永続先 | カードキャッシュ DB とは別の IndexedDB(`mtg-onedeck-game`)。IndexedDB 不可環境でも例外なく続行 |

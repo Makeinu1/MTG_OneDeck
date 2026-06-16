@@ -1,4 +1,10 @@
 import { create } from 'zustand';
+import {
+  SNAPSHOT_VERSION,
+  clearSnapshot,
+  saveSnapshot,
+  type GameSnapshot,
+} from '../data/gameSnapshot';
 import type { CardDef, ManaColor } from '../types/card';
 import { applyCommand, EngineError, type GameCommand } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
@@ -16,6 +22,7 @@ import {
 } from '../engine/status';
 
 const HISTORY_LIMIT = 200;
+const SNAPSHOT_SAVE_DELAY_MS = 400;
 
 export interface GameStore {
   state: GameState | null;
@@ -26,6 +33,7 @@ export interface GameStore {
   mulliganDecisionPending: boolean;
 
   newGame(cards: InitDeckCard[], seed?: number): void;
+  restoreGame(snapshot: GameSnapshot): void;
   restart(): void;
   mulligan(): void;
   beginFirstTurn(): void;
@@ -92,6 +100,9 @@ interface InternalState {
   deck: InitDeckCard[] | null;
   lastSeed: number;
 }
+
+let snapshotInternal: InternalState | null = null;
+let snapshotSaveTimer: ReturnType<typeof setTimeout> | undefined;
 
 function randomSeed(): number {
   return (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1;
@@ -226,6 +237,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     deck: null,
     lastSeed: 0,
   };
+  snapshotInternal = internal;
 
   function commit(next: GameState, warnings: string[]): void {
     const cur = get().state;
@@ -306,6 +318,22 @@ export const useGameStore = create<GameStore>((set, get) => {
         canUndo: false,
         canRedo: false,
         mulliganDecisionPending: true,
+      });
+    },
+
+    restoreGame(snapshot) {
+      const lastSeed = internal.lastSeed;
+      internal.deck = snapshot.deck;
+      internal.lastSeed = lastSeed;
+      internal.past = [];
+      internal.future = [];
+      set({
+        state: snapshot.state,
+        warnings: [],
+        canUndo: false,
+        canRedo: false,
+        autoAdvanceToMain: snapshot.autoAdvanceToMain,
+        mulliganDecisionPending: false,
       });
     },
 
@@ -778,4 +806,29 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     },
   };
+});
+
+useGameStore.subscribe((state, prevState) => {
+  if (state.state === prevState.state && state.autoAdvanceToMain === prevState.autoAdvanceToMain) {
+    return;
+  }
+
+  if (snapshotSaveTimer) {
+    clearTimeout(snapshotSaveTimer);
+  }
+
+  snapshotSaveTimer = setTimeout(() => {
+    const s = useGameStore.getState();
+    if (s.state === null) {
+      void clearSnapshot();
+      return;
+    }
+
+    void saveSnapshot({
+      version: SNAPSHOT_VERSION,
+      state: s.state,
+      deck: snapshotInternal?.deck ?? [],
+      autoAdvanceToMain: s.autoAdvanceToMain,
+    });
+  }, SNAPSHOT_SAVE_DELAY_MS);
 });

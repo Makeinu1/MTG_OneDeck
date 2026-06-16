@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import { ImportScreen } from './components/ImportScreen';
 import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
+import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
 import { useGameStore } from './store/gameStore';
 import type { InitDeckCard } from './engine/init';
 import type { CardDef } from './types/card';
@@ -32,6 +33,20 @@ function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null
 function App() {
   const state = useGameStore((s) => s.state);
   const [{ deckText, storedDeck }] = useState(() => loadStoredDeck());
+  const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadSnapshot().then((loadedSnapshot) => {
+      if (cancelled) return;
+      setSnapshot(loadedSnapshot?.state ? loadedSnapshot : null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleStart = (deck: InitDeckCard[], text: string): void => {
     try {
@@ -57,6 +72,19 @@ function App() {
   return (
     <div className="app">
       <ImportScreen initialDeckText={deckText} onStart={handleStart} />
+      {snapshot?.state && (
+        <div className="app__resume">
+          <p>中断したゲームが見つかりました。</p>
+          <button
+            type="button"
+            className="btn btn--accent"
+            data-testid="restore-game"
+            onClick={() => useGameStore.getState().restoreGame(snapshot)}
+          >
+            ゲームを再開
+          </button>
+        </div>
+      )}
       {storedDeck && storedDeck.length > 0 && (
         <div className="app__resume">
           <p>前回インポートしたデッキが見つかりました。再インポートせずにゲームを開始できます。</p>
