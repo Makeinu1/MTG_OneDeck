@@ -470,8 +470,7 @@
 }
 
 .playmat__sidebar,
-.playmat__main,
-.playmat__rail {
+.playmat__main {
   min-width: 0;
   min-height: 0;
 }
@@ -481,8 +480,7 @@
   overflow: hidden;
 }
 
-.playmat__main,
-.playmat__rail {
+.playmat__main {
   display: grid;
   grid-template-rows: minmax(0, 1fr) var(--playmat-bottom-row);
   gap: 12px;
@@ -524,122 +522,6 @@
    Side panel
    ========================================================================= */
 
-.side-panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    'turn'
-    'life'
-    'mana'
-    'opponents'
-    'utility';
-  gap: 10px;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.side-panel__section {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
-    linear-gradient(180deg, rgba(17, 25, 21, 0.96), rgba(12, 18, 15, 0.92));
-  border: 1px solid rgba(216, 176, 106, 0.1);
-  border-radius: 18px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 18px 40px rgba(0, 0, 0, 0.28);
-}
-
-.side-panel__section--scroll {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.side-panel__section--turn {
-  grid-area: turn;
-  background:
-    radial-gradient(circle at top right, rgba(216, 176, 106, 0.18), transparent 42%),
-    linear-gradient(160deg, rgba(33, 47, 40, 0.96), rgba(16, 24, 20, 0.96));
-  border-color: var(--accent-border);
-}
-
-.side-panel__section--life,
-.side-panel__section--mana {
-  justify-content: space-between;
-  min-height: 0;
-}
-
-.side-panel__section--life {
-  grid-area: life;
-}
-
-.side-panel__section--mana {
-  grid-area: mana;
-}
-
-.side-panel__section--opponents {
-  grid-area: opponents;
-}
-
-.side-panel__section--utility {
-  grid-area: utility;
-}
-
-.side-panel__section--opponents {
-  max-height: none;
-}
-
-.side-panel__life-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.side-panel__life-row h3 {
-  margin: 0;
-}
-
-.side-panel__section h3 {
-  margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  font-family: var(--sans);
-  font-weight: 700;
-}
-
-.side-panel__turn-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.side-panel__turn-label {
-  font-size: 11px;
-  color: var(--gold);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-family: var(--mono);
-}
-
-.side-panel__turn-value {
-  font-family: var(--display);
-  font-size: clamp(30px, 2.8vw, 42px);
-  color: var(--gold-bright);
-  line-height: 1;
-  text-shadow: 0 0 22px rgba(216, 176, 106, 0.28);
-}
-
 .phase-track {
   display: flex;
   gap: 6px;
@@ -671,26 +553,6 @@
   color: var(--gold-bright);
   font-weight: 700;
   box-shadow: inset 0 0 0 1px rgba(240, 207, 140, 0.08);
-}
-
-.side-panel__buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.side-panel__buttons .btn {
-  flex: 1;
-}
-
-.side-panel__section--turn .btn[data-testid='next-phase'] {
-  min-height: 52px;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-}
-
-.side-panel__section--turn .btn[data-testid='next-turn'] {
-  min-height: 52px;
 }
 
 .stat-row {
@@ -801,39 +663,6 @@
   width: 26px;
   height: 26px;
   font-size: 14px;
-}
-
-.side-panel__add-opponent {
-  display: flex;
-  gap: 6px;
-}
-
-.side-panel__add-opponent input {
-  flex: 1;
-  font-size: 12px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--felt-2);
-  color: var(--text);
-}
-
-.side-panel__add-opponent input:focus {
-  outline: none;
-  border-color: var(--accent-border);
-}
-
-.side-panel__toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text);
-  min-height: 40px;
-}
-
-.side-panel__toggle input {
-  accent-color: var(--gold-bright);
 }
 
 /* Mana pool */
@@ -1168,45 +997,6 @@
     0 22px 48px rgba(0, 0, 0, 0.28);
 }
 
-.battlefield__row {
-  flex: 1;
-  display: flex;
-  gap: 10px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 36px 14px 14px;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  align-items: stretch;
-  min-height: 0;
-  min-width: 0;
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 42%),
-    rgba(8, 13, 11, 0.26);
-}
-
-.battlefield__row--over {
-  border-color: var(--accent-border);
-  background:
-    linear-gradient(180deg, rgba(216, 176, 106, 0.12), rgba(216, 176, 106, 0.04)),
-    rgba(8, 13, 11, 0.24);
-}
-
-.battlefield__row-label {
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--gold);
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(216, 176, 106, 0.08);
-  border: 1px solid rgba(216, 176, 106, 0.14);
-}
-
 .battlefield__cards {
   flex: 1;
   display: flex;
@@ -1335,13 +1125,6 @@
   padding-right: 2px;
 }
 
-.zones__row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  align-items: start;
-}
-
 .zone-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
@@ -1449,22 +1232,6 @@
   background: rgba(216, 176, 106, 0.12);
   padding: 3px 10px;
   border-radius: 99px;
-}
-
-.zone-card__actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-  width: 100%;
-}
-
-.zone-card__actions .btn {
-  min-width: 0;
-  padding: 5px 4px;
-  font-size: 11px;
-  line-height: 1.2;
-  border-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
 }
 
 /* =========================================================================
@@ -2264,7 +2031,6 @@
 
   .playmat__sidebar,
   .playmat__main,
-  .playmat__rail,
   .playmat__zones,
   .playmat__log {
     overflow: visible;
@@ -2276,15 +2042,6 @@
 
   .playmat__main {
     grid-template-rows: minmax(320px, 44vh) auto;
-  }
-
-  .playmat__rail {
-    grid-template-rows: auto auto;
-  }
-
-  .side-panel {
-    height: auto;
-    overflow: visible;
   }
 
   .battlefield {
@@ -2329,27 +2086,8 @@
     padding-left: max(6px, env(safe-area-inset-left));
   }
 
-  .playmat__main,
-  .playmat__rail {
+  .playmat__main {
     gap: 8px;
-  }
-
-  .side-panel {
-    gap: 8px;
-  }
-
-  .side-panel__section {
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 16px;
-  }
-
-  .side-panel__section h3 {
-    font-size: 10px;
-  }
-
-  .side-panel__turn-value {
-    font-size: 24px;
   }
 
   .phase-track {
@@ -2360,30 +2098,6 @@
     min-width: 54px;
     padding: 4px 5px;
     font-size: 9px;
-  }
-
-  .side-panel__buttons {
-    gap: 5px;
-  }
-
-  .side-panel__buttons .btn {
-    padding: 5px 6px;
-    font-size: 11px;
-    line-height: 1.15;
-  }
-
-  .side-panel__section--turn .btn[data-testid='next-phase'],
-  .side-panel__section--turn .btn[data-testid='next-turn'] {
-    min-height: 42px;
-  }
-
-  .side-panel__toggle {
-    gap: 6px;
-    font-size: 11px;
-  }
-
-  .side-panel__life-row {
-    gap: 6px;
   }
 
   .stat-row {
@@ -2423,15 +2137,6 @@
     width: 20px;
     height: 20px;
     font-size: 12px;
-  }
-
-  .side-panel__add-opponent {
-    gap: 4px;
-  }
-
-  .side-panel__add-opponent input {
-    padding: 5px 6px;
-    font-size: 11px;
   }
 
   .mana-pool {
@@ -2477,18 +2182,6 @@
   .battlefield {
     gap: 8px;
     padding: 10px;
-  }
-
-  .battlefield__row {
-    gap: 6px;
-    padding: 28px 10px 10px;
-  }
-
-  .battlefield__row-label {
-    top: 8px;
-    left: 10px;
-    font-size: 9px;
-    padding: 3px 6px;
   }
 
   .battlefield__cards {
@@ -2591,11 +2284,6 @@
     padding: 1px 3px;
   }
 
-  .zones__row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
   .zone-card {
     gap: 6px;
     padding: 8px;
@@ -2637,16 +2325,6 @@
 
   .zone-card__tax {
     padding: 2px 8px;
-    font-size: 10px;
-  }
-
-  .zone-card__actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-  }
-
-  .zone-card__actions .btn {
-    padding: 4px 3px;
     font-size: 10px;
   }
 
@@ -2692,15 +2370,10 @@
   .btn,
   .context-menu button,
   .modal__close,
-  .side-panel__add-opponent input,
   .dialog__field input,
   .dialog__field select,
   .form-grid input,
   .zone-viewer__search input {
-    min-height: 40px;
-  }
-
-  .side-panel__toggle {
     min-height: 40px;
   }
 }
@@ -3537,16 +3210,6 @@
   flex-direction: column;
 }
 
-.zone-card__actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.zone-card__actions .btn {
-  border-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-}
-
 .game-log {
   min-height: 0;
 }
@@ -3892,11 +3555,6 @@
   .zone-card--command .card-view--hand .card-view__face {
     width: 60px;
     height: 84px;
-  }
-
-  .zone-card__actions .btn {
-    padding: 4px 3px;
-    font-size: 10px;
   }
 
   .game-log {
