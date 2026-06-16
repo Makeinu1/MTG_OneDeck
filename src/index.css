@@ -118,3 +118,41 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-border);
 }
+
+.error-boundary {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.error-boundary__panel {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--accent-border, rgba(216, 176, 106, 0.3));
+  border-radius: 16px;
+  padding: 28px 24px;
+}
+
+.error-boundary__panel h1 {
+  font-size: 18px;
+  margin: 0 0 12px;
+  color: var(--gold-bright);
+}
+
+.error-boundary__panel p {
+  color: var(--text, #d9e2dc);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.error-boundary__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
