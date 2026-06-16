@@ -23,6 +23,12 @@ import {
 
 const HISTORY_LIMIT = 200;
 const SNAPSHOT_SAVE_DELAY_MS = 400;
+const PLAYER_COUNTER_KINDS: Array<'poison' | 'energy' | 'experience'> = [
+  'poison',
+  'energy',
+  'experience',
+];
+const CARD_SCAN_ZONES: ZoneId[] = ['battlefield', 'hand', 'library', 'graveyard', 'exile', 'command'];
 
 export interface GameStore {
   state: GameState | null;
@@ -50,7 +56,9 @@ export interface GameStore {
   mill(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
+  tapAllPermanents(): void;
   untapAllPermanents(): void;
+  proliferateAll(): void;
   discard(cardIds: string[]): void;
   discardRandom(count: number): void;
   playLand(
@@ -463,8 +471,64 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'moveCard', cardId, to, position });
     },
 
+    tapAllPermanents() {
+      const cur = get().state;
+      if (!cur) return;
+
+      const commands: GameCommand[] = cur.zones.battlefield.flatMap((cardId) => {
+        const card = cur.cards[cardId];
+        return card && !card.tapped
+          ? [{ type: 'setTapped', cardId, tapped: true } satisfies GameCommand]
+          : [];
+      });
+
+      if (commands.length === 0) return;
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
     untapAllPermanents() {
       dispatch({ type: 'untapAll' });
+    },
+
+    proliferateAll() {
+      const cur = get().state;
+      if (!cur) return;
+
+      const commands: GameCommand[] = [];
+
+      for (const zone of CARD_SCAN_ZONES) {
+        for (const cardId of cur.zones[zone]) {
+          const card = cur.cards[cardId];
+          if (!card) continue;
+
+          for (const [counterType, value] of Object.entries(card.counters)) {
+            if (value !== 0) {
+              commands.push({ type: 'addCounters', cardId, counterType, delta: 1 });
+            }
+          }
+        }
+      }
+
+      for (const kind of PLAYER_COUNTER_KINDS) {
+        if (cur[kind] > 0) {
+          commands.push({ type: 'adjustPlayerCounter', kind, delta: 1 });
+        }
+      }
+
+      if (commands.length === 0) return;
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     discard(cardIds) {

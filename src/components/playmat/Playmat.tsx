@@ -59,7 +59,7 @@ type ManaChoiceRequest = {
 type PendingXCast = { kind: 'hand' | 'commander'; cardId: string };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = {
-  kind: 'mill' | 'peek' | 'discard-random';
+  kind: 'draw' | 'mill' | 'peek' | 'discard-random';
   defaultValue: number;
 };
 type MenuTriggerEvent =
@@ -338,6 +338,12 @@ export function Playmat() {
         onSelect: () => store.draw(1),
       },
       {
+        key: 'library-draw-n',
+        label: 'N枚引く',
+        testId: 'library-draw-n',
+        onSelect: () => setCountDialog({ kind: 'draw', defaultValue: 1 }),
+      },
+      {
         key: 'library-shuffle',
         label: 'シャッフル',
         testId: 'library-shuffle',
@@ -582,28 +588,35 @@ export function Playmat() {
     peekCount === null ? [] : state.zones.library.slice(0, Math.min(peekCount, state.zones.library.length));
   const opponentLabels = opponentLabelsFromState(state);
   const countDialogConfig =
-    countDialog?.kind === 'mill'
+    countDialog?.kind === 'draw'
       ? {
-          title: '切削',
+          title: 'N枚引く',
           label: '枚数',
-          inputTestId: 'mill-n',
-          confirmTestId: 'mill-confirm',
+          inputTestId: 'draw-n',
+          confirmTestId: 'draw-n-confirm',
         }
-      : countDialog?.kind === 'peek'
+      : countDialog?.kind === 'mill'
         ? {
-            title: 'ライブラリの上を見る',
+            title: '切削',
             label: '枚数',
-            inputTestId: 'peek-n',
-            confirmTestId: 'peek-confirm',
+            inputTestId: 'mill-n',
+            confirmTestId: 'mill-confirm',
           }
-        : countDialog?.kind === 'discard-random'
+        : countDialog?.kind === 'peek'
           ? {
-              title: 'ランダムに捨てる',
+              title: 'ライブラリの上を見る',
               label: '枚数',
-              inputTestId: 'discard-random-n',
-              confirmTestId: 'discard-random-confirm',
+              inputTestId: 'peek-n',
+              confirmTestId: 'peek-confirm',
             }
-          : null;
+          : countDialog?.kind === 'discard-random'
+            ? {
+                title: 'ランダムに捨てる',
+                label: '枚数',
+                inputTestId: 'discard-random-n',
+                confirmTestId: 'discard-random-confirm',
+              }
+            : null;
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -861,7 +874,9 @@ export function Playmat() {
             inputTestId={countDialogConfig.inputTestId}
             confirmTestId={countDialogConfig.confirmTestId}
             onConfirm={(count) => {
-              if (countDialog.kind === 'mill') {
+              if (countDialog.kind === 'draw') {
+                store.draw(count);
+              } else if (countDialog.kind === 'mill') {
                 store.mill(count);
               } else if (countDialog.kind === 'peek') {
                 setPeekCount(count);

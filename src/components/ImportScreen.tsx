@@ -3,6 +3,7 @@ import { parseDeckList, type ParseError } from '../data/deckParser';
 import { resolveDeck, type ResolveProgress } from '../data/scryfall';
 import type { CardDef } from '../types/card';
 import type { InitDeckCard } from '../engine/init';
+import { DeckStats } from './DeckStats';
 
 export interface ImportScreenProps {
   initialDeckText: string;
@@ -156,6 +157,8 @@ export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
             </span>
           </div>
         )}
+
+        {hasImported && resolvedEntries.length > 0 && <DeckStats entries={resolvedEntries} />}
 
         {unresolved.length > 0 && (
           <section className="import-screen__issues">

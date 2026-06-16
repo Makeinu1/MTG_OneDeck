@@ -529,11 +529,25 @@ export function OtherActions({
             onClick={() => run(onCreateToken)}
           />
           <MenuButton
+            icon="ti-rotate-clockwise"
+            label="全タップ"
+            testId="tap-all"
+            className="other-actions__button"
+            onClick={() => run(() => store.tapAllPermanents())}
+          />
+          <MenuButton
             icon="ti-tilt-shift"
             label="全アンタップ"
             testId="untap-all"
             className="other-actions__button"
             onClick={() => run(() => store.untapAllPermanents())}
+          />
+          <MenuButton
+            icon="ti-circle-plus"
+            label="全カウンター増殖"
+            testId="proliferate-all"
+            className="other-actions__button"
+            onClick={() => run(() => store.proliferateAll())}
           />
           <MenuButton
             icon="ti-arrow-back-up-double"
