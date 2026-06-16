@@ -538,3 +538,84 @@ fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lif
   4. `opts.entersTapped` のとき `{ type:'setTapped', cardId: targetId, tapped:true }`
   5. `{ type:'shuffle', order }` — `order = shuffledOrder(現 library から targetId を除いた配列, createRng(randomSeed()))` を**呼び出し時に確定**(決定的)。
 - engine の applyCommand 群は一切変更しない(既存コマンドの再利用のみ)。
+
+---
+
+## 12. M4.27 追補(スタック表現 + 能力オブジェクト)— この節も契約である
+
+設計指針: スタックは**手動の視覚/整理補助**であり、ルール(優先権・対象適正・自動誘発)は強制しない(サンドボックス原則)。
+スペル(手札/統率領域の実カード)と、起動・誘発能力(**元カードの絵を流用する能力オブジェクト**)を、中央スタックに**複数枚 LIFO で積める**。解決は手動(上から1つ + 全解決)。
+
+### 12.1 型の変更・追加(`src/engine/types.ts`)
+```ts
+// ZoneId に 'stack' を追加(§1 の定義を更新):
+export type ZoneId = 'library' | 'hand' | 'battlefield' | 'graveyard' | 'exile' | 'command' | 'stack';
+
+// zones.stack: 順序付き。【スタック最上段 = 配列末尾】(末尾が最後に積まれ、最初に解決される)。
+
+// CardInstance に追加(任意フィールド・後方互換):
+isAbility?: boolean;                       // 能力オブジェクト(実カードでもトークンでもない)。既定 undefined/false
+sourceId?: string;                         // 能力の発生元パーマネント instance id(表示用に defId を流用)
+abilityKind?: 'activated' | 'triggered';   // リボン表示用(起動/誘発)
+```
+- 能力オブジェクトは `zones.stack` **以外には存在しない**。解決/除去で `cards`/`zones` から削除する(別ゾーンへは移動しない=トークンの消滅則と同様)。
+- 表示は `defs[sourceId の defId]` を流用(`defs` に新規 def は追加しない)。
+
+### 12.2 コマンドの追加(`src/engine/commands.ts`)
+既存の `moveCard` は `to:'stack'` を**そのまま受理**する(ゾーンが増えただけ)。ドラッグでカードを中央へ置く操作は `moveCard(cardId,'stack')` で表現し、新コマンドは不要。マナは払わない(手動配置=サンドボックス)。
+
+```ts
+| { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean }
+//   castSpell と同様にプールから payment を減算(不足は 0 クランプ + warning)。
+//   ただし行先は最終ゾーンではなく stack 末尾(最上段)。ETB フックは走らない(stack は battlefield ではない)。
+//   対象が現在 command ゾーンにあり commanders に含まれる場合のみ castCount += 1(統率税は cast 時に確定)。
+//   ログ「《X》を唱えた(スタックへ)。」。手札以外/統率領域以外からの cast も拒否しない(サンドボックス)。
+
+| { type: 'addAbilityToStack'; sourceId: string; kind: 'activated' | 'triggered' }
+//   sourceId が cards に存在することを検証(無ければ EngineError)。新しい能力オブジェクト instance を生成:
+//   id は既存 id と衝突しない決定的な新規 id(接頭辞 'a'。token の 't{max+1}' と同方式の連番)、
+//   isAbility=true, abilityKind=kind, sourceId, defId=cards[sourceId].defId, zone='stack',
+//   tapped=false, faceIndex=0, faceDown=false, counters={}, isToken=false, isCommander=false, enteredTurn=0。
+//   stack 末尾へ append。ログ「《X》の{起動|誘発}能力をスタックに積んだ。」(X=発生元カード名)。
+
+| { type: 'resolveStackTop'; to?: ZoneId }
+//   stack が空なら no-op(ログなし)。末尾(最上段)を1つ pop。
+//   - 能力オブジェクト(isAbility): cards/zones から削除。ログ「《X》の能力を解決した。」。
+//   - スペル(実カード): to 指定があれば其処へ moveCardInternal。未指定なら【型で自動】:
+//       face.typeLine に Instant/Sorcery を含めば graveyard、それ以外(パーマネント)は battlefield
+//       (battlefield 行きは ETB フック=enteredTurn 設定/loyalty/lore が走る)。
+//     ログ「《X》を解決した(→{zone})。」。
+
+| { type: 'removeStackItem'; id: string; to?: ZoneId }
+//   stack 内に id が無ければ EngineError。
+//   - 能力オブジェクト: 削除。ログ「《X》の能力を取り除いた。」。
+//   - スペル: to(既定 graveyard)へ moveCardInternal。ログ「《X》を打ち消した(→{zone})。」。
+```
+
+### 12.3 moveCardInternal の補強(I9 維持)
+- **能力オブジェクト(`isAbility`)が `stack` 以外へ moveCard される場合、トークンと同様に消滅**する(`cards`/`zones` から削除、消滅をログ)。UI は通常そうしないが、不変条件保護のため必須。
+- `ZONE_LABELS` に `stack: 'スタック'` を追加(ログ表示用)。
+
+### 12.4 不変条件の更新・追加(プロパティテスト対象)
+- **I1 更新**: 能力オブジェクトを含む**全** `CardInstance.id` は、`stack` を含むいずれかちょうど1つの `zones[*]` に1回だけ出現する。
+- **I2 更新**: カード総数一定の対象は「非トークン**かつ非能力**(`isAbility !== true`)」のカード。能力オブジェクトは `stack` 専用で、解決/除去時に消滅する(消滅をログ)。
+- **新 I9**: `isAbility === true` の instance は必ず `zone === 'stack'` であり、`sourceId` が `cards` に存在し、`defId` が `defs` に存在する。能力オブジェクトは `stack` 以外に出現しない。
+- レビュー側の fast-check プロパティテストに **I9** を追加し、`stack` を含む全ゾーンで I1 を検証する。
+
+### 12.5 ストア(`src/store/gameStore.ts`)で実装する操作
+```ts
+castToStack(cardId: string, opts?: { xValue?: number; force?: boolean }): 'ok' | { shortfall: number };
+//   castFromHand と同じ支払い計画(solvePayment → planAutoTap、不足かつ !force なら state 不変で {shortfall})。
+//   支払い可(または force): 自動タップ群 + castToStack コマンドを applySequence で【単一コミット】。
+//   統率者(command ゾーン)が対象なら、コストに統率税 2*castCount を generic 加算してから solve(castCommander と同様)。
+
+addAbilityToStack(sourceId: string, kind: 'activated' | 'triggered'): void;  // dispatch ラッパー
+resolveTop(to?: ZoneId): void;                                              // dispatch({type:'resolveStackTop', to})
+resolveAll(): void;
+//   stack が空になるまで resolveStackTop(型で行先自動)を applySequence で【単一コミット】。空なら no-op。
+removeStackItem(id: string, to?: ZoneId): void;                            // dispatch ラッパー
+```
+- **既存のキャスト導線(quick-cast)は変更しない**(サンドボックス: スタック利用を強制しない)。スタックへ積むのは明示操作のみ:
+  手札カードの右クリック「唱える(スタックへ)」=`castToStack` / 手札カードを中央スタックへドラッグ=`moveCard(_, 'stack')`(マナ手動) /
+  戦場パーマネントの右クリック「能力を起動(スタックへ)」「誘発を積む(スタックへ)」=`addAbilityToStack`。
+- 統率者カードに `draggable` を付与(`Zones.tsx`)。ドラッグはゾーン移動のみ(キャストはメニュー/ダブルクリック)。

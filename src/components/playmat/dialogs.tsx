@@ -858,6 +858,7 @@ const ZONE_TITLES: Record<ZoneId, string> = {
   graveyard: '墓地',
   exile: '追放',
   command: '統率領域',
+  stack: 'スタック',
 };
 
 /** Returns every display name (printed + English, both faces) for a card, for search matching. */

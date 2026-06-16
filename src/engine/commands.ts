@@ -1,6 +1,7 @@
 import type { CardDef, ManaColor } from '../types/card';
 import { isCommander } from './commander';
 import type {
+  AbilityKind,
   CardInstance,
   GameState,
   LogEntry,
@@ -36,6 +37,10 @@ export type GameCommand =
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
+  | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean }
+  | { type: 'addAbilityToStack'; sourceId: string; kind: AbilityKind }
+  | { type: 'resolveStackTop'; to?: ZoneId }
+  | { type: 'removeStackItem'; id: string; to?: ZoneId }
   | {
       type: 'createToken';
       name: string;
@@ -81,6 +86,12 @@ const ZONE_LABELS: Record<ZoneId, string> = {
   graveyard: '墓地',
   exile: '追放',
   command: '統率',
+  stack: 'スタック',
+};
+
+const ABILITY_KIND_LABELS: Record<AbilityKind, string> = {
+  activated: '起動',
+  triggered: '誘発',
 };
 
 function emptyManaPool(): ManaPool {
@@ -121,6 +132,13 @@ function nameOf(draft: Draft, cardId: string): string {
   return nameOfCard(draft, card);
 }
 
+function stackNameOf(draft: Draft, card: CardInstance): string {
+  if (card.isAbility && card.sourceId && draft.state.cards[card.sourceId]) {
+    return nameOf(draft, card.sourceId);
+  }
+  return nameOfCard(draft, card);
+}
+
 function pushLog(draft: Draft, message: string): void {
   const entry: LogEntry = {
     seq: draft.nextSeq++,
@@ -157,6 +175,23 @@ function removeFromCurrentZone(draft: Draft, cardId: string): ZoneId {
   const arr = editZone(draft, from);
   const idx = arr.indexOf(cardId);
   if (idx >= 0) arr.splice(idx, 1);
+  return from;
+}
+
+function deleteCardFromState(draft: Draft, cardId: string): ZoneId {
+  const from = removeFromCurrentZone(draft, cardId);
+  const cards = { ...draft.state.cards };
+  delete cards[cardId];
+
+  for (const [id, card] of Object.entries(cards)) {
+    if (!card.isAbility || card.sourceId !== cardId) continue;
+    const stack = editZone(draft, 'stack');
+    const idx = stack.indexOf(id);
+    if (idx >= 0) stack.splice(idx, 1);
+    delete cards[id];
+  }
+
+  draft.state.cards = cards;
   return from;
 }
 
@@ -239,13 +274,19 @@ function moveCardInternal(
   const from = card.zone;
   const sameBattlefield = from === 'battlefield' && to === 'battlefield';
 
+  if (card.isAbility && to !== 'stack') {
+    const name = stackNameOf(draft, card);
+    deleteCardFromState(draft, cardId);
+    if (log) {
+      pushLog(draft, `${name}の能力が${ZONE_LABELS[to]}へ移動したため消滅しました。`);
+    }
+    return;
+  }
+
   // Token leaving battlefield -> ceases to exist.
   if (card.isToken && from === 'battlefield' && to !== 'battlefield') {
     const name = nameOf(draft, cardId);
-    removeFromCurrentZone(draft, cardId);
-    const cards = { ...draft.state.cards };
-    delete cards[cardId];
-    draft.state.cards = cards;
+    deleteCardFromState(draft, cardId);
     if (log) {
       pushLog(draft, `トークン${name}が${ZONE_LABELS[to]}へ移動したため消滅しました。`);
     }
@@ -558,6 +599,116 @@ function applyCast(
     moveCardInternal(draft, cardId, dest, 'bottom', false);
     pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
   }
+}
+
+function nextAbilityId(state: GameState): string {
+  let max = 0;
+  for (const id of Object.keys(state.cards)) {
+    if (!id.startsWith('a')) continue;
+    const n = Number.parseInt(id.slice(1), 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return `a${max + 1}`;
+}
+
+function applyCastToStack(
+  draft: Draft,
+  cardId: string,
+  payment: ManaPool,
+  forced: boolean
+): void {
+  const card = requireCard(draft, cardId);
+  const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
+
+  const { shortfall } = subtractPayment(draft, payment);
+  if (shortfall > 0) {
+    const msg = forced
+      ? `マナが${shortfall}点不足していますが強行しました。`
+      : `マナが${shortfall}点不足(強行)。`;
+    draft.warnings.push(msg);
+  } else if (forced) {
+    draft.warnings.push('マナ不足のまま強行で唱えました。');
+  }
+
+  if (fromCommand) {
+    draft.state.commanders = draft.state.commanders.map((commander) =>
+      commander.cardId === cardId
+        ? { ...commander, castCount: commander.castCount + 1 }
+        : commander
+    );
+  }
+
+  moveCardInternal(draft, cardId, 'stack', 'bottom', false);
+  pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
+}
+
+function applyAddAbilityToStack(draft: Draft, sourceId: string, kind: AbilityKind): void {
+  const source = requireCard(draft, sourceId);
+  const abilityId = nextAbilityId(draft.state);
+  const cards = { ...draft.state.cards };
+  const stack = editZone(draft, 'stack');
+
+  cards[abilityId] = {
+    id: abilityId,
+    defId: source.defId,
+    zone: 'stack',
+    tapped: false,
+    faceIndex: 0,
+    faceDown: false,
+    counters: {},
+    isToken: false,
+    isCommander: false,
+    enteredTurn: 0,
+    isAbility: true,
+    sourceId,
+    abilityKind: kind,
+  };
+  draft.state.cards = cards;
+  stack.push(abilityId);
+
+  pushLog(
+    draft,
+    `${nameOf(draft, sourceId)}の${ABILITY_KIND_LABELS[kind]}能力をスタックに積んだ。`
+  );
+}
+
+function defaultStackResolveDestination(draft: Draft, card: CardInstance): ZoneId {
+  return castDestination(typeLineOf(draft, card));
+}
+
+function applyResolveStackTop(draft: Draft, to?: ZoneId): void {
+  const stack = draft.state.zones.stack;
+  if (stack.length === 0) return;
+
+  const topId = stack[stack.length - 1];
+  const card = requireCard(draft, topId);
+
+  if (card.isAbility) {
+    deleteCardFromState(draft, topId);
+    pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
+    return;
+  }
+
+  const destination = to ?? defaultStackResolveDestination(draft, card);
+  moveCardInternal(draft, topId, destination, 'bottom', false);
+  pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
+}
+
+function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
+  if (!draft.state.zones.stack.includes(id)) {
+    throw new EngineError(`スタックに存在しないカードです: ${id}`);
+  }
+
+  const card = requireCard(draft, id);
+  if (card.isAbility) {
+    deleteCardFromState(draft, id);
+    pushLog(draft, `${stackNameOf(draft, card)}の能力を取り除いた。`);
+    return;
+  }
+
+  const destination = to ?? 'graveyard';
+  moveCardInternal(draft, id, destination, 'bottom', false);
+  pushLog(draft, `${stackNameOf(draft, card)}を打ち消した(→${ZONE_LABELS[destination]})。`);
 }
 
 // ---------------------------------------------------------------------------
@@ -906,6 +1057,22 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'castCommander': {
       applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, true);
+      break;
+    }
+    case 'castToStack': {
+      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced);
+      break;
+    }
+    case 'addAbilityToStack': {
+      applyAddAbilityToStack(draft, cmd.sourceId, cmd.kind);
+      break;
+    }
+    case 'resolveStackTop': {
+      applyResolveStackTop(draft, cmd.to);
+      break;
+    }
+    case 'removeStackItem': {
+      applyRemoveStackItem(draft, cmd.id, cmd.to);
       break;
     }
     case 'createToken': {

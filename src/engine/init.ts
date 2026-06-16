@@ -26,6 +26,7 @@ function emptyZones(): Record<ZoneId, string[]> {
     graveyard: [],
     exile: [],
     command: [],
+    stack: [],
   };
 }
 

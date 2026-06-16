@@ -19,6 +19,7 @@ import { CardView } from '../CardView';
 import { CardPreview } from '../CardPreview';
 import { Battlefield } from './Battlefield';
 import { Hand } from './Hand';
+import { Stack } from './Stack';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
@@ -50,13 +51,14 @@ type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
   | { kind: 'hand'; cardId: string; shortfall: number; xValue: number }
   | { kind: 'commander'; cardId: string; shortfall: number; xValue: number }
+  | { kind: 'stack'; cardId: string; shortfall: number; xValue: number }
   | { kind: 'cycle'; cardId: string; shortfall: number };
 type ManaChoiceRequest = {
   kind: 'tap' | 'treasure';
   cardId: string;
   options: ManaColor[];
 };
-type PendingXCast = { kind: 'hand' | 'commander'; cardId: string };
+type PendingXCast = { kind: 'hand' | 'commander' | 'stack'; cardId: string };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = {
   kind: 'draw' | 'mill' | 'peek' | 'discard-random';
@@ -202,6 +204,24 @@ export function Playmat() {
     }
   }
 
+  function requestCastToStack(cardId: string, xValue?: number): void {
+    if (xValue === undefined && requiresXValue(cardId)) {
+      setPendingXCast({ kind: 'stack', cardId });
+      return;
+    }
+
+    const chosenXValue = xValue ?? 0;
+    const result = store.castToStack(cardId, { xValue: chosenXValue });
+    if (result !== 'ok') {
+      setPendingPayment({
+        kind: 'stack',
+        cardId,
+        shortfall: result.shortfall,
+        xValue: chosenXValue,
+      });
+    }
+  }
+
   function requestCastCommander(cardId: string, xValue?: number): void {
     if (xValue === undefined && requiresXValue(cardId)) {
       setPendingXCast({ kind: 'commander', cardId });
@@ -225,6 +245,15 @@ export function Playmat() {
     if (result !== 'ok') {
       setPendingPayment({ kind: 'cycle', cardId, shortfall: result.shortfall });
     }
+  }
+
+  function moveStackItem(cardId: string, to: ZoneId): void {
+    const topId = state!.zones.stack[state!.zones.stack.length - 1];
+    if (cardId === topId) {
+      store.resolveTop(to);
+      return;
+    }
+    store.removeStackItem(cardId, to);
   }
 
   function requestTreasureCrack(cardId: string): void {
@@ -391,6 +420,56 @@ export function Playmat() {
       def?.tokenKind === 'food' ||
       def?.tokenKind === 'blood';
 
+    if (card.zone === 'stack') {
+      const stackItems: MenuItem[] = [
+        {
+          key: 'stack-resolve-top',
+          label: '上から解決',
+          onSelect: () => store.resolveTop(),
+        },
+        {
+          key: 'stack-resolve-all',
+          label: '全解決',
+          onSelect: () => store.resolveAll(),
+        },
+      ];
+
+      if (!card.isAbility) {
+        const stackMoveTargets: Array<{ zone: ZoneId; label: string }> = [
+          { zone: 'battlefield', label: '戦場へ移す' },
+          { zone: 'graveyard', label: '墓地へ移す' },
+          { zone: 'exile', label: '追放へ移す' },
+          { zone: 'hand', label: '手札へ戻す' },
+        ];
+
+        stackMoveTargets.forEach((target, index) => {
+          stackItems.push({
+            key: `stack-move-${target.zone}`,
+            label: target.label,
+            onSelect: () => moveStackItem(cardId, target.zone),
+            separator: index === 0,
+          });
+        });
+
+        stackItems.push({
+          key: 'stack-counter',
+          label: '打ち消し(墓地へ)',
+          onSelect: () => store.removeStackItem(cardId),
+          danger: true,
+        });
+      } else {
+        stackItems.push({
+          key: 'stack-remove-ability',
+          label: '取り除く',
+          onSelect: () => store.removeStackItem(cardId),
+          separator: true,
+          danger: true,
+        });
+      }
+
+      return { title: displayName, items: stackItems };
+    }
+
     if (card.zone === 'battlefield') {
       items.push({
         key: 'tap',
@@ -441,6 +520,22 @@ export function Playmat() {
           separator: true,
         });
       }
+
+      items.push(
+        {
+          key: 'ability-activate',
+          label: '能力を起動(スタックへ)',
+          testId: 'ability-activate',
+          onSelect: () => store.addAbilityToStack(cardId, 'activated'),
+          separator: true,
+        },
+        {
+          key: 'ability-trigger',
+          label: '誘発を積む(スタックへ)',
+          testId: 'ability-trigger',
+          onSelect: () => store.addAbilityToStack(cardId, 'triggered'),
+        }
+      );
     }
 
     if (card.zone === 'hand') {
@@ -457,6 +552,12 @@ export function Playmat() {
           label: 'キャスト',
           onSelect: () => requestCastFromHand(cardId),
           separator: true,
+        });
+        items.push({
+          key: 'cast-to-stack',
+          label: '唱える(スタックへ)',
+          testId: 'cast-to-stack',
+          onSelect: () => requestCastToStack(cardId),
         });
       }
 
@@ -622,14 +723,23 @@ export function Playmat() {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="playmat" onClick={closeMenu}>
         <div className="playmat__board">
-          <Battlefield
-            state={state}
-            onCardContextMenu={handleCardContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
-            creatureOverlay={<PhaseOverlay state={state} />}
-            landOverlay={<ManaOverlay state={state} store={store} />}
-          />
+          <div className="playmat__battlefield-stage">
+            <Battlefield
+              state={state}
+              onCardContextMenu={handleCardContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+              creatureOverlay={<PhaseOverlay state={state} />}
+              landOverlay={<ManaOverlay state={state} store={store} />}
+            />
+            <Stack
+              state={state}
+              onCardContextMenu={handleCardContextMenu}
+              hoverPreview={hoverPreview}
+              onResolveTop={() => store.resolveTop()}
+              onResolveAll={() => store.resolveAll()}
+            />
+          </div>
 
           <div className="playmat__handrow">
             <Hand
@@ -744,6 +854,8 @@ export function Playmat() {
             onConfirm={(xValue) => {
               if (pendingXCast.kind === 'hand') {
                 requestCastFromHand(pendingXCast.cardId, xValue);
+              } else if (pendingXCast.kind === 'stack') {
+                requestCastToStack(pendingXCast.cardId, xValue);
               } else {
                 requestCastCommander(pendingXCast.cardId, xValue);
               }
@@ -759,6 +871,11 @@ export function Playmat() {
             onForce={() => {
               if (pendingPayment.kind === 'hand') {
                 store.castFromHand(pendingPayment.cardId, {
+                  force: true,
+                  xValue: pendingPayment.xValue,
+                });
+              } else if (pendingPayment.kind === 'stack') {
+                store.castToStack(pendingPayment.cardId, {
                   force: true,
                   xValue: pendingPayment.xValue,
                 });
@@ -980,4 +1097,5 @@ const ZONE_LABELS: Record<ZoneId, string> = {
   graveyard: '墓地',
   exile: '追放',
   command: '統率領域',
+  stack: 'スタック',
 };

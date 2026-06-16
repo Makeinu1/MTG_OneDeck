@@ -1282,23 +1282,25 @@
   display: flex;
   align-items: center;
   height: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: visible;
   padding: 18px 36px 10px;
-  justify-content: center;
+  justify-content: flex-start;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .hand__slot {
   position: relative;
   --hand-offset: calc(var(--hand-index) - ((var(--hand-count) - 1) / 2));
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  width: 122px;
+  min-width: 122px;
   max-width: 122px;
   display: flex;
   justify-content: center;
   margin-left: calc(
-    -1 * clamp(8px, calc((var(--hand-count, 1) - 4) * 6px), 64px)
+    -1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 42px)
   );
   transform: rotate(calc(var(--hand-offset) * 2.6deg)) translateY(8px);
   transform-origin: center 132%;
@@ -2272,7 +2274,10 @@
   }
 
   .hand__slot {
-    margin-left: -24px;
+    width: 122px;
+    min-width: 122px;
+    max-width: 122px;
+    margin-left: calc(-1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 32px));
   }
 }
 
@@ -2420,18 +2425,19 @@
 
   .hand__cards {
     padding: 12px 12px 4px;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .hand__slot {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 0 0 auto;
+    width: 92px;
+    min-width: 92px;
     max-width: 92px;
     margin-left: calc(
-      -1 * clamp(10px, calc((var(--hand-count, 1) - 4) * 7px), 68px)
+      -1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 28px)
     );
     transform: rotate(calc(var(--hand-offset) * 2deg)) translateY(4px);
   }
@@ -2637,6 +2643,16 @@
   grid-template-rows: minmax(0, 1fr) var(--playmat-hand-row);
   gap: 10px;
   min-height: 0;
+}
+
+.playmat__battlefield-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.playmat__battlefield-stage > .battlefield {
+  height: 100%;
 }
 
 .playmat__handrow {
@@ -2916,10 +2932,97 @@
 }
 
 .hand__cards {
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: visible;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 10px 12px 10px;
+  gap: 0;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable both-edges;
+}
+
+.hand__slot {
+  flex: 0 0 auto;
+  width: 122px;
+  min-width: 122px;
+  max-width: 122px;
+  margin-left: calc(-1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 42px));
+}
+
+.stack {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(196px, 32vw);
+  padding: 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(216, 176, 106, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
+    rgba(12, 18, 15, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 20px 42px rgba(0, 0, 0, 0.28);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.stack--empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stack--over {
+  border-color: var(--accent-border);
+  background:
+    linear-gradient(180deg, rgba(216, 176, 106, 0.16), rgba(216, 176, 106, 0.04)),
+    rgba(12, 18, 15, 0.88);
+}
+
+.stack__controls {
+  display: flex;
+  gap: 6px;
+}
+
+.stack__controls button {
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 13, 11, 0.72);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stack__items {
+  position: relative;
+  width: 146px;
+  height: 194px;
+}
+
+.stack__item {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--stack-index) + 1);
+  transform:
+    translate(calc(var(--stack-index) * 6px), calc(var(--stack-index) * -5px))
+    rotate(calc((var(--stack-index) - 1) * 1.15deg));
+  transform-origin: center bottom;
+}
+
+.stack__item--top .card-view__face {
+  box-shadow: var(--shadow-pop);
 }
 
 .playmat-overlay {
@@ -3558,24 +3661,54 @@
   }
 
   .hand__cards {
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: visible;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 6px 8px 4px;
   }
 
   .hand__slot {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 92px;
+    flex: 0 0 auto;
+    width: 84px;
+    min-width: 84px;
+    max-width: 84px;
     margin-left: calc(
-      -1 * clamp(10px, calc((var(--hand-count, 1) - 4) * 7px), 68px)
+      -1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 24px)
     );
     transform: rotate(calc(var(--hand-offset) * 2deg)) translateY(4px);
   }
 
   .hand__slot:hover {
     transform: rotate(calc(var(--hand-offset) * 2deg)) translateY(-6px);
+  }
+
+  .stack {
+    top: 44%;
+    width: min(132px, 30vw);
+    gap: 6px;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  .stack__controls {
+    gap: 4px;
+  }
+
+  .stack__controls button {
+    min-height: 22px;
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+
+  .stack__items {
+    width: 96px;
+    height: 132px;
+  }
+
+  .stack__item {
+    transform:
+      translate(calc(var(--stack-index) * 4px), calc(var(--stack-index) * -3px))
+      rotate(calc((var(--stack-index) - 1) * 1deg));
   }
 
   .card-view--battlefield {

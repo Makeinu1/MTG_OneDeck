@@ -15,7 +15,7 @@ import { createRng, shuffledOrder } from '../random';
 import type { GameState, ZoneId } from '../types';
 import { useGameStore } from '../../store/gameStore';
 
-const ZONES: ZoneId[] = ['library', 'hand', 'battlefield', 'graveyard', 'exile', 'command'];
+const ZONES: ZoneId[] = ['library', 'hand', 'battlefield', 'graveyard', 'exile', 'command', 'stack'];
 
 function def(name: string, overrides: Partial<CardDef> = {}): CardDef {
   return {
@@ -277,14 +277,27 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   }
   expect(Object.keys(state.cards).length, `${label}: cards not all in zones`).toBe(seen.size);
 
-  // I2: non-token card count is constant
-  const nonTokens = Object.values(state.cards).filter((c) => !c.isToken).length;
+  // I2: non-token AND non-ability card count is constant (M4.27: ability objects excluded)
+  const nonTokens = Object.values(state.cards).filter((c) => !c.isToken && !c.isAbility).length;
   expect(nonTokens, `${label}: non-token count drifted`).toBe(deckSize);
 
   // I2b: tokens only ever exist on the battlefield
   for (const c of Object.values(state.cards)) {
     if (c.isToken) {
       expect(c.zone, `${label}: token ${c.id} in non-battlefield zone`).toBe('battlefield');
+    }
+  }
+
+  // I9 (M4.27): ability objects live only on the stack; their source/def exist
+  for (const c of Object.values(state.cards)) {
+    if (c.isAbility) {
+      expect(c.zone, `${label}: ability ${c.id} not on stack`).toBe('stack');
+      expect(c.sourceId, `${label}: ability ${c.id} has no sourceId`).toBeDefined();
+      expect(
+        state.cards[c.sourceId as string],
+        `${label}: ability ${c.id} source missing`
+      ).toBeDefined();
+      expect(state.defs[c.defId], `${label}: ability ${c.id} def missing`).toBeDefined();
     }
   }
 

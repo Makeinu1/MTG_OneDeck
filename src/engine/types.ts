@@ -1,6 +1,15 @@
 import type { CardDef } from '../types/card';
 
-export type ZoneId = 'library' | 'hand' | 'battlefield' | 'graveyard' | 'exile' | 'command';
+export type ZoneId =
+  | 'library'
+  | 'hand'
+  | 'battlefield'
+  | 'graveyard'
+  | 'exile'
+  | 'command'
+  | 'stack';
+
+export type AbilityKind = 'activated' | 'triggered';
 
 export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end';
 
@@ -35,6 +44,9 @@ export interface CardInstance {
   isCommander: boolean;
   enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0
   attachedTo?: string; // 装備/オーラの付与先 instance id
+  isAbility?: boolean;
+  sourceId?: string;
+  abilityKind?: AbilityKind;
 }
 
 export interface CommanderInfo {

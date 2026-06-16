@@ -11,6 +11,7 @@ describe('initGame', () => {
     expect(state.zones.command).toHaveLength(1);
     expect(state.zones.library).toHaveLength(10);
     expect(state.zones.hand).toHaveLength(0);
+    expect(state.zones.stack).toHaveLength(0);
     expect(state.commanders).toHaveLength(1);
     expect(state.commanders[0].castCount).toBe(0);
   });

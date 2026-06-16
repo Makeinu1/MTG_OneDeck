@@ -151,6 +151,7 @@ export function Zones({
                   instance={card}
                   def={def}
                   size="hand"
+                  draggable
                   onContextMenu={(e) => onCommanderContextMenu(id, e)}
                   onDoubleClick={(e) => onCardDoubleClick(id, e)}
                   onMouseEnter={(e) => hoverPreview.onMouseEnter(id, e)}

@@ -28,7 +28,37 @@ const PLAYER_COUNTER_KINDS: Array<'poison' | 'energy' | 'experience'> = [
   'energy',
   'experience',
 ];
-const CARD_SCAN_ZONES: ZoneId[] = ['battlefield', 'hand', 'library', 'graveyard', 'exile', 'command'];
+const CARD_SCAN_ZONES: ZoneId[] = [
+  'battlefield',
+  'hand',
+  'library',
+  'graveyard',
+  'exile',
+  'command',
+  'stack',
+];
+const ALL_ZONES: ZoneId[] = [
+  'library',
+  'hand',
+  'battlefield',
+  'graveyard',
+  'exile',
+  'command',
+  'stack',
+];
+
+/**
+ * Backfill any zone arrays missing from an older snapshot (forward compat).
+ * Snapshots saved before a new zone existed (e.g. `stack`, added in M4.27)
+ * would otherwise restore a state with `undefined` zone arrays and crash.
+ */
+function normalizeSnapshotZones(
+  zones: Partial<Record<ZoneId, string[]>>
+): Record<ZoneId, string[]> {
+  const out = {} as Record<ZoneId, string[]>;
+  for (const zone of ALL_ZONES) out[zone] = zones[zone] ?? [];
+  return out;
+}
 
 export interface GameStore {
   state: GameState | null;
@@ -76,6 +106,14 @@ export interface GameStore {
     cardId: string,
     opts?: { xValue?: number; force?: boolean }
   ): 'ok' | { shortfall: number };
+  castToStack(
+    cardId: string,
+    opts?: { xValue?: number; force?: boolean }
+  ): 'ok' | { shortfall: number };
+  addAbilityToStack(sourceId: string, kind: 'activated' | 'triggered'): void;
+  resolveTop(to?: ZoneId): void;
+  resolveAll(): void;
+  removeStackItem(id: string, to?: ZoneId): void;
   declareAttack(attackerIds: string[], targetLabel: string): void;
   adjustOpponentLife(label: string, delta: number): void;
   adjustMana(color: ManaColor, delta: number): void;
@@ -336,7 +374,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.past = [];
       internal.future = [];
       set({
-        state: snapshot.state,
+        state: { ...snapshot.state, zones: normalizeSnapshotZones(snapshot.state.zones) },
         warnings: [],
         canUndo: false,
         canRedo: false,
@@ -467,8 +505,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'shuffle', order });
     },
 
-    moveCard(cardId, to, position = 'top') {
-      dispatch({ type: 'moveCard', cardId, to, position });
+    moveCard(cardId, to, position) {
+      dispatch({
+        type: 'moveCard',
+        cardId,
+        to,
+        position: position ?? (to === 'stack' ? 'bottom' : 'top'),
+      });
     },
 
     tapAllPermanents() {
@@ -716,6 +759,81 @@ export const useGameStore = create<GameStore>((set, get) => {
         console.error(err);
       }
       return 'ok';
+    },
+
+    castToStack(cardId, opts) {
+      const cur = get().state;
+      if (!cur) return 'ok';
+      const card = cur.cards[cardId];
+      if (!card) return 'ok';
+
+      const def = cur.defs[card.defId];
+      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const cost = parseManaCost(face?.manaCost ?? '');
+      const isCommandCommander = card.zone === 'command' && isCommander(cur, cardId);
+      const taxedCost = isCommandCommander
+        ? { ...cost, generic: cost.generic + commanderTax(cur, cardId) }
+        : cost;
+      const xValue = opts?.xValue ?? 0;
+      const directPayment = solvePayment(cur.manaPool, taxedCost, xValue);
+
+      if (directPayment.ok) {
+        dispatch({
+          type: 'castToStack',
+          cardId,
+          payment: directPayment.payment,
+          forced: false,
+        });
+        return 'ok';
+      }
+
+      const plan = planAutoTap(cur, taxedCost, xValue);
+      if (!plan.ok && !opts?.force) {
+        return { shortfall: plan.shortfall };
+      }
+
+      try {
+        const result = applySequence(cur, [
+          ...tapCommands(plan.taps),
+          {
+            type: 'castToStack',
+            cardId,
+            payment: plan.payment,
+            forced: !plan.ok,
+          },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+
+      return 'ok';
+    },
+
+    addAbilityToStack(sourceId, kind) {
+      dispatch({ type: 'addAbilityToStack', sourceId, kind });
+    },
+
+    resolveTop(to) {
+      dispatch({ type: 'resolveStackTop', to });
+    },
+
+    resolveAll() {
+      const cur = get().state;
+      if (!cur || cur.zones.stack.length === 0) return;
+
+      const commands: GameCommand[] = cur.zones.stack.map(() => ({ type: 'resolveStackTop' }));
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    removeStackItem(id, to) {
+      dispatch({ type: 'removeStackItem', id, to });
     },
 
     declareAttack(attackerIds, targetLabel) {

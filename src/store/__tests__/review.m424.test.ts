@@ -82,7 +82,9 @@ describe('store.restoreGame', () => {
     });
 
     const s = useGameStore.getState();
-    expect(s.state).toBe(snapshotState);
+    // M4.27: restoreGame normalizes zones (backfilling any missing from older
+    // snapshots), so the restored state is value-equal, not reference-equal.
+    expect(s.state).toEqual(snapshotState);
     expect(s.canUndo).toBe(false);
     expect(s.canRedo).toBe(false);
     expect(s.autoAdvanceToMain).toBe(true);
