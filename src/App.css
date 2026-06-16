@@ -2554,38 +2554,41 @@
   }
 
   .card-view__badge {
-    top: -6px;
-    left: -4px;
-    font-size: 8px;
-    padding: 2px 5px;
+    top: -5px;
+    left: -3px;
+    font-size: 7px;
+    padding: 1px 4px;
   }
 
   .card-view__badge--token {
-    right: -4px;
+    right: -3px;
   }
 
   .card-view__badge--loyalty {
-    right: -6px;
-    bottom: -6px;
-    min-width: 22px;
-    min-height: 22px;
-    font-size: 12px;
+    right: -4px;
+    bottom: -4px;
+    min-width: 15px;
+    min-height: 15px;
+    padding: 0 3px;
+    font-size: 9px;
   }
 
   .card-view__badge--lore {
-    top: -8px;
+    top: -6px;
+    font-size: 7px;
+    padding: 1px 4px;
   }
 
   .card-view__keyword {
-    min-width: 13px;
-    height: 13px;
-    padding: 0 3px;
-    font-size: 7px;
+    min-width: 11px;
+    height: 11px;
+    padding: 0 2px;
+    font-size: 6px;
   }
 
   .card-view__counter {
-    font-size: 8px;
-    padding: 1px 4px;
+    font-size: 7px;
+    padding: 1px 3px;
   }
 
   .zones__row {
