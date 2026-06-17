@@ -2147,6 +2147,61 @@
 
 /* Mulligan grid */
 
+.mulligan-decision-panel {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 180;
+  pointer-events: none;
+}
+
+.mulligan-decision-panel__dialog {
+  width: min(440px, calc(100vw - 24px));
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--accent-border);
+  background:
+    radial-gradient(circle at top right, rgba(216, 176, 106, 0.18), transparent 46%),
+    rgba(18, 27, 22, 0.94);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.mulligan-decision-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mulligan-decision-panel__header h2,
+.mulligan-decision-panel__message {
+  margin: 0;
+}
+
+.mulligan-decision-panel__header h2 {
+  font-size: 18px;
+}
+
+.mulligan-decision-panel__count {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.mulligan-decision-panel__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.mulligan-decision-panel__actions {
+  margin-top: 4px;
+}
+
 .mulligan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

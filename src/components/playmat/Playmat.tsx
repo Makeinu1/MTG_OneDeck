@@ -49,8 +49,6 @@ import { useHoverPreview } from '../../hooks/useHoverPreview';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
-  | { kind: 'hand'; cardId: string; shortfall: number; xValue: number }
-  | { kind: 'commander'; cardId: string; shortfall: number; xValue: number }
   | { kind: 'stack'; cardId: string; shortfall: number; xValue: number }
   | { kind: 'cycle'; cardId: string; shortfall: number };
 type ManaChoiceRequest = {
@@ -58,7 +56,7 @@ type ManaChoiceRequest = {
   cardId: string;
   options: ManaColor[];
 };
-type PendingXCast = { kind: 'hand' | 'commander' | 'stack'; cardId: string };
+type PendingXCast = { kind: 'stack'; cardId: string };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = {
   kind: 'draw' | 'mill' | 'peek' | 'discard-random';
@@ -109,7 +107,6 @@ export function Playmat() {
   );
 
   const isDialogOpen =
-    mulliganDecisionPending ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
@@ -125,15 +122,23 @@ export function Playmat() {
     attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
+  const shortcutsBlocked = mulliganDecisionPending || isDialogOpen;
 
   useShortcuts({
-    onNextPhase: () => store.nextPhase(),
+    onNextPhase: () => {
+      const currentState = useGameStore.getState().state;
+      if (currentState && currentState.zones.stack.length > 0) {
+        requestResolveTop();
+        return;
+      }
+      store.nextPhase();
+    },
     onNextTurn: () => store.nextTurn(),
     onUndo: () => store.undo(),
     onRedo: () => store.redo(),
     onRestart: () => setConfirmAction('restart'),
     onDraw: () => store.draw(1),
-    isDialogOpen,
+    isDialogOpen: shortcutsBlocked,
   });
 
   if (!state) return null;
@@ -187,24 +192,6 @@ export function Playmat() {
     }
   }
 
-  function requestCastFromHand(cardId: string, xValue?: number): void {
-    if (xValue === undefined && requiresXValue(cardId)) {
-      setPendingXCast({ kind: 'hand', cardId });
-      return;
-    }
-
-    const chosenXValue = xValue ?? 0;
-    const result = store.castFromHand(cardId, { xValue: chosenXValue });
-    if (result !== 'ok') {
-      setPendingPayment({
-        kind: 'hand',
-        cardId,
-        shortfall: result.shortfall,
-        xValue: chosenXValue,
-      });
-    }
-  }
-
   function requestCastToStack(cardId: string, xValue?: number): void {
     if (xValue === undefined && requiresXValue(cardId)) {
       setPendingXCast({ kind: 'stack', cardId });
@@ -216,24 +203,6 @@ export function Playmat() {
     if (result !== 'ok') {
       setPendingPayment({
         kind: 'stack',
-        cardId,
-        shortfall: result.shortfall,
-        xValue: chosenXValue,
-      });
-    }
-  }
-
-  function requestCastCommander(cardId: string, xValue?: number): void {
-    if (xValue === undefined && requiresXValue(cardId)) {
-      setPendingXCast({ kind: 'commander', cardId });
-      return;
-    }
-
-    const chosenXValue = xValue ?? 0;
-    const result = store.castCommander(cardId, { xValue: chosenXValue });
-    if (result !== 'ok') {
-      setPendingPayment({
-        kind: 'commander',
         cardId,
         shortfall: result.shortfall,
         xValue: chosenXValue,
@@ -269,7 +238,8 @@ export function Playmat() {
   }
 
   function requestResolveTop(): void {
-    const dialog = fetchDialogForTop(state);
+    const currentState = useGameStore.getState().state;
+    const dialog = fetchDialogForTop(currentState);
     if (dialog) {
       setFetchDialog(dialog);
       return;
@@ -349,10 +319,10 @@ export function Playmat() {
   /**
    * Double-click quick actions:
    * - hand land -> play as land
-   * - hand spell -> cast
+   * - hand spell -> cast to stack
    * - battlefield untapped mana source -> tap for mana (color picker if multiple)
    * - battlefield other card -> toggle tap
-   * - command zone commander -> cast commander
+   * - command zone commander -> cast to stack
    */
   function handleCardDoubleClick(cardId: string, e: React.MouseEvent): void {
     e.stopPropagation();
@@ -365,7 +335,7 @@ export function Playmat() {
       if (typeLineFor(cardId).includes('Land')) {
         requestPlayLand(cardId);
       } else {
-        requestCastFromHand(cardId);
+        requestCastToStack(cardId);
       }
       return;
     }
@@ -388,7 +358,7 @@ export function Playmat() {
     }
 
     if (card.zone === 'command' && isCommander(state!, cardId)) {
-      requestCastCommander(cardId);
+      requestCastToStack(cardId);
       return;
     }
 
@@ -622,16 +592,11 @@ export function Playmat() {
         });
       } else {
         items.push({
-          key: 'cast',
-          label: 'キャスト',
-          onSelect: () => requestCastFromHand(cardId),
-          separator: true,
-        });
-        items.push({
           key: 'cast-to-stack',
-          label: '唱える(スタックへ)',
+          label: '唱える(スタック)',
           testId: 'cast-to-stack',
           onSelect: () => requestCastToStack(cardId),
+          separator: true,
         });
       }
 
@@ -653,9 +618,10 @@ export function Playmat() {
 
     if (card.zone === 'command' && isCommander(state!, cardId)) {
       items.push({
-        key: 'cast-commander',
-        label: '統率者をキャスト',
-        onSelect: () => requestCastCommander(cardId),
+        key: 'cast-to-stack',
+        label: '唱える(スタック)',
+        testId: 'cast-to-stack',
+        onSelect: () => requestCastToStack(cardId),
         separator: true,
       });
     }
@@ -926,13 +892,7 @@ export function Playmat() {
             cardName={cardNameFor(pendingXCast.cardId)}
             manaCost={manaCostFor(pendingXCast.cardId)}
             onConfirm={(xValue) => {
-              if (pendingXCast.kind === 'hand') {
-                requestCastFromHand(pendingXCast.cardId, xValue);
-              } else if (pendingXCast.kind === 'stack') {
-                requestCastToStack(pendingXCast.cardId, xValue);
-              } else {
-                requestCastCommander(pendingXCast.cardId, xValue);
-              }
+              requestCastToStack(pendingXCast.cardId, xValue);
               setPendingXCast(null);
             }}
             onCancel={() => setPendingXCast(null)}
@@ -943,18 +903,8 @@ export function Playmat() {
           <ShortfallDialog
             shortfall={pendingPayment.shortfall}
             onForce={() => {
-              if (pendingPayment.kind === 'hand') {
-                store.castFromHand(pendingPayment.cardId, {
-                  force: true,
-                  xValue: pendingPayment.xValue,
-                });
-              } else if (pendingPayment.kind === 'stack') {
+              if (pendingPayment.kind === 'stack') {
                 store.castToStack(pendingPayment.cardId, {
-                  force: true,
-                  xValue: pendingPayment.xValue,
-                });
-              } else if (pendingPayment.kind === 'commander') {
-                store.castCommander(pendingPayment.cardId, {
                   force: true,
                   xValue: pendingPayment.xValue,
                 });
