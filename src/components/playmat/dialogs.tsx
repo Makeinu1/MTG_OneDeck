@@ -922,7 +922,7 @@ export function FetchSearchDialog({
   state: GameState;
   sourceId: string;
   ability: FetchAbility;
-  onConfirm: (targetId: string, opts: { entersTapped: boolean; lifeCost: number }) => void;
+  onConfirm: (targetId: string, opts: { entersTapped: boolean }) => void;
   onClose: () => void;
 }) {
   const [search, setSearch] = useState('');
@@ -956,8 +956,9 @@ export function FetchSearchDialog({
   return (
     <Modal title="サーチ(フェッチ)" onClose={onClose} width="lg" testId="fetch-search-dialog">
       <p>
-        《{sourceName}》で {fetchFilterLabel(ability)} を探します。ライフ -{ability.lifeCost}
+        《{sourceName}》のフェッチを解決します。{fetchFilterLabel(ability)} を探します。
       </p>
+      {ability.lifeCost > 0 && <p>ライフ支払いは起動時に完了しています。</p>}
       <label className="dialog__field">
         カード名で検索
         <input
@@ -1013,7 +1014,7 @@ export function FetchSearchDialog({
                       type="button"
                       className="btn btn--accent btn--sm"
                       onClick={() => {
-                        onConfirm(cardId, { entersTapped, lifeCost: ability.lifeCost });
+                        onConfirm(cardId, { entersTapped });
                         onClose();
                       }}
                       data-testid={`fetch-target-${cardId}`}

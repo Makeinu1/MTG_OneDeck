@@ -277,8 +277,11 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   }
   expect(Object.keys(state.cards).length, `${label}: cards not all in zones`).toBe(seen.size);
 
-  // I2: non-token AND non-ability card count is constant (M4.27: ability objects excluded)
-  const nonTokens = Object.values(state.cards).filter((c) => !c.isToken && !c.isAbility).length;
+  // I2: non-token AND non-ability AND non-copy count is constant
+  // (M4.27: ability objects excluded; M4.28: copy objects excluded)
+  const nonTokens = Object.values(state.cards).filter(
+    (c) => !c.isToken && !c.isAbility && !c.isCopy
+  ).length;
   expect(nonTokens, `${label}: non-token count drifted`).toBe(deckSize);
 
   // I2b: tokens only ever exist on the battlefield
@@ -327,6 +330,14 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
       expect(c.enteredTurn, `${label}: ${c.id} enteredTurn in future`).toBeLessThanOrEqual(state.turn);
     } else {
       expect(c.enteredTurn, `${label}: ${c.id} enteredTurn not cleared`).toBe(0);
+    }
+  }
+
+  // I10 (M4.28): copy objects live only on the stack; their def exists
+  for (const c of Object.values(state.cards)) {
+    if (c.isCopy) {
+      expect(c.zone, `${label}: copy ${c.id} off stack`).toBe('stack');
+      expect(state.defs[c.defId], `${label}: copy ${c.id} def missing`).toBeDefined();
     }
   }
 }

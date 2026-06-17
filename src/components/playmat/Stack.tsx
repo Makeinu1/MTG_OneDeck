@@ -55,7 +55,11 @@ export function Stack({
           const source = card.sourceId ? state.cards[card.sourceId] : undefined;
           const def = source ? state.defs[source.defId] : state.defs[card.defId];
           const badge =
-            card.isAbility && card.abilityKind ? ABILITY_BADGES[card.abilityKind] : undefined;
+            card.isAbility && card.abilityKind
+              ? ABILITY_BADGES[card.abilityKind]
+              : card.isCopy
+                ? 'コピー'
+                : undefined;
 
           return (
             <div

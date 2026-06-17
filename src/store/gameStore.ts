@@ -15,6 +15,7 @@ import { createRng, shuffledOrder } from '../engine/random';
 import type { GameState, ZoneId } from '../engine/types';
 import {
   effectivePower,
+  fetchAbility,
   hasVigilance,
   isSummoningSick,
   landEntersTapped,
@@ -111,6 +112,8 @@ export interface GameStore {
     opts?: { xValue?: number; force?: boolean }
   ): 'ok' | { shortfall: number };
   addAbilityToStack(sourceId: string, kind: 'activated' | 'triggered'): void;
+  copyStackItem(cardId: string): void;
+  copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
@@ -136,6 +139,8 @@ export interface GameStore {
   flipCoin(): void;
   clearWarnings(): void;
   cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
+  activateFetch(sourceId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
+  resolveFetch(abilityId: string, targetId: string, opts: { entersTapped: boolean }): void;
   fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
 }
 
@@ -261,6 +266,14 @@ function applySequence(
   }
 
   return { state: next, warnings };
+}
+
+function isFetchAbilityStackItem(state: GameState, cardId: string): boolean {
+  const card = state.cards[cardId];
+  if (!card?.isAbility || !card.sourceId) return false;
+  const source = state.cards[card.sourceId];
+  if (!source) return false;
+  return fetchAbility(state.defs[source.defId]) !== null;
 }
 
 function untapToMainCommands(): GameCommand[] {
@@ -814,6 +827,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'addAbilityToStack', sourceId, kind });
     },
 
+    copyStackItem(cardId) {
+      dispatch({ type: 'copyStackItem', cardId });
+    },
+
+    copyPermanent(cardId, quantity = 1) {
+      dispatch({ type: 'copyPermanent', cardId, quantity });
+    },
+
     resolveTop(to) {
       dispatch({ type: 'resolveStackTop', to });
     },
@@ -822,7 +843,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       const cur = get().state;
       if (!cur || cur.zones.stack.length === 0) return;
 
-      const commands: GameCommand[] = cur.zones.stack.map(() => ({ type: 'resolveStackTop' }));
+      const commands: GameCommand[] = [];
+      for (let i = cur.zones.stack.length - 1; i >= 0; i--) {
+        if (isFetchAbilityStackItem(cur, cur.zones.stack[i])) {
+          break;
+        }
+        commands.push({ type: 'resolveStackTop' });
+      }
+      if (commands.length === 0) return;
 
       try {
         const result = applySequence(cur, commands);
@@ -951,6 +979,61 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       return 'ok';
+    },
+
+    activateFetch(sourceId, opts) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const commands: GameCommand[] = [];
+      if (opts.lifeCost > 0) {
+        commands.push({ type: 'adjustLife', delta: -opts.lifeCost });
+      }
+      commands.push(
+        { type: 'moveCard', cardId: sourceId, to: 'graveyard', position: 'top' },
+        { type: 'addAbilityToStack', sourceId, kind: 'activated' }
+      );
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
+    },
+
+    resolveFetch(abilityId, targetId, opts) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const rng = createRng(randomSeed());
+      const order = shuffledOrder(
+        cur.zones.library.filter((cardId) => cardId !== targetId),
+        rng
+      );
+
+      const commands: GameCommand[] = [
+        { type: 'moveCard', cardId: targetId, to: 'battlefield', position: 'top' },
+      ];
+      if (opts.entersTapped) {
+        commands.push({ type: 'setTapped', cardId: targetId, tapped: true });
+      }
+      commands.push({ type: 'shuffle', order }, { type: 'removeStackItem', id: abilityId });
+
+      try {
+        const result = applySequence(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
     },
 
     fetchLand(sourceId, targetId, opts) {

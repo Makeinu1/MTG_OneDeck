@@ -41,6 +41,8 @@ export type GameCommand =
   | { type: 'addAbilityToStack'; sourceId: string; kind: AbilityKind }
   | { type: 'resolveStackTop'; to?: ZoneId }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
+  | { type: 'copyStackItem'; cardId: string }
+  | { type: 'copyPermanent'; cardId: string; quantity: number }
   | {
       type: 'createToken';
       name: string;
@@ -259,10 +261,7 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
   };
 }
 
-/**
- * Core move. Handles token disappearance (I2), state reset, position.
- * Returns true if the card moved (false if it vanished as a token).
- */
+/** Core move. Handles disappearance rules, state reset, and destination ordering. */
 function moveCardInternal(
   draft: Draft,
   cardId: string,
@@ -293,6 +292,17 @@ function moveCardInternal(
     return;
   }
 
+  if (card.isCopy) {
+    if (to !== 'battlefield') {
+      const name = nameOfCard(draft, card);
+      deleteCardFromState(draft, cardId);
+      if (log) {
+        pushLog(draft, `コピー${name}は消滅した。`);
+      }
+      return;
+    }
+  }
+
   removeFromCurrentZone(draft, cardId);
   const dest = editZone(draft, to);
 
@@ -304,6 +314,13 @@ function moveCardInternal(
   let updated = sameBattlefield ? { ...card, zone: to } : resetCardForZoneChange(card, to);
   if (!sameBattlefield && to === 'battlefield') {
     updated = applyBattlefieldEntryEffects(draft, updated);
+    if (card.isCopy) {
+      updated = {
+        ...updated,
+        isToken: true,
+        isCopy: false,
+      };
+    }
   }
   setCard(draft, updated);
 
@@ -611,6 +628,39 @@ function nextAbilityId(state: GameState): string {
   return `a${max + 1}`;
 }
 
+function nextCopyId(state: GameState): string {
+  let max = 0;
+  for (const id of Object.keys(state.cards)) {
+    if (!id.startsWith('k')) continue;
+    const n = Number.parseInt(id.slice(1), 10);
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return `k${max + 1}`;
+}
+
+function createAbilityObject(
+  abilityId: string,
+  sourceId: string,
+  defId: string,
+  kind: AbilityKind
+): CardInstance {
+  return {
+    id: abilityId,
+    defId,
+    zone: 'stack',
+    tapped: false,
+    faceIndex: 0,
+    faceDown: false,
+    counters: {},
+    isToken: false,
+    isCommander: false,
+    enteredTurn: 0,
+    isAbility: true,
+    sourceId,
+    abilityKind: kind,
+  };
+}
+
 function applyCastToStack(
   draft: Draft,
   cardId: string,
@@ -648,21 +698,7 @@ function applyAddAbilityToStack(draft: Draft, sourceId: string, kind: AbilityKin
   const cards = { ...draft.state.cards };
   const stack = editZone(draft, 'stack');
 
-  cards[abilityId] = {
-    id: abilityId,
-    defId: source.defId,
-    zone: 'stack',
-    tapped: false,
-    faceIndex: 0,
-    faceDown: false,
-    counters: {},
-    isToken: false,
-    isCommander: false,
-    enteredTurn: 0,
-    isAbility: true,
-    sourceId,
-    abilityKind: kind,
-  };
+  cards[abilityId] = createAbilityObject(abilityId, sourceId, source.defId, kind);
   draft.state.cards = cards;
   stack.push(abilityId);
 
@@ -709,6 +745,78 @@ function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
   const destination = to ?? 'graveyard';
   moveCardInternal(draft, id, destination, 'bottom', false);
   pushLog(draft, `${stackNameOf(draft, card)}を打ち消した(→${ZONE_LABELS[destination]})。`);
+}
+
+function applyCopyStackItem(draft: Draft, cardId: string): void {
+  if (!draft.state.zones.stack.includes(cardId)) {
+    throw new EngineError(`スタックに存在しないカードです: ${cardId}`);
+  }
+
+  const source = requireCard(draft, cardId);
+  const stack = editZone(draft, 'stack');
+  const cards = { ...draft.state.cards };
+
+  if (source.isAbility) {
+    const abilityId = nextAbilityId(draft.state);
+    cards[abilityId] = createAbilityObject(
+      abilityId,
+      source.sourceId ?? cardId,
+      source.defId,
+      source.abilityKind ?? 'activated'
+    );
+    draft.state.cards = cards;
+    stack.push(abilityId);
+    pushLog(draft, `${stackNameOf(draft, source)}の能力をコピーした。`);
+    return;
+  }
+
+  const copyId = nextCopyId(draft.state);
+  cards[copyId] = {
+    id: copyId,
+    defId: source.defId,
+    zone: 'stack',
+    tapped: false,
+    faceIndex: source.faceIndex,
+    faceDown: source.faceDown,
+    counters: {},
+    isToken: false,
+    isCommander: false,
+    enteredTurn: 0,
+    isCopy: true,
+  };
+  draft.state.cards = cards;
+  stack.push(copyId);
+  pushLog(draft, `${stackNameOf(draft, source)}をコピーした(スタックへ)。`);
+}
+
+function applyCopyPermanent(draft: Draft, cardId: string, quantity: number): void {
+  const source = requireCard(draft, cardId);
+  const qty = Math.max(0, Math.floor(quantity));
+  if (qty === 0) return;
+
+  const genId = nextTokenId(draft.state);
+  const cards = { ...draft.state.cards };
+  const battlefield = editZone(draft, 'battlefield');
+
+  for (let i = 1; i <= qty; i++) {
+    const token = applyBattlefieldEntryEffects(draft, {
+      id: genId(i),
+      defId: source.defId,
+      zone: 'battlefield',
+      tapped: false,
+      faceIndex: source.faceIndex,
+      faceDown: source.faceDown,
+      counters: {},
+      isToken: true,
+      isCommander: false,
+      enteredTurn: 0,
+    });
+    cards[token.id] = token;
+    battlefield.push(token.id);
+  }
+
+  draft.state.cards = cards;
+  pushLog(draft, `${nameOf(draft, cardId)}のコピー・トークンを${qty}個作った。`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1073,6 +1181,14 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'removeStackItem': {
       applyRemoveStackItem(draft, cmd.id, cmd.to);
+      break;
+    }
+    case 'copyStackItem': {
+      applyCopyStackItem(draft, cmd.cardId);
+      break;
+    }
+    case 'copyPermanent': {
+      applyCopyPermanent(draft, cmd.cardId, cmd.quantity);
       break;
     }
     case 'createToken': {

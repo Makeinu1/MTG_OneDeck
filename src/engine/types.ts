@@ -33,7 +33,7 @@ export interface ManaPool {
 }
 
 export interface CardInstance {
-  id: string; // instance id ('c1', 'c2', ... / tokens: 't1', ...)
+  id: string; // instance id ('c1', 'c2', ... / tokens: 't1', ... / stack copies: 'k1', ...)
   defId: string; // CardDef.scryfallId(トークンは合成defを defs に登録)
   zone: ZoneId;
   tapped: boolean;
@@ -47,6 +47,7 @@ export interface CardInstance {
   isAbility?: boolean;
   sourceId?: string;
   abilityKind?: AbilityKind;
+  isCopy?: boolean;
 }
 
 export interface CommanderInfo {

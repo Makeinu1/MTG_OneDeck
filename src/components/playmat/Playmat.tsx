@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
-import type { ZoneId } from '../../engine/types';
+import type { GameState, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
 import type { MenuTarget } from '../types';
@@ -64,6 +64,7 @@ type CountDialogState = {
   kind: 'draw' | 'mill' | 'peek' | 'discard-random';
   defaultValue: number;
 };
+type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
 type MenuTriggerEvent =
   | React.MouseEvent<HTMLElement>
   | React.PointerEvent<HTMLElement>;
@@ -89,7 +90,7 @@ export function Playmat() {
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
-  const [fetchDialog, setFetchDialog] = useState<{ sourceId: string; ability: FetchAbility } | null>(null);
+  const [fetchDialog, setFetchDialog] = useState<FetchDialogState | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
@@ -244,6 +245,44 @@ export function Playmat() {
     const result = store.cycle(cardId);
     if (result !== 'ok') {
       setPendingPayment({ kind: 'cycle', cardId, shortfall: result.shortfall });
+    }
+  }
+
+  function fetchDialogForTop(currentState: GameState | null): FetchDialogState | null {
+    if (!currentState || currentState.zones.stack.length === 0) return null;
+
+    const abilityId = currentState.zones.stack[currentState.zones.stack.length - 1];
+    const abilityCard = currentState.cards[abilityId];
+    if (!abilityCard?.isAbility || !abilityCard.sourceId) return null;
+
+    const source = currentState.cards[abilityCard.sourceId];
+    if (!source) return null;
+
+    const ability = fetchAbility(currentState.defs[source.defId]);
+    if (!ability) return null;
+
+    return {
+      abilityId,
+      sourceId: abilityCard.sourceId,
+      ability,
+    };
+  }
+
+  function requestResolveTop(): void {
+    const dialog = fetchDialogForTop(state);
+    if (dialog) {
+      setFetchDialog(dialog);
+      return;
+    }
+    store.resolveTop();
+  }
+
+  function requestResolveAll(): void {
+    store.resolveAll();
+    const currentState = useGameStore.getState().state;
+    const dialog = currentState ? fetchDialogForTop(currentState) : null;
+    if (dialog) {
+      setFetchDialog(dialog);
     }
   }
 
@@ -425,16 +464,33 @@ export function Playmat() {
         {
           key: 'stack-resolve-top',
           label: '上から解決',
-          onSelect: () => store.resolveTop(),
+          onSelect: () => requestResolveTop(),
         },
         {
           key: 'stack-resolve-all',
           label: '全解決',
-          onSelect: () => store.resolveAll(),
+          onSelect: () => requestResolveAll(),
         },
       ];
 
       if (!card.isAbility) {
+        const isPermanentSpell = !/Instant|Sorcery/i.test(typeLine);
+        stackItems.push({
+          key: 'stack-copy-effect',
+          label: '効果をコピー(スタックへ)',
+          testId: 'copy-effect',
+          onSelect: () => store.copyStackItem(cardId),
+          separator: true,
+        });
+        if (isPermanentSpell) {
+          stackItems.push({
+            key: 'stack-copy-permanent',
+            label: 'パーマネントとしてコピー(トークン)',
+            testId: 'copy-permanent',
+            onSelect: () => store.copyPermanent(cardId),
+          });
+        }
+
         const stackMoveTargets: Array<{ zone: ZoneId; label: string }> = [
           { zone: 'battlefield', label: '戦場へ移す' },
           { zone: 'graveyard', label: '墓地へ移す' },
@@ -453,16 +509,22 @@ export function Playmat() {
 
         stackItems.push({
           key: 'stack-counter',
-          label: '打ち消し(墓地へ)',
+          label: '打ち消す',
           onSelect: () => store.removeStackItem(cardId),
           danger: true,
         });
       } else {
         stackItems.push({
+          key: 'stack-copy-ability',
+          label: 'コピー(スタックへ)',
+          testId: 'copy-ability',
+          onSelect: () => store.copyStackItem(cardId),
+          separator: true,
+        });
+        stackItems.push({
           key: 'stack-remove-ability',
           label: '取り除く',
           onSelect: () => store.removeStackItem(cardId),
-          separator: true,
           danger: true,
         });
       }
@@ -513,13 +575,25 @@ export function Playmat() {
 
       if (fetch) {
         items.push({
-          key: 'fetch-search',
-          label: 'サーチ(フェッチ)',
-          testId: 'fetch-search',
-          onSelect: () => setFetchDialog({ sourceId: cardId, ability: fetch }),
+          key: 'fetch-activate',
+          label: 'フェッチ起動(スタックへ)',
+          testId: 'fetch-activate',
+          onSelect: () =>
+            store.activateFetch(cardId, {
+              entersTapped: fetch.entersTapped,
+              lifeCost: fetch.lifeCost,
+            }),
           separator: true,
         });
       }
+
+      items.push({
+        key: 'copy-permanent',
+        label: 'コピー(トークン)',
+        testId: 'copy-permanent',
+        onSelect: () => store.copyPermanent(cardId),
+        separator: !fetch,
+      });
 
       items.push(
         {
@@ -736,8 +810,8 @@ export function Playmat() {
               state={state}
               onCardContextMenu={handleCardContextMenu}
               hoverPreview={hoverPreview}
-              onResolveTop={() => store.resolveTop()}
-              onResolveAll={() => store.resolveAll()}
+              onResolveTop={requestResolveTop}
+              onResolveAll={requestResolveAll}
             />
           </div>
 
@@ -927,7 +1001,7 @@ export function Playmat() {
             sourceId={fetchDialog.sourceId}
             ability={fetchDialog.ability}
             onConfirm={(targetId, opts) => {
-              store.fetchLand(fetchDialog.sourceId, targetId, opts);
+              store.resolveFetch(fetchDialog.abilityId, targetId, opts);
               setFetchDialog(null);
             }}
             onClose={() => setFetchDialog(null)}

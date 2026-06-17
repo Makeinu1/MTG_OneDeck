@@ -619,3 +619,65 @@ removeStackItem(id: string, to?: ZoneId): void;                            // di
   手札カードの右クリック「唱える(スタックへ)」=`castToStack` / 手札カードを中央スタックへドラッグ=`moveCard(_, 'stack')`(マナ手動) /
   戦場パーマネントの右クリック「能力を起動(スタックへ)」「誘発を積む(スタックへ)」=`addAbilityToStack`。
 - 統率者カードに `draggable` を付与(`Zones.tsx`)。ドラッグはゾーン移動のみ(キャストはメニュー/ダブルクリック)。
+
+---
+
+## 13. M4.28 追補(スタック拡張: コピー + フェッチのスタック化)— この節も契約である
+
+設計指針: M4.27 のスタックを拡張。サンドボックス哲学(手動・ルール非強制)を維持。コピーは2系統(パーマネント=トークン / 効果=スタック)、フェッチは起動→スタック→解決の流れに統一。
+
+### 13.1 型の追加(`src/engine/types.ts`)
+```ts
+// CardInstance に追加:
+isCopy?: boolean;   // スタック上のスペルのコピー。isAbility と同様 stack 専用の一時オブジェクト。
+                    //   解決でパーマネント型→戦場のトークン化、非パーマネント→消滅。
+```
+- コピー・オブジェクトは表示に `defs[defId]`(=コピー元の defId を流用)を使う(`defs` に新規追加しない)。
+
+### 13.2 コマンドの追加(`src/engine/commands.ts`)
+```ts
+| { type: 'copyStackItem'; cardId: string }
+//   cardId は stack 内の項目(無ければ EngineError)。コピーを stack 末尾(最上段)へ。
+//   - 能力オブジェクト(isAbility) → 能力コピー: 新しい isAbility オブジェクト(同 sourceId/abilityKind、
+//     defId=source.defId、id 'a{n}')。
+//   - スペル(実カード/コピー) → スペルコピー: 新 instance(isCopy:true, isToken:false,
+//     defId=source.defId, zone:'stack', id 'k{n}'[token 't' と独立採番])。
+//   ログ「《X》をコピーした(スタックへ)。」/能力は「《X》の能力をコピーした。」。
+
+| { type: 'copyPermanent'; cardId: string; quantity: number }
+//   cardId のカードを基に、トークンコピーを quantity 個 battlefield に作成。
+//   各トークン: isToken:true, defId=cards[cardId].defId, zone:'battlefield'(ETB フック適用=
+//   enteredTurn/PW忠誠/Saga章)。カウンター等は複製しない(新規)。id 't{n}'..。
+//   quantity<=0 は no-op。ログ「《X》のコピー・トークンをN個作った。」。
+```
+- **resolveStackTop / removeStackItem は §12 のまま**(コピーの解決・除去は §13.3 の moveCardInternal が処理)。
+  spell の行先は従来どおり `to` 指定 or 型で自動。
+
+### 13.3 moveCardInternal の補強(I10 維持)
+- カードが `isCopy === true` の場合の移動(stack からの移動を含む):
+  - 行先が `battlefield` **以外** → 消滅(`deleteCardFromState`、ログ「コピー《X》は消滅した。」)。トークン/能力の消滅則と同様。
+  - 行先が `battlefield` → **トークン化して残す**: 通常の battlefield 進入処理(ETB)を行ったうえで `isToken:true, isCopy:false` を設定。
+- これで `resolveStackTop`(パーマネント型→戦場でトークン化 / 非パーマネント→消滅)も、スタック項目の手動ドラッグ(`moveCard` to graveyard/hand 等)も正しく振る舞う。
+- 採番ヘルパー `nextCopyId`(接頭辞 `k`、token の `t{max+1}` と同方式)を追加。
+
+### 13.4 不変条件の更新・追加(プロパティテスト対象)
+- **新 I10**: `isCopy === true` の instance は必ず `zone === 'stack'`(コピーは stack 専用。戦場到達時に isToken 化して isCopy 解除、他ゾーンへの移動で消滅)。`defId ∈ defs`。
+- **I2 更新**: 総数一定の対象を「非トークン ∧ 非能力 ∧ **非コピー**(`!isToken && !isAbility && !isCopy`)」に。I2b(トークンは battlefield のみ)は不変(コピーは stack 上では `isToken:false`)。
+- fast-check プロパティテストに **I10** を追加。
+
+### 13.5 フェッチのスタック化(エンジン追加なし=既存コマンドの合成。`src/store/gameStore.ts`)
+§11(フェッチ自動化)の即時実行版を**置換**する。`fetchAbility`(検出)は §11 のまま流用。
+```ts
+activateFetch(sourceId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
+//   applySequence で単一コミット(生贄+ライフ=コスト、フェッチ能力をスタックへ):
+//   [ lifeCost>0 ? {adjustLife,-lifeCost} , {moveCard sourceId→graveyard top},
+//     {addAbilityToStack sourceId 'activated'} ]
+
+resolveFetch(abilityId: string, targetId: string, opts: { entersTapped: boolean }): void;
+//   applySequence で単一コミット(サーチ実行 + 能力消滅):
+//   [ {moveCard targetId→battlefield top}, entersTapped?{setTapped targetId true},
+//     {shuffle order=現 library から targetId を除外し createRng(randomSeed()) で確定},
+//     {removeStackItem abilityId} ]
+```
+- `resolveAll()`(§12.5): 最上段から解決を積むが、**フェッチ能力**(その `sourceId` の def が `fetchAbility(def)≠null` の能力オブジェクト)に達したら**そこで停止**(そこまでを単一コミット)。UI がそのフェッチ能力の検索ダイアログを開く。
+- 旧 `fetchLand`(即時)は撤去。`resolveTop` 経路は UI ラッパー(`requestResolveTop`)でフェッチ能力を検出し `FetchSearchDialog` を開く(`resolveFetch` で確定)。フェッチ能力の `entersTapped`/`filter`/`lifeCost` は `sourceId` の def から `fetchAbility` で導出。
