@@ -19,6 +19,7 @@ import { CardView } from '../CardView';
 import { CardPreview } from '../CardPreview';
 import { Battlefield } from './Battlefield';
 import { Hand } from './Hand';
+import { InfoPanel } from './InfoPanel';
 import { Stack } from './Stack';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
@@ -96,6 +97,7 @@ export function Playmat() {
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [logExpanded, setLogExpanded] = useState(false);
 
   const hoverPreview = useHoverPreview();
@@ -121,6 +123,7 @@ export function Playmat() {
     peekCount !== null ||
     attackDialogOpen ||
     mulliganBottomCount !== null ||
+    infoOpen ||
     confirmAction !== null;
   const shortcutsBlocked = mulliganDecisionPending || isDialogOpen;
 
@@ -811,6 +814,7 @@ export function Playmat() {
             onCreateToken={() => setTokenDialogOpen(true)}
             onAttack={() => setAttackDialogOpen(true)}
             onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
+            onOpenInfo={() => setInfoOpen(true)}
           />
           <MatchControls
             store={store}
@@ -830,8 +834,10 @@ export function Playmat() {
               instance={cards[hoverPreview.target.cardId]}
               def={state.defs[cards[hoverPreview.target.cardId].defId]}
               anchorRect={hoverPreview.target.rect}
-            />
-          )}
+          />
+        )}
+
+        {infoOpen && <InfoPanel state={state} onClose={() => setInfoOpen(false)} />}
 
         {menu && (
           <ContextMenu

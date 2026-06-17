@@ -681,3 +681,43 @@ resolveFetch(abilityId: string, targetId: string, opts: { entersTapped: boolean 
 ```
 - `resolveAll()`(§12.5): 最上段から解決を積むが、**フェッチ能力**(その `sourceId` の def が `fetchAbility(def)≠null` の能力オブジェクト)に達したら**そこで停止**(そこまでを単一コミット)。UI がそのフェッチ能力の検索ダイアログを開く。
 - 旧 `fetchLand`(即時)は撤去。`resolveTop` 経路は UI ラッパー(`requestResolveTop`)でフェッチ能力を検出し `FetchSearchDialog` を開く(`resolveFetch` で確定)。フェッチ能力の `entersTapped`/`filter`/`lifeCost` は `sourceId` の def から `fetchAbility` で導出。
+
+---
+
+## 14. M4.30 追補(per-turn カウンター: ストーム + ドロー数)— この節も契約である
+
+設計指針: `landsPlayedThisTurn`(§7.1)と**完全に同じパターン**の per-turn カウンターを2つ追加。情報パネル(ストーム/今ターンの土地・ドロー/信心)の元データ。エンジンは純粋・決定的。
+
+### 14.1 型の追加(`src/engine/types.ts`)
+```ts
+// GameState に追加(init 0):
+spellsCastThisTurn: number;   // 今ターンに唱えた呪文数(ストーム)。
+drawnThisTurn: number;        // 今ターンに引いたカード枚数。
+```
+- `src/engine/init.ts`: 初期 state で両方 `0`。
+
+### 14.2 増減・リセット(`src/engine/commands.ts`)
+- `applyCastToStack`(§12/§13 のキャスト): 成功時 `spellsCastThisTurn += 1`。
+  **呪文のキャストのみ**カウントする。`addAbilityToStack`(能力)/`copyStackItem`(コピー)/フェッチ起動(`activateFetch`)は**増やさない**(ストーム=唱えた呪文数)。
+- `case 'draw'`: 実際に引いた枚数 `drawn` を `drawnThisTurn += drawn`。
+- `handleUntapEntry`(untap 進入時、`landsPlayedThisTurn = 0` と同所): `spellsCastThisTurn = 0; drawnThisTurn = 0;`。
+- 注: 開幕7枚/マリガンの `draw` も `drawnThisTurn` を増やすが、turn1 の untap リセットで 0 化されるため対局中の値は正しい(プレ対局の一時値は許容)。
+
+### 14.3 不変条件(プロパティテスト対象)
+- **I11**: `spellsCastThisTurn >= 0`。untap 進入直後は 0。
+- **I12**: `drawnThisTurn >= 0`。untap 進入直後は 0。
+- fast-check プロパティテストに I11/I12 を追加。
+
+### 14.4 スナップショット前方互換(`src/store/gameStore.ts`)
+- 旧 snapshot(M4.30 以前)には両フィールドが無い → `restoreGame` の正規化(M4.27 の `normalizeSnapshotZones` と同所)で `spellsCastThisTurn`/`drawnThisTurn` を **`0` で補完**する。怠ると復元時に `undefined`→表示 NaN。
+
+### 14.5 派生情報(`src/data/gameInfo.ts` 新規・純粋関数。エンジン外)
+```ts
+computeGameInfo(state: GameState): {
+  storm: number;          // state.spellsCastThisTurn
+  landsThisTurn: number;  // state.landsPlayedThisTurn
+  drawsThisTurn: number;  // state.drawnThisTurn
+  devotion: Record<'W'|'U'|'B'|'R'|'G', number>;
+};
+```
+- 信心(devotion): 戦場の各パーマネントの現在 face の `manaCost` を `parseManaCost`(`src/engine/mana.ts`)で解析し色シンボルを集計。色pip=その色、hybrid=両色、monoHybrid/phyrexian=その色。土地/能力/コピー(manaCost 無し)は寄与0。読み取りのみ(`deckStats.ts` と同じ純粋関数の流儀)。

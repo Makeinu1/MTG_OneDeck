@@ -61,6 +61,19 @@ function normalizeSnapshotZones(
   return out;
 }
 
+function normalizePerTurnCounter(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeSnapshotState(state: GameState): GameState {
+  return {
+    ...state,
+    zones: normalizeSnapshotZones(state.zones),
+    spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
+    drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
+  };
+}
+
 export interface GameStore {
   state: GameState | null;
   warnings: string[];
@@ -387,7 +400,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.past = [];
       internal.future = [];
       set({
-        state: { ...snapshot.state, zones: normalizeSnapshotZones(snapshot.state.zones) },
+        state: normalizeSnapshotState(snapshot.state),
         warnings: [],
         canUndo: false,
         canRedo: false,

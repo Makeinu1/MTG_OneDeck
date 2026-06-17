@@ -397,6 +397,8 @@ function untapAll(draft: Draft): void {
 function handleUntapEntry(draft: Draft): void {
   untapAll(draft);
   draft.state.landsPlayedThisTurn = 0;
+  draft.state.spellsCastThisTurn = 0;
+  draft.state.drawnThisTurn = 0;
 
   const cards = { ...draft.state.cards };
   let changed = false;
@@ -611,9 +613,11 @@ function applyCast(
       c.cardId === cardId ? { ...c, castCount: c.castCount + 1 } : c
     );
     moveCardInternal(draft, cardId, dest, 'bottom', false);
+    draft.state.spellsCastThisTurn += 1;
     pushLog(draft, `統率者${name}をキャストしました(支払い: ${payStr})。`);
   } else {
     moveCardInternal(draft, cardId, dest, 'bottom', false);
+    draft.state.spellsCastThisTurn += 1;
     pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
   }
 }
@@ -689,6 +693,7 @@ function applyCastToStack(
   }
 
   moveCardInternal(draft, cardId, 'stack', 'bottom', false);
+  draft.state.spellsCastThisTurn += 1;
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
 
@@ -1121,6 +1126,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'draw': {
       const drawn = drawCards(draft, Math.max(0, cmd.count));
+      draft.state.drawnThisTurn += drawn;
       pushLog(draft, `カードを${drawn}枚引きました。`);
       if (drawn < cmd.count) {
         draft.warnings.push('ライブラリが足りずすべて引けませんでした。');

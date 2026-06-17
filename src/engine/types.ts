@@ -78,5 +78,7 @@ export interface GameState {
   manaPool: ManaPool;
   mulliganCount: number;
   landsPlayedThisTurn: number;
+  spellsCastThisTurn: number;
+  drawnThisTurn: number;
   log: LogEntry[];
 }

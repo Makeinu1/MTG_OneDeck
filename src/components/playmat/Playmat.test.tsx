@@ -46,6 +46,12 @@ function dispatchDoubleClick(element: Element): void {
   });
 }
 
+function dispatchClick(element: Element): void {
+  act(() => {
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  });
+}
+
 function resetStore(): void {
   useGameStore.setState({
     state: null,
@@ -74,6 +80,7 @@ function findInstanceId(defId: string): string {
 describe('Playmat', () => {
   beforeEach(() => {
     resetStore();
+    localStorage.clear();
     vi.restoreAllMocks();
     shortcutCapture.handlers = null;
   });
@@ -238,6 +245,32 @@ describe('Playmat', () => {
 
     expect(after.phase).toBe('combat');
     expect(after.zones.stack).toHaveLength(0);
+
+    cleanupRender(root, container);
+  });
+
+  it('opens the info panel from other actions', () => {
+    act(() => {
+      useGameStore.getState().newGame(makeDeck(12), 1);
+      useGameStore.getState().keepOpeningHand();
+    });
+
+    const { container, root } = renderPlaymat();
+    const otherActions = container.querySelector('[data-testid="other-actions"]');
+    if (!otherActions) {
+      throw new Error('other actions button was not rendered');
+    }
+
+    dispatchClick(otherActions);
+
+    const infoButton = container.querySelector('[data-testid="game-info-open"]');
+    if (!infoButton) {
+      throw new Error('game info button was not rendered');
+    }
+
+    dispatchClick(infoButton);
+
+    expect(container.querySelector('[data-testid="game-info"]')).not.toBeNull();
 
     cleanupRender(root, container);
   });

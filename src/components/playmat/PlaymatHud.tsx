@@ -478,6 +478,7 @@ export interface OtherActionsProps {
   onCreateToken: () => void;
   onAttack: () => void;
   onDiscardRandom: () => void;
+  onOpenInfo: () => void;
 }
 
 export function OtherActions({
@@ -485,6 +486,7 @@ export function OtherActions({
   onCreateToken,
   onAttack,
   onDiscardRandom,
+  onOpenInfo,
 }: OtherActionsProps) {
   const [open, setOpen] = useState(false);
   const ref = useDismissibleLayer<HTMLDivElement>(open, () => setOpen(false));
@@ -555,6 +557,13 @@ export function OtherActions({
             testId="discard-random"
             className="other-actions__button"
             onClick={() => run(onDiscardRandom)}
+          />
+          <MenuButton
+            icon="ti-info-circle"
+            label="情報"
+            testId="game-info-open"
+            className="other-actions__button"
+            onClick={() => run(onOpenInfo)}
           />
           <MenuButton
             icon="ti-dice-5"

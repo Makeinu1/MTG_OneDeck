@@ -340,6 +340,10 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
       expect(state.defs[c.defId], `${label}: copy ${c.id} def missing`).toBeDefined();
     }
   }
+
+  // I11/I12 (M4.30): per-turn counters are non-negative
+  expect(state.spellsCastThisTurn, `${label}: negative spellsCastThisTurn`).toBeGreaterThanOrEqual(0);
+  expect(state.drawnThisTurn, `${label}: negative drawnThisTurn`).toBeGreaterThanOrEqual(0);
 }
 
 const DECK_SIZE = 24;

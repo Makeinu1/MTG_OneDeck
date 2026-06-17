@@ -1770,6 +1770,102 @@
   gap: 14px;
 }
 
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.info-panel__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top, rgba(216, 176, 106, 0.12), transparent 55%),
+    rgba(8, 13, 11, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-panel__label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.info-panel__value {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--text-h);
+}
+
+.info-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-panel__section h3 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.info-panel__devotion {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.info-panel__devotion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: rgba(8, 13, 11, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-panel__devotion-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.info-panel__devotion-value {
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--text-h);
+}
+
+.info-panel__devotion-item--W .info-panel__devotion-value {
+  color: #f1e7bf;
+}
+
+.info-panel__devotion-item--U .info-panel__devotion-value {
+  color: #8ac8ff;
+}
+
+.info-panel__devotion-item--B .info-panel__devotion-value {
+  color: #d4bddc;
+}
+
+.info-panel__devotion-item--R .info-panel__devotion-value {
+  color: #ff9f7e;
+}
+
+.info-panel__devotion-item--G .info-panel__devotion-value {
+  color: #9fe3a2;
+}
+
 /* =========================================================================
    Dialog content (mana choice, shortfall, token create, etc.)
    ========================================================================= */
@@ -3013,8 +3109,8 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: min(196px, 32vw);
-  padding: 8px;
+  width: min(244px, 38vw);
+  padding: 12px;
   border-radius: 20px;
   border: 1px solid rgba(216, 176, 106, 0.16);
   background:
@@ -3031,6 +3127,13 @@
     transform 0.15s ease;
 }
 
+.stack--dragging {
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
 .stack--empty {
   opacity: 0;
   pointer-events: none;
@@ -3045,10 +3148,14 @@
 
 .stack__controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 6px;
 }
 
 .stack__controls button {
+  flex: 1 1 auto;
   min-height: 28px;
   padding: 5px 10px;
   border-radius: 999px;
@@ -3060,10 +3167,24 @@
   cursor: pointer;
 }
 
+.stack__handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.stack__handle:active,
+.stack--dragging .stack__handle {
+  cursor: grabbing;
+  border-color: var(--accent-border);
+  color: var(--gold-bright);
+}
+
 .stack__items {
   position: relative;
-  width: 146px;
-  height: 194px;
+  width: 178px;
+  height: 236px;
+  margin: 0 auto;
 }
 
 .stack__item {
@@ -3071,7 +3192,7 @@
   inset: 0;
   z-index: calc(var(--stack-index) + 1);
   transform:
-    translate(calc(var(--stack-index) * 6px), calc(var(--stack-index) * -5px))
+    translate(calc(var(--stack-index) * 9px), calc(var(--stack-index) * -7px))
     rotate(calc((var(--stack-index) - 1) * 1.15deg));
   transform-origin: center bottom;
 }
@@ -3739,9 +3860,9 @@
 
   .stack {
     top: 44%;
-    width: min(132px, 30vw);
+    width: min(176px, 40vw);
     gap: 6px;
-    padding: 6px;
+    padding: 8px;
     border-radius: 16px;
   }
 
@@ -3756,13 +3877,13 @@
   }
 
   .stack__items {
-    width: 96px;
-    height: 132px;
+    width: 116px;
+    height: 158px;
   }
 
   .stack__item {
     transform:
-      translate(calc(var(--stack-index) * 4px), calc(var(--stack-index) * -3px))
+      translate(calc(var(--stack-index) * 5px), calc(var(--stack-index) * -4px))
       rotate(calc((var(--stack-index) - 1) * 1deg));
   }
 
