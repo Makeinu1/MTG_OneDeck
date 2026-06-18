@@ -24,7 +24,16 @@ import { Stack } from './Stack';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
-import { ControlRail, LifeOverlay, ManaOverlay, MatchControls, OtherActions, PhaseOverlay } from './PlaymatHud';
+import {
+  ControlRail,
+  LifeOverlay,
+  ManaOverlay,
+  MatchControls,
+  OtherActions,
+  PhaseOverlay,
+} from './PlaymatHud';
+import { MobileControlsDrawer } from './MobileControlsDrawer';
+import { MobileZoneSwap } from './MobileZoneSwap';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -47,6 +56,7 @@ import { cyclingCost, fetchAbility } from '../../engine/status';
 import type { FetchAbility } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
+import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
 import type { KeybindingsMap } from '../../data/keybindings';
 
 type PendingMove = { cardId: string; to: ZoneId };
@@ -65,13 +75,17 @@ type CountDialogState = {
   defaultValue: number;
 };
 type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
-type MenuTriggerEvent =
-  | React.MouseEvent<HTMLElement>
-  | React.PointerEvent<HTMLElement>;
+type MenuTriggerEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>;
 
-function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>): string[] {
+function opponentLabelsFromState(
+  state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>,
+): string[] {
   return Array.from(
-    new Set(['対戦相手A', ...Object.keys(state.opponentLife), ...Object.keys(state.commanderDamage)])
+    new Set([
+      '対戦相手A',
+      ...Object.keys(state.opponentLife),
+      ...Object.keys(state.commanderDamage),
+    ]),
   );
 }
 
@@ -91,7 +105,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const [pendingPayment, setPendingPayment] = useState<PendingPaymentAction | null>(null);
   const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
   const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
-  const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(null);
+  const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(
+    null,
+  );
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
@@ -105,8 +121,11 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [logExpanded, setLogExpanded] = useState(false);
+  const [controlsDrawerOpen, setControlsDrawerOpen] = useState(false);
 
   const hoverPreview = useHoverPreview();
+  const isPhone = useIsPhoneLandscape();
+  const drawerVisible = isPhone && controlsDrawerOpen;
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -192,7 +211,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   function requestPlayLand(
     cardId: string,
-    opts?: { force?: boolean; entersTapped?: boolean }
+    opts?: { force?: boolean; entersTapped?: boolean },
   ): void {
     const result = store.playLand(cardId, opts);
     if (result === 'needs-confirm') {
@@ -287,7 +306,11 @@ export function Playmat({ keybindings }: PlaymatProps) {
   function performMove(move: PendingMove): void {
     const card = cards[move.cardId];
     if (!card) return;
-    if (card.zone === 'hand' && move.to === 'battlefield' && typeLineFor(move.cardId).includes('Land')) {
+    if (
+      card.zone === 'hand' &&
+      move.to === 'battlefield' &&
+      typeLineFor(move.cardId).includes('Land')
+    ) {
       requestPlayLand(move.cardId);
       return;
     }
@@ -302,6 +325,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   function openCardMenu(cardId: string, e: MenuTriggerEvent): void {
     e.stopPropagation();
     hoverPreview.suppress();
+    setControlsDrawerOpen(false);
     setLibraryMenu(null);
     setMenu({ cardId, x: e.clientX, y: e.clientY });
   }
@@ -317,6 +341,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   function openLibraryMenu(e: MenuTriggerEvent): void {
     e.stopPropagation();
     hoverPreview.suppress();
+    setControlsDrawerOpen(false);
     setMenu(null);
     setLibraryMenu({ x: e.clientX, y: e.clientY });
   }
@@ -324,6 +349,11 @@ export function Playmat({ keybindings }: PlaymatProps) {
   function closeMenu(): void {
     setMenu(null);
     setLibraryMenu(null);
+  }
+
+  function closeTransientUi(): void {
+    closeMenu();
+    setControlsDrawerOpen(false);
   }
 
   /**
@@ -588,7 +618,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
           label: '誘発を積む(スタックへ)',
           testId: 'ability-trigger',
           onSelect: () => store.addAbilityToStack(cardId, 'triggered'),
-        }
+        },
       );
     }
 
@@ -651,7 +681,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
           onSelect: () =>
             store.dispatch({ type: 'addCounters', cardId, counterType: 'loyalty', delta: -1 }),
           disabled: (card.counters.loyalty ?? 0) <= 0,
-        }
+        },
       );
     }
 
@@ -678,13 +708,15 @@ export function Playmat({ keybindings }: PlaymatProps) {
       {
         key: 'counter-plus',
         label: '+1/+1カウンターを置く',
-        onSelect: () => store.dispatch({ type: 'addCounters', cardId, counterType: '+1/+1', delta: 1 }),
+        onSelect: () =>
+          store.dispatch({ type: 'addCounters', cardId, counterType: '+1/+1', delta: 1 }),
         separator: true,
       },
       {
         key: 'counter-minus',
         label: '+1/+1カウンターを取り除く',
-        onSelect: () => store.dispatch({ type: 'addCounters', cardId, counterType: '+1/+1', delta: -1 }),
+        onSelect: () =>
+          store.dispatch({ type: 'addCounters', cardId, counterType: '+1/+1', delta: -1 }),
         disabled: (card.counters['+1/+1'] ?? 0) <= 0,
       },
     );
@@ -736,7 +768,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
   const peekIds =
-    peekCount === null ? [] : state.zones.library.slice(0, Math.min(peekCount, state.zones.library.length));
+    peekCount === null
+      ? []
+      : state.zones.library.slice(0, Math.min(peekCount, state.zones.library.length));
   const opponentLabels = opponentLabelsFromState(state);
   const countDialogConfig =
     countDialog?.kind === 'draw'
@@ -771,7 +805,10 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="playmat" onClick={closeMenu}>
+      <div
+        className={`playmat ${isPhone ? 'playmat--phone-landscape' : ''}`}
+        onClick={closeTransientUi}
+      >
         <div className="playmat__board">
           <div className="playmat__battlefield-stage">
             <Battlefield
@@ -803,46 +840,86 @@ export function Playmat({ keybindings }: PlaymatProps) {
             <div className="playmat__controls">
               <ControlRail store={store} />
             </div>
+
+            {isPhone && (
+              <div className="playmat__mobile-zone">
+                <MobileZoneSwap
+                  state={state}
+                  onOpenViewer={(zone) => setZoneViewer(zone)}
+                  onOpenLibraryMenu={openLibraryMenu}
+                  onCardContextMenu={handleCardContextMenu}
+                  onCommanderContextMenu={handleCommanderContextMenu}
+                  onCardDoubleClick={handleCardDoubleClick}
+                  hoverPreview={hoverPreview}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="playmat__utility">
-          <Zones
-            state={state}
-            onOpenViewer={(zone) => setZoneViewer(zone)}
-            onOpenLibraryMenu={openLibraryMenu}
-            onCardContextMenu={handleCardContextMenu}
-            onCommanderContextMenu={handleCommanderContextMenu}
-            onCardDoubleClick={handleCardDoubleClick}
-            hoverPreview={hoverPreview}
-          />
-          <OtherActions
-            store={store}
-            onCreateToken={() => setTokenDialogOpen(true)}
-            onAttack={() => setAttackDialogOpen(true)}
-            onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
-            onOpenInfo={() => setInfoOpen(true)}
-          />
-          <MatchControls
-            store={store}
-            onRestart={() => setConfirmAction('restart')}
-            onBackToImport={() => setConfirmAction('back-to-import')}
-          />
+        {isPhone ? (
+          <MobileControlsDrawer
+            open={drawerVisible}
+            onToggle={() => setControlsDrawerOpen((current) => !current)}
+            onClose={() => setControlsDrawerOpen(false)}
+          >
+            <OtherActions
+              store={store}
+              onCreateToken={() => setTokenDialogOpen(true)}
+              onAttack={() => setAttackDialogOpen(true)}
+              onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
+              onOpenInfo={() => setInfoOpen(true)}
+            />
+            <MatchControls
+              store={store}
+              onRestart={() => setConfirmAction('restart')}
+              onBackToImport={() => setConfirmAction('back-to-import')}
+            />
+          </MobileControlsDrawer>
+        ) : (
+          <div className="playmat__utility">
+            <Zones
+              state={state}
+              onOpenViewer={(zone) => setZoneViewer(zone)}
+              onOpenLibraryMenu={openLibraryMenu}
+              onCardContextMenu={handleCardContextMenu}
+              onCommanderContextMenu={handleCommanderContextMenu}
+              onCardDoubleClick={handleCardDoubleClick}
+              hoverPreview={hoverPreview}
+            />
+            <OtherActions
+              store={store}
+              onCreateToken={() => setTokenDialogOpen(true)}
+              onAttack={() => setAttackDialogOpen(true)}
+              onDiscardRandom={() => setCountDialog({ kind: 'discard-random', defaultValue: 1 })}
+              onOpenInfo={() => setInfoOpen(true)}
+            />
+            <MatchControls
+              store={store}
+              onRestart={() => setConfirmAction('restart')}
+              onBackToImport={() => setConfirmAction('back-to-import')}
+            />
 
-          <GameLog log={state.log} expanded={logExpanded} onToggle={() => setLogExpanded((v) => !v)} />
-        </div>
+            <GameLog
+              log={state.log}
+              expanded={logExpanded}
+              onToggle={() => setLogExpanded((v) => !v)}
+            />
+          </div>
+        )}
 
         {hoverPreview.target &&
           !menu &&
           !isDialogOpen &&
+          !drawerVisible &&
           !activeDragId &&
           cards[hoverPreview.target.cardId] && (
             <CardPreview
               instance={cards[hoverPreview.target.cardId]}
               def={state.defs[cards[hoverPreview.target.cardId].defId]}
               anchorRect={hoverPreview.target.rect}
-          />
-        )}
+            />
+          )}
 
         {infoOpen && <InfoPanel state={state} onClose={() => setInfoOpen(false)} />}
 
@@ -990,7 +1067,14 @@ export function Playmat({ keybindings }: PlaymatProps) {
         {tokenDialogOpen && (
           <TokenCreateDialog
             onCreate={(name, typeLine, power, toughness, qty, opts) => {
-              store.createToken(name, typeLine, power || undefined, toughness || undefined, qty, opts);
+              store.createToken(
+                name,
+                typeLine,
+                power || undefined,
+                toughness || undefined,
+                qty,
+                opts,
+              );
               setTokenDialogOpen(false);
             }}
             onCancel={() => setTokenDialogOpen(false)}
@@ -1121,7 +1205,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
       </div>
 
       <DragOverlay>
-        {activeCard && activeDef ? <CardView instance={activeCard} def={activeDef} size="small" /> : null}
+        {activeCard && activeDef ? (
+          <CardView instance={activeCard} def={activeDef} size="small" />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
