@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Playmat } from './Playmat';
 import { useGameStore } from '../../store/gameStore';
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
+import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
 
 const shortcutCapture = vi.hoisted(() => ({
   handlers: null as { onNextPhase: () => void } | null,
@@ -23,7 +24,7 @@ function renderPlaymat() {
   const root = createRoot(container);
 
   act(() => {
-    root.render(<Playmat />);
+    root.render(<Playmat keybindings={DEFAULT_KEYBINDINGS} />);
   });
 
   activeRender = { container, root };

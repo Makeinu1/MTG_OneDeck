@@ -2,12 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyCommand } from '../commands';
 import { commanderTax, isCommander } from '../commander';
 import { initGame } from '../init';
-import type { ManaPool } from '../types';
 import { makeDef, makeDeck } from './helpers';
-
-function pool(): ManaPool {
-  return { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
-}
 
 describe('commander helpers', () => {
   it('isCommander identifies commanders', () => {
@@ -25,12 +20,16 @@ describe('commander helpers', () => {
 
     expect(commanderTax(s, cmdId)).toBe(0);
 
-    s = applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool(), forced: true }).state;
+    s = applyCommand(s, { type: 'moveCard', cardId: cmdId, to: 'battlefield', position: 'bottom' }).state;
+    expect(commanderTax(s, cmdId)).toBe(0);
+
+    s = applyCommand(s, { type: 'moveCard', cardId: cmdId, to: 'command', position: 'top' }).state;
     expect(commanderTax(s, cmdId)).toBe(2);
 
-    // move back to command to cast again
+    s = applyCommand(s, { type: 'moveCard', cardId: cmdId, to: 'graveyard', position: 'top' }).state;
+    expect(commanderTax(s, cmdId)).toBe(2);
+
     s = applyCommand(s, { type: 'moveCard', cardId: cmdId, to: 'command', position: 'top' }).state;
-    s = applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool(), forced: true }).state;
     expect(commanderTax(s, cmdId)).toBe(4);
   });
 

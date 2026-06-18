@@ -4,6 +4,7 @@ import { ImportScreen } from './components/ImportScreen';
 import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
 import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
+import { loadKeybindings, type KeybindingsMap } from './data/keybindings';
 import { useGameStore } from './store/gameStore';
 import type { InitDeckCard } from './engine/init';
 import type { CardDef } from './types/card';
@@ -33,6 +34,7 @@ function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null
 function App() {
   const state = useGameStore((s) => s.state);
   const [{ deckText, storedDeck }] = useState(() => loadStoredDeck());
+  const [keybindings, setKeybindings] = useState<KeybindingsMap>(() => loadKeybindings());
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ function App() {
     return (
       <div className="playmat-shell">
         <div className="playmat-shell__game">
-          <Playmat />
+          <Playmat keybindings={keybindings} />
         </div>
         <RotateNotice />
       </div>
@@ -71,7 +73,12 @@ function App() {
 
   return (
     <div className="app">
-      <ImportScreen initialDeckText={deckText} onStart={handleStart} />
+      <ImportScreen
+        initialDeckText={deckText}
+        onStart={handleStart}
+        keybindings={keybindings}
+        onKeybindingsChange={setKeybindings}
+      />
       {snapshot?.state && (
         <div className="app__resume">
           <p>中断したゲームが見つかりました。</p>

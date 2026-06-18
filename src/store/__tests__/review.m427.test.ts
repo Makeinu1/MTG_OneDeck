@@ -95,7 +95,9 @@ describe('castToStack (M4.27)', () => {
     expect(s.zones.hand.length).toBe(before);
   });
 
-  it('charges commander tax (castCount) when casting from the command zone', () => {
+  // M4.31: commander tax now increments when the commander RETURNS to the
+  // command zone (not on cast). casting from command no longer increments.
+  it('does NOT charge commander tax merely by casting from the command zone', () => {
     const cmd = makeDef({ scryfallId: 'genX', typeLine: 'Legendary Creature — God' });
     store().newGame(makeDeck(12, [cmd]), 7);
     const cmdId = instanceByDef('genX');
@@ -103,7 +105,7 @@ describe('castToStack (M4.27)', () => {
     expect(commanderTax(snap(), cmdId)).toBe(0);
     store().castToStack(cmdId);
     expect(snap().cards[cmdId].zone).toBe('stack');
-    expect(commanderTax(snap(), cmdId)).toBe(2); // castCount 0 -> 1
+    expect(commanderTax(snap(), cmdId)).toBe(0); // M4.31: cast does not increment
   });
 });
 

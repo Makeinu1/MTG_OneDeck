@@ -47,6 +47,7 @@ import { cyclingCost, fetchAbility } from '../../engine/status';
 import type { FetchAbility } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
+import type { KeybindingsMap } from '../../data/keybindings';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
@@ -75,7 +76,12 @@ function opponentLabelsFromState(state: NonNullable<ReturnType<typeof useGameSto
 }
 
 /** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
-export function Playmat() {
+export interface PlaymatProps {
+  keybindings: KeybindingsMap;
+}
+
+/** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
+export function Playmat({ keybindings }: PlaymatProps) {
   const store = useGameStore();
   const { state, warnings, mulliganDecisionPending } = store;
 
@@ -142,6 +148,7 @@ export function Playmat() {
     onRestart: () => setConfirmAction('restart'),
     onDraw: () => store.draw(1),
     isDialogOpen: shortcutsBlocked,
+    keybindings,
   });
 
   if (!state) return null;

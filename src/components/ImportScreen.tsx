@@ -1,5 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { parseDeckList, type ParseError } from '../data/deckParser';
+import {
+  conflictsWith,
+  DEFAULT_KEYBINDINGS,
+  KEYBINDING_ACTIONS,
+  normalizePressedKey,
+  saveKeybindings,
+  type KeybindingAction,
+  type KeybindingsMap,
+} from '../data/keybindings';
 import { resolveDeck, type ResolveProgress } from '../data/scryfall';
 import type { CardDef } from '../types/card';
 import type { InitDeckCard } from '../engine/init';
@@ -8,6 +17,8 @@ import { DeckStats } from './DeckStats';
 export interface ImportScreenProps {
   initialDeckText: string;
   onStart: (deck: InitDeckCard[], deckText: string) => void;
+  keybindings: KeybindingsMap;
+  onKeybindingsChange: (map: KeybindingsMap) => void;
 }
 
 interface ResolvedEntry {
@@ -17,11 +28,38 @@ interface ResolvedEntry {
   section: 'commander' | 'main';
 }
 
+const ACTION_LABELS: Record<KeybindingAction, string> = {
+  nextPhase: '次のフェイズ',
+  nextTurn: '次のターン',
+  draw: 'ドロー',
+  restart: 'やり直し',
+  undo: '元に戻す',
+  redo: 'やり直す',
+};
+
+const KEY_LABELS: Record<string, string> = {
+  ArrowUp: '↑',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  Enter: 'Enter',
+  Space: 'Space',
+  Escape: 'Esc',
+};
+
+function formatKeybindingLabel(key: string): string {
+  return KEY_LABELS[key] ?? (key.length === 1 ? key.toUpperCase() : key);
+}
+
 /**
  * The deck-import screen: paste a deck list, resolve it against Scryfall,
  * review unresolved/parse-error rows, then start the game.
  */
-export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
+export function ImportScreen({
+  initialDeckText,
+  onStart,
+  keybindings,
+  onKeybindingsChange,
+}: ImportScreenProps) {
   const [deckText, setDeckText] = useState(initialDeckText);
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState<ResolveProgress | null>(null);
@@ -31,6 +69,44 @@ export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
   );
   const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
   const [hasImported, setHasImported] = useState(false);
+  const [rebindingAction, setRebindingAction] = useState<KeybindingAction | null>(null);
+  const [keybindingWarning, setKeybindingWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!rebindingAction) return;
+    const action = rebindingAction;
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        setRebindingAction(null);
+        setKeybindingWarning(null);
+        return;
+      }
+
+      const nextKey = normalizePressedKey(event.key, event.code);
+      if (!nextKey) return;
+
+      if (conflictsWith(keybindings, action, nextKey)) {
+        setKeybindingWarning(`「${formatKeybindingLabel(nextKey)}」は他のショートカットと重複しています。`);
+        return;
+      }
+
+      const nextMap: KeybindingsMap = {
+        ...keybindings,
+        [action]: nextKey,
+      };
+      saveKeybindings(nextMap);
+      onKeybindingsChange(nextMap);
+      setKeybindingWarning(null);
+      setRebindingAction(null);
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [keybindings, onKeybindingsChange, rebindingAction]);
 
   const handleImport = async (): Promise<void> => {
     setIsImporting(true);
@@ -75,6 +151,14 @@ export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
   };
 
   const progressPct = progress && progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
+
+  const handleResetKeybindings = (): void => {
+    const nextMap = { ...DEFAULT_KEYBINDINGS };
+    saveKeybindings(nextMap);
+    onKeybindingsChange(nextMap);
+    setRebindingAction(null);
+    setKeybindingWarning(null);
+  };
 
   return (
     <div className="import-screen">
@@ -121,6 +205,51 @@ export function ImportScreen({ initialDeckText, onStart }: ImportScreenProps) {
             ゲーム開始
           </button>
         </div>
+
+        <section className="import-screen__keybindings" data-testid="keybindings">
+          <div className="import-screen__keybindings-header">
+            <h2>キーボードショートカット</h2>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              data-testid="keybindings-reset"
+              onClick={handleResetKeybindings}
+            >
+              デフォルトに戻す
+            </button>
+          </div>
+          <div className="import-screen__keybindings-grid">
+            {KEYBINDING_ACTIONS.map((action) => (
+              <div key={action} className="import-screen__keybinding-row">
+                <span className="import-screen__keybinding-label">{ACTION_LABELS[action]}</span>
+                <kbd className="import-screen__keybinding-key">
+                  {formatKeybindingLabel(keybindings[action])}
+                </kbd>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  data-testid={`rebind-${action}`}
+                  onClick={() => {
+                    setRebindingAction(action);
+                    setKeybindingWarning(null);
+                  }}
+                >
+                  {rebindingAction === action ? '入力待ち…' : '変更'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {rebindingAction && (
+            <p className="import-screen__keybinding-hint">
+              割り当てたいキーを押してください。Esc でキャンセルします。
+            </p>
+          )}
+          {keybindingWarning && (
+            <p className="import-screen__keybinding-warning" role="alert">
+              {keybindingWarning}
+            </p>
+          )}
+        </section>
 
         {progress && (
           <div className="import-screen__progress">

@@ -204,6 +204,72 @@
   gap: 12px;
 }
 
+.import-screen__keybindings {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(11, 18, 31, 0.5);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.import-screen__keybindings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.import-screen__keybindings-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.import-screen__keybindings-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.import-screen__keybinding-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-screen__keybinding-label {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.import-screen__keybinding-key {
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--felt-2);
+  color: var(--gold-bright);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.import-screen__keybinding-hint,
+.import-screen__keybinding-warning {
+  margin: 0;
+  font-size: 13px;
+}
+
+.import-screen__keybinding-hint {
+  color: var(--text-dim);
+}
+
+.import-screen__keybinding-warning {
+  color: var(--danger);
+}
+
 .import-screen__progress {
   display: flex;
   align-items: center;

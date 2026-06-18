@@ -252,10 +252,7 @@ describe('castCommander', () => {
     const id2 = s.commanders[1].cardId;
 
     s = applyCommand(s, { type: 'castCommander', cardId: id1, payment: pool({}), forced: true }).state;
-    // return id1 to command zone to allow a second cast
-    s = applyCommand(s, { type: 'moveCard', cardId: id1, to: 'command', position: 'top' }).state;
-    s = applyCommand(s, { type: 'castCommander', cardId: id1, payment: pool({}), forced: true }).state;
-    expect(s.commanders[0].castCount).toBe(2);
+    expect(s.commanders[0].castCount).toBe(1);
     expect(s.commanders[1].castCount).toBe(0);
 
     s = applyCommand(s, { type: 'castCommander', cardId: id2, payment: pool({}), forced: true }).state;

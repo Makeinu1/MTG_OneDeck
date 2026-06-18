@@ -324,6 +324,15 @@ function moveCardInternal(
   }
   setCard(draft, updated);
 
+  if (to === 'command' && from !== 'command' && isCommander(draft.state, cardId)) {
+    draft.state.commanders = draft.state.commanders.map((commander) =>
+      commander.cardId === cardId
+        ? { ...commander, castCount: commander.castCount + 1 }
+        : commander
+    );
+    pushLog(draft, `${nameOf(draft, cardId)}が統率領域に戻り統率税が上がった。`);
+  }
+
   if (log && !sameBattlefield) {
     pushLog(
       draft,
@@ -671,8 +680,7 @@ function applyCastToStack(
   payment: ManaPool,
   forced: boolean
 ): void {
-  const card = requireCard(draft, cardId);
-  const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
+  requireCard(draft, cardId);
 
   const { shortfall } = subtractPayment(draft, payment);
   if (shortfall > 0) {
@@ -682,14 +690,6 @@ function applyCastToStack(
     draft.warnings.push(msg);
   } else if (forced) {
     draft.warnings.push('マナ不足のまま強行で唱えました。');
-  }
-
-  if (fromCommand) {
-    draft.state.commanders = draft.state.commanders.map((commander) =>
-      commander.cardId === cardId
-        ? { ...commander, castCount: commander.castCount + 1 }
-        : commander
-    );
   }
 
   moveCardInternal(draft, cardId, 'stack', 'bottom', false);

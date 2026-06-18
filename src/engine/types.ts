@@ -52,7 +52,7 @@ export interface CardInstance {
 
 export interface CommanderInfo {
   cardId: string; // CardInstance.id
-  castCount: number; // 統率領域からキャストした回数。税 = 2 * castCount
+  castCount: number; // 統率税カウント。税 = 2 * castCount
 }
 
 export interface LogEntry {

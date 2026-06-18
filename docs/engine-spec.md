@@ -721,3 +721,24 @@ computeGameInfo(state: GameState): {
 };
 ```
 - 信心(devotion): 戦場の各パーマネントの現在 face の `manaCost` を `parseManaCost`(`src/engine/mana.ts`)で解析し色シンボルを集計。色pip=その色、hybrid=両色、monoHybrid/phyrexian=その色。土地/能力/コピー(manaCost 無し)は寄与0。読み取りのみ(`deckStats.ts` と同じ純粋関数の流儀)。
+
+---
+
+## 15. M4.31 追補(統率税のタイミング変更)— この節も契約である。**§12.2 のキャスト時加算を置換する**
+
+設計指針: ユーザー期待「統率者を**統率領域に戻した時**に統率税が上がる」を満たしつつ、通常サイクル(唱える→死亡→戻す→再キャスト)の税列を MTG と一致させる。`castCount` の加算契機を**キャスト時から"戻し時"へ移動**する。
+
+### 15.1 加算契機の変更(`src/engine/commands.ts`)
+- `moveCardInternal`: 移動先 `to === 'command'` かつ 移動元 `from !== 'command'` かつ `isCommander(draft.state, cardId)` のとき、その統率者の `castCount += 1`。ログ「《X》が統率領域に戻り統率税が上がった。」。
+  - `commanders` 配列の該当 `cardId` のみ更新(パートナー2体は独立)。
+- `applyCastToStack` の `fromCommand` 判定による `castCount += 1` ブロックを**削除**(§12.2 の該当挙動を無効化)。`spellsCastThisTurn += 1`(§14)は維持(ストームはキャストで数える)。
+- 既存 `castCommander` engine コマンド(M4.29 以降 UI 未使用)は据え置き。新規 UI からは呼ばない。
+
+### 15.2 税コスト・表示
+- `commanderTax(state, cardId) = 2 * castCount`(`src/engine/commander.ts`)は不変。
+- 税列: 初期配置(command、castCount 0)→ 初回キャスト +0 → 死亡して戻す(castCount 1)→ 再キャスト +2 → 戻す(2)→ +4 … と MTG 準拠。
+- init.ts の初期配置は `moveCardInternal` を通らないため castCount=0(加算されない)。
+
+### 15.3 不変条件
+- 既存の castCount>=0 を維持。新規不変条件は不要(契機変更のみ)。
+- **レビューテスト更新**: 旧「`castToStack` from command → castCount+1 / 税+2」は本変更で無効。`review.m428` の該当アサーションを新モデル(`moveCard` to `command`(from 非command)で +1、`castToStack` では +0)へ書き換える(Fable)。`review.m431` で新モデルを独立採点。

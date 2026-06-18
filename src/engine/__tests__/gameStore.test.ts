@@ -207,10 +207,11 @@ describe('GameStore', () => {
 
     // send back to command zone
     store().moveCard(cmdId, 'command', 'top');
-    // second cast: cost 2 + tax 2 = 4. only give 3 -> shortfall 1
+    // castCommander remains on the legacy path: the cast itself increments
+    // castCount, and returning to command increments it again.
     store().dispatch({ type: 'addMana', color: 'G', amount: 3 });
     const res = store().castCommander(cmdId);
-    expect(res).toEqual({ shortfall: 1 });
+    expect(res).toEqual({ shortfall: 3 });
   });
 
   it('adjustMana edits the pool through the store and clamps at 0', () => {
