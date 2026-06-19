@@ -1,0 +1,1232 @@
+{
+  "object": "mtg_onedeck_scryfall_rules_manifest",
+  "createdAt": "2026-06-19T13:07:31.454Z",
+  "cutoff": "2021-06-19",
+  "currentDate": "2026-06-19",
+  "source": {
+    "api": "https://api.scryfall.com/cards/search",
+    "query": "game:paper date>=2021-06-19",
+    "unique": "cards",
+    "includeExtras": false,
+    "includeMultilingual": false,
+    "includeVariations": false,
+    "order": "name"
+  },
+  "totalCards": 17491,
+  "savedCards": 17491,
+  "pageCount": 100,
+  "rawFiles": [
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-001.json",
+      "bytes": 812416,
+      "sha256": "708f259849667b4ce895b16f45125415719a89f1599ab989a173774e2df1b4e9"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-002.json",
+      "bytes": 813519,
+      "sha256": "be8ff0bc5a4de9d6f6e4a1134e7f3d71d84c7c02e7a3cb927c57efdefd10ecde"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-003.json",
+      "bytes": 806207,
+      "sha256": "a92622cab91732d0d6ce1c5baa1d8c96a23adb8a77e75e33ec5240dfac92c40d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-004.json",
+      "bytes": 812573,
+      "sha256": "d5d8226c619716759386c82f5e18346dc5562a1fc3dcec6440a61129dd5274e9"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-005.json",
+      "bytes": 813841,
+      "sha256": "365f5fe68e81640a9fd6b7aefba6e5496e54e55b67f42b64c60289736e973b3b"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-006.json",
+      "bytes": 813026,
+      "sha256": "f28261a1ba8e66b9835ae5097c307e2a020a8d4595a395206084f76abbc6ef32"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-007.json",
+      "bytes": 814676,
+      "sha256": "c8466613e84e4eb2118173c6c64f3474c74b44151676942da325baa3d864e3ce"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-008.json",
+      "bytes": 823190,
+      "sha256": "2114e424462abbc0b9b9fc65b31cf4317ab05b00cd1511d369bae585b0ac8f41"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-009.json",
+      "bytes": 810980,
+      "sha256": "589e9db13a80286bbf94f462b133f9971c5fdc0e3deff543afa06ce5eaf7778f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-010.json",
+      "bytes": 802512,
+      "sha256": "848d0848c90ce5c2ee9735486729fab84851c30a20c28a7e514daa3587898fa5"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-011.json",
+      "bytes": 819287,
+      "sha256": "1c37fec3034f5c758b63ad12bd361845068722e2f9a0e601cfaa6b2b80749836"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-012.json",
+      "bytes": 810880,
+      "sha256": "2479d9cf08967885db6c45c26c9be7d62af4d8cfc5f504c85546bfcc4aa3887f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-013.json",
+      "bytes": 817521,
+      "sha256": "b363df9110d3a27f83145597c68ec344fcb9187f324b068c3f0f5a545dc64f74"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-014.json",
+      "bytes": 808066,
+      "sha256": "023c85bc5d34f28b90b5221791ca5f3220c58239b4aaf2e5d260902e33ae3879"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-015.json",
+      "bytes": 813456,
+      "sha256": "26cb72e9c84a12fa67d850118e941f369663c46eac005b4401074d7c9ef507a0"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-016.json",
+      "bytes": 796795,
+      "sha256": "70935818f117ec004a41bb981f46ed9c57b5753e91076ef8d822581ea1c470a3"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-017.json",
+      "bytes": 810169,
+      "sha256": "56961b3a2112a8bf8b50dd6ba0285f4d2c2819cebc21f94eb3186d155d24525a"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-018.json",
+      "bytes": 805777,
+      "sha256": "448c66cd177546d83b30fd2589f47363e862ea4f30da0afc43654afecc5b89e3"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-019.json",
+      "bytes": 810126,
+      "sha256": "91a5fc62307177bcab022724a505426bd5eb8d112abf287ca3963628b12f6b1f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-020.json",
+      "bytes": 792648,
+      "sha256": "9f2831ab0d191451d209bdc43bc62c1f81a9ccf4e21942c8d308c0cae479cc45"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-021.json",
+      "bytes": 807565,
+      "sha256": "2405bdb84aa1b8c1074802d21d2b2a64ca488091870f307480cf948329a68af4"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-022.json",
+      "bytes": 806423,
+      "sha256": "eb43303dc2dfc95601db6ff0c2ec7493579031013fc8bdb16b71230433150aa0"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-023.json",
+      "bytes": 813979,
+      "sha256": "b5bc6ec0cf30270a52bdf278e7b544c0da0e3cc6cc7c04c49a751786e06fd16c"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-024.json",
+      "bytes": 817537,
+      "sha256": "0bd94e569cee664ae896fb7ce1cfc7a63928e07799c4718a8e200b6714390ff7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-025.json",
+      "bytes": 814547,
+      "sha256": "a7278fa3c4d55a0b24298802a6eb9b81e97176e1f2b04a1e6d337132a602ff1e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-026.json",
+      "bytes": 824272,
+      "sha256": "7e94906ecb94d9e2410dc87181fada82ebdff79019303bd07e461a514030ff5d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-027.json",
+      "bytes": 812453,
+      "sha256": "23971ff8ed27181b59baf61b3701d1714030b5b82e5914b980e6d0ca7773bbac"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-028.json",
+      "bytes": 811345,
+      "sha256": "4d5f6d4f827bc8724a8809d964d9f7e493919b26eee39687bef83b38f24f7013"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-029.json",
+      "bytes": 813384,
+      "sha256": "3e48a2c1c857f87beefc6c46ecfe565815a774aba535f348ce808c56defa9ea7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-030.json",
+      "bytes": 800037,
+      "sha256": "d692141b0f73ef37b754b9e4c93900c64629c35d8877cb79df2eacf7b9b1208e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-031.json",
+      "bytes": 800165,
+      "sha256": "41ac0e223430d7539034dc461284d41b0b3d143820af29270cdaac91ee2ab2c7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-032.json",
+      "bytes": 801837,
+      "sha256": "2424caf06a7188c1a3cabe47b3d985355246d45d865f30ecf81ab24114709f7a"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-033.json",
+      "bytes": 816644,
+      "sha256": "1f6f6e01a698d259b1432b8035b4e7943543bc48c876564fa0a77ab5397a6a45"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-034.json",
+      "bytes": 806829,
+      "sha256": "1681608888a8a4539608bef9b789bfdfded1268cfb7c0e20e3af28675afeef0c"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-035.json",
+      "bytes": 815772,
+      "sha256": "538437a076abffee4ee3474bca3d00264baf5e78cb163cfc415b91df583c0556"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-036.json",
+      "bytes": 811615,
+      "sha256": "dc5808466747671167c06dbd8fdfc59a2073a308928902003560b66f87fb51ba"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-037.json",
+      "bytes": 814947,
+      "sha256": "9eccf0db97156757430c69201dc7a27654490d4cd9a2e6eacdfe15ccc28d8d51"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-038.json",
+      "bytes": 818543,
+      "sha256": "832d3e6435405a79d735a5919df47d7acd1e73ac9866f8fc7058446f54aead48"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-039.json",
+      "bytes": 813855,
+      "sha256": "8814c608b2feed23db857393231a0765a62ab0b98bbe0c2c9d5510e7d5c5a24b"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-040.json",
+      "bytes": 808885,
+      "sha256": "28f08ff51ee0571d49dd643cf3f0a84032c5a703659612698ac8a51b836c8dc7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-041.json",
+      "bytes": 815914,
+      "sha256": "f5c8ff129b70efd1701f72e205e49da3ddf6159d903c37ce851fa71637f3c869"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-042.json",
+      "bytes": 810187,
+      "sha256": "d7609bb3b38bc220b6bb72e5f245dc624bcb431afec79d2796b94c82310fd9c6"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-043.json",
+      "bytes": 853274,
+      "sha256": "c89810a94940cb61ac1c968c3b8ce46b62971e46c5e206e5e9704ce10183dbde"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-044.json",
+      "bytes": 837137,
+      "sha256": "f0ea132589cf6142e678a47bc543b84b7acbe5c95b91ff91330eb2e8a0501e7f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-045.json",
+      "bytes": 836162,
+      "sha256": "71d9fc8fe76a1c71d9893dd1301f31db66b84d1b61bec255ac2e5eaa908e63a4"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-046.json",
+      "bytes": 821976,
+      "sha256": "d20c15f73ffb19c5f1afc48f6e4e930ba9365dab07432663f9bfd3b011c9b0df"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-047.json",
+      "bytes": 819630,
+      "sha256": "b749fda88f8ed25134bc44c756a8c430c080fbb7415f9f5173228fdd8860f8ae"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-048.json",
+      "bytes": 822106,
+      "sha256": "77a50b94c6cd87b80579a56612cda143bcd997986646737470a4e5f5e68cbeb7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-049.json",
+      "bytes": 803626,
+      "sha256": "030951206f701d9143a3b5b30af3cfe1d2aaa3184b858ca37b807e6074971990"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-050.json",
+      "bytes": 819964,
+      "sha256": "ce447cf5ba402a45e48b7471321c157fdc99ff660d96acedf8113c01eac6ef7d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-051.json",
+      "bytes": 819168,
+      "sha256": "f55c532a7300e0ef5b856d583f1db99194fff0f5424c7cd329aa3271fe3539c7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-052.json",
+      "bytes": 808852,
+      "sha256": "5c2a1e88642bd8fc115a7fb4d719c5cd6608079cfbe9ed6c387f90e1a3b2b774"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-053.json",
+      "bytes": 808661,
+      "sha256": "d98a1b6ef14101446006e5533416cc6f2a99524e14e0a612fcc749460003e659"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-054.json",
+      "bytes": 812733,
+      "sha256": "b1c2dfd2339f2c4e7838d6a088997eeab419c2eb2c8c7975498553d9c3f21d16"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-055.json",
+      "bytes": 806651,
+      "sha256": "247bd5591362bfe0d730fb035829b2cd921dece3723878a9044d71454e6de1d1"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-056.json",
+      "bytes": 810658,
+      "sha256": "c0201dafe857529b0396a3177b044484b68bcb833fbc94d140f5230d8d98b1c7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-057.json",
+      "bytes": 812958,
+      "sha256": "c9e93860db3a67a6a441a0631e03c863bb057b97412d1e560daad6ef13cc45e3"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-058.json",
+      "bytes": 811067,
+      "sha256": "2eaf9eccf182b8d104f887da2ded367e961106b70386507834e3d5ab97234df9"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-059.json",
+      "bytes": 811693,
+      "sha256": "da64f58ccfb5f07b7449d1f5e0d60071c5d225d45eec1d1d9f4e7befd0fb5a3f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-060.json",
+      "bytes": 828534,
+      "sha256": "76c0aafeddd8eceaeff4f92843e749d48357137eaebb99c56acb834a613af5d9"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-061.json",
+      "bytes": 811344,
+      "sha256": "99511931ec4c975599d916c303f0e6444ab50b64f76061c975f680d2bd53a564"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-062.json",
+      "bytes": 811928,
+      "sha256": "744718b7505425e53ff6d5b06767e819034b3b3b85e2bd75bf765fedef7621fd"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-063.json",
+      "bytes": 806145,
+      "sha256": "ca99a7470d49614a22ec38ad658306cb9e565a792b6ee8b26d49941dfd0aacca"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-064.json",
+      "bytes": 802167,
+      "sha256": "bbc7cc227dc402efb477fa246f56db764a61542aa6f52e53ea63253313a2b9c2"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-065.json",
+      "bytes": 807117,
+      "sha256": "da249b9c3278c57d2e14d908618450ef859b9b5c5b4285eac2d271e099f2be8b"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-066.json",
+      "bytes": 806325,
+      "sha256": "9840012ca609c85abd4a049876a858c72d6ba2bedf08b257d23808e997bb0f1f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-067.json",
+      "bytes": 817432,
+      "sha256": "69f1bc5693b21deead197c00f10334400a29da84c8d4fe20abe02ab900036db8"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-068.json",
+      "bytes": 806544,
+      "sha256": "d96cb09f0f95ec044674b1acfdd992898d769cb54eb07c76ce14ec63a7e2f352"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-069.json",
+      "bytes": 806022,
+      "sha256": "30ea3d6c5a13671173ca56bb3541eacb2a18ae865624d58f6d0b5a8051a1278d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-070.json",
+      "bytes": 807233,
+      "sha256": "931d966fab777e1c2531718912f70a3688cfeba0a4bf98cc11da8c045a6b4cf8"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-071.json",
+      "bytes": 805691,
+      "sha256": "84019027807e9df06175f03a95fc2b0940d4f385d9c4e266c37f76dd19af1f22"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-072.json",
+      "bytes": 825488,
+      "sha256": "3c76ced1e8f43a34237d0b4f4222e9f16303b1ad976919c22bdf849c7ebd6c32"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-073.json",
+      "bytes": 814593,
+      "sha256": "2f07352aca9498dee3b32f872b996d8e707d0a43d15c15622294c0e04f0bf0e2"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-074.json",
+      "bytes": 811233,
+      "sha256": "78eb730c2959fb7fa360bc370565e2045a23720de0517d63870e5b24860b0b3e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-075.json",
+      "bytes": 804133,
+      "sha256": "54213b062f7d71ab9200c55bb045d5e22e67c50888d5df87b8416f9ff59cb38e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-076.json",
+      "bytes": 807618,
+      "sha256": "3a73ffbea7af629b65425348028809acaf2e5823e0840650964cdbcd79a2e742"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-077.json",
+      "bytes": 798265,
+      "sha256": "f2158c8c442a4fdccf119a6c2ca8a58d384e3486aee48395e9ef140297965a5b"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-078.json",
+      "bytes": 806953,
+      "sha256": "4ebbdd275a83b3a3b045fca3194f3acae59f7778e09ead52dc82a6b289206c9e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-079.json",
+      "bytes": 807987,
+      "sha256": "3658dfeef6cd11a90c5076a0d9d9e4a423c29a6af346dc28f4bdf39b1f69a9e9"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-080.json",
+      "bytes": 803891,
+      "sha256": "bd9716b9440367693e23652f73f8c0b234674bf9689091f0ce60956e4597521f"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-081.json",
+      "bytes": 801246,
+      "sha256": "48a54fcab9425e0d96c7c2781a7efdcc1151e3c40afd684ed17ef09db1f49f9b"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-082.json",
+      "bytes": 797883,
+      "sha256": "f882e3d4c3a8c9abe20b4e1576dbe35453acae1e00c551b83c16a5bdb19bcccf"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-083.json",
+      "bytes": 810007,
+      "sha256": "e4e57b0d2c89188cf58e2061130d387e722d06546e77069a1965bc234fa5fc6d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-084.json",
+      "bytes": 801553,
+      "sha256": "c03ad258136c786fc3e2776d75a6d019aea89d9955480d5d650898cb32ff370e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-085.json",
+      "bytes": 815463,
+      "sha256": "cd50650fc76435f14cc0bb8860f8894cb427634559ed6e4b556d4a510f058996"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-086.json",
+      "bytes": 828903,
+      "sha256": "017a1c0b1e6c66f50dbec7ae426cad75b261fb55d79b366ba00416613467a935"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-087.json",
+      "bytes": 856471,
+      "sha256": "384407dc7dadc2fb8c9c24967085e694dcff91514ca37540b61a1e6acc2a3d9d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-088.json",
+      "bytes": 831062,
+      "sha256": "5cf65f683367b642896fda7e7411a97f73bbacb83d2403bc7f1385080a1e1cd2"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-089.json",
+      "bytes": 806901,
+      "sha256": "5afdb2a3adf00f5b9cef6980d171699c9fb4d43412411dcea93a37ad1adc6fa7"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-090.json",
+      "bytes": 819022,
+      "sha256": "cd31042a6c4dd96fa1c0da5360a775d17d6ba83974f6c0770d3e4a617e9b2df4"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-091.json",
+      "bytes": 816002,
+      "sha256": "3231e029f3bd306cb1d5629a8057c91a629b769a0f04f0d71369634ed165724d"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-092.json",
+      "bytes": 832816,
+      "sha256": "85afbe2856cc003be19cdb05f24b7bd999edf5482bdf24d9d1576bf6b8f517c5"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-093.json",
+      "bytes": 812567,
+      "sha256": "fe8939b52279bd65d0e2f6d821109c402a6f463f9f8f16de1b14883d48b37c46"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-094.json",
+      "bytes": 818282,
+      "sha256": "e957c1dc6c7818b0be3901150338b7ca4ddb8cc5e3d08e065ba49f0e499d4c08"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-095.json",
+      "bytes": 817632,
+      "sha256": "1b8de083b25d33764381c820db40f2665cf01041a02416f6837dafef2c4f2d92"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-096.json",
+      "bytes": 808613,
+      "sha256": "de06665a1f71e893ad2e2272743343037cc103ff3dea13b1b28e4a1de70594d1"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-097.json",
+      "bytes": 814282,
+      "sha256": "319bc292c9d0eef9f9ab3422378b3b75e11a631a5372011e3f9ecdd774e6c69e"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-098.json",
+      "bytes": 797047,
+      "sha256": "83cc40a40ce050bc2e6c8b64e20b466c5168cc60ed74ed95bf65aaa75de423f0"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-099.json",
+      "bytes": 807730,
+      "sha256": "2d3ce2f48a83fbfb5e2588048185e90d6b28f971e771463ed36d422cfb480ddd"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/pages/page-100.json",
+      "bytes": 786809,
+      "sha256": "bc0c6124456166df2f4f804b39f5edcf9172ec1433bc41ed2bce61f151b1567c"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.pages.ndjson",
+      "bytes": 81257750,
+      "sha256": "21d5f639e5a2e35e580e913ed63305053ce52b1b185c41f0d2f601c3c7bfe67a"
+    },
+    {
+      "path": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
+      "bytes": 81196517,
+      "sha256": "73a01e9a71c9b2f78ae1ed237b0737d44bf6ad62b75923836446c7bd8a53f1f6"
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-001.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=2&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 2,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-002.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=3&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 3,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-003.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=4&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 4,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-004.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=5&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 5,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-005.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=6&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 6,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-006.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=7&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 7,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-007.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=8&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 8,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-008.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=9&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 9,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-009.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=10&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 10,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-010.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=11&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 11,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-011.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=12&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 12,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-012.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=13&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 13,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-013.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=14&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 14,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-014.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=15&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 15,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-015.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=16&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 16,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-016.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=17&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 17,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-017.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=18&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 18,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-018.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=19&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 19,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-019.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=20&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 20,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-020.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=21&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 21,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-021.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=22&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 22,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-022.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=23&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 23,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-023.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=24&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 24,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-024.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=25&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 25,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-025.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=26&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 26,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-026.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=27&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 27,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-027.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=28&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 28,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-028.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=29&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 29,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-029.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=30&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 30,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-030.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=31&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 31,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-031.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=32&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 32,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-032.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=33&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 33,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-033.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=34&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 34,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-034.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=35&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 35,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-035.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=36&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 36,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-036.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=37&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 37,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-037.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=38&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 38,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-038.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=39&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 39,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-039.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=40&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 40,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-040.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=41&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 41,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-041.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=42&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 42,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-042.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=43&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 43,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-043.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=44&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 44,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-044.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=45&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 45,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-045.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=46&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 46,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-046.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=47&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 47,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-047.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=48&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 48,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-048.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=49&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 49,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-049.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=50&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 50,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-050.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=51&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 51,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-051.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=52&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 52,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-052.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=53&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 53,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-053.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=54&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 54,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-054.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=55&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 55,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-055.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=56&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 56,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-056.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=57&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 57,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-057.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=58&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 58,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-058.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=59&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 59,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-059.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=60&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 60,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-060.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=61&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 61,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-061.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=62&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 62,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-062.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=63&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 63,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-063.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=64&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 64,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-064.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=65&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 65,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-065.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=66&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 66,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-066.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=67&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 67,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-067.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=68&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 68,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-068.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=69&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 69,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-069.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=70&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 70,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-070.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=71&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 71,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-071.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=72&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 72,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-072.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=73&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 73,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-073.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=74&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 74,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-074.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=75&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 75,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-075.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=76&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 76,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-076.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=77&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 77,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-077.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=78&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 78,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-078.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=79&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 79,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-079.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=80&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 80,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-080.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=81&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 81,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-081.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=82&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 82,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-082.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=83&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 83,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-083.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=84&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 84,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-084.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=85&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 85,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-085.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=86&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 86,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-086.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=87&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 87,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-087.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=88&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 88,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-088.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=89&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 89,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-089.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=90&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 90,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-090.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=91&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 91,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-091.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=92&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 92,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-092.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=93&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 93,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-093.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=94&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 94,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-094.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=95&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 95,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-095.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=96&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 96,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-096.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=97&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 97,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-097.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=98&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 98,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-098.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=99&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 99,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-099.json",
+      "dataCount": 175,
+      "hasMore": true,
+      "nextPage": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=100&q=game%3Apaper+date%3E%3D2021-06-19&unique=cards"
+    },
+    {
+      "page": 100,
+      "file": "research/scryfall-rules/2026-06-19/raw/pages/page-100.json",
+      "dataCount": 166,
+      "hasMore": false,
+      "nextPage": null
+    }
+  ]
+}

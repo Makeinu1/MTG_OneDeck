@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local research datasets (keep .md summaries + manifest.json; exclude raw and large machine blobs)
+research/scryfall-rules/**/raw/
+research/scryfall-rules/**/analysis/*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
