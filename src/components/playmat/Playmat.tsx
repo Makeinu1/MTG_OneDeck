@@ -254,6 +254,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
   const [fetchDialog, setFetchDialog] = useState<FetchDialogState | null>(null);
   const [pendingRuleTarget, setPendingRuleTarget] = useState<PendingRuleTargetAction | null>(null);
+  const [pendingBloodCrackCardId, setPendingBloodCrackCardId] = useState<string | null>(null);
   const [manualKeywordsCardId, setManualKeywordsCardId] = useState<string | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
@@ -287,6 +288,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     zoneViewer !== null ||
     fetchDialog !== null ||
     pendingRuleTarget !== null ||
+    pendingBloodCrackCardId !== null ||
     manualKeywordsCardId !== null ||
     arrangeTopOpen ||
     countDialog !== null ||
@@ -461,6 +463,23 @@ export function Playmat({ keybindings }: PlaymatProps) {
       return;
     }
     setManaChoice({ kind: 'treasure', cardId, options });
+  }
+
+  function requestBloodCrack(cardId: string): void {
+    const currentState = useGameStore.getState().state;
+    if (!currentState || currentState.zones.hand.length === 0) {
+      store.crackBlood(cardId);
+      return;
+    }
+    setPendingBloodCrackCardId(cardId);
+  }
+
+  function pickBloodDiscard(discardCardId: string): void {
+    if (!pendingBloodCrackCardId) {
+      return;
+    }
+    store.crackBlood(pendingBloodCrackCardId, discardCardId);
+    setPendingBloodCrackCardId(null);
   }
 
   function performMove(move: PendingMove): void {
@@ -812,6 +831,32 @@ export function Playmat({ keybindings }: PlaymatProps) {
         });
       }
 
+      if (def?.tokenKind === 'clue') {
+        items.push({
+          key: 'crack-clue',
+          label: '割って1ドロー(生け贄)',
+          testId: 'crack-clue',
+          onSelect: () => store.crackClue(cardId),
+          separator: !isTreasure,
+        });
+      } else if (def?.tokenKind === 'food') {
+        items.push({
+          key: 'crack-food',
+          label: '割って3点ゲイン(生け贄)',
+          testId: 'crack-food',
+          onSelect: () => store.crackFood(cardId),
+          separator: !isTreasure,
+        });
+      } else if (def?.tokenKind === 'blood') {
+        items.push({
+          key: 'crack-blood',
+          label: '割って1枚捨ててドロー(生け贄)',
+          testId: 'crack-blood',
+          onSelect: () => requestBloodCrack(cardId),
+          separator: !isTreasure,
+        });
+      }
+
       if (isSacrificeToken) {
         items.push({
           key: 'sacrifice-token',
@@ -1044,6 +1089,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
+  const bloodDiscardIds = pendingBloodCrackCardId ? state.zones.hand : [];
   const peekIds =
     peekCount === null
       ? []
@@ -1346,6 +1392,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
             state={state}
             onPick={pickRuleActionTarget}
             onCancel={() => setPendingRuleTarget(null)}
+          />
+        )}
+
+        {pendingBloodCrackCardId && (
+          <TargetPickerDialog
+            title="捨てるカードを選択"
+            cardIds={bloodDiscardIds}
+            state={state}
+            onPick={pickBloodDiscard}
+            onCancel={() => setPendingBloodCrackCardId(null)}
           />
         )}
 

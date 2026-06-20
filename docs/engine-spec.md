@@ -1032,3 +1032,30 @@ export interface CardInstance {
 - **エンジン不変**: `src/engine/`・`applyCommand`・`commands.ts`・`CACHE_SCHEMA_VERSION` は一切変更しない。新コマンドを足さない。
 - 候補・助言の**表示だけでは `GameState` 不変**。実キャストは既存 `castToStack` 経由で**単一 undo**。
 - 既存の hand/command キャスト導線・サイクリング・移動導線を壊さない。M6.1〜M6.5 のタグ・候補・誘発キュー・手動キーワードを壊さない。スナップショット前方互換に影響なし(新フィールドなし)。
+
+---
+
+## 24. M6.9 リソーストークンの能力導線拡充(ストア + UI契約)— この節も契約である
+
+設計指針: 宝物/手掛かり/食物/血のプリセット生成は既存(`tokenKind`)。宝物だけ「割ってマナを出す」があり、手掛かり/食物/血は素の「生け贄に捧げる」しか無い。**各トークン固有の起動型能力を1操作で実行**できるよう、既存コマンドの**バッチ合成(R1 `applyCommands`)で単一 undo**にする。**エンジンAPIは不変**(新コマンドを足さない。`moveCard`/`draw`/`adjustLife`/`discard` を合成)。起動コスト({2} 等のマナ・タップ)は他の能力同様**自動精算しない**(サンドボックス)。
+
+**トークンの消滅**: `moveCard token→'graveyard'` はエンジンの既定どおりトークンを**消滅させる**(`commands.ts` の「token leaving battlefield → ceases to exist」。宝物クラックと同じ挙動)。ストアで graveyard に再挿入して残すような上書きはしない。undo はスナップショット復元で戦場に戻る。
+
+### 24.1 ストアの新メソッド(`src/store/gameStore.ts`)— 全て単一 undo(`applyCommands(cur, [...]) → commit(result.state, ...)`)
+- `crackClue(cardId: string): void` — 手掛かり「{2}, 生け贄: 1ドロー」。`[{moveCard cardId→'graveyard' top}, {draw 1}]`。
+- `crackFood(cardId: string): void` — 食物「{2},{T}, 生け贄: 3点ゲイン」。`[{moveCard cardId→'graveyard' top}, {adjustLife +3}]`。
+- `crackBlood(cardId: string, discardCardId?: string): void` — 血「{1},{T}, 手札1枚を捨てる, 生け贄: 1ドロー」。`discardCardId` が現在の手札にあれば先頭に `{discard [discardCardId]}` を積み、続けて `[{moveCard cardId→'graveyard' top}, {draw 1}]`。手札が空/未指定なら discard を省略し警告「捨てるカードがありません」(生け贄+ドローは実行)。
+- いずれも対象が当該 `tokenKind` でない場合は何もしない(防御的)。決定的。
+
+### 24.2 UI(`src/components/playmat/Playmat.tsx` `buildMenuItems` 戦場枝)
+既存の「割ってマナを出す」(宝物)・「生け贄に捧げる」は維持。`tokenKind` 別に固有能力項目を**「生け贄に捧げる」の上**に追加:
+| tokenKind | 項目ラベル | testId | 動作 |
+|---|---|---|---|
+| `clue` | 割って1ドロー(生け贄) | `crack-clue` | `store.crackClue(cardId)` |
+| `food` | 割って3点ゲイン(生け贄) | `crack-food` | `store.crackFood(cardId)` |
+| `blood` | 割って1枚捨ててドロー(生け贄) | `crack-blood` | 手札があれば **TargetPickerDialog**(§21.3、対象=手札)を開き、選択した手札を `discardCardId` として `store.crackBlood(cardId, picked)`。手札が空なら直接 `store.crackBlood(cardId)` |
+- TargetPicker を開く/キャンセルだけでは `GameState` 不変。実行は単一 undo。
+
+### 24.3 不変・非干渉
+- **エンジン不変**: `src/engine/`・`applyCommand`・`commands.ts`・`CACHE_SCHEMA_VERSION` は変更しない。新コマンドを足さない。
+- プリセット生成・宝物クラック・既存「生け贄に捧げる」を壊さない。M6.1〜M6.8 を壊さない。各クラックは**1スナップショット**(単一 undo)で元に戻る。

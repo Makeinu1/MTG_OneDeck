@@ -149,6 +149,9 @@ export interface GameStore {
   toggleTap(cardId: string): void;
   tapForMana(cardId: string, color?: ManaColor): 'ok' | 'needs-choice';
   crackTreasure(cardId: string, color: ManaColor): void;
+  crackClue(cardId: string): void;
+  crackFood(cardId: string): void;
+  crackBlood(cardId: string, discardCardId?: string): void;
   castFromHand(
     cardId: string,
     opts?: { xValue?: number; force?: boolean }
@@ -835,6 +838,70 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     crackTreasure(cardId, color) {
       dispatch({ type: 'crackTreasure', cardId, color });
+    },
+
+    crackClue(cardId) {
+      const cur = get().state;
+      if (!cur) return;
+      const card = cur.cards[cardId];
+      const def = card ? cur.defs[card.defId] : undefined;
+      if (def?.tokenKind !== 'clue') return;
+
+      try {
+        const result = applyCommands(cur, [
+          { type: 'moveCard', cardId, to: 'graveyard', position: 'top' },
+          { type: 'draw', count: 1 },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    crackFood(cardId) {
+      const cur = get().state;
+      if (!cur) return;
+      const card = cur.cards[cardId];
+      const def = card ? cur.defs[card.defId] : undefined;
+      if (def?.tokenKind !== 'food') return;
+
+      try {
+        const result = applyCommands(cur, [
+          { type: 'moveCard', cardId, to: 'graveyard', position: 'top' },
+          { type: 'adjustLife', delta: 3 },
+        ]);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    crackBlood(cardId, discardCardId) {
+      const cur = get().state;
+      if (!cur) return;
+      const card = cur.cards[cardId];
+      const def = card ? cur.defs[card.defId] : undefined;
+      if (def?.tokenKind !== 'blood') return;
+
+      const commands: GameCommand[] = [];
+      const shouldDiscard = discardCardId !== undefined && cur.zones.hand.includes(discardCardId);
+      if (shouldDiscard) {
+        commands.push({ type: 'discard', cardIds: [discardCardId] });
+      }
+      commands.push(
+        { type: 'moveCard', cardId, to: 'graveyard', position: 'top' },
+        { type: 'draw', count: 1 }
+      );
+
+      try {
+        const result = applyCommands(cur, commands);
+        const warnings = shouldDiscard
+          ? result.warnings
+          : [...result.warnings, '捨てるカードがありません'];
+        commit(result.state, warnings);
+      } catch (err) {
+        console.error(err);
+      }
     },
 
     castFromHand(cardId, opts) {
