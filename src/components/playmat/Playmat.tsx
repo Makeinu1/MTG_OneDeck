@@ -24,6 +24,7 @@ import { Stack } from './Stack';
 import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
+import { TriggerCandidatePanel } from './TriggerCandidatePanel';
 import {
   ControlRail,
   LifeOverlay,
@@ -956,6 +957,8 @@ export function Playmat({ keybindings }: PlaymatProps) {
           </div>
         )}
 
+        <TriggerCandidatePanel />
+
         {hoverPreview.target &&
           !menu &&
           !isDialogOpen &&
@@ -1238,6 +1241,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
               useGameStore.setState({
                 state: null,
                 warnings: [],
+                triggerCandidates: [],
                 canUndo: false,
                 canRedo: false,
                 mulliganDecisionPending: false,

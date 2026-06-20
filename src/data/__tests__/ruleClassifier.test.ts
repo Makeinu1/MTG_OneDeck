@@ -119,6 +119,27 @@ describe('classifyCardRules', () => {
     );
   });
 
+  it('detects trigger-assist tags from oracle text', () => {
+    expect(tagIds(makeCard('Blood Artist', 'Whenever Blood Artist or another creature dies, target player loses 1 life and you gain 1 life.'))).toContain(
+      'trigger.death',
+    );
+    expect(tagIds(makeCard('Grave Pact', 'Whenever a creature is put into a graveyard from the battlefield, each other player sacrifices a creature.'))).toContain(
+      'trigger.death',
+    );
+    expect(tagIds(makeCard('Eldrazi', 'When you cast this spell, draw two cards.'))).toContain(
+      'trigger.cast',
+    );
+    expect(tagIds(makeCard('Raid Creature', 'Whenever Raid Creature attacks, create a token.'))).toContain(
+      'trigger.attack',
+    );
+    expect(tagIds(makeCard('Landfall Beast', 'Landfall — Whenever a land enters under your control, put a +1/+1 counter on Landfall Beast.'))).toContain(
+      'trigger.landfall',
+    );
+    expect(tagIds(makeCard('Upkeep Mage', 'At the beginning of your upkeep, draw a card.'))).toContain(
+      'trigger.upkeep',
+    );
+  });
+
   it('does not classify discard when the paragraph says it cannot happen', () => {
     expect(tagIds(makeCard('Library of Leng', "You can't discard cards."))).not.toContain(
       'action.discard',

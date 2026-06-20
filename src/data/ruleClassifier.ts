@@ -49,6 +49,36 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'trigger-assist',
     ruleRef: '603.6a',
   },
+  'trigger.death': {
+    label: '死亡・墓地に置かれたときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.cast': {
+    label: '唱えたときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.attack': {
+    label: '攻撃したときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.landfall': {
+    label: '上陸の誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.upkeep': {
+    label: 'アップキープ開始時の誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
   'action.draw': {
     label: 'カードを引く',
     kind: 'keyword-action',
@@ -166,6 +196,11 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
 const FIXED_TAG_ORDER = [
   ...KEYWORD_DEFINITIONS.map((definition) => `keyword.${definition.id}`),
   'trigger.etb',
+  'trigger.death',
+  'trigger.cast',
+  'trigger.attack',
+  'trigger.landfall',
+  'trigger.upkeep',
   'action.draw',
   'action.create-token',
   'action.proliferate',
@@ -239,6 +274,31 @@ export function classifyCardRules(def: CardDef): RuleTag[] {
 
 function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
   matchTag(tags, core, 'trigger.etb', /\b(?:when|whenever)\b[^,.]*\benters\b/i, 'high');
+  matchTag(tags, core, 'trigger.death', /\b(?:when|whenever)\b[^,.]*\bdies\b/i, 'high');
+  matchTag(
+    tags,
+    core,
+    'trigger.death',
+    /\bput into a graveyard from the battlefield\b/i,
+    'high',
+  );
+  matchTag(
+    tags,
+    core,
+    'trigger.cast',
+    /\b(?:when|whenever)\b[^.]*\bcasts?\b[^.]*\bspell\b/i,
+    'high',
+  );
+  matchTag(tags, core, 'trigger.attack', /\b(?:when|whenever)\b[^,.]*\battacks?\b/i, 'high');
+  matchTag(tags, core, 'trigger.landfall', /\blandfall\b/i, 'high');
+  matchTag(
+    tags,
+    core,
+    'trigger.landfall',
+    /\b(?:when|whenever)\b[^,.]*\bland\b[^,.]*\benters\b/i,
+    'high',
+  );
+  matchTag(tags, core, 'trigger.upkeep', /\bat the beginning of[^.]*\bupkeep\b/i, 'high');
   matchTag(tags, core, 'action.draw', /\bdraw(?:s|n)?\b[^,.]*\bcards?\b/i, 'medium');
   matchTag(tags, core, 'action.create-token', /\bcreate\b[^,.]*\btokens?\b/i, 'high');
   matchTag(

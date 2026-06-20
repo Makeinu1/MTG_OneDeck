@@ -14,6 +14,7 @@ import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
 import type { GameState, ZoneId } from '../engine/types';
+import { classifyCardRules } from '../data/ruleClassifier';
 import {
   effectivePower,
   fetchAbility,
@@ -51,6 +52,12 @@ const ALL_ZONES: ZoneId[] = [
 const STACK_TRANSITION_BLOCKED_WARNING =
   'スタックに未解決の効果があります。先に解決してください。';
 
+export interface TriggerCandidate {
+  sourceId: string;
+  triggerId: string;
+  label: string;
+}
+
 /**
  * Backfill any zone arrays missing from an older snapshot (forward compat).
  * Snapshots saved before a new zone existed (e.g. `stack`, added in M4.27)
@@ -80,6 +87,7 @@ function normalizeSnapshotState(state: GameState): GameState {
 export interface GameStore {
   state: GameState | null;
   warnings: string[];
+  triggerCandidates: TriggerCandidate[];
   canUndo: boolean;
   canRedo: boolean;
   autoAdvanceToMain: boolean;
@@ -128,6 +136,7 @@ export interface GameStore {
     opts?: { xValue?: number; force?: boolean }
   ): 'ok' | { shortfall: number };
   addAbilityToStack(sourceId: string, kind: 'activated' | 'triggered'): void;
+  dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
@@ -274,6 +283,116 @@ function untapToMainCommands(): GameCommand[] {
   ];
 }
 
+function cardHasRuleTag(state: GameState, cardId: string, tagId: string): boolean {
+  const card = state.cards[cardId];
+  if (!card) return false;
+  const def = state.defs[card.defId];
+  if (!def) return false;
+  return classifyCardRules(def).some((tag) => tag.id === tagId);
+}
+
+function makeTriggerCandidate(
+  state: GameState,
+  sourceId: string,
+  triggerId: string,
+  label: string,
+): TriggerCandidate {
+  return {
+    sourceId,
+    triggerId,
+    label: `${label}: ${cardLabel(state, sourceId)}`,
+  };
+}
+
+function addTriggerCandidate(
+  candidates: TriggerCandidate[],
+  candidate: TriggerCandidate,
+): void {
+  const duplicate = candidates.some(
+    (existing) =>
+      existing.sourceId === candidate.sourceId && existing.triggerId === candidate.triggerId,
+  );
+  if (!duplicate) {
+    candidates.push(candidate);
+  }
+}
+
+function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandidate[] | null {
+  const candidates: TriggerCandidate[] = [];
+  let sawTriggerEvent = false;
+
+  const prevBattlefield = new Set(prev.zones.battlefield);
+  const nextBattlefield = new Set(next.zones.battlefield);
+  const nextGraveyard = new Set(next.zones.graveyard);
+
+  const enteredBattlefield = next.zones.battlefield.filter(
+    (cardId) => !prevBattlefield.has(cardId),
+  );
+  if (enteredBattlefield.length > 0) {
+    sawTriggerEvent = true;
+    for (const cardId of enteredBattlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.etb')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.etb', '戦場に出たとき'),
+      );
+    }
+  }
+
+  const died = prev.zones.battlefield.filter(
+    (cardId) => !nextBattlefield.has(cardId) && nextGraveyard.has(cardId),
+  );
+  if (died.length > 0) {
+    sawTriggerEvent = true;
+    for (const cardId of died) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.death')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.death', '死亡したとき'),
+      );
+    }
+  }
+
+  if (next.landsPlayedThisTurn > prev.landsPlayedThisTurn) {
+    sawTriggerEvent = true;
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.landfall')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.landfall', '上陸'),
+      );
+    }
+  }
+
+  if (prev.phase !== 'upkeep' && next.phase === 'upkeep') {
+    sawTriggerEvent = true;
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.upkeep')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.upkeep', 'アップキープ開始時'),
+      );
+    }
+  }
+
+  if (next.spellsCastThisTurn > prev.spellsCastThisTurn) {
+    sawTriggerEvent = true;
+    const prevStack = new Set(prev.zones.stack);
+    const topStackId = next.zones.stack[next.zones.stack.length - 1];
+    const topStackCard = topStackId ? next.cards[topStackId] : undefined;
+    if (topStackId && topStackCard && !topStackCard.isAbility && !prevStack.has(topStackId)) {
+      if (cardHasRuleTag(next, topStackId, 'trigger.cast')) {
+        addTriggerCandidate(
+          candidates,
+          makeTriggerCandidate(next, topStackId, 'trigger.cast', '唱えたとき'),
+        );
+      }
+    }
+  }
+
+  return sawTriggerEvent ? candidates : null;
+}
+
 export function freeMulliganBottomCount(mulliganCount: number): number {
   return Math.max(0, mulliganCount - 1);
 }
@@ -290,6 +409,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   function commit(next: GameState, warnings: string[]): void {
     const cur = get().state;
+    const detectedTriggerCandidates = cur ? detectTriggerCandidates(cur, next) : null;
     if (cur) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
@@ -297,12 +417,16 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     }
     internal.future = [];
-    set({
+    const nextStoreState: Partial<GameStore> = {
       state: next,
       warnings,
       canUndo: internal.past.length > 0,
       canRedo: false,
-    });
+    };
+    if (detectedTriggerCandidates !== null) {
+      nextStoreState.triggerCandidates = detectedTriggerCandidates;
+    }
+    set(nextStoreState);
   }
 
   function dispatch(cmd: GameCommand): void {
@@ -349,6 +473,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   return {
     state: null,
     warnings: [],
+    triggerCandidates: [],
     canUndo: false,
     canRedo: false,
     autoAdvanceToMain: true,
@@ -367,6 +492,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         state: openingHand.state,
         warnings: openingHand.warnings,
+        triggerCandidates: [],
         canUndo: false,
         canRedo: false,
         mulliganDecisionPending: true,
@@ -382,6 +508,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         state: normalizeSnapshotState(snapshot.state),
         warnings: [],
+        triggerCandidates: [],
         canUndo: false,
         canRedo: false,
         autoAdvanceToMain: snapshot.autoAdvanceToMain,
@@ -423,6 +550,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         set({
           state: result.state,
           warnings: result.warnings,
+          triggerCandidates: [],
           canUndo: false,
           canRedo: false,
         });
@@ -475,6 +603,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       set({
         state: prev,
+        triggerCandidates: [],
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -490,6 +619,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       set({
         state: next,
+        triggerCandidates: [],
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -817,7 +947,19 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     addAbilityToStack(sourceId, kind) {
+      const before = get().state;
       dispatch({ type: 'addAbilityToStack', sourceId, kind });
+      if (kind === 'triggered' && get().state !== before) {
+        set({
+          triggerCandidates: get().triggerCandidates.filter(
+            (candidate) => candidate.sourceId !== sourceId,
+          ),
+        });
+      }
+    },
+
+    dismissTriggerCandidates() {
+      set({ triggerCandidates: [] });
     },
 
     copyStackItem(cardId) {

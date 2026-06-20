@@ -903,3 +903,38 @@ M6.2 候補のために以下の `action.*` タグを追加(英語 oracleText、
 - すべて既存 store 操作経由で**単一 undo** で戻る(store はもう単一commit。§R1 `applyCommands` 基盤)。
 - 候補は手札/戦場/スタック/統率領域いずれでも、該当タグがあれば出す。タグが無ければ出さない。
 - エンジン(`src/engine/`)・`applyCommand`・`CACHE_SCHEMA_VERSION` は不変。新しい盤面変更コマンドは追加しない。
+
+---
+
+## 20. M6.3 誘発候補キュー(ストア層 + UI契約)— この節も契約である
+
+設計指針: ゲームイベント(戦場入場/離場・唱える・上陸・アップキープ)の後、関連カードの**誘発型能力を「候補」として提示**する。**自動ではスタックに積まない**。ユーザーが選んだ時のみ `addAbilityToStack(sourceId, 'triggered')`。候補は無視できる。`GameState`/スナップショット/不変条件は変更しない(候補は UI 一時状態)。M4.27 のスタック能力オブジェクト・M6.2a のスタック門と整合。
+
+### 20.1 分類タグの追加(`src/data/ruleClassifier.ts`)
+誘発検出タグを追加(英語 oracleText・否定文脈ガード準拠):
+- `trigger.death`(`/\b(?:when|whenever)\b[^,.]*\bdies\b/i` または `\bis put into a graveyard from the battlefield\b`)
+- `trigger.cast`(`/\b(?:when|whenever)\b[^,.]*\bcasts?\b[^.]*\bspell\b/i`、または `whenever you cast`)
+- `trigger.attack`(`/\b(?:when|whenever)\b[^,.]*\battacks?\b/i`)
+- `trigger.landfall`(`/\b(?:when|whenever)\b[^,.]*\bland\b[^,.]*\benters\b/i` または `\blandfall\b`)
+- `trigger.upkeep`(`/\bat the beginning of[^.]*\bupkeep\b/i`)
+既存 `trigger.etb` は流用。risk/layer は静的(C / trigger-assist)。これらは M6.1 レポートにも自然に出る。
+
+### 20.2 イベント検出(`src/store/gameStore.ts`・前進操作のみ)
+ユーザー操作の commit 時(`commit(prev, next)`)に **prev→next の差分**から候補を計算する。**undo/redo/restore/import では候補を生成しない**(前進操作のみ)。検出:
+- **ETB**: `next.zones.battlefield` に増えたカード。そのカードが `trigger.etb` を持てば候補(source=そのカード)。
+- **離場/死亡**: `battlefield` から `graveyard` へ減ったカード。`trigger.death` を持てば候補(source=そのカード。`addAbilityToStack` は墓地の sourceId でも能力オブジェクトを作れる)。
+- **上陸(landfall)**: `landsPlayedThisTurn` 増加(=土地が出た)時、**戦場の全パーマネント**から `trigger.landfall` を持つものを候補(watcher)。
+- **アップキープ**: `phase` が `upkeep` に変化した時、戦場の `trigger.upkeep` 保持パーマネントを候補(watcher)。
+- **唱えた時(cast)**: `spellsCastThisTurn` 増加時、スタックに積まれたその呪文が `trigger.cast` を持てば候補(source=その呪文)。
+- (attack は M6.3 では候補化しない=将来。タグだけ追加。)
+
+候補は ephemeral ストア状態 `triggerCandidates: { sourceId: string; triggerId: string; label: string }[]`(`GameState` 外。`warnings` と同様)。新イベントで置き換え、`addAbilityToStack` 実行や「無視」で空に。
+
+### 20.3 UI(`src/components/playmat/`)
+- 非ブロッキングの **誘発候補パネル**(新規 `TriggerCandidatePanel`、`data-testid="trigger-candidates"`)。各候補行に カード名(《printedName ?? name》)・誘発種別ラベル・**「スタックへ」ボタン**(`data-testid="trigger-candidate-add-<sourceId>"`)。全体に **「無視」**(`trigger-candidates-dismiss`)。
+- 「スタックへ」→ `store.addAbilityToStack(sourceId, 'triggered')`(単一 undo)→ その候補を消す。「無視」→ 候補を全消去(盤面不変)。
+- 既存の手動「誘発を積む(スタックへ)」メニューは維持(M6.3 は proactive 提示の追加)。
+
+### 20.4 不変・非干渉
+- 候補の表示/無視だけでは `GameState` 不変。**自動で `addAbilityToStack` を呼ばない**。
+- `resolveAll`/`resolveTop`/undo/redo の既存挙動を壊さない。I9(`isAbility ⇒ zone stack`)を維持。スナップショットに `triggerCandidates` を含めない。
