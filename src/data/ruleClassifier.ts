@@ -20,6 +20,7 @@ export type RuleTagKind =
   | 'trigger'
   | 'effect-kind'
   | 'game-concept'
+  | 'oracle-phrase'
   | 'resource-token';
 
 export interface RuleTag {
@@ -197,6 +198,34 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'primitive',
     ruleRef: '115',
   },
+  'concept.alt-cast': {
+    label: '代替キャスト',
+    kind: 'keyword-ability',
+    risk: 'D',
+    layer: 'warning',
+    ruleRef: '702',
+  },
+  'concept.cast-from-zone': {
+    label: '墓地/追放から唱える',
+    kind: 'oracle-phrase',
+    risk: 'D',
+    layer: 'warning',
+    ruleRef: '601.3',
+  },
+  'cost.additional': {
+    label: '追加コスト',
+    kind: 'oracle-phrase',
+    risk: 'D',
+    layer: 'warning',
+    ruleRef: '601.2b',
+  },
+  'cost.alternative': {
+    label: '代替コスト',
+    kind: 'oracle-phrase',
+    risk: 'D',
+    layer: 'warning',
+    ruleRef: '601.3b',
+  },
   'effect.replacement': {
     label: '置換効果',
     kind: 'effect-kind',
@@ -231,6 +260,10 @@ const FIXED_TAG_ORDER = [
   'action.surveil',
   'action.attach',
   'concept.target',
+  'cost.additional',
+  'cost.alternative',
+  'concept.alt-cast',
+  'concept.cast-from-zone',
   'effect.replacement',
 ] as const;
 
@@ -243,6 +276,9 @@ const CONFIDENCE_RANK: Record<RuleTag['confidence'], number> = {
   medium: 1,
   high: 2,
 };
+
+const ALT_CAST_KEYWORD_PATTERN =
+  /\b(?:flashback|escape|disturb|aftermath|jump-?start|embalm|eternalize|foretell|retrace)\b/i;
 
 export function compareRuleTagIds(a: string, b: string): number {
   const aIndex = TAG_ORDER_INDEX.get(a) ?? Number.MAX_SAFE_INTEGER;
@@ -278,6 +314,7 @@ export function classifyCardRules(def: CardDef): RuleTag[] {
           });
         }
         classifyAttachAction(tags, core);
+        matchTag(tags, core, 'concept.alt-cast', ALT_CAST_KEYWORD_PATTERN, 'medium');
         continue;
       }
 
@@ -371,6 +408,34 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
   matchTag(tags, core, 'action.surveil', /\bsurveil\b\s*\d*/i, 'medium');
   classifyAttachAction(tags, core);
   matchTag(tags, core, 'concept.target', /\btarget\b/i, 'high');
+  matchTag(
+    tags,
+    core,
+    'concept.alt-cast',
+    ALT_CAST_KEYWORD_PATTERN,
+    'medium',
+  );
+  matchTag(
+    tags,
+    core,
+    'concept.cast-from-zone',
+    /\b(?:cast|play)s?\b[^.]*\bfrom\b[^.]*\b(?:your\s+)?(?:graveyard|exile)\b/i,
+    'medium',
+  );
+  matchTag(
+    tags,
+    core,
+    'cost.additional',
+    /\bas an additional cost to cast\b/i,
+    'medium',
+  );
+  matchTag(
+    tags,
+    core,
+    'cost.alternative',
+    /\b(?:without paying (?:its|their) mana cost|rather than pay (?:this spell'?s|its) mana cost)\b/i,
+    'medium',
+  );
   matchTag(tags, core, 'effect.replacement', /\bwould\b[^.]*\binstead\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\bas\b[^.]*\benters\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\benters\s+(?:with|as)\b/i, 'high');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CardDef } from '../../types/card';
-import { classifyCardRules } from '../ruleClassifier';
+import { classifyCardRules, type RuleTag } from '../ruleClassifier';
 import { summarizeDeckRuleTags } from '../ruleDeckSummary';
 
 function makeCard(name: string, oracleText?: string, overrides: Partial<CardDef> = {}): CardDef {
@@ -27,6 +27,10 @@ function makeCard(name: string, oracleText?: string, overrides: Partial<CardDef>
 
 function tagIds(card: CardDef): string[] {
   return classifyCardRules(card).map((tag) => tag.id);
+}
+
+function tagById(card: CardDef, tagId: string): RuleTag | undefined {
+  return classifyCardRules(card).find((tag) => tag.id === tagId);
 }
 
 describe('classifyCardRules', () => {
@@ -167,6 +171,67 @@ describe('classifyCardRules', () => {
     expect(tagIds(makeCard('Curly Apostrophe', 'You can’t discard cards.'))).not.toContain(
       'action.discard',
     );
+  });
+
+  it('detects M6.8 zone-cast assist tags from oracle text', () => {
+    const faithlessLooting = makeCard(
+      'Faithless Looting',
+      'Draw two cards, then discard two cards.\nFlashback {2}{R}',
+      { typeLine: 'Sorcery' },
+    );
+    const uro = makeCard(
+      'Uro, Titan of Nature’s Wrath',
+      'Escape—{G}{G}{U}{U}, Exile five other cards from your graveyard.',
+    );
+    const muldrotha = makeCard(
+      'Muldrotha, the Gravetide',
+      'During each of your turns, you may play a land and cast a permanent spell of each permanent type from your graveyard.',
+      { typeLine: 'Legendary Creature — Elemental Avatar' },
+    );
+    const fierceGuardianship = makeCard(
+      'Fierce Guardianship',
+      'If you control a commander, you may cast this spell without paying its mana cost.',
+      { typeLine: 'Instant' },
+    );
+    const additionalCost = makeCard(
+      'Additional Cost Spell',
+      'As an additional cost to cast this spell, exile a creature card from your graveyard.',
+      { typeLine: 'Sorcery' },
+    );
+
+    expect(tagIds(faithlessLooting)).toContain('concept.alt-cast');
+    expect(tagById(faithlessLooting, 'concept.alt-cast')?.matchedText).toBe('Flashback');
+    expect(tagIds(uro)).toContain('concept.alt-cast');
+    expect(tagById(uro, 'concept.alt-cast')?.matchedText).toBe('Escape');
+    expect(tagIds(muldrotha)).toContain('concept.cast-from-zone');
+    expect(tagIds(fierceGuardianship)).toContain('cost.alternative');
+    expect(tagIds(additionalCost)).toContain('cost.additional');
+  });
+
+  it('does not confuse reanimation or unrelated text with cast-from-zone assists', () => {
+    const reanimate = makeCard(
+      'Reanimate',
+      'Put target creature card from a graveyard onto the battlefield under your control.',
+      { typeLine: 'Sorcery' },
+    );
+    const animateDead = makeCard(
+      'Animate Dead',
+      'Return enchanted creature card to the battlefield under your control.',
+      { typeLine: 'Enchantment — Aura' },
+    );
+    const sunTitan = makeCard(
+      'Sun Titan',
+      'Whenever Sun Titan enters or attacks, you may return target permanent card with mana value 3 or less from your graveyard to the battlefield.',
+      { typeLine: 'Creature — Giant' },
+    );
+    const indestructible = makeCard('Indestructible Bear', "This creature can't be destroyed.");
+
+    expect(tagIds(reanimate)).not.toContain('concept.cast-from-zone');
+    expect(tagIds(animateDead)).not.toContain('concept.cast-from-zone');
+    expect(tagIds(sunTitan)).not.toContain('concept.cast-from-zone');
+    expect(tagIds(indestructible)).not.toContain('concept.alt-cast');
+    expect(tagIds(indestructible)).not.toContain('cost.additional');
+    expect(tagIds(indestructible)).not.toContain('cost.alternative');
   });
 
   it('is null-safe for missing runtime fields', () => {

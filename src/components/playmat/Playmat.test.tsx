@@ -221,6 +221,89 @@ describe('Playmat', () => {
     cleanupRender(root, container);
   });
 
+  it.each(['graveyard', 'exile'] as const)(
+    'shows zone-cast action and advisory for a nonland card in %s',
+    (zone) => {
+      const flashbackSpell = makeDef({
+        scryfallId: `playmat-zone-cast-${zone}`,
+        typeLine: 'Sorcery',
+        faces: [
+          {
+            name: `playmat-zone-cast-${zone}`,
+            typeLine: 'Sorcery',
+            oracleText: 'Draw two cards, then discard two cards.\nFlashback {2}{R}',
+          },
+        ],
+      });
+
+      startGameWithDefs([flashbackSpell]);
+      const cardId = findInstanceId(flashbackSpell.scryfallId);
+      act(() => {
+        useGameStore.getState().moveCard(cardId, zone);
+      });
+      const store = useGameStore.getState();
+      const castToStack = vi.spyOn(store, 'castToStack').mockReturnValue('ok');
+      const beforeMenu = store.state;
+      if (!beforeMenu) {
+        throw new Error('game state was not available before opening the zone-cast menu');
+      }
+
+      const { container, root } = renderPlaymat();
+      const card = container.querySelector(`[data-testid="card-${cardId}"]`);
+      if (!card) {
+        throw new Error('zone-cast source card was not rendered');
+      }
+
+      dispatchContextMenu(card);
+
+      const castItem = container.querySelector('[data-testid="cast-from-zone"]');
+      const advisory = container.querySelector<HTMLButtonElement>(
+        '[data-testid="cast-cost-advisory"]',
+      );
+
+      expect(useGameStore.getState().state).toBe(beforeMenu);
+      expect(castItem?.textContent).toBe('唱える(スタック)');
+      expect(advisory?.disabled).toBe(true);
+      expect(advisory?.textContent).toBe('⚠ 代替キャスト(コストは手動精算)');
+
+      if (!castItem) {
+        throw new Error('zone-cast menu item was not rendered');
+      }
+
+      dispatchClick(castItem);
+
+      expect(castToStack).toHaveBeenCalledWith(cardId, { xValue: 0 });
+
+      cleanupRender(root, container);
+    },
+  );
+
+  it.each(['graveyard', 'exile'] as const)('does not show zone-cast action for a land in %s', (zone) => {
+    const land = makeDef({
+      scryfallId: `playmat-zone-cast-land-${zone}`,
+      typeLine: 'Land',
+      faces: [{ name: `playmat-zone-cast-land-${zone}`, typeLine: 'Land' }],
+    });
+
+    startGameWithDefs([land]);
+    const cardId = findInstanceId(land.scryfallId);
+    act(() => {
+      useGameStore.getState().moveCard(cardId, zone);
+    });
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${cardId}"]`);
+    if (!card) {
+      throw new Error('zone land card was not rendered');
+    }
+
+    dispatchContextMenu(card);
+
+    expect(container.querySelector('[data-testid="cast-from-zone"]')).toBeNull();
+
+    cleanupRender(root, container);
+  });
+
   it('uses ArrowUp to resolve the top of the stack before advancing the phase', () => {
     const stackCreature = makeDef({
       scryfallId: 'playmat-stack-creature',

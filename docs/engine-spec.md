@@ -1007,3 +1007,28 @@ export interface CardInstance {
 - 数値不変条件は追加不要(配列のみ)。`manualKeywords` の値は常に `Keyword` id の部分集合。
 - **スナップショット前方互換**: `restoreGame`/正規化で `manualKeywords` 欠落を許容(`undefined` のまま動作)。旧スナップショット復元でクラッシュしない([[snapshot-forward-compat]])。
 - `applyCommand` 決定性・I1〜I12 を維持。印刷キーワード検出(§8.3)・M6.1〜M6.4 を壊さない。
+
+---
+
+## 23. M6.8 ゾーン外キャスト補助(データ層 + UI契約)— この節も契約である
+
+設計指針: EDH(特に Muldrotha の墓地プレイ、Kefka/Celes のリアニメイト/フラッシュバック)で頻出する「墓地・追放から唱える」を補助する。**エンジンAPIは不変**: `castToStack`(store)も `applyCastToStack`(`commands.ts`)も `moveCardInternal(draft, cardId, 'stack', …)` で**現在ゾーンを問わずスタックへ移す**ため、墓地/追放からのキャストは既存コマンドで成立する。本節は **(a) 墓地/追放カードへの「唱える」導線**と **(b) 代替/追加コスト・代替キャストの助言タグ**を追加する。**コストは自動精算しない**(サンドボックス哲学・マナ不足でも強行可)。
+
+### 23.1 分類タグの追加(`src/data/ruleClassifier.ts` `classifyAbilityText`)
+いずれも**助言用**(盤面非変更)。`source: 'oracleText'`、英語 `oracleText` を正本とする(§P1)。
+- `concept.alt-cast`(label「代替キャスト」, kind 'keyword-ability', risk 'D', layer 'warning', ruleRef '702'): キーワード型の代替キャストを検出。`/\b(?:flashback|escape|disturb|aftermath|jump-?start|embalm|eternalize|foretell|retrace)\b/i`。`matchedText` に一致キーワードを格納。
+- `concept.cast-from-zone`(label「墓地/追放から唱える」, kind 'oracle-phrase', risk 'D', layer 'warning', ruleRef '601.3'): キーワードに依らない常在許可を検出。`/\b(?:cast|play)s?\b[^.]*\bfrom\b[^.]*\b(?:your\s+)?(?:graveyard|exile)\b/i`。
+- `cost.additional`(label「追加コスト」, kind 'oracle-phrase', risk 'D', layer 'warning', ruleRef '601.2b'): `/\bas an additional cost to cast\b/i`。
+- `cost.alternative`(label「代替コスト」, kind 'oracle-phrase', risk 'D', layer 'warning', ruleRef '601.3b'): `/\b(?:without paying (?:its|their) mana cost|rather than pay (?:this spell'?s|its) mana cost)\b/i`。
+
+注意: これらは**助言タグ**であり既存の候補アクション(§19/§21)を増やさない。`action.return`(§21.1)等の既存タグ・検出は不変。誤発火を抑えるため正規表現は上記に厳格化する(`escape`/`disturb` 等の単語は EDH の実カードではキーワード行に限り出るため許容範囲)。
+
+### 23.2 ゾーン外キャストUI(`src/components/playmat/Playmat.tsx` `buildMenuItems`)
+- **墓地・追放**にあるカードで `typeLine` が `Land` を含まない場合、「唱える(スタック)」項目(`key:'cast-from-zone'`, `data-testid="cast-from-zone"`)を追加し、既存の `requestCastToStack(cardId)` を呼ぶ(= `store.castToStack`。マナ自動タップ/不足時強行/単一undo は既存挙動を踏襲)。
+- **コスト/代替キャスト助言**: 当該カードの `classifyCardRules(def)` に `concept.alt-cast` / `concept.cast-from-zone` / `cost.additional` / `cost.alternative` のいずれかがある場合、「唱える」導線の直近に**無効(disabled)な助言項目**(`data-testid="cast-cost-advisory"`)を1つ出す。文言は検出タグの `label` を連結(例「⚠ 追加コスト/代替キャスト(コストは手動精算)」)。この助言は **hand/command の既存「唱える(スタック)」にも**同条件で表示してよい(任意だが推奨)。
+- 助言項目はクリック不能で `GameState` を変更しない。土地(墓地/追放)には「唱える」を出さない(既存の移動/戻し導線で扱う)。
+
+### 23.3 不変・非干渉
+- **エンジン不変**: `src/engine/`・`applyCommand`・`commands.ts`・`CACHE_SCHEMA_VERSION` は一切変更しない。新コマンドを足さない。
+- 候補・助言の**表示だけでは `GameState` 不変**。実キャストは既存 `castToStack` 経由で**単一 undo**。
+- 既存の hand/command キャスト導線・サイクリング・移動導線を壊さない。M6.1〜M6.5 のタグ・候補・誘発キュー・手動キーワードを壊さない。スナップショット前方互換に影響なし(新フィールドなし)。

@@ -89,6 +89,13 @@ type PendingRuleTargetAction = {
 };
 type MenuTriggerEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>;
 
+const CAST_COST_ADVISORY_TAG_IDS = [
+  'cost.additional',
+  'cost.alternative',
+  'concept.alt-cast',
+  'concept.cast-from-zone',
+] as const;
+
 const TARGET_RULE_ACTION_TITLES: Record<TargetRuleActionCandidateKind, string> = {
   'sacrifice-target': '対象の生け贄',
   'destroy-target': '対象を破壊',
@@ -113,6 +120,30 @@ const MANUAL_KEYWORD_OPTIONS: ReadonlyArray<{ id: Keyword; label: string }> = [
   { id: 'defender', label: '防衛' },
   { id: 'ward', label: '護法' },
 ];
+
+function buildCastCostAdvisoryItem(def: CardDef | undefined): MenuItem | null {
+  if (!def) {
+    return null;
+  }
+
+  const tagsById = new Map(classifyCardRules(def).map((tag) => [tag.id, tag.label]));
+  const labels = CAST_COST_ADVISORY_TAG_IDS.flatMap((tagId) => {
+    const label = tagsById.get(tagId);
+    return label ? [label] : [];
+  });
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  return {
+    key: 'cast-cost-advisory',
+    label: `⚠ ${labels.join('/')}(コストは手動精算)`,
+    testId: 'cast-cost-advisory',
+    disabled: true,
+    onSelect: () => undefined,
+  };
+}
 
 interface ManualKeywordsDialogProps {
   cardName: string;
@@ -856,6 +887,10 @@ export function Playmat({ keybindings }: PlaymatProps) {
           onSelect: () => requestCastToStack(cardId),
           separator: true,
         });
+        const advisory = buildCastCostAdvisoryItem(def);
+        if (advisory) {
+          items.push(advisory);
+        }
       }
 
       const cycleCost = cyclingCost(def);
@@ -882,6 +917,24 @@ export function Playmat({ keybindings }: PlaymatProps) {
         onSelect: () => requestCastToStack(cardId),
         separator: true,
       });
+      const advisory = buildCastCostAdvisoryItem(def);
+      if (advisory) {
+        items.push(advisory);
+      }
+    }
+
+    if ((card.zone === 'graveyard' || card.zone === 'exile') && !typeLine.includes('Land')) {
+      items.push({
+        key: 'cast-from-zone',
+        label: '唱える(スタック)',
+        testId: 'cast-from-zone',
+        onSelect: () => requestCastToStack(cardId),
+        separator: true,
+      });
+      const advisory = buildCastCostAdvisoryItem(def);
+      if (advisory) {
+        items.push(advisory);
+      }
     }
 
     if (card.zone === 'battlefield' || card.zone === 'hand' || card.zone === 'command') {
