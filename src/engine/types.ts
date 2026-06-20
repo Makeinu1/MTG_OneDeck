@@ -43,6 +43,7 @@ export interface CardInstance {
   isToken: boolean;
   isCommander: boolean;
   enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0
+  manualKeywords?: string[]; // manually granted status Keyword ids
   attachedTo?: string; // 装備/オーラの付与先 instance id
   isAbility?: boolean;
   sourceId?: string;

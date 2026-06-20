@@ -13,7 +13,7 @@ import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
-import type { GameState, ZoneId } from '../engine/types';
+import type { CardInstance, GameState, ZoneId } from '../engine/types';
 import { classifyCardRules } from '../data/ruleClassifier';
 import {
   effectivePower,
@@ -22,6 +22,7 @@ import {
   isSummoningSick,
   landEntersTapped,
   cyclingCost,
+  normalizeKeywords,
 } from '../engine/status';
 
 const HISTORY_LIMIT = 200;
@@ -75,9 +76,33 @@ function normalizePerTurnCounter(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<string, CardInstance> {
+  let changed = false;
+  const out: Record<string, CardInstance> = {};
+
+  for (const [cardId, card] of Object.entries(cards)) {
+    const manualKeywords = normalizeKeywords(card.manualKeywords);
+    if (manualKeywords.length > 0) {
+      const sameLength = card.manualKeywords?.length === manualKeywords.length;
+      const sameValues =
+        sameLength && manualKeywords.every((keyword, index) => card.manualKeywords?.[index] === keyword);
+      out[cardId] = sameValues ? card : { ...card, manualKeywords };
+      changed = changed || !sameValues;
+    } else if (card.manualKeywords === undefined) {
+      out[cardId] = card;
+    } else {
+      out[cardId] = { ...card, manualKeywords: undefined };
+      changed = true;
+    }
+  }
+
+  return changed ? out : cards;
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
   return {
     ...state,
+    cards: normalizeSnapshotCards(state.cards),
     zones: normalizeSnapshotZones(state.zones),
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
@@ -111,6 +136,7 @@ export interface GameStore {
   mill(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
+  setManualKeywords(cardId: string, keywords: string[]): void;
   tapAllPermanents(): void;
   untapAllPermanents(): void;
   proliferateAll(): void;
@@ -648,6 +674,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         to,
         position: position ?? (to === 'stack' ? 'bottom' : 'top'),
       });
+    },
+
+    setManualKeywords(cardId, keywords) {
+      dispatch({ type: 'setManualKeywords', cardId, keywords });
     },
 
     tapAllPermanents() {

@@ -18,7 +18,7 @@ export type Keyword =
   | 'defender'
   | 'ward';
 
-const STATUS_KEYWORDS: readonly Keyword[] = [
+export const STATUS_KEYWORDS: readonly Keyword[] = [
   'flying',
   'vigilance',
   'trample',
@@ -36,6 +36,25 @@ const STATUS_KEYWORDS: readonly Keyword[] = [
 ];
 
 const STATUS_KEYWORD_IDS = new Set<string>(STATUS_KEYWORDS);
+
+export function isKeyword(value: string): value is Keyword {
+  return STATUS_KEYWORD_IDS.has(value);
+}
+
+export function normalizeKeywords(values: readonly unknown[] | undefined): Keyword[] {
+  if (!Array.isArray(values)) return [];
+
+  const out: Keyword[] = [];
+  const seen = new Set<Keyword>();
+  for (const value of values) {
+    if (typeof value !== 'string' || !isKeyword(value) || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
 
 function currentFace(def: CardDef | undefined, card: CardInstance) {
   return def?.faces[card.faceIndex] ?? def?.faces[0];
@@ -126,13 +145,19 @@ export function fetchAbility(def: CardDef | undefined): FetchAbility | null {
 }
 
 export function keywords(def: CardDef | undefined): Keyword[] {
-  return possessedKeywords(def).filter((id): id is Keyword => STATUS_KEYWORD_IDS.has(id));
+  return possessedKeywords(def).filter((id): id is Keyword => isKeyword(id));
+}
+
+export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
+  const card = state.cards[cardId];
+  if (!card) return [];
+  return normalizeKeywords([...keywords(state.defs[card.defId]), ...(card.manualKeywords ?? [])]);
 }
 
 export function hasVigilance(state: GameState, cardId: string): boolean {
   const card = state.cards[cardId];
   if (!card) return false;
-  return keywords(state.defs[card.defId]).includes('vigilance');
+  return effectiveKeywords(state, cardId).includes('vigilance');
 }
 
 export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' | 'conditional' {
@@ -186,5 +211,5 @@ export function isSummoningSick(state: GameState, cardId: string): boolean {
   const def = state.defs[card.defId];
   if (!currentTypeLine(def, card).includes('Creature')) return false;
   if (card.enteredTurn !== state.turn) return false;
-  return !keywords(def).includes('haste');
+  return !effectiveKeywords(state, cardId).includes('haste');
 }

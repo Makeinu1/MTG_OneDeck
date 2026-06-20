@@ -2,7 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { useRef } from 'react';
 import type { CardDef } from '../types/card';
 import type { CardInstance } from '../engine/types';
-import { keywords, type Keyword } from '../engine/status';
+import { keywords, normalizeKeywords, type Keyword } from '../engine/status';
 
 export interface CardViewProps {
   instance: CardInstance;
@@ -99,7 +99,9 @@ export function CardView({
   );
   const loyalty = instance.counters.loyalty;
   const lore = instance.counters.lore;
-  const keywordList = instance.faceDown ? [] : keywords(def);
+  const keywordList = instance.faceDown
+    ? []
+    : normalizeKeywords([...keywords(def), ...(instance.manualKeywords ?? [])]);
 
   const style: React.CSSProperties = {
     transform: transform

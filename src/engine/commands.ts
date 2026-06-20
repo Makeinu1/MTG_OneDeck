@@ -1,5 +1,6 @@
 import type { CardDef, ManaColor } from '../types/card';
 import { isCommander } from './commander';
+import { normalizeKeywords } from './status';
 import type {
   AbilityKind,
   CardInstance,
@@ -16,6 +17,7 @@ export type GameCommand =
   | { type: 'setTapped'; cardId: string; tapped: boolean }
   | { type: 'setFace'; cardId: string; faceIndex: number }
   | { type: 'setFaceDown'; cardId: string; faceDown: boolean }
+  | { type: 'setManualKeywords'; cardId: string; keywords: string[] }
   | { type: 'addCounters'; cardId: string; counterType: string; delta: number }
   | { type: 'attach'; cardId: string; to: string | undefined }
   | { type: 'adjustLife'; delta: number }
@@ -1020,6 +1022,16 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
           `${nameOf(draft, cmd.cardId)}を${cmd.faceDown ? '裏向き' : '表向き'}にしました。`
         );
       }
+      break;
+    }
+    case 'setManualKeywords': {
+      const card = requireCard(draft, cmd.cardId);
+      const manualKeywords = normalizeKeywords(cmd.keywords);
+      setCard(draft, {
+        ...card,
+        manualKeywords: manualKeywords.length > 0 ? manualKeywords : undefined,
+      });
+      pushLog(draft, `${nameOf(draft, cmd.cardId)}の手動キーワードを更新した。`);
       break;
     }
     case 'addCounters': {

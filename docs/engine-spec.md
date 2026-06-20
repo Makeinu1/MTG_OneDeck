@@ -971,3 +971,39 @@ M6.2 候補のために以下の `action.*` タグを追加(英語 oracleText、
 ### 21.4 不変・非干渉
 - 候補表示・ダイアログ開閉だけでは `GameState` 不変。実行は既存コマンド経由で**単一 undo**。
 - エンジン(`src/engine/`)・`applyCommand`・`CACHE_SCHEMA_VERSION` 不変。`attach` は既存 `{type:'attach',cardId,to}` を使う(`attachedTo` を設定)。M6.1/M6.2/M6.3 のタグ・候補・誘発キューを壊さない。
+
+---
+
+## 22. M6.5 付与キーワードの手動オーバーライド(エンジン契約)— この節も契約である
+
+設計指針: アプリは**印刷キーワード**を文法認識で正しく検出する(§8.3)が、他カードが**付与**したキーワード(装備の速攻等)は追えない。完全ルールエンジン化せず、サンドボックス哲学に沿って**ユーザーが手動でキーワードを付与**できるようにする。
+
+### 22.1 型(`src/engine/types.ts`)
+```ts
+export interface CardInstance {
+  // 既存フィールドは維持
+  manualKeywords?: string[]; // 手動付与した常磐木キーワード id(Keyword の部分集合: 'haste'/'vigilance'/'flying' 等)
+}
+```
+- 値は `Keyword`(§8.3 の14種)の id のみ。重複なし。未設定/旧スナップショットでは `undefined`(= 付与なし)。
+
+### 22.2 コマンド(`src/engine/commands.ts`)
+```ts
+| { type: 'setManualKeywords'; cardId: string; keywords: string[] }
+```
+- 対象 instance の `manualKeywords` を `keywords`(`Keyword` id のみへ正規化・重複排除)で**置換**する。空配列なら `undefined`/`[]`。ログに「《X》の手動キーワードを更新した。」。決定的・純粋。
+
+### 22.3 status.ts の統合(`src/engine/status.ts`)
+- `keywords(def)`(印刷のみ・def 由来)は**不変**。
+- 新規 `effectiveKeywords(state, cardId): Keyword[]` = **印刷 `keywords(def)` ∪ `card.manualKeywords`**(`Keyword` に絞る・重複排除)。
+- `hasVigilance(state, cardId)` は `effectiveKeywords(...).includes('vigilance')` を使う。
+- `isSummoningSick(state, cardId)` の `!keywords(def).includes('haste')` を `!effectiveKeywords(state, cardId).includes('haste')` に変更(=手動 haste で召喚酔いが解ける)。
+- バッジ表示(`CardView.tsx`)の `keywordList` も **印刷 ∪ instance.manualKeywords**(`Keyword` に絞る)にする。
+
+### 22.4 UI(`src/components/playmat/`)
+- 戦場クリーチャーの右クリックに「手動キーワード…」(`data-testid="manual-keywords-open"`)。小ダイアログ(`data-testid="manual-keywords-dialog"`)で常磐木14種のチェックボックス(現 `manualKeywords` を初期チェック、各 `data-testid="manual-kw-<keyword>"`)。確定で `store.setManualKeywords(cardId, selected)`(単一 undo)。最低限 速攻(haste)・警戒(vigilance)を含む。
+
+### 22.5 不変・互換
+- 数値不変条件は追加不要(配列のみ)。`manualKeywords` の値は常に `Keyword` id の部分集合。
+- **スナップショット前方互換**: `restoreGame`/正規化で `manualKeywords` 欠落を許容(`undefined` のまま動作)。旧スナップショット復元でクラッシュしない([[snapshot-forward-compat]])。
+- `applyCommand` 決定性・I1〜I12 を維持。印刷キーワード検出(§8.3)・M6.1〜M6.4 を壊さない。

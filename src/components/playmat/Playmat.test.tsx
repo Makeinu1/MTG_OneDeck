@@ -356,6 +356,57 @@ describe('Playmat', () => {
     cleanupRender(root, container);
   });
 
+  it('opens manual keyword dialog from a battlefield creature and saves selected keywords', () => {
+    const creature = makeDef({
+      scryfallId: 'playmat-manual-keywords',
+      typeLine: 'Creature — Cleric',
+    });
+
+    startGameWithDefs([creature]);
+    const creatureId = findInstanceId('playmat-manual-keywords');
+    act(() => {
+      useGameStore.getState().moveCard(creatureId, 'battlefield');
+    });
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${creatureId}"]`);
+    if (!card) {
+      throw new Error('manual keyword source card was not rendered');
+    }
+
+    dispatchContextMenu(card);
+    const open = container.querySelector('[data-testid="manual-keywords-open"]');
+    if (!open) {
+      throw new Error('manual keyword menu item was not rendered');
+    }
+
+    dispatchClick(open);
+    expect(container.querySelector('[data-testid="manual-keywords-dialog"]')).not.toBeNull();
+
+    const haste = container.querySelector<HTMLInputElement>('[data-testid="manual-kw-haste"]');
+    const vigilance = container.querySelector<HTMLInputElement>(
+      '[data-testid="manual-kw-vigilance"]',
+    );
+    const confirm = container.querySelector('[data-testid="manual-keywords-confirm"]');
+    if (!haste || !vigilance || !confirm) {
+      throw new Error('manual keyword controls were not rendered');
+    }
+
+    act(() => {
+      haste.click();
+      vigilance.click();
+    });
+    dispatchClick(confirm);
+
+    expect(useGameStore.getState().state?.cards[creatureId]?.manualKeywords).toEqual([
+      'vigilance',
+      'haste',
+    ]);
+    expect(container.querySelector('[data-testid="manual-keywords-dialog"]')).toBeNull();
+
+    cleanupRender(root, container);
+  });
+
   it('renders safe rule action candidates from the card context menu without changing game state', () => {
     const candidateCard = makeDef({
       scryfallId: 'playmat-candidate-actions',

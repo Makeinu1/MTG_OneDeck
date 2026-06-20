@@ -2226,6 +2226,41 @@
   color: var(--mana-c);
 }
 
+.manual-keywords {
+  display: grid;
+  gap: 14px;
+}
+
+.manual-keywords__card {
+  margin: 0;
+  color: var(--text-h);
+  font-weight: 700;
+}
+
+.manual-keywords__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.manual-keywords__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--felt-2);
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.manual-keywords__option input {
+  margin: 0;
+  accent-color: var(--gold);
+}
+
 .token-presets {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

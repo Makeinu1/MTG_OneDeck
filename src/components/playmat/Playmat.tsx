@@ -14,6 +14,7 @@ import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
 import type { GameState, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
+import { Modal } from '../Modal';
 import type { MenuTarget } from '../types';
 import { CardView } from '../CardView';
 import { CardPreview } from '../CardPreview';
@@ -54,8 +55,7 @@ import {
 } from './dialogs';
 import type { CardDef, ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
-import { cyclingCost, fetchAbility } from '../../engine/status';
-import type { FetchAbility } from '../../engine/status';
+import { cyclingCost, fetchAbility, normalizeKeywords, type FetchAbility, type Keyword } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
@@ -97,6 +97,96 @@ const TARGET_RULE_ACTION_TITLES: Record<TargetRuleActionCandidateKind, string> =
   'attach-target': '装備/付与',
 };
 
+const MANUAL_KEYWORD_OPTIONS: ReadonlyArray<{ id: Keyword; label: string }> = [
+  { id: 'flying', label: '飛行' },
+  { id: 'vigilance', label: '警戒' },
+  { id: 'trample', label: 'トランプル' },
+  { id: 'deathtouch', label: '接死' },
+  { id: 'lifelink', label: '絆魂' },
+  { id: 'menace', label: '威迫' },
+  { id: 'first-strike', label: '先制攻撃' },
+  { id: 'double-strike', label: '二段攻撃' },
+  { id: 'reach', label: '到達' },
+  { id: 'haste', label: '速攻' },
+  { id: 'hexproof', label: '呪禁' },
+  { id: 'indestructible', label: '破壊不能' },
+  { id: 'defender', label: '防衛' },
+  { id: 'ward', label: '護法' },
+];
+
+interface ManualKeywordsDialogProps {
+  cardName: string;
+  initialKeywords: readonly string[] | undefined;
+  onConfirm: (keywords: Keyword[]) => void;
+  onCancel: () => void;
+}
+
+function ManualKeywordsDialog({
+  cardName,
+  initialKeywords,
+  onConfirm,
+  onCancel,
+}: ManualKeywordsDialogProps) {
+  const [selected, setSelected] = useState<Set<Keyword>>(
+    () => new Set(normalizeKeywords(initialKeywords)),
+  );
+
+  function setKeyword(keyword: Keyword, checked: boolean): void {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(keyword);
+      } else {
+        next.delete(keyword);
+      }
+      return next;
+    });
+  }
+
+  function selectedKeywords(): Keyword[] {
+    return MANUAL_KEYWORD_OPTIONS.flatMap((option) => (selected.has(option.id) ? [option.id] : []));
+  }
+
+  return (
+    <Modal title="手動キーワード" onClose={onCancel} width="sm" testId="manual-keywords-dialog">
+      <div className="manual-keywords">
+        <p className="manual-keywords__card">《{cardName}》</p>
+        <div className="manual-keywords__grid">
+          {MANUAL_KEYWORD_OPTIONS.map((option) => (
+            <label key={option.id} className="manual-keywords__option">
+              <input
+                type="checkbox"
+                checked={selected.has(option.id)}
+                onChange={(event) => setKeyword(option.id, event.currentTarget.checked)}
+                data-testid={`manual-kw-${option.id}`}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="dialog__actions">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={onCancel}
+            data-testid="manual-keywords-cancel"
+          >
+            キャンセル
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => onConfirm(selectedKeywords())}
+            data-testid="manual-keywords-confirm"
+          >
+            確定
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function opponentLabelsFromState(
   state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>,
 ): string[] {
@@ -133,6 +223,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
   const [fetchDialog, setFetchDialog] = useState<FetchDialogState | null>(null);
   const [pendingRuleTarget, setPendingRuleTarget] = useState<PendingRuleTargetAction | null>(null);
+  const [manualKeywordsCardId, setManualKeywordsCardId] = useState<string | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
@@ -165,6 +256,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     zoneViewer !== null ||
     fetchDialog !== null ||
     pendingRuleTarget !== null ||
+    manualKeywordsCardId !== null ||
     arrangeTopOpen ||
     countDialog !== null ||
     peekCount !== null ||
@@ -713,6 +805,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
         });
       }
 
+      if (typeLine.includes('Creature')) {
+        items.push({
+          key: 'manual-keywords',
+          label: '手動キーワード…',
+          testId: 'manual-keywords-open',
+          onSelect: () => setManualKeywordsCardId(cardId),
+          separator: true,
+        });
+      }
+
       items.push({
         key: 'copy-permanent',
         label: 'コピー(トークン)',
@@ -885,6 +987,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   const activeCard = activeDragId ? cards[activeDragId] : undefined;
   const activeDef = activeCard ? state.defs[activeCard.defId] : undefined;
+  const manualKeywordCard = manualKeywordsCardId ? cards[manualKeywordsCardId] : undefined;
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
@@ -1063,6 +1166,18 @@ export function Playmat({ keybindings }: PlaymatProps) {
             title="ライブラリ"
             items={buildLibraryMenuItems()}
             onClose={closeMenu}
+          />
+        )}
+
+        {manualKeywordsCardId && manualKeywordCard && (
+          <ManualKeywordsDialog
+            cardName={cardNameFor(manualKeywordsCardId)}
+            initialKeywords={manualKeywordCard.manualKeywords}
+            onConfirm={(keywords) => {
+              store.setManualKeywords(manualKeywordsCardId, keywords);
+              setManualKeywordsCardId(null);
+            }}
+            onCancel={() => setManualKeywordsCardId(null)}
           />
         )}
 

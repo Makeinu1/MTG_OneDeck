@@ -49,7 +49,13 @@ function dispatchPointerEvent(
   });
 }
 
-function renderCard(onContextMenu?: (event: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => void) {
+function renderCard(
+  onContextMenu?: (
+    event: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
+  ) => void,
+  instance: CardInstance = TEST_CARD_INSTANCE,
+  def: CardDef = TEST_CARD_DEF,
+) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -57,7 +63,7 @@ function renderCard(onContextMenu?: (event: React.MouseEvent<HTMLDivElement> | R
   act(() => {
     root.render(
       <DndContext>
-        <CardView instance={TEST_CARD_INSTANCE} def={TEST_CARD_DEF} onContextMenu={onContextMenu} />
+        <CardView instance={instance} def={def} onContextMenu={onContextMenu} />
       </DndContext>,
     );
   });
@@ -118,6 +124,36 @@ describe('CardView touch menu', () => {
     });
 
     expect(onContextMenu).not.toHaveBeenCalled();
+
+    cleanupRender(root, container);
+  });
+});
+
+describe('CardView keyword badges', () => {
+  it('shows printed and manual keyword badges without duplicating invalid manual ids', () => {
+    const def: CardDef = {
+      ...TEST_CARD_DEF,
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Test Card',
+          printedName: 'テストカード',
+          typeLine: 'Creature',
+          oracleText: 'Flying',
+        },
+      ],
+    };
+    const instance: CardInstance = {
+      ...TEST_CARD_INSTANCE,
+      zone: 'battlefield',
+      manualKeywords: ['haste', 'invalid', 'flying'],
+    };
+
+    const { container, root } = renderCard(undefined, instance, def);
+
+    expect(container.querySelector('[title="flying"]')?.textContent).toBe('飛');
+    expect(container.querySelector('[title="haste"]')?.textContent).toBe('速');
+    expect(container.querySelector('[title="invalid"]')).toBeNull();
 
     cleanupRender(root, container);
   });
