@@ -332,8 +332,20 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
     /\bcounters?\b[^.]*\b(?:would be|are|is|was|were|be)\s+put\s+on\b/i,
     'high',
   );
-  matchTag(tags, core, 'action.sacrifice', /\bsacrifices?\b/i, 'medium');
-  matchTag(tags, core, 'action.exile', /\bexiles?\b/i, 'medium');
+  matchTag(
+    tags,
+    core,
+    'action.sacrifice',
+    /\bsacrifices?\s+(?:target|all|each|up to|that|those|the|it|them|this|a |an |another|\d)\b/i,
+    'medium',
+  );
+  matchTag(
+    tags,
+    core,
+    'action.exile',
+    /(?<!\bfrom\s)(?<!\bin\s)(?<!\binto\s)\bexiles?\s+(?:target|all|each|up to|that|those|the|it|them|this|a |an |any|another|cards?|\d)\b/i,
+    'medium',
+  );
   matchTag(tags, core, 'action.search', /\bsearch(?:es)?\b[^.]*\blibrary\b/i, 'medium');
   matchTag(
     tags,
@@ -342,7 +354,13 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
     /\breturn(?:s)?\b[^.]*\bfrom\b[^.]*\b(?:graveyard|exile)\b/i,
     'medium',
   );
-  matchTag(tags, core, 'action.destroy', /\bdestroys?\b/i, 'medium');
+  matchTag(
+    tags,
+    core,
+    'action.destroy',
+    /\bdestroys?\s+(?:target|all|each|up to|that|those|the|it|them|this|any|another|\d)\b/i,
+    'medium',
+  );
   matchTag(tags, core, 'action.mill', /\bmills?\b/i, 'medium');
   matchTag(tags, core, 'action.scry', /\bscry\b\s*\d*/i, 'medium');
   matchTag(tags, core, 'action.proliferate', /\bproliferate\b/i, 'medium');
