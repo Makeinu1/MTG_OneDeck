@@ -250,6 +250,33 @@ describe('Playmat', () => {
     cleanupRender(root, container);
   });
 
+  it('disables phase and turn buttons while the stack is non-empty', () => {
+    act(() => {
+      useGameStore.getState().newGame(makeDeck(12), 1);
+      useGameStore.getState().keepOpeningHand();
+      useGameStore.getState().beginFirstTurn();
+    });
+    const stackCardId = useGameStore.getState().state?.zones.hand[0];
+    if (!stackCardId) {
+      throw new Error('stack card was not available');
+    }
+
+    act(() => {
+      useGameStore.getState().moveCard(stackCardId, 'stack');
+    });
+
+    const { container, root } = renderPlaymat();
+    const nextPhase = container.querySelector<HTMLButtonElement>('[data-testid="next-phase"]');
+    const nextTurn = container.querySelector<HTMLButtonElement>('[data-testid="next-turn"]');
+
+    expect(nextPhase?.disabled).toBe(true);
+    expect(nextPhase?.title).toBe('スタックを解決してください');
+    expect(nextTurn?.disabled).toBe(true);
+    expect(nextTurn?.title).toBe('スタックを解決してください');
+
+    cleanupRender(root, container);
+  });
+
   it('opens the info panel from other actions', () => {
     act(() => {
       useGameStore.getState().newGame(makeDeck(12), 1);

@@ -349,7 +349,9 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
 const DECK_SIZE = 24;
 
 describe('engine invariants I1-I5 (property)', () => {
-  it('hold under random command walks; applyCommand never mutates its input (I4)', () => {
+  // Heavy fast-check walk; the 5s default per-test timeout is too tight under
+  // parallel/CI load (the test itself runs ~2.5s in isolation).
+  it('hold under random command walks; applyCommand never mutates its input (I4)', { timeout: 30000 }, () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 2 ** 31 - 1 }),

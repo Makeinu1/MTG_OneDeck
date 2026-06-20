@@ -827,3 +827,20 @@ export function summarizeDeckRuleTags(entries: RuleDeckEntry[]): RuleDeckSummary
 - ルート `data-testid="rule-automation-report"`。各行 `data-testid="rule-tag-<tagId>"`(`.`→`-`)。
 - 行表示: タグ名 / Risk(A-E) / Layer / デッキ内枚数 / 代表カード名(《printedName ?? name》) / **判定根拠の `matchedText` 断片** / **「自動推定」ラベル**(ヒューリスティックで誤検出があり得ることを明示)。E層は「助言のみ」。
 - **レポート表示だけでは `GameState` を生成/変更しない**(ゲーム開始前後の初期盤面は従来通り)。
+
+---
+
+## 17. M6.2a スタック中はフェイズ/ターン移動を禁止(ストア層契約)— この節も契約である
+
+設計根拠: MTGルール上、スタックに未解決の効果がある間は次のステップ/フェイズへ進めない。よって**ハードブロック(強行不可)**とする。CLAUDE.md サンドボックス哲学「ユーザーは常に強行できる」の**意図的な例外**(ルール準拠)。
+
+### 17.1 ゲート(`src/store/gameStore.ts` `dispatchTurnTransition`)
+- `state.zones.stack.length > 0` の間、`nextPhase` / `nextTurn` は**何も適用しない**(`state.phase` / `state.turn` を変えない)。`autoAdvanceToMain` による `untapToMainCommands` も**積まない**(自動進行も停止)。
+- ブロック時は `warnings` に「スタックに未解決の効果があります。先に解決してください。」を1回設定する(state は変更しない=履歴も積まない)。
+- エンジンの `applyNextPhase` / `applyNextTurn`(`commands.ts`)は**無条件・純粋のまま**(ゲートはストア層。`playLand` の force と同じ層)。よって既存エンジンテストは不変。
+- `resolveTop` / `resolveAll` でスタックが空(`length === 0`)になれば、`nextPhase` / `nextTurn` は通常どおり進む。
+
+### 17.2 UI(`src/components/playmat/`)
+- スタック非空のとき「次のフェイズ」(`next-phase`)/「次のターン」(`next-turn`)ボタンを **disabled** にし、理由を `title` 等で示す(`PlaymatHud.tsx` ControlRail)。
+- Enter キー(`onNextTurn`、`Playmat.tsx` `useShortcuts`)はスタック非空時 no-op。
+- **ArrowUp(M4.29)は不変**: スタック非空ならフェイズ進行ではなくトップ解決(`requestResolveTop`)にリダイレクトされる(従来挙動を維持)。

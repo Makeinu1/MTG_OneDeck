@@ -125,6 +125,7 @@ function CounterRow({
 function ControlButton({
   icon,
   label,
+  title,
   testId,
   onClick,
   disabled,
@@ -132,6 +133,7 @@ function ControlButton({
 }: {
   icon: string;
   label: string;
+  title?: string;
   testId?: string;
   onClick: () => void;
   disabled?: boolean;
@@ -142,7 +144,7 @@ function ControlButton({
       type="button"
       className={`control-rail__button ${active ? 'control-rail__button--active' : ''}`}
       aria-label={label}
-      title={label}
+      title={title ?? label}
       data-testid={testId}
       disabled={disabled}
       onClick={(event) => {
@@ -439,19 +441,26 @@ export interface ControlRailProps {
 }
 
 export function ControlRail({ store }: ControlRailProps) {
+  const stackBlocked = (store.state?.zones.stack.length ?? 0) > 0;
+  const stackBlockedTitle = 'スタックを解決してください';
+
   return (
     <div className="control-rail" onClick={(event) => event.stopPropagation()}>
       <div className="control-rail__primary">
         <ControlButton
           icon="ti-player-play-filled"
           label="次のフェイズ"
+          title={stackBlocked ? stackBlockedTitle : undefined}
           testId="next-phase"
+          disabled={stackBlocked}
           onClick={() => store.nextPhase()}
         />
         <ControlButton
           icon="ti-player-track-next-filled"
           label="次のターン"
+          title={stackBlocked ? stackBlockedTitle : undefined}
           testId="next-turn"
+          disabled={stackBlocked}
           onClick={() => store.nextTurn()}
         />
         <ControlButton

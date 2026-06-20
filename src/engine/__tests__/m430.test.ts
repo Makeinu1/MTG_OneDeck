@@ -99,6 +99,10 @@ describe('M4.30 per-turn counters', () => {
     expect(snap().spellsCastThisTurn).toBeGreaterThan(0);
     expect(snap().drawnThisTurn).toBeGreaterThanOrEqual(3);
 
+    // M6.2a: stack must be empty before a turn can advance (store-level gate).
+    store().resolveAll();
+    expect(snap().zones.stack.length).toBe(0);
+
     store().nextTurn();
     expect(snap().phase).toBe('untap');
     expect(snap().spellsCastThisTurn).toBe(0);

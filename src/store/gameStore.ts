@@ -47,6 +47,8 @@ const ALL_ZONES: ZoneId[] = [
   'command',
   'stack',
 ];
+const STACK_TRANSITION_BLOCKED_WARNING =
+  'スタックに未解決の効果があります。先に解決してください。';
 
 /**
  * Backfill any zone arrays missing from an older snapshot (forward compat).
@@ -341,6 +343,10 @@ export const useGameStore = create<GameStore>((set, get) => {
   function dispatchTurnTransition(cmd: Extract<GameCommand, { type: 'nextPhase' | 'nextTurn' }>): void {
     const cur = get().state;
     if (!cur) return;
+    if (cur.zones.stack.length > 0) {
+      set({ warnings: [STACK_TRANSITION_BLOCKED_WARNING] });
+      return;
+    }
 
     const commands: GameCommand[] = [cmd];
     if (get().autoAdvanceToMain && (cmd.type === 'nextTurn' || cur.phase === 'end')) {

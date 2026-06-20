@@ -76,6 +76,10 @@ describe('per-turn reset on untap (M4.30)', () => {
     expect(snap().spellsCastThisTurn).toBeGreaterThan(0);
     expect(snap().drawnThisTurn).toBeGreaterThan(0);
 
+    // M6.2a: the stack must be empty before phases/turns can advance.
+    store().resolveAll();
+    expect(snap().zones.stack.length).toBe(0);
+
     store().nextTurn(); // advances into next turn's untap -> handleUntapEntry resets
     // land on untap (autoAdvanceToMain false)
     expect(snap().phase).toBe('untap');
