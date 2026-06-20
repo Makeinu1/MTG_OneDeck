@@ -99,6 +99,35 @@ describe('classifyCardRules', () => {
     );
   });
 
+  it('detects safe action candidate tags from oracle text', () => {
+    expect(tagIds(makeCard('Evolution Sage', 'Whenever a land enters, proliferate.'))).toContain(
+      'action.proliferate',
+    );
+    expect(tagIds(makeCard('Mind Rot', 'Target player discards two cards.'))).toContain(
+      'action.discard',
+    );
+    expect(
+      tagIds(
+        makeCard(
+          'Evolving Wilds',
+          'Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.',
+        ),
+      ),
+    ).toContain('action.shuffle');
+    expect(tagIds(makeCard('Dimir Informant', 'When this creature enters, surveil 2.'))).toContain(
+      'action.surveil',
+    );
+  });
+
+  it('does not classify discard when the paragraph says it cannot happen', () => {
+    expect(tagIds(makeCard('Library of Leng', "You can't discard cards."))).not.toContain(
+      'action.discard',
+    );
+    expect(tagIds(makeCard('Curly Apostrophe', 'You can’t discard cards.'))).not.toContain(
+      'action.discard',
+    );
+  });
+
   it('is null-safe for missing runtime fields', () => {
     const malformed = {
       scryfallId: 'missing-id',
@@ -125,7 +154,11 @@ describe('classifyCardRules', () => {
 describe('summarizeDeckRuleTags', () => {
   it('aggregates tags by deck quantity and preserves display names', () => {
     const summary = summarizeDeckRuleTags([
-      { card: makeCard('Storm Crow', 'Flying', { printedName: '嵐雲のカラス' }), quantity: 2, section: 'main' },
+      {
+        card: makeCard('Storm Crow', 'Flying', { printedName: '嵐雲のカラス' }),
+        quantity: 2,
+        section: 'main',
+      },
       { card: makeCard('Ornithopter', 'Flying'), quantity: 1, section: 'main' },
       { card: makeCard('Counterspell', 'Counter target spell.'), quantity: 1, section: 'main' },
     ]);

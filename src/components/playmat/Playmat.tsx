@@ -50,7 +50,7 @@ import {
   ConfirmDialog,
   FetchSearchDialog,
 } from './dialogs';
-import type { ManaColor } from '../../types/card';
+import type { CardDef, ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
 import { cyclingCost, fetchAbility } from '../../engine/status';
 import type { FetchAbility } from '../../engine/status';
@@ -58,6 +58,8 @@ import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
 import type { KeybindingsMap } from '../../data/keybindings';
+import { classifyCardRules } from '../../data/ruleClassifier';
+import { ruleActionCandidatesFromTags, type RuleActionCandidateKind } from './ruleActionCandidates';
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
@@ -454,6 +456,46 @@ export function Playmat({ keybindings }: PlaymatProps) {
     ];
   }
 
+  function runRuleActionCandidate(kind: RuleActionCandidateKind): void {
+    switch (kind) {
+      case 'draw':
+        setCountDialog({ kind: 'draw', defaultValue: 1 });
+        break;
+      case 'mill':
+        setCountDialog({ kind: 'mill', defaultValue: 1 });
+        break;
+      case 'scry-surveil':
+        setArrangeTopOpen(true);
+        break;
+      case 'token':
+        setTokenDialogOpen(true);
+        break;
+      case 'proliferate':
+        store.proliferateAll();
+        break;
+      case 'discard':
+        setCountDialog({ kind: 'discard-random', defaultValue: 1 });
+        break;
+      case 'shuffle':
+        store.shuffleLibrary();
+        break;
+    }
+  }
+
+  function buildRuleCandidateMenuItems(def: CardDef | undefined): MenuItem[] {
+    if (!def) {
+      return [];
+    }
+
+    return ruleActionCandidatesFromTags(classifyCardRules(def)).map((candidate, index) => ({
+      key: `rule-candidate-${candidate.kind}`,
+      label: candidate.label,
+      testId: candidate.testId,
+      onSelect: () => runRuleActionCandidate(candidate.kind),
+      separator: index === 0,
+    }));
+  }
+
   function buildMenuItems(cardId: string): { title: string; items: MenuItem[] } {
     const card = cards[cardId];
     const def = state!.defs[card.defId];
@@ -538,6 +580,8 @@ export function Playmat({ keybindings }: PlaymatProps) {
           danger: true,
         });
       }
+
+      stackItems.push(...buildRuleCandidateMenuItems(def));
 
       return { title: displayName, items: stackItems };
     }
@@ -664,6 +708,10 @@ export function Playmat({ keybindings }: PlaymatProps) {
         onSelect: () => requestCastToStack(cardId),
         separator: true,
       });
+    }
+
+    if (card.zone === 'battlefield' || card.zone === 'hand' || card.zone === 'command') {
+      items.push(...buildRuleCandidateMenuItems(def));
     }
 
     if (card.zone === 'battlefield' && typeLine.includes('Planeswalker')) {

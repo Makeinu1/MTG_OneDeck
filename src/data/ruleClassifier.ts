@@ -63,6 +63,13 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'semi-automatic',
     ruleRef: '701.7',
   },
+  'action.proliferate': {
+    label: '増殖',
+    kind: 'keyword-action',
+    risk: 'A',
+    layer: 'primitive',
+    ruleRef: '701.27',
+  },
   'action.counter': {
     label: '呪文や能力を打ち消す',
     kind: 'keyword-action',
@@ -119,6 +126,27 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'semi-automatic',
     ruleRef: '701.18',
   },
+  'action.discard': {
+    label: '捨てる',
+    kind: 'keyword-action',
+    risk: 'B',
+    layer: 'semi-automatic',
+    ruleRef: '701.8',
+  },
+  'action.shuffle': {
+    label: 'シャッフル',
+    kind: 'keyword-action',
+    risk: 'A',
+    layer: 'primitive',
+    ruleRef: '701.24',
+  },
+  'action.surveil': {
+    label: '諜報',
+    kind: 'keyword-action',
+    risk: 'B',
+    layer: 'semi-automatic',
+    ruleRef: '701.42',
+  },
   'concept.target': {
     label: '対象',
     kind: 'game-concept',
@@ -140,6 +168,7 @@ const FIXED_TAG_ORDER = [
   'trigger.etb',
   'action.draw',
   'action.create-token',
+  'action.proliferate',
   'action.counter',
   'action.card-counters',
   'action.sacrifice',
@@ -148,6 +177,9 @@ const FIXED_TAG_ORDER = [
   'action.destroy',
   'action.mill',
   'action.scry',
+  'action.discard',
+  'action.shuffle',
+  'action.surveil',
   'concept.target',
   'effect.replacement',
 ] as const;
@@ -216,13 +248,7 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
     /\bcounter\b\s+(?:(?:up to|each|all)\s+)?(?:one\s+)?target\s+(?:spell|activated or triggered ability|ability)\b/i,
     'high',
   );
-  matchTag(
-    tags,
-    core,
-    'action.card-counters',
-    /\bput\b[^.]*\bcounters?\b[^.]*\bon\b/i,
-    'high',
-  );
+  matchTag(tags, core, 'action.card-counters', /\bput\b[^.]*\bcounters?\b[^.]*\bon\b/i, 'high');
   matchTag(
     tags,
     core,
@@ -236,6 +262,12 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
   matchTag(tags, core, 'action.destroy', /\bdestroys?\b/i, 'medium');
   matchTag(tags, core, 'action.mill', /\bmills?\b/i, 'medium');
   matchTag(tags, core, 'action.scry', /\bscry\b\s*\d*/i, 'medium');
+  matchTag(tags, core, 'action.proliferate', /\bproliferate\b/i, 'medium');
+  if (!/can(?:'|’)t\s+discard/i.test(core)) {
+    matchTag(tags, core, 'action.discard', /\bdiscards?\b/i, 'medium');
+  }
+  matchTag(tags, core, 'action.shuffle', /\bshuffle\b/i, 'medium');
+  matchTag(tags, core, 'action.surveil', /\bsurveil\b\s*\d*/i, 'medium');
   matchTag(tags, core, 'concept.target', /\btarget\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\bwould\b[^.]*\binstead\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\bas\b[^.]*\benters\b/i, 'high');
@@ -273,10 +305,7 @@ function matchTag(
 
 function addTag(tags: Map<string, RuleTag>, tag: RuleTag): void {
   const existing = tags.get(tag.id);
-  if (
-    !existing ||
-    CONFIDENCE_RANK[tag.confidence] > CONFIDENCE_RANK[existing.confidence]
-  ) {
+  if (!existing || CONFIDENCE_RANK[tag.confidence] > CONFIDENCE_RANK[existing.confidence]) {
     tags.set(tag.id, tag);
   }
 }

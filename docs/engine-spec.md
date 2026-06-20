@@ -870,3 +870,36 @@ export function applyCommandBatch(state: GameState, batch: CommandBatch): ApplyR
 
 ストア統合(挙動不変):
 - `src/store/gameStore.ts` の private `applySequence` を `applyCommands` へ統一(同一挙動)。**ストアの公開メソッド名・戻り値・挙動は一切変えない**。既存テストは全て不変で通る。
+
+---
+
+## 19. M6.2 安全な候補アクション(データ層 + UI契約)— この節も契約である
+
+設計指針: `classifyCardRules`(§16)のタグから、カードの**右クリックメニューに実行候補**を出す。**候補メニューを開くだけでは `GameState` を変更しない**。実行は既存の store 操作(単一 undo 単位)を呼ぶだけで、エンジンにカード固有ルールを足さない。**誘発は自動でスタックに積まない**(それは M6.3)。対象選択を伴う半自動操作は M6.4。
+
+### 19.1 分類タグの追加(`src/data/ruleClassifier.ts`)
+M6.2 候補のために以下の `action.*` タグを追加(英語 oracleText、否定文脈ガードは §16 準拠):
+- `action.proliferate`(`/\bproliferate\b/i`、リマインダー除外)
+- `action.discard`(`/\bdiscard(?:s|ed)?\b/i`、`can't discard` 等は除外)
+- `action.shuffle`(`/\bshuffle\b/i`)
+- `action.surveil`(`/\bsurveil\b\s*\d*/i`)
+既存 `action.draw`/`action.mill`/`action.scry`/`action.create-token` は流用。これらは M6.1 レポートにも表示される(§16 のタグ集合に追記)。各タグの risk/layer は静的対応表(Risk A〜B、primitive/semi-automatic)。
+
+### 19.2 タグ→候補→既存store操作のマップ(`src/components/playmat/Playmat.tsx` `buildMenuItems`)
+カードの `classifyCardRules` 結果に応じて、右クリックメニューに **「ルール補助候補」節(separator)** を追加。該当タグが無ければ節は出さない。各候補は**既存のダイアログ/store操作を再利用**(新規の盤面変更ロジックを作らない):
+
+| タグ | 候補ラベル | testid | 実行(既存) |
+|---|---|---|---|
+| `action.draw` | ドロー | `candidate-draw` | `CountDialog(draw)` → `store.draw(n)` |
+| `action.mill` | 切削 | `candidate-mill` | `CountDialog(mill)` → `store.mill(n)` |
+| `action.scry` / `action.surveil` | 占術/諜報 | `candidate-scry` | `ArrangeTopDialog` → `store.arrangeTop(...)` |
+| `action.create-token` | トークン生成 | `candidate-token` | `TokenCreateDialog`(宝物/食物/手掛かり/血プリセット内蔵)→ `store.createToken(...)` |
+| `action.proliferate` | 増殖 | `candidate-proliferate` | `store.proliferateAll()`(直接・単一undo) |
+| `action.discard` | ランダムに捨てる | `candidate-discard` | `CountDialog(discardRandom)` → `store.discardRandom(n)` |
+| `action.shuffle` | シャッフル | `candidate-shuffle` | `store.shuffleLibrary()`(直接) |
+
+### 19.3 挙動契約
+- **候補メニューを開く/項目を表示するだけでは `GameState` 不変**。パラメータ付き候補(draw/mill/scry/token/discard)は**既存ダイアログで確定**してから実行。パラメータ無し候補(proliferate/shuffle)は**選択=実行**(既存の 引く/シャッフル と同じ作法)。
+- すべて既存 store 操作経由で**単一 undo** で戻る(store はもう単一commit。§R1 `applyCommands` 基盤)。
+- 候補は手札/戦場/スタック/統率領域いずれでも、該当タグがあれば出す。タグが無ければ出さない。
+- エンジン(`src/engine/`)・`applyCommand`・`CACHE_SCHEMA_VERSION` は不変。新しい盤面変更コマンドは追加しない。

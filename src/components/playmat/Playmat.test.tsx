@@ -53,6 +53,19 @@ function dispatchClick(element: Element): void {
   });
 }
 
+function dispatchContextMenu(element: Element): void {
+  act(() => {
+    element.dispatchEvent(
+      new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 24,
+        clientY: 24,
+      }),
+    );
+  });
+}
+
 function resetStore(): void {
   useGameStore.setState({
     state: null,
@@ -177,7 +190,9 @@ describe('Playmat', () => {
     });
 
     act(() => {
-      useGameStore.getState().newGame([{ def: stackCreature, isCommander: false }, ...makeDeck(12)], 1);
+      useGameStore
+        .getState()
+        .newGame([{ def: stackCreature, isCommander: false }, ...makeDeck(12)], 1);
       useGameStore.getState().keepOpeningHand();
       useGameStore.getState().beginFirstTurn();
     });
@@ -299,6 +314,65 @@ describe('Playmat', () => {
     dispatchClick(infoButton);
 
     expect(container.querySelector('[data-testid="game-info"]')).not.toBeNull();
+
+    cleanupRender(root, container);
+  });
+
+  it('renders safe rule action candidates from the card context menu without changing game state', () => {
+    const candidateCard = makeDef({
+      scryfallId: 'playmat-candidate-actions',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'playmat-candidate-actions',
+          typeLine: 'Creature',
+          oracleText:
+            'When this creature enters, draw a card. Create a Treasure token. Proliferate.',
+        },
+      ],
+    });
+
+    act(() => {
+      useGameStore
+        .getState()
+        .newGame([{ def: candidateCard, isCommander: false }, ...makeDeck(12)], 1);
+      useGameStore.getState().keepOpeningHand();
+    });
+    const candidateCardId = findInstanceId('playmat-candidate-actions');
+    act(() => {
+      useGameStore.getState().moveCard(candidateCardId, 'hand');
+    });
+    const beforeMenu = useGameStore.getState().state;
+    if (!beforeMenu) {
+      throw new Error('game state was not available before opening the candidate menu');
+    }
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${candidateCardId}"]`);
+    if (!card) {
+      throw new Error('candidate card element was not rendered');
+    }
+
+    dispatchContextMenu(card);
+
+    expect(useGameStore.getState().state).toBe(beforeMenu);
+    expect(container.querySelector('[data-testid="candidate-draw"]')?.textContent).toBe('ドロー');
+    expect(container.querySelector('[data-testid="candidate-token"]')?.textContent).toBe(
+      'トークン生成',
+    );
+    expect(container.querySelector('[data-testid="candidate-proliferate"]')?.textContent).toBe(
+      '増殖',
+    );
+
+    const drawCandidate = container.querySelector('[data-testid="candidate-draw"]');
+    if (!drawCandidate) {
+      throw new Error('draw candidate was not rendered');
+    }
+
+    dispatchClick(drawCandidate);
+
+    expect(useGameStore.getState().state).toBe(beforeMenu);
+    expect(container.querySelector('[data-testid="draw-n-confirm-dialog"]')).not.toBeNull();
 
     cleanupRender(root, container);
   });
