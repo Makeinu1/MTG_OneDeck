@@ -255,6 +255,65 @@ describe('resolveDeck Japanese print batching', () => {
     expect(signet?.faces[0]?.imageUrl).toBe('https://example.com/signet-en.jpg');
   });
 
+  it('preserves Scryfall metadata when applying a Japanese print', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string | URL | Request) => {
+        const url = urlOf(input);
+
+        if (url.includes('/cards/collection')) {
+          return Promise.resolve(
+            jsonResponse({
+              object: 'list',
+              data: [
+                makeScryfallCard({
+                  id: 'storm-crow-en-id',
+                  oracle_id: 'oracle-storm-crow',
+                  name: 'Storm Crow',
+                  type_line: 'Creature — Bird',
+                  edhrec_rank: 12345,
+                  keywords: ['Flying'],
+                }),
+              ],
+              not_found: [],
+            }),
+          );
+        }
+
+        if (url.includes('/cards/search')) {
+          return Promise.resolve(
+            jsonResponse({
+              object: 'list',
+              data: [
+                makeScryfallCard({
+                  id: 'storm-crow-ja-id',
+                  oracle_id: 'oracle-storm-crow',
+                  name: 'Storm Crow',
+                  lang: 'ja',
+                  printed_name: '嵐雲のカラス',
+                  type_line: 'Creature — Bird',
+                  image_uris: { normal: 'https://example.com/storm-crow-ja.jpg' },
+                }),
+              ],
+            }),
+          );
+        }
+
+        throw new Error(`unexpected url: ${url}`);
+      }),
+    );
+
+    const promise = resolveDeck([makeEntry({ name: 'Storm Crow', line: 1 })]);
+    await vi.runAllTimersAsync();
+    const result = await promise;
+    const card = result.resolved.get('Storm Crow');
+
+    expect(card?.lang).toBe('ja');
+    expect(card?.printedName).toBe('嵐雲のカラス');
+    expect(card?.edhrecRank).toBe(12345);
+    expect(card?.keywords).toEqual(['Flying']);
+  });
+
   it('retries a throttled Japanese batch request and still applies the Japanese print', async () => {
     let searchCalls = 0;
 

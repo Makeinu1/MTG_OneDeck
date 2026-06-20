@@ -13,6 +13,7 @@ import { resolveDeck, type ResolveProgress } from '../data/scryfall';
 import type { CardDef } from '../types/card';
 import type { InitDeckCard } from '../engine/init';
 import { DeckStats } from './DeckStats';
+import { RuleAutomationReport } from './RuleAutomationReport';
 
 export interface ImportScreenProps {
   initialDeckText: string;
@@ -288,6 +289,9 @@ export function ImportScreen({
         )}
 
         {hasImported && resolvedEntries.length > 0 && <DeckStats entries={resolvedEntries} />}
+        {hasImported && resolvedEntries.length > 0 && (
+          <RuleAutomationReport entries={resolvedEntries} />
+        )}
 
         {unresolved.length > 0 && (
           <section className="import-screen__issues">

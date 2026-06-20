@@ -742,3 +742,80 @@ computeGameInfo(state: GameState): {
 ### 15.3 不変条件
 - 既存の castCount>=0 を維持。新規不変条件は不要(契機変更のみ)。
 - **レビューテスト更新**: 旧「`castToStack` from command → castCount+1 / 税+2」は本変更で無効。`review.m428` の該当アサーションを新モデル(`moveCard` to `command`(from 非command)で +1、`castToStack` では +0)へ書き換える(Fable)。`review.m431` で新モデルを独立採点。
+
+---
+
+## 16. M6.1 ルール分類器 + デッキ別ルール補助レポート(データ層契約)
+
+設計指針: **分類・表示のみで `GameState` を生成も変更もしない**。完全ルールエンジン化しない。分類器は `src/data/` の純粋関数で、`src/engine/`・Zustand・DOM・localStorage・IndexedDB に依存しない。M6トラックの第1段。
+
+参照(調査の正本): `research/scryfall-rules/2026-06-19/analysis/oracle-grammar-analysis.md`(MTGオラクル文の定型文法・CR 207/113/6xx/701/702・決定的パースアルゴリズム・Odric非誤検出の根拠)。
+
+### 16.1 CardDef の追加フィールド(`src/types/card.ts` / `src/data/scryfall.ts`)
+```ts
+export interface CardDef {
+  // 既存フィールドは維持
+  edhrecRank?: number;   // Scryfall edhrec_rank。低いほどEDHで使われる
+  keywords?: string[];   // Scryfall keywords。未取得/旧キャッシュでは undefined
+}
+```
+- `ScryfallCard` に `edhrec_rank?: number` / `keywords?: string[]` を追加し、`mapScryfallCardToCardDef` の return で `CardDef` に格納する。
+- `applyJapanesePrint` は `{...base}` で CardDef 直下フィールドを保持するため、英語解決時の `edhrecRank`/`keywords` がJA合成後も残る(追加対応不要・テストで担保)。
+- **`CACHE_SCHEMA_VERSION` は bump しない**。任意フィールド追加は後方互換(旧IndexedDBエントリは欠落=`undefined`、読めてクラッシュしない)。
+- **重要**: `keywords`(Scryfall)は「保有」を保証しない(`Odric, Blood-Cursed` の keywords は数え上げ対象の語を全部含む)。**分類器はキーワード保有判定に `keywords` を使わない**(将来用に保存するのみ)。
+
+### 16.2 型(`src/data/ruleClassifier.ts`)
+```ts
+export type RuleRisk = 'A' | 'B' | 'C' | 'D' | 'E';
+export type RuleAutomationLayer =
+  | 'primitive' | 'semi-automatic' | 'trigger-assist' | 'warning' | 'advisory';
+export type RuleTagKind =
+  | 'keyword-ability' | 'keyword-action' | 'trigger' | 'effect-kind'
+  | 'game-concept' | 'resource-token';
+
+export interface RuleTag {
+  id: string;            // 安定ID。下記の命名規則。UI/test/集計で使う
+  label: string;         // 日本語表示名
+  kind: RuleTagKind;
+  risk: RuleRisk;
+  layer: RuleAutomationLayer;
+  confidence: 'high' | 'medium' | 'low';
+  matchedText: string;   // 判定根拠の英語oracle断片(透明表示用。全文は入れない)
+  ruleRef?: string;      // 例 '702.9', '701.6'
+}
+
+export function classifyCardRules(def: CardDef): RuleTag[];
+```
+タグID命名規則(`.` は UI testid で `-` に正規化):
+- `keyword.<name>` — **保有**するキーワード能力(文法判定)。
+- `action.<verb>` — カードが行う効果/CR701処理: `draw` / `create-token` / `counter`(打ち消し) / `card-counters` / `sacrifice` / `exile` / `search` / `destroy` / `mill` / `scry`。
+- `trigger.<kind>` — 誘発型: `etb` / `attack` / `death` / `upkeep` / `cast` / `landfall`。
+- `concept.target` / `effect.replacement` / `effect.continuous`。
+
+### 16.3 classifyCardRules の挙動契約
+- **純粋・決定的・null安全**: 同一 `def` に常に同一 `RuleTag[]`(安定順)。`oracleText`/`edhrecRank`/`keywords` 欠落でも例外を投げない。`GameState` を読まない。
+- **分類は英語 `def.faces[i].oracleText` を正本**にする(常に存在。`printedText`/JAは表示用で分類根拠にしない。日本語データは6件のみのため)。
+- **文法認識(キーワード保有判定の核)**: 面ごとに oracleText を `\n` で段落分割→括弧 reminder と引用内能力を分離→残りが **CR702キーワード節のみで構成される「純キーワード行」** の時だけ `keyword.<name>` を付す(カンマ区切り列・`Cycling {2}`/`Protection from X` 等のコスト/値/句を許容)。**文中に埋め込まれたキーワード語からは保有を付さない**。
+- **非保有ガード**(これらは `keyword.*` を出さない): `... have/has/gain(s) [kw]`(付与)/ `number of abilities from among ...`(数え上げ)/ `... with [kw]` / `creature with flying`(参照)/ `create ... token with [kw]`(生成トークンの能力)/ `can't be countered`(キーワード能力でない)。
+- **打ち消しの分離**: `counter target spell/ability` / `打ち消す` → `action.counter`。`+1/+1 counter` 等「カウンターを置く」→ `action.card-counters`。両者を必ず分離。`can't be countered` はどちらでもない。
+- **Odric 保証(受け入れ条件)**: `Odric, Blood-Cursed` → `keyword.*` を**1つも出さない**。`trigger.etb` と `action.create-token` は**出す**。
+- 各タグは判定根拠 `matchedText`(英語断片)と `confidence` を必ず持つ。`risk`/`layer` はタグ種別ごとの静的対応表(A-E×レイヤー、§proposal準拠)。
+- M6.1の必須タグ集合(review採点対象の中核): `keyword.flying`/`keyword.cycling`(保有・代表)、`trigger.etb`、`action.draw`/`create-token`/`card-counters`/`counter`/`sacrifice`/`exile`/`search`/`destroy`、`concept.target`、`effect.replacement`。CR702全191キーワードの辞書整備は到達目標。
+
+### 16.4 デッキ別集計(`src/data/ruleDeckSummary.ts`)
+```ts
+export interface RuleDeckEntry { card: CardDef; quantity: number; section: 'commander' | 'main'; }
+export interface RuleDeckSummaryItem {
+  tag: RuleTag;          // 代表(最高confidence)の matchedText を保持
+  deckCount: number;     // quantity 込みの該当枚数
+  cardNames: string[];   // 表示用。printedName ?? name(《》はUI側)
+}
+export function summarizeDeckRuleTags(entries: RuleDeckEntry[]): RuleDeckSummaryItem[];
+```
+- `entries` はインポート解決済みカードから作る。`GameState` を作らない。
+- 並びは **`deckCount` desc → 固定タグ表示順**(決定的)。EDHヒストグラム/`computeRulePriority` 採点は M6.1 では非実装。
+
+### 16.5 UI契約(`src/components/RuleAutomationReport.tsx`、`ImportScreen` の `DeckStats` 直後)
+- ルート `data-testid="rule-automation-report"`。各行 `data-testid="rule-tag-<tagId>"`(`.`→`-`)。
+- 行表示: タグ名 / Risk(A-E) / Layer / デッキ内枚数 / 代表カード名(《printedName ?? name》) / **判定根拠の `matchedText` 断片** / **「自動推定」ラベル**(ヒューリスティックで誤検出があり得ることを明示)。E層は「助言のみ」。
+- **レポート表示だけでは `GameState` を生成/変更しない**(ゲーム開始前後の初期盤面は従来通り)。

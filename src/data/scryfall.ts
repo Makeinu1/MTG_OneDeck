@@ -56,6 +56,8 @@ interface ScryfallCard {
   power?: string;
   toughness?: string;
   loyalty?: string;
+  edhrec_rank?: number;
+  keywords?: string[];
   produced_mana?: string[];
   image_uris?: ScryfallImageUris;
   card_faces?: ScryfallCardFace[];
@@ -178,6 +180,8 @@ function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
     cmc: card.cmc,
     colorIdentity: card.color_identity ?? [],
     typeLine: card.type_line,
+    edhrecRank: card.edhrec_rank,
+    keywords: card.keywords,
     producedMana,
     faces,
   };
