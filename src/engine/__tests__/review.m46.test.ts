@@ -21,15 +21,14 @@ function land(id: string, colors: ManaColor[]): CardDef {
   });
 }
 
-function creature(id: string, opts: { haste?: 'en' | 'ja'; mana?: ManaColor[] } = {}): CardDef {
-  const oracleText =
-    opts.haste === 'en' ? 'Haste\n{T}: Add one mana.' : undefined;
-  const printedText = opts.haste === 'ja' ? '速攻' : undefined;
+function creature(id: string, opts: { haste?: boolean; mana?: ManaColor[] } = {}): CardDef {
+  // Rule parsing is English-only (CLAUDE.md 設計原則): haste comes from oracleText.
+  const oracleText = opts.haste ? 'Haste\n{T}: Add one mana.' : undefined;
   return makeDef({
     scryfallId: id,
     typeLine: 'Creature — Elf',
     producedMana: opts.mana,
-    faces: [{ name: id, typeLine: 'Creature — Elf', oracleText, printedText }],
+    faces: [{ name: id, typeLine: 'Creature — Elf', oracleText }],
   });
 }
 
@@ -149,10 +148,10 @@ describe('turn-1 draw & ETB hooks (spec §7.3-§7.5)', () => {
 });
 
 describe('summoning sickness (spec §7.6)', () => {
-  it('marks creatures entered this turn, honors Haste (en/ja), clears next turn', () => {
+  it('marks creatures entered this turn, honors Haste (English oracle), clears next turn', () => {
     const normal = creature('walker');
-    const hasteEn = creature('rusher', { haste: 'en' });
-    const hasteJa = creature('kakeashi', { haste: 'ja' });
+    const hasteEn = creature('rusher', { haste: true });
+    const hasteJa = creature('kakeashi', { haste: true });
     let s = initGame(
       [normal, hasteEn, hasteJa].map((def) => ({ def, isCommander: false })),
       1,

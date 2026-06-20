@@ -77,7 +77,7 @@ describe('M4.7 engine helpers', () => {
         {
           name: 'conditional',
           typeLine: 'Land',
-          printedText: 'あなたが島をコントロールしていないなら、タップ状態で戦場に出る。',
+          oracleText: 'This land enters the battlefield tapped unless you control an Island.',
         },
       ],
     });
@@ -92,7 +92,7 @@ describe('M4.7 engine helpers', () => {
     expect(landEntersTapped(never)).toBe('never');
   });
 
-  it('detects keywords from English and Japanese text', () => {
+  it('detects owned keywords from English oracle text', () => {
     const english = makeDef({
       scryfallId: 'english-keywords',
       typeLine: 'Creature — Angel',
@@ -104,20 +104,44 @@ describe('M4.7 engine helpers', () => {
         },
       ],
     });
-    const japanese = makeDef({
-      scryfallId: 'japanese-keywords',
+    const secondary = makeDef({
+      scryfallId: 'secondary-keywords',
       typeLine: 'Creature — Samurai',
       faces: [
         {
-          name: 'japanese-keywords',
+          name: 'secondary-keywords',
           typeLine: 'Creature — Samurai',
-          printedText: '速攻、先制攻撃、呪禁',
+          oracleText: 'Haste, first strike, hexproof',
         },
       ],
     });
 
     expect(keywords(english)).toEqual(['flying', 'vigilance', 'ward']);
-    expect(keywords(japanese)).toEqual(['first-strike', 'haste', 'hexproof']);
+    expect(keywords(secondary)).toEqual(['first-strike', 'haste', 'hexproof']);
+  });
+
+  it('does not treat keyword operands or printed text as owned keywords', () => {
+    const odric = makeDef({
+      scryfallId: 'odric',
+      typeLine: 'Creature — Vampire Soldier',
+      keywords: ['Flying', 'Haste', 'Vigilance'],
+      faces: [
+        {
+          name: 'odric',
+          typeLine: 'Creature — Vampire Soldier',
+          oracleText:
+            'When Odric enters, create X Blood tokens, where X is the number of abilities from among flying, first strike, double strike, deathtouch, haste, hexproof, indestructible, lifelink, menace, reach, trample, and vigilance found among creatures you control.',
+        },
+      ],
+    });
+    const displayOnly = makeDef({
+      scryfallId: 'display-only',
+      typeLine: 'Creature — Drake',
+      faces: [{ name: 'display-only', typeLine: 'Creature — Drake', printedText: 'Flying' }],
+    });
+
+    expect(keywords(odric)).toEqual([]);
+    expect(keywords(displayOnly)).toEqual([]);
   });
 
   it('computes effectivePower from printed power and counters', () => {

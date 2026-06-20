@@ -101,29 +101,29 @@ describe('landEntersTapped (spec §8.3)', () => {
         },
       ],
     });
-    const jaTap = def('jatap', {
+    const altTap = def('alttap', {
       typeLine: 'Land',
-      faces: [{ name: 'jatap', typeLine: 'Land', printedText: 'この土地はタップ状態で戦場に出る。' }],
+      faces: [{ name: 'alttap', typeLine: 'Land', oracleText: 'This land enters the battlefield tapped.' }],
     });
     expect(landEntersTapped(tapland)).toBe('always');
     expect(landEntersTapped(basic)).toBe('never');
     expect(landEntersTapped(shock)).toBe('conditional');
-    expect(landEntersTapped(jaTap)).toBe('always');
+    expect(landEntersTapped(altTap)).toBe('always');
   });
 });
 
 describe('keywords (spec §8.3)', () => {
-  it('detects English and Japanese evergreen keywords', () => {
+  it('detects evergreen keywords from a pure English keyword line', () => {
     const en = def('drake', {
       typeLine: 'Creature — Drake',
       faces: [{ name: 'drake', typeLine: 'Creature — Drake', oracleText: 'Flying, vigilance, trample' }],
     });
     expect(keywords(en).sort()).toEqual(['flying', 'trample', 'vigilance']);
-    const ja = def('oni', {
+    const multi = def('oni', {
       typeLine: 'Creature — Demon',
-      faces: [{ name: 'oni', typeLine: 'Creature — Demon', printedText: '飛行、接死、絆魂' }],
+      faces: [{ name: 'oni', typeLine: 'Creature — Demon', oracleText: 'Deathtouch, flying, lifelink' }],
     });
-    expect(keywords(ja).sort()).toEqual(['deathtouch', 'flying', 'lifelink']);
+    expect(keywords(multi).sort()).toEqual(['deathtouch', 'flying', 'lifelink']);
     expect(keywords(def('vanilla', { faces: [{ name: 'v', typeLine: 'Creature' }] }))).toEqual([]);
   });
 });

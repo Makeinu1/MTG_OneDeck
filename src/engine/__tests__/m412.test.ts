@@ -18,14 +18,14 @@ describe('M4.12 cyclingCost', () => {
     expect(cyclingCost(card)).toBe('{1}{U}');
   });
 
-  it('detects Japanese cycling costs', () => {
+  it('detects colorless cycling costs from English oracle text', () => {
     const card = makeDef({
-      scryfallId: 'cycler-ja',
+      scryfallId: 'cycler-colorless',
       faces: [
         {
-          name: 'cycler-ja',
+          name: 'cycler-colorless',
           typeLine: 'Creature',
-          printedText: 'サイクリング{2}\nこのカードをサイクリングしたとき、占術1を行う。',
+          oracleText: 'Cycling {2}\nWhen you cycle this card, scry 1.',
         },
       ],
     });

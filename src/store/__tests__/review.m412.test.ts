@@ -37,7 +37,7 @@ describe('adjustMana command (§10.1, I3)', () => {
 });
 
 describe('cyclingCost (§10.2)', () => {
-  it('detects English / Japanese cycling cost and returns null otherwise', () => {
+  it('detects English cycling cost (plain and typecycling) and returns null otherwise', () => {
     const en = makeDef({
       scryfallId: 'en',
       faces: [{ name: 'en', typeLine: 'Creature', oracleText: 'Cycling {2}\n(text)' }],
@@ -46,14 +46,14 @@ describe('cyclingCost (§10.2)', () => {
       scryfallId: 'enc',
       faces: [{ name: 'enc', typeLine: 'Land', oracleText: 'Plainscycling {1}{U}' }],
     });
-    const ja = makeDef({
-      scryfallId: 'ja',
-      faces: [{ name: 'ja', typeLine: 'Creature', printedText: 'サイクリング{2}' }],
+    const generic = makeDef({
+      scryfallId: 'gen',
+      faces: [{ name: 'gen', typeLine: 'Creature', oracleText: 'Cycling {2}' }],
     });
     const none = makeDef({ scryfallId: 'none', faces: [{ name: 'none', typeLine: 'Creature' }] });
     expect(cyclingCost(en)).toBe('{2}');
     expect(cyclingCost(enColored)).toBe('{1}{U}');
-    expect(cyclingCost(ja)).toBe('{2}');
+    expect(cyclingCost(generic)).toBe('{2}');
     expect(cyclingCost(none)).toBeNull();
   });
 });

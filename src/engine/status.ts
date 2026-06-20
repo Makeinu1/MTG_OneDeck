@@ -1,5 +1,6 @@
 import type { CardDef } from '../types/card';
 import type { CardInstance, GameState } from './types';
+import { possessedKeywords } from './keywordGrammar';
 
 export type Keyword =
   | 'flying'
@@ -17,27 +18,24 @@ export type Keyword =
   | 'defender'
   | 'ward';
 
-interface KeywordSpec {
-  keyword: Keyword;
-  patterns: readonly RegExp[];
-}
-
-const KEYWORD_SPECS: readonly KeywordSpec[] = [
-  { keyword: 'flying', patterns: [/\bflying\b/i, /飛行/] },
-  { keyword: 'vigilance', patterns: [/\bvigilance\b/i, /警戒/] },
-  { keyword: 'trample', patterns: [/\btrample\b/i, /トランプル/] },
-  { keyword: 'deathtouch', patterns: [/\bdeathtouch\b/i, /接死/] },
-  { keyword: 'lifelink', patterns: [/\blifelink\b/i, /絆魂/] },
-  { keyword: 'menace', patterns: [/\bmenace\b/i, /威迫/] },
-  { keyword: 'first-strike', patterns: [/\bfirst strike\b/i, /先制攻撃/] },
-  { keyword: 'double-strike', patterns: [/\bdouble strike\b/i, /二段攻撃/] },
-  { keyword: 'reach', patterns: [/\breach\b/i, /到達/] },
-  { keyword: 'haste', patterns: [/\bhaste\b/i, /速攻/] },
-  { keyword: 'hexproof', patterns: [/\bhexproof\b/i, /呪禁/] },
-  { keyword: 'indestructible', patterns: [/\bindestructible\b/i, /破壊不能/] },
-  { keyword: 'defender', patterns: [/\bdefender\b/i, /防衛/] },
-  { keyword: 'ward', patterns: [/\bward\b/i, /護法/] },
+const STATUS_KEYWORDS: readonly Keyword[] = [
+  'flying',
+  'vigilance',
+  'trample',
+  'deathtouch',
+  'lifelink',
+  'menace',
+  'first-strike',
+  'double-strike',
+  'reach',
+  'haste',
+  'hexproof',
+  'indestructible',
+  'defender',
+  'ward',
 ];
+
+const STATUS_KEYWORD_IDS = new Set<string>(STATUS_KEYWORDS);
 
 function currentFace(def: CardDef | undefined, card: CardInstance) {
   return def?.faces[card.faceIndex] ?? def?.faces[0];
@@ -49,8 +47,8 @@ function currentTypeLine(def: CardDef | undefined, card: CardInstance): string {
 }
 
 function cardTexts(def: CardDef | undefined): string[] {
-  if (!def) return [];
-  return def.faces.flatMap((face) => [face.oracleText ?? '', face.printedText ?? '']);
+  if (!def?.faces) return [];
+  return def.faces.flatMap((face) => (face.oracleText ? [face.oracleText] : []));
 }
 
 function splitRulesText(text: string): string[] {
@@ -67,18 +65,12 @@ export interface FetchAbility {
 }
 
 const FETCH_SUBTYPE_SPECS = [
-  { english: 'Plains', japanese: '平地', pattern: /\bPlains\b/i },
-  { english: 'Island', japanese: '島', pattern: /\bIsland\b/i },
-  { english: 'Swamp', japanese: '沼', pattern: /\bSwamp\b/i },
-  { english: 'Mountain', japanese: '山', pattern: /\bMountain\b/i },
-  { english: 'Forest', japanese: '森', pattern: /\bForest\b/i },
+  { english: 'Plains', pattern: /\bPlains\b/i },
+  { english: 'Island', pattern: /\bIsland\b/i },
+  { english: 'Swamp', pattern: /\bSwamp\b/i },
+  { english: 'Mountain', pattern: /\bMountain\b/i },
+  { english: 'Forest', pattern: /\bForest\b/i },
 ] as const;
-
-function normalizeDigits(value: string): string {
-  return value.replace(/[０-９]/g, (digit) =>
-    String.fromCharCode(digit.charCodeAt(0) - 0xfee0)
-  );
-}
 
 function detectFetchClause(def: CardDef | undefined): string | null {
   for (const text of cardTexts(def)) {
@@ -88,12 +80,7 @@ function detectFetchClause(def: CardDef | undefined): string | null {
       /Search your library for/i.test(haystack) &&
       /onto the battlefield/i.test(haystack) &&
       /shuffle/i.test(haystack);
-    const hasJapaneseFetch =
-      /あなたのライブラリー/.test(haystack) &&
-      /探[しす]/.test(haystack) &&
-      /戦場に出/.test(haystack) &&
-      /切り直す/.test(haystack);
-    if (hasEnglishFetch || hasJapaneseFetch) {
+    if (hasEnglishFetch) {
       return haystack;
     }
   }
@@ -107,21 +94,16 @@ function fetchLifeCost(clause: string): number {
     return Number.parseInt(english[1], 10) || 0;
   }
 
-  const japanese = clause.match(/([0-9０-９]+)\s*点のライフを支払/);
-  if (japanese?.[1]) {
-    return Number.parseInt(normalizeDigits(japanese[1]), 10) || 0;
-  }
-
   return 0;
 }
 
 function fetchFilter(clause: string): FetchAbility['filter'] {
-  if (/\bbasic land\b/i.test(clause) || /基本土地/.test(clause)) {
+  if (/\bbasic land\b/i.test(clause)) {
     return 'basic';
   }
 
   const subtypes = FETCH_SUBTYPE_SPECS.flatMap((spec) =>
-    spec.pattern.test(clause) || clause.includes(spec.japanese) ? [spec.english] : []
+    spec.pattern.test(clause) ? [spec.english] : []
   );
   if (subtypes.length > 0) {
     return { subtypes: Array.from(new Set(subtypes)) };
@@ -138,19 +120,13 @@ export function fetchAbility(def: CardDef | undefined): FetchAbility | null {
 
   return {
     lifeCost: fetchLifeCost(clause),
-    entersTapped:
-      /onto the battlefield tapped/i.test(clause) || /タップ状態で(?:戦場に)?出/.test(clause),
+    entersTapped: /onto the battlefield tapped/i.test(clause),
     filter: fetchFilter(clause),
   };
 }
 
 export function keywords(def: CardDef | undefined): Keyword[] {
-  if (!def) return [];
-  const texts = cardTexts(def);
-
-  return KEYWORD_SPECS.filter((spec) =>
-    texts.some((text) => spec.patterns.some((pattern) => pattern.test(text)))
-  ).map((spec) => spec.keyword);
+  return possessedKeywords(def).filter((id): id is Keyword => STATUS_KEYWORD_IDS.has(id));
 }
 
 export function hasVigilance(state: GameState, cardId: string): boolean {
@@ -165,16 +141,14 @@ export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' |
   for (const text of cardTexts(def)) {
     for (const clause of splitRulesText(text)) {
       const hasEnglishTapped = /enters\b[\s\S]*\btapped\b/i.test(clause);
-      const hasJapaneseTapped = /タップ状態で戦場に出る/.test(clause);
-      if (!hasEnglishTapped && !hasJapaneseTapped) {
+      if (!hasEnglishTapped) {
         continue;
       }
 
       sawTappedClause = true;
 
       const conditionalEnglish = /\bunless\b/i.test(clause) || /\bif\b/i.test(clause);
-      const conditionalJapanese = /でないかぎり|なら/.test(clause);
-      if (conditionalEnglish || conditionalJapanese) {
+      if (conditionalEnglish) {
         return 'conditional';
       }
     }
@@ -190,11 +164,6 @@ export function cyclingCost(def: CardDef | undefined): string | null {
     const english = text.match(/\b(?:[A-Za-z]+)?cycling\b\s*((?:\{[^}]+\})+)/i);
     if (english?.[1]) {
       return english[1];
-    }
-
-    const japanese = text.match(/サイクリング\s*((?:\{[^}]+\})+)/);
-    if (japanese?.[1]) {
-      return japanese[1];
     }
   }
 

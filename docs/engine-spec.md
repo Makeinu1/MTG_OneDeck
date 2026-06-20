@@ -370,18 +370,26 @@ export type Keyword =
   | 'indestructible' | 'defender' | 'ward';
 
 export function keywords(def: CardDef | undefined): Keyword[];
-//   全 face の oracleText/printedText を走査し、語境界一致で検出(英 + 日)。
-//   日本語対応例: 飛行/警戒/トランプル/接死/絆魂/威迫/先制攻撃/二段攻撃/到達/速攻/呪禁/破壊不能/防衛/護法。
-//   reminder 文等による軽微な誤検知は許容(情報表示専用、ルール強制しない)。
-//   既存 hasHaste はこの検出ロジックの一部として再利用してよい。
+//   **ルール読み取りは英語 oracleText を正本**(printedText は表示専用。CLAUDE.md 設計原則)。
+//   文法認識(純キーワード行)で「保有」を判定する: 面ごとに oracleText を段落分割→reminder/
+//   引用を除去→残りが CR702キーワード節のみで構成される段落のときだけ保有とする。文中に
+//   埋め込まれた語(数え上げ/付与/参照: "number of abilities from among"/"have/gains"/"with")
+//   からは保有を出さない。実装は keywordGrammar.possessedKeywords を共有し常磐木14種へ写像。
+//   例: Odric, Blood-Cursed(本文に flying..vigilance を列挙)→ 保有0。
+//   keywords() は hasVigilance(攻撃自動タップ)/isSummoningSick(召喚酔い)に効くため誤検出不可。
+
+// 共有純粋モジュール src/engine/keywordGrammar.ts(GameState非依存・決定的・null安全)
+export function possessedKeywords(def: CardDef | undefined): string[];
+//   英語 oracleText の純キーワード行から保有キーワード id(KEYWORD_DEFINITIONS の id)を返す。
+//   data/ruleClassifier の keyword.* 判定も本関数(辞書・純キーワード行検出)を共有する。
 
 export function hasVigilance(state: GameState, cardId: string): boolean;
 //   現在の def の keywords に 'vigilance' を含むか。攻撃補助のタップ判定に使う。
 
 export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' | 'conditional';
-//   always: oracle/printed に /enters .*tapped/i または「タップ状態で戦場に出る」を含み、
-//           かつ "unless" / "でないかぎり" / "なら" 系の条件節を含まない。
-//   conditional: "enters .* tapped unless" / 「〜でないかぎり…タップ状態で」等の条件付き。
+//   英語 oracleText のみ(printedText は読まない)。
+//   always: /enters .*tapped/i を含み、かつ "unless" / "if" 条件節を含まない。
+//   conditional: "enters .* tapped unless" 等の条件付き。
 //   never: それ以外。
 ```
 

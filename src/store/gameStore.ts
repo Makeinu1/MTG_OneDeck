@@ -182,8 +182,8 @@ function cardLabel(state: GameState, cardId: string): string {
 }
 
 function cardTexts(def: CardDef | undefined): string[] {
-  if (!def) return [];
-  return def.faces.flatMap((face) => [face.oracleText ?? '', face.printedText ?? '']);
+  if (!def?.faces) return [];
+  return def.faces.flatMap((face) => (face.oracleText ? [face.oracleText] : []));
 }
 
 function splitRulesText(text: string): string[] {
@@ -224,7 +224,7 @@ function parseAmountToken(token: string): number | null {
 function manaProductionAmount(def: CardDef | undefined, color: ManaColor): number {
   for (const text of cardTexts(def)) {
     for (const clause of splitRulesText(text)) {
-      if (!/\badd\b/i.test(clause) && !/を加える/.test(clause)) {
+      if (!/\badd\b/i.test(clause)) {
         continue;
       }
 
@@ -238,16 +238,6 @@ function manaProductionAmount(def: CardDef | undefined, color: ManaColor): numbe
       );
       if (englishAmount) {
         const parsed = parseAmountToken(englishAmount[1]);
-        if (parsed !== null) {
-          return parsed;
-        }
-      }
-
-      const japaneseAmount = clause.match(
-        /(?:好きな色|いずれか(?:の)?[0-9０-９]?色|あなたが選んだ色)[^。]*?マナ\s*([0-9０-９]+)\s*点/
-      );
-      if (japaneseAmount) {
-        const parsed = parseAmountToken(japaneseAmount[1]);
         if (parsed !== null) {
           return parsed;
         }

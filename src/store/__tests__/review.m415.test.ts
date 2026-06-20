@@ -17,21 +17,17 @@ function deck(n: number, extra: CardDef[] = []): InitDeckCard[] {
   return [...base, ...extra.map((def) => ({ def, isCommander: false }))];
 }
 
-// Real Scryfall ja printed_text (verified against the live API).
-const JA_EVOLVING_WILDS =
-  '{T}, この土地を生け贄に捧げる：あなたのライブラリーから基本土地・カード１枚を探し、タップ状態で戦場に出す。その後、ライブラリーを切り直す。';
-const JA_FABLED_PASSAGE =
-  '{T}, この土地を生け贄に捧げる：あなたのライブラリーから基本土地・カード１枚を探し、タップ状態で戦場に出す。その後、ライブラリーを切り直す。その後、あなたが４つ以上の土地をコントロールしているなら、その土地をアンタップする。';
-const JA_POLLUTED_DELTA =
-  '{T}, １点のライフを支払う, 汚染された三角州を生け贄に捧げる：あなたのライブラリーから島や沼であるカード１枚を探し、戦場に出す。その後、ライブラリーを切り直す。';
-const JA_PRISMATIC_VISTA =
-  '{T}, １点のライフを支払う, 虹色の眺望を生け贄に捧げる：あなたのライブラリーから基本土地・カード１枚を探し、戦場に出す。その後、あなたのライブラリーを切り直す。';
+// Real Scryfall English oracle_text. Rule parsing is English-only (CLAUDE.md 設計原則).
 const EN_POLLUTED_DELTA =
   '{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.';
 const EN_EVOLVING_WILDS =
   '{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.';
+const EN_FABLED_PASSAGE =
+  '{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.';
+const EN_PRISMATIC_VISTA =
+  '{T}, Pay 1 life, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield, then shuffle.';
 
-function landDef(scryfallId: string, text: { ja?: string; en?: string }): CardDef {
+function landDef(scryfallId: string, text: { en?: string }): CardDef {
   return makeDef({
     scryfallId,
     typeLine: 'Land',
@@ -40,7 +36,6 @@ function landDef(scryfallId: string, text: { ja?: string; en?: string }): CardDe
         name: scryfallId,
         typeLine: 'Land',
         oracleText: text.en,
-        printedText: text.ja,
       },
     ],
   });
@@ -56,32 +51,16 @@ beforeEach(() => {
 });
 
 describe('fetchAbility parsing (§11.1)', () => {
-  it('Evolving Wilds (ja): tapped, 0 life, basic', () => {
-    const a = fetchAbility(landDef('ew', { ja: JA_EVOLVING_WILDS }));
-    expect(a).not.toBeNull();
-    expect(a!.entersTapped).toBe(true);
-    expect(a!.lifeCost).toBe(0);
-    expect(a!.filter).toBe('basic');
-  });
-
-  it('Fabled Passage (ja): tapped despite the conditional untap clause; basic', () => {
-    const a = fetchAbility(landDef('fp', { ja: JA_FABLED_PASSAGE }));
+  it('Fabled Passage (en): tapped despite the conditional untap clause; basic', () => {
+    const a = fetchAbility(landDef('fp', { en: EN_FABLED_PASSAGE }));
     expect(a).not.toBeNull();
     expect(a!.entersTapped).toBe(true); // conditional "untap" clause ignored
     expect(a!.lifeCost).toBe(0);
     expect(a!.filter).toBe('basic');
   });
 
-  it('Polluted Delta (ja): untapped, 1 life (fullwidth digit), Island+Swamp', () => {
-    const a = fetchAbility(landDef('pd', { ja: JA_POLLUTED_DELTA }));
-    expect(a).not.toBeNull();
-    expect(a!.entersTapped).toBe(false);
-    expect(a!.lifeCost).toBe(1);
-    expect(sortedSubtypes(a)).toEqual(['Island', 'Swamp']);
-  });
-
-  it('Prismatic Vista (ja): untapped, 1 life, basic', () => {
-    const a = fetchAbility(landDef('pv', { ja: JA_PRISMATIC_VISTA }));
+  it('Prismatic Vista (en): untapped, 1 life, basic', () => {
+    const a = fetchAbility(landDef('pv', { en: EN_PRISMATIC_VISTA }));
     expect(a).not.toBeNull();
     expect(a!.entersTapped).toBe(false);
     expect(a!.lifeCost).toBe(1);
@@ -136,7 +115,7 @@ describe('fetchAbility parsing (§11.1)', () => {
 
 describe('store.fetchLand composition (§11.2)', () => {
   function setup(seed: number) {
-    const fetch = landDef('fetch', { ja: JA_POLLUTED_DELTA });
+    const fetch = landDef('fetch', { en: EN_POLLUTED_DELTA });
     useGameStore.getState().newGame(deck(30, [fetch]), seed);
     let st = useGameStore.getState().state!;
     const source = Object.values(st.cards).find((c) => c.defId === 'fetch')!;

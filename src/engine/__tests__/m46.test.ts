@@ -172,27 +172,27 @@ describe('M4.6 isSummoningSick', () => {
       typeLine: 'Creature — Goblin',
       faces: [{ name: 'haste-en', typeLine: 'Creature — Goblin', oracleText: 'Haste' }],
     });
-    const hasteJa = makeDef({
-      scryfallId: 'haste-ja',
+    const hasteSecondary = makeDef({
+      scryfallId: 'haste-secondary',
       typeLine: 'Creature — Samurai',
-      faces: [{ name: 'haste-ja', typeLine: 'Creature — Samurai', printedText: '速攻' }],
+      faces: [{ name: 'haste-secondary', typeLine: 'Creature — Samurai', oracleText: 'Haste' }],
     });
     const nonCreature = makeDef({ scryfallId: 'artifact', typeLine: 'Artifact' });
 
     let state = setup([
       { def: creature, isCommander: false },
       { def: hasteEn, isCommander: false },
-      { def: hasteJa, isCommander: false },
+      { def: hasteSecondary, isCommander: false },
       { def: nonCreature, isCommander: false },
     ]);
     state = moveToBattlefield(state, 'elf');
     state = moveToBattlefield(state, 'haste-en');
-    state = moveToBattlefield(state, 'haste-ja');
+    state = moveToBattlefield(state, 'haste-secondary');
     state = moveToBattlefield(state, 'artifact');
 
     expect(isSummoningSick(state, cardIdByDef(state, 'elf'))).toBe(true);
     expect(isSummoningSick(state, cardIdByDef(state, 'haste-en'))).toBe(false);
-    expect(isSummoningSick(state, cardIdByDef(state, 'haste-ja'))).toBe(false);
+    expect(isSummoningSick(state, cardIdByDef(state, 'haste-secondary'))).toBe(false);
     expect(isSummoningSick(state, cardIdByDef(state, 'artifact'))).toBe(false);
 
     const nextTurn = applyCommand(state, { type: 'nextTurn' }).state;

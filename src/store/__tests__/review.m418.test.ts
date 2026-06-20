@@ -82,16 +82,16 @@ describe('manaProductionAmount: "N mana of any one color" sources (M4.18 機能D
     expect(useGameStore.getState().state!.manaPool.R).toBe(3);
   });
 
-  it('睡蓮の原野 (ja): choose a color, get 3', () => {
+  it('Lotus Field (en): choose a color, get 3', () => {
     const lotus = makeDef({
-      scryfallId: 'lotus-ja',
+      scryfallId: 'lotus',
       typeLine: 'Land',
       producedMana: ['W', 'U', 'B', 'R', 'G'] as ManaColor[],
       faces: [
         {
-          name: 'lotus-ja',
+          name: 'lotus',
           typeLine: 'Land',
-          printedText: '呪禁\n{T}：好きな色１色のマナ３点を加える。',
+          oracleText: 'Hexproof\n{T}: Add three mana of any one color.',
         },
       ],
     });
@@ -109,7 +109,7 @@ describe('manaProductionAmount: "N mana of any one color" sources (M4.18 機能D
         {
           name: 'confluence',
           typeLine: 'Land',
-          printedText: '{T}, ライフを１点支払う：好きな色１色のマナ１点を加える。',
+          oracleText: '{T}, Pay 1 life: Add one mana of any color.',
         },
       ],
     });

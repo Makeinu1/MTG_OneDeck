@@ -330,8 +330,11 @@ export function ImportScreen({
             解決済みカード <span className="import-screen__gallery-count">{resolvedEntries.length}</span>
           </h2>
           <div className="import-screen__grid">
-            {resolvedEntries.map((entry) => (
-              <figure key={entry.name} className="import-screen__card">
+            {resolvedEntries.map((entry, index) => (
+              <figure
+                key={`${entry.section}-${entry.name}-${index}`}
+                className="import-screen__card"
+              >
                 {entry.card.faces[0]?.imageUrl ? (
                   <img
                     src={entry.card.faces[0].imageUrl}
