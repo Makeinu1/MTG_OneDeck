@@ -844,3 +844,29 @@ export function summarizeDeckRuleTags(entries: RuleDeckEntry[]): RuleDeckSummary
 - スタック非空のとき「次のフェイズ」(`next-phase`)/「次のターン」(`next-turn`)ボタンを **disabled** にし、理由を `title` 等で示す(`PlaymatHud.tsx` ControlRail)。
 - Enter キー(`onNextTurn`、`Playmat.tsx` `useShortcuts`)はスタック非空時 no-op。
 - **ArrowUp(M4.29)は不変**: スタック非空ならフェイズ進行ではなくトップ解決(`requestResolveTop`)にリダイレクトされる(従来挙動を維持)。
+
+---
+
+## 18. R下地/R1 バッチ適用ヘルパー(`src/engine/batch.ts`)— この節も契約である
+
+目的: ストア private の逐次適用(`applySequence`)を**公開・テスト可能・再利用可能**にする。M6 候補アクション/テストが同じ「単一 undo 単位」の合成を使えるようにする土台。
+
+```ts
+import type { GameState } from './types';
+import type { GameCommand, ApplyResult } from './commands';
+
+export interface CommandBatch { commands: readonly GameCommand[]; label?: string; }
+
+// commands を順番に applyCommand し、warnings を連結して返す。
+export function applyCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult;
+export function applyCommandBatch(state: GameState, batch: CommandBatch): ApplyResult;
+```
+
+契約:
+- **純粋・決定的**。引数 `state` を一切ミューテートしない(I4)。乱数生成は行わない(必要な順列は呼び出し側が各コマンドのペイロードに埋め込み済みである前提)。
+- `applyCommands` は `commands` を先頭から `applyCommand` で適用し、各結果の `warnings` を順に連結した `ApplyResult` を返す。空配列なら `{ state, warnings: [] }`(`state` はそのまま)。
+- 途中のコマンドが `EngineError` を投げたらそのまま伝播する(部分適用結果は返さない=呼び出し側が commit しないことでロールバック)。
+- `applyCommandBatch(state, {commands})` は `applyCommands(state, commands)` と同義(`label` は無視してよい。ログ/デバッグ用の任意メタ)。
+
+ストア統合(挙動不変):
+- `src/store/gameStore.ts` の private `applySequence` を `applyCommands` へ統一(同一挙動)。**ストアの公開メソッド名・戻り値・挙動は一切変えない**。既存テストは全て不変で通る。

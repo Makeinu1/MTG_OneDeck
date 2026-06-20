@@ -6,6 +6,7 @@ import {
   type GameSnapshot,
 } from '../data/gameSnapshot';
 import type { CardDef, ManaColor } from '../types/card';
+import { applyCommands } from '../engine/batch';
 import { applyCommand, EngineError, type GameCommand } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
@@ -257,22 +258,6 @@ function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[
   ]);
 }
 
-function applySequence(
-  initial: GameState,
-  commands: GameCommand[]
-): { state: GameState; warnings: string[] } {
-  let next = initial;
-  const warnings: string[] = [];
-
-  for (const cmd of commands) {
-    const result = applyCommand(next, cmd);
-    next = result.state;
-    warnings.push(...result.warnings);
-  }
-
-  return { state: next, warnings };
-}
-
 function isFetchAbilityStackItem(state: GameState, cardId: string): boolean {
   const card = state.cards[cardId];
   if (!card?.isAbility || !card.sourceId) return false;
@@ -354,8 +339,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
 
     try {
-      const result =
-        commands.length === 1 ? applyCommand(cur, cmd) : applySequence(cur, commands);
+      const result = applyCommands(cur, commands);
       commit(result.state, result.warnings);
     } catch (err) {
       console.error(err);
@@ -418,7 +402,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const rng = createRng(randomSeed());
       const order = shuffledOrder(combined, rng);
       try {
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           { type: 'mulligan', order },
           { type: 'draw', count: 7 },
         ]);
@@ -433,7 +417,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !get().autoAdvanceToMain) return;
 
       try {
-        const result = applySequence(cur, untapToMainCommands());
+        const result = applyCommands(cur, untapToMainCommands());
         internal.past = [];
         internal.future = [];
         set({
@@ -469,7 +453,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       try {
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           { type: 'adjustOpponentLife', label: trimmed, delta: 0 },
           { type: 'adjustCommanderDamage', label: trimmed, delta: 0 },
         ]);
@@ -550,7 +534,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (commands.length === 0) return;
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -589,7 +573,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (commands.length === 0) return;
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -678,7 +662,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // and commit once so undo reverts both.
       try {
         const amount = Math.max(1, manaProductionAmount(def, chosen));
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           { type: 'setTapped', cardId, tapped: true },
           { type: 'addMana', color: chosen, amount },
         ]);
@@ -728,7 +712,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             forced: !plan.ok,
           },
         ];
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -775,7 +759,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             forced: !plan.ok,
           },
         ];
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -815,7 +799,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       try {
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           ...tapCommands(plan.taps),
           {
             type: 'castToStack',
@@ -862,7 +846,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (commands.length === 0) return;
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -884,7 +868,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         .map((cardId) => ({ type: 'setTapped', cardId, tapped: true }));
 
       try {
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           { type: 'adjustOpponentLife', label: targetLabel, delta: -damage },
           ...tapCommands,
         ]);
@@ -958,7 +942,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const directPayment = solvePayment(cur.manaPool, cost, 0);
       if (directPayment.ok) {
         try {
-          const result = applySequence(cur, [
+          const result = applyCommands(cur, [
             { type: 'payMana', payment: directPayment.payment },
             { type: 'discard', cardIds: [cardId] },
             { type: 'draw', count: 1 },
@@ -976,7 +960,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       try {
-        const result = applySequence(cur, [
+        const result = applyCommands(cur, [
           ...tapCommands(plan.taps),
           { type: 'payMana', payment: plan.payment },
           { type: 'discard', cardIds: [cardId] },
@@ -1004,7 +988,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         if (err instanceof EngineError) {
@@ -1034,7 +1018,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       commands.push({ type: 'shuffle', order }, { type: 'removeStackItem', id: abilityId });
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         if (err instanceof EngineError) {
@@ -1069,7 +1053,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       commands.push({ type: 'shuffle', order });
 
       try {
-        const result = applySequence(cur, commands);
+        const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
         if (err instanceof EngineError) {
