@@ -25,6 +25,7 @@ import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
 import { TriggerCandidatePanel } from './TriggerCandidatePanel';
+import { TargetPickerDialog } from './TargetPickerDialog';
 import {
   ControlRail,
   LifeOverlay,
@@ -78,7 +79,23 @@ type CountDialogState = {
   defaultValue: number;
 };
 type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
+type TargetRuleActionCandidateKind = Extract<
+  RuleActionCandidateKind,
+  'sacrifice-target' | 'destroy-target' | 'exile-target' | 'counters-target' | 'attach-target'
+>;
+type PendingRuleTargetAction = {
+  kind: TargetRuleActionCandidateKind;
+  sourceCardId: string;
+};
 type MenuTriggerEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>;
+
+const TARGET_RULE_ACTION_TITLES: Record<TargetRuleActionCandidateKind, string> = {
+  'sacrifice-target': '対象の生け贄',
+  'destroy-target': '対象を破壊',
+  'exile-target': '対象を追放',
+  'counters-target': '対象にカウンター',
+  'attach-target': '装備/付与',
+};
 
 function opponentLabelsFromState(
   state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>,
@@ -115,6 +132,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
   const [fetchDialog, setFetchDialog] = useState<FetchDialogState | null>(null);
+  const [pendingRuleTarget, setPendingRuleTarget] = useState<PendingRuleTargetAction | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
@@ -146,6 +164,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     tokenDialogOpen ||
     zoneViewer !== null ||
     fetchDialog !== null ||
+    pendingRuleTarget !== null ||
     arrangeTopOpen ||
     countDialog !== null ||
     peekCount !== null ||
@@ -183,6 +202,21 @@ export function Playmat({ keybindings }: PlaymatProps) {
     const def = state!.defs[card.defId];
     const face = def?.faces[card.faceIndex] ?? def?.faces[0];
     return face?.typeLine ?? def?.typeLine ?? '';
+  }
+
+  function battlefieldPermanentIds(): string[] {
+    return state!.zones.battlefield.filter((cardId) => {
+      const card = cards[cardId];
+      return card !== undefined && !card.isAbility;
+    });
+  }
+
+  function targetIdsForRuleAction(kind: TargetRuleActionCandidateKind): string[] {
+    const permanentIds = battlefieldPermanentIds();
+    if (kind === 'attach-target') {
+      return permanentIds.filter((cardId) => typeLineFor(cardId).includes('Creature'));
+    }
+    return permanentIds;
   }
 
   function treasureColors(cardId: string): ManaColor[] {
@@ -457,7 +491,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     ];
   }
 
-  function runRuleActionCandidate(kind: RuleActionCandidateKind): void {
+  function runRuleActionCandidate(kind: RuleActionCandidateKind, sourceCardId: string): void {
     switch (kind) {
       case 'draw':
         setCountDialog({ kind: 'draw', defaultValue: 1 });
@@ -480,10 +514,47 @@ export function Playmat({ keybindings }: PlaymatProps) {
       case 'shuffle':
         store.shuffleLibrary();
         break;
+      case 'search-library':
+        setZoneViewer('library');
+        break;
+      case 'return-from-zone':
+        setZoneViewer('graveyard');
+        break;
+      case 'sacrifice-target':
+      case 'destroy-target':
+      case 'exile-target':
+      case 'counters-target':
+      case 'attach-target':
+        setPendingRuleTarget({ kind, sourceCardId });
+        break;
     }
   }
 
-  function buildRuleCandidateMenuItems(def: CardDef | undefined): MenuItem[] {
+  function pickRuleActionTarget(targetId: string): void {
+    if (!pendingRuleTarget) {
+      return;
+    }
+
+    switch (pendingRuleTarget.kind) {
+      case 'sacrifice-target':
+      case 'destroy-target':
+        store.moveCard(targetId, 'graveyard');
+        break;
+      case 'exile-target':
+        store.moveCard(targetId, 'exile');
+        break;
+      case 'counters-target':
+        store.dispatch({ type: 'addCounters', cardId: targetId, counterType: '+1/+1', delta: 1 });
+        break;
+      case 'attach-target':
+        store.dispatch({ type: 'attach', cardId: pendingRuleTarget.sourceCardId, to: targetId });
+        break;
+    }
+
+    setPendingRuleTarget(null);
+  }
+
+  function buildRuleCandidateMenuItems(cardId: string, def: CardDef | undefined): MenuItem[] {
     if (!def) {
       return [];
     }
@@ -492,7 +563,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
       key: `rule-candidate-${candidate.kind}`,
       label: candidate.label,
       testId: candidate.testId,
-      onSelect: () => runRuleActionCandidate(candidate.kind),
+      onSelect: () => runRuleActionCandidate(candidate.kind, cardId),
       separator: index === 0,
     }));
   }
@@ -582,7 +653,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
         });
       }
 
-      stackItems.push(...buildRuleCandidateMenuItems(def));
+      stackItems.push(...buildRuleCandidateMenuItems(cardId, def));
 
       return { title: displayName, items: stackItems };
     }
@@ -712,7 +783,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     }
 
     if (card.zone === 'battlefield' || card.zone === 'hand' || card.zone === 'command') {
-      items.push(...buildRuleCandidateMenuItems(def));
+      items.push(...buildRuleCandidateMenuItems(cardId, def));
     }
 
     if (card.zone === 'battlefield' && typeLine.includes('Planeswalker')) {
@@ -816,6 +887,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const activeDef = activeCard ? state.defs[activeCard.defId] : undefined;
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
+  const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
   const peekIds =
     peekCount === null
       ? []
@@ -1096,6 +1168,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
               setFetchDialog(null);
             }}
             onClose={() => setFetchDialog(null)}
+          />
+        )}
+
+        {pendingRuleTarget && (
+          <TargetPickerDialog
+            title={TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind]}
+            cardIds={ruleTargetIds}
+            state={state}
+            onPick={pickRuleActionTarget}
+            onCancel={() => setPendingRuleTarget(null)}
           />
         )}
 

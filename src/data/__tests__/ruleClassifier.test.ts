@@ -119,6 +119,26 @@ describe('classifyCardRules', () => {
     );
   });
 
+  it('detects target-requiring semi-automatic action tags', () => {
+    expect(
+      tagIds(
+        makeCard(
+          'Reanimate Spell',
+          'Return target creature card from your graveyard to the battlefield.',
+        ),
+      ),
+    ).toContain('action.return');
+    expect(tagIds(makeCard('Exile Return', 'Return target card from exile to your hand.'))).toContain(
+      'action.return',
+    );
+    expect(tagIds(makeCard('Attach Aura', 'Attach target Aura you control to target creature.'))).toContain(
+      'action.attach',
+    );
+    expect(tagIds(makeCard('Short Sword', 'Equip {2}', { typeLine: 'Artifact — Equipment' }))).toContain(
+      'action.attach',
+    );
+  });
+
   it('detects trigger-assist tags from oracle text', () => {
     expect(tagIds(makeCard('Blood Artist', 'Whenever Blood Artist or another creature dies, target player loses 1 life and you gain 1 life.'))).toContain(
       'trigger.death',

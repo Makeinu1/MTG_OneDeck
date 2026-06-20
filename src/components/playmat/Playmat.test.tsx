@@ -91,6 +91,44 @@ function findInstanceId(defId: string): string {
   return card.id;
 }
 
+function makeRuleActionDef(scryfallId: string, oracleText: string, typeLine = 'Sorcery') {
+  return makeDef({
+    scryfallId,
+    typeLine,
+    faces: [{ name: scryfallId, typeLine, oracleText }],
+  });
+}
+
+function startGameWithDefs(defs: ReturnType<typeof makeDef>[]): void {
+  act(() => {
+    useGameStore
+      .getState()
+      .newGame([...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(12)], 1);
+    useGameStore.getState().keepOpeningHand();
+  });
+}
+
+function setupRuleActionGame({
+  sourceDef,
+  targetDef,
+  sourceZone = 'hand',
+}: {
+  sourceDef: ReturnType<typeof makeDef>;
+  targetDef: ReturnType<typeof makeDef>;
+  sourceZone?: 'hand' | 'battlefield';
+}): { sourceId: string; targetId: string } {
+  startGameWithDefs([sourceDef, targetDef]);
+  const sourceId = findInstanceId(sourceDef.scryfallId);
+  const targetId = findInstanceId(targetDef.scryfallId);
+
+  act(() => {
+    useGameStore.getState().moveCard(sourceId, sourceZone);
+    useGameStore.getState().moveCard(targetId, 'battlefield');
+  });
+
+  return { sourceId, targetId };
+}
+
 describe('Playmat', () => {
   beforeEach(() => {
     resetStore();
@@ -373,6 +411,230 @@ describe('Playmat', () => {
 
     expect(useGameStore.getState().state).toBe(beforeMenu);
     expect(container.querySelector('[data-testid="draw-n-confirm-dialog"]')).not.toBeNull();
+
+    cleanupRender(root, container);
+  });
+
+  it.each([
+    {
+      name: 'sacrifice',
+      oracleText: 'As an additional cost, sacrifice a creature.',
+      candidateTestId: 'candidate-sacrifice-target',
+      expectedZone: 'graveyard' as const,
+    },
+    {
+      name: 'destroy',
+      oracleText: 'Destroy target creature.',
+      candidateTestId: 'candidate-destroy-target',
+      expectedZone: 'graveyard' as const,
+    },
+    {
+      name: 'exile',
+      oracleText: 'Exile target permanent.',
+      candidateTestId: 'candidate-exile-target',
+      expectedZone: 'exile' as const,
+    },
+  ])(
+    'runs $name target candidate through moveCard after target selection',
+    ({ name, oracleText, candidateTestId, expectedZone }) => {
+      const sourceDef = makeRuleActionDef(`playmat-${name}-source`, oracleText, 'Instant');
+      const targetDef = makeDef({
+        scryfallId: `playmat-${name}-target`,
+        typeLine: 'Creature',
+      });
+      const { sourceId, targetId } = setupRuleActionGame({ sourceDef, targetDef });
+      const store = useGameStore.getState();
+      const moveCard = vi.spyOn(store, 'moveCard');
+      const beforeMenu = store.state;
+      if (!beforeMenu) {
+        throw new Error('game state was not available before opening the target action menu');
+      }
+
+      const { container, root } = renderPlaymat();
+      const source = container.querySelector(`[data-testid="card-${sourceId}"]`);
+      if (!source) {
+        throw new Error('source card element was not rendered');
+      }
+
+      dispatchContextMenu(source);
+      expect(useGameStore.getState().state).toBe(beforeMenu);
+
+      const candidate = container.querySelector(`[data-testid="${candidateTestId}"]`);
+      if (!candidate) {
+        throw new Error(`${candidateTestId} was not rendered`);
+      }
+
+      dispatchClick(candidate);
+      expect(useGameStore.getState().state).toBe(beforeMenu);
+      expect(container.querySelector('[data-testid="target-picker"]')).not.toBeNull();
+
+      const selectTarget = container.querySelector(`[data-testid="select-target-${targetId}"]`);
+      if (!selectTarget) {
+        throw new Error('target select button was not rendered');
+      }
+
+      dispatchClick(selectTarget);
+
+      expect(moveCard).toHaveBeenCalledWith(targetId, expectedZone);
+      expect(useGameStore.getState().state?.cards[targetId]?.zone).toBe(expectedZone);
+
+      act(() => {
+        useGameStore.getState().undo();
+      });
+
+      expect(useGameStore.getState().state?.cards[targetId]?.zone).toBe('battlefield');
+
+      cleanupRender(root, container);
+    },
+  );
+
+  it('keeps game state unchanged when target picker is opened and canceled', () => {
+    const sourceDef = makeRuleActionDef(
+      'playmat-cancel-source',
+      'Destroy target creature.',
+      'Instant',
+    );
+    const targetDef = makeDef({
+      scryfallId: 'playmat-cancel-target',
+      typeLine: 'Creature',
+    });
+    const { sourceId } = setupRuleActionGame({ sourceDef, targetDef });
+    const beforeMenu = useGameStore.getState().state;
+    if (!beforeMenu) {
+      throw new Error('game state was not available before opening the target picker');
+    }
+
+    const { container, root } = renderPlaymat();
+    const source = container.querySelector(`[data-testid="card-${sourceId}"]`);
+    if (!source) {
+      throw new Error('source card element was not rendered');
+    }
+
+    dispatchContextMenu(source);
+    const candidate = container.querySelector('[data-testid="candidate-destroy-target"]');
+    if (!candidate) {
+      throw new Error('destroy target candidate was not rendered');
+    }
+
+    dispatchClick(candidate);
+    expect(container.querySelector('[data-testid="target-picker"]')).not.toBeNull();
+    expect(useGameStore.getState().state).toBe(beforeMenu);
+
+    const cancel = container.querySelector('[data-testid="target-picker-cancel"]');
+    if (!cancel) {
+      throw new Error('target picker cancel button was not rendered');
+    }
+
+    dispatchClick(cancel);
+
+    expect(container.querySelector('[data-testid="target-picker"]')).toBeNull();
+    expect(useGameStore.getState().state).toBe(beforeMenu);
+
+    cleanupRender(root, container);
+  });
+
+  it('runs counters target candidate through addCounters dispatch', () => {
+    const sourceDef = makeRuleActionDef(
+      'playmat-counters-source',
+      'Put a +1/+1 counter on target creature.',
+      'Instant',
+    );
+    const targetDef = makeDef({
+      scryfallId: 'playmat-counters-target',
+      typeLine: 'Creature',
+    });
+    const { sourceId, targetId } = setupRuleActionGame({ sourceDef, targetDef });
+    const store = useGameStore.getState();
+    const dispatch = vi.spyOn(store, 'dispatch');
+
+    const { container, root } = renderPlaymat();
+    const source = container.querySelector(`[data-testid="card-${sourceId}"]`);
+    if (!source) {
+      throw new Error('source card element was not rendered');
+    }
+
+    dispatchContextMenu(source);
+    const candidate = container.querySelector('[data-testid="candidate-counters-target"]');
+    if (!candidate) {
+      throw new Error('counters target candidate was not rendered');
+    }
+
+    dispatchClick(candidate);
+    const selectTarget = container.querySelector(`[data-testid="select-target-${targetId}"]`);
+    if (!selectTarget) {
+      throw new Error('target select button was not rendered');
+    }
+
+    dispatchClick(selectTarget);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'addCounters',
+      cardId: targetId,
+      counterType: '+1/+1',
+      delta: 1,
+    });
+    expect(useGameStore.getState().state?.cards[targetId]?.counters['+1/+1']).toBe(1);
+
+    cleanupRender(root, container);
+  });
+
+  it('runs attach target candidate through attach dispatch and sets attachedTo', () => {
+    const sourceDef = makeRuleActionDef(
+      'playmat-attach-source',
+      'Equip {2}',
+      'Artifact — Equipment',
+    );
+    const creatureDef = makeDef({
+      scryfallId: 'playmat-attach-creature',
+      typeLine: 'Creature',
+    });
+    const artifactDef = makeDef({
+      scryfallId: 'playmat-attach-artifact',
+      typeLine: 'Artifact',
+    });
+    startGameWithDefs([sourceDef, creatureDef, artifactDef]);
+    const sourceId = findInstanceId('playmat-attach-source');
+    const creatureId = findInstanceId('playmat-attach-creature');
+    const artifactId = findInstanceId('playmat-attach-artifact');
+
+    act(() => {
+      useGameStore.getState().moveCard(sourceId, 'battlefield');
+      useGameStore.getState().moveCard(creatureId, 'battlefield');
+      useGameStore.getState().moveCard(artifactId, 'battlefield');
+    });
+
+    const store = useGameStore.getState();
+    const dispatch = vi.spyOn(store, 'dispatch');
+    const { container, root } = renderPlaymat();
+    const source = container.querySelector(`[data-testid="card-${sourceId}"]`);
+    if (!source) {
+      throw new Error('equipment source element was not rendered');
+    }
+
+    dispatchContextMenu(source);
+    const candidate = container.querySelector('[data-testid="candidate-attach-target"]');
+    if (!candidate) {
+      throw new Error('attach target candidate was not rendered');
+    }
+
+    dispatchClick(candidate);
+
+    expect(container.querySelector(`[data-testid="select-target-${creatureId}"]`)).not.toBeNull();
+    expect(container.querySelector(`[data-testid="select-target-${artifactId}"]`)).toBeNull();
+
+    const selectCreature = container.querySelector(`[data-testid="select-target-${creatureId}"]`);
+    if (!selectCreature) {
+      throw new Error('creature target select button was not rendered');
+    }
+
+    dispatchClick(selectCreature);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'attach',
+      cardId: sourceId,
+      to: creatureId,
+    });
+    expect(useGameStore.getState().state?.cards[sourceId]?.attachedTo).toBe(creatureId);
 
     cleanupRender(root, container);
   });

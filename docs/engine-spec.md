@@ -938,3 +938,36 @@ M6.2 候補のために以下の `action.*` タグを追加(英語 oracleText、
 ### 20.4 不変・非干渉
 - 候補の表示/無視だけでは `GameState` 不変。**自動で `addAbilityToStack` を呼ばない**。
 - `resolveAll`/`resolveTop`/undo/redo の既存挙動を壊さない。I9(`isAbility ⇒ zone stack`)を維持。スナップショットに `triggerCandidates` を含めない。
+
+---
+
+## 21. M6.4 半自動アクション(対象選択を伴う候補・データ層 + UI契約)— この節も契約である
+
+設計指針: `classifyCardRules` のタグから、**対象選択を伴う**候補を source カードの右クリックに出す。共有の **TargetPickerDialog** で対象を1つ選ばせ、**既存の store 操作で実行**(単一 undo)。**対象選択ダイアログを開く/閉じるだけでは `GameState` 不変**。エンジンにカード固有ルール・新コマンドを足さない(既存 `moveCard`/`dispatch(addCounters)`/`dispatch(attach)` を再利用)。誘発の自動積みはしない。M6.2(直接実行系)と区別し、候補システムを整理する。
+
+### 21.1 分類タグの追加(`src/data/ruleClassifier.ts`)
+- `action.return`(label「墓地/追放から戻す」, kind 'keyword-action', risk 'D', layer 'semi-automatic'): `/\breturn(?:s)?\b[^.]*\bfrom\b[^.]*\b(?:graveyard|exile)\b/i`。
+- `action.attach`(label「装備/付与」, ruleRef '702.6'): `/\battach(?:es)?\b/i` または `/\bequip\b/i`(装備)。
+既存 `action.sacrifice`/`action.exile`/`action.destroy`/`action.search`/`action.card-counters` を流用。
+
+### 21.2 候補システムの整理(`src/components/playmat/ruleActionCandidates.ts`)
+候補を **direct(M6.2: 確定実行)** と **target-requiring(M6.4: 対象選択)** に区別する型へ整理(`requiresTarget: boolean` 等)。M6.4 の target-requiring 候補:
+
+| kind | label | testId | tag | 対象 | 実行(既存) |
+|---|---|---|---|---|---|
+| `sacrifice-target` | 対象の生け贄 | `candidate-sacrifice-target` | `action.sacrifice` | 戦場 | `moveCard(target,'graveyard')` |
+| `destroy-target` | 対象を破壊 | `candidate-destroy-target` | `action.destroy` | 戦場 | `moveCard(target,'graveyard')` |
+| `exile-target` | 対象を追放 | `candidate-exile-target` | `action.exile` | 戦場 | `moveCard(target,'exile')` |
+| `counters-target` | 対象にカウンター | `candidate-counters-target` | `action.card-counters` | 戦場 | `dispatch(addCounters(target,'+1/+1',+1))` |
+| `attach-target` | 装備/付与 | `candidate-attach-target` | `action.attach` | 戦場のクリーチャー | `dispatch(attach(source, target))` |
+| `search-library` | ライブラリを探す | `candidate-search-library` | `action.search` | (対象なし) | 既存ライブラリビューア(`setZoneViewer('library')`) |
+| `return-from-zone` | 墓地/追放から戻す | `candidate-return-from-zone` | `action.return` | (対象なし) | 既存墓地ビューア(`setZoneViewer('graveyard')`) |
+
+### 21.3 TargetPickerDialog(`src/components/playmat/`)
+- 新規 `TargetPickerDialog`。props: タイトル / 対象候補 `cardIds` / `state`(表示用) / `onPick(targetId)` / `onCancel`。ルート `data-testid="target-picker"`。各対象に「選択」ボタン `data-testid="select-target-<cardId>"`(カード名《printedName ?? name》表示)。
+- `Playmat.tsx`: `runRuleActionCandidate(kind, sourceCardId)` を `sourceCardId` 受け取りに変更。target-requiring kind は `TargetPickerDialog` を開く(対象 = 該当ゾーン。attach は source=その装備、対象=戦場クリーチャー)。`search-library`/`return-from-zone` は既存ビューアを開く。
+- 対象を選択した時のみ既存 store 操作を実行(単一 undo)。キャンセル/未選択では盤面不変。
+
+### 21.4 不変・非干渉
+- 候補表示・ダイアログ開閉だけでは `GameState` 不変。実行は既存コマンド経由で**単一 undo**。
+- エンジン(`src/engine/`)・`applyCommand`・`CACHE_SCHEMA_VERSION` 不変。`attach` は既存 `{type:'attach',cardId,to}` を使う(`attachedTo` を設定)。M6.1/M6.2/M6.3 のタグ・候補・誘発キューを壊さない。

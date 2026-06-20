@@ -135,6 +135,12 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'semi-automatic',
     ruleRef: '701.19',
   },
+  'action.return': {
+    label: '墓地/追放から戻す',
+    kind: 'keyword-action',
+    risk: 'D',
+    layer: 'semi-automatic',
+  },
   'action.destroy': {
     label: '破壊',
     kind: 'keyword-action',
@@ -177,6 +183,13 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     layer: 'semi-automatic',
     ruleRef: '701.42',
   },
+  'action.attach': {
+    label: '装備/付与',
+    kind: 'keyword-action',
+    risk: 'D',
+    layer: 'semi-automatic',
+    ruleRef: '702.6',
+  },
   'concept.target': {
     label: '対象',
     kind: 'game-concept',
@@ -209,12 +222,14 @@ const FIXED_TAG_ORDER = [
   'action.sacrifice',
   'action.exile',
   'action.search',
+  'action.return',
   'action.destroy',
   'action.mill',
   'action.scry',
   'action.discard',
   'action.shuffle',
   'action.surveil',
+  'action.attach',
   'concept.target',
   'effect.replacement',
 ] as const;
@@ -262,6 +277,7 @@ export function classifyCardRules(def: CardDef): RuleTag[] {
             ruleRef: clause.definition.ruleRef,
           });
         }
+        classifyAttachAction(tags, core);
         continue;
       }
 
@@ -319,6 +335,13 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
   matchTag(tags, core, 'action.sacrifice', /\bsacrifices?\b/i, 'medium');
   matchTag(tags, core, 'action.exile', /\bexiles?\b/i, 'medium');
   matchTag(tags, core, 'action.search', /\bsearch(?:es)?\b[^.]*\blibrary\b/i, 'medium');
+  matchTag(
+    tags,
+    core,
+    'action.return',
+    /\breturn(?:s)?\b[^.]*\bfrom\b[^.]*\b(?:graveyard|exile)\b/i,
+    'medium',
+  );
   matchTag(tags, core, 'action.destroy', /\bdestroys?\b/i, 'medium');
   matchTag(tags, core, 'action.mill', /\bmills?\b/i, 'medium');
   matchTag(tags, core, 'action.scry', /\bscry\b\s*\d*/i, 'medium');
@@ -328,10 +351,16 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
   }
   matchTag(tags, core, 'action.shuffle', /\bshuffle\b/i, 'medium');
   matchTag(tags, core, 'action.surveil', /\bsurveil\b\s*\d*/i, 'medium');
+  classifyAttachAction(tags, core);
   matchTag(tags, core, 'concept.target', /\btarget\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\bwould\b[^.]*\binstead\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\bas\b[^.]*\benters\b/i, 'high');
   matchTag(tags, core, 'effect.replacement', /\benters\s+(?:with|as)\b/i, 'high');
+}
+
+function classifyAttachAction(tags: Map<string, RuleTag>, core: string): void {
+  matchTag(tags, core, 'action.attach', /\battach(?:es)?\b/i, 'medium');
+  matchTag(tags, core, 'action.attach', /\bequip\b/i, 'medium');
 }
 
 function matchTag(
