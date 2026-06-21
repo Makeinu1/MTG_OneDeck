@@ -17,6 +17,8 @@ research/scryfall-rules/**/raw/
 research/scryfall-rules/**/analysis/*.json
 # exclude only the large per-card dump; keep known-divergences.json (registry)
 research/classifier-accuracy/report.json
+# grammar coverage: keep report.md summary; exclude large machine blob
+research/grammar-coverage/report.json
 
 # Editor directories and files
 .vscode/*

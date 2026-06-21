@@ -1222,3 +1222,78 @@ Scryfall に「triggers」正解集合は**無い**ため、誘発精度は Scry
 - **grant≠has 不変**: 他者に誘発を付与する文(`creatures you control gain "whenever …"` 等)は自分が保有とタグ付けしない(§26/P1・`review.m6kw` の方針を維持)。
 - **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変。`classifyCardRules` は純粋・決定的のまま。エンジン(`src/engine/`)は変更しない。
 - 実装の変更対象は `src/data/ruleClassifier.ts`(タグ+regex)/ `src/store/gameStore.ts`(end-step/draw 分岐)/ `scripts/classifier-accuracy.ts`(プローブ)/ `classifier-corpus.ts`(fixture)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない(reviewer テスト `review.classifier-corpus` と本節の `review.phaseC` は Fable 専有)。機械チェック4点全通過 + `npm run accuracy` 再生成で誘発ファミリー候補節が出力されること。
+
+## 29. エンジン文法器トラック Phase G0: 文法カバレッジ分析ハーネス(`src/engine/grammar/` + `scripts/grammar-coverage.ts`)— この節も契約である
+
+### 29.0 目的と分界(重要)
+最終ゴール(V2深掘り)は **「ほぼ全 MTG 用語を能力IR+効果インタプリタで自動実行」**。本マイルストーン G0 はその **計測のみ**。盤面挙動・エンジン公開挙動を一切変えず、コーパス(`research/scryfall-rules/2026-06-19/raw/...cards.json`、17,491枚)を MTG 文法構造へ分解し、**「どの構文/効果アトムを実装すれば何%が自動化可能か」を定量化**する。これが G1(能力IR型+パーサ)以降のスコープと優先順位をデータで確定する。**本節では IR 型も実行も作らない**(分解=計測専用の純関数のみ)。
+
+統治原則は §26.0 / §28.3 を継承: **probe は判定でなく人間裁定用の広網候補**。Scryfall に「効果アトム正解集合」は無いため、本ハーネスの数値は「未調整の候補分布」であり絶対正解ではない。正本ゲートはコーパス回帰(§29.6 の裏取り固定 + `review.grammar-coverage`)とする。
+
+### 29.1 新規モジュール `src/engine/grammar/`(純関数・計測専用)
+GameState に一切触れない純粋・決定的関数群。`React`/`DOM`/`Zustand` 非依存(エンジン哲学準拠)。**正本は英語 `oracleText`**(`printedText` 不使用)。既存 `keywordGrammar.ts` の `cardOracleTexts` / `splitParagraphs` / `removeReminderAndQuotes` と `possessedKeywords`(`src/engine/keywordGrammar`)を再利用する(reminder/引用除去を必ず通す)。
+
+公開関数(シグネチャは契約):
+- `splitAbilityLines(def: CardDef): AbilityLine[]` — 各面 oracleText を段落へ分割し reminder/引用除去した行に shape を付けて返す。
+- `classifyAbilityShape(line: string, typeLine: string): AbilityShape` — 能力タイプを1つ返す(§29.2)。
+- `detectEffectAtoms(line: string): EffectAtomId[]` — 効果アトム(動詞)を probe で検出(§29.3、重複なし昇順)。
+- `detectConstructs(line: string): ConstructId[]` — 対象/モード/条件など「自動化の壁」構文を検出(§29.4、重複なし昇順)。
+
+型:
+```ts
+type AbilityShape =
+  | 'activated' | 'triggered' | 'delayed-triggered'
+  | 'replacement' | 'static' | 'spell' | 'keyword';
+interface AbilityLine { faceIndex: number; text: string; shape: AbilityShape; }
+type EffectAtomId = string;   // §29.3 の安定 id(例 'effect.draw')
+type ConstructId = string;    // §29.4 の安定 id(例 'construct.target')
+```
+
+### 29.2 能力タイプ分類(`AbilityShape`・1行=1タイプ、優先順で先勝ち)
+判定順序(先に当たったものを採用):
+1. `keyword` — `parsePureKeywordLine`(`keywordGrammar`)が non-null = 純キーワード行。
+2. `activated` — コロン `: ` を含み、左辺がコスト様(`{...}` を含む / 先頭が `Sacrifice`/`Discard`/`Pay`/`Tap`/`Exile`/`Remove` + 目的語、または `{T}`)。注釈的コロン(レベルアップ表記等)は左辺コスト様でなければ除外する保守判定でよい。
+3. `triggered` — 先頭が `When`/`Whenever`/`At `。うち本文に `the next` + 時間語(`turn`/`end step`/`upkeep`)を含むものは `delayed-triggered` に降格。
+4. `replacement` — `/\bif\b[^.]*\bwould\b[^.]*\binstead\b/i` / `/\benters\b[^.]*\bwith\b/i` / `/\bas\b[^.]*\benters\b/i` / `/\bskip(s)?\b/i`。
+5. `spell` — `typeLine` が Instant/Sorcery で上記いずれにも当たらない本文行。
+6. `static` — 上記いずれにも当たらない継続効果(既定の落とし所)。
+
+カード単位サマリは「各 shape を **1つ以上持つカード数**」で集計(1枚が複数 shape を持ち得る)。
+
+### 29.3 効果アトム語彙(`EffectAtomId`・安定 id・probe は広網)
+最低限この語彙を実装する(id は固定=以降フェーズの IR と接続するキー)。probe は例示、確定は §29.6 裏取りで。
+- カード流れ: `effect.draw` `effect.mill` `effect.discard` `effect.search` `effect.return` `effect.exile` `effect.scry` `effect.surveil` `effect.reveal`
+- 盤面: `effect.create-token` `effect.destroy` `effect.sacrifice` `effect.counter-plus`(+1/+1等カウンター) `effect.tap` `effect.untap` `effect.attach` `effect.transform` `effect.put-onto-battlefield`
+- ダメージ/ライフ: `effect.damage` `effect.gain-life` `effect.lose-life` `effect.loyalty`
+- 資源: `effect.add-mana` `effect.treasure`
+- 修整: `effect.pump`(`gets +X/+X`) `effect.grant-keyword` `effect.restriction`(`can't`)
+- その他: `effect.extra-turn` `effect.gain-control` `effect.copy` `effect.counter-spell`
+- プレイヤーカウンター: `effect.poison` `effect.energy` `effect.experience`
+
+各アトムは `{ id, label(日本語), probe: RegExp }` の表で持つ。`detectEffectAtoms` は1行に対し当たった id 集合を返す(出現は行単位で重複排除)。
+
+### 29.4 構文(自動化の壁)語彙(`ConstructId`)
+- `construct.target`(`/\btarget\b/i`=対象選択が要る) / `construct.each-player`(`each player/opponent`) / `construct.you-control`(`you control`) / `construct.choose-modal`(`choose one/two/...` または 行頭 `•`) / `construct.may`(`you may`) / `construct.variable-x`(`{X}` または X コスト) / `construct.intervening-if`(`/,\s*if\b/i`) / `construct.for-each`(`for each`)
+
+### 29.5 出力レポート(`research/grammar-coverage/report.md` + `report.json`)
+`scripts/grammar-coverage.ts`(`npm run grammar-coverage`、tsx)。`classifier-accuracy.ts` の骨格(`mapScryfallCardToCardDef` 写像・カウント集計・Markdown描画・サイズ有界 top-N・`report.json` 併出力)を踏襲。冒頭に「未調整(候補分布であり絶対正解でない)」を明記。節:
+1. **総数**: raw / 写像成功 / 失敗 / 効果保有行数。
+2. **能力タイプ分布**: shape 別カード数 + 行数。
+3. **効果アトム頻度ランキング**: アトム別「保有カード数」「出現行数」降順。
+4. **累積カバレッジ曲線**(本節の主成果): 効果保有行を母数に、アトムをカード数降順で並べ、上位 K に対し (a)**カバー行率**=「行内の検出アトムが全て上位 K に含まれる行」の割合、(b)**アトム出現カバー率**=出現の何%が上位 K か、を K=5,10,15,20,全 で表化。さらに **自動化可能フロンティア**=「(a) かつ `construct.target`/`construct.choose-modal` を含まない行」の割合を併記(=対象もモードも要らず上位アトムだけで完結する行の比率)。
+5. **構文分布**: `ConstructId` 別の効果行出現率(対象/モードの壁の大きさ)。
+6. **裁定候補**(§26.0): 「効果保有行だが既知アトムを1つも検出できなかった行」を top-N 列挙(=語彙の取りこぼし発見用)。
+7. **写像失敗** top-N。
+
+### 29.6 裏取り(確定前必須)
+probe 確定前に snapshot 実カード文言で誤発火/取りこぼしを点検する。最低限の固定例(`review.grammar-coverage` に反映):
+- `effect.draw` は §28.1 のカンマ規則に縛られない(アトムは「効果としての draw も数える」=誘発タグとは目的が異なる)。ただし reminder/引用は除去済みで数える。
+- `effect.tap` は起動コストの `{T}` 単独を二重計上しない(コロン左辺のコストは shape 判定で `activated` へ、アトムは右辺=効果側 `tap target`/`tap all` を主対象とする方針を裏取りで確認)。
+- `effect.add-mana` は「`add {C}`/`add one mana`」を拾い、`spend`/`pay` を拾わない。
+- Baleful Strix: shape=`triggered`、`effect.draw` 検出(誘発タグの draw 除外とは別系統で良い旨をレポート脚注に明記)。
+
+### 29.7 不変・非干渉(エンジン不変)
+- **計測専用**: GameState を生成・変更しない。`applyCommand`/コマンド/ストアに触れない。**I1〜I7 影響なし**・snapshot 互換不変。
+- `src/engine/grammar/*` は純粋・決定的(同入力→同出力)。`src/engine/` の既存ファイル・公開挙動は**差分ゼロ**(import のための index 新設は可、既存 export 改変は不可)。
+- 実装の変更対象は **新規** `src/engine/grammar/*` / `scripts/grammar-coverage.ts` / `research/grammar-coverage/*`(生成物)/ `package.json`(`grammar-coverage` script 追加のみ)。`src/engine/` 既存ファイル / `src/data/` / `src/store/` / `src/components/` / `review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。
+- reviewer 専有テスト `review.grammar-coverage`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-coverage` が 17,491枚で完走し §29.5 の累積カバレッジ曲線を出力すること。

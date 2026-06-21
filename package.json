@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "accuracy": "tsx scripts/classifier-accuracy.ts",
+    "grammar-coverage": "tsx scripts/grammar-coverage.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "prettier --write ."
