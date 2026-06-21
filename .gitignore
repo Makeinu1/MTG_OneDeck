@@ -15,6 +15,7 @@ dist-ssr
 # Local research datasets (keep .md summaries + manifest.json; exclude raw and large machine blobs)
 research/scryfall-rules/**/raw/
 research/scryfall-rules/**/analysis/*.json
+research/classifier-accuracy/*.json
 
 # Editor directories and files
 .vscode/*

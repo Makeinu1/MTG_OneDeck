@@ -1090,3 +1090,33 @@ export interface CardInstance {
 ### 25.4 不変・非干渉
 - 候補は**助言のみ**。自動でスタックに積まない。ユーザーが選ぶと既存 `addAbilityToStack(sourceId,'triggered')`。undo/redo・newGame・mulligan で `triggerCandidates` がクリアされる既存挙動を維持。
 - **エンジン不変**: `src/engine/`・`applyCommand`・`CACHE_SCHEMA_VERSION` 不変。M6.1〜M6.9 を壊さない。見張りタグの過検出は許容(助言・ユーザーが取捨)。`resolveAll` 等の既存挙動不変。
+
+---
+
+## 26. 分類精度ハーネスとコーパス回帰(計測基盤・この節も契約である)
+
+設計指針: 分類器(`classifyCardRules`)とキーワード検出(`possessedKeywords`)の精度を、ローカル Scryfall スナップショット(17,491枚)に対して**定量化・不一致炙り出し**する開発ツールを置く。**出荷物ではない**(`scripts/` 配下、`tsconfig.app.json` の `include:["src"]` 外=ビルド非対象)。**計測品(ハーネス・照合ルール・コーパス・既知差分)自体も初版は不完全と前提し、反復改善する第一級対象**として扱う(下記原則)。本節は計測専用であり、**分類器・エンジンのロジックは変更しない**(唯一の `src/` 変更は写像関数の `export` 追加のみ)。
+
+### 26.0 原則(統治)
+- ハーネスは**“判定”でなく“不一致の炙り出し”**を出す。Scryfall `keywords` は「保有」でなく「参照/付与」も含むため**絶対正解ではなく候補集合**(P1 の grant vs has 問題)。出力数値は「裁定済み範囲」での参考値。
+- 不一致は人手で (a) 分類器を直す / (b) 照合ルールを直す / (c) **既知差分**として登録、のいずれかへ裁定する。
+- コーパスは**高信頼の少数から育てる**。各ラベルに出所/信頼度。低信頼は回帰ゲートから除外。
+
+### 26.1 ハーネス本体(`scripts/classifier-accuracy.ts`)— A0
+- 実行手段: `tsx` を devDependency に追加し、`package.json` に `"accuracy": "tsx scripts/classifier-accuracy.ts"` を追加(`npm run accuracy`)。`package.json`/lock は変更可(エンジン契約外)。
+- 入力: `research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json`(gitignore 済み・17,491枚)。存在しなければ明示エラーで終了。
+- 写像: 各 raw を **`mapScryfallCardToCardDef`(`src/data/scryfall.ts`)で CardDef 化**(アプリ実行時と同一写像で測るのが肝)。この関数を `export` する(`src/` 変更はこれのみ。ロジック不変)。
+- 適用: `classifyCardRules(def)` / `possessedKeywords(def)` を全カードに適用。
+- 照合(正解側・暫定): Scryfall `keywords`(候補集合)/ `produced_mana` / `type_line`。
+- 出力:
+  - `research/classifier-accuracy/report.md`(**コミット対象**): タグ別件数 + タグ別の FP候補/FN候補 **上位N(例20)事例**(カード名 + oracle 抜粋)+「この数値は未調整」明記。サイズ有界。
+  - `research/classifier-accuracy/report.json`(**gitignore**): 全カードの不一致明細。`.gitignore` に `research/classifier-accuracy/*.json` を追加(既存 analysis の `.md` を残し大 `.json` を除く慣例に倣う)。
+
+### 26.2 ハーネス磨き込み(A1)
+- `research/classifier-accuracy/known-divergences.json`(**コミット**): 分類器が意図的に Scryfall と異なるケース(`{ tagOrKeyword, scryfallSays, classifierSays, reason }`)。ハーネスはこれを差し引いて報告。
+- 自己キャリブレーション: 人手検証した **gold 部分集合(まず ~50枚、`scripts/` 内 or fixtures)** で、ハーネス自身の誤り(照合/ラベル由来)を分離計測し report に併記。
+- 回帰コーパス `src/data/__tests__/fixtures/classifier-corpus.json`(**コミット**): 高信頼 ~100枚、`{ name, oracleText, expectTags[], expectKeywords[], confidence }`。reviewer 専有テスト **`review.classifier-corpus`** が `classifyCardRules`/`possessedKeywords` の結果と突き合わせ(低信頼ラベルは除外)。コーパス JSON 自体はコミット(回帰の基盤)。
+
+### 26.3 不変・非干渉
+- **エンジン/分類器ロジック不変**(計測のみ)。`src/` の変更は `mapScryfallCardToCardDef` の `export` 追加のみ。`review.*`/`docs/`/`CLAUDE.md`/`eslint.config.js`/`CACHE_SCHEMA_VERSION` は変更しない(本節の reviewer テスト `review.classifier-corpus` は Fable 専有)。
+- ハーネスはビルド(`tsc -b`/`vite build`)・出荷に含まれない(`scripts/` は `include` 外)。機械チェック4点(`npm run lint`/`tsc --noEmit`/`vitest run`/`build`)は引き続き全通過。`npm run accuracy` でレポート生成できること。

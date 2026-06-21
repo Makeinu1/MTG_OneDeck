@@ -39,7 +39,7 @@ interface ScryfallCardFace {
   image_uris?: ScryfallImageUris;
 }
 
-interface ScryfallCard {
+export interface ScryfallCard {
   id: string;
   oracle_id?: string;
   name: string;
@@ -132,7 +132,7 @@ async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response
  * `lang` and the image/printed-name overrides for the face(s) may be supplied
  * separately when a Japanese print was fetched after an English match.
  */
-function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
+export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
   const producedMana = card.produced_mana?.filter((color): color is ManaColor =>
     (VALID_MANA_COLORS as readonly string[]).includes(color),
   );
