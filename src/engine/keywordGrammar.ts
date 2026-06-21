@@ -209,6 +209,13 @@ const KEYWORD_DEFINITIONS_BY_LONGEST_NAME = [...KEYWORD_DEFINITIONS].sort(
   (a, b) => b.name.length - a.name.length,
 );
 
+const EQUIP_MANA_COST_PATTERN =
+  /(?:^|^.*-)equip(?:[ -](?:[a-z][a-z ]*?))?[ -]?(?:\{[^}]+\})+(?: or (?:\{[^}]+\})+)?$/;
+const EQUIP_MANA_COST_WITH_MODIFIER_PATTERN =
+  /(?:^|^.*-)equip(?:[ -](?:[a-z][a-z ]*?))?[ -]?(?:\{[^}]+\})+(?:\. (?:this ability costs \{\d+\} less to activate(?: [a-z0-9 {}',/+.-]+)?|activate only once each turn))$/;
+const EQUIP_DASH_COST_PATTERN =
+  /(?:^|^.*-)equip-(?!\{)[a-z][a-z0-9 {}',/+.-]*$/;
+
 const KEYWORD_ALIASES = new Map<string, KeywordDefinition>();
 for (const definition of KEYWORD_DEFINITIONS) {
   KEYWORD_ALIASES.set(definition.name, definition);
@@ -332,7 +339,7 @@ export function parsePureKeywordLine(core: string): KeywordClause[] | null {
 }
 
 function splitKeywordClauses(core: string): string[] {
-  const commaParts = core.split(',').map((part) => part.trim());
+  const commaParts = core.split(/[;,]/).map((part) => part.trim());
   const clauses: string[] = [];
 
   for (const part of commaParts) {
@@ -363,6 +370,13 @@ function splitKeywordClauses(core: string): string[] {
 
 function parseKeywordClause(clause: string): KeywordDefinition | null {
   const normalized = normalizeKeywordText(clause);
+  if (isEquipClauseCandidate(normalized)) {
+    if (isEquipKeywordClause(normalized)) {
+      return KEYWORD_ALIASES.get('equip') ?? null;
+    }
+    return null;
+  }
+
   const directAlias = KEYWORD_ALIASES.get(normalized);
   if (directAlias) {
     return directAlias;
@@ -381,6 +395,9 @@ function parseKeywordClause(clause: string): KeywordDefinition | null {
   }
 
   for (const definition of KEYWORD_DEFINITIONS_BY_LONGEST_NAME) {
+    if (definition.id === 'equip') {
+      continue;
+    }
     if (keywordStartsClause(normalized, definition.name)) {
       return definition;
     }
@@ -392,6 +409,18 @@ function parseKeywordClause(clause: string): KeywordDefinition | null {
   }
 
   return null;
+}
+
+function isEquipClauseCandidate(clause: string): boolean {
+  return clause.startsWith('equip') || /^.*-equip/.test(clause);
+}
+
+function isEquipKeywordClause(clause: string): boolean {
+  return (
+    EQUIP_MANA_COST_PATTERN.test(clause) ||
+    EQUIP_MANA_COST_WITH_MODIFIER_PATTERN.test(clause) ||
+    EQUIP_DASH_COST_PATTERN.test(clause)
+  );
 }
 
 function keywordStartsClause(clause: string, keyword: string): boolean {

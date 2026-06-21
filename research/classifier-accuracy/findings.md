@@ -29,3 +29,22 @@
 3. **`;` 区切りキーワード行(flying FN 等)**: 「Flying; banding」(Nalathni Dragon)をセミコロンで分割できていない。→ キーワード行のセパレータに `;` を追加。
 
 これらは Phase B(Scryfall keywords 活用)と同時に着手し、ハーネス再実行で before/after を提示する。
+
+## Phase B 結果(2026-06-21・engine-spec §27)
+
+3つの本物のバグを `src/engine/keywordGrammar.ts` のキーワード行文法に閉じて修正した(F1 セミコロン区切り / F2 equip 過検出 / F3 equip 取りこぼし)。正本は引き続き英語 oracleText 文法で、Scryfall `keywords` は runtime に使わない(memory の旧 Phase B 定義「Scryfall keywords を runtime 採用」は撤回)。
+
+ハーネス再実行 before → after:
+
+| 指標 | before | after | 備考 |
+|---|---:|---:|---|
+| keyword FP候補(raw) | 8 | 2 | 残2は Scryfall 欠落(Excalibur/Mjölnir)= 既知差分。**差分調整後 FP=0** |
+| keyword FN候補(raw) | 85 | 67 | |
+| equip FP | 8 | 0(調整後) | 費用軽減文6件を排除。Excalibur/Mjölnir は分類器が正しく Scryfall が誤り → known-divergences へ |
+| equip FN | 15 | 2 | FF13枚 + 2桁費用 + 品質語を検出。残2(Belt / My Precious)は許容残置 |
+| flying FN | 7 | 5 | Nalathni Dragon / Teremko Griffin を `;` 分割で解消。残5は既知差分(Un-set/裏面/条件付与等) |
+
+裁定:
+- **解決**: F1/F2/F3。修正ケースを `classifier-corpus.ts` へ高信頼で昇格(Bureau Headmaster/Helitrooper/Strong Back/Cloud=forbid equip、Nalathni=flying+banding、Excalibur/Mjölnir/Bard's Bow=expect equip)。`review.classifier-corpus`(65)+ `review.m6kw`(7)全通過、grant≠has 退行なし。
+- **既知差分追加**: `scryfall-missing-equip-keyword`(Excalibur, Mjölnir)。Scryfall keywords が Equip を欠くため分類器の正検出が classifier-only と出る分を差し引く。
+- **残置 FN(将来候補)**: Belt of Giant Strength(`Equip {10}.` 同一段落ピリオド継続)/ My Precious(`Equip—{2}, Pay 2 life` 追加コスト)。文単位分割・追加コスト許容は末尾アンカー方針を崩し FP リスクを上げるため本パスでは見送り。

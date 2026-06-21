@@ -1120,3 +1120,45 @@ export interface CardInstance {
 ### 26.3 不変・非干渉
 - **エンジン/分類器ロジック不変**(計測のみ)。`src/` の変更は `mapScryfallCardToCardDef` の `export` 追加のみ。`review.*`/`docs/`/`CLAUDE.md`/`eslint.config.js`/`CACHE_SCHEMA_VERSION` は変更しない(本節の reviewer テスト `review.classifier-corpus` は Fable 専有)。
 - ハーネスはビルド(`tsc -b`/`vite build`)・出荷に含まれない(`scripts/` は `include` 外)。機械チェック4点(`npm run lint`/`tsc --noEmit`/`vitest run`/`build`)は引き続き全通過。`npm run accuracy` でレポート生成できること。
+
+## 27. Phase B 分類精度向上: キーワード行文法の精緻化(`src/engine/keywordGrammar.ts`)— この節も契約である
+
+§26 のハーネスが 17,491 枚で炙り出した**本物の分類器バグ**(`research/classifier-accuracy/findings.md`・`known-divergences.json` の `_phaseB_targets`)を、キーワード行文法に閉じて修正する。**正本は引き続き英語 `oracleText` の文法**であり、Scryfall `keywords` は runtime の判定に**使わない**(ハーネスの候補集合に留める)。変更は `src/engine/keywordGrammar.ts` の `splitKeywordClauses` / `parseKeywordClause`(+ 専用 equip 解析の追加)のみ。`possessedKeywords` / `classifyCardRules` のシグネチャ・純粋性・決定性は不変。
+
+### 27.1 F1 セミコロン区切り
+- `splitKeywordClauses` のクラウス区切りに `;` を追加する(`,` と同等に分割。先頭の `and ` リストマーカ除去や `and` 分割の既存挙動は維持)。
+- 受け入れ: `"Flying; banding"`(Nalathni Dragon / Teremko Griffin)が `flying` と `banding` の2クラウスに分割され、両キーワードを `possessedKeywords` が返す。
+- 非干渉: `;` の両辺がともにキーワード・クラウスとして解釈できる場合のみキーワード行になる。片方でも非キーワードなら従来どおり行全体を棄却し、新たな過検出を生まない。
+
+### 27.2 F2/F3 equip 専用パラメトリック解析
+equip を generic な `keywordStartsClause` 経路から外し、cycling/landwalk/offering と同様に `parseKeywordClause` の前段の特例として扱う。`normalizeKeywordText`(em ダッシュ→`-`、`\s*-\s*`→`-`、小文字化、末尾 `.` 除去)適用後のクラウスに対し:
+
+- **equip と判定する条件**: 先頭の能力語/名前プレフィックス(`… -`)を任意で許し、その後 `equip` + **品質語(任意・英字語)** + **マナ費用トークン `{…}`** が来て、**クラウス末尾で終わる**こと。
+- **`equip` で始まるが上記に一致しないクラウスは `null` を返す**(generic ループへ落とさない=過検出の遮断)。
+
+判定表(`normalizeKeywordText` 後の文字列):
+
+| 入力クラウス | 判定 | 根拠 |
+|---|---|---|
+| `equip {10}` | equip | 2桁費用 |
+| `equip-{2}`(`Equip—{2}`) | equip | em ダッシュ費用 |
+| `equip worthy {1}` | equip | 品質語(Mjölnir) |
+| `equip legendary creature {2}` | equip | 品質語複数(Excalibur) |
+| `perseus's bow-equip {6}`(`… — Equip {6}`) | equip | 能力語/名前プレフィックス(FF系) |
+| `equip abilities you activate cost {1} less to activate` | 非 equip | `{1}` の後に prose が続き末尾アンカー不成立 |
+| `equipment card` / `equipment spells you cast cost {1} less` | 非 equip | `equip` 直後が文字(`m`)で費用でない |
+| `… cloud is equipped …` | 非 equip | `equip` で始まらない |
+
+- 推奨実装(正本は上の挙動・判定表): `/(?:^|^.*-)equip(?:[ -](?:[a-z][a-z ]*?))?[ -]?\{[^}]+\}$/`。
+- 真の FP×6(Bureau Headmaster / Cloud, Planet's Champion / Éowyn, Lady of Rohan / Fighter Class / Helitrooper / Strong Back)が equip 保有から外れる。FF系13枚 + 2桁費用 + 品質語付き equip が検出される。
+
+### 27.3 残置(本パスでは許容)
+- Belt of Giant Strength(`"Equip {10}. This ability costs {X} less…"` 同一段落のピリオド継続)と My Precious // Allure of Power(`"Equip—{2}, Pay 2 life."` 追加コスト併記)は equip を検出しない残置 FN として許容する。段落の文単位分割や追加コスト許容は末尾アンカー方針を崩し FP リスクを上げるため見送る(`findings.md` に将来候補として記録)。
+
+### 27.4 既知差分(Scryfall 側の誤り)
+- Excalibur, Sword of Eden(`Equip legendary creature {2}`)と Mjölnir, Hammer of Thor(`Equip worthy {1}`)は Scryfall `keywords` が `Equip` を欠く。F3 で正しく検出した結果ハーネスが classifier-only と出すため、`known-divergences.json` に `scryfall-missing-equip-keyword` を登録して差し引く(分類器が正しく、Scryfall が取りこぼし)。
+
+### 27.5 不変・非干渉
+- **grant≠has 不変**: `"creatures you control gain X"` / `"is a [type] with flying"` / `"equipped creature has haste"` 等の付与・他者付与は引き続き保有から除外(§26 / P1 の成果・`review.m6kw`)。
+- **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変(状態形不変)。`possessedKeywords` / `classifyCardRules` は純粋・決定的のまま。
+- 変更は `src/engine/keywordGrammar.ts` のみ。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。reviewer テスト `review.classifier-corpus`(コーパス fixture 含む)は Fable 専有。機械チェック4点全通過 + `npm run accuracy` 再生成で equip FP→0・equip FN ≤2・flying FN が Nalathni/Teremko 分減ること。

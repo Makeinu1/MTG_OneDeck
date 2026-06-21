@@ -2,13 +2,13 @@
 
 **この数値は未調整(Scryfall keywords は候補集合であり絶対正解でない)。**
 
-- 生成日時: 2026-06-21T04:23:39.738Z
+- 生成日時: 2026-06-21T05:37:42.841Z
 - 入力: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - 総 raw カード数: 17491
 - CardDef 写像成功: 17491
 - CardDef 写像失敗: 0
-- キーワード FP候補(分類器のみ): 8
-- キーワード FN候補(Scryfall のみ): 85
+- キーワード FP候補(分類器のみ): 2
+- キーワード FN候補(Scryfall のみ): 67
 
 ## ルールタグ別件数
 
@@ -18,22 +18,22 @@
 | keyword.defender | 防衛 | 115 |
 | keyword.double-strike | 二段攻撃 | 80 |
 | keyword.enchant | エンチャント | 454 |
-| keyword.equip | 装備 | 404 |
-| keyword.first-strike | 先制攻撃 | 190 |
-| keyword.flash | 瞬速 | 422 |
-| keyword.flying | 飛行 | 1837 |
+| keyword.equip | 装備 | 411 |
+| keyword.first-strike | 先制攻撃 | 191 |
+| keyword.flash | 瞬速 | 423 |
+| keyword.flying | 飛行 | 1839 |
 | keyword.haste | 速攻 | 395 |
 | keyword.hexproof | 呪禁 | 49 |
 | keyword.indestructible | 破壊不能 | 78 |
 | keyword.lifelink | 絆魂 | 276 |
-| keyword.landwalk | 土地渡り | 31 |
+| keyword.landwalk | 土地渡り | 30 |
 | keyword.protection | プロテクション | 54 |
-| keyword.reach | 到達 | 295 |
+| keyword.reach | 到達 | 296 |
 | keyword.shroud | 被覆 | 4 |
 | keyword.trample | トランプル | 609 |
 | keyword.vigilance | 警戒 | 501 |
 | keyword.ward | 護法 | 176 |
-| keyword.banding | バンド | 1 |
+| keyword.banding | バンド | 3 |
 | keyword.rampage | ランページ | 1 |
 | keyword.cumulative-upkeep | 累加アップキープ | 7 |
 | keyword.flanking | 側面攻撃 | 5 |
@@ -59,7 +59,7 @@
 | keyword.offering | 献身 | 1 |
 | keyword.ninjutsu | 忍術 | 29 |
 | keyword.epic | 歴伝 | 1 |
-| keyword.convoke | 召集 | 78 |
+| keyword.convoke | 召集 | 79 |
 | keyword.dredge | 発掘 | 9 |
 | keyword.transmute | 変成 | 6 |
 | keyword.bloodthirst | 狂喜 | 5 |
@@ -195,7 +195,7 @@
 | action.shuffle | シャッフル | 655 |
 | action.surveil | 諜報 | 197 |
 | action.attach | 装備/付与 | 500 |
-| concept.target | 対象 | 6313 |
+| concept.target | 対象 | 6314 |
 | cost.additional | 追加コスト | 184 |
 | cost.alternative | 代替コスト | 235 |
 | concept.alt-cast | 代替キャスト | 260 |
@@ -210,16 +210,16 @@
 | defender | 防衛 | 115 | 115 | 0 | 0 |
 | double-strike | 二段攻撃 | 80 | 82 | 0 | 2 |
 | enchant | エンチャント | 454 | 458 | 0 | 4 |
-| equip | 装備 | 404 | 411 | 8 | 15 |
-| first-strike | 先制攻撃 | 190 | 194 | 0 | 4 |
-| flash | 瞬速 | 422 | 423 | 0 | 1 |
-| flying | 飛行 | 1837 | 1844 | 0 | 7 |
+| equip | 装備 | 411 | 411 | 2 | 2 |
+| first-strike | 先制攻撃 | 191 | 194 | 0 | 3 |
+| flash | 瞬速 | 423 | 423 | 0 | 0 |
+| flying | 飛行 | 1839 | 1844 | 0 | 5 |
 | haste | 速攻 | 395 | 399 | 0 | 4 |
 | hexproof | 呪禁 | 49 | 51 | 0 | 2 |
 | indestructible | 破壊不能 | 78 | 81 | 0 | 3 |
 | lifelink | 絆魂 | 276 | 283 | 0 | 7 |
 | protection | プロテクション | 54 | 58 | 0 | 4 |
-| reach | 到達 | 295 | 298 | 0 | 3 |
+| reach | 到達 | 296 | 298 | 0 | 2 |
 | trample | トランプル | 609 | 616 | 0 | 7 |
 | vigilance | 警戒 | 501 | 508 | 0 | 7 |
 | ward | 護法 | 176 | 182 | 0 | 6 |
@@ -278,37 +278,31 @@
 
 ## キーワード FP候補 上位20(分類器のみ)
 
-- 装備(equip / 分類器のみ) 《Bureau Headmaster》: Equipment spells you cast cost {1} less to cast. Equip abilities you activate cost {1} less to activate.
-- 装備(equip / 分類器のみ) 《Cloud, Planet's Champion》: During your turn, as long as Cloud is equipped, it has double strike and indestructible. (This creature deals both first-strike and regular combat damage. Damage and effects tha...
-- 装備(equip / 分類器のみ) 《Éowyn, Lady of Rohan》: At the beginning of combat on your turn, target creature gains your choice of first strike or vigilance until end of turn. If that creature is equipped, it gains first strike an...
 - 装備(equip / 分類器のみ) 《Excalibur, Sword of Eden》: This spell costs {X} less to cast, where X is the total mana value of historic permanents you control. (Artifacts, legendaries, and Sagas are historic.) Equipped creature gets +...
-- 装備(equip / 分類器のみ) 《Fighter Class》: (Gain the next level as a sorcery to add its ability.) When this Class enters, search your library for an Equipment card, reveal it, put it into your hand, then shuffle. {1}{R}{...
-- 装備(equip / 分類器のみ) 《Helitrooper》: Flying Whenever this creature attacks, another target attacking creature gains flying until end of turn. Equip abilities you activate that target this creature cost {2} less to...
 - 装備(equip / 分類器のみ) 《Mjölnir, Hammer of Thor》: When Mjölnir enters, it deals 4 damage to up to one target creature. Double all damage equipped creature would deal. Equip worthy {1} (A creature is worthy if it's a legendary n...
-- 装備(equip / 分類器のみ) 《Strong Back》: Enchant creature Equip abilities you activate that target enchanted creature cost {3} less to activate. Aura spells you cast that target enchanted creature cost {3} less to cast...
 
 ## キーワード FN候補 上位20(Scryfall のみ)
 
-- 装備(equip / Scryfallのみ) 《Astrologian's Planisphere》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature is a Wizard in addition to its other types and has...
-- 装備(equip / Scryfallのみ) 《Bard's Bow》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +2/+2, has reach, and is a Bard in addition t...
-- 装備(equip / Scryfallのみ) 《Belt of Giant Strength》: Equipped creature has base power and toughness 10/10. Equip {10}. This ability costs {X} less to activate, where X is the power of the creature it targets.
-- 装備(equip / Scryfallのみ) 《Blue Mage's Cane》: Job select Equipped creature gets +0/+2, is a Wizard in addition to its other types, and has "Whenever this creature attacks, exile up to one target instant or sorcery card from...
-- 装備(equip / Scryfallのみ) 《Dancer's Chakrams》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +2/+2, has lifelink and "Other commanders you...
-- 装備(equip / Scryfallのみ) 《Dark Knight's Greatsword》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +3/+0 and is a Knight in addition to its othe...
-- 装備(equip / Scryfallのみ) 《Dragoon's Lance》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +1/+0 and is a Knight in addition to its othe...
-- 装備(equip / Scryfallのみ) 《Machinist's Arsenal》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +2/+2 for each artifact you control and is an...
-- 装備(equip / Scryfallのみ) 《My Precious // Allure of Power》: Equipped creature has hexproof and can't be blocked. Equip—{2}, Pay 2 life. / As an additional cost to cast this spell, sacrifice a creature. Draw two cards.
-- 装備(equip / Scryfallのみ) 《Ninja's Blades》: Job select Equipped creature gets +1/+1, is a Ninja in addition to its other types, and has "Whenever this creature deals combat damage to a player, draw a card, then discard a...
-- 装備(equip / Scryfallのみ) 《Paladin's Arms》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +2/+1, has ward {1}, and is a Knight in addit...
-- 装備(equip / Scryfallのみ) 《Reaper's Scythe》: Job select At the beginning of your end step, put a soul counter on this Equipment for each player who lost life this turn. Equipped creature gets +1/+1 for each soul counter on...
-- 装備(equip / Scryfallのみ) 《Sage's Nouliths》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +1/+0, has "Whenever this creature attacks, u...
-- 装備(equip / Scryfallのみ) 《Samurai's Katana》: Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.) Equipped creature gets +2/+2, has trample and haste, and is a Samura...
-- 装備(equip / Scryfallのみ) 《Summoner's Grimoire》: Job select Equipped creature is a Shaman in addition to its other types and has "Whenever this creature attacks, you may put a creature card from your hand onto the battlefield....
-- 飛行(flying / Scryfallのみ) 《Ancestral Hot Dog Minotaur》: {TK}{TK} — Afflict 2 (Whenever this creature becomes blocked, defending player loses 2 life.) {TK}{TK}{TK} — Flying {TK}{TK} — 1/4 {TK}{TK}{TK}{TK}{TK} — 8/6
-- 飛行(flying / Scryfallのみ) 《Celebr-8000》: At the beginning of combat on your turn, roll two six-sided dice. For each result of 1, this creature gets +1/+1 until end of turn. For each other result, it gains the indicated...
-- 飛行(flying / Scryfallのみ) 《Elbrus, the Binding Blade // Withengar Unbound》: Equipped creature gets +1/+0. When equipped creature deals combat damage to a player, unattach Elbrus, then transform it. Equip {1} / Flying, intimidate, trample (A creature wit...
-- 飛行(flying / Scryfallのみ) 《Goddric, Cloaked Reveler》: Haste Celebration — As long as two or more nonland permanents entered the battlefield under your control this turn, Goddric is a Dragon with base power and toughness 4/4, flying...
-- 飛行(flying / Scryfallのみ) 《Nalathni Dragon》: Flying; banding (Any creatures with banding, and up to one without, can attack in a band. Bands are blocked as a group. If any creatures with banding you control are blocking or...
+- 絆魂(lifelink / Scryfallのみ) 《Celebr-8000》: At the beginning of combat on your turn, roll two six-sided dice. For each result of 1, this creature gets +1/+1 until end of turn. For each other result, it gains the indicated...
+- 絆魂(lifelink / Scryfallのみ) 《Contortionist Otter Storm》: {TK}{TK} — {T}: Target creature gains haste until end of turn. {TK}{TK}{TK}{TK} — Deathtouch, lifelink {TK}{TK} — 5/1 {TK}{TK}{TK} — 3/5
+- 絆魂(lifelink / Scryfallのみ) 《Hungry for More》: Create a 3/1 black and red Vampire creature token with trample, lifelink, and haste. Sacrifice it at the beginning of the next end step. Flashback {1}{B}{R} (You may cast this c...
+- 絆魂(lifelink / Scryfallのみ) 《Mystic Doom Sandwich》: {TK}{TK} — Lifelink {TK}{TK}{TK} — This creature must be blocked if able. Whenever this creature becomes blocked, it gets +1/+1 until end of turn for each creature blocking it....
+- 絆魂(lifelink / Scryfallのみ) 《Odric, Blood-Cursed》: When Odric enters, create X Blood tokens, where X is the number of abilities from among flying, first strike, double strike, deathtouch, haste, hexproof, indestructible, lifelin...
+- 絆魂(lifelink / Scryfallのみ) 《Reluctant Role Model》: Survival — At the beginning of your second main phase, if this creature is tapped, put a flying, lifelink, or +1/+1 counter on it. Whenever this creature or another creature you...
+- 絆魂(lifelink / Scryfallのみ) 《Zur, Eternal Schemer》: Flying Enchantment creatures you control have deathtouch, lifelink, and hexproof. {1}{W}: Target non-Aura enchantment you control becomes a creature in addition to its other typ...
+- トランプル(trample / Scryfallのみ) 《Commander Mustard》: Vigilance Other Soldiers you control have vigilance, trample, and haste. {2}{R}{W}: Until end of turn, Soldiers you control gain "Whenever this creature attacks, it deals 1 dama...
+- トランプル(trample / Scryfallのみ) 《Elbrus, the Binding Blade // Withengar Unbound》: Equipped creature gets +1/+0. When equipped creature deals combat damage to a player, unattach Elbrus, then transform it. Equip {1} / Flying, intimidate, trample (A creature wit...
+- トランプル(trample / Scryfallのみ) 《Jetpack Death Seltzer》: {TK}{TK} — Trample {TK}{TK}{TK} — {3}: Monstrosity 3. (If this creature isn't monstrous, put three +1/+1 counters on it and it becomes monstrous.) {TK}{TK}{TK} — 2/7 {TK}{TK}{TK...
+- トランプル(trample / Scryfallのみ) 《Odric, Blood-Cursed》: When Odric enters, create X Blood tokens, where X is the number of abilities from among flying, first strike, double strike, deathtouch, haste, hexproof, indestructible, lifelin...
+- トランプル(trample / Scryfallのみ) 《Ozai, the Phoenix King》: Trample, firebending 4, haste If you would lose unspent mana, that mana becomes red instead. Ozai has flying and indestructible as long as you have six or more unspent mana.
+- トランプル(trample / Scryfallのみ) 《Super State》: Enchant creature you control Enchanted creature has base power and toughness 9/9 and has flying, first strike, trample, and haste. Whenever enchanted creature deals combat damag...
+- トランプル(trample / Scryfallのみ) 《The Coming of Galactus》: (As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.) I — Destroy up to one target nonland permanent. II, III — Each opponent loses 2 life. IV...
+- 警戒(vigilance / Scryfallのみ) 《Aragorn, Company Leader》: Whenever the Ring tempts you, if you chose a creature other than Aragorn as your Ring-bearer, put your choice of a counter from among first strike, vigilance, deathtouch, and li...
+- 警戒(vigilance / Scryfallのみ) 《Battle at the Helvault》: (As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.) I, II — For each player, exile up to one target non-Saga, nonland permanent that player...
+- 警戒(vigilance / Scryfallのみ) 《Blink》: (As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.) I, III — Choose target creature. Its owner shuffles it into their library, then investiga...
+- 警戒(vigilance / Scryfallのみ) 《Celebr-8000》: At the beginning of combat on your turn, roll two six-sided dice. For each result of 1, this creature gets +1/+1 until end of turn. For each other result, it gains the indicated...
+- 警戒(vigilance / Scryfallのみ) 《Narrow-Minded Baloney Fireworks》: {TK}{TK} — Whenever this creature attacks, you gain 2 life. {TK}{TK}{TK} — Vigilance, reach {TK}{TK} — 2/4 {TK}{TK}{TK}{TK}{TK} — 7/7
+- 警戒(vigilance / Scryfallのみ) 《Spooky Clown Mox》: {TK}{TK} — Vigilance {TK}{TK}{TK}{TK} — {1}, {T}: Tap target creature. {TK}{TK} — 1/5 {TK}{TK}{TK} — 5/4
 
 ## 写像失敗 上位20
 

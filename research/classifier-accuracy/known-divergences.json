@@ -21,14 +21,25 @@
       "classifierSays": "depends on displayed face",
       "reason": "表面に無いキーワードが裏面faceにあるカード。possessedKeywordsは表示中faceに依存。表示面選択の問題で分類器バグではない。",
       "examples": ["Elbrus, the Binding Blade // Withengar Unbound (flying on back)"]
+    },
+    {
+      "pattern": "scryfall-missing-equip-keyword",
+      "scryfallSays": "keyword absent (Equip を keywords に載せていない)",
+      "classifierSays": "equip present",
+      "reason": "本文に『Equip [品質] {cost}』があり明らかに装備キーワードを持つが、Scryfall keywords が Equip を欠く取りこぼし。分類器(§27 F3)が正しく、Scryfall が誤り。ハーネスでは classifier-only(FP候補)と出るため差し引く。",
+      "examples": ["Excalibur, Sword of Eden (Equip legendary creature {2})", "Mjölnir, Hammer of Thor (Equip worthy {1})"]
     }
   ],
-  "_phaseB_targets": {
-    "_doc": "これらは既知差分ではなく本物の分類器バグ。Phase B で修正しコーパスへ昇格する。",
+  "_phaseB_resolved": {
+    "_doc": "Phase B(engine-spec §27)で修正済み。before/after は research/classifier-accuracy/findings.md 参照。コーパス(classifier-corpus.ts)へ昇格して回帰固定。",
     "items": [
-      "equip 過検出: 『Equip abilities you activate cost ...』『creature is equipped』『Equipment card』等の言及で equip 保有が誤発火(例 Bureau Headmaster)。Equip {cost}/Equip—{cost} のキーワード行のみに厳格化。",
-      "equip 取りこぼし: 『Equip {10}』(2桁)や FF『Job select』同居の Equip {N} を未検出(例 Belt of Giant Strength)。",
-      "セミコロン区切りキーワード行: 『Flying; banding』(Nalathni Dragon)を分割できず flying 取りこぼし。セパレータに ; を追加。"
+      "[解決] equip 過検出: 『Equip abilities you activate cost {N} less』等の費用軽減文を equip 専用パラメトリック解析で排除。equip FP 8→0(差分調整後)。",
+      "[解決] equip 取りこぼし: 『Equip {10}』(2桁)・品質語付き・『… — Equip {N}』プレフィックス(FF13枚)を検出。equip FN 15→2。",
+      "[解決] セミコロン区切り: splitKeywordClauses に ; を追加。『Flying; banding』(Nalathni Dragon / Teremko Griffin)を分割。flying FN 7→5。"
+    ],
+    "_residual_fn": [
+      "Belt of Giant Strength: 『Equip {10}. This ability costs {X} less…』(同一段落ピリオド継続)。残置 FN。文単位分割は FP リスクのため見送り。将来の微修正候補。",
+      "My Precious // Allure of Power: 『Equip—{2}, Pay 2 life.』(追加コスト併記)。残置 FN。追加コスト許容は FP リスクのため見送り。将来の微修正候補。"
     ]
   }
 }

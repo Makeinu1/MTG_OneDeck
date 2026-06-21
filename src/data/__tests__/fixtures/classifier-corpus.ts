@@ -417,5 +417,138 @@ export const classifierCorpus: CorpusEntry[] = [
     "scryfallKeywords": [],
     "confidence": "high",
     "note": ""
+  },
+  {
+    "name": "Nalathni Dragon",
+    "typeLine": "Creature — Dragon",
+    "oracleText": "Flying; banding (Any creatures with banding, and up to one without, can attack in a band. Bands are blocked as a group. If any creatures with banding you control are blocking or being blocked by a creature, you divide that creature's combat damage, not its controller, among any of the creatures it's being blocked by or is blocking.)\n{R}: This creature gets +1/+0 until end of turn. If this ability has been activated four or more times this turn, sacrifice this creature at the beginning of the next end step.",
+    "expectKeywords": [
+      "flying",
+      "banding"
+    ],
+    "forbidKeywords": [],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [
+      "Flying",
+      "Banding"
+    ],
+    "confidence": "high",
+    "note": "Phase B F1: semicolon-separated keyword line 'Flying; banding' must split into both keywords."
+  },
+  {
+    "name": "Bureau Headmaster",
+    "typeLine": "Artifact — Equipment",
+    "oracleText": "Equipment spells you cast cost {1} less to cast.\nEquip abilities you activate cost {1} less to activate.",
+    "expectKeywords": [],
+    "forbidKeywords": [
+      "equip"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase B F2: 'Equip abilities you activate cost {N} less' is a cost-reduction sentence, not equip possession."
+  },
+  {
+    "name": "Helitrooper",
+    "typeLine": "Creature — Human Soldier",
+    "oracleText": "Flying\nWhenever this creature attacks, another target attacking creature gains flying until end of turn.\nEquip abilities you activate that target this creature cost {2} less to activate.",
+    "expectKeywords": [
+      "flying"
+    ],
+    "forbidKeywords": [
+      "equip"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [
+      "Flying"
+    ],
+    "confidence": "high",
+    "note": "Phase B F2: possesses flying (line 1); 'gains flying' is a grant and 'Equip abilities...cost less' is not equip possession."
+  },
+  {
+    "name": "Strong Back",
+    "typeLine": "Enchantment — Aura",
+    "oracleText": "Enchant creature\nEquip abilities you activate that target enchanted creature cost {3} less to activate.\nAura spells you cast that target enchanted creature cost {3} less to cast.\nEnchanted creature gets +2/+2 for each Aura and Equipment attached to it.",
+    "expectKeywords": [
+      "enchant"
+    ],
+    "forbidKeywords": [
+      "equip"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [
+      "Enchant"
+    ],
+    "confidence": "high",
+    "note": "Phase B F2: possesses enchant ('Enchant creature'); the 'Equip abilities...cost less' clause is not equip possession."
+  },
+  {
+    "name": "Cloud, Planet's Champion",
+    "typeLine": "Legendary Creature — Human Soldier Mercenary",
+    "oracleText": "During your turn, as long as Cloud is equipped, it has double strike and indestructible. (This creature deals both first-strike and regular combat damage. Damage and effects that say \"destroy\" don't destroy this creature.)\nEquip abilities you activate that target Cloud cost {2} less to activate.",
+    "expectKeywords": [],
+    "forbidKeywords": [
+      "equip"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase B F2: 'is equipped' mention and 'Equip abilities...cost less' must not register equip possession."
+  },
+  {
+    "name": "Excalibur, Sword of Eden",
+    "typeLine": "Legendary Artifact — Equipment",
+    "oracleText": "This spell costs {X} less to cast, where X is the total mana value of historic permanents you control. (Artifacts, legendaries, and Sagas are historic.)\nEquipped creature gets +10/+0 and has vigilance.\nEquip legendary creature {2}",
+    "expectKeywords": [
+      "equip"
+    ],
+    "forbidKeywords": [
+      "vigilance"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase B F3: 'Equip legendary creature {2}' (quality-word equip) is possession; granted vigilance is not. Scryfall omits Equip (known divergence)."
+  },
+  {
+    "name": "Mjölnir, Hammer of Thor",
+    "typeLine": "Legendary Artifact — Equipment",
+    "oracleText": "When Mjölnir enters, it deals 4 damage to up to one target creature.\nDouble all damage equipped creature would deal.\nEquip worthy {1} (A creature is worthy if it's a legendary non-Villain that's red and/or white.)\n{2}{R}, Discard this card: It deals 2 damage to each creature.",
+    "expectKeywords": [
+      "equip"
+    ],
+    "forbidKeywords": [],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [
+      "Double"
+    ],
+    "confidence": "high",
+    "note": "Phase B F3: 'Equip worthy {1}' (quality-word equip) is possession. Scryfall omits Equip (known divergence)."
+  },
+  {
+    "name": "Bard's Bow",
+    "typeLine": "Artifact — Equipment",
+    "oracleText": "Job select (When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.)\nEquipped creature gets +2/+2, has reach, and is a Bard in addition to its other types.\nPerseus's Bow — Equip {6} ({6}: Attach to target creature you control. Equip only as a sorcery.)",
+    "expectKeywords": [
+      "equip"
+    ],
+    "forbidKeywords": [
+      "reach"
+    ],
+    "expectTags": [],
+    "forbidTags": [],
+    "scryfallKeywords": [
+      "Job select",
+      "Equip"
+    ],
+    "confidence": "high",
+    "note": "Phase B F3: ability-word/name-prefixed 'Perseus's Bow — Equip {6}' is equip possession; granted reach is not."
   }
 ];
