@@ -422,6 +422,28 @@ function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandi
     }
   }
 
+  if (prev.phase !== 'end' && next.phase === 'end') {
+    sawTriggerEvent = true;
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.end-step')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.end-step', 'エンドステップ開始時'),
+      );
+    }
+  }
+
+  if (next.drawnThisTurn > prev.drawnThisTurn) {
+    sawTriggerEvent = true;
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.draw')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.draw', 'カードを引いたとき'),
+      );
+    }
+  }
+
   if (next.spellsCastThisTurn > prev.spellsCastThisTurn) {
     sawTriggerEvent = true;
     const prevStack = new Set(prev.zones.stack);

@@ -104,6 +104,30 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     risk: 'C',
     layer: 'trigger-assist',
   },
+  'trigger.end-step': {
+    label: 'エンドステップ開始時の誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.draw': {
+    label: 'カードを引いたときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.sacrifice': {
+    label: '生け贄に捧げたときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.combat-damage': {
+    label: '戦闘ダメージを与えたときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
   'action.draw': {
     label: 'カードを引く',
     kind: 'keyword-action',
@@ -267,6 +291,10 @@ const FIXED_TAG_ORDER = [
   'trigger.attack',
   'trigger.landfall',
   'trigger.upkeep',
+  'trigger.end-step',
+  'trigger.draw',
+  'trigger.sacrifice',
+  'trigger.combat-damage',
   'trigger.cast-watcher',
   'trigger.etb-other',
   'trigger.death-other',
@@ -403,6 +431,30 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
     'high',
   );
   matchTag(tags, core, 'trigger.upkeep', /\bat the beginning of[^.]*\bupkeep\b/i, 'high');
+  if (!/\bnext end step\b/i.test(core)) {
+    matchTag(tags, core, 'trigger.end-step', /\bat the beginning of\b[^.]*\bend step\b/i, 'high');
+  }
+  matchTag(
+    tags,
+    core,
+    'trigger.draw',
+    /\b(?:when|whenever)\b[^,.]*\bdraws?\b[^,.]*\bcards?\b/i,
+    'high',
+  );
+  matchTag(
+    tags,
+    core,
+    'trigger.sacrifice',
+    /\b(?:when|whenever)\b[^,.]*\b(?:sacrifices?|sacrificed)\b/i,
+    'high',
+  );
+  matchTag(
+    tags,
+    core,
+    'trigger.combat-damage',
+    /\b(?:when|whenever)\b[^,.]*\bdeals?\b[^,.]*\bcombat damage\b/i,
+    'high',
+  );
   matchTag(tags, core, 'action.draw', /\bdraw(?:s|n)?\b[^,.]*\bcards?\b/i, 'medium');
   matchTag(tags, core, 'action.create-token', /\bcreate\b[^,.]*\btokens?\b/i, 'high');
   matchTag(

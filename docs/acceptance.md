@@ -416,6 +416,18 @@ M4.5以降、シングル左クリックはメニューを開かない(右クリ
 | SA7 | 対象選択ダイアログを開いてキャンセル | 盤面・スタック不変 |
 | SA8 | 全工程 | 候補表示/ダイアログ開閉だけでは GameState 不変。コンソールエラー0件 |
 
+## M6.11 誘発ファミリー拡充(G2リグレッション時に再確認)
+end-step / draw / sacrifice / combat-damage の4誘発を分類検出。end-step/draw はライブ候補キューにも連動、sacrifice/combat-damage はタグのみ(engine-spec §28.0 の分界=仕様)。助言のみ・自動では積まない。
+| # | 操作 | 期待結果 |
+|---|------|---------|
+| PC1 | 「At the beginning of your end step」を持つパーマネント(例 Abiding Grace / Tireless Tracker)が戦場にある状態でエンドステップへ進む(phase `end` 入り) | そのカードが候補に「エンドステップ開始時: 《カード》」として出る |
+| PC2 | 「Whenever you draw a card」を持つパーマネント(例 The Locust God)が戦場にある状態でカードを1枚引く(`drawnThisTurn` 増) | そのカードが候補に「カードを引いたとき: 《カード》」として出る |
+| PC3 | Baleful Strix(`When this creature enters, draw a card.`)を戦場に出す | ETB 候補は出るが、ドロー候補としては出ない(draw は ETB の効果=誤検出しない) |
+| PC4 | 「Whenever you sacrifice ~」(例 Mayhem Devil / Ashling)/「deals combat damage」(例 Coastal Piracy)を持つカード | ルール補助のタグ表示には `生け贄に捧げたとき`/`戦闘ダメージを与えたとき` が出るが、**候補キューには出ない**(engine-spec §28.0=仕様。戦闘自動解決/sacrifice 区別が無いため) |
+| PC5 | The Locust God(`… at the beginning of the next end step.`)/ Ashling(`… your next end step …`) | `next end step` は遅延誘発のため `trigger.end-step` を付けない(エンド入りでも候補に出ない) |
+| PC6 | 候補から「スタックへ」/「無視」 | 既存どおり単一undoで積む/全消去。undo/redo で候補は新規生成しない |
+| PC7 | 全工程 | 候補表示/無視だけでは GameState 不変。エンジン(`src/engine/`)無変更。コンソールエラー0件 |
+
 ## M6.5 付与キーワードの手動オーバーライド(G2リグレッション時に再確認)
 印刷キーワードに加え、手動付与した常磐木キーワードを召喚酔い/自動タップ/バッジに反映。
 | # | 操作 | 期待結果 |

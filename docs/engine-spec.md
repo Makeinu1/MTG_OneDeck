@@ -1162,3 +1162,63 @@ equip を generic な `keywordStartsClause` 経路から外し、cycling/landwal
 - **grant≠has 不変**: `"creatures you control gain X"` / `"is a [type] with flying"` / `"equipped creature has haste"` 等の付与・他者付与は引き続き保有から除外(§26 / P1 の成果・`review.m6kw`)。
 - **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変(状態形不変)。`possessedKeywords` / `classifyCardRules` は純粋・決定的のまま。
 - 変更は `src/engine/keywordGrammar.ts` のみ。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。reviewer テスト `review.classifier-corpus`(コーパス fixture 含む)は Fable 専有。機械チェック4点全通過 + `npm run accuracy` 再生成で equip FP→0・equip FN ≤2・flying FN が Nalathni/Teremko 分減ること。
+
+## 28. Phase C 分類精度向上: 誘発ファミリー拡充(`src/data/ruleClassifier.ts`)— この節も契約である
+
+§20〜25/M6.10 までで誘発検出は etb / death / cast / attack / landfall / upkeep(+各 watcher)をカバーする。本節は EDH 高頻度の **end-step / draw / sacrifice / combat-damage** の4ファミリーを足す。**正本は英語 `oracleText`**(`printedText` は使わない)。誘発の検出は既存どおり `classifyCardRules` → `classifyAbilityText` の正規表現に閉じ、新モジュールは作らない。`classifyCardRules` のシグネチャ・純粋性・決定性は不変。検出方針は `research/scryfall-rules/2026-06-19` snapshot(17,491枚)で事前裏取り済み(下表の件数は裏取り時の参考値)。
+
+### 28.0 最終ゴールと本マイルストーンの分界(重要)
+**最終ゴール**: 4ファミリーが「分類タグ」+「ライブ誘発候補キュー」の両方に正確に出る。**本マイルストーンの範囲**は下表。エンジンのイベント検出可否がファミリーで異なるための分界であり、sacrifice/combat-damage のキュー非連動は仕様(バグでない)。
+
+| ファミリー | RuleTag id | 分類タグ | ライブキュー連動 | キュー非連動の理由 |
+|---|---|---|---|---|
+| end-step | `trigger.end-step` | ○ | ○(phase `end` 入り) | — |
+| draw | `trigger.draw` | ○ | ○(`drawnThisTurn` 増分) | — |
+| sacrifice | `trigger.sacrifice` | ○ | **×(今回タグのみ)** | 専用 sacrifice コマンド無し。battlefield→graveyard は death と区別不能 |
+| combat-damage | `trigger.combat-damage` | ○ | **×(今回タグのみ)** | サンドボックスは戦闘ダメージを自動解決しない=検出イベントが存在しない |
+
+watcher 分割(`*-other`/`-watcher`)・sacrifice/combat-damage のキュー連動は最終ゴールへ繰り越す(将来 sacrifice コマンド/戦闘ダメージ解決イベント導入時)。
+
+### 28.1 検出規則(`classifyAbilityText` に追加・正本は挙動)
+共通原則 **「誘発動詞は when/whenever 節の主語が支配する=when/whenever と動詞の間にカンマを挟まない」**(`[^,.]*`)で、別の誘発に続く効果としての draw/sacrifice を遮断する。`TAG_TEMPLATES` に4ラベルを追加し、すべて confidence `high`。
+
+| RuleTag id | ラベル(日本語) | 推奨正規表現 | 件数 |
+|---|---|---|---|
+| `trigger.end-step` | エンドステップ開始時の誘発 | `/\bat the beginning of\b[^.]*\bend step\b/i`(ただし同段落に `/\bnext end step\b/i` を含む場合は**除外**=遅延誘発) | 447 |
+| `trigger.draw` | カードを引いたときの誘発 | `/\b(?:when\|whenever)\b[^,.]*\bdraws?\b[^,.]*\bcards?\b/i` | 115 |
+| `trigger.sacrifice` | 生け贄に捧げたときの誘発 | `/\b(?:when\|whenever)\b[^,.]*\b(?:sacrifices?\|sacrificed)\b/i` | 96 |
+| `trigger.combat-damage` | 戦闘ダメージを与えたときの誘発 | `/\b(?:when\|whenever)\b[^,.]*\bdeals?\b[^,.]*\bcombat damage\b/i` | 569 |
+
+裏取りで固定した除外(FP)例(`removeReminderAndQuotes` で括弧内 reminder/引用は除去済みが前提):
+
+| カード | テキスト断片 | 期待 | 理由 |
+|---|---|---|---|
+| Baleful Strix | `When this creature enters, draw a card.` | `trigger.etb` ○ / `trigger.draw` **×** | draw は ETB の効果。draw の前にカンマ |
+| Coastal Piracy | `Whenever a creature you control deals combat damage to an opponent, you may draw a card.` | `trigger.combat-damage` ○ / `trigger.draw` **×** | draw の前にカンマ(戦闘ダメージ誘発の効果) |
+| The Locust God | `Whenever you draw a card, …` ＋ `… at the beginning of the next end step.` | `trigger.draw` ○ / `trigger.end-step` **×** | `next end step` は遅延誘発 |
+| Tireless Tracker | `Whenever you sacrifice a Clue, …`(reminder の `Sacrifice this token: Draw a card.` は除去) | `trigger.sacrifice` ○ / `trigger.draw` **×** | draw は reminder 内 |
+| Ashling, the Limitless | `… at the beginning of your next end step, sacrifice it …` | `trigger.sacrifice` ○ / `trigger.end-step` **×** | `next end step` は遅延誘発 |
+| (汎用) | `When this creature enters, each player sacrifices …` / `Whenever ~ attacks, you may sacrifice …` | `trigger.sacrifice` **×** | sacrifice は別誘発の効果(前にカンマ) |
+| (汎用) | 起動コスト `Sacrifice this:` / `As an additional cost … sacrifice` | `trigger.sacrifice` **×** | when/whenever が無い |
+
+### 28.2 ライブ誘発候補キュー(`src/store/gameStore.ts` `detectTriggerCandidates`)
+既存 upkeep/landfall 分岐と同型で2分岐を追加。`triggerCandidates` は GameState 外のエフェメラル状態(snapshot 非対象・I1〜I7 不変)。undo/redo で新規生成しない既存挙動を維持。
+
+- **end-step**: `prev.phase !== 'end' && next.phase === 'end'` のとき、`next.zones.battlefield` 上の `trigger.end-step` 保持カードを候補化(label「エンドステップ開始時」)。`sawTriggerEvent = true`。
+- **draw**: `next.drawnThisTurn > prev.drawnThisTurn` のとき、`trigger.draw` 保持カードを候補化(label「カードを引いたとき」)。`sawTriggerEvent = true`。
+  - 助言のみ: 「あなたが引いたとき」基準で出す。`whenever a player/opponent draws` 等は1人回しでは過剰提示し得るが advisory として許容(精密な watcher 分割は最終ゴールへ繰り越し)。
+- **sacrifice / combat-damage はキューに出さない**(§28.0 の理由)。タグはルール補助パネルにのみ反映。
+
+### 28.3 ハーネス拡張(`scripts/classifier-accuracy.ts`)— 広網プローブ方式
+Scryfall に「triggers」正解集合は**無い**ため、誘発精度は Scryfall 突合では測れない。正本ゲートは**コーパス回帰**(§28.4)とし、ハーネスは**人間裁定用の候補リスト**を出す(§26.0 の統治原則):
+- 各新ファミリーに**ゆるい probe**(例: end-step=`/\bend step\b/i`、draw=`/\bdraws?\b.*\bcards?\b/i`、sacrifice=`/\bsacrifices?\b/i`、combat-damage=`/\bcombat damage\b/i`)を当て、「probe 一致だが分類器が当該 `trigger.*` を付けなかった」カードを **FN候補**上位N(例20)で列挙。
+- 「分類器がタグ付けしたが probe 的に疑わしい」を **FP候補**で列挙。
+- `report.md` に「誘発ファミリー候補(裁定対象)」節を追加(既存 keyword FP/FN 節と並列・サイズ有界・「未調整」明記)。判定でなく裁定リスト。
+
+### 28.4 コーパス回帰(正本ゲート・`src/data/__tests__/fixtures/classifier-corpus.ts`)
+既存 `CorpusEntry`(`expectTags[]`/`forbidTags[]`)をそのまま流用し高信頼エントリを追加(型変更不要)。oracle は英語正本を snapshot から採取。最低限、§28.1 の固定表のカード(Baleful Strix の `forbidTags:['trigger.draw']` 追加、The Locust God / Coastal Piracy / Mayhem Devil / Tireless Tracker / Ashling / Abiding Grace)を含める。reviewer 専有テスト `review.classifier-corpus` が `expect*` 包含 / `forbid*` 非包含を固定。
+
+### 28.5 不変・非干渉
+- **grant≠has 不変**: 他者に誘発を付与する文(`creatures you control gain "whenever …"` 等)は自分が保有とタグ付けしない(§26/P1・`review.m6kw` の方針を維持)。
+- **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変。`classifyCardRules` は純粋・決定的のまま。エンジン(`src/engine/`)は変更しない。
+- 実装の変更対象は `src/data/ruleClassifier.ts`(タグ+regex)/ `src/store/gameStore.ts`(end-step/draw 分岐)/ `scripts/classifier-accuracy.ts`(プローブ)/ `classifier-corpus.ts`(fixture)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない(reviewer テスト `review.classifier-corpus` と本節の `review.phaseC` は Fable 専有)。機械チェック4点全通過 + `npm run accuracy` 再生成で誘発ファミリー候補節が出力されること。

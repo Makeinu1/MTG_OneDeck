@@ -48,7 +48,9 @@ export const classifierCorpus: CorpusEntry[] = [
       "trigger.etb",
       "action.draw"
     ],
-    "forbidTags": [],
+    "forbidTags": [
+      "trigger.draw"
+    ],
     "scryfallKeywords": [
       "Deathtouch",
       "Flying"
@@ -550,5 +552,105 @@ export const classifierCorpus: CorpusEntry[] = [
     ],
     "confidence": "high",
     "note": "Phase B F3: ability-word/name-prefixed 'Perseus's Bow — Equip {6}' is equip possession; granted reach is not."
+  },
+  {
+    "name": "The Locust God",
+    "typeLine": "Legendary Creature — God",
+    "oracleText": "Flying\nWhenever you draw a card, create a 1/1 blue and red Insect creature token with flying and haste.\n{2}{U}{R}: Draw a card, then discard a card.\nWhen The Locust God dies, return it to its owner's hand at the beginning of the next end step.",
+    "expectKeywords": [
+      "flying"
+    ],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.draw"
+    ],
+    "forbidTags": [
+      "trigger.end-step"
+    ],
+    "scryfallKeywords": [
+      "Flying"
+    ],
+    "confidence": "high",
+    "note": "Phase C: draw trigger; delayed next end step must not become end-step trigger."
+  },
+  {
+    "name": "Coastal Piracy",
+    "typeLine": "Enchantment",
+    "oracleText": "Whenever a creature you control deals combat damage to an opponent, you may draw a card.",
+    "expectKeywords": [],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.combat-damage"
+    ],
+    "forbidTags": [
+      "trigger.draw"
+    ],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase C: draw is the effect of a combat-damage trigger."
+  },
+  {
+    "name": "Mayhem Devil",
+    "typeLine": "Creature — Devil",
+    "oracleText": "Whenever a player sacrifices a permanent, this creature deals 1 damage to any target.",
+    "expectKeywords": [],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.sacrifice"
+    ],
+    "forbidTags": [],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase C: sacrifice trigger."
+  },
+  {
+    "name": "Tireless Tracker",
+    "typeLine": "Creature — Human Scout",
+    "oracleText": "Landfall — Whenever a land you control enters, investigate. (Create a Clue token. It's an artifact with \"{2}, Sacrifice this token: Draw a card.\")\nWhenever you sacrifice a Clue, put a +1/+1 counter on this creature.",
+    "expectKeywords": [],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.sacrifice",
+      "trigger.landfall"
+    ],
+    "forbidTags": [
+      "trigger.draw"
+    ],
+    "scryfallKeywords": [
+      "Investigate",
+      "Landfall"
+    ],
+    "confidence": "high",
+    "note": "Phase C: reminder draw inside Clue text must not become draw trigger."
+  },
+  {
+    "name": "Ashling, the Limitless",
+    "typeLine": "Legendary Creature — Elemental Sorcerer",
+    "oracleText": "Elemental permanent spells you cast from your hand gain evoke {4} as you cast them. (If you cast a spell for its evoke cost, it's sacrificed when it enters.)\nWhenever you sacrifice a nontoken Elemental, create a token that's a copy of it. The token gains haste until end of turn. At the beginning of your next end step, sacrifice it unless you pay {W}{U}{B}{R}{G}.",
+    "expectKeywords": [],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.sacrifice"
+    ],
+    "forbidTags": [
+      "trigger.end-step"
+    ],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase C: delayed next end step must not become end-step trigger."
+  },
+  {
+    "name": "Abiding Grace",
+    "typeLine": "Enchantment",
+    "oracleText": "At the beginning of your end step, choose one —\n• You gain 1 life.\n• Return target creature card with mana value 1 from your graveyard to the battlefield.",
+    "expectKeywords": [],
+    "forbidKeywords": [],
+    "expectTags": [
+      "trigger.end-step"
+    ],
+    "forbidTags": [],
+    "scryfallKeywords": [],
+    "confidence": "high",
+    "note": "Phase C: end-step trigger."
   }
 ];

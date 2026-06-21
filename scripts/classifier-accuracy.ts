@@ -85,6 +85,35 @@ interface KeywordCase {
   rawScryfallKeywords: string[];
 }
 
+interface TriggerFamilySummaryItem {
+  familyId: string;
+  tagId: string;
+  label: string;
+  classifierCount: number;
+  probeCount: number;
+  fpCandidateCount: number;
+  fnCandidateCount: number;
+}
+
+interface TriggerFamilyProbe {
+  familyId: string;
+  tagId: string;
+  label: string;
+  probe: RegExp;
+}
+
+interface TriggerFamilyProbeCase {
+  kind: 'classifier-only' | 'probe-only';
+  familyId: string;
+  tagId: string;
+  label: string;
+  cardName: string;
+  oracleId: string;
+  scryfallId: string;
+  oracleSnippet: string;
+  classifierRuleTags: string[];
+}
+
 interface MappingFailure {
   index: number;
   cardName: string;
@@ -110,7 +139,36 @@ interface Totals {
   mappingFailures: number;
   keywordFpCandidates: number;
   keywordFnCandidates: number;
+  triggerFamilyFpCandidates: number;
+  triggerFamilyFnCandidates: number;
 }
+
+const TRIGGER_FAMILY_PROBES: readonly TriggerFamilyProbe[] = [
+  {
+    familyId: 'end-step',
+    tagId: 'trigger.end-step',
+    label: 'エンドステップ開始時の誘発',
+    probe: /\bend step\b/i,
+  },
+  {
+    familyId: 'draw',
+    tagId: 'trigger.draw',
+    label: 'カードを引いたときの誘発',
+    probe: /\bdraws?\b.*\bcards?\b/i,
+  },
+  {
+    familyId: 'sacrifice',
+    tagId: 'trigger.sacrifice',
+    label: '生け贄に捧げたときの誘発',
+    probe: /\bsacrifices?\b/i,
+  },
+  {
+    familyId: 'combat-damage',
+    tagId: 'trigger.combat-damage',
+    label: '戦闘ダメージを与えたときの誘発',
+    probe: /\bcombat damage\b/i,
+  },
+];
 
 const keywordDefinitionsById = new Map(
   KEYWORD_DEFINITIONS.map((definition) => [definition.id, definition]),
@@ -131,6 +189,11 @@ async function main(): Promise<void> {
   const keywordFpCounts = new Map<string, number>();
   const keywordFnCounts = new Map<string, number>();
   const keywordCases: KeywordCase[] = [];
+  const triggerFamilyClassifierCounts = new Map<string, number>();
+  const triggerFamilyProbeCounts = new Map<string, number>();
+  const triggerFamilyFpCounts = new Map<string, number>();
+  const triggerFamilyFnCounts = new Map<string, number>();
+  const triggerFamilyProbeCases: TriggerFamilyProbeCase[] = [];
   const mappingFailures: MappingFailure[] = [];
   const producedManaColorCounts = new Map<string, number>();
   const classifierManaTagCounts = new Map<string, number>();
@@ -167,6 +230,11 @@ async function main(): Promise<void> {
     mappedCards += 1;
 
     const ruleTags = classifyCardRules(def);
+    const ruleTagIds = uniqueSorted(
+      ruleTags.map((tag) => tag.id),
+      compareRuleTagIds,
+    );
+    const ruleTagSet = new Set(ruleTagIds);
     for (const tag of ruleTags) {
       increment(ruleTagCounts, tag.id);
       ruleTagLabels.set(tag.id, tag.label);
@@ -213,9 +281,49 @@ async function main(): Promise<void> {
     const scryfallKeywordSet = new Set(scryfallKeywordIds);
     const rawScryfallKeywords = stringArray(scryfallCard.keywords);
     const oracleSnippetText = oracleSnippet(def);
+    const oracleProbeText = oracleFullText(def);
     const cardName = safeString(def.name, fallbackName);
     const oracleId = safeString(def.oracleId, safeString(scryfallCard.id, fallbackName));
     const scryfallId = safeString(def.scryfallId, safeString(scryfallCard.id, fallbackName));
+
+    for (const family of TRIGGER_FAMILY_PROBES) {
+      const hasClassifierTag = ruleTagSet.has(family.tagId);
+      const hasProbeMatch = family.probe.test(oracleProbeText);
+      if (hasClassifierTag) {
+        increment(triggerFamilyClassifierCounts, family.tagId);
+      }
+      if (hasProbeMatch) {
+        increment(triggerFamilyProbeCounts, family.tagId);
+      }
+      if (hasProbeMatch && !hasClassifierTag) {
+        increment(triggerFamilyFnCounts, family.tagId);
+        triggerFamilyProbeCases.push({
+          kind: 'probe-only',
+          familyId: family.familyId,
+          tagId: family.tagId,
+          label: family.label,
+          cardName,
+          oracleId,
+          scryfallId,
+          oracleSnippet: oracleSnippetText,
+          classifierRuleTags: ruleTagIds,
+        });
+      }
+      if (hasClassifierTag && !hasProbeMatch) {
+        increment(triggerFamilyFpCounts, family.tagId);
+        triggerFamilyProbeCases.push({
+          kind: 'classifier-only',
+          familyId: family.familyId,
+          tagId: family.tagId,
+          label: family.label,
+          cardName,
+          oracleId,
+          scryfallId,
+          oracleSnippet: oracleSnippetText,
+          classifierRuleTags: ruleTagIds,
+        });
+      }
+    }
 
     for (const keywordId of classifierKeywordIds) {
       if (scryfallKeywordSet.has(keywordId)) {
@@ -286,12 +394,28 @@ async function main(): Promise<void> {
     keywordCases.filter((item) => item.kind === 'scryfall-only'),
     keywordFnCounts,
   );
+  const triggerFamilySummary = buildTriggerFamilySummary(
+    triggerFamilyClassifierCounts,
+    triggerFamilyProbeCounts,
+    triggerFamilyFpCounts,
+    triggerFamilyFnCounts,
+  );
+  const triggerFamilyFpCases = rankTriggerFamilyCases(
+    triggerFamilyProbeCases.filter((item) => item.kind === 'classifier-only'),
+    triggerFamilyFpCounts,
+  );
+  const triggerFamilyFnCases = rankTriggerFamilyCases(
+    triggerFamilyProbeCases.filter((item) => item.kind === 'probe-only'),
+    triggerFamilyFnCounts,
+  );
   const totals: Totals = {
     rawCards: rawCards.length,
     mappedCards,
     mappingFailures: mappingFailures.length,
     keywordFpCandidates: keywordFpCases.length,
     keywordFnCandidates: keywordFnCases.length,
+    triggerFamilyFpCandidates: triggerFamilyFpCases.length,
+    triggerFamilyFnCandidates: triggerFamilyFnCases.length,
   };
 
   const reportJson = {
@@ -303,8 +427,10 @@ async function main(): Promise<void> {
     keywordSummary,
     manaSummary,
     typeSummary,
+    triggerFamilySummary,
     mappingFailures,
     keywordMismatches: keywordCases,
+    triggerFamilyProbeCases,
   };
 
   await mkdir(dirname(REPORT_MD_PATH), { recursive: true });
@@ -320,6 +446,9 @@ async function main(): Promise<void> {
       mappingFailures,
       keywordFpCases,
       keywordFnCases,
+      triggerFamilySummary,
+      triggerFamilyFpCases,
+      triggerFamilyFnCases,
     }),
     'utf8',
   );
@@ -455,6 +584,14 @@ function oracleSnippet(def: CardDef): string {
   return snippet(text, 180);
 }
 
+function oracleFullText(def: CardDef): string {
+  return def.faces
+    .flatMap((face) => (face.oracleText ? [face.oracleText] : []))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function snippet(value: string, maxLength: number): string {
   const normalized = value.replace(/\s+/g, ' ').trim();
   if (normalized.length === 0) {
@@ -495,6 +632,23 @@ function buildRuleTagCounts(
   );
 }
 
+function buildTriggerFamilySummary(
+  classifierCounts: Map<string, number>,
+  probeCounts: Map<string, number>,
+  fpCounts: Map<string, number>,
+  fnCounts: Map<string, number>,
+): TriggerFamilySummaryItem[] {
+  return TRIGGER_FAMILY_PROBES.map((family) => ({
+    familyId: family.familyId,
+    tagId: family.tagId,
+    label: family.label,
+    classifierCount: classifierCounts.get(family.tagId) ?? 0,
+    probeCount: probeCounts.get(family.tagId) ?? 0,
+    fpCandidateCount: fpCounts.get(family.tagId) ?? 0,
+    fnCandidateCount: fnCounts.get(family.tagId) ?? 0,
+  }));
+}
+
 function buildCountItems(
   counts: Map<string, number>,
   labelForId: (id: string) => string,
@@ -530,6 +684,32 @@ function rankKeywordCases(
   });
 }
 
+function rankTriggerFamilyCases(
+  cases: TriggerFamilyProbeCase[],
+  counts: Map<string, number>,
+): TriggerFamilyProbeCase[] {
+  return [...cases].sort((a, b) => {
+    const familyDiff = compareTriggerFamilyTagIds(a.tagId, b.tagId);
+    if (familyDiff !== 0) {
+      return familyDiff;
+    }
+    const countDiff = (counts.get(b.tagId) ?? 0) - (counts.get(a.tagId) ?? 0);
+    if (countDiff !== 0) {
+      return countDiff;
+    }
+    return a.cardName.localeCompare(b.cardName);
+  });
+}
+
+function compareTriggerFamilyTagIds(a: string, b: string): number {
+  const aIndex = TRIGGER_FAMILY_PROBES.findIndex((family) => family.tagId === a);
+  const bIndex = TRIGGER_FAMILY_PROBES.findIndex((family) => family.tagId === b);
+  if (aIndex !== bIndex) {
+    return aIndex - bIndex;
+  }
+  return a.localeCompare(b);
+}
+
 function renderMarkdownReport(input: {
   totals: Totals;
   tagCounts: CountItem[];
@@ -539,6 +719,9 @@ function renderMarkdownReport(input: {
   mappingFailures: MappingFailure[];
   keywordFpCases: KeywordCase[];
   keywordFnCases: KeywordCase[];
+  triggerFamilySummary: TriggerFamilySummaryItem[];
+  triggerFamilyFpCases: TriggerFamilyProbeCase[];
+  triggerFamilyFnCases: TriggerFamilyProbeCase[];
 }): string {
   const lines: string[] = [
     '# 分類精度ハーネス A0 レポート',
@@ -552,6 +735,8 @@ function renderMarkdownReport(input: {
     `- CardDef 写像失敗: ${input.totals.mappingFailures}`,
     `- キーワード FP候補(分類器のみ): ${input.totals.keywordFpCandidates}`,
     `- キーワード FN候補(Scryfall のみ): ${input.totals.keywordFnCandidates}`,
+    `- 誘発ファミリー FP候補(タグ有り/probe疑わしい): ${input.totals.triggerFamilyFpCandidates}`,
+    `- 誘発ファミリー FN候補(probe一致/タグ無し): ${input.totals.triggerFamilyFnCandidates}`,
     '',
     '## ルールタグ別件数',
     '',
@@ -592,6 +777,23 @@ function renderMarkdownReport(input: {
     '',
     ...renderKeywordCases(input.keywordFnCases),
     '',
+    '## 誘発ファミリー候補(裁定対象)',
+    '',
+    `**${NOTE} 誘発probeは判定ではなく、人間が見るための広網候補リスト。**`,
+    '',
+    '| family | tag | label | classifier | probe | FP候補 | FN候補 |',
+    '|---|---|---:|---:|---:|---:|---:|',
+    ...input.triggerFamilySummary.map(
+      (item) =>
+        `| ${cell(item.familyId)} | ${cell(item.tagId)} | ${cell(item.label)} | ${item.classifierCount} | ${item.probeCount} | ${item.fpCandidateCount} | ${item.fnCandidateCount} |`,
+    ),
+    '',
+    '### FN候補 上位20/ファミリー(probe一致・タグ無し)',
+    '',
+    ...renderTriggerFamilyCases(input.triggerFamilyFnCases),
+    '### FP候補 上位20/ファミリー(タグ有り・probe疑わしい)',
+    '',
+    ...renderTriggerFamilyCases(input.triggerFamilyFpCases),
     '## 写像失敗 上位20',
     '',
     ...renderMappingFailures(input.mappingFailures),
@@ -619,6 +821,29 @@ function renderKeywordCases(cases: readonly KeywordCase[]): string[] {
     const side = item.kind === 'classifier-only' ? '分類器のみ' : 'Scryfallのみ';
     return `- ${cell(item.label)}(${cell(item.keywordId)} / ${side}) 《${cell(item.cardName)}》: ${cell(item.oracleSnippet)}`;
   });
+}
+
+function renderTriggerFamilyCases(cases: readonly TriggerFamilyProbeCase[]): string[] {
+  const lines: string[] = [];
+  for (const family of TRIGGER_FAMILY_PROBES) {
+    const familyCases = cases
+      .filter((item) => item.tagId === family.tagId)
+      .slice(0, TOP_CASE_LIMIT);
+    lines.push(`#### ${cell(family.label)} (${cell(family.tagId)})`, '');
+    if (familyCases.length === 0) {
+      lines.push('- なし', '');
+      continue;
+    }
+    lines.push(
+      ...familyCases.map((item) => {
+        const side =
+          item.kind === 'classifier-only' ? 'タグ有り/probe疑わしい' : 'probe一致/タグ無し';
+        return `- 未調整 / ${side} 《${cell(item.cardName)}》: ${cell(item.oracleSnippet)}`;
+      }),
+      '',
+    );
+  }
+  return lines;
 }
 
 function renderMappingFailures(failures: readonly MappingFailure[]): string[] {
