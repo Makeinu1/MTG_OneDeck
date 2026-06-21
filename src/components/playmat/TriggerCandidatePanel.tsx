@@ -37,7 +37,13 @@ export function TriggerCandidatePanel() {
               type="button"
               className="btn btn--primary btn--sm"
               data-testid={`trigger-candidate-add-${candidate.sourceId}`}
-              onClick={() => store.addAbilityToStack(candidate.sourceId, 'triggered')}
+              onClick={() =>
+                store.addAbilityToStack(
+                  candidate.sourceId,
+                  'triggered',
+                  candidate.abilityLineIndex,
+                )
+              }
             >
               スタックへ
             </button>

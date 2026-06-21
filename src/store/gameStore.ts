@@ -13,7 +13,8 @@ import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
-import type { CardInstance, GameState, ZoneId } from '../engine/types';
+import { splitAbilityLines, type AbilityShape } from '../engine/grammar/index';
+import type { AbilityKind, CardInstance, GameState, ZoneId } from '../engine/types';
 import { classifyCardRules } from '../data/ruleClassifier';
 import {
   effectivePower,
@@ -57,6 +58,7 @@ export interface TriggerCandidate {
   sourceId: string;
   triggerId: string;
   label: string;
+  abilityLineIndex?: number;
 }
 
 /**
@@ -102,6 +104,7 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
 function normalizeSnapshotState(state: GameState): GameState {
   return {
     ...state,
+    effectsAuto: typeof state.effectsAuto === 'boolean' ? state.effectsAuto : true,
     cards: normalizeSnapshotCards(state.cards),
     zones: normalizeSnapshotZones(state.zones),
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
@@ -126,6 +129,8 @@ export interface GameStore {
   keepOpeningHand(): void;
   putBottomForMulligan(cardIds: string[]): void;
   setAutoAdvance(on: boolean): void;
+  setEffectsAuto(on: boolean): void;
+  setCardEffectsAuto(cardId: string, on: boolean): void;
   addOpponent(label: string): void;
 
   dispatch(cmd: GameCommand): void;
@@ -164,7 +169,11 @@ export interface GameStore {
     cardId: string,
     opts?: { xValue?: number; force?: boolean }
   ): 'ok' | { shortfall: number };
-  addAbilityToStack(sourceId: string, kind: 'activated' | 'triggered'): void;
+  addAbilityToStack(
+    sourceId: string,
+    kind: 'activated' | 'triggered',
+    abilityLineIndex?: number
+  ): void;
   dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
@@ -320,17 +329,99 @@ function cardHasRuleTag(state: GameState, cardId: string, tagId: string): boolea
   return classifyCardRules(def).some((tag) => tag.id === tagId);
 }
 
+function abilityShapesForKind(kind: AbilityKind): AbilityShape[] {
+  return kind === 'activated' ? ['activated'] : ['triggered', 'delayed-triggered'];
+}
+
+function abilityLineIndexForKind(
+  state: GameState,
+  sourceId: string,
+  kind: AbilityKind,
+): number | undefined {
+  const card = state.cards[sourceId];
+  if (!card) return undefined;
+  const def = state.defs[card.defId];
+  if (!def) return undefined;
+
+  const shapes = abilityShapesForKind(kind);
+  const matches = splitAbilityLines(def)
+    .map((line, index) => ({ line, index }))
+    .filter((entry) => shapes.includes(entry.line.shape));
+
+  return matches.length === 1 ? matches[0].index : undefined;
+}
+
+function abilityLineIndexForTrigger(
+  state: GameState,
+  sourceId: string,
+  triggerId: string,
+): number | undefined {
+  const card = state.cards[sourceId];
+  if (!card) return undefined;
+  const def = state.defs[card.defId];
+  if (!def) return undefined;
+
+  const triggerMatches = splitAbilityLines(def)
+    .map((line, index) => ({ line, index }))
+    .filter((entry) => {
+      if (entry.line.shape !== 'triggered' && entry.line.shape !== 'delayed-triggered') {
+        return false;
+      }
+      const text = entry.line.text;
+      switch (triggerId) {
+        case 'trigger.etb':
+          return /\benters\b/i.test(text);
+        case 'trigger.etb-other':
+          return /\benters\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
+        case 'trigger.death':
+          return /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text);
+        case 'trigger.death-other':
+          return /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
+        case 'trigger.landfall':
+          return /\bland\b/i.test(text) && /\benters\b/i.test(text);
+        case 'trigger.upkeep':
+          return /\bupkeep\b/i.test(text);
+        case 'trigger.end-step':
+          return /\bend step\b/i.test(text);
+        case 'trigger.draw':
+          return /\bdraw\b/i.test(text);
+        case 'trigger.cast':
+        case 'trigger.cast-watcher':
+          return /\bcast\b/i.test(text);
+        case 'trigger.attack':
+        case 'trigger.attack-watcher':
+          return /\battack/i.test(text);
+        default:
+          return false;
+      }
+    });
+
+  if (triggerMatches.length === 1) {
+    return triggerMatches[0].index;
+  }
+  return abilityLineIndexForKind(state, sourceId, 'triggered');
+}
+
 function makeTriggerCandidate(
   state: GameState,
   sourceId: string,
   triggerId: string,
   label: string,
 ): TriggerCandidate {
-  return {
+  const candidate: TriggerCandidate = {
     sourceId,
     triggerId,
     label: `${label}: ${cardLabel(state, sourceId)}`,
   };
+  const abilityLineIndex = abilityLineIndexForTrigger(state, sourceId, triggerId);
+  if (abilityLineIndex !== undefined) {
+    Object.defineProperty(candidate, 'abilityLineIndex', {
+      value: abilityLineIndex,
+      enumerable: false,
+      configurable: true,
+    });
+  }
+  return candidate;
 }
 
 function addTriggerCandidate(
@@ -670,6 +761,14 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     setAutoAdvance(on) {
       set({ autoAdvanceToMain: on });
+    },
+
+    setEffectsAuto(on) {
+      dispatch({ type: 'setEffectsAuto', value: on });
+    },
+
+    setCardEffectsAuto(cardId, on) {
+      dispatch({ type: 'setCardEffectsAuto', cardId, value: on });
     },
 
     addOpponent(label) {
@@ -1115,9 +1214,18 @@ export const useGameStore = create<GameStore>((set, get) => {
       return 'ok';
     },
 
-    addAbilityToStack(sourceId, kind) {
+    addAbilityToStack(sourceId, kind, abilityLineIndex) {
       const before = get().state;
-      dispatch({ type: 'addAbilityToStack', sourceId, kind });
+      const resolvedAbilityLineIndex =
+        abilityLineIndex ?? (before ? abilityLineIndexForKind(before, sourceId, kind) : undefined);
+      dispatch({
+        type: 'addAbilityToStack',
+        sourceId,
+        kind,
+        ...(resolvedAbilityLineIndex === undefined
+          ? {}
+          : { abilityLineIndex: resolvedAbilityLineIndex }),
+      });
       if (kind === 'triggered' && get().state !== before) {
         set({
           triggerCandidates: get().triggerCandidates.filter(
@@ -1291,12 +1399,18 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur) return;
 
       const commands: GameCommand[] = [];
+      const abilityLineIndex = abilityLineIndexForKind(cur, sourceId, 'activated');
       if (opts.lifeCost > 0) {
         commands.push({ type: 'adjustLife', delta: -opts.lifeCost });
       }
       commands.push(
         { type: 'moveCard', cardId: sourceId, to: 'graveyard', position: 'top' },
-        { type: 'addAbilityToStack', sourceId, kind: 'activated' }
+        {
+          type: 'addAbilityToStack',
+          sourceId,
+          kind: 'activated',
+          ...(abilityLineIndex === undefined ? {} : { abilityLineIndex }),
+        }
       );
 
       try {

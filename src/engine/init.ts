@@ -89,6 +89,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     cards,
     zones,
     commanders,
+    effectsAuto: true,
     turn: 1,
     phase: 'untap',
     life: 40,

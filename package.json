@@ -10,6 +10,7 @@
     "accuracy": "tsx scripts/classifier-accuracy.ts",
     "grammar-coverage": "tsx scripts/grammar-coverage.ts",
     "grammar-ir": "tsx scripts/grammar-ir.ts",
+    "grammar-compile": "tsx scripts/grammar-compile.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "prettier --write ."

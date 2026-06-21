@@ -1,5 +1,8 @@
 import type { CardDef, ManaColor } from '../types/card';
 import { isCommander } from './commander';
+import { compileAbilityIR } from './grammar/compile';
+import { splitAbilityLines, type AbilityLine } from './grammar/index';
+import { parseAbilityIR } from './grammar/ir';
 import { normalizeKeywords } from './status';
 import type {
   AbilityKind,
@@ -18,6 +21,8 @@ export type GameCommand =
   | { type: 'setFace'; cardId: string; faceIndex: number }
   | { type: 'setFaceDown'; cardId: string; faceDown: boolean }
   | { type: 'setManualKeywords'; cardId: string; keywords: string[] }
+  | { type: 'setEffectsAuto'; value: boolean }
+  | { type: 'setCardEffectsAuto'; cardId: string; value: boolean }
   | { type: 'addCounters'; cardId: string; counterType: string; delta: number }
   | { type: 'attach'; cardId: string; to: string | undefined }
   | { type: 'adjustLife'; delta: number }
@@ -40,7 +45,7 @@ export type GameCommand =
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean }
-  | { type: 'addAbilityToStack'; sourceId: string; kind: AbilityKind }
+  | { type: 'addAbilityToStack'; sourceId: string; kind: AbilityKind; abilityLineIndex?: number }
   | { type: 'resolveStackTop'; to?: ZoneId }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
   | { type: 'copyStackItem'; cardId: string }
@@ -657,7 +662,8 @@ function createAbilityObject(
   abilityId: string,
   sourceId: string,
   defId: string,
-  kind: AbilityKind
+  kind: AbilityKind,
+  abilityLineIndex?: number
 ): CardInstance {
   return {
     id: abilityId,
@@ -673,6 +679,7 @@ function createAbilityObject(
     isAbility: true,
     sourceId,
     abilityKind: kind,
+    abilityLineIndex,
   };
 }
 
@@ -699,13 +706,24 @@ function applyCastToStack(
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
 
-function applyAddAbilityToStack(draft: Draft, sourceId: string, kind: AbilityKind): void {
+function applyAddAbilityToStack(
+  draft: Draft,
+  sourceId: string,
+  kind: AbilityKind,
+  abilityLineIndex?: number
+): void {
   const source = requireCard(draft, sourceId);
   const abilityId = nextAbilityId(draft.state);
   const cards = { ...draft.state.cards };
   const stack = editZone(draft, 'stack');
 
-  cards[abilityId] = createAbilityObject(abilityId, sourceId, source.defId, kind);
+  cards[abilityId] = createAbilityObject(
+    abilityId,
+    sourceId,
+    source.defId,
+    kind,
+    abilityLineIndex
+  );
   draft.state.cards = cards;
   stack.push(abilityId);
 
@@ -719,22 +737,167 @@ function defaultStackResolveDestination(draft: Draft, card: CardInstance): ZoneI
   return castDestination(typeLineOf(draft, card));
 }
 
+interface ResolvableEffectLine {
+  sourceId: string;
+  def: CardDef;
+  line: AbilityLine;
+  typeLine: string;
+}
+
+function effectLinesForResolvedStackItem(
+  draft: Draft,
+  card: CardInstance
+): ResolvableEffectLine[] {
+  if (draft.state.effectsAuto !== true) {
+    return [];
+  }
+
+  const sourceId = card.isAbility ? card.sourceId : card.id;
+  if (!sourceId) {
+    return [];
+  }
+
+  const source = draft.state.cards[sourceId];
+  if (!source || source.effectsAuto === false) {
+    return [];
+  }
+
+  const def = draft.state.defs[card.defId];
+  if (!def) {
+    return [];
+  }
+
+  const lines = splitAbilityLines(def);
+  if (card.isAbility) {
+    if (card.abilityLineIndex === undefined) {
+      return [];
+    }
+    const line = lines[card.abilityLineIndex];
+    if (!line) {
+      return [];
+    }
+    return [
+      {
+        sourceId,
+        def,
+        line,
+        typeLine: def.faces[line.faceIndex]?.typeLine ?? def.typeLine,
+      },
+    ];
+  }
+
+  return lines
+    .filter((line) => line.shape === 'spell')
+    .map((line) => ({
+      sourceId,
+      def,
+      line,
+      typeLine: def.faces[line.faceIndex]?.typeLine ?? def.typeLine,
+    }));
+}
+
+function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
+  switch (cmd.type) {
+    case 'draw': {
+      const drawn = drawCards(draft, Math.max(0, cmd.count));
+      draft.state.drawnThisTurn += drawn;
+      pushLog(draft, `カードを${drawn}枚引きました。`);
+      if (drawn < cmd.count) {
+        draft.warnings.push('ライブラリが足りずすべて引けませんでした。');
+      }
+      break;
+    }
+    case 'mill': {
+      applyMill(draft, cmd.count);
+      break;
+    }
+    case 'adjustLife': {
+      draft.state.life += cmd.delta;
+      const sign = cmd.delta >= 0 ? '+' : '';
+      pushLog(draft, `ライフが${sign}${cmd.delta}(現在${draft.state.life})。`);
+      break;
+    }
+    case 'adjustPlayerCounter': {
+      const current = draft.state[cmd.kind];
+      const next = Math.max(0, current + cmd.delta);
+      draft.state[cmd.kind] = next;
+      const label =
+        cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
+      pushLog(draft, `${label}カウンターを${next}個にしました。`);
+      break;
+    }
+    case 'addMana': {
+      const amount = Math.max(0, cmd.amount);
+      if (amount > 0) {
+        const pool = { ...draft.state.manaPool };
+        pool[cmd.color] += amount;
+        draft.state.manaPool = pool;
+        pushLog(draft, `${cmd.color}マナを${amount}点加えました。`);
+      }
+      break;
+    }
+    case 'createToken': {
+      applyCreateToken(
+        draft,
+        cmd.name,
+        cmd.typeLine,
+        cmd.power,
+        cmd.toughness,
+        cmd.quantity,
+        cmd.producedMana,
+        cmd.tokenKind
+      );
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function applyAutoCommands(draft: Draft, commands: readonly GameCommand[]): void {
+  for (const cmd of commands) {
+    applyAutoCommand(draft, cmd);
+  }
+}
+
+function applyCompiledEffectsForStackItem(
+  draft: Draft,
+  card: CardInstance,
+  effectLines: readonly ResolvableEffectLine[]
+): void {
+  for (const effectLine of effectLines) {
+    const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
+    const compiled = compileAbilityIR(ir, {
+      sourceId: effectLine.sourceId,
+      def: effectLine.def,
+    });
+    if (compiled.decision !== 'auto') {
+      continue;
+    }
+    applyAutoCommands(draft, compiled.commands);
+    pushLog(draft, `${stackNameOf(draft, card)}の効果を自動実行した。`);
+  }
+}
+
 function applyResolveStackTop(draft: Draft, to?: ZoneId): void {
   const stack = draft.state.zones.stack;
   if (stack.length === 0) return;
 
   const topId = stack[stack.length - 1];
   const card = requireCard(draft, topId);
+  const effectLines = effectLinesForResolvedStackItem(draft, card);
 
   if (card.isAbility) {
     deleteCardFromState(draft, topId);
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
+    applyCompiledEffectsForStackItem(draft, card, effectLines);
     return;
   }
 
   const destination = to ?? defaultStackResolveDestination(draft, card);
   moveCardInternal(draft, topId, destination, 'bottom', false);
   pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
+  applyCompiledEffectsForStackItem(draft, card, effectLines);
 }
 
 function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
@@ -769,7 +932,8 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
       abilityId,
       source.sourceId ?? cardId,
       source.defId,
-      source.abilityKind ?? 'activated'
+      source.abilityKind ?? 'activated',
+      source.abilityLineIndex
     );
     draft.state.cards = cards;
     stack.push(abilityId);
@@ -1034,6 +1198,24 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       pushLog(draft, `${nameOf(draft, cmd.cardId)}の手動キーワードを更新した。`);
       break;
     }
+    case 'setEffectsAuto': {
+      if (draft.state.effectsAuto !== cmd.value) {
+        draft.state.effectsAuto = cmd.value;
+        pushLog(draft, `効果自動実行を${cmd.value ? 'ON' : 'OFF'}にしました。`);
+      }
+      break;
+    }
+    case 'setCardEffectsAuto': {
+      const card = requireCard(draft, cmd.cardId);
+      if (card.effectsAuto !== cmd.value) {
+        setCard(draft, { ...card, effectsAuto: cmd.value });
+        pushLog(
+          draft,
+          `${nameOf(draft, cmd.cardId)}の効果自動実行を${cmd.value ? 'ON' : 'OFF'}にしました。`
+        );
+      }
+      break;
+    }
     case 'addCounters': {
       const card = requireCard(draft, cmd.cardId);
       const current = card.counters[cmd.counterType] ?? 0;
@@ -1190,7 +1372,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'addAbilityToStack': {
-      applyAddAbilityToStack(draft, cmd.sourceId, cmd.kind);
+      applyAddAbilityToStack(draft, cmd.sourceId, cmd.kind, cmd.abilityLineIndex);
       break;
     }
     case 'resolveStackTop': {

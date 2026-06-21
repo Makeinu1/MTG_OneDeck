@@ -44,10 +44,12 @@ export interface CardInstance {
   isCommander: boolean;
   enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0
   manualKeywords?: string[]; // manually granted status Keyword ids
+  effectsAuto?: boolean; // undefined = inherit global effectsAuto
   attachedTo?: string; // 装備/オーラの付与先 instance id
   isAbility?: boolean;
   sourceId?: string;
   abilityKind?: AbilityKind;
+  abilityLineIndex?: number;
   isCopy?: boolean;
 }
 
@@ -68,6 +70,7 @@ export interface GameState {
   cards: Record<string, CardInstance>;
   zones: Record<ZoneId, string[]>; // 順序付き。library[0] = ライブラリの一番上
   commanders: CommanderInfo[]; // 1〜2体(共闘)
+  effectsAuto: boolean;
   turn: number; // 1始まり
   phase: Phase;
   life: number; // 初期40

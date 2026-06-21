@@ -1005,6 +1005,17 @@ export function Playmat({ keybindings }: PlaymatProps) {
       );
     }
 
+    items.push({
+      key: 'card-effects-auto',
+      label:
+        card.effectsAuto === false
+          ? 'このカードの効果を自動化する'
+          : 'このカードの効果を自動化しない',
+      testId: 'card-effects-auto-off',
+      onSelect: () => store.setCardEffectsAuto(cardId, card.effectsAuto === false),
+      separator: true,
+    });
+
     // Flip (transform / MDFC with 2 faces)
     if (!card.faceDown && def && def.faces.length > 1) {
       const nextFace = (card.faceIndex + 1) % def.faces.length;

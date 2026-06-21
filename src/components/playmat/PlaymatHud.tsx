@@ -637,6 +637,15 @@ export function MatchControls({
           onChange={(event) => store.setAutoAdvance(event.target.checked)}
         />
       </label>
+      <label className="match-controls__toggle">
+        <span>効果自動実行</span>
+        <input
+          type="checkbox"
+          data-testid="effects-auto-toggle"
+          checked={store.state?.effectsAuto ?? true}
+          onChange={(event) => store.setEffectsAuto(event.target.checked)}
+        />
+      </label>
     </div>
   );
 }

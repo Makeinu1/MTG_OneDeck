@@ -1,0 +1,575 @@
+{
+  "note": "この数値は未調整(候補分布であり絶対正解でない)。G2 は G1 full 行のうち安全に自動実行できる候補分布。",
+  "generatedAt": "2026-06-21T15:03:20.716Z",
+  "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
+  "totals": {
+    "rawCards": 17491,
+    "mappedCards": 17491,
+    "mappingFailures": 0,
+    "abilityLineCount": 36116,
+    "effectLineCount": 22507,
+    "fullLineCount": 13078,
+    "autoFullLineCount": 1854,
+    "atomOccurrenceCount": 31831
+  },
+  "frontierSummary": [
+    {
+      "shape": "overall",
+      "label": "全体",
+      "lineCount": 36116,
+      "fullLineCount": 13078,
+      "autoFullLineCount": 1854,
+      "manualFullLineCount": 11224,
+      "autoRate": 0.14176479584034257
+    },
+    {
+      "shape": "activated",
+      "label": "起動型",
+      "lineCount": 5103,
+      "fullLineCount": 2674,
+      "autoFullLineCount": 900,
+      "manualFullLineCount": 1774,
+      "autoRate": 0.3365744203440538
+    },
+    {
+      "shape": "triggered",
+      "label": "誘発型",
+      "lineCount": 8972,
+      "fullLineCount": 4888,
+      "autoFullLineCount": 670,
+      "manualFullLineCount": 4218,
+      "autoRate": 0.13707037643207856
+    },
+    {
+      "shape": "delayed-triggered",
+      "label": "遅延誘発型",
+      "lineCount": 97,
+      "fullLineCount": 49,
+      "autoFullLineCount": 0,
+      "manualFullLineCount": 49,
+      "autoRate": 0
+    },
+    {
+      "shape": "replacement",
+      "label": "置換",
+      "lineCount": 825,
+      "fullLineCount": 471,
+      "autoFullLineCount": 14,
+      "manualFullLineCount": 457,
+      "autoRate": 0.029723991507430998
+    },
+    {
+      "shape": "static",
+      "label": "常在型",
+      "lineCount": 7561,
+      "fullLineCount": 3549,
+      "autoFullLineCount": 49,
+      "manualFullLineCount": 3500,
+      "autoRate": 0.013806706114398421
+    },
+    {
+      "shape": "spell",
+      "label": "呪文本体",
+      "lineCount": 5384,
+      "fullLineCount": 1354,
+      "autoFullLineCount": 219,
+      "manualFullLineCount": 1135,
+      "autoRate": 0.16174298375184637
+    },
+    {
+      "shape": "keyword",
+      "label": "純キーワード",
+      "lineCount": 8174,
+      "fullLineCount": 93,
+      "autoFullLineCount": 2,
+      "manualFullLineCount": 91,
+      "autoRate": 0.021505376344086023
+    }
+  ],
+  "atomSummary": [
+    {
+      "atom": "effect.create-token",
+      "occurrenceCount": 2802,
+      "autoLineCount": 149,
+      "manualLineCount": 1853
+    },
+    {
+      "atom": "effect.pump",
+      "occurrenceCount": 2622,
+      "autoLineCount": 0,
+      "manualLineCount": 1761
+    },
+    {
+      "atom": "effect.draw",
+      "occurrenceCount": 2499,
+      "autoLineCount": 741,
+      "manualLineCount": 1086
+    },
+    {
+      "atom": "effect.exile",
+      "occurrenceCount": 2209,
+      "autoLineCount": 0,
+      "manualLineCount": 657
+    },
+    {
+      "atom": "effect.counter-plus",
+      "occurrenceCount": 2086,
+      "autoLineCount": 0,
+      "manualLineCount": 1209
+    },
+    {
+      "atom": "effect.damage",
+      "occurrenceCount": 1978,
+      "autoLineCount": 0,
+      "manualLineCount": 720
+    },
+    {
+      "atom": "effect.tap",
+      "occurrenceCount": 1758,
+      "autoLineCount": 0,
+      "manualLineCount": 974
+    },
+    {
+      "atom": "effect.add-mana",
+      "occurrenceCount": 1676,
+      "autoLineCount": 683,
+      "manualLineCount": 737
+    },
+    {
+      "atom": "effect.return",
+      "occurrenceCount": 1541,
+      "autoLineCount": 0,
+      "manualLineCount": 483
+    },
+    {
+      "atom": "effect.grant-keyword",
+      "occurrenceCount": 1353,
+      "autoLineCount": 0,
+      "manualLineCount": 528
+    },
+    {
+      "atom": "effect.gain-life",
+      "occurrenceCount": 990,
+      "autoLineCount": 218,
+      "manualLineCount": 447
+    },
+    {
+      "atom": "effect.destroy",
+      "occurrenceCount": 956,
+      "autoLineCount": 0,
+      "manualLineCount": 141
+    },
+    {
+      "atom": "effect.restriction",
+      "occurrenceCount": 923,
+      "autoLineCount": 0,
+      "manualLineCount": 646
+    },
+    {
+      "atom": "effect.sacrifice",
+      "occurrenceCount": 883,
+      "autoLineCount": 0,
+      "manualLineCount": 535
+    },
+    {
+      "atom": "effect.discard",
+      "occurrenceCount": 782,
+      "autoLineCount": 0,
+      "manualLineCount": 499
+    },
+    {
+      "atom": "effect.reveal",
+      "occurrenceCount": 764,
+      "autoLineCount": 0,
+      "manualLineCount": 128
+    },
+    {
+      "atom": "effect.copy",
+      "occurrenceCount": 752,
+      "autoLineCount": 0,
+      "manualLineCount": 249
+    },
+    {
+      "atom": "effect.put-onto-battlefield",
+      "occurrenceCount": 724,
+      "autoLineCount": 0,
+      "manualLineCount": 204
+    },
+    {
+      "atom": "effect.lose-life",
+      "occurrenceCount": 721,
+      "autoLineCount": 72,
+      "manualLineCount": 391
+    },
+    {
+      "atom": "effect.search",
+      "occurrenceCount": 658,
+      "autoLineCount": 0,
+      "manualLineCount": 37
+    },
+    {
+      "atom": "effect.untap",
+      "occurrenceCount": 601,
+      "autoLineCount": 0,
+      "manualLineCount": 280
+    },
+    {
+      "atom": "effect.mill",
+      "occurrenceCount": 454,
+      "autoLineCount": 54,
+      "manualLineCount": 179
+    },
+    {
+      "atom": "effect.treasure",
+      "occurrenceCount": 346,
+      "autoLineCount": 154,
+      "manualLineCount": 86
+    },
+    {
+      "atom": "effect.scry",
+      "occurrenceCount": 295,
+      "autoLineCount": 0,
+      "manualLineCount": 223
+    },
+    {
+      "atom": "effect.attach",
+      "occurrenceCount": 285,
+      "autoLineCount": 0,
+      "manualLineCount": 101
+    },
+    {
+      "atom": "effect.transform",
+      "occurrenceCount": 255,
+      "autoLineCount": 0,
+      "manualLineCount": 145
+    },
+    {
+      "atom": "effect.counter-spell",
+      "occurrenceCount": 238,
+      "autoLineCount": 0,
+      "manualLineCount": 21
+    },
+    {
+      "atom": "effect.surveil",
+      "occurrenceCount": 190,
+      "autoLineCount": 0,
+      "manualLineCount": 155
+    },
+    {
+      "atom": "effect.gain-control",
+      "occurrenceCount": 170,
+      "autoLineCount": 0,
+      "manualLineCount": 35
+    },
+    {
+      "atom": "effect.energy",
+      "occurrenceCount": 147,
+      "autoLineCount": 5,
+      "manualLineCount": 87
+    },
+    {
+      "atom": "effect.loyalty",
+      "occurrenceCount": 54,
+      "autoLineCount": 0,
+      "manualLineCount": 42
+    },
+    {
+      "atom": "effect.poison",
+      "occurrenceCount": 51,
+      "autoLineCount": 1,
+      "manualLineCount": 38
+    },
+    {
+      "atom": "effect.extra-turn",
+      "occurrenceCount": 39,
+      "autoLineCount": 0,
+      "manualLineCount": 22
+    },
+    {
+      "atom": "effect.experience",
+      "occurrenceCount": 29,
+      "autoLineCount": 10,
+      "manualLineCount": 14
+    }
+  ],
+  "reasonSummary": [
+    {
+      "reason": "needs-target",
+      "lineCount": 7478,
+      "lineRate": 0.5717999694142836
+    },
+    {
+      "reason": "needs-parse",
+      "lineCount": 4896,
+      "lineRate": 0.3743691695977978
+    },
+    {
+      "reason": "variable-count",
+      "lineCount": 1427,
+      "lineRate": 0.10911454350818169
+    },
+    {
+      "reason": "needs-choice",
+      "lineCount": 1018,
+      "lineRate": 0.07784064841718917
+    },
+    {
+      "reason": "optional",
+      "lineCount": 938,
+      "lineRate": 0.0717235051231075
+    },
+    {
+      "reason": "ambiguous-mana",
+      "lineCount": 659,
+      "lineRate": 0.05038996788499771
+    },
+    {
+      "reason": "no-command",
+      "lineCount": 22,
+      "lineRate": 0.0016822144058724576
+    }
+  ],
+  "autoCandidatesTop": [
+    {
+      "cardName": "Cryptbreaker",
+      "oracleId": "16f75a65-d067-4f79-81b9-833c373cf4d2",
+      "scryfallId": "72cd8a57-1cdc-4090-84e3-f78da661ee39",
+      "faceIndex": 0,
+      "typeLine": "Creature — Zombie",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "Tap three untapped Zombies you control: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Faerie Dreamthief",
+      "oracleId": "d6e68414-80cb-4e08-ae84-b084a3f4b6de",
+      "scryfallId": "57ca2ec5-442d-4909-be28-93c50fbc5f7a",
+      "faceIndex": 0,
+      "typeLine": "Creature — Faerie Warlock",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}{B}, Exile this card from your graveyard: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Grasping Shadows // Shadows' Lair",
+      "oracleId": "522a4b02-24c7-45d2-9097-2803cc9fffad",
+      "scryfallId": "81b8b9c9-725d-476d-a3cf-55e3dc3e433d",
+      "faceIndex": 1,
+      "typeLine": "Land — Cave",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{B}, {T}, Remove a dread counter from this land: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Greta, Sweettooth Scourge",
+      "oracleId": "00173df7-a584-410c-af1d-ada9c791056a",
+      "scryfallId": "2cfd365e-34d1-4224-b925-119000311934",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Human Warrior",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}{B}, Sacrifice a Food: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Infernal Idol",
+      "oracleId": "a0802918-e18a-4716-befb-96ae6667f2f3",
+      "scryfallId": "9d986229-c8d5-462c-bf74-ae94326a5aa0",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}{B}{B}, {T}, Sacrifice this artifact: You draw two cards and you lose 2 life."
+    },
+    {
+      "cardName": "Izzet Generatorium",
+      "oracleId": "6a618c4a-e604-4dce-a078-755fd35ac5d9",
+      "scryfallId": "c6d9537d-c6b9-46ef-834b-87750d79f1ae",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Draw a card. Activate only if you've paid or lost four or more {E} this turn."
+    },
+    {
+      "cardName": "Metalspinner's Puzzleknot",
+      "oracleId": "c19d2f54-2c3a-4cbe-8328-061d4b51f574",
+      "scryfallId": "56628644-df26-4cbc-b67c-d1b2f69ebe08",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}{B}, Sacrifice this artifact: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Pristine Talisman",
+      "oracleId": "1b3d7fce-e9fe-4176-9d9a-472415826cdd",
+      "scryfallId": "92a0093b-ef5d-4697-b85d-d890fcddc66d",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {C}. You gain 1 life."
+    },
+    {
+      "cardName": "Reckless Lackey",
+      "oracleId": "73733fa5-d292-40ec-8f17-05ba5feb40ab",
+      "scryfallId": "912fcd14-5e81-418c-997b-771f2f38f63d",
+      "faceIndex": 0,
+      "typeLine": "Creature — Goblin Pirate",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}{R}, Sacrifice this creature: Draw a card and create a Treasure token."
+    },
+    {
+      "cardName": "Reckoner Bankbuster",
+      "oracleId": "b6be94dc-7162-4887-b959-3bda709724eb",
+      "scryfallId": "279acd17-6c17-427b-a69d-fc02442ff4a3",
+      "faceIndex": 0,
+      "typeLine": "Artifact — Vehicle",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}, {T}, Remove a charge counter from this Vehicle: Draw a card. Then if there are no charge counters on this Vehicle, create a Treasure token and a 1/1 colorless Pilot creature token with"
+    },
+    {
+      "cardName": "Redrock Sentinel",
+      "oracleId": "51a6819d-c8fb-4f52-ab0c-4ae845728ed2",
+      "scryfallId": "8eb98381-8418-4dfd-b7d1-4353570e611b",
+      "faceIndex": 0,
+      "typeLine": "Artifact Creature — Golem",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}, {T}, Sacrifice a land: Draw a card and create a Treasure token."
+    },
+    {
+      "cardName": "River of Tears",
+      "oracleId": "8a83d284-75a0-4901-b7d9-c4b7586ee327",
+      "scryfallId": "67b626cc-1c12-4059-afa5-e5a1221ea1ba",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {U}. If you played a land this turn, add {B} instead."
+    },
+    {
+      "cardName": "Sarevok's Tome",
+      "oracleId": "6ec54d84-7026-45a3-a7d7-37cd5c9a8463",
+      "scryfallId": "5a470690-a05d-4311-963c-50cbf779846d",
+      "faceIndex": 0,
+      "typeLine": "Artifact — Book",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {C}. If you have the initiative, add {C}{C} instead."
+    },
+    {
+      "cardName": "Scaled Nurturer",
+      "oracleId": "13b96709-0e88-476b-9485-956e682bb818",
+      "scryfallId": "84ae5a76-b8b9-431d-8060-a6a96f5d1e0b",
+      "faceIndex": 0,
+      "typeLine": "Creature — Dragon Druid",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {G}. When you spend this mana to cast a Dragon creature spell, you gain 2 life."
+    },
+    {
+      "cardName": "The Great Henge",
+      "oracleId": "78427103-9543-41fb-b6d4-72963fe87275",
+      "scryfallId": "6340e0f3-7f9c-4d71-8daf-e1be5505eb5b",
+      "faceIndex": 0,
+      "typeLine": "Legendary Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {G}{G}. You gain 2 life."
+    },
+    {
+      "cardName": "Undermountain Adventurer",
+      "oracleId": "2e5e0abd-38a6-46ca-b922-556db52f1332",
+      "scryfallId": "541f53a3-521f-4463-a0b6-758a45d8f661",
+      "faceIndex": 0,
+      "typeLine": "Creature — Giant Warrior",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {G}{G}. If you've completed a dungeon, add six {G} instead."
+    },
+    {
+      "cardName": "Abandoned Air Temple",
+      "oracleId": "9575d7ce-f26d-4b90-87a3-6329e9799572",
+      "scryfallId": "9c0433f9-8f1e-4a19-a83f-a41925f1b1a9",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Add {W}."
+    },
+    {
+      "cardName": "Abstergo Entertainment",
+      "oracleId": "d06a8026-1657-4404-8dff-64e44f1a14f8",
+      "scryfallId": "4d197866-7633-493c-80dd-ec3a09165934",
+      "faceIndex": 0,
+      "typeLine": "Legendary Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Add {C}."
+    },
+    {
+      "cardName": "Abundant Countryside",
+      "oracleId": "e3eb6f90-ccfc-41e7-bff6-0b378226bc7e",
+      "scryfallId": "37478625-dd07-476d-bd9b-b2e0d71ac0d1",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Add {C}."
+    },
+    {
+      "cardName": "Academy Ruins",
+      "oracleId": "a3da7d5b-2c2b-45fe-b9c5-413b8c8fc0a2",
+      "scryfallId": "128deed2-b9bc-4065-95c9-ccd7b08f1230",
+      "faceIndex": 0,
+      "typeLine": "Legendary Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Add {C}."
+    }
+  ],
+  "mappingFailuresTop": []
+}
