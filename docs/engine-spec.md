@@ -1297,3 +1297,132 @@ probe 確定前に snapshot 実カード文言で誤発火/取りこぼしを点
 - `src/engine/grammar/*` は純粋・決定的(同入力→同出力)。`src/engine/` の既存ファイル・公開挙動は**差分ゼロ**(import のための index 新設は可、既存 export 改変は不可)。
 - 実装の変更対象は **新規** `src/engine/grammar/*` / `scripts/grammar-coverage.ts` / `research/grammar-coverage/*`(生成物)/ `package.json`(`grammar-coverage` script 追加のみ)。`src/engine/` 既存ファイル / `src/data/` / `src/store/` / `src/components/` / `review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。
 - reviewer 専有テスト `review.grammar-coverage`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-coverage` が 17,491枚で完走し §29.5 の累積カバレッジ曲線を出力すること。
+
+## 30. エンジン文法器トラック Phase G1: 能力IR型 + targetless パーサ(`src/engine/grammar/ir.ts` + `rule-refs.ts` + `scripts/grammar-ir.ts`)— この節も契約である
+
+### 30.0 目的と分界(重要)
+G0(§29)は能力の**分類と計測**のみ。G1 は G2(インタプリタ+全自動実行)が消費する **能力IR(中間表現)の型と、それを生成する targetless パーサ**を確立する。北極星=**「対象/モードを要さない効果行のうち、何%を完全な IR(`status==='full'`)へ表現できるか」を定量化**し、G0「自動化可能フロンティア」(上位20で60.8%/全34で69.4%)を「実際に構造化できた行率」として裏付ける。
+
+**G1 も計測・表現専用**。IR→コマンド列のコンパイル・実行・`applyCommand` 連携・対象/モード誘導・`effectsAuto`・ストア/UI 配線は **G2 以降**。本節では IR を**生成するだけ**(実行しない)。統治原則は §29.0 を継承(probe は人間裁定用の広網候補、正本ゲートはコーパス回帰 + `review.grammar-ir`)。
+
+### 30.1 新規モジュール `src/engine/grammar/ir.ts`(純関数・計測/表現専用)
+GameState に一切触れない純粋・決定的関数群。§29 の公開関数(`splitAbilityLines` / `classifyAbilityShape` / `detectEffectAtoms` / `detectConstructs`)と `EFFECT_ATOM_DEFINITIONS` を**再利用**する(index.ts 内部は export を増やさず ir.ts 側で必要分を独立導出)。正本は英語 `oracleText`。
+
+公開関数(シグネチャは契約):
+- `parseAbilityIR(line: string, typeLine: string): AbilityIR` — 1能力行を IR へ分解。
+
+型:
+```ts
+type CountSpec =
+  | { kind: 'one' }                  // "draw a card" / "a"/"an"
+  | { kind: 'fixed'; value: number } // "draw two cards" / 数字
+  | { kind: 'variable-x' }           // {X} / X
+  | { kind: 'for-each' }             // "for each ..."
+  | { kind: 'unknown' };
+interface EffectClause {
+  atom: EffectAtomId;      // §29.3 の安定 id
+  ruleRef: string;         // 対応 CR id(§30.3・rule-refs.ts で妥当性検証)
+  count: CountSpec;
+  optional: boolean;       // "you may" 配下
+  raw: string;             // 該当クローズ(sanitize 済み verbatim)
+}
+interface AbilityCost {    // shape==='activated' のみ非null
+  raw: string;             // コロン左辺 verbatim
+  mana: string | null;     // 例 "{2}{U}"(無ければ null)
+  tap: boolean;            // 左辺に {T}
+  sacrificesSelf: boolean; // 左辺が "Sacrifice <this/self>"
+}
+interface TriggerCondition { // shape∈{triggered,delayed-triggered} のみ非null
+  word: 'when' | 'whenever' | 'at';
+  raw: string;             // 最初のカンマ前の条件文(CR 603.1)
+}
+type ParseStatus = 'full' | 'partial' | 'none';
+interface AbilityIR {
+  shape: AbilityShape;          // classifyAbilityShape を流用
+  cost: AbilityCost | null;
+  trigger: TriggerCondition | null;
+  effects: EffectClause[];
+  constructs: ConstructId[];    // 効果スパン上の壁(detectConstructs 流用・昇順)
+  status: ParseStatus;
+  blockers: string[];           // full でない理由(昇順・重複なし)
+}
+```
+
+### 30.2 分解ロジックと `status` 判定(決定的)
+- **shape**: `classifyAbilityShape(line, typeLine)`。
+- **cost**(activated のみ): 最初の `:` 左辺を `AbilityCost` へ。`{...}` 連結を `mana`(`{T}` は mana から除外し `tap=true`)、`^Sacrifice\b.*\b(this|it|self|<同名>)` 様を `sacrificesSelf=true`。index.ts の `isCostLikeActivatedPrefix` 相当は ir.ts で独立再導出する(index.ts 内部 export を増やさない)。
+- **trigger**(triggered/delayed のみ): 先頭語(`when`/`whenever`/`at`)+ **最初のカンマ前**を `TriggerCondition.raw` へ。CR 603.1a の対象制限/打ち消し不可指示は条件に含めない。
+- **効果スパン** = 行から cost(コロン右辺へ)/trigger(最初のカンマ後へ)を除いた残り。`. ` と `then`/`and then` でクローズへ分割し、各クローズに `detectEffectAtoms` を適用(1クローズ複数 atom 可)。`count` は数詞マップ(`a`/`an`→one、`two`〜`ten`/数字→fixed、`{X}`/`\bX\b`→variable-x、`for each`→for-each、不明→unknown)。`optional` は行内 `you may`(construct.may)で近似。`constructs` は効果スパンに対する `detectConstructs`。
+- **`status`**:
+  - `full` = `effects.length >= 1` **かつ** 全クローズの atom が既知 **かつ** `constructs` に `construct.target` も `construct.choose-modal` も**含まない**。= 対象もモードも要らず既知アトムだけで完結。
+  - `partial` = atom を1つ以上検出したが上記いずれかを満たさない(target/choose-modal の壁、または atom 化できない残余文がある)。
+  - `none` = atom を1つも検出できない(keyword/空行を含む)。
+- **`blockers`**(full 以外で非空・昇順): `construct.target` / `construct.choose-modal`(壁構文)・`unknown-atom`(atom 不在の効果残余あり)・`no-atom`(status none)。
+
+### 30.3 効果アトムの `ruleRef` 錨付け(正本)
+`EFFECT_ATOM_DEFINITIONS`(index.ts)各要素に `ruleRef: string` を**加算追加**(probe/id/関数は不変)。正本マッピング:
+
+| atom | ruleRef | 根拠 |
+|---|---|---|
+| effect.create-token | 701.7 | Create |
+| effect.destroy | 701.8 | Destroy |
+| effect.exile | 701.13 | Exile |
+| effect.sacrifice | 701.21 | Sacrifice |
+| effect.scry | 701.22 | Scry |
+| effect.surveil | 701.25 | Surveil |
+| effect.mill | 701.17 | Mill |
+| effect.discard | 701.9 | Discard |
+| effect.search | 701.23 | Search |
+| effect.reveal | 701.20 | Reveal |
+| effect.tap | 701.26 | Tap and Untap |
+| effect.untap | 701.26 | Tap and Untap |
+| effect.attach | 701.3 | Attach |
+| effect.transform | 701.27 | Transform |
+| effect.counter-spell | 701.6 | Counter |
+| effect.draw | 121 | Drawing a Card |
+| effect.gain-life | 119 | Life |
+| effect.lose-life | 119 | Life |
+| effect.damage | 120 | Damage |
+| effect.counter-plus | 122 | Counters |
+| effect.poison | 122 | Counters(poison) |
+| effect.energy | 122 | Counters(energy) |
+| effect.experience | 122 | Counters(experience) |
+| effect.loyalty | 122 | Counters(loyalty) |
+| effect.add-mana | 106 | Mana |
+| effect.grant-keyword | 702 | Keyword Abilities |
+| effect.copy | 707 | Copying Objects |
+| effect.return / effect.pump / effect.restriction / effect.put-onto-battlefield / effect.treasure / effect.gain-control / effect.extra-turn | standard | 標準英語動詞(701 keyword action ではない・[[comprehensive-rules-reference]]) |
+
+`ruleRef` の形式: `701.<n>`(2≤n≤68)/ `106`/`119`/`120`/`121`/`122`/`123`/`702`/`707` / `standard`。
+
+### 30.4 CR ground-truth(`src/engine/grammar/rule-refs.ts`)
+`rule/Magic_The_Gathering_Comprehensive_Rules.txt` を**1回機械パース**(`^701\.\d+\.\s+<Name>`)して CR §701 keyword-action の id/名称(701.2–701.68)を抽出し、§118–123 の id と併せて**コミット済み定数**として持つ。`rule/` txt は test/script の**実行時依存にしない**(ローカル参照のまま・コミットしない)。
+- `CR_KEYWORD_ACTIONS: ReadonlyArray<{ id: string; name: string }>` — 701.2–701.68。
+- `isValidRuleRef(ref: string): boolean` — `701.*`(既知 id)/ `106`/`119`/`120`/`121`/`122`/`123`/`702`/`707` / `standard` を許容。
+- レポート・review は「全 atom.ruleRef が `isValidRuleRef`」「atom 未割当の CR §701 action(語彙ギャップ)」を機械検証する。
+
+### 30.5 出力レポート(`research/grammar-ir/report.md` + `report.json`)
+`scripts/grammar-ir.ts`(`npm run grammar-ir`、tsx)。`grammar-coverage.ts` の骨格(`mapScryfallCardToCardDef` 写像・集計・Markdown描画・サイズ有界 top-N・`report.json` 併出力)を踏襲。冒頭に「未調整(候補分布)」を明記。節:
+1. **総数**: raw / 写像成功・失敗 / 効果保有行数(G0 と接続)。
+2. **parse status 分布**: full/partial/none の行数・割合。
+3. **IR 表現フロンティア(主成果)**: `full` 率を全体 + shape 別。G0 の自動化フロンティア(60.8%/69.4%)を sanity アンカーとして併記。
+4. **ruleRef 検証**: (a)無効 ruleRef を持つ atom(あれば)、(b)atom 未割当の CR §701 keyword-action(語彙ギャップ top-N)。
+5. **blocker 分布**: full でない理由(target / choose-modal / unknown-atom / no-atom)の出現率。
+6. **裁定候補**: partial/none の代表行 top-N(§26.0 流の人間裁定リスト)。
+
+### 30.6 裏取り(確定前必須・§29.6 流)
+probe/数詞/cost 抽出を確定する前に snapshot 実カード文言で点検し `review.grammar-ir` に固定:
+- `Draw two cards.` → status `full` / effect.draw / count `fixed`(2) / optional false。
+- `Destroy target creature.` → `partial` / blockers に `construct.target`。
+- `Choose one — Draw a card; or You gain 3 life.` → `partial` / blockers に `construct.choose-modal`。
+- `{2}{U}, {T}: Draw a card.` → shape `activated` / cost.mana `{2}{U}` / cost.tap true / 効果 draw が full 相当(status full)。
+- `When this creature enters, draw a card.` → `triggered` / trigger.word `when` / trigger.raw に `this creature enters` / 効果 draw / status full。
+- `At the beginning of the next end step, sacrifice it.` → `delayed-triggered`。
+- `You may draw a card.` → effect.draw / optional true。
+- ruleRef: 全 atom.ruleRef が `isValidRuleRef`。`effect.draw`→`121`、`effect.create-token`→`701.7`。
+
+### 30.7 不変・非干渉(エンジン不変)
+- **計測/表現専用**: GameState を生成・変更しない。`applyCommand`/コマンド/ストアに触れない。**I1〜I7 影響なし**・snapshot 互換不変。
+- `src/engine/grammar/*` は純粋・決定的(同入力→同出力・入力非破壊)。`src/engine/` 既存公開挙動は**差分ゼロ**。index.ts は `EFFECT_ATOM_DEFINITIONS` への `ruleRef` 加算のみ可(probe/id/関数・既存 export の改変不可)。G0 の `review.grammar-coverage` が引き続き全通過すること。
+- 実装の変更対象は **新規** `src/engine/grammar/ir.ts` / `src/engine/grammar/rule-refs.ts` / `scripts/grammar-ir.ts` / `research/grammar-ir/*`(生成物)/ `package.json`(`grammar-ir` script 追加のみ)+ index.ts への `ruleRef` 加算。`src/data/` / `src/store/` / `src/components/` / `review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
+- reviewer 専有テスト `review.grammar-ir`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-ir` が 17,491枚で完走し §30.5 の IR 表現フロンティアを出力すること。

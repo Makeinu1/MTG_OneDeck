@@ -31,77 +31,87 @@ interface ProbeDefinition<Id extends string> {
   probe: RegExp;
 }
 
-export type EffectAtomDefinition = ProbeDefinition<EffectAtomId>;
+export interface EffectAtomDefinition extends ProbeDefinition<EffectAtomId> {
+  ruleRef: string;
+}
 export type ConstructDefinition = ProbeDefinition<ConstructId>;
 
 export const EFFECT_ATOM_DEFINITIONS: readonly EffectAtomDefinition[] = [
   {
     id: 'effect.add-mana',
     label: 'マナを加える',
+    ruleRef: '106',
     probe: /\badd(?:s|ed)?\b(?=[^.]*?(?:\{[WUBRGC]\}|\bmana\b))/i,
   },
-  { id: 'effect.attach', label: 'つける', probe: /\battach(?:es|ed|ing)?\b/i },
-  { id: 'effect.copy', label: 'コピーする', probe: /\bcop(?:y|ies|ied|ying)\b/i },
+  { id: 'effect.attach', label: 'つける', ruleRef: '701.3', probe: /\battach(?:es|ed|ing)?\b/i },
+  { id: 'effect.copy', label: 'コピーする', ruleRef: '707', probe: /\bcop(?:y|ies|ied|ying)\b/i },
   {
     id: 'effect.counter-plus',
     label: 'カウンターを置く',
+    ruleRef: '122',
     probe: /[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b/i,
   },
   {
     id: 'effect.counter-spell',
     label: '呪文を打ち消す',
+    ruleRef: '701.6',
     probe: /\bcounter(?:s|ed|ing)?\b[^.]*\bspell\b/i,
   },
   {
     id: 'effect.create-token',
     label: 'トークンを生成する',
+    ruleRef: '701.7',
     probe: /\bcreate(?:s|d)?\b[^.]*\btokens?\b/i,
   },
-  { id: 'effect.damage', label: 'ダメージを与える', probe: /\bdamage\b/i },
-  { id: 'effect.destroy', label: '破壊する', probe: /\bdestroy(?:s|ed|ing)?\b/i },
-  { id: 'effect.discard', label: '捨てる', probe: /\bdiscard(?:s|ed|ing)?\b/i },
-  { id: 'effect.draw', label: 'カードを引く', probe: /\bdraw(?:s|n|ing)?\b/i },
-  { id: 'effect.energy', label: 'エネルギー・カウンター', probe: /\benergy counters?\b|\{E\}/i },
-  { id: 'effect.exile', label: '追放する', probe: /\bexile(?:s|d|ing)?\b/i },
-  { id: 'effect.experience', label: '経験カウンター', probe: /\bexperience counters?\b/i },
-  { id: 'effect.extra-turn', label: '追加ターン', probe: /\bextra turn\b/i },
+  { id: 'effect.damage', label: 'ダメージを与える', ruleRef: '120', probe: /\bdamage\b/i },
+  { id: 'effect.destroy', label: '破壊する', ruleRef: '701.8', probe: /\bdestroy(?:s|ed|ing)?\b/i },
+  { id: 'effect.discard', label: '捨てる', ruleRef: '701.9', probe: /\bdiscard(?:s|ed|ing)?\b/i },
+  { id: 'effect.draw', label: 'カードを引く', ruleRef: '121', probe: /\bdraw(?:s|n|ing)?\b/i },
+  { id: 'effect.energy', label: 'エネルギー・カウンター', ruleRef: '122', probe: /\benergy counters?\b|\{E\}/i },
+  { id: 'effect.exile', label: '追放する', ruleRef: '701.13', probe: /\bexile(?:s|d|ing)?\b/i },
+  { id: 'effect.experience', label: '経験カウンター', ruleRef: '122', probe: /\bexperience counters?\b/i },
+  { id: 'effect.extra-turn', label: '追加ターン', ruleRef: 'standard', probe: /\bextra turn\b/i },
   {
     id: 'effect.gain-control',
     label: 'コントロールを得る',
+    ruleRef: 'standard',
     probe: /\bgain(?:s|ed|ing)? control\b/i,
   },
-  { id: 'effect.gain-life', label: 'ライフを得る', probe: /\bgain(?:s|ed|ing)?\b[^.]*\blife\b/i },
+  { id: 'effect.gain-life', label: 'ライフを得る', ruleRef: '119', probe: /\bgain(?:s|ed|ing)?\b[^.]*\blife\b/i },
   {
     id: 'effect.grant-keyword',
     label: 'キーワードを得る',
+    ruleRef: '702',
     probe:
       /\bgain(?:s|ed|ing)?\b[^.]*\b(?:deathtouch|defender|double strike|first strike|flying|haste|hexproof|indestructible|lifelink|menace|protection|reach|trample|vigilance|ward)\b/i,
   },
-  { id: 'effect.lose-life', label: 'ライフを失う', probe: /\blose(?:s|t|ing)?\b[^.]*\blife\b/i },
-  { id: 'effect.loyalty', label: '忠誠度', probe: /\bloyalty\b/i },
-  { id: 'effect.mill', label: '切削する', probe: /\bmill(?:s|ed|ing)?\b/i },
-  { id: 'effect.poison', label: '毒カウンター', probe: /\bpoison counters?\b/i },
+  { id: 'effect.lose-life', label: 'ライフを失う', ruleRef: '119', probe: /\blose(?:s|t|ing)?\b[^.]*\blife\b/i },
+  { id: 'effect.loyalty', label: '忠誠度', ruleRef: '122', probe: /\bloyalty\b/i },
+  { id: 'effect.mill', label: '切削する', ruleRef: '701.17', probe: /\bmill(?:s|ed|ing)?\b/i },
+  { id: 'effect.poison', label: '毒カウンター', ruleRef: '122', probe: /\bpoison counters?\b/i },
   {
     id: 'effect.pump',
     label: '修整する',
+    ruleRef: 'standard',
     probe: /\bgets?\s+[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b/i,
   },
   {
     id: 'effect.put-onto-battlefield',
     label: '戦場に出す',
+    ruleRef: 'standard',
     probe: /\bput\b[^.]*\bonto the battlefield\b/i,
   },
-  { id: 'effect.restriction', label: '禁止する', probe: /\bcan't\b|\bcannot\b/i },
-  { id: 'effect.return', label: '戻す', probe: /\breturn(?:s|ed|ing)?\b/i },
-  { id: 'effect.reveal', label: '公開する', probe: /\breveal(?:s|ed|ing)?\b/i },
-  { id: 'effect.sacrifice', label: '生け贄に捧げる', probe: /\bsacrifice(?:s|d|ing)?\b/i },
-  { id: 'effect.scry', label: '占術を行う', probe: /\bscry(?:s|ed|ing)?\b/i },
-  { id: 'effect.search', label: '探す', probe: /\bsearch(?:es|ed|ing)?\b/i },
-  { id: 'effect.surveil', label: '諜報を行う', probe: /\bsurveil(?:s|ed|ing)?\b/i },
-  { id: 'effect.tap', label: 'タップする', probe: /\btap(?:s|ped|ping)?\b/i },
-  { id: 'effect.transform', label: '変身する', probe: /\btransform(?:s|ed|ing)?\b/i },
-  { id: 'effect.treasure', label: '宝物', probe: /\btreasure\b/i },
-  { id: 'effect.untap', label: 'アンタップする', probe: /\buntap(?:s|ped|ping)?\b/i },
+  { id: 'effect.restriction', label: '禁止する', ruleRef: 'standard', probe: /\bcan't\b|\bcannot\b/i },
+  { id: 'effect.return', label: '戻す', ruleRef: 'standard', probe: /\breturn(?:s|ed|ing)?\b/i },
+  { id: 'effect.reveal', label: '公開する', ruleRef: '701.20', probe: /\breveal(?:s|ed|ing)?\b/i },
+  { id: 'effect.sacrifice', label: '生け贄に捧げる', ruleRef: '701.21', probe: /\bsacrifice(?:s|d|ing)?\b/i },
+  { id: 'effect.scry', label: '占術を行う', ruleRef: '701.22', probe: /\bscry(?:s|ed|ing)?\b/i },
+  { id: 'effect.search', label: '探す', ruleRef: '701.23', probe: /\bsearch(?:es|ed|ing)?\b/i },
+  { id: 'effect.surveil', label: '諜報を行う', ruleRef: '701.25', probe: /\bsurveil(?:s|ed|ing)?\b/i },
+  { id: 'effect.tap', label: 'タップする', ruleRef: '701.26', probe: /\btap(?:s|ped|ping)?\b/i },
+  { id: 'effect.transform', label: '変身する', ruleRef: '701.27', probe: /\btransform(?:s|ed|ing)?\b/i },
+  { id: 'effect.treasure', label: '宝物', ruleRef: 'standard', probe: /\btreasure\b/i },
+  { id: 'effect.untap', label: 'アンタップする', ruleRef: '701.26', probe: /\buntap(?:s|ped|ping)?\b/i },
 ];
 
 export const CONSTRUCT_DEFINITIONS: readonly ConstructDefinition[] = [

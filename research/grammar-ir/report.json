@@ -1,0 +1,483 @@
+{
+  "note": "この数値は未調整(候補分布であり絶対正解でない)。IR は targetless 表現の候補分布。",
+  "generatedAt": "2026-06-21T11:31:42.154Z",
+  "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
+  "totals": {
+    "rawCards": 17491,
+    "mappedCards": 17491,
+    "mappingFailures": 0,
+    "abilityLineCount": 36116,
+    "effectLineCount": 22507,
+    "atomOccurrenceCount": 31831
+  },
+  "statusSummary": [
+    {
+      "status": "full",
+      "lineCount": 13078,
+      "lineRate": 0.36211097574482226
+    },
+    {
+      "status": "partial",
+      "lineCount": 9429,
+      "lineRate": 0.26107542363495406
+    },
+    {
+      "status": "none",
+      "lineCount": 13609,
+      "lineRate": 0.37681360062022373
+    }
+  ],
+  "frontierSummary": [
+    {
+      "shape": "overall",
+      "label": "全体",
+      "lineCount": 36116,
+      "effectLineCount": 22507,
+      "fullCount": 13078,
+      "partialCount": 9429,
+      "noneCount": 13609,
+      "fullRate": 0.5810636690807305
+    },
+    {
+      "shape": "activated",
+      "label": "起動型",
+      "lineCount": 5103,
+      "effectLineCount": 4502,
+      "fullCount": 2674,
+      "partialCount": 1828,
+      "noneCount": 601,
+      "fullRate": 0.5939582407818748
+    },
+    {
+      "shape": "triggered",
+      "label": "誘発型",
+      "lineCount": 8972,
+      "effectLineCount": 7881,
+      "fullCount": 4888,
+      "partialCount": 2993,
+      "noneCount": 1091,
+      "fullRate": 0.6202258596624793
+    },
+    {
+      "shape": "delayed-triggered",
+      "label": "遅延誘発型",
+      "lineCount": 97,
+      "effectLineCount": 90,
+      "fullCount": 49,
+      "partialCount": 41,
+      "noneCount": 7,
+      "fullRate": 0.5444444444444444
+    },
+    {
+      "shape": "replacement",
+      "label": "置換",
+      "lineCount": 825,
+      "effectLineCount": 581,
+      "fullCount": 471,
+      "partialCount": 110,
+      "noneCount": 244,
+      "fullRate": 0.810671256454389
+    },
+    {
+      "shape": "static",
+      "label": "常在型",
+      "lineCount": 7561,
+      "effectLineCount": 4891,
+      "fullCount": 3549,
+      "partialCount": 1342,
+      "noneCount": 2670,
+      "fullRate": 0.7256184829278266
+    },
+    {
+      "shape": "spell",
+      "label": "呪文本体",
+      "lineCount": 5384,
+      "effectLineCount": 4458,
+      "fullCount": 1354,
+      "partialCount": 3104,
+      "noneCount": 926,
+      "fullRate": 0.30372364288918796
+    },
+    {
+      "shape": "keyword",
+      "label": "純キーワード",
+      "lineCount": 8174,
+      "effectLineCount": 104,
+      "fullCount": 93,
+      "partialCount": 11,
+      "noneCount": 8070,
+      "fullRate": 0.8942307692307693
+    }
+  ],
+  "ruleRefValidation": {
+    "invalidRuleRefs": [],
+    "keywordActionGapsTop": [
+      {
+        "id": "701.2",
+        "name": "Activate"
+      },
+      {
+        "id": "701.4",
+        "name": "Behold"
+      },
+      {
+        "id": "701.5",
+        "name": "Cast"
+      },
+      {
+        "id": "701.10",
+        "name": "Double"
+      },
+      {
+        "id": "701.11",
+        "name": "Triple"
+      },
+      {
+        "id": "701.12",
+        "name": "Exchange"
+      },
+      {
+        "id": "701.14",
+        "name": "Fight"
+      },
+      {
+        "id": "701.15",
+        "name": "Goad"
+      },
+      {
+        "id": "701.16",
+        "name": "Investigate"
+      },
+      {
+        "id": "701.18",
+        "name": "Play"
+      },
+      {
+        "id": "701.19",
+        "name": "Regenerate"
+      },
+      {
+        "id": "701.24",
+        "name": "Shuffle"
+      },
+      {
+        "id": "701.28",
+        "name": "Convert"
+      },
+      {
+        "id": "701.29",
+        "name": "Fateseal"
+      },
+      {
+        "id": "701.30",
+        "name": "Clash"
+      },
+      {
+        "id": "701.31",
+        "name": "Planeswalk"
+      },
+      {
+        "id": "701.32",
+        "name": "Set in Motion"
+      },
+      {
+        "id": "701.33",
+        "name": "Abandon"
+      },
+      {
+        "id": "701.34",
+        "name": "Proliferate"
+      },
+      {
+        "id": "701.35",
+        "name": "Detain"
+      }
+    ],
+    "keywordActionGapCount": 53
+  },
+  "blockerSummary": [
+    {
+      "blocker": "construct.target",
+      "lineCount": 7025,
+      "lineRate": 0.19451212758888028
+    },
+    {
+      "blocker": "construct.choose-modal",
+      "lineCount": 1883,
+      "lineRate": 0.052137556761546126
+    },
+    {
+      "blocker": "unknown-atom",
+      "lineCount": 3595,
+      "lineRate": 0.09954036991914941
+    },
+    {
+      "blocker": "no-atom",
+      "lineCount": 13609,
+      "lineRate": 0.37681360062022373
+    }
+  ],
+  "adjudicationCandidatesTop": [
+    {
+      "cardName": "Glorfindel, Dauntless Rescuer",
+      "oracleId": "93842030-2017-4233-a7ac-7112361c019f",
+      "scryfallId": "baf7a546-8a8b-4396-ab64-9a5b9abffe79",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Elf Noble",
+      "shape": "triggered",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "Whenever you scry, choose one and Glorfindel gets +1/+1 until end of turn."
+    },
+    {
+      "cardName": "Zuko, Conflicted",
+      "oracleId": "b5fd82b9-77de-4358-9ce7-915cc809a889",
+      "scryfallId": "9d555cab-ec86-4f27-bca2-7d01f79c3f46",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Human Rogue",
+      "shape": "triggered",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "At the beginning of your first main phase, choose one that hasn't been chosen and you lose 2 life —"
+    },
+    {
+      "cardName": "Rankle and Torbran",
+      "oracleId": "80d918b2-3a28-49ad-a485-496658bd7ac3",
+      "scryfallId": "d92c191e-329c-41f5-ae4f-1bb91fc001a0",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Faerie Dwarf",
+      "shape": "replacement",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• If a source would deal damage to a player or battle this turn, it deals that much damage plus 2 instead."
+    },
+    {
+      "cardName": "Abiding Grace",
+      "oracleId": "f4e7bc58-336d-4670-84cb-a46ca1f48671",
+      "scryfallId": "1eaccb5a-76f9-4250-9bf0-0baa2d905868",
+      "faceIndex": 0,
+      "typeLine": "Enchantment",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• You gain 1 life."
+    },
+    {
+      "cardName": "Aether Channeler",
+      "oracleId": "fb220f46-f8b8-4804-baa4-e7d50b4871f7",
+      "scryfallId": "60afeb75-2c1e-4634-8c83-88b1dddb77c2",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Wizard",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Create a 1/1 white Bird creature token with flying."
+    },
+    {
+      "cardName": "Aether Channeler",
+      "oracleId": "fb220f46-f8b8-4804-baa4-e7d50b4871f7",
+      "scryfallId": "60afeb75-2c1e-4634-8c83-88b1dddb77c2",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Wizard",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Draw a card."
+    },
+    {
+      "cardName": "Ainok Guide",
+      "oracleId": "e5f96482-4bae-4d1b-97b2-dcc09676eb6e",
+      "scryfallId": "6ee0801c-4c48-45c9-9201-68bbbd92951d",
+      "faceIndex": 0,
+      "typeLine": "Creature — Dog Scout",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Put a +1/+1 counter on this creature."
+    },
+    {
+      "cardName": "Ao, the Dawn Sky",
+      "oracleId": "697ac261-263b-4879-bf45-6d10d23312ae",
+      "scryfallId": "e002d351-3795-4cd9-b389-9ed81077845e",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Dragon Spirit",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Put two +1/+1 counters on each permanent you control that's a creature or Vehicle."
+    },
+    {
+      "cardName": "Apothecary Stomper",
+      "oracleId": "6a381121-9134-489c-8c7e-44be1936b0e2",
+      "scryfallId": "680b7b0c-0e1b-46ce-9917-9fc6e05aa148",
+      "faceIndex": 0,
+      "typeLine": "Creature — Elephant",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• You gain 4 life."
+    },
+    {
+      "cardName": "Arbalest Engineers",
+      "oracleId": "06bea0b2-1d0f-4d64-a13e-723d08042e83",
+      "scryfallId": "df343bf9-f535-42c7-a2d0-8adfd068b354",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Artificer",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Create a tapped Powerstone token."
+    },
+    {
+      "cardName": "Astarion, the Decadent",
+      "oracleId": "03048844-32bb-45a2-a754-73f75eaa4566",
+      "scryfallId": "64d932b9-5682-4427-a871-7d452a488674",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Vampire Elf Rogue",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Friends — You gain life equal to the amount of life you gained this turn."
+    },
+    {
+      "cardName": "Atsushi, the Blazing Sky",
+      "oracleId": "535f405d-94df-4f45-aedc-b331103720b7",
+      "scryfallId": "06658540-0104-428f-91b1-40552826e781",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Dragon Spirit",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Create three Treasure tokens."
+    },
+    {
+      "cardName": "Avengers Quinjet",
+      "oracleId": "905e4bd1-f5f2-4691-b13f-ce2628d26a38",
+      "scryfallId": "c090d4b3-b108-4596-9d6d-738eb5e2249c",
+      "faceIndex": 0,
+      "typeLine": "Artifact — Vehicle",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• You may put a Hero creature card from your hand onto the battlefield."
+    },
+    {
+      "cardName": "Baleful Beholder",
+      "oracleId": "e7645ac4-6e05-426a-a62d-a33b30c33102",
+      "scryfallId": "e52d6ef6-d8a3-4288-8917-4c0a179ed4e0",
+      "faceIndex": 0,
+      "typeLine": "Creature — Beholder",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Antimagic Cone — Each opponent sacrifices an enchantment of their choice."
+    },
+    {
+      "cardName": "Baleful Beholder",
+      "oracleId": "e7645ac4-6e05-426a-a62d-a33b30c33102",
+      "scryfallId": "e52d6ef6-d8a3-4288-8917-4c0a179ed4e0",
+      "faceIndex": 0,
+      "typeLine": "Creature — Beholder",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Fear Ray — Creatures you control gain menace until end of turn."
+    },
+    {
+      "cardName": "Balloon Stand",
+      "oracleId": "abb6f51b-2a14-44ac-8c19-e135c9deb1ea",
+      "scryfallId": "2e9eaed8-e956-4fb2-a23d-3d442cd2fa5c",
+      "faceIndex": 0,
+      "typeLine": "Artifact — Attraction",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Create a 1/1 red Balloon creature token with flying."
+    },
+    {
+      "cardName": "Barrensteppe Siege",
+      "oracleId": "228d3307-69a9-45ce-a610-77754ed50877",
+      "scryfallId": "2556a35b-2229-42c7-8cb3-c8c668403dd2",
+      "faceIndex": 0,
+      "typeLine": "Enchantment",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Abzan — At the beginning of your end step, put a +1/+1 counter on each creature you control."
+    },
+    {
+      "cardName": "Barrensteppe Siege",
+      "oracleId": "228d3307-69a9-45ce-a610-77754ed50877",
+      "scryfallId": "2556a35b-2229-42c7-8cb3-c8c668403dd2",
+      "faceIndex": 0,
+      "typeLine": "Enchantment",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Mardu — At the beginning of your end step, if a creature died under your control this turn, each opponent sacrifices a creature of their choice."
+    },
+    {
+      "cardName": "Bill Ferny, Bree Swindler",
+      "oracleId": "ebbe5d82-a7a4-4f4b-b038-095021d9a6a8",
+      "scryfallId": "20ac63cb-fa4d-4340-8062-1029c8bd5ec8",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Human Rogue",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Create a Treasure token."
+    },
+    {
+      "cardName": "Black Market Connections",
+      "oracleId": "d2664f28-49e1-46f8-a863-b217e961a57c",
+      "scryfallId": "9d9ca869-e68a-4f53-9f52-85c714dac6f3",
+      "faceIndex": 0,
+      "typeLine": "Enchantment",
+      "shape": "static",
+      "status": "partial",
+      "blockers": [
+        "construct.choose-modal"
+      ],
+      "text": "• Buy Information — Draw a card. You lose 2 life."
+    }
+  ],
+  "mappingFailuresTop": []
+}
