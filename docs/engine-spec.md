@@ -1115,7 +1115,7 @@ export interface CardInstance {
 ### 26.2 ハーネス磨き込み(A1)
 - `research/classifier-accuracy/known-divergences.json`(**コミット**): 分類器が意図的に Scryfall と異なるケース(`{ tagOrKeyword, scryfallSays, classifierSays, reason }`)。ハーネスはこれを差し引いて報告。
 - 自己キャリブレーション: 人手検証した **gold 部分集合(まず ~50枚、`scripts/` 内 or fixtures)** で、ハーネス自身の誤り(照合/ラベル由来)を分離計測し report に併記。
-- 回帰コーパス `src/data/__tests__/fixtures/classifier-corpus.json`(**コミット**): 高信頼 ~100枚、`{ name, oracleText, expectTags[], expectKeywords[], confidence }`。reviewer 専有テスト **`review.classifier-corpus`** が `classifyCardRules`/`possessedKeywords` の結果と突き合わせ(低信頼ラベルは除外)。コーパス JSON 自体はコミット(回帰の基盤)。
+- 回帰コーパス `src/data/__tests__/fixtures/classifier-corpus.ts`(**コミット**・型付き TS モジュール。eslint/tsc の json-module/node-fs 解決問題を避けるため `.json` でなく `.ts`): `{ name, typeLine, oracleText, expectKeywords[], forbidKeywords[], expectTags[], forbidTags[], scryfallKeywords[], confidence, note }` の配列。reviewer 専有テスト **`review.classifier-corpus`** が `classifyCardRules`/`possessedKeywords` と突き合わせ(`expect*` は包含、`forbid*` は非包含=grant≠has の既知差分を固定)。低信頼ラベルは回帰ゲートから除外。
 
 ### 26.3 不変・非干渉
 - **エンジン/分類器ロジック不変**(計測のみ)。`src/` の変更は `mapScryfallCardToCardDef` の `export` 追加のみ。`review.*`/`docs/`/`CLAUDE.md`/`eslint.config.js`/`CACHE_SCHEMA_VERSION` は変更しない(本節の reviewer テスト `review.classifier-corpus` は Fable 専有)。

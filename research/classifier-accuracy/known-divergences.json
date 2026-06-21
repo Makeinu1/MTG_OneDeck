@@ -1,0 +1,34 @@
+{
+  "_doc": "分類器が意図的にScryfall keywordsと異なるケースの登録簿。ハーネスの不一致裁定で使う。Scryfall keywordsは『参照/付与』も載せるため、保有(has)を判定する分類器とは正しく食い違うことがある。各エントリは理由つき。コーパス(src/data/__tests__/fixtures/classifier-corpus.json)の forbidKeywords/forbidTags と対応。",
+  "divergences": [
+    {
+      "pattern": "conditional-grant-keyword",
+      "scryfallSays": "keyword present (e.g. Flying/Trample)",
+      "classifierSays": "absent (possessedKeywords excludes)",
+      "reason": "『is a [type] with flying』『creatures you control gain trample』『equipped creature has haste』等の条件付与・他者付与は静的保有ではない。grant != has(P1の成果)。分類器が除外して正しい。",
+      "examples": ["Goddric, Cloaked Reveler (flying)", "Craterhoof Behemoth (trample granted to others)", "Lightning Greaves (haste/shroud granted to equipped)"]
+    },
+    {
+      "pattern": "unset-acorn-nonstandard-notation",
+      "scryfallSays": "keyword present",
+      "classifierSays": "may be absent",
+      "reason": "Un-set/Acorn等の非正規表記(例『{TK}{TK}{TK} — Flying』レベルアップ式)。EDH正規プレイ対象外のため優先度低。許容。",
+      "examples": ["Ancestral Hot Dog Minotaur (flying)"]
+    },
+    {
+      "pattern": "transform-back-face-keyword",
+      "scryfallSays": "keyword present (aggregated over faces)",
+      "classifierSays": "depends on displayed face",
+      "reason": "表面に無いキーワードが裏面faceにあるカード。possessedKeywordsは表示中faceに依存。表示面選択の問題で分類器バグではない。",
+      "examples": ["Elbrus, the Binding Blade // Withengar Unbound (flying on back)"]
+    }
+  ],
+  "_phaseB_targets": {
+    "_doc": "これらは既知差分ではなく本物の分類器バグ。Phase B で修正しコーパスへ昇格する。",
+    "items": [
+      "equip 過検出: 『Equip abilities you activate cost ...』『creature is equipped』『Equipment card』等の言及で equip 保有が誤発火(例 Bureau Headmaster)。Equip {cost}/Equip—{cost} のキーワード行のみに厳格化。",
+      "equip 取りこぼし: 『Equip {10}』(2桁)や FF『Job select』同居の Equip {N} を未検出(例 Belt of Giant Strength)。",
+      "セミコロン区切りキーワード行: 『Flying; banding』(Nalathni Dragon)を分割できず flying 取りこぼし。セパレータに ; を追加。"
+    ]
+  }
+}
