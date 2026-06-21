@@ -71,18 +71,18 @@ describe('§31.2 compileAbilityIR: auto(対象/選択不要・count 確定)', ()
   });
 });
 
-describe('§31.2 compileAbilityIR: manual(壁・選択・対象・可変)', () => {
-  it('「Scry 2.」→ manual(needs-choice)。IR は full でもゲートで弾く', () => {
+describe('§31.2/§32.3 compileAbilityIR: manual / guided 再ベースライン(G3)', () => {
+  it('「Scry 2.」→ G3 で guided(scry-surveil)。旧 G2 は manual だった', () => {
     expect(parseAbilityIR('Scry 2.', 'Sorcery').status).toBe('full');
     const r = compile('Scry 2.');
-    expect(r.decision).toBe('manual');
-    expect(r.reasons).toContain('needs-choice');
+    expect(r.decision).toBe('guided');
+    expect(r.prompts.map((p) => p.kind)).toContain('scry-surveil');
   });
 
-  it('「Destroy target creature.」→ manual(needs-target)', () => {
+  it('「Destroy target creature.」→ G3 で guided(target)。旧 G2 は manual だった', () => {
     const r = compile('Destroy target creature.', 'Instant');
-    expect(r.decision).toBe('manual');
-    expect(r.reasons).toContain('needs-target');
+    expect(r.decision).toBe('guided');
+    expect(r.prompts[0]?.kind).toBe('target');
   });
 
   it('「Draw X cards.」→ manual(variable-count)', () => {
@@ -114,10 +114,16 @@ describe('§31.2 複数クローズ: 全 auto のみ auto', () => {
     ]);
   });
 
-  it('1クローズでも manual を含めば全体 manual', () => {
-    const r = compile('Draw a card. Destroy target creature.', 'Instant');
+  it('1クローズでも純 manual(damage は据え置き)を含めば全体 manual', () => {
+    const r = compile('Draw a card. Lightning Helix deals 3 damage to target creature.', 'Instant');
     expect(r.decision).toBe('manual');
     expect(r.reasons).toContain('needs-target');
+  });
+
+  it('auto + guided クローズ(純 manual なし)→ 全体 guided(G3)', () => {
+    const r = compile('Draw a card. Destroy target creature.', 'Instant');
+    expect(r.decision).toBe('guided');
+    expect(r.prompts.some((p) => p.kind === 'target')).toBe(true);
   });
 });
 

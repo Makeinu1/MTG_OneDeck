@@ -1545,3 +1545,119 @@ snapshot 実カード文言で点検し `review.grammar-compile` / `review.g2-ex
 - 既存の `review.grammar-coverage` / `review.grammar-ir` / `review.properties`(I1〜I7)が引き続き全通過すること。
 - 実装の変更対象: **新規** `src/engine/grammar/compile.ts` / `scripts/grammar-compile.ts` / `research/grammar-compile/*`(生成物)/ `src/engine/types.ts`(`effectsAuto`・`abilityLineIndex`)/ `src/engine/commands.ts`(新コマンド2種・`addAbilityToStack` 引数・`applyResolveStackTop` フック)/ `src/engine/init.ts`(初期 `effectsAuto`)/ `src/store/gameStore.ts`(`restoreGame` 補完・切替 action・能力起動/誘発時の `abilityLineIndex` 伝播)/ `src/components/*` ・ `src/App.tsx`(トグル・右クリック OFF・`data-testid`)/ `package.json`(`grammar-compile` script 追加)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
 - reviewer 専有テスト `review.grammar-compile` / `review.g2-exec`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §31.5 の executable frontier を出力すること。
+
+## 32. エンジン文法器トラック Phase G3: 対象/モード誘導フロー(`compile.ts` guided ティア + ストア誘導 + `ModalChoiceDialog`)— この節も契約である
+
+### 32.0 目的と分界(重要)
+G2(§31)は「プレイヤー選択が不要な行」だけを `decision:'auto'` で自動実行した(executable frontier 14.18%)。G3 は **`needs-target` / `needs-choice`(scry/surveil) / `choose-modal` の3つの壁を「1回の対話(誘導 UI)」で解消**し、新ティア **`decision:'guided'`** を追加する。guided 行は解決時に既存ダイアログで対象/モードを集め、既存 `applyCommand` 経路でコマンド化して適用する。北極星=**guided frontier**(auto + guided がカバーする効果行率)を 14% から押し上げる([[engine-grammar-track]])。
+
+**分界(エンジン不変性の核・§29.0/§30.0/§31.0 を継承)**:
+- **コンパイラ(`compile.ts`)・`parseAbilityIR`(`ir.ts`)・`splitAbilityLines`(`index.ts`)は純粋・決定的・GameState 非依存のまま**。盤面に依存する「適格対象の列挙」はストア層が担う。コンパイラは「どんな入力が要るか(`EffectPrompt`)」と「答え→コマンド(`buildGuidedCommands`)」の純写像だけを担う。
+- **実行は既存 `applyCommand` 経路のみ**。guided は非同期(ユーザー入力)なので `applyResolveStackTop` 内では発火しない。**ストアが解決前に pending guided を検出 → ダイアログで入力収集 → 「効果コマンド列 + `resolveStackTop`」を1回の `applyCommands` で適用**(undo 1ステップ)。新たな副作用経路を作らない。
+- 完全ルールエンジン(優先権・自動スタック解決・レイヤー)は**依然スコープ外**。
+- `effectsAuto`(グローバル/カード毎)**OFF 時は guided も発火しない**(=従来の手動挙動。I8 の OFF 差分ゼロを維持)。guided は必ずユーザー入力ダイアログ経由でのみコマンドを生む(無入力で盤面を変えない)。
+
+### 32.1 スコープ(今スライス = G3 完成形)
+**A. 誘導対象アトム**(既存コマンドへ単一 cardId で清く写る7アトムのみ guided 化):
+
+| atom | 写像コマンド |
+|---|---|
+| effect.destroy | `{type:'moveCard', cardId, to:'graveyard', position:'bottom'}` |
+| effect.exile | `{type:'moveCard', cardId, to:'exile', position:'bottom'}` |
+| effect.return | `{type:'moveCard', cardId, to:'hand', position:'bottom'}` |
+| effect.sacrifice | `{type:'moveCard', cardId, to:'graveyard', position:'bottom'}` |
+| effect.tap | `{type:'setTapped', cardId, tapped:true}` |
+| effect.untap | `{type:'setTapped', cardId, tapped:false}` |
+| effect.counter-plus | `{type:'addCounters', cardId, counterType:'+1/+1', delta:n}`(n=count one→1/fixed) |
+
+- **単一対象のみ**: クローズ raw が `\btarget\b` を含み、かつ **複数対象/up-to 印**(`up to`、`two|three|… target`、`each target`、`any number of target`、`target ... or ...`(対象同士の or は別。型の or は可))を含まないこと。複数/up-to/`for each` は **manual 据え置き**(reason `needs-target` 維持)。
+- **target フィルタ**: `target` 直後の名詞句から型を抽出して `TargetFilter.types` に格納(`creature`/`artifact`/`enchantment`/`land`/`planeswalker`/`permanent`。`artifact or enchantment`・`creature or planeswalker` 等の `X or Y` は両型)。修飾語(`with flying`/`tapped`/`nonblack`/`with power 3 or greater` 等)は best-effort で無視し型のみで列挙(サンドボックス哲学=合法性はユーザー裁定)。`target player`/`target opponent`(プレイヤー対象)は **manual 据え置き**(盤面パーマネント以外は今回非対応)。
+- **effect.return のゾーンゲート**: raw が `to (?:its owner's|their|your|the owner's) hand` を含む時のみ guided(→hand)。`return ... to the battlefield`(リアニメイト)等は **manual 据え置き**(ゾーンが異なる)。
+
+**B. 誘導選択アトム**: effect.scry / effect.surveil → `EffectPrompt{kind:'scry-surveil', count}`(count は `effect.count` の one→1/fixed)。既存 `ArrangeTopDialog`(`arrangeTop` コマンド)を解決フローから開く。
+
+**C. モード選択(choose-modal)**:
+- **コア改修**: `splitAbilityLines`(§29)で **`•`(U+2022)始まりの段落を直前の非bullet段落へ結合**し、modal を1論理行へ再結合する(現状 `splitParagraphs` が `\n` 毎に割るため別行に分裂している)。`•` 以外の箇条記号(kicker の `+` 等)は結合しない。結合の連結文字は不問(後段 `sanitizeLine` が空白化するため bullet `•` だけが残ればよい)。**これにより G0/G1/G2 の行数メトリクスは再ベースラインされる**(reviewer メトリクステストの期待値は Fable が更新。実装は触らない)。
+- `parseAbilityIR` は再結合行(sanitize 後 `… • … • …`)で modal を解析し `AbilityIR.modal?` を populate(**IR 追加・additive・既存挙動非破壊**):**`•` でモード分割**(先頭 `•` 前のヘッダから min/max を解析)。modal を検出したら通常の `splitEffectClauses` による効果は **compile 側で無視**(ir.modal を優先)。
+- 各モードは選択後に **ストアが `parseAbilityIR`→`compileAbilityIR` で再帰コンパイル**(auto は自動、guided は対象/scry ダイアログへ連鎖)。
+
+**据え置き(honest な manual。コマンド不在/曖昧)**: damage(対パーマネント markDamage コマンド不在)/ pump / grant-keyword / gain-control / copy / transform / discard-choice / search / reveal / put-onto-battlefield / attach / restriction / counter-spell / extra-turn / X・variable-count / for-each / each-player / intervening-if / you-control。reason を維持。
+
+### 32.2 `compile.ts` 型拡張(契約)
+```ts
+type AutoDecision = 'auto' | 'guided' | 'manual';   // 'guided' 追加。ゲート: auto=即時実行 / guided=要入力 / manual=skip
+
+type PromptKind = 'target' | 'scry-surveil' | 'modal';
+interface TargetFilter {
+  types?: string[];                  // 'creature'|'artifact'|'enchantment'|'land'|'planeswalker'|'permanent'
+  controller?: 'any' | 'you' | 'opponent';  // sacrifice/「you control」は 'you'、既定 'any'
+}
+interface ModalOption { index: number; raw: string; }   // raw = bullet 本文(先頭 '•' 除去・trim)
+interface EffectPrompt {
+  atom: EffectAtomId | null;         // modal は null
+  kind: PromptKind;
+  count: number;                     // target:対象数(=1) / scry-surveil:枚数 / modal:最大選択数
+  minCount?: number;                 // modal の最小選択数(既定 = count)
+  filter?: TargetFilter;             // kind:'target' のみ
+  options?: ModalOption[];           // kind:'modal' のみ
+  raw: string;                       // 由来クローズ/行 raw(UI 表示・デバッグ用)
+}
+interface CompiledEffect {
+  commands: GameCommand[];
+  decision: AutoDecision;
+  prompts: EffectPrompt[];           // 新規。auto/manual は []。guided は1件以上(順序維持)
+  confidence: number;
+  risk: RiskLevel;
+  reasons: string[];
+}
+```
+- `IR` 追加(`ir.ts`):`AbilityIR.modal?: { options: ModalOption[]; min: number; max: number }`。`parseAbilityIR` が再結合 modal 行から populate(なければ `undefined`)。
+- ヘッダ→min/max: `Choose one —`→(1,1) / `Choose two`→(2,2) / `Choose three`→(3,3) / `Choose one or both`→(1, options数) / `Choose one or more`→(1, options数) / `Choose up to one|two|three`→(0, N) / `Choose any number`→(0, options数)。認識できない場合は modal を立てず manual。
+
+### 32.3 auto/guided/manual ゲート(決定的・§31.2 を拡張)
+- **トップレベル**: `construct.target` / `construct.choose-modal` を **無条件 manual 化していた旧ロジックを撤廃**し、以下の per-clause / modal 判定に置換する。
+- **modal 優先**: `ir.modal` が存在 → `decision:'guided'`、`commands:[]`、`prompts:[{kind:'modal', atom:null, count:max, minCount:min, options}]`(モード内アトムはトップレベルでは実行しない=ストアが選択後に再帰コンパイル)。
+- **per-clause 評価**(modal でない時):各 `EffectClause` を次のいずれかに分類:
+  - **auto**(§31.2 の count駆動/add-mana/treasure)→ commands 生成。
+  - **guided-target**: atom ∈ {destroy,exile,return,sacrifice,tap,untap,counter-plus} かつ §32.1A の単一対象条件成立 → `prompts.push({kind:'target', atom, count:1, filter})`。commands は空(対象未確定ゆえ)。
+  - **guided-choice**: atom ∈ {scry,surveil} → `prompts.push({kind:'scry-surveil', atom, count})`。
+  - それ以外 → 既存 manual reason(`needs-target`/`needs-choice`/`needs-parse`/`no-command`/`variable-count`/`optional`/`ambiguous-mana`)。
+- **クローズ統合**: 全クローズ auto → `auto`。1つでも純 manual(guided でも auto でもない) → `manual`(部分実行はしない)。それ以外(全クローズが auto|guided かつ guided ≥1) → `guided`。`prompts` は guided クローズ分を**クローズ順**に連結。`reasons` は manual クローズの理由を昇順・重複なし。
+- **confidence/risk**(報告用):auto=`>=0.9`/`low`、guided=`0.6..0.9`/`medium`、manual=`<0.6`/`medium|high`。ゲートの権威は `decision`。
+
+### 32.4 純粋ビルダ `buildGuidedCommands`(契約・GameState 非依存)
+```ts
+type GuidedAnswer =
+  | { kind: 'target'; cardIds: string[] }
+  | { kind: 'scry-surveil'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
+  | { kind: 'modal'; chosen: number[] };   // 選ばれた ModalOption.index 昇順
+function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: CompileContext): GameCommand[];
+```
+- `kind:'target'`: 各 cardId に §32.1A の写像コマンドを生成(prompt.atom で分岐)。空配列なら []。
+- `kind:'scry-surveil'`: `[{type:'arrangeTop', topOrder, toBottom, toGraveyard}]`。
+- `kind:'modal'`: **[] を返す**(選択モードの再コンパイルはストアが回す。ビルダは純度のため空)。
+- 純粋・決定的・入力非破壊(同入力→同出力)。
+
+### 32.5 ストア解決フロー(`gameStore.ts`・オーケストレーション / `commands.ts` は純関数のまま)
+- 純ヘルパ(commands.ts or grammar)`guidedPlanForStackTop(state): { sourceId: string; prompts: EffectPrompt[] } | null` — §31.4 と同じ経路で解決対象の効果行を特定 → `parseAbilityIR`→`compileAbilityIR`。`decision:'guided'` なら全効果行の prompts を順に連結して返す。`effectsAuto` OFF(グローバル/カード)時は `null`(誘導しない=従来 manual)。
+- ストア `resolveTop` は解決前に `guidedPlanForStackTop` を確認。非 null なら `resolveStackTop` を即発行せず **pending guided state(prompt キュー)** に入る。`Playmat` が先頭 prompt の `kind` でダイアログを開く:
+  - `target`: ストアが `eligibleTargets(state, filter)`(盤面の適格 cardId 列挙)→ `TargetPickerDialog`。
+  - `scry-surveil`: `ArrangeTopDialog`。
+  - `modal`: `ModalChoiceDialog`(新規)。modal 確定後、選択された各 `ModalOption.raw` を `parseAbilityIR`→`compileAbilityIR` し、その prompts を **キュー先頭へ展開**(モード→対象の連鎖)、auto コマンドは蓄積。
+- 各 prompt の答えを `buildGuidedCommands`(modal は再帰コンパイル結果)で蓄積。キューが尽きたら **蓄積コマンド列 + `{type:'resolveStackTop'}` を1回の `applyCommands`** で適用。ログに「《○○》の効果を誘導実行した。」を明示。
+- **キャンセル/対象なし**: 当該 prompt をスキップ(効果未適用)。全キャンセルでも最後に `resolveStackTop` のみ適用(従来 manual と同一=能力削除/カード移動のみ)。
+- guided 状態は **ストアのトランジェント UI 状態**(GameState 外・snapshot 非対象)。undo は適用済みバッチ単位。
+
+### 32.6 計測(`scripts/grammar-compile.ts` 拡張 + `research/grammar-compile/report.*`)
+- **guided 行は `status:'partial'`**(construct.target/choose-modal を持つ)ため、現行スクリプトの `if (ir.status !== 'full') continue;` を撤廃し、**全効果保有行(effectLineCount)で decision を集計**する。
+- 新指標:
+  - **executable frontier**(継続)= `auto / effectLineCount`(旧 full 基準 14.18% との関係を注記)。
+  - **guided frontier**(主成果)= `(auto + guided) / effectLineCount`。全体 + shape 別 + prompt.kind 別(target/scry-surveil/modal)内訳。
+- レポート冒頭に「未調整(候補分布)」「分母を full→effect 行へ変更(G3 再ベースライン)」を明記。
+
+### 32.7 不変・非干渉(エンジン不変)
+- コンパイラ・`parseAbilityIR`・`splitAbilityLines`・`buildGuidedCommands`・`guidedPlanForStackTop`/`eligibleTargets`(後者2つは state 読み取りのみ・非破壊) は決定的・入力非破壊。
+- **I8 維持**: `effectsAuto` OFF 時は guided も発火せず解決前差分ゼロ。guided は必ずダイアログ確定→`applyCommands` 経由でのみ盤面を変える(新副作用経路なし)。
+- I1〜I7 は既存コマンド経由ゆえ維持。
+- **変更対象**: `src/engine/grammar/compile.ts`(guided ティア・`EffectPrompt`/`buildGuidedCommands`・ゲート置換)/ `src/engine/grammar/ir.ts`(`AbilityIR.modal` + 解析)/ `src/engine/grammar/index.ts`(`splitAbilityLines` の modal 段落結合)/ `src/engine/commands.ts` or grammar(`guidedPlanForStackTop`・`eligibleTargets` 純ヘルパ。**新 GameCommand は不要**)/ `src/store/gameStore.ts`(pending guided キュー・確定/キャンセル action・modal 再帰)/ `src/components/playmat/Playmat.tsx`(解決フロー合流・ダイアログ配線・`data-testid`)/ `src/components/playmat/ModalChoiceDialog`(新規・`AttackDialog` 流用)/ `scripts/grammar-compile.ts`(guided 集計)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**(既存コマンドへ写すのが G3 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
+- reviewer 専有テスト `review.grammar-guided` / `review.g3-flow`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。既存 `review.grammar-coverage` / `review.grammar-ir` / `review.grammar-compile` / `review.g2-exec` / `review.properties`(I1〜I7)は再ベースラインで期待値が変わる分を **Fable が更新**(実装は触らない)。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §32.6 の guided frontier を出力すること。

@@ -8,6 +8,7 @@ import {
   type ConstructId,
   type EffectAtomId,
 } from './index';
+import type { ModalOption } from './compile';
 
 export type CountSpec =
   | { kind: 'one' }
@@ -46,6 +47,7 @@ export interface AbilityIR {
   constructs: ConstructId[];
   status: ParseStatus;
   blockers: string[];
+  modal?: { options: ModalOption[]; min: number; max: number };
 }
 
 const NUMBER_WORDS = new Map<string, number>([
@@ -70,6 +72,7 @@ export function parseAbilityIR(line: string, typeLine: string): AbilityIR {
   const cost = shape === 'activated' ? parseCost(text) : null;
   const trigger = isTriggeredShape(shape) ? parseTrigger(text) : null;
   const effectSpan = effectSpanForShape(text, shape);
+  const modal = parseModal(effectSpan);
   const clauses = splitEffectClauses(effectSpan);
   const optional = detectConstructs(text).includes('construct.may');
   const effects = clauses.flatMap((clause) => effectClausesForText(clause, optional));
@@ -86,7 +89,73 @@ export function parseAbilityIR(line: string, typeLine: string): AbilityIR {
     constructs,
     status,
     blockers,
+    ...(modal ? { modal } : {}),
   };
+}
+
+function parseModal(effectSpan: string): { options: ModalOption[]; min: number; max: number } | undefined {
+  if (!effectSpan.includes('•')) {
+    return undefined;
+  }
+
+  const parts = effectSpan
+    .split('•')
+    .map((part) => sanitizeLine(part))
+    .filter((part) => part !== '');
+  if (parts.length < 2) {
+    return undefined;
+  }
+
+  const header = parts[0];
+  if (!/\bchoose\b/i.test(header)) {
+    return undefined;
+  }
+
+  const options = parts.slice(1).map((raw, index) => ({ index, raw }));
+  const range = modalRange(header, options.length);
+  if (!range) {
+    return undefined;
+  }
+
+  return {
+    options,
+    min: range.min,
+    max: Math.min(range.max, options.length),
+  };
+}
+
+function modalRange(header: string, optionCount: number): { min: number; max: number } | undefined {
+  if (/\bchoose one or both\b/i.test(header) || /\bchoose one or more\b/i.test(header)) {
+    return { min: 1, max: optionCount };
+  }
+  if (/\bchoose any number\b/i.test(header)) {
+    return { min: 0, max: optionCount };
+  }
+
+  const upToMatch = /\bchoose up to (one|two|three|\d+)\b/i.exec(header);
+  if (upToMatch) {
+    const max = parseSmallNumber(upToMatch[1]);
+    return max === null ? undefined : { min: 0, max };
+  }
+
+  const exactMatch = /\bchoose (one|two|three|\d+)\b/i.exec(header);
+  if (exactMatch) {
+    const count = parseSmallNumber(exactMatch[1]);
+    return count === null ? undefined : { min: count, max: count };
+  }
+
+  return undefined;
+}
+
+function parseSmallNumber(value: string): number | null {
+  const normalized = value.toLowerCase();
+  if (normalized === 'one') return 1;
+  if (normalized === 'two') return 2;
+  if (normalized === 'three') return 3;
+  if (/^\d+$/.test(normalized)) {
+    return Number.parseInt(normalized, 10);
+  }
+  return null;
 }
 
 function parseCost(text: string): AbilityCost {

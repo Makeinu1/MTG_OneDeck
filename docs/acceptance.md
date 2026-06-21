@@ -475,3 +475,17 @@ end-step / draw / sacrifice / combat-damage の4誘発を分類検出。end-step
 | G2-6 | カードを右クリック→「このカードの効果を自動化しない」(`card-effects-auto-off`)→ そのカードの G2-2 能力を解決 | グローバル ON でも当該カードは自動実行されない。再度メニューで自動化を戻せる |
 | G2-7 | 旧バージョンの保存データ(`effectsAuto` 欠落の snapshot)からゲーム復元 | クラッシュせず復元され、`effectsAuto` は ON 既定で扱われる |
 | G2-8 | 全工程 | 自動実行は1スナップショット(単一 undo で取消)。manual 判定の能力は従来挙動。コンソールエラー0件 |
+
+## G3 対象/モード誘導フロー(engine-spec §32)
+manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で半自動化(`decision:'guided'`)。`effectsAuto` OFF 時は誘導せず従来手動。誘導実行は対象コマンド+解決を1バッチ(単一undo)。
+| # | 操作 | 期待結果 |
+|---|------|---------|
+| G3-1 | 「Destroy target creature」相当の呪文/能力を解決(自動 ON) | `target-picker` が開く。対象クリーチャーを選ぶと墓地へ移り、能力/呪文も解決。1回の undo で対象復帰+スタック復帰 |
+| G3-2 | 「Tap target creature」「Return target creature to its owner's hand」「Put a +1/+1 counter on target creature」を解決 | それぞれ対象ピッカー→タップ/手札へ戻る/+1+1カウンター。単一undo |
+| G3-3 | `target-picker` でキャンセル | 効果は適用されず、解決のみ進む(従来 manual と同一)。盤面はキャンセル前から効果分だけ不変 |
+| G3-4 | 「Scry 2」相当を解決 | `arrange-top-dialog`(占術 UI)が開く。並べ替え確定で適用。単一undo |
+| G3-5 | 「Choose one — • Draw two cards. • You gain 3 life.」相当を解決 | `modal-choice-dialog` が開きモードを1つ選択→選んだ効果のみ実行(ドロー2 か ライフ+3)。もう片方は実行されない |
+| G3-6 | 「Choose one — • Destroy target artifact. • …」のように対象を含むモードを選択 | モード選択後に `target-picker` へ連鎖し、対象選択→実行 |
+| G3-7 | `effects-auto-toggle` OFF / または当該カード `card-effects-auto-off` で G3-1 を解決 | 誘導ダイアログは出ず、従来どおり能力削除/カード移動のみ(I8: 解決前差分ゼロ) |
+| G3-8 | 「Destroy all creatures」「up to two target creatures」「deal 3 damage to target creature」 | 誘導されない(対象なし/複数対象/ダメージは据え置き manual)。誤発火なし |
+| G3-9 | 全工程 | 誘導実行は1スナップショット(単一 undo)。エンジン純粋性維持。コンソールエラー0件 |

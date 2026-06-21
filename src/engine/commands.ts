@@ -1,6 +1,6 @@
 import type { CardDef, ManaColor } from '../types/card';
 import { isCommander } from './commander';
-import { compileAbilityIR } from './grammar/compile';
+import { compileAbilityIR, type EffectPrompt, type TargetFilter } from './grammar/compile';
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR } from './grammar/ir';
 import { normalizeKeywords } from './status';
@@ -744,11 +744,11 @@ interface ResolvableEffectLine {
   typeLine: string;
 }
 
-function effectLinesForResolvedStackItem(
-  draft: Draft,
+function effectLinesForStackItemState(
+  state: GameState,
   card: CardInstance
 ): ResolvableEffectLine[] {
-  if (draft.state.effectsAuto !== true) {
+  if (state.effectsAuto !== true) {
     return [];
   }
 
@@ -757,12 +757,12 @@ function effectLinesForResolvedStackItem(
     return [];
   }
 
-  const source = draft.state.cards[sourceId];
+  const source = state.cards[sourceId];
   if (!source || source.effectsAuto === false) {
     return [];
   }
 
-  const def = draft.state.defs[card.defId];
+  const def = state.defs[card.defId];
   if (!def) {
     return [];
   }
@@ -794,6 +794,65 @@ function effectLinesForResolvedStackItem(
       line,
       typeLine: def.faces[line.faceIndex]?.typeLine ?? def.typeLine,
     }));
+}
+
+function effectLinesForResolvedStackItem(
+  draft: Draft,
+  card: CardInstance
+): ResolvableEffectLine[] {
+  return effectLinesForStackItemState(draft.state, card);
+}
+
+export function guidedPlanForStackTop(
+  state: GameState
+): { sourceId: string; prompts: EffectPrompt[] } | null {
+  const topId = state.zones.stack[state.zones.stack.length - 1];
+  if (!topId) {
+    return null;
+  }
+  const card = state.cards[topId];
+  if (!card) {
+    return null;
+  }
+
+  const prompts: EffectPrompt[] = [];
+  let sourceId: string | null = null;
+  for (const effectLine of effectLinesForStackItemState(state, card)) {
+    const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
+    const compiled = compileAbilityIR(ir, {
+      sourceId: effectLine.sourceId,
+      def: effectLine.def,
+    });
+    if (compiled.decision !== 'guided') {
+      continue;
+    }
+    sourceId = sourceId ?? effectLine.sourceId;
+    prompts.push(...compiled.prompts);
+  }
+
+  return sourceId && prompts.length > 0 ? { sourceId, prompts } : null;
+}
+
+export function eligibleTargets(state: GameState, filter: TargetFilter): string[] {
+  if (filter.controller === 'opponent') {
+    return [];
+  }
+  const types = filter.types ?? ['permanent'];
+  const acceptsAnyPermanent = types.length === 0 || types.includes('permanent');
+
+  return state.zones.battlefield.filter((cardId) => {
+    const card = state.cards[cardId];
+    if (!card || card.isAbility) {
+      return false;
+    }
+    if (acceptsAnyPermanent) {
+      return true;
+    }
+    const def = state.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
+    return types.some((type) => typeLine.includes(type.toLowerCase()));
+  });
 }
 
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {

@@ -3,6 +3,7 @@ import { Modal } from '../Modal';
 import type { ManaColor } from '../../types/card';
 import type { CardDef } from '../../types/card';
 import type { CardInstance, GameState, ZoneId } from '../../engine/types';
+import type { EffectPrompt } from '../../engine/grammar/compile';
 import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
 import { effectivePower, isSummoningSick, type FetchAbility } from '../../engine/status';
@@ -332,6 +333,88 @@ export function AttackDialog({
   );
 }
 
+export function ModalChoiceDialog({
+  prompt,
+  onConfirm,
+  onCancel,
+}: {
+  prompt: EffectPrompt;
+  onConfirm: (chosen: number[]) => void;
+  onCancel: () => void;
+}) {
+  const options = prompt.options ?? [];
+  const min = prompt.minCount ?? prompt.count;
+  const max = prompt.count;
+  const [selected, setSelected] = useState<number[]>([]);
+
+  function toggle(index: number): void {
+    setSelected((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((value) => value !== index);
+      }
+      if (prev.length >= max) {
+        return prev;
+      }
+      return [...prev, index].sort((a, b) => a - b);
+    });
+  }
+
+  const canConfirm = selected.length >= min && selected.length <= max;
+
+  return (
+    <Modal title="モード選択" onClose={onCancel} width="lg" testId="modal-choice-dialog">
+      {options.length === 0 ? (
+        <p className="zone-viewer__empty">選択できるモードがありません。</p>
+      ) : (
+        <>
+          <div className="attack-dialog__list">
+            {options.map((option) => {
+              const checked = selected.includes(option.index);
+              const disabled = !checked && selected.length >= max;
+              return (
+                <label
+                  key={option.index}
+                  className={`attack-dialog__item ${checked ? 'attack-dialog__item--selected' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => toggle(option.index)}
+                    data-testid={`modal-choice-${option.index}`}
+                  />
+                  <div className="attack-dialog__meta">
+                    <strong>{option.raw}</strong>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="attack-dialog__summary">
+            <strong>
+              選択 {selected.length} / {max}
+            </strong>
+          </div>
+        </>
+      )}
+      <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(selected)}
+          disabled={!canConfirm}
+          data-testid="modal-choice-confirm"
+        >
+          確定
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function MulliganDecisionDialog({
   state,
   onKeep,
@@ -648,18 +731,26 @@ function moveWithin(ids: string[], cardId: string, delta: -1 | 1): string[] {
 
 export function ArrangeTopDialog({
   state,
+  initialCount,
+  initialMode = 'scry',
+  lockCount = false,
+  lockMode = false,
   onConfirm,
   onCancel,
 }: {
   state: GameState;
+  initialCount?: number;
+  initialMode?: ArrangeMode;
+  lockCount?: boolean;
+  lockMode?: boolean;
   onConfirm: (topOrder: string[], toBottom: string[], toGraveyard: string[]) => void;
   onCancel: () => void;
 }) {
   const libraryCount = state.zones.library.length;
-  const initialCount = Math.min(3, libraryCount);
-  const [count, setCount] = useState(initialCount);
-  const [mode, setMode] = useState<ArrangeMode>('scry');
-  const [topOrder, setTopOrder] = useState<string[]>(state.zones.library.slice(0, initialCount));
+  const initialVisibleCount = Math.min(Math.max(0, initialCount ?? 3), libraryCount);
+  const [count, setCount] = useState(initialVisibleCount);
+  const [mode, setMode] = useState<ArrangeMode>(initialMode);
+  const [topOrder, setTopOrder] = useState<string[]>(state.zones.library.slice(0, initialVisibleCount));
   const [toBottom, setToBottom] = useState<string[]>([]);
   const [toGraveyard, setToGraveyard] = useState<string[]>([]);
 
@@ -803,6 +894,7 @@ export function ArrangeTopDialog({
                 type="button"
                 className={`arrange-top__mode-button ${mode === 'scry' ? 'arrange-top__mode-button--active' : ''}`}
                 onClick={() => changeMode('scry')}
+                disabled={lockMode}
               >
                 占術
               </button>
@@ -810,6 +902,7 @@ export function ArrangeTopDialog({
                 type="button"
                 className={`arrange-top__mode-button ${mode === 'surveil' ? 'arrange-top__mode-button--active' : ''}`}
                 onClick={() => changeMode('surveil')}
+                disabled={lockMode}
               >
                 諜報
               </button>
@@ -823,6 +916,7 @@ export function ArrangeTopDialog({
                 value={count}
                 onChange={(e) => resetForCount(Number.parseInt(e.target.value, 10) || 0)}
                 data-testid="scry-count"
+                disabled={lockCount}
               />
             </label>
           </div>

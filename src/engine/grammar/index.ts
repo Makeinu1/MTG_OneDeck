@@ -144,7 +144,7 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
     if (typeof face.oracleText !== 'string') {
       continue;
     }
-    for (const paragraph of splitParagraphs(face.oracleText)) {
+    for (const paragraph of mergeModalParagraphs(splitParagraphs(face.oracleText))) {
       const text = sanitizeLine(paragraph);
       if (text === '') {
         continue;
@@ -157,6 +157,19 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
     }
   }
   return lines;
+}
+
+function mergeModalParagraphs(paragraphs: readonly string[]): string[] {
+  const merged: string[] = [];
+  for (const paragraph of paragraphs) {
+    const trimmed = paragraph.trim();
+    if (trimmed.startsWith('•') && merged.length > 0) {
+      merged[merged.length - 1] = `${merged[merged.length - 1]} ${trimmed}`;
+    } else {
+      merged.push(paragraph);
+    }
+  }
+  return merged;
 }
 
 export function classifyAbilityShape(line: string, typeLine: string): AbilityShape {

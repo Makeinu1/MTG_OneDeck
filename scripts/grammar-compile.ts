@@ -25,8 +25,9 @@ const REPORT_JSON_PATH = resolve(process.cwd(), 'research/grammar-compile/report
 const TOP_CASE_LIMIT = 20;
 
 const NOTE =
-  'この数値は未調整(候補分布であり絶対正解でない)。G2 は G1 full 行のうち安全に自動実行できる候補分布。';
-const G1_FRONTIER_NOTE = 'G1 IR 表現フロンティア sanity anchor: full/effect line rate 58.11%。';
+  'この数値は未調整(候補分布であり絶対正解でない)。G3 では分母を full→effect 行へ変更して再ベースラインする。';
+const FRONTIER_NOTE =
+  'executable frontier=auto/effect 行、guided frontier=(auto+guided)/effect 行。旧 G2 full 基準 auto 14.18% とは分母が異なる。';
 
 const SHAPE_ORDER: readonly AbilityShape[] = [
   'activated',
@@ -61,6 +62,8 @@ interface Totals {
   abilityLineCount: number;
   effectLineCount: number;
   fullLineCount: number;
+  autoLineCount: number;
+  guidedLineCount: number;
   autoFullLineCount: number;
   atomOccurrenceCount: number;
 }
@@ -68,18 +71,28 @@ interface Totals {
 interface FrontierSummaryItem {
   shape: AbilityShape | 'overall';
   label: string;
-  lineCount: number;
+  abilityLineCount: number;
+  effectLineCount: number;
   fullLineCount: number;
-  autoFullLineCount: number;
-  manualFullLineCount: number;
-  autoRate: number;
+  autoLineCount: number;
+  guidedLineCount: number;
+  manualLineCount: number;
+  executableRate: number;
+  guidedFrontierRate: number;
 }
 
 interface AtomSummaryItem {
   atom: string;
   occurrenceCount: number;
   autoLineCount: number;
+  guidedLineCount: number;
   manualLineCount: number;
+}
+
+interface PromptKindSummaryItem {
+  kind: string;
+  promptCount: number;
+  lineCount: number;
 }
 
 interface ReasonSummaryItem {
@@ -107,19 +120,27 @@ async function main(): Promise<void> {
   const rawCards = extractRawCards(payload);
 
   const shapeLineCounts = new Map<AbilityShape, number>();
+  const shapeEffectCounts = new Map<AbilityShape, number>();
   const shapeFullCounts = new Map<AbilityShape, number>();
   const shapeAutoCounts = new Map<AbilityShape, number>();
+  const shapeGuidedCounts = new Map<AbilityShape, number>();
   const atomCounts = new Map<string, number>();
   const atomAutoLineCounts = new Map<string, number>();
+  const atomGuidedLineCounts = new Map<string, number>();
   const atomManualLineCounts = new Map<string, number>();
   const reasonCounts = new Map<string, number>();
+  const promptKindCounts = new Map<string, number>();
+  const promptKindLineCounts = new Map<string, number>();
   const autoCandidates: LineCase[] = [];
+  const guidedCandidates: LineCase[] = [];
   const mappingFailures: MappingFailure[] = [];
 
   let mappedCards = 0;
   let abilityLineCount = 0;
   let effectLineCount = 0;
   let fullLineCount = 0;
+  let autoLineCount = 0;
+  let guidedLineCount = 0;
   let autoFullLineCount = 0;
   let atomOccurrenceCount = 0;
 
@@ -161,27 +182,44 @@ async function main(): Promise<void> {
       increment(shapeLineCounts, ir.shape);
       if (ir.effects.length > 0) {
         effectLineCount += 1;
+        increment(shapeEffectCounts, ir.shape);
         atomOccurrenceCount += ir.effects.length;
       }
       for (const effect of ir.effects) {
         increment(atomCounts, effect.atom);
       }
+      if (ir.status === 'full') {
+        fullLineCount += 1;
+        increment(shapeFullCounts, ir.shape);
+        if (compiled.decision === 'auto') {
+          autoFullLineCount += 1;
+        }
+      }
 
-      if (ir.status !== 'full') {
+      if (ir.effects.length === 0) {
         continue;
       }
 
-      fullLineCount += 1;
-      increment(shapeFullCounts, ir.shape);
       for (const reason of compiled.reasons) {
         increment(reasonCounts, reason);
       }
 
       if (compiled.decision === 'auto') {
-        autoFullLineCount += 1;
+        autoLineCount += 1;
         increment(shapeAutoCounts, ir.shape);
         incrementAtoms(atomAutoLineCounts, ir);
         autoCandidates.push(lineCase(line, ir, compiled, typeLine, cardName, oracleId, scryfallId));
+      } else if (compiled.decision === 'guided') {
+        guidedLineCount += 1;
+        increment(shapeGuidedCounts, ir.shape);
+        incrementAtoms(atomGuidedLineCounts, ir);
+        for (const prompt of compiled.prompts) {
+          increment(promptKindCounts, prompt.kind);
+        }
+        for (const kind of new Set(compiled.prompts.map((prompt) => prompt.kind))) {
+          increment(promptKindLineCounts, kind);
+        }
+        guidedCandidates.push(lineCase(line, ir, compiled, typeLine, cardName, oracleId, scryfallId));
       } else {
         incrementAtoms(atomManualLineCounts, ir);
       }
@@ -195,18 +233,29 @@ async function main(): Promise<void> {
     abilityLineCount,
     effectLineCount,
     fullLineCount,
+    autoLineCount,
+    guidedLineCount,
     autoFullLineCount,
     atomOccurrenceCount,
   };
   const frontierSummary = buildFrontierSummary(
     shapeLineCounts,
+    shapeEffectCounts,
     shapeFullCounts,
     shapeAutoCounts,
+    shapeGuidedCounts,
     totals,
   );
-  const atomSummary = buildAtomSummary(atomCounts, atomAutoLineCounts, atomManualLineCounts);
+  const atomSummary = buildAtomSummary(
+    atomCounts,
+    atomAutoLineCounts,
+    atomGuidedLineCounts,
+    atomManualLineCounts,
+  );
   const reasonSummary = buildReasonSummary(reasonCounts, totals);
+  const promptKindSummary = buildPromptKindSummary(promptKindCounts, promptKindLineCounts);
   const rankedAutoCandidates = rankLineCases(autoCandidates);
+  const rankedGuidedCandidates = rankLineCases(guidedCandidates);
 
   const reportJson = {
     note: NOTE,
@@ -216,7 +265,9 @@ async function main(): Promise<void> {
     frontierSummary,
     atomSummary,
     reasonSummary,
+    promptKindSummary,
     autoCandidatesTop: rankedAutoCandidates.slice(0, TOP_CASE_LIMIT),
+    guidedCandidatesTop: rankedGuidedCandidates.slice(0, TOP_CASE_LIMIT),
     mappingFailuresTop: mappingFailures.slice(0, TOP_CASE_LIMIT),
   };
 
@@ -230,7 +281,9 @@ async function main(): Promise<void> {
       frontierSummary,
       atomSummary,
       reasonSummary,
+      promptKindSummary,
       autoCandidates: rankedAutoCandidates,
+      guidedCandidates: rankedGuidedCandidates,
       mappingFailures,
     }),
     'utf8',
@@ -239,7 +292,7 @@ async function main(): Promise<void> {
   console.log(`Grammar compile report written: ${relative(process.cwd(), REPORT_MD_PATH)}`);
   console.log(`Raw summary written: ${relative(process.cwd(), REPORT_JSON_PATH)}`);
   console.log(
-    `cards=${totals.rawCards} mapped=${totals.mappedCards} mappingFailures=${totals.mappingFailures} abilityLines=${totals.abilityLineCount} effectLines=${totals.effectLineCount} full=${totals.fullLineCount} auto=${totals.autoFullLineCount}`,
+    `cards=${totals.rawCards} mapped=${totals.mappedCards} mappingFailures=${totals.mappingFailures} abilityLines=${totals.abilityLineCount} effectLines=${totals.effectLineCount} full=${totals.fullLineCount} auto=${totals.autoLineCount} guided=${totals.guidedLineCount}`,
   );
 }
 
@@ -329,30 +382,40 @@ function incrementAtoms(counts: Map<string, number>, ir: AbilityIR): void {
 
 function buildFrontierSummary(
   shapeLineCounts: Map<AbilityShape, number>,
+  shapeEffectCounts: Map<AbilityShape, number>,
   shapeFullCounts: Map<AbilityShape, number>,
   shapeAutoCounts: Map<AbilityShape, number>,
+  shapeGuidedCounts: Map<AbilityShape, number>,
   totals: Totals,
 ): FrontierSummaryItem[] {
   const overall = {
     shape: 'overall' as const,
     label: '全体',
-    lineCount: totals.abilityLineCount,
+    abilityLineCount: totals.abilityLineCount,
+    effectLineCount: totals.effectLineCount,
     fullLineCount: totals.fullLineCount,
-    autoFullLineCount: totals.autoFullLineCount,
-    manualFullLineCount: totals.fullLineCount - totals.autoFullLineCount,
-    autoRate: rate(totals.autoFullLineCount, totals.fullLineCount),
+    autoLineCount: totals.autoLineCount,
+    guidedLineCount: totals.guidedLineCount,
+    manualLineCount: totals.effectLineCount - totals.autoLineCount - totals.guidedLineCount,
+    executableRate: rate(totals.autoLineCount, totals.effectLineCount),
+    guidedFrontierRate: rate(totals.autoLineCount + totals.guidedLineCount, totals.effectLineCount),
   };
   const byShape = SHAPE_ORDER.map((shape) => {
+    const effect = shapeEffectCounts.get(shape) ?? 0;
     const full = shapeFullCounts.get(shape) ?? 0;
     const auto = shapeAutoCounts.get(shape) ?? 0;
+    const guided = shapeGuidedCounts.get(shape) ?? 0;
     return {
       shape,
       label: SHAPE_LABELS.get(shape) ?? shape,
-      lineCount: shapeLineCounts.get(shape) ?? 0,
+      abilityLineCount: shapeLineCounts.get(shape) ?? 0,
+      effectLineCount: effect,
       fullLineCount: full,
-      autoFullLineCount: auto,
-      manualFullLineCount: full - auto,
-      autoRate: rate(auto, full),
+      autoLineCount: auto,
+      guidedLineCount: guided,
+      manualLineCount: effect - auto - guided,
+      executableRate: rate(auto, effect),
+      guidedFrontierRate: rate(auto + guided, effect),
     };
   });
   return [overall, ...byShape];
@@ -361,6 +424,7 @@ function buildFrontierSummary(
 function buildAtomSummary(
   atomCounts: Map<string, number>,
   atomAutoLineCounts: Map<string, number>,
+  atomGuidedLineCounts: Map<string, number>,
   atomManualLineCounts: Map<string, number>,
 ): AtomSummaryItem[] {
   return [...atomCounts.entries()]
@@ -368,6 +432,7 @@ function buildAtomSummary(
       atom,
       occurrenceCount,
       autoLineCount: atomAutoLineCounts.get(atom) ?? 0,
+      guidedLineCount: atomGuidedLineCounts.get(atom) ?? 0,
       manualLineCount: atomManualLineCounts.get(atom) ?? 0,
     }))
     .sort((a, b) => b.occurrenceCount - a.occurrenceCount || a.atom.localeCompare(b.atom));
@@ -381,9 +446,22 @@ function buildReasonSummary(
     .map(([reason, lineCount]) => ({
       reason,
       lineCount,
-      lineRate: rate(lineCount, totals.fullLineCount),
+      lineRate: rate(lineCount, totals.effectLineCount),
     }))
     .sort((a, b) => b.lineCount - a.lineCount || a.reason.localeCompare(b.reason));
+}
+
+function buildPromptKindSummary(
+  promptKindCounts: Map<string, number>,
+  promptKindLineCounts: Map<string, number>,
+): PromptKindSummaryItem[] {
+  return [...promptKindCounts.entries()]
+    .map(([kind, promptCount]) => ({
+      kind,
+      promptCount,
+      lineCount: promptKindLineCounts.get(kind) ?? 0,
+    }))
+    .sort((a, b) => b.promptCount - a.promptCount || a.kind.localeCompare(b.kind));
 }
 
 function rankLineCases(cases: readonly LineCase[]): LineCase[] {
@@ -419,11 +497,13 @@ function renderMarkdownReport(input: {
   frontierSummary: FrontierSummaryItem[];
   atomSummary: AtomSummaryItem[];
   reasonSummary: ReasonSummaryItem[];
+  promptKindSummary: PromptKindSummaryItem[];
   autoCandidates: LineCase[];
+  guidedCandidates: LineCase[];
   mappingFailures: MappingFailure[];
 }): string {
   const lines: string[] = [
-    '# 文法コンパイル分析 Phase G2 レポート',
+    '# 文法コンパイル分析 Phase G3 レポート',
     '',
     `**${NOTE}**`,
     '',
@@ -437,7 +517,9 @@ function renderMarkdownReport(input: {
     `- 能力行数: ${input.totals.abilityLineCount}`,
     `- 効果保有行数: ${input.totals.effectLineCount}`,
     `- G1 full 行数: ${input.totals.fullLineCount}`,
-    `- G2 auto full 行数: ${input.totals.autoFullLineCount}`,
+    `- auto effect 行数: ${input.totals.autoLineCount}`,
+    `- guided effect 行数: ${input.totals.guidedLineCount}`,
+    `- 旧 full 基準 auto 行数: ${input.totals.autoFullLineCount}`,
     `- アトム出現数: ${input.totals.atomOccurrenceCount}`,
     '',
     '### 写像失敗 top-N',
@@ -446,29 +528,35 @@ function renderMarkdownReport(input: {
     '',
     '## 2. executable frontier',
     '',
-    G1_FRONTIER_NOTE,
+    FRONTIER_NOTE,
     '',
-    '| shape | label | line count | G1 full | G2 auto | G2 manual | auto/full rate |',
-    '|---|---:|---:|---:|---:|---:|---:|',
+    '| shape | label | ability lines | effect lines | G1 full | auto | guided | manual | executable rate | guided frontier |',
+    '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
     ...input.frontierSummary.map(
       (item) =>
-        `| ${cell(item.shape)} | ${cell(item.label)} | ${item.lineCount} | ${item.fullLineCount} | ${item.autoFullLineCount} | ${item.manualFullLineCount} | ${percent(item.autoRate)} |`,
+        `| ${cell(item.shape)} | ${cell(item.label)} | ${item.abilityLineCount} | ${item.effectLineCount} | ${item.fullLineCount} | ${item.autoLineCount} | ${item.guidedLineCount} | ${item.manualLineCount} | ${percent(item.executableRate)} | ${percent(item.guidedFrontierRate)} |`,
     ),
     '',
     '## 3. atom 別内訳',
     '',
-    '| atom | occurrence count | auto full lines | manual full lines |',
-    '|---|---:|---:|---:|',
+    '| atom | occurrence count | auto lines | guided lines | manual lines |',
+    '|---|---:|---:|---:|---:|',
     ...input.atomSummary
       .slice(0, TOP_CASE_LIMIT)
       .map(
         (item) =>
-          `| ${cell(item.atom)} | ${item.occurrenceCount} | ${item.autoLineCount} | ${item.manualLineCount} |`,
+          `| ${cell(item.atom)} | ${item.occurrenceCount} | ${item.autoLineCount} | ${item.guidedLineCount} | ${item.manualLineCount} |`,
       ),
+    '',
+    '### prompt.kind 分布',
+    '',
+    '| kind | prompt count | guided line count |',
+    '|---|---:|---:|',
+    ...renderPromptKindSummary(input.promptKindSummary),
     '',
     '### reasons 分布',
     '',
-    '| reason | full line count | full line rate |',
+    '| reason | effect line count | effect line rate |',
     '|---|---:|---:|',
     ...renderReasonSummary(input.reasonSummary),
     '',
@@ -476,8 +564,21 @@ function renderMarkdownReport(input: {
     '',
     ...renderLineCases(input.autoCandidates),
     '',
+    '## 5. 誘導候補 top-N',
+    '',
+    ...renderLineCases(input.guidedCandidates),
+    '',
   ];
   return `${lines.join('\n')}\n`;
+}
+
+function renderPromptKindSummary(items: readonly PromptKindSummaryItem[]): string[] {
+  if (items.length === 0) {
+    return ['| - | 0 | 0 |'];
+  }
+  return items
+    .slice(0, TOP_CASE_LIMIT)
+    .map((item) => `| ${cell(item.kind)} | ${item.promptCount} | ${item.lineCount} |`);
 }
 
 function renderReasonSummary(items: readonly ReasonSummaryItem[]): string[] {

@@ -1,14 +1,16 @@
 {
-  "note": "この数値は未調整(候補分布であり絶対正解でない)。G2 は G1 full 行のうち安全に自動実行できる候補分布。",
-  "generatedAt": "2026-06-21T15:03:20.716Z",
+  "note": "この数値は未調整(候補分布であり絶対正解でない)。G3 では分母を full→effect 行へ変更して再ベースラインする。",
+  "generatedAt": "2026-06-21T15:48:31.004Z",
   "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "totals": {
     "rawCards": 17491,
     "mappedCards": 17491,
     "mappingFailures": 0,
-    "abilityLineCount": 36116,
-    "effectLineCount": 22507,
-    "fullLineCount": 13078,
+    "abilityLineCount": 34821,
+    "effectLineCount": 21855,
+    "fullLineCount": 13081,
+    "autoLineCount": 2013,
+    "guidedLineCount": 1566,
     "autoFullLineCount": 1854,
     "atomOccurrenceCount": 31831
   },
@@ -16,317 +18,392 @@
     {
       "shape": "overall",
       "label": "全体",
-      "lineCount": 36116,
-      "fullLineCount": 13078,
-      "autoFullLineCount": 1854,
-      "manualFullLineCount": 11224,
-      "autoRate": 0.14176479584034257
+      "abilityLineCount": 34821,
+      "effectLineCount": 21855,
+      "fullLineCount": 13081,
+      "autoLineCount": 2013,
+      "guidedLineCount": 1566,
+      "manualLineCount": 18276,
+      "executableRate": 0.09210706932052162,
+      "guidedFrontierRate": 0.163761153054221
     },
     {
       "shape": "activated",
       "label": "起動型",
-      "lineCount": 5103,
+      "abilityLineCount": 5103,
+      "effectLineCount": 4521,
       "fullLineCount": 2674,
-      "autoFullLineCount": 900,
-      "manualFullLineCount": 1774,
-      "autoRate": 0.3365744203440538
+      "autoLineCount": 980,
+      "guidedLineCount": 279,
+      "manualLineCount": 3262,
+      "executableRate": 0.21676620216766201,
+      "guidedFrontierRate": 0.27847821278478213
     },
     {
       "shape": "triggered",
       "label": "誘発型",
-      "lineCount": 8972,
-      "fullLineCount": 4888,
-      "autoFullLineCount": 670,
-      "manualFullLineCount": 4218,
-      "autoRate": 0.13707037643207856
+      "abilityLineCount": 8969,
+      "effectLineCount": 8033,
+      "fullLineCount": 4890,
+      "autoLineCount": 728,
+      "guidedLineCount": 572,
+      "manualLineCount": 6733,
+      "executableRate": 0.0906261670608739,
+      "guidedFrontierRate": 0.16183244118013196
     },
     {
       "shape": "delayed-triggered",
       "label": "遅延誘発型",
-      "lineCount": 97,
+      "abilityLineCount": 100,
+      "effectLineCount": 93,
       "fullLineCount": 49,
-      "autoFullLineCount": 0,
-      "manualFullLineCount": 49,
-      "autoRate": 0
+      "autoLineCount": 0,
+      "guidedLineCount": 3,
+      "manualLineCount": 90,
+      "executableRate": 0,
+      "guidedFrontierRate": 0.03225806451612903
     },
     {
       "shape": "replacement",
       "label": "置換",
-      "lineCount": 825,
+      "abilityLineCount": 824,
+      "effectLineCount": 592,
       "fullLineCount": 471,
-      "autoFullLineCount": 14,
-      "manualFullLineCount": 457,
-      "autoRate": 0.029723991507430998
+      "autoLineCount": 14,
+      "guidedLineCount": 6,
+      "manualLineCount": 572,
+      "executableRate": 0.02364864864864865,
+      "guidedFrontierRate": 0.033783783783783786
     },
     {
       "shape": "static",
       "label": "常在型",
-      "lineCount": 7561,
+      "abilityLineCount": 7032,
+      "effectLineCount": 4440,
       "fullLineCount": 3549,
-      "autoFullLineCount": 49,
-      "manualFullLineCount": 3500,
-      "autoRate": 0.013806706114398421
+      "autoLineCount": 56,
+      "guidedLineCount": 97,
+      "manualLineCount": 4287,
+      "executableRate": 0.012612612612612612,
+      "guidedFrontierRate": 0.03445945945945946
     },
     {
       "shape": "spell",
       "label": "呪文本体",
-      "lineCount": 5384,
-      "fullLineCount": 1354,
-      "autoFullLineCount": 219,
-      "manualFullLineCount": 1135,
-      "autoRate": 0.16174298375184637
+      "abilityLineCount": 4619,
+      "effectLineCount": 4072,
+      "fullLineCount": 1355,
+      "autoLineCount": 233,
+      "guidedLineCount": 609,
+      "manualLineCount": 3230,
+      "executableRate": 0.05722003929273085,
+      "guidedFrontierRate": 0.20677799607072692
     },
     {
       "shape": "keyword",
       "label": "純キーワード",
-      "lineCount": 8174,
+      "abilityLineCount": 8174,
+      "effectLineCount": 104,
       "fullLineCount": 93,
-      "autoFullLineCount": 2,
-      "manualFullLineCount": 91,
-      "autoRate": 0.021505376344086023
+      "autoLineCount": 2,
+      "guidedLineCount": 0,
+      "manualLineCount": 102,
+      "executableRate": 0.019230769230769232,
+      "guidedFrontierRate": 0.019230769230769232
     }
   ],
   "atomSummary": [
     {
       "atom": "effect.create-token",
       "occurrenceCount": 2802,
-      "autoLineCount": 149,
-      "manualLineCount": 1853
+      "autoLineCount": 160,
+      "guidedLineCount": 114,
+      "manualLineCount": 2463
     },
     {
       "atom": "effect.pump",
       "occurrenceCount": 2622,
       "autoLineCount": 0,
-      "manualLineCount": 1761
+      "guidedLineCount": 84,
+      "manualLineCount": 2501
     },
     {
       "atom": "effect.draw",
       "occurrenceCount": 2499,
-      "autoLineCount": 741,
-      "manualLineCount": 1086
+      "autoLineCount": 809,
+      "guidedLineCount": 127,
+      "manualLineCount": 1517
     },
     {
       "atom": "effect.exile",
       "occurrenceCount": 2209,
       "autoLineCount": 0,
-      "manualLineCount": 657
+      "guidedLineCount": 217,
+      "manualLineCount": 1681
     },
     {
       "atom": "effect.counter-plus",
       "occurrenceCount": 2086,
       "autoLineCount": 0,
-      "manualLineCount": 1209
+      "guidedLineCount": 187,
+      "manualLineCount": 1856
     },
     {
       "atom": "effect.damage",
       "occurrenceCount": 1978,
       "autoLineCount": 0,
-      "manualLineCount": 720
+      "guidedLineCount": 95,
+      "manualLineCount": 1750
     },
     {
       "atom": "effect.tap",
       "occurrenceCount": 1758,
       "autoLineCount": 0,
-      "manualLineCount": 974
+      "guidedLineCount": 178,
+      "manualLineCount": 1549
     },
     {
       "atom": "effect.add-mana",
       "occurrenceCount": 1676,
-      "autoLineCount": 683,
-      "manualLineCount": 737
+      "autoLineCount": 742,
+      "guidedLineCount": 4,
+      "manualLineCount": 916
     },
     {
       "atom": "effect.return",
       "occurrenceCount": 1541,
       "autoLineCount": 0,
-      "manualLineCount": 483
+      "guidedLineCount": 156,
+      "manualLineCount": 1338
     },
     {
       "atom": "effect.grant-keyword",
       "occurrenceCount": 1353,
       "autoLineCount": 0,
-      "manualLineCount": 528
+      "guidedLineCount": 72,
+      "manualLineCount": 1257
     },
     {
       "atom": "effect.gain-life",
       "occurrenceCount": 990,
-      "autoLineCount": 218,
-      "manualLineCount": 447
+      "autoLineCount": 231,
+      "guidedLineCount": 80,
+      "manualLineCount": 674
     },
     {
       "atom": "effect.destroy",
       "occurrenceCount": 956,
       "autoLineCount": 0,
-      "manualLineCount": 141
+      "guidedLineCount": 419,
+      "manualLineCount": 463
     },
     {
       "atom": "effect.restriction",
       "occurrenceCount": 923,
       "autoLineCount": 0,
-      "manualLineCount": 646
+      "guidedLineCount": 12,
+      "manualLineCount": 905
     },
     {
       "atom": "effect.sacrifice",
       "occurrenceCount": 883,
       "autoLineCount": 0,
-      "manualLineCount": 535
+      "guidedLineCount": 43,
+      "manualLineCount": 786
     },
     {
       "atom": "effect.discard",
       "occurrenceCount": 782,
       "autoLineCount": 0,
-      "manualLineCount": 499
+      "guidedLineCount": 39,
+      "manualLineCount": 685
     },
     {
       "atom": "effect.reveal",
       "occurrenceCount": 764,
       "autoLineCount": 0,
-      "manualLineCount": 128
+      "guidedLineCount": 23,
+      "manualLineCount": 658
     },
     {
       "atom": "effect.copy",
       "occurrenceCount": 752,
       "autoLineCount": 0,
-      "manualLineCount": 249
+      "guidedLineCount": 20,
+      "manualLineCount": 554
     },
     {
       "atom": "effect.put-onto-battlefield",
       "occurrenceCount": 724,
       "autoLineCount": 0,
-      "manualLineCount": 204
+      "guidedLineCount": 19,
+      "manualLineCount": 674
     },
     {
       "atom": "effect.lose-life",
       "occurrenceCount": 721,
-      "autoLineCount": 72,
-      "manualLineCount": 391
+      "autoLineCount": 77,
+      "guidedLineCount": 47,
+      "manualLineCount": 589
     },
     {
       "atom": "effect.search",
       "occurrenceCount": 658,
       "autoLineCount": 0,
-      "manualLineCount": 37
+      "guidedLineCount": 19,
+      "manualLineCount": 600
     },
     {
       "atom": "effect.untap",
       "occurrenceCount": 601,
       "autoLineCount": 0,
-      "manualLineCount": 280
+      "guidedLineCount": 56,
+      "manualLineCount": 539
     },
     {
       "atom": "effect.mill",
       "occurrenceCount": 454,
-      "autoLineCount": 54,
-      "manualLineCount": 179
+      "autoLineCount": 57,
+      "guidedLineCount": 8,
+      "manualLineCount": 327
     },
     {
       "atom": "effect.treasure",
       "occurrenceCount": 346,
-      "autoLineCount": 154,
-      "manualLineCount": 86
+      "autoLineCount": 166,
+      "guidedLineCount": 29,
+      "manualLineCount": 147
     },
     {
       "atom": "effect.scry",
       "occurrenceCount": 295,
       "autoLineCount": 0,
-      "manualLineCount": 223
+      "guidedLineCount": 195,
+      "manualLineCount": 99
     },
     {
       "atom": "effect.attach",
       "occurrenceCount": 285,
       "autoLineCount": 0,
-      "manualLineCount": 101
+      "guidedLineCount": 3,
+      "manualLineCount": 273
     },
     {
       "atom": "effect.transform",
       "occurrenceCount": 255,
       "autoLineCount": 0,
-      "manualLineCount": 145
+      "guidedLineCount": 4,
+      "manualLineCount": 250
     },
     {
       "atom": "effect.counter-spell",
       "occurrenceCount": 238,
       "autoLineCount": 0,
-      "manualLineCount": 21
+      "guidedLineCount": 32,
+      "manualLineCount": 200
     },
     {
       "atom": "effect.surveil",
       "occurrenceCount": 190,
       "autoLineCount": 0,
-      "manualLineCount": 155
+      "guidedLineCount": 149,
+      "manualLineCount": 41
     },
     {
       "atom": "effect.gain-control",
       "occurrenceCount": 170,
       "autoLineCount": 0,
-      "manualLineCount": 35
+      "guidedLineCount": 5,
+      "manualLineCount": 161
     },
     {
       "atom": "effect.energy",
       "occurrenceCount": 147,
-      "autoLineCount": 5,
-      "manualLineCount": 87
+      "autoLineCount": 6,
+      "guidedLineCount": 2,
+      "manualLineCount": 116
     },
     {
       "atom": "effect.loyalty",
       "occurrenceCount": 54,
       "autoLineCount": 0,
-      "manualLineCount": 42
+      "guidedLineCount": 1,
+      "manualLineCount": 53
     },
     {
       "atom": "effect.poison",
       "occurrenceCount": 51,
       "autoLineCount": 1,
-      "manualLineCount": 38
+      "guidedLineCount": 0,
+      "manualLineCount": 48
     },
     {
       "atom": "effect.extra-turn",
       "occurrenceCount": 39,
       "autoLineCount": 0,
-      "manualLineCount": 22
+      "guidedLineCount": 1,
+      "manualLineCount": 38
     },
     {
       "atom": "effect.experience",
       "occurrenceCount": 29,
       "autoLineCount": 10,
-      "manualLineCount": 14
+      "guidedLineCount": 0,
+      "manualLineCount": 18
     }
   ],
   "reasonSummary": [
     {
       "reason": "needs-target",
-      "lineCount": 7478,
-      "lineRate": 0.5717999694142836
+      "lineCount": 13310,
+      "lineRate": 0.6090139556165637
     },
     {
       "reason": "needs-parse",
-      "lineCount": 4896,
-      "lineRate": 0.3743691695977978
-    },
-    {
-      "reason": "variable-count",
-      "lineCount": 1427,
-      "lineRate": 0.10911454350818169
-    },
-    {
-      "reason": "needs-choice",
-      "lineCount": 1018,
-      "lineRate": 0.07784064841718917
+      "lineCount": 7369,
+      "lineRate": 0.3371768474033402
     },
     {
       "reason": "optional",
-      "lineCount": 938,
-      "lineRate": 0.0717235051231075
+      "lineCount": 2469,
+      "lineRate": 0.11297185998627317
+    },
+    {
+      "reason": "variable-count",
+      "lineCount": 2431,
+      "lineRate": 0.11123312743079387
+    },
+    {
+      "reason": "needs-choice",
+      "lineCount": 1776,
+      "lineRate": 0.08126286890871653
     },
     {
       "reason": "ambiguous-mana",
-      "lineCount": 659,
-      "lineRate": 0.05038996788499771
+      "lineCount": 794,
+      "lineRate": 0.03633035918554107
     },
     {
       "reason": "no-command",
-      "lineCount": 22,
-      "lineRate": 0.0016822144058724576
+      "lineCount": 38,
+      "lineRate": 0.0017387325554792954
+    }
+  ],
+  "promptKindSummary": [
+    {
+      "kind": "target",
+      "promptCount": 800,
+      "lineCount": 772
+    },
+    {
+      "kind": "modal",
+      "promptCount": 483,
+      "lineCount": 483
+    },
+    {
+      "kind": "scry-surveil",
+      "promptCount": 329,
+      "lineCount": 329
     }
   ],
   "autoCandidatesTop": [
@@ -569,6 +646,248 @@
       "reasons": [],
       "commandsCount": 1,
       "text": "{T}: Add {C}."
+    }
+  ],
+  "guidedCandidatesTop": [
+    {
+      "cardName": "Izoni, Center of the Web",
+      "oracleId": "8074afbf-190b-4a24-b939-cc559bdffe38",
+      "scryfallId": "70ea66cd-587a-4ca9-9ca8-d7d2046bfbed",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Elf Detective",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "Sacrifice four tokens: Surveil 2, then draw two cards. You gain 2 life."
+    },
+    {
+      "cardName": "Cryptex",
+      "oracleId": "8186a992-9065-4a7f-bb00-1c20e01e8fb6",
+      "scryfallId": "f92a2563-6cfb-4d12-9513-b44d1a7a20ab",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "Sacrifice this artifact: Surveil 3, then draw three cards. Activate only if this artifact has five or more unlock counters on it."
+    },
+    {
+      "cardName": "Found Footage",
+      "oracleId": "ad37551c-9d20-4902-8190-6a0aa32a7947",
+      "scryfallId": "b12eb087-762e-4e7d-a6e0-f48df603b7c7",
+      "faceIndex": 0,
+      "typeLine": "Artifact — Clue",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{2}, Sacrifice this artifact: Surveil 2, then draw a card."
+    },
+    {
+      "cardName": "Lapis Orb of Dragonkind",
+      "oracleId": "c61ab8e1-ef23-465d-bcd3-f771434988b2",
+      "scryfallId": "26ed684b-e3a1-421d-8cfd-c5eee673a3a1",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Add {U}. When you spend this mana to cast a Dragon creature spell, scry 2."
+    },
+    {
+      "cardName": "Senu, Keen-Eyed Protector",
+      "oracleId": "bf2dc318-7b51-451e-ac4d-0f1b756dc860",
+      "scryfallId": "5671a03d-0858-41e7-976c-60825c29af04",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Bird Scout",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}, Exile Senu: You gain 2 life and scry 2."
+    },
+    {
+      "cardName": "Serum Sovereign",
+      "oracleId": "d52ecb32-26ed-484b-b1a7-ee47b66f0f94",
+      "scryfallId": "70d562aa-8b49-40a3-a5c1-3af8afa98edc",
+      "faceIndex": 0,
+      "typeLine": "Creature — Phyrexian Sphinx",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{U}, Remove an oil counter from this creature: Draw a card, then scry 2."
+    },
+    {
+      "cardName": "Stone Docent",
+      "oracleId": "dbb1690a-f6f5-459c-9d7f-cb6541fb6688",
+      "scryfallId": "c2abfffb-bf36-44af-9a27-6e109e4d77dd",
+      "faceIndex": 0,
+      "typeLine": "Creature — Spirit Chimera",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{W}, Exile this card from your graveyard: You gain 2 life. Surveil 1. Activate only as a sorcery."
+    },
+    {
+      "cardName": "Surgical Skullbomb",
+      "oracleId": "6d364283-617a-4661-865d-abd9c304b2f9",
+      "scryfallId": "98c2b2af-739f-413c-8c36-da6f78df0acb",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{2}{U}, Sacrifice this artifact: Return target creature to its owner's hand. Draw a card. Activate only as a sorcery."
+    },
+    {
+      "cardName": "Aboshan, Cephalid Emperor",
+      "oracleId": "d4d44264-b276-4bd7-8fbe-6af292b08773",
+      "scryfallId": "bebb51d4-5fc8-4aa2-8464-1674f8afd3f5",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Octopus Noble",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "Tap an untapped Octopus you control: Tap target permanent."
+    },
+    {
+      "cardName": "Adorned Crocodile",
+      "oracleId": "fb49c7d2-d750-4676-b90e-76e7fae70a25",
+      "scryfallId": "bb13a34b-6ac8-47cb-9e91-47106a585fc1",
+      "faceIndex": 0,
+      "typeLine": "Creature — Crocodile",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "Renew — {B}, Exile this card from your graveyard: Put a +1/+1 counter on target creature. Activate only as a sorcery."
+    },
+    {
+      "cardName": "Aether Spellbomb",
+      "oracleId": "4b033a0a-c1ae-44d7-9662-72cbbfda024b",
+      "scryfallId": "ee539bda-62b4-40fb-95d3-c7d1fc0a7e09",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{U}, Sacrifice this artifact: Return target creature to its owner's hand."
+    },
+    {
+      "cardName": "Aetherjacket",
+      "oracleId": "062c8e40-dea7-4df7-bcaa-f1d696fe61c3",
+      "scryfallId": "0a29c8a5-fd98-422c-9518-2db0993495e5",
+      "faceIndex": 0,
+      "typeLine": "Artifact Creature — Thopter",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{2}, {T}, Sacrifice this creature: Destroy another target artifact. Activate only as a sorcery."
+    },
+    {
+      "cardName": "Agent of Kotis",
+      "oracleId": "584fe1e4-029d-43fe-8c9e-6995dd392d65",
+      "scryfallId": "812d0462-0158-467f-951d-a7a121188a10",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Rogue",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "Renew — {3}{U}, Exile this card from your graveyard: Put two +1/+1 counters on target creature. Activate only as a sorcery."
+    },
+    {
+      "cardName": "Alpha Guard",
+      "oracleId": "5337b747-dc69-4fe4-9899-c1374e22aa79",
+      "scryfallId": "e782e572-0cea-47a3-9ce9-3c431fbd44f8",
+      "faceIndex": 0,
+      "typeLine": "Creature — Elf Employee",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{T}: Untap another target permanent whose name starts with the chosen letter."
+    },
+    {
+      "cardName": "Angelic Shield",
+      "oracleId": "05b020fd-21be-495d-ae45-7de3b1224e6d",
+      "scryfallId": "840ff1b8-9b02-4bfb-b75f-f7bcf5da20fa",
+      "faceIndex": 0,
+      "typeLine": "Enchantment",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "Sacrifice this enchantment: Return target creature to its owner's hand."
+    },
+    {
+      "cardName": "Aphetto Alchemist",
+      "oracleId": "867aa0b7-b814-4d33-a677-f6368c8e93c0",
+      "scryfallId": "7f0338fc-853b-41e4-a8d4-325fcccc84dc",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Wizard",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{T}: Untap target artifact or creature."
+    },
+    {
+      "cardName": "Arashin Sunshield",
+      "oracleId": "1175d482-d8a2-467f-bc50-2f4b241966bb",
+      "scryfallId": "dd7102d8-90b3-45a1-b66d-dcca469b1fb6",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Warrior",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{W}, {T}: Tap target creature."
+    },
+    {
+      "cardName": "Arwen Undómiel",
+      "oracleId": "5ffbbce1-fe38-40dc-a7c3-2055ae86c6c5",
+      "scryfallId": "c544e301-13b4-4dec-b65c-d54809bb7736",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Elf Noble",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{4}{G}{U}: Scry 2."
+    },
+    {
+      "cardName": "Avacynian Priest",
+      "oracleId": "df7e296d-96de-4280-a4d8-49189544b9e3",
+      "scryfallId": "c119b314-c563-4b6b-8bac-a680e69c6b37",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Cleric",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{1}, {T}: Tap target non-Human creature."
+    },
+    {
+      "cardName": "Ayli, Eternal Pilgrim",
+      "oracleId": "e6a35729-edee-4a8c-9aa1-041114d66c69",
+      "scryfallId": "06969031-2c13-4b5a-bb4e-86eed025e614",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Kor Cleric",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 0,
+      "text": "{1}{W}{B}, Sacrifice another creature: Exile target nonland permanent. Activate only if you have at least 10 life more than your starting life total."
     }
   ],
   "mappingFailuresTop": []

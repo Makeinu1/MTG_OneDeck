@@ -13,6 +13,7 @@ import {
 import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
 import type { GameState, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
+import { eligibleTargets } from '../../engine/commands';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
 import { Modal } from '../Modal';
 import type { MenuTarget } from '../types';
@@ -45,6 +46,7 @@ import {
   ShortfallDialog,
   CommanderMoveDialog,
   LandTapChoiceDialog,
+  ModalChoiceDialog,
   TokenCreateDialog,
   XCostDialog,
   ZoneViewerDialog,
@@ -278,6 +280,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
   );
 
   const isDialogOpen =
+    store.pendingGuided !== null ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
@@ -1100,6 +1103,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
+  const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
+  const guidedTargetIds =
+    guidedPrompt?.kind === 'target' ? eligibleTargets(state, guidedPrompt.filter ?? {}) : [];
   const bloodDiscardIds = pendingBloodCrackCardId ? state.zones.hand : [];
   const peekIds =
     peekCount === null
@@ -1393,6 +1399,39 @@ export function Playmat({ keybindings }: PlaymatProps) {
               setFetchDialog(null);
             }}
             onClose={() => setFetchDialog(null)}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'target' && (
+          <TargetPickerDialog
+            title="対象を選択"
+            cardIds={guidedTargetIds}
+            state={state}
+            onPick={(targetId) => store.confirmGuidedTarget(targetId)}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'scry-surveil' && (
+          <ArrangeTopDialog
+            key={`guided-arrange-${guidedPrompt.raw}`}
+            state={state}
+            initialCount={guidedPrompt.count}
+            initialMode={guidedPrompt.atom === 'effect.surveil' ? 'surveil' : 'scry'}
+            lockCount
+            lockMode
+            onConfirm={(topOrder, toBottom, toGraveyard) => {
+              store.confirmGuidedScrySurveil(topOrder, toBottom, toGraveyard);
+            }}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'modal' && (
+          <ModalChoiceDialog
+            prompt={guidedPrompt}
+            onConfirm={(chosen) => store.confirmGuidedModal(chosen)}
+            onCancel={() => store.cancelGuidedPrompt()}
           />
         )}
 

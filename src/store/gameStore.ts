@@ -7,13 +7,24 @@ import {
 } from '../data/gameSnapshot';
 import type { CardDef, ManaColor } from '../types/card';
 import { applyCommands } from '../engine/batch';
-import { applyCommand, EngineError, type GameCommand } from '../engine/commands';
+import {
+  applyCommand,
+  EngineError,
+  guidedPlanForStackTop,
+  type GameCommand,
+} from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
 import { splitAbilityLines, type AbilityShape } from '../engine/grammar/index';
+import { parseAbilityIR } from '../engine/grammar/ir';
+import {
+  buildGuidedCommands,
+  compileAbilityIR,
+  type EffectPrompt,
+} from '../engine/grammar/compile';
 import type { AbilityKind, CardInstance, GameState, ZoneId } from '../engine/types';
 import { classifyCardRules } from '../data/ruleClassifier';
 import {
@@ -59,6 +70,13 @@ export interface TriggerCandidate {
   triggerId: string;
   label: string;
   abilityLineIndex?: number;
+}
+
+export interface PendingGuidedResolution {
+  sourceId: string;
+  prompts: EffectPrompt[];
+  commands: GameCommand[];
+  to?: ZoneId;
 }
 
 /**
@@ -116,6 +134,7 @@ export interface GameStore {
   state: GameState | null;
   warnings: string[];
   triggerCandidates: TriggerCandidate[];
+  pendingGuided: PendingGuidedResolution | null;
   canUndo: boolean;
   canRedo: boolean;
   autoAdvanceToMain: boolean;
@@ -178,6 +197,10 @@ export interface GameStore {
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
+  confirmGuidedTarget(cardId: string): void;
+  confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
+  confirmGuidedModal(chosen: number[]): void;
+  cancelGuidedPrompt(): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
   declareAttack(attackerIds: string[], targetLabel: string): void;
@@ -229,6 +252,37 @@ function cardLabel(state: GameState, cardId: string): string {
   const face = def?.faces[card.faceIndex] ?? def?.faces[0];
   const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
   return `《${name}》`;
+}
+
+function appendLog(state: GameState, message: string): GameState {
+  const maxSeq = state.log.reduce((max, entry) => Math.max(max, entry.seq), -1);
+  return {
+    ...state,
+    log: [
+      ...state.log,
+      {
+        seq: maxSeq + 1,
+        turn: state.turn,
+        phase: state.phase,
+        message,
+      },
+    ],
+  };
+}
+
+function sourceDefFor(state: GameState, sourceId: string): CardDef | null {
+  const source = state.cards[sourceId];
+  return source ? state.defs[source.defId] ?? null : null;
+}
+
+function sourceTypeLineFor(state: GameState, sourceId: string): string {
+  const source = state.cards[sourceId];
+  if (!source) {
+    return '';
+  }
+  const def = state.defs[source.defId];
+  const face = def?.faces[source.faceIndex] ?? def?.faces[0];
+  return face?.typeLine ?? def?.typeLine ?? '';
 }
 
 function cardTexts(def: CardDef | undefined): string[] {
@@ -614,6 +668,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       warnings,
       canUndo: internal.past.length > 0,
       canRedo: false,
+      pendingGuided: null,
     };
     if (detectedTriggerCandidates !== null) {
       nextStoreState.triggerCandidates = detectedTriggerCandidates;
@@ -662,10 +717,91 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
+  function finishGuidedResolution(pending: PendingGuidedResolution, commands: GameCommand[]): void {
+    const cur = get().state;
+    if (!cur) return;
+
+    const resolveCommand: GameCommand =
+      pending.to === undefined
+        ? { type: 'resolveStackTop' }
+        : { type: 'resolveStackTop', to: pending.to };
+    try {
+      const result = applyCommands(cur, [...commands, resolveCommand]);
+      const logged = appendLog(
+        result.state,
+        `${cardLabel(cur, pending.sourceId)}の効果を誘導実行した。`,
+      );
+      commit(logged, result.warnings);
+    } catch (err) {
+      console.error(err);
+      set({ pendingGuided: null });
+    }
+  }
+
+  function advanceGuidedResolution(
+    extraCommands: readonly GameCommand[],
+    prependPrompts: readonly EffectPrompt[] = [],
+  ): void {
+    const pending = get().pendingGuided;
+    if (!pending) return;
+
+    const commands = [...pending.commands, ...extraCommands];
+    const prompts = [...prependPrompts, ...pending.prompts.slice(1)];
+    if (prompts.length === 0) {
+      finishGuidedResolution(pending, commands);
+      return;
+    }
+
+    set({
+      pendingGuided: {
+        ...pending,
+        prompts,
+        commands,
+      },
+    });
+  }
+
+  function compileSelectedModalOptions(
+    pending: PendingGuidedResolution,
+    chosen: readonly number[],
+  ): { commands: GameCommand[]; prompts: EffectPrompt[] } {
+    const cur = get().state;
+    const currentPrompt = pending.prompts[0];
+    if (!cur || currentPrompt?.kind !== 'modal') {
+      return { commands: [], prompts: [] };
+    }
+
+    const def = sourceDefFor(cur, pending.sourceId);
+    if (!def) {
+      return { commands: [], prompts: [] };
+    }
+
+    const selected = new Set(chosen);
+    const commands: GameCommand[] = [];
+    const prompts: EffectPrompt[] = [];
+    const typeLine = sourceTypeLineFor(cur, pending.sourceId);
+    for (const option of currentPrompt.options ?? []) {
+      if (!selected.has(option.index)) {
+        continue;
+      }
+      const ir = parseAbilityIR(option.raw, typeLine);
+      const compiled = compileAbilityIR(ir, { sourceId: pending.sourceId, def });
+      if (compiled.decision === 'auto') {
+        commands.push(...compiled.commands);
+      } else if (compiled.decision === 'guided') {
+        commands.push(...compiled.commands);
+        prompts.push(...compiled.prompts);
+      }
+    }
+
+    return { commands, prompts };
+  }
+
   return {
     state: null,
     warnings: [],
     triggerCandidates: [],
+    pendingGuided: null,
     canUndo: false,
     canRedo: false,
     autoAdvanceToMain: true,
@@ -685,6 +821,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: openingHand.state,
         warnings: openingHand.warnings,
         triggerCandidates: [],
+        pendingGuided: null,
         canUndo: false,
         canRedo: false,
         mulliganDecisionPending: true,
@@ -701,6 +838,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: normalizeSnapshotState(snapshot.state),
         warnings: [],
         triggerCandidates: [],
+        pendingGuided: null,
         canUndo: false,
         canRedo: false,
         autoAdvanceToMain: snapshot.autoAdvanceToMain,
@@ -743,6 +881,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           state: result.state,
           warnings: result.warnings,
           triggerCandidates: [],
+          pendingGuided: null,
           canUndo: false,
           canRedo: false,
         });
@@ -804,6 +943,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         state: prev,
         triggerCandidates: [],
+        pendingGuided: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -820,6 +960,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         state: next,
         triggerCandidates: [],
+        pendingGuided: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -1248,12 +1389,96 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     resolveTop(to) {
+      const cur = get().state;
+      if (!cur) return;
+      const plan = guidedPlanForStackTop(cur);
+      if (plan) {
+        set({
+          pendingGuided: {
+            sourceId: plan.sourceId,
+            prompts: plan.prompts,
+            commands: [],
+            ...(to === undefined ? {} : { to }),
+          },
+        });
+        return;
+      }
       dispatch({ type: 'resolveStackTop', to });
+    },
+
+    confirmGuidedTarget(cardId) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'target') {
+        return;
+      }
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        advanceGuidedResolution([]);
+        return;
+      }
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'target', cardIds: [cardId] },
+        { sourceId: pending.sourceId, def },
+      );
+      advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedScrySurveil(topOrder, toBottom, toGraveyard) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'scry-surveil') {
+        return;
+      }
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        advanceGuidedResolution([]);
+        return;
+      }
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'scry-surveil', topOrder, toBottom, toGraveyard },
+        { sourceId: pending.sourceId, def },
+      );
+      advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedModal(chosen) {
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!pending || prompt?.kind !== 'modal') {
+        return;
+      }
+      const def = get().state ? sourceDefFor(get().state as GameState, pending.sourceId) : null;
+      if (def) {
+        buildGuidedCommands(
+          prompt,
+          { kind: 'modal', chosen: chosen.slice().sort((a, b) => a - b) },
+          { sourceId: pending.sourceId, def },
+        );
+      }
+      const compiled = compileSelectedModalOptions(
+        pending,
+        chosen.slice().sort((a, b) => a - b),
+      );
+      advanceGuidedResolution(compiled.commands, compiled.prompts);
+    },
+
+    cancelGuidedPrompt() {
+      advanceGuidedResolution([]);
     },
 
     resolveAll() {
       const cur = get().state;
       if (!cur || cur.zones.stack.length === 0) return;
+
+      if (guidedPlanForStackTop(cur)) {
+        get().resolveTop();
+        return;
+      }
 
       const commands: GameCommand[] = [];
       for (let i = cur.zones.stack.length - 1; i >= 0; i--) {
