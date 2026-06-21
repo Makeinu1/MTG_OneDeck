@@ -164,6 +164,46 @@ describe('classifyCardRules', () => {
     );
   });
 
+  it('detects watcher trigger-assist tags from oracle text', () => {
+    const nivMizzet = makeCard(
+      'Niv-Mizzet, Parun',
+      'Whenever a player casts an instant or sorcery spell, you draw a card.',
+    );
+    const stormKilnArtist = makeCard(
+      'Storm-Kiln Artist',
+      'Magecraft — Whenever you cast or copy an instant or sorcery spell, create a Treasure token.',
+    );
+    const soulWarden = makeCard(
+      'Soul Warden',
+      'Whenever another creature enters the battlefield, you gain 1 life.',
+    );
+    const bloodArtist = makeCard(
+      'Blood Artist',
+      'Whenever Blood Artist or another creature dies, target player loses 1 life and you gain 1 life.',
+    );
+    const chainer = makeCard(
+      'Chainer Attack Watcher',
+      'Whenever one or more nontoken creatures attack, exile them at end of combat.',
+    );
+    const sunTitan = makeCard(
+      'Sun Titan',
+      'Whenever Sun Titan enters or attacks, you may return target permanent card with mana value 3 or less from your graveyard to the battlefield.',
+      { typeLine: 'Creature — Giant' },
+    );
+    const selfDies = makeCard('Self Death', 'When Self Death dies, draw a card.');
+    const vanilla = makeCard('Vanilla Bear');
+
+    expect(tagIds(nivMizzet)).toContain('trigger.cast-watcher');
+    expect(tagIds(stormKilnArtist)).toContain('trigger.cast-watcher');
+    expect(tagIds(soulWarden)).toContain('trigger.etb-other');
+    expect(tagIds(bloodArtist)).toContain('trigger.death-other');
+    expect(tagIds(chainer)).toContain('trigger.attack-watcher');
+    expect(tagIds(sunTitan)).not.toContain('trigger.etb-other');
+    expect(tagIds(sunTitan)).not.toContain('trigger.attack-watcher');
+    expect(tagIds(selfDies)).not.toContain('trigger.death-other');
+    expect(tagIds(vanilla)).not.toContain('trigger.cast-watcher');
+  });
+
   it('does not classify discard when the paragraph says it cannot happen', () => {
     expect(tagIds(makeCard('Library of Leng', "You can't discard cards."))).not.toContain(
       'action.discard',

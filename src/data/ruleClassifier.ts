@@ -62,8 +62,32 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     risk: 'C',
     layer: 'trigger-assist',
   },
+  'trigger.cast-watcher': {
+    label: '呪文を唱えるたびの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.etb-other': {
+    label: '他が戦場に出たときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.death-other': {
+    label: '他の死亡時の誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
   'trigger.attack': {
     label: '攻撃したときの誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
+  'trigger.attack-watcher': {
+    label: 'クリーチャー攻撃時の誘発',
     kind: 'trigger',
     risk: 'C',
     layer: 'trigger-assist',
@@ -243,6 +267,10 @@ const FIXED_TAG_ORDER = [
   'trigger.attack',
   'trigger.landfall',
   'trigger.upkeep',
+  'trigger.cast-watcher',
+  'trigger.etb-other',
+  'trigger.death-other',
+  'trigger.attack-watcher',
   'action.draw',
   'action.create-token',
   'action.proliferate',
@@ -342,7 +370,30 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string): void {
     /\b(?:when|whenever)\b[^.]*\bcasts?\b[^.]*\bspell\b/i,
     'high',
   );
+  matchTag(tags, core, 'trigger.cast-watcher', /\bwhenever\b[^.]{0,40}\bcasts?\b/i, 'high');
+  matchTag(tags, core, 'trigger.cast-watcher', /\bmagecraft\b/i, 'high');
+  matchTag(
+    tags,
+    core,
+    'trigger.etb-other',
+    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\benters\b/i,
+    'high',
+  );
+  matchTag(
+    tags,
+    core,
+    'trigger.death-other',
+    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\bdies\b/i,
+    'high',
+  );
   matchTag(tags, core, 'trigger.attack', /\b(?:when|whenever)\b[^,.]*\battacks?\b/i, 'high');
+  matchTag(
+    tags,
+    core,
+    'trigger.attack-watcher',
+    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\battacks?\b/i,
+    'high',
+  );
   matchTag(tags, core, 'trigger.landfall', /\blandfall\b/i, 'high');
   matchTag(
     tags,

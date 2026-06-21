@@ -353,17 +353,28 @@ function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandi
   const prevBattlefield = new Set(prev.zones.battlefield);
   const nextBattlefield = new Set(next.zones.battlefield);
   const nextGraveyard = new Set(next.zones.graveyard);
+  const isLandfallEvent = next.landsPlayedThisTurn > prev.landsPlayedThisTurn;
 
   const enteredBattlefield = next.zones.battlefield.filter(
     (cardId) => !prevBattlefield.has(cardId),
   );
   if (enteredBattlefield.length > 0) {
     sawTriggerEvent = true;
+    const enteredBattlefieldSet = new Set(enteredBattlefield);
     for (const cardId of enteredBattlefield) {
       if (!cardHasRuleTag(next, cardId, 'trigger.etb')) continue;
       addTriggerCandidate(
         candidates,
         makeTriggerCandidate(next, cardId, 'trigger.etb', '戦場に出たとき'),
+      );
+    }
+    for (const cardId of next.zones.battlefield) {
+      if (enteredBattlefieldSet.has(cardId)) continue;
+      if (isLandfallEvent && cardHasRuleTag(next, cardId, 'trigger.landfall')) continue;
+      if (!cardHasRuleTag(next, cardId, 'trigger.etb-other')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.etb-other', '他が戦場に出たとき'),
       );
     }
   }
@@ -380,9 +391,16 @@ function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandi
         makeTriggerCandidate(next, cardId, 'trigger.death', '死亡したとき'),
       );
     }
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.death-other')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.death-other', '他の死亡時'),
+      );
+    }
   }
 
-  if (next.landsPlayedThisTurn > prev.landsPlayedThisTurn) {
+  if (isLandfallEvent) {
     sawTriggerEvent = true;
     for (const cardId of next.zones.battlefield) {
       if (!cardHasRuleTag(next, cardId, 'trigger.landfall')) continue;
@@ -417,9 +435,41 @@ function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandi
         );
       }
     }
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.cast-watcher')) continue;
+      addTriggerCandidate(
+        candidates,
+        makeTriggerCandidate(next, cardId, 'trigger.cast-watcher', '呪文を唱えるたび'),
+      );
+    }
   }
 
   return sawTriggerEvent ? candidates : null;
+}
+
+function detectAttackTriggerCandidates(
+  state: GameState,
+  attackerIds: string[],
+): TriggerCandidate[] {
+  const candidates: TriggerCandidate[] = [];
+
+  for (const cardId of attackerIds) {
+    if (!cardHasRuleTag(state, cardId, 'trigger.attack')) continue;
+    addTriggerCandidate(
+      candidates,
+      makeTriggerCandidate(state, cardId, 'trigger.attack', '攻撃したとき'),
+    );
+  }
+
+  for (const cardId of state.zones.battlefield) {
+    if (!cardHasRuleTag(state, cardId, 'trigger.attack-watcher')) continue;
+    addTriggerCandidate(
+      candidates,
+      makeTriggerCandidate(state, cardId, 'trigger.attack-watcher', 'クリーチャー攻撃時'),
+    );
+  }
+
+  return candidates;
 }
 
 export function freeMulliganBottomCount(mulliganCount: number): number {
@@ -1112,6 +1162,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           ...tapCommands,
         ]);
         commit(result.state, [...result.warnings, ...warnings]);
+        set({ triggerCandidates: detectAttackTriggerCandidates(result.state, attackerIds) });
       } catch (err) {
         console.error(err);
       }

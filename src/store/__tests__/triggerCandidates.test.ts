@@ -218,4 +218,153 @@ describe('trigger candidates', () => {
       },
     ]);
   });
+
+  it('shows attack candidates for declared attackers and battlefield watchers', () => {
+    const attacker = makeDef({
+      scryfallId: 'candidate-attack',
+      faces: [
+        {
+          name: 'Attack Candidate',
+          typeLine: 'Creature',
+          oracleText: 'Whenever Attack Candidate attacks, draw a card.',
+          power: '2',
+          toughness: '2',
+        },
+      ],
+    });
+    const watcher = makeDef({
+      scryfallId: 'candidate-attack-watcher',
+      faces: [
+        {
+          name: 'Attack Watcher',
+          typeLine: 'Creature',
+          oracleText: 'Whenever another creature attacks, draw a card.',
+        },
+      ],
+    });
+    startGameWith([attacker, watcher]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    store().moveCard(attackerId, 'battlefield');
+    store().moveCard(watcherId, 'battlefield');
+
+    store().declareAttack([attackerId], '対戦相手A');
+
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId: attackerId,
+        triggerId: 'trigger.attack',
+        label: '攻撃したとき: 《Attack Candidate》',
+      },
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.attack-watcher',
+        label: 'クリーチャー攻撃時: 《Attack Watcher》',
+      },
+    ]);
+
+    store().undo();
+    expect(store().triggerCandidates).toEqual([]);
+
+    store().redo();
+    expect(store().triggerCandidates).toEqual([]);
+  });
+
+  it('shows ETB watcher candidates for permanents already on the battlefield', () => {
+    const watcher = makeDef({
+      scryfallId: 'candidate-etb-watcher',
+      faces: [
+        {
+          name: 'Soul Warden',
+          typeLine: 'Creature',
+          oracleText: 'Whenever another creature enters the battlefield, you gain 1 life.',
+        },
+      ],
+    });
+    const creature = makeDef({
+      scryfallId: 'candidate-etb-victim',
+      faces: [{ name: 'Entering Creature', typeLine: 'Creature' }],
+    });
+    startGameWith([watcher, creature]);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+
+    store().moveCard(creatureId, 'battlefield');
+
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.etb-other',
+        label: '他が戦場に出たとき: 《Soul Warden》',
+      },
+    ]);
+  });
+
+  it('shows death watcher candidates for battlefield permanents', () => {
+    const watcher = makeDef({
+      scryfallId: 'candidate-death-watcher',
+      faces: [
+        {
+          name: 'Blood Artist',
+          typeLine: 'Creature',
+          oracleText:
+            'Whenever Blood Artist or another creature dies, target player loses 1 life and you gain 1 life.',
+        },
+      ],
+    });
+    const creature = makeDef({
+      scryfallId: 'candidate-death-victim',
+      faces: [{ name: 'Dying Creature', typeLine: 'Creature' }],
+    });
+    startGameWith([watcher, creature]);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+    store().moveCard(creatureId, 'battlefield');
+
+    store().moveCard(creatureId, 'graveyard');
+
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.death-other',
+        label: '他の死亡時: 《Blood Artist》',
+      },
+    ]);
+  });
+
+  it('shows cast watcher candidates for battlefield permanents', () => {
+    const watcher = makeDef({
+      scryfallId: 'candidate-cast-watcher',
+      faces: [
+        {
+          name: 'Niv-Mizzet Watcher',
+          typeLine: 'Creature',
+          oracleText: 'Whenever a player casts a spell, Niv-Mizzet Watcher deals 1 damage.',
+        },
+      ],
+    });
+    const spell = makeDef({
+      scryfallId: 'candidate-cast-spell',
+      typeLine: 'Instant',
+      faces: [{ name: 'Watched Spell', typeLine: 'Instant' }],
+    });
+    startGameWith([watcher, spell]);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const spellId = findInstanceId(spell.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+    moveToHand(spellId);
+
+    const result = store().castToStack(spellId);
+
+    expect(result).toBe('ok');
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.cast-watcher',
+        label: '呪文を唱えるたび: 《Niv-Mizzet Watcher》',
+      },
+    ]);
+  });
 });

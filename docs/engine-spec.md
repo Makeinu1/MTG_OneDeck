@@ -1059,3 +1059,34 @@ export interface CardInstance {
 ### 24.3 不変・非干渉
 - **エンジン不変**: `src/engine/`・`applyCommand`・`commands.ts`・`CACHE_SCHEMA_VERSION` は変更しない。新コマンドを足さない。
 - プリセット生成・宝物クラック・既存「生け贄に捧げる」を壊さない。M6.1〜M6.8 を壊さない。各クラックは**1スナップショット**(単一 undo)で元に戻る。
+
+---
+
+## 25. M6.10 誘発候補キューの精度向上(データ層 + ストア検出契約)— この節も契約である
+
+設計指針: M6.3(§20)の誘発候補キューは **自身**の誘発(出た/死んだ/唱えた本人)と landfall/upkeep のみ検出し、(1)**攻撃誘発はタグだけで検出が無い**、(2)**他者を見張る誘発**(「あなたが呪文を唱えるたび」=Niv-Mizzet/魔技、「他の(or あるクリーチャーが)戦場に出る/死亡する/攻撃するたび」)を取りこぼす。本節はこれらを補う。**助言のみ・自動では積まない・undo/redoで消える**という M6.3 の不変は維持。**エンジンAPIは不変**。
+
+### 25.1 分類タグの追加(`src/data/ruleClassifier.ts` `classifyAbilityText`)
+既存 `trigger.etb/death/cast/attack/landfall/upkeep` は不変。**見張り型**の派生タグを追加(kind 'trigger', layer 'trigger-assist', risk 'C', confidence 'high'):
+- `trigger.cast-watcher`(label「呪文を唱えるたびの誘発」): `/\bwhenever\b[^.]{0,40}\bcasts?\b/i` または `/\bmagecraft\b/i`(「whenever you cast」「whenever a player casts」「魔技」を捕捉。自身一回限りの「When you cast this spell」=`when`始まりには一致しにくい)。
+- `trigger.etb-other`(label「他が戦場に出たときの誘発」): `/\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\benters\b/i`(「Whenever another creature enters」を捕捉。「When this/CARDNAME enters」=自身型には**一致しない**)。
+- `trigger.death-other`(label「他の死亡時の誘発」): `/\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\bdies\b/i`(「Whenever 〈名前〉 or another creature dies」「a creature you control dies」を捕捉)。
+- `trigger.attack-watcher`(label「クリーチャー攻撃時の誘発」): `/\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\battacks?\b/i`。
+
+裏取り済み(実カード文言): Niv-Mizzet/Storm-Kiln/魔技→cast-watcher、Soul Warden→etb-other、Blood Artist/各種アリストクラット→death-other、Chainer等→attack-watcher。Sun Titan「enters or attacks」等の**自身型**や素のバニラには一致しない。これらは助言用。`FIXED_TAG_ORDER` に追記し決定的出力を保つ。
+
+### 25.2 検出の拡張(`src/store/gameStore.ts` `detectTriggerCandidates`)
+イベント時に**自身**(既存)に加えて、**戦場の他パーマネント**で対応する見張りタグを持つものを候補に追加(`addTriggerCandidate` で重複排除)。
+- ETB イベント(戦場流入あり): 既存の流入カードの `trigger.etb` に加え、流入していない戦場パーマネントで `trigger.etb-other` を持つものを「他が戦場に出たとき」として追加。
+- death イベント: 死亡カードの `trigger.death`(既存)に加え、`next.zones.battlefield` で `trigger.death-other` を持つものを「他の死亡時」として追加。
+- cast イベント: 唱えた本人の `trigger.cast`(既存)に加え、戦場で `trigger.cast-watcher` を持つものを「呪文を唱えるたび」として追加。
+
+### 25.3 攻撃誘発の検出(`src/store/gameStore.ts` `declareAttack`)
+攻撃宣言は監視対象の state 差分を作らない(taptと相手ライフのみ)ため、`declareAttack` 内で明示的に候補を構築する。`commit(result.state, …)` の後に、次を `triggerCandidates` として **set**(攻撃は1イベント=置換。空でも置換):
+- 各 `attackerIds` で `trigger.attack` を持つもの →「攻撃したとき」。
+- `result.state.zones.battlefield` で `trigger.attack-watcher` を持つもの →「クリーチャー攻撃時」。
+- `addTriggerCandidate` で重複排除。`commit` が attack で `detectTriggerCandidates=null`(=据え置き)を返すことを利用し、その後に明示 set する。
+
+### 25.4 不変・非干渉
+- 候補は**助言のみ**。自動でスタックに積まない。ユーザーが選ぶと既存 `addAbilityToStack(sourceId,'triggered')`。undo/redo・newGame・mulligan で `triggerCandidates` がクリアされる既存挙動を維持。
+- **エンジン不変**: `src/engine/`・`applyCommand`・`CACHE_SCHEMA_VERSION` 不変。M6.1〜M6.9 を壊さない。見張りタグの過検出は許容(助言・ユーザーが取捨)。`resolveAll` 等の既存挙動不変。
