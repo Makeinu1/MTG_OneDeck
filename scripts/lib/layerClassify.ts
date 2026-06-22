@@ -1,4 +1,5 @@
 import { splitAbilityLines, type AbilityLine } from '../../src/engine/grammar/index.ts';
+import { removeReminderAndQuotes, splitParagraphs } from '../../src/engine/keywordGrammar.ts';
 import type { CardDef, CardFace } from '../../src/types/card';
 
 export type LayerId =
@@ -93,6 +94,7 @@ const RULES: readonly {
       /\bNonbasic lands are Mountains\b/i,
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+every\s+(?:creature|basic land)\s+type\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:becomes?|become)\s+the\s+(?:creature|artifact|enchantment|land)\s+type\b[^.;]*`, 'i'),
+      new RegExp(String.raw`\b(?:is|are)(?:n't| not)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
       /\bin addition to (?:its|their) other types\b[^.;]*/i,
@@ -113,6 +115,7 @@ const RULES: readonly {
     layer: 'L6',
     reads: ['abilities', 'keyword-set'],
     probes: [
+      /\b(?:have|has|gains?)\s+(?:"[^"]+"|\u201c[^\u201d]+\u201d)[^.;]*/i,
       new RegExp(String.raw`\b(?:have|has|gain|gains|gained|gaining)\b[^.;]*(?:${KEYWORDS}|abilit(?:y|ies))\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:lose|loses|lost|losing)\b[^.;]*(?:all\s+(?:other\s+)?abilit(?:y|ies)|abilit(?:y|ies)|${KEYWORDS})\b[^.;]*`, 'i'),
       /\bcan't have or gain\b[^.;]*/i,
@@ -134,7 +137,8 @@ const RULES: readonly {
     reads: ['power', 'toughness'],
     probes: [
       /\bgets?\s+[+-](?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*/i,
-      /\b[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b[^.;]*/i,
+      /[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b[^.;]*/i,
+      /\bdouble(?:s|d)?\s+(?:the\s+)?power and toughness\b[^.;]*/i,
     ],
   },
   {
@@ -151,7 +155,7 @@ const L7A_PROBES: readonly RegExp[] = [
 ];
 
 export function classifyContinuousLayers(line: AbilityLine, def: CardDef): LayerTag[] {
-  const text = effectText(normalize(line.text));
+  const text = effectText(lineTextForClassification(line, def));
   if (text === '' || isOneShotCopyTokenLine(text)) {
     return [];
   }
@@ -244,8 +248,31 @@ function normalize(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
+function lineTextForClassification(line: AbilityLine, def: CardDef): string {
+  return quotedAbilityGrantSource(line, def) ?? normalize(line.text);
+}
+
+function quotedAbilityGrantSource(line: AbilityLine, def: CardDef): string | undefined {
+  const face = def.faces[line.faceIndex] ?? def.faces[0];
+  if (typeof face?.oracleText !== 'string') {
+    return undefined;
+  }
+
+  const sanitizedLine = normalize(line.text);
+  for (const paragraph of splitParagraphs(face.oracleText)) {
+    const rawLine = normalize(paragraph);
+    if (!/\b(?:have|has|gains?)\s+(?:"[^"]+"|\u201c[^\u201d]+\u201d)/i.test(rawLine)) {
+      continue;
+    }
+    if (normalize(removeReminderAndQuotes(paragraph)) === sanitizedLine) {
+      return rawLine;
+    }
+  }
+  return undefined;
+}
+
 function effectText(line: string): string {
-  const colonIndex = line.indexOf(':');
+  const colonIndex = firstUnquotedColonIndex(line);
   if (colonIndex < 0) {
     return line;
   }
@@ -255,6 +282,32 @@ function effectText(line: string): string {
     return line;
   }
   return line.slice(colonIndex + 1).trim();
+}
+
+function firstUnquotedColonIndex(line: string): number {
+  let inStraightQuote = false;
+  let inCurlyQuote = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"' && !inCurlyQuote) {
+      inStraightQuote = !inStraightQuote;
+      continue;
+    }
+    if (char === '\u201c' && !inStraightQuote) {
+      inCurlyQuote = true;
+      continue;
+    }
+    if (char === '\u201d' && inCurlyQuote) {
+      inCurlyQuote = false;
+      continue;
+    }
+    if (char === ':' && !inStraightQuote && !inCurlyQuote) {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function isCostLikeActivatedPrefix(left: string): boolean {

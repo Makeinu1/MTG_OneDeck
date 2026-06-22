@@ -109,6 +109,46 @@ const cases: ReadonlyArray<[string, string, string, LayerId[], boolean]> = [
     [],
     false,
   ],
+  // ── iter2: 閉じた系統的ギャップ ───────────────────────────────
+  // L6 非キーワード能力付与(引用された起動型)。カード自身の {T} 行は付与でない=誤計上しない。
+  [
+    'Chromatic Lantern',
+    'Artifact',
+    'Lands you control have "{T}: Add one mana of any color."\n{T}: Add one mana of any color.',
+    ['L6'],
+    false,
+  ],
+  [
+    'Cryptolith Rite',
+    'Enchantment',
+    'Creatures you control have "{T}: Add one mana of any color."',
+    ['L6'],
+    false,
+  ],
+  // L4 条件付き否定型変更(isn't a creature)+ 起動型 +1/+0 = L7c。
+  [
+    'Purphoros, God of the Forge',
+    'Legendary Enchantment Creature — God',
+    "Indestructible\nAs long as your devotion to red is less than five, Purphoros isn't a creature.\nWhenever another creature you control enters, Purphoros deals 2 damage to each opponent.\n{2}{R}: Creatures you control get +1/+0 until end of turn.",
+    ['L4', 'L7c'],
+    false,
+  ],
+  // L4 否定型 + lifelink付与(L6)+ +1/+1カウンター(L7c)の3機構。
+  [
+    'Heliod, Sun-Crowned',
+    'Legendary Enchantment Creature — God',
+    "Indestructible\nAs long as your devotion to white is less than five, Heliod isn't a creature.\nWhenever you gain life, put a +1/+1 counter on target creature or enchantment you control.\n{1}{W}: Another target creature gains lifelink until end of turn.",
+    ['L4', 'L6', 'L7c'],
+    false,
+  ],
+  // L7c 乗算(+N/+N 形でない倍化)。
+  [
+    'Unnatural Growth',
+    'Enchantment',
+    'At the beginning of each combat, double the power and toughness of each creature you control until end of turn.',
+    ['L7c'],
+    false,
+  ],
 ];
 
 describe('M0-1 層分類ゴールド: classifyCardLayers(有効特性 + 層オントロジー)', () => {

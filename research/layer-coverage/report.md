@@ -4,41 +4,41 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Summary
 
-- Generated at: 2026-06-22T22:27:05.971Z
+- Generated at: 2026-06-22T22:43:19.857Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- classified continuous lines: 5318
+- classified continuous lines: 7462
 - cdaCardCount: 128
-- multiLayer cards: 1244
-- adjudication candidates: 1396
+- multiLayer cards: 1708
+- adjudication candidates: 988
 - mapping failures: 0
 
 ## Per Layer
 
 | layer | card count | line count | effect line rate | examples |
 |---|---:|---:|---:|---|
-| L1a | 60 | 60 | 1.13% | Shifting Woodland (rank 365); Cursed Mirror (rank 444); Thespian's Stage (rank 558); The Mycosynth Gardens (rank 870); Mirage Mirror (rank 1267) |
-| L1b | 62 | 64 | 1.20% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
-| L2 | 281 | 290 | 5.45% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Ripples of Potential (rank 994); Ocelot Pride (rank 1118); Marvin, Murderous Mimic (rank 1167) |
-| L3 | 4 | 4 | 0.08% | New Blood (rank 4248); Mind Bend (rank 15607); Crystal Spray (rank 19990); Magical Hack (rank 21754) |
-| L4 | 506 | 523 | 9.83% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
-| L5 | 64 | 69 | 1.30% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
-| L6 | 2574 | 2667 | 50.15% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); The One Ring (rank 89); Garruk's Uprising (rank 92) |
-| L7a | 124 | 124 | 2.33% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
-| L7b | 147 | 158 | 2.97% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Mirror Entity (rank 933); Amphibian Downpour (rank 1215); Tezzeret the Seeker (rank 1661) |
-| L7c | 2506 | 2585 | 48.61% | Skullclamp (rank 41); Toxic Deluge (rank 67); Return of the Wildspeaker (rank 175); Storm-Kiln Artist (rank 209); Animate Dead (rank 224) |
-| L7d | 10 | 10 | 0.19% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
+| L1a | 61 | 61 | 0.82% | Shifting Woodland (rank 365); Cursed Mirror (rank 444); Thespian's Stage (rank 558); The Mycosynth Gardens (rank 870); Mirage Mirror (rank 1267) |
+| L1b | 62 | 64 | 0.86% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
+| L2 | 284 | 293 | 3.93% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Ripples of Potential (rank 994); Ocelot Pride (rank 1118); Marvin, Murderous Mimic (rank 1167) |
+| L3 | 4 | 4 | 0.05% | New Blood (rank 4248); Mind Bend (rank 15607); Crystal Spray (rank 19990); Magical Hack (rank 21754) |
+| L4 | 550 | 567 | 7.60% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
+| L5 | 64 | 69 | 0.92% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
+| L6 | 2921 | 3039 | 40.73% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
+| L7a | 124 | 124 | 1.66% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
+| L7b | 151 | 163 | 2.18% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Mirror Entity (rank 933); Amphibian Downpour (rank 1215); Tezzeret the Seeker (rank 1661) |
+| L7c | 4391 | 4717 | 63.21% | Skullclamp (rank 41); Toxic Deluge (rank 67); Urza's Saga (rank 121); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188) |
+| L7d | 10 | 10 | 0.13% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
 
 ## Coverage Curve
 
 | K | layer count | covered card count | covered card rate |
 |---:|---:|---:|---:|
-| 1 | 1 | 2574 | 14.72% |
-| 3 | 3 | 4549 | 26.01% |
-| 5 | 5 | 4751 | 27.16% |
-| 7 | 7 | 4871 | 27.85% |
-| all | 11 | 4937 | 28.23% |
+| 1 | 1 | 4391 | 25.10% |
+| 3 | 3 | 6329 | 36.18% |
+| 5 | 5 | 6508 | 37.21% |
+| 7 | 7 | 6623 | 37.87% |
+| all | 11 | 6687 | 38.23% |
 
 ## Examples
 
@@ -117,9 +117,9 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - rank 549 《Brotherhood Regalia》: is an Assassin in addition to its other types, and can't be blocked
 - rank 558 《Thespian's Stage》: becomes a copy of target land, except it has this ability
 - rank 576 《Darksteel Mutation》: is an Insect artifact creature with base power and toughness 0/1 and has indestructible, and it loses all other abilities, card types, and creature types
+- rank 653 《Purphoros, God of the Forge》: isn't a creature
 - rank 690 《Kenrith's Transformation》: is a green Elk creature with base power and toughness 3/3
 - rank 701 《Aggravated Assault》: is an additional combat phase followed by an additional main phase
-- rank 750 《Imprisoned in the Moon》: is a colorless land with and loses all other card types and abilities
 
 ### L5
 
@@ -144,18 +144,18 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - rank 12 《Swiftfoot Boots》: has hexproof and haste
 - rank 13 《Lightning Greaves》: has haste and shroud
 - rank 31 《Heroic Intervention》: gain hexproof and indestructible until end of turn
+- rank 81 《Chromatic Lantern》: have "{T}: Add one mana of any color."
 - rank 89 《The One Ring》: gain protection from everything until your next turn
 - rank 92 《Garruk's Uprising》: have trample
 - rank 105 《Teferi's Protection》: gain protection from everything
+- rank 121 《Urza's Saga》: gains "{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact you control.'"
+- rank 121 《Urza's Saga》: gains "{T}: Add {C}."
 - rank 176 《Boros Charm》: gain indestructible until end of turn
 - rank 184 《Flawless Maneuver》: gain indestructible until end of turn
 - rank 195 《Akroma's Will》: gain flying, vigilance, and double strike until end of turn
 - rank 207 《Rhythm of the Wild》: have riot
+- rank 224 《Animate Dead》: gains "enchant creature put onto the battlefield with this Aura." Return enchanted creature card to the battlefield under your control and attach this Aura t...
 - rank 240 《Mithril Coat》: has indestructible
-- rank 259 《Basilisk Collar》: has deathtouch and lifelink
-- rank 272 《Inspiring Call》: gain indestructible until end of turn
-- rank 326 《Whispersilk Cloak》: has shroud
-- rank 328 《Craterhoof Behemoth》: gain trample and get +X/+X until end of turn, where X is the number of creatures you control
 
 ### L7a
 
@@ -197,19 +197,19 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 - rank 41 《Skullclamp》: gets +1/-1
 - rank 67 《Toxic Deluge》: get -X/-X until end of turn
+- rank 121 《Urza's Saga》: gets +1/+1 for each artifact you control
 - rank 175 《Return of the Wildspeaker》: get +3/+3 until end of turn
+- rank 188 《Hardened Scales》: +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead
 - rank 209 《Storm-Kiln Artist》: gets +1/+0 for each artifact you control
 - rank 224 《Animate Dead》: gets -1/-0
 - rank 225 《Patchwork Banner》: get +1/+1
+- rank 235 《The Great Henge》: +1/+1 counter on it and draw a card
 - rank 243 《Sword of the Animist》: gets +1/+1
+- rank 272 《Inspiring Call》: +1/+1 counter on it
+- rank 274 《Avenger of Zendikar》: +1/+1 counter on each Plant creature you control
 - rank 328 《Craterhoof Behemoth》: get +X/+X until end of turn, where X is the number of creatures you control
 - rank 329 《Shadowspear》: gets +1/+1 and has trample and lifelink
 - rank 331 《Finale of Devastation》: get +X/+X and gain haste until end of turn
-- rank 339 《Blackblade Reforged》: gets +1/+1 for each land you control
-- rank 354 《Vanquisher's Banner》: get +1/+1
-- rank 389 《Kessig Wolf Run》: gets +X/+0 and gains trample until end of turn
-- rank 504 《The Meathook Massacre》: gets -X/-X until end of turn
-- rank 514 《Massacre Wurm》: get -2/-2 until end of turn
 
 ### L7d
 
@@ -227,13 +227,19 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Multi Layer Cards
 
+- 《Urza's Saga》: L6, L7c
+- 《Animate Dead》: L6, L7c
+- 《Inspiring Call》: L6, L7c
 - 《Craterhoof Behemoth》: L6, L7c
 - 《Shadowspear》: L6, L7c
 - 《Finale of Devastation》: L6, L7c
 - 《Shifting Woodland》: L1a, L4
 - 《Kessig Wolf Run》: L6, L7c
 - 《Cursed Mirror》: L1a, L4, L6
+- 《Snakeskin Veil》: L6, L7c
+- 《Felidar Retreat》: L6, L7c
 - 《Commander's Plate》: L6, L7c
+- 《Unbreakable Formation》: L6, L7c
 - 《Sword of Feast and Famine》: L6, L7c
 - 《Brotherhood Regalia》: L4, L6
 - 《Overwhelming Stampede》: L6, L7c
@@ -241,9 +247,12 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《The Reaver Cleaver》: L6, L7c
 - 《Darksteel Mutation》: L4, L6, L7b
 - 《Intangible Virtue》: L6, L7c
+- 《Purphoros, God of the Forge》: L4, L7c
 - 《Goreclaw, Terror of Qal Sisma》: L6, L7c
 - 《Rising of the Day》: L6, L7c
 - 《Kenrith's Transformation》: L4, L5, L6, L7b
+- 《Innkeeper's Talent》: L6, L7c
+- 《Revitalizing Repast // Old-Growth Grove》: L6, L7c
 - 《Imprisoned in the Moon》: L4, L5, L6
 - 《Tyvar's Stand》: L6, L7c
 - 《Mockingbird》: L4, L6
@@ -252,84 +261,75 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Rancor》: L6, L7c
 - 《Hammer of Nazahn》: L6, L7c
 - 《Ashaya, Soul of the Wild》: L4, L7a
+- 《Rishkar, Peema Renegade》: L6, L7c
+- 《Elspeth, Storm Slayer》: L6, L7c
 - 《The Mycosynth Gardens》: L1a, L4
+- 《Bear Umbra》: L6, L7c
 - 《Sword of Hearth and Home》: L6, L7c
 - 《Colossus Hammer》: L6, L7c
 - 《Excalibur, Sword of Eden》: L6, L7c
 - 《Loxodon Warhammer》: L6, L7c
 - 《Bastion Protector》: L6, L7c
 - 《Serra Ascendant》: L6, L7c
+- 《Yahenni, Undying Partisan》: L6, L7c
+- 《Heliod, Sun-Crowned》: L4, L6, L7c
 - 《Karlach, Fury of Avernus》: L4, L6
 - 《Ethereal Armor》: L6, L7c
-- 《Tyrite Sanctum》: L4, L6
-- 《Great Train Heist》: L4, L6, L7c
-- 《Marvin, Murderous Mimic》: L2, L6
-- 《Enduring Courage》: L6, L7c
-- 《Xenagos, God of Revels》: L6, L7c
-- 《Amphibian Downpour》: L4, L5, L6, L7b
-- 《Triumph of the Hordes》: L6, L7c
-- 《Slayers' Stronghold》: L6, L7c
-- 《Moonshaker Cavalry》: L6, L7c
-- 《Alexios, Deimos of Kosmos》: L2, L6
-- 《Mikaeus, the Unhallowed》: L6, L7c
-- 《Mirage Mirror》: L1a, L4
-- 《Embercleave》: L6, L7c
-- 《Genji Glove》: L4, L6
-- 《Vraska, Betrayal's Sting》: L4, L6
-- 《Lavaspur Boots》: L6, L7c
+- 《Tyrite Sanctum》: L4, L6, L7c
+- 《Metallic Mimic》: L4, L7c
 
 ## Adjudication Candidates
 
 - 《Reliquary Tower》: You have no maximum hand size. (continuous-looking line without layer tag)
 - 《Thought Vessel》: You have no maximum hand size. (continuous-looking line without layer tag)
-- 《Chromatic Lantern》: Lands you control have (continuous-looking line without layer tag)
-- 《Urza's Saga》: I — This Saga gains (continuous-looking line without layer tag)
-- 《Urza's Saga》: II — This Saga gains (continuous-looking line without layer tag)
 - 《Roaming Throne》: If a triggered ability of another creature you control of the chosen type triggers, it triggers an additional time. (continuous-looking line without layer tag)
-- 《Hardened Scales》: If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead. (continuous-looking line without layer tag)
 - 《The Great Henge》: This spell costs {X} less to cast, where X is the greatest power among creatures you control. (continuous-looking line without layer tag)
 - 《Ragavan, Nimble Pilferer》: Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. (continuous-looking line without layer tag)
 - 《Decanter of Endless Water》: You have no maximum hand size. (continuous-looking line without layer tag)
 - 《The Ozolith》: At the beginning of combat on your turn, if The Ozolith has counters on it, you may move all counters from The Ozolith onto target creature. (continuous-looking line without layer tag)
 - 《Pact of Negation》: At the beginning of your next upkeep, pay {3}{U}{U}. If you don't, you lose the game. (continuous-looking line without layer tag)
-- 《Branching Evolution》: If one or more +1/+1 counters would be put on a creature you control, twice that many +1/+1 counters are put on that creature instead. (continuous-looking line without layer tag)
-- 《Goldspan Dragon》: Treasures you control have (continuous-looking line without layer tag)
-- 《Kami of Whispered Hopes》: If one or more +1/+1 counters would be put on a permanent you control, that many plus one +1/+1 counters are put on that permanent instead. (continuous-looking line without layer tag)
-- 《Spark Double》: You may have this creature enter as a copy of a creature or planeswalker you control, except it enters with an additional +1/+1 counter on it if it's a creature, it enters with... (continuous-looking line without layer tag)
 - 《Thassa's Oracle》: When this creature enters, look at the top X cards of your library, where X is your devotion to blue. Put up to one of them on top of your library and the rest on the bottom of... (continuous-looking line without layer tag)
-- 《Unnatural Growth》: At the beginning of each combat, double the power and toughness of each creature you control until end of turn. (continuous-looking line without layer tag)
 - 《Cabal Ritual》: Threshold — Add {B}{B}{B}{B}{B} instead if there are seven or more cards in your graveyard. (continuous-looking line without layer tag)
 - 《Ghalta, Primal Hunger》: This spell costs {X} less to cast, where X is the total power of creatures you control. (continuous-looking line without layer tag)
-- 《Enduring Vitality》: Creatures you control have (continuous-looking line without layer tag)
 - 《Blasphemous Edict》: You may pay {B} rather than pay this spell's mana cost if there are thirteen or more creatures on the battlefield. (continuous-looking line without layer tag)
 - 《Opposition Agent》: While an opponent is searching their library, they exile each card they find. You may play those cards for as long as they remain exiled, and you may spend mana as though it wer... (continuous-looking line without layer tag)
 - 《Wizard Class》: You have no maximum hand size. (continuous-looking line without layer tag)
-- 《Ozolith, the Shattered Spire》: If one or more +1/+1 counters would be put on an artifact or creature you control, that many plus one +1/+1 counters are put on it instead. (continuous-looking line without layer tag)
-- 《Purphoros, God of the Forge》: As long as your devotion to red is less than five, Purphoros isn't a creature. (continuous-looking line without layer tag)
 - 《Sphere of Safety》: Creatures can't attack you or planeswalkers you control unless their controller pays {X} for each of those creatures, where X is the number of enchantments you control. (continuous-looking line without layer tag)
 - 《Sculpting Steel》: You may have this artifact enter as a copy of any artifact on the battlefield. (continuous-looking line without layer tag)
 - 《Banner of Kinship》: As this artifact enters, choose a creature type. This artifact enters with a fellowship counter on it for each creature you control of the chosen type. (continuous-looking line without layer tag)
 - 《Gravecrawler》: You may cast this card from your graveyard as long as you control a Zombie. (continuous-looking line without layer tag)
 - 《Leyline of Anticipation》: If this card is in your opening hand, you may begin the game with it on the battlefield. (continuous-looking line without layer tag)
-- 《Cryptolith Rite》: Creatures you control have (continuous-looking line without layer tag)
-- 《The World Tree》: As long as you control six or more lands, lands you control have (continuous-looking line without layer tag)
 - 《Urza, Lord High Artificer》: {5}: Shuffle your library, then exile the top card. Until end of turn, you may play that card without paying its mana cost. (continuous-looking line without layer tag)
 - 《High Tide》: Until end of turn, whenever a player taps an Island for mana, that player adds an additional {U}. (continuous-looking line without layer tag)
-- 《Rishkar, Peema Renegade》: Each creature you control with a counter on it has (continuous-looking line without layer tag)
-- 《The Earth Crystal》: If one or more +1/+1 counters would be put on a creature you control, twice that many +1/+1 counters are put on that creature instead. (continuous-looking line without layer tag)
-- 《Jaheira, Friend of the Forest》: Tokens you control have (continuous-looking line without layer tag)
-- 《Hexing Squelcher》: Other creatures you control have (continuous-looking line without layer tag)
 - 《Destiny Spinner》: {3}{G}: Target land you control becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control. It's still a land. (continuous-looking line without layer tag)
 - 《Excalibur, Sword of Eden》: This spell costs {X} less to cast, where X is the total mana value of historic permanents you control. (continuous-looking line without layer tag)
 - 《Wayward Swordtooth》: This creature can't attack or block unless you have the city's blessing. (continuous-looking line without layer tag)
 - 《Kardur, Doomscourge》: When Kardur enters, until your next turn, creatures your opponents control attack each combat if able and attack a player other than you if able. (continuous-looking line without layer tag)
 - 《Promise of Loyalty》: Each player puts a vow counter on a creature they control and sacrifices the rest. Each of those creatures can't attack you or planeswalkers you control for as long as it has a... (continuous-looking line without layer tag)
 - 《The Reality Chip》: As long as The Reality Chip is attached to a creature, you may play lands and cast spells from the top of your library. (continuous-looking line without layer tag)
-- 《Heliod, Sun-Crowned》: As long as your devotion to white is less than five, Heliod isn't a creature. (continuous-looking line without layer tag)
 - 《Nezahal, Primal Tide》: You have no maximum hand size. (continuous-looking line without layer tag)
-- 《Metallic Mimic》: Each other creature you control of the chosen type enters with an additional +1/+1 counter on it. (continuous-looking line without layer tag)
-- 《Not Dead After All》: Until end of turn, target creature you control gains (continuous-looking line without layer tag)
 - 《Cyberdrive Awakener》: When this creature enters, each noncreature artifact you control becomes a 4/4 artifact creature until end of turn. (continuous-looking line without layer tag)
+- 《Kozilek, Butcher of Truth》: When Kozilek is put into a graveyard from anywhere, its owner shuffles their graveyard into their library. (continuous-looking line without layer tag)
+- 《Augur of Autumn》: Coven — As long as you control three or more creatures with different powers, you may cast creature spells from the top of your library. (continuous-looking line without layer tag)
+- 《Teferi, Time Raveler》: +1: Until your next turn, you may cast sorcery spells as though they had flash. (continuous-looking line without layer tag)
+- 《Spymaster's Vault》: {B}, {T}: Target creature you control connives X, where X is the number of creatures that died this turn. (continuous-looking line without layer tag)
+- 《Neheb, the Eternal》: At the beginning of each of your postcombat main phases, add {R} for each 1 life your opponents have lost this turn. (continuous-looking line without layer tag)
+- 《Mirrormade》: You may have this enchantment enter as a copy of any artifact or enchantment on the battlefield. (continuous-looking line without layer tag)
+- 《Simic Ascendancy》: At the beginning of your upkeep, if this enchantment has twenty or more growth counters on it, you win the game. (continuous-looking line without layer tag)
+- 《Past in Flames》: Each instant and sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost. (continuous-looking line without layer tag)
+- 《Invasion of Ikoria // Zilortha, Apex of Ikoria》: For each non-Human creature you control, you may have that creature assign its combat damage as though it weren't blocked. (continuous-looking line without layer tag)
+- 《Clever Impersonator》: You may have this creature enter as a copy of any nonland permanent on the battlefield. (continuous-looking line without layer tag)
+- 《Ulamog, the Infinite Gyre》: When Ulamog is put into a graveyard from anywhere, its owner shuffles their graveyard into their library. (continuous-looking line without layer tag)
+- 《Vigor》: When Vigor is put into a graveyard from anywhere, shuffle it into its owner's library. (continuous-looking line without layer tag)
+- 《Vraska, Betrayal's Sting》: −9: If target player has fewer than nine poison counters, they get a number of poison counters equal to the difference. (continuous-looking line without layer tag)
+- 《Conqueror's Flail》: As long as this Equipment is attached to a creature, your opponents can't cast spells during your turn. (continuous-looking line without layer tag)
+- 《Snapcaster Mage》: When this creature enters, target instant or sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost. (continuous-looking line without layer tag)
+- 《Cavern-Hoard Dragon》: This spell costs {X} less to cast, where X is the greatest number of artifacts an opponent controls. (continuous-looking line without layer tag)
+- 《Triskaidekaphile》: At the beginning of your upkeep, if you have exactly thirteen cards in your hand, you win the game. (continuous-looking line without layer tag)
+- 《Triskaidekaphile》: You have no maximum hand size. (continuous-looking line without layer tag)
+- 《Apex Altisaur》: Enrage — Whenever this creature is dealt damage, it fights up to one target creature you don't control. (continuous-looking line without layer tag)
+- 《Leyline Axe》: If this card is in your opening hand, you may begin the game with it on the battlefield. (continuous-looking line without layer tag)
+- 《Final Fortune》: Take an extra turn after this one. At the beginning of that turn's end step, you lose the game. (continuous-looking line without layer tag)
 
 ## Mapping Failures
 

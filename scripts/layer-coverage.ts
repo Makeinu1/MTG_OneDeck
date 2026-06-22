@@ -77,6 +77,13 @@ interface MultiLayerItem {
   layers: LayerId[];
 }
 
+interface CardLayerItem {
+  oracleId: string;
+  name: string;
+  layers: LayerId[];
+  cda: boolean;
+}
+
 interface AdjudicationCandidate {
   name: string;
   line: string;
@@ -97,6 +104,7 @@ interface ReportJson {
   cdaCardCount: number;
   multiLayer: MultiLayerItem[];
   adjudication: AdjudicationItem[];
+  cards: CardLayerItem[];
 }
 
 interface CoverageCurveItem {
@@ -117,6 +125,7 @@ async function main(): Promise<void> {
   const mappingFailures: MappingFailure[] = [];
   const multiLayerCandidates: MultiLayerCandidate[] = [];
   const adjudicationCandidates: AdjudicationCandidate[] = [];
+  const cards: CardLayerItem[] = [];
 
   let mappedCards = 0;
   let cdaCardCount = 0;
@@ -147,9 +156,15 @@ async function main(): Promise<void> {
 
     mappedCards += 1;
     const cardName = safeString(def.name, fallbackName);
-    const cardKey = safeString(def.oracleId, safeString(def.scryfallId, cardName));
+    const cardKey = nonEmptyString(def.oracleId) ?? nonEmptyString(def.scryfallId) ?? cardName;
     const sortRank = rankValue(def.edhrecRank);
     const summary = classifyCardLayers(def);
+    cards.push({
+      oracleId: cardKey,
+      name: cardName,
+      layers: summary.layers,
+      cda: summary.cda,
+    });
 
     if (summary.cda) {
       cdaCardCount += 1;
@@ -195,6 +210,7 @@ async function main(): Promise<void> {
     cdaCardCount,
     multiLayer,
     adjudication,
+    cards,
   };
 
   await mkdir(dirname(REPORT_MD_PATH), { recursive: true });
@@ -603,6 +619,10 @@ function readStringField(value: unknown, key: string): string | undefined {
 
 function safeString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function errorMessage(error: unknown): string {

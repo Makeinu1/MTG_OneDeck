@@ -145,11 +145,39 @@ export function classifyCardLayers(def: CardDef): CardLayerSummary;
 - 同入力 → 同出力。入力文字列を破壊しない。エンジン(`src/engine/`)は変更しない。
 
 ### 出力(`research/layer-coverage/report.{md,json}`)
-- `report.json`: `{ totalCards, mappedCards, perLayer: { [LayerId]: { cardCount, lineCount, effectLineRate, examples: [{name, edhrecRank, matchedText}] } }, cdaCardCount, multiLayer: [{name, layers[]}], adjudication: [{name, line, reason}] }`
+- `report.json`: `{ totalCards, mappedCards, perLayer: { [LayerId]: { cardCount, lineCount, effectLineRate, examples: [{name, edhrecRank, matchedText}] } }, cdaCardCount, multiLayer: [{name, layers[]}], adjudication: [{name, line, reason}], cards: [{oracleId, name, layers: LayerId[], cda}] }`
   - `examples` は edhrec_rank 昇順上位 N(代表カード)
   - `multiLayer` = 2層以上を同時に書くカード一覧
   - `adjudication` = 継続効果らしいが未分類の行(人手裁定対象 = Fable が ESO「既知欠落/コーパス需要」へ反映)
+  - **`cards`(iter2追加)= 全 mappedCards の per-card 層マップ**。連続反復間の **churn**(N→N+1 で層集合が変わったカード割合)を算出する土台。`oracleId` をキーに前版と突き合わせる
 - `report.md`: 層別頻度・被覆曲線・代表例の人間可読サマリ
+
+### iteration 2(2026-06-23)— ギャップ閉鎖
+iter1 の adjudication から裁定した系統的ギャップ3つをカタログへ追補し再抽出する:
+1. **L6 非キーワード能力付与**(引用された起動型: 「have "{T}: Add …"」)
+2. **L4 条件付き否定型変更**(「isn't a creature」)
+3. **L7c 乗算 P/T**(「double the power and toughness」)
+- `report.json` に per-card 層マップ(`cards`、17,491件)を追加し、iter3 以降の churn 算出を可能にする。
+- iter1→iter2 のデルタ(層別 cardCount 増分・adjudication 縮小)を Fable が監査で記録。
+  churn の厳密値は per-card マップが2版そろう **iter3 から**算出(本反復は土台確立)。
+
+#### iteration 2 結果(2026-06-23・監査合格)
+ゴールド 19/19 + 機械チェック4点緑。per-card マップ 17,491件。
+
+| 層 | iter1 | iter2 | Δ | 要因 |
+|---|---:|---:|---:|---|
+| L4 | 506 | 550 | +44 | 条件付き否定型変更(isn't a creature) |
+| L6 | 2,574 | 2,921 | +347 | 引用された非キーワード能力の付与 |
+| L7c | 2,506 | **4,391** | **+1,885** | 大半は**潜在バグ修正**(下記)。+ 乗算 P/T |
+| adjudication | 1,396 | 988 | **−408** | ギャップ閉鎖が効いた |
+| multiLayer | 1,244 | 1,708 | +464 | 主に L7c 修正の波及 |
+
+- **重要な発見(ゴールドが炙り出した潜在バグ)**: iter1 の L7c カウンター正規表現 `\b[+-]…counter` は
+  **空白に前置された「+1/+1 counter」を取りこぼしていた**(EDH で最頻の形)。Heliod ゴールドが露見させ修正。
+  iter1 の L7c=2,506(14%)は過小で、iter2 の 4,391(25%)が正。**敵対的ゴールドが計測自体の誤りを検出した好例**
+  (= method §4「物差し校正」の実地)。
+- **収束シグナル**: adjudication 1,396→988(−29%)。残 988 の主因は「becomes a N/N creature」型 P/T 設定
+  (L7b 取りこぼし)・プレイヤー継続効果・置換効果(CR616 範囲外)。次反復候補は前者。
 
 ---
 
