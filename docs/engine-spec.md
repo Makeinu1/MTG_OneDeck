@@ -1794,3 +1794,6 @@ M-CONTRACT は枠を予約するのみ。導入する状態に対応する具体
 
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
 **契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
+
+### 34.9 M0 進行(モデリング・サイクルの反復ログ)
+- **M0-1(有効特性 + 層オントロジー)進行中(2026-06-23〜)**: ESO/カタログを新設(`docs/engine-state-ontology.md` / `docs/oracle-grammar-catalog.md`)。層スライス(L1〜L7+CDA)の上面骨格を確定し、下面分布は計測専用スクリプト `layer-coverage`(`scripts/layer-coverage.ts` + `scripts/lib/layerClassify.ts`、`research/layer-coverage/` へ出力)が埋める。盤面挙動・エンジン公開挙動は不変(分類器は計測用で `src/engine/` には触れない)。runtime の `computeEffectiveCharacteristics`(S-LAYERS)は M-CONTRACT 凍結後。

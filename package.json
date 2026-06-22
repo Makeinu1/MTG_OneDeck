@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "accuracy": "tsx scripts/classifier-accuracy.ts",
     "grammar-coverage": "tsx scripts/grammar-coverage.ts",
+    "layer-coverage": "tsx scripts/layer-coverage.ts",
     "grammar-ir": "tsx scripts/grammar-ir.ts",
     "grammar-compile": "tsx scripts/grammar-compile.ts",
     "preview": "vite preview",
