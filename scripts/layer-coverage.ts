@@ -84,6 +84,16 @@ interface CardLayerItem {
   cda: boolean;
 }
 
+type LayerDeltaReport = Record<LayerId, number>;
+
+interface ChurnReport {
+  baselineCardCount: number;
+  comparedCardCount: number;
+  changedCount: number;
+  rate: number;
+  byLayer: LayerDeltaReport;
+}
+
 interface AdjudicationCandidate {
   name: string;
   line: string;
@@ -105,6 +115,7 @@ interface ReportJson {
   multiLayer: MultiLayerItem[];
   adjudication: AdjudicationItem[];
   cards: CardLayerItem[];
+  churn: ChurnReport | null;
 }
 
 interface CoverageCurveItem {
@@ -116,6 +127,7 @@ interface CoverageCurveItem {
 
 async function main(): Promise<void> {
   const generatedAt = new Date().toISOString();
+  const baselineCards = await readBaselineCards(REPORT_JSON_PATH);
   const payload = await readJson(INPUT_PATH);
   const rawCards = extractRawCards(payload);
 
@@ -203,6 +215,7 @@ async function main(): Promise<void> {
   const perLayer = buildPerLayerReport(buckets, classifiedLineKeys.size);
   const multiLayer = rankMultiLayer(multiLayerCandidates);
   const adjudication = rankAdjudication(adjudicationCandidates);
+  const churn = buildChurnReport(baselineCards, cards);
   const reportJson: ReportJson = {
     totalCards: rawCards.length,
     mappedCards,
@@ -211,6 +224,7 @@ async function main(): Promise<void> {
     multiLayer,
     adjudication,
     cards,
+    churn,
   };
 
   await mkdir(dirname(REPORT_MD_PATH), { recursive: true });
@@ -246,6 +260,35 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(source) as unknown;
 }
 
+async function readBaselineCards(path: string): Promise<CardLayerItem[] | null> {
+  let source: string;
+  try {
+    source = await readFile(path, 'utf8');
+  } catch (error: unknown) {
+    if (hasErrorCode(error, 'ENOENT')) {
+      return null;
+    }
+    throw new Error(`Baseline report not readable: ${path}\n${errorMessage(error)}`, {
+      cause: error,
+    });
+  }
+
+  const payload = JSON.parse(source) as unknown;
+  if (!isRecord(payload) || !Array.isArray(payload.cards)) {
+    return null;
+  }
+
+  const cards: CardLayerItem[] = [];
+  for (const item of payload.cards) {
+    const card = coerceCardLayerItem(item);
+    if (!card) {
+      return null;
+    }
+    cards.push(card);
+  }
+  return cards;
+}
+
 function extractRawCards(payload: unknown): unknown[] {
   if (Array.isArray(payload)) {
     return payload;
@@ -267,6 +310,31 @@ function coerceScryfallCard(value: unknown): ScryfallCard | undefined {
     return undefined;
   }
   return value as unknown as ScryfallCard;
+}
+
+function coerceCardLayerItem(value: unknown): CardLayerItem | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const oracleId = readStringField(value, 'oracleId');
+  const name = readStringField(value, 'name') ?? oracleId;
+  const layerValues = value.layers;
+  const cda = value.cda;
+  if (
+    !oracleId ||
+    !name ||
+    !Array.isArray(layerValues) ||
+    typeof cda !== 'boolean' ||
+    !layerValues.every(isLayerId)
+  ) {
+    return undefined;
+  }
+  return {
+    oracleId,
+    name,
+    layers: sortLayerIds(layerValues),
+    cda,
+  };
 }
 
 function createLayerBuckets(): Record<LayerId, LayerBucket> {
@@ -317,6 +385,73 @@ function buildPerLayerReport(
     };
   }
   return perLayer;
+}
+
+function buildChurnReport(
+  baselineCards: readonly CardLayerItem[] | null,
+  currentCards: readonly CardLayerItem[],
+): ChurnReport | null {
+  if (!baselineCards) {
+    return null;
+  }
+
+  const baselineByOracleId = new Map<string, CardLayerItem>();
+  for (const card of baselineCards) {
+    baselineByOracleId.set(card.oracleId, card);
+  }
+
+  const byLayer = createLayerDeltaReport();
+  let comparedCardCount = 0;
+  let changedCount = 0;
+
+  for (const current of currentCards) {
+    const baseline = baselineByOracleId.get(current.oracleId);
+    if (!baseline) {
+      continue;
+    }
+
+    comparedCardCount += 1;
+    if (cardLayerSignature(baseline) !== cardLayerSignature(current)) {
+      changedCount += 1;
+    }
+    addLayerDelta(byLayer, baseline.layers, current.layers);
+  }
+
+  return {
+    baselineCardCount: baselineByOracleId.size,
+    comparedCardCount,
+    changedCount,
+    rate: rate(changedCount, comparedCardCount),
+    byLayer,
+  };
+}
+
+function createLayerDeltaReport(): LayerDeltaReport {
+  const byLayer = {} as LayerDeltaReport;
+  for (const layer of LAYER_IDS) {
+    byLayer[layer] = 0;
+  }
+  return byLayer;
+}
+
+function addLayerDelta(
+  byLayer: LayerDeltaReport,
+  baselineLayers: readonly LayerId[],
+  currentLayers: readonly LayerId[],
+): void {
+  const baselineSet = new Set(baselineLayers);
+  const currentSet = new Set(currentLayers);
+  for (const layer of LAYER_IDS) {
+    if (!baselineSet.has(layer) && currentSet.has(layer)) {
+      byLayer[layer] += 1;
+    } else if (baselineSet.has(layer) && !currentSet.has(layer)) {
+      byLayer[layer] -= 1;
+    }
+  }
+}
+
+function cardLayerSignature(card: CardLayerItem): string {
+  return `${sortLayerIds(card.layers).join(',')}|cda=${card.cda ? '1' : '0'}`;
 }
 
 function rankedExamples(examples: readonly RankedExampleItem[]): ExampleItem[] {
@@ -474,6 +609,7 @@ function renderMarkdownReport(input: {
     `- cdaCardCount: ${input.reportJson.cdaCardCount}`,
     `- multiLayer cards: ${input.reportJson.multiLayer.length}`,
     `- adjudication candidates: ${input.reportJson.adjudication.length}`,
+    `- churn: ${churnSummary(input.reportJson.churn)}`,
     `- mapping failures: ${input.mappingFailures.length}`,
     '',
     '## Per Layer',
@@ -577,6 +713,24 @@ function rankLabel(rank: number | undefined): string {
   return typeof rank === 'number' ? `rank ${rank}` : 'unranked';
 }
 
+function churnSummary(churn: ChurnReport | null): string {
+  if (!churn) {
+    return 'n/a (no prior cards baseline)';
+  }
+  return `${churn.changedCount}/${churn.comparedCardCount} changed (${percent(churn.rate)}), baselineCards=${churn.baselineCardCount}, byLayer=${layerDeltaSummary(churn.byLayer)}`;
+}
+
+function layerDeltaSummary(byLayer: LayerDeltaReport): string {
+  const deltas = LAYER_IDS.filter((layer) => byLayer[layer] !== 0).map(
+    (layer) => `${layer} ${signedCount(byLayer[layer])}`,
+  );
+  return deltas.length > 0 ? deltas.join(', ') : 'none';
+}
+
+function signedCount(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`;
+}
+
 function rate(numerator: number, denominator: number): number {
   return denominator === 0 ? 0 : numerator / denominator;
 }
@@ -623,6 +777,22 @@ function safeString(value: unknown, fallback: string): string {
 
 function nonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function sortLayerIds(layers: readonly LayerId[]): LayerId[] {
+  return [...layers].sort((a, b) => LAYER_IDS.indexOf(a) - LAYER_IDS.indexOf(b));
+}
+
+function isLayerId(value: unknown): value is LayerId {
+  return typeof value === 'string' && LAYER_IDS.includes(value as LayerId);
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  return (
+    error instanceof Error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === code
+  );
 }
 
 function errorMessage(error: unknown): string {

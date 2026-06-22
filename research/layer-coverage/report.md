@@ -4,30 +4,31 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Summary
 
-- Generated at: 2026-06-22T22:43:19.857Z
+- Generated at: 2026-06-22T22:55:53.590Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- classified continuous lines: 7462
+- classified continuous lines: 7538
 - cdaCardCount: 128
-- multiLayer cards: 1708
-- adjudication candidates: 988
+- multiLayer cards: 1811
+- adjudication candidates: 912
+- churn: 119/17491 changed (0.68%), baselineCards=17491, byLayer=L4 +95, L7b +118
 - mapping failures: 0
 
 ## Per Layer
 
 | layer | card count | line count | effect line rate | examples |
 |---|---:|---:|---:|---|
-| L1a | 61 | 61 | 0.82% | Shifting Woodland (rank 365); Cursed Mirror (rank 444); Thespian's Stage (rank 558); The Mycosynth Gardens (rank 870); Mirage Mirror (rank 1267) |
-| L1b | 62 | 64 | 0.86% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
-| L2 | 284 | 293 | 3.93% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Ripples of Potential (rank 994); Ocelot Pride (rank 1118); Marvin, Murderous Mimic (rank 1167) |
+| L1a | 61 | 61 | 0.81% | Shifting Woodland (rank 365); Cursed Mirror (rank 444); Thespian's Stage (rank 558); The Mycosynth Gardens (rank 870); Mirage Mirror (rank 1267) |
+| L1b | 62 | 64 | 0.85% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
+| L2 | 284 | 293 | 3.89% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Ripples of Potential (rank 994); Ocelot Pride (rank 1118); Marvin, Murderous Mimic (rank 1167) |
 | L3 | 4 | 4 | 0.05% | New Blood (rank 4248); Mind Bend (rank 15607); Crystal Spray (rank 19990); Magical Hack (rank 21754) |
-| L4 | 550 | 567 | 7.60% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
+| L4 | 645 | 662 | 8.78% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
 | L5 | 64 | 69 | 0.92% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
-| L6 | 2921 | 3039 | 40.73% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
-| L7a | 124 | 124 | 1.66% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
-| L7b | 151 | 163 | 2.18% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Mirror Entity (rank 933); Amphibian Downpour (rank 1215); Tezzeret the Seeker (rank 1661) |
-| L7c | 4391 | 4717 | 63.21% | Skullclamp (rank 41); Toxic Deluge (rank 67); Urza's Saga (rank 121); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188) |
+| L6 | 2921 | 3039 | 40.32% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
+| L7a | 124 | 124 | 1.64% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
+| L7b | 269 | 282 | 3.74% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Destiny Spinner (rank 911); Mirror Entity (rank 933); Cyberdrive Awakener (rank 1090) |
+| L7c | 4391 | 4717 | 62.58% | Skullclamp (rank 41); Toxic Deluge (rank 67); Urza's Saga (rank 121); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188) |
 | L7d | 10 | 10 | 0.13% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
 
 ## Coverage Curve
@@ -35,10 +36,10 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 | K | layer count | covered card count | covered card rate |
 |---:|---:|---:|---:|
 | 1 | 1 | 4391 | 25.10% |
-| 3 | 3 | 6329 | 36.18% |
-| 5 | 5 | 6508 | 37.21% |
-| 7 | 7 | 6623 | 37.87% |
-| all | 11 | 6687 | 38.23% |
+| 3 | 3 | 6391 | 36.54% |
+| 5 | 5 | 6569 | 37.56% |
+| 7 | 7 | 6684 | 38.21% |
+| all | 11 | 6748 | 38.58% |
 
 ## Examples
 
@@ -179,19 +180,19 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 - rank 576 《Darksteel Mutation》: base power and toughness 0/1 and has indestructible, and it loses all other abilities, card types, and creature types
 - rank 690 《Kenrith's Transformation》: base power and toughness 3/3
+- rank 911 《Destiny Spinner》: becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control
 - rank 933 《Mirror Entity》: base power and toughness X/X and gain all creature types
+- rank 1090 《Cyberdrive Awakener》: becomes a 4/4 artifact creature until end of turn
 - rank 1215 《Amphibian Downpour》: base power and toughness 1/1
+- rank 1586 《Nissa, Who Shakes the World》: becomes a 0/0 Elemental creature with vigilance and haste that's still a land
 - rank 1661 《Tezzeret the Seeker》: base power and toughness 5/5 until end of turn
 - rank 1732 《Allosaurus Shepherd》: base power and toughness 5/5 and becomes a Dinosaur in addition to its other creature types
+- rank 1893 《Mutavault》: becomes a 2/2 creature with all creature types until end of turn
 - rank 1944 《Witness Protection》: base power and toughness 1/1 named Legitimate Businessperson
 - rank 1979 《Oko, Thief of Crowns》: base power and toughness 3/3
+- rank 2014 《Inkmoth Nexus》: becomes a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect until end of turn
 - rank 2248 《Lignify》: base power and toughness 0/4 and loses all abilities
-- rank 2727 《Super State》: base power and toughness 9/9 and has flying, first strike, trample, and haste
-- rank 2745 《Jolrael, Mwonvuli Recluse》: base power and toughness X/X, where X is the number of cards in your hand
-- rank 3025 《Flayer of Loyalties》: base power and toughness 10/10 and gains trample, annihilator 2, and haste
-- rank 3402 《Aettir and Priwen》: base power and toughness X/X, where X is your life total
-- rank 3411 《Wrecking Ball Arm》: base power and toughness 7/7 and can't be blocked by creatures with power 2 or less
-- rank 3611 《Eaten by Piranhas》: base power and toughness 1/1
+- rank 2374 《Lair of the Hydra》: becomes an X/X green Hydra creature
 
 ### L7c
 
@@ -267,6 +268,7 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Bear Umbra》: L6, L7c
 - 《Sword of Hearth and Home》: L6, L7c
 - 《Colossus Hammer》: L6, L7c
+- 《Destiny Spinner》: L4, L7b
 - 《Excalibur, Sword of Eden》: L6, L7c
 - 《Loxodon Warhammer》: L6, L7c
 - 《Bastion Protector》: L6, L7c
@@ -276,7 +278,6 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Karlach, Fury of Avernus》: L4, L6
 - 《Ethereal Armor》: L6, L7c
 - 《Tyrite Sanctum》: L4, L6, L7c
-- 《Metallic Mimic》: L4, L7c
 
 ## Adjudication Candidates
 
@@ -301,14 +302,12 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Leyline of Anticipation》: If this card is in your opening hand, you may begin the game with it on the battlefield. (continuous-looking line without layer tag)
 - 《Urza, Lord High Artificer》: {5}: Shuffle your library, then exile the top card. Until end of turn, you may play that card without paying its mana cost. (continuous-looking line without layer tag)
 - 《High Tide》: Until end of turn, whenever a player taps an Island for mana, that player adds an additional {U}. (continuous-looking line without layer tag)
-- 《Destiny Spinner》: {3}{G}: Target land you control becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control. It's still a land. (continuous-looking line without layer tag)
 - 《Excalibur, Sword of Eden》: This spell costs {X} less to cast, where X is the total mana value of historic permanents you control. (continuous-looking line without layer tag)
 - 《Wayward Swordtooth》: This creature can't attack or block unless you have the city's blessing. (continuous-looking line without layer tag)
 - 《Kardur, Doomscourge》: When Kardur enters, until your next turn, creatures your opponents control attack each combat if able and attack a player other than you if able. (continuous-looking line without layer tag)
 - 《Promise of Loyalty》: Each player puts a vow counter on a creature they control and sacrifices the rest. Each of those creatures can't attack you or planeswalkers you control for as long as it has a... (continuous-looking line without layer tag)
 - 《The Reality Chip》: As long as The Reality Chip is attached to a creature, you may play lands and cast spells from the top of your library. (continuous-looking line without layer tag)
 - 《Nezahal, Primal Tide》: You have no maximum hand size. (continuous-looking line without layer tag)
-- 《Cyberdrive Awakener》: When this creature enters, each noncreature artifact you control becomes a 4/4 artifact creature until end of turn. (continuous-looking line without layer tag)
 - 《Kozilek, Butcher of Truth》: When Kozilek is put into a graveyard from anywhere, its owner shuffles their graveyard into their library. (continuous-looking line without layer tag)
 - 《Augur of Autumn》: Coven — As long as you control three or more creatures with different powers, you may cast creature spells from the top of your library. (continuous-looking line without layer tag)
 - 《Teferi, Time Raveler》: +1: Until your next turn, you may cast sorcery spells as though they had flash. (continuous-looking line without layer tag)
@@ -330,6 +329,8 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Apex Altisaur》: Enrage — Whenever this creature is dealt damage, it fights up to one target creature you don't control. (continuous-looking line without layer tag)
 - 《Leyline Axe》: If this card is in your opening hand, you may begin the game with it on the battlefield. (continuous-looking line without layer tag)
 - 《Final Fortune》: Take an extra turn after this one. At the beginning of that turn's end step, you lose the game. (continuous-looking line without layer tag)
+- 《Brass's Tunnel-Grinder // Tecutlan, the Searing Rift》: At the beginning of your end step, if you descended this turn, put a bore counter on Brass's Tunnel-Grinder. Then if there are three or more bore counters on it, remove those co... (continuous-looking line without layer tag)
+- 《Brass's Tunnel-Grinder // Tecutlan, the Searing Rift》: Whenever you cast a permanent spell using mana produced by Tecutlan, discover X, where X is that spell's mana value. (continuous-looking line without layer tag)
 
 ## Mapping Failures
 

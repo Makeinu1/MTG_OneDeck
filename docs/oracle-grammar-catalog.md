@@ -34,6 +34,7 @@
 | `<obj> have/has/gain(s) "<引用された能力>"`(非キーワード/起動型の付与) | E-LAYER-L6 | 該当オブジェクト | abilities | **iter2追加**。「Lands you control have "{T}: Add …"」(Chromatic Lantern/Cryptolith Rite)。**カード自身の能力行(同文の非付与版)は付与でない**ため誤計上しない |
 | `<this>'s power is equal to <count> ...`(P/T ボックス `*`) | E-LAYER-L7a + E-CDA | 動的カウント(墓地型数 等) | power/toughness | **CDA**・全領域機能 |
 | `base power and toughness [is/are] X/Y` | E-LAYER-L7b | — | power/toughness | 設定(CR613.4b) |
+| `becomes a(n) N/N … <type>`(アニメート) | E-LAYER-L7b + E-LAYER-L4 | — | power/toughness + cardTypes | **iter3追加**。「This land becomes a 1/1 … artifact creature」(Blinkmoth Nexus 等マンランド)。P/T設定(L7b)かつ型変更(L4) |
 | `<obj> gets +N/+N (until end of turn)` / `+1/+1 counter` | E-LAYER-L7c | — | power/toughness | 修整・解決由来の duration 含む |
 | `double the power and toughness of <obj>`(乗算) | E-LAYER-L7c | power/toughness | power/toughness | **iter2追加**。+N/+N 形でない倍化(Unnatural Growth) |
 | `switch <obj>'s power and toughness` | E-LAYER-L7d | power/toughness | power/toughness | 入替 |
@@ -41,4 +42,4 @@
 ### スコープ境界(本スライスでカタログ化しない)
 - 層内依存関係の解決順(CR613.8)・置換効果の相互作用(CR616)= 初期非対応(engine-spec §34.5)。
 - L1(コピー/裏向き)・L3(テキスト変更)は概念登録のみ。コーパス頻度を見てから着地先を詰める。
-- **iter2 未着手の残ギャップ**: 「becomes a N/N artifact creature」型の P/T 設定(base 表記なし。Cyberdrive Awakener)は L7b 取りこぼし。次反復候補。
+- iter2 残ギャップ「becomes a N/N creature」(base 表記なし)は **iter3 で閉鎖**(上表 L7b+L4 行)。

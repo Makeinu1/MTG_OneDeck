@@ -94,6 +94,7 @@ const RULES: readonly {
       /\bNonbasic lands are Mountains\b/i,
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+every\s+(?:creature|basic land)\s+type\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:becomes?|become)\s+the\s+(?:creature|artifact|enchantment|land)\s+type\b[^.;]*`, 'i'),
+      new RegExp(String.raw`\bbecomes?\s+(?:a|an)\s+[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*\b(?:${CARD_TYPES})\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:is|are)(?:n't| not)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
       new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
@@ -129,6 +130,7 @@ const RULES: readonly {
     reads: ['power', 'toughness'],
     probes: [
       /\bbase power and toughness\b[^.;]*\b(?:is|are|becomes?|become)?\s*(?:equal to\s*)?[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*/i,
+      /\bbecomes?\s+(?:a|an)\s+[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*/i,
       /\bpower and toughness\b[^.;]*\b(?:are|is|becomes?|become)\b[^.;]*\bequal to\b[^.;]*/i,
     ],
   },

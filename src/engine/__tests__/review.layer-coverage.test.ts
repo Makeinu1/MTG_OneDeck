@@ -149,6 +149,21 @@ const cases: ReadonlyArray<[string, string, string, LayerId[], boolean]> = [
     ['L7c'],
     false,
   ],
+  // ── iter3: becomes a N/N creature(アニメート)= P/T設定(L7b)+ 型変更(L4)─────
+  [
+    'Alloy Animist',
+    'Creature — Human Druid',
+    '{2}{G}: Until end of turn, target noncreature artifact you control becomes a 4/4 artifact creature.',
+    ['L4', 'L7b'],
+    false,
+  ],
+  [
+    'Cyberdrive Awakener',
+    'Artifact Creature — Construct',
+    'Flying\nOther artifact creatures you control have flying.\nWhen this creature enters, each noncreature artifact you control becomes a 4/4 artifact creature until end of turn.',
+    ['L4', 'L6', 'L7b'],
+    false,
+  ],
 ];
 
 describe('M0-1 層分類ゴールド: classifyCardLayers(有効特性 + 層オントロジー)', () => {

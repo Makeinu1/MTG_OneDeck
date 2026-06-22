@@ -5,7 +5,7 @@
     "L1a": {
       "cardCount": 61,
       "lineCount": 61,
-      "effectLineRate": 0.008174752077191101,
+      "effectLineRate": 0.008092332183603078,
       "examples": [
         {
           "name": "Shifting Woodland",
@@ -87,7 +87,7 @@
     "L1b": {
       "cardCount": 62,
       "lineCount": 64,
-      "effectLineRate": 0.008576789064593943,
+      "effectLineRate": 0.008490315733616343,
       "examples": [
         {
           "name": "Necropotence",
@@ -169,7 +169,7 @@
     "L2": {
       "cardCount": 284,
       "lineCount": 293,
-      "effectLineRate": 0.03926561243634415,
+      "effectLineRate": 0.03886972671796232,
       "examples": [
         {
           "name": "Wishclaw Talisman",
@@ -251,7 +251,7 @@
     "L3": {
       "cardCount": 4,
       "lineCount": 4,
-      "effectLineRate": 0.0005360493165371214,
+      "effectLineRate": 0.0005306447333510214,
       "examples": [
         {
           "name": "New Blood",
@@ -276,9 +276,9 @@
       ]
     },
     "L4": {
-      "cardCount": 550,
-      "lineCount": 567,
-      "effectLineRate": 0.07598499061913697,
+      "cardCount": 645,
+      "lineCount": 662,
+      "effectLineRate": 0.08782170336959405,
       "examples": [
         {
           "name": "Urborg, Tomb of Yawgmoth",
@@ -360,7 +360,7 @@
     "L5": {
       "cardCount": 64,
       "lineCount": 69,
-      "effectLineRate": 0.009246850710265344,
+      "effectLineRate": 0.009153621650305121,
       "examples": [
         {
           "name": "Kenrith's Transformation",
@@ -442,7 +442,7 @@
     "L6": {
       "cardCount": 2921,
       "lineCount": 3039,
-      "effectLineRate": 0.407263468239078,
+      "effectLineRate": 0.4031573361634386,
       "examples": [
         {
           "name": "Swiftfoot Boots",
@@ -524,7 +524,7 @@
     "L7a": {
       "cardCount": 124,
       "lineCount": 124,
-      "effectLineRate": 0.016617528812650766,
+      "effectLineRate": 0.016449986733881667,
       "examples": [
         {
           "name": "Psychosis Crawler",
@@ -604,9 +604,9 @@
       ]
     },
     "L7b": {
-      "cardCount": 151,
-      "lineCount": 163,
-      "effectLineRate": 0.021844009648887698,
+      "cardCount": 269,
+      "lineCount": 282,
+      "effectLineRate": 0.037410453701247015,
       "examples": [
         {
           "name": "Darksteel Mutation",
@@ -619,14 +619,29 @@
           "matchedText": "base power and toughness 3/3"
         },
         {
+          "name": "Destiny Spinner",
+          "edhrecRank": 911,
+          "matchedText": "becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control"
+        },
+        {
           "name": "Mirror Entity",
           "edhrecRank": 933,
           "matchedText": "base power and toughness X/X and gain all creature types"
         },
         {
+          "name": "Cyberdrive Awakener",
+          "edhrecRank": 1090,
+          "matchedText": "becomes a 4/4 artifact creature until end of turn"
+        },
+        {
           "name": "Amphibian Downpour",
           "edhrecRank": 1215,
           "matchedText": "base power and toughness 1/1"
+        },
+        {
+          "name": "Nissa, Who Shakes the World",
+          "edhrecRank": 1586,
+          "matchedText": "becomes a 0/0 Elemental creature with vigilance and haste that's still a land"
         },
         {
           "name": "Tezzeret the Seeker",
@@ -639,6 +654,11 @@
           "matchedText": "base power and toughness 5/5 and becomes a Dinosaur in addition to its other creature types"
         },
         {
+          "name": "Mutavault",
+          "edhrecRank": 1893,
+          "matchedText": "becomes a 2/2 creature with all creature types until end of turn"
+        },
+        {
           "name": "Witness Protection",
           "edhrecRank": 1944,
           "matchedText": "base power and toughness 1/1 named Legitimate Businessperson"
@@ -649,46 +669,26 @@
           "matchedText": "base power and toughness 3/3"
         },
         {
+          "name": "Inkmoth Nexus",
+          "edhrecRank": 2014,
+          "matchedText": "becomes a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect until end of turn"
+        },
+        {
           "name": "Lignify",
           "edhrecRank": 2248,
           "matchedText": "base power and toughness 0/4 and loses all abilities"
         },
         {
-          "name": "Super State",
-          "edhrecRank": 2727,
-          "matchedText": "base power and toughness 9/9 and has flying, first strike, trample, and haste"
-        },
-        {
-          "name": "Jolrael, Mwonvuli Recluse",
-          "edhrecRank": 2745,
-          "matchedText": "base power and toughness X/X, where X is the number of cards in your hand"
-        },
-        {
-          "name": "Flayer of Loyalties",
-          "edhrecRank": 3025,
-          "matchedText": "base power and toughness 10/10 and gains trample, annihilator 2, and haste"
-        },
-        {
-          "name": "Aettir and Priwen",
-          "edhrecRank": 3402,
-          "matchedText": "base power and toughness X/X, where X is your life total"
-        },
-        {
-          "name": "Wrecking Ball Arm",
-          "edhrecRank": 3411,
-          "matchedText": "base power and toughness 7/7 and can't be blocked by creatures with power 2 or less"
-        },
-        {
-          "name": "Eaten by Piranhas",
-          "edhrecRank": 3611,
-          "matchedText": "base power and toughness 1/1"
+          "name": "Lair of the Hydra",
+          "edhrecRank": 2374,
+          "matchedText": "becomes an X/X green Hydra creature"
         }
       ]
     },
     "L7c": {
       "cardCount": 4391,
       "lineCount": 4717,
-      "effectLineRate": 0.6321361565264004,
+      "effectLineRate": 0.6257628018041921,
       "examples": [
         {
           "name": "Skullclamp",
@@ -770,7 +770,7 @@
     "L7d": {
       "cardCount": 10,
       "lineCount": 10,
-      "effectLineRate": 0.0013401232913428035,
+      "effectLineRate": 0.0013266118333775537,
       "examples": [
         {
           "name": "Reverse the Polarity",
@@ -1113,6 +1113,13 @@
       ]
     },
     {
+      "name": "Destiny Spinner",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Excalibur, Sword of Eden",
       "layers": [
         "L6",
@@ -1189,6 +1196,14 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Cyberdrive Awakener",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -1493,6 +1508,14 @@
       ]
     },
     {
+      "name": "Nissa, Who Shakes the World",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Sting, the Glinting Dagger",
       "layers": [
         "L6",
@@ -1689,6 +1712,13 @@
       ]
     },
     {
+      "name": "Mutavault",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Bronze Guardian",
       "layers": [
         "L6",
@@ -1768,6 +1798,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Inkmoth Nexus",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -1950,6 +1987,13 @@
       ]
     },
     {
+      "name": "Lair of the Hydra",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Dragonfire Blade",
       "layers": [
         "L6",
@@ -2107,6 +2151,21 @@
       ]
     },
     {
+      "name": "Wrenn and Realmbreaker",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Raging Ravine",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Inspiring Leader",
       "layers": [
         "L6",
@@ -2196,6 +2255,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Creeping Tar Pit",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -2292,6 +2358,14 @@
       ]
     },
     {
+      "name": "Blinkmoth Nexus",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Savage Beating",
       "layers": [
         "L4",
@@ -2335,6 +2409,14 @@
       ]
     },
     {
+      "name": "Mishra's Factory",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Nowhere to Run",
       "layers": [
         "L6",
@@ -2350,6 +2432,13 @@
       ]
     },
     {
+      "name": "Den of the Bugbear",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Fires of Yavimaya",
       "layers": [
         "L6",
@@ -2361,6 +2450,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Restless Cottage",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -2627,6 +2723,14 @@
       ]
     },
     {
+      "name": "Rise and Shine",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Magic Damper",
       "layers": [
         "L6",
@@ -2706,6 +2810,13 @@
       ]
     },
     {
+      "name": "Cactus Preserve",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Sunfrill Imitator",
       "layers": [
         "L1a",
@@ -2744,6 +2855,13 @@
       ]
     },
     {
+      "name": "Llanowar Loamspeaker",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Tezzeret, Betrayer of Flesh",
       "layers": [
         "L4",
@@ -2763,6 +2881,13 @@
         "L2",
         "L4",
         "L6"
+      ]
+    },
+    {
+      "name": "Restless Reef",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -2813,6 +2938,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Restless Anchorage",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -2869,6 +3001,7 @@
       "name": "Ride the Shoopuf",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -3095,6 +3228,21 @@
       ]
     },
     {
+      "name": "Restless Fortress",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Restless Bivouac",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Katilda, Dawnhart Prime",
       "layers": [
         "L6",
@@ -3127,6 +3275,14 @@
       "layers": [
         "L4",
         "L6"
+      ]
+    },
+    {
+      "name": "Restless Ridgeline",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
       ]
     },
     {
@@ -3224,6 +3380,13 @@
       ]
     },
     {
+      "name": "Lumbering Falls",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Ancestors' Aid",
       "layers": [
         "L6",
@@ -3317,6 +3480,13 @@
       ]
     },
     {
+      "name": "Firdoch Core",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Nerd Rage",
       "layers": [
         "L6",
@@ -3352,6 +3522,13 @@
       ]
     },
     {
+      "name": "Displaced Dinosaurs",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Audacity",
       "layers": [
         "L6",
@@ -3359,7 +3536,21 @@
       ]
     },
     {
+      "name": "Faerie Conclave",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "March of the World Ooze",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Restless Spire",
       "layers": [
         "L4",
         "L7b"
@@ -3423,6 +3614,13 @@
         "L4",
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Restless Vents",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -3539,6 +3737,14 @@
       ]
     },
     {
+      "name": "Roaring Earth",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Hakoda, Selfless Commander",
       "layers": [
         "L6",
@@ -3644,6 +3850,14 @@
       ]
     },
     {
+      "name": "Restless Prairie",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Zegana, Utopian Speaker",
       "layers": [
         "L6",
@@ -3669,6 +3883,20 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Needle Spires",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Restless Vinestalk",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -3698,6 +3926,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Sage of the Maze",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -3775,6 +4010,13 @@
       ]
     },
     {
+      "name": "Hall of Storm Giants",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Skyknight Squire",
       "layers": [
         "L4",
@@ -3814,7 +4056,9 @@
       "name": "Welcome to . . . // Jurassic Park",
       "layers": [
         "L2",
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -3844,6 +4088,14 @@
         "L4",
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Sarkhan the Masterless",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -3880,6 +4132,20 @@
         "L1a",
         "L4",
         "L7c"
+      ]
+    },
+    {
+      "name": "Celestial Colonnade",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Shambling Vent",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -3994,6 +4260,13 @@
       "layers": [
         "L2",
         "L7c"
+      ]
+    },
+    {
+      "name": "Treetop Village",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -4205,6 +4478,13 @@
       ]
     },
     {
+      "name": "Soulstone Sanctuary",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Agatha of the Vile Cauldron",
       "layers": [
         "L6",
@@ -4322,6 +4602,14 @@
       "name": "Lifecraft Engine",
       "layers": [
         "L4",
+        "L7c"
+      ]
+    },
+    {
+      "name": "Crawling Barrens",
+      "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -4502,6 +4790,13 @@
       ]
     },
     {
+      "name": "Tough Cookie",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Aragorn, Hornburg Hero",
       "layers": [
         "L6",
@@ -4579,6 +4874,13 @@
       ]
     },
     {
+      "name": "Voldaren Bloodcaster // Bloodbat Summoner",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Cephalid Facetaker",
       "layers": [
         "L1a",
@@ -4601,6 +4903,13 @@
       ]
     },
     {
+      "name": "Dimir Keyrune",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Sigarda's Summons",
       "layers": [
         "L4",
@@ -4614,6 +4923,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Hissing Quagmire",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -4757,6 +5073,14 @@
       ]
     },
     {
+      "name": "Vronos, Masked Inquisitor",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
       "name": "Scale Up",
       "layers": [
         "L4",
@@ -4841,6 +5165,13 @@
       "name": "Admiral Brass, Unsinkable",
       "layers": [
         "L6",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Stirring Wildwood",
+      "layers": [
+        "L4",
         "L7b"
       ]
     },
@@ -4937,6 +5268,14 @@
       ]
     },
     {
+      "name": "Mishra's Foundry",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Mutinous Massacre",
       "layers": [
         "L2",
@@ -5023,6 +5362,13 @@
       ]
     },
     {
+      "name": "Lavaclaw Reaches",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Runadi, Behemoth Caller",
       "layers": [
         "L6",
@@ -5073,6 +5419,13 @@
       ]
     },
     {
+      "name": "Wandering Fumarole",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Twisted Fealty",
       "layers": [
         "L2",
@@ -5102,10 +5455,24 @@
       ]
     },
     {
+      "name": "Hive of the Eye Tyrant",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Valentin, Dean of the Vein // Lisette, Dean of the Root",
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Faceless Haven",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -5141,6 +5508,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Cave of the Frost Dragon",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -5222,6 +5596,13 @@
       ]
     },
     {
+      "name": "The Mechanist, Aerial Artisan",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Dissection Tools",
       "layers": [
         "L6",
@@ -5239,6 +5620,14 @@
       "name": "Frodo, Sauron's Bane",
       "layers": [
         "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Ebony Fly",
+      "layers": [
+        "L4",
+        "L6",
         "L7b"
       ]
     },
@@ -5392,6 +5781,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Guardian Idol",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -5741,6 +6137,14 @@
       ]
     },
     {
+      "name": "Arlinn, the Pack's Hope // Arlinn, the Moon's Fury",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
       "name": "Aphotic Wisps",
       "layers": [
         "L5",
@@ -5842,7 +6246,9 @@
     {
       "name": "Kamahl, Fist of Krosa",
       "layers": [
+        "L4",
         "L6",
+        "L7b",
         "L7c"
       ]
     },
@@ -5878,6 +6284,21 @@
       ]
     },
     {
+      "name": "Tatyova, Steward of Tides",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Gideon, Ally of Zendikar",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Drix Fatemaker",
       "layers": [
         "L6",
@@ -5903,6 +6324,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Mobilized District",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -6117,6 +6545,13 @@
       ]
     },
     {
+      "name": "Hostile Desert",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Mishra's Command",
       "layers": [
         "L6",
@@ -6224,6 +6659,13 @@
       ]
     },
     {
+      "name": "Koth of the Hammer",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Brenard, Ginger Sculptor",
       "layers": [
         "L2",
@@ -6273,6 +6715,14 @@
       "layers": [
         "L2",
         "L7c"
+      ]
+    },
+    {
+      "name": "Hunted by The Family",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -6444,6 +6894,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Jolrael, Voice of Zhalfir",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -6840,6 +7297,13 @@
       ]
     },
     {
+      "name": "Forbidding Watchtower",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "March from Velis Vel",
       "layers": [
         "L1a",
@@ -6998,6 +7462,13 @@
       ]
     },
     {
+      "name": "Gideon Jura",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Clan Crafter",
       "layers": [
         "L6",
@@ -7061,6 +7532,14 @@
         "L4",
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Kytheon, Hero of Akros // Gideon, Battle-Forged",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -7356,6 +7835,13 @@
       ]
     },
     {
+      "name": "Ghitu Encampment",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Sidequest: Play Blitzball // World Champion, Celestial Weapon",
       "layers": [
         "L6",
@@ -7446,6 +7932,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Great Hall of the Biblioplex",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -7714,7 +8207,8 @@
       "name": "Kellan, Planar Trailblazer",
       "layers": [
         "L4",
-        "L6"
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -8348,6 +8842,7 @@
       "name": "Haunted Screen",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -8395,6 +8890,13 @@
       ]
     },
     {
+      "name": "Avalanche Caller",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Tezzeret, Agent of Bolas",
       "layers": [
         "L4",
@@ -8413,6 +8915,14 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Monument to Perfection",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -8552,6 +9062,13 @@
       ]
     },
     {
+      "name": "Cavernous Maw",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Leaping Ambush",
       "layers": [
         "L6",
@@ -8589,7 +9106,9 @@
     {
       "name": "Workshop Elders",
       "layers": [
+        "L4",
         "L6",
+        "L7b",
         "L7c"
       ]
     },
@@ -8604,6 +9123,7 @@
       "name": "Donatello, Mutant Mechanic",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -8802,6 +9322,20 @@
       ]
     },
     {
+      "name": "Atarka Monument",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Silvanus's Invoker",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Kitesail",
       "layers": [
         "L6",
@@ -8890,6 +9424,14 @@
       "layers": [
         "L2",
         "L6"
+      ]
+    },
+    {
+      "name": "Cosmium Confluence",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
       ]
     },
     {
@@ -9196,6 +9738,13 @@
       ]
     },
     {
+      "name": "Brave the Wilds",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Outmuscle",
       "layers": [
         "L6",
@@ -9390,6 +9939,13 @@
       ]
     },
     {
+      "name": "Ultron, Artificial Malevolence",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Strider, Ranger of the North",
       "layers": [
         "L6",
@@ -9499,6 +10055,7 @@
       "name": "Does Machines",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -9662,6 +10219,7 @@
       "name": "Pizza Face, Gastromancer",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -9847,6 +10405,21 @@
       ]
     },
     {
+      "name": "Levitating Statue",
+      "layers": [
+        "L4",
+        "L7b",
+        "L7c"
+      ]
+    },
+    {
+      "name": "Rampaging Growth",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Elven Bow",
       "layers": [
         "L6",
@@ -9949,6 +10522,7 @@
       "name": "Case of the Filched Falcon",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -9989,6 +10563,14 @@
       ]
     },
     {
+      "name": "The Curse of Fenric",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
       "name": "Imodane's Recruiter // Train Troops",
       "layers": [
         "L6",
@@ -10006,6 +10588,14 @@
       "name": "Thoughtweft Lieutenant",
       "layers": [
         "L6",
+        "L7c"
+      ]
+    },
+    {
+      "name": "Tendril of the Mycotyrant",
+      "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -10109,6 +10699,13 @@
       ]
     },
     {
+      "name": "Doc Ock, Evil Inventor",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Smelted Chargebug",
       "layers": [
         "L6",
@@ -10164,6 +10761,14 @@
       "layers": [
         "L4",
         "L7c"
+      ]
+    },
+    {
+      "name": "Sanguine Statuette",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -10372,6 +10977,13 @@
       ]
     },
     {
+      "name": "Selesnya Keyrune",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Suit Up",
       "layers": [
         "L4",
@@ -10447,6 +11059,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Nantuko Monastery",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -10641,6 +11260,13 @@
       ]
     },
     {
+      "name": "Disturbed Slumber",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Viridian Claw",
       "layers": [
         "L6",
@@ -10684,6 +11310,13 @@
       ]
     },
     {
+      "name": "The Blackstaff of Waterdeep",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Moment of Defiance",
       "layers": [
         "L6",
@@ -10723,6 +11356,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Stuffed Bear",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -10960,6 +11600,14 @@
       ]
     },
     {
+      "name": "Angel's Tomb",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
       "name": "Scuttlegator",
       "layers": [
         "L6",
@@ -11092,6 +11740,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ]
     },
@@ -11124,6 +11773,14 @@
       ]
     },
     {
+      "name": "Majestic Metamorphosis",
+      "layers": [
+        "L4",
+        "L6",
+        "L7b"
+      ]
+    },
+    {
       "name": "Interjection",
       "layers": [
         "L6",
@@ -11148,6 +11805,14 @@
       "name": "Dralnu's Crusade",
       "layers": [
         "L5",
+        "L7c"
+      ]
+    },
+    {
+      "name": "Haunted Plate Mail",
+      "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -11402,6 +12067,13 @@
       ]
     },
     {
+      "name": "Alloy Animist",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Hook Swords",
       "layers": [
         "L6",
@@ -11441,6 +12113,14 @@
       "name": "Bearer of Glory",
       "layers": [
         "L6",
+        "L7c"
+      ]
+    },
+    {
+      "name": "Kenku Artificer",
+      "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -11498,6 +12178,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ]
     },
@@ -11545,6 +12226,13 @@
       ]
     },
     {
+      "name": "Eye of Malcator",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Hulkbuster Armor",
       "layers": [
         "L6",
@@ -11562,6 +12250,7 @@
       "name": "Tawnos's Tinkering",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ]
     },
@@ -11699,6 +12388,13 @@
       ]
     },
     {
+      "name": "Vengeant Earth",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Metalhead",
       "layers": [
         "L6",
@@ -11731,6 +12427,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Reverberating Summons",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -11873,6 +12576,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ]
     },
@@ -11983,6 +12687,13 @@
       ]
     },
     {
+      "name": "Genju of the Fields",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Baxter Stockman",
       "layers": [
         "L6",
@@ -12036,6 +12747,20 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Emergent Haunting",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Hedge Whisperer",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -12217,7 +12942,8 @@
       "name": "Reptilian Reflection",
       "layers": [
         "L4",
-        "L6"
+        "L6",
+        "L7b"
       ]
     },
     {
@@ -12278,6 +13004,13 @@
       ]
     },
     {
+      "name": "Veiled Serpent",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Everett K. Ross, Hapless Attaché",
       "layers": [
         "L6",
@@ -12306,10 +13039,24 @@
       ]
     },
     {
+      "name": "Hidden Herd",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Grand Ball Guest",
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Siege of Towers",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -12596,6 +13343,13 @@
       "layers": [
         "L4",
         "L6",
+        "L7b"
+      ]
+    },
+    {
+      "name": "Iron Suitcase",
+      "layers": [
+        "L4",
         "L7b"
       ]
     },
@@ -12954,6 +13708,13 @@
       ]
     },
     {
+      "name": "Cool Fluffy Loxodon",
+      "layers": [
+        "L4",
+        "L7b"
+      ]
+    },
+    {
       "name": "Mishra, Lost to Phyrexia",
       "layers": [
         "L6",
@@ -12970,7 +13731,9 @@
     {
       "name": "Titania, Gaea Incarnate",
       "layers": [
+        "L4",
         "L7a",
+        "L7b",
         "L7c"
       ]
     },
@@ -12986,6 +13749,13 @@
       "layers": [
         "L6",
         "L7c"
+      ]
+    },
+    {
+      "name": "Unglued Pea-Brained Dinosaur",
+      "layers": [
+        "L4",
+        "L7b"
       ]
     },
     {
@@ -13117,11 +13887,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Destiny Spinner",
-      "line": "{3}{G}: Target land you control becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Excalibur, Sword of Eden",
       "line": "This spell costs {X} less to cast, where X is the total mana value of historic permanents you control.",
       "reason": "continuous-looking line without layer tag"
@@ -13149,11 +13914,6 @@
     {
       "name": "Nezahal, Primal Tide",
       "line": "You have no maximum hand size.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Cyberdrive Awakener",
-      "line": "When this creature enters, each noncreature artifact you control becomes a 4/4 artifact creature until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13412,11 +14172,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Mutavault",
-      "line": "{1}: This land becomes a 2/2 creature with all creature types until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Maha, Its Feathers Night",
       "line": "Creatures your opponents control have base toughness 1.",
       "reason": "continuous-looking line without layer tag"
@@ -13449,11 +14204,6 @@
     {
       "name": "Fire Nation Palace",
       "line": "{1}{R}, {T}: Target creature you control gains firebending 4 until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Inkmoth Nexus",
-      "line": "{1}: This land becomes a 1/1 Phyrexian Blinkmoth artifact creature with flying and infect until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13577,11 +14327,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Lair of the Hydra",
-      "line": "{X}{G}: Until end of turn, this land becomes an X/X green Hydra creature. It's still a land. X can't be 0.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Leyline Tyrant",
       "line": "You don't lose unspent red mana as steps and phases end.",
       "reason": "continuous-looking line without layer tag"
@@ -13702,18 +14447,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Wrenn and Realmbreaker",
-      "line": "+1: Up to one target land you control becomes a 3/3 Elemental creature with vigilance, hexproof, and haste until your next turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Aetheric Amplifier",
       "line": "{4}, {T}: Choose one. Activate only as a sorcery. • Double the number of each kind of counter on target permanent. • Double the number of each kind of counter you have.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Raging Ravine",
-      "line": "{2}{R}{G}: Until end of turn, this land becomes a 3/3 red and green Elemental creature with It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13772,11 +14507,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Creeping Tar Pit",
-      "line": "{1}{U}{B}: Until end of turn, this land becomes a 3/2 blue and black Elemental creature. It's still a land. It can't be blocked this turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "The Chain Veil",
       "line": "{4}, {T}: For each planeswalker you control, you may activate one of its loyalty abilities once this turn as though none of its loyalty abilities have been activated this turn.",
       "reason": "continuous-looking line without layer tag"
@@ -13817,11 +14547,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Blinkmoth Nexus",
-      "line": "{1}: This land becomes a 1/1 Blinkmoth artifact creature with flying until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Xantcha, Sleeper Agent",
       "line": "Xantcha enters under the control of an opponent of your choice.",
       "reason": "continuous-looking line without layer tag"
@@ -13837,11 +14562,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Mishra's Factory",
-      "line": "{1}: This land becomes a 2/2 Assembly-Worker artifact creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Court of Vantress",
       "line": "When this enchantment enters, you become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -13852,18 +14572,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Den of the Bugbear",
-      "line": "{3}{R}: Until end of turn, this land becomes a 3/2 red Goblin creature with It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Skyhunter Strike Force",
       "line": "Lieutenant — As long as you control your commander, other creatures you control have melee.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Cottage",
-      "line": "{2}{B}{G}: This land becomes a 4/4 black and green Horror creature until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14037,11 +14747,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Cactus Preserve",
-      "line": "{3}: Until end of turn, this land becomes an X/X green Plant creature with reach, where X is the greatest mana value among your commanders. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Court of Ardenvale",
       "line": "When this enchantment enters, you become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -14052,11 +14757,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Llanowar Loamspeaker",
-      "line": "{T}: Target land you control becomes a 3/3 Elemental creature with haste until end of turn. It's still a land. Activate only as a sorcery.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Leyline of Transformation",
       "line": "If this card is in your opening hand, you may begin the game with it on the battlefield.",
       "reason": "continuous-looking line without layer tag"
@@ -14064,11 +14764,6 @@
     {
       "name": "The Endstone",
       "line": "At the beginning of your end step, your life total becomes half your starting life total, rounded up.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Reef",
-      "line": "{2}{U}{B}: Until end of turn, this land becomes a 4/4 blue and black Shark creature with deathtouch. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14104,11 +14799,6 @@
     {
       "name": "Dark Petition",
       "line": "Spell mastery — If there are two or more instant and/or sorcery cards in your graveyard, add {B}{B}{B}.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Anchorage",
-      "line": "{1}{W}{U}: Until end of turn, this land becomes a 2/3 white and blue Bird creature with flying. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14257,23 +14947,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Restless Fortress",
-      "line": "{2}{W}{B}: This land becomes a 1/4 white and black Nightmare creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Bivouac",
-      "line": "{1}{R}{W}: This land becomes a 2/2 red and white Ox creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Jeska, Thrice Reborn",
       "line": "0: Choose target creature. Until your next turn, if that creature would deal combat damage to one of your opponents, it deals triple that damage to that player instead.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Ridgeline",
-      "line": "{2}{R}{G}: This land becomes a 3/4 red and green Dinosaur creature until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14309,11 +14984,6 @@
     {
       "name": "Kaya, Geist Hunter",
       "line": "−2: Until end of turn, if one or more tokens would be created under your control, twice that many of those tokens are created instead.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Lumbering Falls",
-      "line": "{2}{G}{U}: Until end of turn, this land becomes a 3/3 green and blue Elemental creature with hexproof. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14362,11 +15032,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Firdoch Core",
-      "line": "{4}: This artifact becomes a 4/4 artifact creature until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Pariah's Shield",
       "line": "All damage that would be dealt to you is dealt to equipped creature instead.",
       "reason": "continuous-looking line without layer tag"
@@ -14392,16 +15057,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Faerie Conclave",
-      "line": "{1}{U}: This land becomes a 2/1 blue Faerie creature with flying until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Spire",
-      "line": "{U}{R}: Until end of turn, this land becomes a 2/1 blue and red Elemental creature with It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Locke, Treasure Hunter",
       "line": "Mug — Whenever Locke attacks, each player mills a card. If a land card was milled this way, create a Treasure token. Until end of turn, you may cast a spell from among those cards.",
       "reason": "continuous-looking line without layer tag"
@@ -14419,11 +15074,6 @@
     {
       "name": "Marchesa, the Black Rose",
       "line": "Other creatures you control have dethrone.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Vents",
-      "line": "{1}{B}{R}: Until end of turn, this land becomes a 2/3 black and red Insect creature with menace. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14517,11 +15167,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Restless Prairie",
-      "line": "{2}{G}{W}: This land becomes a 3/3 green and white Llama creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Zenos yae Galvus // Shinryu, Transcendent Rival",
       "line": "Burning Chains — When the chosen player loses the game, you win the game.",
       "reason": "continuous-looking line without layer tag"
@@ -14529,11 +15174,6 @@
     {
       "name": "Ramses, Assassin Lord",
       "line": "Whenever a player loses the game, if they were attacked this turn by an Assassin you controlled, you win the game.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Needle Spires",
-      "line": "{2}{R}{W}: Until end of turn, this land becomes a 2/1 red and white Elemental creature with double strike. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14549,11 +15189,6 @@
     {
       "name": "Ancient Adamantoise",
       "line": "All damage that would be dealt to you and other permanents you control is dealt to this creature instead.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Restless Vinestalk",
-      "line": "{3}{G}{U}: Until end of turn, this land becomes a 5/5 green and blue Plant creature with trample. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14592,11 +15227,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Hall of Storm Giants",
-      "line": "{5}{U}: Until end of turn, this land becomes a 7/7 blue Giant creature with ward {3}. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Faramir, Steward of Gondor",
       "line": "Whenever a legendary creature you control with mana value 4 or greater enters, you become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -14629,16 +15259,6 @@
     {
       "name": "Naga Fleshcrafter",
       "line": "You may have this creature enter as a copy of any creature on the battlefield.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Celestial Colonnade",
-      "line": "{3}{W}{U}: Until end of turn, this land becomes a 4/4 white and blue Elemental creature with flying and vigilance. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Shambling Vent",
-      "line": "{1}{W}{B}: Until end of turn, this land becomes a 2/3 white and black Elemental creature with lifelink. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14684,11 +15304,6 @@
     {
       "name": "Osteomancer Adept",
       "line": "{T}: Until end of turn, you may cast creature spells from your graveyard by foraging in addition to paying their other costs. If you cast a spell this way, that creature enters with a finality counter on it.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Treetop Village",
-      "line": "{1}{G}: This land becomes a 3/3 green Ape creature with trample until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14794,11 +15409,6 @@
     {
       "name": "Ashling, the Limitless",
       "line": "Elemental permanent spells you cast from your hand gain evoke {4} as you cast them.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Soulstone Sanctuary",
-      "line": "{4}: This land becomes a 3/3 creature with vigilance and all creature types. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14947,11 +15557,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Tough Cookie",
-      "line": "{2}{G}: Until end of turn, target noncreature artifact you control becomes a 4/4 artifact creature.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Xanathar, Guild Kingpin",
       "line": "At the beginning of your upkeep, choose target opponent. Until end of turn, that player can't cast spells, you may look at the top card of their library any time, you may play the top card of their library, and you may spend mana as though it were mana of any color to cast spells this way.",
       "reason": "continuous-looking line without layer tag"
@@ -15042,11 +15647,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Dimir Keyrune",
-      "line": "{U}{B}: This artifact becomes a 2/2 blue and black Horror artifact creature until end of turn and can't be blocked this turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Kaito, Dancing Shadow",
       "line": "+1: Up to one target creature can't attack or block until your next turn.",
       "reason": "continuous-looking line without layer tag"
@@ -15064,11 +15664,6 @@
     {
       "name": "Archfiend of the Dross",
       "line": "At the beginning of your upkeep, remove an oil counter from this creature. Then if it has no oil counters on it, you lose the game.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Hissing Quagmire",
-      "line": "{1}{B}{G}: Until end of turn, this land becomes a 2/2 black and green Elemental creature with deathtouch. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15227,11 +15822,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Stirring Wildwood",
-      "line": "{1}{G}{W}: Until end of turn, this land becomes a 3/4 green and white Elemental creature with reach. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Marchesa's Decree",
       "line": "When this enchantment enters, you become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -15317,11 +15907,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Mishra's Foundry",
-      "line": "{2}: This land becomes a 2/2 Assembly-Worker artifact creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Leyline of Sanctity",
       "line": "If this card is in your opening hand, you may begin the game with it on the battlefield.",
       "reason": "continuous-looking line without layer tag"
@@ -15347,11 +15932,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Lavaclaw Reaches",
-      "line": "{1}{B}{R}: Until end of turn, this land becomes a 2/2 black and red Elemental creature with It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Immortal Obligation",
       "line": "Return target creature card from an opponent's graveyard to the battlefield under their control with a duty counter on it. For as long as that creature has a duty counter on it, it is goaded, can't attack you or a permanent you control, and can't block creatures you control.",
       "reason": "continuous-looking line without layer tag"
@@ -15367,11 +15947,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Wandering Fumarole",
-      "line": "{2}{U}{R}: Until end of turn, this land becomes a 1/4 blue and red Elemental creature with It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Serra Avatar",
       "line": "When Serra Avatar is put into a graveyard from anywhere, shuffle it into its owner's library.",
       "reason": "continuous-looking line without layer tag"
@@ -15384,16 +15959,6 @@
     {
       "name": "Iroh, Dragon of the West",
       "line": "At the beginning of combat on your turn, each creature you control with a counter on it gains firebending 2 until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Hive of the Eye Tyrant",
-      "line": "{3}{B}: Until end of turn, this land becomes a 3/3 black Beholder creature with menace and It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Faceless Haven",
-      "line": "{S}{S}{S}: This land becomes a 4/3 creature with vigilance and all creature types until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15414,11 +15979,6 @@
     {
       "name": "Obeka, Brute Chronologist",
       "line": "{T}: The player whose turn it is may end the turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Cave of the Frost Dragon",
-      "line": "{4}{W}: This land becomes a 3/4 white Dragon creature with flying until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15457,11 +16017,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "The Mechanist, Aerial Artisan",
-      "line": "{T}: Until end of turn, target artifact token you control becomes a 3/1 Construct artifact creature with flying.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Backdraft Hellkite",
       "line": "Whenever this creature attacks, each instant and sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost.",
       "reason": "continuous-looking line without layer tag"
@@ -15494,11 +16049,6 @@
     {
       "name": "Sefris of the Hidden Ways",
       "line": "Whenever one or more creature cards are put into your graveyard from anywhere, venture into the dungeon. This ability triggers only once each turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Guardian Idol",
-      "line": "{2}: This artifact becomes a 2/2 Golem artifact creature until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15627,11 +16177,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Arlinn, the Pack's Hope // Arlinn, the Moon's Fury",
-      "line": "0: Until end of turn, Arlinn becomes a 5/5 Werewolf creature with trample, indestructible, and haste.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Frodo Baggins",
       "line": "As long as Frodo Baggins is your Ring-bearer, it must be blocked if able.",
       "reason": "continuous-looking line without layer tag"
@@ -15707,11 +16252,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Kamahl, Fist of Krosa",
-      "line": "{G}: Target land becomes a 1/1 creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Stolen Goods",
       "line": "Target opponent exiles cards from the top of their library until they exile a nonland card. Until end of turn, you may cast that card without paying its mana cost.",
       "reason": "continuous-looking line without layer tag"
@@ -15737,18 +16277,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Tatyova, Steward of Tides",
-      "line": "Whenever a land you control enters, if you control seven or more lands, up to one target land you control becomes a 3/3 Elemental creature with haste. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Thorn of the Black Rose",
       "line": "When this creature enters, you become the monarch.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Gideon, Ally of Zendikar",
-      "line": "+1: Until end of turn, Gideon becomes a 5/5 Human Soldier Ally creature with indestructible that's still a planeswalker. Prevent all damage that would be dealt to him this turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15769,11 +16299,6 @@
     {
       "name": "Graywater's Fixer",
       "line": "Each outlaw creature card in your graveyard has encore {X}, where X is its mana value.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Mobilized District",
-      "line": "{4}: This land becomes a 3/3 Citizen creature with vigilance until end of turn. It's still a land. This ability costs {1} less to activate for each legendary creature and planeswalker you control.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15862,18 +16387,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Hostile Desert",
-      "line": "{2}, Exile a land card from your graveyard: This land becomes a 3/4 Elemental creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Enduring Angel // Angelic Enforcer",
       "line": "If your life total would be reduced to 0 or less, instead transform this creature and your life total becomes 3. Then if this creature didn't transform this way, you lose the game.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Koth of the Hammer",
-      "line": "+1: Untap target Mountain. It becomes a 4/4 red Elemental creature until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15994,11 +16509,6 @@
     {
       "name": "Shadow of the Enemy",
       "line": "Exile all creature cards from target player's graveyard. You may cast spells from among those cards for as long as they remain exiled, and mana of any type can be spent to cast them.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Jolrael, Voice of Zhalfir",
-      "line": "At the beginning of combat on your turn, up to one target land you control becomes an X/X green and blue Bird creature with flying and haste until end of turn, where X is the number of cards in your hand. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -16152,11 +16662,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Forbidding Watchtower",
-      "line": "{1}{W}: This land becomes a 1/5 white Soldier creature until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Relentless Rats",
       "line": "A deck can have any number of cards named Relentless Rats.",
       "reason": "continuous-looking line without layer tag"
@@ -16217,11 +16722,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Gideon Jura",
-      "line": "0: Until end of turn, Gideon Jura becomes a 6/6 Human Soldier creature that's still a planeswalker. Prevent all damage that would be dealt to him this turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Zndrsplt, Eye of Wisdom // Zndrsplt, Eye of Wisdom",
       "line": "At the beginning of combat on your turn, flip a coin until you lose a flip.",
       "reason": "continuous-looking line without layer tag"
@@ -16239,11 +16739,6 @@
     {
       "name": "Faithbound Judge // Sinner's Judgment",
       "line": "At the beginning of your upkeep, put a judgment counter on this Aura. Then if there are three or more judgment counters on it, enchanted player loses the game.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Kytheon, Hero of Akros // Gideon, Battle-Forged",
-      "line": "0: Until end of turn, Gideon becomes a 4/4 Human Soldier creature with indestructible that's still a planeswalker. Prevent all damage that would be dealt to him this turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -16329,11 +16824,6 @@
     {
       "name": "Clay Golem",
       "line": "{6}, Roll a d8: Monstrosity X, where X is the result.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Ghitu Encampment",
-      "line": "{1}{R}: This land becomes a 2/1 red Warrior creature with first strike until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -16652,11 +17142,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Avalanche Caller",
-      "line": "{2}: Target snow land you control becomes a 4/4 Elemental creature with hexproof and haste until end of turn. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Invade the City",
       "line": "Amass Zombies X, where X is the number of instant and sorcery cards in your graveyard.",
       "reason": "continuous-looking line without layer tag"
@@ -16709,11 +17194,6 @@
     {
       "name": "Filigree Racer",
       "line": "Whenever this Vehicle attacks, you may pay {E}{E}. When you do, target instant or sorcery card in your graveyard gains jump-start until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Cavernous Maw",
-      "line": "{2}: This land becomes a 3/3 Elemental creature until end of turn. It's still a Cave land. Activate only if the number of other Caves you control plus the number of Cave cards in your graveyard is three or greater.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -16772,11 +17252,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Atarka Monument",
-      "line": "{4}{R}{G}: This artifact becomes a 4/4 red and green Dragon artifact creature with flying until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Palace Sentinels",
       "line": "When this creature enters, you become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -16784,11 +17259,6 @@
     {
       "name": "Hazoret the Fervent",
       "line": "Hazoret can't attack or block unless you have one or fewer cards in hand.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Silvanus's Invoker",
-      "line": "Conjure Elemental — {8}: Untap target land you control. It becomes an 8/8 Elemental creature with trample and haste until end of turn. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -16859,11 +17329,6 @@
     {
       "name": "Vedalken Squirrel-Whacker",
       "line": "If you would roll one or more six-sided dice, instead roll them and you may exchange one result with this creature's base power or base toughness.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Brave the Wilds",
-      "line": "If this spell was bargained, target land you control becomes a 3/3 Elemental creature with haste that's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17027,16 +17492,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Levitating Statue",
-      "line": "{2}: This artifact becomes a 1/1 Construct artifact creature until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Rampaging Growth",
-      "line": "Search your library for a basic land card, put it onto the battlefield, then shuffle. Until end of turn, that land becomes a 4/3 Insect creature with reach and haste. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Visions of Dread",
       "line": "Flashback {8}{B}{B}. This spell costs {X} less to cast this way, where X is the greatest mana value of a commander you own on the battlefield or in the command zone.",
       "reason": "continuous-looking line without layer tag"
@@ -17122,11 +17577,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Selesnya Keyrune",
-      "line": "{G}{W}: This artifact becomes a 3/3 green and white Wolf artifact creature until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Foraging Wickermaw",
       "line": "{1}: Add one mana of any color. This creature becomes that color until end of turn. Activate only once each turn.",
       "reason": "continuous-looking line without layer tag"
@@ -17134,11 +17584,6 @@
     {
       "name": "Swat Away",
       "line": "This spell costs {2} less to cast if a creature is attacking you.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Nantuko Monastery",
-      "line": "Threshold — {G}{W}: This land becomes a 4/4 green and white Insect Monk creature with first strike until end of turn. It's still a land. Activate only if there are seven or more cards in your graveyard.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17187,11 +17632,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Disturbed Slumber",
-      "line": "Until end of turn, target land you control becomes a 4/4 Dinosaur creature with reach and haste. It's still a land. It must be blocked this turn if able.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Molecule Man",
       "line": "Nonland cards in your hand have miracle {0}.",
       "reason": "continuous-looking line without layer tag"
@@ -17212,18 +17652,8 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "The Blackstaff of Waterdeep",
-      "line": "Animate Walking Statue — {1}{U}, {T}: Another target nontoken artifact you control becomes a 4/4 artifact creature for as long as The Blackstaff of Waterdeep remains tapped. Activate only as a sorcery.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Harmonious Emergence",
       "line": "Enchanted land is a 4/5 green Spirit creature with vigilance and haste. It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Stuffed Bear",
-      "line": "{2}: This artifact becomes a 4/4 green Bear artifact creature until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17322,11 +17752,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Haunted Plate Mail",
-      "line": "{0}: Until end of turn, this permanent becomes a 4/4 Spirit artifact creature that's no longer an Equipment. Activate only if you control no creatures.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Irascible Wolverine",
       "line": "When this creature enters, exile the top card of your library. Until end of turn, you may play that card.",
       "reason": "continuous-looking line without layer tag"
@@ -17374,11 +17799,6 @@
     {
       "name": "Biblioplex Tomekeeper",
       "line": "When this creature enters, choose up to one — • Target creature becomes prepared. • Target creature becomes unprepared.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Alloy Animist",
-      "line": "{2}{G}: Until end of turn, target noncreature artifact you control becomes a 4/4 artifact creature.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17444,11 +17864,6 @@
     {
       "name": "Lineprancers",
       "line": "When Lineprancers enters, you get {TK}{TK}, then you may put a power and toughness sticker on a creature you own.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Eye of Malcator",
-      "line": "Whenever another artifact you control enters, this artifact becomes a 4/4 Phyrexian Eye artifact creature until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17542,11 +17957,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Genju of the Fields",
-      "line": "{2}: Until end of turn, enchanted Plains becomes a 2/5 white Spirit creature with It's still a land.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Gavony Dawnguard",
       "line": "If it's neither day nor night, it becomes day as this creature enters.",
       "reason": "continuous-looking line without layer tag"
@@ -17564,11 +17974,6 @@
     {
       "name": "Temporal Firestorm",
       "line": "Choose up to X creatures and/or planeswalkers you control, where X is the number of times this spell was kicked. Those permanents phase out.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Hedge Whisperer",
-      "line": "{3}{G}, {T}, Collect evidence 4: Target land you control becomes a 5/5 green Plant Boar creature with haste for as long as this creature remains tapped. It's still a land. Activate only as a sorcery.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17684,11 +18089,6 @@
     {
       "name": "Heroic Return",
       "line": "This spell costs {2} less to cast if a creature is attacking you.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Siege of Towers",
-      "line": "Target Mountain becomes a 3/1 creature. It's still a land.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17837,11 +18237,6 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
-      "name": "Iron Suitcase",
-      "line": "{3}: This artifact becomes a 3/3 Construct artifact creature with flying until end of turn.",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
       "name": "Metathran Elite",
       "line": "This creature can't be blocked as long as it's enchanted.",
       "reason": "continuous-looking line without layer tag"
@@ -17944,11 +18339,6 @@
     {
       "name": "Squirrel Stack",
       "line": "Visit — You have five seconds to stack dice on top of one another. If you stack at least five dice, claim the prize",
-      "reason": "continuous-looking line without layer tag"
-    },
-    {
-      "name": "Unglued Pea-Brained Dinosaur",
-      "line": "{TK}{TK}{TK}{TK} — At the beginning of combat on your turn, target noncreature artifact you control becomes a 4/4 artifact creature with flying until end of turn.",
       "reason": "continuous-looking line without layer tag"
     }
   ],
@@ -20436,7 +20826,10 @@
     {
       "oracleId": "4acacdd2-a736-43a2-ad67-891b9bd124f8",
       "name": "Alloy Animist",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -21511,7 +21904,9 @@
       "oracleId": "de3ed52e-7cc2-49ea-96d9-4254aac46168",
       "name": "Angel's Tomb",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -23142,6 +23537,8 @@
       "oracleId": "f227ce07-7e96-4a36-ab7c-9be6e777d649",
       "name": "Arlinn, the Pack's Hope // Arlinn, the Moon's Fury",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -24117,7 +24514,10 @@
     {
       "oracleId": "eb287c04-97f5-4e47-beb1-66cc7d15e748",
       "name": "Atarka Monument",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -24720,7 +25120,10 @@
     {
       "oracleId": "c66dc0d3-b98c-40a2-be35-e455b4658828",
       "name": "Avalanche Caller",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -28689,6 +29092,8 @@
       "oracleId": "40d45c02-6416-4e19-8fe3-0ddadf5ba627",
       "name": "Blinkmoth Nexus",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -30712,7 +31117,10 @@
     {
       "oracleId": "49d189dd-9ce7-434f-931b-7110cd5255e7",
       "name": "Brave the Wilds",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -32443,7 +32851,10 @@
     {
       "oracleId": "8da29533-f389-4bc2-ab9b-b469f893a362",
       "name": "Cactus Preserve",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -33601,6 +34012,7 @@
       "name": "Case of the Filched Falcon",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -34022,7 +34434,10 @@
     {
       "oracleId": "1e4146d2-cfa0-4f5e-9761-3c83519b90c3",
       "name": "Cave of the Frost Dragon",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -34046,7 +34461,10 @@
     {
       "oracleId": "952ab8fe-f7d3-4673-89de-8c6d3f8a081f",
       "name": "Cavernous Maw",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -34185,7 +34603,10 @@
     {
       "oracleId": "876ac6f6-74de-4666-84c6-83d81f054723",
       "name": "Celestial Colonnade",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -38204,7 +38625,8 @@
       "oracleId": "ba2bb276-b7ef-46ec-9618-2cf4d60c70a6",
       "name": "Cool Fluffy Loxodon",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -38581,6 +39003,8 @@
       "oracleId": "798aaf78-16d9-474b-a963-f5e9c39aae6e",
       "name": "Cosmium Confluence",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -39117,6 +39541,8 @@
       "oracleId": "dfe1a112-97aa-4e81-8431-81552ba2cdcf",
       "name": "Crawling Barrens",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -39213,7 +39639,10 @@
     {
       "oracleId": "250cb58b-2924-4dff-92fe-ac0ebbbeb218",
       "name": "Creeping Tar Pit",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -40501,7 +40930,9 @@
       "oracleId": "126a5d0b-e7d6-458e-87af-47d845678014",
       "name": "Cyberdrive Awakener",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -40852,6 +41283,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -43029,7 +43461,10 @@
     {
       "oracleId": "f451b8f0-1ff5-4e8d-9f30-9352d83ed687",
       "name": "Den of the Bugbear",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -43401,7 +43836,10 @@
     {
       "oracleId": "7dd189f8-a23f-4b43-b0ef-fb174a9664ba",
       "name": "Destiny Spinner",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -43845,7 +44283,10 @@
     {
       "oracleId": "7685ff3f-6d61-4b1d-a381-49bc6274aa01",
       "name": "Dimir Keyrune",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -44307,7 +44748,8 @@
       "oracleId": "bc0daba2-c51c-44b0-a4a3-806f2acd9aa6",
       "name": "Displaced Dinosaurs",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -44461,7 +44903,10 @@
     {
       "oracleId": "6a381297-ebce-403c-b1dc-b7405fa6902c",
       "name": "Disturbed Slumber",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -44676,7 +45121,8 @@
       "oracleId": "3e0738af-00ec-4707-a56d-85b5a5ce4529",
       "name": "Doc Ock, Evil Inventor",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -44783,6 +45229,7 @@
       "name": "Does Machines",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -44943,6 +45390,7 @@
       "name": "Donatello, Mutant Mechanic",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -47467,7 +47915,9 @@
       "oracleId": "2a2f2d6c-3937-4e4b-9e4a-3480e0c787d0",
       "name": "Ebony Fly",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -49002,7 +49452,8 @@
       "oracleId": "9f4d0133-0ecc-4498-8a47-4906321faae2",
       "name": "Emergent Haunting",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -51496,7 +51947,10 @@
     {
       "oracleId": "7270b5b6-a571-4e6d-91de-03f7cc035b3c",
       "name": "Eye of Malcator",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -51672,7 +52126,10 @@
     {
       "oracleId": "f74107d5-fb4a-464b-9251-42b84d91775d",
       "name": "Faceless Haven",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -51759,7 +52216,10 @@
     {
       "oracleId": "0c25f6b1-8fb3-4406-9605-0282d2dbbcec",
       "name": "Faerie Conclave",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -53815,7 +54275,10 @@
     {
       "oracleId": "126c75c0-414b-4e55-8747-2b5566ce716f",
       "name": "Firdoch Core",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -55504,7 +55967,10 @@
     {
       "oracleId": "cabf7953-0fac-4dbb-b3ae-05e85e02b3fc",
       "name": "Forbidding Watchtower",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -58006,7 +58472,10 @@
     {
       "oracleId": "5cd35d18-115b-4d7c-8d05-3d4c8303f46e",
       "name": "Genju of the Fields",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -58297,7 +58766,10 @@
     {
       "oracleId": "9cc02c16-8cf9-4ac7-9475-231c27121968",
       "name": "Ghitu Encampment",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -58633,7 +59105,10 @@
     {
       "oracleId": "51eae7ff-fed9-4afe-8053-7690379449dd",
       "name": "Gideon, Ally of Zendikar",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -58656,7 +59131,10 @@
     {
       "oracleId": "7340dbcb-4b26-4038-be8c-a89e76294221",
       "name": "Gideon Jura",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -61678,7 +62156,8 @@
       "oracleId": "a8c70dab-1e27-4a9c-bd2d-910d5720d02d",
       "name": "Great Hall of the Biblioplex",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -62532,7 +63011,10 @@
     {
       "oracleId": "829d2e11-192f-4093-99f8-e13767b321a2",
       "name": "Guardian Idol",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -63071,7 +63553,10 @@
     {
       "oracleId": "087c8c0e-a91c-4e3c-8387-9312db01f343",
       "name": "Hall of Storm Giants",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -63914,6 +64399,8 @@
       "oracleId": "84594f86-724b-4f6b-b374-2265a00db566",
       "name": "Haunted Plate Mail",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -63929,6 +64416,7 @@
       "name": "Haunted Screen",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -64427,7 +64915,10 @@
     {
       "oracleId": "923b2a1b-d7b6-439d-9681-c7ba88165c31",
       "name": "Hedge Whisperer",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -65392,7 +65883,8 @@
       "oracleId": "8e7c5649-41c2-4a0c-b873-e6f6c5908567",
       "name": "Hidden Herd",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -65743,7 +66235,10 @@
     {
       "oracleId": "7fff5224-c002-4a32-86fe-9a4b18d78b50",
       "name": "Hissing Quagmire",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -65804,7 +66299,10 @@
     {
       "oracleId": "d17163d4-dd43-4de6-b7cf-576448160b7f",
       "name": "Hive of the Eye Tyrant",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -66455,7 +66953,10 @@
     {
       "oracleId": "41459587-7509-404e-bd7d-fb8831dee789",
       "name": "Hostile Desert",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -66992,7 +67493,9 @@
       "oracleId": "7d178f1c-faf7-4efd-87a6-201a40c55ec8",
       "name": "Hunted by The Family",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -68855,7 +69358,10 @@
     {
       "oracleId": "675281ff-b81f-4e5e-9f85-9f8cd202b50b",
       "name": "Inkmoth Nexus",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -70345,6 +70851,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -70467,7 +70974,10 @@
     {
       "oracleId": "d2ba20a0-7c08-49ed-b960-4b3154a8c025",
       "name": "Iron Suitcase",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -71752,7 +72262,10 @@
     {
       "oracleId": "65e4fbd1-4935-495e-9897-bad5a0cfd935",
       "name": "Jolrael, Voice of Zhalfir",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -72390,7 +72903,9 @@
       "oracleId": "8b21146d-3e92-46e7-b5d9-8240fba5088e",
       "name": "Kamahl, Fist of Krosa",
       "layers": [
+        "L4",
         "L6",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -73382,7 +73897,8 @@
       "name": "Kellan, Planar Trailblazer",
       "layers": [
         "L4",
-        "L6"
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -73474,6 +73990,8 @@
       "oracleId": "e262b226-9463-40a9-95b2-fe2c3eafc043",
       "name": "Kenku Artificer",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -74781,7 +75299,10 @@
     {
       "oracleId": "589186e0-3ebe-46a3-a9e7-798b1712fa93",
       "name": "Koth of the Hammer",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -75439,7 +75960,9 @@
       "oracleId": "e49d745c-5130-4b54-bcbb-643b08528456",
       "name": "Kytheon, Hero of Akros // Gideon, Battle-Forged",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -75566,7 +76089,10 @@
     {
       "oracleId": "126e9140-2c05-4c00-8b01-5653456c736a",
       "name": "Lair of the Hydra",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -75890,7 +76416,10 @@
     {
       "oracleId": "340de307-982a-4b26-9dc0-99113dc766cd",
       "name": "Lavaclaw Reaches",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -76626,6 +77155,8 @@
       "oracleId": "259ca16d-7753-402b-bcd0-2425500dee99",
       "name": "Levitating Statue",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -77665,7 +78196,10 @@
     {
       "oracleId": "08377424-619e-48ae-bc3c-fb199cd77cf9",
       "name": "Llanowar Loamspeaker",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -78708,7 +79242,10 @@
     {
       "oracleId": "c2878f4e-3044-4d60-8ec1-b325edfca397",
       "name": "Lumbering Falls",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -79681,7 +80218,9 @@
       "oracleId": "5779d9b2-4de1-4aa4-a56d-0da05146743a",
       "name": "Majestic Metamorphosis",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -83501,6 +84040,8 @@
       "oracleId": "5963e0ef-e0bc-4611-ad4f-813a4c0eacfb",
       "name": "Mishra's Factory",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -83509,6 +84050,8 @@
       "oracleId": "b43e9772-6ad4-49c7-9557-b18ee1e4587d",
       "name": "Mishra's Foundry",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -83912,7 +84455,10 @@
     {
       "oracleId": "eb2094cf-b4be-4f52-8615-e179ef7c741d",
       "name": "Mobilized District",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -84652,7 +85198,9 @@
       "oracleId": "df4bb104-d939-434f-8a1c-e89beda27c90",
       "name": "Monument to Perfection",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -85715,7 +86263,10 @@
     {
       "oracleId": "6b3cc59a-7ea5-4eb5-9bf9-5a9c07f80e2b",
       "name": "Mutavault",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -86438,7 +86989,10 @@
     {
       "oracleId": "c6de0ee9-785d-4cd8-8a7f-5bb715763131",
       "name": "Nantuko Monastery",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -86907,7 +87461,10 @@
     {
       "oracleId": "e7bb8160-0a4b-4e46-b196-7a19fb388d8e",
       "name": "Needle Spires",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -87981,6 +88538,8 @@
       "oracleId": "5aa3abf1-d56b-4f42-8c84-7e5a2c15ee0f",
       "name": "Nissa, Who Shakes the World",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -93873,6 +94432,7 @@
       "name": "Pizza Face, Gastromancer",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -97497,7 +98057,10 @@
     {
       "oracleId": "8d38194e-b607-4ff4-9c19-0e8636d463bf",
       "name": "Raging Ravine",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -98011,7 +98574,10 @@
     {
       "oracleId": "acd81d2c-e438-44db-86eb-32fc9cb3fd8f",
       "name": "Rampaging Growth",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -100153,7 +100719,8 @@
       "name": "Reptilian Reflection",
       "layers": [
         "L4",
-        "L6"
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -100417,13 +100984,18 @@
     {
       "oracleId": "91320daf-f69c-4350-b0fc-4bb37a6904b1",
       "name": "Restless Anchorage",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "b3c7b46f-c9ab-40ca-b50b-a4e0d0bd9be8",
       "name": "Restless Bivouac",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -100437,19 +101009,27 @@
     {
       "oracleId": "7e16595f-bdeb-422e-b99a-bfc0ed52e9f8",
       "name": "Restless Cottage",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "8b3726f1-20b8-42ec-8f9b-b361515c3f05",
       "name": "Restless Fortress",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "c071257a-63e7-48d0-a677-0b396a09b624",
       "name": "Restless Prairie",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -100457,13 +101037,18 @@
     {
       "oracleId": "df20f85b-5f81-4ee4-8487-55d90109ac36",
       "name": "Restless Reef",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "4c0f4a63-586a-4dde-9621-b0dd9118b2e5",
       "name": "Restless Ridgeline",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -100471,19 +101056,26 @@
     {
       "oracleId": "0ca4e80e-c19c-4b74-b531-c5a4dc5a8ba9",
       "name": "Restless Spire",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "696e7ddb-bdc7-40ee-bc5c-59e98f4a7401",
       "name": "Restless Vents",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
       "oracleId": "0935faa2-fb90-48db-8a92-906ba0f374c7",
       "name": "Restless Vinestalk",
       "layers": [
+        "L4",
         "L7b"
       ],
       "cda": false
@@ -100791,7 +101383,8 @@
       "oracleId": "1fd78bf7-43ba-4e09-834b-14bfc1fd9d0d",
       "name": "Reverberating Summons",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -101133,6 +101726,7 @@
       "name": "Ride the Shoopuf",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -101464,6 +102058,8 @@
       "oracleId": "59925461-99f5-4217-8343-49c9b1ce24c1",
       "name": "Rise and Shine",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -101958,6 +102554,8 @@
       "oracleId": "43abfce5-b1dd-4784-bb91-d57b2c28f6a6",
       "name": "Roaring Earth",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -102504,6 +103102,7 @@
       "layers": [
         "L4",
         "L6",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -103574,7 +104173,8 @@
       "oracleId": "d82618e7-494a-46d0-a19e-9cc647f96cfe",
       "name": "Sage of the Maze",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -104193,7 +104793,9 @@
       "oracleId": "35553c2a-0150-49e4-81da-f356c6a17253",
       "name": "Sanguine Statuette",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -104371,7 +104973,9 @@
       "oracleId": "67dbc5dd-6d05-43e7-83f7-70e10eb54807",
       "name": "Sarkhan the Masterless",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -106577,7 +107181,10 @@
     {
       "oracleId": "d4ecee6d-b23f-48e7-b7e5-347027225709",
       "name": "Selesnya Keyrune",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -107640,7 +108247,10 @@
     {
       "oracleId": "4725abd4-06bc-464a-bc5b-c9e0f71ec079",
       "name": "Shambling Vent",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -109046,7 +109656,10 @@
     {
       "oracleId": "d8eb0897-0d2f-4f2d-a09b-87d57d5a0fa9",
       "name": "Siege of Towers",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -109404,7 +110017,10 @@
     {
       "oracleId": "4a25fab1-cabb-44b9-8a69-01fc1fc46bd4",
       "name": "Silvanus's Invoker",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -112289,7 +112905,10 @@
     {
       "oracleId": "3c0f99b8-0222-4fac-932a-eb5d77826564",
       "name": "Soulstone Sanctuary",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -115311,7 +115930,10 @@
     {
       "oracleId": "e900f211-dc8b-40f7-a217-1b1462b15c26",
       "name": "Stirring Wildwood",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -116414,7 +117036,10 @@
     {
       "oracleId": "1402c116-194e-49ca-a8c1-09ca659c220c",
       "name": "Stuffed Bear",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -119567,7 +120192,9 @@
       "oracleId": "7d5e734f-3efc-4124-b1d8-4fe3e9d3db28",
       "name": "Tatyova, Steward of Tides",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -119649,6 +120276,7 @@
       "name": "Tawnos's Tinkering",
       "layers": [
         "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -120389,6 +121017,8 @@
       "oracleId": "d2824464-963b-48db-a482-cc08a0a97332",
       "name": "Tendril of the Mycotyrant",
       "layers": [
+        "L4",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -121259,7 +121889,10 @@
     {
       "oracleId": "a4faed58-4b1b-4cab-8a12-4fcd20b320ab",
       "name": "The Blackstaff of Waterdeep",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -121407,7 +122040,9 @@
       "oracleId": "ef7fce1b-0d95-4f92-a8ad-09d9756fa0e4",
       "name": "The Curse of Fenric",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -122248,7 +122883,10 @@
     {
       "oracleId": "bad27b43-7716-4ce1-82ba-2a6d437363e7",
       "name": "The Mechanist, Aerial Artisan",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -124922,7 +125560,9 @@
       "oracleId": "43230d70-4d60-4ceb-bb45-fbc043280652",
       "name": "Titania, Gaea Incarnate",
       "layers": [
+        "L4",
         "L7a",
+        "L7b",
         "L7c"
       ],
       "cda": true
@@ -125677,7 +126317,10 @@
     {
       "oracleId": "8a1a5862-c027-4c15-99a7-1795d0da96da",
       "name": "Tough Cookie",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -126548,7 +127191,10 @@
     {
       "oracleId": "b53f216d-1592-4eee-b204-502a805fbc8c",
       "name": "Treetop Village",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -128211,7 +128857,8 @@
       "oracleId": "a8f25e67-2112-4355-9298-363ed04a5cb8",
       "name": "Ultron, Artificial Malevolence",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -128920,7 +129567,10 @@
     {
       "oracleId": "eb1c4f0a-b993-4aa1-8b13-1695b5f63653",
       "name": "Unglued Pea-Brained Dinosaur",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -130651,7 +131301,8 @@
       "oracleId": "ff59a95c-28de-44cf-abbe-772417851ffa",
       "name": "Veiled Serpent",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -130763,7 +131414,8 @@
       "oracleId": "237b8528-a199-45f4-8efc-96d67119f738",
       "name": "Vengeant Earth",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -132395,7 +133047,8 @@
       "oracleId": "a720f3d3-c2d7-4e50-8cc6-600120380e9c",
       "name": "Voldaren Bloodcaster // Bloodbat Summoner",
       "layers": [
-        "L4"
+        "L4",
+        "L7b"
       ],
       "cda": false
     },
@@ -132791,7 +133444,9 @@
       "oracleId": "86851bdb-9b2f-4407-97a1-a6a9f2e0ef66",
       "name": "Vronos, Masked Inquisitor",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -133196,7 +133851,10 @@
     {
       "oracleId": "741c51f1-cfbe-4c29-ac8f-ca6bcd2652f9",
       "name": "Wandering Fumarole",
-      "layers": [],
+      "layers": [
+        "L4",
+        "L7b"
+      ],
       "cda": false
     },
     {
@@ -134305,7 +134963,9 @@
       "name": "Welcome to . . . // Jurassic Park",
       "layers": [
         "L2",
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -136376,7 +137036,9 @@
       "oracleId": "9e9164be-3534-4445-bfad-00d16a50575c",
       "name": "Workshop Elders",
       "layers": [
+        "L4",
         "L6",
+        "L7b",
         "L7c"
       ],
       "cda": false
@@ -136606,7 +137268,9 @@
       "oracleId": "4566fb92-448e-4b3f-9045-9d74323c35d1",
       "name": "Wrenn and Realmbreaker",
       "layers": [
-        "L6"
+        "L4",
+        "L6",
+        "L7b"
       ],
       "cda": false
     },
@@ -138208,5 +138872,24 @@
       ],
       "cda": false
     }
-  ]
+  ],
+  "churn": {
+    "baselineCardCount": 17491,
+    "comparedCardCount": 17491,
+    "changedCount": 119,
+    "rate": 0.00680349894231319,
+    "byLayer": {
+      "L1a": 0,
+      "L1b": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 95,
+      "L5": 0,
+      "L6": 0,
+      "L7a": 0,
+      "L7b": 118,
+      "L7c": 0,
+      "L7d": 0
+    }
+  }
 }
