@@ -907,7 +907,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
           key: 'ability-activate',
           label: '能力を起動(スタックへ)',
           testId: 'ability-activate',
-          onSelect: () => store.addAbilityToStack(cardId, 'activated'),
+          onSelect: () => store.activateAbility(cardId),
           separator: true,
         },
         {

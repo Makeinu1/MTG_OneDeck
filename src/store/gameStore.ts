@@ -9,6 +9,7 @@ import type { CardDef, ManaColor } from '../types/card';
 import { applyCommands } from '../engine/batch';
 import {
   applyCommand,
+  activationPlanForSource,
   EngineError,
   guidedPlanForStackTop,
   type GameCommand,
@@ -193,6 +194,7 @@ export interface GameStore {
     kind: 'activated' | 'triggered',
     abilityLineIndex?: number
   ): void;
+  activateAbility(sourceId: string, abilityLineIndex?: number): void;
   dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
@@ -1373,6 +1375,48 @@ export const useGameStore = create<GameStore>((set, get) => {
             (candidate) => candidate.sourceId !== sourceId,
           ),
         });
+      }
+    },
+
+    activateAbility(sourceId, abilityLineIndex) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const resolvedAbilityLineIndex =
+        abilityLineIndex ?? abilityLineIndexForKind(cur, sourceId, 'activated');
+      const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex);
+      const addCmd: GameCommand = {
+        type: 'addAbilityToStack',
+        sourceId,
+        kind: 'activated',
+        ...(resolvedAbilityLineIndex === undefined
+          ? {}
+          : { abilityLineIndex: resolvedAbilityLineIndex }),
+      };
+      const commands = plan ? [...plan.commands, addCmd] : [addCmd];
+
+      try {
+        const result = applyCommands(cur, commands);
+        const warnings = result.warnings.slice();
+        if (plan === null || plan.decision === 'manual') {
+          warnings.push(`${cardLabel(cur, sourceId)}の起動コストは手払いしてください。`);
+        }
+        if (plan?.manaShortfall && plan.manaShortfall > 0) {
+          warnings.push(
+            `${cardLabel(cur, sourceId)}の起動コストのマナが${plan.manaShortfall}点不足しています。`
+          );
+        }
+        const next =
+          plan?.decision === 'auto'
+            ? appendLog(result.state, `${cardLabel(cur, sourceId)}の能力を起動(コスト精算)。`)
+            : result.state;
+        commit(next, warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
       }
     },
 

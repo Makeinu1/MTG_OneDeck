@@ -1,6 +1,6 @@
 {
-  "note": "この数値は未調整(候補分布であり絶対正解でない)。G3 では分母を full→effect 行へ変更して再ベースラインする。",
-  "generatedAt": "2026-06-21T15:48:31.004Z",
+  "note": "この数値は未調整(候補分布であり絶対正解でない)。G4 では起動型コスト精算の候補分布を追加する。",
+  "generatedAt": "2026-06-21T22:54:25.171Z",
   "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "totals": {
     "rawCards": 17491,
@@ -112,6 +112,41 @@
       "guidedFrontierRate": 0.019230769230769232
     }
   ],
+  "costSummary": {
+    "activatedLineCount": 5103,
+    "activationAutoCount": 3718,
+    "activationManualCount": 1385,
+    "fullyPlayableCount": 992,
+    "activationFrontierRate": 0.7285910248873212,
+    "fullyPlayableRate": 0.19439545365471292,
+    "elementDistribution": [
+      {
+        "bucket": "tap-only",
+        "lineCount": 1562,
+        "lineRate": 0.3060944542426024
+      },
+      {
+        "bucket": "mana",
+        "lineCount": 994,
+        "lineRate": 0.19478737997256515
+      },
+      {
+        "bucket": "sac-self",
+        "lineCount": 58,
+        "lineRate": 0.01136586321771507
+      },
+      {
+        "bucket": "compound",
+        "lineCount": 1104,
+        "lineRate": 0.21634332745443857
+      },
+      {
+        "bucket": "manual",
+        "lineCount": 1385,
+        "lineRate": 0.2714089751126788
+      }
+    ]
+  },
   "atomSummary": [
     {
       "atom": "effect.create-token",

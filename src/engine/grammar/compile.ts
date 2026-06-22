@@ -1,6 +1,6 @@
 import type { CardDef, ManaColor } from '../../types/card';
 import type { GameCommand } from '../commands';
-import type { AbilityIR, CountSpec, EffectClause } from './ir';
+import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
 
 export interface CompileContext {
@@ -9,6 +9,7 @@ export interface CompileContext {
 }
 
 export type AutoDecision = 'auto' | 'guided' | 'manual';
+export type CostDecision = 'auto' | 'manual';
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type PromptKind = 'target' | 'scry-surveil' | 'modal';
 
@@ -46,6 +47,13 @@ export interface CompiledEffect {
   reasons: string[];
 }
 
+export interface CompiledCost {
+  commands: GameCommand[];
+  manaCost: string | null;
+  decision: CostDecision;
+  reasons: string[];
+}
+
 type ManualReason =
   | 'ambiguous-mana'
   | 'needs-choice'
@@ -65,6 +73,26 @@ const COUNT_DRIVEN_AUTO_ATOMS = new Set([
   'effect.energy',
   'effect.experience',
   'effect.treasure',
+]);
+
+type CostManualReason = 'unmodeled-cost' | 'variable-x';
+
+const NON_SELF_SACRIFICE_PREFIXES = new Set([
+  'a',
+  'all',
+  'an',
+  'another',
+  'eight',
+  'each',
+  'five',
+  'four',
+  'nine',
+  'other',
+  'seven',
+  'six',
+  'ten',
+  'three',
+  'two',
 ]);
 
 const TARGET_REQUIRED_ATOMS = new Set([
@@ -114,6 +142,76 @@ const TARGET_TYPES = [
   'planeswalker',
   'permanent',
 ];
+
+export function compileAbilityCost(
+  cost: AbilityCost | null,
+  ctx: CompileContext,
+): CompiledCost {
+  if (cost === null) {
+    return {
+      commands: [],
+      manaCost: null,
+      decision: 'auto',
+      reasons: [],
+    };
+  }
+
+  const reasons = new Set<CostManualReason>();
+  if (cost.mana !== null && /\{X\}/i.test(cost.mana)) {
+    reasons.add('variable-x');
+  }
+  if (hasAbilityWordLabel(cost.raw)) {
+    reasons.add('unmodeled-cost');
+  }
+
+  const namedSacrifice = removeNamedSelfSacrificeElement(cost.raw, ctx.def.name);
+  let sacrificesSelf = namedSacrifice.found;
+  const residual = namedSacrifice.raw
+    .split(',')
+    .map((part) => {
+      const element = part.trim();
+      if (isSelfSacrificeCostElement(element, ctx.def.name)) {
+        sacrificesSelf = true;
+        return '';
+      }
+      return element.replace(/\{[^}]+\}/g, ' ');
+    })
+    .join(' ');
+
+  if (/[A-Za-z]/.test(residual)) {
+    reasons.add('unmodeled-cost');
+  }
+
+  const sortedReasons = [...reasons].sort((a, b) => a.localeCompare(b));
+  if (sortedReasons.length > 0) {
+    return {
+      commands: [],
+      manaCost: null,
+      decision: 'manual',
+      reasons: sortedReasons,
+    };
+  }
+
+  const commands: GameCommand[] = [];
+  if (cost.tap) {
+    commands.push({ type: 'setTapped', cardId: ctx.sourceId, tapped: true });
+  }
+  if (sacrificesSelf) {
+    commands.push({
+      type: 'moveCard',
+      cardId: ctx.sourceId,
+      to: 'graveyard',
+      position: 'top',
+    });
+  }
+
+  return {
+    commands,
+    manaCost: cost.mana,
+    decision: 'auto',
+    reasons: [],
+  };
+}
 
 export function compileAbilityIR(ir: AbilityIR, _ctx: CompileContext): CompiledEffect {
   void _ctx;
@@ -504,4 +602,75 @@ function counterDelta(raw: string): number {
     return value ?? 1;
   }
   return 1;
+}
+
+function hasAbilityWordLabel(raw: string): boolean {
+  return /^\s*[A-Za-z][A-Za-z '-]*\s+(?:\u2014|--|-)\s*/.test(raw);
+}
+
+function isSelfSacrificeCostElement(element: string, cardName: string): boolean {
+  const normalized = element.replace(/\s+/g, ' ').replace(/[.。]\s*$/, '').trim();
+  const match = /^Sacrifice\s+(.+)$/i.exec(normalized);
+  if (!match) {
+    return false;
+  }
+
+  const object = match[1].trim();
+  const firstWord = object.split(/\s+/)[0]?.toLowerCase() ?? '';
+  if (/^\d+$/.test(firstWord) || NON_SELF_SACRIFICE_PREFIXES.has(firstWord)) {
+    return false;
+  }
+
+  if (/^(?:it|~)$/i.test(object)) {
+    return true;
+  }
+  if (isThisSelfReference(object)) {
+    return true;
+  }
+  return selfNameAlternatives(cardName).some((name) => sameCardNameReference(object, name));
+}
+
+function removeNamedSelfSacrificeElement(
+  raw: string,
+  cardName: string,
+): { raw: string; found: boolean } {
+  let next = raw;
+  let found = false;
+  for (const name of selfNameAlternatives(cardName)) {
+    const pattern = new RegExp(
+      `(^|,)\\s*Sacrifice\\s+${escapeRegExp(name)}\\s*(?=,|$)`,
+      'gi',
+    );
+    next = next.replace(pattern, (match, separator: string) => {
+      void match;
+      found = true;
+      return separator;
+    });
+  }
+  return { raw: next, found };
+}
+
+function isThisSelfReference(object: string): boolean {
+  if (!/^this\b/i.test(object)) {
+    return false;
+  }
+  if (/\b(?:and|another|or|other|target|you control)\b/i.test(object)) {
+    return false;
+  }
+  return /^this\s+[A-Za-z][A-Za-z -]*$/i.test(object);
+}
+
+function selfNameAlternatives(cardName: string): string[] {
+  return cardName
+    .split(/\s+\/\/\s+/)
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
+}
+
+function sameCardNameReference(value: string, name: string): boolean {
+  return value.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

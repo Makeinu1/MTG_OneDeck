@@ -1,8 +1,16 @@
 import type { CardDef, ManaColor } from '../types/card';
+import { planAutoTap } from './autotap';
 import { isCommander } from './commander';
-import { compileAbilityIR, type EffectPrompt, type TargetFilter } from './grammar/compile';
+import {
+  compileAbilityCost,
+  compileAbilityIR,
+  type CostDecision,
+  type EffectPrompt,
+  type TargetFilter,
+} from './grammar/compile';
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR } from './grammar/ir';
+import { parseManaCost } from './mana';
 import { normalizeKeywords } from './status';
 import type {
   AbilityKind,
@@ -803,6 +811,27 @@ function effectLinesForResolvedStackItem(
   return effectLinesForStackItemState(draft.state, card);
 }
 
+function abilityLineIndexForKind(
+  state: GameState,
+  sourceId: string,
+  kind: AbilityKind,
+): number | undefined {
+  const card = state.cards[sourceId];
+  if (!card) return undefined;
+  const def = state.defs[card.defId];
+  if (!def) return undefined;
+
+  const shapes =
+    kind === 'activated'
+      ? new Set(['activated'])
+      : new Set(['triggered', 'delayed-triggered']);
+  const matches = splitAbilityLines(def)
+    .map((line, index) => ({ line, index }))
+    .filter((entry) => shapes.has(entry.line.shape));
+
+  return matches.length === 1 ? matches[0].index : undefined;
+}
+
 export function guidedPlanForStackTop(
   state: GameState
 ): { sourceId: string; prompts: EffectPrompt[] } | null {
@@ -833,6 +862,53 @@ export function guidedPlanForStackTop(
   return sourceId && prompts.length > 0 ? { sourceId, prompts } : null;
 }
 
+export function activationPlanForSource(
+  state: GameState,
+  sourceId: string,
+  abilityLineIndex?: number,
+): { commands: GameCommand[]; decision: CostDecision; manaShortfall: number } | null {
+  const source = state.cards[sourceId];
+  if (state.effectsAuto === false || source?.effectsAuto === false) {
+    return null;
+  }
+  if (!source) {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const def = state.defs[source.defId];
+  if (!def) {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const resolvedIndex =
+    abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
+  if (resolvedIndex === undefined) {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const line = splitAbilityLines(def)[resolvedIndex];
+  if (!line || line.shape !== 'activated') {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
+  const ir = parseAbilityIR(line.text, typeLine);
+  const compiledCost = compileAbilityCost(ir.cost, { sourceId, def });
+  if (compiledCost.decision === 'manual') {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const commands: GameCommand[] = compiledCost.commands.slice();
+  let manaShortfall = 0;
+  if (compiledCost.manaCost !== null) {
+    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
+    commands.push(...tapCommands(plan.taps), { type: 'payMana', payment: plan.payment });
+    manaShortfall = plan.shortfall;
+  }
+
+  return { commands, decision: 'auto', manaShortfall };
+}
+
 export function eligibleTargets(state: GameState, filter: TargetFilter): string[] {
   if (filter.controller === 'opponent') {
     return [];
@@ -853,6 +929,13 @@ export function eligibleTargets(state: GameState, filter: TargetFilter): string[
     const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
     return types.some((type) => typeLine.includes(type.toLowerCase()));
   });
+}
+
+function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[] {
+  return taps.flatMap((tap) => [
+    { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
+    { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
+  ]);
 }
 
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {

@@ -9,9 +9,11 @@ import {
 } from '../src/engine/grammar/index.ts';
 import { parseAbilityIR, type AbilityIR } from '../src/engine/grammar/ir.ts';
 import {
+  compileAbilityCost,
   compileAbilityIR,
   type AutoDecision,
   type CompiledEffect,
+  type CompiledCost,
 } from '../src/engine/grammar/compile.ts';
 import { mapScryfallCardToCardDef, type ScryfallCard } from '../src/data/scryfall';
 import type { CardDef } from '../src/types/card';
@@ -25,9 +27,11 @@ const REPORT_JSON_PATH = resolve(process.cwd(), 'research/grammar-compile/report
 const TOP_CASE_LIMIT = 20;
 
 const NOTE =
-  'この数値は未調整(候補分布であり絶対正解でない)。G3 では分母を full→effect 行へ変更して再ベースラインする。';
+  'この数値は未調整(候補分布であり絶対正解でない)。G4 では起動型コスト精算の候補分布を追加する。';
 const FRONTIER_NOTE =
   'executable frontier=auto/effect 行、guided frontier=(auto+guided)/effect 行。旧 G2 full 基準 auto 14.18% とは分母が異なる。';
+const COST_FRONTIER_NOTE =
+  'activation frontier=cost auto/起動型行、fully-playable=cost auto かつ effect decision が auto または guided の起動型行/起動型行。';
 
 const SHAPE_ORDER: readonly AbilityShape[] = [
   'activated',
@@ -101,6 +105,24 @@ interface ReasonSummaryItem {
   lineRate: number;
 }
 
+type CostElementBucket = 'tap-only' | 'mana' | 'sac-self' | 'compound' | 'manual';
+
+interface CostElementSummaryItem {
+  bucket: CostElementBucket;
+  lineCount: number;
+  lineRate: number;
+}
+
+interface CostSummary {
+  activatedLineCount: number;
+  activationAutoCount: number;
+  activationManualCount: number;
+  fullyPlayableCount: number;
+  activationFrontierRate: number;
+  fullyPlayableRate: number;
+  elementDistribution: CostElementSummaryItem[];
+}
+
 interface LineCase {
   cardName: string;
   oracleId: string;
@@ -131,6 +153,7 @@ async function main(): Promise<void> {
   const reasonCounts = new Map<string, number>();
   const promptKindCounts = new Map<string, number>();
   const promptKindLineCounts = new Map<string, number>();
+  const costElementCounts = new Map<CostElementBucket, number>();
   const autoCandidates: LineCase[] = [];
   const guidedCandidates: LineCase[] = [];
   const mappingFailures: MappingFailure[] = [];
@@ -143,6 +166,10 @@ async function main(): Promise<void> {
   let guidedLineCount = 0;
   let autoFullLineCount = 0;
   let atomOccurrenceCount = 0;
+  let activatedLineCount = 0;
+  let activationAutoCount = 0;
+  let activationManualCount = 0;
+  let fullyPlayableCount = 0;
 
   for (const [index, rawCard] of rawCards.entries()) {
     const fallbackName = readStringField(rawCard, 'name') ?? `(index ${index})`;
@@ -177,6 +204,19 @@ async function main(): Promise<void> {
       const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
       const ir = parseAbilityIR(line.text, typeLine);
       const compiled = compileAbilityIR(ir, { sourceId: 'analysis-source', def });
+      if (ir.shape === 'activated') {
+        const compiledCost = compileAbilityCost(ir.cost, { sourceId: 'probe', def });
+        activatedLineCount += 1;
+        increment(costElementCounts, costElementBucket(compiledCost));
+        if (compiledCost.decision === 'auto') {
+          activationAutoCount += 1;
+          if (compiled.decision === 'auto' || compiled.decision === 'guided') {
+            fullyPlayableCount += 1;
+          }
+        } else {
+          activationManualCount += 1;
+        }
+      }
 
       abilityLineCount += 1;
       increment(shapeLineCounts, ir.shape);
@@ -254,6 +294,13 @@ async function main(): Promise<void> {
   );
   const reasonSummary = buildReasonSummary(reasonCounts, totals);
   const promptKindSummary = buildPromptKindSummary(promptKindCounts, promptKindLineCounts);
+  const costSummary = buildCostSummary(
+    costElementCounts,
+    activatedLineCount,
+    activationAutoCount,
+    activationManualCount,
+    fullyPlayableCount,
+  );
   const rankedAutoCandidates = rankLineCases(autoCandidates);
   const rankedGuidedCandidates = rankLineCases(guidedCandidates);
 
@@ -263,6 +310,7 @@ async function main(): Promise<void> {
     inputPath: relative(process.cwd(), INPUT_PATH),
     totals,
     frontierSummary,
+    costSummary,
     atomSummary,
     reasonSummary,
     promptKindSummary,
@@ -279,6 +327,7 @@ async function main(): Promise<void> {
       generatedAt,
       totals,
       frontierSummary,
+      costSummary,
       atomSummary,
       reasonSummary,
       promptKindSummary,
@@ -293,6 +342,9 @@ async function main(): Promise<void> {
   console.log(`Raw summary written: ${relative(process.cwd(), REPORT_JSON_PATH)}`);
   console.log(
     `cards=${totals.rawCards} mapped=${totals.mappedCards} mappingFailures=${totals.mappingFailures} abilityLines=${totals.abilityLineCount} effectLines=${totals.effectLineCount} full=${totals.fullLineCount} auto=${totals.autoLineCount} guided=${totals.guidedLineCount}`,
+  );
+  console.log(
+    `activated=${costSummary.activatedLineCount} activationAuto=${costSummary.activationAutoCount} fullyPlayable=${costSummary.fullyPlayableCount}`,
   );
 }
 
@@ -464,6 +516,62 @@ function buildPromptKindSummary(
     .sort((a, b) => b.promptCount - a.promptCount || a.kind.localeCompare(b.kind));
 }
 
+function buildCostSummary(
+  costElementCounts: Map<CostElementBucket, number>,
+  activatedLineCount: number,
+  activationAutoCount: number,
+  activationManualCount: number,
+  fullyPlayableCount: number,
+): CostSummary {
+  const bucketOrder: CostElementBucket[] = [
+    'tap-only',
+    'mana',
+    'sac-self',
+    'compound',
+    'manual',
+  ];
+  return {
+    activatedLineCount,
+    activationAutoCount,
+    activationManualCount,
+    fullyPlayableCount,
+    activationFrontierRate: rate(activationAutoCount, activatedLineCount),
+    fullyPlayableRate: rate(fullyPlayableCount, activatedLineCount),
+    elementDistribution: bucketOrder.map((bucket) => {
+      const lineCount = costElementCounts.get(bucket) ?? 0;
+      return {
+        bucket,
+        lineCount,
+        lineRate: rate(lineCount, activatedLineCount),
+      };
+    }),
+  };
+}
+
+function costElementBucket(compiledCost: CompiledCost): CostElementBucket {
+  if (compiledCost.decision === 'manual') {
+    return 'manual';
+  }
+
+  const hasTap = compiledCost.commands.some((command) => command.type === 'setTapped');
+  const hasSacSelf = compiledCost.commands.some(
+    (command) => command.type === 'moveCard' && command.to === 'graveyard',
+  );
+  const hasMana = compiledCost.manaCost !== null;
+  const elementCount = Number(hasTap) + Number(hasSacSelf) + Number(hasMana);
+
+  if (elementCount !== 1) {
+    return 'compound';
+  }
+  if (hasTap) {
+    return 'tap-only';
+  }
+  if (hasMana) {
+    return 'mana';
+  }
+  return 'sac-self';
+}
+
 function rankLineCases(cases: readonly LineCase[]): LineCase[] {
   return [...cases].sort((a, b) => {
     const shapeDiff = compareShape(a.shape, b.shape);
@@ -495,6 +603,7 @@ function renderMarkdownReport(input: {
   generatedAt: string;
   totals: Totals;
   frontierSummary: FrontierSummaryItem[];
+  costSummary: CostSummary;
   atomSummary: AtomSummaryItem[];
   reasonSummary: ReasonSummaryItem[];
   promptKindSummary: PromptKindSummaryItem[];
@@ -503,9 +612,11 @@ function renderMarkdownReport(input: {
   mappingFailures: MappingFailure[];
 }): string {
   const lines: string[] = [
-    '# 文法コンパイル分析 Phase G3 レポート',
+    '# 文法コンパイル分析 Phase G4 レポート',
     '',
     `**${NOTE}**`,
+    '',
+    COST_FRONTIER_NOTE,
     '',
     '## 1. 総数',
     '',
@@ -526,7 +637,24 @@ function renderMarkdownReport(input: {
     '',
     ...renderMappingFailures(input.mappingFailures),
     '',
-    '## 2. executable frontier',
+    '## 2. activation frontier',
+    '',
+    '| metric | count | rate |',
+    '|---|---:|---:|',
+    `| activated lines | ${input.costSummary.activatedLineCount} | 100.00% |`,
+    `| activation frontier | ${input.costSummary.activationAutoCount} | ${percent(input.costSummary.activationFrontierRate)} |`,
+    `| fully-playable | ${input.costSummary.fullyPlayableCount} | ${percent(input.costSummary.fullyPlayableRate)} |`,
+    `| manual cost | ${input.costSummary.activationManualCount} | ${percent(rate(input.costSummary.activationManualCount, input.costSummary.activatedLineCount))} |`,
+    '',
+    '### cost 要素分布',
+    '',
+    '| bucket | lines | rate |',
+    '|---|---:|---:|',
+    ...input.costSummary.elementDistribution.map(
+      (item) => `| ${cell(item.bucket)} | ${item.lineCount} | ${percent(item.lineRate)} |`,
+    ),
+    '',
+    '## 3. executable frontier',
     '',
     FRONTIER_NOTE,
     '',
@@ -537,7 +665,7 @@ function renderMarkdownReport(input: {
         `| ${cell(item.shape)} | ${cell(item.label)} | ${item.abilityLineCount} | ${item.effectLineCount} | ${item.fullLineCount} | ${item.autoLineCount} | ${item.guidedLineCount} | ${item.manualLineCount} | ${percent(item.executableRate)} | ${percent(item.guidedFrontierRate)} |`,
     ),
     '',
-    '## 3. atom 別内訳',
+    '## 4. atom 別内訳',
     '',
     '| atom | occurrence count | auto lines | guided lines | manual lines |',
     '|---|---:|---:|---:|---:|',
@@ -560,11 +688,11 @@ function renderMarkdownReport(input: {
     '|---|---:|---:|',
     ...renderReasonSummary(input.reasonSummary),
     '',
-    '## 4. 自動実行候補 top-N',
+    '## 5. 自動実行候補 top-N',
     '',
     ...renderLineCases(input.autoCandidates),
     '',
-    '## 5. 誘導候補 top-N',
+    '## 6. 誘導候補 top-N',
     '',
     ...renderLineCases(input.guidedCandidates),
     '',

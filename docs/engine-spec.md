@@ -1661,3 +1661,88 @@ function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: Co
 - I1〜I7 は既存コマンド経由ゆえ維持。
 - **変更対象**: `src/engine/grammar/compile.ts`(guided ティア・`EffectPrompt`/`buildGuidedCommands`・ゲート置換)/ `src/engine/grammar/ir.ts`(`AbilityIR.modal` + 解析)/ `src/engine/grammar/index.ts`(`splitAbilityLines` の modal 段落結合)/ `src/engine/commands.ts` or grammar(`guidedPlanForStackTop`・`eligibleTargets` 純ヘルパ。**新 GameCommand は不要**)/ `src/store/gameStore.ts`(pending guided キュー・確定/キャンセル action・modal 再帰)/ `src/components/playmat/Playmat.tsx`(解決フロー合流・ダイアログ配線・`data-testid`)/ `src/components/playmat/ModalChoiceDialog`(新規・`AttackDialog` 流用)/ `scripts/grammar-compile.ts`(guided 集計)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**(既存コマンドへ写すのが G3 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
 - reviewer 専有テスト `review.grammar-guided` / `review.g3-flow`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。既存 `review.grammar-coverage` / `review.grammar-ir` / `review.grammar-compile` / `review.g2-exec` / `review.properties`(I1〜I7)は再ベースラインで期待値が変わる分を **Fable が更新**(実装は触らない)。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §32.6 の guided frontier を出力すること。
+
+## 33. エンジン文法器トラック Phase G4: 起動型コスト精算(`compile.ts` cost コンパイラ + ストア `activateAbility`)— この節も契約である
+
+### 33.0 目的と分界(重要)
+G2(§31)/ G3(§32)は起動型能力の**効果半分**(解決時の auto/guided 実行)を自動化した。だが**コスト半分は手動のまま**: 右クリック「能力を起動(スタックへ)」(`Playmat.tsx`)は `addAbilityToStack(cardId,'activated')` で能力をスタックに積むだけで、`{T}` タップ・マナ支払い・自己生け贄を**一切精算しない**。`parseAbilityIR` は `AbilityCost {raw, mana, tap, sacrificesSelf}`(§30)を**既に解析している**が `compileAbilityIR` はこれを無視している。
+
+G4 は **起動時に確定的なコスト({T} 自己タップ・自己生け贄・支払い可能なマナ)を自動精算してからスタックに積む**。効果側は既存 G2/G3 がそのまま走る。北極星=**activation frontier**(`shape==='activated'` 行のうちコストを完全自動精算できる率)。
+
+**分界(エンジン不変性の核・§29.0/§30.0/§31.0/§32.0 を継承)**:
+- **コストコンパイラ `compileAbilityCost`(`compile.ts`)は純粋・決定的・GameState 非依存**。`ctx.sourceId`/`ctx.def`(読み取りのみ)を参照して自己言及コマンド(tap-self / sac-self)を**生成するだけ**。盤面に依存するマナ自動タップはストア層(既存 `planAutoTap`)が担う。
+- **支払いは既存 `applyCommand` 経路のみ**。`setTapped` / `payMana` / `moveCard` / `adjustLife` を再利用。**新 GameCommand 型は追加しない**(G3 と同じ肝)。`commands.ts` / `types.ts` に新型は足さない。
+- **engine は自動でコストを払わない。ストアが仲介する**(G3 guided と同じ統治)。`addAbilityToStack` コマンド自体の挙動は**差分ゼロ**。
+- **`effectsAuto`(グローバル/カード毎)OFF 時は自動精算しない**: 新 `activateAbility` は旧 `addAbilityToStack(sourceId,'activated')` 単独適用と**完全一致**(コスト未払いの素スタック積み=現状挙動)。これを新不変条件 **I9** とする(§33.4)。
+- 完全ルールエンジン(優先権・自動スタック解決・レイヤー)は**依然スコープ外**。
+
+### 33.1 コストコンパイラ `compileAbilityCost`(純粋・`compile.ts`・契約)
+```ts
+type CostDecision = 'auto' | 'manual';
+interface CompiledCost {
+  commands: GameCommand[];   // 自己言及の確定コスト(tap-self / sac-self)。マナは含めない
+  manaCost: string | null;   // ストアが parseManaCost→planAutoTap で精算するマナ記号列('{2}{R}' 等)、無ければ null
+  decision: CostDecision;    // auto = 全コスト要素が既知・残余英字ゼロ。manual = それ以外
+  reasons: string[];         // manual 理由(昇順・重複なし。例 'variable-x'/'unmodeled-cost')
+}
+function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext): CompiledCost;
+```
+- **入力 `cost`**: 起動型行の `AbilityIR.cost`(§30)。`cost===null`(= 非起動型)→ `{commands:[], manaCost:null, decision:'auto', reasons:[]}`(コスト無し=精算不要を auto 扱い。呼び出しは起動型行に限るが防御的に定義)。
+- **auto に乗せるコスト要素**(`cost.raw` が下記既知トークンだけで構成され、除去後の残余に英字が残らない時のみ `decision:'auto'`):
+  - **tap-self**: `cost.tap===true`(`{T}` を含む)→ `commands.push({type:'setTapped', cardId: ctx.sourceId, tapped:true})`。
+  - **sac-self**: `cost.raw` に `Sacrifice (this <型語>|it|~|<ctx.def.name>)` 成分(カンマ区切りの1コスト要素)→ `commands.push({type:'moveCard', cardId: ctx.sourceId, to:'graveyard', position:'top'})`。**`AbilityCost.sacrificesSelf`(`ir.ts`)には依存しない**(複合コスト `{2},{T},Sacrifice this creature` を取りこぼすため。裏取り §33.6)。`ctx.def.name` を使い `Sacrifice <そのカード名>` も検出する。除外: `Sacrifice (a|an|another|two|three|…|\d|each|all|other) …`(他パーマネント生け贄)。
+  - **mana**: `cost.mana!==null` かつ **`{X}` を含まない** → `manaCost = cost.mana`(コマンドは生成せず、ストアが既存 `parseManaCost`→`planAutoTap`→`payMana` で精算)。既存マナソルバが generic/colored/hybrid/mono-hybrid/Phyrexian/snow を処理可能(裏取り §33.6)ゆえ色制限不要。
+- **manual に落とすコスト**(`reasons` に記録・第1スライス未対応):`{X}` マナ(`'variable-x'`)、他パーマネント生け贄 / `Pay N life` / `Pay {E}`(エネルギー)/ カード捨て / カウンター除去 / 他パーマネントのタップ / `Exile <他カード>` / **先頭の能力語ラベル `<Word> —`**(`Power-up —`/`Coven —`/`Renew —` 等)。判定: `cost.raw` から既知トークン(マナ記号 `\{[^}]+\}`・tap `{T}`・sac-self 成分)を除去し、`[A-Za-z]` が残れば `reasons.push('unmodeled-cost')` で manual(§29 `hasResidualEffectText` と同発想)。能力語ラベルも保守的に manual 据え置き(honest)。
+- 純粋・決定的・入力非破壊。`ctx.def`/`ctx.sourceId` は読み取りのみ。
+
+### 33.2 純プランナ `activationPlanForSource`(`commands.ts`・state 読み取りのみ)+ ストア活性化フロー
+誘導フロー(§32 の `guidedPlanForStackTop`)と同じ統治で、**盤面依存のコスト精算計画を純ヘルパに切り出す**(ストアを薄く保ち I9 を engine 面でテスト可能にする)。
+```ts
+function activationPlanForSource(
+  state: GameState, sourceId: string, abilityLineIndex?: number,
+): { commands: GameCommand[]; decision: CostDecision; manaShortfall: number } | null;
+```
+- **`effectsAuto` OFF**(グローバル `state.effectsAuto===false` or 当該カード `card.effectsAuto===false`)→ **`null` を返す**(ストアは素の `addAbilityToStack` のみ適用=**I9**)。
+- ON: 対象行を `abilityLineIndex`(未指定時 `abilityLineIndexForKind(state, sourceId, 'activated')`)で特定 → `parseAbilityIR(line.text, def.typeLine)` → `compileAbilityCost(ir.cost, {sourceId, def})`。
+  - `decision:'auto'`: `commands` を構築(**`addAbilityToStack` は含めない**=ストアが付与):
+    - `compiledCost.commands`(tap-self / sac-self)を先頭に。
+    - `manaCost!==null` → `plan = planAutoTap(state, parseManaCost(manaCost), 0)`。`...tapCommands(plan.taps), {type:'payMana', payment: plan.payment}` を積む。`manaShortfall = plan.shortfall`(不足分。0 なら充足)。マナ無しなら shortfall 0。
+    - `manaCost===null` の時は cost.commands のみ。`{ commands, decision:'auto', manaShortfall }` を返す。
+  - `decision:'manual'`: `{ commands:[], decision:'manual', manaShortfall:0 }` を返す(ストアは素の `addAbilityToStack` のみ)。
+- 純粋・state 非破壊(読み取りのみ)。`planAutoTap`/`parseManaCost`/`tapCommands` 相当は engine 内既存を再利用。
+
+**ストア `activateAbility(sourceId, abilityLineIndex?): void`**(`gameStore.ts`・薄いオーケストレーション):
+1. `plan = activationPlanForSource(cur, sourceId, abilityLineIndex)`。
+2. `addCmd = {type:'addAbilityToStack', sourceId, kind:'activated', ...(index)}`。
+3. 適用コマンド列 = `plan ? [...plan.commands, addCmd] : [addCmd]`。**1バッチ `applyCommands` → `commit`(単一 undo)**。
+4. `plan?.decision==='auto'` でコスト精算をログに明示(例「《○○》の能力を起動(コスト精算)。」)。`plan?.manaShortfall>0` は警告ログ(サンドボックス=強行で続行・部分支払い)。`plan?.decision==='manual'` または `plan===null` は warning でコスト手払いを促してよい。
+5. EngineError は既存流に握って `console.error`、盤面不変。
+
+### 33.3 UI 配線(`Playmat.tsx`)
+- 右クリック「能力を起動(スタックへ)」(`ability-activate`)の `onSelect` を `store.addAbilityToStack(cardId, 'activated')` から `store.activateAbility(cardId)` へ切替。**`data-testid='ability-activate'` は維持**。
+- (任意・Codex 判断)コスト未払いで素積みしたいユーザー向けに「能力を素積み(コスト手払い)」副メニュー(`addAbilityToStack` 直呼び)を追加してよい(サンドボックス=強行可)。スコープは Codex 判断だが**既存 testid を変えない**。
+
+### 33.4 不変条件 I9(`review.g4-activate` が固定)
+`effectsAuto`(グローバル or 当該カード)が **false** の時、`activationPlanForSource(state, sourceId)` は **`null`** を返す → ストアは素の `addAbilityToStack` のみ適用するため、結果 GameState は **`applyCommand(state, {type:'addAbilityToStack', sourceId, kind:'activated', abilityLineIndex})` 単独適用と完全一致**(コスト自動精算による追加変化ゼロ)。I8(解決時 OFF=効果差分ゼロ)と対をなす活性化側の不変。なお `activateAbility` はストア action(GameCommand ではない)ため I1〜I7 の fast-check harness 対象外。I9 は `review.g4-activate` の具体ケースで固定する。
+
+### 33.5 計測(`scripts/grammar-compile.ts` に cost セクション追加 + `research/grammar-compile/report.*`)
+`shape==='activated'` 行を母数に:
+- **activation frontier(主成果)**= `compileAbilityCost(ir.cost, ctx).decision==='auto'` 率(起動型行のうちコストを完全自動精算できる割合)。
+- **fully-playable**= コスト `auto` **かつ** 効果 `compileAbilityIR(ir).decision ∈ {auto, guided}` の率(コスト・効果両半分が自動/誘導で完結する起動型割合)。
+- **コスト要素分布**: tap-only / mana(非X)/ sac-self / それらの複合 / manual の内訳。
+- 計測の `ctx` は実 sourceId が無いので合成(`sourceId:'probe'`・`def` は当該カード)。`ctx.def.name` 依存の sac-self 検出を計測でも効かせる。
+- レポート冒頭に「未調整(候補分布)」と activation frontier / fully-playable の定義を明記。既存 executable / guided frontier セクションは保持。
+
+### 33.6 裏取り(完了・§29.6 流)
+コーパス(17,491枚・起動コスト行 5,103)で Fable 確認済(2026-06-22):
+- **`AbilityCost.sacrificesSelf` は複合コストを取りこぼす**(`^Sacrifice...this` 先頭限定)→ `compileAbilityCost` は `ctx.def.name` 込みで自前再判定(ir.ts 不変=G1 再ベースライン回避)。
+- マナ抽出は `{T}` 除外・generic/colored/hybrid/Phyrexian 取得可。`parseManaCost`/`planAutoTap`/`solvePayment` がそれらを精算可能。`{X}` のみ manual。
+- 残余判定で `Pay N life`/`Pay {E}`/`Discard a card`/`Sacrifice another …`/`Tap X untapped … you control`/`Remove a … counter`/`Exile <他カード>`/先頭ラベル `<Word> —` が正しく manual に落ちる。
+
+### 33.7 不変・非干渉(エンジン不変)
+- `compileAbilityCost` は決定的・入力非破壊・GameState 非依存(`ctx.def`/`ctx.sourceId` 読み取りのみ)。
+- **I9 維持**: `effectsAuto` OFF 時は `activateAbility` が `addAbilityToStack` 単独と差分ゼロ。
+- **I8 維持**: コスト精算は活性化時のみ。解決時の効果 auto/guided 実行ロジックは不変。
+- I1〜I7 は既存コマンド(`setTapped`/`payMana`/`moveCard`/`addAbilityToStack`)経由ゆえ維持。`compileAbilityIR`(効果側)・`parseAbilityIR`・`splitAbilityLines` は**挙動差分ゼロ**(G4 はコスト消費の追加のみ)。
+- **変更対象**: `src/engine/grammar/compile.ts`(`compileAbilityCost`・`CompiledCost`/`CostDecision`・純粋・新コマンド型0)/ `src/engine/commands.ts`(**純ヘルパ `activationPlanForSource` の追加のみ**・state 読み取り専用。§32 の `guidedPlanForStackTop` 追加と同格。**新 GameCommand 型は追加しない**)/ `src/store/gameStore.ts`(`activateAbility` action・薄いオーケストレーション)/ `src/components/playmat/Playmat.tsx`(`ability-activate` を `activateAbility` へ配線)/ `scripts/grammar-compile.ts`(cost セクション)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**。`ir.ts`/`index.ts` は**変更しない**(コスト消費は既存コマンドへ写すのが G4 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
+- reviewer 専有テスト `review.grammar-cost`(純 `compileAbilityCost`)/ `review.g4-activate`(`activationPlanForSource` engine 統合・I9)は Fable が先に書く(済)。Codex は触らない。既存 `review.grammar-compile` に cost セクションが増えた分の期待値は **Fable が更新**(実装は触らない)。`review.properties`(I1〜I7)は既存コマンド経由ゆえ変更不要。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §33.5 の activation frontier / fully-playable を出力すること。
