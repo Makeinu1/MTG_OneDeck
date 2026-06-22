@@ -1746,3 +1746,51 @@ function activationPlanForSource(
 - I1〜I7 は既存コマンド(`setTapped`/`payMana`/`moveCard`/`addAbilityToStack`)経由ゆえ維持。`compileAbilityIR`(効果側)・`parseAbilityIR`・`splitAbilityLines` は**挙動差分ゼロ**(G4 はコスト消費の追加のみ)。
 - **変更対象**: `src/engine/grammar/compile.ts`(`compileAbilityCost`・`CompiledCost`/`CostDecision`・純粋・新コマンド型0)/ `src/engine/commands.ts`(**純ヘルパ `activationPlanForSource` の追加のみ**・state 読み取り専用。§32 の `guidedPlanForStackTop` 追加と同格。**新 GameCommand 型は追加しない**)/ `src/store/gameStore.ts`(`activateAbility` action・薄いオーケストレーション)/ `src/components/playmat/Playmat.tsx`(`ability-activate` を `activateAbility` へ配線)/ `scripts/grammar-compile.ts`(cost セクション)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**。`ir.ts`/`index.ts` は**変更しない**(コスト消費は既存コマンドへ写すのが G4 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
 - reviewer 専有テスト `review.grammar-cost`(純 `compileAbilityCost`)/ `review.g4-activate`(`activationPlanForSource` engine 統合・I9)は Fable が先に書く(済)。Codex は触らない。既存 `review.grammar-compile` に cost セクションが増えた分の期待値は **Fable が更新**(実装は触らない)。`review.properties`(I1〜I7)は既存コマンド経由ゆえ変更不要。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §33.5 の activation frontier / fully-playable を出力すること。
+
+---
+
+## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である
+
+**M-CONTRACT = 凍結ゲート(2026-06-23)**。プロジェクトの背骨アーキを契約化する。設計の全文・S0〜S5・G1〜G5・対象ファイルは正本 `docs/architecture-substrate-compiler.md`、**設計手法(理解→state落とし込みのモデリング・サイクル/完全な物差しは無い前提のKPI)**は `docs/engine-design-method.md` を参照。
+
+**重要な順序**: 本章は**実装の前提ではなく、先行する M0 モデリング・サイクルが収束した結果を凍結する契約**である。M0 が `engine-design-method.md` の手法でエンジン状態オントロジー(ESO)+ オラクル文法⇄状態変異カタログを二面分析で収束させ(churn 閾値・頭被覆を満たす)、それを本 §34 へ凍結してから実装(S-*)へ進む。**M0 収束までは本章は draft**(各反復で更新されうる)。
+
+**本章は契約面のみ**(拘束する性質・スコープ境界・不変条件枠・前方互換規律・KPI/物差し)。具体的な型シグネチャは各実装マイルストーン(S-EVENTS 等)が自章で確定する。`CLAUDE.md` 設計原則 L35 はこのアーキに合わせ「統制された範囲で自動化(誤謬許容)」へ緩和済み(LLMジャッジ助言のみ・可逆性は不変)。
+
+### 34.1 拘束する設計原則(契約)
+- **C-A(コンパイラ純粋・命令のみ)**: 文法コンパイラ(IR→commands)は GameState を**直接変更しない**。出力は**拡張 `GameCommand` 列のみ**。盤面変更は `applyCommand` 経由のみで起こり、誤訳は**単一 undo で可逆**(既存スナップショット履歴 200 件が保険)。
+- **C-B(有効特性は層経由)**: 新規のルール解析(キーワード保有・P/T・型・色)は def 直読みでなく `computeEffectiveCharacteristics(state, objId)`(継続効果の層 CR613)を**正本**とする。既存 `status.ts`(`effectivePower`/`effectiveKeywords`)からの移行は段階的でよい(パリティ確認まで旧経路を残す)。
+- **C-C(誘発はイベント購読)**: 新規誘発の発火は `events.ts` のイベントストリーム購読(observer: self/you/opponent/any)を**正本**とする。現 prev/next 差分(`gameStore.ts` の `detectTriggerCandidates`)は移行対象。
+- **C-D(助言と強制の境界は不変)**: LLMジャッジは助言のみで盤面を変えない。唯一の強制=スタック非空でのフェイズ/ターン移動禁止(§17)。いずれも本アーキでも不変。
+
+### 34.2 計画モジュール(契約意図。具体型は各マイルストーン章で確定)
+- **`src/engine/events.ts`**(新): `GameEvent` 型・購読(observer/介在条件 intervening-if/頻度/遅延誘発/置換フェーズ)。S-EVENTS で導入、S-ABILITY+DUMMY で誘発購読を本配線。
+- **`src/engine/layers.ts`**(新): `computeEffectiveCharacteristics`・層1〜7(コピー/コントロール/文章/型/色/能力/P・T)をタイムスタンプ順適用。S-LAYERS で最小(層7/6/4/5)導入、S-CONTINUOUS で静的能力接続。
+- **`src/engine/turn.ts`**(新): 戦闘サブステップ(CR500)・ターンベース処理(CR703)juncture・SBA(CR704)。S-TURN で導入。
+- **プレイヤー別ゾーン / `GameObject` 統一 / ダミー対戦相手**: `zones[playerId]`(library/hand/graveyard)+ 共有(battlefield/stack/exile/command)。S-ZONES / S0 / S5 で導入。
+
+### 34.3 前方互換規律(契約・全 substrate マイルストーン必須)
+GameState にゾーン/フィールド/プレイヤーを追加する各マイルストーンは、`restoreGame` で旧スナップショットを補完すること(クラッシュ厳禁)。とくにプレイヤー別ゾーン化では**旧・全体共有スナップショットを単一プレイヤーへ写像**する。`CACHE_SCHEMA_VERSION` の更新要否は各章で判断する。([[snapshot-forward-compat]] 既知の落とし穴を踏襲。)
+
+### 34.4 新不変条件枠(I13〜。各実装マイルストーンで具体化し `review.*` で固定)
+M-CONTRACT は枠を予約するのみ。導入する状態に対応する具体 I を各章で追加する(I1〜I12 と同様)。
+- **I13(コンパイラ純粋性)**: コンパイラ(IR→commands)は GameState を変更せず、決定的・入力非破壊。出力は `GameCommand` 列のみ(C-A の不変条件版)。
+- **I14(イベント決定性)**: `events.ts` のイベント発行は決定的に再現可能(同一 state + command → 同一イベント列)。`applyCommand` の決定性と整合。
+- **I15(有効特性純粋性)**: `computeEffectiveCharacteristics` は state 読み取り専用・決定的・入力非破壊。
+- **I16(前方互換)**: 本章導入前の構造のスナップショットを `restoreGame` で読み込んでもクラッシュせず I1/I2 を満たす。
+
+### 34.5 スコープ境界(契約=以下の未対応で実装を不合格としない)
+層依存(CR613.8)・置換効果の相互作用(CR616)・特殊タイミング・サブゲーム/次元/策略(CR729/901/904)・両面/合体/レベル等の周辺型(CR710-730)の網羅は**初期非対応**。基盤は素直なケースを正しく扱い、複雑相互作用は手動/undo で救う。レビューはこれら未対応を欠陥として扱わない。
+
+### 34.6 マイルストーン順(背骨)
+**M0 モデリング・サイクル(先頭・反復)→ M-CONTRACT(本章で凍結)→** S-EVENTS → S-LAYERS(events と並行可)→ S-ZONES → S-TURN → S-ABILITY+DUMMY(events 必須・**複数誘発 routing 破綻の根治**)→ S-CONTINUOUS → C-GRAMMAR → C-BIND(events+layers 成立後)→ C-COVERAGE(随時)→ A-LOOP → 以後 V4(プレイヤー別ゾーン+ダミー相手が土台)→ V3。既存 G0〜G4(§29〜§33)はコンパイラ半に取り込み済み。**実装(S-*)は M0 が state 設計を紙の上で収束させて初めて着手する。**
+
+### 34.7 KPI と物差し(完全な物差しは無い前提)— 契約
+正しさの計測は **単一スカラーの“正答率”を採らない**(持っていない完全な物差しを暗に仮定するため)。手法詳細は `docs/engine-design-method.md` §3〜§5。契約として固定する原則:
+- **反証主義**: 「正しい」とは証明せず、独立した不完全な物差しの束で**反証を試み続ける**。一致=弱い陽性、不一致=発見、人間が裁定する。
+- **3状態**: `検証済 / 不一致 / 検証不能`。**`検証不能` を緑(pass)に混ぜてはならない**(= silent divergence の禁止)。検証不能は「未検証」と可視化する。
+- **主指標**= オラクル間不一致率(構文クラスタで系統誤りを炙る)・帰属分布・物差し校正(メタ)・反証率・**検証不能率(安全上限)**。`npm run accuracy`/grammar-coverage はこのうち下面抽出の器。
+- 各 ESO エントリは `検証手段(物差し)` と `trust` を持ち、測れない部分(意図的な誤謬予算)を明示する。
+
+### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
+**契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
