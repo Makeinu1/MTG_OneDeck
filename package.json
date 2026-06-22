@@ -12,6 +12,8 @@
     "layer-coverage": "tsx scripts/layer-coverage.ts",
     "grammar-ir": "tsx scripts/grammar-ir.ts",
     "grammar-compile": "tsx scripts/grammar-compile.ts",
+    "oracle-sample": "tsx scripts/oracle-sample.ts",
+    "oracle-diff": "tsx scripts/oracle-diff.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "prettier --write ."

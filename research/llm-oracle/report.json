@@ -1,0 +1,908 @@
+{
+  "sampleSize": 192,
+  "comparedCount": 192,
+  "discrepancyRate": 0.18229166666666666,
+  "unverifiableRate": 0,
+  "perLayerConfusion": [
+    {
+      "layer": "L1a",
+      "classifierOnly": 0,
+      "oracleOnly": 7,
+      "agreeBoth": 5
+    },
+    {
+      "layer": "L1b",
+      "classifierOnly": 1,
+      "oracleOnly": 0,
+      "agreeBoth": 0
+    },
+    {
+      "layer": "L2",
+      "classifierOnly": 1,
+      "oracleOnly": 0,
+      "agreeBoth": 3
+    },
+    {
+      "layer": "L3",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 0
+    },
+    {
+      "layer": "L4",
+      "classifierOnly": 8,
+      "oracleOnly": 2,
+      "agreeBoth": 26
+    },
+    {
+      "layer": "L5",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 4
+    },
+    {
+      "layer": "L6",
+      "classifierOnly": 2,
+      "oracleOnly": 2,
+      "agreeBoth": 99
+    },
+    {
+      "layer": "L7a",
+      "classifierOnly": 0,
+      "oracleOnly": 8,
+      "agreeBoth": 4
+    },
+    {
+      "layer": "L7b",
+      "classifierOnly": 1,
+      "oracleOnly": 0,
+      "agreeBoth": 6
+    },
+    {
+      "layer": "L7c",
+      "classifierOnly": 3,
+      "oracleOnly": 3,
+      "agreeBoth": 88
+    },
+    {
+      "layer": "L7d",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 0
+    }
+  ],
+  "goldCalibration": [
+    {
+      "layer": "L1a",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "layer": "L1b",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "layer": "L2",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "layer": "L3",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "layer": "L4",
+      "precision": 1,
+      "recall": 1,
+      "support": 8
+    },
+    {
+      "layer": "L5",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "layer": "L6",
+      "precision": 1,
+      "recall": 1,
+      "support": 7
+    },
+    {
+      "layer": "L7a",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "layer": "L7b",
+      "precision": 1,
+      "recall": 1,
+      "support": 4
+    },
+    {
+      "layer": "L7c",
+      "precision": 1,
+      "recall": 1,
+      "support": 5
+    },
+    {
+      "layer": "L7d",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    }
+  ],
+  "clusters": [
+    {
+      "signature": "-L4",
+      "count": 7,
+      "examples": [
+        "Karlach, Fury of Avernus",
+        "The Mycosynth Gardens",
+        "Cursed Mirror",
+        "Mirage Mirror",
+        "Shifting Woodland"
+      ]
+    },
+    {
+      "signature": "+L1a",
+      "count": 7,
+      "examples": [
+        "Phyrexian Metamorph",
+        "Sculpting Steel",
+        "Mirrormade",
+        "Helm of the Host",
+        "Spark Double"
+      ]
+    },
+    {
+      "signature": "+L7a",
+      "count": 7,
+      "examples": [
+        "Faeburrow Elder",
+        "Banner of Kinship",
+        "Storm-Kiln Artist",
+        "Shared Animosity",
+        "All That Glitters"
+      ]
+    },
+    {
+      "signature": "-L7c",
+      "count": 3,
+      "examples": [
+        "Not Dead After All",
+        "Urza's Saga",
+        "Inspiring Call"
+      ]
+    },
+    {
+      "signature": "+L7c",
+      "count": 3,
+      "examples": [
+        "The Ozolith",
+        "Spymaster's Vault",
+        "Rhythm of the Wild"
+      ]
+    },
+    {
+      "signature": "+L4",
+      "count": 2,
+      "examples": [
+        "Enduring Vitality",
+        "Enduring Courage"
+      ]
+    },
+    {
+      "signature": "-L1b",
+      "count": 1,
+      "examples": [
+        "Necropotence"
+      ]
+    },
+    {
+      "signature": "-L2",
+      "count": 1,
+      "examples": [
+        "Marvin, Murderous Mimic"
+      ]
+    },
+    {
+      "signature": "-L4,-L6",
+      "count": 1,
+      "examples": [
+        "Thespian's Stage"
+      ]
+    },
+    {
+      "signature": "-L6",
+      "count": 1,
+      "examples": [
+        "Bitterblossom"
+      ]
+    },
+    {
+      "signature": "+L6",
+      "count": 1,
+      "examples": [
+        "Ragavan, Nimble Pilferer"
+      ]
+    },
+    {
+      "signature": "+L6,+L7a,-L7b",
+      "count": 1,
+      "examples": [
+        "Destiny Spinner"
+      ]
+    }
+  ],
+  "discrepancies": [
+    {
+      "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
+      "name": "Necropotence",
+      "classifierLayers": [
+        "L1b"
+      ],
+      "oracleLayers": [],
+      "classifierOnly": [
+        "L1b"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L1b",
+      "attribution": null
+    },
+    {
+      "oracleId": "22f0dbbb-9d8d-42bc-8903-fc0b65e00952",
+      "name": "Marvin, Murderous Mimic",
+      "classifierLayers": [
+        "L2",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L2"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L2",
+      "attribution": null
+    },
+    {
+      "oracleId": "037355be-71e7-4866-80a6-80352c304970",
+      "name": "Karlach, Fury of Avernus",
+      "classifierLayers": [
+        "L4",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "03f5c566-825c-4c46-9c01-a2f9b1e70a13",
+      "name": "The Mycosynth Gardens",
+      "classifierLayers": [
+        "L1a",
+        "L4"
+      ],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "4d67e2a7-4aa7-44cc-853b-500d7aac046d",
+      "name": "Cursed Mirror",
+      "classifierLayers": [
+        "L1a",
+        "L4",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L6"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "6a84eda1-7e72-4b5a-849f-b6e177565aeb",
+      "name": "Mirage Mirror",
+      "classifierLayers": [
+        "L1a",
+        "L4"
+      ],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "7c2a4fe5-43e8-4e20-bef2-0278d18afc4b",
+      "name": "Shifting Woodland",
+      "classifierLayers": [
+        "L1a",
+        "L4"
+      ],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "8242cd78-6675-43b5-8924-0a88c3aa6f76",
+      "name": "Genji Glove",
+      "classifierLayers": [
+        "L4",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "afe2f7a4-9440-4d93-801f-a18b627efb21",
+      "name": "Great Train Heist",
+      "classifierLayers": [
+        "L4",
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L6",
+        "L7c"
+      ],
+      "classifierOnly": [
+        "L4"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "b01e698b-608a-4fc7-8073-b01d044743ec",
+      "name": "Thespian's Stage",
+      "classifierLayers": [
+        "L1a",
+        "L4",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [
+        "L4",
+        "L6"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L4,-L6",
+      "attribution": null
+    },
+    {
+      "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
+      "name": "Bitterblossom",
+      "classifierLayers": [
+        "L6"
+      ],
+      "oracleLayers": [],
+      "classifierOnly": [
+        "L6"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L6",
+      "attribution": null
+    },
+    {
+      "oracleId": "380c367f-73ea-485f-a37b-5af0ba160893",
+      "name": "Not Dead After All",
+      "classifierLayers": [
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L7c"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L7c",
+      "attribution": null
+    },
+    {
+      "oracleId": "4c6a0c30-b547-4eff-8ff4-0ca25803c076",
+      "name": "Urza's Saga",
+      "classifierLayers": [
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L7c"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L7c",
+      "attribution": null
+    },
+    {
+      "oracleId": "9b9a10ff-5a5d-4df8-88aa-18d84ff9117c",
+      "name": "Inspiring Call",
+      "classifierLayers": [
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [
+        "L7c"
+      ],
+      "oracleOnly": [],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-L7c",
+      "attribution": null
+    },
+    {
+      "oracleId": "340bbe8b-e987-4c3e-ab4e-9dee63e57d4f",
+      "name": "Phyrexian Metamorph",
+      "classifierLayers": [
+        "L4"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L4"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "6c85271c-c711-49b0-a72e-9e576c33714d",
+      "name": "Sculpting Steel",
+      "classifierLayers": [],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "79a71fe5-38ce-4bb5-aea0-c9b9a856d397",
+      "name": "Mirrormade",
+      "classifierLayers": [],
+      "oracleLayers": [
+        "L1a"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "83b43aba-bf9c-4da2-967d-9daa632e97d2",
+      "name": "Helm of the Host",
+      "classifierLayers": [
+        "L6"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L6"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "8dcb35e5-ae44-455f-86e3-4a77d496ff34",
+      "name": "Spark Double",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "b9df2cdf-397c-458d-89cf-911568737ffa",
+      "name": "Mockingbird",
+      "classifierLayers": [
+        "L4",
+        "L6"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L4",
+        "L6"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "c97957a2-8310-4cff-8aad-871b7901d124",
+      "name": "Caretaker's Talent",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L1a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L1a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L1a",
+      "attribution": null
+    },
+    {
+      "oracleId": "3577c47e-76d3-4659-b922-31c4b74be3a0",
+      "name": "Enduring Vitality",
+      "classifierLayers": [
+        "L6"
+      ],
+      "oracleLayers": [
+        "L4",
+        "L6"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L4"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "b3de29cb-7d7d-4566-b5bf-37e571bd5d78",
+      "name": "Enduring Courage",
+      "classifierLayers": [
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L4",
+        "L6",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L4"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L4",
+      "attribution": null
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "classifierLayers": [],
+      "oracleLayers": [
+        "L6"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L6"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L6",
+      "attribution": null
+    },
+    {
+      "oracleId": "7dd189f8-a23f-4b43-b0ef-fb174a9664ba",
+      "name": "Destiny Spinner",
+      "classifierLayers": [
+        "L4",
+        "L7b"
+      ],
+      "oracleLayers": [
+        "L4",
+        "L6",
+        "L7a"
+      ],
+      "classifierOnly": [
+        "L7b"
+      ],
+      "oracleOnly": [
+        "L6",
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L6,+L7a,-L7b",
+      "attribution": null
+    },
+    {
+      "oracleId": "70a6f08e-854d-4e2f-9d8c-c45ec3231157",
+      "name": "Faeburrow Elder",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "8c220dbd-6572-4715-aae6-dd09a4252d68",
+      "name": "Banner of Kinship",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "a145ff8c-5812-4bcb-bd16-9839dc25121d",
+      "name": "Storm-Kiln Artist",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "a27445db-33f2-4571-98b5-83206b797484",
+      "name": "Shared Animosity",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "a4d751e0-41c1-4e90-853d-512f385acd81",
+      "name": "All That Glitters",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "dbba75f5-2404-4bd5-982b-f6c4effa5316",
+      "name": "Ethereal Armor",
+      "classifierLayers": [
+        "L6",
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L6",
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "dca51281-fb21-45b6-beb4-1f13397caee2",
+      "name": "Blackblade Reforged",
+      "classifierLayers": [
+        "L7c"
+      ],
+      "oracleLayers": [
+        "L7a",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7a"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7a",
+      "attribution": null
+    },
+    {
+      "oracleId": "1946ded1-5f53-409f-b0a6-5433bb0357d2",
+      "name": "The Ozolith",
+      "classifierLayers": [],
+      "oracleLayers": [
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7c"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7c",
+      "attribution": null
+    },
+    {
+      "oracleId": "69ddca4b-5cc0-45f3-b2e6-a047c8d601be",
+      "name": "Spymaster's Vault",
+      "classifierLayers": [],
+      "oracleLayers": [
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7c"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7c",
+      "attribution": null
+    },
+    {
+      "oracleId": "acfa77fd-3610-4f12-9c3c-bd860ce91700",
+      "name": "Rhythm of the Wild",
+      "classifierLayers": [
+        "L6"
+      ],
+      "oracleLayers": [
+        "L6",
+        "L7c"
+      ],
+      "classifierOnly": [],
+      "oracleOnly": [
+        "L7c"
+      ],
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+L7c",
+      "attribution": null
+    }
+  ]
+}

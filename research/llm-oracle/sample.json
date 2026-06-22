@@ -1,0 +1,1164 @@
+{
+  "generatedAt": "2026-06-19T00:00:00.000Z",
+  "seedRule": "edhrec_rank asc, oracleId asc",
+  "buckets": {
+    "head": 100,
+    "multi": 50,
+    "adjudication": 30,
+    "gold": 18
+  },
+  "cards": [
+    {
+      "oracleId": "c8b143ad-43ec-4e0d-a440-e348daa31391",
+      "name": "Swiftfoot Boots",
+      "oracleText": "Equipped creature has hexproof and haste. (It can't be the target of spells or abilities your opponents control. It can attack and {T} no matter when it came under your control.)\nEquip {1} ({1}: Attach to target creature you control. Equip only as a sorcery.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "ca204b66-8d0c-431a-8d34-282f7c2d17da",
+      "name": "Lightning Greaves",
+      "oracleText": "Equipped creature has haste and shroud. (It can't be the target of spells or abilities.)\nEquip {0}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "24882fa2-3fe9-4c1b-aa3d-0e6488b9db27",
+      "name": "Heroic Intervention",
+      "oracleText": "Permanents you control gain hexproof and indestructible until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "65986c1b-8e51-4604-b685-d82fa7d1263a",
+      "name": "Skullclamp",
+      "oracleText": "Equipped creature gets +1/-1.\nWhenever equipped creature dies, draw two cards.\nEquip {1}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "afaef788-34d1-460b-b884-9d7ae6ddeb18",
+      "name": "Toxic Deluge",
+      "oracleText": "As an additional cost to cast this spell, pay X life.\nAll creatures get -X/-X until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "db6174d7-211d-4817-b8e4-8384594c83f9",
+      "name": "Urborg, Tomb of Yawgmoth",
+      "oracleText": "Each land is a Swamp in addition to its other land types.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "8dd5f5af-d2d8-4356-8617-8381081b930c",
+      "name": "Yavimaya, Cradle of Growth",
+      "oracleText": "Each land is a Forest in addition to its other land types.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "539f5396-d99a-417d-a84c-dff7930b5900",
+      "name": "Chromatic Lantern",
+      "oracleText": "Lands you control have \"{T}: Add one mana of any color.\"\n{T}: Add one mana of any color.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3aa83ed2-f48b-4ce6-a614-2c54ddf50538",
+      "name": "The One Ring",
+      "oracleText": "Indestructible\nWhen The One Ring enters, if you cast it, you gain protection from everything until your next turn.\nAt the beginning of your upkeep, you lose 1 life for each burden counter on The One Ring.\n{T}: Put a burden counter on The One Ring, then draw a card for each burden counter on The One Ring.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3127ae9b-a7a7-43ec-89d7-688f8445b33d",
+      "name": "Garruk's Uprising",
+      "oracleText": "When this enchantment enters, if you control a creature with power 4 or greater, draw a card.\nCreatures you control have trample. (Each of those creatures can deal excess combat damage to the player or planeswalker it's attacking.)\nWhenever a creature you control with power 4 or greater enters, draw a card.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "0d4ecdb1-ec90-497f-a7a4-1c68092b8757",
+      "name": "Teferi's Protection",
+      "oracleText": "Until your next turn, your life total can't change and you gain protection from everything. All permanents you control phase out. (While they're phased out, they're treated as though they don't exist. They phase in before you untap during your untap step.)\nExile Teferi's Protection.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4c6a0c30-b547-4eff-8ff4-0ca25803c076",
+      "name": "Urza's Saga",
+      "oracleText": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.)\nI — This Saga gains \"{T}: Add {C}.\"\nII — This Saga gains \"{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact you control.'\"\nIII — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3640c29b-1534-4952-b297-619ade948431",
+      "name": "Roaming Throne",
+      "oracleText": "Ward {2}\nAs this creature enters, choose a creature type.\nThis creature is the chosen type in addition to its other types.\nIf a triggered ability of another creature you control of the chosen type triggers, it triggers an additional time.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "2b76f9e9-cd28-4eaf-8674-215c34263f96",
+      "name": "Return of the Wildspeaker",
+      "oracleText": "Choose one —\n• Draw cards equal to the greatest power among non-Human creatures you control.\n• Non-Human creatures you control get +3/+3 until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "2679d0dd-ba30-4a1c-b6a0-b3ac6c790496",
+      "name": "Boros Charm",
+      "oracleText": "Choose one —\n• Boros Charm deals 4 damage to target player or planeswalker.\n• Permanents you control gain indestructible until end of turn.\n• Target creature gains double strike until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4e183439-17d2-47ff-9d99-5e22821d91e3",
+      "name": "Flawless Maneuver",
+      "oracleText": "If you control a commander, you may cast this spell without paying its mana cost.\nCreatures you control gain indestructible until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "a1f3da21-af6d-450e-bf0b-985d158418e6",
+      "name": "Hardened Scales",
+      "oracleText": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "fd949f82-fc10-4e37-8aa9-6c7569fe3c55",
+      "name": "Akroma's Will",
+      "oracleText": "Choose one. If you control a commander as you cast this spell, you may choose both instead.\n• Creatures you control gain flying, vigilance, and double strike until end of turn.\n• Creatures you control gain lifelink, indestructible, and protection from each color until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "acfa77fd-3610-4f12-9c3c-bd860ce91700",
+      "name": "Rhythm of the Wild",
+      "oracleText": "Creature spells you control can't be countered.\nNontoken creatures you control have riot. (They enter with your choice of a +1/+1 counter or haste.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "a145ff8c-5812-4bcb-bd16-9839dc25121d",
+      "name": "Storm-Kiln Artist",
+      "oracleText": "This creature gets +1/+0 for each artifact you control.\nMagecraft — Whenever you cast or copy an instant or sorcery spell, create a Treasure token. (It's an artifact with \"{T}, Sacrifice this token: Add one mana of any color.\")",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "c0d8fef4-65f4-4769-982d-b397d2b7e977",
+      "name": "Animate Dead",
+      "oracleText": "Enchant creature card in a graveyard\nWhen this Aura enters, if it's on the battlefield, it loses \"enchant creature card in a graveyard\" and gains \"enchant creature put onto the battlefield with this Aura.\" Return enchanted creature card to the battlefield under your control and attach this Aura to it. When this Aura leaves the battlefield, that creature's controller sacrifices it.\nEnchanted creature gets -1/-0.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4fb00dbe-1f82-4ba6-b18c-97e816d10d3a",
+      "name": "Patchwork Banner",
+      "oracleText": "As this artifact enters, choose a creature type.\nCreatures you control of the chosen type get +1/+1.\n{T}: Add one mana of any color.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "78427103-9543-41fb-b6d4-72963fe87275",
+      "name": "The Great Henge",
+      "oracleText": "This spell costs {X} less to cast, where X is the greatest power among creatures you control.\n{T}: Add {G}{G}. You gain 2 life.\nWhenever a nontoken creature you control enters, put a +1/+1 counter on it and draw a card.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3dc364f3-3094-4660-80ca-9418588c7fde",
+      "name": "Mithril Coat",
+      "oracleText": "Flash\nIndestructible\nWhen Mithril Coat enters, attach it to target legendary creature you control.\nEquipped creature has indestructible.\nEquip {3}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "d79cbc61-6c15-48ea-bbba-3cffb819ccba",
+      "name": "Sword of the Animist",
+      "oracleText": "Equipped creature gets +1/+1.\nWhenever equipped creature attacks, you may search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\nEquip {2}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "f5f4dd28-f4ae-4d39-b9b8-6ebfd63c93fe",
+      "name": "Basilisk Collar",
+      "oracleText": "Equipped creature has deathtouch and lifelink. (Any amount of damage it deals to a creature is enough to destroy it. Damage dealt by this creature also causes you to gain that much life.)\nEquip {2} ({2}: Attach to target creature you control. Equip only as a sorcery.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "9b9a10ff-5a5d-4df8-88aa-18d84ff9117c",
+      "name": "Inspiring Call",
+      "oracleText": "Draw a card for each creature you control with a +1/+1 counter on it. Those creatures gain indestructible until end of turn. (Damage and effects that say \"destroy\" don't destroy them.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4ba5b3f6-503b-43e6-b66e-4f8c55cffed7",
+      "name": "Avenger of Zendikar",
+      "oracleText": "When this creature enters, create a 0/1 green Plant creature token for each land you control.\nLandfall — Whenever a land you control enters, you may put a +1/+1 counter on each Plant creature you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "bdbde5d0-f5e4-44da-b27c-b4ad6f374cc9",
+      "name": "Dryad of the Ilysian Grove",
+      "oracleText": "You may play an additional land on each of your turns.\nLands you control are every basic land type in addition to their other types.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "340bbe8b-e987-4c3e-ab4e-9dee63e57d4f",
+      "name": "Phyrexian Metamorph",
+      "oracleText": "({U/P} can be paid with either {U} or 2 life.)\nYou may have this creature enter as a copy of any artifact or creature on the battlefield, except it's an artifact in addition to its other types.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "9ad4f730-a18e-4a7c-a468-a926c718c741",
+      "name": "Whispersilk Cloak",
+      "oracleText": "Equipped creature can't be blocked and has shroud. (It can't be the target of spells or abilities.)\nEquip {2}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "8c52bd39-0586-48ca-b263-17210cf9feb6",
+      "name": "Craterhoof Behemoth",
+      "oracleText": "Haste\nWhen this creature enters, creatures you control gain trample and get +X/+X until end of turn, where X is the number of creatures you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "8b27326f-e7b8-4a4d-b589-df459246d19a",
+      "name": "Shadowspear",
+      "oracleText": "Equipped creature gets +1/+1 and has trample and lifelink.\n{1}: Permanents your opponents control lose hexproof and indestructible until end of turn.\nEquip {2}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "69872a9a-fe54-4e58-940c-89395af71acd",
+      "name": "Finale of Devastation",
+      "oracleText": "Search your library and/or graveyard for a creature card with mana value X or less and put it onto the battlefield. If you search your library this way, shuffle. If X is 10 or more, creatures you control get +X/+X and gain haste until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "dca51281-fb21-45b6-beb4-1f13397caee2",
+      "name": "Blackblade Reforged",
+      "oracleText": "Equipped creature gets +1/+1 for each land you control.\nEquip legendary creature {3}\nEquip {7}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "eaabd151-2160-4bff-82c0-3fa88659be98",
+      "name": "Anger",
+      "oracleText": "Haste\nAs long as this card is in your graveyard and you control a Mountain, creatures you control have haste.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "8cf38025-5821-45a0-9483-266353b7e82d",
+      "name": "Vanquisher's Banner",
+      "oracleText": "As this artifact enters, choose a creature type.\nCreatures you control of the chosen type get +1/+1.\nWhenever you cast a creature spell of the chosen type, draw a card.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "7c2a4fe5-43e8-4e20-bef2-0278d18afc4b",
+      "name": "Shifting Woodland",
+      "oracleText": "This land enters tapped unless you control a Forest.\n{T}: Add {G}.\nDelirium — {2}{G}{G}: This land becomes a copy of target permanent card in your graveyard until end of turn. Activate only if there are four or more card types among cards in your graveyard.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "37c06f89-db36-4937-9404-2b07cd22e1a6",
+      "name": "Dawn's Truce",
+      "oracleText": "Gift a card (You may promise an opponent a gift as you cast this spell. If you do, they draw a card before its other effects.)\nYou and permanents you control gain hexproof until end of turn. If the gift was promised, permanents you control also gain indestructible until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "28fe909b-06e0-424c-9f75-c824a25f5865",
+      "name": "Branching Evolution",
+      "oracleText": "If one or more +1/+1 counters would be put on a creature you control, twice that many +1/+1 counters are put on that creature instead.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "63dfe794-5f56-41ec-9883-5523b41cc3e0",
+      "name": "Arena of Glory",
+      "oracleText": "This land enters tapped unless you control a Mountain.\n{T}: Add {R}.\n{R}, {T}, Exert this land: Add {R}{R}. If that mana is spent on a creature spell, it gains haste until end of turn. (An exerted permanent won't untap during your next untap step.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "27e0948b-9916-473b-8d8c-a51bdfbc7457",
+      "name": "Underworld Breach",
+      "oracleText": "Each nonland card in your graveyard has escape. The escape cost is equal to the card's mana cost plus exile three other cards from your graveyard. (You may cast cards from your graveyard for their escape cost.)\nAt the beginning of the end step, sacrifice this enchantment.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "c6911265-54ef-4c16-bcf2-1ffb24b7d426",
+      "name": "Kessig Wolf Run",
+      "oracleText": "{T}: Add {C}.\n{X}{R}{G}, {T}: Target creature gets +X/+0 and gains trample until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "2ef75cf3-30dc-4852-a6d1-1d6391fad022",
+      "name": "Forgotten Ancient",
+      "oracleText": "Whenever a player casts a spell, you may put a +1/+1 counter on this creature.\nAt the beginning of your upkeep, you may move any number of +1/+1 counters from this creature onto other creatures.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "83b43aba-bf9c-4da2-967d-9daa632e97d2",
+      "name": "Helm of the Host",
+      "oracleText": "At the beginning of combat on your turn, create a token that's a copy of equipped creature, except the token isn't legendary. That token gains haste.\nEquip {5}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "716b3ea2-45b7-4a8f-af72-de7f4e510eff",
+      "name": "Goldspan Dragon",
+      "oracleText": "Flying, haste\nWhenever this creature attacks or becomes the target of a spell, create a Treasure token.\nTreasures you control have \"{T}, Sacrifice this artifact: Add two mana of any one color.\"",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "f122624f-f30d-444e-a62a-939829241045",
+      "name": "Kami of Whispered Hopes",
+      "oracleText": "If one or more +1/+1 counters would be put on a permanent you control, that many plus one +1/+1 counters are put on that permanent instead.\n{T}: Add X mana of any one color, where X is this creature's power.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "8dcb35e5-ae44-455f-86e3-4a77d496ff34",
+      "name": "Spark Double",
+      "oracleText": "You may have this creature enter as a copy of a creature or planeswalker you control, except it enters with an additional +1/+1 counter on it if it's a creature, it enters with an additional loyalty counter on it if it's a planeswalker, and it isn't legendary.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "fe83087d-c6c1-40be-9295-baaa1c6b2db1",
+      "name": "Mondrak, Glory Dominus",
+      "oracleText": "If one or more tokens would be created under your control, twice that many of those tokens are created instead.\n{1}{W/P}{W/P}, Sacrifice two other artifacts and/or creatures: Put an indestructible counter on Mondrak. ({W/P} can be paid with either {W} or 2 life.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4d67e2a7-4aa7-44cc-853b-500d7aac046d",
+      "name": "Cursed Mirror",
+      "oracleText": "{T}: Add {R}.\nAs this artifact enters, you may have it become a copy of any creature on the battlefield until end of turn, except it has haste.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "2876e74f-a242-4995-9702-0b737a1ab67a",
+      "name": "Psychosis Crawler",
+      "oracleText": "Psychosis Crawler's power and toughness are each equal to the number of cards in your hand.\nWhenever you draw a card, each opponent loses 1 life.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4b515bb0-f275-4400-8032-3173b799ab40",
+      "name": "Walking Ballista",
+      "oracleText": "This creature enters with X +1/+1 counters on it.\n{4}: Put a +1/+1 counter on this creature.\nRemove a +1/+1 counter from this creature: It deals 1 damage to any target.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "7324abaa-48da-439d-9339-b0ea5eea612e",
+      "name": "Unnatural Growth",
+      "oracleText": "At the beginning of each combat, double the power and toughness of each creature you control until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "eeaac65a-3480-475a-bb28-e6375d53f487",
+      "name": "Vault of the Archangel",
+      "oracleText": "{T}: Add {C}.\n{2}{W}{B}, {T}: Creatures you control gain deathtouch and lifelink until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "b99ada26-9a61-4175-9fb8-15a106960220",
+      "name": "Ohran Frostfang",
+      "oracleText": "Attacking creatures you control have deathtouch.\nWhenever a creature you control deals combat damage to a player, draw a card.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "1e6a24be-8281-41c1-a5ba-b68f0ef1d7b8",
+      "name": "Snakeskin Veil",
+      "oracleText": "Put a +1/+1 counter on target creature you control. It gains hexproof until end of turn. (It can't be the target of spells or abilities your opponents control.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "9b2cdbed-c733-409b-b0e4-2c8960c25111",
+      "name": "Maskwood Nexus",
+      "oracleText": "Creatures you control are every creature type. The same is true for creature spells you control and creature cards you own that aren't on the battlefield.\n{3}, {T}: Create a 2/2 blue Shapeshifter creature token with changeling. (It is every creature type.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "16629f59-bae8-4c19-bf50-443eb0ed6856",
+      "name": "Felidar Retreat",
+      "oracleText": "Landfall — Whenever a land you control enters, choose one —\n• Create a 2/2 white Cat Beast creature token.\n• Put a +1/+1 counter on each creature you control. Those creatures gain vigilance until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "7336a541-3ae9-4ab2-acb8-f574c0a5b3a9",
+      "name": "Vito, Thorn of the Dusk Rose",
+      "oracleText": "Whenever you gain life, target opponent loses that much life.\n{3}{B}{B}: Creatures you control gain lifelink until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "bb2b324c-970a-4920-884e-c92ba49669f0",
+      "name": "Tamiyo's Safekeeping",
+      "oracleText": "Target permanent you control gains hexproof and indestructible until end of turn. You gain 2 life. (A permanent with hexproof and indestructible can't be the target of spells or abilities your opponents control. Damage and effects that say \"destroy\" don't destroy it.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3577c47e-76d3-4659-b922-31c4b74be3a0",
+      "name": "Enduring Vitality",
+      "oracleText": "Vigilance\nCreatures you control have \"{T}: Add one mana of any color.\"\nWhen Enduring Vitality dies, if it was a creature, return it to the battlefield under its owner's control. It's an enchantment. (It's not a creature.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
+      "name": "Necropotence",
+      "oracleText": "Skip your draw step.\nWhenever you discard a card, exile that card from your graveyard.\nPay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "127de52b-df75-4342-95a0-20d84c5bf916",
+      "name": "The Meathook Massacre",
+      "oracleText": "When The Meathook Massacre enters, each creature gets -X/-X until end of turn.\nWhenever a creature you control dies, each opponent loses 1 life.\nWhenever a creature an opponent controls dies, you gain 1 life.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "38515f89-348b-4cf3-b7bd-1f6fe4ce2fba",
+      "name": "Adeline, Resplendent Cathar",
+      "oracleText": "Vigilance\nAdeline's power is equal to the number of creatures you control.\nWhenever you attack, for each opponent, create a 1/1 white Human creature token that's tapped and attacking that player or a planeswalker they control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "b7d4b7dd-fbb1-4ca3-875f-ef13a95e66ad",
+      "name": "Liquimetal Torque",
+      "oracleText": "{T}: Add {C}.\n{T}: Target nonland permanent becomes an artifact in addition to its other types until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "81c70ae7-3c18-4c9b-8505-e4db9e0e6518",
+      "name": "Wishclaw Talisman",
+      "oracleText": "This artifact enters with three wish counters on it.\n{1}, {T}, Remove a wish counter from this artifact: Search your library for a card, put it into your hand, then shuffle. An opponent gains control of this artifact. Activate only during your turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "60433b48-d27f-413c-905c-43839b1943f1",
+      "name": "Mother of Runes",
+      "oracleText": "{T}: Target creature you control gains protection from the color of your choice until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "93cf50cf-0ecc-4d3e-abea-778c1ebacec4",
+      "name": "Massacre Wurm",
+      "oracleText": "When this creature enters, creatures your opponents control get -2/-2 until end of turn.\nWhenever a creature an opponent controls dies, that player loses 2 life.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "70a6f08e-854d-4e2f-9d8c-c45ec3231157",
+      "name": "Faeburrow Elder",
+      "oracleText": "Vigilance\nThis creature gets +1/+1 for each color among permanents you control.\n{T}: For each color among permanents you control, add one mana of that color.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "cae166de-e681-40a0-83a8-3c17cf40e2fc",
+      "name": "Commander's Plate",
+      "oracleText": "Equipped creature gets +3/+3 and has protection from each color that's not in your commander's color identity.\nEquip commander {3}\nEquip {5}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "9c58d241-4d9f-4b46-b8ee-f4587f9acfd6",
+      "name": "Plaza of Heroes",
+      "oracleText": "{T}: Add {C}.\n{T}: Add one mana of any color. Spend this mana only to cast a legendary spell.\n{T}: Add one mana of any color among legendary permanents you control.\n{3}, {T}, Exile this land: Target legendary creature gains hexproof and indestructible until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "97435e03-2fff-4fe0-8fa9-69ab0a046a33",
+      "name": "Unbreakable Formation",
+      "oracleText": "Creatures you control gain indestructible until end of turn.\nAddendum — If you cast this spell during your main phase, put a +1/+1 counter on each of those creatures and they gain vigilance until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "d0901053-6de0-46d0-9ee3-8d40510236c1",
+      "name": "Sword of Feast and Famine",
+      "oracleText": "Equipped creature gets +2/+2 and has protection from black and from green.\nWhenever equipped creature deals combat damage to a player, that player discards a card and you untap all lands you control.\nEquip {2}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "c549b0fd-1e08-4873-952e-a14dc45a0fd2",
+      "name": "Champion of Lambholt",
+      "oracleText": "Creatures with power less than this creature's power can't block creatures you control.\nWhenever another creature you control enters, put a +1/+1 counter on this creature.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "d169738e-af0b-4488-a399-3aa1d1933aa1",
+      "name": "Brotherhood Regalia",
+      "oracleText": "Equipped creature has ward {2}, is an Assassin in addition to its other types, and can't be blocked.\nEquip legendary creature {1}\nEquip {3} ({3}: Attach to target creature you control. Equip only as a sorcery.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "002965be-a36f-4a09-9ce0-c6535bca1703",
+      "name": "Veil of Summer",
+      "oracleText": "Draw a card if an opponent has cast a blue or black spell this turn. Spells you control can't be countered this turn. You and permanents you control gain hexproof from blue and from black until end of turn. (You and they can't be the targets of blue or black spells or abilities your opponents control.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "e1e96802-fd0c-41f1-aa21-3287d75a0e88",
+      "name": "Overwhelming Stampede",
+      "oracleText": "Until end of turn, creatures you control gain trample and get +X/+X, where X is the greatest power among creatures you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "cc65ac73-5bef-4ecb-ad8e-39199084c027",
+      "name": "Cathars' Crusade",
+      "oracleText": "Whenever a creature you control enters, put a +1/+1 counter on each creature you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "dbcbdf37-c40f-4068-b4a7-a849cab1056c",
+      "name": "Six",
+      "oracleText": "Reach\nWhenever Six attacks, mill three cards. You may put a land card from among them into your hand.\nDuring your turn, nonland permanent cards in your graveyard have retrace. (You may cast permanent cards from your graveyard by discarding a land card in addition to paying their other costs.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "b01e698b-608a-4fc7-8073-b01d044743ec",
+      "name": "Thespian's Stage",
+      "oracleText": "{T}: Add {C}.\n{2}, {T}: This land becomes a copy of target land, except it has this ability.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "11b5308d-5bc0-4782-875f-a28be36e665d",
+      "name": "Beastmaster Ascension",
+      "oracleText": "Whenever a creature you control attacks, you may put a quest counter on this enchantment.\nAs long as this enchantment has seven or more quest counters on it, creatures you control get +5/+5.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "37a2a31d-51e6-4c07-b4c2-b206ad40eb42",
+      "name": "The Reaver Cleaver",
+      "oracleText": "Equipped creature gets +1/+1 and has trample and \"Whenever this creature deals combat damage to a player or planeswalker, create that many Treasure tokens.\"\nEquip {3}",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "05a4f8ff-49da-42af-add5-6248c4b0644b",
+      "name": "Darksteel Mutation",
+      "oracleText": "Enchant creature\nEnchanted creature is an Insect artifact creature with base power and toughness 0/1 and has indestructible, and it loses all other abilities, card types, and creature types.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "72deedab-7c17-4505-aeca-4bc8596d80a5",
+      "name": "Tribute to the World Tree",
+      "oracleText": "Whenever a creature you control enters, draw a card if its power is 3 or greater. Otherwise, put two +1/+1 counters on it.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "71d785a9-ddc8-472e-a778-a551b444a4bd",
+      "name": "Selfless Spirit",
+      "oracleText": "Flying\nSacrifice this creature: Creatures you control gain indestructible until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "a1cc5e37-b09a-4b7f-afd5-77c1c35aa425",
+      "name": "Carrion Feeder",
+      "oracleText": "This creature can't block.\nSacrifice a creature: Put a +1/+1 counter on this creature.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "a4d751e0-41c1-4e90-853d-512f385acd81",
+      "name": "All That Glitters",
+      "oracleText": "Enchant creature\nEnchanted creature gets +1/+1 for each artifact and/or enchantment you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "008f2698-1721-45a3-8353-10f2f400dc8f",
+      "name": "Shizo, Death's Storehouse",
+      "oracleText": "{T}: Add {B}.\n{B}, {T}: Target legendary creature gains fear until end of turn. (It can't be blocked except by artifact creatures and/or black creatures.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
+      "name": "Bitterblossom",
+      "oracleText": "At the beginning of your upkeep, you lose 1 life and create a 1/1 black Faerie Rogue creature token with flying.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "74a62c7b-4753-4af2-b7a1-9a4ae8988801",
+      "name": "Puresteel Paladin",
+      "oracleText": "Whenever an Equipment you control enters, you may draw a card.\nMetalcraft — Equipment you control have equip {0} as long as you control three or more artifacts.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "e6555cca-e608-4c87-b835-9cd47fd1f543",
+      "name": "Tireless Tracker",
+      "oracleText": "Landfall — Whenever a land you control enters, investigate. (Create a Clue token. It's an artifact with \"{2}, Sacrifice this token: Draw a card.\")\nWhenever you sacrifice a Clue, put a +1/+1 counter on this creature.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "3c1ef404-e2c6-486d-a5a2-d5779c71d498",
+      "name": "Archdruid's Charm",
+      "oracleText": "Choose one —\n• Search your library for a creature or land card and reveal it. Put it onto the battlefield tapped if it's a land card. Otherwise, put it into your hand. Then shuffle.\n• Put a +1/+1 counter on target creature you control. It deals damage equal to its power to target creature you don't control.\n• Exile target artifact or enchantment.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "aa6723a2-75da-49f5-a1ba-cbfa82c55301",
+      "name": "Opal Palace",
+      "oracleText": "{T}: Add {C}.\n{1}, {T}: Add one mana of any color in your commander's color identity. If you spend this mana to cast your commander, it enters with a number of additional +1/+1 counters on it equal to the number of times it's been cast from the command zone this game.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "d21c3c8f-d105-4ba9-bf69-e5f26f0f8ec5",
+      "name": "Intangible Virtue",
+      "oracleText": "Creature tokens you control get +1/+1 and have vigilance.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "36f68aa3-9955-46f1-bc87-497f16ef5222",
+      "name": "Wizard Class",
+      "oracleText": "(Gain the next level as a sorcery to add its ability.)\nYou have no maximum hand size.\n{2}{U}: Level 2\nWhen this Class becomes level 2, draw two cards.\n{4}{U}: Level 3\nWhenever you draw a card, put a +1/+1 counter on target creature you control.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "41fed659-237c-4d8e-ad31-d17fa0d3f764",
+      "name": "Ozolith, the Shattered Spire",
+      "oracleText": "If one or more +1/+1 counters would be put on an artifact or creature you control, that many plus one +1/+1 counters are put on it instead.\n{1}{G}, {T}: Put a +1/+1 counter on target artifact or creature you control. Activate only as a sorcery.\nCycling {2} ({2}, Discard this card: Draw a card.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "34428f42-03ac-4795-8286-6cbea796df2b",
+      "name": "Incubation Druid",
+      "oracleText": "{T}: Add one mana of any type that a land you control could produce. If this creature has a +1/+1 counter on it, add three mana of that type instead.\n{3}{G}{G}: Adapt 3. (If this creature has no +1/+1 counters on it, put three +1/+1 counters on it.)",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "4fdbbec2-e921-4b63-958d-f9ba1e417197",
+      "name": "Purphoros, God of the Forge",
+      "oracleText": "Indestructible\nAs long as your devotion to red is less than five, Purphoros isn't a creature.\nWhenever another creature you control enters, Purphoros deals 2 damage to each opponent.\n{2}{R}: Creatures you control get +1/+0 until end of turn.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "c97957a2-8310-4cff-8aad-871b7901d124",
+      "name": "Caretaker's Talent",
+      "oracleText": "(Gain the next level as a sorcery to add its ability.)\nWhenever one or more tokens you control enter, draw a card. This ability triggers only once each turn.\n{W}: Level 2\nWhen this Class becomes level 2, create a token that's a copy of target token you control.\n{3}{W}: Level 3\nCreature tokens you control get +2/+2.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "a27445db-33f2-4571-98b5-83206b797484",
+      "name": "Shared Animosity",
+      "oracleText": "Whenever a creature you control attacks, it gets +1/+0 until end of turn for each other attacking creature that shares a creature type with it.",
+      "bucket": "head"
+    },
+    {
+      "oracleId": "befb211f-37ca-4083-98d4-9ff1f28be3f2",
+      "name": "Goreclaw, Terror of Qal Sisma",
+      "oracleText": "Creature spells you cast with power 4 or greater cost {2} less to cast.\nWhenever Goreclaw attacks, each creature you control with power 4 or greater gets +1/+1 and gains trample until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "434a20f8-3f87-4004-9155-0f196fc2257e",
+      "name": "Rising of the Day",
+      "oracleText": "Creatures you control have haste.\nLegendary creatures you control get +1/+0.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "a492a323-df8a-40fd-bff0-50091baa7700",
+      "name": "Kenrith's Transformation",
+      "oracleText": "Enchant creature\nWhen this Aura enters, draw a card.\nEnchanted creature loses all abilities and is a green Elk creature with base power and toughness 3/3. (It loses all other card types and creature types.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "915b75d1-b5e3-4aca-a54c-beaccef0a2e4",
+      "name": "Innkeeper's Talent",
+      "oracleText": "(Gain the next level as a sorcery to add its ability.)\nAt the beginning of combat on your turn, put a +1/+1 counter on target creature you control.\n{G}: Level 2\nPermanents you control with counters on them have ward {1}.\n{3}{G}: Level 3\nIf you would put one or more counters on a permanent or player, put twice that many of each of those kinds of counters on that permanent or player instead.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "8dd6d060-d023-48a6-85cb-7a5521b6257b",
+      "name": "Revitalizing Repast // Old-Growth Grove",
+      "oracleText": "Put a +1/+1 counter on target creature. It gains indestructible until end of turn.\n//\nThis land enters tapped.\n{T}: Add {B} or {G}.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "339a7418-9a29-4eae-a3c2-ea590d175936",
+      "name": "Imprisoned in the Moon",
+      "oracleText": "Enchant creature, land, or planeswalker\nEnchanted permanent is a colorless land with \"{T}: Add {C}\" and loses all other card types and abilities.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "4247b667-a0a8-4995-97c7-622d20132f7d",
+      "name": "Tyvar's Stand",
+      "oracleText": "Target creature you control gets +X/+X and gains hexproof and indestructible until end of turn. (It can't be the target of spells or abilities your opponents control. Damage and effects that say \"destroy\" don't destroy it.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "b9df2cdf-397c-458d-89cf-911568737ffa",
+      "name": "Mockingbird",
+      "oracleText": "Flying\nYou may have this creature enter as a copy of any creature on the battlefield with mana value less than or equal to the amount of mana spent to cast this creature, except it's a Bird in addition to its other types and it has flying.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "3cda958a-f777-433d-850e-a6c8f581db4e",
+      "name": "Flowering of the White Tree",
+      "oracleText": "Legendary creatures you control get +2/+1 and have ward {1}.\nNonlegendary creatures you control get +1/+1.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "c01aafb8-3da5-4eb1-8731-2a223e747d63",
+      "name": "Champion's Helm",
+      "oracleText": "Equipped creature gets +2/+2.\nAs long as equipped creature is legendary, it has hexproof. (It can't be the target of spells or abilities your opponents control.)\nEquip {1}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "9d2d6479-531c-4ce1-b52b-00e36fa63b64",
+      "name": "Rancor",
+      "oracleText": "Enchant creature\nEnchanted creature gets +2/+0 and has trample.\nWhen this Aura is put into a graveyard from the battlefield, return it to its owner's hand.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "e3955573-3db5-490e-903e-65e0172a9202",
+      "name": "Hammer of Nazahn",
+      "oracleText": "Whenever Hammer of Nazahn or another Equipment you control enters, you may attach that Equipment to target creature you control.\nEquipped creature gets +2/+0 and has indestructible.\nEquip {4}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "162572f2-1757-42e9-bd97-e6bd9a762c0e",
+      "name": "Ashaya, Soul of the Wild",
+      "oracleText": "Ashaya's power and toughness are each equal to the number of lands you control.\nNontoken creatures you control are Forest lands in addition to their other types. (They're still affected by summoning sickness.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "761021ce-4559-464e-aa03-85c2fe78e267",
+      "name": "Rishkar, Peema Renegade",
+      "oracleText": "When Rishkar enters, put a +1/+1 counter on each of up to two target creatures.\nEach creature you control with a counter on it has \"{T}: Add {G}.\"",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "f78af825-023a-42e9-8374-5c52303a1417",
+      "name": "Elspeth, Storm Slayer",
+      "oracleText": "If one or more tokens would be created under your control, twice that many of those tokens are created instead.\n+1: Create a 1/1 white Soldier creature token.\n0: Put a +1/+1 counter on each creature you control. Those creatures gain flying until your next turn.\n−3: Destroy target creature an opponent controls with mana value 3 or greater.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "03f5c566-825c-4c46-9c01-a2f9b1e70a13",
+      "name": "The Mycosynth Gardens",
+      "oracleText": "{T}: Add {C}.\n{1}, {T}: Add one mana of any color.\n{X}, {T}: This land becomes a copy of target nontoken artifact you control with mana value X.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "44661108-d72f-4d02-9303-7e4b0ecf7e9c",
+      "name": "Bear Umbra",
+      "oracleText": "Enchant creature\nEnchanted creature gets +2/+2 and has \"Whenever this creature attacks, untap all lands you control.\"\nUmbra armor (If enchanted creature would be destroyed, instead remove all damage from it and destroy this Aura.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "913e6182-706a-4872-8c8a-e146b0ae0738",
+      "name": "Sword of Hearth and Home",
+      "oracleText": "Equipped creature gets +2/+2 and has protection from green and from white.\nWhenever equipped creature deals combat damage to a player, exile up to one target creature you own, then search your library for a basic land card. Put both cards onto the battlefield under your control, then shuffle.\nEquip {2}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "8ec03b88-8d3a-4a32-8b7c-7da59b0c03d0",
+      "name": "Colossus Hammer",
+      "oracleText": "Equipped creature gets +10/+10 and loses flying.\nEquip {8} ({8}: Attach to target creature you control. Equip only as a sorcery.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "7dd189f8-a23f-4b43-b0ef-fb174a9664ba",
+      "name": "Destiny Spinner",
+      "oracleText": "Creature and enchantment spells you control can't be countered.\n{3}{G}: Target land you control becomes an X/X Elemental creature with trample and haste until end of turn, where X is the number of enchantments you control. It's still a land.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "9fb6bd72-031b-40a1-83c5-8a1c82f84e12",
+      "name": "Excalibur, Sword of Eden",
+      "oracleText": "This spell costs {X} less to cast, where X is the total mana value of historic permanents you control. (Artifacts, legendaries, and Sagas are historic.)\nEquipped creature gets +10/+0 and has vigilance.\nEquip legendary creature {2}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "dba35ac5-7ad3-488a-a006-6b9a1d54eea5",
+      "name": "Loxodon Warhammer",
+      "oracleText": "Equipped creature gets +3/+0 and has trample and lifelink.\nEquip {3}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "858f53ef-3fec-4aa0-867d-b7f040614b3c",
+      "name": "Bastion Protector",
+      "oracleText": "Commander creatures you control get +2/+2 and have indestructible.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "27ad3e00-6ffb-48f7-8469-8868d066d1e2",
+      "name": "Serra Ascendant",
+      "oracleText": "Lifelink (Damage dealt by this creature also causes you to gain that much life.)\nAs long as you have 30 or more life, this creature gets +5/+5 and has flying.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "fdba89eb-1cf5-46e6-9d09-1adb9bc40fcd",
+      "name": "Yahenni, Undying Partisan",
+      "oracleText": "Haste\nWhenever a creature an opponent controls dies, put a +1/+1 counter on Yahenni.\nSacrifice another creature: Yahenni gains indestructible until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "63e596a2-9126-4af6-8782-c38687d664ad",
+      "name": "Heliod, Sun-Crowned",
+      "oracleText": "Indestructible\nAs long as your devotion to white is less than five, Heliod isn't a creature.\nWhenever you gain life, put a +1/+1 counter on target creature or enchantment you control.\n{1}{W}: Another target creature gains lifelink until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "037355be-71e7-4866-80a6-80352c304970",
+      "name": "Karlach, Fury of Avernus",
+      "oracleText": "Whenever you attack, if it's the first combat phase of the turn, untap all attacking creatures. They gain first strike until end of turn. After this phase, there is an additional combat phase.\nChoose a Background (You can have a Background as a second commander.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "dbba75f5-2404-4bd5-982b-f6c4effa5316",
+      "name": "Ethereal Armor",
+      "oracleText": "Enchant creature\nEnchanted creature gets +1/+1 for each enchantment you control and has first strike.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "38c83332-2d21-450c-ae97-34109b565f59",
+      "name": "Tyrite Sanctum",
+      "oracleText": "{T}: Add {C}.\n{2}, {T}: Target legendary creature becomes a God in addition to its other types. Put a +1/+1 counter on it.\n{4}, {T}, Sacrifice this land: Put an indestructible counter on target God.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "1f91297a-ec2b-4ea8-9198-aa1daac20ff8",
+      "name": "Metallic Mimic",
+      "oracleText": "As this creature enters, choose a creature type.\nThis creature is the chosen type in addition to its other types.\nEach other creature you control of the chosen type enters with an additional +1/+1 counter on it.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "380c367f-73ea-485f-a37b-5af0ba160893",
+      "name": "Not Dead After All",
+      "oracleText": "Until end of turn, target creature you control gains \"When this creature dies, return it to the battlefield tapped under its owner's control, then create a Wicked Role token attached to it.\" (Enchanted creature gets +1/+1. When this token is put into a graveyard, each opponent loses 1 life.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "126a5d0b-e7d6-458e-87af-47d845678014",
+      "name": "Cyberdrive Awakener",
+      "oracleText": "Flying\nOther artifact creatures you control have flying.\nWhen this creature enters, each noncreature artifact you control becomes a 4/4 artifact creature until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "afe2f7a4-9440-4d93-801f-a18b627efb21",
+      "name": "Great Train Heist",
+      "oracleText": "Spree (Choose one or more additional costs.)\n+ {2}{R} — Untap all creatures you control. If it's your combat phase, there is an additional combat phase after this phase.\n+ {2} — Creatures you control get +1/+0 and gain first strike until end of turn.\n+ {R} — Choose target opponent. Whenever a creature you control deals combat damage to that player this turn, create a tapped Treasure token.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "2ffb38ec-5852-4e91-85a5-cfccd1f23556",
+      "name": "Tarrian's Soulcleaver",
+      "oracleText": "Equipped creature has vigilance.\nWhenever another artifact or creature is put into a graveyard from the battlefield, put a +1/+1 counter on equipped creature.\nEquip {2}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "b168e4e6-f572-4d9f-b98f-95b2611354cb",
+      "name": "Zopandrel, Hunger Dominus",
+      "oracleText": "Reach\nAt the beginning of each combat, double the power and toughness of each creature you control until end of turn.\n{G/P}{G/P}, Sacrifice two other creatures: Put an indestructible counter on Zopandrel. ({G/P} can be paid with either {G} or 2 life.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "22f0dbbb-9d8d-42bc-8903-fc0b65e00952",
+      "name": "Marvin, Murderous Mimic",
+      "oracleText": "Marvin has all activated abilities of creatures you control that don't have the same name as this creature.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "a0c47ab6-dfb4-46ee-a3f7-9e1521b4bb4b",
+      "name": "Shalai, Voice of Plenty",
+      "oracleText": "Flying\nYou, planeswalkers you control, and other creatures you control have hexproof.\n{4}{G}{G}: Put a +1/+1 counter on each creature you control.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "b3de29cb-7d7d-4566-b5bf-37e571bd5d78",
+      "name": "Enduring Courage",
+      "oracleText": "Whenever another creature you control enters, it gets +2/+0 and gains haste until end of turn.\nWhen Enduring Courage dies, if it was a creature, return it to the battlefield under its owner's control. It's an enchantment. (It's not a creature.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "cb15a8dd-57fe-466f-847e-66476b690a1f",
+      "name": "Xenagos, God of Revels",
+      "oracleText": "Indestructible\nAs long as your devotion to red and green is less than seven, Xenagos isn't a creature.\nAt the beginning of combat on your turn, another target creature you control gains haste and gets +X/+X until end of turn, where X is that creature's power.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "a4280cea-386b-450d-a7e9-29c7aa58ce5a",
+      "name": "Amphibian Downpour",
+      "oracleText": "Flash\nStorm (When you cast this spell, copy it for each spell cast before it this turn. You may choose new targets for the copies. Copies become tokens.)\nEnchant creature\nEnchanted creature loses all abilities and is a blue Frog creature with base power and toughness 1/1.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "3ded0c0c-40ce-4d14-a9a6-b023bc19ee0e",
+      "name": "Triumph of the Hordes",
+      "oracleText": "Until end of turn, creatures you control get +1/+1 and gain trample and infect. (Creatures with infect deal damage to creatures in the form of -1/-1 counters and to players in the form of poison counters.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "2de7367b-a5a4-43f4-8f8f-b931ea28150d",
+      "name": "Slayers' Stronghold",
+      "oracleText": "{T}: Add {C}.\n{R}{W}, {T}: Target creature gets +2/+0 and gains vigilance and haste until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "b3f16f34-d78c-4b61-821b-05fc6bd0da37",
+      "name": "Moonshaker Cavalry",
+      "oracleText": "Flying\nWhen this creature enters, creatures you control gain flying and get +X/+X until end of turn, where X is the number of creatures you control.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "81c6c4f0-81ad-463c-a42b-60a73e6d70f3",
+      "name": "Alexios, Deimos of Kosmos",
+      "oracleText": "Trample\nAlexios attacks each combat if able, can't be sacrificed, and can't attack its owner.\nAt the beginning of each player's upkeep, that player gains control of Alexios, untaps it, and puts a +1/+1 counter on it. It gains haste until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "5d27c63e-d1ef-48af-b51d-01ebc6daeac9",
+      "name": "Mikaeus, the Unhallowed",
+      "oracleText": "Intimidate (This creature can't be blocked except by artifact creatures and/or creatures that share a color with it.)\nWhenever a Human deals damage to you, destroy it.\nOther non-Human creatures you control get +1/+1 and have undying. (When a creature with undying dies, if it had no +1/+1 counters on it, return it to the battlefield under its owner's control with a +1/+1 counter on it.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "6a84eda1-7e72-4b5a-849f-b6e177565aeb",
+      "name": "Mirage Mirror",
+      "oracleText": "{2}: This artifact becomes a copy of target artifact, creature, enchantment, or land until end of turn.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "4d6120d6-fcce-40bc-9fc6-e1f5beb6c728",
+      "name": "Embercleave",
+      "oracleText": "Flash\nThis spell costs {1} less to cast for each attacking creature you control.\nWhen Embercleave enters, attach it to target creature you control.\nEquipped creature gets +1/+1 and has double strike and trample.\nEquip {3}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "2cb95721-56c8-4008-8055-579a5a97fc8b",
+      "name": "Gaea's Gift",
+      "oracleText": "Put a +1/+1 counter on target creature you control. It gains reach, trample, hexproof, and indestructible until end of turn. (It can't be the target of spells or abilities your opponents control. Damage and effects that say \"destroy\" don't destroy it.)",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "8242cd78-6675-43b5-8924-0a88c3aa6f76",
+      "name": "Genji Glove",
+      "oracleText": "Equipped creature has double strike.\nWhenever equipped creature attacks, if it's the first combat phase of the turn, untap it. After this phase, there is an additional combat phase.\nEquip {3}",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "05d09c55-f551-4cb4-a8d2-4811dccc848d",
+      "name": "Vraska, Betrayal's Sting",
+      "oracleText": "Compleated ({B/P} can be paid with {B} or 2 life. If life was paid, this planeswalker enters with two fewer loyalty counters.)\n0: You draw a card and lose 1 life. Proliferate.\n−2: Target creature becomes a Treasure artifact with \"{T}, Sacrifice this artifact: Add one mana of any color\" and loses all other card types and abilities.\n−9: If target player has fewer than nine poison counters, they get a number of poison counters equal to the difference.",
+      "bucket": "multi"
+    },
+    {
+      "oracleId": "c23e5b80-08d2-4e24-9908-fe2aa4f30f6f",
+      "name": "Reliquary Tower",
+      "oracleText": "You have no maximum hand size.\n{T}: Add {C}.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "9965d9c5-2ebf-4a6c-930e-55c5890979be",
+      "name": "Thought Vessel",
+      "oracleText": "You have no maximum hand size.\n{T}: Add {C}.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "oracleText": "Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card.\nDash {1}{R} (You may cast this spell for its dash cost. If you do, it gains haste, and it's returned from the battlefield to its owner's hand at the beginning of the next end step.)",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "8ae98ef8-8f52-4877-a08c-1fae5514184e",
+      "name": "Decanter of Endless Water",
+      "oracleText": "You have no maximum hand size.\n{T}: Add one mana of any color.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "1946ded1-5f53-409f-b0a6-5433bb0357d2",
+      "name": "The Ozolith",
+      "oracleText": "Whenever a creature you control leaves the battlefield, if it had counters on it, put those counters on The Ozolith.\nAt the beginning of combat on your turn, if The Ozolith has counters on it, you may move all counters from The Ozolith onto target creature.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+      "name": "Pact of Negation",
+      "oracleText": "Counter target spell.\nAt the beginning of your next upkeep, pay {3}{U}{U}. If you don't, you lose the game.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+      "name": "Thassa's Oracle",
+      "oracleText": "When this creature enters, look at the top X cards of your library, where X is your devotion to blue. Put up to one of them on top of your library and the rest on the bottom of your library in a random order. If X is greater than or equal to the number of cards in your library, you win the game. (Each {U} in the mana costs of permanents you control counts toward your devotion to blue.)",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "5b5bf1fa-6502-4790-b66b-f0f8504ebc7c",
+      "name": "Cabal Ritual",
+      "oracleText": "Add {B}{B}{B}.\nThreshold — Add {B}{B}{B}{B}{B} instead if there are seven or more cards in your graveyard.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "b0b6be0c-41cf-4757-9f0e-87227b6ba6b3",
+      "name": "Ghalta, Primal Hunger",
+      "oracleText": "This spell costs {X} less to cast, where X is the total power of creatures you control.\nTrample (This creature can deal excess combat damage to the player or planeswalker it's attacking.)",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "6cf50e21-0f60-4e9a-b910-ebe1bad2a29e",
+      "name": "Blasphemous Edict",
+      "oracleText": "You may pay {B} rather than pay this spell's mana cost if there are thirteen or more creatures on the battlefield.\nEach player sacrifices thirteen creatures of their choice.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "1f438b8f-fe23-4f3b-ab2e-f6c33676c462",
+      "name": "Opposition Agent",
+      "oracleText": "Flash\nYou control your opponents while they're searching their libraries.\nWhile an opponent is searching their library, they exile each card they find. You may play those cards for as long as they remain exiled, and you may spend mana as though it were mana of any color to cast them.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "92f6c063-a740-4c3c-a60a-569fd298854d",
+      "name": "Sphere of Safety",
+      "oracleText": "Creatures can't attack you or planeswalkers you control unless their controller pays {X} for each of those creatures, where X is the number of enchantments you control.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "6c85271c-c711-49b0-a72e-9e576c33714d",
+      "name": "Sculpting Steel",
+      "oracleText": "You may have this artifact enter as a copy of any artifact on the battlefield.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "8c220dbd-6572-4715-aae6-dd09a4252d68",
+      "name": "Banner of Kinship",
+      "oracleText": "As this artifact enters, choose a creature type. This artifact enters with a fellowship counter on it for each creature you control of the chosen type.\nCreatures you control of the chosen type get +1/+1 for each fellowship counter on this artifact.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+      "name": "Gravecrawler",
+      "oracleText": "This creature can't block.\nYou may cast this card from your graveyard as long as you control a Zombie.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "9dc65ffe-17fc-4280-b4bd-78073ac7e12b",
+      "name": "Leyline of Anticipation",
+      "oracleText": "If this card is in your opening hand, you may begin the game with it on the battlefield.\nYou may cast spells as though they had flash.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "e87906d2-db1a-4e19-b910-adb4eb339945",
+      "name": "Urza, Lord High Artificer",
+      "oracleText": "When Urza enters, create a 0/0 colorless Construct artifact creature token with \"This token gets +1/+1 for each artifact you control.\"\nTap an untapped artifact you control: Add {U}.\n{5}: Shuffle your library, then exile the top card. Until end of turn, you may play that card without paying its mana cost.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "dc671205-f2fa-454f-9957-921a6069ad53",
+      "name": "High Tide",
+      "oracleText": "Until end of turn, whenever a player taps an Island for mana, that player adds an additional {U}.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "3875aef0-3102-4fbf-be90-e4139f7a2348",
+      "name": "Wayward Swordtooth",
+      "oracleText": "Ascend (If you control ten or more permanents, you get the city's blessing for the rest of the game.)\nYou may play an additional land on each of your turns.\nThis creature can't attack or block unless you have the city's blessing.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "bc14356c-3a1a-47af-9a6e-2b449de0331f",
+      "name": "Kardur, Doomscourge",
+      "oracleText": "When Kardur enters, until your next turn, creatures your opponents control attack each combat if able and attack a player other than you if able.\nWhenever an attacking creature dies, each opponent loses 1 life and you gain 1 life.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "e1d294e8-67b1-4a4a-86b8-f98f28a327d9",
+      "name": "Promise of Loyalty",
+      "oracleText": "Each player puts a vow counter on a creature they control and sacrifices the rest. Each of those creatures can't attack you or planeswalkers you control for as long as it has a vow counter on it.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "751f22bc-bcea-4213-a37b-b5f72448a4c4",
+      "name": "The Reality Chip",
+      "oracleText": "You may look at the top card of your library any time.\nAs long as The Reality Chip is attached to a creature, you may play lands and cast spells from the top of your library.\nReconfigure {2}{U} ({2}{U}: Attach to target creature you control; or unattach from a creature. Reconfigure only as a sorcery. While attached, this isn't a creature.)",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "c45e96cb-2539-4e00-9fff-782a182c2f4b",
+      "name": "Nezahal, Primal Tide",
+      "oracleText": "This spell can't be countered.\nYou have no maximum hand size.\nWhenever an opponent casts a noncreature spell, draw a card.\nDiscard three cards: Exile Nezahal. Return it to the battlefield tapped under its owner's control at the beginning of the next end step.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "7b8528b0-71eb-4c9e-bed9-aa2d2e84038f",
+      "name": "Kozilek, Butcher of Truth",
+      "oracleText": "When you cast this spell, draw four cards.\nAnnihilator 4 (Whenever this creature attacks, defending player sacrifices four permanents of their choice.)\nWhen Kozilek is put into a graveyard from anywhere, its owner shuffles their graveyard into their library.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "9e774188-caa1-4b62-b9cc-547f8e444b7f",
+      "name": "Augur of Autumn",
+      "oracleText": "You may look at the top card of your library any time.\nYou may play lands from the top of your library.\nCoven — As long as you control three or more creatures with different powers, you may cast creature spells from the top of your library.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "ae7604bb-4818-45a3-960c-cf3d83f15964",
+      "name": "Teferi, Time Raveler",
+      "oracleText": "Each opponent can cast spells only any time they could cast a sorcery.\n+1: Until your next turn, you may cast sorcery spells as though they had flash.\n−3: Return up to one target artifact, creature, or enchantment to its owner's hand. Draw a card.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "69ddca4b-5cc0-45f3-b2e6-a047c8d601be",
+      "name": "Spymaster's Vault",
+      "oracleText": "This land enters tapped unless you control a Swamp.\n{T}: Add {B}.\n{B}, {T}: Target creature you control connives X, where X is the number of creatures that died this turn. (Draw X cards, then discard X cards. Put a +1/+1 counter on that creature for each nonland card discarded this way.)",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "b0d3fd57-1420-4dd1-8410-9d659655287f",
+      "name": "Neheb, the Eternal",
+      "oracleText": "Afflict 3 (Whenever this creature becomes blocked, defending player loses 3 life.)\nAt the beginning of each of your postcombat main phases, add {R} for each 1 life your opponents have lost this turn.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "79a71fe5-38ce-4bb5-aea0-c9b9a856d397",
+      "name": "Mirrormade",
+      "oracleText": "You may have this enchantment enter as a copy of any artifact or enchantment on the battlefield.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "57c1a98e-c4fb-4144-9e3e-d0fe6789ba26",
+      "name": "Simic Ascendancy",
+      "oracleText": "{1}{G}{U}: Put a +1/+1 counter on target creature you control.\nWhenever one or more +1/+1 counters are put on a creature you control, put that many growth counters on this enchantment.\nAt the beginning of your upkeep, if this enchantment has twenty or more growth counters on it, you win the game.",
+      "bucket": "adjudication"
+    },
+    {
+      "oracleId": "3754dce0-3e97-406f-8807-a4942a222c41",
+      "name": "Gaea's Anthem",
+      "oracleText": "Creatures you control get +1/+1.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "cd0d7141-46d2-4aa3-bc77-6b3b4513803e",
+      "name": "Control Magic",
+      "oracleText": "Enchant creature\nYou control enchanted creature.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "94fac5fe-97d5-4c12-a80c-8efff9d853ae",
+      "name": "Blood Moon",
+      "oracleText": "Nonbasic lands are Mountains.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "a5458de0-0f61-49a3-a013-d90f92559809",
+      "name": "Archetype of Imagination",
+      "oracleText": "Creatures you control have flying.\nCreatures your opponents control lose flying and can't have or gain flying.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "5748ebf1-24e3-499d-ab7c-c2cebd462a24",
+      "name": "Giant Growth",
+      "oracleText": "Target creature gets +3/+3 until end of turn.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "45900b2f-f6a9-4c42-9642-008f3c1cf6dd",
+      "name": "Tarmogoyf",
+      "oracleText": "Tarmogoyf's power is equal to the number of card types among cards in all graveyards and its toughness is equal to that number plus 1.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "63625b26-3a19-4c3c-b18a-91247bb2a40c",
+      "name": "Lignify",
+      "oracleText": "Enchant creature\nEnchanted creature is a Treefolk with base power and toughness 0/4 and loses all abilities.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "7c3944fa-7c86-4979-85a9-86196aa94594",
+      "name": "Song of the Dryads",
+      "oracleText": "Enchant permanent\nEnchanted permanent is a colorless Forest land.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "4457ed35-7c10-48c8-9776-456485fdf070",
+      "name": "Lightning Bolt",
+      "oracleText": "Lightning Bolt deals 3 damage to any target.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "68954295-54e3-4303-a6bc-fc4547a4e3a3",
+      "name": "Llanowar Elves",
+      "oracleText": "{T}: Add {G}.",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "043f869d-b11c-4c0d-9591-2bf0df7bde55",
+      "name": "Cryptolith Rite",
+      "oracleText": "Creatures you control have \"{T}: Add one mana of any color.\"",
+      "bucket": "gold"
+    },
+    {
+      "oracleId": "4acacdd2-a736-43a2-ad67-891b9bd124f8",
+      "name": "Alloy Animist",
+      "oracleText": "{2}{G}: Until end of turn, target noncreature artifact you control becomes a 4/4 artifact creature.",
+      "bucket": "gold"
+    }
+  ]
+}

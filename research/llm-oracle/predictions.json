@@ -1,0 +1,3463 @@
+{
+  "model": "codex-clean-room",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "promptHash": "a2248e4d314998d8a1d40959ea052cca10a12ea9ea9145e02c9fbc4b71a85e4a",
+  "predictions": [
+    {
+      "oracleId": "c8b143ad-43ec-4e0d-a440-e348daa31391",
+      "name": "Swiftfoot Boots",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has hexproof and haste.\""
+      }
+    },
+    {
+      "oracleId": "ca204b66-8d0c-431a-8d34-282f7c2d17da",
+      "name": "Lightning Greaves",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has haste and shroud.\""
+      }
+    },
+    {
+      "oracleId": "24882fa2-3fe9-4c1b-aa3d-0e6488b9db27",
+      "name": "Heroic Intervention",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Permanents you control gain hexproof and indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "65986c1b-8e51-4604-b685-d82fa7d1263a",
+      "name": "Skullclamp",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature gets +1/-1.\""
+      }
+    },
+    {
+      "oracleId": "afaef788-34d1-460b-b884-9d7ae6ddeb18",
+      "name": "Toxic Deluge",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"All creatures get -X/-X until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "db6174d7-211d-4817-b8e4-8384594c83f9",
+      "name": "Urborg, Tomb of Yawgmoth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Each land is a Swamp in addition to its other land types.\""
+      }
+    },
+    {
+      "oracleId": "8dd5f5af-d2d8-4356-8617-8381081b930c",
+      "name": "Yavimaya, Cradle of Growth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Each land is a Forest in addition to its other land types.\""
+      }
+    },
+    {
+      "oracleId": "539f5396-d99a-417d-a84c-dff7930b5900",
+      "name": "Chromatic Lantern",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Lands you control have \"{T}: Add one mana of any color.\"\""
+      }
+    },
+    {
+      "oracleId": "3aa83ed2-f48b-4ce6-a614-2c54ddf50538",
+      "name": "The One Ring",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Indestructible\" and \"you gain protection from everything\"."
+      }
+    },
+    {
+      "oracleId": "3127ae9b-a7a7-43ec-89d7-688f8445b33d",
+      "name": "Garruk's Uprising",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control have trample.\""
+      }
+    },
+    {
+      "oracleId": "0d4ecdb1-ec90-497f-a7a4-1c68092b8757",
+      "name": "Teferi's Protection",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"you gain protection from everything\"; phasing is not a characteristic change."
+      }
+    },
+    {
+      "oracleId": "4c6a0c30-b547-4eff-8ff4-0ca25803c076",
+      "name": "Urza's Saga",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This Saga gains \"{T}: Add {C}.\"\""
+      }
+    },
+    {
+      "oracleId": "3640c29b-1534-4952-b297-619ade948431",
+      "name": "Roaming Throne",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This creature is the chosen type in addition to its other types.\""
+      }
+    },
+    {
+      "oracleId": "2b76f9e9-cd28-4eaf-8674-215c34263f96",
+      "name": "Return of the Wildspeaker",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Non-Human creatures you control get +3/+3 until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "2679d0dd-ba30-4a1c-b6a0-b3ac6c790496",
+      "name": "Boros Charm",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain indestructible\" and \"gains double strike until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "4e183439-17d2-47ff-9d99-5e22821d91e3",
+      "name": "Flawless Maneuver",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control gain indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "a1f3da21-af6d-450e-bf0b-985d158418e6",
+      "name": "Hardened Scales",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"that many plus one +1/+1 counters are put on it instead.\""
+      }
+    },
+    {
+      "oracleId": "fd949f82-fc10-4e37-8aa9-6c7569fe3c55",
+      "name": "Akroma's Will",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain flying, vigilance\" and \"gain lifelink, indestructible\"."
+      }
+    },
+    {
+      "oracleId": "acfa77fd-3610-4f12-9c3c-bd860ce91700",
+      "name": "Rhythm of the Wild",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Nontoken creatures you control have riot.\""
+      }
+    },
+    {
+      "oracleId": "a145ff8c-5812-4bcb-bd16-9839dc25121d",
+      "name": "Storm-Kiln Artist",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+0 for each artifact you control.\""
+      }
+    },
+    {
+      "oracleId": "c0d8fef4-65f4-4769-982d-b397d2b7e977",
+      "name": "Animate Dead",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gains \"enchant creature put onto the battlefield\"\" and \"gets -1/-0.\""
+      }
+    },
+    {
+      "oracleId": "4fb00dbe-1f82-4ba6-b18c-97e816d10d3a",
+      "name": "Patchwork Banner",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control of the chosen type get +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "78427103-9543-41fb-b6d4-72963fe87275",
+      "name": "The Great Henge",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on it\"."
+      }
+    },
+    {
+      "oracleId": "3dc364f3-3094-4660-80ca-9418588c7fde",
+      "name": "Mithril Coat",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has indestructible.\""
+      }
+    },
+    {
+      "oracleId": "d79cbc61-6c15-48ea-bbba-3cffb819ccba",
+      "name": "Sword of the Animist",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature gets +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "f5f4dd28-f4ae-4d39-b9b8-6ebfd63c93fe",
+      "name": "Basilisk Collar",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has deathtouch and lifelink.\""
+      }
+    },
+    {
+      "oracleId": "9b9a10ff-5a5d-4df8-88aa-18d84ff9117c",
+      "name": "Inspiring Call",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Those creatures gain indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "4ba5b3f6-503b-43e6-b66e-4f8c55cffed7",
+      "name": "Avenger of Zendikar",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on each Plant creature you control.\""
+      }
+    },
+    {
+      "oracleId": "bdbde5d0-f5e4-44da-b27c-b4ad6f374cc9",
+      "name": "Dryad of the Ilysian Grove",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Lands you control are every basic land type in addition to their other types.\""
+      }
+    },
+    {
+      "oracleId": "340bbe8b-e987-4c3e-ab4e-9dee63e57d4f",
+      "name": "Phyrexian Metamorph",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enter as a copy\" and \"it's an artifact in addition to its other types.\""
+      }
+    },
+    {
+      "oracleId": "9ad4f730-a18e-4a7c-a468-a926c718c741",
+      "name": "Whispersilk Cloak",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature can't be blocked and has shroud.\""
+      }
+    },
+    {
+      "oracleId": "8c52bd39-0586-48ca-b263-17210cf9feb6",
+      "name": "Craterhoof Behemoth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain trample and get +X/+X\" and \"X is the number of creatures\"."
+      }
+    },
+    {
+      "oracleId": "8b27326f-e7b8-4a4d-b589-df459246d19a",
+      "name": "Shadowspear",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 and has trample and lifelink\" and \"lose hexproof\"."
+      }
+    },
+    {
+      "oracleId": "69872a9a-fe54-4e58-940c-89395af71acd",
+      "name": "Finale of Devastation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"creatures you control get +X/+X and gain haste until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "dca51281-fb21-45b6-beb4-1f13397caee2",
+      "name": "Blackblade Reforged",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 for each land you control.\""
+      }
+    },
+    {
+      "oracleId": "eaabd151-2160-4bff-82c0-3fa88659be98",
+      "name": "Anger",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"creatures you control have haste.\""
+      }
+    },
+    {
+      "oracleId": "8cf38025-5821-45a0-9483-266353b7e82d",
+      "name": "Vanquisher's Banner",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control of the chosen type get +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "7c2a4fe5-43e8-4e20-bef2-0278d18afc4b",
+      "name": "Shifting Woodland",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This land becomes a copy of target permanent card\"."
+      }
+    },
+    {
+      "oracleId": "37c06f89-db36-4937-9404-2b07cd22e1a6",
+      "name": "Dawn's Truce",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"permanents you control gain hexproof\" and \"also gain indestructible\"."
+      }
+    },
+    {
+      "oracleId": "28fe909b-06e0-424c-9f75-c824a25f5865",
+      "name": "Branching Evolution",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"twice that many +1/+1 counters\"."
+      }
+    },
+    {
+      "oracleId": "63dfe794-5f56-41ec-9883-5523b41cc3e0",
+      "name": "Arena of Glory",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"If that mana is spent on a creature spell, it gains haste until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "27e0948b-9916-473b-8d8c-a51bdfbc7457",
+      "name": "Underworld Breach",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Each nonland card in your graveyard has escape.\""
+      }
+    },
+    {
+      "oracleId": "c6911265-54ef-4c16-bcf2-1ffb24b7d426",
+      "name": "Kessig Wolf Run",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target creature gets +X/+0 and gains trample until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "2ef75cf3-30dc-4852-a6d1-1d6391fad022",
+      "name": "Forgotten Ancient",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter\" and \"move any number of +1/+1 counters\"."
+      }
+    },
+    {
+      "oracleId": "83b43aba-bf9c-4da2-967d-9daa632e97d2",
+      "name": "Helm of the Host",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"create a token that's a copy of equipped creature\" and \"gains haste.\""
+      }
+    },
+    {
+      "oracleId": "716b3ea2-45b7-4a8f-af72-de7f4e510eff",
+      "name": "Goldspan Dragon",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Treasures you control have \"{T}, Sacrifice this artifact: Add two mana\".\""
+      }
+    },
+    {
+      "oracleId": "f122624f-f30d-444e-a62a-939829241045",
+      "name": "Kami of Whispered Hopes",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"that many plus one +1/+1 counters\"."
+      }
+    },
+    {
+      "oracleId": "8dcb35e5-ae44-455f-86e3-4a77d496ff34",
+      "name": "Spark Double",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enter as a copy\" and \"additional +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "fe83087d-c6c1-40be-9295-baaa1c6b2db1",
+      "name": "Mondrak, Glory Dominus",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put an indestructible counter on Mondrak.\""
+      }
+    },
+    {
+      "oracleId": "4d67e2a7-4aa7-44cc-853b-500d7aac046d",
+      "name": "Cursed Mirror",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"become a copy of any creature\" and \"it has haste.\""
+      }
+    },
+    {
+      "oracleId": "2876e74f-a242-4995-9702-0b737a1ab67a",
+      "name": "Psychosis Crawler",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"power and toughness are each equal to the number of cards in your hand.\""
+      }
+    },
+    {
+      "oracleId": "4b515bb0-f275-4400-8032-3173b799ab40",
+      "name": "Walking Ballista",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enters with X +1/+1 counters\" and \"Put a +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "7324abaa-48da-439d-9339-b0ea5eea612e",
+      "name": "Unnatural Growth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"double the power and toughness of each creature you control\"."
+      }
+    },
+    {
+      "oracleId": "eeaac65a-3480-475a-bb28-e6375d53f487",
+      "name": "Vault of the Archangel",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control gain deathtouch and lifelink until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "b99ada26-9a61-4175-9fb8-15a106960220",
+      "name": "Ohran Frostfang",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Attacking creatures you control have deathtouch.\""
+      }
+    },
+    {
+      "oracleId": "1e6a24be-8281-41c1-a5ba-b68f0ef1d7b8",
+      "name": "Snakeskin Veil",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter\" and \"It gains hexproof\"."
+      }
+    },
+    {
+      "oracleId": "9b2cdbed-c733-409b-b0e4-2c8960c25111",
+      "name": "Maskwood Nexus",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control are every creature type.\""
+      }
+    },
+    {
+      "oracleId": "16629f59-bae8-4c19-bf50-443eb0ed6856",
+      "name": "Felidar Retreat",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter\" and \"gain vigilance until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "7336a541-3ae9-4ab2-acb8-f574c0a5b3a9",
+      "name": "Vito, Thorn of the Dusk Rose",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control gain lifelink until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "bb2b324c-970a-4920-884e-c92ba49669f0",
+      "name": "Tamiyo's Safekeeping",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gains hexproof and indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "3577c47e-76d3-4659-b922-31c4b74be3a0",
+      "name": "Enduring Vitality",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control have \"{T}: Add one mana of any color.\"\" and \"It's an enchantment.\""
+      }
+    },
+    {
+      "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
+      "name": "Necropotence",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Skip your draw step\" and exile/draw text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "127de52b-df75-4342-95a0-20d84c5bf916",
+      "name": "The Meathook Massacre",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"each creature gets -X/-X until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "38515f89-348b-4cf3-b7bd-1f6fe4ce2fba",
+      "name": "Adeline, Resplendent Cathar",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Adeline's power is equal to the number of creatures you control.\""
+      }
+    },
+    {
+      "oracleId": "b7d4b7dd-fbb1-4ca3-875f-ef13a95e66ad",
+      "name": "Liquimetal Torque",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target nonland permanent becomes an artifact in addition to its other types.\""
+      }
+    },
+    {
+      "oracleId": "81c70ae7-3c18-4c9b-8505-e4db9e0e6518",
+      "name": "Wishclaw Talisman",
+      "facts": {
+        "changesController": true,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"An opponent gains control of this artifact.\""
+      }
+    },
+    {
+      "oracleId": "60433b48-d27f-413c-905c-43839b1943f1",
+      "name": "Mother of Runes",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target creature you control gains protection from the color of your choice.\""
+      }
+    },
+    {
+      "oracleId": "93cf50cf-0ecc-4d3e-abea-778c1ebacec4",
+      "name": "Massacre Wurm",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"creatures your opponents control get -2/-2 until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "70a6f08e-854d-4e2f-9d8c-c45ec3231157",
+      "name": "Faeburrow Elder",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 for each color among permanents you control.\""
+      }
+    },
+    {
+      "oracleId": "cae166de-e681-40a0-83a8-3c17cf40e2fc",
+      "name": "Commander's Plate",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +3/+3 and has protection\"."
+      }
+    },
+    {
+      "oracleId": "9c58d241-4d9f-4b46-b8ee-f4587f9acfd6",
+      "name": "Plaza of Heroes",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target legendary creature gains hexproof and indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "97435e03-2fff-4fe0-8fa9-69ab0a046a33",
+      "name": "Unbreakable Formation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain indestructible\", \"+1/+1 counter\", and \"gain vigilance\"."
+      }
+    },
+    {
+      "oracleId": "d0901053-6de0-46d0-9ee3-8d40510236c1",
+      "name": "Sword of Feast and Famine",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+2 and has protection from black and from green.\""
+      }
+    },
+    {
+      "oracleId": "c549b0fd-1e08-4873-952e-a14dc45a0fd2",
+      "name": "Champion of Lambholt",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on this creature.\""
+      }
+    },
+    {
+      "oracleId": "d169738e-af0b-4488-a399-3aa1d1933aa1",
+      "name": "Brotherhood Regalia",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"has ward {2}, is an Assassin in addition to its other types\"."
+      }
+    },
+    {
+      "oracleId": "002965be-a36f-4a09-9ce0-c6535bca1703",
+      "name": "Veil of Summer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"permanents you control gain hexproof from blue and from black.\""
+      }
+    },
+    {
+      "oracleId": "e1e96802-fd0c-41f1-aa21-3287d75a0e88",
+      "name": "Overwhelming Stampede",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain trample and get +X/+X\" and \"X is the greatest power\"."
+      }
+    },
+    {
+      "oracleId": "cc65ac73-5bef-4ecb-ad8e-39199084c027",
+      "name": "Cathars' Crusade",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on each creature you control.\""
+      }
+    },
+    {
+      "oracleId": "dbcbdf37-c40f-4068-b4a7-a849cab1056c",
+      "name": "Six",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"nonland permanent cards in your graveyard have retrace.\""
+      }
+    },
+    {
+      "oracleId": "b01e698b-608a-4fc7-8073-b01d044743ec",
+      "name": "Thespian's Stage",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This land becomes a copy of target land\"."
+      }
+    },
+    {
+      "oracleId": "11b5308d-5bc0-4782-875f-a28be36e665d",
+      "name": "Beastmaster Ascension",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"creatures you control get +5/+5.\""
+      }
+    },
+    {
+      "oracleId": "37a2a31d-51e6-4c07-b4c2-b206ad40eb42",
+      "name": "The Reaver Cleaver",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 and has trample and \"Whenever this creature...\"\""
+      }
+    },
+    {
+      "oracleId": "05a4f8ff-49da-42af-add5-6248c4b0644b",
+      "name": "Darksteel Mutation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"is an Insect artifact creature with base power and toughness 0/1\" and \"loses all other abilities\"."
+      }
+    },
+    {
+      "oracleId": "72deedab-7c17-4505-aeca-4bc8596d80a5",
+      "name": "Tribute to the World Tree",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put two +1/+1 counters on it.\""
+      }
+    },
+    {
+      "oracleId": "71d785a9-ddc8-472e-a778-a551b444a4bd",
+      "name": "Selfless Spirit",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control gain indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "a1cc5e37-b09a-4b7f-afd5-77c1c35aa425",
+      "name": "Carrion Feeder",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter on this creature.\""
+      }
+    },
+    {
+      "oracleId": "a4d751e0-41c1-4e90-853d-512f385acd81",
+      "name": "All That Glitters",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 for each artifact and/or enchantment you control.\""
+      }
+    },
+    {
+      "oracleId": "008f2698-1721-45a3-8353-10f2f400dc8f",
+      "name": "Shizo, Death's Storehouse",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target legendary creature gains fear until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
+      "name": "Bitterblossom",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"create a 1/1 black Faerie Rogue creature token\"; token creation is ignored."
+      }
+    },
+    {
+      "oracleId": "74a62c7b-4753-4af2-b7a1-9a4ae8988801",
+      "name": "Puresteel Paladin",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipment you control have equip {0}\"."
+      }
+    },
+    {
+      "oracleId": "e6555cca-e608-4c87-b835-9cd47fd1f543",
+      "name": "Tireless Tracker",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on this creature.\""
+      }
+    },
+    {
+      "oracleId": "3c1ef404-e2c6-486d-a5a2-d5779c71d498",
+      "name": "Archdruid's Charm",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter on target creature you control.\""
+      }
+    },
+    {
+      "oracleId": "aa6723a2-75da-49f5-a1ba-cbfa82c55301",
+      "name": "Opal Palace",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"it enters with a number of additional +1/+1 counters\"."
+      }
+    },
+    {
+      "oracleId": "d21c3c8f-d105-4ba9-bf69-e5f26f0f8ec5",
+      "name": "Intangible Virtue",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creature tokens you control get +1/+1 and have vigilance.\""
+      }
+    },
+    {
+      "oracleId": "36f68aa3-9955-46f1-bc87-497f16ef5222",
+      "name": "Wizard Class",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter on target creature you control.\""
+      }
+    },
+    {
+      "oracleId": "41fed659-237c-4d8e-ad31-d17fa0d3f764",
+      "name": "Ozolith, the Shattered Spire",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"that many plus one +1/+1 counters\" and \"Put a +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "34428f42-03ac-4795-8286-6cbea796df2b",
+      "name": "Incubation Druid",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Adapt 3\" meaning \"put three +1/+1 counters on it.\""
+      }
+    },
+    {
+      "oracleId": "4fdbbec2-e921-4b63-958d-f9ba1e417197",
+      "name": "Purphoros, God of the Forge",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"isn't a creature\" and \"Creatures you control get +1/+0\"."
+      }
+    },
+    {
+      "oracleId": "c97957a2-8310-4cff-8aad-871b7901d124",
+      "name": "Caretaker's Talent",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"token that's a copy\" and \"Creature tokens you control get +2/+2.\""
+      }
+    },
+    {
+      "oracleId": "a27445db-33f2-4571-98b5-83206b797484",
+      "name": "Shared Animosity",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+0 until end of turn for each other attacking creature\"."
+      }
+    },
+    {
+      "oracleId": "befb211f-37ca-4083-98d4-9ff1f28be3f2",
+      "name": "Goreclaw, Terror of Qal Sisma",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 and gains trample until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "434a20f8-3f87-4004-9155-0f196fc2257e",
+      "name": "Rising of the Day",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control have haste\" and \"get +1/+0.\""
+      }
+    },
+    {
+      "oracleId": "a492a323-df8a-40fd-bff0-50091baa7700",
+      "name": "Kenrith's Transformation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": true,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"loses all abilities\" and \"is a green Elk creature with base power and toughness 3/3.\""
+      }
+    },
+    {
+      "oracleId": "915b75d1-b5e3-4aca-a54c-beaccef0a2e4",
+      "name": "Innkeeper's Talent",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter\", \"have ward {1}\", and \"twice that many\" counters."
+      }
+    },
+    {
+      "oracleId": "8dd6d060-d023-48a6-85cb-7a5521b6257b",
+      "name": "Revitalizing Repast // Old-Growth Grove",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter\" and \"gains indestructible until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "339a7418-9a29-4eae-a3c2-ea590d175936",
+      "name": "Imprisoned in the Moon",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": true,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"is a colorless land with \"{T}: Add {C}\" and loses all other card types and abilities.\""
+      }
+    },
+    {
+      "oracleId": "4247b667-a0a8-4995-97c7-622d20132f7d",
+      "name": "Tyvar's Stand",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +X/+X and gains hexproof and indestructible\"."
+      }
+    },
+    {
+      "oracleId": "b9df2cdf-397c-458d-89cf-911568737ffa",
+      "name": "Mockingbird",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enter as a copy\" and \"it's a Bird in addition\" and \"has flying.\""
+      }
+    },
+    {
+      "oracleId": "3cda958a-f777-433d-850e-a6c8f581db4e",
+      "name": "Flowering of the White Tree",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"get +2/+1 and have ward {1}\" and \"get +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "c01aafb8-3da5-4eb1-8731-2a223e747d63",
+      "name": "Champion's Helm",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+2\" and \"it has hexproof.\""
+      }
+    },
+    {
+      "oracleId": "9d2d6479-531c-4ce1-b52b-00e36fa63b64",
+      "name": "Rancor",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+0 and has trample.\""
+      }
+    },
+    {
+      "oracleId": "e3955573-3db5-490e-903e-65e0172a9202",
+      "name": "Hammer of Nazahn",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+0 and has indestructible.\""
+      }
+    },
+    {
+      "oracleId": "162572f2-1757-42e9-bd97-e6bd9a762c0e",
+      "name": "Ashaya, Soul of the Wild",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"power and toughness are each equal to the number of lands\" and \"are Forest lands\"."
+      }
+    },
+    {
+      "oracleId": "761021ce-4559-464e-aa03-85c2fe78e267",
+      "name": "Rishkar, Peema Renegade",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter\" and \"has \"{T}: Add {G}.\"\""
+      }
+    },
+    {
+      "oracleId": "f78af825-023a-42e9-8374-5c52303a1417",
+      "name": "Elspeth, Storm Slayer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter\" and \"gain flying until your next turn.\""
+      }
+    },
+    {
+      "oracleId": "03f5c566-825c-4c46-9c01-a2f9b1e70a13",
+      "name": "The Mycosynth Gardens",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This land becomes a copy of target nontoken artifact\"."
+      }
+    },
+    {
+      "oracleId": "44661108-d72f-4d02-9303-7e4b0ecf7e9c",
+      "name": "Bear Umbra",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+2 and has \"Whenever this creature attacks...\"\""
+      }
+    },
+    {
+      "oracleId": "913e6182-706a-4872-8c8a-e146b0ae0738",
+      "name": "Sword of Hearth and Home",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+2 and has protection from green and from white.\""
+      }
+    },
+    {
+      "oracleId": "8ec03b88-8d3a-4a32-8b7c-7da59b0c03d0",
+      "name": "Colossus Hammer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +10/+10 and loses flying.\""
+      }
+    },
+    {
+      "oracleId": "7dd189f8-a23f-4b43-b0ef-fb174a9664ba",
+      "name": "Destiny Spinner",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"becomes an X/X Elemental creature with trample and haste\" and \"X is the number\"."
+      }
+    },
+    {
+      "oracleId": "9fb6bd72-031b-40a1-83c5-8a1c82f84e12",
+      "name": "Excalibur, Sword of Eden",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +10/+0 and has vigilance.\""
+      }
+    },
+    {
+      "oracleId": "dba35ac5-7ad3-488a-a006-6b9a1d54eea5",
+      "name": "Loxodon Warhammer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +3/+0 and has trample and lifelink.\""
+      }
+    },
+    {
+      "oracleId": "858f53ef-3fec-4aa0-867d-b7f040614b3c",
+      "name": "Bastion Protector",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"get +2/+2 and have indestructible.\""
+      }
+    },
+    {
+      "oracleId": "27ad3e00-6ffb-48f7-8469-8868d066d1e2",
+      "name": "Serra Ascendant",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +5/+5 and has flying.\""
+      }
+    },
+    {
+      "oracleId": "fdba89eb-1cf5-46e6-9d09-1adb9bc40fcd",
+      "name": "Yahenni, Undying Partisan",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"put a +1/+1 counter\" and \"gains indestructible\"."
+      }
+    },
+    {
+      "oracleId": "63e596a2-9126-4af6-8782-c38687d664ad",
+      "name": "Heliod, Sun-Crowned",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"isn't a creature\", \"+1/+1 counter\", and \"gains lifelink\"."
+      }
+    },
+    {
+      "oracleId": "037355be-71e7-4866-80a6-80352c304970",
+      "name": "Karlach, Fury of Avernus",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"They gain first strike until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "dbba75f5-2404-4bd5-982b-f6c4effa5316",
+      "name": "Ethereal Armor",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 for each enchantment you control and has first strike.\""
+      }
+    },
+    {
+      "oracleId": "38c83332-2d21-450c-ae97-34109b565f59",
+      "name": "Tyrite Sanctum",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"becomes a God in addition\" and \"Put a +1/+1 counter\" and \"indestructible counter\"."
+      }
+    },
+    {
+      "oracleId": "1f91297a-ec2b-4ea8-9198-aa1daac20ff8",
+      "name": "Metallic Mimic",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"is the chosen type\" and \"additional +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "380c367f-73ea-485f-a37b-5af0ba160893",
+      "name": "Not Dead After All",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"target creature you control gains \"When this creature dies...\"\""
+      }
+    },
+    {
+      "oracleId": "126a5d0b-e7d6-458e-87af-47d845678014",
+      "name": "Cyberdrive Awakener",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"have flying\" and \"becomes a 4/4 artifact creature\"."
+      }
+    },
+    {
+      "oracleId": "afe2f7a4-9440-4d93-801f-a18b627efb21",
+      "name": "Great Train Heist",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control get +1/+0 and gain first strike\"."
+      }
+    },
+    {
+      "oracleId": "2ffb38ec-5852-4e91-85a5-cfccd1f23556",
+      "name": "Tarrian's Soulcleaver",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has vigilance\" and \"put a +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "b168e4e6-f572-4d9f-b98f-95b2611354cb",
+      "name": "Zopandrel, Hunger Dominus",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"double the power and toughness\" and \"Put an indestructible counter\"."
+      }
+    },
+    {
+      "oracleId": "22f0dbbb-9d8d-42bc-8903-fc0b65e00952",
+      "name": "Marvin, Murderous Mimic",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"has all activated abilities of creatures you control\"."
+      }
+    },
+    {
+      "oracleId": "a0c47ab6-dfb4-46ee-a3f7-9e1521b4bb4b",
+      "name": "Shalai, Voice of Plenty",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"other creatures you control have hexproof\" and \"Put a +1/+1 counter\"."
+      }
+    },
+    {
+      "oracleId": "b3de29cb-7d7d-4566-b5bf-37e571bd5d78",
+      "name": "Enduring Courage",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"it gets +2/+0 and gains haste\" and \"It's an enchantment.\""
+      }
+    },
+    {
+      "oracleId": "cb15a8dd-57fe-466f-847e-66476b690a1f",
+      "name": "Xenagos, God of Revels",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"isn't a creature\" and \"gains haste and gets +X/+X\"."
+      }
+    },
+    {
+      "oracleId": "a4280cea-386b-450d-a7e9-29c7aa58ce5a",
+      "name": "Amphibian Downpour",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": true,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"loses all abilities\" and \"is a blue Frog creature with base power and toughness 1/1.\""
+      }
+    },
+    {
+      "oracleId": "3ded0c0c-40ce-4d14-a9a6-b023bc19ee0e",
+      "name": "Triumph of the Hordes",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"get +1/+1 and gain trample and infect.\""
+      }
+    },
+    {
+      "oracleId": "2de7367b-a5a4-43f4-8f8f-b931ea28150d",
+      "name": "Slayers' Stronghold",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +2/+0 and gains vigilance and haste\"."
+      }
+    },
+    {
+      "oracleId": "b3f16f34-d78c-4b61-821b-05fc6bd0da37",
+      "name": "Moonshaker Cavalry",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gain flying and get +X/+X\" and \"X is the number of creatures\"."
+      }
+    },
+    {
+      "oracleId": "81c6c4f0-81ad-463c-a42b-60a73e6d70f3",
+      "name": "Alexios, Deimos of Kosmos",
+      "facts": {
+        "changesController": true,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"that player gains control\", \"+1/+1 counter\", and \"gains haste\"."
+      }
+    },
+    {
+      "oracleId": "5d27c63e-d1ef-48af-b51d-01ebc6daeac9",
+      "name": "Mikaeus, the Unhallowed",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"get +1/+1 and have undying.\""
+      }
+    },
+    {
+      "oracleId": "6a84eda1-7e72-4b5a-849f-b6e177565aeb",
+      "name": "Mirage Mirror",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"This artifact becomes a copy of target artifact, creature, enchantment, or land\"."
+      }
+    },
+    {
+      "oracleId": "4d6120d6-fcce-40bc-9fc6-e1f5beb6c728",
+      "name": "Embercleave",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"gets +1/+1 and has double strike and trample.\""
+      }
+    },
+    {
+      "oracleId": "2cb95721-56c8-4008-8055-579a5a97fc8b",
+      "name": "Gaea's Gift",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter\" and \"gains reach, trample, hexproof, and indestructible\"."
+      }
+    },
+    {
+      "oracleId": "8242cd78-6675-43b5-8924-0a88c3aa6f76",
+      "name": "Genji Glove",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Equipped creature has double strike.\""
+      }
+    },
+    {
+      "oracleId": "05d09c55-f551-4cb4-a8d2-4811dccc848d",
+      "name": "Vraska, Betrayal's Sting",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"becomes a Treasure artifact with \"{T}...\" and loses all other card types and abilities.\""
+      }
+    },
+    {
+      "oracleId": "c23e5b80-08d2-4e24-9908-fe2aa4f30f6f",
+      "name": "Reliquary Tower",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"You have no maximum hand size\" and mana text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "9965d9c5-2ebf-4a6c-930e-55c5890979be",
+      "name": "Thought Vessel",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"You have no maximum hand size\" and mana text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"If you do, it gains haste\" from dash."
+      }
+    },
+    {
+      "oracleId": "8ae98ef8-8f52-4877-a08c-1fae5514184e",
+      "name": "Decanter of Endless Water",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"You have no maximum hand size\" and mana text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "1946ded1-5f53-409f-b0a6-5433bb0357d2",
+      "name": "The Ozolith",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"move all counters from The Ozolith onto target creature.\""
+      }
+    },
+    {
+      "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+      "name": "Pact of Negation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Counter target spell\" and delayed payment text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+      "name": "Thassa's Oracle",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"look at the top X cards\" and win text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "5b5bf1fa-6502-4790-b66b-f0f8504ebc7c",
+      "name": "Cabal Ritual",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Add {B}{B}{B}\"; mana only."
+      }
+    },
+    {
+      "oracleId": "b0b6be0c-41cf-4757-9f0e-87227b6ba6b3",
+      "name": "Ghalta, Primal Hunger",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes cost reduction and \"Trample\" only; no continuous characteristic change applied by the text."
+      }
+    },
+    {
+      "oracleId": "6cf50e21-0f60-4e9a-b910-ebe1bad2a29e",
+      "name": "Blasphemous Edict",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Each player sacrifices thirteen creatures\"; one-shot only."
+      }
+    },
+    {
+      "oracleId": "1f438b8f-fe23-4f3b-ab2e-f6c33676c462",
+      "name": "Opposition Agent",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes control/play/search text; no object characteristic change."
+      }
+    },
+    {
+      "oracleId": "92f6c063-a740-4c3c-a60a-569fd298854d",
+      "name": "Sphere of Safety",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures can't attack\" with a payment; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "6c85271c-c711-49b0-a72e-9e576c33714d",
+      "name": "Sculpting Steel",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enter as a copy of any artifact\"."
+      }
+    },
+    {
+      "oracleId": "8c220dbd-6572-4715-aae6-dd09a4252d68",
+      "name": "Banner of Kinship",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"get +1/+1 for each fellowship counter\"."
+      }
+    },
+    {
+      "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+      "name": "Gravecrawler",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"can't block\" and graveyard casting text; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "9dc65ffe-17fc-4280-b4bd-78073ac7e12b",
+      "name": "Leyline of Anticipation",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"cast spells as though they had flash\"; it does not say spells have flash."
+      }
+    },
+    {
+      "oracleId": "e87906d2-db1a-4e19-b910-adb4eb339945",
+      "name": "Urza, Lord High Artificer",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"Create a 0/0... token with \"This token gets +1/+1...\"\"; token creation is ignored."
+      }
+    },
+    {
+      "oracleId": "dc671205-f2fa-454f-9957-921a6069ad53",
+      "name": "High Tide",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"adds an additional {U}\"; mana only."
+      }
+    },
+    {
+      "oracleId": "3875aef0-3102-4fbf-be90-e4139f7a2348",
+      "name": "Wayward Swordtooth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes land-play permission and \"can't attack or block\"; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "bc14356c-3a1a-47af-9a6e-2b449de0331f",
+      "name": "Kardur, Doomscourge",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"creatures your opponents control attack each combat\"; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "e1d294e8-67b1-4a4a-86b8-f98f28a327d9",
+      "name": "Promise of Loyalty",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"can't attack you\"; vow counters do not change listed characteristics."
+      }
+    },
+    {
+      "oracleId": "751f22bc-bcea-4213-a37b-b5f72448a4c4",
+      "name": "The Reality Chip",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes play/look text and reconfigure reminder; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "c45e96cb-2539-4e00-9fff-782a182c2f4b",
+      "name": "Nezahal, Primal Tide",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"can't be countered\" and hand-size text; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "7b8528b0-71eb-4c9e-bed9-aa2d2e84038f",
+      "name": "Kozilek, Butcher of Truth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes draw, annihilator, and shuffle text; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "9e774188-caa1-4b62-b9cc-547f8e444b7f",
+      "name": "Augur of Autumn",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes look/play/cast text; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "ae7604bb-4818-45a3-960c-cf3d83f15964",
+      "name": "Teferi, Time Raveler",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes timing text and \"as though they had flash\"; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "69ddca4b-5cc0-45f3-b2e6-a047c8d601be",
+      "name": "Spymaster's Vault",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes connive reminder \"Put a +1/+1 counter on that creature\"."
+      }
+    },
+    {
+      "oracleId": "b0d3fd57-1420-4dd1-8410-9d659655287f",
+      "name": "Neheb, the Eternal",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes afflict and mana text; no listed characteristic change."
+      }
+    },
+    {
+      "oracleId": "79a71fe5-38ce-4bb5-aea0-c9b9a856d397",
+      "name": "Mirrormade",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": true,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"enter as a copy of any artifact or enchantment\"."
+      }
+    },
+    {
+      "oracleId": "57c1a98e-c4fb-4144-9e3e-d0fe6789ba26",
+      "name": "Simic Ascendancy",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Put a +1/+1 counter on target creature you control.\""
+      }
+    },
+    {
+      "oracleId": "3754dce0-3e97-406f-8807-a4942a222c41",
+      "name": "Gaea's Anthem",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control get +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "cd0d7141-46d2-4aa3-bc77-6b3b4513803e",
+      "name": "Control Magic",
+      "facts": {
+        "changesController": true,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"You control enchanted creature.\""
+      }
+    },
+    {
+      "oracleId": "94fac5fe-97d5-4c12-a80c-8efff9d853ae",
+      "name": "Blood Moon",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Nonbasic lands are Mountains.\""
+      }
+    },
+    {
+      "oracleId": "a5458de0-0f61-49a3-a013-d90f92559809",
+      "name": "Archetype of Imagination",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"have flying\", \"lose flying\", and \"can't have or gain flying.\""
+      }
+    },
+    {
+      "oracleId": "5748ebf1-24e3-499d-ab7c-c2cebd462a24",
+      "name": "Giant Growth",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": true,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Target creature gets +3/+3 until end of turn.\""
+      }
+    },
+    {
+      "oracleId": "45900b2f-f6a9-4c42-9642-008f3c1cf6dd",
+      "name": "Tarmogoyf",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": true,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"power is equal to the number of card types\" and toughness \"that number plus 1.\""
+      }
+    },
+    {
+      "oracleId": "63625b26-3a19-4c3c-b18a-91247bb2a40c",
+      "name": "Lignify",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"is a Treefolk with base power and toughness 0/4 and loses all abilities.\""
+      }
+    },
+    {
+      "oracleId": "7c3944fa-7c86-4979-85a9-86196aa94594",
+      "name": "Song of the Dryads",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": true,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Enchanted permanent is a colorless Forest land.\""
+      }
+    },
+    {
+      "oracleId": "4457ed35-7c10-48c8-9776-456485fdf070",
+      "name": "Lightning Bolt",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"deals 3 damage\"; one-shot only."
+      }
+    },
+    {
+      "oracleId": "68954295-54e3-4303-a6bc-fc4547a4e3a3",
+      "name": "Llanowar Elves",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": true,
+        "uncertain": [],
+        "rationale": "Quotes \"{T}: Add {G}\"; mana only."
+      }
+    },
+    {
+      "oracleId": "043f869d-b11c-4c0d-9591-2bf0df7bde55",
+      "name": "Cryptolith Rite",
+      "facts": {
+        "changesController": false,
+        "changesTypes": false,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": true,
+        "setsBasePT": false,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"Creatures you control have \"{T}: Add one mana of any color.\"\""
+      }
+    },
+    {
+      "oracleId": "4acacdd2-a736-43a2-ad67-891b9bd124f8",
+      "name": "Alloy Animist",
+      "facts": {
+        "changesController": false,
+        "changesTypes": true,
+        "changesColors": false,
+        "grantsOrRemovesAbilities": false,
+        "setsBasePT": true,
+        "modifiesPTByAmount": false,
+        "switchesPT": false,
+        "definesCharacteristicByCount": false,
+        "isCopyEffect": false,
+        "noContinuousEffect": false,
+        "uncertain": [],
+        "rationale": "Quotes \"becomes a 4/4 artifact creature.\""
+      }
+    }
+  ]
+}
