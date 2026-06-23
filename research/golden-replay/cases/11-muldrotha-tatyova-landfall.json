@@ -1,0 +1,93 @@
+{
+  "name": "Muldrotha / Tatyova landfall stack resolution",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 111,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "eabc978a-0666-472d-bdc6-d4b29d29eca4",
+          "oracleId": "0715e860-3b3b-4331-9718-207973e94fee",
+          "name": "Tatyova, Benthic Druid",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 5,
+          "colorIdentity": ["G", "U"],
+          "typeLine": "Legendary Creature — Merfolk Druid",
+          "keywords": ["Landfall"],
+          "faces": [
+            {
+              "name": "Tatyova, Benthic Druid",
+              "typeLine": "Legendary Creature — Merfolk Druid",
+              "oracleText": "Landfall — Whenever a land you control enters, you gain 1 life and draw a card.",
+              "power": "3",
+              "toughness": "3"
+            }
+          ]
+        }
+      },
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "5f533364-0f91-4e49-aaeb-83c4c1f6d316",
+          "oracleId": "b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6",
+          "name": "Forest",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["G"],
+          "typeLine": "Basic Land — Forest",
+          "faces": [{ "name": "Forest", "typeLine": "Basic Land — Forest" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-tatyova-01",
+          "oracleId": "golden-tatyova-01",
+          "name": "Tatyova Filler A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Tatyova Filler A", "typeLine": "Artifact" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-tatyova-02",
+          "oracleId": "golden-tatyova-02",
+          "name": "Tatyova Filler B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Tatyova Filler B", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "playLand", "cardId": "c2", "forced": false },
+    { "type": "addAbilityToStack", "sourceId": "c1", "kind": "triggered", "abilityLineIndex": 0 }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c2", "from": "hand", "to": "battlefield" },
+    { "step": 2, "type": "stack-item-added", "cardId": "a1" },
+    { "step": 3, "type": "stack-item-resolved", "cardId": "a1" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.landfall" }
+  ],
+  "expectedFinalState": {
+    "life": 40,
+    "zoneCounts": { "library": 2, "hand": 0, "battlefield": 2, "graveyard": 0, "stack": 0 },
+    "drawnThisTurn": 0,
+    "landsPlayedThisTurn": 1
+  },
+  "limitations": [
+    "The compound 'gain life and draw' effect currently compiles as non-auto, so stack removal is measured without life or draw changes."
+  ]
+}

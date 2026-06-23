@@ -1,0 +1,73 @@
+{
+  "name": "Kefka / Niv-Mizzet observes a draw",
+  "sourceDeck": "Kefka",
+  "initialState": {
+    "seed": 109,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "86c5c337-d25f-4c3e-9762-09ed0c2d36d7",
+          "oracleId": "33666a98-812f-4892-9f8d-33e0cbecc340",
+          "name": "Niv-Mizzet, Parun",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 6,
+          "colorIdentity": ["R", "U"],
+          "typeLine": "Legendary Creature — Dragon Wizard",
+          "keywords": ["Flying"],
+          "faces": [
+            {
+              "name": "Niv-Mizzet, Parun",
+              "typeLine": "Legendary Creature — Dragon Wizard",
+              "oracleText": "This spell can't be countered.\nFlying\nWhenever you draw a card, Niv-Mizzet deals 1 damage to any target.\nWhenever a player casts an instant or sorcery spell, you draw a card.",
+              "power": "5",
+              "toughness": "5"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-kefka-draw-01",
+          "oracleId": "golden-kefka-draw-01",
+          "name": "Kefka Draw A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Kefka Draw A", "typeLine": "Artifact" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-kefka-draw-02",
+          "oracleId": "golden-kefka-draw-02",
+          "name": "Kefka Draw B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Kefka Draw B", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [{ "type": "draw", "count": 1 }],
+  "expectedEvents": [
+    { "step": 1, "type": "draw", "count": 1 },
+    { "step": 1, "type": "zone-change", "cardId": "c2", "from": "library", "to": "hand" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.draw" }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 1, "battlefield": 1, "graveyard": 0, "stack": 0 },
+    "drawnThisTurn": 1
+  },
+  "limitations": [
+    "The damage target for Niv-Mizzet's draw trigger is guided/manual, so resolution is not expected."
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "name": "Gogo / Coveted Jewel ETB draw three",
+  "sourceDeck": "Gogo",
+  "initialState": {
+    "seed": 108,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "06a7ad3b-87d4-47f0-9450-facac00dfe97",
+          "oracleId": "98492d7d-3b9e-4ae1-ac45-1b508d6d2670",
+          "name": "Coveted Jewel",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 6,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Coveted Jewel",
+              "typeLine": "Artifact",
+              "oracleText": "When this artifact enters, draw three cards.\n{T}: Add three mana of any one color.\nWhenever one or more creatures an opponent controls attack you and aren't blocked, that player draws three cards and gains control of this artifact. Untap it."
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-jewel-01",
+          "oracleId": "golden-jewel-01",
+          "name": "Jewel Filler A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Jewel Filler A", "typeLine": "Artifact" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-jewel-02",
+          "oracleId": "golden-jewel-02",
+          "name": "Jewel Filler B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Jewel Filler B", "typeLine": "Artifact" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-jewel-03",
+          "oracleId": "golden-jewel-03",
+          "name": "Jewel Filler C",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Jewel Filler C", "typeLine": "Artifact" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-jewel-04",
+          "oracleId": "golden-jewel-04",
+          "name": "Jewel Filler D",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Jewel Filler D", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c1", "to": "battlefield", "position": "bottom" },
+    { "type": "addAbilityToStack", "sourceId": "c1", "kind": "triggered", "abilityLineIndex": 0 }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c1", "from": "hand", "to": "battlefield" },
+    { "step": 2, "type": "stack-item-added", "cardId": "a1" },
+    { "step": 3, "type": "draw", "count": 3 },
+    { "step": 3, "type": "stack-item-resolved", "cardId": "a1" },
+    { "step": 3, "type": "zone-change", "cardId": "c2", "from": "library", "to": "hand" },
+    { "step": 3, "type": "zone-change", "cardId": "c4", "from": "library", "to": "hand" },
+    { "step": 3, "type": "zone-change", "cardId": "c5", "from": "library", "to": "hand" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.etb", "abilityLineIndex": 0 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 3, "battlefield": 1, "graveyard": 0, "stack": 0 },
+    "drawnThisTurn": 3
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "Muldrotha / Ruin Crab landfall candidate",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 112,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "f754499b-8b56-4be7-aecd-fdebde81fb41",
+          "oracleId": "8afc00d4-a1c6-4329-af2c-a7f58a0c33e7",
+          "name": "Ruin Crab",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 1,
+          "colorIdentity": ["U"],
+          "typeLine": "Creature — Crab",
+          "keywords": ["Mill", "Landfall"],
+          "faces": [
+            {
+              "name": "Ruin Crab",
+              "typeLine": "Creature — Crab",
+              "oracleText": "Landfall — Whenever a land you control enters, each opponent mills three cards.",
+              "power": "0",
+              "toughness": "3"
+            }
+          ]
+        }
+      },
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "739aaaac-c424-4ea7-a084-62a6fc0438b0",
+          "oracleId": "b2c6aa39-2d2a-459c-a555-fb48ba993373",
+          "name": "Island",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["U"],
+          "typeLine": "Basic Land — Island",
+          "faces": [{ "name": "Island", "typeLine": "Basic Land — Island" }]
+        }
+      }
+    ]
+  },
+  "commands": [{ "type": "playLand", "cardId": "c2", "forced": false }],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c2", "from": "hand", "to": "battlefield" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.landfall" }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 0, "hand": 0, "battlefield": 2, "graveyard": 0, "stack": 0 },
+    "landsPlayedThisTurn": 1
+  },
+  "limitations": [
+    "Opponent libraries are not modeled in GameState, so opponent mill is not expected."
+  ]
+}

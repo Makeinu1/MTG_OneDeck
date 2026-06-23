@@ -19,15 +19,19 @@ import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { createRng, shuffledOrder } from '../engine/random';
-import { splitAbilityLines, type AbilityShape } from '../engine/grammar/index';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
   buildGuidedCommands,
   compileAbilityIR,
   type EffectPrompt,
 } from '../engine/grammar/compile';
-import type { AbilityKind, CardInstance, GameState, ZoneId } from '../engine/types';
-import { classifyCardRules } from '../data/ruleClassifier';
+import type { CardInstance, GameState, ZoneId } from '../engine/types';
+import {
+  abilityLineIndexForKind,
+  detectAttackTriggerCandidates,
+  detectTriggerCandidates,
+  type TriggerCandidate,
+} from '../engine/triggers';
 import {
   effectivePower,
   fetchAbility,
@@ -66,12 +70,7 @@ const ALL_ZONES: ZoneId[] = [
 const STACK_TRANSITION_BLOCKED_WARNING =
   'スタックに未解決の効果があります。先に解決してください。';
 
-export interface TriggerCandidate {
-  sourceId: string;
-  triggerId: string;
-  label: string;
-  abilityLineIndex?: number;
-}
+export type { TriggerCandidate } from '../engine/triggers';
 
 export interface PendingGuidedResolution {
   sourceId: string;
@@ -375,270 +374,6 @@ function untapToMainCommands(): GameCommand[] {
     { type: 'nextPhase' },
     { type: 'nextPhase' },
   ];
-}
-
-function cardHasRuleTag(state: GameState, cardId: string, tagId: string): boolean {
-  const card = state.cards[cardId];
-  if (!card) return false;
-  const def = state.defs[card.defId];
-  if (!def) return false;
-  return classifyCardRules(def).some((tag) => tag.id === tagId);
-}
-
-function abilityShapesForKind(kind: AbilityKind): AbilityShape[] {
-  return kind === 'activated' ? ['activated'] : ['triggered', 'delayed-triggered'];
-}
-
-function abilityLineIndexForKind(
-  state: GameState,
-  sourceId: string,
-  kind: AbilityKind,
-): number | undefined {
-  const card = state.cards[sourceId];
-  if (!card) return undefined;
-  const def = state.defs[card.defId];
-  if (!def) return undefined;
-
-  const shapes = abilityShapesForKind(kind);
-  const matches = splitAbilityLines(def)
-    .map((line, index) => ({ line, index }))
-    .filter((entry) => shapes.includes(entry.line.shape));
-
-  return matches.length === 1 ? matches[0].index : undefined;
-}
-
-function abilityLineIndexForTrigger(
-  state: GameState,
-  sourceId: string,
-  triggerId: string,
-): number | undefined {
-  const card = state.cards[sourceId];
-  if (!card) return undefined;
-  const def = state.defs[card.defId];
-  if (!def) return undefined;
-
-  const triggerMatches = splitAbilityLines(def)
-    .map((line, index) => ({ line, index }))
-    .filter((entry) => {
-      if (entry.line.shape !== 'triggered' && entry.line.shape !== 'delayed-triggered') {
-        return false;
-      }
-      const text = entry.line.text;
-      switch (triggerId) {
-        case 'trigger.etb':
-          return /\benters\b/i.test(text);
-        case 'trigger.etb-other':
-          return /\benters\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
-        case 'trigger.death':
-          return /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text);
-        case 'trigger.death-other':
-          return /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
-        case 'trigger.landfall':
-          return /\bland\b/i.test(text) && /\benters\b/i.test(text);
-        case 'trigger.upkeep':
-          return /\bupkeep\b/i.test(text);
-        case 'trigger.end-step':
-          return /\bend step\b/i.test(text);
-        case 'trigger.draw':
-          return /\bdraw\b/i.test(text);
-        case 'trigger.cast':
-        case 'trigger.cast-watcher':
-          return /\bcast\b/i.test(text);
-        case 'trigger.attack':
-        case 'trigger.attack-watcher':
-          return /\battack/i.test(text);
-        default:
-          return false;
-      }
-    });
-
-  if (triggerMatches.length === 1) {
-    return triggerMatches[0].index;
-  }
-  return abilityLineIndexForKind(state, sourceId, 'triggered');
-}
-
-function makeTriggerCandidate(
-  state: GameState,
-  sourceId: string,
-  triggerId: string,
-  label: string,
-): TriggerCandidate {
-  const candidate: TriggerCandidate = {
-    sourceId,
-    triggerId,
-    label: `${label}: ${cardLabel(state, sourceId)}`,
-  };
-  const abilityLineIndex = abilityLineIndexForTrigger(state, sourceId, triggerId);
-  if (abilityLineIndex !== undefined) {
-    Object.defineProperty(candidate, 'abilityLineIndex', {
-      value: abilityLineIndex,
-      enumerable: false,
-      configurable: true,
-    });
-  }
-  return candidate;
-}
-
-function addTriggerCandidate(
-  candidates: TriggerCandidate[],
-  candidate: TriggerCandidate,
-): void {
-  const duplicate = candidates.some(
-    (existing) =>
-      existing.sourceId === candidate.sourceId && existing.triggerId === candidate.triggerId,
-  );
-  if (!duplicate) {
-    candidates.push(candidate);
-  }
-}
-
-function detectTriggerCandidates(prev: GameState, next: GameState): TriggerCandidate[] | null {
-  const candidates: TriggerCandidate[] = [];
-  let sawTriggerEvent = false;
-
-  const prevBattlefield = new Set(prev.zones.battlefield);
-  const nextBattlefield = new Set(next.zones.battlefield);
-  const nextGraveyard = new Set(next.zones.graveyard);
-  const isLandfallEvent = next.landsPlayedThisTurn > prev.landsPlayedThisTurn;
-
-  const enteredBattlefield = next.zones.battlefield.filter(
-    (cardId) => !prevBattlefield.has(cardId),
-  );
-  if (enteredBattlefield.length > 0) {
-    sawTriggerEvent = true;
-    const enteredBattlefieldSet = new Set(enteredBattlefield);
-    for (const cardId of enteredBattlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.etb')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.etb', '戦場に出たとき'),
-      );
-    }
-    for (const cardId of next.zones.battlefield) {
-      if (enteredBattlefieldSet.has(cardId)) continue;
-      if (isLandfallEvent && cardHasRuleTag(next, cardId, 'trigger.landfall')) continue;
-      if (!cardHasRuleTag(next, cardId, 'trigger.etb-other')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.etb-other', '他が戦場に出たとき'),
-      );
-    }
-  }
-
-  const died = prev.zones.battlefield.filter(
-    (cardId) => !nextBattlefield.has(cardId) && nextGraveyard.has(cardId),
-  );
-  if (died.length > 0) {
-    sawTriggerEvent = true;
-    for (const cardId of died) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.death')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.death', '死亡したとき'),
-      );
-    }
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.death-other')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.death-other', '他の死亡時'),
-      );
-    }
-  }
-
-  if (isLandfallEvent) {
-    sawTriggerEvent = true;
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.landfall')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.landfall', '上陸'),
-      );
-    }
-  }
-
-  if (prev.phase !== 'upkeep' && next.phase === 'upkeep') {
-    sawTriggerEvent = true;
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.upkeep')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.upkeep', 'アップキープ開始時'),
-      );
-    }
-  }
-
-  if (prev.phase !== 'end' && next.phase === 'end') {
-    sawTriggerEvent = true;
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.end-step')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.end-step', 'エンドステップ開始時'),
-      );
-    }
-  }
-
-  if (next.drawnThisTurn > prev.drawnThisTurn) {
-    sawTriggerEvent = true;
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.draw')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.draw', 'カードを引いたとき'),
-      );
-    }
-  }
-
-  if (next.spellsCastThisTurn > prev.spellsCastThisTurn) {
-    sawTriggerEvent = true;
-    const prevStack = new Set(prev.zones.stack);
-    const topStackId = next.zones.stack[next.zones.stack.length - 1];
-    const topStackCard = topStackId ? next.cards[topStackId] : undefined;
-    if (topStackId && topStackCard && !topStackCard.isAbility && !prevStack.has(topStackId)) {
-      if (cardHasRuleTag(next, topStackId, 'trigger.cast')) {
-        addTriggerCandidate(
-          candidates,
-          makeTriggerCandidate(next, topStackId, 'trigger.cast', '唱えたとき'),
-        );
-      }
-    }
-    for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.cast-watcher')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.cast-watcher', '呪文を唱えるたび'),
-      );
-    }
-  }
-
-  return sawTriggerEvent ? candidates : null;
-}
-
-function detectAttackTriggerCandidates(
-  state: GameState,
-  attackerIds: string[],
-): TriggerCandidate[] {
-  const candidates: TriggerCandidate[] = [];
-
-  for (const cardId of attackerIds) {
-    if (!cardHasRuleTag(state, cardId, 'trigger.attack')) continue;
-    addTriggerCandidate(
-      candidates,
-      makeTriggerCandidate(state, cardId, 'trigger.attack', '攻撃したとき'),
-    );
-  }
-
-  for (const cardId of state.zones.battlefield) {
-    if (!cardHasRuleTag(state, cardId, 'trigger.attack-watcher')) continue;
-    addTriggerCandidate(
-      candidates,
-      makeTriggerCandidate(state, cardId, 'trigger.attack-watcher', 'クリーチャー攻撃時'),
-    );
-  }
-
-  return candidates;
 }
 
 export function freeMulliganBottomCount(mulliganCount: number): number {

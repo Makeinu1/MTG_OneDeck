@@ -1,0 +1,96 @@
+{
+  "name": "Celes / Liliana watches a creature die",
+  "sourceDeck": "Celes",
+  "initialState": {
+    "seed": 104,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "cb28d217-795e-4320-a032-cd713f7ecc8a",
+          "oracleId": "5e958212-6a5b-4288-8d31-f1572619d7dc",
+          "name": "Liliana, Dreadhorde General",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 6,
+          "colorIdentity": ["B"],
+          "typeLine": "Legendary Planeswalker — Liliana",
+          "faces": [
+            {
+              "name": "Liliana, Dreadhorde General",
+              "typeLine": "Legendary Planeswalker — Liliana",
+              "oracleText": "Whenever a creature you control dies, draw a card.\n+1: Create a 2/2 black Zombie creature token.\n−4: Each player sacrifices two creatures of their choice.\n−9: Each opponent chooses a permanent they control of each permanent type and sacrifices the rest.",
+              "loyalty": "6"
+            }
+          ]
+        }
+      },
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "golden-celes-creature",
+          "oracleId": "golden-celes-creature",
+          "name": "Celes Test Creature",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 1,
+          "colorIdentity": ["W"],
+          "typeLine": "Creature — Human",
+          "faces": [
+            {
+              "name": "Celes Test Creature",
+              "typeLine": "Creature — Human",
+              "power": "1",
+              "toughness": "1"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-swamp-01",
+          "oracleId": "golden-swamp-01",
+          "name": "Swamp A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["B"],
+          "typeLine": "Basic Land — Swamp",
+          "faces": [{ "name": "Swamp A", "typeLine": "Basic Land — Swamp" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-swamp-02",
+          "oracleId": "golden-swamp-02",
+          "name": "Swamp B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["B"],
+          "typeLine": "Basic Land — Swamp",
+          "faces": [{ "name": "Swamp B", "typeLine": "Basic Land — Swamp" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c2", "to": "graveyard", "position": "bottom" },
+    { "type": "addAbilityToStack", "sourceId": "c1", "kind": "triggered", "abilityLineIndex": 0 }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c2", "from": "battlefield", "to": "graveyard" },
+    { "step": 2, "type": "stack-item-added", "cardId": "a1" },
+    { "step": 3, "type": "draw", "count": 1 },
+    { "step": 3, "type": "stack-item-resolved", "cardId": "a1" },
+    { "step": 3, "type": "zone-change", "cardId": "c3", "from": "library", "to": "hand" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.death-other", "abilityLineIndex": 0 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 1, "battlefield": 1, "graveyard": 1, "stack": 0 },
+    "drawnThisTurn": 1,
+    "cards": { "c2": { "zone": "graveyard" } }
+  }
+}

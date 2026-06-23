@@ -1,0 +1,73 @@
+{
+  "name": "Gogo / Rhystic Study watches a cast",
+  "sourceDeck": "Gogo",
+  "initialState": {
+    "seed": 106,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b",
+          "oracleId": "53236dd7-845a-444c-96d5-f41ed7325d8f",
+          "name": "Rhystic Study",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 3,
+          "colorIdentity": ["U"],
+          "typeLine": "Enchantment",
+          "faces": [
+            {
+              "name": "Rhystic Study",
+              "typeLine": "Enchantment",
+              "oracleText": "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}."
+            }
+          ]
+        }
+      },
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "cb91055f-215a-4243-835b-35de515a2ba5",
+          "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+          "name": "Pact of Negation",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["U"],
+          "typeLine": "Instant",
+          "faces": [
+            {
+              "name": "Pact of Negation",
+              "typeLine": "Instant",
+              "oracleText": "Counter target spell.\nAt the beginning of your next upkeep, pay {3}{U}{U}. If you don't, you lose the game."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "castToStack",
+      "cardId": "c2",
+      "payment": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+      "forced": false
+    }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "spell-cast", "count": 1 },
+    { "step": 1, "type": "zone-change", "cardId": "c2", "from": "hand", "to": "stack" },
+    { "step": 2, "type": "zone-change", "cardId": "c2", "from": "stack", "to": "graveyard" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.cast-watcher", "abilityLineIndex": 0 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 0, "hand": 0, "battlefield": 1, "graveyard": 1, "stack": 0 },
+    "spellsCastThisTurn": 1,
+    "cards": { "c2": { "zone": "graveyard" } }
+  },
+  "limitations": [
+    "The opponent-payment choice and Rhystic Study draw are not placed on the stack in this case."
+  ]
+}

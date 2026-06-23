@@ -1,0 +1,61 @@
+{
+  "name": "Celes / Sun Titan ETB with attack-path gap",
+  "sourceDeck": "Celes",
+  "initialState": {
+    "seed": 113,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "3d6eacf2-f6c7-4ede-b5a5-7463602699ae",
+          "oracleId": "b2e950fb-cb7e-40a0-a311-5bbdd0477b29",
+          "name": "Sun Titan",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 6,
+          "colorIdentity": ["W"],
+          "typeLine": "Creature — Giant",
+          "keywords": ["Vigilance"],
+          "faces": [
+            {
+              "name": "Sun Titan",
+              "typeLine": "Creature — Giant",
+              "oracleText": "Vigilance\nWhenever this creature enters or attacks, you may return target permanent card with mana value 3 or less from your graveyard to the battlefield.",
+              "power": "6",
+              "toughness": "6"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-sun-titan-filler",
+          "oracleId": "golden-sun-titan-filler",
+          "name": "Sun Titan Filler",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Sun Titan Filler", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c1", "to": "battlefield", "position": "bottom" }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c1", "from": "hand", "to": "battlefield" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.etb", "abilityLineIndex": 1 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 0, "battlefield": 1, "graveyard": 0, "stack": 0 }
+  },
+  "limitations": [
+    "Attack declaration is a store action rather than a GameCommand, so the attack half is recorded as unverifiable by this command-sequence harness.",
+    "Target selection and returning a graveyard permanent are guided/manual, so resolution is not expected."
+  ]
+}

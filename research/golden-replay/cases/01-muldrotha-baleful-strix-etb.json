@@ -1,0 +1,77 @@
+{
+  "name": "Muldrotha / Baleful Strix ETB draw",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 101,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "be8439e6-f779-49f0-806a-b04995697a6a",
+          "oracleId": "37688720-03de-4eca-a82d-a0afe8d58adc",
+          "name": "Baleful Strix",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": ["B", "U"],
+          "typeLine": "Artifact Creature — Bird",
+          "keywords": ["Deathtouch", "Flying"],
+          "faces": [
+            {
+              "name": "Baleful Strix",
+              "typeLine": "Artifact Creature — Bird",
+              "oracleText": "Flying, deathtouch\nWhen this creature enters, draw a card.",
+              "power": "1",
+              "toughness": "1"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-island-01",
+          "oracleId": "golden-island-01",
+          "name": "Island A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["U"],
+          "typeLine": "Basic Land — Island",
+          "faces": [{ "name": "Island A", "typeLine": "Basic Land — Island" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-island-02",
+          "oracleId": "golden-island-02",
+          "name": "Island B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["U"],
+          "typeLine": "Basic Land — Island",
+          "faces": [{ "name": "Island B", "typeLine": "Basic Land — Island" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c1", "to": "battlefield", "position": "bottom" },
+    { "type": "addAbilityToStack", "sourceId": "c1", "kind": "triggered", "abilityLineIndex": 1 }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c1", "from": "hand", "to": "battlefield" },
+    { "step": 2, "type": "stack-item-added", "cardId": "a1" },
+    { "step": 3, "type": "draw", "count": 1 },
+    { "step": 3, "type": "stack-item-resolved", "cardId": "a1" },
+    { "step": 3, "type": "zone-change", "cardId": "c3", "from": "library", "to": "hand" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.etb", "abilityLineIndex": 1 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 1, "battlefield": 1, "graveyard": 0, "stack": 0 },
+    "cards": { "c1": { "zone": "battlefield" } },
+    "drawnThisTurn": 1
+  }
+}

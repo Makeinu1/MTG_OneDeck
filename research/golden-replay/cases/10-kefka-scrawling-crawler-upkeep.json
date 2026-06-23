@@ -1,0 +1,59 @@
+{
+  "name": "Kefka / Scrawling Crawler upkeep candidate",
+  "sourceDeck": "Kefka",
+  "initialState": {
+    "seed": 110,
+    "phase": "untap",
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "a1176dcf-40ee-4342-aa74-791b8352e99a",
+          "oracleId": "1d60c80d-9a95-4051-bbf7-02ca51ee1be2",
+          "name": "Scrawling Crawler",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 3,
+          "colorIdentity": [],
+          "typeLine": "Artifact Creature — Phyrexian Construct",
+          "faces": [
+            {
+              "name": "Scrawling Crawler",
+              "typeLine": "Artifact Creature — Phyrexian Construct",
+              "oracleText": "At the beginning of your upkeep, each player draws a card.\nWhenever an opponent draws a card, that player loses 1 life.",
+              "power": "3",
+              "toughness": "2"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-crawler-filler",
+          "oracleId": "golden-crawler-filler",
+          "name": "Crawler Filler",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Crawler Filler", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [{ "type": "nextPhase", "drawnHandled": true }],
+  "expectedEvents": [
+    { "step": 1, "type": "phase-change", "from": "untap", "to": "upkeep" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.upkeep", "abilityLineIndex": 0 }
+  ],
+  "expectedFinalState": {
+    "phase": "upkeep",
+    "zoneCounts": { "library": 1, "hand": 0, "battlefield": 1, "graveyard": 0, "stack": 0 }
+  },
+  "limitations": [
+    "Opponent draw and opponent life are not represented as command targets, so the upkeep ability is not resolved."
+  ]
+}

@@ -1791,6 +1791,22 @@ M-CONTRACT は枠を予約するのみ。導入する状態に対応する具体
 - **3状態**: `検証済 / 不一致 / 検証不能`。**`検証不能` を緑(pass)に混ぜてはならない**(= silent divergence の禁止)。検証不能は「未検証」と可視化する。
 - **主指標**= オラクル間不一致率(構文クラスタで系統誤りを炙る)・帰属分布・物差し校正(メタ)・反証率・**検証不能率(安全上限)**。`npm run accuracy`/grammar-coverage はこのうち下面抽出の器。
 - 各 ESO エントリは `検証手段(物差し)` と `trust` を持ち、測れない部分(意図的な誤謬予算)を明示する。
+- **churn の意味(契約)**: 下面抽出*単独*の低 churn は収束ではない(構造的 FN は毎反復同一に取りこぼし churn が立たない)。**収束シグナルは『新しい独立物差しを当てても崩れない低 churn』のみ**。precedent: Slice2 で自己 churn 0.05% が独立盲予測で真 churn 13.55% に崩壊。詳細は `engine-design-method.md` §4。
+- **実行計測(契約)**: 正しさは分類一致だけで測らない。**ゴールデン再生ハーネス**が『初期盤面 + コマンド列 → 発行イベント → 誘発 → スタック解決 → SBA → 期待盤面』の**盤面遷移**を測る(分類器の一致ではない)。
+- **分類器 parity(契約)**: 研究計測器(`scripts/lib/*Classify.ts`)と runtime 分類器(`src/data/ruleClassifier.ts`・`gameStore.ts` の誘発検出)は黙って乖離してはならない。parity テストで乖離を検出し、**乖離 = 0** を凍結条件とする(粒度差は許容差テーブルで明示)。
+
+### 34.7.1 M-CONTRACT 凍結ゲート(契約・7条件)
+state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条件を全て満たしたときのみ**。
+**Slice1+2 のみでの部分凍結は禁止**(戻せない state 設計の偽収束を防ぐ):
+1. スライス **1〜4 を一巡**(Slice3 ゾーン+プレイヤー / Slice4 タイミング+SBA を含む)。
+2. オントロジー被覆率(頭) **≥ 90%**。
+3. モデル churn **< 5%** を**独立物差しを新しく当てた直後**に測って維持(下面抽出単独 churn では不可)。
+4. **非LLM独立物差し**(Forge/XMage 差分 or 人間の盤面再生 gold)が代表カード集合をカバーし不一致が有界。
+5. **ゴールデン再生(実行計測)**が**実デッキ加重**サンプルで合格。
+6. **研究分類器 ⇄ runtime 分類器の乖離 = 0**(parity テスト緑)。
+7. **検証不能率**を明示公開し上限以下。
+
+> **現況(2026-06-24)**: Slice1(層)実質収束 + Slice2(イベント語彙)iter3 で凍結候補(family 0.49%/observer 0.00%)。だが **Slice3/4 未完・条件4〜6 の計測器が未整備**のため **M-CONTRACT は未到達**。本節が draft である状態は維持する(条件1〜7 を満たすまで凍結しない)。
 
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
 **契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
@@ -1800,3 +1816,5 @@ M-CONTRACT は枠を予約するのみ。導入する状態に対応する具体
   - **iter1-3(2026-06-23)**: 下面抽出→ギャップ閉鎖(L6引用能力/L4条件付否定/L7c乗算/L7bアニメート)→ churn 初算出 0.68%。adjudication 1,396→912。スライス1の層モデルは安定方向(凍結は全4スライス一巡後)。
 - **M0-O1(LLM-oracle 盲予測ハーネス・物差しトラック)着手(2026-06-23〜)**: §34.7 の主指標(オラクル間不一致率・帰属分布・物差し校正・検証不能率)を**初稼働**させる。契約 = `docs/oracle-harness.md`。M0-1 の層分類(`layerClassify`)に **Fable と相関しない独立ルーラー**を当てる:オラクルへ CR/「層」を見せず平易な挙動ファクトのみを盲予測させ(**Codex が clean-room 実行** = 別主体・別プロセスで相関遮断)、ファクト→層の写像と差分/KPI は機械的・決定的(`scripts/lib/oracleHarness.ts` + `scripts/oracle-sample.ts` + `scripts/oracle-diff.ts`、`research/llm-oracle/` へ出力)。iter1 は約200枚の層化サンプル(頭+多層+adjudication+ゴールド21)。採点 = `review.oracle-harness`。盤面挙動・エンジン公開挙動は不変(`src/engine/` 不変)。結果は ESO の trust 列(層別:一致=検証済/割れ=不一致/uncertain=検証不能)へ Fable が反映。
 - **M0-O2(Slice2 イベント語彙オラクル・物差しトラック)着手(2026-06-23〜)**: Slice2 下面抽出(`event-coverage`、commit d852b9b 収束)に**独立物差し**を当てる。§34.7 主指標をイベント語彙(誘発族/観測者/介在条件)へ適用。契約 = `docs/oracle-harness.md` §7(Slice1 物差し設計の `facts` schema 差し替え流用)。族/観測者は観測可能事象そのものゆえ**写像は恒等**(層のような隠れタクソノミ写像は無い)。**Codex clean-room** が oracleText のみから `EventFacts`(族集合・観測者集合・介在条件)を盲予測 → 分類器(`eventClassify`)と**3軸独立の集合差**で比較(`scripts/lib/eventOracleHarness.ts` + `scripts/event-oracle-sample.ts` + `scripts/event-oracle-diff.ts`、`research/event-oracle/` へ出力)。iter1 は約192枚層化(gold18+head+multi-family+observer+tail)。採点 = `review.event-oracle`。`src/engine/` 不変。結果は ESO Slice2 trust 列へ Fable が反映、family/observer 不一致率・churn・被覆で Slice2 継続 or Slice3 前進を判断。
+  - **iter3 完了(2026-06-24・commit bcec4ed)**: ESO 境界3裁定 + compiler9 修正で family 0.49%/observer 0.00%/不一致 1 件へ収束(Slice2 凍結候補)。詳細は [[m0-1-layer-slice-progress]]。
+- **M0 手法改訂(2026-06-24・本コミット)= decorrelated 批評(§8.1 別主体への戦略批評)を歯のあるゲート改訂へ変換**: 別 LLM の批評を Fable が裁定し、`engine-design-method.md` と本 §34.7/§34.7.1 を改訂。要点 = (a)churn 定義に「独立物差し通過後の低 churn のみ収束」を明記(Slice2 偽収束 0.05%→真 13.55% を precedent 化)(b)凍結ゲートを 3→**7 条件**へ厳格化(Slice3/4 一巡 + 実行計測ゴールデン再生 + 非LLM物差し + 分類器 parity=0 + 検証不能率)(c)非LLM独立物差しを凍結前の**要件**へ昇格(d)研究⇄runtime 分類器 parity を契約化。実装(ゴールデン再生ハーネス・分類器 parity 計測器)は Codex 背景発注。**結論: Slice1+2 のみでは凍結しない。次 = Slice3(ゾーン+プレイヤー)前進と条件4〜6 の計測器整備。**

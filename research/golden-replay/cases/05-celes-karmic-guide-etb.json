@@ -1,0 +1,60 @@
+{
+  "name": "Celes / Karmic Guide ETB candidate",
+  "sourceDeck": "Celes",
+  "initialState": {
+    "seed": 105,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "b26d50dd-54a1-43ce-9884-3999f698d97b",
+          "oracleId": "8c31fec9-e4b3-4761-990e-7be38eb05604",
+          "name": "Karmic Guide",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 5,
+          "colorIdentity": ["W"],
+          "typeLine": "Creature — Angel Spirit",
+          "keywords": ["Echo", "Flying", "Protection"],
+          "faces": [
+            {
+              "name": "Karmic Guide",
+              "typeLine": "Creature — Angel Spirit",
+              "oracleText": "Flying, protection from black\nEcho {3}{W}{W}\nWhen this creature enters, return target creature card from your graveyard to the battlefield.",
+              "power": "2",
+              "toughness": "2"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-karmic-filler",
+          "oracleId": "golden-karmic-filler",
+          "name": "Karmic Filler",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [{ "name": "Karmic Filler", "typeLine": "Artifact" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c1", "to": "battlefield", "position": "bottom" }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c1", "from": "hand", "to": "battlefield" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.etb" }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 0, "battlefield": 1, "graveyard": 0, "stack": 0 }
+  },
+  "limitations": [
+    "Target selection and returning a graveyard creature are guided/manual, so only candidate emission is measured."
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "name": "Muldrotha / Ice-Fang Coatl ETB draw",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 102,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "d63ec575-5261-41a1-94cc-9da6d8cf4e54",
+          "oracleId": "f4b1bbd1-f1b2-4c7d-bafd-9d2857f92a89",
+          "name": "Ice-Fang Coatl",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": ["G", "U"],
+          "typeLine": "Snow Creature — Snake",
+          "keywords": ["Flying", "Flash"],
+          "faces": [
+            {
+              "name": "Ice-Fang Coatl",
+              "typeLine": "Snow Creature — Snake",
+              "oracleText": "Flash\nFlying\nWhen this creature enters, draw a card.\nThis creature has deathtouch as long as you control at least three other snow permanents.",
+              "power": "1",
+              "toughness": "1"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-forest-01",
+          "oracleId": "golden-forest-01",
+          "name": "Forest A",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["G"],
+          "typeLine": "Basic Land — Forest",
+          "faces": [{ "name": "Forest A", "typeLine": "Basic Land — Forest" }]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-forest-02",
+          "oracleId": "golden-forest-02",
+          "name": "Forest B",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": ["G"],
+          "typeLine": "Basic Land — Forest",
+          "faces": [{ "name": "Forest B", "typeLine": "Basic Land — Forest" }]
+        }
+      }
+    ]
+  },
+  "commands": [
+    { "type": "moveCard", "cardId": "c1", "to": "battlefield", "position": "bottom" },
+    { "type": "addAbilityToStack", "sourceId": "c1", "kind": "triggered", "abilityLineIndex": 2 }
+  ],
+  "expectedEvents": [
+    { "step": 1, "type": "zone-change", "cardId": "c1", "from": "hand", "to": "battlefield" },
+    { "step": 2, "type": "stack-item-added", "cardId": "a1" },
+    { "step": 3, "type": "draw", "count": 1 },
+    { "step": 3, "type": "stack-item-resolved", "cardId": "a1" },
+    { "step": 3, "type": "zone-change", "cardId": "c2", "from": "library", "to": "hand" }
+  ],
+  "expectedTriggerCandidates": [
+    { "step": 1, "sourceId": "c1", "triggerId": "trigger.etb", "abilityLineIndex": 2 }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": { "library": 1, "hand": 1, "battlefield": 1, "graveyard": 0, "stack": 0 },
+    "cards": { "c1": { "zone": "battlefield" } },
+    "drawnThisTurn": 1
+  }
+}
