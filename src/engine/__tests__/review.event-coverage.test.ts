@@ -280,25 +280,27 @@ const cases: ReadonlyArray<
     ['when'],
     true,
   ],
-  // ── P5: mana 生成の tap は other(mana-tap)。状態変化 tap/untap でないので tap 族にしない。観測対象=enchanted permanent → unknown ──
+  // ── P5: mana 生成の tap は other(mana-tap)。状態変化 tap/untap でないので tap 族にしない。──
+  // iter3 裁定1: 被付与パーマネント(enchanted Forest)主体 = コントローラ不問の開集合 → observer=any(旧 unknown を訂正)。
   // 「As this Aura enters」は誘発形(When/Whenever/At)でないので非カウント。
   [
     'Utopia Sprawl',
     'Enchantment — Aura',
     'Enchant Forest\nAs this Aura enters, choose a color.\nWhenever enchanted Forest is tapped for mana, its controller adds an additional one mana of the chosen color.',
     ['other'],
-    ['unknown'],
+    ['any'],
     ['whenever'],
     false,
   ],
-  // ── 回帰ガード: opponent スコープは先頭語に限らない(「an opponent's graveyard」「each opponent's upkeep」「to an opponent」)──
-  // iter2-a で combat-damage 主語修正のため一時 ^ アンカーした際に opponent 検出が落ちた回帰を固定。
+  // ── iter3 裁定3: 観測者=主体スコープ。「deals damage to an opponent」の opponent は受け手(recipient)であり観測者でない。──
+  // 主体 = enchanted creature(被付与・開集合)→ 裁定1より observer=any(旧 opponent を訂正)。
+  // opponent 主語(「an opponent draws」「each opponent's upkeep」)は Smothering Tithe/Sheoldred/Bloodchief が引き続きガード。
   [
     'Curiosity',
     'Enchantment — Aura',
     'Enchant creature\nWhenever enchanted creature deals damage to an opponent, you may draw a card.',
     ['damage'],
-    ['opponent'],
+    ['any'],
     ['whenever'],
     false,
   ],
@@ -319,6 +321,189 @@ const cases: ReadonlyArray<
     ['any', 'opponent'],
     ['at', 'whenever'],
     true,
+  ],
+
+  // ════ M0-O2 iter3 裁定 pin(ESO 境界3決定 + compiler 複合トリガ修正を固定)════
+  // 正本 = docs/engine-state-ontology.md「iter3 ESO 境界裁定」/ research/event-oracle/adjudication.json。
+
+  // ── 裁定1(unknown→any): 被付与/装備パーマネント主体 = コントローラ不問の開集合 → any。tap-for-mana は other 族。──
+  [
+    'Wild Growth',
+    'Enchantment — Aura',
+    'Enchant land\nWhenever enchanted land is tapped for mana, its controller adds an additional {G}.',
+    ['other'],
+    ['any'],
+    ['whenever'],
+    false,
+  ],
+  [
+    'Fertile Ground',
+    'Enchantment — Aura',
+    'Enchant land\nWhenever enchanted land is tapped for mana, its controller adds an additional one mana of any color.',
+    ['other'],
+    ['any'],
+    ['whenever'],
+    false,
+  ],
+  // ── 裁定1: equipped creature dies = dies 族(creature)・観測者 any(装備先=開集合)──
+  [
+    'Skullclamp',
+    'Artifact — Equipment',
+    'Equipped creature gets +1/-1.\nWhenever equipped creature dies, draw two cards.\nEquip {1}',
+    ['dies'],
+    ['any'],
+    ['whenever'],
+    false,
+  ],
+  // ── 裁定1+3: equipped creature deals combat damage = damage 族・「to a player」は受け手で観測者でない・装備先=any ──
+  [
+    'Sword of Feast and Famine',
+    'Artifact — Equipment',
+    'Equipped creature gets +2/+2 and has protection from black and from green.\nWhenever equipped creature deals combat damage to a player, that player discards a card and you untap all lands you control.\nEquip {2}',
+    ['damage'],
+    ['any'],
+    ['whenever'],
+    false,
+  ],
+  // ── 裁定1: equipped creature attacks = attacks 族・装備先=any ──
+  [
+    'Sword of the Animist',
+    'Legendary Artifact — Equipment',
+    'Equipped creature gets +1/+1.\nWhenever equipped creature attacks, you may search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\nEquip {2}',
+    ['attacks'],
+    ['any'],
+    ['whenever'],
+    false,
+  ],
+
+  // ── 裁定2(dies→leaves): 非creature の戦場→墓地 = leaves(CR700.4 の dies は creature 限定)──
+  // Marionette: 「creature or artifact you control … from the battlefield」= creature 半→dies + artifact 半→leaves。主語 you control = controlled-set。
+  [
+    'Marionette Apprentice',
+    'Creature — Human Artificer',
+    'Fabricate 1 (When this creature enters, put a +1/+1 counter on it or create a 1/1 colorless Servo artifact creature token.)\nWhenever another creature or artifact you control is put into a graveyard from the battlefield, each opponent loses 1 life.',
+    ['dies', 'leaves'],
+    ['controlled-set'],
+    ['whenever'],
+    false,
+  ],
+  // Ichor Wellspring: artifact の enters + 「from the battlefield」= leaves(dies でない)。主体 this artifact = self。
+  [
+    'Ichor Wellspring',
+    'Artifact',
+    'When this artifact enters or is put into a graveyard from the battlefield, draw a card.',
+    ['enters', 'leaves'],
+    ['self'],
+    ['when'],
+    false,
+  ],
+  // Titania: 「Titania enters」(self) + 「a land you control … from the battlefield」= leaves(land=非creature)・controlled-set。
+  [
+    'Titania, Protector of Argoth',
+    'Legendary Creature — Elemental',
+    'When Titania enters, return target land card from your graveyard to the battlefield.\nWhenever a land you control is put into a graveyard from the battlefield, create a 5/3 green Elemental creature token.',
+    ['enters', 'leaves'],
+    ['controlled-set', 'self'],
+    ['when', 'whenever'],
+    false,
+  ],
+
+  // ── compiler 修正(複合『A, or B, or C』列挙トリガの中位/末尾取りこぼし)──
+  // Trouble in Pairs: 「an opponent attacks you …, draws their second card …, or casts their second spell …」= attacks/cast/draw・主語 opponent。
+  // 1行目「If an opponent would begin an extra turn …」は置換効果で誘発でない。
+  [
+    'Trouble in Pairs',
+    'Enchantment',
+    'If an opponent would begin an extra turn, that player skips that turn instead.\nWhenever an opponent attacks you with two or more creatures, draws their second card each turn, or casts their second spell each turn, you draw a card.',
+    ['attacks', 'cast', 'draw'],
+    ['opponent'],
+    ['whenever'],
+    false,
+  ],
+  // Syr Konrad: 「another creature dies(any), or a creature card … from anywhere other than the battlefield(zone), or … leaves your graveyard(zone/self)」。
+  [
+    'Syr Konrad, the Grim',
+    'Legendary Creature — Human Knight',
+    'Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1 damage to each opponent.\n{1}{B}: Each player mills a card. (They each put the top card of their library into their graveyard.)',
+    ['dies', 'zone'],
+    ['any', 'self'],
+    ['whenever'],
+    false,
+  ],
+  // Mirkwood Bats: 「you create or sacrifice a token」= create→other(専用族なし) + sacrifice。主語 you=self。
+  [
+    'Mirkwood Bats',
+    'Creature — Bat',
+    'Flying\nWhenever you create or sacrifice a token, each opponent loses 1 life.',
+    ['other', 'sacrifice'],
+    ['self'],
+    ['whenever'],
+    false,
+  ],
+  // ── compiler 修正(無所有格の主体 = any): Blood Artist「this creature(self) or another creature(無所有格=any) dies」。──
+  // 対比: Zulaport Cutthroat「another creature you control」= controlled-set。所有格の有無で any/controlled-set を弁別。
+  [
+    'Blood Artist',
+    'Creature — Vampire',
+    'Whenever this creature or another creature dies, target player loses 1 life and you gain 1 life.',
+    ['dies'],
+    ['any', 'self'],
+    ['whenever'],
+    false,
+  ],
+  // ── compiler 修正(unpossessed phase → any): 「At the beginning of the end step」(無 your)= 各ターンの終了ステップ → any。──
+  // 「Each nonland card … has escape」は静的能力で誘発でない → phase のみ。
+  [
+    'Underworld Breach',
+    'Enchantment',
+    "Each nonland card in your graveyard has escape. The escape cost is equal to the card's mana cost plus exile three other cards from your graveyard. (You may cast cards from your graveyard for their escape cost.)\nAt the beginning of the end step, sacrifice this enchantment.",
+    ['phase'],
+    ['any'],
+    ['at'],
+    false,
+  ],
+  // ── compiler 修正(causes-you → self): 「a land's ability causes you to add … mana」= mana 事象(other)・「you」= self。──
+  [
+    'Caged Sun',
+    'Artifact',
+    'As this artifact enters, choose a color.\nCreatures you control of the chosen color get +1/+1.\nWhenever a land\'s ability causes you to add one or more mana of the chosen color, add an additional one mana of that color.',
+    ['other'],
+    ['self'],
+    ['whenever'],
+    false,
+  ],
+  // ── compiler 修正(is-attacked 受動 → attacks 族): 「enchanted player is attacked」の compiler バグは族(other→attacks)。──
+  // 観測者は「被付与プレイヤー」= 特定だがテキスト不定の単一プレイヤー(「各プレイヤーの攻撃」ではない)→ unknown を維持。
+  // 裁定1(enchanted permanent → any = コントローラ不問の開集合)とは別物。物差しも unknown を uncertain として保留。
+  [
+    'Curse of Opulence',
+    'Enchantment — Aura Curse',
+    'Enchant player\nWhenever enchanted player is attacked, create a Gold token. Each opponent attacking that player does the same. (A Gold token is an artifact with "Sacrifice this token: Add one mana of any color.")',
+    ['attacks'],
+    ['unknown'],
+    ['whenever'],
+    false,
+  ],
+  // ── compiler 修正(any 過剰の是正 → self): 「your library and/or your graveyard」「your graveyard」= self。──
+  // Laelia: 「Laelia attacks」(self・自己名) + 「cards … put into exile from your library and/or your graveyard」= zone/self。
+  [
+    'Laelia, the Blade Reforged',
+    'Legendary Creature — Spirit Warrior',
+    'Haste\nWhenever Laelia attacks, exile the top card of your library. You may play that card this turn.\nWhenever one or more cards are put into exile from your library and/or your graveyard, put a +1/+1 counter on Laelia.',
+    ['attacks', 'zone'],
+    ['self'],
+    ['whenever'],
+    false,
+  ],
+  // Gitrog: 「your upkeep」(phase/self) + 「land cards … into your graveyard from anywhere」= zone(from anywhere≠leaves)・self。
+  [
+    'The Gitrog Monster',
+    'Legendary Creature — Frog Horror',
+    'Deathtouch\nAt the beginning of your upkeep, sacrifice The Gitrog Monster unless you sacrifice a land.\nYou may play an additional land on each of your turns.\nWhenever one or more land cards are put into your graveyard from anywhere, draw a card.',
+    ['phase', 'zone'],
+    ['self'],
+    ['at', 'whenever'],
+    false,
   ],
 ];
 

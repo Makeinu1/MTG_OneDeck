@@ -393,6 +393,15 @@ EDH 多人数(最終ゴール V4=4人)では**観測者スコープ**(self / 各
 - **trust**: 未検証
 - **既知欠落**: 「あなたや、あなたがコントロールするパーマネント」等の複合主体は近似(self に寄せる)。**多人数での精密化は V4 スコープ**。だが**軸自体は今スライスで刻む**(後付けは state 再設計=最も戻しにくい)
 
+##### iter3 ESO 境界裁定(2026-06-24・Fable)— ambiguous 10 を確定
+iter2-b の残差 ambiguous 10(物差し誤りは尽き ESO 未決のみ)を以下に裁定する。3決定はいずれも**「主体(subject)の開集合性」**という一貫した原理から導かれる。
+
+1. **被付与/装備パーマネント主体 → `any`(not `unknown`)**。`Whenever enchanted/equipped <X> …` の観測者は、付着先パーマネントのコントローラ。テキストで自軍にも相手にも固定されず(`Enchant creature`/`Equip` は両陣営に付き得る・コントロール奪取もある)=**コントローラ不問の開集合** → 値域 `any`。`unknown` は「判定不能=逃さない箱」であり**確定可能なものを残してはならない**(箱を空に保つ)。対象6件: Utopia Sprawl / Wild Growth / Fertile Ground / Skullclamp / Sword of Feast and Famine / Sword of the Animist。**注**: 「被付与プレイヤー」(`enchanted player is attacked` = Curse of Opulence)は別扱い=**観測者 `unknown` 維持**。enchanted permanent は「誰が controller でも当該 permanent の事象で発火」=コントローラ不問の `any` だが、enchanted player は「特定だがテキスト不定の単一プレイヤー」(各プレイヤーの攻撃では発火しない)で `any`(各/任意プレイヤー)に当たらず、確定不能=`unknown`(物差しも uncertain として保留)。Curse の compiler 修正対象は族のみ(`other`→`attacks`=受動 `is attacked`)。
+2. **非creature の戦場→墓地 → `leaves`(LTB)、`dies` ではない**(E-EVENT-FAMILY の `E-EV-DIES` は **CR700.4 = creature 限定**)。`<non-creature> is put into a graveyard from the battlefield` は leaves-the-battlefield 事象。主体が creature と非creature の**両方**を含む文(`creature or artifact you control …`)は **`dies` + `leaves` の双方**を発行する。対象3件: Marionette Apprentice(creature+artifact → dies+leaves)/ Ichor Wellspring(artifact → leaves)/ Titania, Protector of Argoth(land → leaves)。**`from anywhere`(戦場由来でない)は `leaves` でなく `zone`**(例 Gitrog/Syr Konrad)。
+3. **観測者は主体スコープ。`to an opponent / to a player`(受け手=recipient)は観測者にしない**。`Whenever <X> deals damage to an opponent …` の観測者は damage の**行為者** `<X>`(Curiosity=enchanted creature → 上記1より `any`)であって受け手 opponent ではない。**`an opponent <verb>s`(opponent が主語)は opponent を維持**(Smothering Tithe/Sheoldred の `each opponent's upkeep` 等)— 受け手除外は主語スコープ規則の精密化であって opponent 検出の撤回ではない。対象1件: Curiosity(`opponent` → `any`)。iter2-a の `review.event-coverage` opponent 回帰 pin のうち Curiosity を本裁定へ訂正(Sheoldred/Bloodchief が opponent 主語ガードを継続担保)。
+
+> 帰結: ambiguous 10 → 0。観測者 `unknown` 箱は本スライスで空(確定不能事象が出れば再開)。分類器への落とし込みは iter3 compiler 修正(`eventClassify.ts`)で実施し、`review.event-coverage` の敵対 gold が CR 準拠を固定する。
+
 #### E-INTERVENING-IF: 介在条件(CR603.4)
 - **CR根拠**: 603.4(`When … , if <条件>` は誘発時と解決時の二度チェック)
 - **コーパス需要**: `if you control / if you have / if …`(誘発直後の条件節)≈ 512(粗概算・上限)
@@ -526,3 +535,10 @@ flip-flop の後半:**ルール `eventClassify` を凍結し物差し(§7.2 prom
 - **substrate なお 0** = 3軸の ESO state モデルは2反復・物差し2改訂を経ても健全。
 - **収束読み**: 物差しが信頼域に入り(family 3.94%・oracle 帰属ほぼ消滅)、残差は「分類器の複合トリガ処理(iter3 compiler)」と「ESO 境界の Fable 決定(unknown-vs-any 他)」に**綺麗に二分**。**Slice2 は凍結に近いが未到達**(observer 6.40% > 5%)。次 iter3 = ESO 境界3決定 + compiler 複合トリガ修正 → 下面抽出 churn 再安定化 → family/observer 共に <5% 安定で Slice1 と合算し M-CONTRACT 凍結判定。
 - 監査: 機械4点緑(Fable独立)+ 全770緑。ルール凍結を `git diff scripts/lib/eventClassify.ts`(差分なし)で確認・`predictions.json` は新 promptHash(18a3c20a)。
+
+### 物差し iter3(ESO 境界裁定 + compiler 複合トリガ修正・2026-06-24)
+iter2-b で残差が **compiler 9 + ambiguous 10** に綺麗に二分されたのを受け、両方を閉じる反復。
+- **Fable 裁定**(上記「iter3 ESO 境界裁定」): ambiguous 10 を確定(enchanted/equipped X → `any` / 非creature LTB → `leaves` / recipient 除外 → 主体スコープ)。`review.event-coverage` に CR 準拠 gold を追加・Utopia Sprawl(unknown→any)/Curiosity(opponent→any)を訂正。
+- **Codex compiler 修正**(`eventClassify.ts`): 裁定の落とし込み(any/leaves/recipient除外)+ compiler 9 FN クラスタを閉鎖 —(a)**複合『A, or B, or C』列挙トリガ**の中位/末尾条件取りこぼし(Trouble in Pairs=attacks/cast/draw・Syr Konrad=dies/zone・Mirkwood Bats=other/sacrifice・Blood Artist の `another creature`(無所有格)→ any)、(b)**unpossessed phase**(`at the beginning of the end step` 無 `your` → `any` = Underworld Breach)、(c)**causes-you**(`a land's ability causes you to add` → self = Caged Sun)、(d)**is-attacked 受動**(`enchanted player is attacked` → `attacks` 族 = Curse of Opulence)、(e)Laelia/Gitrog の `your library/graveyard` → self(any 過剰の是正)。
+- **再計測**: `event-coverage` で churn 再算出(iter2→iter3。分類器変更後 0.05% 方向へ再安定するはず)→ `event-oracle-sample` 再生成 → **clean-room 再予測**(Fable と別主体・相関エラー遮断)→ `event-oracle-diff` で新 KPI。
+- **凍結判定基準**: family<5% & observer<5%(現 6.40%)& churn 低位 & substrate=0 & ambiguous=0 & compiler=0 を満たせば Slice2 凍結候補 → Slice1 と合算で M-CONTRACT 凍結判定。未達なら iter4。正本 = `adjudication.json` `iter3Result`。

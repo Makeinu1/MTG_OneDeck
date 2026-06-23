@@ -186,7 +186,26 @@ function firstConditionCommaIndex(text: string): number {
     return -1;
   }
 
-  return castEnumeratedSpellConditionCommaIndex(text, firstComma) ?? firstComma;
+  const castEnumerationEnd = castEnumeratedSpellConditionCommaIndex(text, firstComma);
+  if (castEnumerationEnd !== undefined) {
+    return castEnumerationEnd;
+  }
+
+  let conditionEnd = firstComma;
+  while (conditionEnd >= 0) {
+    const nextComma = text.indexOf(',', conditionEnd + 1);
+    if (nextComma < 0) {
+      return conditionEnd;
+    }
+
+    const continuation = text.slice(conditionEnd + 1, nextComma);
+    if (!isEnumeratedTriggerConditionContinuation(continuation)) {
+      return conditionEnd;
+    }
+    conditionEnd = nextComma;
+  }
+
+  return firstComma;
 }
 
 function castEnumeratedSpellConditionCommaIndex(
@@ -214,6 +233,29 @@ function castEnumeratedSpellConditionCommaIndex(
   return conditionComma >= 0 ? conditionComma : undefined;
 }
 
+function isEnumeratedTriggerConditionContinuation(text: string): boolean {
+  const normalized = normalize(text);
+  const startsWithOr = /^or\s+/i.test(normalized);
+  const continuation = normalized.replace(/^or\s+/i, '');
+  if (
+    /^(?:attacks|blocks|casts|draws|discards|sacrifices|deals|leaves|enters|dies|becomes)\b/i.test(
+      continuation,
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    startsWithOr &&
+    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(
+      continuation,
+    ) &&
+    /\b(?:dies|die|enters?|leaves?|attacks?|blocks?|casts?|draws?|discards?|sacrifices?|deals?|is\s+put|are\s+put|is\s+exiled|are\s+exiled)\b/i.test(
+      continuation,
+    )
+  );
+}
+
 function startsWithInterveningIf(afterTriggerCondition: string): boolean {
   const rest = afterTriggerCondition.trim();
   if (!/^if\b/i.test(rest)) {
@@ -235,7 +277,9 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   const families = new Set<EventFamily>();
   const dies = isDiesCondition(text);
   const enters = /\benters?\b(?:\s+the battlefield)?\b/i.test(text);
-  const leaves = /\bleaves?\s+the battlefield\b/i.test(text);
+  const leaves =
+    /\bleaves?\s+the battlefield\b/i.test(text) ||
+    isNonCreatureBattlefieldToGraveyardCondition(text);
   const cast = isCastCondition(text);
   const zoneText = cast ? stripCastSourceZoneModifiers(text) : text;
   const manaTap = isManaTapCondition(text);
@@ -249,13 +293,13 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   if (leaves) {
     families.add('leaves');
   }
-  if (!dies && !enters && !leaves && isZoneCondition(zoneText)) {
+  if (isZoneCondition(zoneText)) {
     families.add('zone');
   }
   if (cast) {
     families.add('cast');
   }
-  if (/\battacks?\b/i.test(text)) {
+  if (/\battacks?\b|\b(?:is|are)\s+attacked\b/i.test(text)) {
     families.add('attacks');
   }
   if (/\bblocks?\b|\bbecomes?\s+blocked\b|\bis\s+blocked\b|\bare\s+blocked\b/i.test(text)) {
@@ -272,6 +316,9 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   }
   if (/\bsacrifices?\b|\bis\s+sacrificed\b|\bare\s+sacrificed\b/i.test(text)) {
     families.add('sacrifice');
+  }
+  if (/\bcreates?\b[^,.;]*\btokens?\b/i.test(text)) {
+    families.add('other');
   }
   if (manaTap) {
     families.add('other');
@@ -298,10 +345,29 @@ function isDiesCondition(text: string): boolean {
     /\bdies\b/i.test(text) ||
     /\b(?:creatures?|tokens?)\b[^,.;]*\bdie\b/i.test(text) ||
     /\bthey\s+die\b/i.test(text) ||
-    /\bput\s+into\s+(?:a|an|the|your|their|its owner's|an opponent's)?\s*graveyard\s+from\s+the battlefield\b/i.test(
-      text,
-    )
+    battlefieldToGraveyardSubjects(text).some((subject) => /\bcreatures?\b/i.test(subject))
   );
+}
+
+function isNonCreatureBattlefieldToGraveyardCondition(text: string): boolean {
+  return battlefieldToGraveyardSubjects(text).some((subject) => {
+    if (!/\bcreatures?\b/i.test(subject)) {
+      return true;
+    }
+    return /\bcreatures?\b[^,.;]*\bor\b[^,.;]*\b(?:artifacts?|lands?|enchantments?|planeswalkers?|battles?)\b/i.test(
+      subject,
+    );
+  });
+}
+
+function battlefieldToGraveyardSubjects(text: string): string[] {
+  const subjects: string[] = [];
+  const probe =
+    /(?:^|,\s*(?:or\s+)?)([^,.;]*?)\b(?:is|are)\s+put\s+into\s+(?:a|an|the|your|their|its owner's|an opponent's)?\s*graveyard\s+from\s+the battlefield\b/gi;
+  for (const match of text.matchAll(probe)) {
+    subjects.push(normalize(match[1]));
+  }
+  return subjects;
 }
 
 function isCastCondition(text: string): boolean {
@@ -311,15 +377,25 @@ function isCastCondition(text: string): boolean {
 function isZoneCondition(text: string): boolean {
   return (
     /\b(?:is|are|was|were|becomes?|become)\s+exiled\b|\bexiles?\b/i.test(text) ||
+    /\bput\s+into\s+exile\b/i.test(text) ||
     /\breturns?\b[^,.;]*\b(?:hand|graveyard|library|command zone)\b/i.test(text) ||
-    /\bput\s+into\s+(?:a|an|the|your|their|its owner's|an opponent's)?\s*graveyard\b/i.test(
-      text,
-    ) ||
+    isNonBattlefieldGraveyardMove(text) ||
     /\bmills?\b[^,.;]*\bcards?\b/i.test(text) ||
     /\bleaves?\s+(?:your|a|an|the|that player's|an opponent's)?\s*(?:graveyard|library|hand|exile)\b/i.test(
       text,
     )
   );
+}
+
+function isNonBattlefieldGraveyardMove(text: string): boolean {
+  const probe =
+    /\bput\s+into\s+(?:a|an|the|your|their|its owner's|an opponent's)?\s*graveyard(?:\s+from\s+[^,.;]+)?/gi;
+  for (const match of text.matchAll(probe)) {
+    if (!/\bfrom\s+the battlefield\b/i.test(match[0])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function stripCastSourceZoneModifiers(text: string): string {
@@ -359,33 +435,49 @@ function classifyObservers(
   def: CardDef | undefined,
 ): ObserverScope[] {
   const body = conditionBody(conditionText, shape);
+  const scopeText = stripDamageRecipientScopes(body);
   const observers = new Set<ObserverScope>();
 
-  if (isOpponentScope(body)) {
+  if (isOpponentScope(scopeText)) {
     observers.add('opponent');
   }
-  if (isControlledSetScope(body)) {
+  if (isControlledSetScope(scopeText)) {
     observers.add('controlled-set');
   }
-  if (isSelfScope(body, shape, def)) {
+  if (isSelfScope(scopeText, shape, def)) {
     observers.add('self');
+  }
+  if (hasAdditionalUnpossessedCreatureScope(scopeText)) {
+    observers.add('any');
   }
   if (observers.size > 0) {
     return [...observers].sort();
   }
-  if (isAnyPlayerScope(body)) {
+  if (isAnyPlayerScope(scopeText)) {
     return ['any'];
   }
-  if (isAnyObjectScope(body)) {
+  if (isAnyObjectScope(scopeText)) {
     return ['any'];
   }
-  if (shape === 'at' && /\beach\b/i.test(body)) {
+  if (shape === 'at' && /\beach\b/i.test(scopeText)) {
     return ['any'];
   }
   if (shape === 'at') {
-    return ['self'];
+    return ['any'];
   }
   return ['unknown'];
+}
+
+function stripDamageRecipientScopes(text: string): string {
+  if (!/\b(?:deals?|dealt)\b[^,.;]*\bdamage\b/i.test(text)) {
+    return text;
+  }
+  return normalize(
+    text.replace(
+      /\bto\s+(?:(?:each|one)\s+of\s+your|(?:one\s+of\s+)?your|a|an|each|any|target|one or more|two or more|three or more)\s+(?:opponents?|players?)\b/gi,
+      ' ',
+    ),
+  );
 }
 
 function conditionBody(conditionText: string, shape: TriggerShape): string {
@@ -400,11 +492,10 @@ function conditionBody(conditionText: string, shape: TriggerShape): string {
 }
 
 function isOpponentScope(text: string): boolean {
-  // Opponent scope is detected wherever an opponent qualifies the triggering event
-  // (subject OR scoping possessive: "an opponent's graveyard", "each opponent's upkeep",
-  // "deals damage to an opponent"). Anchoring to ^ regressed these (M0-O2 iter2-a audit:
-  // Bloodchief Ascension / Sheoldred / Curiosity). The reorder below (subject scopes
-  // before any-player) is what fixes "combat damage to a player" → any, not this anchor.
+  // Opponent scope is detected for event subjects and scoping possessives
+  // ("an opponent draws", "an opponent's graveyard", "each opponent's upkeep").
+  // Damage recipients are removed before this check because observer scope follows
+  // the event subject, not the recipient.
   return (
     /\b(?:an|each|target)\s+opponents?\b/i.test(text) ||
     /\byour opponents?\b/i.test(text) ||
@@ -444,6 +535,12 @@ function isSelfScope(text: string, shape: TriggerShape, def: CardDef | undefined
   if (/^(?:you|your)\b/i.test(text) || /^this\b/i.test(text)) {
     return true;
   }
+  if (/\bcauses?\s+you\s+to\b/i.test(text)) {
+    return true;
+  }
+  if (/\byour\s+(?:library|graveyard)\b/i.test(text)) {
+    return true;
+  }
   if (isSelfCounterTargetScope(text, def)) {
     return true;
   }
@@ -467,7 +564,16 @@ function isSelfCounterTargetScope(text: string, def: CardDef | undefined): boole
 }
 
 function isAnyObjectScope(text: string): boolean {
-  return /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(text);
+  return (
+    /^(?:enchanted|equipped)\s+(?!player\b)/i.test(text) ||
+    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(text)
+  );
+}
+
+function hasAdditionalUnpossessedCreatureScope(text: string): boolean {
+  return /(?:^|\bor\s+)another creature(?![^,.;]*\byou control\b)[^,.;]*\bdies\b/i.test(
+    text,
+  );
 }
 
 function selfNames(def: CardDef | undefined): string[] {

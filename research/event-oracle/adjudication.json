@@ -1,6 +1,6 @@
 {
-  "version": "M0-O2-iter1",
-  "adjudicatedAt": "2026-06-23",
+  "version": "M0-O2-iter3",
+  "adjudicatedAt": "2026-06-24",
   "adjudicator": "fable",
   "frozenMeter": {
     "sample": "research/event-oracle/sample.json",
@@ -206,5 +206,29 @@
     },
     "nextIter3": "compiler 9(複合 or-list P6 が筆頭・4件)を eventClassify 修正→churn 再算出。ESO 境界3決定を docs に明記し ambiguous を解消。両後に family/observer 不一致率 + churn が共に低位安定なら Slice2 凍結候補。",
     "review": "機械4点緑(Fable独立)+ review 全770緑。rule(eventClassify)凍結を git diff で確認・predictions.json は新 promptHash。"
+  },
+  "iter3Result": {
+    "adjudicatedAt": "2026-06-24",
+    "adjudicator": "fable",
+    "what": "flip-flop の rule 半。物差し(prompt v2/predictions.json/sample.json)を凍結したまま、ルール eventClassify を ESO iter3 裁定 + compiler 9 FN クラスタで修正(Codex)。promptHash 18a3c20a 不変=物差し凍結を git diff で確認。",
+    "esoDecisions": {
+      "unknown-vs-any": "裁定=any。enchanted/equipped <permanent> 主体はコントローラ不問の開集合 → any(unknown 箱を空に)。6件(Utopia/Wild Growth/Fertile Ground/Skullclamp/Sword F&F/Sword Animist)。分類器 isAnyObjectScope に `^(enchanted|equipped)\\s+(?!player)` を追加。",
+      "dies-vs-leaves": "裁定=leaves(CR700.4 の dies は creature 限定)。非creature の battlefield→graveyard は leaves、creature+非creature 混在は双方、from anywhere は zone。3件(Marionette=dies+leaves/Ichor=enters+leaves/Titania=enters+leaves)。分類器 battlefieldToGraveyardSubjects で主語別に判定。",
+      "recipient-opponent": "裁定=主語スコープ(recipient 除外)。`deals damage to an opponent/player` の to-句は受け手で観測者でない。Curiosity=any(主語=enchanted creature)。stripDamageRecipientScopes で観測者判定前に to-recipient を除去。opponent 主語(an opponent draws/each opponent's upkeep)は維持。",
+      "enchanted-player-correction": "監査中の訂正: 当初『enchanted player も any』としたが、uncertain-masking で凍結オラクル(Curse of Opulence=unknown/uncertain)と新規不一致を作ると判明。enchanted player は『特定だが不定の単一プレイヤー』(各プレイヤーの攻撃で発火しない)で any でなく unknown 維持と再裁定。Curse の compiler 修正は族のみ(other→attacks=受動 is attacked)。"
+    },
+    "kpiAfter": {
+      "familyDiscrepancyRate": 0.0049,
+      "observerDiscrepancyRate": 0.0,
+      "interveningIfDiscrepancyRate": 0.0,
+      "unverifiableRate": 0.0246,
+      "discrepancies": 1,
+      "attributionDistribution": { "substrate": 0, "compiler": 0, "oracle": 1, "ambiguous": 0 },
+      "churn": "iter2-b→iter3 = 401/17491(2.29%)。byFamily = leaves +74 / dies -66(=dies→leaves 意図的再分類が主因)/ zone +12 / attacks +5 / cast +1 / blocks +1 / draw +1 / other -3。mapping failures 0。"
+    },
+    "progression": "family 3.94%→0.49%。observer 6.40%→0.00%。discrepancies 20→1。compiler 9→0・ambiguous 10→0・substrate 0 維持。残 1 = oracle(Animate Dead の mid-line leaves 取りこぼし=iter2-b と同一・物差し誤りで分類器バグでない)。",
+    "convergence": "凍結判定基準を全達成(family<5% & observer<5% & substrate=0 & ambiguous=0 & compiler=0)。強い陽性=独立物差し(別故障モード)が family 99.5%/observer 100% で一致(method §3 の真の収束シグナル)。churn 2.29% は本反復の意図的 rule 移動(dies→leaves)で説明可能・iter2-a の偽収束崩壊 13.55% から大幅低下。→ Slice2 は凍結候補。最終 M-CONTRACT 凍結は Slice1(層)と合算で判定。",
+    "nextStep": "Slice2 凍結候補として記録。残差 oracle 1(Animate Dead)は物差し改善の将来候補(mid-line leaves 取りこぼし)。次は Slice1 と合算した M-CONTRACT 凍結判定、または Slice3 への前進。",
+    "review": "機械4点緑(Fable独立=lint/tsc/vitest 787/build)+ review.event-coverage 48 + review.event-oracle 16 全緑。分類器 diff にカード名ハードコード無し(全て汎用パターン規則)。predictions.json/sample.json/adjudication 本体以外の物差し成果物は無変更・promptHash 不変。"
   }
 }
