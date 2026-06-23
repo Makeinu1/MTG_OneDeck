@@ -52,6 +52,44 @@ const TYPE_WORDS =
 
 const COLOR_WORDS = 'white|blue|black|red|green|colorless';
 
+const L1A_PROBES: readonly RegExp[] = [
+  /\b(?:becomes?|become|is|are)\s+(?:a\s+)?copy of\b[^.;]*/i,
+  /\b(?:enters?|enter)\s+as\s+(?:a\s+)?copy of\b[^.;]*/i,
+  /\bas\s+(?:a\s+)?copy of\b[^.;]*/i,
+];
+
+const L4_PROBES: readonly RegExp[] = [
+  /\bNonbasic lands are Mountains\b/i,
+  new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+every\s+(?:creature|basic land)\s+type\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\b(?:becomes?|become)\s+the\s+(?:creature|artifact|enchantment|land)\s+type\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\bbecomes?\s+(?:a|an)\s+[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*\b(?:${CARD_TYPES})\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\b(?:is|are)(?:n't| not)\s+(?:a|an)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
+  /\b(?:[Ii]s|[Aa]re)(?:n't| not)\s+(?:a|an)\s+[A-Z][A-Za-z'-]+\b[^.;]*/,
+  new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:a|an)\s+(?:${COLOR_WORDS})\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\b(?:[Ii]s|[Aa]re|[Bb]ecomes?|[Bb]ecome)\s+(?:a|an)\s+(?:${COLOR_WORDS})\s+[A-Z][A-Za-z'-]+\b[^.;]*`),
+  new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:a|an)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
+  /\b(?:[Ii]s|[Aa]re|[Bb]ecomes?|[Bb]ecome)\s+(?:a|an)\s+[A-Z][A-Za-z'-]+\b[^.;]*/,
+  new RegExp(String.raw`(?:^|[.;]\s*)[Ii]t['\u2019]s\s+(?:a|an)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
+  /\bin addition to (?:its|their) other types\b[^.;]*/i,
+];
+
+const L6_PROBES: readonly RegExp[] = [
+  /\b(?:have|has|gains?)\s+(?:"[^"]+"|\u201c[^\u201d]+\u201d)[^.;]*/i,
+  new RegExp(String.raw`\b(?:have|has|gain|gains|gained|gaining)\b[^.;]*(?:${KEYWORDS}|abilit(?:y|ies))\b[^.;]*`, 'i'),
+  new RegExp(String.raw`\b(?:lose|loses|lost|losing)\b[^.;]*(?:all\s+(?:other\s+)?abilit(?:y|ies)|abilit(?:y|ies)|${KEYWORDS})\b[^.;]*`, 'i'),
+  /\bcan't have or gain\b[^.;]*/i,
+  /\bcannot have or gain\b[^.;]*/i,
+  new RegExp(String.raw`\b(?:${KEYWORDS}) counters?\b[^.;]*`, 'i'),
+  /\bkeyword counters?\b[^.;]*/i,
+];
+
+const L7C_PROBES: readonly RegExp[] = [
+  /\bgets?\s+[+-](?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*/i,
+  /[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b[^.;]*/i,
+  /\bdouble(?:s|d)?\s+(?:the\s+)?power and toughness\b[^.;]*/i,
+];
+
 const RULES: readonly {
   layer: Exclude<LayerId, 'L7a'>;
   reads: readonly string[];
@@ -61,7 +99,7 @@ const RULES: readonly {
   {
     layer: 'L1a',
     reads: ['printed-characteristics'],
-    probes: [/\b(?:becomes?|become|is|are)\s+(?:a\s+)?copy of\b[^.;]*/i],
+    probes: L1A_PROBES,
   },
   {
     layer: 'L1b',
@@ -72,7 +110,7 @@ const RULES: readonly {
     layer: 'L2',
     reads: ['controller'],
     probes: [
-      /\byou control\s+(?:enchanted|equipped|target|that|this)\b[^.;]*/i,
+      /\byou control\s+(?:enchanted|equipped|target)\b[^.;]*/i,
       /\bgain(?:s|ed|ing)? control of\b[^.;]*/i,
       /\bexchange control of\b[^.;]*/i,
     ],
@@ -90,16 +128,7 @@ const RULES: readonly {
   {
     layer: 'L4',
     reads: ['card-types', 'subtypes', 'supertypes'],
-    probes: [
-      /\bNonbasic lands are Mountains\b/i,
-      new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+every\s+(?:creature|basic land)\s+type\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\b(?:becomes?|become)\s+the\s+(?:creature|artifact|enchantment|land)\s+type\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\bbecomes?\s+(?:a|an)\s+[+-]?(?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*\b(?:${CARD_TYPES})\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\b(?:is|are)(?:n't| not)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:a|an)\s+(?:${TYPE_WORDS}|[A-Z][A-Za-z'-]+)\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\b(?:is|are|becomes?|become)\s+(?:${TYPE_WORDS})\b[^.;]*`, 'i'),
-      /\bin addition to (?:its|their) other types\b[^.;]*/i,
-    ],
+    probes: L4_PROBES,
     cda: isCharacteristicDefiningLine,
   },
   {
@@ -115,15 +144,7 @@ const RULES: readonly {
   {
     layer: 'L6',
     reads: ['abilities', 'keyword-set'],
-    probes: [
-      /\b(?:have|has|gains?)\s+(?:"[^"]+"|\u201c[^\u201d]+\u201d)[^.;]*/i,
-      new RegExp(String.raw`\b(?:have|has|gain|gains|gained|gaining)\b[^.;]*(?:${KEYWORDS}|abilit(?:y|ies))\b[^.;]*`, 'i'),
-      new RegExp(String.raw`\b(?:lose|loses|lost|losing)\b[^.;]*(?:all\s+(?:other\s+)?abilit(?:y|ies)|abilit(?:y|ies)|${KEYWORDS})\b[^.;]*`, 'i'),
-      /\bcan't have or gain\b[^.;]*/i,
-      /\bcannot have or gain\b[^.;]*/i,
-      new RegExp(String.raw`\b(?:${KEYWORDS}) counters?\b[^.;]*`, 'i'),
-      /\bkeyword counters?\b[^.;]*/i,
-    ],
+    probes: L6_PROBES,
   },
   {
     layer: 'L7b',
@@ -137,11 +158,7 @@ const RULES: readonly {
   {
     layer: 'L7c',
     reads: ['power', 'toughness'],
-    probes: [
-      /\bgets?\s+[+-](?:\d+|X|\*)\/[+-]?(?:\d+|X|\*)\b[^.;]*/i,
-      /[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b[^.;]*/i,
-      /\bdouble(?:s|d)?\s+(?:the\s+)?power and toughness\b[^.;]*/i,
-    ],
+    probes: L7C_PROBES,
   },
   {
     layer: 'L7d',
@@ -183,6 +200,9 @@ export function classifyContinuousLayers(line: AbilityLine, def: CardDef): Layer
     if (!matchedText) {
       continue;
     }
+    if (shouldSkipLayerMatch(rule.layer, text, matchedText)) {
+      continue;
+    }
     tags.push({
       layer: rule.layer,
       cda: rule.cda?.(text, line, def, face) ?? false,
@@ -219,6 +239,98 @@ function firstMatch(text: string, probes: readonly RegExp[]): string | undefined
     }
   }
   return undefined;
+}
+
+function shouldSkipLayerMatch(
+  layer: Exclude<LayerId, 'L7a'>,
+  text: string,
+  matchedText: string,
+): boolean {
+  switch (layer) {
+    case 'L6':
+      return isCopyRetentionAbilityOnly(text);
+    case 'L7c':
+      return isQuotedOrReminderOnlyPowerToughness(text) || isCounterReferenceOnly(text, matchedText);
+    default:
+      return false;
+  }
+}
+
+function isCopyRetentionAbilityOnly(text: string): boolean {
+  return /\bexcept\s+it\s+has\s+this ability\b\s*\.?$/i.test(text);
+}
+
+function isQuotedOrReminderOnlyPowerToughness(text: string): boolean {
+  return firstMatch(stripReminderAndQuotedText(text), L7C_PROBES) === undefined;
+}
+
+function isCounterReferenceOnly(text: string, matchedText: string): boolean {
+  if (!/[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b/i.test(matchedText)) {
+    return false;
+  }
+  if (/\b(?:enters?|enter)\s+with\b[^.;]*[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b/i.test(text)) {
+    return false;
+  }
+  if (
+    /\b(?:put|puts|move|moves|double|doubles?|distribute|distributes?|place|places?)\b[^.;]*[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b/i.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+  return /\bwith\s+(?:an?\s+|one or more\s+|any\s+)?[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\s+on\b/i.test(
+    text,
+  );
+}
+
+function stripReminderAndQuotedText(text: string): string {
+  let output = '';
+  let parenthesisDepth = 0;
+  let inStraightQuote = false;
+  let inCurlyQuote = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (inStraightQuote) {
+      if (char === '"') {
+        inStraightQuote = false;
+      }
+      continue;
+    }
+
+    if (inCurlyQuote) {
+      if (char === '\u201d') {
+        inCurlyQuote = false;
+      }
+      continue;
+    }
+
+    if (parenthesisDepth > 0) {
+      if (char === '(') {
+        parenthesisDepth += 1;
+      } else if (char === ')') {
+        parenthesisDepth -= 1;
+      }
+      continue;
+    }
+
+    if (char === '(') {
+      parenthesisDepth = 1;
+      continue;
+    }
+    if (char === '"') {
+      inStraightQuote = true;
+      continue;
+    }
+    if (char === '\u201c') {
+      inCurlyQuote = true;
+      continue;
+    }
+    output += char;
+  }
+
+  return normalize(output);
 }
 
 function dedupeAndSortTags(tags: readonly LayerTag[]): LayerTag[] {

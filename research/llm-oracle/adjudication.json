@@ -1,0 +1,72 @@
+{
+  "version": "M0-iter4",
+  "adjudicatedAt": "2026-06-23",
+  "adjudicator": "fable",
+  "frozenMeter": {
+    "predictions": "research/llm-oracle/predictions.json",
+    "promptHash": "a2248e4d314998d8a1d40959ea052cca10a12ea9ea9145e02c9fbc4b71a85e4a",
+    "note": "§7 一変数: 本反復は物差し(LLM予測)凍結・ルール(分類器)のみ改変。"
+  },
+  "attributionKinds": ["substrate", "compiler", "oracle", "ambiguous"],
+  "schemaForHarness": "oracle-diff.ts は cards[oracleId].attribution を読み discrepancies[].attribution 列へ反映し、attribution 種別ごとの件数(帰属分布)を report に集計する。未掲載 oracleId は attribution=null。",
+  "clusterInterpretation": {
+    "copy-L1a-L4": {
+      "cards": 12,
+      "finding": "コピー効果が二方向に割れる。(a) 分類器 L1a probe が『enters as a copy of』(動詞 is/are/becomes を伴わない)を取りこぼす → +L1a。(b) L4 probe(layerClassify.ts:98-99)の `[A-Z][A-Za-z'-]+` が `i` フラグで小文字語にも一致し『becomes a copy』『is an additional』が L4 を誤発火 → -L4。両者は同一根因=コピー文と i フラグ過貪欲。attribution=compiler。",
+      "attribution": "compiler"
+    },
+    "for-each-pump-L7a": {
+      "cards": 7,
+      "finding": "『gets +1/+1 for each X』を物差し(LLM-oracle)が definesCharacteristicByCount=true とし L7a を付すが、CR的にこれは『修整(modify)』=L7c であって『定義(define, CDA)』=L7a ではない。CDA(7a)は Tarmogoyf 等 `*` で P/T を定義し全ゾーンで機能するもの。分類器は正しく L7c のみ。→ 体系的な物差し誤り。attribution=oracle。§4-4 物差し校正の信号: 次オラクルバッチのプロンプトに『for each 加算は modify=7c、CDA=7a は * 定義のみ』を明記して再較正する(本反復では物差しを動かさない=§7)。",
+      "attribution": "oracle"
+    },
+    "L7c-false-positive": {
+      "cards": 3,
+      "finding": "分類器が『+N/+N』を (a) 注釈文(Not Dead After All の Wicked Role 注釈)、(b) 生成トークンの入れ子引用能力(Urza's Saga)、(c) 条件参照(Inspiring Call『+1/+1 counter on it』)で誤発火。いずれも当該カード自身の継続的 P/T 修整ではない。attribution=compiler。",
+      "attribution": "compiler"
+    },
+    "counter-token-scope": {
+      "cards": 5,
+      "finding": "ワンショットのトークン複製(Helm of the Host, Caretaker's Talent)とカウンター移動/付与(The Ozolith, Spymaster's Vault, Destiny Spinner の一部)は継続効果層の範囲外(classifyContinuousLayers は継続効果のみ)。物差しは isCopyEffect/modifiesPTByAmount を立てるが分類器の範囲限定は妥当。→ ESO のスコープ境界決定。attribution=ambiguous。",
+      "attribution": "ambiguous"
+    }
+  },
+  "attributionSummary": { "compiler": 21, "oracle": 9, "ambiguous": 5, "substrate": 0 },
+  "cards": {
+    "6c85271c-c711-49b0-a72e-9e576c33714d": { "name": "Sculpting Steel", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a"], "note": "enters as a copy → L1a を probe が取りこぼし。" },
+    "79a71fe5-38ce-4bb5-aea0-c9b9a856d397": { "name": "Mirrormade", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a"], "note": "enter as a copy 取りこぼし。" },
+    "340bbe8b-e987-4c3e-ab4e-9dee63e57d4f": { "name": "Phyrexian Metamorph", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a", "L4"], "note": "L1a 取りこぼし。L4(in addition to its other types)は正。" },
+    "8dcb35e5-ae44-455f-86e3-4a77d496ff34": { "name": "Spark Double", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a", "L7c"], "note": "L1a 取りこぼし。L7c(+1/+1 counter)は正。" },
+    "b9df2cdf-397c-458d-89cf-911568737ffa": { "name": "Mockingbird", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a", "L4", "L6"], "note": "L1a 取りこぼし。L4(Bird in addition)/L6(flying)は正。" },
+    "03f5c566-825c-4c46-9c01-a2f9b1e70a13": { "name": "The Mycosynth Gardens", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a"], "note": "becomes a copy の L4 誤発火(i フラグ)を除去。" },
+    "6a84eda1-7e72-4b5a-849f-b6e177565aeb": { "name": "Mirage Mirror", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a"], "note": "becomes a copy の L4 誤発火を除去。" },
+    "7c2a4fe5-43e8-4e20-bef2-0278d18afc4b": { "name": "Shifting Woodland", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a"], "note": "becomes a copy の L4 誤発火を除去。" },
+    "4d67e2a7-4aa7-44cc-853b-500d7aac046d": { "name": "Cursed Mirror", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L1a", "L6"], "note": "L4 誤発火除去。L1a/L6(haste)は正。" },
+    "037355be-71e7-4866-80a6-80352c304970": { "name": "Karlach, Fury of Avernus", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L6"], "note": "『there is an additional combat phase』の L4 誤発火(i フラグ)を除去。" },
+    "8242cd78-6675-43b5-8924-0a88c3aa6f76": { "name": "Genji Glove", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L6"], "note": "『is an additional』L4 誤発火除去。" },
+    "afe2f7a4-9440-4d93-801f-a18b627efb21": { "name": "Great Train Heist", "attribution": "compiler", "fix": "P1", "expectedLayers": ["L6", "L7c"], "note": "『is an additional』L4 誤発火除去。L6/L7c は正。" },
+    "b01e698b-608a-4fc7-8073-b01d044743ec": { "name": "Thespian's Stage", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L1a"], "note": "L4 誤発火(P1で除去)+ L6『except it has this ability』(コピー保持。実キーワード付与でない)を除去=P2。" },
+    "3577c47e-76d3-4659-b922-31c4b74be3a0": { "name": "Enduring Vitality", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L4", "L6"], "note": "『It's an enchantment.(It's not a creature.)』= 型変更 L4 を縮約形 It's のため取りこぼし。" },
+    "b3de29cb-7d7d-4566-b5bf-37e571bd5d78": { "name": "Enduring Courage", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L4", "L6", "L7c"], "note": "同上 It's a <type> の L4 取りこぼし。" },
+    "380c367f-73ea-485f-a37b-5af0ba160893": { "name": "Not Dead After All", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L6"], "note": "注釈文 (Enchanted creature gets +1/+1...) の L7c 誤発火。注釈除去で解消。" },
+    "4c6a0c30-b547-4eff-8ff4-0ca25803c076": { "name": "Urza's Saga", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L6"], "note": "生成トークンの入れ子引用『gets +1/+1 for each artifact』が L7c 誤発火。" },
+    "9b9a10ff-5a5d-4df8-88aa-18d84ff9117c": { "name": "Inspiring Call", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L6"], "note": "条件参照『creature ... with a +1/+1 counter on it』が L7c 誤発火。付与ではない。" },
+    "22f0dbbb-9d8d-42bc-8903-fc0b65e00952": { "name": "Marvin, Murderous Mimic", "attribution": "compiler", "fix": "P2", "expectedLayers": ["L6"], "note": "L2 probe『you control (that|this)』が関係節『creatures you control that ...』に誤発火。control 変更でない。" },
+    "94a844d2-0574-45a7-b347-e0e329767c42": { "name": "Necropotence", "attribution": "compiler", "fix": "none", "expectedLayers": [], "note": "L1b『face down』が『exile ... face down』(裏向き追放=戦場の裏向きパーマネントでない)に誤発火。単発・regex 修正は回帰リスク。既知ノイズとして本反復は未修整。" },
+    "fb868840-09fa-49b1-85cb-b08ad065e972": { "name": "Bitterblossom", "attribution": "compiler", "fix": "none", "expectedLayers": [], "note": "トークン『with flying』が L6 誤発火と思われるが発火経路を目視確定できず。単発・既知ノイズとして未修整(Codex は調査のみ可、回帰リスクなら据え置き)。" },
+    "70a6f08e-854d-4e2f-9d8c-c45ec3231157": { "name": "Faeburrow Elder", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差しが L7a 過剰付与。for each 加算は L7c。分類器は正。回帰ガードとして expectedLayers を固定。" },
+    "8c220dbd-6572-4715-aae6-dd09a4252d68": { "name": "Banner of Kinship", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差し L7a 過剰付与。fellowship counter ごとの +1/+1 は L7c。" },
+    "a145ff8c-5812-4bcb-bd16-9839dc25121d": { "name": "Storm-Kiln Artist", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差し L7a 過剰付与。+1/+0 for each artifact は L7c。" },
+    "a27445db-33f2-4571-98b5-83206b797484": { "name": "Shared Animosity", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差し L7a 過剰付与。for each attacker の +1/+0 は L7c。" },
+    "a4d751e0-41c1-4e90-853d-512f385acd81": { "name": "All That Glitters", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差し L7a 過剰付与。for each artifact/enchantment の +1/+1 は L7c。" },
+    "dbba75f5-2404-4bd5-982b-f6c4effa5316": { "name": "Ethereal Armor", "attribution": "oracle", "fix": "none", "expectedLayers": ["L6", "L7c"], "note": "物差し L7a 過剰付与。L6(first strike)/L7c(for each enchantment)は正。" },
+    "dca51281-fb21-45b6-beb4-1f13397caee2": { "name": "Blackblade Reforged", "attribution": "oracle", "fix": "none", "expectedLayers": ["L7c"], "note": "物差し L7a 過剰付与。for each land の +1/+1 は L7c。" },
+    "37108cd4-bbab-4ce3-9ed6-f60e8422e703": { "name": "Ragavan, Nimble Pilferer", "attribution": "oracle", "fix": "none", "expectedLayers": [], "note": "Dash は自己の一時ヘイスト付与であり継続的 L6 ではない。分類器の空集合が正。" },
+    "acfa77fd-3610-4f12-9c3c-bd860ce91700": { "name": "Rhythm of the Wild", "attribution": "oracle", "fix": "none", "expectedLayers": ["L6"], "note": "riot 注釈の +1/+1 counter を物差しが L7c 化。riot は L6 付与、カウンターはワンショット。分類器の [L6] が正。" },
+    "83b43aba-bf9c-4da2-967d-9daa632e97d2": { "name": "Helm of the Host", "attribution": "ambiguous", "fix": "none", "expectedLayers": ["L6"], "note": "『create a token that's a copy』はワンショット・トークン複製=継続層スコープ外(isOneShotCopyTokenLine)。L6(token gains haste)は正。物差しの L1a は範囲外の過剰。" },
+    "c97957a2-8310-4cff-8aad-871b7901d124": { "name": "Caretaker's Talent", "attribution": "ambiguous", "fix": "none", "expectedLayers": ["L7c"], "note": "create a token that's a copy = スコープ外。L7c(creature tokens get +2/+2)は正。" },
+    "1946ded1-5f53-409f-b0a6-5433bb0357d2": { "name": "The Ozolith", "attribution": "ambiguous", "fix": "none", "expectedLayers": [], "note": "カウンターの移動はカウンター・オブジェクト操作でありカード自身の継続 P/T 効果でない。分類器の空集合が妥当。スコープ境界。" },
+    "69ddca4b-5cc0-45f3-b2e6-a047c8d601be": { "name": "Spymaster's Vault", "attribution": "ambiguous", "fix": "none", "expectedLayers": [], "note": "connive による +1/+1 カウンター付与はワンショット。継続層スコープ外。" },
+    "7dd189f8-a23f-4b43-b0ef-fb174a9664ba": { "name": "Destiny Spinner", "attribution": "ambiguous", "fix": "none", "expectedLayers": ["L4", "L7b"], "note": "混在: 分類器は『becomes an X/X Elemental』の L6(trample/haste 付与)を取りこぼし(compiler 寄り・狭域)、物差しは L7b(set base by count)を L7a と誤判定(oracle 寄り)。アニメート×count の境界事例として据え置き。" }
+  }
+}

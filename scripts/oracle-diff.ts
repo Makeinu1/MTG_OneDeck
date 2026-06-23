@@ -5,6 +5,8 @@ import process from 'node:process';
 import {
   FACT_KEYS,
   computeReport,
+  type Attribution,
+  type CardDiff,
   type FactKey,
   type OracleFacts,
   type OracleReport,
@@ -14,6 +16,7 @@ import type { LayerId } from './lib/layerClassify.ts';
 const SAMPLE_PATH = resolve(process.cwd(), 'research/llm-oracle/sample.json');
 const PREDICTIONS_PATH = resolve(process.cwd(), 'research/llm-oracle/predictions.json');
 const COVERAGE_REPORT_PATH = resolve(process.cwd(), 'research/layer-coverage/report.json');
+const ADJUDICATION_PATH = resolve(process.cwd(), 'research/llm-oracle/adjudication.json');
 const REPORT_JSON_PATH = resolve(process.cwd(), 'research/llm-oracle/report.json');
 const REPORT_MD_PATH = resolve(process.cwd(), 'research/llm-oracle/report.md');
 
@@ -52,10 +55,20 @@ const GOLD_SPECS: readonly GoldSpec[] = [
   { name: 'Cyberdrive Awakener', layers: ['L4', 'L6', 'L7b'], cda: false },
 ];
 
+const ATTRIBUTIONS: readonly Attribution[] = ['substrate', 'compiler', 'oracle', 'ambiguous'];
+
 interface GoldSpec {
   name: string;
   layers: LayerId[];
   cda: boolean;
+}
+
+type AttributionKey = Attribution | 'null';
+
+type AttributionDistribution = Record<AttributionKey, number>;
+
+interface OracleReportWithAttribution extends OracleReport {
+  attributionDistribution: AttributionDistribution;
 }
 
 interface GoldCard {
@@ -102,9 +115,10 @@ async function main(): Promise<void> {
   const sample = coerceSample(await readJson(SAMPLE_PATH));
   const predictionsPayload = coercePredictions(await readJson(PREDICTIONS_PATH));
   const coverageReport = coerceCoverageReport(await readJson(COVERAGE_REPORT_PATH));
+  const adjudications = await readAdjudicationAttributions(ADJUDICATION_PATH);
   const predictions = orderAndValidatePredictions(sample.cards, predictionsPayload.predictions);
   const { gold, unresolvedGold } = resolveGoldCards(GOLD_SPECS, coverageReport.cards);
-  const report = computeReport(coverageReport.cards, predictions, gold);
+  const report = applyAttributions(computeReport(coverageReport.cards, predictions, gold), adjudications);
 
   await mkdir(dirname(REPORT_JSON_PATH), { recursive: true });
   await writeFile(REPORT_JSON_PATH, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
@@ -128,6 +142,66 @@ async function main(): Promise<void> {
 async function readJson(path: string): Promise<unknown> {
   const source = await readFile(path, 'utf8');
   return JSON.parse(source) as unknown;
+}
+
+async function readAdjudicationAttributions(path: string): Promise<ReadonlyMap<string, Attribution>> {
+  try {
+    const source = await readFile(path, 'utf8');
+    return coerceAdjudicationAttributions(JSON.parse(source) as unknown);
+  } catch {
+    return new Map<string, Attribution>();
+  }
+}
+
+function coerceAdjudicationAttributions(value: unknown): ReadonlyMap<string, Attribution> {
+  if (!isRecord(value) || !isRecord(value.cards)) {
+    return new Map<string, Attribution>();
+  }
+
+  const attributions = new Map<string, Attribution>();
+  for (const [oracleId, rawCard] of Object.entries(value.cards)) {
+    if (!isRecord(rawCard) || !isAttribution(rawCard.attribution)) {
+      continue;
+    }
+    attributions.set(oracleId, rawCard.attribution);
+  }
+  return attributions;
+}
+
+function applyAttributions(
+  report: OracleReport,
+  adjudications: ReadonlyMap<string, Attribution>,
+): OracleReportWithAttribution {
+  const discrepancies = report.discrepancies.map<CardDiff>((diff) => ({
+    ...diff,
+    attribution: adjudications.get(diff.oracleId) ?? null,
+  }));
+
+  return {
+    ...report,
+    discrepancies,
+    attributionDistribution: buildAttributionDistribution(discrepancies),
+  };
+}
+
+function buildAttributionDistribution(
+  discrepancies: readonly CardDiff[],
+): AttributionDistribution {
+  const distribution = createAttributionDistribution();
+  for (const diff of discrepancies) {
+    distribution[diff.attribution ?? 'null'] += 1;
+  }
+  return distribution;
+}
+
+function createAttributionDistribution(): AttributionDistribution {
+  return {
+    substrate: 0,
+    compiler: 0,
+    oracle: 0,
+    ambiguous: 0,
+    null: 0,
+  };
 }
 
 function orderAndValidatePredictions(
@@ -204,7 +278,7 @@ function resolveGoldCards(
 }
 
 function renderMarkdown(input: {
-  report: OracleReport;
+  report: OracleReportWithAttribution;
   predictionsPayload: PredictionsJson;
   unresolvedGold: readonly string[];
 }): string {
@@ -222,6 +296,7 @@ function renderMarkdown(input: {
     `- discrepancyRate: ${percent(report.discrepancyRate)}`,
     `- unverifiableRate: ${percent(report.unverifiableRate)}`,
     `- discrepancies: ${report.discrepancies.length}`,
+    `- attributionDistribution: ${attributionDistributionSummary(report.attributionDistribution)}`,
     `- unresolvedGold: ${input.unresolvedGold.length > 0 ? input.unresolvedGold.map(cell).join(', ') : 'none'}`,
     '',
     '## Per Layer Confusion',
@@ -244,6 +319,10 @@ function renderMarkdown(input: {
     '## Clusters',
     '',
     ...renderClusters(report),
+    '',
+    '## Attribution Distribution',
+    '',
+    ...renderAttributionDistribution(report.attributionDistribution),
     '',
     '## Discrepancies',
     '',
@@ -278,8 +357,16 @@ function renderDiscrepancies(report: OracleReport): string[] {
     '|---|---|---|---|---|---:|---|',
     ...report.discrepancies.map(
       (diff) =>
-        `| ${cell(diff.deltaSignature)} | ${diff.oracleId} | ${cell(diff.name)} | ${layerList(diff.classifierOnly)} | ${layerList(diff.oracleOnly)} | ${diff.hasUncertain ? 'yes' : 'no'} | null |`,
+        `| ${cell(diff.deltaSignature)} | ${diff.oracleId} | ${cell(diff.name)} | ${layerList(diff.classifierOnly)} | ${layerList(diff.oracleOnly)} | ${diff.hasUncertain ? 'yes' : 'no'} | ${diff.attribution ?? 'null'} |`,
     ),
+  ];
+}
+
+function renderAttributionDistribution(distribution: AttributionDistribution): string[] {
+  return [
+    '| attribution | count |',
+    '|---|---:|',
+    ...attributionKeys().map((key) => `| ${key} | ${distribution[key]} |`),
   ];
 }
 
@@ -401,8 +488,22 @@ function isLayerId(value: unknown): value is LayerId {
   return typeof value === 'string' && LAYER_ORDER.includes(value as LayerId);
 }
 
+function isAttribution(value: unknown): value is Attribution {
+  return typeof value === 'string' && ATTRIBUTIONS.includes(value as Attribution);
+}
+
 function isFactKey(value: unknown): value is FactKey {
   return typeof value === 'string' && FACT_KEYS.includes(value as FactKey);
+}
+
+function attributionKeys(): AttributionKey[] {
+  return [...ATTRIBUTIONS, 'null'];
+}
+
+function attributionDistributionSummary(distribution: AttributionDistribution): string {
+  return attributionKeys()
+    .map((key) => `${key}=${distribution[key]}`)
+    .join(', ');
 }
 
 function percent(value: number): string {

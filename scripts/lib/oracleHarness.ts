@@ -1,5 +1,7 @@
 import type { LayerId } from './layerClassify.ts';
 
+export type Attribution = 'substrate' | 'compiler' | 'oracle' | 'ambiguous';
+
 export const FACT_KEYS = [
   'changesController',
   'changesTypes',
@@ -36,7 +38,7 @@ export interface CardDiff {
   agree: boolean;
   hasUncertain: boolean;
   deltaSignature: string;
-  attribution: null;
+  attribution: Attribution | null;
 }
 
 export interface LayerConfusion {

@@ -4,62 +4,62 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Summary
 
-- Generated at: 2026-06-22T22:55:53.590Z
+- Generated at: 2026-06-23T04:09:42.518Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- classified continuous lines: 7538
+- classified continuous lines: 7418
 - cdaCardCount: 128
-- multiLayer cards: 1811
-- adjudication candidates: 912
-- churn: 119/17491 changed (0.68%), baselineCards=17491, byLayer=L4 +95, L7b +118
+- multiLayer cards: 1684
+- adjudication candidates: 914
+- churn: 376/17491 changed (2.15%), baselineCards=17491, byLayer=L1a +51, L2 -91, L4 -113, L6 -4, L7c -109
 - mapping failures: 0
 
 ## Per Layer
 
 | layer | card count | line count | effect line rate | examples |
 |---|---:|---:|---:|---|
-| L1a | 61 | 61 | 0.81% | Shifting Woodland (rank 365); Cursed Mirror (rank 444); Thespian's Stage (rank 558); The Mycosynth Gardens (rank 870); Mirage Mirror (rank 1267) |
-| L1b | 62 | 64 | 0.85% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
-| L2 | 284 | 293 | 3.89% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Ripples of Potential (rank 994); Ocelot Pride (rank 1118); Marvin, Murderous Mimic (rank 1167) |
+| L1a | 112 | 113 | 1.52% | Phyrexian Metamorph (rank 305); Shifting Woodland (rank 365); Spark Double (rank 407); Cursed Mirror (rank 444); Thespian's Stage (rank 558) |
+| L1b | 62 | 64 | 0.86% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
+| L2 | 193 | 199 | 2.68% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Homeward Path (rank 1178); Alexios, Deimos of Kosmos (rank 1254); Coveted Jewel (rank 1293) |
 | L3 | 4 | 4 | 0.05% | New Blood (rank 4248); Mind Bend (rank 15607); Crystal Spray (rank 19990); Magical Hack (rank 21754) |
-| L4 | 645 | 662 | 8.78% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
-| L5 | 64 | 69 | 0.92% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
-| L6 | 2921 | 3039 | 40.32% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
-| L7a | 124 | 124 | 1.64% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
-| L7b | 269 | 282 | 3.74% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Destiny Spinner (rank 911); Mirror Entity (rank 933); Cyberdrive Awakener (rank 1090) |
-| L7c | 4391 | 4717 | 62.58% | Skullclamp (rank 41); Toxic Deluge (rank 67); Urza's Saga (rank 121); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188) |
+| L4 | 532 | 549 | 7.40% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
+| L5 | 64 | 69 | 0.93% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
+| L6 | 2917 | 3035 | 40.91% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
+| L7a | 124 | 124 | 1.67% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
+| L7b | 269 | 282 | 3.80% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Destiny Spinner (rank 911); Mirror Entity (rank 933); Cyberdrive Awakener (rank 1090) |
+| L7c | 4282 | 4577 | 61.70% | Skullclamp (rank 41); Toxic Deluge (rank 67); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188); Storm-Kiln Artist (rank 209) |
 | L7d | 10 | 10 | 0.13% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
 
 ## Coverage Curve
 
 | K | layer count | covered card count | covered card rate |
 |---:|---:|---:|---:|
-| 1 | 1 | 4391 | 25.10% |
-| 3 | 3 | 6391 | 36.54% |
-| 5 | 5 | 6569 | 37.56% |
-| 7 | 7 | 6684 | 38.21% |
-| all | 11 | 6748 | 38.58% |
+| 1 | 1 | 4282 | 24.48% |
+| 3 | 3 | 6291 | 35.97% |
+| 5 | 5 | 6429 | 36.76% |
+| 7 | 7 | 6582 | 37.63% |
+| all | 11 | 6658 | 38.07% |
 
 ## Examples
 
 ### L1a
 
+- rank 305 《Phyrexian Metamorph》: enter as a copy of any artifact or creature on the battlefield, except it's an artifact in addition to its other types
 - rank 365 《Shifting Woodland》: becomes a copy of target permanent card in your graveyard until end of turn
+- rank 407 《Spark Double》: enter as a copy of a creature or planeswalker you control, except it enters with an additional +1/+1 counter on it if it's a creature, it enters with an addi...
 - rank 444 《Cursed Mirror》: become a copy of any creature on the battlefield until end of turn, except it has haste
 - rank 558 《Thespian's Stage》: becomes a copy of target land, except it has this ability
+- rank 671 《Sculpting Steel》: enter as a copy of any artifact on the battlefield
+- rank 764 《Mockingbird》: enter as a copy of any creature on the battlefield with mana value less than or equal to the amount of mana spent to cast this creature, except it's a Bird i...
 - rank 870 《The Mycosynth Gardens》: becomes a copy of target nontoken artifact you control with mana value X
+- rank 909 《Vesuva》: as a copy of any land on the battlefield
+- rank 1083 《Sakashima of a Thousand Faces》: enter as a copy of another creature you control, except it has Sakashima's other abilities
+- rank 1194 《Mirrormade》: enter as a copy of any artifact or enchantment on the battlefield
 - rank 1267 《Mirage Mirror》: becomes a copy of target artifact, creature, enchantment, or land until end of turn
+- rank 1289 《Clever Impersonator》: enter as a copy of any nonland permanent on the battlefield
+- rank 1387 《Phantasmal Image》: enter as a copy of any creature on the battlefield, except it's an Illusion in addition to its other types and it has "When this creature becomes the target...
 - rank 1540 《Silent Hallcreeper》: becomes a copy of another target creature you control
-- rank 2050 《Likeness Looter》: becomes a copy of target creature card in your graveyard with mana value X, except it has flying and this ability
-- rank 2054 《Sarkhan, Soul Aflame》: become a copy of it until end of turn, except its name is Sarkhan, Soul Aflame and it's legendary in addition to its other types
-- rank 2092 《Brudiclad, Telchor Engineer》: becomes a copy of that token
-- rank 2392 《Saheeli, Sublime Artificer》: becomes a copy of another target artifact or creature you control until end of turn, except it's an artifact in addition to its other types
-- rank 2964 《Gogo, Mysterious Mime》: become a copy of another target creature you control until end of turn, except its name is Gogo, Mysterious Mime
-- rank 3054 《Court of Vantress》: become a copy of it, except it has this ability
-- rank 3690 《Sunfrill Imitator》: become a copy of another target Dinosaur you control, except its name is Sunfrill Imitator and it has this ability
-- rank 4473 《Nanogene Conversion》: becomes a copy of that creature until end of turn, except it isn't legendary
-- rank 4781 《Irma, Part-Time Mutant》: becomes a copy of up to one other target creature you control, except her name is Irma, Part-Time Mutant and she has this ability
 
 ### L1b
 
@@ -83,19 +83,19 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 - rank 510 《Wishclaw Talisman》: gains control of this artifact
 - rank 784 《Hellkite Tyrant》: gain control of all artifacts that player controls
-- rank 994 《Ripples of Potential》: you control that had a counter put on them this way
-- rank 1118 《Ocelot Pride》: you control that entered this turn, create a token that's a copy of it
-- rank 1167 《Marvin, Murderous Mimic》: you control that don't have the same name as this creature
 - rank 1178 《Homeward Path》: gains control of all creatures they own
 - rank 1254 《Alexios, Deimos of Kosmos》: gains control of Alexios, untaps it, and puts a +1/+1 counter on it
 - rank 1293 《Coveted Jewel》: gains control of this artifact
 - rank 1446 《Treasure Nabber》: gain control of that artifact until the end of your next turn
-- rank 1631 《Secret Tunnel》: you control that share a creature type can't be blocked this turn
 - rank 1757 《Seize the Spotlight》: gain control of a creature that player controls until end of turn
 - rank 1766 《Archmage's Charm》: Gain control of target nonland permanent with mana value 1 or less
 - rank 1782 《Humble Defector》: gains control of this creature
-- rank 1797 《Sage's Reverie》: you control that's attached to a creature
-- rank 1840 《Overpowering Attack》: you control that attacked this turn
+- rank 1842 《Emrakul, the Promised End》: gain control of target opponent during that player's next turn
+- rank 1911 《Volatile Stormdrake》: exchange control of this creature and target creature an opponent controls
+- rank 1945 《Insurrection》: gain control of them until end of turn
+- rank 1979 《Oko, Thief of Crowns》: Exchange control of target artifact or creature you control and target creature an opponent controls with power 3 or less
+- rank 2101 《Agent of Treachery》: gain control of target permanent
+- rank 2113 《Invert Polarity》: gain control of that spell and you may choose new targets for it
 
 ### L3
 
@@ -111,16 +111,16 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - rank 133 《Roaming Throne》: in addition to its other types
 - rank 291 《Dryad of the Ilysian Grove》: are every basic land type in addition to their other types
 - rank 305 《Phyrexian Metamorph》: in addition to its other types
-- rank 365 《Shifting Woodland》: becomes a copy of target permanent card in your graveyard until end of turn
-- rank 444 《Cursed Mirror》: become a copy of any creature on the battlefield until end of turn, except it has haste
 - rank 485 《Maskwood Nexus》: are every creature type
+- rank 494 《Enduring Vitality》: . It's an enchantment
 - rank 509 《Liquimetal Torque》: becomes an artifact in addition to its other types until end of turn
 - rank 549 《Brotherhood Regalia》: is an Assassin in addition to its other types, and can't be blocked
-- rank 558 《Thespian's Stage》: becomes a copy of target land, except it has this ability
 - rank 576 《Darksteel Mutation》: is an Insect artifact creature with base power and toughness 0/1 and has indestructible, and it loses all other abilities, card types, and creature types
 - rank 653 《Purphoros, God of the Forge》: isn't a creature
 - rank 690 《Kenrith's Transformation》: is a green Elk creature with base power and toughness 3/3
-- rank 701 《Aggravated Assault》: is an additional combat phase followed by an additional main phase
+- rank 750 《Imprisoned in the Moon》: is a colorless land with and loses all other card types and abilities
+- rank 764 《Mockingbird》: in addition to its other types and it has flying
+- rank 803 《Enduring Innocence》: . It's an enchantment
 
 ### L5
 
@@ -198,7 +198,6 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 - rank 41 《Skullclamp》: gets +1/-1
 - rank 67 《Toxic Deluge》: get -X/-X until end of turn
-- rank 121 《Urza's Saga》: gets +1/+1 for each artifact you control
 - rank 175 《Return of the Wildspeaker》: get +3/+3 until end of turn
 - rank 188 《Hardened Scales》: +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead
 - rank 209 《Storm-Kiln Artist》: gets +1/+0 for each artifact you control
@@ -206,11 +205,12 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - rank 225 《Patchwork Banner》: get +1/+1
 - rank 235 《The Great Henge》: +1/+1 counter on it and draw a card
 - rank 243 《Sword of the Animist》: gets +1/+1
-- rank 272 《Inspiring Call》: +1/+1 counter on it
 - rank 274 《Avenger of Zendikar》: +1/+1 counter on each Plant creature you control
 - rank 328 《Craterhoof Behemoth》: get +X/+X until end of turn, where X is the number of creatures you control
 - rank 329 《Shadowspear》: gets +1/+1 and has trample and lifelink
 - rank 331 《Finale of Devastation》: get +X/+X and gain haste until end of turn
+- rank 339 《Blackblade Reforged》: gets +1/+1 for each land you control
+- rank 354 《Vanquisher's Banner》: get +1/+1
 
 ### L7d
 
@@ -228,23 +228,22 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Multi Layer Cards
 
-- 《Urza's Saga》: L6, L7c
 - 《Animate Dead》: L6, L7c
-- 《Inspiring Call》: L6, L7c
+- 《Phyrexian Metamorph》: L1a, L4
 - 《Craterhoof Behemoth》: L6, L7c
 - 《Shadowspear》: L6, L7c
 - 《Finale of Devastation》: L6, L7c
-- 《Shifting Woodland》: L1a, L4
 - 《Kessig Wolf Run》: L6, L7c
-- 《Cursed Mirror》: L1a, L4, L6
+- 《Spark Double》: L1a, L7c
+- 《Cursed Mirror》: L1a, L6
 - 《Snakeskin Veil》: L6, L7c
 - 《Felidar Retreat》: L6, L7c
+- 《Enduring Vitality》: L4, L6
 - 《Commander's Plate》: L6, L7c
 - 《Unbreakable Formation》: L6, L7c
 - 《Sword of Feast and Famine》: L6, L7c
 - 《Brotherhood Regalia》: L4, L6
 - 《Overwhelming Stampede》: L6, L7c
-- 《Thespian's Stage》: L1a, L4, L6
 - 《The Reaver Cleaver》: L6, L7c
 - 《Darksteel Mutation》: L4, L6, L7b
 - 《Intangible Virtue》: L6, L7c
@@ -256,7 +255,7 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Revitalizing Repast // Old-Growth Grove》: L6, L7c
 - 《Imprisoned in the Moon》: L4, L5, L6
 - 《Tyvar's Stand》: L6, L7c
-- 《Mockingbird》: L4, L6
+- 《Mockingbird》: L1a, L4, L6
 - 《Flowering of the White Tree》: L6, L7c
 - 《Champion's Helm》: L6, L7c
 - 《Rancor》: L6, L7c
@@ -264,7 +263,6 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Ashaya, Soul of the Wild》: L4, L7a
 - 《Rishkar, Peema Renegade》: L6, L7c
 - 《Elspeth, Storm Slayer》: L6, L7c
-- 《The Mycosynth Gardens》: L1a, L4
 - 《Bear Umbra》: L6, L7c
 - 《Sword of Hearth and Home》: L6, L7c
 - 《Colossus Hammer》: L6, L7c
@@ -275,9 +273,11 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Serra Ascendant》: L6, L7c
 - 《Yahenni, Undying Partisan》: L6, L7c
 - 《Heliod, Sun-Crowned》: L4, L6, L7c
-- 《Karlach, Fury of Avernus》: L4, L6
 - 《Ethereal Armor》: L6, L7c
 - 《Tyrite Sanctum》: L4, L6, L7c
+- 《Metallic Mimic》: L4, L7c
+- 《Sakashima of a Thousand Faces》: L1a, L6
+- 《Cyberdrive Awakener》: L4, L6, L7b
 
 ## Adjudication Candidates
 
@@ -296,7 +296,6 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Opposition Agent》: While an opponent is searching their library, they exile each card they find. You may play those cards for as long as they remain exiled, and you may spend mana as though it wer... (continuous-looking line without layer tag)
 - 《Wizard Class》: You have no maximum hand size. (continuous-looking line without layer tag)
 - 《Sphere of Safety》: Creatures can't attack you or planeswalkers you control unless their controller pays {X} for each of those creatures, where X is the number of enchantments you control. (continuous-looking line without layer tag)
-- 《Sculpting Steel》: You may have this artifact enter as a copy of any artifact on the battlefield. (continuous-looking line without layer tag)
 - 《Banner of Kinship》: As this artifact enters, choose a creature type. This artifact enters with a fellowship counter on it for each creature you control of the chosen type. (continuous-looking line without layer tag)
 - 《Gravecrawler》: You may cast this card from your graveyard as long as you control a Zombie. (continuous-looking line without layer tag)
 - 《Leyline of Anticipation》: If this card is in your opening hand, you may begin the game with it on the battlefield. (continuous-looking line without layer tag)
@@ -313,11 +312,9 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Teferi, Time Raveler》: +1: Until your next turn, you may cast sorcery spells as though they had flash. (continuous-looking line without layer tag)
 - 《Spymaster's Vault》: {B}, {T}: Target creature you control connives X, where X is the number of creatures that died this turn. (continuous-looking line without layer tag)
 - 《Neheb, the Eternal》: At the beginning of each of your postcombat main phases, add {R} for each 1 life your opponents have lost this turn. (continuous-looking line without layer tag)
-- 《Mirrormade》: You may have this enchantment enter as a copy of any artifact or enchantment on the battlefield. (continuous-looking line without layer tag)
 - 《Simic Ascendancy》: At the beginning of your upkeep, if this enchantment has twenty or more growth counters on it, you win the game. (continuous-looking line without layer tag)
 - 《Past in Flames》: Each instant and sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost. (continuous-looking line without layer tag)
 - 《Invasion of Ikoria // Zilortha, Apex of Ikoria》: For each non-Human creature you control, you may have that creature assign its combat damage as though it weren't blocked. (continuous-looking line without layer tag)
-- 《Clever Impersonator》: You may have this creature enter as a copy of any nonland permanent on the battlefield. (continuous-looking line without layer tag)
 - 《Ulamog, the Infinite Gyre》: When Ulamog is put into a graveyard from anywhere, its owner shuffles their graveyard into their library. (continuous-looking line without layer tag)
 - 《Vigor》: When Vigor is put into a graveyard from anywhere, shuffle it into its owner's library. (continuous-looking line without layer tag)
 - 《Vraska, Betrayal's Sting》: −9: If target player has fewer than nine poison counters, they get a number of poison counters equal to the difference. (continuous-looking line without layer tag)
@@ -331,6 +328,9 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - 《Final Fortune》: Take an extra turn after this one. At the beginning of that turn's end step, you lose the game. (continuous-looking line without layer tag)
 - 《Brass's Tunnel-Grinder // Tecutlan, the Searing Rift》: At the beginning of your end step, if you descended this turn, put a bore counter on Brass's Tunnel-Grinder. Then if there are three or more bore counters on it, remove those co... (continuous-looking line without layer tag)
 - 《Brass's Tunnel-Grinder // Tecutlan, the Searing Rift》: Whenever you cast a permanent spell using mana produced by Tecutlan, discover X, where X is that spell's mana value. (continuous-looking line without layer tag)
+- 《Ashling, Flame Dancer》: You don't lose unspent red mana as steps and phases end. (continuous-looking line without layer tag)
+- 《Full Throttle》: After this main phase, there are two additional combat phases. (continuous-looking line without layer tag)
+- 《The Skullspore Nexus》: {2}, {T}: Double target creature's power until end of turn. (continuous-looking line without layer tag)
 
 ## Mapping Failures
 
