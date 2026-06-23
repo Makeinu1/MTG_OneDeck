@@ -489,3 +489,28 @@ cast 列挙型 FN を `scripts/lib/eventClassify.ts` で閉鎖(`castEnumeratedSp
 - 残 `other`(500・5.74%)は「真の other + 需要小クラスタ」で**分類器バグではない**。被覆頭は enters 38.6% / attacks 13.7% / phase 12.1%。
 - **スライス2 の下面抽出器は実質収束**。次は **LLM-oracle 盲予測(別主体)** で族/観測者分類に独立物差しを当て(相関エラー遮断)、
   不一致裁定 → trust 更新。その後スライス3(ゾーン+プレイヤー)へ。**M-CONTRACT 凍結はスライス1〜4一巡後**(method §5)。
+
+### 物差し iter1 結果(M0-O2・LLM-oracle 盲予測・2026-06-23・監査合格)
+契約 = [`oracle-harness.md`](oracle-harness.md) §7。別主体(gpt-5-codex clean-room)が oracleText のみから族/観測者/介在条件を盲予測 →
+`eventClassify` と3軸独立集合差で比較。正本 = [`research/event-oracle/adjudication.json`](../research/event-oracle/adjudication.json)。機械4点緑(Fable 独立)+ `review.event-oracle` 16/16 + 全 760 緑。
+- **KPI(サンプル203)**: familyDiscrepancyRate **10.84%** / observerDiscrepancyRate **18.23%** / interveningIfDiscrepancyRate **0%** / unverifiableRate **0%**。
+  ゴールド校正 = supported 全族で **precision=recall=100%**(物差しは人手 gold18 で完全校正)。
+- **帰属(46不一致)**: `substrate 0 / compiler 21 / oracle 24 / ambiguous 1`。**substrate 0 = スライス2 ESO(族/観測者/介在条件の3軸)は健全**。介在条件は完全一致で state 次元の欠落なし。
+- **trust 更新**:
+  - `検証済`(物差し一致): dies / cast / attacks / damage / enters / counter / life / sacrifice / zone 族(confusion で classifierOnly=oracleOnly=0)、観測者 opponent、介在条件。
+  - `不一致=物差し誤り(oracle)`(分類器は正・iter2 で §7.2 prompt 改訂): combat-damage→phase 過剰付与(13)、phase juncture 観測者 self↔unknown(5)、tap-for-mana 族(3)。
+  - `不一致=分類器誤り(compiler)`(iter2 で `eventClassify` 修正): 自己名→self(P1・7)、非creature「X you control」→controlled-set(P2・7)、「this X or another X you control」→self(P3・2)、tap-for-mana の tap/other 内部不整合(P5・3)、leaves/other 取りこぼし(P4・2)。
+  - `要 ESO 判断(ambiguous)`: observer の定義(誘発の**行為者** vs **観測対象**=Terrasymbiosis)。mana-tap を独立族にするか `other` 留置かと併せ確定。
+- **物差し故障モード**: `unverifiableRate=0%`=物差しが uncertain を一度も使わず(過信傾向・method §3.1)。iter2 prompt で uncertain 使用を促す。
+- **次の一手(method §7 flip-flop=ルールと物差しを同時に変えない)**: iter2-a = compiler 帰属(P1〜P5)を `eventClassify` 修正 → `event-coverage` churn 再算出。iter2-b = §7.2 prompt を oracle 帰属に基づき改訂 → 盲予測再実行 → 不一致率再測。両方収束後にスライス1と合算で凍結可否判定。
+
+### 物差し iter2-a 結果(compiler 修正・物差し凍結・2026-06-23・監査合格)
+P1〜P5 を `scripts/lib/eventClassify.ts` で修正(Codex)。物差し `predictions.json` は凍結のまま再測。Fable 監査で opponent 検出の回帰を発見し外科修正(`isOpponentScope` の `^` アンカーを `\b` へ revert・`review.event-coverage` に opponent 回帰ガード3 pin 追加)。正本 = `research/event-oracle/adjudication.json` `iter2aResult`。
+- **不一致率**: family 10.84%→**7.88%** / observer 18.23%→**12.32%** / interveningIf 0%。**帰属 compiler 21→0**(全解消)。残 29 不一致 = oracle 28 + ambiguous 1 = **すべて物差し側**。flip-flop が綺麗に分離(ルール修正完了・残差は純粋に物差し誤り)。
+- **🔴 最重要発見=偽の収束の崩壊**: **iter3→iter2-a の真の churn = 13.55%(2,370/17,491)**(family 912枚・observer 2,185枚変化。enters +293/other +219/phase +141/cast +96/attacks +88)。**下面抽出単独の churn 0.05% は「収束」を誤報していた**。独立物差し(たった203枚の盲予測)が、`event-coverage` が見落としていた**構造的 FN を露呈**:
+  - **P2a ability-word 接頭辞**(`Landfall —`/`Survival —`/`Revolt —`/`Psionic Spells —` 等)が**誘発行を丸ごと脱落**させていた(enters/phase の大量 FN)。ability-word は MTG に多数存在し、**毎反復が同一に取りこぼす=churn が立たない=自己計測では永久に発見不能**だった。
+  - **P4 行内2誘発**・**P3 複合主語**・**P1 自己名**も corpus 全体で多数を回収。
+  - スポット監査(Aberrant Mind Sorcerer/Adventuring Gear/Aesi/Acrobatic Cheerleader/Aid from the Cowl/Architect of the Untamed 他)で**回収はすべて正当な FN**(過剰発火でない)と確認。
+  - **method §3 の実証**: 自己計測の低 churn は「弱い陽性」に過ぎず、故障モードの異なる独立物差しが偽の収束を破る。**Slice2 は未収束**(凍結不可)。
+- **収束への含意**: iter2-a で分類器が大きく変わったため、**新出力を新ベースラインに下面抽出 churn を再安定化**させる必要(次反復で 0.05% 方向へ戻るはず)。iter2-b(物差し prompt 改訂)と合わせて family/observer 不一致率 + churn が共に低下したら凍結候補。
+- 監査: 機械4点緑(Fable独立)+ `review.event-coverage` 31/31 + `review.event-oracle` 16/16 + 全 770 緑。Codex は git/docs/review/src/engine/predictions.json 不可侵を遵守。

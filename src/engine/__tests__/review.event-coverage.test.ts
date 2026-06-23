@@ -213,6 +213,113 @@ const cases: ReadonlyArray<
     [],
     false,
   ],
+
+  // ════ M0-O2 iter2-a 回帰 pin(LLM-oracle 盲予測 iter1 が炙り出した compiler 帰属の修正を固定)════
+  // 正本 = research/event-oracle/adjudication.json。各 pin は CR 準拠の正しい分類で、修正前は classifier が外す。
+
+  // ── P1: 自己名 short form。「Whenever <legendary short name> attacks」= self(分類器は full name のみ照合し unknown) ──
+  [
+    'Etali, Primal Storm',
+    'Legendary Creature — Elder Dinosaur',
+    "Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.",
+    ['attacks'],
+    ['self'],
+    ['whenever'],
+    false,
+  ],
+  // ── P2a: ability-word 接頭辞「Landfall —」を剥がして誘発解析。+ P2b 非creature「a land you control」= controlled-set ──
+  // 1行目「this creature enters」= self、landfall 行「a land you control enters」= controlled-set。
+  [
+    'Avenger of Zendikar',
+    'Creature — Elemental',
+    'When this creature enters, create a 0/1 green Plant creature token for each land you control.\nLandfall — Whenever a land you control enters, you may put a +1/+1 counter on each Plant creature you control.',
+    ['enters'],
+    ['controlled-set', 'self'],
+    ['when', 'whenever'],
+    false,
+  ],
+  // ── P2b: 戦闘ダメージの主語スコープ。「creatures you control deal combat damage to a player」= damage / controlled-set ──
+  // 効果対象の「to a player」を any-player と誤認しない。phase 族にもしない(phase は物差し誤り=oracle)。
+  [
+    'Professional Face-Breaker',
+    'Creature — Orc Warrior',
+    'Menace\nWhenever one or more creatures you control deal combat damage to a player, create a Treasure token.\nSacrifice a Treasure: Exile the top card of your library. You may play that card this turn.',
+    ['damage'],
+    ['controlled-set'],
+    ['whenever'],
+    false,
+  ],
+  // ── P3: 複合主語「this X or another X you control」= self + controlled-set(行内で複数観測者) ──
+  [
+    'Zulaport Cutthroat',
+    'Creature — Human Cleric',
+    'Whenever this creature or another creature you control dies, each opponent loses 1 life and you gain 1 life.',
+    ['dies'],
+    ['controlled-set', 'self'],
+    ['whenever'],
+    false,
+  ],
+  // ── P4: 「becomes the target of a spell」= other(逃さない箱)。「this creature attacks」= self ──
+  [
+    'Goldspan Dragon',
+    'Creature — Dragon',
+    'Flying, haste\nWhenever this creature attacks or becomes the target of a spell, create a Treasure token.\nTreasures you control have "{T}, Sacrifice this artifact: Add two mana of any one color."',
+    ['attacks', 'other'],
+    ['self'],
+    ['whenever'],
+    false,
+  ],
+  // ── P4: 行内2誘発の分割。「When this Aura leaves the battlefield」が「When this Aura enters」の同一行末尾に埋没 → leaves を拾う ──
+  // enters 側に介在条件「if it's on the battlefield」= iif true。引用 "..." は除去済。
+  [
+    'Animate Dead',
+    'Enchantment — Aura',
+    'Enchant creature card in a graveyard\nWhen this Aura enters, if it\'s on the battlefield, it loses "enchant creature card in a graveyard" and gains "enchant creature put onto the battlefield with this Aura." Return enchanted creature card to the battlefield under your control and attach this Aura to it. When this Aura leaves the battlefield, that creature\'s controller sacrifices it.\nEnchanted creature gets -1/-0.',
+    ['enters', 'leaves'],
+    ['self'],
+    ['when'],
+    true,
+  ],
+  // ── P5: mana 生成の tap は other(mana-tap)。状態変化 tap/untap でないので tap 族にしない。観測対象=enchanted permanent → unknown ──
+  // 「As this Aura enters」は誘発形(When/Whenever/At)でないので非カウント。
+  [
+    'Utopia Sprawl',
+    'Enchantment — Aura',
+    'Enchant Forest\nAs this Aura enters, choose a color.\nWhenever enchanted Forest is tapped for mana, its controller adds an additional one mana of the chosen color.',
+    ['other'],
+    ['unknown'],
+    ['whenever'],
+    false,
+  ],
+  // ── 回帰ガード: opponent スコープは先頭語に限らない(「an opponent's graveyard」「each opponent's upkeep」「to an opponent」)──
+  // iter2-a で combat-damage 主語修正のため一時 ^ アンカーした際に opponent 検出が落ちた回帰を固定。
+  [
+    'Curiosity',
+    'Enchantment — Aura',
+    'Enchant creature\nWhenever enchanted creature deals damage to an opponent, you may draw a card.',
+    ['damage'],
+    ['opponent'],
+    ['whenever'],
+    false,
+  ],
+  [
+    'Sheoldred, Whispering One',
+    'Legendary Creature — Praetor',
+    "Swampwalk (This creature can't be blocked as long as defending player controls a Swamp.)\nAt the beginning of your upkeep, return target creature card from your graveyard to the battlefield.\nAt the beginning of each opponent's upkeep, that player sacrifices a creature of their choice.",
+    ['phase'],
+    ['opponent', 'self'],
+    ['at'],
+    false,
+  ],
+  [
+    'Bloodchief Ascension',
+    'Enchantment',
+    'At the beginning of each end step, if an opponent lost 2 or more life this turn, you may put a quest counter on this enchantment. (Damage causes loss of life.)\nWhenever a card is put into an opponent\'s graveyard from anywhere, if this enchantment has three or more quest counters on it, you may have that player lose 2 life. If you do, you gain 2 life.',
+    ['phase', 'zone'],
+    ['any', 'opponent'],
+    ['at', 'whenever'],
+    true,
+  ],
 ];
 
 describe('M0-2 イベント分類ゴールド: classifyCardEvents(誘発/観測者/介在条件)', () => {

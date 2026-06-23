@@ -1,0 +1,166 @@
+{
+  "version": "M0-O2-iter1",
+  "adjudicatedAt": "2026-06-23",
+  "adjudicator": "fable",
+  "frozenMeter": {
+    "sample": "research/event-oracle/sample.json",
+    "predictions": "research/event-oracle/predictions.json",
+    "report": "research/event-oracle/report.json",
+    "note": "iter1 物差し凍結。族/観測者/介在条件を別主体(gpt-5-codex clean-room)が oracleText のみから盲予測。Fable はこの不一致集合だけを裁定し eventClassify は本反復で変更しない(iter2 で compiler 帰属分を修正)。"
+  },
+  "attributionKinds": ["substrate", "compiler", "oracle", "ambiguous"],
+  "cards": {
+    "0bfa4512-e35a-4c93-b324-80ec659f5a97": { "name": "Ulamog, the Ceaseless Hunger", "attribution": "compiler", "fix": "P1-self-name", "note": "「Whenever Ulamog attacks」の自己名参照を observer=self に解決できず unknown を立てる。" },
+    "7b8528b0-71eb-4c9e-bed9-aa2d2e84038f": { "name": "Kozilek, Butcher of Truth", "attribution": "compiler", "fix": "P1-self-name", "note": "Annihilator 注釈「this creature attacks」/自己名 → self。classifier=unknown。" },
+    "ea5103f5-27e0-4eb1-902c-7f34652d6bf3": { "name": "Orcish Bowmasters", "attribution": "oracle", "fix": "noise", "note": "複合誘発「When this enters and whenever an opponent draws」。oracle が draw 族を取りこぼし(明白な opponent draws)。classifier は draw を取れているが self を取りこぼし(副次 compiler)。" },
+    "49be65fd-3755-410d-b0dc-2e5861ea2552": { "name": "Thopter Spy Network", "attribution": "oracle", "fix": "P-combat-anyplayer", "note": "iter2-a で controlled-set 取りこぼし解消(分類器は [controlled-set, self] で正)。残差 +@any = oracle が「to a player」を any 観測者と誤付与=物差し誤り。iter2-b prompt で除去。" },
+    "4ba5b3f6-503b-43e6-b66e-4f8c55cffed7": { "name": "Avenger of Zendikar", "attribution": "compiler", "fix": "P2-controlled-set", "note": "「a land you control enters」(非creature you control)→ controlled-set を取りこぼし。" },
+    "4f5f2792-0cc4-4caa-b798-2ee9597f2524": { "name": "Sigarda's Aid", "attribution": "compiler", "fix": "P2-controlled-set", "note": "「an Equipment you control enters」→ controlled-set。classifier=any。" },
+    "57c1a98e-c4fb-4144-9e3e-d0fe6789ba26": { "name": "Simic Ascendancy", "attribution": "compiler", "fix": "P2-controlled-set", "note": "「+1/+1 counters put on a creature you control」→ controlled-set。classifier=any。" },
+    "74a62c7b-4753-4af2-b7a1-9a4ae8988801": { "name": "Puresteel Paladin", "attribution": "compiler", "fix": "P2-controlled-set", "note": "「an Equipment you control enters」→ controlled-set。classifier=any。" },
+    "4ac94586-3ac7-4ade-af31-ad0d0e3ffc4a": { "name": "Terrasymbiosis", "attribution": "ambiguous", "fix": "eso-actor-vs-object", "note": "「Whenever you put counters on a creature you control」= 行為者 you(self) vs 対象 creature you control(controlled-set)。observer の定義(行為者/対象どちらを取るか)が ESO 未確定。classifier=self / oracle=controlled-set。" },
+    "005ee549-1bf5-478f-bc3f-3e791bd7eecf": { "name": "Kindred Discovery", "attribution": "oracle", "fix": "noise", "note": "「a creature you control ... enters or attacks」= controlled-set。oracle が self を過剰付与。classifier 正。" },
+    "76b003e0-15af-4f22-bdf2-1ade5430964a": { "name": "Zulaport Cutthroat", "attribution": "compiler", "fix": "P3-this-or-another", "note": "「this creature or another creature you control dies」= self + controlled-set。classifier が self を取りこぼし。" },
+    "aa959340-c869-4caa-92c7-572bd8d23eef": { "name": "Field of the Dead", "attribution": "compiler", "fix": "P3-this-or-another", "note": "「this land or another land you control enters」= self + controlled-set。classifier が self を取りこぼし。" },
+    "f349f58b-8cc8-45e4-9565-2b46fdf976c9": { "name": "Trouble in Pairs", "attribution": "oracle", "fix": "noise", "note": "「an opponent attacks you, draws/casts their second」= opponent。oracle が self を過剰付与(「attacks you」に引かれた)。classifier 正。" },
+    "b9bacb46-fd1d-459b-81c2-d7d08fe73848": { "name": "Dragon Tempest", "attribution": "oracle", "fix": "P-self-overtag", "note": "iter2-a で controlled-set 正常化(分類器は [controlled-set] で正)。残差 +@self = oracle が self を過剰付与=物差し誤り。iter2-b prompt で除去。" },
+    "d9b066ff-9519-415c-ae17-bfea703c9889": { "name": "Hellkite Tyrant", "attribution": "oracle", "fix": "P-combat-anyplayer", "note": "iter2-a 後に顕在化。「this creature deals combat damage to a player」+「your upkeep」= 分類器 [self] で正。oracle が +@any(to a player)過剰付与=物差し誤り。" },
+    "168d5711-4459-440f-8de4-aabffd47c44d": { "name": "Rosie Cotton of South Lane", "attribution": "oracle", "fix": "P-self-overtag", "note": "iter2-a 後に顕在化。「Whenever you create a token」= self(you)で分類器正。oracle が +@unknown 過剰付与=物差し誤り。" },
+    "bc14356c-3a1a-47af-9a6e-2b449de0331f": { "name": "Kardur, Doomscourge", "attribution": "oracle", "fix": "noise", "note": "「an attacking creature dies」= any。oracle が self を過剰付与。classifier 正。" },
+    "078def07-ae5d-4591-8db6-d156834aab97": { "name": "Etali, Primal Storm", "attribution": "compiler", "fix": "P1-self-name", "note": "「Whenever Etali attacks」自己名 → self。classifier=unknown。" },
+    "8b21062e-97b0-4967-96df-30e8309f4fba": { "name": "Kogla, the Titan Ape", "attribution": "compiler", "fix": "P1-self-name", "note": "「When/Whenever Kogla ...」自己名 → self。classifier=unknown。" },
+    "a0be9bb2-3234-4c6c-b8ce-0879b1f43003": { "name": "Laelia, the Blade Reforged", "attribution": "compiler", "fix": "P1-self-name", "note": "「Whenever Laelia attacks」自己名 → self。classifier=unknown。" },
+    "b3d81980-76f2-44e2-b1c9-01e30c726312": { "name": "Loran of the Third Path", "attribution": "compiler", "fix": "P1-self-name", "note": "「When Loran enters」自己名 → self。classifier=unknown。" },
+    "d0ade00d-a496-441d-9b7e-7dc033d3292c": { "name": "Titania, Protector of Argoth", "attribution": "compiler", "fix": "P1-self-name", "note": "「When Titania enters」→ self、「a land you control is put into a graveyard」→ controlled-set。classifier=unknown。" },
+    "21338b71-37f5-4121-9b84-565025ebcd17": { "name": "Black Market", "attribution": "oracle", "fix": "P-phase-observer", "note": "「At the beginning of your first main phase」= self(ゴールド Bitterblossom と同規約)。oracle=unknown(誤)。classifier 正。" },
+    "27e0948b-9916-473b-8d8c-a51bdfbc7457": { "name": "Underworld Breach", "attribution": "oracle", "fix": "P-phase-observer", "note": "「At the beginning of the end step」phase juncture。oracle が観測者を unknown 化。" },
+    "2acf8e34-9215-4a72-a24f-09d3bdd0083a": { "name": "Ripples of Undeath", "attribution": "oracle", "fix": "P-phase-observer", "note": "「At the beginning of your first main phase」= self。oracle=unknown。" },
+    "d2664f28-49e1-46f8-a863-b217e961a57c": { "name": "Black Market Connections", "attribution": "oracle", "fix": "P-phase-observer", "note": "「At the beginning of your first main phase」= self。oracle=unknown。" },
+    "f3e213a4-ba5a-468a-93b3-c0a34e1bd725": { "name": "Pact of Negation", "attribution": "oracle", "fix": "P-phase-observer", "note": "「At the beginning of your next upkeep」= self。oracle=unknown。" },
+    "e6555cca-e608-4c87-b835-9cd47fd1f543": { "name": "Tireless Tracker", "attribution": "compiler", "fix": "P2-controlled-set", "note": "「Landfall — Whenever a land you control enters」= enters + controlled-set。classifier が両方取りこぼし(ability-word 接頭辞 or 非creature you control)。" },
+    "c0d8fef4-65f4-4769-982d-b397d2b7e977": { "name": "Animate Dead", "attribution": "compiler", "fix": "P4-leaves", "note": "「When this Aura leaves the battlefield」= leaves。classifier が取りこぼし(行頭でない誘発 or 複合行)。" },
+    "716b3ea2-45b7-4a8f-af72-de7f4e510eff": { "name": "Goldspan Dragon", "attribution": "compiler", "fix": "P4-other", "note": "「becomes the target of a spell」= other(逃さない箱)。classifier が取りこぼし。attacks は一致。" },
+    "00d8efa6-a2d9-4249-8da7-b45173675329": { "name": "Utopia Sprawl", "attribution": "compiler", "fix": "P5-tap-for-mana", "note": "「enchanted Forest is tapped for mana」を tap 計上。ESO は mana-tap を other に置く規約 → other が正。classifier=tap(誤)。" },
+    "706ae742-1807-44b7-a4fa-f2e26f61519a": { "name": "Wild Growth", "attribution": "compiler", "fix": "P5-tap-for-mana", "note": "「enchanted land is tapped for mana」→ other。classifier=tap(誤)。" },
+    "cf14d4e5-5965-45ad-97f7-26facf2884b5": { "name": "Fertile Ground", "attribution": "compiler", "fix": "P5-tap-for-mana", "note": "「enchanted land is tapped for mana」→ other。classifier=tap(誤)。" },
+    "d0901053-6de0-46d0-9ee3-8d40510236c1": { "name": "Sword of Feast and Famine", "attribution": "oracle", "fix": "P-combat-phase", "note": "「deals combat damage to a player」= damage。oracle が phase を過剰付与(rubric の『combat』に誤反応)。classifier 正。" },
+    "04152e7a-969c-4858-841b-0a569a9fc1bf": { "name": "Professional Face-Breaker", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → oracle が phase 過剰付与。観測者 controlled-set は classifier 取りこぼし(副次 P2)。" },
+    "3233af43-7826-4895-b67e-03c6102c2cd5": { "name": "Kutzil, Malamet Exemplar", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → phase 過剰付与。副次: controlled-set 取りこぼし(P2)。" },
+    "9d2460c3-8eeb-4f35-b6f6-748c478664c7": { "name": "Enduring Curiosity", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → phase 過剰付与。副次: controlled-set(P2)。" },
+    "a8e707ec-ce77-4bc5-8c76-5ea3e81e8c7f": { "name": "Toski, Bearer of Secrets", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → phase 過剰付与。副次: controlled-set(P2)。" },
+    "b99ada26-9a61-4175-9fb8-15a106960220": { "name": "Ohran Frostfang", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → phase 過剰付与。副次: controlled-set(P2)。" },
+    "d69b1e68-8d8e-460b-9eb4-6a68be886197": { "name": "Kodama of the West Tree", "attribution": "oracle", "fix": "P-combat-phase", "note": "modified creature combat damage → phase 過剰付与。副次: controlled-set(P2)。" },
+    "e1afaef7-9fa3-4662-a95f-adfb0da9fd11": { "name": "Bident of Thassa", "attribution": "oracle", "fix": "P-combat-phase", "note": "combat damage → phase 過剰付与。副次: controlled-set(P2)。" },
+    "37108cd4-bbab-4ce3-9ed6-f60e8422e703": { "name": "Ragavan, Nimble Pilferer", "attribution": "oracle", "fix": "P-combat-phase", "note": "「Whenever Ragavan deals combat damage」→ oracle phase 過剰付与。副次: self(自己名 P1)取りこぼし。" },
+    "48daee9d-ddaf-410f-8c3a-12fa1064ab56": { "name": "Ancient Copper Dragon", "attribution": "oracle", "fix": "P-combat-phase", "note": "「this creature deals combat damage」→ phase 過剰付与。副次: self(this creature P1)。" },
+    "eac94269-4baa-4b8e-a0fd-d6b227d1cde3": { "name": "Thrummingbird", "attribution": "oracle", "fix": "P-combat-phase", "note": "「this creature deals combat damage」→ phase 過剰付与。副次: self(this creature P1)。" },
+    "7514e401-7aa1-405d-9f7a-312b4e630cc2": { "name": "Etali, Primal Conqueror // Etali, Primal Sickness", "attribution": "oracle", "fix": "P-combat-phase", "note": "「Etali deals combat damage」→ phase 過剰付与。副次: self(自己名 P1)。" },
+    "7777fab1-df3f-467f-b9e2-46dd2bd2166e": { "name": "Forsaken Monument", "attribution": "oracle", "fix": "P-tap-for-mana", "note": "「Whenever you tap a permanent for {C}」= mana-tap → other(ESO 規約)。classifier=other 正・oracle=tap(誤)。tap/other 境界が双方で揺れる(P5 と表裏)。" },
+    "852657c0-18a4-4b28-b9ae-7728acdb5044": { "name": "Mirari's Wake", "attribution": "oracle", "fix": "P-tap-for-mana", "note": "「Whenever you tap a land for mana」→ other。classifier 正・oracle=tap(誤)。" },
+    "a3c8d817-7949-4dae-b9f5-f9d952479270": { "name": "Crypt Ghast", "attribution": "oracle", "fix": "P-tap-for-mana", "note": "「Whenever you tap a Swamp for mana」→ other。classifier 正・oracle=tap(誤)。" }
+  },
+  "clusterInterpretation": {
+    "oracle-combat-damage-phase": {
+      "attribution": "oracle",
+      "cards": 13,
+      "signatures": ["+phase", "+phase,+@controlled-set", "+phase,+@self", "+phase,+@self,-@unknown"],
+      "finding": "「deals combat damage to a player」誘発に対し物差しが phase 族を系統的に過剰付与。族不一致の最大要因。",
+      "meterFix": "§7.2 prompt: phase は『at the beginning of [step/phase]』に限定。『deals combat damage』は damage 族であり phase ではない、と明記。"
+    },
+    "oracle-phase-observer-unknown": {
+      "attribution": "oracle",
+      "cards": 5,
+      "signatures": ["+@unknown,-@self"],
+      "finding": "「At the beginning of your [main phase/upkeep/end step]」の観測者を物差しが unknown 化。ゴールド(Bitterblossom『your upkeep』=self)が self を正とする。",
+      "meterFix": "§7.2 prompt: ターンベース juncture の『your [phase]』は self が観測する、と明記。"
+    },
+    "oracle-tap-for-mana": {
+      "attribution": "oracle",
+      "cards": 3,
+      "signatures": ["+tap,-other"],
+      "finding": "「you tap a land/permanent for mana」を物差しが tap 族化。compiler-tap-for-mana(下記)と表裏=tap/other 境界の揺れ。",
+      "meterFix": "§7.2 prompt: mana 生成のための tap は other(mana-tap)、tap 族は『becomes tapped/untapped』の状態変化に限定。"
+    },
+    "compiler-self-name-observer": {
+      "attribution": "compiler",
+      "cards": 7,
+      "signatures": ["-@unknown", "+@self,-@unknown", "(combat の +@self 副次)"],
+      "finding": "「Whenever <自己名>/this creature attacks/deals damage/enters」の自己参照を classifier が observer=self に解決できず unknown を立てる。観測者不一致の最大要因。",
+      "classifierFix": "eventClassify の observer 判定で『<カード名> | this creature | this <permanent>』を self に解決(自己名は def.name で照合)。"
+    },
+    "compiler-you-control-controlled-set": {
+      "attribution": "compiler",
+      "cards": 7,
+      "signatures": ["+@controlled-set", "+@controlled-set,-@any", "+enters,+@controlled-set"],
+      "finding": "非creature の『a land/an Equipment you control』『creatures you control deal combat damage』を classifier が controlled-set に解決できず any/self/取りこぼし。",
+      "classifierFix": "observer 判定の『X you control』を creature 限定でなく一般 permanent に拡張。Landfall 等 ability-word 接頭辞も剥がす。"
+    },
+    "compiler-this-or-another": {
+      "attribution": "compiler",
+      "cards": 2,
+      "signatures": ["+@self (Zulaport/Field of the Dead)"],
+      "finding": "「this X or another X you control [verb]」で self(this X)を取りこぼし controlled-set のみ。",
+      "classifierFix": "『this … or another … you control』を self + controlled-set の両立に。"
+    },
+    "compiler-tap-for-mana": {
+      "attribution": "compiler",
+      "cards": 3,
+      "signatures": ["+other,-tap"],
+      "finding": "「enchanted land is tapped for mana」を classifier が tap 計上。同義の『you tap a land for mana』は other 計上=classifier 内部不整合。ESO は mana-tap を other に置く。",
+      "classifierFix": "『tapped for mana』を一律 other(mana-tap)へ。tap 族は状態変化(becomes tapped/untapped)に限定。"
+    },
+    "compiler-misc-fn": {
+      "attribution": "compiler",
+      "cards": 2,
+      "signatures": ["+leaves (Animate Dead)", "+other (Goldspan Dragon)"],
+      "finding": "行頭でない/複合行の『leaves the battlefield』取りこぼし、『becomes the target of a spell』を other へ拾えない。",
+      "classifierFix": "leaves 検出を複合行に拡張。other 箱に『becomes the target』を追加。"
+    },
+    "ambiguous-actor-vs-object-observer": {
+      "attribution": "ambiguous",
+      "cards": 1,
+      "signatures": ["+@controlled-set,-@self (Terrasymbiosis)"],
+      "finding": "「Whenever you put counters on a creature you control」= 行為者 you(self) vs 対象 creature you control(controlled-set)。observer がどちらを指すか ESO 未確定。",
+      "esoDecision": "Slice2 ESO に observer の定義(誘発の主語/行為者を取るか、観測対象を取るか)を明記する。tap-for-mana 族(mana-tap を独立族にするか other 留置か)も併せて確定。"
+    },
+    "substrate-clean": {
+      "attribution": "substrate",
+      "cards": 0,
+      "finding": "substrate(ESO state モデル)誤り 0 件。族/観測者/介在条件の3軸は全カードで状態次元の欠落を露呈せず。介在条件は不一致率 0%(完全一致)。Slice2 ESO 設計は sound。"
+    }
+  },
+  "attributionSummary": { "substrate": 0, "compiler": 21, "oracle": 24, "ambiguous": 1, "_note": "iter1 母数(46不一致)。iter2-a 後の現況は iter2aResult を参照。" },
+  "kpiSnapshot": {
+    "sampleSize": 203,
+    "familyDiscrepancyRate": 0.1084,
+    "observerDiscrepancyRate": 0.1823,
+    "interveningIfDiscrepancyRate": 0.0,
+    "unverifiableRate": 0.0,
+    "goldCalibration": "全 supported 族で precision=recall=100%(enters/dies/cast/draw/discard/counter/phase/other)。物差しはゴールド18枚で完全校正。",
+    "note": "unverifiableRate=0% は物差しが uncertain チャネルを使わなかったことを示す(過信傾向=既知の LLM 物差し故障モード)。iter2 prompt で uncertain 使用を促す。"
+  },
+  "iter2aResult": {
+    "adjudicatedAt": "2026-06-23",
+    "what": "compiler 帰属(P1-P5)を eventClassify.ts で修正(Codex)。物差し predictions.json は凍結のまま再測(flip-flop method §7)。",
+    "fixes": {
+      "P1-self-name": "legendary short name(comma 前)を selfNames へ。Etali/Kogla/Laelia/Loran/Titania/Ulamog: unknown→self。",
+      "P2a-ability-word": "行頭 ability-word 接頭辞『Word — 』を剥離。Avenger/Tireless Tracker の landfall 誘発を回収。",
+      "P2b-controlled-set+precedence": "controlled-set 語彙を一般 permanent へ拡張 + 主語スコープ(opponent/controlled-set/self)を any-player より先に判定。『deals combat damage to a player』が any にならず主語スコープへ。",
+      "P3-this-or-another": "行内複数観測者(self+controlled-set)を emit。Zulaport/Field of the Dead。",
+      "P4-multitrigger+becomes-target": "行内2誘発の分割(Animate Dead の leaves)+『becomes the target』→other(Goldspan)。",
+      "P5-tap-for-mana": "『(is/are) tapped for mana』『tap … for mana』→other(mana-tap)。tap 族は状態変化に限定。"
+    },
+    "fableSurgicalFix": "監査で iter2-a が opponent 検出を回帰させたのを発見(isOpponentScope を ^ アンカーしたため『an opponent's graveyard』『each opponent's upkeep』『to an opponent』が落ちた=Bloodchief/Sheoldred/Curiosity)。\\b へ revert(reorder は維持)。review.event-coverage に opponent 回帰ガード3 pin 追加。",
+    "kpiAfter": {
+      "familyDiscrepancyRate": 0.0788,
+      "observerDiscrepancyRate": 0.1232,
+      "interveningIfDiscrepancyRate": 0.0,
+      "discrepancies": 29,
+      "attributionDistribution": { "substrate": 0, "compiler": 0, "oracle": 28, "ambiguous": 1 },
+      "churnEventCoverage": "iter3→iter2-a の event-coverage churn は research/event-coverage/report.json.churn 参照"
+    },
+    "interpretation": "compiler 帰属 21→0(全解消)。残 29 不一致は 28 oracle + 1 ambiguous = すべて物差し側。flip-flop が綺麗に分離:ルール修正完了、残差は純粋に物差し誤り。次 = iter2-b(§7.2 prompt 改訂→盲予測再実行→再測)。",
+    "reattributed": "Thopter/Dragon Tempest を compiler→oracle(iter2-a で分類器が正になり残差は oracle の to-a-player/self 過剰付与)。Hellkite Tyrant/Rosie Cotton を oracle 新規追加(iter2-a 後に顕在化した物差し誤り)。",
+    "review": "機械4点緑(Fable独立)+ review.event-coverage 31/31 + review.event-oracle 16/16 + 全767緑。"
+  }
+}

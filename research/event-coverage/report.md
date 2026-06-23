@@ -4,54 +4,54 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 
 ## Summary
 
-- Generated at: 2026-06-23T05:59:24.259Z
+- Generated at: 2026-06-23T10:14:03.742Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- trigger lines: 9067
-- interveningIfCardCount: 670 (3.83%)
-- multiFamily cards: 1176
-- churn: 9/17491 changed (0.05%), baselineCards=17491, byFamily=cast +9, other -9
+- trigger lines: 9791
+- interveningIfCardCount: 811 (4.64%)
+- multiFamily cards: 1446
+- churn: 115/17491 changed (0.66%), baselineCards=17491, byFamily=none
 - mapping failures: 0
 
 ## Per Family
 
 | family | card count | line count | trigger line rate | examples |
 |---|---:|---:|---:|---|
-| enters | 3418 | 3502 | 38.62% | Bojuka Bog (rank 25); Solemn Simulacrum (rank 38); The One Ring (rank 89); Garruk's Uprising (rank 92); Garruk's Uprising (rank 92) |
-| leaves | 111 | 112 | 1.24% | The Ozolith (rank 302); Nadier's Nightblade (rank 843); Skyclave Apparition (rank 1192); Dour Port-Mage (rank 1503); Electro, Assaulting Battery (rank 1592) |
-| dies | 773 | 788 | 8.69% | Solemn Simulacrum (rank 38); Skullclamp (rank 41); Blood Artist (rank 138); Pitiless Plunderer (rank 229); Zulaport Cutthroat (rank 233) |
-| zone | 85 | 85 | 0.94% | Bloodchief Ascension (rank 737); The Gitrog Monster (rank 890); Kozilek, Butcher of Truth (rank 1099); Laelia, the Blade Reforged (rank 1297); Hedge Shredder (rank 1310) |
-| cast | 737 | 766 | 8.45% | Rhystic Study (rank 43); Esper Sentinel (rank 76); Mystic Remora (rank 96); Beast Whisperer (rank 212); Hullbreaker Horror (rank 267) |
-| attacks | 1223 | 1242 | 13.70% | Sword of the Animist (rank 243); Etali, Primal Storm (rank 260); Sun Titan (rank 289); Kindred Discovery (rank 347); Goldspan Dragon (rank 401) |
-| blocks | 73 | 74 | 0.82% | Smuggler's Copter (rank 1862); Grazilaxx, Illithid Scholar (rank 1878); Elder Gargaroth (rank 2353); Anzrag, the Quake-Mole (rank 2706); Brimaz, King of Oreskos (rank 3075) |
-| damage | 641 | 652 | 7.19% | Professional Face-Breaker (rank 216); Ragavan, Nimble Pilferer (rank 269); Toski, Bearer of Secrets (rank 381); Kutzil, Malamet Exemplar (rank 385); Bident of Thassa (rank 410) |
-| draw | 112 | 114 | 1.26% | Smothering Tithe (rank 62); Orcish Bowmasters (rank 254); Faerie Mastermind (rank 327); Psychosis Crawler (rank 447); Sheoldred, the Apocalypse (rank 464) |
-| discard | 54 | 60 | 0.66% | Necropotence (rank 503); Monument to Endurance (rank 1119); Waste Not (rank 1253); Waste Not (rank 1253); Waste Not (rank 1253) |
-| sacrifice | 92 | 93 | 1.03% | Mirkwood Bats (rank 223); Mayhem Devil (rank 580); Tireless Tracker (rank 622); Captain Lannery Storm (rank 1145); Nuka-Cola Vending Machine (rank 1287) |
-| tap | 77 | 78 | 0.86% | City of Brass (rank 97); Wild Growth (rank 211); Utopia Sprawl (rank 341); Fertile Ground (rank 1024); Mesmeric Orb (rank 1082) |
-| counter | 60 | 60 | 0.66% | Midnight Clock (rank 610); Evolution Witness (rank 905); Terrasymbiosis (rank 981); Simic Ascendancy (rank 1262); Exemplar of Light (rank 1332) |
-| life | 84 | 87 | 0.96% | Vito, Thorn of the Dusk Rose (rank 489); Sanguine Bond (rank 497); Exquisite Blood (rank 505); Enduring Tenacity (rank 858); Bloodthirsty Conqueror (rank 926) |
-| phase | 1056 | 1098 | 12.11% | The One Ring (rank 89); Phyrexian Arena (rank 98); Black Market Connections (rank 132); Herald's Horn (rank 141); Mana Vault (rank 144) |
-| other | 500 | 520 | 5.74% | Crypt Ghast (rank 525); Wizard Class (rank 646); Caretaker's Talent (rank 662); Archivist of Oghma (rank 667); Mirari's Wake (rank 668) |
+| enters | 3711 | 3809 | 38.90% | Bojuka Bog (rank 25); Solemn Simulacrum (rank 38); The One Ring (rank 89); Garruk's Uprising (rank 92); Garruk's Uprising (rank 92) |
+| leaves | 115 | 116 | 1.18% | Animate Dead (rank 224); The Ozolith (rank 302); Nadier's Nightblade (rank 843); Necromancy (rank 986); Skyclave Apparition (rank 1192) |
+| dies | 807 | 822 | 8.40% | Solemn Simulacrum (rank 38); Skullclamp (rank 41); Blood Artist (rank 138); Pitiless Plunderer (rank 229); Zulaport Cutthroat (rank 233) |
+| zone | 91 | 91 | 0.93% | Bloodchief Ascension (rank 737); The Gitrog Monster (rank 890); Kozilek, Butcher of Truth (rank 1099); Laelia, the Blade Reforged (rank 1297); Hedge Shredder (rank 1310) |
+| cast | 833 | 863 | 8.81% | Rhystic Study (rank 43); Esper Sentinel (rank 76); Mystic Remora (rank 96); Storm-Kiln Artist (rank 209); Beast Whisperer (rank 212) |
+| attacks | 1311 | 1333 | 13.61% | Sword of the Animist (rank 243); Etali, Primal Storm (rank 260); Sun Titan (rank 289); Kindred Discovery (rank 347); Goldspan Dragon (rank 401) |
+| blocks | 74 | 75 | 0.77% | Smuggler's Copter (rank 1862); Grazilaxx, Illithid Scholar (rank 1878); Elder Gargaroth (rank 2353); Anzrag, the Quake-Mole (rank 2706); Brimaz, King of Oreskos (rank 3075) |
+| damage | 693 | 705 | 7.20% | Professional Face-Breaker (rank 216); Ragavan, Nimble Pilferer (rank 269); Toski, Bearer of Secrets (rank 381); Kutzil, Malamet Exemplar (rank 385); Bident of Thassa (rank 410) |
+| draw | 114 | 116 | 1.18% | Smothering Tithe (rank 62); Orcish Bowmasters (rank 254); Faerie Mastermind (rank 327); Psychosis Crawler (rank 447); Sheoldred, the Apocalypse (rank 464) |
+| discard | 58 | 64 | 0.65% | Necropotence (rank 503); Monument to Endurance (rank 1119); Waste Not (rank 1253); Waste Not (rank 1253); Waste Not (rank 1253) |
+| sacrifice | 96 | 97 | 0.99% | Mirkwood Bats (rank 223); Mayhem Devil (rank 580); Tireless Tracker (rank 622); Captain Lannery Storm (rank 1145); Nuka-Cola Vending Machine (rank 1287) |
+| tap | 69 | 70 | 0.71% | City of Brass (rank 97); Mesmeric Orb (rank 1082); Key to the City (rank 1323); Magda, Brazen Outlaw (rank 1330); Ghostly Pilferer (rank 1406) |
+| counter | 60 | 60 | 0.61% | Midnight Clock (rank 610); Evolution Witness (rank 905); Terrasymbiosis (rank 981); Simic Ascendancy (rank 1262); Exemplar of Light (rank 1332) |
+| life | 84 | 87 | 0.89% | Vito, Thorn of the Dusk Rose (rank 489); Sanguine Bond (rank 497); Exquisite Blood (rank 505); Enduring Tenacity (rank 858); Bloodthirsty Conqueror (rank 926) |
+| phase | 1197 | 1240 | 12.66% | The One Ring (rank 89); Phyrexian Arena (rank 98); Black Market Connections (rank 132); Herald's Horn (rank 141); Mana Vault (rank 144) |
+| other | 719 | 742 | 7.58% | Wild Growth (rank 211); Utopia Sprawl (rank 341); Goldspan Dragon (rank 401); Crypt Ghast (rank 525); Wizard Class (rank 646) |
 
 ## Observer Distribution
 
 | observer | card count | line count |
 |---|---:|---:|
-| any | 1175 | 1218 |
-| controlled-set | 555 | 564 |
-| opponent | 322 | 332 |
-| self | 5500 | 6043 |
-| unknown | 860 | 910 |
+| any | 506 | 528 |
+| controlled-set | 1173 | 1199 |
+| opponent | 335 | 345 |
+| self | 6960 | 7759 |
+| unknown | 232 | 236 |
 
 ## Trigger Shape Distribution
 
 | shape | card count | line count |
 |---|---:|---:|
-| at | 1056 | 1098 |
-| when | 3542 | 3691 |
-| whenever | 3974 | 4278 |
+| at | 1197 | 1240 |
+| when | 3802 | 3967 |
+| whenever | 4386 | 4721 |
 
 ## Examples
 
@@ -63,20 +63,22 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - rank 92 《Garruk's Uprising》: When this enchantment enters
 - rank 92 《Garruk's Uprising》: Whenever a creature you control with power 4 or greater enters
 - rank 109 《Eternal Witness》: When this creature enters
+- rank 143 《Chrome Mox》: When this artifact enters
 - rank 172 《Mystic Sanctuary》: When this land enters untapped
+- rank 180 《Tireless Provisioner》: Whenever a land you control enters
 - rank 186 《Impact Tremors》: Whenever a creature you control enters
+- rank 222 《Scute Swarm》: Whenever a land you control enters
 - rank 224 《Animate Dead》: When this Aura enters
 - rank 235 《The Great Henge》: Whenever a nontoken creature you control enters
 - rank 240 《Mithril Coat》: When Mithril Coat enters
 - rank 241 《Gray Merchant of Asphodel》: When this creature enters
-- rank 254 《Orcish Bowmasters》: When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps
-- rank 270 《Temple of Epiphany》: When this land enters
-- rank 274 《Avenger of Zendikar》: When this creature enters
 
 ### leaves
 
+- rank 224 《Animate Dead》: When this Aura leaves the battlefield
 - rank 302 《The Ozolith》: Whenever a creature you control leaves the battlefield
 - rank 843 《Nadier's Nightblade》: Whenever a token you control leaves the battlefield
+- rank 986 《Necromancy》: When this enchantment leaves the battlefield
 - rank 1192 《Skyclave Apparition》: When this creature leaves the battlefield
 - rank 1503 《Dour Port-Mage》: Whenever one or more other creatures you control leave the battlefield without dying
 - rank 1592 《Electro, Assaulting Battery》: When Electro leaves the battlefield
@@ -88,8 +90,6 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - rank 3208 《Rapacious Guest》: When this creature leaves the battlefield
 - rank 3349 《Lunarch Veteran // Luminous Phantom》: Whenever another creature you control leaves the battlefield
 - rank 3350 《Reveillark》: When this creature leaves the battlefield
-- rank 3579 《Angel of Serenity》: When this creature leaves the battlefield
-- rank 3771 《Fiend Hunter》: When this creature leaves the battlefield
 
 ### dies
 
@@ -122,17 +122,19 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - rank 1651 《Soulherder》: Whenever a creature is exiled from the battlefield
 - rank 1881 《Teval's Judgment》: Whenever one or more cards leave your graveyard
 - rank 2032 《Colossal Grave-Reaver》: Whenever one or more creature cards are put into your graveyard from your library
+- rank 2224 《Prosper, Tome-Bound》: Whenever you play a card from exile
 - rank 2411 《Worldspine Wurm》: When Worldspine Wurm is put into a graveyard from anywhere
 - rank 2808 《Teval, the Balanced Scale》: Whenever one or more cards leave your graveyard
-- rank 2950 《Crawling Sensation》: Whenever one or more land cards are put into your graveyard from anywhere for the first time each turn
-- rank 3340 《Aetherworks Marvel》: Whenever a permanent you control is put into a graveyard
+- rank 2867 《Zellix, Sanity Flayer》: Whenever a player mills one or more creature cards
 
 ### cast
 
 - rank 43 《Rhystic Study》: Whenever an opponent casts a spell
 - rank 76 《Esper Sentinel》: Whenever an opponent casts their first noncreature spell each turn
 - rank 96 《Mystic Remora》: Whenever an opponent casts a noncreature spell
+- rank 209 《Storm-Kiln Artist》: Whenever you cast or copy an instant or sorcery spell
 - rank 212 《Beast Whisperer》: Whenever you cast a creature spell
+- rank 258 《Archmage Emeritus》: Whenever you cast or copy an instant or sorcery spell
 - rank 267 《Hullbreaker Horror》: Whenever you cast a spell
 - rank 354 《Vanquisher's Banner》: Whenever you cast a creature spell of the chosen type
 - rank 374 《Aetherflux Reservoir》: Whenever you cast a spell
@@ -140,10 +142,8 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - rank 400 《Guttersnipe》: Whenever you cast an instant or sorcery spell
 - rank 408 《Lotho, Corrupt Shirriff》: Whenever a player casts their second spell each turn
 - rank 461 《Sram, Senior Edificer》: Whenever you cast an Aura, Equipment, or Vehicle spell
+- rank 540 《Displacer Kitten》: Whenever you cast a noncreature spell
 - rank 626 《Mangara, the Diplomat》: Whenever an opponent casts their second spell each turn
-- rank 642 《Reflections of Littjara》: Whenever you cast a spell of the chosen type
-- rank 660 《Bontu's Monument》: Whenever you cast a creature spell
-- rank 731 《Niv-Mizzet, Parun》: Whenever a player casts an instant or sorcery spell
 
 ### attacks
 
@@ -213,9 +213,9 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - rank 719 《Chasm Skulker》: Whenever you draw a card
 - rank 731 《Niv-Mizzet, Parun》: Whenever you draw a card
 - rank 1020 《Razorkin Needlehead》: Whenever an opponent draws a card
+- rank 1393 《Tataru Taru》: Whenever an opponent draws a card
 - rank 1398 《Ominous Seas》: Whenever you draw a card
 - rank 1414 《Underworld Dreams》: Whenever an opponent draws a card
-- rank 1663 《The Locust God》: Whenever you draw a card
 
 ### discard
 
@@ -256,20 +256,20 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 ### tap
 
 - rank 97 《City of Brass》: Whenever this land becomes tapped
-- rank 211 《Wild Growth》: Whenever enchanted land is tapped for mana
-- rank 341 《Utopia Sprawl》: Whenever enchanted Forest is tapped for mana
-- rank 1024 《Fertile Ground》: Whenever enchanted land is tapped for mana
 - rank 1082 《Mesmeric Orb》: Whenever a permanent becomes untapped
 - rank 1323 《Key to the City》: Whenever this artifact becomes untapped
 - rank 1330 《Magda, Brazen Outlaw》: Whenever a Dwarf you control becomes tapped
 - rank 1406 《Ghostly Pilferer》: Whenever this creature becomes untapped
-- rank 1716 《Extraplanar Lens》: Whenever a land with the same name as the exiled card is tapped for mana
-- rank 2476 《Gauntlet of Power》: Whenever a basic land is tapped for mana of the chosen color
-- rank 2956 《Overgrowth》: Whenever enchanted land is tapped for mana
 - rank 3503 《Kilo, Apogee Mind》: Whenever Kilo becomes tapped
 - rank 4291 《Verity Circle》: Whenever a creature an opponent controls becomes tapped
 - rank 4465 《Armored Scrapgorger》: Whenever this creature becomes tapped
 - rank 4625 《Deeproot Pilgrimage》: Whenever one or more nontoken Merfolk you control become tapped
+- rank 5292 《Scaretiller》: Whenever this creature becomes tapped
+- rank 6564 《Emmara, Soul of the Accord》: Whenever Emmara becomes tapped
+- rank 6868 《Immersturm Predator》: Whenever this creature becomes tapped
+- rank 6928 《The Ninth Doctor》: Whenever The Ninth Doctor becomes untapped during your untap step
+- rank 7202 《Gran-Gran》: Whenever Gran-Gran becomes tapped
+- rank 7578 《Phyrexian Atlas》: Whenever this artifact becomes tapped
 
 ### counter
 
@@ -327,44 +327,48 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 
 ### other
 
+- rank 211 《Wild Growth》: Whenever enchanted land is tapped for mana
+- rank 341 《Utopia Sprawl》: Whenever enchanted Forest is tapped for mana
+- rank 401 《Goldspan Dragon》: Whenever this creature attacks or becomes the target of a spell
 - rank 525 《Crypt Ghast》: Whenever you tap a Swamp for mana
 - rank 646 《Wizard Class》: When this Class becomes level 2
 - rank 662 《Caretaker's Talent》: When this Class becomes level 2
 - rank 667 《Archivist of Oghma》: Whenever an opponent searches their library
 - rank 668 《Mirari's Wake》: Whenever you tap a land for mana
 - rank 691 《Forbidden Orchard》: Whenever you tap this land for mana
+- rank 707 《Riveteers Overlook》: When you do
 - rank 709 《Curse of Opulence》: Whenever enchanted player is attacked
 - rank 873 《Forsaken Monument》: Whenever you tap a permanent for {C}
 - rank 876 《Caged Sun》: Whenever a land's ability causes you to add one or more mana of the chosen color
 - rank 902 《Burgeoning》: Whenever an opponent plays a land
-- rank 1228 《Rosie Cotton of South Lane》: Whenever you create a token
-- rank 1233 《Shark Typhoon》: When you cycle this card
-- rank 1295 《Baral, Chief of Compliance》: Whenever a spell or ability you control counters a spell
-- rank 1301 《Decree of Pain》: When you cycle this card
-- rank 1354 《Kinnan, Bonder Prodigy》: Whenever you tap a nonland permanent for mana
+- rank 953 《Cabaretti Courtyard》: When you do
 
 
 ## Multi Family Cards
 
 - 《Solemn Simulacrum》: dies, enters
 - 《The One Ring》: enters, phase
+- 《Animate Dead》: enters, leaves
 - 《Orcish Bowmasters》: draw, enters
 - 《Sun Titan》: attacks, enters
 - 《The Ozolith》: leaves, phase
 - 《Bastion of Remembrance》: dies, enters
 - 《Kindred Discovery》: attacks, enters
 - 《Forgotten Ancient》: cast, phase
+- 《Goldspan Dragon》: attacks, other
 - 《The Meathook Massacre》: dies, enters
 - 《Massacre Wurm》: dies, enters
 - 《Growing Rites of Itlimoc // Itlimoc, Cradle of the Sun》: enters, phase
 - 《Elas il-Kor, Sadistic Pilgrim》: dies, enters
 - 《Midnight Clock》: counter, phase
+- 《Tireless Tracker》: enters, sacrifice
 - 《Mangara, the Diplomat》: attacks, cast
 - 《Stitcher's Supplier》: dies, enters
 - 《Wizard Class》: draw, other
 - 《Black Market》: dies, phase
 - 《Caretaker's Talent》: enters, other
 - 《Scrawling Crawler》: draw, phase
+- 《Riveteers Overlook》: enters, other
 - 《Chasm Skulker》: dies, draw
 - 《Niv-Mizzet, Parun》: cast, draw
 - 《Bloodchief Ascension》: phase, zone
@@ -377,8 +381,12 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - 《Myr Battlesphere》: attacks, enters
 - 《The Gitrog Monster》: phase, zone
 - 《Thopter Spy Network》: damage, phase
+- 《Omnath, Locus of Rage》: dies, enters
 - 《Ichor Wellspring》: dies, enters
+- 《Cabaretti Courtyard》: enters, other
 - 《Kardur, Doomscourge》: dies, enters
+- 《Necromancy》: enters, leaves
+- 《Moraug, Fury of Akoum》: enters, phase
 - 《Up the Beanstalk》: cast, enters
 - 《Portal to Phyrexia》: enters, phase
 - 《Kozilek, Butcher of Truth》: cast, zone
@@ -388,14 +396,6 @@ Measurement-only extraction for trigger event families, observer scopes, and int
 - 《Revel in Riches》: dies, phase
 - 《Captain Lannery Storm》: attacks, sacrifice
 - 《Kogla, the Titan Ape》: attacks, enters
-- 《Enduring Courage》: dies, enters
-- 《Skyclave Apparition》: enters, leaves
-- 《Glaring Fleshraker》: cast, enters
-- 《Rosie Cotton of South Lane》: enters, other
-- 《Shark Typhoon》: cast, other
-- 《Simic Ascendancy》: counter, phase
-- 《Ulamog, the Ceaseless Hunger》: attacks, cast
-- 《Coveted Jewel》: attacks, enters
 
 ## Mapping Failures
 

@@ -1,0 +1,1333 @@
+{
+  "sampleSize": 203,
+  "comparedCount": 203,
+  "familyDiscrepancyRate": 0.07881773399014778,
+  "observerDiscrepancyRate": 0.12315270935960591,
+  "interveningIfDiscrepancyRate": 0,
+  "unverifiableRate": 0,
+  "perFamilyConfusion": [
+    {
+      "family": "enters",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 91
+    },
+    {
+      "family": "leaves",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 4
+    },
+    {
+      "family": "dies",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 26
+    },
+    {
+      "family": "zone",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 4
+    },
+    {
+      "family": "cast",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 24
+    },
+    {
+      "family": "attacks",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 16
+    },
+    {
+      "family": "blocks",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 0
+    },
+    {
+      "family": "damage",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 15
+    },
+    {
+      "family": "draw",
+      "classifierOnly": 1,
+      "oracleOnly": 0,
+      "agreeBoth": 8
+    },
+    {
+      "family": "discard",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 1
+    },
+    {
+      "family": "sacrifice",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 4
+    },
+    {
+      "family": "tap",
+      "classifierOnly": 0,
+      "oracleOnly": 3,
+      "agreeBoth": 2
+    },
+    {
+      "family": "counter",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 4
+    },
+    {
+      "family": "life",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 8
+    },
+    {
+      "family": "phase",
+      "classifierOnly": 0,
+      "oracleOnly": 12,
+      "agreeBoth": 34
+    },
+    {
+      "family": "other",
+      "classifierOnly": 3,
+      "oracleOnly": 0,
+      "agreeBoth": 14
+    }
+  ],
+  "perObserverConfusion": [
+    {
+      "observer": "self",
+      "classifierOnly": 6,
+      "oracleOnly": 3,
+      "agreeBoth": 135
+    },
+    {
+      "observer": "opponent",
+      "classifierOnly": 0,
+      "oracleOnly": 0,
+      "agreeBoth": 26
+    },
+    {
+      "observer": "any",
+      "classifierOnly": 1,
+      "oracleOnly": 14,
+      "agreeBoth": 22
+    },
+    {
+      "observer": "controlled-set",
+      "classifierOnly": 0,
+      "oracleOnly": 1,
+      "agreeBoth": 39
+    },
+    {
+      "observer": "unknown",
+      "classifierOnly": 1,
+      "oracleOnly": 7,
+      "agreeBoth": 6
+    }
+  ],
+  "goldCalibration": [
+    {
+      "family": "enters",
+      "precision": 1,
+      "recall": 1,
+      "support": 6
+    },
+    {
+      "family": "leaves",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "dies",
+      "precision": 1,
+      "recall": 1,
+      "support": 4
+    },
+    {
+      "family": "zone",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "cast",
+      "precision": 1,
+      "recall": 1,
+      "support": 4
+    },
+    {
+      "family": "attacks",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "blocks",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "damage",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "draw",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "family": "discard",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "family": "sacrifice",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "tap",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "counter",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    },
+    {
+      "family": "life",
+      "precision": 0,
+      "recall": 0,
+      "support": 0
+    },
+    {
+      "family": "phase",
+      "precision": 1,
+      "recall": 1,
+      "support": 3
+    },
+    {
+      "family": "other",
+      "precision": 1,
+      "recall": 1,
+      "support": 1
+    }
+  ],
+  "clusters": [
+    {
+      "signature": "+phase,+@any",
+      "count": 11,
+      "examples": [
+        "Professional Face-Breaker",
+        "Kutzil, Malamet Exemplar",
+        "Ragavan, Nimble Pilferer",
+        "Ancient Copper Dragon",
+        "Etali, Primal Conqueror // Etali, Primal Sickness"
+      ]
+    },
+    {
+      "signature": "+@unknown,-@self",
+      "count": 5,
+      "examples": [
+        "Black Market",
+        "Underworld Breach",
+        "Ripples of Undeath",
+        "Black Market Connections",
+        "Pact of Negation"
+      ]
+    },
+    {
+      "signature": "+@self",
+      "count": 3,
+      "examples": [
+        "Kindred Discovery",
+        "Dragon Tempest",
+        "Trouble in Pairs"
+      ]
+    },
+    {
+      "signature": "+tap,-other",
+      "count": 3,
+      "examples": [
+        "Forsaken Monument",
+        "Mirari's Wake",
+        "Crypt Ghast"
+      ]
+    },
+    {
+      "signature": "+@any",
+      "count": 2,
+      "examples": [
+        "Thopter Spy Network",
+        "Hellkite Tyrant"
+      ]
+    },
+    {
+      "signature": "-draw",
+      "count": 1,
+      "examples": [
+        "Orcish Bowmasters"
+      ]
+    },
+    {
+      "signature": "+@controlled-set,-@self",
+      "count": 1,
+      "examples": [
+        "Terrasymbiosis"
+      ]
+    },
+    {
+      "signature": "+@unknown",
+      "count": 1,
+      "examples": [
+        "Rosie Cotton of South Lane"
+      ]
+    },
+    {
+      "signature": "+@unknown,-@any",
+      "count": 1,
+      "examples": [
+        "Kardur, Doomscourge"
+      ]
+    },
+    {
+      "signature": "+phase,+@any,-@unknown",
+      "count": 1,
+      "examples": [
+        "Sword of Feast and Famine"
+      ]
+    }
+  ],
+  "discrepancies": [
+    {
+      "oracleId": "ea5103f5-27e0-4eb1-902c-7f34652d6bf3",
+      "name": "Orcish Bowmasters",
+      "classifierFamilies": [
+        "enters",
+        "draw"
+      ],
+      "oracleFamilies": [
+        "enters"
+      ],
+      "familyClassifierOnly": [
+        "draw"
+      ],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self",
+        "opponent"
+      ],
+      "oracleObservers": [
+        "self",
+        "opponent"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": true,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "-draw",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "49be65fd-3755-410d-b0dc-2e5861ea2552",
+      "name": "Thopter Spy Network",
+      "classifierFamilies": [
+        "damage",
+        "phase"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self",
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "self",
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": true,
+      "oracleInterveningIf": true,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "d9b066ff-9519-415c-ae17-bfea703c9889",
+      "name": "Hellkite Tyrant",
+      "classifierFamilies": [
+        "damage",
+        "phase"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "any"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": true,
+      "oracleInterveningIf": true,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "4ac94586-3ac7-4ade-af31-ad0d0e3ffc4a",
+      "name": "Terrasymbiosis",
+      "classifierFamilies": [
+        "counter"
+      ],
+      "oracleFamilies": [
+        "counter"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "controlled-set"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@controlled-set,-@self",
+      "attribution": "ambiguous"
+    },
+    {
+      "oracleId": "005ee549-1bf5-478f-bc3f-3e791bd7eecf",
+      "name": "Kindred Discovery",
+      "classifierFamilies": [
+        "enters",
+        "attacks"
+      ],
+      "oracleFamilies": [
+        "enters",
+        "attacks"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "self",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "self"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "b9bacb46-fd1d-459b-81c2-d7d08fe73848",
+      "name": "Dragon Tempest",
+      "classifierFamilies": [
+        "enters"
+      ],
+      "oracleFamilies": [
+        "enters"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "self",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "self"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "f349f58b-8cc8-45e4-9565-2b46fdf976c9",
+      "name": "Trouble in Pairs",
+      "classifierFamilies": [
+        "attacks"
+      ],
+      "oracleFamilies": [
+        "attacks"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "opponent"
+      ],
+      "oracleObservers": [
+        "self",
+        "opponent"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "self"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "168d5711-4459-440f-8de4-aabffd47c44d",
+      "name": "Rosie Cotton of South Lane",
+      "classifierFamilies": [
+        "enters",
+        "other"
+      ],
+      "oracleFamilies": [
+        "enters",
+        "other"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "unknown"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "bc14356c-3a1a-47af-9a6e-2b449de0331f",
+      "name": "Kardur, Doomscourge",
+      "classifierFamilies": [
+        "enters",
+        "dies"
+      ],
+      "oracleFamilies": [
+        "enters",
+        "dies"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self",
+        "any"
+      ],
+      "oracleObservers": [
+        "self",
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "any"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "21338b71-37f5-4121-9b84-565025ebcd17",
+      "name": "Black Market",
+      "classifierFamilies": [
+        "dies",
+        "phase"
+      ],
+      "oracleFamilies": [
+        "dies",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self",
+        "any"
+      ],
+      "oracleObservers": [
+        "any",
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "27e0948b-9916-473b-8d8c-a51bdfbc7457",
+      "name": "Underworld Breach",
+      "classifierFamilies": [
+        "phase"
+      ],
+      "oracleFamilies": [
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "2acf8e34-9215-4a72-a24f-09d3bdd0083a",
+      "name": "Ripples of Undeath",
+      "classifierFamilies": [
+        "phase"
+      ],
+      "oracleFamilies": [
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "d2664f28-49e1-46f8-a863-b217e961a57c",
+      "name": "Black Market Connections",
+      "classifierFamilies": [
+        "phase"
+      ],
+      "oracleFamilies": [
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+      "name": "Pact of Negation",
+      "classifierFamilies": [
+        "phase"
+      ],
+      "oracleFamilies": [
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "unknown"
+      ],
+      "observerClassifierOnly": [
+        "self"
+      ],
+      "observerOracleOnly": [
+        "unknown"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": true,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+@unknown,-@self",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "04152e7a-969c-4858-841b-0a569a9fc1bf",
+      "name": "Professional Face-Breaker",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "3233af43-7826-4895-b67e-03c6102c2cd5",
+      "name": "Kutzil, Malamet Exemplar",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "any"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "48daee9d-ddaf-410f-8c3a-12fa1064ab56",
+      "name": "Ancient Copper Dragon",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "any"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "7514e401-7aa1-405d-9f7a-312b4e630cc2",
+      "name": "Etali, Primal Conqueror // Etali, Primal Sickness",
+      "classifierFamilies": [
+        "enters",
+        "damage"
+      ],
+      "oracleFamilies": [
+        "enters",
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "any"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "9d2460c3-8eeb-4f35-b6f6-748c478664c7",
+      "name": "Enduring Curiosity",
+      "classifierFamilies": [
+        "dies",
+        "damage"
+      ],
+      "oracleFamilies": [
+        "dies",
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "self",
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "self",
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": true,
+      "oracleInterveningIf": true,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "a8e707ec-ce77-4bc5-8c76-5ea3e81e8c7f",
+      "name": "Toski, Bearer of Secrets",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "b99ada26-9a61-4175-9fb8-15a106960220",
+      "name": "Ohran Frostfang",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "d69b1e68-8d8e-460b-9eb4-6a68be886197",
+      "name": "Kodama of the West Tree",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "e1afaef7-9fa3-4662-a95f-adfb0da9fd11",
+      "name": "Bident of Thassa",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "controlled-set"
+      ],
+      "oracleObservers": [
+        "any",
+        "controlled-set"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "eac94269-4baa-4b8e-a0fd-d6b227d1cde3",
+      "name": "Thrummingbird",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self",
+        "any"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "d0901053-6de0-46d0-9ee3-8d40510236c1",
+      "name": "Sword of Feast and Famine",
+      "classifierFamilies": [
+        "damage"
+      ],
+      "oracleFamilies": [
+        "damage",
+        "phase"
+      ],
+      "familyClassifierOnly": [],
+      "familyOracleOnly": [
+        "phase"
+      ],
+      "classifierObservers": [
+        "unknown"
+      ],
+      "oracleObservers": [
+        "any"
+      ],
+      "observerClassifierOnly": [
+        "unknown"
+      ],
+      "observerOracleOnly": [
+        "any"
+      ],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": false,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+phase,+@any,-@unknown",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "7777fab1-df3f-467f-b9e2-46dd2bd2166e",
+      "name": "Forsaken Monument",
+      "classifierFamilies": [
+        "cast",
+        "other"
+      ],
+      "oracleFamilies": [
+        "cast",
+        "tap"
+      ],
+      "familyClassifierOnly": [
+        "other"
+      ],
+      "familyOracleOnly": [
+        "tap"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": true,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+tap,-other",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "852657c0-18a4-4b28-b9ae-7728acdb5044",
+      "name": "Mirari's Wake",
+      "classifierFamilies": [
+        "other"
+      ],
+      "oracleFamilies": [
+        "tap"
+      ],
+      "familyClassifierOnly": [
+        "other"
+      ],
+      "familyOracleOnly": [
+        "tap"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": true,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+tap,-other",
+      "attribution": "oracle"
+    },
+    {
+      "oracleId": "a3c8d817-7949-4dae-b9f5-f9d952479270",
+      "name": "Crypt Ghast",
+      "classifierFamilies": [
+        "other"
+      ],
+      "oracleFamilies": [
+        "tap"
+      ],
+      "familyClassifierOnly": [
+        "other"
+      ],
+      "familyOracleOnly": [
+        "tap"
+      ],
+      "classifierObservers": [
+        "self"
+      ],
+      "oracleObservers": [
+        "self"
+      ],
+      "observerClassifierOnly": [],
+      "observerOracleOnly": [],
+      "classifierInterveningIf": false,
+      "oracleInterveningIf": false,
+      "familyAgree": false,
+      "observerAgree": true,
+      "interveningIfAgree": true,
+      "agree": false,
+      "hasUncertain": false,
+      "deltaSignature": "+tap,-other",
+      "attribution": "oracle"
+    }
+  ],
+  "attributionDistribution": {
+    "substrate": 0,
+    "compiler": 0,
+    "oracle": 28,
+    "ambiguous": 1,
+    "null": 0
+  }
+}

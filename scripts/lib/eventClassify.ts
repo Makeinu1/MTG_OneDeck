@@ -81,20 +81,19 @@ export function classifyCardEvents(def: CardDef): CardEventSummary {
 }
 
 export function classifyEventsForLine(line: AbilityLine, def?: CardDef): EventTag[] {
-  const trigger = parseTriggerLine(line.text);
-  if (!trigger) {
-    return [];
-  }
-
-  const families = classifyFamilies(trigger.conditionText, trigger.shape);
-  const observer = classifyObserver(trigger.conditionText, trigger.shape, def);
-  return families.map((family) => ({
-    shape: trigger.shape,
-    family,
-    observer,
-    interveningIf: trigger.interveningIf,
-    matchedText: trigger.conditionText,
-  }));
+  return parseTriggerLines(line.text).flatMap((trigger) => {
+    const families = classifyFamilies(trigger.conditionText, trigger.shape);
+    const observers = classifyObservers(trigger.conditionText, trigger.shape, def);
+    return families.flatMap((family) =>
+      observers.map((observer) => ({
+        shape: trigger.shape,
+        family,
+        observer,
+        interveningIf: trigger.interveningIf,
+        matchedText: trigger.conditionText,
+      })),
+    );
+  });
 }
 
 interface ParsedTriggerLine {
@@ -103,8 +102,17 @@ interface ParsedTriggerLine {
   interveningIf: boolean;
 }
 
-function parseTriggerLine(line: string): ParsedTriggerLine | undefined {
-  const text = normalize(stripReminderAndQuotedText(line));
+function parseTriggerLines(line: string): ParsedTriggerLine[] {
+  const text = stripAbilityWordPrefix(normalize(stripReminderAndQuotedText(line)));
+  const segments = triggerSegments(text);
+  return segments.flatMap((segment) => {
+    const trigger = parseTriggerSegment(segment);
+    return trigger ? [trigger] : [];
+  });
+}
+
+function parseTriggerSegment(segment: string): ParsedTriggerLine | undefined {
+  const text = stripAbilityWordPrefix(normalize(segment));
   const shape = triggerShape(text);
   if (!shape) {
     return undefined;
@@ -121,6 +129,42 @@ function parseTriggerLine(line: string): ParsedTriggerLine | undefined {
     conditionText,
     interveningIf: conditionEnd >= 0 && startsWithInterveningIf(text.slice(conditionEnd + 1)),
   };
+}
+
+function triggerSegments(text: string): string[] {
+  const starts = triggerStartIndices(text);
+  if (starts.length === 0 || starts[0] !== 0) {
+    return [];
+  }
+
+  return starts.map((start, index) =>
+    text.slice(start, starts[index + 1] ?? text.length).trim(),
+  );
+}
+
+function triggerStartIndices(text: string): number[] {
+  const starts: number[] = [];
+  const triggerProbe = /\b(?:Whenever|When|At the beginning of)\b/gi;
+  for (const match of text.matchAll(triggerProbe)) {
+    const index = match.index;
+    if (typeof index === 'number' && isTriggerClauseStart(text, index)) {
+      starts.push(index);
+    }
+  }
+  return starts;
+}
+
+function isTriggerClauseStart(text: string, index: number): boolean {
+  if (index === 0) {
+    return true;
+  }
+
+  const before = text.slice(0, index).trimEnd();
+  return /[.!?]$/.test(before);
+}
+
+function stripAbilityWordPrefix(text: string): string {
+  return normalize(text.replace(/^[A-Z][A-Za-z' -]{0,60}\s+(?:--|[\u2013\u2014])\s+/u, ''));
 }
 
 function triggerShape(text: string): TriggerShape | undefined {
@@ -194,6 +238,7 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   const leaves = /\bleaves?\s+the battlefield\b/i.test(text);
   const cast = isCastCondition(text);
   const zoneText = cast ? stripCastSourceZoneModifiers(text) : text;
+  const manaTap = isManaTapCondition(text);
 
   if (enters) {
     families.add('enters');
@@ -228,7 +273,10 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   if (/\bsacrifices?\b|\bis\s+sacrificed\b|\bare\s+sacrificed\b/i.test(text)) {
     families.add('sacrifice');
   }
-  if (/\bbecomes?\s+(?:tapped|untapped)\b|\b(?:is|are)\s+(?:tapped|untapped)\b/i.test(text)) {
+  if (manaTap) {
+    families.add('other');
+  }
+  if (!manaTap && isTapStateChangeCondition(text)) {
     families.add('tap');
   }
   if (isCounterCondition(text)) {
@@ -236,6 +284,9 @@ function classifyFamilies(conditionText: string, shape: TriggerShape): EventFami
   }
   if (/\bgains?\b[^,.;]*\blife\b|\bloses?\b[^,.;]*\blife\b|\blost\b[^,.;]*\blife\b/i.test(text)) {
     families.add('life');
+  }
+  if (/\bbecomes?\s+the\s+target\b/i.test(text)) {
+    families.add('other');
   }
 
   const sortedFamilies = [...families].sort();
@@ -289,35 +340,52 @@ function isCounterCondition(text: string): boolean {
   );
 }
 
-function classifyObserver(
+function isManaTapCondition(text: string): boolean {
+  return (
+    /\b(?:is|are|was|were|becomes?|become)\s+tapped\s+for\s+mana\b/i.test(text) ||
+    /\btaps?\b[^,.;]*\bfor\s+mana\b/i.test(text)
+  );
+}
+
+function isTapStateChangeCondition(text: string): boolean {
+  return /\bbecomes?\s+(?:tapped|untapped)\b|\b(?:is|are)\s+(?:tapped|untapped)\b/i.test(
+    text,
+  );
+}
+
+function classifyObservers(
   conditionText: string,
   shape: TriggerShape,
   def: CardDef | undefined,
-): ObserverScope {
+): ObserverScope[] {
   const body = conditionBody(conditionText, shape);
+  const observers = new Set<ObserverScope>();
 
   if (isOpponentScope(body)) {
-    return 'opponent';
-  }
-  if (isAnyPlayerScope(body)) {
-    return 'any';
+    observers.add('opponent');
   }
   if (isControlledSetScope(body)) {
-    return 'controlled-set';
+    observers.add('controlled-set');
   }
   if (isSelfScope(body, shape, def)) {
-    return 'self';
+    observers.add('self');
+  }
+  if (observers.size > 0) {
+    return [...observers].sort();
+  }
+  if (isAnyPlayerScope(body)) {
+    return ['any'];
   }
   if (isAnyObjectScope(body)) {
-    return 'any';
+    return ['any'];
   }
   if (shape === 'at' && /\beach\b/i.test(body)) {
-    return 'any';
+    return ['any'];
   }
   if (shape === 'at') {
-    return 'self';
+    return ['self'];
   }
-  return 'unknown';
+  return ['unknown'];
 }
 
 function conditionBody(conditionText: string, shape: TriggerShape): string {
@@ -332,6 +400,11 @@ function conditionBody(conditionText: string, shape: TriggerShape): string {
 }
 
 function isOpponentScope(text: string): boolean {
+  // Opponent scope is detected wherever an opponent qualifies the triggering event
+  // (subject OR scoping possessive: "an opponent's graveyard", "each opponent's upkeep",
+  // "deals damage to an opponent"). Anchoring to ^ regressed these (M0-O2 iter2-a audit:
+  // Bloodchief Ascension / Sheoldred / Curiosity). The reorder below (subject scopes
+  // before any-player) is what fixes "combat damage to a player" → any, not this anchor.
   return (
     /\b(?:an|each|target)\s+opponents?\b/i.test(text) ||
     /\byour opponents?\b/i.test(text) ||
@@ -340,17 +413,27 @@ function isOpponentScope(text: string): boolean {
 }
 
 function isAnyPlayerScope(text: string): boolean {
-  return /\b(?:a|each|any)\s+players?\b/i.test(text);
+  return /^(?:a|each|any|one or more|two or more|three or more)\s+players?\b/i.test(text);
 }
 
 function isControlledSetScope(text: string): boolean {
+  const controlledNoun = String.raw`(?:[a-z][a-z'+/-]*(?:\s+[a-z][a-z'+/-]*){0,6})`;
+  const triggerVerb = String.raw`(?:enters?|dies|die|leaves?|attacks?|blocks?|becomes?|become|deals?|draws?|draw|discards?|discard|sacrifices?|sacrifice|casts?|cast|is|are|was|were)`;
   return (
-    /\b(?:creatures?|artifacts?|enchantments?|lands?|permanents?|tokens?|cards?|spells?)\s+you control\b[^,.;]*\b(?:enters?|dies|leaves?|attacks?|blocks?|becomes?|deals?|is|are)\b/i.test(
+    /\bcounters?\b[^,.;]*\b(?:is|are|was|were)\s+(?:put|placed)\s+on\b[^,.;]*\byou control\b/i.test(
       text,
     ) ||
-    /\b(?:creatures?|artifacts?|enchantments?|lands?|permanents?|tokens?|cards?|spells?)\b[^,.;]*\bunder your control\b[^,.;]*\b(?:enters?|dies|leaves?|attacks?|blocks?|becomes?|deals?|is|are)\b/i.test(
+    new RegExp(String.raw`\b${controlledNoun}\s+you control\b[^,.;]*\b${triggerVerb}\b`, 'i').test(
       text,
-    )
+    ) ||
+    new RegExp(
+      String.raw`\b${controlledNoun}\b[^,.;]*\b${triggerVerb}\b[^,.;]*\bunder your control\b`,
+      'i',
+    ).test(text) ||
+    new RegExp(
+      String.raw`\b${controlledNoun}\b[^,.;]*\bunder your control\b[^,.;]*\b${triggerVerb}\b`,
+      'i',
+    ).test(text)
   );
 }
 
@@ -391,10 +474,24 @@ function selfNames(def: CardDef | undefined): string[] {
   if (!def) {
     return [];
   }
-  const names = [def.name, def.name.split(' // ')[0], ...def.faces.map((face) => face.name)];
+  const names = [
+    ...selfNameAliases(def.name, def.typeLine),
+    ...def.faces.flatMap((face) => selfNameAliases(face.name, face.typeLine)),
+  ];
   return [...new Set(names.filter((name) => name.length > 0))].sort(
     (a, b) => b.length - a.length,
   );
+}
+
+function selfNameAliases(name: string, typeLine: string): string[] {
+  const base = name.split(' // ')[0].trim();
+  const commaShort = base.split(',')[0].trim();
+  const aliases = [name, base, commaShort];
+  const firstWord = commaShort.match(/^[A-Za-z][A-Za-z'-]*/)?.[0];
+  if (/\bLegendary\b/i.test(typeLine) && firstWord && !/^(?:a|an|the)$/i.test(firstWord)) {
+    aliases.push(firstWord);
+  }
+  return aliases;
 }
 
 function normalize(text: string): string {

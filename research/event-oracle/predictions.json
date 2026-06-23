@@ -1,0 +1,3167 @@
+{
+  "model": "gpt-5-codex-clean-room",
+  "generatedAt": "2026-06-23T00:00:00.000Z",
+  "promptHash": "d17ce0f0f5779177f82f7d0bb6e7f1a5d2c07f7937c2d57d605317135b6736b8",
+  "predictions": [
+    {
+      "oracleId": "04b7362d-0490-4cb0-b5d7-2a7732f659ce",
+      "name": "Bojuka Bog",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "00c0543c-2a1f-4425-8283-4062d74a1637",
+      "name": "Solemn Simulacrum",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / When this creature dies; families=enters,dies, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "65986c1b-8e51-4604-b685-d82fa7d1263a",
+      "name": "Skullclamp",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever equipped creature dies; families=dies, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "53236dd7-845a-444c-96d5-f41ed7325d8f",
+      "name": "Rhystic Study",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent casts a spell; families=cast, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "5def9f38-0a0b-4e8d-9f9d-29dcb46520b4",
+      "name": "Esper Sentinel",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent casts their first noncreature spell each turn; families=cast, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3aa83ed2-f48b-4ce6-a614-2c54ddf50538",
+      "name": "The One Ring",
+      "facts": {
+        "families": [
+          "enters",
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When The One Ring enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "3127ae9b-a7a7-43ec-89d7-688f8445b33d",
+      "name": "Garruk's Uprising",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this enchantment enters / Whenever a creature you control with power 4 or greater enters; families=enters, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "8a52f3c0-2552-4425-b2e3-5496eb2232a7",
+      "name": "Mystic Remora",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent casts a noncreature spell; families=cast, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "ee579a32-a048-4335-b966-231ba731cdea",
+      "name": "Phyrexian Arena",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "30b24e8e-3b0e-4d8e-90f3-f66eb7c1858c",
+      "name": "Eternal Witness",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d2664f28-49e1-46f8-a863-b217e961a57c",
+      "name": "Black Market Connections",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your first main phase; families=phase, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "310f141c-7f37-4729-aed6-dd9c09db448d",
+      "name": "Blood Artist",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature or another creature dies; families=dies, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c02c5547-b9c9-4b2d-9d12-e87bfba8f2d2",
+      "name": "Herald's Horn",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "736892cb-a34b-4bb9-b56c-e26e3db207a2",
+      "name": "Mana Vault",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep / At the beginning of your draw step; families=phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "17b60106-a4c7-410a-8ac3-ec8e74e29a7c",
+      "name": "Mystic Sanctuary",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters untapped; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "9242cd3e-1a71-4700-8182-9c1005616033",
+      "name": "Impact Tremors",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "5da7eea8-bb9e-47ce-a554-8a1ee058bd7a",
+      "name": "Beast Whisperer",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a creature spell; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c0d8fef4-65f4-4769-982d-b397d2b7e977",
+      "name": "Animate Dead",
+      "facts": {
+        "families": [
+          "enters",
+          "leaves"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this Aura enters / When this Aura leaves the battlefield; families=enters,leaves, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+      "name": "Pitiless Plunderer",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control dies; families=dies, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "76b003e0-15af-4f22-bdf2-1ade5430964a",
+      "name": "Zulaport Cutthroat",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature or another creature you control dies; families=dies, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "78427103-9543-41fb-b6d4-72963fe87275",
+      "name": "The Great Henge",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a nontoken creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3dc364f3-3094-4660-80ca-9418588c7fde",
+      "name": "Mithril Coat",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Mithril Coat enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "38f3b157-0df4-409b-89cc-086e1531cd5b",
+      "name": "Gray Merchant of Asphodel",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d79cbc61-6c15-48ea-bbba-3cffb819ccba",
+      "name": "Sword of the Animist",
+      "facts": {
+        "families": [
+          "attacks"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever equipped creature attacks; families=attacks, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "14c3ff84-1e82-4606-a433-869fc52cc382",
+      "name": "Syr Konrad, the Grim",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature dies; families=dies, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "ea5103f5-27e0-4eb1-902c-7f34652d6bf3",
+      "name": "Orcish Bowmasters",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps; families=enters, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "92eed395-62ca-4293-882b-8565c40daab5",
+      "name": "Sylvan Library",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your draw step; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "322f44f0-e6da-4ee0-b474-e7d5e9a461c5",
+      "name": "Morbid Opportunist",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more other creatures die; families=dies, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "078def07-ae5d-4591-8db6-d156834aab97",
+      "name": "Etali, Primal Storm",
+      "facts": {
+        "families": [
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever Etali attacks; families=attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d4a84e78-d9b9-4c67-8a4b-4329e65f0f15",
+      "name": "Hullbreaker Horror",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a spell; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "79f94050-d850-41ca-b1db-5ae0cf743f0a",
+      "name": "Temple of Epiphany",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "4ba5b3f6-503b-43e6-b66e-4f8c55cffed7",
+      "name": "Avenger of Zendikar",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / Whenever a land you control enters; families=enters, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e6e6fce8-0f6a-4b84-865e-d4e4a4182f9f",
+      "name": "Temple of Silence",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "91d4a5fe-fd6d-4b14-a63f-61b4d0ecd9c4",
+      "name": "Inventors' Fair",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "046f5783-cc7b-416a-8cf6-2bcef9c2cc1a",
+      "name": "Simic Growth Chamber",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e0445c80-fa53-4c3e-881e-940e9fce7f57",
+      "name": "Braids, Arisen Nightmare",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your end step; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b2e950fb-cb7e-40a0-a311-5bbdd0477b29",
+      "name": "Sun Titan",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature enters or attacks; families=enters,attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "6f0d94d9-64bb-4175-83bc-301e8f79f54f",
+      "name": "Temple of Triumph",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7e26f0b7-20e6-46d5-8130-d98c14d6aa29",
+      "name": "Temple of Mystery",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "1946ded1-5f53-409f-b0a6-5433bb0357d2",
+      "name": "The Ozolith",
+      "facts": {
+        "families": [
+          "leaves",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control leaves the battlefield / At the beginning of combat on your turn; families=leaves,phase, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "89f43e27-790b-4ca1-8ba7-0882b31e0783",
+      "name": "Temple of Enlightenment",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "032ec6e2-6cc3-4a97-9cc7-3233f5e11904",
+      "name": "Reclamation Sage",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "4f9e07ae-6341-4b46-9f77-f17ab659d266",
+      "name": "Guardian Project",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a nontoken creature you control enters; families=enters, observers=controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "1b301478-b14f-4ef8-94e6-9647d582eabe",
+      "name": "Golgari Rot Farm",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "0355249a-8e4e-41db-9cea-1b901faffbe6",
+      "name": "Witch Enchanter // Witch-Blessed Meadow",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8c52bd39-0586-48ca-b263-17210cf9feb6",
+      "name": "Craterhoof Behemoth",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c7f33cea-2ec8-4081-9208-a5b1d86721b3",
+      "name": "Bastion of Remembrance",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this enchantment enters / Whenever a creature you control dies; families=enters,dies, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "33b9b3bd-33ca-46f3-b8bb-a978bc3d1085",
+      "name": "Temple of Deceit",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "378a1d57-e2f1-4b84-9692-1564602e9e99",
+      "name": "Dimir Aqueduct",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "dc55421f-dee8-4263-9df0-2365df5f14bb",
+      "name": "Temple of Malady",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "005ee549-1bf5-478f-bc3f-3e791bd7eecf",
+      "name": "Kindred Discovery",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control of the chosen type enters or attacks; families=enters,attacks, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b3d81980-76f2-44e2-b1c9-01e30c726312",
+      "name": "Loran of the Third Path",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Loran enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8cf38025-5821-45a0-9483-266353b7e82d",
+      "name": "Vanquisher's Banner",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a creature spell of the chosen type; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "37688720-03de-4eca-a82d-a0afe8d58adc",
+      "name": "Baleful Strix",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+      "name": "Pact of Negation",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your next upkeep; families=phase, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "55f3c721-e13a-406e-bc8e-d6cdc91ac477",
+      "name": "Authority of the Consuls",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature an opponent controls enters; families=enters, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "5f15125e-ae89-471e-b055-226a783bc7c1",
+      "name": "Aetherflux Reservoir",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a spell; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "aa00ae0b-7c0f-427e-8102-ce0e2a6af5df",
+      "name": "Orzhov Basilica",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "27e0948b-9916-473b-8d8c-a51bdfbc7457",
+      "name": "Underworld Breach",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of the end step; families=phase, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d2d9ecea-7925-420e-98b9-2f87f41f387c",
+      "name": "Land Tax",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "2ef75cf3-30dc-4852-a6d1-1d6391fad022",
+      "name": "Forgotten Ancient",
+      "facts": {
+        "families": [
+          "cast",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a player casts a spell / At the beginning of your upkeep; families=cast,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "1cb9d94a-3039-4f2e-8fcc-6996f9a45f74",
+      "name": "Izzet Boilerworks",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "83b43aba-bf9c-4da2-967d-9daa632e97d2",
+      "name": "Helm of the Host",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of combat on your turn; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c6bdaf76-6a03-4695-9c4b-f040e73435af",
+      "name": "Guttersnipe",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast an instant or sorcery spell; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "716b3ea2-45b7-4a8f-af72-de7f4e510eff",
+      "name": "Goldspan Dragon",
+      "facts": {
+        "families": [
+          "attacks",
+          "other"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature attacks or becomes the target of a spell; families=attacks,other, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "135cc078-1c45-465e-b0b9-7168c89f56f4",
+      "name": "Lotho, Corrupt Shirriff",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a player casts their second spell each turn; families=cast, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "1de1b591-a73f-4974-b507-8c63e07a0868",
+      "name": "Thassa's Oracle",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "657243dd-e479-4f4b-99d2-09b55d833a35",
+      "name": "Gruul Turf",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7c439c18-31dc-41fe-b03d-3fca06e6fc0b",
+      "name": "Temple of Malice",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "605c1ee0-5e8a-4e0a-a99b-42a38873f822",
+      "name": "Welcoming Vampire",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more other creatures you control with power 2 or less enter; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "08d80efc-9542-4ba2-824c-c8615d8d07f2",
+      "name": "Undercity Sewers",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "189fc8f4-17ac-4f1d-82c8-8401445bdaf4",
+      "name": "Azorius Chancery",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "1d725121-e50c-42f0-9128-56802f07c89e",
+      "name": "Selvala, Heart of the Wilds",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7324abaa-48da-439d-9339-b0ea5eea612e",
+      "name": "Unnatural Growth",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of each combat; families=phase, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "aa959340-c869-4caa-92c7-572bd8d23eef",
+      "name": "Field of the Dead",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this land or another land you control enters; families=enters, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "7e00b0cd-d212-4604-ba07-da21f4fe00b0",
+      "name": "Sram, Senior Edificer",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast an Aura; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8fa3ac81-3dfe-4565-be99-5554f7597b4b",
+      "name": "Boros Garrison",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d8ad23a1-0b43-48ea-9fbe-d89b29194509",
+      "name": "Accursed Marauder",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "840119bf-e60f-4ff7-9c9b-d420d09df545",
+      "name": "Underground Mortuary",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "0a023964-2905-4928-9c3e-dc63e6ebd218",
+      "name": "Rakdos Carnarium",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e521322b-0e83-458c-8936-7021a80ee279",
+      "name": "Temple of Plenty",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "2699005b-a471-429f-a9d8-fbf2077ee2fd",
+      "name": "Disciple of Freyalise // Garden of Freyalise",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3baa8e38-ef93-435d-b63e-f781d5bfcc68",
+      "name": "Temple of Abandon",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3577c47e-76d3-4659-b922-31c4b74be3a0",
+      "name": "Enduring Vitality",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Enduring Vitality dies; families=dies, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "cd1eda60-53e4-44d0-9b2c-7a57395e291f",
+      "name": "Conjurer's Closet",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your end step; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "127de52b-df75-4342-95a0-20d84c5bf916",
+      "name": "The Meathook Massacre",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "opponent",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When The Meathook Massacre enters / Whenever a creature you control dies / Whenever a creature an opponent controls dies; families=enters,dies, observers=self,opponent,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "38515f89-348b-4cf3-b7bd-1f6fe4ce2fba",
+      "name": "Adeline, Resplendent Cathar",
+      "facts": {
+        "families": [
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you attack; families=attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f3fad295-1af2-4ecc-8546-b121ad6be27b",
+      "name": "Soul Warden",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f8e17f4f-080d-4bba-bd05-ca27e94ccecc",
+      "name": "Terror of the Peaks",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "93cf50cf-0ecc-4d3e-abea-778c1ebacec4",
+      "name": "Massacre Wurm",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / Whenever a creature an opponent controls dies; families=enters,dies, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f3d48efa-910a-4872-a5b1-a353c5dbce99",
+      "name": "Pinnacle Monk // Mystic Peak",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "2acf8e34-9215-4a72-a24f-09d3bdd0083a",
+      "name": "Ripples of Undeath",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your first main phase; families=phase, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "00ef1c55-dea1-4564-bd57-66de86cba4df",
+      "name": "Selesnya Sanctuary",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "ca4b6689-04ee-4227-9bdc-cb5a9590c745",
+      "name": "Hedge Maze",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c549b0fd-1e08-4873-952e-a14dc45a0fd2",
+      "name": "Champion of Lambholt",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "cc65ac73-5bef-4ecb-ad8e-39199084c027",
+      "name": "Cathars' Crusade",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "dbcbdf37-c40f-4068-b4a7-a849cab1056c",
+      "name": "Six",
+      "facts": {
+        "families": [
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever Six attacks; families=attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "726d9d2c-736a-4852-9938-a0f50d8fd89f",
+      "name": "Marionette Apprentice",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature or artifact you control is put into a graveyard from the battlefield; families=dies, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "ea9c459a-6047-43aa-968f-a582be4000e8",
+      "name": "Growing Rites of Itlimoc // Itlimoc, Cradle of the Sun",
+      "facts": {
+        "families": [
+          "enters",
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Growing Rites of Itlimoc enters / At the beginning of your end step; families=enters,phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "04e5e84f-8fd4-43ab-8f9d-5b24646f7ae5",
+      "name": "Raucous Theater",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a4d33e21-d3fe-4d5b-903c-b75e859d6f7f",
+      "name": "Elas il-Kor, Sadistic Pilgrim",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control enters / Whenever another creature you control dies; families=enters,dies, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c68faebc-b2cd-461b-b93e-e1fcd4816810",
+      "name": "Midnight Clock",
+      "facts": {
+        "families": [
+          "counter",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of each upkeep / When the twelfth hour counter is put on this artifact; families=counter,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "cbcb6d9a-6ae5-4bcd-8013-2b657553764a",
+      "name": "Mangara, the Diplomat",
+      "facts": {
+        "families": [
+          "cast",
+          "attacks"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent attacks with creatures / Whenever an opponent casts their second spell each turn; families=cast,attacks, observers=opponent, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "7fd61a18-6e4f-40c5-aa00-3d101ec1ec82",
+      "name": "Stitcher's Supplier",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters or dies; families=enters,dies, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "36f68aa3-9955-46f1-bc87-497f16ef5222",
+      "name": "Wizard Class",
+      "facts": {
+        "families": [
+          "draw",
+          "other"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this Class becomes level 2 / Whenever you draw a card; families=draw,other, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "21338b71-37f5-4121-9b84-565025ebcd17",
+      "name": "Black Market",
+      "facts": {
+        "families": [
+          "dies",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature dies / At the beginning of your first main phase; families=dies,phase, observers=any,unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c97957a2-8310-4cff-8aad-871b7901d124",
+      "name": "Caretaker's Talent",
+      "facts": {
+        "families": [
+          "enters",
+          "other"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more tokens you control enter / When this Class becomes level 2; families=enters,other, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "1d60c80d-9a95-4051-bbf7-02ca51ee1be2",
+      "name": "Scrawling Crawler",
+      "facts": {
+        "families": [
+          "draw",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever an opponent draws a card; families=draw,phase, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "69facbc7-3859-4716-b627-5199571fb3cf",
+      "name": "Chasm Skulker",
+      "facts": {
+        "families": [
+          "dies",
+          "draw"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you draw a card / When this creature dies; families=dies,draw, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "33666a98-812f-4892-9f8d-33e0cbecc340",
+      "name": "Niv-Mizzet, Parun",
+      "facts": {
+        "families": [
+          "cast",
+          "draw"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you draw a card / Whenever a player casts an instant or sorcery spell; families=cast,draw, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d5ea905b-4bb6-48d0-9082-c472703db550",
+      "name": "Bloodchief Ascension",
+      "facts": {
+        "families": [
+          "zone",
+          "phase"
+        ],
+        "observers": [
+          "opponent",
+          "any"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of each end step / Whenever a card is put into an opponent's graveyard from anywhere; families=zone,phase, observers=opponent,any, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "7514e401-7aa1-405d-9f7a-312b4e630cc2",
+      "name": "Etali, Primal Conqueror // Etali, Primal Sickness",
+      "facts": {
+        "families": [
+          "enters",
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Etali enters / Whenever Etali deals combat damage to a player; families=enters,damage,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d9b066ff-9519-415c-ae17-bfea703c9889",
+      "name": "Hellkite Tyrant",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player / At the beginning of your upkeep; families=damage,phase, observers=self,any, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "98a389f4-2905-47f3-b60e-3d4afb3e5cb0",
+      "name": "Enduring Innocence",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more other creatures you control with power 2 or less enter / When Enduring Innocence dies; families=enters,dies, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "98e698ae-1a69-469c-9cfb-0e3fedeb71d4",
+      "name": "Enduring Tenacity",
+      "facts": {
+        "families": [
+          "dies",
+          "life"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you gain life / When Enduring Tenacity dies; families=dies,life, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "9d2460c3-8eeb-4f35-b6f6-748c478664c7",
+      "name": "Enduring Curiosity",
+      "facts": {
+        "families": [
+          "dies",
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player / When Enduring Curiosity dies; families=dies,damage,phase, observers=self,any,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "7777fab1-df3f-467f-b9e2-46dd2bd2166e",
+      "name": "Forsaken Monument",
+      "facts": {
+        "families": [
+          "cast",
+          "tap"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you tap a permanent for {C} / Whenever you cast a colorless spell; families=cast,tap, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c53ba31a-ba27-4e17-9a92-311acb1cab29",
+      "name": "Myr Battlesphere",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / Whenever this creature attacks; families=enters,attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a5e54d2b-aad8-4ddd-af4b-13668913762b",
+      "name": "The Gitrog Monster",
+      "facts": {
+        "families": [
+          "zone",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever one or more land cards are put into your graveyard from anywhere; families=zone,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "49be65fd-3755-410d-b0dc-2e5861ea2552",
+      "name": "Thopter Spy Network",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever one or more artifact creatures you control deal combat damage to a player; families=damage,phase, observers=self,any,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "5b5ef43b-13fd-4461-8d2d-18be65e9a790",
+      "name": "Ichor Wellspring",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this artifact enters or is put into a graveyard from the battlefield; families=enters,dies, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "bc14356c-3a1a-47af-9a6e-2b449de0331f",
+      "name": "Kardur, Doomscourge",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Kardur enters / Whenever an attacking creature dies; families=enters,dies, observers=self,unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "050f5733-7c0b-4991-9a6c-7ea12ccf0ca9",
+      "name": "Up the Beanstalk",
+      "facts": {
+        "families": [
+          "enters",
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this enchantment enters and whenever you cast a spell with mana value 5 or greater; families=enters,cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "301d1d8e-d3fc-4010-8b29-4724fa0b31cd",
+      "name": "Portal to Phyrexia",
+      "facts": {
+        "families": [
+          "enters",
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this artifact enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7b8528b0-71eb-4c9e-bed9-aa2d2e84038f",
+      "name": "Kozilek, Butcher of Truth",
+      "facts": {
+        "families": [
+          "zone",
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When you cast this spell / When Kozilek is put into a graveyard from anywhere; families=zone,cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "aa1a6646-c1e6-4bff-9092-43ee3e137914",
+      "name": "Archon of Cruelty",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature enters or attacks; families=enters,attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "111889d4-bcca-4b1f-ad48-3077e2f5136f",
+      "name": "Fiery Inscription",
+      "facts": {
+        "families": [
+          "enters",
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this enchantment enters / Whenever you cast an instant or sorcery spell; families=enters,cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d0ade00d-a496-441d-9b7e-7dc033d3292c",
+      "name": "Titania, Protector of Argoth",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Titania enters / Whenever a land you control is put into a graveyard from the battlefield; families=enters,dies, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "cc3fcd26-c088-4335-9a35-0e11019e3d5b",
+      "name": "Revel in Riches",
+      "facts": {
+        "families": [
+          "dies",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature an opponent controls dies / At the beginning of your upkeep; families=dies,phase, observers=self,opponent, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "235bf0ba-658c-463f-b112-7478ba27bd7b",
+      "name": "Captain Lannery Storm",
+      "facts": {
+        "families": [
+          "attacks",
+          "sacrifice"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever Captain Lannery Storm attacks / Whenever you sacrifice a Treasure; families=attacks,sacrifice, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8b21062e-97b0-4967-96df-30e8309f4fba",
+      "name": "Kogla, the Titan Ape",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Kogla enters / Whenever Kogla attacks; families=enters,attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b3de29cb-7d7d-4566-b5bf-37e571bd5d78",
+      "name": "Enduring Courage",
+      "facts": {
+        "families": [
+          "enters",
+          "dies"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control enters / When Enduring Courage dies; families=enters,dies, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "d90af00a-d322-4265-9954-7b1e80702e18",
+      "name": "Skyclave Apparition",
+      "facts": {
+        "families": [
+          "enters",
+          "leaves"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / When this creature leaves the battlefield; families=enters,leaves, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "0ffce5e0-6b1d-4d1a-9318-1a1a219df532",
+      "name": "Glaring Fleshraker",
+      "facts": {
+        "families": [
+          "enters",
+          "cast"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a colorless spell / Whenever another colorless creature you control enters; families=enters,cast, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "168d5711-4459-440f-8de4-aabffd47c44d",
+      "name": "Rosie Cotton of South Lane",
+      "facts": {
+        "families": [
+          "enters",
+          "other"
+        ],
+        "observers": [
+          "self",
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When Rosie Cotton enters / Whenever you create a token; families=enters,other, observers=self,unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8c0520fa-276b-4d21-b4a9-dce1fce59f6b",
+      "name": "Shark Typhoon",
+      "facts": {
+        "families": [
+          "cast",
+          "other"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a noncreature spell / When you cycle this card; families=cast,other, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "57c1a98e-c4fb-4144-9e3e-d0fe6789ba26",
+      "name": "Simic Ascendancy",
+      "facts": {
+        "families": [
+          "counter",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more +1/+1 counters are put on a creature you control / At the beginning of your upkeep; families=counter,phase, observers=self,controlled-set, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "0bfa4512-e35a-4c93-b324-80ec659f5a97",
+      "name": "Ulamog, the Ceaseless Hunger",
+      "facts": {
+        "families": [
+          "cast",
+          "attacks"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When you cast this spell / Whenever Ulamog attacks; families=cast,attacks, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "98492d7d-3b9e-4ae1-ac45-1b508d6d2670",
+      "name": "Coveted Jewel",
+      "facts": {
+        "families": [
+          "enters",
+          "attacks"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this artifact enters / Whenever one or more creatures an opponent controls attack you and aren't blocked; families=enters,attacks, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a0be9bb2-3234-4c6c-b8ce-0879b1f43003",
+      "name": "Laelia, the Blade Reforged",
+      "facts": {
+        "families": [
+          "zone",
+          "attacks"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever Laelia attacks / Whenever one or more cards are put into exile from your library and/or your graveyard; families=zone,attacks, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "153376c9-dffd-458c-8ce3-a4c8269bc4e9",
+      "name": "Smothering Tithe",
+      "facts": {
+        "families": [
+          "draw"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent draws a card; families=draw, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "04152e7a-969c-4858-841b-0a569a9fc1bf",
+      "name": "Professional Face-Breaker",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more creatures you control deal combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever Ragavan deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a984db23-40ea-428d-829f-e944267280f8",
+      "name": "Faerie Mastermind",
+      "facts": {
+        "families": [
+          "draw"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent draws their second card each turn; families=draw, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a8e707ec-ce77-4bc5-8c76-5ea3e81e8c7f",
+      "name": "Toski, Bearer of Secrets",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3233af43-7826-4895-b67e-03c6102c2cd5",
+      "name": "Kutzil, Malamet Exemplar",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more creatures you control each with power greater than its base power deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e1afaef7-9fa3-4662-a95f-adfb0da9fd11",
+      "name": "Bident of Thassa",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b99ada26-9a61-4175-9fb8-15a106960220",
+      "name": "Ohran Frostfang",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "34f34409-326d-4994-a0ea-1a69aa278f03",
+      "name": "Sheoldred, the Apocalypse",
+      "facts": {
+        "families": [
+          "draw"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you draw a card / Whenever an opponent draws a card; families=draw, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "8f933fae-6c0c-42d7-a817-14760d8285cd",
+      "name": "Exquisite Blood",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d0901053-6de0-46d0-9ee3-8d40510236c1",
+      "name": "Sword of Feast and Famine",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever equipped creature deals combat damage to a player; families=damage,phase, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "4709f11c-aef8-45ac-b2bf-e640c568dfac",
+      "name": "Mayhem Devil",
+      "facts": {
+        "families": [
+          "sacrifice"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a player sacrifices a permanent; families=sacrifice, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "223fa044-d387-4884-bf4e-75f1b61c6a46",
+      "name": "Curiosity",
+      "facts": {
+        "families": [
+          "damage"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever enchanted creature deals damage to an opponent; families=damage, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "74a62c7b-4753-4af2-b7a1-9a4ae8988801",
+      "name": "Puresteel Paladin",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an Equipment you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f349f58b-8cc8-45e4-9565-2b46fdf976c9",
+      "name": "Trouble in Pairs",
+      "facts": {
+        "families": [
+          "attacks"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent attacks you with two or more creatures; families=attacks, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "48daee9d-ddaf-410f-8c3a-12fa1064ab56",
+      "name": "Ancient Copper Dragon",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "311a449d-dc74-46e6-9a47-6a597931f736",
+      "name": "Consecrated Sphinx",
+      "facts": {
+        "families": [
+          "draw"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent draws a card; families=draw, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "08b13e1f-27ca-40a8-b5ed-88ac933d24bf",
+      "name": "Archivist of Oghma",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent searches their library; families=other, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "55eca80c-dcd8-4c2f-aa0f-fb0aec7b80f7",
+      "name": "Ophiomancer",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of each upkeep; families=phase, observers=any, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "9218b56d-aaec-482f-99e9-d95d227bfe25",
+      "name": "Sheoldred, Whispering One",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep / At the beginning of each opponent's upkeep; families=phase, observers=self,opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d26b27db-a567-4631-b4b6-7294222fbdd1",
+      "name": "Howling Mine",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of each player's draw step; families=phase, observers=any, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "ef833546-f755-4ac5-867a-3926984e68a0",
+      "name": "Archaeomancer's Map",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "opponent"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this artifact enters / Whenever a land an opponent controls enters; families=enters, observers=self,opponent, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "d72b57e5-1c6e-4f02-968f-7e2dd24f0d3c",
+      "name": "Boromir, Warden of the Tower",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent casts a spell; families=cast, observers=opponent, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "d69b1e68-8d8e-460b-9eb4-6a68be886197",
+      "name": "Kodama of the West Tree",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "any",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a modified creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "eac94269-4baa-4b8e-a0fd-d6b227d1cde3",
+      "name": "Thrummingbird",
+      "facts": {
+        "families": [
+          "damage",
+          "phase"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b9bacb46-fd1d-459b-81c2-d7d08fe73848",
+      "name": "Dragon Tempest",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control with flying enters / Whenever a Dragon you control enters; families=enters, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "045a9d3d-c20d-427f-a77b-0bffc6f55526",
+      "name": "Soul's Attendant",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e9117015-1050-44dd-a46b-e7ffe2085fae",
+      "name": "Ledger Shredder",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a player casts their second spell each turn; families=cast, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "4f5f2792-0cc4-4caa-b798-2ee9597f2524",
+      "name": "Sigarda's Aid",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an Equipment you control enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "09b895ff-e729-48d1-bfc1-ea5fd7adda6a",
+      "name": "Caged Sun",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a land's ability causes you to add one or more mana of the chosen color; families=other, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f25351e3-539b-4bbc-b92d-6480acf4d722",
+      "name": "City of Brass",
+      "facts": {
+        "families": [
+          "tap"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever this land becomes tapped; families=tap, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "706ae742-1807-44b7-a4fa-f2e26f61519a",
+      "name": "Wild Growth",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever enchanted land is tapped for mana; families=other, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "0636b6c3-0662-420a-b30d-f0a14e7c512d",
+      "name": "Mirkwood Bats",
+      "facts": {
+        "families": [
+          "sacrifice"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you create or sacrifice a token; families=sacrifice, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "00d8efa6-a2d9-4249-8da7-b45173675329",
+      "name": "Utopia Sprawl",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever enchanted Forest is tapped for mana; families=other, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7336a541-3ae9-4ab2-acb8-f574c0a5b3a9",
+      "name": "Vito, Thorn of the Dusk Rose",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "73089a39-a2f6-4aa2-a058-e6551475153d",
+      "name": "Sanguine Bond",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
+      "name": "Necropotence",
+      "facts": {
+        "families": [
+          "discard"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you discard a card; families=discard, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "a3c8d817-7949-4dae-b9f5-f9d952479270",
+      "name": "Crypt Ghast",
+      "facts": {
+        "families": [
+          "tap"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you tap a Swamp for mana; families=tap, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "e6555cca-e608-4c87-b835-9cd47fd1f543",
+      "name": "Tireless Tracker",
+      "facts": {
+        "families": [
+          "enters",
+          "sacrifice"
+        ],
+        "observers": [
+          "self",
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a land you control enters / Whenever you sacrifice a Clue; families=enters,sacrifice, observers=self,controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "852657c0-18a4-4b28-b9ae-7728acdb5044",
+      "name": "Mirari's Wake",
+      "facts": {
+        "families": [
+          "tap"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you tap a land for mana; families=tap, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "cfd60d1f-9832-4408-b84e-0fd3018b015b",
+      "name": "Forbidden Orchard",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you tap this land for mana; families=other, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "ba0d3df2-3acf-46d7-8d64-8d67d1579adc",
+      "name": "Curse of Opulence",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever enchanted player is attacked; families=other, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "391978f6-0bbc-41e8-9246-f7d0e21c7900",
+      "name": "Nadier's Nightblade",
+      "facts": {
+        "families": [
+          "leaves"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a token you control leaves the battlefield; families=leaves, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "88cf4c1a-5863-45fc-b76d-7ad33b175b2b",
+      "name": "Burgeoning",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent plays a land; families=other, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "0e07f1af-5ff6-4da5-8683-aea4cc390975",
+      "name": "Evolution Witness",
+      "facts": {
+        "families": [
+          "counter"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever one or more +1/+1 counters are put on this creature; families=counter, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "fd505c02-c59e-476d-8e88-35da862ddc23",
+      "name": "Bloodthirsty Conqueror",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "c73c1d91-0163-49c6-832a-b9327e7a2c9b",
+      "name": "Mindcrank",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "opponent"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "4ac94586-3ac7-4ade-af31-ad0d0e3ffc4a",
+      "name": "Terrasymbiosis",
+      "facts": {
+        "families": [
+          "counter"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you put one or more +1/+1 counters on a creature you control; families=counter, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "63e596a2-9126-4af6-8782-c38687d664ad",
+      "name": "Heliod, Sun-Crowned",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "cf14d4e5-5965-45ad-97f7-26facf2884b5",
+      "name": "Fertile Ground",
+      "facts": {
+        "families": [
+          "other"
+        ],
+        "observers": [
+          "unknown"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever enchanted land is tapped for mana; families=other, observers=unknown, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "03efb4f3-b8e2-4441-824f-886dc40712c4",
+      "name": "Mesmeric Orb",
+      "facts": {
+        "families": [
+          "tap"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a permanent becomes untapped; families=tap, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "7c209753-121b-4859-944b-4e33f885e777",
+      "name": "Vilis, Broker of Blood",
+      "facts": {
+        "families": [
+          "life"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you lose life; families=life, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "6f4ac4a4-53ec-4bc9-8f5c-d4b801d867b2",
+      "name": "Grave Pact",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a creature you control dies; families=dies, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
+      "name": "Bitterblossom",
+      "facts": {
+        "families": [
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "b9f4f96b-6e54-4fe6-8df7-623e0fc72409",
+      "name": "Mentor of the Meek",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "controlled-set"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature you control with power 2 or less enters; families=enters, observers=controlled-set, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "f63c2438-27d4-449a-828f-f0a2ea86ff16",
+      "name": "Court of Grace",
+      "facts": {
+        "families": [
+          "enters",
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this enchantment enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "33869ba6-13e5-4e48-8963-92f7965648fb",
+      "name": "Felidar Guardian",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "35df179a-c0e6-4ac1-a861-e6e9b4d1614d",
+      "name": "Acclaimed Contender",
+      "facts": {
+        "families": [
+          "enters"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "c3dc6b0e-8790-4bd3-b166-63b2dc77488f",
+      "name": "Adrenaline Jockey",
+      "facts": {
+        "families": [
+          "cast",
+          "other"
+        ],
+        "observers": [
+          "self",
+          "any"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever a player casts a spell / Whenever you activate an exhaust ability; families=cast,other, observers=self,any, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "4cd82c7a-86df-4d29-b578-c009208c0d4b",
+      "name": "Agent of Treachery",
+      "facts": {
+        "families": [
+          "enters",
+          "phase"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": true,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): When this creature enters / At the beginning of your end step; families=enters,phase, observers=self, interveningIf=true."
+      }
+    },
+    {
+      "oracleId": "97a85a3e-258e-49b7-8ebe-7efee808da7a",
+      "name": "Nalfeshnee",
+      "facts": {
+        "families": [
+          "cast"
+        ],
+        "observers": [
+          "self"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever you cast a spell from exile; families=cast, observers=self, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "d0e810bb-5f38-4045-a718-30d423c05659",
+      "name": "Poison-Tip Archer",
+      "facts": {
+        "families": [
+          "dies"
+        ],
+        "observers": [
+          "any"
+        ],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "Triggered condition(s): Whenever another creature dies; families=dies, observers=any, interveningIf=false."
+      }
+    },
+    {
+      "oracleId": "3754dce0-3e97-406f-8807-a4942a222c41",
+      "name": "Gaea's Anthem",
+      "facts": {
+        "families": [],
+        "observers": [],
+        "hasInterveningIf": false,
+        "uncertain": [],
+        "rationale": "No printed triggered ability beginning with When, Whenever, or At."
+      }
+    }
+  ]
+}
