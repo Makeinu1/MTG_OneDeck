@@ -514,3 +514,15 @@ P1〜P5 を `scripts/lib/eventClassify.ts` で修正(Codex)。物差し `predict
   - **method §3 の実証**: 自己計測の低 churn は「弱い陽性」に過ぎず、故障モードの異なる独立物差しが偽の収束を破る。**Slice2 は未収束**(凍結不可)。
 - **収束への含意**: iter2-a で分類器が大きく変わったため、**新出力を新ベースラインに下面抽出 churn を再安定化**させる必要(次反復で 0.05% 方向へ戻るはず)。iter2-b(物差し prompt 改訂)と合わせて family/observer 不一致率 + churn が共に低下したら凍結候補。
 - 監査: 機械4点緑(Fable独立)+ `review.event-coverage` 31/31 + `review.event-oracle` 16/16 + 全 770 緑。Codex は git/docs/review/src/engine/predictions.json 不可侵を遵守。
+
+### 物差し iter2-b 結果(prompt 改訂・ルール凍結・2026-06-23・監査合格)
+flip-flop の後半:**ルール `eventClassify` を凍結し物差し(§7.2 prompt)を v2 へ改訂**(combat-damage≠phase / phase juncture 観測者 your→self・each opponent's→opponent・each→any / tap-for-mana→other / 観測者=主語スコープで recipient 除外 / uncertain 積極使用)。Codex が全203枚を clean-room 再予測(新 promptHash)。正本 = `adjudication.json` `iter2bResult`。
+- **不一致率の推移**: family **10.84%→7.88%(iter2-a)→3.94%(iter2-b)** / observer **18.23%→12.32%→6.40%** / interveningIf 0% / **unverifiable 0%→2.46%**(物差しが uncertain を使い始めた=過信故障の是正)。discrepancies 46→29→**20**。
+- **帰属(20不一致)**: substrate 0 / compiler 9 / **oracle 1** / ambiguous 10。prompt v2 が iter1 の大型 oracle 誤り(combat-damage→phase 13・phase juncture 観測者 5・tap-for-mana 3)を**ほぼ一掃**(oracle 残 1 = Animate Dead の mid-line leaves)。
+- **残差の質的変化**: もはや物差し誤りは尽き、残るは(a)**compiler 9**=複合『A, or B, or C』列挙トリガの取りこぼし(Trouble in Pairs/Syr Konrad/Mirkwood Bats/Blood Artist)・any 過剰付与・unpossessed phase の at→self・causes-you・is-attacked、(b)**ambiguous 10**=ESO 境界の未決:
+  - **unknown vs any**(6): 被付与/装備 perm の不特定 controller(`enchanted/equipped X`)。observer 不一致の主因。**1判断で約6件解消**。
+  - **dies vs leaves**(3): 非creature(artifact/land)の『put into graveyard from battlefield』(CR700.4 の dies は creature 限定)。Marionette/Ichor/Titania。
+  - **recipient-opponent**(1): 『deals damage to an opponent』の受け手 opponent を観測者にするか(subject-scope なら否)。Curiosity。iter2-a の opponent 回帰 pin と要整合。
+- **substrate なお 0** = 3軸の ESO state モデルは2反復・物差し2改訂を経ても健全。
+- **収束読み**: 物差しが信頼域に入り(family 3.94%・oracle 帰属ほぼ消滅)、残差は「分類器の複合トリガ処理(iter3 compiler)」と「ESO 境界の Fable 決定(unknown-vs-any 他)」に**綺麗に二分**。**Slice2 は凍結に近いが未到達**(observer 6.40% > 5%)。次 iter3 = ESO 境界3決定 + compiler 複合トリガ修正 → 下面抽出 churn 再安定化 → family/observer 共に <5% 安定で Slice1 と合算し M-CONTRACT 凍結判定。
+- 監査: 機械4点緑(Fable独立)+ 全770緑。ルール凍結を `git diff scripts/lib/eventClassify.ts`(差分なし)で確認・`predictions.json` は新 promptHash(18a3c20a)。

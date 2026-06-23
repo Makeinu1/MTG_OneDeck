@@ -245,23 +245,35 @@ discrepancy クラスタを裁定し帰属する:
 ## 7.2 盲予測 prompt(Codex clean-room → `research/event-oracle/predictions.json`)
 `sample.json` の各カードを下記 prompt **のみ**で推論。`eventClassify.ts`・`event-coverage` 出力・engine 出力を参照しない。
 
+> **prompt v2(iter2-b 改訂)**。iter1 の oracle 帰属(combat-damage→phase 過剰付与・phase juncture 観測者の取り違え・tap-for-mana・recipient を観測者にする誤り)を是正。
+>
 > You are reading a Magic: The Gathering card's English oracle text. List the **triggered abilities** the card itself has
-> (lines starting "When / Whenever / At ..."), and classify only the **trigger condition** of each — never the effect that follows the comma.
+> (lines starting "When / Whenever / At the beginning of ..."), and classify only the **trigger condition** of each — never the effect that follows the comma.
 > Ignore static abilities, activated abilities ("{cost}: ..."), reminder text in parentheses, and any trigger quoted inside an effect.
 >
-> Answer three things; mark any genuinely ambiguous token under `uncertain` and give a one-line `rationale`.
+> Answer three things. **Prefer listing a token under `uncertain` over guessing** when a family or observer is genuinely ambiguous. Give a one-line `rationale`.
 >
 > 1. `families` — which event kinds the card triggers on (a set; a card may have several). Choose from:
 >    `enters` (a permanent enters the battlefield), `leaves` (leaves the battlefield), `dies` (a creature dies / is put into a graveyard from the battlefield),
 >    `zone` (an object changes a non-battlefield zone: mill/exile/return to hand/graveyard), `cast` (a spell is cast), `attacks`, `blocks`,
->    `damage` (damage is dealt), `draw` (a card is drawn), `discard`, `sacrifice`, `tap` (becomes tapped/untapped), `counter` (a +1/+1 or other counter is placed),
->    `life` (a player gains or loses life **as the trigger condition**), `phase` (a turn-based juncture: "at the beginning of … upkeep/draw/combat/end step"),
->    `other` (a triggered event not in this list — e.g. cycling, a land is played, a spell is countered, a token is created, mana is added).
-> 2. `observers` — whose event is observed (a set): `self` (you / a creature you control / this), `opponent` (an opponent / opponent's),
->    `any` (a player / each player / another, unspecified), `controlled-set` (an implicit "creatures you control" set), `unknown` (genuinely ambiguous/composite).
-> 3. `hasInterveningIf` — does any triggered ability use an **intervening "if" clause** (CR603.4): an `if` condition placed **immediately after the trigger event, before the effect** (e.g. "When X enters, **if you control another Knight,** …")? `true`/`false`.
+>    `damage` (damage is dealt or received), `draw` (a card is drawn), `discard`, `sacrifice`,
+>    `tap` (a permanent **becomes tapped or untapped as a state change** — NOTE: tapping a permanent **for mana** is NOT `tap`, classify it as `other`),
+>    `counter` (a +1/+1 or other counter is placed),
+>    `life` (a player gains or loses life **as the trigger condition**),
+>    `phase` (**only** a turn-based juncture written "at the beginning of … upkeep/draw step/combat/end step/main phase" — a trigger on **dealing or being dealt combat damage is `damage`, NEVER `phase`**; combat damage ≠ the combat phase),
+>    `other` (a triggered event not in this list — e.g. cycling, a land is played, a spell is countered, a token is created, mana is added, a permanent becomes the target of a spell).
+> 2. `observers` — whose event is observed (a set). **Decide from the grammatical SUBJECT of the trigger condition (who/what performs the triggering action), NOT from objects or recipients.**
+>    A player named only as the **recipient** of an effect ("deals damage **to** a player / **to** an opponent") does not by itself set the observer — use the **subject's** scope.
+>    - `self` — you / this permanent (incl. the card's own name, e.g. "Whenever Etali attacks") / "a creature you control" only when the **subject is singularly you**.
+>    - `opponent` — the subject or its scope is an opponent ("an opponent draws", "an opponent's graveyard", "each opponent's upkeep", "deals damage to an opponent" where opponent qualifies the event).
+>    - `controlled-set` — the triggering object is one you control ("a creature/land/Equipment/artifact you control enters/dies/deals …").
+>    - `any` — the subject is an unspecified player or object ("a player casts", "each player", "another creature", a juncture "at the beginning of each end step").
+>    - `unknown` — genuinely ambiguous/composite (and consider listing `unknown` in `uncertain` too).
+>    For a turn-based juncture: "at the beginning of **your** [phase]" → `self`; "**each opponent's** [phase]" → `opponent`; "**each** [phase]" (all players) → `any`.
+>    A card may have multiple observers across its triggers (e.g. "your upkeep" + "each opponent's upkeep" → `self` and `opponent`).
+> 3. `hasInterveningIf` — does any triggered ability use an **intervening "if" clause** (an `if` condition placed **immediately after the trigger event, before the effect**, e.g. "When X enters, **if you control another Knight,** …")? `true`/`false`.
 >
-> **Do not mention comprehensive-rules numbers. Classify the trigger condition, not the effect.**
+> **Do not mention comprehensive-rules numbers. Classify the trigger condition (its subject), not the effect or its recipient.**
 
 出力 `predictions.json`(LLM 推論=非決定。再生成せずコミット固定):
 ```jsonc

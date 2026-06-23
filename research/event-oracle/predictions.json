@@ -1,7 +1,7 @@
 {
   "model": "gpt-5-codex-clean-room",
-  "generatedAt": "2026-06-23T00:00:00.000Z",
-  "promptHash": "d17ce0f0f5779177f82f7d0bb6e7f1a5d2c07f7937c2d57d605317135b6736b8",
+  "generatedAt": "2026-06-23T10:40:13.094Z",
+  "promptHash": "18a3c20ad1a39eda8a5d53fe08dcb83ae78b04f17d5068ba5be924606022b8a3",
   "predictions": [
     {
       "oracleId": "04b7362d-0490-4cb0-b5d7-2a7732f659ce",
@@ -15,7 +15,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -31,7 +31,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / When this creature dies; families=enters,dies, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self scope."
       }
     },
     {
@@ -42,11 +42,11 @@
           "dies"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever equipped creature dies; families=dies, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by any scope."
       }
     },
     {
@@ -61,7 +61,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent casts a spell; families=cast, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by opponent scope."
       }
     },
     {
@@ -76,7 +76,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent casts their first noncreature spell each turn; families=cast, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by opponent scope."
       }
     },
     {
@@ -92,7 +92,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When The One Ring enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to enters/phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -108,7 +108,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this enchantment enters / Whenever a creature you control with power 4 or greater enters; families=enters, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by self/controlled-set scope, with an intervening if clause."
       }
     },
     {
@@ -123,7 +123,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent casts a noncreature spell; families=cast, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by opponent scope."
       }
     },
     {
@@ -138,7 +138,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -153,7 +153,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -164,11 +164,11 @@
           "phase"
         ],
         "observers": [
-          "unknown"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your first main phase; families=phase, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -179,11 +179,12 @@
           "dies"
         ],
         "observers": [
-          "self"
+          "self",
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature or another creature dies; families=dies, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by self/any scope."
       }
     },
     {
@@ -198,7 +199,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -213,7 +214,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep / At the beginning of your draw step; families=phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -228,7 +229,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters untapped; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -243,7 +244,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -258,7 +259,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a creature spell; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -266,15 +267,14 @@
       "name": "Animate Dead",
       "facts": {
         "families": [
-          "enters",
-          "leaves"
+          "enters"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this Aura enters / When this Aura leaves the battlefield; families=enters,leaves, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -289,7 +289,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control dies; families=dies, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by controlled-set scope."
       }
     },
     {
@@ -305,7 +305,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature or another creature you control dies; families=dies, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by self/controlled-set scope."
       }
     },
     {
@@ -320,7 +320,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a nontoken creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -335,7 +335,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Mithril Coat enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -350,7 +350,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -361,11 +361,11 @@
           "attacks"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever equipped creature attacks; families=attacks, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks events observed by any scope."
       }
     },
     {
@@ -373,14 +373,16 @@
       "name": "Syr Konrad, the Grim",
       "facts": {
         "families": [
-          "dies"
+          "dies",
+          "zone"
         ],
         "observers": [
-          "any"
+          "any",
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature dies; families=dies, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to dies/zone events observed by any/self scope."
       }
     },
     {
@@ -388,7 +390,8 @@
       "name": "Orcish Bowmasters",
       "facts": {
         "families": [
-          "enters"
+          "enters",
+          "draw"
         ],
         "observers": [
           "self",
@@ -396,7 +399,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps; families=enters, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/draw events observed by self/opponent scope."
       }
     },
     {
@@ -411,7 +414,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your draw step; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -426,7 +429,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more other creatures die; families=dies, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by any scope."
       }
     },
     {
@@ -441,7 +444,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever Etali attacks; families=attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks events observed by self scope."
       }
     },
     {
@@ -456,7 +459,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a spell; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -471,7 +474,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -487,7 +490,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / Whenever a land you control enters; families=enters, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self/controlled-set scope."
       }
     },
     {
@@ -502,7 +505,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -517,7 +520,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -532,7 +535,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -547,7 +550,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your end step; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -563,7 +566,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature enters or attacks; families=enters,attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/attacks events observed by self scope."
       }
     },
     {
@@ -578,7 +581,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -593,7 +596,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -605,12 +608,12 @@
           "phase"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control leaves the battlefield / At the beginning of combat on your turn; families=leaves,phase, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to leaves/phase events observed by controlled-set/self scope, with an intervening if clause."
       }
     },
     {
@@ -625,7 +628,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -640,7 +643,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -655,7 +658,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a nontoken creature you control enters; families=enters, observers=controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope, with an intervening if clause."
       }
     },
     {
@@ -670,7 +673,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -685,7 +688,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -700,7 +703,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -717,7 +720,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this enchantment enters / Whenever a creature you control dies; families=enters,dies, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self/controlled-set scope."
       }
     },
     {
@@ -732,7 +735,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -747,7 +750,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -762,7 +765,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -774,12 +777,11 @@
           "attacks"
         ],
         "observers": [
-          "self",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control of the chosen type enters or attacks; families=enters,attacks, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/attacks events observed by controlled-set scope."
       }
     },
     {
@@ -794,7 +796,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Loran enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -809,7 +811,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a creature spell of the chosen type; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -824,7 +826,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -835,11 +837,11 @@
           "phase"
         ],
         "observers": [
-          "unknown"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your next upkeep; families=phase, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -854,7 +856,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature an opponent controls enters; families=enters, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by opponent scope."
       }
     },
     {
@@ -869,7 +871,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a spell; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -884,7 +886,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -895,11 +897,11 @@
           "phase"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of the end step; families=phase, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by any scope."
       }
     },
     {
@@ -914,7 +916,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -926,12 +928,12 @@
           "phase"
         ],
         "observers": [
-          "self",
-          "any"
+          "any",
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a player casts a spell / At the beginning of your upkeep; families=cast,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to cast/phase events observed by any/self scope."
       }
     },
     {
@@ -946,7 +948,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -961,7 +963,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of combat on your turn; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -976,7 +978,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast an instant or sorcery spell; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -992,7 +994,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature attacks or becomes the target of a spell; families=attacks,other, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks/other events observed by self scope."
       }
     },
     {
@@ -1007,7 +1009,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a player casts their second spell each turn; families=cast, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by any scope."
       }
     },
     {
@@ -1022,7 +1024,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1037,7 +1039,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1052,7 +1054,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1067,7 +1069,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more other creatures you control with power 2 or less enter; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -1082,7 +1084,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1097,7 +1099,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1112,7 +1114,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by any scope."
       }
     },
     {
@@ -1127,7 +1129,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of each combat; families=phase, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by any scope."
       }
     },
     {
@@ -1143,7 +1145,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this land or another land you control enters; families=enters, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by self/controlled-set scope, with an intervening if clause."
       }
     },
     {
@@ -1158,7 +1160,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast an Aura; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -1173,7 +1175,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1188,7 +1190,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1203,7 +1205,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1218,7 +1220,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1233,7 +1235,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1248,7 +1250,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1263,7 +1265,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1278,7 +1280,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Enduring Vitality dies; families=dies, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to dies events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -1293,7 +1295,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your end step; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -1306,12 +1308,12 @@
         ],
         "observers": [
           "self",
-          "opponent",
-          "controlled-set"
+          "controlled-set",
+          "opponent"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When The Meathook Massacre enters / Whenever a creature you control dies / Whenever a creature an opponent controls dies; families=enters,dies, observers=self,opponent,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self/controlled-set/opponent scope."
       }
     },
     {
@@ -1326,7 +1328,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you attack; families=attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks events observed by self scope."
       }
     },
     {
@@ -1341,7 +1343,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by any scope."
       }
     },
     {
@@ -1356,7 +1358,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -1373,7 +1375,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / Whenever a creature an opponent controls dies; families=enters,dies, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self/opponent scope."
       }
     },
     {
@@ -1388,7 +1390,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1399,11 +1401,11 @@
           "phase"
         ],
         "observers": [
-          "unknown"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your first main phase; families=phase, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -1418,7 +1420,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1433,7 +1435,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1448,7 +1450,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -1463,7 +1465,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -1478,7 +1480,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever Six attacks; families=attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks events observed by self scope."
       }
     },
     {
@@ -1486,6 +1488,7 @@
       "name": "Marionette Apprentice",
       "facts": {
         "families": [
+          "leaves",
           "dies"
         ],
         "observers": [
@@ -1493,7 +1496,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature or artifact you control is put into a graveyard from the battlefield; families=dies, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to leaves/dies events observed by controlled-set scope."
       }
     },
     {
@@ -1509,7 +1512,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Growing Rites of Itlimoc enters / At the beginning of your end step; families=enters,phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to enters/phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -1524,7 +1527,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this land enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -1540,7 +1543,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control enters / Whenever another creature you control dies; families=enters,dies, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by controlled-set scope."
       }
     },
     {
@@ -1548,16 +1551,16 @@
       "name": "Midnight Clock",
       "facts": {
         "families": [
-          "counter",
-          "phase"
+          "phase",
+          "counter"
         ],
         "observers": [
-          "self",
-          "any"
+          "any",
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of each upkeep / When the twelfth hour counter is put on this artifact; families=counter,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to phase/counter events observed by any/self scope."
       }
     },
     {
@@ -1565,15 +1568,15 @@
       "name": "Mangara, the Diplomat",
       "facts": {
         "families": [
-          "cast",
-          "attacks"
+          "attacks",
+          "cast"
         ],
         "observers": [
           "opponent"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent attacks with creatures / Whenever an opponent casts their second spell each turn; families=cast,attacks, observers=opponent, interveningIf=true."
+        "rationale": "Trigger subjects map to attacks/cast events observed by opponent scope, with an intervening if clause."
       }
     },
     {
@@ -1589,7 +1592,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters or dies; families=enters,dies, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self scope."
       }
     },
     {
@@ -1597,15 +1600,15 @@
       "name": "Wizard Class",
       "facts": {
         "families": [
-          "draw",
-          "other"
+          "other",
+          "draw"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this Class becomes level 2 / Whenever you draw a card; families=draw,other, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other/draw events observed by self scope."
       }
     },
     {
@@ -1618,11 +1621,11 @@
         ],
         "observers": [
           "any",
-          "unknown"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature dies / At the beginning of your first main phase; families=dies,phase, observers=any,unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to dies/phase events observed by any/self scope."
       }
     },
     {
@@ -1634,12 +1637,12 @@
           "other"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more tokens you control enter / When this Class becomes level 2; families=enters,other, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/other events observed by controlled-set/self scope."
       }
     },
     {
@@ -1647,8 +1650,8 @@
       "name": "Scrawling Crawler",
       "facts": {
         "families": [
-          "draw",
-          "phase"
+          "phase",
+          "draw"
         ],
         "observers": [
           "self",
@@ -1656,7 +1659,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever an opponent draws a card; families=draw,phase, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to phase/draw events observed by self/opponent scope."
       }
     },
     {
@@ -1664,15 +1667,15 @@
       "name": "Chasm Skulker",
       "facts": {
         "families": [
-          "dies",
-          "draw"
+          "draw",
+          "dies"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you draw a card / When this creature dies; families=dies,draw, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to draw/dies events observed by self scope."
       }
     },
     {
@@ -1680,8 +1683,8 @@
       "name": "Niv-Mizzet, Parun",
       "facts": {
         "families": [
-          "cast",
-          "draw"
+          "draw",
+          "cast"
         ],
         "observers": [
           "self",
@@ -1689,7 +1692,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you draw a card / Whenever a player casts an instant or sorcery spell; families=cast,draw, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to draw/cast events observed by self/any scope."
       }
     },
     {
@@ -1697,16 +1700,18 @@
       "name": "Bloodchief Ascension",
       "facts": {
         "families": [
-          "zone",
-          "phase"
+          "phase",
+          "zone"
         ],
         "observers": [
-          "opponent",
-          "any"
+          "any",
+          "opponent"
         ],
         "hasInterveningIf": true,
-        "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of each end step / Whenever a card is put into an opponent's graveyard from anywhere; families=zone,phase, observers=opponent,any, interveningIf=true."
+        "uncertain": [
+          "dies"
+        ],
+        "rationale": "Trigger subjects map to phase/zone events observed by any/opponent scope, with an intervening if clause; uncertain: dies."
       }
     },
     {
@@ -1715,16 +1720,14 @@
       "facts": {
         "families": [
           "enters",
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Etali enters / Whenever Etali deals combat damage to a player; families=enters,damage,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/damage events observed by self scope."
       }
     },
     {
@@ -1736,12 +1739,11 @@
           "phase"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player / At the beginning of your upkeep; families=damage,phase, observers=self,any, interveningIf=true."
+        "rationale": "Trigger subjects map to damage/phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -1753,12 +1755,12 @@
           "dies"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more other creatures you control with power 2 or less enter / When Enduring Innocence dies; families=enters,dies, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to enters/dies events observed by controlled-set/self scope, with an intervening if clause."
       }
     },
     {
@@ -1766,15 +1768,15 @@
       "name": "Enduring Tenacity",
       "facts": {
         "families": [
-          "dies",
-          "life"
+          "life",
+          "dies"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you gain life / When Enduring Tenacity dies; families=dies,life, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to life/dies events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -1782,18 +1784,16 @@
       "name": "Enduring Curiosity",
       "facts": {
         "families": [
-          "dies",
           "damage",
-          "phase"
+          "dies"
         ],
         "observers": [
-          "self",
-          "any",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player / When Enduring Curiosity dies; families=dies,damage,phase, observers=self,any,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to damage/dies events observed by controlled-set/self scope, with an intervening if clause."
       }
     },
     {
@@ -1801,15 +1801,15 @@
       "name": "Forsaken Monument",
       "facts": {
         "families": [
-          "cast",
-          "tap"
+          "other",
+          "cast"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you tap a permanent for {C} / Whenever you cast a colorless spell; families=cast,tap, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other/cast events observed by self scope."
       }
     },
     {
@@ -1825,7 +1825,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / Whenever this creature attacks; families=enters,attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/attacks events observed by self scope."
       }
     },
     {
@@ -1833,16 +1833,17 @@
       "name": "The Gitrog Monster",
       "facts": {
         "families": [
-          "zone",
-          "phase"
+          "phase",
+          "zone"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
-        "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever one or more land cards are put into your graveyard from anywhere; families=zone,phase, observers=self,any, interveningIf=false."
+        "uncertain": [
+          "leaves"
+        ],
+        "rationale": "Trigger subjects map to phase/zone events observed by self scope; uncertain: leaves."
       }
     },
     {
@@ -1850,17 +1851,16 @@
       "name": "Thopter Spy Network",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "phase",
+          "damage"
         ],
         "observers": [
           "self",
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep / Whenever one or more artifact creatures you control deal combat damage to a player; families=damage,phase, observers=self,any,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to phase/damage events observed by self/controlled-set scope, with an intervening if clause."
       }
     },
     {
@@ -1869,14 +1869,14 @@
       "facts": {
         "families": [
           "enters",
-          "dies"
+          "leaves"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this artifact enters or is put into a graveyard from the battlefield; families=enters,dies, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/leaves events observed by self scope."
       }
     },
     {
@@ -1889,11 +1889,11 @@
         ],
         "observers": [
           "self",
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Kardur enters / Whenever an attacking creature dies; families=enters,dies, observers=self,unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/dies events observed by self/any scope."
       }
     },
     {
@@ -1909,7 +1909,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this enchantment enters and whenever you cast a spell with mana value 5 or greater; families=enters,cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/cast events observed by self scope."
       }
     },
     {
@@ -1925,7 +1925,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this artifact enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/phase events observed by self scope."
       }
     },
     {
@@ -1933,15 +1933,17 @@
       "name": "Kozilek, Butcher of Truth",
       "facts": {
         "families": [
-          "zone",
-          "cast"
+          "cast",
+          "zone"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
-        "uncertain": [],
-        "rationale": "Triggered condition(s): When you cast this spell / When Kozilek is put into a graveyard from anywhere; families=zone,cast, observers=self, interveningIf=false."
+        "uncertain": [
+          "dies"
+        ],
+        "rationale": "Trigger subjects map to cast/zone events observed by self scope; uncertain: dies."
       }
     },
     {
@@ -1957,7 +1959,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature enters or attacks; families=enters,attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/attacks events observed by self scope."
       }
     },
     {
@@ -1973,7 +1975,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this enchantment enters / Whenever you cast an instant or sorcery spell; families=enters,cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/cast events observed by self scope."
       }
     },
     {
@@ -1982,7 +1984,7 @@
       "facts": {
         "families": [
           "enters",
-          "dies"
+          "leaves"
         ],
         "observers": [
           "self",
@@ -1990,7 +1992,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Titania enters / Whenever a land you control is put into a graveyard from the battlefield; families=enters,dies, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/leaves events observed by self/controlled-set scope."
       }
     },
     {
@@ -2002,12 +2004,12 @@
           "phase"
         ],
         "observers": [
-          "self",
-          "opponent"
+          "opponent",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature an opponent controls dies / At the beginning of your upkeep; families=dies,phase, observers=self,opponent, interveningIf=true."
+        "rationale": "Trigger subjects map to dies/phase events observed by opponent/self scope, with an intervening if clause."
       }
     },
     {
@@ -2023,7 +2025,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever Captain Lannery Storm attacks / Whenever you sacrifice a Treasure; families=attacks,sacrifice, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks/sacrifice events observed by self scope."
       }
     },
     {
@@ -2039,7 +2041,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Kogla enters / Whenever Kogla attacks; families=enters,attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/attacks events observed by self scope."
       }
     },
     {
@@ -2051,12 +2053,12 @@
           "dies"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control enters / When Enduring Courage dies; families=enters,dies, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to enters/dies events observed by controlled-set/self scope, with an intervening if clause."
       }
     },
     {
@@ -2072,7 +2074,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / When this creature leaves the battlefield; families=enters,leaves, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/leaves events observed by self scope."
       }
     },
     {
@@ -2080,8 +2082,8 @@
       "name": "Glaring Fleshraker",
       "facts": {
         "families": [
-          "enters",
-          "cast"
+          "cast",
+          "enters"
         ],
         "observers": [
           "self",
@@ -2089,7 +2091,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a colorless spell / Whenever another colorless creature you control enters; families=enters,cast, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to cast/enters events observed by self/controlled-set scope."
       }
     },
     {
@@ -2101,12 +2103,11 @@
           "other"
         ],
         "observers": [
-          "self",
-          "unknown"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When Rosie Cotton enters / Whenever you create a token; families=enters,other, observers=self,unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/other events observed by self scope."
       }
     },
     {
@@ -2122,7 +2123,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a noncreature spell / When you cycle this card; families=cast,other, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast/other events observed by self scope."
       }
     },
     {
@@ -2134,12 +2135,12 @@
           "phase"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more +1/+1 counters are put on a creature you control / At the beginning of your upkeep; families=counter,phase, observers=self,controlled-set, interveningIf=true."
+        "rationale": "Trigger subjects map to counter/phase events observed by controlled-set/self scope, with an intervening if clause."
       }
     },
     {
@@ -2155,7 +2156,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When you cast this spell / Whenever Ulamog attacks; families=cast,attacks, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast/attacks events observed by self scope."
       }
     },
     {
@@ -2171,8 +2172,10 @@
           "opponent"
         ],
         "hasInterveningIf": false,
-        "uncertain": [],
-        "rationale": "Triggered condition(s): When this artifact enters / Whenever one or more creatures an opponent controls attack you and aren't blocked; families=enters,attacks, observers=self,opponent, interveningIf=false."
+        "uncertain": [
+          "blocks"
+        ],
+        "rationale": "Trigger subjects map to enters/attacks events observed by self/opponent scope; uncertain: blocks."
       }
     },
     {
@@ -2180,16 +2183,15 @@
       "name": "Laelia, the Blade Reforged",
       "facts": {
         "families": [
-          "zone",
-          "attacks"
+          "attacks",
+          "zone"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever Laelia attacks / Whenever one or more cards are put into exile from your library and/or your graveyard; families=zone,attacks, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks/zone events observed by self scope."
       }
     },
     {
@@ -2204,7 +2206,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent draws a card; families=draw, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to draw events observed by opponent scope."
       }
     },
     {
@@ -2212,16 +2214,14 @@
       "name": "Professional Face-Breaker",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more creatures you control deal combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2229,16 +2229,14 @@
       "name": "Ragavan, Nimble Pilferer",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever Ragavan deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by self scope."
       }
     },
     {
@@ -2253,7 +2251,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent draws their second card each turn; families=draw, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to draw events observed by opponent scope."
       }
     },
     {
@@ -2261,16 +2259,14 @@
       "name": "Toski, Bearer of Secrets",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2278,16 +2274,14 @@
       "name": "Kutzil, Malamet Exemplar",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more creatures you control each with power greater than its base power deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2295,16 +2289,14 @@
       "name": "Bident of Thassa",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2312,16 +2304,14 @@
       "name": "Ohran Frostfang",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2337,7 +2327,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you draw a card / Whenever an opponent draws a card; families=draw, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to draw events observed by self/opponent scope."
       }
     },
     {
@@ -2352,7 +2342,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by opponent scope."
       }
     },
     {
@@ -2360,15 +2350,14 @@
       "name": "Sword of Feast and Famine",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
           "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever equipped creature deals combat damage to a player; families=damage,phase, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by any scope."
       }
     },
     {
@@ -2383,7 +2372,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a player sacrifices a permanent; families=sacrifice, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to sacrifice events observed by any scope."
       }
     },
     {
@@ -2394,11 +2383,11 @@
           "damage"
         ],
         "observers": [
-          "opponent"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever enchanted creature deals damage to an opponent; families=damage, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by any scope."
       }
     },
     {
@@ -2413,7 +2402,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an Equipment you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -2421,15 +2410,16 @@
       "name": "Trouble in Pairs",
       "facts": {
         "families": [
-          "attacks"
+          "attacks",
+          "draw",
+          "cast"
         ],
         "observers": [
-          "self",
           "opponent"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent attacks you with two or more creatures; families=attacks, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to attacks/draw/cast events observed by opponent scope."
       }
     },
     {
@@ -2437,16 +2427,14 @@
       "name": "Ancient Copper Dragon",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by self scope."
       }
     },
     {
@@ -2461,7 +2449,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent draws a card; families=draw, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to draw events observed by opponent scope."
       }
     },
     {
@@ -2476,7 +2464,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent searches their library; families=other, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by opponent scope."
       }
     },
     {
@@ -2491,7 +2479,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of each upkeep; families=phase, observers=any, interveningIf=true."
+        "rationale": "Trigger subjects map to phase events observed by any scope, with an intervening if clause."
       }
     },
     {
@@ -2507,7 +2495,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep / At the beginning of each opponent's upkeep; families=phase, observers=self,opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self/opponent scope."
       }
     },
     {
@@ -2522,7 +2510,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of each player's draw step; families=phase, observers=any, interveningIf=true."
+        "rationale": "Trigger subjects map to phase events observed by any scope, with an intervening if clause."
       }
     },
     {
@@ -2538,7 +2526,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this artifact enters / Whenever a land an opponent controls enters; families=enters, observers=self,opponent, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by self/opponent scope, with an intervening if clause."
       }
     },
     {
@@ -2553,7 +2541,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent casts a spell; families=cast, observers=opponent, interveningIf=true."
+        "rationale": "Trigger subjects map to cast events observed by opponent scope, with an intervening if clause."
       }
     },
     {
@@ -2561,16 +2549,14 @@
       "name": "Kodama of the West Tree",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "any",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a modified creature you control deals combat damage to a player; families=damage,phase, observers=any,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by controlled-set scope."
       }
     },
     {
@@ -2578,16 +2564,14 @@
       "name": "Thrummingbird",
       "facts": {
         "families": [
-          "damage",
-          "phase"
+          "damage"
         ],
         "observers": [
-          "self",
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this creature deals combat damage to a player; families=damage,phase, observers=self,any, interveningIf=false."
+        "rationale": "Trigger subjects map to damage events observed by self scope."
       }
     },
     {
@@ -2598,12 +2582,11 @@
           "enters"
         ],
         "observers": [
-          "self",
           "controlled-set"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control with flying enters / Whenever a Dragon you control enters; families=enters, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -2618,7 +2601,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature enters; families=enters, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by any scope."
       }
     },
     {
@@ -2633,7 +2616,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a player casts their second spell each turn; families=cast, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by any scope."
       }
     },
     {
@@ -2648,7 +2631,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an Equipment you control enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -2659,11 +2642,11 @@
           "other"
         ],
         "observers": [
-          "any"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a land's ability causes you to add one or more mana of the chosen color; families=other, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by self scope."
       }
     },
     {
@@ -2678,7 +2661,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever this land becomes tapped; families=tap, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to tap events observed by self scope."
       }
     },
     {
@@ -2689,11 +2672,11 @@
           "other"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever enchanted land is tapped for mana; families=other, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by any scope."
       }
     },
     {
@@ -2701,6 +2684,7 @@
       "name": "Mirkwood Bats",
       "facts": {
         "families": [
+          "other",
           "sacrifice"
         ],
         "observers": [
@@ -2708,7 +2692,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you create or sacrifice a token; families=sacrifice, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other/sacrifice events observed by self scope."
       }
     },
     {
@@ -2719,11 +2703,11 @@
           "other"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever enchanted Forest is tapped for mana; families=other, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by any scope."
       }
     },
     {
@@ -2738,7 +2722,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by self scope."
       }
     },
     {
@@ -2753,7 +2737,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by self scope."
       }
     },
     {
@@ -2768,7 +2752,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you discard a card; families=discard, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to discard events observed by self scope."
       }
     },
     {
@@ -2776,14 +2760,14 @@
       "name": "Crypt Ghast",
       "facts": {
         "families": [
-          "tap"
+          "other"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you tap a Swamp for mana; families=tap, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by self scope."
       }
     },
     {
@@ -2795,12 +2779,12 @@
           "sacrifice"
         ],
         "observers": [
-          "self",
-          "controlled-set"
+          "controlled-set",
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a land you control enters / Whenever you sacrifice a Clue; families=enters,sacrifice, observers=self,controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/sacrifice events observed by controlled-set/self scope."
       }
     },
     {
@@ -2808,14 +2792,14 @@
       "name": "Mirari's Wake",
       "facts": {
         "families": [
-          "tap"
+          "other"
         ],
         "observers": [
           "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you tap a land for mana; families=tap, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by self scope."
       }
     },
     {
@@ -2830,7 +2814,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you tap this land for mana; families=other, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by self scope."
       }
     },
     {
@@ -2838,14 +2822,16 @@
       "name": "Curse of Opulence",
       "facts": {
         "families": [
-          "other"
+          "attacks"
         ],
         "observers": [
           "unknown"
         ],
         "hasInterveningIf": false,
-        "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever enchanted player is attacked; families=other, observers=unknown, interveningIf=false."
+        "uncertain": [
+          "unknown"
+        ],
+        "rationale": "Trigger subjects map to attacks events observed by unknown scope; uncertain: unknown."
       }
     },
     {
@@ -2860,7 +2846,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a token you control leaves the battlefield; families=leaves, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to leaves events observed by controlled-set scope."
       }
     },
     {
@@ -2875,7 +2861,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent plays a land; families=other, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by opponent scope."
       }
     },
     {
@@ -2890,7 +2876,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever one or more +1/+1 counters are put on this creature; families=counter, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to counter events observed by self scope."
       }
     },
     {
@@ -2905,7 +2891,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by opponent scope."
       }
     },
     {
@@ -2920,7 +2906,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever an opponent loses life; families=life, observers=opponent, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by opponent scope."
       }
     },
     {
@@ -2931,11 +2917,11 @@
           "counter"
         ],
         "observers": [
-          "controlled-set"
+          "self"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you put one or more +1/+1 counters on a creature you control; families=counter, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to counter events observed by self scope."
       }
     },
     {
@@ -2950,7 +2936,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you gain life; families=life, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by self scope."
       }
     },
     {
@@ -2961,11 +2947,11 @@
           "other"
         ],
         "observers": [
-          "unknown"
+          "any"
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever enchanted land is tapped for mana; families=other, observers=unknown, interveningIf=false."
+        "rationale": "Trigger subjects map to other events observed by any scope."
       }
     },
     {
@@ -2980,7 +2966,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a permanent becomes untapped; families=tap, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to tap events observed by any scope."
       }
     },
     {
@@ -2995,7 +2981,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you lose life; families=life, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to life events observed by self scope."
       }
     },
     {
@@ -3010,7 +2996,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a creature you control dies; families=dies, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by controlled-set scope."
       }
     },
     {
@@ -3025,7 +3011,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): At the beginning of your upkeep; families=phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to phase events observed by self scope."
       }
     },
     {
@@ -3040,7 +3026,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature you control with power 2 or less enters; families=enters, observers=controlled-set, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by controlled-set scope."
       }
     },
     {
@@ -3056,7 +3042,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this enchantment enters / At the beginning of your upkeep; families=enters,phase, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters/phase events observed by self scope."
       }
     },
     {
@@ -3071,7 +3057,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to enters events observed by self scope."
       }
     },
     {
@@ -3086,7 +3072,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters; families=enters, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to enters events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -3098,12 +3084,12 @@
           "other"
         ],
         "observers": [
-          "self",
-          "any"
+          "any",
+          "self"
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever a player casts a spell / Whenever you activate an exhaust ability; families=cast,other, observers=self,any, interveningIf=true."
+        "rationale": "Trigger subjects map to cast/other events observed by any/self scope, with an intervening if clause."
       }
     },
     {
@@ -3119,7 +3105,7 @@
         ],
         "hasInterveningIf": true,
         "uncertain": [],
-        "rationale": "Triggered condition(s): When this creature enters / At the beginning of your end step; families=enters,phase, observers=self, interveningIf=true."
+        "rationale": "Trigger subjects map to enters/phase events observed by self scope, with an intervening if clause."
       }
     },
     {
@@ -3134,7 +3120,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever you cast a spell from exile; families=cast, observers=self, interveningIf=false."
+        "rationale": "Trigger subjects map to cast events observed by self scope."
       }
     },
     {
@@ -3149,7 +3135,7 @@
         ],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "Triggered condition(s): Whenever another creature dies; families=dies, observers=any, interveningIf=false."
+        "rationale": "Trigger subjects map to dies events observed by any scope."
       }
     },
     {
@@ -3160,7 +3146,7 @@
         "observers": [],
         "hasInterveningIf": false,
         "uncertain": [],
-        "rationale": "No printed triggered ability beginning with When, Whenever, or At."
+        "rationale": "No qualifying triggered ability appears in the oracle text."
       }
     }
   ]

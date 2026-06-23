@@ -3,16 +3,16 @@
 ## Summary
 
 - model: gpt-5-codex-clean-room
-- generatedAt: 2026-06-23T00:00:00.000Z
-- promptHash: d17ce0f0f5779177f82f7d0bb6e7f1a5d2c07f7937c2d57d605317135b6736b8
+- generatedAt: 2026-06-23T10:40:13.094Z
+- promptHash: 18a3c20ad1a39eda8a5d53fe08dcb83ae78b04f17d5068ba5be924606022b8a3
 - sampleSize: 203
 - comparedCount: 203
-- familyDiscrepancyRate: 7.88%
-- observerDiscrepancyRate: 12.32%
+- familyDiscrepancyRate: 3.94%
+- observerDiscrepancyRate: 6.40%
 - interveningIfDiscrepancyRate: 0.00%
-- unverifiableRate: 0.00%
-- discrepancies: 29
-- attributionDistribution: substrate=0, compiler=0, oracle=28, ambiguous=1, null=0
+- unverifiableRate: 2.46%
+- discrepancies: 20
+- attributionDistribution: substrate=0, compiler=9, oracle=1, ambiguous=10, null=0
 - unresolvedGold: none
 
 ## Per Family Confusion
@@ -20,31 +20,31 @@
 | family | classifierOnly | oracleOnly | agreeBoth |
 |---|---:|---:|---:|
 | enters | 0 | 0 | 91 |
-| leaves | 0 | 0 | 4 |
-| dies | 0 | 0 | 26 |
-| zone | 0 | 0 | 4 |
-| cast | 0 | 0 | 24 |
-| attacks | 0 | 0 | 16 |
+| leaves | 1 | 3 | 3 |
+| dies | 2 | 0 | 24 |
+| zone | 0 | 1 | 4 |
+| cast | 0 | 1 | 24 |
+| attacks | 0 | 1 | 16 |
 | blocks | 0 | 0 | 0 |
 | damage | 0 | 0 | 15 |
-| draw | 1 | 0 | 8 |
+| draw | 0 | 1 | 9 |
 | discard | 0 | 0 | 1 |
 | sacrifice | 0 | 0 | 4 |
-| tap | 0 | 3 | 2 |
+| tap | 0 | 0 | 2 |
 | counter | 0 | 0 | 4 |
 | life | 0 | 0 | 8 |
-| phase | 0 | 12 | 34 |
-| other | 3 | 0 | 14 |
+| phase | 0 | 0 | 34 |
+| other | 1 | 1 | 16 |
 
 ## Per Observer Confusion
 
 | observer | classifierOnly | oracleOnly | agreeBoth |
 |---|---:|---:|---:|
-| self | 6 | 3 | 135 |
-| opponent | 0 | 0 | 26 |
-| any | 1 | 14 | 22 |
-| controlled-set | 0 | 1 | 39 |
-| unknown | 1 | 7 | 6 |
+| self | 1 | 2 | 140 |
+| opponent | 1 | 0 | 25 |
+| any | 3 | 9 | 20 |
+| controlled-set | 0 | 0 | 39 |
+| unknown | 6 | 0 | 0 |
 
 ## Gold Calibration
 
@@ -71,58 +71,52 @@
 
 | signature | count | examples |
 |---|---:|---|
-| +phase,+@any | 11 | Professional Face-Breaker; Kutzil, Malamet Exemplar; Ragavan, Nimble Pilferer; Ancient Copper Dragon; Etali, Primal Conqueror // Etali, Primal Sickness |
-| +@unknown,-@self | 5 | Black Market; Underworld Breach; Ripples of Undeath; Black Market Connections; Pact of Negation |
-| +@self | 3 | Kindred Discovery; Dragon Tempest; Trouble in Pairs |
-| +tap,-other | 3 | Forsaken Monument; Mirari's Wake; Crypt Ghast |
-| +@any | 2 | Thopter Spy Network; Hellkite Tyrant |
-| -draw | 1 | Orcish Bowmasters |
-| +@controlled-set,-@self | 1 | Terrasymbiosis |
-| +@unknown | 1 | Rosie Cotton of South Lane |
-| +@unknown,-@any | 1 | Kardur, Doomscourge |
-| +phase,+@any,-@unknown | 1 | Sword of Feast and Famine |
+| +@any,-@unknown | 6 | Utopia Sprawl; Skullclamp; Wild Growth; Fertile Ground; Sword of Feast and Famine |
+| -@any | 2 | Laelia, the Blade Reforged; The Gitrog Monster |
+| +leaves,-dies | 2 | Ichor Wellspring; Titania, Protector of Argoth |
+| -leaves | 1 | Animate Dead |
+| +@any | 1 | Blood Artist |
+| +@any,-@opponent | 1 | Curiosity |
+| +@any,-@self | 1 | Underworld Breach |
+| +@self,-@any | 1 | Caged Sun |
+| +attacks,-other | 1 | Curse of Opulence |
+| +cast,+draw | 1 | Trouble in Pairs |
+| +leaves | 1 | Marionette Apprentice |
+| +other | 1 | Mirkwood Bats |
+| +zone,+@self | 1 | Syr Konrad, the Grim |
 
 ## Attribution Distribution
 
 | attribution | count |
 |---|---:|
 | substrate | 0 |
-| compiler | 0 |
-| oracle | 28 |
-| ambiguous | 1 |
+| compiler | 9 |
+| oracle | 1 |
+| ambiguous | 10 |
 | null | 0 |
 
 ## Discrepancies
 
 | delta | oracleId | name | familyClassifierOnly | familyOracleOnly | observerClassifierOnly | observerOracleOnly | if | uncertain | attribution |
 |---|---|---|---|---|---|---|---|---:|---|
-| -draw | ea5103f5-27e0-4eb1-902c-7f34652d6bf3 | Orcish Bowmasters | draw | (none) | (none) | (none) | agree | no | oracle |
-| +@any | 49be65fd-3755-410d-b0dc-2e5861ea2552 | Thopter Spy Network | (none) | (none) | (none) | any | agree | no | oracle |
-| +@any | d9b066ff-9519-415c-ae17-bfea703c9889 | Hellkite Tyrant | (none) | (none) | (none) | any | agree | no | oracle |
-| +@controlled-set,-@self | 4ac94586-3ac7-4ade-af31-ad0d0e3ffc4a | Terrasymbiosis | (none) | (none) | self | controlled-set | agree | no | ambiguous |
-| +@self | 005ee549-1bf5-478f-bc3f-3e791bd7eecf | Kindred Discovery | (none) | (none) | (none) | self | agree | no | oracle |
-| +@self | b9bacb46-fd1d-459b-81c2-d7d08fe73848 | Dragon Tempest | (none) | (none) | (none) | self | agree | no | oracle |
-| +@self | f349f58b-8cc8-45e4-9565-2b46fdf976c9 | Trouble in Pairs | (none) | (none) | (none) | self | agree | no | oracle |
-| +@unknown | 168d5711-4459-440f-8de4-aabffd47c44d | Rosie Cotton of South Lane | (none) | (none) | (none) | unknown | agree | no | oracle |
-| +@unknown,-@any | bc14356c-3a1a-47af-9a6e-2b449de0331f | Kardur, Doomscourge | (none) | (none) | any | unknown | agree | no | oracle |
-| +@unknown,-@self | 21338b71-37f5-4121-9b84-565025ebcd17 | Black Market | (none) | (none) | self | unknown | agree | no | oracle |
-| +@unknown,-@self | 27e0948b-9916-473b-8d8c-a51bdfbc7457 | Underworld Breach | (none) | (none) | self | unknown | agree | no | oracle |
-| +@unknown,-@self | 2acf8e34-9215-4a72-a24f-09d3bdd0083a | Ripples of Undeath | (none) | (none) | self | unknown | agree | no | oracle |
-| +@unknown,-@self | d2664f28-49e1-46f8-a863-b217e961a57c | Black Market Connections | (none) | (none) | self | unknown | agree | no | oracle |
-| +@unknown,-@self | f3e213a4-ba5a-468a-93b3-c0a34e1bd725 | Pact of Negation | (none) | (none) | self | unknown | agree | no | oracle |
-| +phase,+@any | 04152e7a-969c-4858-841b-0a569a9fc1bf | Professional Face-Breaker | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | 3233af43-7826-4895-b67e-03c6102c2cd5 | Kutzil, Malamet Exemplar | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | 37108cd4-bbab-4ce3-9ed6-f60e8422e703 | Ragavan, Nimble Pilferer | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | 48daee9d-ddaf-410f-8c3a-12fa1064ab56 | Ancient Copper Dragon | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | 7514e401-7aa1-405d-9f7a-312b4e630cc2 | Etali, Primal Conqueror // Etali, Primal Sickness | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | 9d2460c3-8eeb-4f35-b6f6-748c478664c7 | Enduring Curiosity | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | a8e707ec-ce77-4bc5-8c76-5ea3e81e8c7f | Toski, Bearer of Secrets | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | b99ada26-9a61-4175-9fb8-15a106960220 | Ohran Frostfang | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | d69b1e68-8d8e-460b-9eb4-6a68be886197 | Kodama of the West Tree | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | e1afaef7-9fa3-4662-a95f-adfb0da9fd11 | Bident of Thassa | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any | eac94269-4baa-4b8e-a0fd-d6b227d1cde3 | Thrummingbird | (none) | phase | (none) | any | agree | no | oracle |
-| +phase,+@any,-@unknown | d0901053-6de0-46d0-9ee3-8d40510236c1 | Sword of Feast and Famine | (none) | phase | unknown | any | agree | no | oracle |
-| +tap,-other | 7777fab1-df3f-467f-b9e2-46dd2bd2166e | Forsaken Monument | other | tap | (none) | (none) | agree | no | oracle |
-| +tap,-other | 852657c0-18a4-4b28-b9ae-7728acdb5044 | Mirari's Wake | other | tap | (none) | (none) | agree | no | oracle |
-| +tap,-other | a3c8d817-7949-4dae-b9f5-f9d952479270 | Crypt Ghast | other | tap | (none) | (none) | agree | no | oracle |
+| -@any | a0be9bb2-3234-4c6c-b8ce-0879b1f43003 | Laelia, the Blade Reforged | (none) | (none) | any | (none) | agree | no | compiler |
+| -@any | a5e54d2b-aad8-4ddd-af4b-13668913762b | The Gitrog Monster | (none) | (none) | any | (none) | agree | yes | compiler |
+| -leaves | c0d8fef4-65f4-4769-982d-b397d2b7e977 | Animate Dead | leaves | (none) | (none) | (none) | agree | no | oracle |
+| +@any | 310f141c-7f37-4729-aed6-dd9c09db448d | Blood Artist | (none) | (none) | (none) | any | agree | no | compiler |
+| +@any,-@opponent | 223fa044-d387-4884-bf4e-75f1b61c6a46 | Curiosity | (none) | (none) | opponent | any | agree | no | ambiguous |
+| +@any,-@self | 27e0948b-9916-473b-8d8c-a51bdfbc7457 | Underworld Breach | (none) | (none) | self | any | agree | no | compiler |
+| +@any,-@unknown | 00d8efa6-a2d9-4249-8da7-b45173675329 | Utopia Sprawl | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@any,-@unknown | 65986c1b-8e51-4604-b685-d82fa7d1263a | Skullclamp | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@any,-@unknown | 706ae742-1807-44b7-a4fa-f2e26f61519a | Wild Growth | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@any,-@unknown | cf14d4e5-5965-45ad-97f7-26facf2884b5 | Fertile Ground | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@any,-@unknown | d0901053-6de0-46d0-9ee3-8d40510236c1 | Sword of Feast and Famine | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@any,-@unknown | d79cbc61-6c15-48ea-bbba-3cffb819ccba | Sword of the Animist | (none) | (none) | unknown | any | agree | no | ambiguous |
+| +@self,-@any | 09b895ff-e729-48d1-bfc1-ea5fd7adda6a | Caged Sun | (none) | (none) | any | self | agree | no | compiler |
+| +attacks,-other | ba0d3df2-3acf-46d7-8d64-8d67d1579adc | Curse of Opulence | other | attacks | (none) | (none) | agree | yes | compiler |
+| +cast,+draw | f349f58b-8cc8-45e4-9565-2b46fdf976c9 | Trouble in Pairs | (none) | cast, draw | (none) | (none) | agree | no | compiler |
+| +leaves | 726d9d2c-736a-4852-9938-a0f50d8fd89f | Marionette Apprentice | (none) | leaves | (none) | (none) | agree | no | ambiguous |
+| +leaves,-dies | 5b5ef43b-13fd-4461-8d2d-18be65e9a790 | Ichor Wellspring | dies | leaves | (none) | (none) | agree | no | ambiguous |
+| +leaves,-dies | d0ade00d-a496-441d-9b7e-7dc033d3292c | Titania, Protector of Argoth | dies | leaves | (none) | (none) | agree | no | ambiguous |
+| +other | 0636b6c3-0662-420a-b30d-f0a14e7c512d | Mirkwood Bats | (none) | other | (none) | (none) | agree | no | compiler |
+| +zone,+@self | 14c3ff84-1e82-4606-a433-869fc52cc382 | Syr Konrad, the Grim | (none) | zone | (none) | self | agree | no | compiler |
 

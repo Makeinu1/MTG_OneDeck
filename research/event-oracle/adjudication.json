@@ -9,7 +9,30 @@
     "note": "iter1 物差し凍結。族/観測者/介在条件を別主体(gpt-5-codex clean-room)が oracleText のみから盲予測。Fable はこの不一致集合だけを裁定し eventClassify は本反復で変更しない(iter2 で compiler 帰属分を修正)。"
   },
   "attributionKinds": ["substrate", "compiler", "oracle", "ambiguous"],
+  "_cardsNote": "cards = iter2-b(prompt v2)時点の現行20不一致(report.json はこれを読む)。iter1 の46件詳細は iter1Cards に退避(履歴)。",
   "cards": {
+    "c0d8fef4-65f4-4769-982d-b397d2b7e977": { "name": "Animate Dead", "attribution": "oracle", "note": "行内2誘発の leaves を分類器は取得(P4・gold pin)。oracle が mid-line の『When this Aura leaves』を取りこぼし。" },
+    "f349f58b-8cc8-45e4-9565-2b46fdf976c9": { "name": "Trouble in Pairs", "attribution": "compiler", "fix": "P6-or-list", "note": "複合条件『attacks you, OR draws their second, OR casts their second』= attacks+draw+cast。classifier が or 列挙の draw/cast を取りこぼし(attacks のみ)。" },
+    "14c3ff84-1e82-4606-a433-869fc52cc382": { "name": "Syr Konrad, the Grim", "attribution": "compiler", "fix": "P6-or-list", "note": "複合『another creature dies, OR put into graveyard from non-battlefield, OR leaves your graveyard』= dies+zone / observer any+self。classifier が zone 別条件と self(your graveyard)を取りこぼし。" },
+    "0636b6c3-0662-420a-b30d-f0a14e7c512d": { "name": "Mirkwood Bats", "attribution": "compiler", "fix": "P6-or-list", "note": "複合『create or sacrifice a token』= sacrifice + other(create token)。classifier が create-token→other を取りこぼし。" },
+    "310f141c-7f37-4729-aed6-dd9c09db448d": { "name": "Blood Artist", "attribution": "compiler", "fix": "P3-this-or-another-any", "note": "『this creature or another creature dies』= self + any(another creature・you control 無し)。classifier が any を取りこぼし(P3 の you-control 無し版)。" },
+    "a0be9bb2-3234-4c6c-b8ce-0879b1f43003": { "name": "Laelia, the Blade Reforged", "attribution": "compiler", "fix": "P7-any-overtag", "note": "『one or more cards are put into exile from your library/graveyard』= self。classifier が any を過剰付与(one or more + your)。" },
+    "a5e54d2b-aad8-4ddd-af4b-13668913762b": { "name": "The Gitrog Monster", "attribution": "compiler", "fix": "P7-any-overtag", "note": "『one or more land cards are put into your graveyard』= self。classifier が any 過剰付与。oracle は leaves を uncertain(良)。" },
+    "27e0948b-9916-473b-8d8c-a51bdfbc7457": { "name": "Underworld Breach", "attribution": "compiler", "fix": "P8-unpossessed-phase", "note": "『At the beginning of the end step』(your 無し)= 各ターンの end step ゆえ any。classifier の at→self フォールバックが誤り。" },
+    "09b895ff-e729-48d1-bfc1-ea5fd7adda6a": { "name": "Caged Sun", "attribution": "compiler", "fix": "P9-causes-you", "note": "『a land's ability causes you to add mana』= you ゆえ self。classifier が any(a land's ability を主語視)。" },
+    "ba0d3df2-3acf-46d7-8d64-8d67d1579adc": { "name": "Curse of Opulence", "attribution": "compiler", "fix": "P10-is-attacked", "note": "『enchanted player is attacked』= attacks(受動)。classifier が other(is attacked を attacks に取れず)。oracle は観測者を uncertain。" },
+    "223fa044-d387-4884-bf4e-75f1b61c6a46": { "name": "Curiosity", "attribution": "ambiguous", "fix": "eso-recipient-opponent", "note": "『deals damage to an opponent』= 受け手 opponent vs 主語 enchanted creature。prompt v2 の subject-scope で oracle=any、classifier=opponent(\\b)。recipient-opponent を観測者にするかは ESO 未確定。iter2-a の opponent 回帰 pin と整合性要検討。" },
+    "00d8efa6-a2d9-4249-8da7-b45173675329": { "name": "Utopia Sprawl", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "『enchanted Forest is tapped for mana, its controller』= 被付与perm の controller(不特定)。unknown(classifier) vs any(oracle) の境界が ESO 未確定。" },
+    "706ae742-1807-44b7-a4fa-f2e26f61519a": { "name": "Wild Growth", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "enchanted land tapped for mana。unknown vs any 境界。" },
+    "cf14d4e5-5965-45ad-97f7-26facf2884b5": { "name": "Fertile Ground", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "enchanted land tapped for mana。unknown vs any 境界。" },
+    "65986c1b-8e51-4604-b685-d82fa7d1263a": { "name": "Skullclamp", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "『equipped creature dies』= 装備先(不特定)。unknown vs any 境界。" },
+    "d0901053-6de0-46d0-9ee3-8d40510236c1": { "name": "Sword of Feast and Famine", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "『equipped creature deals combat damage to a player』= 装備先(不特定)。unknown vs any 境界。" },
+    "d79cbc61-6c15-48ea-bbba-3cffb819ccba": { "name": "Sword of the Animist", "attribution": "ambiguous", "fix": "eso-unknown-vs-any", "note": "『equipped creature attacks』= 装備先(不特定)。unknown vs any 境界。" },
+    "726d9d2c-736a-4852-9938-a0f50d8fd89f": { "name": "Marionette Apprentice", "attribution": "ambiguous", "fix": "eso-dies-vs-leaves", "note": "『creature or artifact you control is put into graveyard from battlefield』= 非creature(artifact)は dies(CR700.4 はcreature限定)でなく leaves/zone か。dies vs leaves 境界が ESO 未確定。" },
+    "5b5ef43b-13fd-4461-8d2d-18be65e9a790": { "name": "Ichor Wellspring", "attribution": "ambiguous", "fix": "eso-dies-vs-leaves", "note": "artifact『put into graveyard from battlefield』= dies(classifier)か leaves(oracle)か。非creature の墓地行き族が ESO 未確定。" },
+    "d0ade00d-a496-441d-9b7e-7dc033d3292c": { "name": "Titania, Protector of Argoth", "attribution": "ambiguous", "fix": "eso-dies-vs-leaves", "note": "『a land you control is put into graveyard from battlefield』= land ゆえ dies でなく leaves/zone か。dies vs leaves 境界。" }
+  },
+  "iter1Cards": {
     "0bfa4512-e35a-4c93-b324-80ec659f5a97": { "name": "Ulamog, the Ceaseless Hunger", "attribution": "compiler", "fix": "P1-self-name", "note": "「Whenever Ulamog attacks」の自己名参照を observer=self に解決できず unknown を立てる。" },
     "7b8528b0-71eb-4c9e-bed9-aa2d2e84038f": { "name": "Kozilek, Butcher of Truth", "attribution": "compiler", "fix": "P1-self-name", "note": "Annihilator 注釈「this creature attacks」/自己名 → self。classifier=unknown。" },
     "ea5103f5-27e0-4eb1-902c-7f34652d6bf3": { "name": "Orcish Bowmasters", "attribution": "oracle", "fix": "noise", "note": "複合誘発「When this enters and whenever an opponent draws」。oracle が draw 族を取りこぼし(明白な opponent draws)。classifier は draw を取れているが self を取りこぼし(副次 compiler)。" },
@@ -162,5 +185,26 @@
     "interpretation": "compiler 帰属 21→0(全解消)。残 29 不一致は 28 oracle + 1 ambiguous = すべて物差し側。flip-flop が綺麗に分離:ルール修正完了、残差は純粋に物差し誤り。次 = iter2-b(§7.2 prompt 改訂→盲予測再実行→再測)。",
     "reattributed": "Thopter/Dragon Tempest を compiler→oracle(iter2-a で分類器が正になり残差は oracle の to-a-player/self 過剰付与)。Hellkite Tyrant/Rosie Cotton を oracle 新規追加(iter2-a 後に顕在化した物差し誤り)。",
     "review": "機械4点緑(Fable独立)+ review.event-coverage 31/31 + review.event-oracle 16/16 + 全767緑。"
+  },
+  "iter2bResult": {
+    "adjudicatedAt": "2026-06-23",
+    "what": "物差し(LLM prompt)側を改訂(§7.2 v2)し全203枚を clean-room 再予測(gpt-5-codex・promptHash 18a3c20a)。ルール eventClassify は凍結(flip-flop)。promptFix = combat-damage≠phase / phase juncture 観測者(your→self・each opponent's→opponent・each→any)/ tap-for-mana→other / 観測者=主語スコープ(recipient 除外)/ uncertain 積極使用。",
+    "kpiAfter": {
+      "familyDiscrepancyRate": 0.0394,
+      "observerDiscrepancyRate": 0.064,
+      "interveningIfDiscrepancyRate": 0.0,
+      "unverifiableRate": 0.0246,
+      "discrepancies": 20,
+      "attributionDistribution": { "substrate": 0, "compiler": 9, "oracle": 1, "ambiguous": 10 }
+    },
+    "progression": "family 10.84%→7.88%(iter2-a)→3.94%(iter2-b)。observer 18.23%→12.32%→6.40%。unverifiable 0%→2.46%(物差しが uncertain を使い始めた=過信故障の是正)。",
+    "interpretation": "prompt v2 が iter1 の大型 oracle 誤り(combat-damage→phase 13件・phase juncture 観測者 5件・tap-for-mana 3件)をほぼ一掃(oracle 残 1=Animate Dead の mid-line leaves 取りこぼし)。残 20 の構成が質的に変化:compiler 9(複合『or』列挙トリガの取りこぼし P6 / any 過剰付与 P7 / unpossessed phase の at→self P8 / causes-you P9 / is-attacked P10)+ ambiguous 10(ESO 境界=未確定)。substrate なお 0。",
+    "esoDecisionsNeeded": {
+      "unknown-vs-any": "被付与/装備 perm の不特定 controller(enchanted/equipped X)を unknown とするか any とするか。6件(Utopia/Wild Growth/Fertile Ground/Skullclamp/Sword F&F/Sword Animist)。observer 不一致の主因。1判断で約6件解消。",
+      "dies-vs-leaves": "非creature(artifact/land)の『put into graveyard from battlefield』を dies(現分類器)とするか leaves/zone とするか(CR700.4 の dies は creature 限定)。3件(Marionette/Ichor/Titania)。",
+      "recipient-opponent": "『deals damage to an opponent』の opponent(効果の受け手)を観測者にするか(subject-scope なら否=any)。1件(Curiosity)。iter2-a の opponent 回帰 pin(Curiosity=opponent)と subject-scope 規則が矛盾するため要再整理。"
+    },
+    "nextIter3": "compiler 9(複合 or-list P6 が筆頭・4件)を eventClassify 修正→churn 再算出。ESO 境界3決定を docs に明記し ambiguous を解消。両後に family/observer 不一致率 + churn が共に低位安定なら Slice2 凍結候補。",
+    "review": "機械4点緑(Fable独立)+ review 全770緑。rule(eventClassify)凍結を git diff で確認・predictions.json は新 promptHash。"
   }
 }
