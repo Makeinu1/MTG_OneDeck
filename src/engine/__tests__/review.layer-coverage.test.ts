@@ -164,6 +164,25 @@ const cases: ReadonlyArray<[string, string, string, LayerId[], boolean]> = [
     ['L4', 'L6', 'L7b'],
     false,
   ],
+  // ── 物差し誤り(compiler FP)回帰ガード = M0-2 で閉鎖 ──────────
+  // 《Necropotence》: 「exile … face down」は追放領域の裏向きカードであり、
+  // 戦場の裏向きパーマネント(L1b / CR613.2b)ではない。L1b を発火させない。
+  [
+    'Necropotence',
+    'Enchantment',
+    'Skip your draw step.\nWhenever you discard a card, exile that card from your graveyard.\nPay 1 life: Exile the top card of your library face down. Put that card into your hand at the beginning of your next end step.',
+    [],
+    false,
+  ],
+  // 《Bitterblossom》: 「token with flying」は生成トークンの能力であり、
+  // このカード自身が flying を得る(L6 / CR613 層6)わけではない。L6 を発火させない。
+  [
+    'Bitterblossom',
+    'Tribal Enchantment — Faerie',
+    'At the beginning of your upkeep, you lose 1 life and create a 1/1 black Faerie Rogue creature token with flying.',
+    [],
+    false,
+  ],
 ];
 
 describe('M0-1 層分類ゴールド: classifyCardLayers(有効特性 + 層オントロジー)', () => {

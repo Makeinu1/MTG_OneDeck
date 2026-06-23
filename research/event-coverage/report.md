@@ -1,0 +1,403 @@
+# Event Coverage Report
+
+Measurement-only extraction for trigger event families, observer scopes, and intervening-if conditions.
+
+## Summary
+
+- Generated at: 2026-06-23T05:59:24.259Z
+- Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
+- totalCards: 17491
+- mappedCards: 17491
+- trigger lines: 9067
+- interveningIfCardCount: 670 (3.83%)
+- multiFamily cards: 1176
+- churn: 9/17491 changed (0.05%), baselineCards=17491, byFamily=cast +9, other -9
+- mapping failures: 0
+
+## Per Family
+
+| family | card count | line count | trigger line rate | examples |
+|---|---:|---:|---:|---|
+| enters | 3418 | 3502 | 38.62% | Bojuka Bog (rank 25); Solemn Simulacrum (rank 38); The One Ring (rank 89); Garruk's Uprising (rank 92); Garruk's Uprising (rank 92) |
+| leaves | 111 | 112 | 1.24% | The Ozolith (rank 302); Nadier's Nightblade (rank 843); Skyclave Apparition (rank 1192); Dour Port-Mage (rank 1503); Electro, Assaulting Battery (rank 1592) |
+| dies | 773 | 788 | 8.69% | Solemn Simulacrum (rank 38); Skullclamp (rank 41); Blood Artist (rank 138); Pitiless Plunderer (rank 229); Zulaport Cutthroat (rank 233) |
+| zone | 85 | 85 | 0.94% | Bloodchief Ascension (rank 737); The Gitrog Monster (rank 890); Kozilek, Butcher of Truth (rank 1099); Laelia, the Blade Reforged (rank 1297); Hedge Shredder (rank 1310) |
+| cast | 737 | 766 | 8.45% | Rhystic Study (rank 43); Esper Sentinel (rank 76); Mystic Remora (rank 96); Beast Whisperer (rank 212); Hullbreaker Horror (rank 267) |
+| attacks | 1223 | 1242 | 13.70% | Sword of the Animist (rank 243); Etali, Primal Storm (rank 260); Sun Titan (rank 289); Kindred Discovery (rank 347); Goldspan Dragon (rank 401) |
+| blocks | 73 | 74 | 0.82% | Smuggler's Copter (rank 1862); Grazilaxx, Illithid Scholar (rank 1878); Elder Gargaroth (rank 2353); Anzrag, the Quake-Mole (rank 2706); Brimaz, King of Oreskos (rank 3075) |
+| damage | 641 | 652 | 7.19% | Professional Face-Breaker (rank 216); Ragavan, Nimble Pilferer (rank 269); Toski, Bearer of Secrets (rank 381); Kutzil, Malamet Exemplar (rank 385); Bident of Thassa (rank 410) |
+| draw | 112 | 114 | 1.26% | Smothering Tithe (rank 62); Orcish Bowmasters (rank 254); Faerie Mastermind (rank 327); Psychosis Crawler (rank 447); Sheoldred, the Apocalypse (rank 464) |
+| discard | 54 | 60 | 0.66% | Necropotence (rank 503); Monument to Endurance (rank 1119); Waste Not (rank 1253); Waste Not (rank 1253); Waste Not (rank 1253) |
+| sacrifice | 92 | 93 | 1.03% | Mirkwood Bats (rank 223); Mayhem Devil (rank 580); Tireless Tracker (rank 622); Captain Lannery Storm (rank 1145); Nuka-Cola Vending Machine (rank 1287) |
+| tap | 77 | 78 | 0.86% | City of Brass (rank 97); Wild Growth (rank 211); Utopia Sprawl (rank 341); Fertile Ground (rank 1024); Mesmeric Orb (rank 1082) |
+| counter | 60 | 60 | 0.66% | Midnight Clock (rank 610); Evolution Witness (rank 905); Terrasymbiosis (rank 981); Simic Ascendancy (rank 1262); Exemplar of Light (rank 1332) |
+| life | 84 | 87 | 0.96% | Vito, Thorn of the Dusk Rose (rank 489); Sanguine Bond (rank 497); Exquisite Blood (rank 505); Enduring Tenacity (rank 858); Bloodthirsty Conqueror (rank 926) |
+| phase | 1056 | 1098 | 12.11% | The One Ring (rank 89); Phyrexian Arena (rank 98); Black Market Connections (rank 132); Herald's Horn (rank 141); Mana Vault (rank 144) |
+| other | 500 | 520 | 5.74% | Crypt Ghast (rank 525); Wizard Class (rank 646); Caretaker's Talent (rank 662); Archivist of Oghma (rank 667); Mirari's Wake (rank 668) |
+
+## Observer Distribution
+
+| observer | card count | line count |
+|---|---:|---:|
+| any | 1175 | 1218 |
+| controlled-set | 555 | 564 |
+| opponent | 322 | 332 |
+| self | 5500 | 6043 |
+| unknown | 860 | 910 |
+
+## Trigger Shape Distribution
+
+| shape | card count | line count |
+|---|---:|---:|
+| at | 1056 | 1098 |
+| when | 3542 | 3691 |
+| whenever | 3974 | 4278 |
+
+## Examples
+
+### enters
+
+- rank 25 《Bojuka Bog》: When this land enters
+- rank 38 《Solemn Simulacrum》: When this creature enters
+- rank 89 《The One Ring》: When The One Ring enters
+- rank 92 《Garruk's Uprising》: When this enchantment enters
+- rank 92 《Garruk's Uprising》: Whenever a creature you control with power 4 or greater enters
+- rank 109 《Eternal Witness》: When this creature enters
+- rank 172 《Mystic Sanctuary》: When this land enters untapped
+- rank 186 《Impact Tremors》: Whenever a creature you control enters
+- rank 224 《Animate Dead》: When this Aura enters
+- rank 235 《The Great Henge》: Whenever a nontoken creature you control enters
+- rank 240 《Mithril Coat》: When Mithril Coat enters
+- rank 241 《Gray Merchant of Asphodel》: When this creature enters
+- rank 254 《Orcish Bowmasters》: When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps
+- rank 270 《Temple of Epiphany》: When this land enters
+- rank 274 《Avenger of Zendikar》: When this creature enters
+
+### leaves
+
+- rank 302 《The Ozolith》: Whenever a creature you control leaves the battlefield
+- rank 843 《Nadier's Nightblade》: Whenever a token you control leaves the battlefield
+- rank 1192 《Skyclave Apparition》: When this creature leaves the battlefield
+- rank 1503 《Dour Port-Mage》: Whenever one or more other creatures you control leave the battlefield without dying
+- rank 1592 《Electro, Assaulting Battery》: When Electro leaves the battlefield
+- rank 1694 《Resourceful Defense》: Whenever a permanent you control leaves the battlefield
+- rank 2132 《Circuit Mender》: When this creature leaves the battlefield
+- rank 2312 《Anticausal Vestige》: When this creature leaves the battlefield
+- rank 2384 《Emrakul, the World Anew》: When Emrakul leaves the battlefield
+- rank 3159 《Zurgo Stormrender》: Whenever a creature token you control leaves the battlefield
+- rank 3208 《Rapacious Guest》: When this creature leaves the battlefield
+- rank 3349 《Lunarch Veteran // Luminous Phantom》: Whenever another creature you control leaves the battlefield
+- rank 3350 《Reveillark》: When this creature leaves the battlefield
+- rank 3579 《Angel of Serenity》: When this creature leaves the battlefield
+- rank 3771 《Fiend Hunter》: When this creature leaves the battlefield
+
+### dies
+
+- rank 38 《Solemn Simulacrum》: When this creature dies
+- rank 41 《Skullclamp》: Whenever equipped creature dies
+- rank 138 《Blood Artist》: Whenever this creature or another creature dies
+- rank 229 《Pitiless Plunderer》: Whenever another creature you control dies
+- rank 233 《Zulaport Cutthroat》: Whenever this creature or another creature you control dies
+- rank 252 《Syr Konrad, the Grim》: Whenever another creature dies
+- rank 257 《Morbid Opportunist》: Whenever one or more other creatures die
+- rank 330 《Bastion of Remembrance》: Whenever a creature you control dies
+- rank 494 《Enduring Vitality》: When Enduring Vitality dies
+- rank 504 《The Meathook Massacre》: Whenever a creature an opponent controls dies
+- rank 504 《The Meathook Massacre》: Whenever a creature you control dies
+- rank 514 《Massacre Wurm》: Whenever a creature an opponent controls dies
+- rank 556 《Marionette Apprentice》: Whenever another creature or artifact you control is put into a graveyard from the battlefield
+- rank 567 《Grave Pact》: Whenever a creature you control dies
+- rank 595 《Elas il-Kor, Sadistic Pilgrim》: Whenever another creature you control dies
+
+### zone
+
+- rank 737 《Bloodchief Ascension》: Whenever a card is put into an opponent's graveyard from anywhere
+- rank 890 《The Gitrog Monster》: Whenever one or more land cards are put into your graveyard from anywhere
+- rank 1099 《Kozilek, Butcher of Truth》: When Kozilek is put into a graveyard from anywhere
+- rank 1297 《Laelia, the Blade Reforged》: Whenever one or more cards are put into exile from your library and/or your graveyard
+- rank 1310 《Hedge Shredder》: Whenever one or more land cards are put into your graveyard from your library
+- rank 1326 《Ulamog, the Infinite Gyre》: When Ulamog is put into a graveyard from anywhere
+- rank 1329 《Vigor》: When Vigor is put into a graveyard from anywhere
+- rank 1351 《Insidious Roots》: Whenever one or more creature cards leave your graveyard
+- rank 1651 《Soulherder》: Whenever a creature is exiled from the battlefield
+- rank 1881 《Teval's Judgment》: Whenever one or more cards leave your graveyard
+- rank 2032 《Colossal Grave-Reaver》: Whenever one or more creature cards are put into your graveyard from your library
+- rank 2411 《Worldspine Wurm》: When Worldspine Wurm is put into a graveyard from anywhere
+- rank 2808 《Teval, the Balanced Scale》: Whenever one or more cards leave your graveyard
+- rank 2950 《Crawling Sensation》: Whenever one or more land cards are put into your graveyard from anywhere for the first time each turn
+- rank 3340 《Aetherworks Marvel》: Whenever a permanent you control is put into a graveyard
+
+### cast
+
+- rank 43 《Rhystic Study》: Whenever an opponent casts a spell
+- rank 76 《Esper Sentinel》: Whenever an opponent casts their first noncreature spell each turn
+- rank 96 《Mystic Remora》: Whenever an opponent casts a noncreature spell
+- rank 212 《Beast Whisperer》: Whenever you cast a creature spell
+- rank 267 《Hullbreaker Horror》: Whenever you cast a spell
+- rank 354 《Vanquisher's Banner》: Whenever you cast a creature spell of the chosen type
+- rank 374 《Aetherflux Reservoir》: Whenever you cast a spell
+- rank 395 《Forgotten Ancient》: Whenever a player casts a spell
+- rank 400 《Guttersnipe》: Whenever you cast an instant or sorcery spell
+- rank 408 《Lotho, Corrupt Shirriff》: Whenever a player casts their second spell each turn
+- rank 461 《Sram, Senior Edificer》: Whenever you cast an Aura, Equipment, or Vehicle spell
+- rank 626 《Mangara, the Diplomat》: Whenever an opponent casts their second spell each turn
+- rank 642 《Reflections of Littjara》: Whenever you cast a spell of the chosen type
+- rank 660 《Bontu's Monument》: Whenever you cast a creature spell
+- rank 731 《Niv-Mizzet, Parun》: Whenever a player casts an instant or sorcery spell
+
+### attacks
+
+- rank 243 《Sword of the Animist》: Whenever equipped creature attacks
+- rank 260 《Etali, Primal Storm》: Whenever Etali attacks
+- rank 289 《Sun Titan》: Whenever this creature enters or attacks
+- rank 347 《Kindred Discovery》: Whenever a creature you control of the chosen type enters or attacks
+- rank 401 《Goldspan Dragon》: Whenever this creature attacks or becomes the target of a spell
+- rank 507 《Adeline, Resplendent Cathar》: Whenever you attack
+- rank 555 《Six》: Whenever Six attacks
+- rank 564 《Beastmaster Ascension》: Whenever a creature you control attacks
+- rank 626 《Mangara, the Diplomat》: Whenever an opponent attacks with creatures
+- rank 630 《Trouble in Pairs》: Whenever an opponent attacks you with two or more creatures
+- rank 663 《Shared Animosity》: Whenever a creature you control attacks
+- rank 678 《Goreclaw, Terror of Qal Sisma》: Whenever Goreclaw attacks
+- rank 734 《Aqueous Form》: Whenever enchanted creature attacks
+- rank 826 《Aurelia, the Warleader》: Whenever Aurelia attacks for the first time each turn
+- rank 856 《Krenko, Tin Street Kingpin》: Whenever Krenko attacks
+
+### blocks
+
+- rank 1862 《Smuggler's Copter》: Whenever this Vehicle attacks or blocks
+- rank 1878 《Grazilaxx, Illithid Scholar》: Whenever a creature you control becomes blocked
+- rank 2353 《Elder Gargaroth》: Whenever this creature attacks or blocks
+- rank 2706 《Anzrag, the Quake-Mole》: Whenever Anzrag becomes blocked
+- rank 3075 《Brimaz, King of Oreskos》: Whenever Brimaz blocks a creature
+- rank 3097 《Savvy Hunter》: Whenever this creature attacks or blocks
+- rank 3672 《Infiltration Lens》: Whenever equipped creature becomes blocked by a creature
+- rank 4185 《The Restoration of Eiganjo // Architect of Restoration》: Whenever this creature attacks or blocks
+- rank 4534 《Azusa's Many Journeys // Likeness of the Seeker》: Whenever this creature becomes blocked
+- rank 4652 《Wand of Orcus》: Whenever equipped creature attacks or blocks
+- rank 4679 《Ichorclaw Myr》: Whenever this creature becomes blocked
+- rank 5076 《Ashcoat of the Shadow Swarm》: Whenever Ashcoat attacks or blocks
+- rank 5306 《Kangee, Sky Warden》: Whenever Kangee blocks
+- rank 5372 《Sapphire Dragon // Psionic Pulse》: Whenever this creature attacks or blocks
+- rank 5957 《Wall of Junk》: When this creature blocks
+
+### damage
+
+- rank 216 《Professional Face-Breaker》: Whenever one or more creatures you control deal combat damage to a player
+- rank 269 《Ragavan, Nimble Pilferer》: Whenever Ragavan deals combat damage to a player
+- rank 381 《Toski, Bearer of Secrets》: Whenever a creature you control deals combat damage to a player
+- rank 385 《Kutzil, Malamet Exemplar》: Whenever one or more creatures you control each with power greater than its base power deals combat damage to a player
+- rank 410 《Bident of Thassa》: Whenever a creature you control deals combat damage to a player
+- rank 458 《Ohran Frostfang》: Whenever a creature you control deals combat damage to a player
+- rank 543 《Sword of Feast and Famine》: Whenever equipped creature deals combat damage to a player
+- rank 594 《Curiosity》: Whenever enchanted creature deals damage to an opponent
+- rank 645 《Ancient Copper Dragon》: Whenever this creature deals combat damage to a player
+- rank 761 《Etali, Primal Conqueror // Etali, Primal Sickness》: Whenever Etali deals combat damage to a player
+- rank 784 《Hellkite Tyrant》: Whenever this creature deals combat damage to a player
+- rank 786 《Brash Taunter》: Whenever this creature is dealt damage
+- rank 820 《Kodama of the West Tree》: Whenever a modified creature you control deals combat damage to a player
+- rank 831 《Thrummingbird》: Whenever this creature deals combat damage to a player
+- rank 867 《Enduring Curiosity》: Whenever a creature you control deals combat damage to a player
+
+### draw
+
+- rank 62 《Smothering Tithe》: Whenever an opponent draws a card
+- rank 254 《Orcish Bowmasters》: When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps
+- rank 327 《Faerie Mastermind》: Whenever an opponent draws their second card each turn
+- rank 447 《Psychosis Crawler》: Whenever you draw a card
+- rank 464 《Sheoldred, the Apocalypse》: Whenever an opponent draws a card
+- rank 464 《Sheoldred, the Apocalypse》: Whenever you draw a card
+- rank 646 《Wizard Class》: Whenever you draw a card
+- rank 655 《Consecrated Sphinx》: Whenever an opponent draws a card
+- rank 664 《Scrawling Crawler》: Whenever an opponent draws a card
+- rank 719 《Chasm Skulker》: Whenever you draw a card
+- rank 731 《Niv-Mizzet, Parun》: Whenever you draw a card
+- rank 1020 《Razorkin Needlehead》: Whenever an opponent draws a card
+- rank 1398 《Ominous Seas》: Whenever you draw a card
+- rank 1414 《Underworld Dreams》: Whenever an opponent draws a card
+- rank 1663 《The Locust God》: Whenever you draw a card
+
+### discard
+
+- rank 503 《Necropotence》: Whenever you discard a card
+- rank 1119 《Monument to Endurance》: Whenever you discard a card
+- rank 1253 《Waste Not》: Whenever an opponent discards a creature card
+- rank 1253 《Waste Not》: Whenever an opponent discards a land card
+- rank 1253 《Waste Not》: Whenever an opponent discards a noncreature
+- rank 1376 《Archfiend of Ifnir》: Whenever you cycle or discard another card
+- rank 1909 《Inti, Seneschal of the Sun》: Whenever you discard one or more cards
+- rank 1951 《Sangromancer》: Whenever an opponent discards a card
+- rank 1965 《Containment Construct》: Whenever you discard a card
+- rank 1998 《Glint-Horn Buccaneer》: Whenever you discard a card
+- rank 2216 《Bone Miser》: Whenever you discard a creature card
+- rank 2216 《Bone Miser》: Whenever you discard a land card
+- rank 2216 《Bone Miser》: Whenever you discard a noncreature
+- rank 2453 《Liliana's Caress》: Whenever an opponent discards a card
+- rank 2487 《Aclazotz, Deepest Betrayal // Temple of the Dead》: Whenever an opponent discards a land card
+
+### sacrifice
+
+- rank 223 《Mirkwood Bats》: Whenever you create or sacrifice a token
+- rank 580 《Mayhem Devil》: Whenever a player sacrifices a permanent
+- rank 622 《Tireless Tracker》: Whenever you sacrifice a Clue
+- rank 1145 《Captain Lannery Storm》: Whenever you sacrifice a Treasure
+- rank 1287 《Nuka-Cola Vending Machine》: Whenever you sacrifice a Food
+- rank 1399 《Crime Novelist》: Whenever you sacrifice an artifact
+- rank 1510 《It That Betrays》: Whenever an opponent sacrifices a nontoken permanent
+- rank 1646 《Mazirek, Kraul Death Priest》: Whenever a player sacrifices another permanent
+- rank 1863 《Juri, Master of the Revue》: Whenever you sacrifice a permanent
+- rank 1886 《Korvold, Fae-Cursed King》: Whenever you sacrifice a permanent
+- rank 2559 《Camellia, the Seedmiser》: Whenever you sacrifice one or more Foods
+- rank 2671 《Carmen, Cruel Skymarcher》: Whenever a player sacrifices a permanent
+- rank 2769 《Heaped Harvest》: When this artifact enters and when you sacrifice it
+- rank 2812 《Ravenous Squirrel》: Whenever you sacrifice an artifact or creature
+- rank 3208 《Rapacious Guest》: Whenever you sacrifice a Food
+
+### tap
+
+- rank 97 《City of Brass》: Whenever this land becomes tapped
+- rank 211 《Wild Growth》: Whenever enchanted land is tapped for mana
+- rank 341 《Utopia Sprawl》: Whenever enchanted Forest is tapped for mana
+- rank 1024 《Fertile Ground》: Whenever enchanted land is tapped for mana
+- rank 1082 《Mesmeric Orb》: Whenever a permanent becomes untapped
+- rank 1323 《Key to the City》: Whenever this artifact becomes untapped
+- rank 1330 《Magda, Brazen Outlaw》: Whenever a Dwarf you control becomes tapped
+- rank 1406 《Ghostly Pilferer》: Whenever this creature becomes untapped
+- rank 1716 《Extraplanar Lens》: Whenever a land with the same name as the exiled card is tapped for mana
+- rank 2476 《Gauntlet of Power》: Whenever a basic land is tapped for mana of the chosen color
+- rank 2956 《Overgrowth》: Whenever enchanted land is tapped for mana
+- rank 3503 《Kilo, Apogee Mind》: Whenever Kilo becomes tapped
+- rank 4291 《Verity Circle》: Whenever a creature an opponent controls becomes tapped
+- rank 4465 《Armored Scrapgorger》: Whenever this creature becomes tapped
+- rank 4625 《Deeproot Pilgrimage》: Whenever one or more nontoken Merfolk you control become tapped
+
+### counter
+
+- rank 610 《Midnight Clock》: When the twelfth hour counter is put on this artifact
+- rank 905 《Evolution Witness》: Whenever one or more +1/+1 counters are put on this creature
+- rank 981 《Terrasymbiosis》: Whenever you put one or more +1/+1 counters on a creature you control
+- rank 1262 《Simic Ascendancy》: Whenever one or more +1/+1 counters are put on a creature you control
+- rank 1332 《Exemplar of Light》: Whenever you put one or more +1/+1 counters on this creature
+- rank 1400 《All Will Be One》: Whenever you put one or more counters on a permanent or player
+- rank 1713 《Fathom Mage》: Whenever a +1/+1 counter is put on this creature
+- rank 2077 《Basking Broodscale》: Whenever one or more +1/+1 counters are put on this creature
+- rank 2257 《Scurry Oak》: Whenever one or more +1/+1 counters are put on this creature
+- rank 2654 《Dusk Legion Duelist》: Whenever one or more +1/+1 counters are put on this creature
+- rank 3480 《Generous Patron》: Whenever you put one or more counters on a creature you don't control
+- rank 3556 《Stocking the Pantry》: Whenever you put one or more +1/+1 counters on a creature you control
+- rank 3707 《Wildwood Scourge》: Whenever one or more +1/+1 counters are put on another non-Hydra creature you control
+- rank 3864 《Shalai and Hallar》: Whenever one or more +1/+1 counters are put on a creature you control
+- rank 4122 《Hapatra, Vizier of Poisons》: Whenever you put one or more -1/-1 counters on a creature
+
+### life
+
+- rank 489 《Vito, Thorn of the Dusk Rose》: Whenever you gain life
+- rank 497 《Sanguine Bond》: Whenever you gain life
+- rank 505 《Exquisite Blood》: Whenever an opponent loses life
+- rank 858 《Enduring Tenacity》: Whenever you gain life
+- rank 926 《Bloodthirsty Conqueror》: Whenever an opponent loses life
+- rank 962 《Mindcrank》: Whenever an opponent loses life
+- rank 1018 《Heliod, Sun-Crowned》: Whenever you gain life
+- rank 1100 《Vilis, Broker of Blood》: Whenever you lose life
+- rank 1104 《Marauding Blight-Priest》: Whenever you gain life
+- rank 1116 《Well of Lost Dreams》: Whenever you gain life
+- rank 1332 《Exemplar of Light》: Whenever you gain life
+- rank 1484 《Cleric Class》: Whenever you gain life
+- rank 1490 《Archangel of Thune》: Whenever you gain life
+- rank 1868 《Elenda's Hierophant》: Whenever you gain life
+- rank 2020 《Wedding Ring》: Whenever an opponent who controls an artifact named Wedding Ring gains life during their turn
+
+### phase
+
+- rank 89 《The One Ring》: At the beginning of your upkeep
+- rank 98 《Phyrexian Arena》: At the beginning of your upkeep
+- rank 132 《Black Market Connections》: At the beginning of your first main phase
+- rank 141 《Herald's Horn》: At the beginning of your upkeep
+- rank 144 《Mana Vault》: At the beginning of your draw step
+- rank 144 《Mana Vault》: At the beginning of your upkeep
+- rank 256 《Sylvan Library》: At the beginning of your draw step
+- rank 279 《Inventors' Fair》: At the beginning of your upkeep
+- rank 288 《Braids, Arisen Nightmare》: At the beginning of your end step
+- rank 302 《The Ozolith》: At the beginning of combat on your turn
+- rank 359 《Pact of Negation》: At the beginning of your next upkeep
+- rank 388 《Underworld Breach》: At the beginning of the end step
+- rank 391 《Land Tax》: At the beginning of your upkeep
+- rank 395 《Forgotten Ancient》: At the beginning of your upkeep
+- rank 399 《Helm of the Host》: At the beginning of combat on your turn
+
+### other
+
+- rank 525 《Crypt Ghast》: Whenever you tap a Swamp for mana
+- rank 646 《Wizard Class》: When this Class becomes level 2
+- rank 662 《Caretaker's Talent》: When this Class becomes level 2
+- rank 667 《Archivist of Oghma》: Whenever an opponent searches their library
+- rank 668 《Mirari's Wake》: Whenever you tap a land for mana
+- rank 691 《Forbidden Orchard》: Whenever you tap this land for mana
+- rank 709 《Curse of Opulence》: Whenever enchanted player is attacked
+- rank 873 《Forsaken Monument》: Whenever you tap a permanent for {C}
+- rank 876 《Caged Sun》: Whenever a land's ability causes you to add one or more mana of the chosen color
+- rank 902 《Burgeoning》: Whenever an opponent plays a land
+- rank 1228 《Rosie Cotton of South Lane》: Whenever you create a token
+- rank 1233 《Shark Typhoon》: When you cycle this card
+- rank 1295 《Baral, Chief of Compliance》: Whenever a spell or ability you control counters a spell
+- rank 1301 《Decree of Pain》: When you cycle this card
+- rank 1354 《Kinnan, Bonder Prodigy》: Whenever you tap a nonland permanent for mana
+
+
+## Multi Family Cards
+
+- 《Solemn Simulacrum》: dies, enters
+- 《The One Ring》: enters, phase
+- 《Orcish Bowmasters》: draw, enters
+- 《Sun Titan》: attacks, enters
+- 《The Ozolith》: leaves, phase
+- 《Bastion of Remembrance》: dies, enters
+- 《Kindred Discovery》: attacks, enters
+- 《Forgotten Ancient》: cast, phase
+- 《The Meathook Massacre》: dies, enters
+- 《Massacre Wurm》: dies, enters
+- 《Growing Rites of Itlimoc // Itlimoc, Cradle of the Sun》: enters, phase
+- 《Elas il-Kor, Sadistic Pilgrim》: dies, enters
+- 《Midnight Clock》: counter, phase
+- 《Mangara, the Diplomat》: attacks, cast
+- 《Stitcher's Supplier》: dies, enters
+- 《Wizard Class》: draw, other
+- 《Black Market》: dies, phase
+- 《Caretaker's Talent》: enters, other
+- 《Scrawling Crawler》: draw, phase
+- 《Chasm Skulker》: dies, draw
+- 《Niv-Mizzet, Parun》: cast, draw
+- 《Bloodchief Ascension》: phase, zone
+- 《Etali, Primal Conqueror // Etali, Primal Sickness》: damage, enters
+- 《Hellkite Tyrant》: damage, phase
+- 《Enduring Innocence》: dies, enters
+- 《Enduring Tenacity》: dies, life
+- 《Enduring Curiosity》: damage, dies
+- 《Forsaken Monument》: cast, other
+- 《Myr Battlesphere》: attacks, enters
+- 《The Gitrog Monster》: phase, zone
+- 《Thopter Spy Network》: damage, phase
+- 《Ichor Wellspring》: dies, enters
+- 《Kardur, Doomscourge》: dies, enters
+- 《Up the Beanstalk》: cast, enters
+- 《Portal to Phyrexia》: enters, phase
+- 《Kozilek, Butcher of Truth》: cast, zone
+- 《Archon of Cruelty》: attacks, enters
+- 《Fiery Inscription》: cast, enters
+- 《Titania, Protector of Argoth》: dies, enters
+- 《Revel in Riches》: dies, phase
+- 《Captain Lannery Storm》: attacks, sacrifice
+- 《Kogla, the Titan Ape》: attacks, enters
+- 《Enduring Courage》: dies, enters
+- 《Skyclave Apparition》: enters, leaves
+- 《Glaring Fleshraker》: cast, enters
+- 《Rosie Cotton of South Lane》: enters, other
+- 《Shark Typhoon》: cast, other
+- 《Simic Ascendancy》: counter, phase
+- 《Ulamog, the Ceaseless Hunger》: attacks, cast
+- 《Coveted Jewel》: attacks, enters
+
+## Mapping Failures
+
+- none
+

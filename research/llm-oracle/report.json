@@ -1,7 +1,7 @@
 {
   "sampleSize": 192,
   "comparedCount": 192,
-  "discrepancyRate": 0.08333333333333333,
+  "discrepancyRate": 0.07291666666666667,
   "unverifiableRate": 0,
   "perLayerConfusion": [
     {
@@ -12,7 +12,7 @@
     },
     {
       "layer": "L1b",
-      "classifierOnly": 1,
+      "classifierOnly": 0,
       "oracleOnly": 0,
       "agreeBoth": 0
     },
@@ -42,7 +42,7 @@
     },
     {
       "layer": "L6",
-      "classifierOnly": 1,
+      "classifierOnly": 0,
       "oracleOnly": 2,
       "agreeBoth": 99
     },
@@ -169,20 +169,6 @@
       ]
     },
     {
-      "signature": "-L1b",
-      "count": 1,
-      "examples": [
-        "Necropotence"
-      ]
-    },
-    {
-      "signature": "-L6",
-      "count": 1,
-      "examples": [
-        "Bitterblossom"
-      ]
-    },
-    {
       "signature": "+L6",
       "count": 1,
       "examples": [
@@ -198,38 +184,6 @@
     }
   ],
   "discrepancies": [
-    {
-      "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
-      "name": "Necropotence",
-      "classifierLayers": [
-        "L1b"
-      ],
-      "oracleLayers": [],
-      "classifierOnly": [
-        "L1b"
-      ],
-      "oracleOnly": [],
-      "agree": false,
-      "hasUncertain": false,
-      "deltaSignature": "-L1b",
-      "attribution": "compiler"
-    },
-    {
-      "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
-      "name": "Bitterblossom",
-      "classifierLayers": [
-        "L6"
-      ],
-      "oracleLayers": [],
-      "classifierOnly": [
-        "L6"
-      ],
-      "oracleOnly": [],
-      "agree": false,
-      "hasUncertain": false,
-      "deltaSignature": "-L6",
-      "attribution": "compiler"
-    },
     {
       "oracleId": "83b43aba-bf9c-4da2-967d-9daa632e97d2",
       "name": "Helm of the Host",
@@ -497,7 +451,7 @@
   ],
   "attributionDistribution": {
     "substrate": 0,
-    "compiler": 2,
+    "compiler": 0,
     "oracle": 9,
     "ambiguous": 5,
     "null": 0

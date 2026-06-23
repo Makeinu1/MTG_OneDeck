@@ -104,7 +104,13 @@ const RULES: readonly {
   {
     layer: 'L1b',
     reads: ['printed-characteristics'],
-    probes: [/\bface down\b[^.;]*/i],
+    probes: [
+      /\b(?:turns?|turned|turn)\s+face down\b[^.;]*/i,
+      /\bcast(?:s|ing)?\b[^.;]*\bface down\b[^.;]*/i,
+      /\b(?:is|are|becomes?|become)\s+face down\b[^.;]*/i,
+      /\b(?:enters?|enter)\b[^.;]*\bface down\b[^.;]*/i,
+      /\bput\b[^.;]*\bonto the battlefield\b[^.;]*\bface down\b[^.;]*/i,
+    ],
   },
   {
     layer: 'L2',
@@ -247,8 +253,10 @@ function shouldSkipLayerMatch(
   matchedText: string,
 ): boolean {
   switch (layer) {
+    case 'L1b':
+      return isNonBattlefieldFaceDownReference(text, matchedText);
     case 'L6':
-      return isCopyRetentionAbilityOnly(text);
+      return isCopyRetentionAbilityOnly(text) || isTokenCreationKeywordOnly(text);
     case 'L7c':
       return isQuotedOrReminderOnlyPowerToughness(text) || isCounterReferenceOnly(text, matchedText);
     default:
@@ -258,6 +266,33 @@ function shouldSkipLayerMatch(
 
 function isCopyRetentionAbilityOnly(text: string): boolean {
   return /\bexcept\s+it\s+has\s+this ability\b\s*\.?$/i.test(text);
+}
+
+function isNonBattlefieldFaceDownReference(text: string, matchedText: string): boolean {
+  if (!/\bface down\b/i.test(matchedText)) {
+    return false;
+  }
+  if (/\b(?:exile|exiles|exiled|exiling)\b[^.;]*\bface down\b/i.test(text)) {
+    return true;
+  }
+  return (
+    /\bput\b[^.;]*\bface down\b/i.test(text) &&
+    !/\bput\b[^.;]*\bonto the battlefield\b[^.;]*\bface down\b/i.test(text)
+  );
+}
+
+function isTokenCreationKeywordOnly(text: string): boolean {
+  const withoutTokenCreation = stripTokenCreationKeywordClauses(text);
+  if (withoutTokenCreation === text) {
+    return false;
+  }
+  return firstMatch(withoutTokenCreation, L6_PROBES) === undefined;
+}
+
+function stripTokenCreationKeywordClauses(text: string): string {
+  return normalize(
+    text.replace(/\bcreate(?:s|d)?\b[^.;]*\btokens?\b[^.;]*\bwith\b[^.;]*/gi, ' '),
+  );
 }
 
 function isQuotedOrReminderOnlyPowerToughness(text: string): boolean {

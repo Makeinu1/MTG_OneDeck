@@ -7,10 +7,10 @@
 - promptHash: a2248e4d314998d8a1d40959ea052cca10a12ea9ea9145e02c9fbc4b71a85e4a
 - sampleSize: 192
 - comparedCount: 192
-- discrepancyRate: 8.33%
+- discrepancyRate: 7.29%
 - unverifiableRate: 0.00%
-- discrepancies: 16
-- attributionDistribution: substrate=0, compiler=2, oracle=9, ambiguous=5, null=0
+- discrepancies: 14
+- attributionDistribution: substrate=0, compiler=0, oracle=9, ambiguous=5, null=0
 - unresolvedGold: none
 
 ## Per Layer Confusion
@@ -18,12 +18,12 @@
 | layer | classifierOnly | oracleOnly | agreeBoth |
 |---|---:|---:|---:|
 | L1a | 0 | 2 | 10 |
-| L1b | 1 | 0 | 0 |
+| L1b | 0 | 0 | 0 |
 | L2 | 0 | 0 | 3 |
 | L3 | 0 | 0 | 0 |
 | L4 | 0 | 0 | 28 |
 | L5 | 0 | 0 | 4 |
-| L6 | 1 | 2 | 99 |
+| L6 | 0 | 2 | 99 |
 | L7a | 0 | 8 | 4 |
 | L7b | 1 | 0 | 6 |
 | L7c | 0 | 3 | 88 |
@@ -52,8 +52,6 @@
 | +L7a | 7 | Faeburrow Elder; Banner of Kinship; Storm-Kiln Artist; Shared Animosity; All That Glitters |
 | +L7c | 3 | The Ozolith; Spymaster's Vault; Rhythm of the Wild |
 | +L1a | 2 | Helm of the Host; Caretaker's Talent |
-| -L1b | 1 | Necropotence |
-| -L6 | 1 | Bitterblossom |
 | +L6 | 1 | Ragavan, Nimble Pilferer |
 | +L6,+L7a,-L7b | 1 | Destiny Spinner |
 
@@ -62,7 +60,7 @@
 | attribution | count |
 |---|---:|
 | substrate | 0 |
-| compiler | 2 |
+| compiler | 0 |
 | oracle | 9 |
 | ambiguous | 5 |
 | null | 0 |
@@ -71,8 +69,6 @@
 
 | delta | oracleId | name | classifierOnly | oracleOnly | uncertain | attribution |
 |---|---|---|---|---|---:|---|
-| -L1b | 94a844d2-0574-45a7-b347-e0e329767c42 | Necropotence | L1b | (none) | no | compiler |
-| -L6 | fb868840-09fa-49b1-85cb-b08ad065e972 | Bitterblossom | L6 | (none) | no | compiler |
 | +L1a | 83b43aba-bf9c-4da2-967d-9daa632e97d2 | Helm of the Host | (none) | L1a | no | ambiguous |
 | +L1a | c97957a2-8310-4cff-8aad-871b7901d124 | Caretaker's Talent | (none) | L1a | no | ambiguous |
 | +L6 | 37108cd4-bbab-4ce3-9ed6-f60e8422e703 | Ragavan, Nimble Pilferer | (none) | L6 | no | oracle |

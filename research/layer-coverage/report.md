@@ -4,42 +4,42 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Summary
 
-- Generated at: 2026-06-23T04:09:42.518Z
+- Generated at: 2026-06-23T05:04:32.813Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- classified continuous lines: 7418
+- classified continuous lines: 7343
 - cdaCardCount: 128
-- multiLayer cards: 1684
-- adjudication candidates: 914
-- churn: 376/17491 changed (2.15%), baselineCards=17491, byLayer=L1a +51, L2 -91, L4 -113, L6 -4, L7c -109
+- multiLayer cards: 1675
+- adjudication candidates: 944
+- churn: 70/17491 changed (0.40%), baselineCards=17491, byLayer=L1b -57, L6 -13
 - mapping failures: 0
 
 ## Per Layer
 
 | layer | card count | line count | effect line rate | examples |
 |---|---:|---:|---:|---|
-| L1a | 112 | 113 | 1.52% | Phyrexian Metamorph (rank 305); Shifting Woodland (rank 365); Spark Double (rank 407); Cursed Mirror (rank 444); Thespian's Stage (rank 558) |
-| L1b | 62 | 64 | 0.86% | Necropotence (rank 503); Beseech the Mirror (rank 894); Ugin, the Ineffable (rank 1025); Praetor's Grasp (rank 1617); Hoarding Broodlord (rank 1668) |
-| L2 | 193 | 199 | 2.68% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Homeward Path (rank 1178); Alexios, Deimos of Kosmos (rank 1254); Coveted Jewel (rank 1293) |
+| L1a | 112 | 113 | 1.54% | Phyrexian Metamorph (rank 305); Shifting Woodland (rank 365); Spark Double (rank 407); Cursed Mirror (rank 444); Thespian's Stage (rank 558) |
+| L1b | 5 | 5 | 0.07% | Unable to Scream (rank 4030); Cybership (rank 5734); Illithid Harvester // Plant Tadpoles (rank 6716); The Cyber-Controller (rank 8006); Magar of the Magic Strings (rank 11059) |
+| L2 | 193 | 199 | 2.71% | Wishclaw Talisman (rank 510); Hellkite Tyrant (rank 784); Homeward Path (rank 1178); Alexios, Deimos of Kosmos (rank 1254); Coveted Jewel (rank 1293) |
 | L3 | 4 | 4 | 0.05% | New Blood (rank 4248); Mind Bend (rank 15607); Crystal Spray (rank 19990); Magical Hack (rank 21754) |
-| L4 | 532 | 549 | 7.40% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
-| L5 | 64 | 69 | 0.93% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
-| L6 | 2917 | 3035 | 40.91% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
-| L7a | 124 | 124 | 1.67% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
-| L7b | 269 | 282 | 3.80% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Destiny Spinner (rank 911); Mirror Entity (rank 933); Cyberdrive Awakener (rank 1090) |
-| L7c | 4282 | 4577 | 61.70% | Skullclamp (rank 41); Toxic Deluge (rank 67); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188); Storm-Kiln Artist (rank 209) |
-| L7d | 10 | 10 | 0.13% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
+| L4 | 532 | 549 | 7.48% | Urborg, Tomb of Yawgmoth (rank 72); Yavimaya, Cradle of Growth (rank 75); Roaming Throne (rank 133); Dryad of the Ilysian Grove (rank 291); Phyrexian Metamorph (rank 305) |
+| L5 | 64 | 69 | 0.94% | Kenrith's Transformation (rank 690); Imprisoned in the Moon (rank 750); Amphibian Downpour (rank 1215); Leyline of the Guildpact (rank 1705); Song of the Dryads (rank 1794) |
+| L6 | 2904 | 3018 | 41.10% | Swiftfoot Boots (rank 12); Lightning Greaves (rank 13); Heroic Intervention (rank 31); Chromatic Lantern (rank 81); The One Ring (rank 89) |
+| L7a | 124 | 124 | 1.69% | Psychosis Crawler (rank 447); Adeline, Resplendent Cathar (rank 507); Ashaya, Soul of the Wild (rank 811); Lumra, Bellow of the Woods (rank 1190); Cultivator Colossus (rank 1568) |
+| L7b | 269 | 282 | 3.84% | Darksteel Mutation (rank 576); Kenrith's Transformation (rank 690); Destiny Spinner (rank 911); Mirror Entity (rank 933); Cyberdrive Awakener (rank 1090) |
+| L7c | 4282 | 4577 | 62.33% | Skullclamp (rank 41); Toxic Deluge (rank 67); Return of the Wildspeaker (rank 175); Hardened Scales (rank 188); Storm-Kiln Artist (rank 209) |
+| L7d | 10 | 10 | 0.14% | Reverse the Polarity (rank 4938); Twisted Image (rank 7183); Inversion Behemoth (rank 10035); Aquamoeba (rank 16072); Merfolk Thaumaturgist (rank 19410) |
 
 ## Coverage Curve
 
 | K | layer count | covered card count | covered card rate |
 |---:|---:|---:|---:|
 | 1 | 1 | 4282 | 24.48% |
-| 3 | 3 | 6291 | 35.97% |
-| 5 | 5 | 6429 | 36.76% |
-| 7 | 7 | 6582 | 37.63% |
-| all | 11 | 6658 | 38.07% |
+| 3 | 3 | 6278 | 35.89% |
+| 5 | 5 | 6416 | 36.68% |
+| 7 | 7 | 6569 | 37.56% |
+| all | 11 | 6597 | 37.72% |
 
 ## Examples
 
@@ -63,21 +63,11 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ### L1b
 
-- rank 503 《Necropotence》: face down
-- rank 894 《Beseech the Mirror》: face down, then shuffle
-- rank 1025 《Ugin, the Ineffable》: face down and look at it
-- rank 1617 《Praetor's Grasp》: face down
-- rank 1668 《Hoarding Broodlord》: face down, then shuffle
-- rank 1950 《Gonti, Lord of Luxury》: face down, then put the rest on the bottom of that library in a random order
-- rank 2482 《Rev, Tithe Extractor》: face down
-- rank 2684 《Gonti, Night Minister》: face down
-- rank 3028 《Yedora, Grave Gardener》: face down under its owner's control
-- rank 3106 《Thief of Sanity》: face down, then put the rest into their graveyard
-- rank 3149 《Decadent Dragon // Expensive Taste》: face down
-- rank 3728 《Vivien, Champion of the Wilds》: face down and put the rest on the bottom of your library in any order
-- rank 4030 《Unable to Scream》: face down, it can't be turned face up
-- rank 4186 《Siphon Insight》: face down and put the other on the bottom of that library
-- rank 4612 《Outrageous Robbery》: face down
+- rank 4030 《Unable to Scream》: is face down, it can't be turned face up
+- rank 5734 《Cybership》: put the top two cards of that player's library onto the battlefield face down under your control
+- rank 6716 《Illithid Harvester // Plant Tadpoles》: enters, turn any number of target tapped nontoken creatures face down
+- rank 8006 《The Cyber-Controller》: Put all creature cards milled this way onto the battlefield face down under your control
+- rank 11059 《Magar of the Magic Strings》: put it onto the battlefield face down
 
 ### L2
 

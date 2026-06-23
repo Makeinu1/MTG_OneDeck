@@ -5,7 +5,7 @@
     "L1a": {
       "cardCount": 112,
       "lineCount": 113,
-      "effectLineRate": 0.015233216500404422,
+      "effectLineRate": 0.015388805665259431,
       "examples": [
         {
           "name": "Phyrexian Metamorph",
@@ -85,91 +85,41 @@
       ]
     },
     "L1b": {
-      "cardCount": 62,
-      "lineCount": 64,
-      "effectLineRate": 0.00862766244270693,
+      "cardCount": 5,
+      "lineCount": 5,
+      "effectLineRate": 0.0006809206046574969,
       "examples": [
-        {
-          "name": "Necropotence",
-          "edhrecRank": 503,
-          "matchedText": "face down"
-        },
-        {
-          "name": "Beseech the Mirror",
-          "edhrecRank": 894,
-          "matchedText": "face down, then shuffle"
-        },
-        {
-          "name": "Ugin, the Ineffable",
-          "edhrecRank": 1025,
-          "matchedText": "face down and look at it"
-        },
-        {
-          "name": "Praetor's Grasp",
-          "edhrecRank": 1617,
-          "matchedText": "face down"
-        },
-        {
-          "name": "Hoarding Broodlord",
-          "edhrecRank": 1668,
-          "matchedText": "face down, then shuffle"
-        },
-        {
-          "name": "Gonti, Lord of Luxury",
-          "edhrecRank": 1950,
-          "matchedText": "face down, then put the rest on the bottom of that library in a random order"
-        },
-        {
-          "name": "Rev, Tithe Extractor",
-          "edhrecRank": 2482,
-          "matchedText": "face down"
-        },
-        {
-          "name": "Gonti, Night Minister",
-          "edhrecRank": 2684,
-          "matchedText": "face down"
-        },
-        {
-          "name": "Yedora, Grave Gardener",
-          "edhrecRank": 3028,
-          "matchedText": "face down under its owner's control"
-        },
-        {
-          "name": "Thief of Sanity",
-          "edhrecRank": 3106,
-          "matchedText": "face down, then put the rest into their graveyard"
-        },
-        {
-          "name": "Decadent Dragon // Expensive Taste",
-          "edhrecRank": 3149,
-          "matchedText": "face down"
-        },
-        {
-          "name": "Vivien, Champion of the Wilds",
-          "edhrecRank": 3728,
-          "matchedText": "face down and put the rest on the bottom of your library in any order"
-        },
         {
           "name": "Unable to Scream",
           "edhrecRank": 4030,
-          "matchedText": "face down, it can't be turned face up"
+          "matchedText": "is face down, it can't be turned face up"
         },
         {
-          "name": "Siphon Insight",
-          "edhrecRank": 4186,
-          "matchedText": "face down and put the other on the bottom of that library"
+          "name": "Cybership",
+          "edhrecRank": 5734,
+          "matchedText": "put the top two cards of that player's library onto the battlefield face down under your control"
         },
         {
-          "name": "Outrageous Robbery",
-          "edhrecRank": 4612,
-          "matchedText": "face down"
+          "name": "Illithid Harvester // Plant Tadpoles",
+          "edhrecRank": 6716,
+          "matchedText": "enters, turn any number of target tapped nontoken creatures face down"
+        },
+        {
+          "name": "The Cyber-Controller",
+          "edhrecRank": 8006,
+          "matchedText": "Put all creature cards milled this way onto the battlefield face down under your control"
+        },
+        {
+          "name": "Magar of the Magic Strings",
+          "edhrecRank": 11059,
+          "matchedText": "put it onto the battlefield face down"
         }
       ]
     },
     "L2": {
       "cardCount": 193,
       "lineCount": 199,
-      "effectLineRate": 0.026826637907791856,
+      "effectLineRate": 0.02710064006536838,
       "examples": [
         {
           "name": "Wishclaw Talisman",
@@ -251,7 +201,7 @@
     "L3": {
       "cardCount": 4,
       "lineCount": 4,
-      "effectLineRate": 0.0005392289026691831,
+      "effectLineRate": 0.0005447364837259975,
       "examples": [
         {
           "name": "New Blood",
@@ -278,7 +228,7 @@
     "L4": {
       "cardCount": 532,
       "lineCount": 549,
-      "effectLineRate": 0.07400916689134537,
+      "effectLineRate": 0.07476508239139316,
       "examples": [
         {
           "name": "Urborg, Tomb of Yawgmoth",
@@ -360,7 +310,7 @@
     "L5": {
       "cardCount": 64,
       "lineCount": 69,
-      "effectLineRate": 0.009301698571043408,
+      "effectLineRate": 0.009396704344273457,
       "examples": [
         {
           "name": "Kenrith's Transformation",
@@ -440,9 +390,9 @@
       ]
     },
     "L6": {
-      "cardCount": 2917,
-      "lineCount": 3035,
-      "effectLineRate": 0.40913992990024267,
+      "cardCount": 2904,
+      "lineCount": 3018,
+      "effectLineRate": 0.41100367697126516,
       "examples": [
         {
           "name": "Swiftfoot Boots",
@@ -524,7 +474,7 @@
     "L7a": {
       "cardCount": 124,
       "lineCount": 124,
-      "effectLineRate": 0.016716095982744674,
+      "effectLineRate": 0.016886830995505923,
       "examples": [
         {
           "name": "Psychosis Crawler",
@@ -606,7 +556,7 @@
     "L7b": {
       "cardCount": 269,
       "lineCount": 282,
-      "effectLineRate": 0.038015637638177405,
+      "effectLineRate": 0.03840392210268283,
       "examples": [
         {
           "name": "Darksteel Mutation",
@@ -688,7 +638,7 @@
     "L7c": {
       "cardCount": 4282,
       "lineCount": 4577,
-      "effectLineRate": 0.6170126718792127,
+      "effectLineRate": 0.6233147215034727,
       "examples": [
         {
           "name": "Skullclamp",
@@ -770,7 +720,7 @@
     "L7d": {
       "cardCount": 10,
       "lineCount": 10,
-      "effectLineRate": 0.0013480722566729577,
+      "effectLineRate": 0.0013618412093149939,
       "examples": [
         {
           "name": "Reverse the Polarity",
@@ -1501,13 +1451,6 @@
       ]
     },
     {
-      "name": "Hoarding Broodlord",
-      "layers": [
-        "L1b",
-        "L6"
-      ]
-    },
-    {
       "name": "Kaldra Compleat",
       "layers": [
         "L6",
@@ -1971,13 +1914,6 @@
       ]
     },
     {
-      "name": "Rev, Tithe Extractor",
-      "layers": [
-        "L1b",
-        "L6"
-      ]
-    },
-    {
       "name": "Silkguard",
       "layers": [
         "L6",
@@ -2276,13 +2212,6 @@
         "L2",
         "L6",
         "L7b"
-      ]
-    },
-    {
-      "name": "Yedora, Grave Gardener",
-      "layers": [
-        "L1b",
-        "L4"
       ]
     },
     {
@@ -2699,13 +2628,6 @@
       "layers": [
         "L6",
         "L7c"
-      ]
-    },
-    {
-      "name": "Vivien, Champion of the Wilds",
-      "layers": [
-        "L1b",
-        "L6"
       ]
     },
     {
@@ -3355,13 +3277,6 @@
       ]
     },
     {
-      "name": "Arvinox, the Mind Flail",
-      "layers": [
-        "L1b",
-        "L4"
-      ]
-    },
-    {
       "name": "Thraben Watcher",
       "layers": [
         "L6",
@@ -3695,13 +3610,6 @@
       "layers": [
         "L6",
         "L7c"
-      ]
-    },
-    {
-      "name": "Rogue Class",
-      "layers": [
-        "L1b",
-        "L6"
       ]
     },
     {
@@ -7135,13 +7043,6 @@
       ]
     },
     {
-      "name": "Yarus, Roar of the Old Gods",
-      "layers": [
-        "L1b",
-        "L6"
-      ]
-    },
-    {
       "name": "Lotus Ring",
       "layers": [
         "L6",
@@ -7711,13 +7612,6 @@
       "name": "Full Steam Ahead",
       "layers": [
         "L6",
-        "L7c"
-      ]
-    },
-    {
-      "name": "Flamewar, Brash Veteran // Flamewar, Streetwise Operative",
-      "layers": [
-        "L1b",
         "L7c"
       ]
     },
@@ -12217,13 +12111,6 @@
       ]
     },
     {
-      "name": "Klaw, Master of Sound",
-      "layers": [
-        "L1b",
-        "L6"
-      ]
-    },
-    {
       "name": "Hawkeye's Bow",
       "layers": [
         "L6",
@@ -13114,6 +13001,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Praetor's Grasp",
+      "line": "Search target opponent's library for a card and exile it face down. Then that player shuffles. You may play that card for as long as it remains exiled.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Savage Ventmaw",
       "line": "Whenever this creature attacks, add {R}{R}{R}{G}{G}{G}. Until end of turn, you don't lose this mana as steps and phases end.",
       "reason": "continuous-looking line without layer tag"
@@ -13141,6 +13033,11 @@
     {
       "name": "Molten Duplication",
       "line": "Create a token that's a copy of target artifact or creature you control, except it's an artifact in addition to its other types. It gains haste until end of turn. Sacrifice it at the beginning of the next end step.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Hoarding Broodlord",
+      "line": "When this creature enters, search your library for a card, exile it face down, then shuffle. For as long as that card remains exiled, you may play it.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13229,6 +13126,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Gonti, Lord of Luxury",
+      "line": "When Gonti enters, look at the top four cards of target opponent's library, exile one of them face down, then put the rest on the bottom of that library in a random order. You may cast that card for as long as it remains exiled, and mana of any type can be spent to cast that spell.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Arixmethes, Slumbering Isle",
       "line": "As long as Arixmethes has a slumber counter on it, it's a land.",
       "reason": "continuous-looking line without layer tag"
@@ -13271,6 +13173,11 @@
     {
       "name": "Court of Garenbrig",
       "line": "When this enchantment enters, you become the monarch.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Song of Totentanz",
+      "line": "Create X 1/1 black Rat creature tokens with Creatures you control gain haste until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13409,6 +13316,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Rev, Tithe Extractor",
+      "line": "Whenever one or more creatures you control deal combat damage to a player, create a Treasure token, then look at the top card of that player's library and exile it face down. You may cast that card for as long as it remains exiled.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "The Last Agni Kai",
       "line": "Target creature you control fights target creature an opponent controls. If the creature the opponent controls is dealt excess damage this way, add that much {R}.",
       "reason": "continuous-looking line without layer tag"
@@ -13506,6 +13418,11 @@
     {
       "name": "Multiversal Passage",
       "line": "This land is the chosen type.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Gonti, Night Minister",
+      "line": "Whenever a creature deals combat damage to one of your opponents, its controller looks at the top card of that opponent's library and exiles it face down. They may play that card for as long as it remains exiled. Mana of any type can be spent to cast a spell this way.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13624,6 +13541,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Thief of Sanity",
+      "line": "Whenever this creature deals combat damage to a player, look at the top three cards of that player's library, exile one of them face down, then put the rest into their graveyard. You may cast that card for as long as it remains exiled, and mana of any type can be spent to cast that spell.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Jin-Gitaxias // The Great Synthesis",
       "line": "I — Draw cards equal to the number of cards in your hand. You have no maximum hand size for as long as you control this Saga.",
       "reason": "continuous-looking line without layer tag"
@@ -13631,6 +13553,11 @@
     {
       "name": "Library of Leng",
       "line": "You have no maximum hand size.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Decadent Dragon // Expensive Taste",
+      "line": "Exile the top two cards of target opponent's library face down. You may look at and play those cards for as long as they remain exiled.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -13809,6 +13736,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Vivien, Champion of the Wilds",
+      "line": "−2: Look at the top three cards of your library. Exile one face down and put the rest on the bottom of your library in any order. For as long as it remains exiled, you may cast it if it's a creature spell.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Leyline of Transformation",
       "line": "If this card is in your opening hand, you may begin the game with it on the battlefield.",
       "reason": "continuous-looking line without layer tag"
@@ -13959,6 +13891,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Siphon Insight",
+      "line": "Look at the top two cards of target opponent's library. Exile one of them face down and put the other on the bottom of that library. You may play the exiled card for as long as it remains exiled, and you may spend mana as though it were mana of any color to cast that spell.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Collective Inferno",
       "line": "Double all damage that sources you control of the chosen type would deal.",
       "reason": "continuous-looking line without layer tag"
@@ -14084,6 +14021,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Outrageous Robbery",
+      "line": "Target opponent exiles the top X cards of their library face down. You may look at and play those cards for as long as they remain exiled. If you cast a spell this way, you may spend mana as though it were mana of any type to cast it.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Throne of the High City",
       "line": "{4}, {T}, Sacrifice this land: You become the monarch.",
       "reason": "continuous-looking line without layer tag"
@@ -14109,8 +14051,18 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Arvinox, the Mind Flail",
+      "line": "At the beginning of your end step, exile the bottom card of each opponent's library face down. For as long as those cards remain exiled, you may look at them, you may cast permanent spells from among them, and you may spend mana as though it were mana of any color to cast those spells.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Fblthp, Lost on the Range",
       "line": "The top card of your library has plot. The plot cost is equal to its mana cost.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Cyber Conversion",
+      "line": "Turn target creature face down. It's a 2/2 Cyberman artifact creature.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14161,6 +14113,11 @@
     {
       "name": "Tannuk, Steadfast Second",
       "line": "Artifact cards and red creature cards in your hand have warp {2}{R}.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Edward Kenway",
+      "line": "Whenever a Vehicle you control deals combat damage to a player, look at the top card of that player's library, then exile it face down. You may play that card for as long as it remains exiled.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14261,6 +14218,11 @@
     {
       "name": "Verge Rangers",
       "line": "As long as an opponent controls more lands than you, you may play lands from the top of your library.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Rogue Class",
+      "line": "Whenever a creature you control deals combat damage to a player, exile the top card of that player's library face down. You may look at it for as long as it remains exiled.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14379,6 +14341,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Ixhel, Scion of Atraxa",
+      "line": "Corrupted — At the beginning of your end step, each opponent who has three or more poison counters exiles the top card of their library face down. You may look at and play those cards for as long as they remain exiled, and you may spend mana as though it were mana of any color to cast those spells.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Everlasting Torment",
       "line": "All damage is dealt as though its source had wither.",
       "reason": "continuous-looking line without layer tag"
@@ -14411,6 +14378,11 @@
     {
       "name": "Toph, Greatest Earthbender",
       "line": "When Toph enters, earthbend X, where X is the amount of mana spent to cast her.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Blightwing Bandit",
+      "line": "Whenever you cast your first spell during each opponent's turn, look at the top card of that player's library, then exile it face down. You may play that card for as long as it remains exiled, and mana of any type can be spent to cast it.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14496,6 +14468,11 @@
     {
       "name": "Hot Pursuit",
       "line": "When this enchantment enters, suspect target creature an opponent controls. As long as this enchantment remains on the battlefield, that creature is also goaded.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Dream-Thief's Bandana",
+      "line": "Whenever equipped creature deals combat damage to a player, look at the top card of their library, then exile it face down. For as long as it remains exiled, you may play it, and mana of any type can be spent to cast that spell.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14706,6 +14683,11 @@
     {
       "name": "Mausoleum Wanderer",
       "line": "Sacrifice this creature: Counter target instant or sorcery spell unless its controller pays {X}, where X is this creature's power.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Burn Down the House",
+      "line": "Choose one — • Burn Down the House deals 5 damage to each creature and each planeswalker. • Create three 1/1 red Devil creature tokens with They gain haste until end of turn.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -14979,6 +14961,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Black Cat, Cunning Thief",
+      "line": "When Black Cat enters, look at the top nine cards of target opponent's library, exile two of them face down, then put the rest on the bottom of their library in a random order. You may play the exiled cards for as long as they remain exiled. Mana of any type can be spent to cast spells this way.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Serra Avatar",
       "line": "When Serra Avatar is put into a graveyard from anywhere, shuffle it into its owner's library.",
       "reason": "continuous-looking line without layer tag"
@@ -15036,6 +15023,11 @@
     {
       "name": "Temur War Shaman",
       "line": "Whenever a permanent you control is turned face up, if it's a creature, you may have it fight target creature you don't control.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Gonti, Canny Acquisitor",
+      "line": "Whenever one or more creatures you control deal combat damage to a player, look at the top card of that player's library, then exile it face down. You may play that card for as long as it remains exiled, and mana of any type can be spent to cast that spell.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15444,6 +15436,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Petty Larceny",
+      "line": "Look at the top two cards of target opponent's library and exile those cards face down. You may play those cards for as long as they remain exiled, and mana of any type can be spent to cast them. Create a Treasure token.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Gwen Stacy // Ghost-Spider",
       "line": "When Gwen Stacy enters, exile the top card of your library. You may play that card for as long as you control this creature.",
       "reason": "continuous-looking line without layer tag"
@@ -15659,6 +15656,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Apple of Eden, Isu Relic",
+      "line": "{T}, Pay 4 life, Sacrifice Apple of Eden: Look at target opponent's hand and exile those cards face down. You may play those cards this turn, and mana of any type can be spent to cast them. Until end of turn, whenever you play a land or cast a spell this way, its owner draws a card. At the beginning of the next end step, return the exiled cards to their owner's hand. Activate only as a sorcery.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Aphelia, Viper Whisperer",
       "line": "{4}{B}: Until end of turn, whenever one or more Gorgons and/or Snakes you control deal combat damage to a player, that player loses half their life, rounded up.",
       "reason": "continuous-looking line without layer tag"
@@ -15696,6 +15698,16 @@
     {
       "name": "Prowl, Stoic Strategist // Prowl, Pursuit Vehicle",
       "line": "Whenever Prowl attacks, exile up to one other target tapped creature or Vehicle. For as long as that card remains exiled, its owner may play it.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Obscuring Aether",
+      "line": "{1}{G}: Turn this enchantment face down.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Intet, the Dreamer",
+      "line": "Whenever Intet deals combat damage to a player, you may pay {2}{U}. If you do, exile the top card of your library face down. You may look at that card for as long as it remains exiled. You may play that card without paying its mana cost for as long as Intet remains on the battlefield.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -15786,6 +15798,16 @@
     {
       "name": "Naktamun Lorespinner // Wheel of Fortune",
       "line": "At the beginning of your upkeep, if a player has one or fewer cards in hand, this creature becomes prepared.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Jacob Hauken, Inspector // Hauken's Insight",
+      "line": "{T}: Draw a card, then exile a card from your hand face down. You may look at that card for as long as it remains exiled. You may pay {4}{U}{U}. If you do, transform Jacob Hauken.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Jacob Hauken, Inspector // Hauken's Insight",
+      "line": "At the beginning of your upkeep, exile the top card of your library face down. You may look at that card for as long as it remains exiled.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17169,6 +17191,11 @@
       "reason": "continuous-looking line without layer tag"
     },
     {
+      "name": "Extract Power",
+      "line": "Look at the top card of each player's library, then exile those cards face down. You may play them without paying their mana costs for as long as they remain exiled.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
       "name": "Reed Richards, Smartest Man",
       "line": "You have no maximum hand size.",
       "reason": "continuous-looking line without layer tag"
@@ -17196,6 +17223,11 @@
     {
       "name": "Illusion // Reality",
       "line": "Target spell or permanent becomes the color of your choice until end of turn.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Klaw, Master of Sound",
+      "line": "Whenever Klaw deals combat damage to a player, look at the top card of that player's library, then exile it face down. You may play it for as long as it remains exiled. Mana of any type can be spent to cast a spell this way.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -17331,6 +17363,11 @@
     {
       "name": "Animate Object",
       "line": "You get seven {TK}. Choose an inanimate object you own from outside the game. Put a power and toughness sticker on it. You may also put a name sticker, an art sticker, and/or an ability sticker on it. Put it onto the battlefield as a creature token.",
+      "reason": "continuous-looking line without layer tag"
+    },
+    {
+      "name": "Agent of Acquisitions",
+      "line": "Instead of drafting a card from a booster pack, you may draft each card in that booster pack, one at a time. If you do, turn this card face down and you can't draft cards for the rest of this draft round.",
       "reason": "continuous-looking line without layer tag"
     },
     {
@@ -18864,9 +18901,7 @@
     {
       "oracleId": "19047c4b-0106-455d-ab71-68cabfae7404",
       "name": "Agent of Acquisitions",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -20717,9 +20752,7 @@
     {
       "oracleId": "aa95501f-bb59-494a-bcae-b74ca10ad57e",
       "name": "Angelic Accord",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -21540,9 +21573,7 @@
     {
       "oracleId": "7849426d-895d-4dfe-a94d-b8df634618a5",
       "name": "Apple of Eden, Isu Relic",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -22987,7 +23018,6 @@
       "oracleId": "9abecd23-a2d9-43c7-8d01-f8afdc53026e",
       "name": "Arvinox, the Mind Flail",
       "layers": [
-        "L1b",
         "L4"
       ],
       "cda": false
@@ -23119,9 +23149,7 @@
     {
       "oracleId": "fb2d7c3d-b68f-410e-9a73-cfcbfe702ade",
       "name": "Ashcloud Phoenix",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -23263,9 +23291,7 @@
     {
       "oracleId": "1e4032f6-9741-4845-9325-781c9e489172",
       "name": "Asmodeus the Archfiend",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -26016,9 +26042,7 @@
     {
       "oracleId": "f20f6da9-d678-486b-99f9-7121669fef81",
       "name": "Bat Whisperer",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -26733,9 +26757,7 @@
     {
       "oracleId": "cbbe535b-12d6-4e6c-8b26-9220f06a1604",
       "name": "Beseech the Mirror",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -27311,17 +27333,13 @@
     {
       "oracleId": "5effb651-f9e0-4c14-8192-bd0e132b8d5d",
       "name": "Bitterbloom Bearer",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
       "oracleId": "fb868840-09fa-49b1-85cb-b08ad065e972",
       "name": "Bitterblossom",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -27401,9 +27419,7 @@
     {
       "oracleId": "f5cdb413-2b72-4dc6-b93d-2532ac2ae568",
       "name": "Black Cat, Cunning Thief",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -28088,9 +28104,7 @@
     {
       "oracleId": "770894c0-01e7-4c1e-bcfb-989eee221dd2",
       "name": "Blightwing Bandit",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -29782,9 +29796,7 @@
     {
       "oracleId": "1fd5e5e7-f23d-4891-86c4-268195ea09fc",
       "name": "Bottled Cloister",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -31412,9 +31424,7 @@
     {
       "oracleId": "0ec54683-a65c-461d-862e-585b6499d6a5",
       "name": "Burn Down the House",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -37218,9 +37228,7 @@
     {
       "oracleId": "a29e2c70-8909-465b-9cec-1a7037250313",
       "name": "Connecting the Dots",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -39926,9 +39934,7 @@
     {
       "oracleId": "33761c1a-9848-45bf-b934-123cebab566b",
       "name": "Cyber Conversion",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -41426,9 +41432,7 @@
     {
       "oracleId": "f2bf5014-677a-4880-b926-d93457348bdc",
       "name": "Death in Heaven",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -41466,9 +41470,7 @@
     {
       "oracleId": "a7d4f5aa-26d4-4363-aa5a-a26d6f791b82",
       "name": "Deathmist Raptor",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -41596,9 +41598,7 @@
     {
       "oracleId": "5df44b8d-b337-49d8-8427-34253f52cb47",
       "name": "Decadent Dragon // Expensive Taste",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -43619,9 +43619,7 @@
     {
       "oracleId": "1c2a3f13-6bcb-42ad-98f6-642151ad54f1",
       "name": "Discover the Impossible",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -44544,9 +44542,7 @@
     {
       "oracleId": "ad0db433-a406-4ef0-8ffa-416af610c4e7",
       "name": "Doomsday Excruciator",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -45614,9 +45610,7 @@
     {
       "oracleId": "3c958b5f-680b-45fc-8c3d-27b23677436e",
       "name": "Dream-Thief's Bandana",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -47201,9 +47195,7 @@
     {
       "oracleId": "b2fe6d17-d045-45c6-9ca2-21e73d2e38d2",
       "name": "Edward Kenway",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -50612,9 +50604,7 @@
     {
       "oracleId": "cf9129a3-25fe-4787-b41c-0b6968ba5aee",
       "name": "Expert-Level Safe",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -50849,9 +50839,7 @@
     {
       "oracleId": "5c30a92b-2e88-4e66-b0a5-fa05304136e7",
       "name": "Extract Power",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -52804,9 +52792,7 @@
     {
       "oracleId": "f319b671-0388-48e8-ba98-04161a3e7f1a",
       "name": "Feywild Caretaker",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -53966,7 +53952,6 @@
       "oracleId": "cf812f1e-f48a-4375-8d2c-f6e3cb82e067",
       "name": "Flamewar, Brash Veteran // Flamewar, Streetwise Operative",
       "layers": [
-        "L1b",
         "L7c"
       ],
       "cda": false
@@ -60268,25 +60253,19 @@
     {
       "oracleId": "7923ef4a-b1be-4f6a-b17b-4eab101390de",
       "name": "Gonti, Canny Acquisitor",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
       "oracleId": "d5be0ff6-39d9-4f9f-a028-e62dc38463f2",
       "name": "Gonti, Lord of Luxury",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
       "oracleId": "e16f79c1-ffbb-4893-b62a-d4e9d15e2b16",
       "name": "Gonti, Night Minister",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -61186,9 +61165,7 @@
     {
       "oracleId": "0868ebbb-2fe9-4f53-9697-acad8cda5ec1",
       "name": "Greed's Gambit",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -61387,9 +61364,7 @@
     {
       "oracleId": "7cab62dc-a256-4da8-a3ea-b3903ec37077",
       "name": "Griffin Aerie",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -63635,9 +63610,7 @@
     {
       "oracleId": "f5420901-b5e6-4d54-b3e8-5f45e37f1fab",
       "name": "Headliner Scarlett",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -65283,7 +65256,6 @@
       "oracleId": "18e856b5-aab7-4802-8cec-1d44dd95d9f7",
       "name": "Hoarding Broodlord",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -68805,9 +68777,7 @@
     {
       "oracleId": "9518ffbc-bb3d-4f48-a900-f5bad8302a87",
       "name": "Intet, the Dreamer",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -70155,9 +70125,7 @@
     {
       "oracleId": "9fb7982f-fe35-4dea-a515-a0039ddbbaec",
       "name": "Ixhel, Scion of Atraxa",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -70367,9 +70335,7 @@
     {
       "oracleId": "16d2a56a-7181-4ef3-866b-10dd8615d9e9",
       "name": "Jacob Hauken, Inspector // Hauken's Insight",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -72564,9 +72530,7 @@
     {
       "oracleId": "8110f15d-82db-4299-a959-09c22475daec",
       "name": "Kayla's Music Box",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -73703,7 +73667,6 @@
       "oracleId": "8eaa8833-ab9e-4bd8-92de-63e195b8d912",
       "name": "Klaw, Master of Sound",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -77213,9 +77176,7 @@
     {
       "oracleId": "0f2e3e2e-9857-4be5-9bf0-62da1cc147fc",
       "name": "Lobelia, Defender of Bag End",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -78251,9 +78212,7 @@
     {
       "oracleId": "cb68d1e4-36aa-4a00-b671-8959e7d526d4",
       "name": "Lunar Convocation",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -81038,9 +80997,7 @@
     {
       "oracleId": "4f37171c-a435-4de0-86c8-3d721d276816",
       "name": "Memory Test",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -83008,9 +82965,7 @@
     {
       "oracleId": "905610cd-1461-4f5a-b9c8-19b193b9d513",
       "name": "Missy",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -86264,9 +86219,7 @@
     {
       "oracleId": "94a844d2-0574-45a7-b347-e0e329767c42",
       "name": "Necropotence",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -88300,9 +88253,7 @@
     {
       "oracleId": "300fd0a2-23e6-4da9-bfaa-ad626097d5b5",
       "name": "Oblivious Bookworm",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -88419,9 +88370,7 @@
     {
       "oracleId": "70bfb805-2009-44c8-b5bd-2ca281637566",
       "name": "Obscuring Aether",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -90367,9 +90316,7 @@
     {
       "oracleId": "5b194438-6946-45dd-8d77-c9de8c115d09",
       "name": "Outrageous Robbery",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -92183,9 +92130,7 @@
     {
       "oracleId": "5513a221-dfff-4e02-8037-dcff3d0381d7",
       "name": "Petty Larceny",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -94259,9 +94204,7 @@
     {
       "oracleId": "6d56aeb1-0a50-46b6-abdb-cd6575a98dc3",
       "name": "Praetor's Grasp",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -100292,7 +100235,6 @@
       "oracleId": "8345eb05-c04e-4c1d-9776-5ab7d91a7842",
       "name": "Rev, Tithe Extractor",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -101621,7 +101563,6 @@
       "oracleId": "76f0f39a-ce1b-4935-a6b8-5c4e1a27ab24",
       "name": "Rogue Class",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -104395,9 +104336,7 @@
     {
       "oracleId": "8c72d54e-97a6-408e-ae77-18d3c96b3bd8",
       "name": "Scarlet Witch, Chaotic Avenger",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -107201,9 +107140,7 @@
     {
       "oracleId": "e23bf5fe-e494-473e-8502-606106ee1820",
       "name": "Shared Fate",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -108151,9 +108088,7 @@
     {
       "oracleId": "e16cbcbd-b03a-404c-8d1e-0a05848181d9",
       "name": "Showstopping Surprise",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -109216,9 +109151,7 @@
     {
       "oracleId": "aee82122-d13e-4175-b499-9dde718e4da9",
       "name": "Siphon Insight",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -111285,9 +111218,7 @@
     {
       "oracleId": "5f4d0c87-7d59-41d5-9910-86765a0c144b",
       "name": "Song of Totentanz",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -112638,9 +112569,7 @@
     {
       "oracleId": "d21d7557-9702-46c1-8277-42a3442084c2",
       "name": "Spiders-Man, Heroic Horde",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -120789,9 +120718,7 @@
     {
       "oracleId": "7f32344f-06d8-4862-bfeb-f90a3e1d7fc2",
       "name": "The Creation of Avacyn",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -120911,9 +120838,7 @@
     {
       "oracleId": "c3a46eb3-38d9-4f47-9b71-26c9ea7ef1ce",
       "name": "The Dragon-Kami Reborn // Dragon-Kami's Egg",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -121198,9 +121123,7 @@
     {
       "oracleId": "02a45719-ee4a-49c4-96ec-a140cd6e1547",
       "name": "The Foretold Soldier",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -122643,9 +122566,7 @@
     {
       "oracleId": "68b51d58-7566-4a26-8c31-8da32799bea7",
       "name": "Thief of Sanity",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -125631,9 +125552,7 @@
     {
       "oracleId": "e5d4eea2-f188-4c53-a878-0f7167206408",
       "name": "Trapeze Artist",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -127385,9 +127304,7 @@
     {
       "oracleId": "18bdc181-9592-4147-81fb-7f83ce137f70",
       "name": "Ugin, the Ineffable",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -128955,9 +128872,7 @@
     {
       "oracleId": "7ca584e7-4621-4b4e-a381-a0051acbf66a",
       "name": "Urianger Augurelt",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -129416,9 +129331,7 @@
     {
       "oracleId": "18a5e71e-eb75-4ac7-bedd-2220aaa24f78",
       "name": "Valkyrie Harbinger",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -131393,7 +131306,6 @@
       "oracleId": "146eb8c8-93d5-4dd5-af7a-46d5acd4a89d",
       "name": "Vivien, Champion of the Wilds",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -132496,9 +132408,7 @@
     {
       "oracleId": "585c9671-7451-4506-8b21-0d64106c4cd7",
       "name": "Wall of Mourning",
-      "layers": [
-        "L1b"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -136251,9 +136161,7 @@
     {
       "oracleId": "18d0e6e1-3824-465d-9245-21e0174f551f",
       "name": "Xira, the Golden Sting",
-      "layers": [
-        "L6"
-      ],
+      "layers": [],
       "cda": false
     },
     {
@@ -136322,7 +136230,6 @@
       "oracleId": "30fd6171-3e57-4c05-a86b-e1c0479ba236",
       "name": "Yarus, Roar of the Old Gods",
       "layers": [
-        "L1b",
         "L6"
       ],
       "cda": false
@@ -136436,7 +136343,6 @@
       "oracleId": "1fa20b05-cc06-4fb7-ae76-677a29e2185a",
       "name": "Yedora, Grave Gardener",
       "layers": [
-        "L1b",
         "L4"
       ],
       "cda": false
@@ -137592,19 +137498,19 @@
   "churn": {
     "baselineCardCount": 17491,
     "comparedCardCount": 17491,
-    "changedCount": 376,
-    "rate": 0.021496769767308903,
+    "changedCount": 70,
+    "rate": 0.0040020582013607,
     "byLayer": {
-      "L1a": 51,
-      "L1b": 0,
-      "L2": -91,
+      "L1a": 0,
+      "L1b": -57,
+      "L2": 0,
       "L3": 0,
-      "L4": -113,
+      "L4": 0,
       "L5": 0,
-      "L6": -4,
+      "L6": -13,
       "L7a": 0,
       "L7b": 0,
-      "L7c": -109,
+      "L7c": 0,
       "L7d": 0
     }
   }
