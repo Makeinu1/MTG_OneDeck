@@ -129,12 +129,12 @@ const cases: ReadonlyArray<
     'controller',
     ['you'],
   ],
-  // ── 所有者: 「to its owner's hand」。owner≠controller の弁別 ─────────────────────
+  // ── bare permanent bounce: 「Return target permanent to its owner's hand」= battlefield 起点 + owner ─
   [
     'Boomerang',
     'Instant',
     "Return target permanent to its owner's hand.",
-    ['hand'],
+    ['battlefield', 'hand'],
     false,
     'owner',
     ['owner'],
@@ -151,13 +151,13 @@ const cases: ReadonlyArray<
   ],
   // ── バニラ: ゾーン/プレイヤー参照なし=全軸空/none ────────────────────────────────
   ['Grizzly Bears', 'Creature — Bear', '', [], false, 'none', []],
-  // ── each-player(各他プレイヤー)+ you。ゾーン語なし ───────────────────────────────
+  // ── 暗黙移動: discard(他者→hand/graveyard=cross)+ draw(you→library/hand)─────────────
   [
     'Syphon Mind',
     'Sorcery',
     'Each other player discards a card. You draw a card for each card discarded this way.',
-    [],
-    false,
+    ['graveyard', 'hand', 'library'],
+    true,
     'none',
     ['each-player', 'you'],
   ],
@@ -173,22 +173,22 @@ const cases: ReadonlyArray<
   ],
 
   // ══ iter2-a 回帰 gold(照応 cross FN / battlefield FN / owner≠controller)════════════
-  // ── 照応 cross: 「their hand」= target player の手札(直前 player 参照の照応)─────────
+  // ── 照応 cross + discard→graveyard: 「their hand」+「discards that card」 ──────────────
   [
     'Thoughtseize',
     'Sorcery',
     'Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.',
-    ['hand'],
+    ['graveyard', 'hand'],
     true,
     'none',
     ['target-player', 'you'],
   ],
-  // ── 照応 cross: 「each player ... their hand」= 各プレイヤー(相手含む)の手札 ──────────
+  // ── 照応 cross + discard(hand→graveyard)+ draw(library→hand): 各プレイヤー ─────────────
   [
     'Windfall',
     'Sorcery',
     'Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.',
-    ['hand'],
+    ['graveyard', 'hand', 'library'],
     true,
     'none',
     ['each-player'],
@@ -242,6 +242,40 @@ const cases: ReadonlyArray<
     true,
     'both',
     ['owner', 'you'],
+  ],
+
+  // ══ iter3-a 暗黙移動 gold(draw→lib+hand / discard→hand+grave / dies→bf+grave)═══════════
+  // ── draw のみ: library(source)+ hand(dest)─────────────────────────────────────────────
+  ['Divination', 'Sorcery', 'Draw two cards.', ['hand', 'library'], false, 'none', ['you']],
+  // ── draw + 自己 discard: library/hand/graveyard ───────────────────────────────────────
+  [
+    'Faithless Looting',
+    'Sorcery',
+    'Draw two cards, then discard two cards.',
+    ['graveyard', 'hand', 'library'],
+    false,
+    'none',
+    ['you'],
+  ],
+  // ── discard(他者)= cross: target player の hand→graveyard ───────────────────────────────
+  [
+    'Mind Rot',
+    'Sorcery',
+    'Target player discards two cards.',
+    ['graveyard', 'hand'],
+    true,
+    'none',
+    ['target-player'],
+  ],
+  // ── dies(battlefield→graveyard)+ token(battlefield)───────────────────────────────────
+  [
+    'Doomed Traveler',
+    'Creature — Human Soldier',
+    'When this creature dies, create a 1/1 white Spirit creature token with flying.',
+    ['battlefield', 'graveyard'],
+    false,
+    'none',
+    ['you'],
   ],
 ];
 

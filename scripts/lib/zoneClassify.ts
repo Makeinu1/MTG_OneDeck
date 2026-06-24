@@ -90,7 +90,7 @@ function detectZones(text: string): ZoneId[] {
   const permanentType = String.raw`(?:creatures?|artifacts?|enchantments?|planeswalkers?|lands?|permanents?)`;
   const specificPermanentType = String.raw`(?:creatures?|artifacts?|enchantments?|planeswalkers?|lands?)`;
   const targetPermanent = String.raw`\btarget\b(?![^.;]*\bcards?\b[^.;]*\bfrom\b[^.;]*\b(?:librar(?:y|ies)|hands?|graveyards?|exile|command zone)\b)[^.;]*\b${permanentType}\b(?!\s+cards?\b)`;
-  const targetBattlefieldReturn = String.raw`\btarget\b[^.;]*(?:\b${specificPermanentType}\b(?!\s+cards?\b)|\b(?:nonland|noncreature|nontoken) permanents?\b|\bpermanents?\b[^.;]*\b(?:an opponent controls|you (?:do not|don't) control)\b)`;
+  const targetBattlefieldReturn = String.raw`\btarget\b[^.;]*(?:\b${specificPermanentType}\b(?!\s+cards?\b)|\b(?:nonland|noncreature|nontoken) permanents?\b|\bpermanents?\b(?!\s+cards?\b))`;
 
   if (/\blibrar(?:y|ies)\b/i.test(text)) {
     zones.add('library');
@@ -112,6 +112,22 @@ function detectZones(text: string): ZoneId[] {
   }
   if (/\b(?:the )?stack\b/i.test(text)) {
     zones.add('stack');
+  }
+
+  if (/\bdraws?\b[^.;]*\bcards?\b/i.test(text)) {
+    zones.add('library');
+    zones.add('hand');
+  }
+  if (/\bdiscards?\b/i.test(text)) {
+    zones.add('hand');
+    zones.add('graveyard');
+  }
+  if (
+    /\bdies\b/i.test(text) ||
+    /\bput\b[^.;]*\binto a graveyard\b[^.;]*\bfrom the battlefield\b/i.test(text)
+  ) {
+    zones.add('battlefield');
+    zones.add('graveyard');
   }
 
   if (/\bcounter(?:s|ed|ing)?\b[^.;]*\btarget\b[^.;]*\bspells?\b/i.test(text)) {
@@ -138,6 +154,16 @@ function touchesCrossPlayerZone(text: string): boolean {
   const zone = String.raw`(?:librar(?:y|ies)|hands?|graveyards?|battlefields?|exile|command zones?|stacks?)`;
   const directPossessiveScope = String.raw`(?:(?:an|each|target) opponent['’]s|(?:your )?opponents['’]|(?:each|each other|target|that|defending) player['’]s|(?:other )?players['’])`;
   const nonYouAntecedent = String.raw`(?:target player|that player|each(?: other)? player|a player|(?:an|each|target) opponent|opponents|the owner|its owner|its controller|players)`;
+  const nonYouDrawDiscardSubject = String.raw`(?:each(?: other)? player|target player|that player|(?:an|each|target) opponent)`;
+
+  if (
+    new RegExp(
+      String.raw`\b${nonYouDrawDiscardSubject}\b[^.;]*\b(?:discards?|draws?)\b`,
+      'i',
+    ).test(text)
+  ) {
+    return true;
+  }
 
   if (new RegExp(String.raw`\b${directPossessiveScope}\s+${zone}\b`, 'i').test(text)) {
     return true;
@@ -178,7 +204,11 @@ function hasControllerReference(text: string): boolean {
 function detectPlayerScopes(text: string): PlayerScope[] {
   const scopes = new Set<PlayerScope>();
 
-  if (/\byou\b|\byour\b|\byours\b/i.test(text)) {
+  const hasImplicitYou =
+    /^(?:draw|discard)\b/i.test(text) ||
+    /^(?:when|whenever|at)\b[^.;]*,\s*create\b[^.;]*\btokens?\b/i.test(text);
+
+  if (/\byou\b|\byour\b|\byours\b/i.test(text) || hasImplicitYou) {
     scopes.add('you');
   }
   if (/\btarget (?:player|opponent)(?:['’]s)?\b/i.test(text)) {

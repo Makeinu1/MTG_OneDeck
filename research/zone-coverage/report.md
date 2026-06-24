@@ -4,47 +4,47 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 
 ## Summary
 
-- Generated at: 2026-06-24T04:31:57.803Z
+- Generated at: 2026-06-24T10:16:45.668Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- cards with zones: 10629 (60.77%)
-- cross-player cards: 675 (3.86%)
-- multi-zone cards: 4357 (24.91%)
-- churn: 3052/17491 changed (17.45%), baselineCards=17491, byZone=battlefield +2402
+- cards with zones: 11997 (68.59%)
+- cross-player cards: 1067 (6.10%)
+- multi-zone cards: 7040 (40.25%)
+- churn: 3559/17491 changed (20.35%), baselineCards=17491, byZone=battlefield +334, graveyard +1338, hand +2310, library +2282
 - mapping failures: 0
 
 ## Zone Demand
 
 | zone | card count | card rate | examples |
 |---|---:|---:|---|
-| battlefield | 8486 | 48.52% | Swords to Plowshares (rank 11); Path of Ancestry (rank 14); Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20) |
+| battlefield | 8820 | 50.43% | Swords to Plowshares (rank 11); Path of Ancestry (rank 14); Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20) |
 | command | 36 | 0.21% | Command Beacon (rank 183); Opal Palace (rank 637); Hellkite Courser (rank 1908); Thunderclap Drake (rank 2110); The Ur-Dragon (rank 2577) |
 | exile | 1788 | 10.22% | Swords to Plowshares (rank 11); Path to Exile (rank 15); Bojuka Bog (rank 25); Jeska's Will (rank 102); Teferi's Protection (rank 105) |
-| graveyard | 2255 | 12.89% | Bojuka Bog (rank 25); Reanimate (rank 57); Eternal Witness (rank 109); Victimize (rank 127); Farewell (rank 161) |
-| hand | 2067 | 11.82% | Reliquary Tower (rank 10); Cultivate (rank 20); Thought Vessel (rank 21); Kodama's Reach (rank 37); Cyclonic Rift (rank 51) |
-| library | 1794 | 10.26% | Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20); Farseek (rank 23); Rampant Growth (rank 26) |
+| graveyard | 3593 | 20.54% | Bojuka Bog (rank 25); Solemn Simulacrum (rank 38); Skullclamp (rank 41); Reanimate (rank 57); Boseiju, Who Endures (rank 78) |
+| hand | 4377 | 25.02% | Reliquary Tower (rank 10); Cultivate (rank 20); Thought Vessel (rank 21); Mind Stone (rank 32); Kodama's Reach (rank 37) |
+| library | 4076 | 23.30% | Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20); Farseek (rank 23); Rampant Growth (rank 26) |
 | stack | 208 | 1.19% | Counterspell (rank 16); An Offer You Can't Refuse (rank 35); Negate (rank 54); Arcane Denial (rank 56); Swan Song (rank 73) |
 
 ## Cross-player Zone Access
 
-- 675 cards (3.86%)
+- 1067 cards (6.10%)
 
 - rank 15 《Path to Exile》: Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.
 - rank 25 《Bojuka Bog》: When this land enters, exile target player's graveyard.
 - rank 30 《Chaos Warp》: The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.
+- rank 43 《Rhystic Study》: Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.
 - rank 51 《Cyclonic Rift》: Return target nonland permanent you don't control to its owner's hand.
+- rank 62 《Smothering Tithe》: Whenever an opponent draws a card, that player may pay {2}. If the player doesn't, you create a Treasure token.
+- rank 76 《Esper Sentinel》: Whenever an opponent casts their first noncreature spell each turn, draw a card unless that player pays {X}, where X is this creature's power.
 - rank 78 《Boseiju, Who Endures》: Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a bas...
+- rank 96 《Mystic Remora》: Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.
 - rank 102 《Jeska's Will》: Choose one. If you control a commander as you cast this spell, you may choose both instead. • Add {R} for each card in target opponent's hand. • Exile the top three cards of you...
 - rank 124 《Assassin's Trophy》: Destroy target permanent an opponent controls. Its controller may search their library for a basic land card, put it onto the battlefield, then shuffle.
 - rank 152 《Windfall》: Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.
 - rank 177 《Sink into Stupor // Soporific Springs》: Return target spell or nonland permanent an opponent controls to its owner's hand.
+- rank 231 《Sign in Blood》: Target player draws two cards and loses 2 life.
 - rank 252 《Syr Konrad, the Grim》: Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1...
-- rank 260 《Etali, Primal Storm》: Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.
-- rank 267 《Hullbreaker Horror》: Whenever you cast a spell, choose up to one — • Return target spell you don't control to its owner's hand. • Return target nonland permanent to its owner's hand.
-- rank 269 《Ragavan, Nimble Pilferer》: Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card.
-- rank 273 《Reality Shift》: Exile target creature. Its controller manifests the top card of their library.
-- rank 324 《Rakdos Charm》: Choose one — • Exile target player's graveyard. • Destroy target artifact. • Each creature deals 1 damage to its controller.
 
 ## Ownership Distribution
 
@@ -64,8 +64,8 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 | each-player | 1116 | 6.38% | Windfall (rank 152); Professional Face-Breaker (rank 216); Syr Konrad, the Grim (rank 252); Etali, Primal Storm (rank 260); Ragavan, Nimble Pilferer (rank 269) |
 | owner | 799 | 4.57% | Chaos Warp (rank 30); Cyclonic Rift (rank 51); Otawara, Soaring City (rank 90); Sink into Stupor // Soporific Springs (rank 177); Sensei's Divining Top (rank 226) |
 | target-player | 790 | 4.52% | Bojuka Bog (rank 25); Jeska's Will (rank 102); Blood Artist (rank 138); Boros Charm (rank 176); Sign in Blood (rank 231) |
-| unknown | 169 | 0.97% | Curse of Opulence (rank 709); Kogla, the Titan Ape (rank 1186); Scourge of the Throne (rank 1280); Ulamog, the Ceaseless Hunger (rank 1291); Open the Way (rank 1658) |
-| you | 11422 | 65.30% | Command Tower (rank 2); Arcane Signet (rank 3); Reliquary Tower (rank 10); Path of Ancestry (rank 14); Evolving Wilds (rank 18) |
+| unknown | 166 | 0.95% | Curse of Opulence (rank 709); Kogla, the Titan Ape (rank 1186); Scourge of the Throne (rank 1280); Ulamog, the Ceaseless Hunger (rank 1291); Open the Way (rank 1658) |
+| you | 11991 | 68.56% | Command Tower (rank 2); Arcane Signet (rank 3); Reliquary Tower (rank 10); Path of Ancestry (rank 14); Evolving Wilds (rank 18) |
 
 ## Zone Examples
 
@@ -126,38 +126,38 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 ### graveyard
 
 - rank 25 《Bojuka Bog》: When this land enters, exile target player's graveyard.
+- rank 38 《Solemn Simulacrum》: When this creature dies, you may draw a card.
+- rank 41 《Skullclamp》: Whenever equipped creature dies, draw two cards.
 - rank 57 《Reanimate》: Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.
+- rank 78 《Boseiju, Who Endures》: Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a bas...
+- rank 90 《Otawara, Soaring City》: Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legenda...
+- rank 94 《Faithless Looting》: Draw two cards, then discard two cards.
+- rank 104 《Frantic Search》: Draw two cards, then discard two cards. Untap up to three lands.
 - rank 109 《Eternal Witness》: When this creature enters, you may return target card from your graveyard to your hand.
 - rank 127 《Victimize》: Choose two target creature cards in your graveyard. Sacrifice a creature. If you do, return the chosen cards to the battlefield tapped.
+- rank 138 《Blood Artist》: Whenever this creature or another creature dies, target player loses 1 life and you gain 1 life.
+- rank 152 《Windfall》: Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.
+- rank 160 《Big Score》: As an additional cost to cast this spell, discard a card.
 - rank 161 《Farewell》: Choose one or more — • Exile all artifacts. • Exile all creatures. • Exile all enchantments. • Exile all graveyards.
 - rank 172 《Mystic Sanctuary》: When this land enters untapped, you may put target instant or sorcery card from your graveyard on top of your library.
-- rank 200 《Buried Ruin》: {2}, {T}, Sacrifice this land: Return target artifact card from your graveyard to your hand.
-- rank 224 《Animate Dead》: Enchant creature card in a graveyard
-- rank 244 《Takenuma, Abandoned Mire》: Channel — {3}{B}, Discard this card: Mill three cards, then return a creature or planeswalker card from your graveyard to your hand. This ability costs {1} less to activate for...
-- rank 252 《Syr Konrad, the Grim》: Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1...
-- rank 266 《Force of Negation》: Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard.
-- rank 289 《Sun Titan》: Whenever this creature enters or attacks, you may return target permanent card with mana value 3 or less from your graveyard to the battlefield.
-- rank 314 《Guardian Project》: Whenever a nontoken creature you control enters, if it doesn't have the same name as another creature you control or a creature card in your graveyard, draw a card.
-- rank 318 《Bala Ged Recovery // Bala Ged Sanctuary》: Return target card from your graveyard to your hand.
-- rank 322 《Scavenger Grounds》: {2}, {T}, Sacrifice a Desert: Exile all graveyards.
 
 ### hand
 
 - rank 10 《Reliquary Tower》: You have no maximum hand size.
 - rank 20 《Cultivate》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
 - rank 21 《Thought Vessel》: You have no maximum hand size.
+- rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
 - rank 37 《Kodama's Reach》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
+- rank 38 《Solemn Simulacrum》: When this creature dies, you may draw a card.
+- rank 41 《Skullclamp》: Whenever equipped creature dies, draw two cards.
+- rank 43 《Rhystic Study》: Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.
+- rank 46 《Commander's Sphere》: Sacrifice this artifact: Draw a card.
 - rank 51 《Cyclonic Rift》: Return target nonland permanent you don't control to its owner's hand.
+- rank 56 《Arcane Denial》: Counter target spell. Its controller may draw up to two cards at the beginning of the next turn's upkeep.
 - rank 59 《Demonic Tutor》: Search your library for a card, put that card into your hand, then shuffle.
+- rank 62 《Smothering Tithe》: Whenever an opponent draws a card, that player may pay {2}. If the player doesn't, you create a Treasure token.
 - rank 71 《Brainstorm》: Draw three cards, then put two cards from your hand on top of your library in any order.
-- rank 90 《Otawara, Soaring City》: Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legenda...
-- rank 102 《Jeska's Will》: Choose one. If you control a commander as you cast this spell, you may choose both instead. • Add {R} for each card in target opponent's hand. • Exile the top three cards of you...
-- rank 109 《Eternal Witness》: When this creature enters, you may return target card from your graveyard to your hand.
-- rank 141 《Herald's Horn》: At the beginning of your upkeep, look at the top card of your library. If it's a creature card of the chosen type, you may reveal it and put it into your hand.
-- rank 143 《Chrome Mox》: Imprint — When this artifact enters, you may exile a nonartifact, nonland card from your hand.
-- rank 152 《Windfall》: Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.
-- rank 177 《Sink into Stupor // Soporific Springs》: Return target spell or nonland permanent an opponent controls to its owner's hand.
-- rank 179 《Gemstone Caverns》: If this card is in your opening hand and you're not the starting player, you may begin the game with Gemstone Caverns on the battlefield with a luck counter on it. If you do, ex...
+- rank 76 《Esper Sentinel》: Whenever an opponent casts their first noncreature spell each turn, draw a card unless that player pays {X}, where X is this creature's power.
 
 ### library
 
@@ -170,12 +170,12 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 - rank 28 《Terramorphic Expanse》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
 - rank 29 《Nature's Lore》: Search your library for a Forest card, put that card onto the battlefield, then shuffle.
 - rank 30 《Chaos Warp》: The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.
+- rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
 - rank 36 《Polluted Delta》: {T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.
 - rank 37 《Kodama's Reach》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
 - rank 38 《Solemn Simulacrum》: When this creature enters, you may search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.
 - rank 39 《Flooded Strand》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.
 - rank 40 《Misty Rainforest》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.
-- rank 42 《Bloodstained Mire》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.
 
 ### stack
 
@@ -413,10 +413,10 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 - rank 28 《Terramorphic Expanse》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
 - rank 29 《Nature's Lore》: Search your library for a Forest card, put that card onto the battlefield, then shuffle.
 - rank 30 《Chaos Warp》: The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.
+- rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
 - rank 35 《An Offer You Can't Refuse》: Counter target noncreature spell. Its controller creates two Treasure tokens.
 - rank 36 《Polluted Delta》: {T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.
 - rank 37 《Kodama's Reach》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
-- rank 38 《Solemn Simulacrum》: When this creature enters, you may search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.
 
 ## Mapping Failures
 
