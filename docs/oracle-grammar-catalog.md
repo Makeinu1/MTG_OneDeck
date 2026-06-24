@@ -90,3 +90,36 @@
 - SBA(CR704)・ターンベース処理(CR703)は**条文駆動の固定リスト**でカタログ対象外(コーパス頻度では測らない=ESO E-SBA/E-TBA)。
 - 置換効果によるイベント発行抑止(CR614)= スライス1と同じく初期非対応(engine-spec §34.5)。
 - 多人数の観測者分配の精密化は V4 スコープ。**だが observer 軸自体は本スライスで state に刻む**(後付けは最も戻しにくい再設計)。
+
+---
+
+## スライス3: ゾーン + プレイヤー(ゾーン参照/クロスプレイヤー/所有者・コントローラー/プレイヤースコープ)
+
+> ESO = [`engine-state-ontology.md`](engine-state-ontology.md) スライス3。下記は効果/参照節→ゾーン・プレイヤー軸の**雛形**。
+> コーパス需要(頻度・代表)は `zone-coverage` 抽出が確定させ、未分類の構文は adjudication 経由で本表へ追補する。
+> 読みは英語 `oracleText` 正本のみ。`their <zone>`(代名詞照応)の解決は粗(iter2 で精密化)。
+
+| 構文(参照/効果パターン) | → ESO | read | write | 備考 |
+|---|---|---|---|---|
+| `from/into your library` / `search your library` / `top of your library` | E-ZONE-REF(+PARTITION per-player) | library(自) | ゾーン移動 | playerScope=you。`shuffle`/`reveal` も library 参照 |
+| `into/from your hand` / `reveals their hand` / `discards` | E-ZONE-REF(per-player) | hand | ゾーン移動 | `their/an opponent's hand` は E-ZONE-CROSS |
+| `from/in a graveyard` / `your graveyard` | E-ZONE-REF(per-player) | graveyard | ゾーン移動 | `a graveyard`(不特定)は cross 判定保留=none。`an opponent's graveyard` は cross |
+| `exile …` / `from exile` / `cast from exile` | E-ZONE-REF(shared) | exile | ゾーン移動 | exile は共有ゾーン(帰属で cross を分けない) |
+| `onto the battlefield` / `enters` / `destroy`(→墓地) | E-ZONE-REF(shared) | battlefield | ゾーン移動 | battlefield 共有。`enters` は Slice2 と重複参照(同一ゾーンを別軸で読む) |
+| `the command zone` / `from the command zone` | E-ZONE-REF | command | — | 統率者・紋章。需要小 |
+| `counter target spell` / `on the stack` | E-ZONE-REF(shared) | stack | — | スタックは共有 |
+| `an/each/target opponent's <zone>` / `each player's <zone>` / `opponents' <zone>` | **E-ZONE-CROSS=true** | 他プレイヤーのゾーン | — | **ダミー相手(S5)必須化メトリック**。`their <zone>` 照応は iter2 で cross へ昇格検討 |
+| `you control <obj>` / `gain control of` / `<obj> an opponent controls` | E-CONTROLLER | controller | (奪取時 controller 変更) | スライス1 `E-LAYER-L2` と整合。フィルタ用法も coarse に controller 計上 |
+| `return … to its owner's hand` / `its owner('s)` / `to their owners` | E-OWNER | owner | ゾーン移動先=所有者領域 | owner≠controller(CR108.4/110)。`its owner` は playerScope=owner |
+| `you / your` | E-PLAYER-SCOPE=you | あなた | — | 既定・圧倒的多数 |
+| `target player` / `target opponent` | E-PLAYER-SCOPE=target-player | 対象プレイヤー | (将来 GameCommand 束縛) | auto コンパイルは manual 据え置き(需要計測のみ) |
+| `an/each opponent` / `opponents` | E-PLAYER-SCOPE=each-opponent | 各対戦相手 | — | 多人数で分配(V4) |
+| `each player` / `a player`(コントローラ不問) | E-PLAYER-SCOPE=each-player | 全プレイヤー | — | 自分も対戦相手も含む |
+| `its owner` / `its/their controller` | E-PLAYER-SCOPE=owner / controller | 所有者/操作者 | — | プレイヤー参照(帰属軸 E-OWNER/E-CONTROLLER と連動) |
+| 判定不能(複合主体・照応未解決) | E-PLAYER-SCOPE=unknown | — | — | 逃さない箱(force しない) |
+
+### スコープ境界(本スライスでカタログ化しない)
+- **LKI(Last Known Information)**=「死亡した**それ**」「生け贄に捧げた**それ**」(CR603.10/608.2h)の object-identity 追跡 = 概念登録のみ(ESO 既知欠落)。
+- **プレイヤー別ゾーンの runtime 実装**(S-ZONES)・**ダミー相手の実体**(S5)・owner/controller フィールド追加 = M-CONTRACT 凍結後。
+- **target player の auto コンパイル** = manual 据え置き(盤面パーマネント以外は初期非対応・engine-spec §34.5)。本スライスは需要計測のみ。
+- ゾーン分割(per-player/shared)は **CR400.1 と1対1の条文駆動**=コーパス頻度では測らない(E-ZONE-PARTITION)。

@@ -11,6 +11,7 @@
     "grammar-coverage": "tsx scripts/grammar-coverage.ts",
     "layer-coverage": "tsx scripts/layer-coverage.ts",
     "event-coverage": "tsx scripts/event-coverage.ts",
+    "zone-coverage": "tsx scripts/zone-coverage.ts",
     "grammar-ir": "tsx scripts/grammar-ir.ts",
     "grammar-compile": "tsx scripts/grammar-compile.ts",
     "oracle-sample": "tsx scripts/oracle-sample.ts",
