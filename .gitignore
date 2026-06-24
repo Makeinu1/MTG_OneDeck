@@ -20,6 +20,7 @@ research/classifier-accuracy/report.json
 # grammar coverage: keep report.md summary; exclude large machine blob
 research/grammar-coverage/report.json
 research/zone-coverage/report.json
+research/zone-oracle/report.json
 # classifier parity: keep report.md summary; exclude large per-card dump (regenerable via npm run classifier-parity)
 research/classifier-parity/report.json
 

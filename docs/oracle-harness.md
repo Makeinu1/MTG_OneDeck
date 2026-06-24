@@ -374,3 +374,148 @@ KPI 対応(method §4):**主指標**= `familyDiscrepancyRate`/`observerDiscrepan
 - ゴールド校正で族別 precision/recall が低い → 物差し誤り(§7.2 prompt 改訂)。
 - 単発 → ノイズ(曖昧/オラクル誤り)。
 - 結果を ESO Slice2 の `trust` 列へ反映(族別:一致=検証済/割れ=不一致/uncertain=検証不能)。family/observer 不一致率・churn・被覆で Slice2 継続 or Slice3 前進を判断。
+
+---
+
+# 8. Slice3 流用: ゾーン+プレイヤーオラクル(M0-Z-O / `ZoneFacts` schema)
+
+> Slice1(層)・Slice2(イベント)の物差し設計(§0〜§7)を**そのまま流用**し、`facts` schema を差し替えてゾーン+プレイヤー軸に当てる。
+> 対象分類器 = `scripts/lib/zoneClassify.ts`(`classifyCardZones`、7ゾーン・crossPlayer・ownership4値・7 playerScope)。
+> 下面抽出(`zone-coverage`)は iter1 完了(commit cf95600・mappingFailures0・**cross率0.74%は照応FNで過小評価と既知**)。
+> **本節の主目的 = 独立物差し(別主体オラクル)で `their <zone>` 照応 FN を露呈し、真のクロスプレイヤー率を出す**(下面抽出 floor の反証)。
+
+## 8.0 Slice1/2 との差(なぜ写像が恒等か)
+- Slice2 同様、ゾーン参照・クロスプレイヤー・所有者/コントローラー・プレイヤー参照は**観測可能なテキスト事象**であり隠れ Fable タクソノミでない。よって**写像は恒等**=オラクルは各軸を直接予測し集合差/値一致で比較。
+- ただし `ownership` 4値(owner/controller/both/none)は、オラクルに**2つの素朴 boolean**(`refersToOwner`/`refersToController`)を予測させ、分類器と**同じ導出規則**(both/owner/controller/none)で 4値へ機械写像してから比較する(LLM に 'both' を直接推論させない=曖昧化を避ける)。
+- 相関遮断は §0 のまま:オラクルは**別主体(Codex clean-room)**・**oracleText のみ**・`zoneClassify.ts`/`zone-coverage` 出力を**読まない**。
+
+## 8.1 サンプル抽出(`scripts/zone-oracle-sample.ts` / ≈ 190枚)
+入力2系統を `oracleId` 結合(`research/zone-coverage/report.json.cards` は `{oracleId,name,zones,crossPlayer,ownership,playerScopes}`、`oracleText`/`edhrecRank` 非保有 → snapshot を `mapScryfallCardToCardDef` で写す。Slice1 §1 と同経路):
+
+| 層化バケット | 件数 | 抽出規則 |
+|---|---:|---|
+| `gold` | (全数) | §8.4 のゴールド16枚を `name`→`oracleId` 解決し**無条件内包**。校正母数 |
+| `head` | 90 | ゾーン保有(`zones.length>0`)を **snapshot `edhrecRank` 昇順**(同値 `oracleId` 昇順) |
+| `cross` | 40 | `crossPlayer=true`(分類器が cross と判定した母数。約130枚から rank 昇順)。cross 軸の確証母数 |
+| `cross-suspect` | 30 | **`crossPlayer=false` かつ `playerScopes` に `each-opponent`/`each-player`/`target-player` を含み `zones.length>0`**。= **照応 FN の主たる母数**(オラクルが cross を立てれば FN 露呈) |
+| `tail` | 20 | `ownership` が `owner`/`both`、または `zones` に `command`/`stack` を含む低頻度(裾の反証) |
+
+- 重複は `oracleId` 排除。`zones` 空かつ `playerScopes` 空のカードは `gold` 負例以外は対象外。総数 ≈ 190(gold 内包で前後)。
+- 出力 `research/zone-oracle/sample.json`(Slice2 §7.1 と同形・**ゾーン/プレイヤーラベルは絶対に出力しない**=盲の担保)。
+
+## 8.2 盲予測 prompt(Codex clean-room → `research/zone-oracle/predictions.json`)
+`sample.json` の各カードを下記 prompt **のみ**で推論。`zoneClassify.ts`・`zone-coverage` 出力・engine 出力を参照しない。
+
+> You are reading a Magic: The Gathering card's English oracle text. Identify which **game zones** and which **players** the card's text reads from or writes to. Resolve pronouns ("their", "its", "that player") to whoever they refer to.
+> Answer the following. **Prefer listing a key under `uncertain` over guessing** when genuinely ambiguous. Give a one-line `rationale` quoting the relevant text.
+>
+> 1. `zones` — the set of zones the text refers to, moves cards between, or searches. Choose from:
+>    `library`, `hand`, `graveyard`, `battlefield` (incl. a permanent "enters" / "dies" / is "destroyed" / put "onto the battlefield"), `exile`, `command` (the command zone), `stack` (a spell/ability on the stack, "counter target spell").
+> 2. `crossPlayer` — `true` if the text reads or writes a zone belonging to a player **other than you** (e.g. "an opponent's graveyard", "target player's hand", "each player's library", "their hand" where *their* = an opponent or another player). `false` if every zone touched is yours or an unowned shared zone (battlefield/exile/stack with no other-player owner). **Resolve "their/that player's" to decide.**
+> 3. `refersToOwner` — does the text reference a card's **owner** (e.g. "its owner's hand", "return it to its owner", "owned by")? `true`/`false`.
+> 4. `refersToController` — does the text reference who **controls** an object (e.g. "you control", "gain control of", "an opponent controls", "its controller")? `true`/`false`.
+> 5. `playerScopes` — which players the text references (a set). Choose from:
+>    `you` (you/your), `target-player` ("target player"/"target opponent"), `each-opponent` ("an/each opponent", "opponents"), `each-player` ("each player"/"a player", "each other player"), `owner` (a card's owner), `controller` (an object's controller), `unknown` (a player is referenced but genuinely unresolved).
+>
+> **Do not mention comprehensive-rules numbers or any "zone partition / ontology" model. Resolve pronouns to real players.**
+
+出力 `predictions.json`(LLM 推論=非決定。再生成せずコミット固定):
+```jsonc
+{ "model": "<codex model id>", "generatedAt": "...", "promptHash": "<sha256 of §8.2 prompt>",
+  "predictions": [ { "oracleId": "...", "name": "...",
+    "facts": { "zones": ["exile","graveyard"], "crossPlayer": true,
+               "refersToOwner": false, "refersToController": false,
+               "playerScopes": ["target-player"], "uncertain": [], "rationale": "..." } } ] }
+```
+
+## 8.3 差分 / KPI(`scripts/zone-oracle-diff.ts` + `scripts/lib/zoneOracleHarness.ts` / 純粋・決定的)
+分類器側 = `zone-coverage/report.json.cards`。オラクル側 = `predictions[*].facts`(`refersToOwner`/`refersToController` → `ownership` 4値へ §8.0 規則で写像)。ゴールド = §8.4。
+比較は**4軸独立**(zones 集合差・crossPlayer boolean・ownership 値一致・playerScopes 集合差)。`uncertain` のトークン(zone 値/`'crossPlayer'`/`'ownership'`(= owner/controller いずれか uncertain なら ownership 軸除外)/playerScope 値)は**その軸の比較から除外**し当該カードを検証不能に数える(Slice1/2 の uncertain マスクと同型)。
+
+```ts
+import type { ZoneId } from '../../src/engine/types';
+import type { PlayerScope, OwnershipKind } from './zoneClassify';
+
+export interface ZoneFacts {
+  zones: ZoneId[];
+  crossPlayer: boolean;
+  refersToOwner: boolean;
+  refersToController: boolean;
+  playerScopes: PlayerScope[];
+  uncertain: string[];        // ZoneId | 'crossPlayer' | 'ownership' | PlayerScope
+  rationale?: string;
+}
+export interface ZoneCardDiff {
+  oracleId: string; name: string;
+  classifierZones: ZoneId[]; oracleZones: ZoneId[];
+  zoneClassifierOnly: ZoneId[]; zoneOracleOnly: ZoneId[];
+  classifierCrossPlayer: boolean; oracleCrossPlayer: boolean;
+  classifierOwnership: OwnershipKind; oracleOwnership: OwnershipKind;
+  classifierPlayerScopes: PlayerScope[]; oraclePlayerScopes: PlayerScope[];
+  playerScopeClassifierOnly: PlayerScope[]; playerScopeOracleOnly: PlayerScope[];
+  zoneAgree: boolean; crossPlayerAgree: boolean; ownershipAgree: boolean; playerScopeAgree: boolean;
+  agree: boolean;             // 4軸とも一致(uncertain マスク後)
+  hasUncertain: boolean;
+  deltaSignature: string;     // zones "+graveyard" → cross "+x"/"-x" → own "@owner" → scope "+@each-opponent"。昇順・空なら "="
+  attribution: null;          // Fable が監査で {substrate|compiler|oracle|ambiguous} を記入
+}
+export interface ZoneConfusion { zone: ZoneId; classifierOnly: number; oracleOnly: number; agreeBoth: number; }
+export interface ScopeConfusion { scope: PlayerScope; classifierOnly: number; oracleOnly: number; agreeBoth: number; }
+export interface ZoneCalibration { zone: ZoneId; precision: number; recall: number; support: number; } // oracle vs gold
+export interface Cluster { signature: string; count: number; examples: string[]; }
+export interface ZoneOracleReport {
+  sampleSize: number; comparedCount: number;
+  zoneDiscrepancyRate: number;          // zoneAgree=false かつ zone uncertain でない / comparedCount
+  crossPlayerDiscrepancyRate: number;   // crossPlayerAgree=false(uncertain でない)/ comparedCount  ← 照応 FN の主指標
+  ownershipDiscrepancyRate: number;
+  playerScopeDiscrepancyRate: number;
+  unverifiableRate: number;             // uncertain を持つカード / sampleSize(安全KPI)
+  perZoneConfusion: ZoneConfusion[];       // ZONE_IDS 順
+  perScopeConfusion: ScopeConfusion[];     // PLAYER_SCOPES 順
+  goldCalibration: ZoneCalibration[];      // ゴールド真値のゾーン別 precision/recall
+  clusters: Cluster[];                     // deltaSignature 別・count 降順
+  discrepancies: ZoneCardDiff[];           // agree=false を deltaSignature, oracleId でソート
+}
+export function computeZoneReport(
+  classifier: { oracleId: string; name: string; zones: ZoneId[]; crossPlayer: boolean; ownership: OwnershipKind; playerScopes: PlayerScope[] }[],
+  predictions: { oracleId: string; name: string; facts: ZoneFacts }[],
+  gold: { oracleId: string; zones: ZoneId[]; crossPlayer: boolean; ownership: OwnershipKind; playerScopes: PlayerScope[] }[],
+): ZoneOracleReport;
+```
+
+KPI 対応(method §4):**主指標**= `zoneDiscrepancyRate`/**`crossPlayerDiscrepancyRate`(照応 FN の露呈)**/`ownershipDiscrepancyRate`/`playerScopeDiscrepancyRate`(`clusters` で系統誤りを炙る)/**帰属**= `discrepancies[].attribution`(Fable 監査)/**物差し校正**= `goldCalibration`/**検証不能**= `unverifiableRate`。出力 `research/zone-oracle/report.{md,json}`。report.json は大型ブロブのため `.gitignore` 追加(report.md は残す)。
+
+## 8.4 ゴールド真値(校正母数 = `review.zone-coverage` と同一の人手確定値)
+`name`→`oracleId` 解決して付与。**これを真値**にオラクル予測のゾーン別 precision/recall を測る(校正に分類器を使わない=循環回避)。
+
+| name | zones | crossPlayer | ownership | playerScopes |
+|---|---|---|---|---|
+| Demonic Tutor | hand, library | false | none | you |
+| Vampiric Tutor | library | false | none | you |
+| Brainstorm | hand, library | false | none | you |
+| Regrowth | graveyard, hand | false | none | you |
+| Cultivate | battlefield, hand, library | false | none | you |
+| Eternal Witness | battlefield, graveyard, hand | false | none | you |
+| Bojuka Bog | battlefield, exile, graveyard | true | none | target-player |
+| Agonizing Remorse | exile, graveyard, hand | true | none | each-opponent, you |
+| Control Magic | (なし) | false | controller | you |
+| Reanimate | battlefield, graveyard | false | controller | you |
+| Boomerang | hand | false | owner | owner |
+| Gaea's Anthem | (なし) | false | controller | you |
+| Grizzly Bears | (なし) | false | none | (なし) |
+| Syphon Mind | (なし) | false | none | each-player, you |
+| Entomb | graveyard, library | false | none | you |
+| Thoughtseize | hand | true | none | target-player, you |
+
+- 負例(Grizzly Bears=ゾーン/プレイヤー参照なし)も含める。**Thoughtseize は照応の真値テスト**(`their hand`=target player → crossPlayer **true**。分類器は false=FN ゆえ gold には含めるが §8.1 cross-suspect の確証にも使う)。
+- 名前解決できないゴールドは校正母数から除外し `report.md` に明示(silent に落とさない)。
+
+## 8.5 分担・変更禁止(§5/§7.5 と同一)
+- **Fable**: 本節 / ESO Slice3 の trust 更新 / `engine-spec.md` §34.9 ログ / `review.zone-oracle.test.ts` / 監査帰属。
+- **Codex(`scripts/` のみ)**: `scripts/zone-oracle-sample.ts` / `scripts/zone-oracle-diff.ts` / `scripts/lib/zoneOracleHarness.ts`(`computeZoneReport`)/ clean-room `predictions.json` / `package.json` script `zone-oracle-sample`・`zone-oracle-diff` 追加 / `.gitignore` に `research/zone-oracle/report.json`。`splitAbilityLines`・`mapScryfallCardToCardDef`・`zoneClassify` の `ZoneId`/`PlayerScope`/`OwnershipKind`/`ZONE_IDS`/`PLAYER_SCOPES` を再利用。
+- **Codex 変更禁止**: `src/engine/`・`review.*`・`docs/`・`CLAUDE.md`・`eslint.config.js`・`CACHE_SCHEMA_VERSION`・git。
+
+## 8.6 iter1 収束判定(監査後 Fable)
+- **`crossPlayerDiscrepancyRate` の oracleOnly(オラクルが cross・分類器が非cross)= 照応 FN の規模**。これが大きければ予測どおり=分類器の cross 検出を iter2 で `their`/`that player's` 照応へ拡張(`zoneClassify.ts`)。
+- 同 `deltaSignature` が多数同方向 → 系統的 substrate/分類器誤り。ゴールド校正で軸別 precision/recall が低い → 物差し誤り(§8.2 prompt 改訂)。単発 → ノイズ。
+- 結果を ESO Slice3 の `trust` 列へ反映(軸別:一致=検証済/割れ=不一致/uncertain=検証不能)。真クロス率と各軸不一致率で Slice3 継続 or Slice4 前進を判断。**0.74% を収束と読まない**(method §4)。

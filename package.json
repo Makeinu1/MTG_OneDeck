@@ -18,6 +18,8 @@
     "oracle-diff": "tsx scripts/oracle-diff.ts",
     "event-oracle-sample": "tsx scripts/event-oracle-sample.ts",
     "event-oracle-diff": "tsx scripts/event-oracle-diff.ts",
+    "zone-oracle-sample": "tsx scripts/zone-oracle-sample.ts",
+    "zone-oracle-diff": "tsx scripts/zone-oracle-diff.ts",
     "golden-replay": "tsx scripts/golden-replay.ts",
     "classifier-parity": "tsx scripts/classifier-parity.ts",
     "preview": "vite preview",

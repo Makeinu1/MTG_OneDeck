@@ -651,3 +651,16 @@ Fable が cross-player バケットを敵対スポット監査(独立 grep)。**
 3. **owner scope と ownership=owner の連動**: playerScope owner 799 vs ownership owner 360+both 439=799 で整合(健全)。
 - **method §3/§4 の実証(再掲)**: 0.74% を「収束」と読んではならない。**独立物差し(LLM-oracle 盲予測=次マイルストーン)が照応 FN を露呈して初めて真のクロス率が出る**。Slice2 の churn 0.05%→13.55% と同型の罠を予防的に明記。
 - **churn 0%**(初回=baseline なし)。次反復で iter1 出力を baseline に算出する。
+
+### オラクル iter1(独立物差し=別主体盲予測・2026-06-24・監査合格)
+契約 = `docs/oracle-harness.md` §8。別主体(gpt-5-codex clean-room・promptHash 82483561)が oracleText のみから4軸(zones/crossPlayer/ownership/playerScopes)を盲予測 → `zoneClassify` と4軸独立集合差(`scripts/lib/zoneOracleHarness.ts`)。sample 189(gold16+head90+cross40+cross-suspect30+tail20)、compared 187。正本 = `research/zone-oracle/{report.md,adjudication.json}`。
+- **KPI**: zone 不一致 **19.79%** / **crossPlayer 不一致 6.42%(classifierOnly 0・oracleOnly 12)** / ownership 5.88% / playerScope 13.90% / 検証不能 0.00%。discrepancies 61。
+- **帰属(61・`adjudication.json`)= substrate 0 / compiler 21 / oracle 21 / ambiguous 19**。**🟢 substrate=0 = Slice3 の5軸 ESO モデルは独立物差しでも健全**(軸の欠落なし)。
+- **🔴 仮説の確証(クロス率の floor 崩壊)**: **crossPlayer oracleOnly 12・classifierOnly 0** = 分類器は cross を過剰検出せず、`their/its owner/that player's <zone>` の**照応を系統的に取りこぼす**(Thoughtseize/Windfall/Path to Exile/Assassin's Trophy/Chaos Warp/Living Death/Cyclonic Rift 他)。**0.74% は真値でない**ことを独立物差しが実証=method §4 の churn 規律どおり。
+- **裁定の系統的発見(3クラスタ)**:
+  1. **compiler 21**(分類器 FN)= (a)**クロス照応**12(iter2 で `zoneClassify` の `touchesCrossPlayerZone` を `their/its owner/that player's` 照応へ拡張)(b)**battlefield 取りこぼし**7(`destroy/exile target <permanent>`・トークン創出→battlefield)(c)scope 取りこぼし2。
+  2. **oracle 21**(物差し過剰一般化)= **`cast`/`can't be countered`→stack** の過剰付与(Etali/Jeska's Will/The One Ring 他12+複合)。**ESO 意図では stack ゾーン参照=明示的スタック操作(counter/return-from-stack)であり、`cast` は Slice2 のイベント軸**(ゾーン軸 stack に含めない)。**iter2 物差し: §8.2 prompt v2 で「cast 単独は stack-zone でない」を明記**(Slice2 の combat-damage≠phase と同型の prompt 改訂)。
+  3. **ambiguous 19**(ESO 境界=Fable 裁定保留)= (a)**owner≠controller**(他者のカードを唱える: Brainstealer/Laughing Jasper/Valgavoth/Dauthi/Puppeteer Clique=owner は相手・controller はあなた=`both`。ESO で「他者所有カードのキャスト」の owner/controller 同時保有を裁定要)(b)**you-control の scope**(`creatures you control`→playerScope を `you` とするか `controller` とするか: Titania's Command/Captain N'ghathrod)(c)MDFC 面集約の `you`。
+- **物差し故障**: 検証不能率 0.00% = オラクルが `uncertain` を使わず(過信・Slice2 iter1 と同型)。**iter2 prompt で uncertain 使用を促す**。
+- **trust 更新**: E-ZONE-REF(zones)= **不一致**(stack 物差し過剰 + battlefield FN を iter2 で解消後に再測)。E-ZONE-CROSS= **不一致**(照応 FN 確定・iter2 で分類器拡張)。E-OWNER/E-CONTROLLER= **不一致**(owner≠controller 境界裁定保留)。E-PLAYER-SCOPE= **不一致**(controller scope 境界)。**substrate 健全だが各軸 trust は未収束**=Slice3 継続(iter2)。
+- **収束読み**: Slice2 と同型に「物差し過剰(oracle 21)+ 分類器 FN(compiler 21)+ ESO 境界(ambiguous 19)」へ綺麗に三分。substrate=0 で**モデルは正しい**。iter2 = flip-flop(分類器 compiler 21 修正 → churn 再算出 / 物差し prompt v2 → 再予測)で各軸不一致率を <5% 方向へ。**Slice3 は未収束=凍結不可**(method §4)。

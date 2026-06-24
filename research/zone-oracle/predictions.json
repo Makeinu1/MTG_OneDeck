@@ -1,0 +1,3479 @@
+{
+  "model": "gpt-5-codex-clean-room",
+  "generatedAt": "2026-06-24T03:48:14.155Z",
+  "promptHash": "82483561734ebd319c35087febb592db80be60709eae239ae1b7e373d3b42720",
+  "predictions": [
+    {
+      "oracleId": "c23e5b80-08d2-4e24-9908-fe2aa4f30f6f",
+      "name": "Reliquary Tower",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"You have no maximum hand size.\""
+      }
+    },
+    {
+      "oracleId": "b1544f21-7e98-461b-aed5-e748b0168c52",
+      "name": "Swords to Plowshares",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Exile target creature.\""
+      }
+    },
+    {
+      "oracleId": "b473e293-59e3-4e04-acf2-622604aeb25f",
+      "name": "Path of Ancestry",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. {T}: Add one mana of any color in your commander's color identity.\""
+      }
+    },
+    {
+      "oracleId": "d683d985-9888-4d21-8b5f-69e69ce4a03b",
+      "name": "Path to Exile",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "cc187110-1148-4090-bbb8-e205694a39f5",
+      "name": "Counterspell",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"Counter target spell.\""
+      }
+    },
+    {
+      "oracleId": "a75445d3-1303-4bb5-89ad-26ea93fecd48",
+      "name": "Evolving Wilds",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "8b755881-a72d-4e21-a369-d2924eb4585a",
+      "name": "Cultivate",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "9965d9c5-2ebf-4a6c-930e-55c5890979be",
+      "name": "Thought Vessel",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"You have no maximum hand size.\""
+      }
+    },
+    {
+      "oracleId": "7a2484a9-04fd-41a0-8224-610c1c07ed10",
+      "name": "Blasphemous Act",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"This spell costs {1} less to cast for each creature on the battlefield.\""
+      }
+    },
+    {
+      "oracleId": "495e52e6-4c2b-4574-9474-eadbdcc8b4ac",
+      "name": "Farseek",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a Plains, Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "04b7362d-0490-4cb0-b5d7-2a7732f659ce",
+      "name": "Bojuka Bog",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, exile target player's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "8539f295-5d58-4436-a73a-b9277c4c7795",
+      "name": "Rampant Growth",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "2549bc57-9ffb-4053-9f10-f2a5f792b845",
+      "name": "Myriad Landscape",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. {2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "1bd3e453-aa21-4ee6-95c2-d6d920ee8e7a",
+      "name": "Terramorphic Expanse",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "78826359-fe63-44ad-adc4-a17ffcd710e4",
+      "name": "Nature's Lore",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a Forest card, put that card onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "07a0cba9-8768-4fd9-a3d5-b0f83b4bf8e8",
+      "name": "Chaos Warp",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.\""
+      }
+    },
+    {
+      "oracleId": "234a734b-ba28-4f1b-9d01-3c3e7d516590",
+      "name": "An Offer You Can't Refuse",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target noncreature spell.\""
+      }
+    },
+    {
+      "oracleId": "ef86989d-ce80-4e55-aece-7d11710eeffa",
+      "name": "Polluted Delta",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "1593ea18-2f2f-4ab4-83fb-6ccc0bec8a90",
+      "name": "Kodama's Reach",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "00c0543c-2a1f-4425-8283-4062d74a1637",
+      "name": "Solemn Simulacrum",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, you may search your library for a basic land card, put that card onto the battlefield tapped, then shuffle. When this creature dies, you may draw a card.\""
+      }
+    },
+    {
+      "oracleId": "f3c7af78-a77d-4134-82a2-a5ce84285a84",
+      "name": "Flooded Strand",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "09dd85aa-47bc-4713-a9b9-8b52ff2285ed",
+      "name": "Misty Rainforest",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "fc0707c7-d504-4ccf-a0d2-3eb6e26e7a57",
+      "name": "Bloodstained Mire",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "1b882a0e-0ede-4d1a-bd1a-9b7cffbcde8e",
+      "name": "Three Visits",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a Forest card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "29737a60-3ebd-40d9-b935-c4f54b90d45d",
+      "name": "Windswept Heath",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Plains card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "67d60b24-d429-4ded-90d9-06e49f28c396",
+      "name": "Verdant Catacombs",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "6587a463-a108-4854-b6d1-944e89b8c8a4",
+      "name": "Wooded Foothills",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Forest card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "cb027150-848c-4a66-88ad-e20222304dd8",
+      "name": "Scalding Tarn",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "dab520d0-20b4-4273-ba6b-eb07f85ea433",
+      "name": "Marsh Flats",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "d75b9c82-1b49-4c3e-a1b5-aeef57d6644b",
+      "name": "Cyclonic Rift",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return target nonland permanent you don't control to its owner's hand. Overload {6}{U} (You may cast this spell for its overload cost.\""
+      }
+    },
+    {
+      "oracleId": "fc9ec820-4245-4a96-b009-5308a818ca58",
+      "name": "Watery Grave",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {U} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "0c85b8f7-0bd0-4680-9ec5-d4b110460a54",
+      "name": "Fabled Passage",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.\""
+      }
+    },
+    {
+      "oracleId": "3407fe41-fdd3-4119-8f70-4bc4590a379f",
+      "name": "Negate",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"Counter target noncreature spell.\""
+      }
+    },
+    {
+      "oracleId": "c5acf2a5-40f4-433d-a74d-1cb56c521464",
+      "name": "Arid Mesa",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "ab1cc360-b9de-48d9-9983-4dfe4a7d2a37",
+      "name": "Arcane Denial",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target spell. You draw a card at the beginning of the next turn's upkeep.\""
+      }
+    },
+    {
+      "oracleId": "a044474a-cd72-4e9d-bd8d-a08f2de9cdc0",
+      "name": "Reanimate",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.\""
+      }
+    },
+    {
+      "oracleId": "82004860-e589-4e38-8d61-8c0210e4ea39",
+      "name": "Demonic Tutor",
+      "facts": {
+        "zones": [
+          "library",
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a card, put that card into your hand, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "73864fcc-1bde-4bc0-831e-2b93e546e417",
+      "name": "Godless Shrine",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {W} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "20283c4a-f1f0-42f0-bc08-6da87474426b",
+      "name": "Breeding Pool",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {G} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "f1750962-a87c-49f6-b731-02ae971ac6ea",
+      "name": "Hallowed Fountain",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {W} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "17039058-822d-409f-938c-b727a366ba63",
+      "name": "Steam Vents",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {U} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "16052b52-ade1-406f-a06b-ce7ea607fb63",
+      "name": "Stomping Ground",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {R} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "43985bbc-a0f6-4812-984e-392bc8562633",
+      "name": "Blood Crypt",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {B} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "975ec9a3-6f20-4177-8211-82526e092538",
+      "name": "Overgrown Tomb",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {B} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "36cd2364-d113-47d1-b2c4-b088d9eb88dd",
+      "name": "Brainstorm",
+      "facts": {
+        "zones": [
+          "library",
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Draw three cards, then put two cards from your hand on top of your library in any order.\""
+      }
+    },
+    {
+      "oracleId": "8ddfc283-c9b4-41a5-af88-cf0068e986cc",
+      "name": "Swan Song",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target enchantment, instant, or sorcery spell.\""
+      }
+    },
+    {
+      "oracleId": "45181cb8-2090-4471-ba90-e5a8f04d525f",
+      "name": "Sacred Foundry",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {R} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "bf1341dd-41a3-49f6-87ec-63170dde4324",
+      "name": "Boseiju, Who Endures",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a basic land type, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "d09c9cba-fdd2-479b-ad5d-d05181c3e3f9",
+      "name": "Fierce Guardianship",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"If you control a commander, you may cast this spell without paying its mana cost. Counter target noncreature spell.\""
+      }
+    },
+    {
+      "oracleId": "f413a83d-a40d-434c-b20a-4c707c0527fa",
+      "name": "Temple Garden",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {G} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
+      }
+    },
+    {
+      "oracleId": "6a6c5e17-6465-4a1f-9d63-8a3ce2edc522",
+      "name": "Sulfur Falls",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control an Island or a Mountain.\""
+      }
+    },
+    {
+      "oracleId": "d7faa3c8-46cf-46b2-bfa4-89000307cf18",
+      "name": "Clifftop Retreat",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Mountain or a Plains.\""
+      }
+    },
+    {
+      "oracleId": "cd2c90ac-2b04-461c-92f3-939871b6b6a3",
+      "name": "Sunken Hollow",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {U} or {B}.) This land enters tapped unless you control two or more basic lands.\""
+      }
+    },
+    {
+      "oracleId": "dfac0258-e148-4d7d-8ded-fc2466d9caa6",
+      "name": "Cinder Glade",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {R} or {G}.) This land enters tapped unless you control two or more basic lands.\""
+      }
+    },
+    {
+      "oracleId": "63398c02-6fb1-481d-9d9f-81063532fbc0",
+      "name": "Dragonskull Summit",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Swamp or a Mountain.\""
+      }
+    },
+    {
+      "oracleId": "3aa83ed2-f48b-4ce6-a614-2c54ddf50538",
+      "name": "The One Ring",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Indestructible When The One Ring enters, if you cast it, you gain protection from everything until your next turn. At the beginning of your upkeep, you lose 1 life for each burden counter on The One Ring.\""
+      }
+    },
+    {
+      "oracleId": "e9b6a394-691c-425a-9307-76d8edc7375e",
+      "name": "Otawara, Soaring City",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legendary creature you control.\""
+      }
+    },
+    {
+      "oracleId": "3127ae9b-a7a7-43ec-89d7-688f8445b33d",
+      "name": "Garruk's Uprising",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this enchantment enters, if you control a creature with power 4 or greater, draw a card. Creatures you control have trample.\""
+      }
+    },
+    {
+      "oracleId": "7e5d9efe-48a9-434b-bb09-056e0e09cc9a",
+      "name": "Isolated Chapel",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Plains or a Swamp.\""
+      }
+    },
+    {
+      "oracleId": "390f1b56-264e-4336-83be-dc1fe79bfdcf",
+      "name": "Smoldering Marsh",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {B} or {R}.) This land enters tapped unless you control two or more basic lands.\""
+      }
+    },
+    {
+      "oracleId": "027dd013-baa7-4111-b3c9-f4d1414e9c45",
+      "name": "Glacial Fortress",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Plains or an Island.\""
+      }
+    },
+    {
+      "oracleId": "fb5a3403-7f0b-406c-8c4f-d693be010ca6",
+      "name": "Hinterland Harbor",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Forest or an Island.\""
+      }
+    },
+    {
+      "oracleId": "0fd114c4-092b-4e28-b0dc-ef529f3bc73e",
+      "name": "Jeska's Will",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"If you control a commander as you cast this spell, you may choose both instead. • Add {R} for each card in target opponent's hand.\""
+      }
+    },
+    {
+      "oracleId": "dcb7e046-f01b-497c-88e5-57794eb30ce5",
+      "name": "Canopy Vista",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {G} or {W}.) This land enters tapped unless you control two or more basic lands.\""
+      }
+    },
+    {
+      "oracleId": "0d4ecdb1-ec90-497f-a7a4-1c68092b8757",
+      "name": "Teferi's Protection",
+      "facts": {
+        "zones": [
+          "exile"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Until your next turn, your life total can't change and you gain protection from everything. All permanents you control phase out.\""
+      }
+    },
+    {
+      "oracleId": "5330e24a-8568-446e-840a-594cd08bd1bc",
+      "name": "Prairie Stream",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"({T}: Add {W} or {U}.) This land enters tapped unless you control two or more basic lands.\""
+      }
+    },
+    {
+      "oracleId": "e3afc704-220f-498f-9eaa-0821b17dc24c",
+      "name": "Sakura-Tribe Elder",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Sacrifice this creature: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "30b24e8e-3b0e-4d8e-90f3-f66eb7c1858c",
+      "name": "Eternal Witness",
+      "facts": {
+        "zones": [
+          "hand",
+          "graveyard",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, you may return target card from your graveyard to your hand.\""
+      }
+    },
+    {
+      "oracleId": "ededbdae-d9dc-4206-9335-d7158f2d7700",
+      "name": "Vampiric Tutor",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a card, then shuffle and put that card on top. You lose 2 life.\""
+      }
+    },
+    {
+      "oracleId": "819fc966-434e-470f-91e9-a38df974ad17",
+      "name": "Drowned Catacomb",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control an Island or a Swamp.\""
+      }
+    },
+    {
+      "oracleId": "0456ec64-2c81-4763-a352-8ff64a4c3d6b",
+      "name": "Deadly Rollick",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"If you control a commander, you may cast this spell without paying its mana cost. Exile target creature.\""
+      }
+    },
+    {
+      "oracleId": "89ca686a-7c72-4d8f-9290-e89635624a83",
+      "name": "Cavern of Souls",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"As this land enters, choose a creature type. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.\""
+      }
+    },
+    {
+      "oracleId": "c9fe1383-1331-4a58-a45a-3320250221a9",
+      "name": "Woodland Cemetery",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Swamp or a Forest.\""
+      }
+    },
+    {
+      "oracleId": "74d3277a-38e5-4732-afed-084a56148f20",
+      "name": "Mana Drain",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target spell. At the beginning of your next main phase, add an amount of {C} equal to that spell's mana value.\""
+      }
+    },
+    {
+      "oracleId": "31f15274-301b-47c5-ba19-0ced04520878",
+      "name": "Wayfarer's Bauble",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{2}, {T}, Sacrifice this artifact: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "4c6a0c30-b547-4eff-8ff4-0ca25803c076",
+      "name": "Urza's Saga",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.) I — This Saga gains \"{T}: Add {C}.\" II — This Saga gains \"{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact \""
+      }
+    },
+    {
+      "oracleId": "c5229c17-b7be-4b05-b683-f2277edc4849",
+      "name": "Enlightened Tutor",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.\""
+      }
+    },
+    {
+      "oracleId": "ac10d218-f9a6-4058-9cda-a15ca1b0b7b5",
+      "name": "Assassin's Trophy",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Destroy target permanent an opponent controls. Its controller may search their library for a basic land card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "240e85d3-e495-4877-8609-4b4056c402f7",
+      "name": "Victimize",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Choose two target creature cards in your graveyard. If you do, return the chosen cards to the battlefield tapped.\""
+      }
+    },
+    {
+      "oracleId": "9516c4c1-d72d-434f-97e1-6a862434a169",
+      "name": "Rootbound Crag",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Mountain or a Forest.\""
+      }
+    },
+    {
+      "oracleId": "3640c29b-1534-4952-b297-619ade948431",
+      "name": "Roaming Throne",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Ward {2} As this creature enters, choose a creature type. If a triggered ability of another creature you control of the chosen type triggers, it triggers an additional time.\""
+      }
+    },
+    {
+      "oracleId": "402ec768-76fb-474e-ae74-babc90d833c4",
+      "name": "Sunpetal Grove",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you control a Forest or a Plains.\""
+      }
+    },
+    {
+      "oracleId": "bd004c9d-771e-4e63-a97d-a2259c096af8",
+      "name": "Morphic Pool",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "c02c5547-b9c9-4b2d-9d12-e87bfba8f2d2",
+      "name": "Herald's Horn",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"As this artifact enters, choose a creature type. Creature spells you cast of the chosen type cost {1} less to cast.\""
+      }
+    },
+    {
+      "oracleId": "02090581-61aa-4348-ad57-451be8ee91c2",
+      "name": "Ponder",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Look at the top three cards of your library, then put them back in any order. You may shuffle.\""
+      }
+    },
+    {
+      "oracleId": "ec3d4466-547c-4e02-b1b5-a156ec4637e9",
+      "name": "Chrome Mox",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Imprint — When this artifact enters, you may exile a nonartifact, nonland card from your hand.\""
+      }
+    },
+    {
+      "oracleId": "d1620449-930a-4895-a143-fd2a0a3c8b17",
+      "name": "Rejuvenating Springs",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "fb81f95c-70f8-4eb7-8d15-15d0ae23ec03",
+      "name": "Mystical Tutor",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.\""
+      }
+    },
+    {
+      "oracleId": "e3570ac7-c593-40e3-bbd6-ec3da6d8158d",
+      "name": "Training Center",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "08becc07-28bc-4a2f-a6b0-28a2998d2f50",
+      "name": "Windfall",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.\""
+      }
+    },
+    {
+      "oracleId": "078def07-ae5d-4591-8db6-d156834aab97",
+      "name": "Etali, Primal Storm",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.\""
+      }
+    },
+    {
+      "oracleId": "5e62b51d-faec-4aa0-9504-cf2c282d08ea",
+      "name": "Rakdos Charm",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "target-player",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Choose one — • Exile target player's graveyard. • Destroy target artifact.\""
+      }
+    },
+    {
+      "oracleId": "f1c2dbe2-fbe0-4058-bdf1-91d1b1832786",
+      "name": "Dauthi Voidwalker",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Shadow (This creature can block or be blocked by only creatures with shadow.) If a card would be put into an opponent's graveyard from anywhere, instead exile it with a void counter on it. {T}, Sacrifice this creature: Choose an exiled card an opponent owns wi\""
+      }
+    },
+    {
+      "oracleId": "1d67f5ff-1fce-45e5-b6a1-416c569351e2",
+      "name": "Gitaxian Probe",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"({U/P} can be paid with either {U} or 2 life.) Look at target player's hand.\""
+      }
+    },
+    {
+      "oracleId": "727f3201-1cfc-4ab2-9dfe-be4f7251f42f",
+      "name": "Boggart Trawler // Boggart Bog",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, exile target player's graveyard. // As this land enters, you may pay 3 life.\""
+      }
+    },
+    {
+      "oracleId": "d5ea905b-4bb6-48d0-9082-c472703db550",
+      "name": "Bloodchief Ascension",
+      "facts": {
+        "zones": [
+          "graveyard"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"At the beginning of each end step, if an opponent lost 2 or more life this turn, you may put a quest counter on this enchantment. (Damage causes loss of life.) Whenever a card is put into an opponent's graveyard from anywhere, if this enchantment has three or \""
+      }
+    },
+    {
+      "oracleId": "63afc3d1-7653-476e-838f-fc18d4a62a21",
+      "name": "Mishra's Bauble",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this artifact: Look at the top card of target player's library.\""
+      }
+    },
+    {
+      "oracleId": "1b5e6560-ff2e-4475-96cb-63f64c8a86db",
+      "name": "Soul-Guide Lantern",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this artifact enters, exile target card from a graveyard. {T}, Sacrifice this artifact: Exile each opponent's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "cae3ec72-436d-4086-9dcb-17b3d92ad5c4",
+      "name": "Valgavoth, Terror Eater",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"If a card you didn't control would be put into an opponent's graveyard from anywhere, exile it instead. During your turn, you may play cards exiled with Valgavoth.\""
+      }
+    },
+    {
+      "oracleId": "6d56aeb1-0a50-46b6-abdb-cd6575a98dc3",
+      "name": "Praetor's Grasp",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search target opponent's library for a card and exile it face down. Then that player shuffles.\""
+      }
+    },
+    {
+      "oracleId": "1573f7f9-672c-421a-b1ac-3d0d8aea59ca",
+      "name": "Tormod's Crypt",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this artifact: Exile target player's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "d04b6c2c-50fc-464d-9991-230efec70d2b",
+      "name": "Nashi, Moon Sage's Scion",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Ninjutsu {3}{B} ({3}{B}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Nashi deals combat damage to a player, exile the top card of each player's library. Until end of turn, \""
+      }
+    },
+    {
+      "oracleId": "d5be0ff6-39d9-4f9f-a028-e62dc38463f2",
+      "name": "Gonti, Lord of Luxury",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Deathtouch When Gonti enters, look at the top four cards of target opponent's library, exile one of them face down, then put the rest on the bottom of that library in a random order. You may cast that card for as long as it remains exiled, and mana of any type\""
+      }
+    },
+    {
+      "oracleId": "928d977e-cff0-4e0e-83bb-16d73a754f35",
+      "name": "Gix, Yawgmoth Praetor",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever a creature deals combat damage to one of your opponents, its controller may pay 1 life. {4}{B}{B}{B}, Discard X cards: Exile the top X cards of target opponent's library.\""
+      }
+    },
+    {
+      "oracleId": "13cb958f-1e66-4219-901a-ff58275c8475",
+      "name": "Brainstealer Dragon",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying At the beginning of your end step, exile the top card of each opponent's library. You may play those cards for as long as they remain exiled.\""
+      }
+    },
+    {
+      "oracleId": "f5bed085-bb7a-4250-9599-b2a8a95e6b6f",
+      "name": "Lord Skitter, Sewer King",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever another Rat you control enters, exile up to one target card from an opponent's graveyard. At the beginning of combat on your turn, create a 1/1 black Rat creature token with \"This token can't block.\"\""
+      }
+    },
+    {
+      "oracleId": "00e0b103-892c-49b3-836d-867fff197bbd",
+      "name": "Puppeteer Clique",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying When this creature enters, put target creature card from an opponent's graveyard onto the battlefield under your control. At the beginning of your next end step, exile it.\""
+      }
+    },
+    {
+      "oracleId": "93723b12-db34-4047-885e-8606415b1553",
+      "name": "Ashiok, Dream Render",
+      "facts": {
+        "zones": [
+          "library",
+          "graveyard",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "target-player",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Spells and abilities your opponents control can't cause their controller to search their library. −1: Target player mills four cards.\""
+      }
+    },
+    {
+      "oracleId": "515c522f-51d5-4f6d-b9b1-ea3c7f6a378e",
+      "name": "Rousing Refrain",
+      "facts": {
+        "zones": [
+          "hand",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Add {R} for each card in target opponent's hand. Until end of turn, you don't lose this mana as steps and phases end.\""
+      }
+    },
+    {
+      "oracleId": "17dbbca3-ac1c-4d4e-9618-3e66ac3ccd24",
+      "name": "Urza's Bauble",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this artifact: Look at a card at random in target player's hand. You draw a card at the beginning of the next turn's upkeep.\""
+      }
+    },
+    {
+      "oracleId": "6d194882-ca37-49bb-ac9f-a751c53850a8",
+      "name": "Bribery",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search target opponent's library for a creature card and put that card onto the battlefield under your control. Then that player shuffles.\""
+      }
+    },
+    {
+      "oracleId": "7a3e50a5-c163-4c41-b62d-d52c233c55b7",
+      "name": "Dire Fleet Daredevil",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"First strike When this creature enters, exile target instant or sorcery card from an opponent's graveyard. You may cast it this turn, and mana of any type can be spent to cast that spell.\""
+      }
+    },
+    {
+      "oracleId": "aa5e9269-b1db-4bf0-a548-24f999f60e44",
+      "name": "Inevitable Betrayal",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Suspend 3—{1}{U}{U} (Rather than cast this card from your hand, pay {1}{U}{U} and exile it with three time counters on it. At the beginning of your upkeep, remove a time counter.\""
+      }
+    },
+    {
+      "oracleId": "613a8774-165e-4cf6-ad43-124f9ffc9980",
+      "name": "Nautiloid Ship",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying When this Vehicle enters, exile target player's graveyard. Whenever this Vehicle deals combat damage to a player, you may put a creature card exiled with this Vehicle onto the battlefield under your control.\""
+      }
+    },
+    {
+      "oracleId": "5df44b8d-b337-49d8-8427-34253f52cb47",
+      "name": "Decadent Dragon // Expensive Taste",
+      "facts": {
+        "zones": [
+          "library",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"// Exile the top two cards of target opponent's library face down. You may look at and play those cards for as long as they remain exiled.\""
+      }
+    },
+    {
+      "oracleId": "6106ba65-f07b-41ec-8b59-e052bbde5529",
+      "name": "Court of Locthwain",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this enchantment enters, you become the monarch. At the beginning of your upkeep, exile the top card of target opponent's library.\""
+      }
+    },
+    {
+      "oracleId": "f4e32fc1-1b8d-441e-8e76-71f19f98e925",
+      "name": "Leyline of the Void",
+      "facts": {
+        "zones": [
+          "hand",
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"If this card is in your opening hand, you may begin the game with it on the battlefield. If a card would be put into an opponent's graveyard from anywhere, exile it instead.\""
+      }
+    },
+    {
+      "oracleId": "73dad679-1edb-41c9-9d43-56dc93c3e9fe",
+      "name": "Stone of Erech",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "target-player",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"If a creature an opponent controls would die, exile it instead. {2}, {T}, Sacrifice Stone of Erech: Exile target player's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "7f77a84e-5a4b-4834-aefa-3cecc175ae8e",
+      "name": "Jace, the Mind Sculptor",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"+2: Look at the top card of target player's library. You may put that card on the bottom of that player's library.\""
+      }
+    },
+    {
+      "oracleId": "bd7c5a8b-cf62-41e1-a664-b16e3e5d142b",
+      "name": "Laughing Jasper Flint",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Creatures you control but don't own are Mercenaries in addition to their other types. At the beginning of your upkeep, exile the top X cards of target opponent's library, where X is the number of outlaws you control.\""
+      }
+    },
+    {
+      "oracleId": "7aae0a3d-8882-4485-a126-f06ea6593dcb",
+      "name": "Titania's Command",
+      "facts": {
+        "zones": [
+          "library",
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "target-player",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Choose two — • Exile target player's graveyard. You gain 1 life for each card exiled this way.\""
+      }
+    },
+    {
+      "oracleId": "5b7f6cc3-8d4e-42e5-a908-7ebe3bccaf1e",
+      "name": "Canoptek Scarab Swarm",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying Feeder Mandibles — When this creature enters, exile target player's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "e744dbb6-2d56-462a-8d49-d79c73944048",
+      "name": "Portent",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Look at the top three cards of target player's library, then put them back in any order. You may have that player shuffle.\""
+      }
+    },
+    {
+      "oracleId": "aee82122-d13e-4175-b499-9dde718e4da9",
+      "name": "Siphon Insight",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Look at the top two cards of target opponent's library. Exile one of them face down and put the other on the bottom of that library.\""
+      }
+    },
+    {
+      "oracleId": "48d14b5c-711a-4f8a-9de5-55415cb7a79a",
+      "name": "Angel of Finality",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying When this creature enters, exile target player's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "fe5690d3-547b-4ce9-8e94-77fdc0e9c5c6",
+      "name": "Kefka, Dancing Mad",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "each-player",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"During your turn, Kefka has indestructible. At the beginning of your end step, exile a card at random from each opponent's graveyard.\""
+      }
+    },
+    {
+      "oracleId": "467c526a-02a7-405d-98de-c632ea83519b",
+      "name": "You Find Some Prisoners",
+      "facts": {
+        "zones": [
+          "library",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Choose one — • Break Their Chains — Destroy target artifact. • Interrogate Them — Exile the top three cards of target opponent's library.\""
+      }
+    },
+    {
+      "oracleId": "6807167a-e290-4259-940e-3cbbfa75d0a1",
+      "name": "Stolen Strategy",
+      "facts": {
+        "zones": [
+          "library",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"At the beginning of your upkeep, exile the top card of each opponent's library. Until end of turn, you may cast spells from among those exiled cards, and you may spend mana as though it were mana of any color to cast those spells.\""
+      }
+    },
+    {
+      "oracleId": "cfb23c6b-6e4a-4fc9-b3bb-a3ddc2ba06b8",
+      "name": "Captain N'ghathrod",
+      "facts": {
+        "zones": [
+          "library",
+          "graveyard",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-player",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Horrors you control have menace. Whenever a Horror you control deals combat damage to a player, that player mills that many cards.\""
+      }
+    },
+    {
+      "oracleId": "ce00e0d0-c6f4-4fe8-97c3-7279b06d8fdb",
+      "name": "Crypt Incursion",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Exile all creature cards from target player's graveyard. You gain 3 life for each card exiled this way.\""
+      }
+    },
+    {
+      "oracleId": "819e1765-8325-4e6f-89c1-63ea86de369f",
+      "name": "Luxury Suite",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "672e190d-8ea0-4a2e-b74f-5d35304631e4",
+      "name": "Sea of Clouds",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "ebc5ac83-08d4-4d6b-b840-0c4ba71a38ab",
+      "name": "Vault of Champions",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "cf6d10ed-85c3-48f2-8ba0-2960e03b408b",
+      "name": "Spectator Seating",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "7c69f718-acc8-4851-8e5d-0cbaaa86192c",
+      "name": "Undergrowth Stadium",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "bcc6eece-75ea-494c-b33a-d4477d504e0b",
+      "name": "Sink into Stupor // Soporific Springs",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "each-opponent",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return target spell or nonland permanent an opponent controls to its owner's hand. // As this land enters, you may pay 3 life.\""
+      }
+    },
+    {
+      "oracleId": "9242cd3e-1a71-4700-8182-9c1005616033",
+      "name": "Impact Tremors",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever a creature you control enters, this enchantment deals 1 damage to each opponent.\""
+      }
+    },
+    {
+      "oracleId": "45fe016e-1a09-410c-bbe3-4663ba06c5b7",
+      "name": "Spire Garden",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "761cb262-f83b-4a99-9345-b773182a7671",
+      "name": "Bountiful Promenade",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped unless you have two or more opponents.\""
+      }
+    },
+    {
+      "oracleId": "04152e7a-969c-4858-841b-0a569a9fc1bf",
+      "name": "Professional Face-Breaker",
+      "facts": {
+        "zones": [
+          "library",
+          "exile"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Menace Whenever one or more creatures you control deal combat damage to a player, create a Treasure token. Sacrifice a Treasure: Exile the top card of your library.\""
+      }
+    },
+    {
+      "oracleId": "38f3b157-0df4-409b-89cc-086e1531cd5b",
+      "name": "Gray Merchant of Asphodel",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, each opponent loses X life, where X is your devotion to black. You gain life equal to the life lost this way.\""
+      }
+    },
+    {
+      "oracleId": "14c3ff84-1e82-4606-a433-869fc52cc382",
+      "name": "Syr Konrad, the Grim",
+      "facts": {
+        "zones": [
+          "library",
+          "graveyard",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-player",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1 damage to each opponent. {1}{B}: Each player mills a card.\""
+      }
+    },
+    {
+      "oracleId": "ea5103f5-27e0-4eb1-902c-7f34652d6bf3",
+      "name": "Orcish Bowmasters",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flash When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, this creature deals 1 damage to any target.\""
+      }
+    },
+    {
+      "oracleId": "2bd111bb-ce02-414c-b5b7-e0e037d8d96b",
+      "name": "Bolas's Citadel",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"You may look at the top card of your library any time. You may play lands and cast spells from the top of your library.\""
+      }
+    },
+    {
+      "oracleId": "37108cd4-bbab-4ce3-9ed6-f60e8422e703",
+      "name": "Ragavan, Nimble Pilferer",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-player",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card.\""
+      }
+    },
+    {
+      "oracleId": "0355249a-8e4e-41db-9cea-1b901faffbe6",
+      "name": "Witch Enchanter // Witch-Blessed Meadow",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, destroy target artifact or enchantment an opponent controls. // As this land enters, you may pay 3 life.\""
+      }
+    },
+    {
+      "oracleId": "c7f33cea-2ec8-4081-9208-a5b1d86721b3",
+      "name": "Bastion of Remembrance",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this enchantment enters, create a 1/1 white Human Soldier creature token. Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.\""
+      }
+    },
+    {
+      "oracleId": "b3d81980-76f2-44e2-b1c9-01e30c726312",
+      "name": "Loran of the Third Path",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Vigilance When Loran enters, destroy up to one target artifact or enchantment. {T}: You and target opponent each draw a card.\""
+      }
+    },
+    {
+      "oracleId": "55f3c721-e13a-406e-bc8e-d6cdc91ac477",
+      "name": "Authority of the Consuls",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Creatures your opponents control enter tapped. Whenever a creature an opponent controls enters, you gain 1 life.\""
+      }
+    },
+    {
+      "oracleId": "d2d9ecea-7925-420e-98b9-2f87f41f387c",
+      "name": "Land Tax",
+      "facts": {
+        "zones": [
+          "library",
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "93953926-a644-49bb-9b5a-4c8f19114c7e",
+      "name": "Demolition Field",
+      "facts": {
+        "zones": [
+          "library",
+          "battlefield"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"{2}, {T}, Sacrifice this land: Destroy target nonbasic land an opponent controls. That land's controller may search their library for a basic land card, put it onto the battlefield, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "2876e74f-a242-4995-9702-0b737a1ab67a",
+      "name": "Psychosis Crawler",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Psychosis Crawler's power and toughness are each equal to the number of cards in your hand. Whenever you draw a card, each opponent loses 1 life.\""
+      }
+    },
+    {
+      "oracleId": "d8ad23a1-0b43-48ea-9fbe-d89b29194509",
+      "name": "Accursed Marauder",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, each player sacrifices a nontoken creature of their choice.\""
+      }
+    },
+    {
+      "oracleId": "9e6a3df4-67a3-452e-a6ef-f04dbadb21ef",
+      "name": "Living Death",
+      "facts": {
+        "zones": [
+          "graveyard",
+          "battlefield",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "each-player",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Each player exiles all creature cards from their graveyard, then sacrifices all creatures they control, then puts all cards they exiled this way onto the battlefield.\""
+      }
+    },
+    {
+      "oracleId": "5d998c09-7d89-4265-ada4-6d80cbf56dae",
+      "name": "Blind Obedience",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Extort (Whenever you cast a spell, you may pay {W/B}. If you do, each opponent loses 1 life and you gain that much life.) Artifacts and creatures your opponents control enter tapped.\""
+      }
+    },
+    {
+      "oracleId": "127de52b-df75-4342-95a0-20d84c5bf916",
+      "name": "The Meathook Massacre",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"When The Meathook Massacre enters, each creature gets -X/-X until end of turn. Whenever a creature you control dies, each opponent loses 1 life.\""
+      }
+    },
+    {
+      "oracleId": "81c70ae7-3c18-4c9b-8505-e4db9e0e6518",
+      "name": "Wishclaw Talisman",
+      "facts": {
+        "zones": [
+          "library",
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"This artifact enters with three wish counters on it. {1}, {T}, Remove a wish counter from this artifact: Search your library for a card, put it into your hand, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "f8e17f4f-080d-4bba-bd05-ca27e94ccecc",
+      "name": "Terror of the Peaks",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "each-opponent"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flying Spells your opponents cast that target this creature cost an additional 3 life to cast. Whenever another creature you control enters, this creature deals damage equal to that creature's power to any target.\""
+      }
+    },
+    {
+      "oracleId": "93cf50cf-0ecc-4d3e-abea-778c1ebacec4",
+      "name": "Massacre Wurm",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "each-opponent",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"When this creature enters, creatures your opponents control get -2/-2 until end of turn. Whenever a creature an opponent controls dies, that player loses 2 life.\""
+      }
+    },
+    {
+      "oracleId": "6cf50e21-0f60-4e9a-b910-ebe1bad2a29e",
+      "name": "Blasphemous Edict",
+      "facts": {
+        "zones": [
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"You may pay {B} rather than pay this spell's mana cost if there are thirteen or more creatures on the battlefield. Each player sacrifices thirteen creatures of their choice.\""
+      }
+    },
+    {
+      "oracleId": "7e8c2a18-e404-40ff-a9e0-ec3eeb6d576e",
+      "name": "Command Beacon",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield",
+          "command"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"{T}, Sacrifice this land: Put your commander into your hand from the command zone.\""
+      }
+    },
+    {
+      "oracleId": "956381ba-6d37-4a8a-846c-bad79222dbee",
+      "name": "Force of Will",
+      "facts": {
+        "zones": [
+          "hand",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost. Counter target spell.\""
+      }
+    },
+    {
+      "oracleId": "13575cf9-65c1-4861-b21e-eb2155e07766",
+      "name": "Sensei's Divining Top",
+      "facts": {
+        "zones": [
+          "library"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"{1}: Look at the top three cards of your library, then put them back in any order. {T}: Draw a card, then put this artifact on top of its owner's library.\""
+      }
+    },
+    {
+      "oracleId": "1b388371-f9ef-45b4-82a3-ca20a8cd7807",
+      "name": "Dovin's Veto",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"This spell can't be countered. Counter target noncreature spell.\""
+      }
+    },
+    {
+      "oracleId": "ac2173f9-f223-440a-9231-fd98762bdc6f",
+      "name": "Force of Negation",
+      "facts": {
+        "zones": [
+          "hand",
+          "graveyard",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"If it's not your turn, you may exile a blue card from your hand rather than pay this spell's mana cost. Counter target noncreature spell.\""
+      }
+    },
+    {
+      "oracleId": "d4a84e78-d9b9-4c67-8a4b-4329e65f0f15",
+      "name": "Hullbreaker Horror",
+      "facts": {
+        "zones": [
+          "hand",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Flash This spell can't be countered. Whenever you cast a spell, choose up to one — • Return target spell you don't control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "ac914d98-221e-426c-8a50-342896b15f9e",
+      "name": "Snap",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return target creature to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "046f5783-cc7b-416a-8cf6-2bcef9c2cc1a",
+      "name": "Simic Growth Chamber",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "7c779721-cd1b-4696-9ae9-68ccc284ed2a",
+      "name": "Aetherize",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return all attacking creatures to their owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "86bf58f2-7f25-4e10-b797-25e0e8e67769",
+      "name": "Flusterstorm",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target instant or sorcery spell unless its controller pays {1}. Storm (When you cast this spell, copy it for each spell cast before it this turn.\""
+      }
+    },
+    {
+      "oracleId": "1b301478-b14f-4ef8-94e6-9647d582eabe",
+      "name": "Golgari Rot Farm",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "378a1d57-e2f1-4b84-9692-1564602e9e99",
+      "name": "Dimir Aqueduct",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "f3e213a4-ba5a-468a-93b3-c0a34e1bd725",
+      "name": "Pact of Negation",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Counter target spell. At the beginning of your next upkeep, pay {3}{U}{U}.\""
+      }
+    },
+    {
+      "oracleId": "aa00ae0b-7c0f-427e-8102-ce0e2a6af5df",
+      "name": "Orzhov Basilica",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "1cb9d94a-3039-4f2e-8fcc-6996f9a45f74",
+      "name": "Izzet Boilerworks",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "657243dd-e479-4f4b-99d2-09b55d833a35",
+      "name": "Gruul Turf",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "189fc8f4-17ac-4f1d-82c8-8401445bdaf4",
+      "name": "Azorius Chancery",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "0fd57894-b917-41c8-a394-360d1d31b236",
+      "name": "Ephemerate",
+      "facts": {
+        "zones": [
+          "hand",
+          "battlefield",
+          "exile",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": true,
+        "playerScopes": [
+          "you",
+          "owner",
+          "controller"
+        ],
+        "uncertain": [],
+        "rationale": "\"Exile target creature you control, then return it to the battlefield under its owner's control. Rebound (If you cast this spell from your hand, exile it as it resolves.\""
+      }
+    },
+    {
+      "oracleId": "1a0770e6-b093-4439-baff-6889a50ba12e",
+      "name": "Mental Misstep",
+      "facts": {
+        "zones": [
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"({U/P} can be paid with either {U} or 2 life.) Counter target spell with mana value 1.\""
+      }
+    },
+    {
+      "oracleId": "ecc435e2-deb1-420a-a79f-01dd08747314",
+      "name": "Pyroblast",
+      "facts": {
+        "zones": [
+          "battlefield",
+          "stack"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "\"Choose one — • Counter target spell if it's blue. • Destroy target permanent if it's blue.\""
+      }
+    },
+    {
+      "oracleId": "e6e4a8bd-5c40-4654-8de1-0da9afed90fd",
+      "name": "Regrowth",
+      "facts": {
+        "zones": [
+          "hand",
+          "graveyard"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return target card from your graveyard to your hand.\""
+      }
+    },
+    {
+      "oracleId": "gold-fallback:agonizing-remorse",
+      "name": "Agonizing Remorse",
+      "facts": {
+        "zones": [
+          "hand",
+          "graveyard",
+          "exile"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Target opponent reveals their hand. You choose a nonland card from it or a card from their graveyard.\""
+      }
+    },
+    {
+      "oracleId": "cd0d7141-46d2-4aa3-bc77-6b3b4513803e",
+      "name": "Control Magic",
+      "facts": {
+        "zones": [],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Enchant creature You control enchanted creature.\""
+      }
+    },
+    {
+      "oracleId": "dc4a4996-108a-4aac-850f-2d9f76403446",
+      "name": "Boomerang",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": true,
+        "refersToController": false,
+        "playerScopes": [
+          "owner"
+        ],
+        "uncertain": [],
+        "rationale": "\"Return target permanent to its owner's hand.\""
+      }
+    },
+    {
+      "oracleId": "3754dce0-3e97-406f-8807-a4942a222c41",
+      "name": "Gaea's Anthem",
+      "facts": {
+        "zones": [],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": true,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Creatures you control get +1/+1.\""
+      }
+    },
+    {
+      "oracleId": "gold-fallback:grizzly-bears",
+      "name": "Grizzly Bears",
+      "facts": {
+        "zones": [],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [],
+        "uncertain": [],
+        "rationale": "No rules text."
+      }
+    },
+    {
+      "oracleId": "abc37d6c-6300-47b5-a679-9db5b83eb54f",
+      "name": "Syphon Mind",
+      "facts": {
+        "zones": [],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "each-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Each other player discards a card. You draw a card for each card discarded this way.\""
+      }
+    },
+    {
+      "oracleId": "299fc083-0834-4064-8344-f895aff68867",
+      "name": "Entomb",
+      "facts": {
+        "zones": [
+          "library",
+          "graveyard"
+        ],
+        "crossPlayer": false,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you"
+        ],
+        "uncertain": [],
+        "rationale": "\"Search your library for a card, put that card into your graveyard, then shuffle.\""
+      }
+    },
+    {
+      "oracleId": "edd8d1e8-be43-4c38-bb3a-83081fbaf0b5",
+      "name": "Thoughtseize",
+      "facts": {
+        "zones": [
+          "hand"
+        ],
+        "crossPlayer": true,
+        "refersToOwner": false,
+        "refersToController": false,
+        "playerScopes": [
+          "you",
+          "target-player"
+        ],
+        "uncertain": [],
+        "rationale": "\"Target player reveals their hand. You choose a nonland card from it.\""
+      }
+    }
+  ]
+}
