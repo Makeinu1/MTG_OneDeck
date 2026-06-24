@@ -406,18 +406,22 @@ KPI 対応(method §4):**主指標**= `familyDiscrepancyRate`/`observerDiscrepan
 ## 8.2 盲予測 prompt(Codex clean-room → `research/zone-oracle/predictions.json`)
 `sample.json` の各カードを下記 prompt **のみ**で推論。`zoneClassify.ts`・`zone-coverage` 出力・engine 出力を参照しない。
 
-> You are reading a Magic: The Gathering card's English oracle text. Identify which **game zones** and which **players** the card's text reads from or writes to. Resolve pronouns ("their", "its", "that player") to whoever they refer to.
+> You are reading a Magic: The Gathering card's English oracle text. Identify which **game zones** and which **players** the card's text reads from or writes to. Resolve pronouns ("their", "its", "that player") to whoever they refer to. If the card has **multiple faces** (MDFC / split / transform), read **all faces** and report the union.
 > Answer the following. **Prefer listing a key under `uncertain` over guessing** when genuinely ambiguous. Give a one-line `rationale` quoting the relevant text.
 >
 > 1. `zones` — the set of zones the text refers to, moves cards between, or searches. Choose from:
->    `library`, `hand`, `graveyard`, `battlefield` (incl. a permanent "enters" / "dies" / is "destroyed" / put "onto the battlefield"), `exile`, `command` (the command zone), `stack` (a spell/ability on the stack, "counter target spell").
-> 2. `crossPlayer` — `true` if the text reads or writes a zone belonging to a player **other than you** (e.g. "an opponent's graveyard", "target player's hand", "each player's library", "their hand" where *their* = an opponent or another player). `false` if every zone touched is yours or an unowned shared zone (battlefield/exile/stack with no other-player owner). **Resolve "their/that player's" to decide.**
-> 3. `refersToOwner` — does the text reference a card's **owner** (e.g. "its owner's hand", "return it to its owner", "owned by")? `true`/`false`.
-> 4. `refersToController` — does the text reference who **controls** an object (e.g. "you control", "gain control of", "an opponent controls", "its controller")? `true`/`false`.
+>    `library`, `hand`, `graveyard`, `battlefield` (a permanent "enters" / is "destroyed" / "exile/return/destroy target <permanent>" from the battlefield / put "onto the battlefield" / a token is "created"), `exile`, `command` (the command zone), `stack`.
+>    **`stack` ONLY for an explicit operation on a spell/ability already on the stack**: "counter target spell", "return target spell from the stack", "copy target spell". **Do NOT mark `stack` merely because the card lets you _cast_ or _play_ a card, says a spell "can't be countered", or reduces a cast cost** — casting is a separate event, not a zone reference.
+> 2. `crossPlayer` — `true` if the text reads or writes a zone belonging to a player **other than you** (e.g. "an opponent's graveyard", "target player's hand", "each player's library", "their hand"/"its owner's hand" where the referent is an opponent or another player). `false` if every zone touched is yours or an unowned shared zone (battlefield/exile/stack with no other-player owner). **Resolve "their / that player's / its owner's" to decide.**
+> 3. `refersToOwner` — does the text reference a card's **owner** (e.g. "its owner's hand", "an opponent owns", "owned by", "return it to its owner")? `true`/`false`.
+> 4. `refersToController` — does the text reference who **controls** an object (e.g. "you control", "creatures you control", "gain control of", "under your control", "its controller")? `true`/`false`.
 > 5. `playerScopes` — which players the text references (a set). Choose from:
->    `you` (you/your), `target-player` ("target player"/"target opponent"), `each-opponent` ("an/each opponent", "opponents"), `each-player` ("each player"/"a player", "each other player"), `owner` (a card's owner), `controller` (an object's controller), `unknown` (a player is referenced but genuinely unresolved).
+>    `you` (you/your, **incl. "<X> you control"**), `target-player` ("target player"/"target opponent"), `each-opponent` ("an/each opponent", "opponents"), `each-player` ("each player"/"a player"/"each other player" — the **subject** performing an action), `owner` (a card's owner), `controller` (an object's **indefinite** controller, i.e. "its/their controller" — **NOT** "you control"), `unknown` (a player is referenced but genuinely unresolved → prefer `uncertain`).
+>    The **subject** of an action determines its scope; a recipient/object ("deals damage to an opponent") is not by itself a subject scope.
 >
 > **Do not mention comprehensive-rules numbers or any "zone partition / ontology" model. Resolve pronouns to real players.**
+
+> **v2 改訂(iter2-b・2026-06-24)**: v1(promptHash 82483561)→v2 の差分は (a)`stack` を明示的スタック操作に限定し `cast`/`can't be countered`/コスト減を除外(iter1 oracle21 の cast→stack 過剰の根治)(b)`<X> you control` は `you` scope(`controller` scope は不定 `its/their controller` 専用)(c)MDFC 全 face を読む (d)`uncertain` 促進(検証不能率 0% の過信是正)。**ルール(`zoneClassify.ts`)は iter2-a で凍結済**=本反復で動かす変数は物差し prompt のみ(flip-flop)。
 
 出力 `predictions.json`(LLM 推論=非決定。再生成せずコミット固定):
 ```jsonc
