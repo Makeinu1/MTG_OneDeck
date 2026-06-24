@@ -47,6 +47,7 @@ describe('research/runtime classifier parity', () => {
     expect(CLASSIFIER_PARITY_MAPPINGS.map((mapping) => mapping.eventFamily)).toEqual([
       'enters',
       'dies',
+      'leaves',
       'cast',
       'attacks',
       'draw',

@@ -2,6 +2,12 @@ import { classifyCardRules } from '../data/ruleClassifier';
 import { splitAbilityLines, type AbilityShape } from './grammar/index';
 import type { AbilityKind, GameState } from './types';
 
+const LAND_ENTERS_TRIGGER_PATTERN =
+  /\b(?:when|whenever)\b\s+(?:(?:a|one or more)\s+lands?)\b(?:\s+you control)?\s+enters?\b/i;
+const BATTLEFIELD_TO_GRAVEYARD_PATTERN =
+  /\b(?:is|are)\s+put\s+into\s+(?:a|an|the|your|their|its owner's|an opponent's)?\s*graveyard\s+from\s+the battlefield\b/i;
+const LEAVES_BATTLEFIELD_PATTERN = /\bleaves?\s+the battlefield\b/i;
+
 export interface TriggerCandidate {
   sourceId: string;
   triggerId: string;
@@ -72,14 +78,16 @@ function abilityLineIndexForTrigger(
         case 'trigger.etb-other':
           return /\benters\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
         case 'trigger.death':
-          return /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text);
         case 'trigger.death-other':
+          return /\bdies\b/i.test(text) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(text);
+        case 'trigger.leaves':
+        case 'trigger.leaves-other':
           return (
-            /\b(?:dies|put into (?:a )?graveyard)\b/i.test(text) &&
-            /\b(?:another|other)\b/i.test(text)
+            LEAVES_BATTLEFIELD_PATTERN.test(text) ||
+            BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(text)
           );
         case 'trigger.landfall':
-          return /\bland\b/i.test(text) && /\benters\b/i.test(text);
+          return /\blandfall\b/i.test(text) || LAND_ENTERS_TRIGGER_PATTERN.test(text);
         case 'trigger.upkeep':
           return /\bupkeep\b/i.test(text);
         case 'trigger.end-step':
@@ -180,18 +188,32 @@ export function detectTriggerCandidates(
   if (died.length > 0) {
     sawTriggerEvent = true;
     for (const cardId of died) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.death')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.death', '死亡したとき'),
-      );
+      if (cardHasRuleTag(next, cardId, 'trigger.death')) {
+        addTriggerCandidate(
+          candidates,
+          makeTriggerCandidate(next, cardId, 'trigger.death', '死亡したとき'),
+        );
+      }
+      if (cardHasRuleTag(next, cardId, 'trigger.leaves')) {
+        addTriggerCandidate(
+          candidates,
+          makeTriggerCandidate(next, cardId, 'trigger.leaves', '戦場を離れたとき'),
+        );
+      }
     }
     for (const cardId of next.zones.battlefield) {
-      if (!cardHasRuleTag(next, cardId, 'trigger.death-other')) continue;
-      addTriggerCandidate(
-        candidates,
-        makeTriggerCandidate(next, cardId, 'trigger.death-other', '他の死亡時'),
-      );
+      if (cardHasRuleTag(next, cardId, 'trigger.death-other')) {
+        addTriggerCandidate(
+          candidates,
+          makeTriggerCandidate(next, cardId, 'trigger.death-other', '他の死亡時'),
+        );
+      }
+      if (cardHasRuleTag(next, cardId, 'trigger.leaves-other')) {
+        addTriggerCandidate(
+          candidates,
+          makeTriggerCandidate(next, cardId, 'trigger.leaves-other', '他が戦場を離れたとき'),
+        );
+      }
     }
   }
 

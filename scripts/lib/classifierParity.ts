@@ -31,6 +31,11 @@ export const CLASSIFIER_PARITY_MAPPINGS: readonly ClassifierParityMapping[] = [
     rationale: 'Runtime splits self-death and watcher death triggers.',
   },
   {
+    eventFamily: 'leaves',
+    runtimeTagIds: ['trigger.leaves', 'trigger.leaves-other'],
+    rationale: 'Runtime splits self and watcher leaves-the-battlefield triggers (CR 603.6c).',
+  },
+  {
     eventFamily: 'cast',
     runtimeTagIds: ['trigger.cast', 'trigger.cast-watcher'],
     rationale: 'Runtime splits spell-local and battlefield watcher cast triggers.',
@@ -67,7 +72,7 @@ export const CLASSIFIER_PARITY_ALLOWANCES: readonly ClassifierParityAllowance[] 
   },
   {
     axis: 'unmapped event families',
-    researchSide: 'leaves, zone, blocks, discard, tap, counter, life, other',
+    researchSide: 'zone, blocks, discard, tap, counter, life, other',
     runtimeSide: 'no corresponding trigger tags',
     rationale: 'Runtime has no same-granularity trigger tag for these families.',
   },

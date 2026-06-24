@@ -12,13 +12,22 @@
 | Slice3 `zoneClassify` draw/discard/dies | 121.1 / 701.9a / 700.4 | ✅ 準拠 | iter3-a で導入・CR 一致 |
 | Slice2 `eventClassify` dies/leaves | 700.4 | ✅ 準拠 | dies=creature 限定・非creature の戦場→墓地は `leaves` と弁別(iter3 ESO 裁定済) |
 | Slice1 `layerClassify` | 613 | ✅ 準拠方向 | 層は CR613 と1対1。本監査での新規違反なし |
-| **runtime `triggers.ts` `trigger.death`** | **700.4** | **🔴 違反(既知・parity 追跡済・未修正)** | 下記 |
-| **runtime `triggers.ts` `trigger.landfall`** | 401/603 | **🟡 緩い** | 下記 |
+| **runtime `ruleClassifier.ts`/`triggers.ts` `trigger.death`** | **700.4 / 603.6c** | **🔴 違反→修正済** | 非クリーチャーの戦場→墓地を `trigger.death` と誤分類。`trigger.leaves`/`-other` を新設し death を creature/PW 限定へ(下記)。dies parity 14.23%→6.20% |
+| **runtime `trigger.landfall`** | 401/603 | **🟡 緩い→精密化済** | `a land (you control) enters` を要求し ETB 土地サーチ誤検出を抑制(下記) |
 | runtime SBA(状況起因処理) | 704 | ⚪ 不在(設計) | サンドボックス哲学=ルール非強制。M-CONTRACT 後の S-SBA で実装(既知欠落・バグでない) |
 | runtime owner/controller フィールド | 108.4 / 110 | ⚪ 不在(設計) | `CardInstance` に owner/controller なし=Slice3 が今モデリング中の構造軸。substrate 未実装(バグでない) |
 | runtime ゾーン分割(プレイヤー別) | 400.1 | ⚪ 不在(設計) | `zones: Record<ZoneId,string[]>` 全体共有。S-ZONES で実装(既知欠落) |
 
-## 🔴 確定した runtime CR 違反: `trigger.death`(`src/engine/triggers.ts:75`)
+## ✅ 修正済: `trigger.death` の CR 準拠化(`src/data/ruleClassifier.ts` / `src/engine/triggers.ts`)
+
+> **2026-06-24 解決**: パリティの母体は `ruleClassifier.ts`(既に `from the battlefield` を要求済)で、真の乖離は
+> 「非クリーチャー permanent の戦場→墓地」を `trigger.death` と誤分類していたこと(CR 700.4 用語集=dies は creature/PW 限定、
+> CR 603.6c=非クリーチャーの戦場→墓地/leaves the battlefield は leaves-the-battlefield 誘発)。
+> `trigger.leaves` / `trigger.leaves-other` を新設し、`trigger.death` / `-other` を creature/PW 主語へ限定。
+> 研究 `eventClassify` の dies/leaves 規則を runtime へミラー。結果: **dies parity 14.23%→6.20%**・leaves(research-only=0)を新規マッピング・
+> card divergence 4.44%→3.49%・golden-replay 13/13 無回帰・機械4点緑。landfall も `a land (you control) enters` へ精密化。
+
+### 当初の所見(参考・修正前)
 
 ```ts
 case 'trigger.death':

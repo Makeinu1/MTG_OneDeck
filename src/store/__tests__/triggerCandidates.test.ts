@@ -219,6 +219,36 @@ describe('trigger candidates', () => {
     ]);
   });
 
+  it('shows leaves candidates for noncreatures moved from battlefield to graveyard', () => {
+    const leaves = makeDef({
+      scryfallId: 'candidate-leaves',
+      printedName: '墓地へ落ちる星',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'Candidate Star',
+          printedName: '墓地へ落ちる星',
+          typeLine: 'Artifact',
+          oracleText:
+            'When Candidate Star is put into a graveyard from the battlefield, draw a card.',
+        },
+      ],
+    });
+    startGameWith([leaves]);
+    const sourceId = findInstanceId(leaves.scryfallId);
+    store().moveCard(sourceId, 'battlefield');
+
+    store().moveCard(sourceId, 'graveyard');
+
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId,
+        triggerId: 'trigger.leaves',
+        label: '戦場を離れたとき: 《墓地へ落ちる星》',
+      },
+    ]);
+  });
+
   it('shows attack candidates for declared attackers and battlefield watchers', () => {
     const attacker = makeDef({
       scryfallId: 'candidate-attack',
@@ -330,6 +360,40 @@ describe('trigger candidates', () => {
         sourceId: watcherId,
         triggerId: 'trigger.death-other',
         label: '他の死亡時: 《Blood Artist》',
+      },
+    ]);
+  });
+
+  it('shows leaves watcher candidates for battlefield permanents', () => {
+    const watcher = makeDef({
+      scryfallId: 'candidate-leaves-watcher',
+      faces: [
+        {
+          name: 'Artifact Watcher',
+          typeLine: 'Creature',
+          oracleText:
+            'Whenever an artifact you control is put into a graveyard from the battlefield, draw a card.',
+        },
+      ],
+    });
+    const artifact = makeDef({
+      scryfallId: 'candidate-leaves-victim',
+      typeLine: 'Artifact',
+      faces: [{ name: 'Departing Artifact', typeLine: 'Artifact' }],
+    });
+    startGameWith([watcher, artifact]);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const artifactId = findInstanceId(artifact.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+    store().moveCard(artifactId, 'battlefield');
+
+    store().moveCard(artifactId, 'graveyard');
+
+    expect(store().triggerCandidates).toEqual([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.leaves-other',
+        label: '他が戦場を離れたとき: 《Artifact Watcher》',
       },
     ]);
   });

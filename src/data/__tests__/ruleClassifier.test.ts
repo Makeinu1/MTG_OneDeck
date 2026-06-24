@@ -164,6 +164,105 @@ describe('classifyCardRules', () => {
     );
   });
 
+  it.each([
+    {
+      name: 'Chromatic Star',
+      typeLine: 'Artifact',
+      oracleText:
+        'When Chromatic Star is put into a graveyard from the battlefield, draw a card.',
+      expected: ['trigger.leaves'],
+      excluded: ['trigger.death', 'trigger.death-other', 'trigger.leaves-other'],
+    },
+    {
+      name: 'Ichor Wellspring',
+      typeLine: 'Artifact',
+      oracleText:
+        'When Ichor Wellspring enters or is put into a graveyard from the battlefield, draw a card.',
+      expected: ['trigger.leaves'],
+      excluded: ['trigger.death', 'trigger.death-other', 'trigger.leaves-other'],
+    },
+    {
+      name: 'Titania, Protector of Argoth',
+      typeLine: 'Legendary Creature — Elemental',
+      oracleText:
+        'Whenever a land you control is put into a graveyard from the battlefield, create a token.',
+      expected: ['trigger.leaves-other'],
+      excluded: ['trigger.death', 'trigger.death-other', 'trigger.leaves'],
+    },
+    {
+      name: 'Marionette',
+      typeLine: 'Creature',
+      oracleText:
+        'Whenever a creature or artifact you control is put into a graveyard from the battlefield, target opponent loses 1 life.',
+      expected: ['trigger.death', 'trigger.death-other', 'trigger.leaves-other'],
+      excluded: ['trigger.leaves'],
+    },
+    {
+      name: 'Grave Pact',
+      typeLine: 'Enchantment',
+      oracleText:
+        'Whenever a creature is put into a graveyard from the battlefield, each other player sacrifices a creature.',
+      expected: ['trigger.death', 'trigger.death-other'],
+      excluded: ['trigger.leaves', 'trigger.leaves-other'],
+    },
+    {
+      name: 'Self Death',
+      typeLine: 'Creature',
+      oracleText: 'When this creature dies, draw a card.',
+      expected: ['trigger.death'],
+      excluded: ['trigger.death-other', 'trigger.leaves', 'trigger.leaves-other'],
+    },
+    {
+      name: 'Test Walker',
+      typeLine: 'Legendary Planeswalker — Test',
+      oracleText:
+        'When Test Walker is put into a graveyard from the battlefield, draw a card.',
+      expected: ['trigger.death'],
+      excluded: ['trigger.death-other', 'trigger.leaves', 'trigger.leaves-other'],
+    },
+  ])(
+    'classifies CR-compliant battlefield departures for $name',
+    ({ name, typeLine, oracleText, expected, excluded }) => {
+      const card = makeCard(name, oracleText, {
+        typeLine,
+        faces: [{ name, typeLine, oracleText }],
+      });
+      const ids = tagIds(card);
+
+      for (const tagId of expected) {
+        expect(ids).toContain(tagId);
+      }
+      for (const tagId of excluded) {
+        expect(ids).not.toContain(tagId);
+      }
+    },
+  );
+
+  it('does not classify non-battlefield graveyard moves as death or leaves triggers', () => {
+    const ids = tagIds(
+      makeCard(
+        'Anywhere Watcher',
+        'Whenever a creature card is put into a graveyard from anywhere, draw a card.',
+      ),
+    );
+
+    expect(ids).not.toContain('trigger.death');
+    expect(ids).not.toContain('trigger.death-other');
+    expect(ids).not.toContain('trigger.leaves');
+    expect(ids).not.toContain('trigger.leaves-other');
+  });
+
+  it('requires a land to be the enters subject for implicit landfall detection', () => {
+    const landfall = makeCard('Evolution Sage', 'Whenever a land enters under your control, proliferate.');
+    const landSearch = makeCard(
+      'Land Searcher',
+      'When this creature enters, search your library for a basic land card.',
+    );
+
+    expect(tagIds(landfall)).toContain('trigger.landfall');
+    expect(tagIds(landSearch)).not.toContain('trigger.landfall');
+  });
+
   it('detects watcher trigger-assist tags from oracle text', () => {
     const nivMizzet = makeCard(
       'Niv-Mizzet, Parun',
