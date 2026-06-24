@@ -87,6 +87,10 @@ export function classifyZonesForLine(line: AbilityLine): CardZoneSummary {
 
 function detectZones(text: string): ZoneId[] {
   const zones = new Set<ZoneId>();
+  const permanentType = String.raw`(?:creatures?|artifacts?|enchantments?|planeswalkers?|lands?|permanents?)`;
+  const specificPermanentType = String.raw`(?:creatures?|artifacts?|enchantments?|planeswalkers?|lands?)`;
+  const targetPermanent = String.raw`\btarget\b(?![^.;]*\bcards?\b[^.;]*\bfrom\b[^.;]*\b(?:librar(?:y|ies)|hands?|graveyards?|exile|command zone)\b)[^.;]*\b${permanentType}\b(?!\s+cards?\b)`;
+  const targetBattlefieldReturn = String.raw`\btarget\b[^.;]*(?:\b${specificPermanentType}\b(?!\s+cards?\b)|\b(?:nonland|noncreature|nontoken) permanents?\b|\bpermanents?\b[^.;]*\b(?:an opponent controls|you (?:do not|don't) control)\b)`;
 
   if (/\blibrar(?:y|ies)\b/i.test(text)) {
     zones.add('library');
@@ -113,17 +117,57 @@ function detectZones(text: string): ZoneId[] {
   if (/\bcounter(?:s|ed|ing)?\b[^.;]*\btarget\b[^.;]*\bspells?\b/i.test(text)) {
     zones.add('stack');
   }
+  if (
+    new RegExp(String.raw`\bdestroy(?:s|ed|ing)?\b[^.;]*\b${permanentType}\b`, 'i').test(
+      text,
+    ) ||
+    new RegExp(String.raw`\bexil(?:e|es|ed|ing)\b[^.;]*${targetPermanent}`, 'i').test(text) ||
+    new RegExp(
+      String.raw`\breturn(?:s|ed|ing)?\b[^.;]*${targetBattlefieldReturn}[^.;]*\bto\b[^.;]*\b(?:hands?|owners?)\b`,
+      'i',
+    ).test(text) ||
+    /\bcreates?\b[^.;]*\btokens?\b/i.test(text)
+  ) {
+    zones.add('battlefield');
+  }
 
   return sortStrings(zones);
 }
 
 function touchesCrossPlayerZone(text: string): boolean {
-  const zone = String.raw`(?:library|hand|graveyard|battlefield|exile|command zone|stack)`;
-  const possessiveScope = String.raw`(?:(?:an|each|target) opponent['’]s|(?:your )?opponents['’]|(?:each|each other|target) player['’]s|(?:other )?players['’])`;
-  return new RegExp(String.raw`\b${possessiveScope}\s+${zone}\b`, 'i').test(text);
+  const zone = String.raw`(?:librar(?:y|ies)|hands?|graveyards?|battlefields?|exile|command zones?|stacks?)`;
+  const directPossessiveScope = String.raw`(?:(?:an|each|target) opponent['’]s|(?:your )?opponents['’]|(?:each|each other|target|that|defending) player['’]s|(?:other )?players['’])`;
+  const nonYouAntecedent = String.raw`(?:target player|that player|each(?: other)? player|a player|(?:an|each|target) opponent|opponents|the owner|its owner|its controller|players)`;
+
+  if (new RegExp(String.raw`\b${directPossessiveScope}\s+${zone}\b`, 'i').test(text)) {
+    return true;
+  }
+
+  if (
+    new RegExp(String.raw`\b${nonYouAntecedent}\b[\s\S]*\btheir\s+${zone}\b`, 'i').test(text)
+  ) {
+    return true;
+  }
+
+  const ownerOrControllerPossessive = String.raw`(?:its (?:owner|controller)['’]s|their (?:owner['’]s|owners['’]))`;
+  const explicitOtherPlayer = String.raw`(?:opponents?|target player|that player|defending player|you (?:do not|don't) control)`;
+  if (
+    new RegExp(
+      String.raw`\b${explicitOtherPlayer}\b[\s\S]*\b${ownerOrControllerPossessive}\s+${zone}\b`,
+      'i',
+    ).test(text)
+  ) {
+    return true;
+  }
+
+  return /\bgraveyards?\b[^.;]*\bfrom anywhere\b/i.test(text);
 }
 
 function hasOwnershipReference(text: string): boolean {
+  return hasOwnerScopeReference(text) || /\bowns?\b|\bowned\b/i.test(text);
+}
+
+function hasOwnerScopeReference(text: string): boolean {
   return /\bowners?\b|owner['’]s|owners['’]/i.test(text);
 }
 
@@ -137,7 +181,7 @@ function detectPlayerScopes(text: string): PlayerScope[] {
   if (/\byou\b|\byour\b|\byours\b/i.test(text)) {
     scopes.add('you');
   }
-  if (/\btarget (?:player|opponent)s?\b/i.test(text)) {
+  if (/\btarget (?:player|opponent)(?:['’]s)?\b/i.test(text)) {
     scopes.add('target-player');
   }
   if (
@@ -150,7 +194,7 @@ function detectPlayerScopes(text: string): PlayerScope[] {
   if (/\b(?:each|each other|a) player\b/i.test(text)) {
     scopes.add('each-player');
   }
-  if (hasOwnershipReference(text)) {
+  if (hasOwnerScopeReference(text)) {
     scopes.add('owner');
   }
   if (/\bcontrollers?\b|\b(?:its|their) controller\b/i.test(text)) {

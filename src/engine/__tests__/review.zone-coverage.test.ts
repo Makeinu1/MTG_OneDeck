@@ -171,6 +171,78 @@ const cases: ReadonlyArray<
     'none',
     ['you'],
   ],
+
+  // ══ iter2-a 回帰 gold(照応 cross FN / battlefield FN / owner≠controller)════════════
+  // ── 照応 cross: 「their hand」= target player の手札(直前 player 参照の照応)─────────
+  [
+    'Thoughtseize',
+    'Sorcery',
+    'Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.',
+    ['hand'],
+    true,
+    'none',
+    ['target-player', 'you'],
+  ],
+  // ── 照応 cross: 「each player ... their hand」= 各プレイヤー(相手含む)の手札 ──────────
+  [
+    'Windfall',
+    'Sorcery',
+    'Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.',
+    ['hand'],
+    true,
+    'none',
+    ['each-player'],
+  ],
+  // ── 照応 cross + owner: 「The owner of target permanent ... their library」+ battlefield ─
+  [
+    'Chaos Warp',
+    'Instant',
+    "The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.",
+    ['battlefield', 'library'],
+    true,
+    'owner',
+    ['owner'],
+  ],
+  // ── battlefield FN: 「Exile target creature」= 戦場起点の除去 + controller ────────────
+  [
+    'Swords to Plowshares',
+    'Instant',
+    'Exile target creature. Its controller gains life equal to its power.',
+    ['battlefield', 'exile'],
+    false,
+    'controller',
+    ['controller'],
+  ],
+  // ── battlefield(token)FN: 「creates two Treasure tokens」+ counter=stack ───────────────
+  [
+    "An Offer You Can't Refuse",
+    'Instant',
+    'Counter target noncreature spell. Its controller creates two Treasure tokens.',
+    ['battlefield', 'stack'],
+    false,
+    'controller',
+    ['controller'],
+  ],
+  // ── owner≠controller=both: 「an opponent owns ... under your control」(明示 owner 語)──
+  [
+    'Brainstealer Dragon',
+    'Creature — Dragon Horror',
+    'Flying\nAt the beginning of your end step, exile the top card of each opponent\'s library. You may play those cards for as long as they remain exiled. If you cast a spell this way, you may spend mana as though it were mana of any color to cast it.\nWhenever a nonland permanent an opponent owns enters the battlefield under your control, they lose life equal to its mana value.',
+    ['battlefield', 'exile', 'library'],
+    true,
+    'both',
+    ['each-opponent', 'you'],
+  ],
+  // ── 照応 cross + both + battlefield: 「you don't control ... to its owner's hand」────────
+  [
+    'Cyclonic Rift',
+    'Instant',
+    "Return target nonland permanent you don't control to its owner's hand.",
+    ['battlefield', 'hand'],
+    true,
+    'both',
+    ['owner', 'you'],
+  ],
 ];
 
 describe('M0-3 ゾーン/プレイヤー分類ゴールド(CR400/108/110)', () => {
