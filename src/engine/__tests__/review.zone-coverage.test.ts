@@ -277,6 +277,20 @@ const cases: ReadonlyArray<
     'none',
     ['you'],
   ],
+
+  // ══ iter3-b CR-truth gold(destroy=CR701.8a / sacrifice=CR701.21a → battlefield+graveyard)══
+  // ── destroy = move from battlefield to owner's graveyard(CR701.8a)───────────────────────
+  ['Doom Blade', 'Instant', 'Destroy target nonblack creature.', ['battlefield', 'graveyard'], false, 'none', []],
+  // ── sacrifice = move from battlefield to owner's graveyard(CR701.21a)─────────────────────
+  [
+    'Fling',
+    'Instant',
+    "As an additional cost to cast this spell, sacrifice a creature.\nFling deals damage equal to the sacrificed creature's power to any target.",
+    ['battlefield', 'graveyard'],
+    false,
+    'none',
+    [],
+  ],
 ];
 
 describe('M0-3 ゾーン/プレイヤー分類ゴールド(CR400/108/110)', () => {

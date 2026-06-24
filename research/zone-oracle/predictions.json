@@ -1,7 +1,7 @@
 {
-  "model": "gpt-5-codex-clean-room-v2",
-  "generatedAt": "2026-06-24T04:44:38.854Z",
-  "promptHash": "e5930f9e78a75beb2f43a920c2c7075f15fbf4e3325f9c6d5633f2d41d7ccca9",
+  "model": "gpt-5-codex-clean-room-v4",
+  "generatedAt": "2026-06-24T11:02:33.782Z",
+  "promptHash": "180d5bcdbe0d6b9800fd6683f37f22db65acfeb84130cc339463902c301a9756",
   "predictions": [
     {
       "oracleId": "c23e5b80-08d2-4e24-9908-fe2aa4f30f6f",
@@ -17,7 +17,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“You have no maximum hand size. {T}: Add {C}.”"
+        "rationale": "\"You have no maximum hand size. {T}: Add {C}.\""
       }
     },
     {
@@ -35,7 +35,7 @@
           "controller"
         ],
         "uncertain": [],
-        "rationale": "“Exile target creature. Its controller gains life equal to its power.”"
+        "rationale": "\"Exile target creature. Its controller gains life equal to its power.\""
       }
     },
     {
@@ -53,7 +53,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped. {T}: Add one mana of any color in your commander's color identity. When that mana is spent to cast a creature spell that shares a creature type with your commander, scry 1. (Look at the top card of your library. You may put that card on the bottom.)”"
+        "rationale": "\"This land enters tapped. {T}: Add one mana of any color in your commander's color identity. When that mana is spent to cast a creature spell that shares a creature type with your commander, scry 1. (Look at the top card of your library. ...\""
       }
     },
     {
@@ -74,7 +74,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -89,7 +89,7 @@
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "“Counter target spell.”"
+        "rationale": "\"Counter target spell.\""
       }
     },
     {
@@ -98,6 +98,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -107,7 +108,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -126,7 +127,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.”"
+        "rationale": "\"Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.\""
       }
     },
     {
@@ -143,22 +144,20 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“You have no maximum hand size. {T}: Add {C}.”"
+        "rationale": "\"You have no maximum hand size. {T}: Add {C}.\""
       }
     },
     {
       "oracleId": "7a2484a9-04fd-41a0-8224-610c1c07ed10",
       "name": "Blasphemous Act",
       "facts": {
-        "zones": [
-          "battlefield"
-        ],
+        "zones": [],
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "“This spell costs {1} less to cast for each creature on the battlefield. Blasphemous Act deals 13 damage to each creature.”"
+        "rationale": "\"This spell costs {1} less to cast for each creature on the battlefield. Blasphemous Act deals 13 damage to each creature.\""
       }
     },
     {
@@ -176,7 +175,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a Plains, Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"Search your library for a Plains, Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -195,7 +194,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped. When this land enters, exile target player's graveyard. {T}: Add {B}.”"
+        "rationale": "\"This land enters tapped. When this land enters, exile target player's graveyard. {T}: Add {B}.\""
       }
     },
     {
@@ -213,7 +212,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -222,6 +221,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -231,7 +231,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped. {T}: Add {C}. {2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"This land enters tapped. {T}: Add {C}. {2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -240,6 +240,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -249,7 +250,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -267,7 +268,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a Forest card, put that card onto the battlefield, then shuffle.”"
+        "rationale": "\"Search your library for a Forest card, put that card onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -287,7 +288,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.”"
+        "rationale": "\"The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.\""
       }
     },
     {
@@ -296,6 +297,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "stack"
         ],
         "crossPlayer": false,
@@ -304,8 +306,10 @@
         "playerScopes": [
           "controller"
         ],
-        "uncertain": [],
-        "rationale": "“Counter target noncreature spell. Its controller creates two Treasure tokens. (They're artifacts with \"{T}, Sacrifice this token: Add one mana of any color.\")”"
+        "uncertain": [
+          "crossPlayer"
+        ],
+        "rationale": "\"Counter target noncreature spell. Its controller creates two Treasure tokens. (They're artifacts with \"{T}, Sacrifice this token: Add one mana of any color.\")\""
       }
     },
     {
@@ -314,6 +318,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -323,7 +328,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -342,7 +347,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.”"
+        "rationale": "\"Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.\""
       }
     },
     {
@@ -362,7 +367,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, you may search your library for a basic land card, put that card onto the battlefield tapped, then shuffle. When this creature dies, you may draw a card.”"
+        "rationale": "\"When this creature enters, you may search your library for a basic land card, put that card onto the battlefield tapped, then shuffle. When this creature dies, you may draw a card.\""
       }
     },
     {
@@ -371,6 +376,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -380,7 +386,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -389,6 +395,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -398,7 +405,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -407,6 +414,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -416,7 +424,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -434,7 +442,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a Forest card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"Search your library for a Forest card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -443,6 +451,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -452,7 +461,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Plains card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Plains card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -461,6 +470,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -470,7 +480,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -479,6 +489,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -488,7 +499,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Forest card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Forest card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -497,6 +508,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -506,7 +518,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -515,6 +527,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -524,7 +537,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -535,17 +548,15 @@
           "battlefield",
           "hand"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": true,
         "refersToController": true,
         "playerScopes": [
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“Return target nonland permanent you don't control to its owner's hand. Overload {6}{U} (You may cast this spell for its overload cost. If you do, change \"target\" in its text to \"each.\")”"
+        "uncertain": [],
+        "rationale": "\"Return target nonland permanent you don't control to its owner's hand. Overload {6}{U} (You may cast this spell for its overload cost. If you do, change \"target\" in its text to \"each.\")\""
       }
     },
     {
@@ -562,7 +573,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {U} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {U} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -571,6 +582,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -580,7 +592,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.”"
+        "rationale": "\"{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.\""
       }
     },
     {
@@ -595,7 +607,7 @@
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "“Counter target noncreature spell.”"
+        "rationale": "\"Counter target noncreature spell.\""
       }
     },
     {
@@ -604,6 +616,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -613,7 +626,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -635,7 +648,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“Counter target spell. Its controller may draw up to two cards at the beginning of the next turn's upkeep. You draw a card at the beginning of the next turn's upkeep.”"
+        "rationale": "\"Counter target spell. Its controller may draw up to two cards at the beginning of the next turn's upkeep. You draw a card at the beginning of the next turn's upkeep.\""
       }
     },
     {
@@ -650,14 +663,12 @@
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
-          "unknown",
           "you"
         ],
         "uncertain": [
-          "crossPlayer",
-          "unknown"
+          "crossPlayer"
         ],
-        "rationale": "“Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.”"
+        "rationale": "\"Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.\""
       }
     },
     {
@@ -675,7 +686,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a card, put that card into your hand, then shuffle.”"
+        "rationale": "\"Search your library for a card, put that card into your hand, then shuffle.\""
       }
     },
     {
@@ -692,7 +703,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {W} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {W} or {B}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -709,7 +720,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {G} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {G} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -726,7 +737,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {W} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {W} or {U}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -743,7 +754,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {U} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {U} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -760,7 +771,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {R} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {R} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -777,7 +788,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {B} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {B} or {R}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -794,7 +805,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {B} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {B} or {G}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -812,7 +823,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Draw three cards, then put two cards from your hand on top of your library in any order.”"
+        "rationale": "\"Draw three cards, then put two cards from your hand on top of your library in any order.\""
       }
     },
     {
@@ -829,8 +840,10 @@
         "playerScopes": [
           "controller"
         ],
-        "uncertain": [],
-        "rationale": "“Counter target enchantment, instant, or sorcery spell. Its controller creates a 2/2 blue Bird creature token with flying.”"
+        "uncertain": [
+          "crossPlayer"
+        ],
+        "rationale": "\"Counter target enchantment, instant, or sorcery spell. Its controller creates a 2/2 blue Bird creature token with flying.\""
       }
     },
     {
@@ -847,7 +860,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {R} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {R} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -868,7 +881,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}: Add {G}. Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a basic land type, put it onto the battlefield, then shuffle. This ability costs {1} less to activate for each legendary creature you control.”"
+        "rationale": "\"{T}: Add {G}. Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a basic land type, put it onto the battlefield, the...\""
       }
     },
     {
@@ -876,7 +889,6 @@
       "name": "Fierce Guardianship",
       "facts": {
         "zones": [
-          "battlefield",
           "stack"
         ],
         "crossPlayer": false,
@@ -886,7 +898,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“If you control a commander, you may cast this spell without paying its mana cost. Counter target noncreature spell.”"
+        "rationale": "\"If you control a commander, you may cast this spell without paying its mana cost. Counter target noncreature spell.\""
       }
     },
     {
@@ -903,7 +915,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {G} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.”"
+        "rationale": "\"({T}: Add {G} or {W}.) As this land enters, you may pay 2 life. If you don't, it enters tapped.\""
       }
     },
     {
@@ -920,7 +932,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control an Island or a Mountain. {T}: Add {U} or {R}.”"
+        "rationale": "\"This land enters tapped unless you control an Island or a Mountain. {T}: Add {U} or {R}.\""
       }
     },
     {
@@ -937,7 +949,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Mountain or a Plains. {T}: Add {R} or {W}.”"
+        "rationale": "\"This land enters tapped unless you control a Mountain or a Plains. {T}: Add {R} or {W}.\""
       }
     },
     {
@@ -954,7 +966,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {U} or {B}.) This land enters tapped unless you control two or more basic lands.”"
+        "rationale": "\"({T}: Add {U} or {B}.) This land enters tapped unless you control two or more basic lands.\""
       }
     },
     {
@@ -971,7 +983,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {R} or {G}.) This land enters tapped unless you control two or more basic lands.”"
+        "rationale": "\"({T}: Add {R} or {G}.) This land enters tapped unless you control two or more basic lands.\""
       }
     },
     {
@@ -988,7 +1000,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Swamp or a Mountain. {T}: Add {B} or {R}.”"
+        "rationale": "\"This land enters tapped unless you control a Swamp or a Mountain. {T}: Add {B} or {R}.\""
       }
     },
     {
@@ -1007,7 +1019,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Indestructible When The One Ring enters, if you cast it, you gain protection from everything until your next turn. At the beginning of your upkeep, you lose 1 life for each burden counter on The One Ring. {T}: Put a burden counter on The One Ring, then draw a card for each burden counter on The One Ring.”"
+        "rationale": "\"Indestructible When The One Ring enters, if you cast it, you gain protection from everything until your next turn. At the beginning of your upkeep, you lose 1 life for each burden counter on The One Ring. {T}: Put a burden counter on The...\""
       }
     },
     {
@@ -1029,7 +1041,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“{T}: Add {U}. Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legendary creature you control.”"
+        "rationale": "\"{T}: Add {U}. Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legendary creature you control.\""
       }
     },
     {
@@ -1048,7 +1060,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this enchantment enters, if you control a creature with power 4 or greater, draw a card. Creatures you control have trample. (Each of those creatures can deal excess combat damage to the player or planeswalker it's attacking.) Whenever a creature you control with power 4 or greater enters, draw a card.”"
+        "rationale": "\"When this enchantment enters, if you control a creature with power 4 or greater, draw a card. Creatures you control have trample. (Each of those creatures can deal excess combat damage to the player or planeswalker it's attacking.) Whene...\""
       }
     },
     {
@@ -1065,7 +1077,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Plains or a Swamp. {T}: Add {W} or {B}.”"
+        "rationale": "\"This land enters tapped unless you control a Plains or a Swamp. {T}: Add {W} or {B}.\""
       }
     },
     {
@@ -1082,7 +1094,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {B} or {R}.) This land enters tapped unless you control two or more basic lands.”"
+        "rationale": "\"({T}: Add {B} or {R}.) This land enters tapped unless you control two or more basic lands.\""
       }
     },
     {
@@ -1099,7 +1111,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Plains or an Island. {T}: Add {W} or {U}.”"
+        "rationale": "\"This land enters tapped unless you control a Plains or an Island. {T}: Add {W} or {U}.\""
       }
     },
     {
@@ -1116,7 +1128,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Forest or an Island. {T}: Add {G} or {U}.”"
+        "rationale": "\"This land enters tapped unless you control a Forest or an Island. {T}: Add {G} or {U}.\""
       }
     },
     {
@@ -1124,7 +1136,6 @@
       "name": "Jeska's Will",
       "facts": {
         "zones": [
-          "battlefield",
           "exile",
           "hand",
           "library"
@@ -1137,7 +1148,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Choose one. If you control a commander as you cast this spell, you may choose both instead. • Add {R} for each card in target opponent's hand. • Exile the top three cards of your library. You may play them this turn.”"
+        "rationale": "\"Choose one. If you control a commander as you cast this spell, you may choose both instead. • Add {R} for each card in target opponent's hand. • Exile the top three cards of your library. You may play them this turn.\""
       }
     },
     {
@@ -1154,7 +1165,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {G} or {W}.) This land enters tapped unless you control two or more basic lands.”"
+        "rationale": "\"({T}: Add {G} or {W}.) This land enters tapped unless you control two or more basic lands.\""
       }
     },
     {
@@ -1172,7 +1183,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Until your next turn, your life total can't change and you gain protection from everything. All permanents you control phase out. (While they're phased out, they're treated as though they don't exist. They phase in before you untap during your untap step.) Exile Teferi's Protection.”"
+        "rationale": "\"Until your next turn, your life total can't change and you gain protection from everything. All permanents you control phase out. (While they're phased out, they're treated as though they don't exist. They phase in before you untap durin...\""
       }
     },
     {
@@ -1189,7 +1200,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“({T}: Add {W} or {U}.) This land enters tapped unless you control two or more basic lands.”"
+        "rationale": "\"({T}: Add {W} or {U}.) This land enters tapped unless you control two or more basic lands.\""
       }
     },
     {
@@ -1198,6 +1209,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -1207,7 +1219,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Sacrifice this creature: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"Sacrifice this creature: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -1226,7 +1238,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, you may return target card from your graveyard to your hand.”"
+        "rationale": "\"When this creature enters, you may return target card from your graveyard to your hand.\""
       }
     },
     {
@@ -1243,7 +1255,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a card, then shuffle and put that card on top. You lose 2 life.”"
+        "rationale": "\"Search your library for a card, then shuffle and put that card on top. You lose 2 life.\""
       }
     },
     {
@@ -1260,7 +1272,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control an Island or a Swamp. {T}: Add {U} or {B}.”"
+        "rationale": "\"This land enters tapped unless you control an Island or a Swamp. {T}: Add {U} or {B}.\""
       }
     },
     {
@@ -1278,7 +1290,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“If you control a commander, you may cast this spell without paying its mana cost. Exile target creature.”"
+        "rationale": "\"If you control a commander, you may cast this spell without paying its mana cost. Exile target creature.\""
       }
     },
     {
@@ -1295,7 +1307,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“As this land enters, choose a creature type. {T}: Add {C}. {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.”"
+        "rationale": "\"As this land enters, choose a creature type. {T}: Add {C}. {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.\""
       }
     },
     {
@@ -1312,7 +1324,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Swamp or a Forest. {T}: Add {B} or {G}.”"
+        "rationale": "\"This land enters tapped unless you control a Swamp or a Forest. {T}: Add {B} or {G}.\""
       }
     },
     {
@@ -1325,9 +1337,11 @@
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": false,
-        "playerScopes": [],
+        "playerScopes": [
+          "you"
+        ],
         "uncertain": [],
-        "rationale": "“Counter target spell. At the beginning of your next main phase, add an amount of {C} equal to that spell's mana value.”"
+        "rationale": "\"Counter target spell. At the beginning of your next main phase, add an amount of {C} equal to that spell's mana value.\""
       }
     },
     {
@@ -1336,6 +1350,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -1345,7 +1360,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{2}, {T}, Sacrifice this artifact: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.”"
+        "rationale": "\"{2}, {T}, Sacrifice this artifact: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.\""
       }
     },
     {
@@ -1354,6 +1369,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -1363,7 +1379,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.) I — This Saga gains \"{T}: Add {C}.\" II — This Saga gains \"{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact you control.'\" III — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.) I — This Saga gains \"{T}: Add {C}.\" II — This Saga gains \"{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +...\""
       }
     },
     {
@@ -1380,7 +1396,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.”"
+        "rationale": "\"Search your library for an artifact or enchantment card, reveal it, then shuffle and put that card on top.\""
       }
     },
     {
@@ -1389,16 +1405,18 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
-          "each-opponent"
+          "each-opponent",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“Destroy target permanent an opponent controls. Its controller may search their library for a basic land card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"Destroy target permanent an opponent controls. Its controller may search their library for a basic land card, put it onto the battlefield, then shuffle.\""
       }
     },
     {
@@ -1416,7 +1434,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Choose two target creature cards in your graveyard. Sacrifice a creature. If you do, return the chosen cards to the battlefield tapped.”"
+        "rationale": "\"Choose two target creature cards in your graveyard. Sacrifice a creature. If you do, return the chosen cards to the battlefield tapped.\""
       }
     },
     {
@@ -1433,7 +1451,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Mountain or a Forest. {T}: Add {R} or {G}.”"
+        "rationale": "\"This land enters tapped unless you control a Mountain or a Forest. {T}: Add {R} or {G}.\""
       }
     },
     {
@@ -1450,7 +1468,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Ward {2} As this creature enters, choose a creature type. This creature is the chosen type in addition to its other types. If a triggered ability of another creature you control of the chosen type triggers, it triggers an additional time.”"
+        "rationale": "\"Ward {2} As this creature enters, choose a creature type. This creature is the chosen type in addition to its other types. If a triggered ability of another creature you control of the chosen type triggers, it triggers an additional time.\""
       }
     },
     {
@@ -1467,7 +1485,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you control a Forest or a Plains. {T}: Add {G} or {W}.”"
+        "rationale": "\"This land enters tapped unless you control a Forest or a Plains. {T}: Add {G} or {W}.\""
       }
     },
     {
@@ -1485,7 +1503,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {U} or {B}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {U} or {B}.\""
       }
     },
     {
@@ -1504,7 +1522,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“As this artifact enters, choose a creature type. Creature spells you cast of the chosen type cost {1} less to cast. At the beginning of your upkeep, look at the top card of your library. If it's a creature card of the chosen type, you may reveal it and put it into your hand.”"
+        "rationale": "\"As this artifact enters, choose a creature type. Creature spells you cast of the chosen type cost {1} less to cast. At the beginning of your upkeep, look at the top card of your library. If it's a creature card of the chosen type, you ma...\""
       }
     },
     {
@@ -1522,7 +1540,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.”"
+        "rationale": "\"Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.\""
       }
     },
     {
@@ -1541,7 +1559,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Imprint — When this artifact enters, you may exile a nonartifact, nonland card from your hand. {T}: Add one mana of any of the exiled card's colors.”"
+        "rationale": "\"Imprint — When this artifact enters, you may exile a nonartifact, nonland card from your hand. {T}: Add one mana of any of the exiled card's colors.\""
       }
     },
     {
@@ -1559,7 +1577,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {G} or {U}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {G} or {U}.\""
       }
     },
     {
@@ -1576,7 +1594,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.”"
+        "rationale": "\"Search your library for an instant or sorcery card, reveal it, then shuffle and put that card on top.\""
       }
     },
     {
@@ -1594,7 +1612,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {U} or {R}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {U} or {R}.\""
       }
     },
     {
@@ -1613,7 +1631,7 @@
           "each-player"
         ],
         "uncertain": [],
-        "rationale": "“Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.”"
+        "rationale": "\"Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.\""
       }
     },
     {
@@ -1632,7 +1650,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.”"
+        "rationale": "\"Whenever Etali attacks, exile the top card of each player's library, then you may cast any number of spells from among those cards without paying their mana costs.\""
       }
     },
     {
@@ -1652,7 +1670,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“Choose one — • Exile target player's graveyard. • Destroy target artifact. • Each creature deals 1 damage to its controller.”"
+        "rationale": "\"Choose one — • Exile target player's graveyard. • Destroy target artifact. • Each creature deals 1 damage to its controller.\""
       }
     },
     {
@@ -1660,6 +1678,7 @@
       "name": "Dauthi Voidwalker",
       "facts": {
         "zones": [
+          "battlefield",
           "exile",
           "graveyard"
         ],
@@ -1672,7 +1691,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Shadow (This creature can block or be blocked by only creatures with shadow.) If a card would be put into an opponent's graveyard from anywhere, instead exile it with a void counter on it. {T}, Sacrifice this creature: Choose an exiled card an opponent owns with a void counter on it. You may play it this turn without paying its mana cost.”"
+        "rationale": "\"Shadow (This creature can block or be blocked by only creatures with shadow.) If a card would be put into an opponent's graveyard from anywhere, instead exile it with a void counter on it. {T}, Sacrifice this creature: Choose an exiled c...\""
       }
     },
     {
@@ -1687,10 +1706,11 @@
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
-          "target-player"
+          "target-player",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“({U/P} can be paid with either {U} or 2 life.) Look at target player's hand. Draw a card.”"
+        "rationale": "\"({U/P} can be paid with either {U} or 2 life.) Look at target player's hand. Draw a card.\""
       }
     },
     {
@@ -1709,7 +1729,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, exile target player's graveyard. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {B}.”"
+        "rationale": "\"When this creature enters, exile target player's graveyard. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {B}.\""
       }
     },
     {
@@ -1727,7 +1747,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“At the beginning of each end step, if an opponent lost 2 or more life this turn, you may put a quest counter on this enchantment. (Damage causes loss of life.) Whenever a card is put into an opponent's graveyard from anywhere, if this enchantment has three or more quest counters on it, you may have that player lose 2 life. If you do, you gain 2 life.”"
+        "rationale": "\"At the beginning of each end step, if an opponent lost 2 or more life this turn, you may put a quest counter on this enchantment. (Damage causes loss of life.) Whenever a card is put into an opponent's graveyard from anywhere, if this en...\""
       }
     },
     {
@@ -1735,6 +1755,8 @@
       "name": "Mishra's Bauble",
       "facts": {
         "zones": [
+          "battlefield",
+          "graveyard",
           "hand",
           "library"
         ],
@@ -1742,10 +1764,11 @@
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
-          "target-player"
+          "target-player",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this artifact: Look at the top card of target player's library. Draw a card at the beginning of the next turn's upkeep.”"
+        "rationale": "\"{T}, Sacrifice this artifact: Look at the top card of target player's library. Draw a card at the beginning of the next turn's upkeep.\""
       }
     },
     {
@@ -1763,10 +1786,11 @@
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
-          "each-opponent"
+          "each-opponent",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“When this artifact enters, exile target card from a graveyard. {T}, Sacrifice this artifact: Exile each opponent's graveyard. {1}, {T}, Sacrifice this artifact: Draw a card.”"
+        "rationale": "\"When this artifact enters, exile target card from a graveyard. {T}, Sacrifice this artifact: Exile each opponent's graveyard. {1}, {T}, Sacrifice this artifact: Draw a card.\""
       }
     },
     {
@@ -1774,6 +1798,7 @@
       "name": "Valgavoth, Terror Eater",
       "facts": {
         "zones": [
+          "battlefield",
           "exile",
           "graveyard"
         ],
@@ -1785,7 +1810,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying, lifelink Ward—Sacrifice three nonland permanents. If a card you didn't control would be put into an opponent's graveyard from anywhere, exile it instead. During your turn, you may play cards exiled with Valgavoth. If you cast a spell this way, pay life equal to its mana value rather than pay its mana cost.”"
+        "rationale": "\"Flying, lifelink Ward—Sacrifice three nonland permanents. If a card you didn't control would be put into an opponent's graveyard from anywhere, exile it instead. During your turn, you may play cards exiled with Valgavoth. If you cast a s...\""
       }
     },
     {
@@ -1804,7 +1829,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search target opponent's library for a card and exile it face down. Then that player shuffles. You may play that card for as long as it remains exiled.”"
+        "rationale": "\"Search target opponent's library for a card and exile it face down. Then that player shuffles. You may play that card for as long as it remains exiled.\""
       }
     },
     {
@@ -1812,6 +1837,7 @@
       "name": "Tormod's Crypt",
       "facts": {
         "zones": [
+          "battlefield",
           "exile",
           "graveyard"
         ],
@@ -1822,7 +1848,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this artifact: Exile target player's graveyard.”"
+        "rationale": "\"{T}, Sacrifice this artifact: Exile target player's graveyard.\""
       }
     },
     {
@@ -1843,7 +1869,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Ninjutsu {3}{B} ({3}{B}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Nashi deals combat damage to a player, exile the top card of each player's library. Until end of turn, you may play one of those cards. If you cast a spell this way, pay life equal to its mana value rather than paying its mana cost.”"
+        "rationale": "\"Ninjutsu {3}{B} ({3}{B}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Nashi deals combat damage to a player, exile the top card of each player's libra...\""
       }
     },
     {
@@ -1851,6 +1877,7 @@
       "name": "Gonti, Lord of Luxury",
       "facts": {
         "zones": [
+          "battlefield",
           "exile",
           "library"
         ],
@@ -1862,7 +1889,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Deathtouch When Gonti enters, look at the top four cards of target opponent's library, exile one of them face down, then put the rest on the bottom of that library in a random order. You may cast that card for as long as it remains exiled, and mana of any type can be spent to cast that spell.”"
+        "rationale": "\"Deathtouch When Gonti enters, look at the top four cards of target opponent's library, exile one of them face down, then put the rest on the bottom of that library in a random order. You may cast that card for as long as it remains exile...\""
       }
     },
     {
@@ -1871,6 +1898,7 @@
       "facts": {
         "zones": [
           "exile",
+          "graveyard",
           "hand",
           "library"
         ],
@@ -1879,11 +1907,12 @@
         "refersToController": true,
         "playerScopes": [
           "controller",
+          "each-opponent",
           "target-player",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever a creature deals combat damage to one of your opponents, its controller may pay 1 life. If they do, they draw a card. {4}{B}{B}{B}, Discard X cards: Exile the top X cards of target opponent's library. You may play lands and cast spells from among cards exiled this way without paying their mana costs.”"
+        "rationale": "\"Whenever a creature deals combat damage to one of your opponents, its controller may pay 1 life. If they do, they draw a card. {4}{B}{B}{B}, Discard X cards: Exile the top X cards of target opponent's library. You may play lands and cast...\""
       }
     },
     {
@@ -1904,7 +1933,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying At the beginning of your end step, exile the top card of each opponent's library. You may play those cards for as long as they remain exiled. If you cast a spell this way, you may spend mana as though it were mana of any color to cast it. Whenever a nonland permanent an opponent owns enters the battlefield under your control, they lose life equal to its mana value.”"
+        "rationale": "\"Flying At the beginning of your end step, exile the top card of each opponent's library. You may play those cards for as long as they remain exiled. If you cast a spell this way, you may spend mana as though it were mana of any color to ...\""
       }
     },
     {
@@ -1920,11 +1949,11 @@
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
-          "each-opponent",
+          "target-player",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever another Rat you control enters, exile up to one target card from an opponent's graveyard. At the beginning of combat on your turn, create a 1/1 black Rat creature token with \"This token can't block.\"”"
+        "rationale": "\"Whenever another Rat you control enters, exile up to one target card from an opponent's graveyard. At the beginning of combat on your turn, create a 1/1 black Rat creature token with \"This token can't block.\"\""
       }
     },
     {
@@ -1945,7 +1974,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying When this creature enters, put target creature card from an opponent's graveyard onto the battlefield under your control. It gains haste. At the beginning of your next end step, exile it. Persist (When this creature dies, if it had no -1/-1 counters on it, return it to the battlefield under its owner's control with a -1/-1 counter on it.)”"
+        "rationale": "\"Flying When this creature enters, put target creature card from an opponent's graveyard onto the battlefield under your control. It gains haste. At the beginning of your next end step, exile it. Persist (When this creature dies, if it ha...\""
       }
     },
     {
@@ -1965,7 +1994,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“Spells and abilities your opponents control can't cause their controller to search their library. −1: Target player mills four cards. Then exile each opponent's graveyard.”"
+        "rationale": "\"Spells and abilities your opponents control can't cause their controller to search their library. −1: Target player mills four cards. Then exile each opponent's graveyard.\""
       }
     },
     {
@@ -1984,7 +2013,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Add {R} for each card in target opponent's hand. Until end of turn, you don't lose this mana as steps and phases end. Exile Rousing Refrain with three time counters on it. Suspend 3—{1}{R} (Rather than cast this card from your hand, you may pay {1}{R} and exile it with three time counters on it. At the beginning of your upkeep, remove a time counter. When the last is removed, you may cast it without paying its mana cost.)”"
+        "rationale": "\"Add {R} for each card in target opponent's hand. Until end of turn, you don't lose this mana as steps and phases end. Exile Rousing Refrain with three time counters on it. Suspend 3—{1}{R} (Rather than cast this card from your hand, you ...\""
       }
     },
     {
@@ -1992,6 +2021,8 @@
       "name": "Urza's Bauble",
       "facts": {
         "zones": [
+          "battlefield",
+          "graveyard",
           "hand",
           "library"
         ],
@@ -2003,7 +2034,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}, Sacrifice this artifact: Look at a card at random in target player's hand. You draw a card at the beginning of the next turn's upkeep.”"
+        "rationale": "\"{T}, Sacrifice this artifact: Look at a card at random in target player's hand. You draw a card at the beginning of the next turn's upkeep.\""
       }
     },
     {
@@ -2022,7 +2053,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search target opponent's library for a creature card and put that card onto the battlefield under your control. Then that player shuffles.”"
+        "rationale": "\"Search target opponent's library for a creature card and put that card onto the battlefield under your control. Then that player shuffles.\""
       }
     },
     {
@@ -2042,7 +2073,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“First strike When this creature enters, exile target instant or sorcery card from an opponent's graveyard. You may cast it this turn, and mana of any type can be spent to cast that spell. If that spell would be put into a graveyard, exile it instead.”"
+        "rationale": "\"First strike When this creature enters, exile target instant or sorcery card from an opponent's graveyard. You may cast it this turn, and mana of any type can be spent to cast that spell. If that spell would be put into a graveyard, exil...\""
       }
     },
     {
@@ -2063,7 +2094,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Suspend 3—{1}{U}{U} (Rather than cast this card from your hand, pay {1}{U}{U} and exile it with three time counters on it. At the beginning of your upkeep, remove a time counter. When the last is removed, you may cast it without paying its mana cost.) Search target opponent's library for a creature card and put that card onto the battlefield under your control. Then that player shuffles.”"
+        "rationale": "\"Suspend 3—{1}{U}{U} (Rather than cast this card from your hand, pay {1}{U}{U} and exile it with three time counters on it. At the beginning of your upkeep, remove a time counter. When the last is removed, you may cast it without paying i...\""
       }
     },
     {
@@ -2083,7 +2114,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying When this Vehicle enters, exile target player's graveyard. Whenever this Vehicle deals combat damage to a player, you may put a creature card exiled with this Vehicle onto the battlefield under your control. Crew 3”"
+        "rationale": "\"Flying When this Vehicle enters, exile target player's graveyard. Whenever this Vehicle deals combat damage to a player, you may put a creature card exiled with this Vehicle onto the battlefield under your control. Crew 3\""
       }
     },
     {
@@ -2103,7 +2134,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying, trample Whenever this creature attacks, create a Treasure token. // Exile the top two cards of target opponent's library face down. You may look at and play those cards for as long as they remain exiled.”"
+        "rationale": "\"Flying, trample Whenever this creature attacks, create a Treasure token. // Exile the top two cards of target opponent's library face down. You may look at and play those cards for as long as they remain exiled.\""
       }
     },
     {
@@ -2123,7 +2154,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this enchantment enters, you become the monarch. At the beginning of your upkeep, exile the top card of target opponent's library. You may play that card for as long as it remains exiled, and mana of any type can be spent to cast it. If you're the monarch, until end of turn, you may cast a spell from among cards exiled with this enchantment without paying its mana cost.”"
+        "rationale": "\"When this enchantment enters, you become the monarch. At the beginning of your upkeep, exile the top card of target opponent's library. You may play that card for as long as it remains exiled, and mana of any type can be spent to cast it...\""
       }
     },
     {
@@ -2144,7 +2175,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“If this card is in your opening hand, you may begin the game with it on the battlefield. If a card would be put into an opponent's graveyard from anywhere, exile it instead.”"
+        "rationale": "\"If this card is in your opening hand, you may begin the game with it on the battlefield. If a card would be put into an opponent's graveyard from anywhere, exile it instead.\""
       }
     },
     {
@@ -2163,10 +2194,11 @@
         "refersToController": true,
         "playerScopes": [
           "each-opponent",
-          "target-player"
+          "target-player",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“If a creature an opponent controls would die, exile it instead. {2}, {T}, Sacrifice Stone of Erech: Exile target player's graveyard. Draw a card.”"
+        "rationale": "\"If a creature an opponent controls would die, exile it instead. {2}, {T}, Sacrifice Stone of Erech: Exile target player's graveyard. Draw a card.\""
       }
     },
     {
@@ -2188,7 +2220,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“+2: Look at the top card of target player's library. You may put that card on the bottom of that player's library. 0: Draw three cards, then put two cards from your hand on top of your library in any order. −1: Return target creature to its owner's hand. −12: Exile all cards from target player's library, then that player shuffles their hand into their library.”"
+        "rationale": "\"+2: Look at the top card of target player's library. You may put that card on the bottom of that player's library. 0: Draw three cards, then put two cards from your hand on top of your library in any order. −1: Return target creature to ...\""
       }
     },
     {
@@ -2196,7 +2228,6 @@
       "name": "Laughing Jasper Flint",
       "facts": {
         "zones": [
-          "battlefield",
           "exile",
           "library"
         ],
@@ -2209,7 +2240,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Creatures you control but don't own are Mercenaries in addition to their other types. At the beginning of your upkeep, exile the top X cards of target opponent's library, where X is the number of outlaws you control. Until end of turn, you may cast spells from among those cards, and mana of any type can be spent to cast those spells.”"
+        "rationale": "\"Creatures you control but don't own are Mercenaries in addition to their other types. At the beginning of your upkeep, exile the top X cards of target opponent's library, where X is the number of outlaws you control. Until end of turn, y...\""
       }
     },
     {
@@ -2230,7 +2261,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Choose two — • Exile target player's graveyard. You gain 1 life for each card exiled this way. • Search your library for up to two land cards, put them onto the battlefield tapped, then shuffle. • Create two 2/2 green Bear creature tokens. • Put two +1/+1 counters on each creature you control.”"
+        "rationale": "\"Choose two — • Exile target player's graveyard. You gain 1 life for each card exiled this way. • Search your library for up to two land cards, put them onto the battlefield tapped, then shuffle. • Create two 2/2 green Bear creature token...\""
       }
     },
     {
@@ -2249,7 +2280,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“Flying Feeder Mandibles — When this creature enters, exile target player's graveyard. For each artifact or land card exiled this way, create a 1/1 colorless Insect artifact creature token with flying.”"
+        "rationale": "\"Flying Feeder Mandibles — When this creature enters, exile target player's graveyard. For each artifact or land card exiled this way, create a 1/1 colorless Insect artifact creature token with flying.\""
       }
     },
     {
@@ -2268,7 +2299,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Look at the top three cards of target player's library, then put them back in any order. You may have that player shuffle. Draw a card at the beginning of the next turn's upkeep.”"
+        "rationale": "\"Look at the top three cards of target player's library, then put them back in any order. You may have that player shuffle. Draw a card at the beginning of the next turn's upkeep.\""
       }
     },
     {
@@ -2287,7 +2318,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Look at the top two cards of target opponent's library. Exile one of them face down and put the other on the bottom of that library. You may play the exiled card for as long as it remains exiled, and you may spend mana as though it were mana of any color to cast that spell. Flashback {1}{U}{B}”"
+        "rationale": "\"Look at the top two cards of target opponent's library. Exile one of them face down and put the other on the bottom of that library. You may play the exiled card for as long as it remains exiled, and you may spend mana as though it were ...\""
       }
     },
     {
@@ -2306,7 +2337,7 @@
           "target-player"
         ],
         "uncertain": [],
-        "rationale": "“Flying When this creature enters, exile target player's graveyard.”"
+        "rationale": "\"Flying When this creature enters, exile target player's graveyard.\""
       }
     },
     {
@@ -2327,7 +2358,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“During your turn, Kefka has indestructible. At the beginning of your end step, exile a card at random from each opponent's graveyard. You may cast any number of spells from among cards exiled this way without paying their mana costs. Then each player who owns a spell you cast this way loses life equal to its mana value.”"
+        "rationale": "\"During your turn, Kefka has indestructible. At the beginning of your end step, exile a card at random from each opponent's graveyard. You may cast any number of spells from among cards exiled this way without paying their mana costs. The...\""
       }
     },
     {
@@ -2337,6 +2368,7 @@
         "zones": [
           "battlefield",
           "exile",
+          "graveyard",
           "library"
         ],
         "crossPlayer": true,
@@ -2347,7 +2379,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Choose one — • Break Their Chains — Destroy target artifact. • Interrogate Them — Exile the top three cards of target opponent's library. Choose one of them. Until the end of your next turn, you may play that card, and you may spend mana as though it were mana of any color to cast it.”"
+        "rationale": "\"Choose one — • Break Their Chains — Destroy target artifact. • Interrogate Them — Exile the top three cards of target opponent's library. Choose one of them. Until the end of your next turn, you may play that card, and you may spend mana...\""
       }
     },
     {
@@ -2366,7 +2398,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“At the beginning of your upkeep, exile the top card of each opponent's library. Until end of turn, you may cast spells from among those exiled cards, and you may spend mana as though it were mana of any color to cast those spells.”"
+        "rationale": "\"At the beginning of your upkeep, exile the top card of each opponent's library. Until end of turn, you may cast spells from among those exiled cards, and you may spend mana as though it were mana of any color to cast those spells.\""
       }
     },
     {
@@ -2387,7 +2419,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Horrors you control have menace. Whenever a Horror you control deals combat damage to a player, that player mills that many cards. At the beginning of your end step, choose target artifact or creature card in an opponent's graveyard that was put there from their library this turn. Put it onto the battlefield under your control.”"
+        "rationale": "\"Horrors you control have menace. Whenever a Horror you control deals combat damage to a player, that player mills that many cards. At the beginning of your end step, choose target artifact or creature card in an opponent's graveyard that...\""
       }
     },
     {
@@ -2406,7 +2438,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Exile all creature cards from target player's graveyard. You gain 3 life for each card exiled this way.”"
+        "rationale": "\"Exile all creature cards from target player's graveyard. You gain 3 life for each card exiled this way.\""
       }
     },
     {
@@ -2424,7 +2456,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {B} or {R}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {B} or {R}.\""
       }
     },
     {
@@ -2442,7 +2474,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {W} or {U}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {W} or {U}.\""
       }
     },
     {
@@ -2460,7 +2492,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {W} or {B}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {W} or {B}.\""
       }
     },
     {
@@ -2478,7 +2510,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {R} or {W}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {R} or {W}.\""
       }
     },
     {
@@ -2496,7 +2528,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {B} or {G}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {B} or {G}.\""
       }
     },
     {
@@ -2508,7 +2540,7 @@
           "hand",
           "stack"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": true,
         "refersToController": true,
         "playerScopes": [
@@ -2516,10 +2548,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“Return target spell or nonland permanent an opponent controls to its owner's hand. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {U}.”"
+        "uncertain": [],
+        "rationale": "\"Return target spell or nonland permanent an opponent controls to its owner's hand. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {U}.\""
       }
     },
     {
@@ -2533,10 +2563,11 @@
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
+          "each-opponent",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever a creature you control enters, this enchantment deals 1 damage to each opponent.”"
+        "rationale": "\"Whenever a creature you control enters, this enchantment deals 1 damage to each opponent.\""
       }
     },
     {
@@ -2554,7 +2585,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {R} or {G}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {R} or {G}.\""
       }
     },
     {
@@ -2572,7 +2603,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This land enters tapped unless you have two or more opponents. {T}: Add {G} or {W}.”"
+        "rationale": "\"This land enters tapped unless you have two or more opponents. {T}: Add {G} or {W}.\""
       }
     },
     {
@@ -2582,16 +2613,18 @@
         "zones": [
           "battlefield",
           "exile",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
+          "each-player",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Menace Whenever one or more creatures you control deal combat damage to a player, create a Treasure token. Sacrifice a Treasure: Exile the top card of your library. You may play that card this turn.”"
+        "rationale": "\"Menace Whenever one or more creatures you control deal combat damage to a player, create a Treasure token. Sacrifice a Treasure: Exile the top card of your library. You may play that card this turn.\""
       }
     },
     {
@@ -2609,7 +2642,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, each opponent loses X life, where X is your devotion to black. You gain life equal to the life lost this way. (Each {B} in the mana costs of permanents you control counts toward your devotion to black.)”"
+        "rationale": "\"When this creature enters, each opponent loses X life, where X is your devotion to black. You gain life equal to the life lost this way. (Each {B} in the mana costs of permanents you control counts toward your devotion to black.)\""
       }
     },
     {
@@ -2625,11 +2658,12 @@
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
+          "each-opponent",
           "each-player",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1 damage to each opponent. {1}{B}: Each player mills a card. (They each put the top card of their library into their graveyard.)”"
+        "rationale": "\"Whenever another creature dies, or a creature card is put into a graveyard from anywhere other than the battlefield, or a creature card leaves your graveyard, Syr Konrad deals 1 damage to each opponent. {1}{B}: Each player mills a card. ...\""
       }
     },
     {
@@ -2648,7 +2682,7 @@
           "each-opponent"
         ],
         "uncertain": [],
-        "rationale": "“Flash When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, this creature deals 1 damage to any target. Then amass Orcs 1.”"
+        "rationale": "\"Flash When this creature enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, this creature deals 1 damage to any target. Then amass Orcs 1.\""
       }
     },
     {
@@ -2657,6 +2691,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": false,
@@ -2667,7 +2702,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“You may look at the top card of your library any time. You may play lands and cast spells from the top of your library. If you cast a spell this way, pay life equal to its mana value rather than pay its mana cost. {T}, Sacrifice ten nonland permanents: Each opponent loses 10 life.”"
+        "rationale": "\"You may look at the top card of your library any time. You may play lands and cast spells from the top of your library. If you cast a spell this way, pay life equal to its mana value rather than pay its mana cost. {T}, Sacrifice ten nonl...\""
       }
     },
     {
@@ -2684,11 +2719,12 @@
         "refersToOwner": true,
         "refersToController": false,
         "playerScopes": [
+          "each-player",
           "owner",
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. Dash {1}{R} (You may cast this spell for its dash cost. If you do, it gains haste, and it's returned from the battlefield to its owner's hand at the beginning of the next end step.)”"
+        "rationale": "\"Whenever Ragavan deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. Dash {1}{R} (You may cast this spell for its dash cost. If you do, it g...\""
       }
     },
     {
@@ -2696,9 +2732,10 @@
       "name": "Witch Enchanter // Witch-Blessed Meadow",
       "facts": {
         "zones": [
-          "battlefield"
+          "battlefield",
+          "graveyard"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
@@ -2706,7 +2743,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, destroy target artifact or enchantment an opponent controls. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {W}.”"
+        "rationale": "\"When this creature enters, destroy target artifact or enchantment an opponent controls. // As this land enters, you may pay 3 life. If you don't, it enters tapped. {T}: Add {W}.\""
       }
     },
     {
@@ -2725,7 +2762,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“When this enchantment enters, create a 1/1 white Human Soldier creature token. Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.”"
+        "rationale": "\"When this enchantment enters, create a 1/1 white Human Soldier creature token. Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.\""
       }
     },
     {
@@ -2734,6 +2771,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "hand",
           "library"
         ],
@@ -2745,7 +2783,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Vigilance When Loran enters, destroy up to one target artifact or enchantment. {T}: You and target opponent each draw a card.”"
+        "rationale": "\"Vigilance When Loran enters, destroy up to one target artifact or enchantment. {T}: You and target opponent each draw a card.\""
       }
     },
     {
@@ -2763,7 +2801,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Creatures your opponents control enter tapped. Whenever a creature an opponent controls enters, you gain 1 life.”"
+        "rationale": "\"Creatures your opponents control enter tapped. Whenever a creature an opponent controls enters, you gain 1 life.\""
       }
     },
     {
@@ -2771,7 +2809,6 @@
       "name": "Land Tax",
       "facts": {
         "zones": [
-          "battlefield",
           "hand",
           "library"
         ],
@@ -2783,7 +2820,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.”"
+        "rationale": "\"At the beginning of your upkeep, if an opponent controls more lands than you, you may search your library for up to three basic land cards, reveal them, put them into your hand, then shuffle.\""
       }
     },
     {
@@ -2792,6 +2829,7 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "library"
         ],
         "crossPlayer": true,
@@ -2802,7 +2840,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}: Add {C}. {2}, {T}, Sacrifice this land: Destroy target nonbasic land an opponent controls. That land's controller may search their library for a basic land card, put it onto the battlefield, then shuffle. You may search your library for a basic land card, put it onto the battlefield, then shuffle.”"
+        "rationale": "\"{T}: Add {C}. {2}, {T}, Sacrifice this land: Destroy target nonbasic land an opponent controls. That land's controller may search their library for a basic land card, put it onto the battlefield, then shuffle. You may search your library...\""
       }
     },
     {
@@ -2821,7 +2859,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Psychosis Crawler's power and toughness are each equal to the number of cards in your hand. Whenever you draw a card, each opponent loses 1 life.”"
+        "rationale": "\"Psychosis Crawler's power and toughness are each equal to the number of cards in your hand. Whenever you draw a card, each opponent loses 1 life.\""
       }
     },
     {
@@ -2829,16 +2867,17 @@
       "name": "Accursed Marauder",
       "facts": {
         "zones": [
-          "battlefield"
+          "battlefield",
+          "graveyard"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
           "each-player"
         ],
         "uncertain": [],
-        "rationale": "“When this creature enters, each player sacrifices a nontoken creature of their choice.”"
+        "rationale": "\"When this creature enters, each player sacrifices a nontoken creature of their choice.\""
       }
     },
     {
@@ -2857,7 +2896,7 @@
           "each-player"
         ],
         "uncertain": [],
-        "rationale": "“Each player exiles all creature cards from their graveyard, then sacrifices all creatures they control, then puts all cards they exiled this way onto the battlefield.”"
+        "rationale": "\"Each player exiles all creature cards from their graveyard, then sacrifices all creatures they control, then puts all cards they exiled this way onto the battlefield.\""
       }
     },
     {
@@ -2875,7 +2914,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Extort (Whenever you cast a spell, you may pay {W/B}. If you do, each opponent loses 1 life and you gain that much life.) Artifacts and creatures your opponents control enter tapped.”"
+        "rationale": "\"Extort (Whenever you cast a spell, you may pay {W/B}. If you do, each opponent loses 1 life and you gain that much life.) Artifacts and creatures your opponents control enter tapped.\""
       }
     },
     {
@@ -2886,17 +2925,15 @@
           "battlefield",
           "graveyard"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
           "each-opponent",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“When The Meathook Massacre enters, each creature gets -X/-X until end of turn. Whenever a creature you control dies, each opponent loses 1 life. Whenever a creature an opponent controls dies, you gain 1 life.”"
+        "uncertain": [],
+        "rationale": "\"When The Meathook Massacre enters, each creature gets -X/-X until end of turn. Whenever a creature you control dies, each opponent loses 1 life. Whenever a creature an opponent controls dies, you gain 1 life.\""
       }
     },
     {
@@ -2916,7 +2953,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“This artifact enters with three wish counters on it. {1}, {T}, Remove a wish counter from this artifact: Search your library for a card, put it into your hand, then shuffle. An opponent gains control of this artifact. Activate only during your turn.”"
+        "rationale": "\"This artifact enters with three wish counters on it. {1}, {T}, Remove a wish counter from this artifact: Search your library for a card, put it into your hand, then shuffle. An opponent gains control of this artifact. Activate only durin...\""
       }
     },
     {
@@ -2934,7 +2971,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Flying Spells your opponents cast that target this creature cost an additional 3 life to cast. Whenever another creature you control enters, this creature deals damage equal to that creature's power to any target.”"
+        "rationale": "\"Flying Spells your opponents cast that target this creature cost an additional 3 life to cast. Whenever another creature you control enters, this creature deals damage equal to that creature's power to any target.\""
       }
     },
     {
@@ -2945,16 +2982,14 @@
           "battlefield",
           "graveyard"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
           "each-opponent"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“When this creature enters, creatures your opponents control get -2/-2 until end of turn. Whenever a creature an opponent controls dies, that player loses 2 life.”"
+        "uncertain": [],
+        "rationale": "\"When this creature enters, creatures your opponents control get -2/-2 until end of turn. Whenever a creature an opponent controls dies, that player loses 2 life.\""
       }
     },
     {
@@ -2962,16 +2997,17 @@
       "name": "Blasphemous Edict",
       "facts": {
         "zones": [
-          "battlefield"
+          "battlefield",
+          "graveyard"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [
           "each-player"
         ],
         "uncertain": [],
-        "rationale": "“You may pay {B} rather than pay this spell's mana cost if there are thirteen or more creatures on the battlefield. Each player sacrifices thirteen creatures of their choice.”"
+        "rationale": "\"You may pay {B} rather than pay this spell's mana cost if there are thirteen or more creatures on the battlefield. Each player sacrifices thirteen creatures of their choice.\""
       }
     },
     {
@@ -2979,7 +3015,9 @@
       "name": "Command Beacon",
       "facts": {
         "zones": [
+          "battlefield",
           "command",
+          "graveyard",
           "hand"
         ],
         "crossPlayer": false,
@@ -2989,7 +3027,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“{T}: Add {C}. {T}, Sacrifice this land: Put your commander into your hand from the command zone.”"
+        "rationale": "\"{T}: Add {C}. {T}, Sacrifice this land: Put your commander into your hand from the command zone.\""
       }
     },
     {
@@ -3008,7 +3046,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost. Counter target spell.”"
+        "rationale": "\"You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost. Counter target spell.\""
       }
     },
     {
@@ -3016,6 +3054,7 @@
       "name": "Sensei's Divining Top",
       "facts": {
         "zones": [
+          "battlefield",
           "hand",
           "library"
         ],
@@ -3026,10 +3065,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“{1}: Look at the top three cards of your library, then put them back in any order. {T}: Draw a card, then put this artifact on top of its owner's library.”"
+        "uncertain": [],
+        "rationale": "\"{1}: Look at the top three cards of your library, then put them back in any order. {T}: Draw a card, then put this artifact on top of its owner's library.\""
       }
     },
     {
@@ -3044,7 +3081,7 @@
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "“This spell can't be countered. Counter target noncreature spell.”"
+        "rationale": "\"This spell can't be countered. Counter target noncreature spell.\""
       }
     },
     {
@@ -3067,7 +3104,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“If it's not your turn, you may exile a blue card from your hand rather than pay this spell's mana cost. Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard.”"
+        "rationale": "\"If it's not your turn, you may exile a blue card from your hand rather than pay this spell's mana cost. Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard.\""
       }
     },
     {
@@ -3079,17 +3116,15 @@
           "hand",
           "stack"
         ],
-        "crossPlayer": false,
+        "crossPlayer": true,
         "refersToOwner": true,
         "refersToController": true,
         "playerScopes": [
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“Flash This spell can't be countered. Whenever you cast a spell, choose up to one — • Return target spell you don't control to its owner's hand. • Return target nonland permanent to its owner's hand.”"
+        "uncertain": [],
+        "rationale": "\"Flash This spell can't be countered. Whenever you cast a spell, choose up to one — • Return target spell you don't control to its owner's hand. • Return target nonland permanent to its owner's hand.\""
       }
     },
     {
@@ -3109,7 +3144,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“Return target creature to its owner's hand. Untap up to two lands.”"
+        "rationale": "\"Return target creature to its owner's hand. Untap up to two lands.\""
       }
     },
     {
@@ -3127,10 +3162,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {G}{U}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {G}{U}.\""
       }
     },
     {
@@ -3150,7 +3183,7 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“Return all attacking creatures to their owner's hand.”"
+        "rationale": "\"Return all attacking creatures to their owner's hand.\""
       }
     },
     {
@@ -3164,10 +3197,11 @@
         "refersToOwner": false,
         "refersToController": true,
         "playerScopes": [
-          "controller"
+          "controller",
+          "you"
         ],
         "uncertain": [],
-        "rationale": "“Counter target instant or sorcery spell unless its controller pays {1}. Storm (When you cast this spell, copy it for each spell cast before it this turn. You may choose new targets for the copies.)”"
+        "rationale": "\"Counter target instant or sorcery spell unless its controller pays {1}. Storm (When you cast this spell, copy it for each spell cast before it this turn. You may choose new targets for the copies.)\""
       }
     },
     {
@@ -3185,10 +3219,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {B}{G}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {B}{G}.\""
       }
     },
     {
@@ -3206,10 +3238,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {U}{B}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {U}{B}.\""
       }
     },
     {
@@ -3226,7 +3256,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Counter target spell. At the beginning of your next upkeep, pay {3}{U}{U}. If you don't, you lose the game.”"
+        "rationale": "\"Counter target spell. At the beginning of your next upkeep, pay {3}{U}{U}. If you don't, you lose the game.\""
       }
     },
     {
@@ -3244,10 +3274,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {W}{B}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {W}{B}.\""
       }
     },
     {
@@ -3265,10 +3293,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {U}{R}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {U}{R}.\""
       }
     },
     {
@@ -3286,10 +3312,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {R}{G}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {R}{G}.\""
       }
     },
     {
@@ -3307,10 +3331,8 @@
           "owner",
           "you"
         ],
-        "uncertain": [
-          "crossPlayer"
-        ],
-        "rationale": "“This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {W}{U}.”"
+        "uncertain": [],
+        "rationale": "\"This land enters tapped. When this land enters, return a land you control to its owner's hand. {T}: Add {W}{U}.\""
       }
     },
     {
@@ -3330,7 +3352,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Exile target creature you control, then return it to the battlefield under its owner's control. Rebound (If you cast this spell from your hand, exile it as it resolves. At the beginning of your next upkeep, you may cast this card from exile without paying its mana cost.)”"
+        "rationale": "\"Exile target creature you control, then return it to the battlefield under its owner's control. Rebound (If you cast this spell from your hand, exile it as it resolves. At the beginning of your next upkeep, you may cast this card from ex...\""
       }
     },
     {
@@ -3345,7 +3367,7 @@
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "“({U/P} can be paid with either {U} or 2 life.) Counter target spell with mana value 1.”"
+        "rationale": "\"({U/P} can be paid with either {U} or 2 life.) Counter target spell with mana value 1.\""
       }
     },
     {
@@ -3354,14 +3376,17 @@
       "facts": {
         "zones": [
           "battlefield",
+          "graveyard",
           "stack"
         ],
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": false,
         "playerScopes": [],
-        "uncertain": [],
-        "rationale": "“Choose one — • Counter target spell if it's blue. • Destroy target permanent if it's blue.”"
+        "uncertain": [
+          "crossPlayer"
+        ],
+        "rationale": "\"Choose one — • Counter target spell if it's blue. • Destroy target permanent if it's blue.\""
       }
     },
     {
@@ -3379,7 +3404,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Return target card from your graveyard to your hand.”"
+        "rationale": "\"Return target card from your graveyard to your hand.\""
       }
     },
     {
@@ -3399,16 +3424,14 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Target opponent reveals their hand. You choose a nonland card from it or a card from their graveyard. Exile that card. You lose 1 life.”"
+        "rationale": "\"Target opponent reveals their hand. You choose a nonland card from it or a card from their graveyard. Exile that card. You lose 1 life.\""
       }
     },
     {
       "oracleId": "cd0d7141-46d2-4aa3-bc77-6b3b4513803e",
       "name": "Control Magic",
       "facts": {
-        "zones": [
-          "battlefield"
-        ],
+        "zones": [],
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": true,
@@ -3416,7 +3439,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Enchant creature You control enchanted creature.”"
+        "rationale": "\"Enchant creature You control enchanted creature.\""
       }
     },
     {
@@ -3436,16 +3459,14 @@
         "uncertain": [
           "crossPlayer"
         ],
-        "rationale": "“Return target permanent to its owner's hand.”"
+        "rationale": "\"Return target permanent to its owner's hand.\""
       }
     },
     {
       "oracleId": "3754dce0-3e97-406f-8807-a4942a222c41",
       "name": "Gaea's Anthem",
       "facts": {
-        "zones": [
-          "battlefield"
-        ],
+        "zones": [],
         "crossPlayer": false,
         "refersToOwner": false,
         "refersToController": true,
@@ -3453,7 +3474,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Creatures you control get +1/+1.”"
+        "rationale": "\"Creatures you control get +1/+1.\""
       }
     },
     {
@@ -3466,7 +3487,7 @@
         "refersToController": false,
         "playerScopes": [],
         "uncertain": [],
-        "rationale": "No oracle text."
+        "rationale": "No rules text."
       }
     },
     {
@@ -3486,7 +3507,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Each other player discards a card. You draw a card for each card discarded this way.”"
+        "rationale": "\"Each other player discards a card. You draw a card for each card discarded this way.\""
       }
     },
     {
@@ -3504,7 +3525,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Search your library for a card, put that card into your graveyard, then shuffle.”"
+        "rationale": "\"Search your library for a card, put that card into your graveyard, then shuffle.\""
       }
     },
     {
@@ -3523,7 +3544,7 @@
           "you"
         ],
         "uncertain": [],
-        "rationale": "“Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.”"
+        "rationale": "\"Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.\""
       }
     }
   ]

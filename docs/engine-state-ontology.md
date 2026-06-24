@@ -774,3 +774,41 @@ compiler 38 を閉じる前に、各移動動詞が**どのゾーンへ写るか
 - **独立物差し再差分(v2 凍結のまま分類器のみ更新)**: **zone 不一致 22.99→10.70%**・**crossPlayer 1.60→0.00%(完全一致)**・ownership 2.67%(据置)。
   compiler 帰属 38→17(暗黙移動 FN を回収)。**残差はほぼ完全に oracle 側**: zoneClassifierOnly わずか 2・**zoneOracleOnly 18 = v2 物差しの静的 read battlefield 過剰**(Gaea's Anthem/Control Magic/Land Tax/Fierce Guardianship 他)・**scopeClassifierOnly 14 = v2 物差しの recipient-scope 脱落**。**両者とも iter3-b prompt v3 で是正**。
 - gold `review.zone-coverage` **29/29**。機械4点 Fable 独立緑(lint/tsc/vitest 849/build)+ review 全緑。`hasImplicitYou`(imperative draw/discard・token 生成トリガ→you scope)は gold(Divination/Doomed Traveler の `you`)が駆動した正当な追加。
+
+##### iter3 CR ゾーン遷移真理テーブル(決定論的・総合ルール正本・2026-06-24・Fable)
+**手法改訂(method §3「CR を一次の決定論的権威に」)の適用**。暗黙ゾーン移動は LLM-oracle で「予測」する対象でなく、
+総合ルール `rule/Magic_The_Gathering_Comprehensive_Rules.txt` が**一意に定義**する。下表を分類器・gold・オラクル prompt の三者すべての**正本**とする。
+
+| 動作 | CR 条文 | 触れるゾーン(E-ZONE-REF) | 備考 |
+|---|---|---|---|
+| draw | **121.1** | `library` + `hand` | top of library を hand へ |
+| discard | **701.9a** | `hand` + `graveyard` | hand → **owner's** graveyard |
+| dies | **700.4** | `battlefield` + `graveyard` | =「is put into a graveyard from the battlefield」(creature 限定) |
+| **destroy** | **701.8a** | `battlefield` + `graveyard` | battlefield → **owner's** graveyard |
+| **sacrifice** | **701.21a** | `battlefield` + `graveyard` | battlefield → **owner's** graveyard |
+| exile | 406 | `exile`(+ 起点ゾーン) | 「exile」は語が明示=既出 |
+| mill | 701.13a | `library` + `graveyard` | top of library → graveyard |
+| put onto the battlefield | 303/608 | `battlefield`(+ 起点) | 明示句で既出 |
+
+- **🔴 iter3-a の誤りを CR が正す**: iter3-a は「sacrifice は graveyard に写さない/destroy は battlefield のみ」とした(オラクルの揺れと分類器都合に
+  合わせた誤収束)。**CR 701.21a/701.8a は destroy も sacrifice も `battlefield → owner's graveyard`** と定義=**両者とも `graveyard` を取りこぼした FN**。
+  iter3-b で分類器に `sacrifice`→`battlefield`+`graveyard`、`destroy`→`graveyard` 追加を CR 準拠として実装する。
+- **owner's graveyard のクロス含意**: destroy/sacrifice/discard の行き先は**owner の**墓地(108.4)。owner=あなたなら非cross、owner=相手ならcross。
+  ただしテキストが owner を establish しない無制限 target(`destroy target creature`)では cross は条件付き=**保守的に false**(established 非you のみ true)。
+  これは E-ZONE-CROSS の解釈的部分(zone-SET は決定論的に確定、cross の帰属は文の establish 次第)。
+- **gold(CR-truth)**: Doom Blade(destroy→`battlefield`+`graveyard`)/ Fling(sacrifice→`battlefield`+`graveyard`)を追加し CR 準拠を固定。
+- **オラクル prompt v4**: 上表の CR 写像を**明示**(v3.1/v3.2 の「destroy/sacrifice は graveyard を推論しない」は **CR 違反ゆえ撤回**)。
+  これでオラクルは決定論的軸で CR と一致し、その価値は**認識**(この prose が sacrifice/draw を発動しているか)と解釈的軸に限定される。
+
+##### iter3-b 結果(CR 基盤化・分類器+gold+prompt を CR へ同時 anchor・2026-06-24・監査合格)
+flip-flop の射程外(method §3:外部真理 CR が在るため分類器とオラクル prompt を同時に CR へ寄せてよい=交絡しない)。
+- **CR 修正の churn(iter3-a→iter3-b)= 2,074/17,491 = 11.86%**(graveyard **+1,945**・battlefield +698)= **分類器が全 destroy/sacrifice で
+  owner's graveyard を欠落していた規模**(CR 701.8a/701.21a 違反の実数)。cardsWithZones 11,997→12,372。
+- **独立物差し差分(オラクル v4・CR 写像明示・promptHash 別)**: **zone 6.95%**(CR 誤り v3 初稿の 25.67% から解消)/ **crossPlayer 2.67%** /
+  ownership 2.67% / **playerScope 8.02%** / **unverifiable 5.29%**(uncertain 健全)。discrepancies **32**。帰属(`adjudication.json` M0-Z-O-iter3)=
+  **substrate 0 / compiler 18 / oracle 5 / ambiguous 9**。**決定論的混乱が消え、残差は解釈的・小粒**:compiler=小さな認識 FN(no-target bounce=Aetherize /
+  return spell→stack=Sink・Hullbreaker / scry→library / 相手の dies→相手墓地 cross)/ oracle=destroy/sacrifice の battlefield 認識漏れ(Blasphemous Act 等で**分類器が CR 正**)/ ambiguous=owner 境界。
+- 機械4点 Fable 独立緑(lint/tsc/**vitest 851**/build)+ review.zone-coverage **31/31**(Doom Blade/Fling CR-pin)+ review.zone-oracle 緑。
+- **trust(iter3-b 後)**: E-ZONE-REF = **CR 接地で大幅収束**(6.95%・残差は認識 FN)。E-ZONE-CROSS = 良好(2.67%・残差は相手 dies の cross 照応)。
+  E-OWNER/E-CONTROLLER = 良好(2.67%・残差 ambiguous owner)。E-PLAYER-SCOPE = 改善(8.02%・残差 recipient/owner-scope 認識)。
+- **収束読み**: zone 6.95%/scope 8.02% は 5% 閾値に**接近(未達)**。だが**最大の成果は手法の是正** = 決定論的軸を CR 真理テーブルへ移し、LLM-oracle を認識・解釈に限定したこと(本件以前は決定論的問いを物差しで予測し誤収束・3回の prompt 再走を浪費)。残差は認識精度(compiler 小)と owner 境界(ambiguous)で、いずれも substrate を脅かさない。**Slice3 は CR 接地で実質収束方向**。次の小改善 = 認識 FN(no-target bounce/return-spell-stack/相手 dies cross)。**Slice4(タイミング/SBA)前進可**。CR 準拠監査 = `research/cr-conformance-audit.md`(runtime `trigger.death` の CR700.4 違反を別タスク化)。

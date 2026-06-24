@@ -86,6 +86,27 @@
 - **盲予測**: エンジン出力を見せず、オラクル文だけから挙動を予測(汚染防止)。
 - **敵対シナリオ生成**: LLM は「このカードの厄介な相互作用は?」の生成器としても使う(=敵対サンプリング自動化)。
 
+### CR を一次の決定論的権威に(deterministic と interpretive の弁別)— 2026-06-24 改訂
+**最重要の運用規律**。M0 の問いは2種に分かれ、混同すると物差し(LLM)で答えを「予測」しようとして浪費・誤収束する。
+
+- **決定論的(rules-defined)な問い** = 総合ルール(`rule/Magic_The_Gathering_Comprehensive_Rules.txt`)が**一意に**答える:
+  ゾーン遷移(draw=121.1 library→hand / discard=701.9a hand→owner's graveyard / dies=700.4 battlefield→graveyard /
+  destroy=701.8a battlefield→owner's graveyard / sacrifice=701.21a battlefield→owner's graveyard)、owner vs controller(108.4/110)、
+  キーワードの定義、SBA(704)、ターン構造(500番台)等。**ここに LLM を当てるのは純粋なノイズ**(プロンプト次第で答えが揺れる)。
+- **解釈的(recognition/曖昧)な問い** = カード文の**認識**(この prose は sacrifice を発動しているか/`their` は相手か/scope は each-player か you か)。
+  ここは独立オラクル(相関遮断)が価値を持つ。
+
+**権威の順序 = CR(決定論) > 人間 gold > LLM-oracle(解釈・相関遮断のみ)。** 帰結する鉄則:
+1. **決定論的な軸・写像は CR から真理テーブルを引いて定義する**(`docs/` に CR 引用付きで固定)。分類器・gold・**オラクルの prompt** の
+   三者すべてを CR に anchor する(オラクルには CR の写像を明示=ノイズ源を断つ)。
+2. **オラクルと分類器が決定論的軸で割れたら、tiebreaker は CR**(プロンプト再走ではない)。**不一致を見たら、まず「決定論的か」を判定**し、
+   そうなら CR を引いて終了する。**precedent(2026-06-24)**: Slice3 iter3-b で「sacrifice は graveyard に触れるか」をオラクルで判じようとして
+   prompt を3回再走(v3/v3.1/v3.2)し誤った方向(除外)へ収束しかけた。CR 701.21a 一行(owner's graveyard へ移動)で即決し、3回は全て不要だった。
+3. **flip-flop(§7)の射程を限定**: 外部真理(CR)が在る決定論的問いは、**分類器とオラクル prompt を同時に CR へ寄せてよい**(交絡しない=参照が CR)。
+   flip-flop の「一変数ずつ」は**外部真理の無い解釈的問い**(物差し校正)に限る。
+4. **CR 真理テーブル = ゲート条件4(非LLM独立物差し)の canonical 実体**。Forge/XMage 差分より上位の権威。CR 由来の決定論的期待値に対する
+   **CR-conformance 監査**(分類器・gold・runtime が CR 条文と一致するか)を凍結前の要件に接続する。LLM-oracle が*唯一*の独立物差しである状態は禁止(§3 tripwire)。
+
 ### 分類器 parity — silent divergence の禁止(runtime 版)
 研究計測器(`scripts/lib/*Classify.ts` = eventClassify / layerClassify 等)と runtime 分類器
 (`src/data/ruleClassifier.ts`・`src/store/gameStore.ts` の誘発検出)は**別実装ゆえ黙って乖離する**。

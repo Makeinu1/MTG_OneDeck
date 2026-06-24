@@ -129,6 +129,15 @@ function detectZones(text: string): ZoneId[] {
     zones.add('battlefield');
     zones.add('graveyard');
   }
+  // CR 701.8a (destroy) / 701.21a (sacrifice): move a permanent from the battlefield to its
+  // owner's graveyard — both zones are touched (deterministic per the comprehensive rules).
+  if (
+    new RegExp(String.raw`\bdestroy(?:s|ed|ing)?\b[^.;]*\b${permanentType}\b`, 'i').test(text) ||
+    /\bsacrifices?\b/i.test(text)
+  ) {
+    zones.add('battlefield');
+    zones.add('graveyard');
+  }
 
   if (/\bcounter(?:s|ed|ing)?\b[^.;]*\btarget\b[^.;]*\bspells?\b/i.test(text)) {
     zones.add('stack');

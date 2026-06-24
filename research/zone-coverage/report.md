@@ -4,24 +4,24 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 
 ## Summary
 
-- Generated at: 2026-06-24T10:16:45.668Z
+- Generated at: 2026-06-24T10:55:42.679Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
-- cards with zones: 11997 (68.59%)
+- cards with zones: 12372 (70.73%)
 - cross-player cards: 1067 (6.10%)
-- multi-zone cards: 7040 (40.25%)
-- churn: 3559/17491 changed (20.35%), baselineCards=17491, byZone=battlefield +334, graveyard +1338, hand +2310, library +2282
+- multi-zone cards: 8396 (48.00%)
+- churn: 2074/17491 changed (11.86%), baselineCards=17491, byZone=battlefield +698, graveyard +1945
 - mapping failures: 0
 
 ## Zone Demand
 
 | zone | card count | card rate | examples |
 |---|---:|---:|---|
-| battlefield | 8820 | 50.43% | Swords to Plowshares (rank 11); Path of Ancestry (rank 14); Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20) |
+| battlefield | 9518 | 54.42% | Swords to Plowshares (rank 11); Path of Ancestry (rank 14); Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20) |
 | command | 36 | 0.21% | Command Beacon (rank 183); Opal Palace (rank 637); Hellkite Courser (rank 1908); Thunderclap Drake (rank 2110); The Ur-Dragon (rank 2577) |
 | exile | 1788 | 10.22% | Swords to Plowshares (rank 11); Path to Exile (rank 15); Bojuka Bog (rank 25); Jeska's Will (rank 102); Teferi's Protection (rank 105) |
-| graveyard | 3593 | 20.54% | Bojuka Bog (rank 25); Solemn Simulacrum (rank 38); Skullclamp (rank 41); Reanimate (rank 57); Boseiju, Who Endures (rank 78) |
+| graveyard | 5538 | 31.66% | Evolving Wilds (rank 18); Beast Within (rank 24); Bojuka Bog (rank 25); Myriad Landscape (rank 27); Terramorphic Expanse (rank 28) |
 | hand | 4377 | 25.02% | Reliquary Tower (rank 10); Cultivate (rank 20); Thought Vessel (rank 21); Mind Stone (rank 32); Kodama's Reach (rank 37) |
 | library | 4076 | 23.30% | Path to Exile (rank 15); Evolving Wilds (rank 18); Cultivate (rank 20); Farseek (rank 23); Rampant Growth (rank 26) |
 | stack | 208 | 1.19% | Counterspell (rank 16); An Offer You Can't Refuse (rank 35); Negate (rank 54); Arcane Denial (rank 56); Swan Song (rank 73) |
@@ -85,7 +85,7 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 - rank 28 《Terramorphic Expanse》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
 - rank 29 《Nature's Lore》: Search your library for a Forest card, put that card onto the battlefield, then shuffle.
 - rank 30 《Chaos Warp》: The owner of target permanent shuffles it into their library, then reveals the top card of their library. If it's a permanent card, they put it onto the battlefield.
-- rank 35 《An Offer You Can't Refuse》: Counter target noncreature spell. Its controller creates two Treasure tokens.
+- rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
 
 ### command
 
@@ -125,21 +125,21 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 
 ### graveyard
 
+- rank 18 《Evolving Wilds》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
+- rank 24 《Beast Within》: Destroy target permanent. Its controller creates a 3/3 green Beast creature token.
 - rank 25 《Bojuka Bog》: When this land enters, exile target player's graveyard.
+- rank 27 《Myriad Landscape》: {2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle.
+- rank 28 《Terramorphic Expanse》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
+- rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
+- rank 36 《Polluted Delta》: {T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.
 - rank 38 《Solemn Simulacrum》: When this creature dies, you may draw a card.
+- rank 39 《Flooded Strand》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.
+- rank 40 《Misty Rainforest》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.
 - rank 41 《Skullclamp》: Whenever equipped creature dies, draw two cards.
-- rank 57 《Reanimate》: Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.
-- rank 78 《Boseiju, Who Endures》: Channel — {1}{G}, Discard this card: Destroy target artifact, enchantment, or nonbasic land an opponent controls. That player may search their library for a land card with a bas...
-- rank 90 《Otawara, Soaring City》: Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legenda...
-- rank 94 《Faithless Looting》: Draw two cards, then discard two cards.
-- rank 104 《Frantic Search》: Draw two cards, then discard two cards. Untap up to three lands.
-- rank 109 《Eternal Witness》: When this creature enters, you may return target card from your graveyard to your hand.
-- rank 127 《Victimize》: Choose two target creature cards in your graveyard. Sacrifice a creature. If you do, return the chosen cards to the battlefield tapped.
-- rank 138 《Blood Artist》: Whenever this creature or another creature dies, target player loses 1 life and you gain 1 life.
-- rank 152 《Windfall》: Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.
-- rank 160 《Big Score》: As an additional cost to cast this spell, discard a card.
-- rank 161 《Farewell》: Choose one or more — • Exile all artifacts. • Exile all creatures. • Exile all enchantments. • Exile all graveyards.
-- rank 172 《Mystic Sanctuary》: When this land enters untapped, you may put target instant or sorcery card from your graveyard on top of your library.
+- rank 42 《Bloodstained Mire》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.
+- rank 45 《Windswept Heath》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Plains card, put it onto the battlefield, then shuffle.
+- rank 46 《Commander's Sphere》: Sacrifice this artifact: Draw a card.
+- rank 47 《Verdant Catacombs》: {T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.
 
 ### hand
 
@@ -407,6 +407,7 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 - rank 18 《Evolving Wilds》: {T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.
 - rank 20 《Cultivate》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
 - rank 23 《Farseek》: Search your library for a Plains, Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.
+- rank 24 《Beast Within》: Destroy target permanent. Its controller creates a 3/3 green Beast creature token.
 - rank 25 《Bojuka Bog》: When this land enters, exile target player's graveyard.
 - rank 26 《Rampant Growth》: Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.
 - rank 27 《Myriad Landscape》: {2}, {T}, Sacrifice this land: Search your library for up to two basic land cards that share a land type, put them onto the battlefield tapped, then shuffle.
@@ -416,7 +417,6 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 - rank 32 《Mind Stone》: {1}, {T}, Sacrifice this artifact: Draw a card.
 - rank 35 《An Offer You Can't Refuse》: Counter target noncreature spell. Its controller creates two Treasure tokens.
 - rank 36 《Polluted Delta》: {T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.
-- rank 37 《Kodama's Reach》: Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.
 
 ## Mapping Failures
 

@@ -1,11 +1,11 @@
 {
-  "version": "M0-Z-O-iter2",
+  "version": "M0-Z-O-iter3",
   "adjudicatedAt": "2026-06-24",
   "adjudicator": "fable",
   "meter": {
-    "predictions": "research/zone-oracle/predictions.json (gpt-5-codex-clean-room-v2, promptHash e5930f9e)",
-    "sample": "research/zone-oracle/sample.json (frozen, 189)",
-    "note": "flip-flop後半=ルール(zoneClassify iter2-a)凍結のまま物差しprompt v2へ改訂し同一sampleを再予測。本裁定は新不一致集合のみ。"
+    "predictions": "research/zone-oracle/predictions.json (gpt-5-codex-clean-room-v4, CR-grounded)",
+    "sample": "research/zone-oracle/sample.json (frozen,189)",
+    "note": "iter3-b CR基盤化。手法改訂(method§3 CR=一次決定論メーター)を適用し、暗黙ゾーン移動をCR真理テーブル(ESO)で確定。分類器とoracle promptを同時にCRへanchor(外部真理ゆえflip-flop交絡なし)。"
   },
   "attributionKinds": [
     "substrate",
@@ -15,365 +15,203 @@
   ],
   "summary": {
     "substrate": 0,
-    "compiler": 38,
-    "oracle": 14,
-    "ambiguous": 7,
-    "headline": "v2物差しは狙い達成(cast→stack過剰消滅・playerScope13.90→10.16%・ownership3.74→2.67%・uncertain0→11.64%)。だがzone19.25→22.99%=より良い物差しが新クラスタ2つを露呈: (1)compiler=暗黙のゾーン移動FN(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)=iter3ルール種 (2)oracle=v2 promptの過剰補正2(静的read battlefield + recipient-scope脱落)=prompt v3種。substrate=0維持=モデル健全。Slice3未収束。"
+    "compiler": 18,
+    "oracle": 5,
+    "ambiguous": 9,
+    "headline": "CR基盤化でzone25.67%(CR誤りv3)→6.95%/cross2.67%/ownership2.67%/playerScope8.02%/unverifiable5.29%・discrepancies32。決定論的混乱が消え残差は解釈的・小粒。substrate0維持。compiler=小さな認識FN(no-target bounce/return spell→stack/相手dies→cross)、oracle=destroy/sacrifice battlefield認識漏れ+scope差、ambiguous=owner境界。CR違反(destroy/sacrifice→graveyard欠落)はzoneClassifyで是正済(churn iter3-a→11.86%・graveyard+1945)。"
   },
   "cards": {
-    "93953926-a644-49bb-9b5a-4c8f19114c7e": {
-      "name": "Demolition Field",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
-    "ac10d218-f9a6-4058-9cda-a15ca1b0b7b5": {
-      "name": "Assassin's Trophy",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
-    "93723b12-db34-4047-885e-8606415b1553": {
-      "name": "Ashiok, Dream Render",
-      "attribution": "ambiguous",
-      "fix": "scope-boundary",
-      "note": "主体スコープの境界"
-    },
-    "9242cd3e-1a71-4700-8182-9c1005616033": {
-      "name": "Impact Tremors",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
-    "04152e7a-969c-4858-841b-0a569a9fc1bf": {
-      "name": "Professional Face-Breaker",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
     "613a8774-165e-4cf6-ad43-124f9ffc9980": {
       "name": "Nautiloid Ship",
       "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
-    "6cf50e21-0f60-4e9a-b910-ebe1bad2a29e": {
-      "name": "Blasphemous Edict",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
-    },
-    "727f3201-1cfc-4ab2-9dfe-be4f7251f42f": {
-      "name": "Boggart Trawler // Boggart Bog",
-      "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
+      "fix": "scope-recognition",
+      "note": "物差しのscope認識差(recipient/主語)"
     },
     "74d3277a-38e5-4732-afed-084a56148f20": {
       "name": "Mana Drain",
       "attribution": "oracle",
-      "fix": "recipient-scope-drop",
-      "note": "v2 promptの\"recipient不算入\"が過剰=対象/受け手プレイヤー(each-opponent/each-player/you)を物差しが脱落(prompt v3で対象プレイヤーはscope算入へ)"
+      "fix": "scope-recognition",
+      "note": "物差しのscope認識差(recipient/主語)"
     },
-    "d5be0ff6-39d9-4f9f-a028-e62dc38463f2": {
-      "name": "Gonti, Lord of Luxury",
+    "93723b12-db34-4047-885e-8606415b1553": {
+      "name": "Ashiok, Dream Render",
       "attribution": "oracle",
-      "fix": "classifier-correct-enters",
-      "note": "enters由来battlefieldを物差しが取りこぼし(分類器正)"
+      "fix": "scope-recognition",
+      "note": "物差しのscope認識差(recipient/主語)"
+    },
+    "6cf50e21-0f60-4e9a-b910-ebe1bad2a29e": {
+      "name": "Blasphemous Edict",
+      "attribution": "oracle",
+      "fix": "cr-destroy-bf-grave",
+      "note": "destroy/sacrifice=CR701.8a/701.21a で battlefield+graveyard(分類器がCR正)。物差しが認識漏れ"
+    },
+    "7a2484a9-04fd-41a0-8224-610c1c07ed10": {
+      "name": "Blasphemous Act",
+      "attribution": "oracle",
+      "fix": "cr-destroy-bf-grave",
+      "note": "destroy/sacrifice=CR701.8a/701.21a で battlefield+graveyard(分類器がCR正)。物差しが認識漏れ"
     },
     "00e0b103-892c-49b3-836d-867fff197bbd": {
       "name": "Puppeteer Clique",
       "attribution": "ambiguous",
-      "fix": "owner-floor",
-      "note": "ゾーン由来owner含意=ESO裁定1のfloor(controller維持)。物差しbothは方向妥当だが既知欠落"
+      "fix": "owner-controller-boundary",
+      "note": "owner≠controller/you-control境界(ESO既知)"
     },
     "38f3b157-0df4-409b-89cc-086e1531cd5b": {
       "name": "Gray Merchant of Asphodel",
-      "attribution": "oracle",
-      "fix": "ownership-overreach",
-      "note": "control語なしにcontroller誤付与(iter1から継続の物差し誤り)"
+      "attribution": "ambiguous",
+      "fix": "owner-controller-boundary",
+      "note": "owner≠controller/you-control境界(ESO既知)"
     },
     "4c6a0c30-b547-4eff-8ff4-0ca25803c076": {
       "name": "Urza's Saga",
       "attribution": "ambiguous",
-      "fix": "you-control-ownership",
-      "note": "you control解釈のownership境界"
+      "fix": "owner-controller-boundary",
+      "note": "owner≠controller/you-control境界(ESO既知)"
     },
     "13cb958f-1e66-4219-901a-ff58275c8475": {
       "name": "Brainstealer Dragon",
       "attribution": "ambiguous",
       "fix": "owner-scope-owns",
-      "note": "\"an opponent owns\"のowner scope境界(分類器のowner scopeは名詞限定=設計)。owner検出は妥当方向"
+      "note": "\"an opponent owns\"のowner scope境界(分類器owner scopeは名詞限定の設計)"
+    },
+    "bd7c5a8b-cf62-41e1-a664-b16e3e5d142b": {
+      "name": "Laughing Jasper Flint",
+      "attribution": "ambiguous",
+      "fix": "owner-scope-owns",
+      "note": "\"an opponent owns\"のowner scope境界(分類器owner scopeは名詞限定の設計)"
     },
     "f1c2dbe2-fbe0-4058-bdf1-91d1b1832786": {
       "name": "Dauthi Voidwalker",
       "attribution": "ambiguous",
       "fix": "owner-scope-owns",
-      "note": "\"an opponent owns\"のowner scope境界(分類器のowner scopeは名詞限定=設計)。owner検出は妥当方向"
+      "note": "\"an opponent owns\"のowner scope境界(分類器owner scopeは名詞限定の設計)"
     },
     "fe5690d3-547b-4ce9-8e94-77fdc0e9c5c6": {
       "name": "Kefka, Dancing Mad",
       "attribution": "ambiguous",
       "fix": "owner-scope-owns",
-      "note": "\"an opponent owns\"のowner scope境界(分類器のowner scopeは名詞限定=設計)。owner検出は妥当方向"
-    },
-    "89ca686a-7c72-4d8f-9290-e89635624a83": {
-      "name": "Cavern of Souls",
-      "attribution": "ambiguous",
-      "fix": "scope-boundary",
-      "note": "主体スコープの境界"
-    },
-    "0d4ecdb1-ec90-497f-a7a4-1c68092b8757": {
-      "name": "Teferi's Protection",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "0fd114c4-092b-4e28-b0dc-ef529f3bc73e": {
-      "name": "Jeska's Will",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "2bd111bb-ce02-414c-b5b7-e0e037d8d96b": {
-      "name": "Bolas's Citadel",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "3754dce0-3e97-406f-8807-a4942a222c41": {
-      "name": "Gaea's Anthem",
-      "attribution": "oracle",
-      "fix": "static-read-not-zone",
-      "note": "静的permanent参照(you control/計数)はE-ZONE-REF(移動/探索)に当たらず=物差し過剰(prompt v3)"
-    },
-    "7c779721-cd1b-4696-9ae9-68ccc284ed2a": {
-      "name": "Aetherize",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "cd0d7141-46d2-4aa3-bc77-6b3b4513803e": {
-      "name": "Control Magic",
-      "attribution": "oracle",
-      "fix": "static-read-not-zone",
-      "note": "静的permanent参照(you control/計数)はE-ZONE-REF(移動/探索)に当たらず=物差し過剰(prompt v3)"
-    },
-    "d09c9cba-fdd2-479b-ad5d-d05181c3e3f9": {
-      "name": "Fierce Guardianship",
-      "attribution": "oracle",
-      "fix": "static-read-not-zone",
-      "note": "静的permanent参照(you control/計数)はE-ZONE-REF(移動/探索)に当たらず=物差し過剰(prompt v3)"
-    },
-    "d2d9ecea-7925-420e-98b9-2f87f41f387c": {
-      "name": "Land Tax",
-      "attribution": "oracle",
-      "fix": "static-read-not-zone",
-      "note": "静的permanent参照(you control/計数)はE-ZONE-REF(移動/探索)に当たらず=物差し過剰(prompt v3)"
-    },
-    "dc4a4996-108a-4aac-850f-2d9f76403446": {
-      "name": "Boomerang",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "bd7c5a8b-cf62-41e1-a664-b16e3e5d142b": {
-      "name": "Laughing Jasper Flint",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "d04b6c2c-50fc-464d-9991-230efec70d2b": {
-      "name": "Nashi, Moon Sage's Scion",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "73dad679-1edb-41c9-9d43-56dc93c3e9fe": {
-      "name": "Stone of Erech",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "aa5e9269-b1db-4bf0-a548-24f999f60e44": {
-      "name": "Inevitable Betrayal",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "127de52b-df75-4342-95a0-20d84c5bf916": {
-      "name": "The Meathook Massacre",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "c7f33cea-2ec8-4081-9208-a5b1d86721b3": {
-      "name": "Bastion of Remembrance",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "e9b6a394-691c-425a-9307-76d8edc7375e": {
-      "name": "Otawara, Soaring City",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "edd8d1e8-be43-4c38-bb3a-83081fbaf0b5": {
-      "name": "Thoughtseize",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "93cf50cf-0ecc-4d3e-abea-778c1ebacec4": {
-      "name": "Massacre Wurm",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "00c0543c-2a1f-4425-8283-4062d74a1637": {
-      "name": "Solemn Simulacrum",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "bf1341dd-41a3-49f6-87ec-63170dde4324": {
-      "name": "Boseiju, Who Endures",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "abc37d6c-6300-47b5-a679-9db5b83eb54f": {
-      "name": "Syphon Mind",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種 (+cross照応)"
-    },
-    "08becc07-28bc-4a2f-a6b0-28a2998d2f50": {
-      "name": "Windfall",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "02090581-61aa-4348-ad57-451be8ee91c2": {
-      "name": "Ponder",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "0fd57894-b917-41c8-a394-360d1d31b236": {
-      "name": "Ephemerate",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "13575cf9-65c1-4861-b21e-eb2155e07766": {
-      "name": "Sensei's Divining Top",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "63afc3d1-7653-476e-838f-fc18d4a62a21": {
-      "name": "Mishra's Bauble",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "e744dbb6-2d56-462a-8d49-d79c73944048": {
-      "name": "Portent",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "928d977e-cff0-4e0e-83bb-16d73a754f35": {
-      "name": "Gix, Yawgmoth Praetor",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
-    },
-    "37108cd4-bbab-4ce3-9ed6-f60e8422e703": {
-      "name": "Ragavan, Nimble Pilferer",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "note": "\"an opponent owns\"のowner scope境界(分類器owner scopeは名詞限定の設計)"
     },
     "1b5e6560-ff2e-4475-96cb-63f64c8a86db": {
       "name": "Soul-Guide Lantern",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "scope-fn",
+      "note": "分類器のscope取りこぼし(小)"
     },
-    "3127ae9b-a7a7-43ec-89d7-688f8445b33d": {
-      "name": "Garruk's Uprising",
+    "63afc3d1-7653-476e-838f-fc18d4a62a21": {
+      "name": "Mishra's Bauble",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "scope-fn",
+      "note": "分類器のscope取りこぼし(小)"
     },
-    "3aa83ed2-f48b-4ce6-a614-2c54ddf50538": {
-      "name": "The One Ring",
+    "86bf58f2-7f25-4e10-b797-25e0e8e67769": {
+      "name": "Flusterstorm",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "scope-fn",
+      "note": "分類器のscope取りこぼし(小)"
     },
-    "ab1cc360-b9de-48d9-9983-4dfe4a7d2a37": {
-      "name": "Arcane Denial",
+    "89ca686a-7c72-4d8f-9290-e89635624a83": {
+      "name": "Cavern of Souls",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "scope-fn",
+      "note": "分類器のscope取りこぼし(小)"
     },
-    "b3d81980-76f2-44e2-b1c9-01e30c726312": {
-      "name": "Loran of the Third Path",
+    "0d4ecdb1-ec90-497f-a7a4-1c68092b8757": {
+      "name": "Teferi's Protection",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種 (+cross照応)"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
-    "ea5103f5-27e0-4eb1-902c-7f34652d6bf3": {
-      "name": "Orcish Bowmasters",
+    "7c779721-cd1b-4696-9ae9-68ccc284ed2a": {
+      "name": "Aetherize",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種 (+cross照応)"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
-    "17dbbca3-ac1c-4d4e-9618-3e66ac3ccd24": {
-      "name": "Urza's Bauble",
+    "73dad679-1edb-41c9-9d43-56dc93c3e9fe": {
+      "name": "Stone of Erech",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
-    "1d67f5ff-1fce-45e5-b6a1-416c569351e2": {
-      "name": "Gitaxian Probe",
-      "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+    "d04b6c2c-50fc-464d-9991-230efec70d2b": {
+      "name": "Nashi, Moon Sage's Scion",
+      "attribution": "ambiguous",
+      "fix": "owner-controller-boundary",
+      "note": "owner≠controller/you-control境界(ESO既知)"
     },
-    "2876e74f-a242-4995-9702-0b737a1ab67a": {
-      "name": "Psychosis Crawler",
+    "aa5e9269-b1db-4bf0-a548-24f999f60e44": {
+      "name": "Inevitable Betrayal",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
-    "b473e293-59e3-4e04-acf2-622604aeb25f": {
-      "name": "Path of Ancestry",
+    "0fd57894-b917-41c8-a394-360d1d31b236": {
+      "name": "Ephemerate",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
+    },
+    "37108cd4-bbab-4ce3-9ed6-f60e8422e703": {
+      "name": "Ragavan, Nimble Pilferer",
+      "attribution": "ambiguous",
+      "fix": "owner-controller-boundary",
+      "note": "owner≠controller/you-control境界(ESO既知)"
     },
     "14c3ff84-1e82-4606-a433-869fc52cc382": {
       "name": "Syr Konrad, the Grim",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
+    },
+    "b473e293-59e3-4e04-acf2-622604aeb25f": {
+      "name": "Path of Ancestry",
+      "attribution": "compiler",
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
     "bcc6eece-75ea-494c-b33a-d4477d504e0b": {
       "name": "Sink into Stupor // Soporific Springs",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
     },
     "d4a84e78-d9b9-4c67-8a4b-4329e65f0f15": {
       "name": "Hullbreaker Horror",
       "attribution": "compiler",
-      "fix": "implicit-movement",
-      "note": "暗黙のゾーン移動(draw→hand/discard→graveyard/dies→graveyard/bare permanent bounce→battlefield)を分類器が取りこぼし=iter3ルール種"
+      "fix": "recognition-fn",
+      "note": "分類器の認識取りこぼし(no-target bounce/return spell→stack/scry→library 等・小粒)"
+    },
+    "0355249a-8e4e-41db-9cea-1b901faffbe6": {
+      "name": "Witch Enchanter // Witch-Blessed Meadow",
+      "attribution": "compiler",
+      "fix": "cross-dies-opponent",
+      "note": "相手のパーマネントがdies/destroy→相手の墓地=cross。分類器のcross照応がdies/destroy主語に未対応(小)"
+    },
+    "127de52b-df75-4342-95a0-20d84c5bf916": {
+      "name": "The Meathook Massacre",
+      "attribution": "compiler",
+      "fix": "cross-dies-opponent",
+      "note": "相手のパーマネントがdies/destroy→相手の墓地=cross。分類器のcross照応がdies/destroy主語に未対応(小)"
+    },
+    "55f3c721-e13a-406e-bc8e-d6cdc91ac477": {
+      "name": "Authority of the Consuls",
+      "attribution": "compiler",
+      "fix": "cross-dies-opponent",
+      "note": "相手のパーマネントがdies/destroy→相手の墓地=cross。分類器のcross照応がdies/destroy主語に未対応(小)"
+    },
+    "5d998c09-7d89-4265-ada4-6d80cbf56dae": {
+      "name": "Blind Obedience",
+      "attribution": "compiler",
+      "fix": "cross-dies-opponent",
+      "note": "相手のパーマネントがdies/destroy→相手の墓地=cross。分類器のcross照応がdies/destroy主語に未対応(小)"
+    },
+    "93cf50cf-0ecc-4d3e-abea-778c1ebacec4": {
+      "name": "Massacre Wurm",
+      "attribution": "compiler",
+      "fix": "cross-dies-opponent",
+      "note": "相手のパーマネントがdies/destroy→相手の墓地=cross。分類器のcross照応がdies/destroy主語に未対応(小)"
     }
   }
 }
