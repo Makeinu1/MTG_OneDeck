@@ -526,3 +526,178 @@ KPI 対応(method §4):**主指標**= `zoneDiscrepancyRate`/**`crossPlayerDiscre
 - **`crossPlayerDiscrepancyRate` の oracleOnly(オラクルが cross・分類器が非cross)= 照応 FN の規模**。これが大きければ予測どおり=分類器の cross 検出を iter2 で `their`/`that player's` 照応へ拡張(`zoneClassify.ts`)。
 - 同 `deltaSignature` が多数同方向 → 系統的 substrate/分類器誤り。ゴールド校正で軸別 precision/recall が低い → 物差し誤り(§8.2 prompt 改訂)。単発 → ノイズ。
 - 結果を ESO Slice3 の `trust` 列へ反映(軸別:一致=検証済/割れ=不一致/uncertain=検証不能)。真クロス率と各軸不一致率で Slice3 継続 or Slice4 前進を判断。**0.74% を収束と読まない**(method §4)。
+
+---
+
+# 9. Slice4 流用: タイミングオラクル(M0-T-O / `TimingFacts` schema)
+
+> Slice1(層)・Slice2(イベント)・Slice3(ゾーン)の物差し設計(§0〜§8)を**そのまま流用**し、`facts` schema を
+> 差し替えてタイミング軸に当てる。対象分類器 = `scripts/lib/timingClassify.ts`(`classifyCardTiming`、TimingStep 列挙・
+> junctureScope= Slice2 ObserverScope 再利用・CastTiming 6値)。下面抽出(`timing-coverage`)は本マイルストーンで iter1 実行。
+> **計測の中心 = タイミング認識**(juncture と cast/起動の制限)。**SBA(CR704)・ターン構造(CR500)は決定論的ゆえ
+> ESO の CR 真理テーブルで固定し、本オラクルは予測しない**(method §3「CR を一次の決定論的権威に」)。
+
+## 9.0 Slice2/3 との差(なぜ写像が恒等か)
+- juncture(どのステップ)・junctureScope(誰のターン)・castTiming(制限窓)は**観測可能なテキスト事象**であり
+  隠れた Fable タクソノミでない(Slice2/3 と同じ)。よって**写像は恒等**=オラクルは各軸を直接予測し集合差で比較。
+- **TimingStep の値域は CR500 真理テーブル**(ESO「iter3 CR ターン構造真理テーブル」)から導出=決定論的に固定。
+  オラクルにはこの**ステップ写像を明示**(`at the beginning of your upkeep`→`upkeep` 等)してノイズ源を断つ(§9.2)。
+  これは Slice3 v4 が CR ゾーン遷移写像を明示したのと同型(決定論的軸の anchor は CR=交絡しない)。
+- 相関遮断は §0 のまま:オラクルは**別主体(Codex clean-room)**・**oracleText のみ**・`timingClassify.ts`/`timing-coverage`
+  出力を**読まない**。
+
+## 9.1 サンプル抽出(`scripts/timing-oracle-sample.ts` / ≈ 190枚)
+入力2系統を `oracleId` 結合(`research/timing-coverage/report.json.cards` は `{oracleId,name,junctures,junctureScope,castTiming}`、
+`oracleText`/`edhrecRank` 非保有 → snapshot を `mapScryfallCardToCardDef` で写す。§1 と同経路):
+
+| 層化バケット | 件数 | 抽出規則 |
+|---|---:|---|
+| `gold` | (全数) | §9.4 のゴールドを `name`→`oracleId` 解決し**無条件内包**。校正母数 |
+| `head` | 90 | juncture 保有(`junctures.length>0`)を **snapshot `edhrecRank` 昇順**(同値 `oracleId` 昇順)。ステップ間で概ね均す |
+| `cast` | 40 | `castTiming` が `none` 以外(sorcery-speed/flash/your-turn-only/combat-only/once-per-turn)を同基準。タイミング制限軸の確証母数 |
+| `scope` | 30 | `junctureScope` に `opponent` または `any` を含むを同基準(誰のターンか軸の反証母数) |
+| `tail` | 20 | 希少ステップ(`draw`/`untap`/`begin-combat`/`declare-attackers`/`declare-blockers`/`end-combat`/`cleanup`/`main-precombat`/`main-postcombat`/`turn`/`other`)保有(裾の反証) |
+
+- 重複は `oracleId` 排除。`junctures` 空かつ `castTiming=[none]` のカードは `gold` 負例以外は対象外。総数 ≈ 190(gold 内包で前後)。
+- 出力 `research/timing-oracle/sample.json`(§8.1 と同形・**タイミングラベルは絶対に出力しない**=盲の担保)。
+
+## 9.2 盲予測 prompt(Codex clean-room → `research/timing-oracle/predictions.json`)
+`sample.json` の各カードを下記 prompt **のみ**で推論。`timingClassify.ts`・`timing-coverage` 出力・engine 出力を参照しない。
+
+> You are reading a Magic: The Gathering card's English oracle text. Identify **when** the card's abilities happen in the turn,
+> and any **timing restriction** on casting or activating it. Read **all faces** (MDFC / split / transform) and report the union.
+> Answer the following. **Prefer listing a key under `uncertain` over guessing** when genuinely ambiguous. Give a one-line `rationale` quoting the relevant text.
+>
+> 1. `junctures` — the set of **turn-structure steps** at which the card's **triggered abilities** fire. A triggered ability that
+>    starts "At the beginning of …" or "during [a/each] … step" names a step. Map the named step to one of:
+>    `untap` ("untap step"), `upkeep` ("upkeep"), `draw` ("draw step"),
+>    `main-precombat` ("precombat main phase"), `main-postcombat` ("postcombat main phase"),
+>    `begin-combat` ("beginning of combat" / "combat on your turn"), `declare-attackers` ("declare attackers step"),
+>    `declare-blockers` ("declare blockers step"), `end-combat` ("end of combat step"),
+>    `end-step` ("end step" / "beginning of the end step"), `cleanup` ("cleanup step"),
+>    `turn` ("at the beginning of your/each turn" with no specific step), `other` (a step-like juncture not listed).
+>    **A trigger on dealing or being dealt combat damage is NOT a juncture** — combat damage is an event, not "the beginning of a step";
+>    leave such triggers out of `junctures`. Static/activated abilities and "When this enters / dies / attacks" triggers are **not** junctures either.
+>    If the card has no turn-structure-step trigger, `junctures` is the empty set.
+> 2. `junctureScope` — for the steps in `junctures`, **whose turn** the step belongs to (a set). Decide from the text:
+>    `self` ("**your** upkeep/end step", "combat on **your** turn"), `opponent` ("**each opponent's** upkeep", "**each other player's** untap step"),
+>    `any` ("**each** player's upkeep", "**each** end step" with no owner = all players), `unknown` (genuinely ambiguous).
+>    Empty if `junctures` is empty. A card may have several (e.g. "your upkeep" + "each opponent's upkeep" → `self` and `opponent`).
+> 3. `castTiming` — timing restrictions on **casting this spell or activating its abilities** (a set). Choose from:
+>    `sorcery-speed` ("only as a sorcery", "only during your main phase … stack empty", "any time you could cast a sorcery"),
+>    `flash` (the keyword **Flash**, "any time you could cast an instant", "as though it/they had flash"),
+>    `combat-only` ("only during combat"), `your-turn-only` ("only during your turn"),
+>    `once-per-turn` ("only once each turn"), `none` (no such restriction stated in the text).
+>    A plain Instant or Sorcery with **no explicit restriction text** is `none` (its card type alone is not a `castTiming` token).
+>    If none apply, answer `["none"]`.
+>
+> **Do not mention comprehensive-rules numbers. A "deals combat damage" trigger is an event, never a juncture.**
+
+出力 `predictions.json`(LLM 推論=非決定。再生成せずコミット固定):
+```jsonc
+{ "model": "<codex model id>", "generatedAt": "...", "promptHash": "<sha256 of §9.2 prompt>",
+  "predictions": [ { "oracleId": "...", "name": "...",
+    "facts": { "junctures": ["upkeep"], "junctureScope": ["self"], "castTiming": ["none"],
+               "uncertain": [], "rationale": "..." } } ] }
+```
+
+## 9.3 差分 / KPI(`scripts/timing-oracle-diff.ts` + `scripts/lib/timingOracleHarness.ts` / 純粋・決定的)
+分類器側 = `timing-coverage/report.json.cards`。オラクル側 = `predictions[*].facts`。ゴールド = §9.4。
+比較は**3軸独立**(junctures 集合差・junctureScope 集合差・castTiming 集合差)。`uncertain` に挙がったトークン
+(`TimingStep` 値 / `ObserverScope` 値 / `CastTiming` 値)は**その軸の比較から除外**し当該カードを検証不能に数える
+(Slice1〜3 の uncertain マスクと同型)。**`castTiming` は `[none]` を「制限なし」の確定値**として比較(空集合と区別しない:
+分類器・オラクルとも制限なしは `['none']` を出す)。
+
+```ts
+import type { ObserverScope } from './eventClassify';
+import type { TimingStep, CastTiming } from './timingClassify';
+
+export interface TimingFacts {
+  junctures: TimingStep[];
+  junctureScope: ObserverScope[];
+  castTiming: CastTiming[];
+  uncertain: string[];        // TimingStep | ObserverScope | CastTiming
+  rationale?: string;
+}
+export interface TimingCardDiff {
+  oracleId: string; name: string;
+  classifierJunctures: TimingStep[]; oracleJunctures: TimingStep[];
+  junctureClassifierOnly: TimingStep[];     // 分類器のみ(オラクル基準 FP)
+  junctureOracleOnly: TimingStep[];         // オラクルのみ(オラクル基準 FN)
+  classifierScope: ObserverScope[]; oracleScope: ObserverScope[];
+  scopeClassifierOnly: ObserverScope[]; scopeOracleOnly: ObserverScope[];
+  classifierCastTiming: CastTiming[]; oracleCastTiming: CastTiming[];
+  castTimingClassifierOnly: CastTiming[]; castTimingOracleOnly: CastTiming[];
+  junctureAgree: boolean; scopeAgree: boolean; castTimingAgree: boolean;
+  agree: boolean;             // 3軸とも一致(uncertain マスク後)
+  hasUncertain: boolean;
+  deltaSignature: string;     // juncture "+upkeep,-end-step" → scope "+@opponent" → cast "+flash,-none"。昇順・空なら "="
+  attribution: null;          // Fable が監査で {substrate|compiler|oracle|ambiguous} を記入
+}
+export interface JunctureConfusion { step: TimingStep; classifierOnly: number; oracleOnly: number; agreeBoth: number; }
+export interface ScopeConfusion { scope: ObserverScope; classifierOnly: number; oracleOnly: number; agreeBoth: number; }
+export interface CastTimingConfusion { cast: CastTiming; classifierOnly: number; oracleOnly: number; agreeBoth: number; }
+export interface JunctureCalibration { step: TimingStep; precision: number; recall: number; support: number; } // oracle vs gold
+export interface Cluster { signature: string; count: number; examples: string[]; }
+export interface TimingOracleReport {
+  sampleSize: number; comparedCount: number;
+  junctureDiscrepancyRate: number;      // junctureAgree=false かつ juncture uncertain でない / comparedCount
+  junctureScopeDiscrepancyRate: number; // 同上(scope 軸)
+  castTimingDiscrepancyRate: number;    // 同上(castTiming 軸)
+  unverifiableRate: number;             // uncertain を持つカード / sampleSize(安全KPI)
+  perJunctureConfusion: JunctureConfusion[];   // TIMING_STEPS 順
+  perScopeConfusion: ScopeConfusion[];         // ObserverScope 順
+  perCastTimingConfusion: CastTimingConfusion[]; // CAST_TIMINGS 順
+  goldCalibration: JunctureCalibration[];      // ゴールド真値の juncture 別 precision/recall
+  clusters: Cluster[];                         // deltaSignature 別・count 降順
+  discrepancies: TimingCardDiff[];             // agree=false を deltaSignature, oracleId でソート
+}
+export function computeTimingReport(
+  classifier: { oracleId: string; name: string; junctures: TimingStep[]; junctureScope: ObserverScope[]; castTiming: CastTiming[] }[],
+  predictions: { oracleId: string; name: string; facts: TimingFacts }[],
+  gold: { oracleId: string; junctures: TimingStep[]; junctureScope: ObserverScope[]; castTiming: CastTiming[] }[],
+): TimingOracleReport;
+```
+
+KPI 対応(method §4):**主指標**= `junctureDiscrepancyRate`/`junctureScopeDiscrepancyRate`/`castTimingDiscrepancyRate`
+(`clusters` で系統誤りを炙る)/**帰属**= `discrepancies[].attribution`(Fable 監査)/**物差し校正**= `goldCalibration`/
+**検証不能**= `unverifiableRate`。出力 `research/timing-oracle/report.{md,json}`。report.json が大型なら `.gitignore`(report.md は残す)。
+
+## 9.4 ゴールド真値(校正母数 = `review.timing-coverage` と同一の人手確定値)
+`name`→`oracleId` 解決して付与。**これを真値**にオラクル予測の juncture 別 precision/recall を測る(校正に分類器を使わない=循環回避)。
+
+| name | junctures | junctureScope | castTiming |
+|---|---|---|---|
+| Phyrexian Arena | upkeep | self | none |
+| Bitterblossom | upkeep | self | none |
+| Court of Grace | upkeep | self | none |
+| Sulfuric Vortex | upkeep | any | none |
+| Goblin Rabblemaster | begin-combat | self | none |
+| Wilderness Reclamation | end-step | self | none |
+| Seedborn Muse | untap | opponent | none |
+| Dictate of Kruphix | draw | any | flash |
+| Sword of Feast and Famine | (なし) | (なし) | none |
+| Aggravated Assault | (なし) | (なし) | sorcery-speed |
+| Seedtime | (なし) | (なし) | your-turn-only |
+| Leyline of Anticipation | (なし) | (なし) | flash |
+| Sol Ring | (なし) | (なし) | none |
+| Llanowar Elves | (なし) | (なし) | none |
+| Approach of the Second Sun | (なし) | (なし) | none |
+| Grizzly Bears | (なし) | (なし) | none |
+
+- **Sword of Feast and Famine は juncture の真値負例**(`deals combat damage` = Slice2 damage であって juncture でない。
+  オラクル/分類器が `combat-damage` juncture を立てれば校正の FP として効く)。
+- 負例(Grizzly Bears/Sol Ring/Llanowar Elves=タイミング参照なし→ `castTiming=[none]`)も含める。
+- **Dictate of Kruphix は Flash キーワード + draw-step juncture の複合真値**(reminder 除去後も `Flash` 語が残る)。
+- 名前解決できないゴールドは校正母数から除外し `report.md` に明示(silent に落とさない)。
+
+## 9.5 分担・変更禁止(§5/§7.5/§8.5 と同一)
+- **Fable**: 本節 / ESO Slice4 の trust 更新 / `engine-spec.md` §34.9 ログ / `review.timing-oracle.test.ts`・`review.timing-coverage.test.ts` / 監査帰属。
+- **Codex(`scripts/` のみ)**: `scripts/lib/timingClassify.ts`(`classifyCardTiming`)/ `scripts/timing-coverage.ts` / `scripts/timing-oracle-sample.ts` / `scripts/timing-oracle-diff.ts` / `scripts/lib/timingOracleHarness.ts`(`computeTimingReport`)/ clean-room `predictions.json` / `package.json` script `timing-coverage`・`timing-oracle-sample`・`timing-oracle-diff` 追加 / 必要なら `.gitignore` に `research/timing-oracle/report.json`。`splitAbilityLines`・`mapScryfallCardToCardDef`・`removeReminderAndQuotes`・`eventClassify` の `ObserverScope` を再利用。
+- **Codex 変更禁止**: `src/engine/`・`src/data/`・`review.*`・`docs/`・`CLAUDE.md`・`eslint.config.js`・`CACHE_SCHEMA_VERSION`・git。
+
+## 9.6 iter1 収束判定(監査後 Fable)
+- 同 `deltaSignature` が多数同方向に割れる → 系統的 substrate/分類器誤り(ESO or timingClassify regex を直す)。
+- ゴールド校正で juncture/castTiming の precision/recall が低い → 物差し誤り(§9.2 prompt 改訂)。単発 → ノイズ。
+- **`junctureOracleOnly` に `combat-damage` 類が出ないこと**(出れば prompt の damage≠juncture 注記を強化)。
+- 結果を ESO Slice4 の `trust` 列へ反映(軸別:一致=検証済/割れ=不一致/uncertain=検証不能)。juncture/castTiming 不一致率・churn・被覆で Slice4 継続 or 収束方向を判断。**低 churn を収束と読まない**(method §4)。

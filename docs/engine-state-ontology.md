@@ -812,3 +812,204 @@ flip-flop の射程外(method §3:外部真理 CR が在るため分類器とオ
 - **trust(iter3-b 後)**: E-ZONE-REF = **CR 接地で大幅収束**(6.95%・残差は認識 FN)。E-ZONE-CROSS = 良好(2.67%・残差は相手 dies の cross 照応)。
   E-OWNER/E-CONTROLLER = 良好(2.67%・残差 ambiguous owner)。E-PLAYER-SCOPE = 改善(8.02%・残差 recipient/owner-scope 認識)。
 - **収束読み**: zone 6.95%/scope 8.02% は 5% 閾値に**接近(未達)**。だが**最大の成果は手法の是正** = 決定論的軸を CR 真理テーブルへ移し、LLM-oracle を認識・解釈に限定したこと(本件以前は決定論的問いを物差しで予測し誤収束・3回の prompt 再走を浪費)。残差は認識精度(compiler 小)と owner 境界(ambiguous)で、いずれも substrate を脅かさない。**Slice3 は CR 接地で実質収束方向**。次の小改善 = 認識 FN(no-target bounce/return-spell-stack/相手 dies cross)。**Slice4(タイミング/SBA)前進可**。CR 準拠監査 = `research/cr-conformance-audit.md`(runtime `trigger.death` の CR700.4 違反を別タスク化)。
+
+---
+
+## スライス4: タイミング + SBA(CR500 / CR704)
+
+> 開始 2026-06-24。Slice1(盤面がどうあるか)・Slice2(何が起きたか)・Slice3(どのゾーン/誰のものか)が
+> 実質収束したのを受け、本スライスは「**いつ**起きるか」=ターン構造のタイミング(フェイズ/ステップ/juncture)と
+> **状況起因処理(SBA, CR704)**へ移る。**本スライスでも runtime コードは書かない**(S-TURN は M-CONTRACT 凍結後)。
+> 確定させるのは「エンジンが持つべきタイミング/SBA state の最小十分タクソノミ」と「誘発/キャストがどの juncture・
+> どのタイミング窓を読むか(認識軸)」。
+
+### 設計の核 — 決定論的軸と解釈的軸の弁別(method §3・2026-06-24 改訂を厳守)
+
+Slice4 の問いは2種に截然と分かれる。**混同すると物差し(LLM)で決定論的答えを「予測」しようとして浪費・誤収束する**
+(Slice3 iter3-b の precedent)。
+
+- **決定論的(rules-defined)= CR が一意に答える** → **LLM で予測しない。CR 真理テーブルで固定する**:
+  - **ターン構造**(CR500): フェイズ/ステップの列・順序・各 juncture が `at the beginning of` 誘発を購読する事実。
+  - **SBA 条件**(CR704.5): どの状態でどの SBA が発火するか(0ライフ敗北・タフネス≤0・忠誠0・レジェンド・ルール…)。
+- **解釈的(recognition)= カード文の認識** → **独立オラクルで測る軸**:
+  - **誘発 juncture の認識**: `at the beginning of [your/each] <step>` / `during <step>` がどのステップを指すか(Slice2 の
+    粗い `phase` 族を**特定ステップへ細分化**)・誰のターンの juncture か。
+  - **キャスト/起動のタイミング制限の認識**: `only as a sorcery` / `Flash` / `only during your turn` / `only during combat` /
+    `only once each turn` 等のタイミング窓(CR307/601/602.5)。
+
+**∴ 計測対象(分類器+オラクル)の中心は「タイミング認識」**。SBA は CR 真理テーブル + コーパス改変需要で固定し
+**カード文から予測しない**(SBA の発火は engine 内部処理であってカード文の認識対象でない)。
+
+### iter3 CR ターン構造真理テーブル(決定論的・CR500 正本・2026-06-24・Fable)
+
+CR500.1(5フェイズ)/ 501.1・506・512(ステップ)/ **500.6(`at the beginning of` 誘発の購読)** を正本とし、
+分類器・gold・オラクル prompt の三者すべての**正本**とする。`TimingStep` の値域はこの表から導出する。
+
+| フェイズ(CR) | ステップ(CR) | `TimingStep` | 代表的な juncture 言及 |
+|---|---|---|---|
+| beginning(501) | untap(502) | `untap` | "during [each player's] untap step"(Seedborn Muse・no-priority step だが効果は掛かる) |
+| beginning(501) | upkeep(503) | `upkeep` | "at the beginning of [your/each] upkeep"(**最頻**) |
+| beginning(501) | draw(504) | `draw` | "at the beginning of [each player's] draw step" |
+| precombat main(505) | —(ステップなし) | `main-precombat` | "at the beginning of your precombat main phase" |
+| combat(506) | begin combat(507) | `begin-combat` | "at the beginning of combat on your turn" |
+| combat(506) | declare attackers(508) | `declare-attackers` | "at the beginning of the declare attackers step"(希少) |
+| combat(506) | declare blockers(509) | `declare-blockers` | 同上(希少) |
+| combat(506) | combat damage(510) | —(**juncture にしない**) | **`deals/dealt combat damage` は Slice2 `damage` イベント**(CR510 ステップの `at the beginning of` 誘発はほぼ存在しない)。combat damage ≠ combat phase(Slice2 prompt と同根) |
+| combat(506) | end of combat(511) | `end-combat` | "at the beginning of the end of combat step" |
+| postcombat main(505) | —(ステップなし) | `main-postcombat` | "at the beginning of your postcombat main phase" |
+| ending(512) | end step(513) | `end-step` | "at the beginning of [your/each] end step"(高頻度) |
+| ending(512) | cleanup(514) | `cleanup` | "at the beginning of [the/each] cleanup step"(希少・優先権なし) |
+| —(汎用) | — | `turn` | "at the beginning of [your/each] turn"(特定ステップ非明示) |
+| —(逃さない箱) | — | `other` | juncture らしいが上記外 |
+
+- **🔴 combat-damage を juncture にしない理由**: カード文の `deals/dealt combat damage` 誘発は**イベント駆動**(Slice2
+  `E-EV-DAMAGE`)であって「combat damage **ステップ**の開始」誘発ではない。これを juncture に数えると Slice2 の
+  `damage` 族と二重計上され、`combat damage ≠ combat phase`(Slice2 §7.2 prompt)の規律を破る。Sword of Feast and Famine
+  (`Whenever equipped creature deals combat damage to a player …`)は **juncture なし**=本スライスの代表的負例。
+- **owner 不在の delayed/extra juncture**: 追加フェイズ(CR500.8-500.10)・延期誘発(`at the beginning of the next …`)は
+  **概念登録のみ**(本スライスは「直近のターン構造 juncture」の認識精度を測る)。
+
+### SBA 真理テーブル(決定論的・CR704.5 正本・2026-06-24・Fable)
+
+SBA は engine が**優先権取得のたびに**(CR704.3)決定論的にチェックする固定リスト。**カード文から「予測」しない**。
+本スライスはこのチェックリストを ESO に固定し、コーパスからは **SBA の発火を改変するカードの需要**だけを数える。
+
+| SBA | CR | 条件 → 結果 | runtime read/write(将来 S-SBA) |
+|---|---|---|---|
+| 敗北(0ライフ) | 704.5a | life ≤ 0 → そのプレイヤー敗北 | read player.life |
+| 敗北(空ライブラリドロー) | 704.5b | 空ライブラリから引いた → 敗北 | read drawFromEmpty フラグ |
+| 敗北(毒10) | 704.5c | poison ≥ 10 → 敗北 | read player.poison |
+| トークン消滅 | 704.5d | token が battlefield 外 → 消滅 | read object.isToken + zone |
+| コピー消滅 | 704.5e | spell/card コピーが正規ゾーン外 → 消滅 | read object.isCopy + zone |
+| タフネス0死 | 704.5f | creature toughness ≤ 0 → owner's graveyard(**再生不可**) | read 有効 toughness(Slice1 層適用後) |
+| 致死ダメージ | 704.5g | damage ≥ toughness(>0)→ 破壊(再生可) | read damage marked + 有効 toughness |
+| 接死ダメージ | 704.5h | deathtouch 源のダメージ → 破壊 | read damage source deathtouch |
+| 忠誠0 | 704.5i | planeswalker loyalty 0 → owner's graveyard | read loyalty counter |
+| レジェンド・ルール | 704.5j | 同名 legendary 複数 → 1つ残し残りを墓地 | read legendary + name + controller |
+| ワールド・ルール | 704.5k | world 複数 → 最新以外を墓地 | read supertype world + timestamp |
+| オーラ不正付着 | 704.5m | Aura が不正/未付着 → owner's graveyard | read attachment 合法性 |
+| 装備/城砦の剥離 | 704.5n | Equipment/Fortification が不正付着 → 外れる | read attachment |
+| +1/+1 と -1/-1 相殺 | 704.5q | 両カウンター共存 → N 個ずつ除去 | write counters |
+| カウンター上限 | 704.5r | 上限超過カウンター → 除去 | write counters |
+| Saga 生け贄 | 704.5s | lore ≥ 最終章 → controller が生け贄 | read lore counter(Slice1 既出) |
+
+> **本スライスで初期非対応(既知欠落・§34.5)**: 704.5k(world)・704.5t-z(dungeon/space sculptor/battle/Role/speed)等の
+> 稀少 SBA は概念登録のみ。EDH 頭被覆に効く 704.5a/c/f/g/i/j/q/s を最小集合とする。
+
+### ESO エントリ
+
+#### E-PHASE-STEP: ターン構造(フェイズ/ステップ列)
+- **CR根拠**: 500.1(5フェイズ)、501.1/506/512(ステップ分解)、500.6(`at the beginning of` 誘発)、500.12(イベントはステップ間で起きない)
+- **コーパス需要**: 全カードが間接的に依存(基点)。`at the beginning of` ≈ 1,677(Slice2 E-EV-PHASE の coarse 計数)を本スライスがステップ別に細分化
+- **state read/write**: write = `currentPhase` / `currentStep` / `activePlayer`(将来 `src/engine/turn.ts`)。**TimingStep 値域 = 上記真理テーブル**
+- **検証手段**: CR500 真理テーブル(決定論的・LLM 非適用)
+- **trust**: 検証済(CR 列挙=一意。物差し不要)
+- **既知欠落**: 追加フェイズ/ステップ(500.8-500.10)・スキップ(500.11)・延期誘発は概念登録のみ
+
+#### E-JUNCTURE: 誘発 juncture(どのステップに掛かるか)= 解釈的・オラクル測定軸
+- **CR根拠**: 500.6(juncture 誘発)、603.2(`At the beginning of` の誘発型能力)
+- **コーパス需要**: `timing-coverage` 抽出が `TimingStep` 別に頻度・代表カードを埋める(本スライスで確定)
+- **state read/write**: read = `currentStep` + `activePlayer`。Slice2 `E-EV-PHASE` を**特定ステップへ細分化**(`phase` 族 → upkeep/end-step/begin-combat/…)
+- **値域**: `TimingStep[]`(真理テーブル)+ `junctureScope`(誰のターンか= Slice2 `ObserverScope` 再利用: self/opponent/any/unknown)
+- **検証手段**: ゴールド `review.timing-coverage` + LLM-oracle 盲予測(別主体・§9)。**`deals combat damage` は juncture でない**(Slice2 damage)を敵対的に固定
+- **trust**: 未検証(下面抽出+物差し前)
+- **既知欠落**: cumulative upkeep 等**キーワードが juncture を含意するが本文が注釈のみ**のケース(Mystic Remora)は reminder 除去で取りこぼす=keyword→juncture 写像は概念登録のみ。延期/追加 combat の juncture も近似
+
+#### E-CAST-TIMING: キャスト/起動のタイミング制限 = 解釈的・オラクル測定軸
+- **CR根拠**: 307(sorcery のタイミング)、601.3e/602.5(起動の制限)、702.8(Flash)、117.1(優先権)
+- **コーパス需要**: `Flash` / `only as a sorcery` / `only during your turn` / `only once each turn` / `as though … flash` を `timing-coverage` が計数
+- **state read/write**: read = `currentStep`(main かつ stack 空か)+ `activePlayer`(自分のターンか)+ 当該起動の今ターン使用回数。将来 `GameCommand` の適法性ガード
+- **値域**: `CastTiming[]` = `sorcery-speed | flash | combat-only | your-turn-only | once-per-turn | none`
+- **検証手段**: ゴールド `review.timing-coverage`(`only as a sorcery`=sorcery-speed と `Flash`=flash を弁別)+ LLM-oracle
+- **trust**: 未検証
+- **既知欠落**: 他者へタイミング制限を**課す**静的効果(Teferi, Time Raveler の `each opponent can cast spells only any time they could cast a sorcery` / `cast as though they had flash` の付与)は recognition 上 sorcery-speed/flash として拾うが、**主体(自分/他者)の弁別は近似**(本スライスは「制限語の認識」に限定・誰に課すかの精密化は後続)
+
+#### E-SBA: 状況起因処理(CR704.5 チェックリスト)= 決定論的
+- **CR根拠**: 704.3(優先権取得ごとにチェック)、704.5a-z(条件リスト)、704.7(再チェック)
+- **コーパス需要**: SBA **チェック自体**は全ゲーム共通(カード非依存)。コーパスから数えるのは **SBA 改変カードの需要**=
+  `indestructible`(致死/タフネス0の結果を変える)・`poison/infect/toxic`(704.5c)・`regenerate`(704.5g/h 置換)・
+  `can't lose the game` / `can't win the game`(704.5a/c の無効化)・`loses the game` / `wins the game`(明示敗北/勝利)
+- **state read/write**: read = 有効特性(Slice1 層適用後の toughness/loyalty)+ damage marked + counters + life/poison + 合法付着。write = owner's graveyard 移動 / カウンター除去
+- **検証手段**: CR704.5 真理テーブル(決定論的)。改変カードの計数のみ `timing-coverage`(`review.timing-coverage` の SBA-modifier 区分)
+- **trust**: 検証済(CR 列挙)。改変需要のみ未計測→本スライスで確定
+- **既知欠落**: 704.5k/t-z(world/dungeon/battle/Role/speed/space sculptor)は初期非対応(§34.5)。SBA の APNAP 選択順(704.5j/k の同時複数)は S-SBA 実装時に決定
+
+### 抽出タクソノミ + 出力スキーマ(`timing-coverage` への契約)
+`scripts/lib/timingClassify.ts` の純関数 `classifyCardTiming(def): CardTimingSummary` が下記を満たす(GameState 非依存・決定的・scripts 配下):
+- `junctures: TimingStep[]` — 誘発が掛かるステップ(昇順・重複排除)。juncture 言及の無いカードは空配列。**`deals/dealt combat damage` は数えない**(Slice2 damage)
+- `junctureScope: ObserverScope[]` — **juncture を持つ行から**導く「誰のターンか」(`your`→self / `each player`→any / `each other player`/`each opponent`→opponent)。juncture 無しなら空(ETB 等の非 juncture 行の観測者は数えない)
+- `castTiming: CastTiming[]` — キャスト/起動のタイミング制限(昇順・重複排除)。制限語が無ければ `[none]`(空配列でなく明示 none=「制限なし」を表す)
+- 抽出は英語 `oracleText` 正本のみ。注釈文(括弧)・引用能力内のネストは当該カード自身と区別(Slice1〜3 の reminder/quote 除去パターンを踏襲)。ただし **Flash・cumulative upkeep 等キーワード行**は除去後も残る語(`Flash` / `Cumulative upkeep`)から拾う(既知欠落の cumulative upkeep を除く)
+- `timing-coverage` レポートは TimingStep 別需要・junctureScope 分布・CastTiming 別頻度・**SBA-modifier 区分の計数**(indestructible/poison/regenerate/can't-lose 等)・複数 juncture 保有数・mappingFailures(=0必須)・churn(前反復比)を出す(`zone-coverage` と同形式)
+
+### 収束メモ(本スライスの進捗)
+- [x] 下面抽出(`timing-coverage`)実行 → 各軸の「コーパス需要」を数値で確定(2026-06-25 iter1)
+- [x] ゴールド `review.timing-coverage`(16)+ `review.timing-oracle` 全件 pass + 機械チェック4点緑(Fable 独立採点)
+- [x] LLM-oracle 盲予測(別主体・§9)で juncture/castTiming/scope に物差しを当てる(相関エラー遮断)= iter1
+- [x] churn 初算出(0.84%)。**低 churn を収束と読まない**(method §4・本反復は baseline 確立)
+- 物差し契約 = `docs/oracle-harness.md` §9(`TimingFacts` schema・3軸比較・KPI)
+
+#### iter1 抽出結果ベースライン(2026-06-25・監査合格)
+機械チェック4点緑(Fable 独立再実行 = lint/tsc/**vitest 896**/build)+ `review.timing-coverage` 16 + `review.timing-oracle` + 全 896 緑。mappingFailures 0。churn 0.84%。
+- **juncture 需要頭** = end-step 413 / upkeep 397 / begin-combat 211 / untap 102。希少 = draw 16・declare-attackers 8・main-postcombat 8・declare-blockers 2・end-combat 1。cleanup/turn 0。
+  **🔴 `main-precombat 0` と `other 74` は分類器 FN の徴候**(`first main phase`・`each combat` が `other` へ落ちている。下記オラクルが露呈)。
+- **castTiming 分布**: none 16,526 / flash 484 / sorcery-speed 386 / once-per-turn 66 / your-turn-only 34 / combat-only 7。**flash/sorcery-speed の弁別軸は corpus で実在**。
+- **junctureScope**: self 918 圧倒 / unknown 151 / any 125 / opponent 34。controlled-set 0(juncture は誰のターンか=permanent スコープでない・健全)。
+- **SBA-modifier 需要(E-SBA・決定論的計数)**: indestructible 393 / poison 121 / regenerate 49 / losesGame 26 / cantLose 8 / cantWin 7 / winsGame 0。EDH 頭は indestructible(致死/タフネス0 SBA を改変)・poison(704.5c)。
+
+#### オラクル iter1(独立物差し=別主体盲予測・2026-06-25・監査合格)
+契約 = `docs/oracle-harness.md` §9。別主体(gpt-5.5 clean-room・promptHash 0ec68246)が oracleText のみから3軸(junctures/junctureScope/castTiming)を盲予測 → `timingClassify` と3軸独立集合差(`scripts/lib/timingOracleHarness.ts`)。sample 196(gold16+head90+cast40+scope30+tail20)、compared 195。正本 = `research/timing-oracle/{report.md,adjudication.json}`。
+- **KPI**: juncture 不一致 **14.87%** / junctureScope 不一致 **1.54%** / castTiming 不一致 **3.08%** / 検証不能 **1.53%**(uncertain 3=健全に hedge)。discrepancies 37(scored 34 + uncertain 3)。
+- **物差し校正(gold・meta-KPI)= 支持全ステップで precision/recall 100%**(upkeep 4 / untap 1 / draw 1 / end-step 1 / begin-combat 1)。→ オラクルは検証済部分集合で信頼でき、**非ゴールドの不一致は信号として credible**。
+- **帰属(34・`adjudication.json` M0-T-O-iter1)= substrate 0 / compiler 24 / oracle 2 / ambiguous 8**。**🟢 substrate=0 = Slice4 の3軸 ESO モデル(TimingStep/CastTiming/ObserverScope)は独立物差しでも健全**(軸の欠落なし)。
+- **裁定の系統的発見(compiler 24 = iter2 ルール種)**:
+  1. **begin-combat FN 6**(`at the beginning of (each|the|that) combat` を隣接限定 regex が `other` へ落とす: Moraug/Full Throttle/Odric/Sting/Zopandrel/Unnatural Growth)。
+  2. **main-phase FN 8**(`first/second main phase`・`each of your main phases` を main-precombat/postcombat へ写せず `other`: Black Market/Party Thrasher/Hulking Raptor/Carpet of Flowers 他)。**`main-precombat 0` の正体**。
+  3. **untap FP 5**(否定 `doesn't/don't untap during ... untap step`(静的制限)を untap juncture と誤発火: Mana Vault/Basalt Monolith/Junk Winder/Vorinclex/Tamiyo)。Seedborn Muse の肯定 untap とは区別。
+  4. **cast-clause juncture FP 2**(Savage Beating の `Cast … only during combat on your turn`=cast 制限 / Misleading Signpost の `When … during the declare attackers step`=enters 条件 を juncture と誤認)。
+  5. **castTiming FN/FP 3**(sorcery-speed level FN: Innkeeper's Talent/Dazzling Theater / flash FP: Waterlogged Teachings)。
+- **oracle 2**(物差し過剰): Rite of the Raging Storm(**引用トークン能力**の end-step をカード juncture と誤帰属=Slice2 quoted-trigger 除外と同根・**分類器が CR 正**)/ Forge Anew(equip への instant 許可付与を your-turn-only 制限と誤読)。
+- **ambiguous 8**(ESO 境界=Fable 裁定保留): (a)**遅延誘発 end-step** 4(`at the beginning of the next end step`=CR603.7 遅延=E-JUNCTURE 既知欠落: Whip of Erebos/Lagomos/Urabrask's Forge/Rionya)(b)**scope 照応** 3(`that turn`→self / 所有者なし `the end step`→any: Final Fortune/Phelia/Underworld Breach)(c)**他者へ課す cast-timing** 1(Teferi, Time Raveler=相手に sorcery-speed を課す・主体弁別が E-CAST-TIMING 既知欠落)。
+- **物差し故障の兆候なし**: 検証不能率 1.53%(Slice1/3 iter1 の 0% 過信と違い適切に hedge)。gold 校正 100%。
+- **trust 更新**: E-PHASE-STEP = **検証済**(CR500 決定論)。E-SBA = **検証済**(CR704.5 決定論・改変需要計数済)。E-JUNCTURE = **不一致**(14.87%・残差は分類器認識 FN/FP=iter2 ルール / オラクル credible)。E-CAST-TIMING = **不一致**(3.08%・sorcery-speed level FN + flash FP + 境界)。junctureScope = **ほぼ検証済**(1.54%・残差照応)。**substrate 健全だが juncture/castTiming の trust は未収束**=Slice4 継続(iter2)。
+- **収束読み**: Slice2/3 と同型に「分類器 FN/FP(compiler 24)+ 物差し過剰(oracle 2)+ ESO 境界(ambiguous 8)」へ綺麗に三分。substrate=0 で**モデルは正しい**。**次マイルストーン = iter2**(flip-flop ルール半: `timingClassify` の begin-combat/main-phase/untap-否定/cast-clause を CR500 準拠へ拡張 → churn 再算出 / 物差し半: 必要なら prompt で quoted-token と permission-grant の除外を明記)。**14.87% を未収束として凍結保留**(method §4)。Slice1〜4 一巡が揃ったため、iter2 収束後に **M-CONTRACT 凍結ゲート**(§5 の7条件)の本格判定へ。
+
+##### iter2-a CR juncture 認識裁定(分類器拡張・物差し凍結・2026-06-25・Fable)
+iter1 の compiler 24 を CR500 接地で閉じる(flip-flop ルール半=`predictions.json`/`sample.json` を**1バイトも触らず**分類器のみ更新)。
+各裁定は CR の決定論的写像で、分類器・gold を同時に CR へ anchor する(method §3=外部真理ゆえ交絡しない)。
+
+| iter1 不一致 | CR 写像 | iter2-a 分類器規則 | gold pin |
+|---|---|---|---|
+| begin-combat FN 6 | CR507(begin combat step)。`each/the/that combat` も begin-combat | `at the beginning of (each\|the\|that) combat` → begin-combat(隣接限定を撤回)。`each combat`→scope any | Full Throttle / Zopandrel |
+| main-phase FN 8 | **CR505.1**(precombat=first / postcombat=second main phase) | `first main phase`→main-precombat / `second main phase`→main-postcombat / `each of (your) main phases`→両方 | Black Market Connections / Lost Monarch of Ifnir / Carpet of Flowers |
+| untap FP 5 | CR502(untap step は turn-based)。**否定 untap は juncture でない** | `(doesn't\|don't\|do not\|won't\|can't\|cannot) untap during … untap step` を untap juncture から除外(Seedborn Muse の肯定 untap は維持) | Mana Vault(draw+upkeep のみ・untap 否定を除外)/ Basalt Monolith |
+| cast-clause FP 2 | juncture は誘発(CR603.2)であって cast/enters 条件でない | `Cast/Activate … only during <combat\|your turn>` と `When … enters during the … step` を juncture 検出から除外 → 前者は castTiming へ | Savage Beating / Misleading Signpost |
+| flash FP 1 | flash 付与(CR702.8)≠ 検索フィルタ名詞 | `cards? with flash`(名詞フィルタ)を flash castTiming から除外 | Waterlogged Teachings |
+
+- **castTiming 追補(cast-clause 由来)**: `only during combat`→combat-only / `only during your turn` または `during combat on your turn`→`your-turn-only`(+`combat-only`)。
+- **iter2-a で触れない(裁定で据え置き)**:
+  - **遅延誘発 end-step**(CR603.7 `at the beginning of the next end step`=Whip/Lagomos 他)= **E-JUNCTURE 既知欠落のまま**(「次の <step>」の所有者解決が未確定。iter2-b 以降で判断)。
+  - **reminder 埋め込み `as a sorcery`**(Room 機構=Dazzling Theater / cumulative upkeep / Class level)= reminder 除去で消える=**keyword→timing 写像の既知欠落**(物差しは reminder を読むため不一致が残るが分類器は据え置き)。
+  - **scope 照応**(`that turn`/所有者なし `the end step`)= junctureScope 既知欠落(1.54% 微小)。
+- **E-CAST-TIMING スコープ確定(iter2-a ESO 裁定)**: **castTiming はそのオブジェクト自身の唱える/起動するタイミング制限に限る**。
+  他者へ課す制限(Teferi, Time Raveler の `each opponent can cast … only … sorcery`)は**別事象=対象外**(分類器は none で正)。
+  → iter1 ambiguous の Teferi は **oracle 過剰**へ再帰属(物差し半 iter2-b の prompt で除外明記)。同様に quoted-token(Rite)・permission-grant(Forge Anew)も oracle=物差し半対象。
+- **帰結**: iter2-a は **compiler の begin-combat6 + main-phase8 + untap-FP5 + cast-clause2 + flash1 = 22 を CR 接地で閉じる**見込み。
+  残差 = 遅延 end-step(既知欠落)+ scope 照応 + 物差し過剰(oracle・iter2-b)。**churn 再算出 + 独立物差し(v1 凍結)再差分で juncture 不一致率の低下を確認**(0.84% 低 churn を収束と読まない・method §4)。
+
+##### iter2-a 結果(ルール半=分類器 CR 拡張・物差し凍結・2026-06-25・監査合格)
+flip-flop の前半。物差し(`sample.json`/`predictions.json`・promptHash **0ec68246** 不変=SHA-256 照合済)を**1バイトも触らず**、分類器
+`scripts/lib/timingClassify.ts` の compiler 22 を CR500 接地で修正(Codex 実装・カード名ハードコード無し=全汎用パターン・否定 untap ガード/`first|second|each ... main phase`/`(each|the|that) combat`/cast-clause 除外/`cards with flash` 除外)。
+- **churn(iter1→iter2-a)= 180/17,491 = 1.03%**(主に `other`→main-precombat/begin-combat への再分類。`main-precombat` **0→42**・mappingFailures 0)。
+  **独立物差しへ収束する churn**: 同反復で独立オラクル不一致が後述どおり激減=「真の認識 FN/FP の是正」(method §4)。
+- **独立物差し再差分(物差し凍結のまま分類器のみ更新)**: **juncture 不一致 14.87%→4.10%**・castTiming **3.08%→2.05%**(flash FP/cast-clause 解消)・
+  junctureScope 1.54%**→2.05%**(Moraug の begin-combat を新検出した結果 `that combat` の scope 照応が露呈=想定内の次層残差)・検証不能 1.53%(据置)。discrepancies **37→16**。
+- **帰属(scored 13・`adjudication.json` M0-T-O-iter2)= substrate 0 / compiler 0 / oracle 3 / ambiguous 10**。**🟢 compiler 0 = 分類器は CR500 準拠化が完了**(iter1 の認識 FN/FP 22 が全て解消)。
+  - **ambiguous 10(ESO 境界・据え置き)**: 遅延 end-step 4(Whip/Lagomos/Urabrask/Rionya=CR603.7 既知欠落)/ scope 照応 4(Phelia/Moraug/Final Fortune/Underworld Breach=`that turn`/`the end step`)/ reminder 埋め込み `as a sorcery` 2(Innkeeper's Talent/Dazzling Theater=Room/Class・cumulative upkeep と同根)。
+  - **oracle 3(物差し過剰・iter2-b prompt 対象)**: Rite of the Raging Storm(引用トークン能力)/ Teferi, Time Raveler(他者へ課す cast-timing=E-CAST-TIMING 裁定で対象外)/ Forge Anew(permission-grant 誤読)。**いずれも分類器が正**。
+  - 検証不能 3(Necromancy/Mana Drain/The Scarab God=uncertain)。
+- **敵対スポット監査(Fable 独立)**: gold `review.timing-coverage` **26**(iter2-a 新 CR-pin 10=begin-combat each/main first・second・each/untap 否定FP/cast-clause/flash-filter)+ `review.timing-oracle` 緑。機械4点 Fable 独立緑(lint/tsc/**vitest 906**/build)。
+- **trust(iter2-a 後)**: E-JUNCTURE = **検証済方向**(4.10%・残差は遅延誘発の既知欠落と oracle quoted-token のみ=分類器 FN/FP 0)。
+  E-CAST-TIMING = **改善**(2.05%・残差は reminder 埋め込みと imposed-on-others=oracle/既知欠落)。junctureScope = scope 照応(2.05%)が次層残差。E-PHASE-STEP/E-SBA = 検証済(CR 決定論)。
+- **収束読み**: **juncture 4.10% は 5% 閾値を下回り、残差に分類器バグ(compiler)はゼロ**。残るは (a)ESO 既知欠落(遅延誘発/scope 照応/reminder=意図的スコープ外)(b)物差し過剰 3(iter2-b prompt v2 で quoted-token/imposed/permission を除外可)。**Slice4 は CR 接地で実質収束方向**(Slice3 と同じ着地)。
+  **iter2-b(物差し半=prompt v2 で oracle 3 を是正)は任意の小改善**(残差の大半は ESO 既知欠落ゆえ prompt では動かない)。**Slice1〜4 一巡が CR 接地で揃った** → 次は **M-CONTRACT 凍結ゲート**(§5 の7条件:非LLM独立物差し・ゴールデン再生・parity=0 等)の本格判定トラックへ。**0.84%/1.03% 低 churn を単独で収束と読まない**(method §4)。

@@ -1,0 +1,89 @@
+{
+  "version": "M0-T-O-iter2",
+  "adjudicatedAt": "2026-06-25",
+  "adjudicator": "fable",
+  "iter2a": {
+    "note": "flip-flop ルール半。物差し凍結(predictions.json promptHash 0ec68246 不変)・分類器のみ CR500 接地で修正。",
+    "kpi": "juncture 14.87%→4.10% / scope 1.54%→2.05% / cast 3.08%→2.05% / unverifiable 1.53%・discrepancies 37→16",
+    "churn_iter1_to_iter2a": "180/17491 = 1.03%(main-precombat 0→42)",
+    "attribution_scored13": { "substrate": 0, "compiler": 0, "oracle": 3, "ambiguous": 10 },
+    "compiler_closed": "begin-combat(each/the/that) 6 + main-phase(first/second/each) 8 + untap 否定FP 5 + cast-clause FP 2 + flash-filter FP 1 = 22 を CR 接地で解消(分類器バグ 0)",
+    "residual_ambiguous10": "遅延 end-step 4(Whip/Lagomos/Urabrask/Rionya=CR603.7 既知欠落)/ scope 照応 4(Phelia/Moraug/Final Fortune/Underworld Breach)/ reminder as-a-sorcery 2(Innkeeper's Talent/Dazzling Theater)",
+    "residual_oracle3": "Rite of the Raging Storm(引用トークン)/ Teferi, Time Raveler(imposed-on-others=E-CAST-TIMING 対象外)/ Forge Anew(permission-grant 誤読)= iter2-b prompt v2 対象。分類器が正。",
+    "verdict": "Slice4 は CR 接地で実質収束方向(juncture 4.10% < 5%・compiler 0)。残差は ESO 既知欠落 + 物差し過剰のみ。"
+  },
+  "iter1": { "note": "下記は iter1 の初期帰属(物差し v1・分類器初版)。iter2-a で compiler 24 のうち 22 を解消。" },
+  "meter": {
+    "predictions": "research/timing-oracle/predictions.json (gpt-5.5-clean-room, blind, oracleText-only)",
+    "sample": "research/timing-oracle/sample.json (196)",
+    "note": "Slice4 iter1 独立物差し。juncture(TimingStep)/junctureScope(ObserverScope)/castTiming の3軸を別主体 clean-room が盲予測。決定論的軸(CR500 ターン構造・CR704 SBA)は ESO 真理テーブルで固定し本オラクルは予測しない(method §3)。"
+  },
+  "attributionKinds": ["substrate", "compiler", "oracle", "ambiguous"],
+  "summary": {
+    "substrate": 0,
+    "compiler": 24,
+    "oracle": 2,
+    "ambiguous": 8,
+    "unverifiable": 3,
+    "headline": "juncture 14.87%/scope 1.54%/cast 3.08%/unverifiable 1.53%・discrepancies 37(scored 34 + uncertain 3)。gold 校正は支持全ステップ(upkeep/untap/draw/end-step/begin-combat)で precision=recall=100% → オラクル信頼可・不一致は信号。substrate=0 = TimingStep/CastTiming/ObserverScope の3軸 ESO モデルは独立物差しでも健全(軸の欠落なし)。残差は分類器の認識 FN/FP(iter2 ルール種)に集中。"
+  },
+  "clusters": {
+    "compiler": {
+      "begin-combat-FN": {
+        "rule": "分類器の begin-combat 検出が 'beginning of combat'(隣接)/ 'combat on your turn' のみで、'at the beginning of (each|the|that) combat' を取りこぼし 'other' へ落とす。iter2: 'beginning of (the|each|that) combat' を begin-combat へ。",
+        "cards": ["Moraug, Fury of Akoum", "Full Throttle", "Odric, Lunarch Marshal", "Sting, the Glinting Dagger", "Zopandrel, Hunger Dominus", "Unnatural Growth"]
+      },
+      "main-phase-FN": {
+        "rule": "分類器が 'first/second main phase' と 'each of your main phases' を main-precombat/main-postcombat へ写せず 'other'。iter2: 'first main phase'→main-precombat / 'second main phase'→main-postcombat / 'each ... main phases'→両方。",
+        "cards": ["Black Market", "Party Thrasher", "Hulking Raptor", "Black Market Connections", "Ripples of Undeath", "Thousand Moons Smithy // Barracks of the Thousand", "Carpet of Flowers", "Lost Monarch of Ifnir"]
+      },
+      "untap-FP-negated": {
+        "rule": "分類器の 'during ... untap step' が否定文脈('doesn't/don't untap during ... untap step' = 静的アンタップ制限)で誤発火。iter2: 否定 untap(doesn't/don't untap)を untap juncture から除外(Seedborn Muse の肯定 untap とは区別)。",
+        "cards": ["Mana Vault", "Basalt Monolith", "Junk Winder", "Vorinclex, Voice of Hunger", "Tamiyo, Field Researcher"]
+      },
+      "cast-clause-juncture-FP": {
+        "rule": "キャスト/付着条件中の step 語を juncture と誤認。Savage Beating='Cast this spell only during combat on your turn'(キャスト制限=combat-only/your-turn-only であり begin-combat juncture でない)。Misleading Signpost='When this enters during the declare attackers step'(enters 条件=Slice2 であり declare-attackers juncture でない)。iter2: 'Cast/Activate ... only during' 節と 'When ... during the ... step' 条件節を juncture 検出から除外。",
+        "cards": ["Savage Beating", "Misleading Signpost"]
+      },
+      "cast-timing-FN-FP": {
+        "rule": "sorcery-speed FN(Class/level 起動の 'Activate only as a sorcery' 取りこぼし)と flash FP。iter2: level/起動の sorcery-speed を拾い、flash 誤検出源(MDFC 裏面)を点検。",
+        "cards": ["Innkeeper's Talent", "Dazzling Theater // Prop Room", "Waterlogged Teachings // Inundated Archive"]
+      }
+    },
+    "oracle": {
+      "quoted-token-ability": {
+        "rule": "引用されたトークン能力の juncture を**カード自身**の juncture と誤帰属(Slice2 の quoted-trigger 除外と同根)。Rite of the Raging Storm='create ... token ... \"At the beginning of the end step, sacrifice this token\"' の end-step はトークンの能力でありカードのものでない。分類器が reminder/quote 除去で正しく除外したのを oracle が誤って拾った。",
+        "cards": ["Rite of the Raging Storm"]
+      },
+      "permission-grant-misread": {
+        "rule": "許可付与を制限と誤読。Forge Anew='During your turn, you may activate equip abilities any time you could cast an instant'(equip への instant 速度許可)を your-turn-only 制限と誤認。これはカードへのタイミング制限でない。",
+        "cards": ["Forge Anew"]
+      }
+    },
+    "ambiguous": {
+      "delayed-end-step": {
+        "rule": "カード自身の**遅延誘発**(CR603.7)が end step に掛かる('exile/sacrifice it at the beginning of the next end step')。ESO E-JUNCTURE 既知欠落=遅延/追加誘発は概念登録のみ。分類器は先頭 'at the beginning of' のみ拾い保守的に除外、oracle が遅延も拾った=スコープ境界。iter2 で遅延誘発を juncture 認識へ入れるか判断。",
+        "cards": ["Whip of Erebos", "Lagomos, Hand of Hatred", "Urabrask's Forge", "Rionya, Fire Dancer"]
+      },
+      "scope-anaphora": {
+        "rule": "誰のターンかが照応('that turn'='extra turn'=self / 所有者非明示 'the end step'=any)。分類器は unknown(保守)、oracle は self/any へ解決。scope 不一致 1.54% は微小。iter2 で 'that turn'→active player・'the end step'(所有者なし)→any の照応規則を入れるか判断。",
+        "cards": ["Final Fortune", "Phelia, Exuberant Shepherd", "Underworld Breach"]
+      },
+      "imposed-on-others-cast-timing": {
+        "rule": "他者へ課すタイミング制限の主体弁別(ESO E-CAST-TIMING 既知欠落)。Teferi, Time Raveler='Each opponent can cast spells only any time they could cast a sorcery'=相手に sorcery-speed を課す(このカード自身が sorcery-speed で唱えられるわけではない)。recognition 上 sorcery-speed だが帰属主体が曖昧。",
+        "cards": ["Teferi, Time Raveler"]
+      }
+    },
+    "unverifiable": {
+      "note": "oracle が uncertain を立て検証不能(安全KPI 1.53%=3/195)。silent divergence の上限として可視化。",
+      "cards": ["Necromancy", "The Scarab God", "Mana Drain"]
+    }
+  },
+  "trustUpdate": {
+    "E-PHASE-STEP": "検証済(CR500 列挙=決定論的・物差し不要)",
+    "E-JUNCTURE": "不一致(14.87%)。substrate 健全・残差は分類器認識 FN/FP(begin-combat 'each/that combat' / main-phase 'first/second' / untap 否定 FP / cast-clause FP)= iter2 ルール種。gold 校正 100% でオラクル credible。",
+    "E-CAST-TIMING": "不一致(3.08%)。残差は sorcery-speed FN(level)・flash FP・permission-grant 誤読(oracle)・imposed-on-others 境界(ambiguous)。",
+    "E-SBA": "検証済(CR704.5 列挙=決定論的)。改変需要は timing-coverage で計数済。",
+    "junctureScope": "ほぼ検証済(1.54%)。残差は照応(that turn / the end step)=ambiguous。"
+  }
+}
