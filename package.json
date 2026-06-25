@@ -26,6 +26,7 @@
     "golden-replay": "tsx scripts/golden-replay.ts",
     "classifier-parity": "tsx scripts/classifier-parity.ts",
     "parity-reconcile": "tsx scripts/parity-reconcile.ts",
+    "cr-conformance": "tsx scripts/cr-conformance.ts",
     "m-contract-gate": "tsx scripts/m-contract-gate.ts",
     "preview": "vite preview",
     "test": "vitest run",

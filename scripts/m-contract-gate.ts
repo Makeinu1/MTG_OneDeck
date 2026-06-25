@@ -20,6 +20,7 @@ import {
   type GateCondition,
   type GateScorecard,
 } from './lib/mContractGate.ts';
+import { CR_CONFORMANCE_THRESHOLD } from './lib/crConformance.ts';
 
 const REPORT_DIRECTORY = resolve(process.cwd(), 'research/m-contract-gate');
 const REPORT_JSON_PATH = resolve(REPORT_DIRECTORY, 'scorecard.json');
@@ -32,6 +33,7 @@ const REPORT_PATHS = {
   zoneCoverage: 'research/zone-coverage/report.json',
   timingCoverage: 'research/timing-coverage/report.json',
   classifierParity: 'research/classifier-parity/report.json',
+  crConformance: 'research/cr-conformance/report.json',
   layerOracle: 'research/llm-oracle/report.json',
   eventOracle: 'research/event-oracle/report.json',
   zoneOracle: 'research/zone-oracle/report.json',
@@ -74,6 +76,7 @@ async function main(): Promise<void> {
   const zoneCoverage = requiredReport(reportsByPath, REPORT_PATHS.zoneCoverage);
   const timingCoverage = requiredReport(reportsByPath, REPORT_PATHS.timingCoverage);
   const classifierParity = requiredReport(reportsByPath, REPORT_PATHS.classifierParity);
+  const crConformance = requiredReport(reportsByPath, REPORT_PATHS.crConformance);
   const oracleReports = [
     { name: 'layer', report: requiredReport(reportsByPath, REPORT_PATHS.layerOracle) },
     { name: 'event', report: requiredReport(reportsByPath, REPORT_PATHS.eventOracle) },
@@ -102,7 +105,7 @@ async function main(): Promise<void> {
     buildConditionOne(),
     buildConditionTwo(headCoverage, coverageReports),
     buildConditionThree(coverageReports),
-    buildConditionFour(),
+    buildConditionFour(crConformance),
     buildConditionFive(goldenReplay),
     buildConditionSix(classifierParity),
     buildConditionSeven(unverifiable, oracleReports),
@@ -242,6 +245,14 @@ function buildConditionThree(reports: LoadedReport[]): GateCondition {
       ? Math.max(...measuredRates)
       : null;
 
+  const perSlice = reports
+    .map((report, index) => {
+      const slice = report.path.replace(/^research\/|-coverage\/report\.json$/g, '');
+      const rate = churnRates[index];
+      return `${slice}=${rate === null ? '?' : percent(rate)}`;
+    })
+    .join(', ');
+
   return judgeCondition({
     id: 3,
     name: 'Model churn',
@@ -252,23 +263,69 @@ function buildConditionThree(reports: LoadedReport[]): GateCondition {
     unmeasured: problems.length > 0,
     source: reports.map((report) => report.path).join(', '),
     note: appendProblems(
-      '下面抽出単独 churn=§4 では弱い陽性のみ。post-independent-yardstick churn は per-slice oracle log 参照',
+      `post-independent-yardstick(§34.7.5): CR-conformance 裁定後・baseline=churnBaselineCommit に対し4スライス同時測定。perSlice churn: ${perSlice}`,
       problems,
     ),
   });
 }
 
-function buildConditionFour(): GateCondition {
-  return judgeCondition({
+function buildConditionFour(report: LoadedReport): GateCondition {
+  const axes = ['event-family', 'layer', 'timing', 'zone-transition'] as const;
+  const conformanceRate = readNumberPath(report.data, ['summary', 'conformanceRate']);
+  const inScope = readNumberPath(report.data, ['summary', 'inScope']);
+  const conformant = readNumberPath(report.data, ['summary', 'conformant']);
+  const divergent = readNumberPath(report.data, ['summary', 'divergent']);
+  const scopeBoundary = readNumberPath(report.data, ['summary', 'scopeBoundary']);
+  const bounded = readBooleanPath(report.data, ['summary', 'bounded']);
+  const fields = [
+    ['summary.conformanceRate', conformanceRate],
+    ['summary.inScope', inScope],
+    ['summary.conformant', conformant],
+    ['summary.divergent', divergent],
+    ['summary.scopeBoundary', scopeBoundary],
+    ['summary.bounded', bounded],
+  ] as const;
+  const problems = [
+    ...reportProblems([report]),
+    ...fields.flatMap(([name, value]) =>
+      report.data !== null && value === null ? [`${report.path}: ${name} missing`] : [],
+    ),
+    ...axes.flatMap((axis) => {
+      const axisInScope = readNumberPath(report.data, ['perAxis', axis, 'inScope']);
+      const axisConformant = readNumberPath(report.data, ['perAxis', axis, 'conformant']);
+      const axisDivergent = readNumberPath(report.data, ['perAxis', axis, 'divergent']);
+      return report.data !== null &&
+        (axisInScope === null || axisConformant === null || axisDivergent === null)
+        ? [`${report.path}: perAxis.${axis} fields missing`]
+        : [];
+    }),
+  ];
+  const axisDetails = axes
+    .map((axis) => {
+      const axisInScope = readNumberPath(report.data, ['perAxis', axis, 'inScope']);
+      const axisConformant = readNumberPath(report.data, ['perAxis', axis, 'conformant']);
+      const axisDivergent = readNumberPath(report.data, ['perAxis', axis, 'divergent']);
+      return `${axis}=${axisInScope ?? '?'}/${axisConformant ?? '?'}/${axisDivergent ?? '?'}`;
+    })
+    .join(', ');
+  const detail =
+    `inScope=${inScope ?? '?'}, conformant=${conformant ?? '?'}, ` +
+    `divergent=${divergent ?? '?'}, scopeBoundary=${scopeBoundary ?? '?'}, ` +
+    `perAxis(inScope/conformant/divergent): ${axisDetails}; bounded=${bounded ?? '?'}`;
+  const condition = judgeCondition({
     id: 4,
     name: 'Non-LLM independent yardstick',
-    value: null,
-    threshold: null,
+    value: problems.length === 0 ? conformanceRate : null,
+    threshold: CR_CONFORMANCE_THRESHOLD,
     higherIsBetter: true,
     unverifiable: 0,
-    source: 'research/cr-conformance-audit.md',
-    note: 'CR真理テーブル/cr-conformance-audit.md を代表カード集合へ体系化=M-GATE-2',
+    unmeasured: problems.length > 0,
+    source: report.path,
+    note: appendProblems(detail, problems),
   });
+  return problems.length === 0 && bounded === false
+    ? { ...condition, status: 'FAIL' }
+    : condition;
 }
 
 function buildConditionFive(summary: GoldenReplaySummary): GateCondition {
@@ -455,6 +512,15 @@ function readNumberPath(value: unknown, path: string[]): number | null {
     current = current[key];
   }
   return typeof current === 'number' && Number.isFinite(current) ? current : null;
+}
+
+function readBooleanPath(value: unknown, path: string[]): boolean | null {
+  let current = value;
+  for (const key of path) {
+    if (!isRecord(current)) return null;
+    current = current[key];
+  }
+  return typeof current === 'boolean' ? current : null;
 }
 
 function readRecordPath(value: unknown, path: string[]): Record<string, unknown> | null {

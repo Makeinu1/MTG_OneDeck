@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T13:40:37.869Z",
+  "generatedAt": "2026-06-25T14:50:07.802Z",
   "conditions": [
     {
       "id": 1,
@@ -15,7 +15,7 @@
       "id": 2,
       "name": "Head coverage",
       "status": "PASS",
-      "value": 0.9245225206822593,
+      "value": 0.9180914512922466,
       "threshold": 0.9,
       "unverifiable": 0,
       "source": "research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json",
@@ -24,22 +24,22 @@
     {
       "id": 3,
       "name": "Model churn",
-      "status": "FAIL",
-      "value": 0.11857526728031559,
+      "status": "PASS",
+      "value": 0.019495740666628552,
       "threshold": 0.05,
       "unverifiable": 0,
       "source": "research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json",
-      "note": "下面抽出単独 churn=§4 では弱い陽性のみ。post-independent-yardstick churn は per-slice oracle log 参照"
+      "note": "post-independent-yardstick(§34.7.5): CR-conformance 裁定後・baseline=churnBaselineCommit に対し4スライス同時測定。perSlice churn: layer=0.00%, event=1.95%, zone=0.00%, timing=0.82%"
     },
     {
       "id": 4,
       "name": "Non-LLM independent yardstick",
-      "status": "BLOCKED",
-      "value": null,
-      "threshold": null,
+      "status": "PASS",
+      "value": 1,
+      "threshold": 0.95,
       "unverifiable": 0,
-      "source": "research/cr-conformance-audit.md",
-      "note": "CR真理テーブル/cr-conformance-audit.md を代表カード集合へ体系化=M-GATE-2"
+      "source": "research/cr-conformance/report.json",
+      "note": "inScope=160, conformant=160, divergent=0, scopeBoundary=0, perAxis(inScope/conformant/divergent): event-family=40/40/0, layer=40/40/0, timing=40/40/0, zone-transition=40/40/0; bounded=true"
     },
     {
       "id": 5,
@@ -72,24 +72,24 @@
       "note": "max=5.82%; per-oracle: layer=0.00%(n=192), event=2.46%(n=203), zone=5.82%(n=189), timing=1.53%(n=196); golden-replay 検証不能は条件5へ分離"
     }
   ],
-  "frozen": false,
+  "frozen": true,
   "headCoverage": {
     "axes": [
       {
         "axis": "event-family",
         "escapeBox": "other",
-        "total": 9791,
-        "escapeFreq": 739,
+        "total": 10060,
+        "escapeFreq": 824,
         "oracleGated": false,
-        "coverage": 0.9245225206822593
+        "coverage": 0.9180914512922466
       },
       {
         "axis": "timing-juncture",
         "escapeBox": "other",
-        "total": 1129,
-        "escapeFreq": 9,
+        "total": 1274,
+        "escapeFreq": 10,
         "oracleGated": false,
-        "coverage": 0.9920283436669619
+        "coverage": 0.9921507064364207
       },
       {
         "axis": "zone-scope",
@@ -124,7 +124,7 @@
         "coverage": null
       }
     ],
-    "aggregate": 0.9245225206822593,
+    "aggregate": 0.9180914512922466,
     "threshold": 0.9
   },
   "unverifiable": {

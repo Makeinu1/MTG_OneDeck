@@ -4,7 +4,7 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 
 ## Summary
 
-- Generated at: 2026-06-23T05:04:32.813Z
+- Generated at: 2026-06-25T14:46:16.944Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
@@ -12,7 +12,7 @@ Measurement-only extraction for CR613 continuous-effect layers and CR604.3 CDA.
 - cdaCardCount: 128
 - multiLayer cards: 1675
 - adjudication candidates: 944
-- churn: 70/17491 changed (0.40%), baselineCards=17491, byLayer=L1b -57, L6 -13
+- churn: 0/17491 changed (0.00%), baselineCards=17491, byLayer=none
 - mapping failures: 0
 
 ## Per Layer

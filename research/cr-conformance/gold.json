@@ -1,0 +1,1809 @@
+[
+  {
+    "oracleId": "629fe1be-272d-465f-b9b1-2ce177410f13",
+    "cardName": "+2 Mace",
+    "oracleText": "Equipped creature gets +2/+2.\nEquip {3} ({3}: Attach to target creature you control. Equip only as a sorcery.)",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "682a0770-8fe0-4142-aa0c-b60af3628a33",
+    "cardName": "A Tale for the Ages",
+    "oracleText": "Enchanted creatures you control get +2/+2.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "01ab7724-1967-4da6-aebd-3729983d6a0e",
+    "cardName": "Bloodthorn Flail",
+    "oracleText": "Equipped creature gets +2/+1.\nEquip—Pay {3} or discard a card.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "16e555f2-5aa8-4100-a036-eed48db0e84a",
+    "cardName": "Bone Saw",
+    "oracleText": "Equipped creature gets +1/+0.\nEquip {1} ({1}: Attach to target creature you control. Equip only as a sorcery.)",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "4fdfa41a-75a5-4b36-8c9e-083e26d137e2",
+    "cardName": "Chief of the Foundry",
+    "oracleText": "Other artifact creatures you control get +1/+1.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "9b33059c-c862-4452-8609-14a0e2551fb3",
+    "cardName": "Cleaving Sliver",
+    "oracleText": "Sliver creatures you control get +2/+0.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "0c572396-4e53-4c86-9b04-f41341dcea05",
+    "cardName": "Crucible of Fire",
+    "oracleText": "Dragon creatures you control get +3/+3.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "64247fcb-0e1b-48c9-bdac-769d7edd8d1d",
+    "cardName": "Day of Destiny",
+    "oracleText": "Legendary creatures you control get +2/+2.",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "843f3373-b8ef-416c-9163-aa1aa6b4a51d",
+    "cardName": "Greataxe",
+    "oracleText": "Equipped creature gets +4/+0.\nEquip {5} ({5}: Attach to target creature you control. Equip only as a sorcery.)",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "51024f9a-6c6e-4555-a156-92b32255a0c9",
+    "cardName": "Greatsword",
+    "oracleText": "Equipped creature gets +3/+0.\nEquip {3} ({3}: Attach to target creature you control. Equip only as a sorcery.)",
+    "axis": "layer",
+    "expected": [
+      "L7c"
+    ],
+    "crRule": "CR 613.1g, 613.4c",
+    "rationale": "A continuous effect that modifies power and/or toughness without setting it applies in layer 7c."
+  },
+  {
+    "oracleId": "e46b2ac6-97d6-48f2-aba3-cd92f8e092c6",
+    "cardName": "Aang, Air Nomad",
+    "oracleText": "Flying (This creature can't be blocked except by creatures with flying or reach.)\nVigilance (Attacking doesn't cause this creature to tap.)\nOther creatures you control have vigilance.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "602cce3e-7033-47d6-aec1-d755f234f270",
+    "cardName": "Adept Watershaper",
+    "oracleText": "Other tapped creatures you control have indestructible.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "032b5fc4-5aca-41b6-9bf6-2c1ed0018968",
+    "cardName": "Aggressive Mammoth",
+    "oracleText": "Trample (This creature can deal excess combat damage to the player or planeswalker it's attacking.)\nOther creatures you control have trample.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "967e8b3f-8266-4d9a-a38b-d0e10184e1e4",
+    "cardName": "Akroma's Memorial",
+    "oracleText": "Creatures you control have flying, first strike, vigilance, trample, haste, and protection from black and from red.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "e5e8e116-10fe-48b0-b3d8-6edb39bd5f90",
+    "cardName": "Alibou, Ancient Witness",
+    "oracleText": "Other artifact creatures you control have haste.\nWhenever one or more artifact creatures you control attack, Alibou deals X damage to any target and you scry X, where X is the number of tapped artifacts you control.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "263408e6-b315-4af5-8cb8-3fd1aa88e48c",
+    "cardName": "Archetype of Aggression",
+    "oracleText": "Creatures you control have trample.\nCreatures your opponents control lose trample and can't have or gain trample.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "eb4e9ce9-1917-46b1-b01c-645f5920ef9c",
+    "cardName": "Archetype of Finality",
+    "oracleText": "Creatures you control have deathtouch.\nCreatures your opponents control lose deathtouch and can't have or gain deathtouch.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "a5458de0-0f61-49a3-a013-d90f92559809",
+    "cardName": "Archetype of Imagination",
+    "oracleText": "Creatures you control have flying.\nCreatures your opponents control lose flying and can't have or gain flying.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "9396546c-d067-4ce3-9c3d-b62cca970b4f",
+    "cardName": "Asceticism",
+    "oracleText": "Creatures you control have hexproof.\n{1}{G}: Regenerate target creature. (The next time it would be destroyed this turn, instead tap it, remove it from combat, and heal all damage on it.)",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "a8abc5db-4e0b-488d-898a-8109690d5099",
+    "cardName": "Avacyn's Memorial",
+    "oracleText": "Indestructible\nOther legendary permanents you control have indestructible.",
+    "axis": "layer",
+    "expected": [
+      "L6"
+    ],
+    "crRule": "CR 613.1f",
+    "rationale": "A continuous effect that adds, removes, or prevents an ability applies in layer 6."
+  },
+  {
+    "oracleId": "86f94f8e-f45e-42fc-8ad6-e9bdfaaa997d",
+    "cardName": "Transguild Courier",
+    "oracleText": "Transguild Courier is all colors.",
+    "axis": "layer",
+    "expected": [
+      "L5"
+    ],
+    "crRule": "CR 613.1e",
+    "rationale": "A continuous effect that changes color applies in layer 5."
+  },
+  {
+    "oracleId": "cb7d65f7-003f-46db-af71-7b575c713c6b",
+    "cardName": "Ghostflame Sliver",
+    "oracleText": "All Slivers are colorless.",
+    "axis": "layer",
+    "expected": [
+      "L5"
+    ],
+    "crRule": "CR 613.1e",
+    "rationale": "A continuous effect that changes color applies in layer 5."
+  },
+  {
+    "oracleId": "01de1f9d-3b63-49b9-b2c6-929c2a69ef54",
+    "cardName": "Fallaji Wayfarer",
+    "oracleText": "Fallaji Wayfarer is all colors. This ability doesn't affect its color identity. (It can be in any deck whose commander's color identity includes green.)\nMulticolored spells you cast have convoke. (Your creatures can help cast those spells. Each creature you tap while casting a multicolored spell pays for {1} or one mana of a color that creature is.)",
+    "axis": "layer",
+    "expected": [
+      "L5",
+      "L6"
+    ],
+    "crRule": "CR 613.1e, 613.1f, 613.6",
+    "rationale": "The color-setting part applies in layer 5 and the granted convoke ability applies in layer 6."
+  },
+  {
+    "oracleId": "ae1f2ab5-c6a5-4d49-a746-3cb4668bf805",
+    "cardName": "Mycosynth Lattice",
+    "oracleText": "All permanents are artifacts in addition to their other types.\nAll cards that aren't on the battlefield, spells, and permanents are colorless.\nPlayers may spend mana as though it were mana of any color.",
+    "axis": "layer",
+    "expected": [
+      "L4",
+      "L5"
+    ],
+    "crRule": "CR 613.1d, 613.1e, 613.6",
+    "rationale": "The type-changing part applies in layer 4 and the color-changing part applies in layer 5."
+  },
+  {
+    "oracleId": "6b2e6a51-b9e6-4848-b7d7-98f02f2b897f",
+    "cardName": "Leyline of the Guildpact",
+    "oracleText": "If this card is in your opening hand, you may begin the game with it on the battlefield.\nEach nonland permanent you control is all colors.\nLands you control are every basic land type in addition to their other types.",
+    "axis": "layer",
+    "expected": [
+      "L4",
+      "L5"
+    ],
+    "crRule": "CR 613.1d, 613.1e, 613.6",
+    "rationale": "The type-changing part applies in layer 4 and the color-changing part applies in layer 5."
+  },
+  {
+    "oracleId": "bdbde5d0-f5e4-44da-b27c-b4ad6f374cc9",
+    "cardName": "Dryad of the Ilysian Grove",
+    "oracleText": "You may play an additional land on each of your turns.\nLands you control are every basic land type in addition to their other types.",
+    "axis": "layer",
+    "expected": [
+      "L4"
+    ],
+    "crRule": "CR 613.1d",
+    "rationale": "A continuous effect that changes card types, subtypes, or supertypes applies in layer 4."
+  },
+  {
+    "oracleId": "d90882ae-6572-4214-8d9c-0bdfb75f9be2",
+    "cardName": "Prismatic Omen",
+    "oracleText": "Lands you control are every basic land type in addition to their other types.",
+    "axis": "layer",
+    "expected": [
+      "L4"
+    ],
+    "crRule": "CR 613.1d",
+    "rationale": "A continuous effect that changes card types, subtypes, or supertypes applies in layer 4."
+  },
+  {
+    "oracleId": "93fe5eed-520f-467a-8e27-6f40eaa727e8",
+    "cardName": "Nylea's Presence",
+    "oracleText": "Enchant land\nWhen this Aura enters, draw a card.\nEnchanted land is every basic land type in addition to its other types.",
+    "axis": "layer",
+    "expected": [
+      "L4"
+    ],
+    "crRule": "CR 613.1d",
+    "rationale": "A continuous effect that changes card types, subtypes, or supertypes applies in layer 4."
+  },
+  {
+    "oracleId": "19504e19-2886-4d28-a813-b798a9a446a2",
+    "cardName": "Alien Symbiosis",
+    "oracleText": "Enchant creature\nEnchanted creature gets +1/+1, has menace, and is a Symbiote in addition to its other types.\nYou may cast this card from your graveyard by discarding a card in addition to paying its other costs.",
+    "axis": "layer",
+    "expected": [
+      "L4",
+      "L6",
+      "L7c"
+    ],
+    "crRule": "CR 613.1d, 613.1f, 613.4c, 613.6",
+    "rationale": "The same continuous effect changes subtype in layer 4, adds abilities in layer 6, and modifies power/toughness in layer 7c."
+  },
+  {
+    "oracleId": "8ba36878-0816-44c7-b543-8ebfc28c2ecd",
+    "cardName": "Angelic Destiny",
+    "oracleText": "Enchant creature\nEnchanted creature gets +4/+4, has flying and first strike, and is an Angel in addition to its other types.\nWhen enchanted creature dies, return this card to its owner's hand.",
+    "axis": "layer",
+    "expected": [
+      "L4",
+      "L6",
+      "L7c"
+    ],
+    "crRule": "CR 613.1d, 613.1f, 613.4c, 613.6",
+    "rationale": "The same continuous effect changes subtype in layer 4, adds abilities in layer 6, and modifies power/toughness in layer 7c."
+  },
+  {
+    "oracleId": "8a810017-06ac-4824-bc2f-a7d303d58ad7",
+    "cardName": "About Face",
+    "oracleText": "Switch target creature's power and toughness until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "55de434c-0fb9-4127-81b6-47c1c0b088fe",
+    "cardName": "Aquamoeba",
+    "oracleText": "Discard a card: Switch this creature's power and toughness until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "3a7e3423-4df3-4e10-9861-ac2f403bc49d",
+    "cardName": "Flatman",
+    "oracleText": "Origami-Fu — {2}{G}: Switch Flatman's power and toughness until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "623d9db1-a3af-4a1c-9643-975de364e073",
+    "cardName": "Inside Out",
+    "oracleText": "Switch target creature's power and toughness until end of turn.\nDraw a card.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "fedcb737-723b-4a38-b86c-dad6ac7bec7b",
+    "cardName": "Inversion Behemoth",
+    "oracleText": "At the beginning of combat on your turn, switch the power and toughness of each of any number of target creatures until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "1220e11f-aab0-459b-ae3f-b095aad37294",
+    "cardName": "Merfolk Thaumaturgist",
+    "oracleText": "{T}: Switch target creature's power and toughness until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "4499d8cd-d090-4acc-a1d9-3d9d9b6ef768",
+    "cardName": "Reverse the Polarity",
+    "oracleText": "Choose one —\n• Counter all other spells.\n• Switch each creature's power and toughness until end of turn.\n• Creatures can't be blocked this turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "87f8b403-765c-4a2a-8b21-edaaaa889234",
+    "cardName": "Turtleshell Changeling",
+    "oracleText": "Changeling (This card is every creature type.)\n{1}{U}: Switch this creature's power and toughness until end of turn.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "4a40cee1-fc09-4f97-aef8-440778d8c0ca",
+    "cardName": "Twisted Image",
+    "oracleText": "Switch target creature's power and toughness until end of turn.\nDraw a card.",
+    "axis": "layer",
+    "expected": [
+      "L7d"
+    ],
+    "crRule": "CR 613.4d",
+    "rationale": "An effect that switches power and toughness applies in layer 7d."
+  },
+  {
+    "oracleId": "42226b87-0746-4ebf-9fd0-108d508462af",
+    "cardName": "Clone",
+    "oracleText": "You may have this creature enter as a copy of any creature on the battlefield.",
+    "axis": "layer",
+    "expected": [
+      "L1a"
+    ],
+    "crRule": "CR 613.1a, 707.2",
+    "rationale": "An enters-as-copy effect modifies copiable values in copy layer 1a."
+  },
+  {
+    "oracleId": "c1882cb4-f69e-441e-8871-743ed636cad0",
+    "cardName": "Aarakocra Sneak",
+    "oracleText": "Flying\nWhen this creature enters, you take the initiative.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "48a773d0-c433-4463-b50f-b6d4604a042c",
+    "cardName": "Abigale, Eloquent First-Year",
+    "oracleText": "Flying, first strike, lifelink\nWhen Abigale enters, up to one other target creature loses all abilities. Put a flying counter, a first strike counter, and a lifelink counter on that creature.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "ca7d093c-0533-493f-9ad3-8af30118fbfc",
+    "cardName": "Abraded Bluffs",
+    "oracleText": "This land enters tapped.\nWhen this land enters, it deals 1 damage to target opponent.\n{T}: Add {R} or {W}.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "947a2665-2f4d-4193-8768-118f85334549",
+    "cardName": "Abundant Growth",
+    "oracleText": "Enchant land\nWhen this Aura enters, draw a card.\nEnchanted land has \"{T}: Add one mana of any color.\"",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "465cda20-c8f3-4a7c-a250-875877bce21d",
+    "cardName": "Abyssal Gorestalker",
+    "oracleText": "When this creature enters, each player sacrifices two creatures of their choice.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "d8ad23a1-0b43-48ea-9fbe-d89b29194509",
+    "cardName": "Accursed Marauder",
+    "oracleText": "When this creature enters, each player sacrifices a nontoken creature of their choice.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "21f45043-5419-4019-8b6c-e5294bd5f549",
+    "cardName": "Acidic Slime",
+    "oracleText": "Deathtouch (Any amount of damage this deals to a creature is enough to destroy it.)\nWhen this creature enters, destroy target artifact, enchantment, or land.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "232bd88c-ecdb-43dd-b34a-d381cb3bedf2",
+    "cardName": "Adventurer's Inn",
+    "oracleText": "When this land enters, you gain 2 life.\n{T}: Add {C}.",
+    "axis": "event-family",
+    "expected": [
+      "enters"
+    ],
+    "crRule": "CR 603.1, 603.6a",
+    "rationale": "The sole trigger condition is a permanent entering, so the deterministic event family is enters."
+  },
+  {
+    "oracleId": "31816924-1430-4581-86e8-325e2ca16217",
+    "cardName": "Agents of HYDRA",
+    "oracleText": "When this creature dies, create a 2/1 black Villain creature token with menace. (It can't be blocked except by two or more creatures.)",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "14c356aa-178d-4c14-a88e-fbe92ee6d89f",
+    "cardName": "Agent Venom",
+    "oracleText": "Flash\nMenace\nWhenever another nontoken creature you control dies, you draw a card and lose 1 life.",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "8df42f4a-022c-4fcb-a953-fb165fdbfc13",
+    "cardName": "Akki Ember-Keeper",
+    "oracleText": "Whenever a nontoken modified creature you control dies, create a 1/1 colorless Spirit creature token. (Equipment, Auras you control, and counters are modifications.)",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "2392a41a-59d3-4749-be94-4d9df0af9c4c",
+    "cardName": "Alabaster Dragon",
+    "oracleText": "Flying\nWhen this creature dies, shuffle it into its owner's library.",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "659bc01c-fa60-4d00-bdad-5bca1d2a978f",
+    "cardName": "Anafenza, Unyielding Lineage",
+    "oracleText": "Flash\nFirst strike\nWhenever another nontoken creature you control dies, Anafenza endures 2. (Put two +1/+1 counters on it or create a 2/2 white Spirit creature token.)",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "5f981cca-5cd9-49e4-ab1a-bbbf6fc7e737",
+    "cardName": "Ancient Stone Idol",
+    "oracleText": "Flash\nThis spell costs {1} less to cast for each attacking creature.\nTrample\nWhen this creature dies, create a 6/12 colorless Construct artifact creature token with trample.",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "38e0a1d0-2a4c-4510-9610-abea7fa1de7c",
+    "cardName": "Archon of Falling Stars",
+    "oracleText": "Flying\nWhen this creature dies, you may return target enchantment card from your graveyard to the battlefield.",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "d551931d-4ebe-4acc-9e87-6c628897071a",
+    "cardName": "Archon of Justice",
+    "oracleText": "Flying\nWhen this creature dies, exile target permanent.",
+    "axis": "event-family",
+    "expected": [
+      "dies"
+    ],
+    "crRule": "CR 603.1, 700.4",
+    "rationale": "The sole trigger condition uses dies, the defined battlefield-to-graveyard creature event."
+  },
+  {
+    "oracleId": "a0657586-0404-4bb0-a92d-25f040d560c1",
+    "cardName": "Aberrant Manawurm",
+    "oracleText": "Trample\nWhenever you cast an instant or sorcery spell, this creature gets +X/+0 until end of turn, where X is the amount of mana spent to cast that spell.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "0cd77ee1-408c-4c51-ac87-24f4fc50083d",
+    "cardName": "Academy Wall",
+    "oracleText": "Defender\nWhenever you cast an instant or sorcery spell, you may draw a card. If you do, discard a card. This ability triggers only once each turn.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "850eb3c3-029b-49b0-91a9-6daeb1b3a9e8",
+    "cardName": "Adeliz, the Cinder Wind",
+    "oracleText": "Flying, haste\nWhenever you cast an instant or sorcery spell, Wizards you control get +1/+1 until end of turn.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "5f15125e-ae89-471e-b055-226a783bc7c1",
+    "cardName": "Aetherflux Reservoir",
+    "oracleText": "Whenever you cast a spell, you gain 1 life for each spell you've cast this turn.\nPay 50 life: This artifact deals 50 damage to any target.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "936ae5dc-9838-47f3-ba1f-66523a7f5b76",
+    "cardName": "Alela, Artful Provocateur",
+    "oracleText": "Flying, deathtouch, lifelink\nOther creatures you control with flying get +1/+0.\nWhenever you cast an artifact or enchantment spell, create a 1/1 blue Faerie creature token with flying.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "f0950c95-a297-489d-b166-74bba6af5376",
+    "cardName": "Ancient Cornucopia",
+    "oracleText": "Whenever you cast a spell that's one or more colors, you may gain 1 life for each of that spell's colors. Do this only once each turn.\n{T}: Add one mana of any color.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "cf6dc79e-840c-4d47-8f94-c8623528acd2",
+    "cardName": "Angry Rabble",
+    "oracleText": "Trample\nWhenever you cast a spell with mana value 4 or greater, this creature deals 1 damage to each opponent.\n{5}{R}: Put two +1/+1 counters on this creature. Activate only as a sorcery.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "725880b2-1675-414f-b61b-cf6533797dbf",
+    "cardName": "Animar, Soul of Elements",
+    "oracleText": "Protection from white and from black\nWhenever you cast a creature spell, put a +1/+1 counter on Animar.\nCreature spells you cast cost {1} less to cast for each +1/+1 counter on Animar.",
+    "axis": "event-family",
+    "expected": [
+      "cast"
+    ],
+    "crRule": "CR 603.1, 603.2, 601.2",
+    "rationale": "The sole trigger condition is casting a spell, so the deterministic event family is cast."
+  },
+  {
+    "oracleId": "9ecd53b0-4551-4505-b5d2-02ae49d4cbdb",
+    "cardName": "Acquired Mutation",
+    "oracleText": "Enchant creature\nEnchanted creature gets +2/+2 and is goaded. (It attacks each combat if able and attacks a player other than you if able.)\nWhenever enchanted creature attacks, defending player gets two rad counters.",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "e91240bc-4a13-4131-9379-5ddac6555f4a",
+    "cardName": "Adaptive Omnitool",
+    "oracleText": "Equipped creature gets +1/+1 for each artifact you control.\nWhenever equipped creature attacks, look at the top six cards of your library. You may reveal an artifact card from among them and put it into your hand. Put the rest on the bottom of your library in a random order.\nEquip {3}",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "94779ca4-c202-4163-9c77-1036921a34bc",
+    "cardName": "Adrestia",
+    "oracleText": "Islandwalk (This creature can't be blocked as long as defending player controls an Island.)\nWhenever Adrestia attacks, if an Assassin crewed it this turn, draw a card. Adrestia becomes an Assassin in addition to its other types until end of turn.\nCrew 1",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "e3016295-00f7-4daf-91b0-57653733b103",
+    "cardName": "Adventurer's Airship",
+    "oracleText": "Flying\nWhenever this Vehicle attacks, draw a card, then discard a card.\nCrew 2 (Tap any number of creatures you control with total power 2 or more: This Vehicle becomes an artifact creature until end of turn.)",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "b56c0846-e465-4251-93ea-2e3e7be8dffc",
+    "cardName": "Aerial Guide",
+    "oracleText": "Flying\nWhenever this creature attacks, another target attacking creature gains flying until end of turn.",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "92c9b2fd-95d6-4937-aee2-67b4bb8ca29d",
+    "cardName": "Aerial Surveyor",
+    "oracleText": "Flying\nWhenever this Vehicle attacks, if defending player controls more lands than you, search your library for a basic Plains card, put it onto the battlefield tapped, then shuffle.\nCrew 2",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "381a3e8e-71dd-48e4-ab62-53478bde4a14",
+    "cardName": "Agate-Blade Assassin",
+    "oracleText": "Whenever this creature attacks, defending player loses 1 life and you gain 1 life.",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "203b72d2-a273-49cc-bd10-2fbc07ed2fc8",
+    "cardName": "Agents of S.H.I.E.L.D.",
+    "oracleText": "Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.",
+    "axis": "event-family",
+    "expected": [
+      "attacks"
+    ],
+    "crRule": "CR 508.1m, 508.3, 603.1",
+    "rationale": "The sole trigger condition is an attacker being declared, so the event family is attacks."
+  },
+  {
+    "oracleId": "f4e7bc58-336d-4670-84cb-a46ca1f48671",
+    "cardName": "Abiding Grace",
+    "oracleText": "At the beginning of your end step, choose one —\n• You gain 1 life.\n• Return target creature card with mana value 1 from your graveyard to the battlefield.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "1208cb6e-34b4-4a23-9a5b-a01229113e38",
+    "cardName": "Advocate of the Beast",
+    "oracleText": "At the beginning of your end step, put a +1/+1 counter on target Beast creature you control.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "47c685b1-6e1e-4e08-8a52-9da6902df113",
+    "cardName": "Aethersquall Ancient",
+    "oracleText": "Flying\nAt the beginning of your upkeep, you get {E}{E}{E} (three energy counters).\nPay eight {E}: Return all other creatures to their owners' hands. Activate only as a sorcery.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "fc148e1e-dff0-448e-9f16-625341754356",
+    "cardName": "Aether Vial",
+    "oracleText": "At the beginning of your upkeep, you may put a charge counter on this artifact.\n{T}: You may put a creature card with mana value equal to the number of charge counters on this artifact from your hand onto the battlefield.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "a468f6ab-c0a8-4295-8b01-7147d3f889b4",
+    "cardName": "Air Nomad Student",
+    "oracleText": "Flying\nAt the beginning of your end step, if this creature didn't attack this turn, put a +1/+1 counter on it.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "aa95501f-bb59-494a-bcae-b74ca10ad57e",
+    "cardName": "Angelic Accord",
+    "oracleText": "At the beginning of each end step, if you gained 4 or more life this turn, create a 4/4 white Angel creature token with flying.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "d379a919-02cd-46fd-a6ce-b66a77745ae7",
+    "cardName": "April O'Neil, Hacktivist",
+    "oracleText": "At the beginning of your end step, draw a card for each card type among spells you've cast this turn.",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "9c36760b-57c5-488b-afc9-ef141942c6ab",
+    "cardName": "Archfiend of Despair",
+    "oracleText": "Flying\nYour opponents can't gain life.\nAt the beginning of each end step, each opponent loses life equal to the life that player lost this turn. (Damage causes loss of life.)",
+    "axis": "event-family",
+    "expected": [
+      "phase"
+    ],
+    "crRule": "CR 603.1, 603.2b",
+    "rationale": "The sole trigger condition is the beginning of a named phase or step, so the event family is phase."
+  },
+  {
+    "oracleId": "84de4fec-2f38-4293-93d3-b3882c5aac14",
+    "cardName": "Ambition's Cost",
+    "oracleText": "You draw three cards and you lose 3 life.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "78725353-9274-420a-b722-add0f43c444e",
+    "cardName": "Ancient Craving",
+    "oracleText": "You draw three cards and you lose 3 life.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "d91ea728-2d69-42cb-bb5d-e2b058f0d7b1",
+    "cardName": "Arcane Encyclopedia",
+    "oracleText": "{3}, {T}: Draw a card.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "fe1556cc-32d0-4e51-bb15-f3fce669a5e1",
+    "cardName": "Arcane Epiphany",
+    "oracleText": "This spell costs {1} less to cast if you control a Wizard.\nDraw three cards.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "d83e1a42-11d1-412a-b66c-850c7a528777",
+    "cardName": "Brilliant Plan",
+    "oracleText": "Draw three cards.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "a3d287ec-1a39-4f91-acf1-7c1d2c00ed89",
+    "cardName": "Concentrate",
+    "oracleText": "Draw three cards.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "7eff84f1-f772-497a-b350-bbc93d0230f7",
+    "cardName": "Harmonize",
+    "oracleText": "Draw three cards.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "7bff8d4a-1c7d-48b8-b3e3-737dd6f01823",
+    "cardName": "Quick Study",
+    "oracleText": "Draw two cards.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 121.1",
+    "rationale": "Drawing moves cards from the top of the library to the drawing player’s hand."
+  },
+  {
+    "oracleId": "c3a89c67-1931-4d42-98c8-94a40cfd046e",
+    "cardName": "Eviscerate",
+    "oracleText": "Destroy target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "8f968470-ce00-43a3-95f5-2e3fe987be19",
+    "cardName": "Fell",
+    "oracleText": "Destroy target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "a0b97e33-2d0c-4800-a9f5-9cd9be651ea8",
+    "cardName": "Ice Storm",
+    "oracleText": "Destroy target land.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "938b4e2c-88d9-4637-bc00-e228920c9a78",
+    "cardName": "Murder",
+    "oracleText": "Destroy target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "63c1ac21-e3d8-40c2-8c09-3f31c52992ef",
+    "cardName": "Vindicate",
+    "oracleText": "Destroy target permanent.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "bf7ec320-64bb-46ca-aac0-ca3d4224b69e",
+    "cardName": "Ajani's Response",
+    "oracleText": "This spell costs {3} less to cast if it targets a tapped creature.\nDestroy target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "a6d95d26-48d8-4a97-9a42-f492a61300c9",
+    "cardName": "Assassin's Ink",
+    "oracleText": "This spell costs {1} less to cast if you control an artifact and {1} less to cast if you control an enchantment.\nDestroy target creature or planeswalker.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "bceecc64-96f1-4e7b-8904-0aef90377764",
+    "cardName": "Bedevil",
+    "oracleText": "Destroy target artifact, creature, or planeswalker.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "graveyard"
+    ],
+    "crRule": "CR 701.8a",
+    "rationale": "Destroying a permanent moves it from the battlefield to its owner’s graveyard."
+  },
+  {
+    "oracleId": "e654242f-c7c5-4713-bbd0-26d41de8e2e7",
+    "cardName": "Final Reward",
+    "oracleText": "Exile target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "c551ba63-2a74-439d-8996-d566e2efbd5f",
+    "cardName": "Unmake",
+    "oracleText": "Exile target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "b14d3226-adc2-4bdd-9e69-fefdc946ac04",
+    "cardName": "Wander Off",
+    "oracleText": "Exile target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "36de8401-ee4e-413f-91ad-06924e39c857",
+    "cardName": "Angelic Edict",
+    "oracleText": "Exile target creature or enchantment.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "80788ac7-19d6-42d2-9f6e-676d7b5c912e",
+    "cardName": "Astral Confrontation",
+    "oracleText": "This spell costs {1} less to cast for each opponent you're attacking.\nExile target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "e4508afd-7cc3-4176-8291-cfc2c155ac11",
+    "cardName": "Banish from Edoras",
+    "oracleText": "This spell costs {2} less to cast if it targets a tapped creature.\nExile target creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "968b6277-584c-4947-98ac-4d6e5f8d6754",
+    "cardName": "Bring to Trial",
+    "oracleText": "Exile target creature with power 4 or greater.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "bd16434d-55ea-4c5a-a9ef-752971a4af16",
+    "cardName": "Despark",
+    "oracleText": "Exile target permanent with mana value 4 or greater.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "exile"
+    ],
+    "crRule": "CR 406.2, 701.13a",
+    "rationale": "Exiling the targeted permanent moves it from its current battlefield zone to exile."
+  },
+  {
+    "oracleId": "dc4a4996-108a-4aac-850f-2d9f76403446",
+    "cardName": "Boomerang",
+    "oracleText": "Return target permanent to its owner's hand.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "837182db-1bf3-4a2c-bd01-1af9d9873561",
+    "cardName": "Unsummon",
+    "oracleText": "Return target creature to its owner's hand.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "d9c29e6e-5949-4599-bf74-b9539e753f76",
+    "cardName": "Bounce Off",
+    "oracleText": "Return target creature or Vehicle to its owner's hand.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "a2fe10b8-857e-4881-85ef-24a0f96a3d79",
+    "cardName": "Hoodwink",
+    "oracleText": "Return target artifact, enchantment, or land to its owner's hand.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "ac914d98-221e-426c-8a50-342896b15f9e",
+    "cardName": "Snap",
+    "oracleText": "Return target creature to its owner's hand. Untap up to two lands.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "4a85cd7e-625b-4043-b7f1-999def26eb36",
+    "cardName": "Erratic Portal",
+    "oracleText": "{1}, {T}: Return target creature to its owner's hand unless its controller pays {1}.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "cbf68ddd-596f-4b2d-b93c-3b7976ba4d37",
+    "cardName": "Fumble",
+    "oracleText": "Return target creature to its owner's hand. Gain control of all Auras and Equipment that were attached to it, then attach them to another creature.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "83917116-d2d8-4701-a79f-af17486706ae",
+    "cardName": "Light the Way",
+    "oracleText": "Choose one —\n• Put a +1/+1 counter on target creature or Vehicle. Untap it.\n• Return target permanent you control to its owner's hand.",
+    "axis": "zone-transition",
+    "expected": [
+      "battlefield",
+      "hand"
+    ],
+    "crRule": "CR 400.3, 400.7",
+    "rationale": "Returning the targeted permanent to its owner’s hand moves it from battlefield to hand."
+  },
+  {
+    "oracleId": "82004860-e589-4e38-8d61-8c0210e4ea39",
+    "cardName": "Demonic Tutor",
+    "oracleText": "Search your library for a card, put that card into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "14589b6b-1814-46f9-a364-83cc15dacac2",
+    "cardName": "Diabolic Tutor",
+    "oracleText": "Search your library for a card, put that card into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "4acb6612-54e8-428d-acb6-c7259a5ad6a8",
+    "cardName": "Eladamri's Call",
+    "oracleText": "Search your library for a creature card, reveal that card, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "422e1869-134f-463d-9fa1-86b66a998b3e",
+    "cardName": "Fabricate",
+    "oracleText": "Search your library for an artifact card, reveal it, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "57c9ff89-dd30-467b-bb3e-499eeea8cb94",
+    "cardName": "Idyllic Tutor",
+    "oracleText": "Search your library for an enchantment card, reveal it, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "86cebe2a-95e7-4f22-99cc-e805aeaf347e",
+    "cardName": "Merchant Scroll",
+    "oracleText": "Search your library for a blue instant card, reveal that card, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "f02682f0-26c0-4032-9df3-273b6a45d0a8",
+    "cardName": "Solve the Equation",
+    "oracleText": "Search your library for an instant or sorcery card, reveal it, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "d9abda7e-6ca2-42ea-ab24-c542e57014f1",
+    "cardName": "Steelshaper's Gift",
+    "oracleText": "Search your library for an Equipment card, reveal that card, put it into your hand, then shuffle.",
+    "axis": "zone-transition",
+    "expected": [
+      "hand",
+      "library"
+    ],
+    "crRule": "CR 400.7, 701.23a",
+    "rationale": "The instruction searches the library and moves the found card into the searcher’s hand."
+  },
+  {
+    "oracleId": "aab463bb-e790-403b-a88d-06ef81c7302b",
+    "cardName": "Abzan Beastmaster",
+    "oracleText": "At the beginning of your upkeep, draw a card if you control the creature with the greatest toughness or tied for the greatest toughness.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "3a75c56a-bdf7-490d-aa41-51d5eb8be46c",
+    "cardName": "Aegis Sculptor",
+    "oracleText": "Flying\nWard {2} (Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player pays {2}.)\nAt the beginning of your upkeep, you may exile two cards from your graveyard. If you do, put a +1/+1 counter on this creature.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "81c6c4f0-81ad-463c-a42b-60a73e6d70f3",
+    "cardName": "Alexios, Deimos of Kosmos",
+    "oracleText": "Trample\nAlexios attacks each combat if able, can't be sacrificed, and can't attack its owner.\nAt the beginning of each player's upkeep, that player gains control of Alexios, untaps it, and puts a +1/+1 counter on it. It gains haste until end of turn.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "bf45f5ee-4d5f-4920-b612-b5492c2f035d",
+    "cardName": "Aminatou, Veil Piercer",
+    "oracleText": "At the beginning of your upkeep, surveil 2. (Look at the top two cards of your library, then put any number of them into your graveyard and the rest on top of your library in any order.)\nEach enchantment card in your hand has miracle. Its miracle cost is equal to its mana cost reduced by {4}. (You may cast a card for its miracle cost when you draw it if it's the first card you drew this turn.)",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "9b6a74fb-c48f-4d85-b4b3-96eb80b9efc7",
+    "cardName": "Angel of Flight Alabaster",
+    "oracleText": "Flying\nAt the beginning of your upkeep, return target Spirit card from your graveyard to your hand.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "0c201f79-9eca-48c8-88ba-a20fa6918a07",
+    "cardName": "Anowon, the Ruin Sage",
+    "oracleText": "At the beginning of your upkeep, each player sacrifices a non-Vampire creature of their choice.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "8ead94c5-8447-4f20-87ec-efdccde689fc",
+    "cardName": "Arcades Sabboth",
+    "oracleText": "Flying\nAt the beginning of your upkeep, sacrifice Arcades Sabboth unless you pay {G}{W}{U}.\nEach untapped creature you control gets +0/+2 as long as it's not attacking.\n{W}: Arcades Sabboth gets +0/+1 until end of turn.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "8b9918c3-1135-4c63-991f-f0a38340a33b",
+    "cardName": "Ascendant Acolyte",
+    "oracleText": "This creature enters with a +1/+1 counter on it for each +1/+1 counter among other creatures you control.\nAt the beginning of your upkeep, double the number of +1/+1 counters on this creature.",
+    "axis": "timing",
+    "expected": [
+      "upkeep"
+    ],
+    "crRule": "CR 500.1, 503, 603.2b",
+    "rationale": "The ability triggers at the beginning of an upkeep step, fixing the upkeep juncture."
+  },
+  {
+    "oracleId": "43b5e462-d860-473d-828f-6c513fc7768a",
+    "cardName": "Admiral Beckett Brass",
+    "oracleText": "Other Pirates you control get +1/+1.\nAt the beginning of your end step, gain control of target nonland permanent controlled by a player who was dealt combat damage by three or more Pirates this turn.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "4cd82c7a-86df-4d29-b578-c009208c0d4b",
+    "cardName": "Agent of Treachery",
+    "oracleText": "When this creature enters, gain control of target permanent.\nAt the beginning of your end step, if you control three or more permanents you don't own, draw three cards.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "abe377f8-35f0-4dea-a681-91d31a36815c",
+    "cardName": "Agitator Ant",
+    "oracleText": "At the beginning of your end step, each player may put two +1/+1 counters on a creature they control. Goad each creature that had counters put on it this way. (Until your next turn, those creatures attack each combat if able and attack a player other than you if able.)",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "53bfe54e-9b97-4113-97d9-3c5dbc85e7cf",
+    "cardName": "Akal Pakal, First Among Equals",
+    "oracleText": "At the beginning of each player's end step, if an artifact entered the battlefield under your control this turn, look at the top two cards of your library. Put one of them into your hand and the other into your graveyard.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "f187f766-3696-419e-9865-58023a46446b",
+    "cardName": "Angel's Trumpet",
+    "oracleText": "All creatures have vigilance.\nAt the beginning of each player's end step, tap all untapped creatures that player controls that didn't attack this turn. This artifact deals damage to the player equal to the number of creatures tapped this way.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "af247e2f-b271-4f5b-ab98-4579d2c17c21",
+    "cardName": "Archfiend of Depravity",
+    "oracleText": "Flying\nAt the beginning of each opponent's end step, that player chooses up to two creatures they control, then sacrifices the rest.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "03048844-32bb-45a2-a754-73f75eaa4566",
+    "cardName": "Astarion, the Decadent",
+    "oracleText": "Deathtouch, lifelink\nAt the beginning of your end step, choose one —\n• Feed — Target opponent loses life equal to the amount of life they lost this turn.\n• Friends — You gain life equal to the amount of life you gained this turn.",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "9cc69ea5-42a2-4306-ac6d-cff5adb20bcb",
+    "cardName": "Ashcoat of the Shadow Swarm",
+    "oracleText": "Whenever Ashcoat attacks or blocks, other Rats you control get +X/+X until end of turn, where X is the number of Rats you control.\nAt the beginning of your end step, you may mill four cards. If you do, return up to two Rat creature cards from your graveyard to your hand. (To mill a card, put the top card of your library into your graveyard.)",
+    "axis": "timing",
+    "expected": [
+      "end-step"
+    ],
+    "crRule": "CR 512, 513, 603.2b",
+    "rationale": "The ability triggers at the beginning of an end step, fixing the end-step juncture."
+  },
+  {
+    "oracleId": "ce1a6c1f-6b4e-4d19-b256-48d073b359b7",
+    "cardName": "Additive Evolution",
+    "oracleText": "When this enchantment enters, create a 0/0 green and blue Fractal creature token. Put three +1/+1 counters on it.\nAt the beginning of combat on your turn, put a +1/+1 counter on target creature you control. It gains vigilance until end of turn.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "d2575513-72fa-49c7-be6b-9f6f85950f88",
+    "cardName": "Aethershield Artificer",
+    "oracleText": "At the beginning of combat on your turn, target artifact creature you control gets +2/+2 and gains indestructible until end of turn. (Damage and effects that say \"destroy\" don't destroy it.)",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "f33217cc-175f-45e8-bc69-801f41cb4495",
+    "cardName": "Agent Bishop, Man in Black",
+    "oracleText": "At the beginning of combat on your turn, put a +1/+1 counter on each of up to two target creatures.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "3fa2d51c-d549-4287-ac3b-76bc72bcd8bc",
+    "cardName": "Alacrian Armory",
+    "oracleText": "Creatures you control get +0/+1 and have vigilance.\nAt the beginning of combat on your turn, choose up to one target Mount or Vehicle you control. Until end of turn, that permanent becomes saddled if it's a Mount and becomes an artifact creature if it's a Vehicle.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "7c854a07-e031-458e-a335-9c31865020b8",
+    "cardName": "Alien Invasion",
+    "oracleText": "At the beginning of combat on your turn, create a 1/1 red Alien creature token with haste and \"This token attacks each combat if able.\" Put a +1/+1 counter on it for each invasion counter on this enchantment, then put an invasion counter on this enchantment.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "a8730922-3f47-4c07-bdd5-4a0f557a3d3d",
+    "cardName": "Archpriest of Iona",
+    "oracleText": "Archpriest of Iona's power is equal to the number of creatures in your party. (Your party consists of up to one each of Cleric, Rogue, Warrior, and Wizard.)\nAt the beginning of combat on your turn, if you have a full party, target creature gets +1/+1 and gains flying until end of turn.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "a80ea391-54d1-4b61-95a3-f8deb4cbe842",
+    "cardName": "Arclight Phoenix",
+    "oracleText": "Flying, haste\nAt the beginning of combat on your turn, if you've cast three or more instant and sorcery spells this turn, return this card from your graveyard to the battlefield.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "72dc807b-35fb-4d69-ae4c-04eed0646170",
+    "cardName": "Battle-Rattle Shaman",
+    "oracleText": "At the beginning of combat on your turn, you may have target creature get +2/+0 until end of turn.",
+    "axis": "timing",
+    "expected": [
+      "begin-combat"
+    ],
+    "crRule": "CR 506.1, 507, 603.2b",
+    "rationale": "The ability triggers at the beginning of combat, fixing the beginning-of-combat juncture."
+  },
+  {
+    "oracleId": "7d540860-ae94-4773-a526-aaffca3eb057",
+    "cardName": "Academy Loremaster",
+    "oracleText": "At the beginning of each player's draw step, that player may draw an additional card. If they do, spells they cast this turn cost {2} more to cast.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "be74a4c1-d569-4203-b28a-3e2ac6a82990",
+    "cardName": "Dictate of Kruphix",
+    "oracleText": "Flash (You may cast this spell any time you could cast an instant.)\nAt the beginning of each player's draw step, that player draws an additional card.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "7194a262-5e7a-4c12-b271-2bc5e0799477",
+    "cardName": "Font of Mythos",
+    "oracleText": "At the beginning of each player's draw step, that player draws two additional cards.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "d26b27db-a567-4631-b4b6-7294222fbdd1",
+    "cardName": "Howling Mine",
+    "oracleText": "At the beginning of each player's draw step, if this artifact is untapped, that player draws an additional card.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "38cfe4a0-6ead-435b-9f86-928205c0a52c",
+    "cardName": "Kami of the Crescent Moon",
+    "oracleText": "At the beginning of each player's draw step, that player draws an additional card.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "8ca2f668-2a4d-4a1e-abcc-093ccbc29295",
+    "cardName": "Mornsong Aria",
+    "oracleText": "Players can't draw cards or gain life.\nAt the beginning of each player's draw step, that player loses 3 life, searches their library for a card, puts it into their hand, then shuffles.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "7080fb43-5d93-41f5-87d3-bc1801805ea0",
+    "cardName": "Rites of Flourishing",
+    "oracleText": "At the beginning of each player's draw step, that player draws an additional card.\nEach player may play an additional land on each of their turns.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "92eed395-62ca-4293-882b-8565c40daab5",
+    "cardName": "Sylvan Library",
+    "oracleText": "At the beginning of your draw step, you may draw two additional cards. If you do, choose two cards in your hand drawn this turn. For each of those cards, pay 4 life or put the card on top of your library.",
+    "axis": "timing",
+    "expected": [
+      "draw"
+    ],
+    "crRule": "CR 504, 603.2b",
+    "rationale": "The ability triggers at the beginning of a draw step, fixing the draw-step juncture."
+  },
+  {
+    "oracleId": "ec8e310f-e871-498f-8d80-c3617c5e1433",
+    "cardName": "Absorbing Man",
+    "oracleText": "Vigilance\nAt the beginning of your first main phase, until your next turn, Absorbing Man becomes a copy of up to one target artifact, non-Aura enchantment, or land, except his name is Absorbing Man, he's a legendary 4/4 Human Villain creature in addition to his other types, and he has vigilance.",
+    "axis": "timing",
+    "expected": [
+      "main-precombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The first main phase is the precombat main phase, fixing the precombat-main juncture."
+  },
+  {
+    "oracleId": "bc899d5c-0a91-4f19-a3e4-3078ae966110",
+    "cardName": "Abstract Paintmage",
+    "oracleText": "At the beginning of your first main phase, add {U}{R}. Spend this mana only to cast instant and sorcery spells.",
+    "axis": "timing",
+    "expected": [
+      "main-precombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The first main phase is the precombat main phase, fixing the precombat-main juncture."
+  },
+  {
+    "oracleId": "d2664f28-49e1-46f8-a863-b217e961a57c",
+    "cardName": "Black Market Connections",
+    "oracleText": "At the beginning of your first main phase, choose one or more —\n• Sell Contraband — Create a Treasure token. You lose 1 life.\n• Buy Information — Draw a card. You lose 2 life.\n• Hire a Mercenary — Create a 3/2 colorless Shapeshifter creature token with changeling. You lose 3 life. (It is every creature type.)",
+    "axis": "timing",
+    "expected": [
+      "main-precombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The first main phase is the precombat main phase, fixing the precombat-main juncture."
+  },
+  {
+    "oracleId": "008cb342-79f5-4df6-a6b7-0e9e22ed693f",
+    "cardName": "Coalition Relic",
+    "oracleText": "{T}: Add one mana of any color.\n{T}: Put a charge counter on this artifact.\nAt the beginning of your first main phase, remove all charge counters from this artifact. Add one mana of any color for each charge counter removed this way.",
+    "axis": "timing",
+    "expected": [
+      "main-precombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The first main phase is the precombat main phase, fixing the precombat-main juncture."
+  },
+  {
+    "oracleId": "d8ce3f18-26fe-47e8-be8b-0d89d7de7038",
+    "cardName": "Acrobatic Cheerleader",
+    "oracleText": "Survival — At the beginning of your second main phase, if this creature is tapped, put a flying counter on it. This ability triggers only once.",
+    "axis": "timing",
+    "expected": [
+      "main-postcombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The second main phase is a postcombat main phase, fixing the postcombat-main juncture."
+  },
+  {
+    "oracleId": "28eb696f-a42c-4444-8139-dfd62029e020",
+    "cardName": "Cautious Survivor",
+    "oracleText": "Survival — At the beginning of your second main phase, if this creature is tapped, you gain 2 life.",
+    "axis": "timing",
+    "expected": [
+      "main-postcombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The second main phase is a postcombat main phase, fixing the postcombat-main juncture."
+  },
+  {
+    "oracleId": "29cf1dc2-3a6a-4a8b-8d61-4b6f0e74f271",
+    "cardName": "Estinien Varlineau",
+    "oracleText": "Whenever you cast a noncreature spell, put a +1/+1 counter on Estinien Varlineau. It gains flying until end of turn.\nAt the beginning of your second main phase, you draw X cards and lose X life, where X is the number of your opponents who were dealt combat damage by Estinien Varlineau or a Dragon this turn.",
+    "axis": "timing",
+    "expected": [
+      "main-postcombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The second main phase is a postcombat main phase, fixing the postcombat-main juncture."
+  },
+  {
+    "oracleId": "b173245e-2009-48ff-ac42-5f28d12aec79",
+    "cardName": "Fireglass Mentor",
+    "oracleText": "At the beginning of your second main phase, if an opponent lost life this turn, exile the top two cards of your library. Choose one of them. Until end of turn, you may play that card.",
+    "axis": "timing",
+    "expected": [
+      "main-postcombat"
+    ],
+    "crRule": "CR 505.1, 505.1a, 603.2b",
+    "rationale": "The second main phase is a postcombat main phase, fixing the postcombat-main juncture."
+  }
+]

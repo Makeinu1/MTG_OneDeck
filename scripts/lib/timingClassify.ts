@@ -97,7 +97,9 @@ export function classifyTimingForLine(line: AbilityLine): CardTimingSummary {
 
 function findJuncturePhrases(text: string): string[] {
   const phrases: string[] = [];
-  const beginningPattern = /(?:^|[.!?]\s+)at the beginning of\s+([^,.;!?]+)/gi;
+  // 行頭・文末区切りに加え、能力語接頭辞のem-dash後("Survival — At the beginning of …" 等)も拾う
+  // (CR 603: 能力語は誘発本体に意味を与えない接頭辞。これを落とすと 125枚規模の juncture FN になる)。
+  const beginningPattern = /(?:^|[.!?]\s+|—\s+)at the beginning of\s+([^,.;!?]+)/gi;
   const duringStepPattern =
     /\bduring\s+([^,.;!?]*?(?:untap step|upkeep|draw step|first main phase|second main phase|precombat main phase|postcombat main phase|each of (?:your |their )?main phases|combat on your turn|beginning of combat|declare attackers step|declare blockers step|end of combat step|end step|cleanup step))\b/gi;
 

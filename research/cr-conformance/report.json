@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-06-25T14:45:59.326Z",
+  "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
+  "goldPath": "research/cr-conformance/gold.json",
+  "threshold": 0.95,
+  "summary": {
+    "totalCards": 160,
+    "inScope": 160,
+    "scopeBoundary": 0,
+    "conformant": 160,
+    "divergent": 0,
+    "conformanceRate": 1,
+    "bounded": true,
+    "churnBaselineCommit": "04184e4c83d2d8cacbc99bd0aec30d7747b7d30b"
+  },
+  "perAxis": {
+    "layer": {
+      "inScope": 40,
+      "conformant": 40,
+      "divergent": 0
+    },
+    "event-family": {
+      "inScope": 40,
+      "conformant": 40,
+      "divergent": 0
+    },
+    "zone-transition": {
+      "inScope": 40,
+      "conformant": 40,
+      "divergent": 0
+    },
+    "timing": {
+      "inScope": 40,
+      "conformant": 40,
+      "divergent": 0
+    }
+  },
+  "mismatches": []
+}

@@ -4,14 +4,14 @@ Measurement-only extraction for zone access, cross-player zone access, ownership
 
 ## Summary
 
-- Generated at: 2026-06-24T10:55:42.679Z
+- Generated at: 2026-06-25T14:46:34.225Z
 - Input: research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json
 - totalCards: 17491
 - mappedCards: 17491
 - cards with zones: 12372 (70.73%)
 - cross-player cards: 1067 (6.10%)
 - multi-zone cards: 8396 (48.00%)
-- churn: 2074/17491 changed (11.86%), baselineCards=17491, byZone=battlefield +698, graveyard +1945
+- churn: 0/17491 changed (0.00%), baselineCards=17491, byZone=none
 - mapping failures: 0
 
 ## Zone Demand
