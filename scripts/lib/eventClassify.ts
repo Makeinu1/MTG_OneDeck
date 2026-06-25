@@ -81,7 +81,7 @@ export function classifyCardEvents(def: CardDef): CardEventSummary {
 }
 
 export function classifyEventsForLine(line: AbilityLine, def?: CardDef): EventTag[] {
-  return parseTriggerLines(line.text).flatMap((trigger) => {
+  return parseTriggerLines(line.text, def).flatMap((trigger) => {
     const families = classifyFamilies(trigger.conditionText, trigger.shape);
     const observers = classifyObservers(trigger.conditionText, trigger.shape, def);
     return families.flatMap((family) =>
@@ -102,12 +102,21 @@ interface ParsedTriggerLine {
   interveningIf: boolean;
 }
 
-function parseTriggerLines(line: string): ParsedTriggerLine[] {
-  const text = stripAbilityWordPrefix(normalize(stripReminderAndQuotedText(line)));
+function parseTriggerLines(line: string, def?: CardDef): ParsedTriggerLine[] {
+  const text = stripAbilityWordPrefix(
+    maskSelfNamePunctuation(normalize(stripReminderAndQuotedText(line)), def),
+  );
   const segments = triggerSegments(text);
   return segments.flatMap((segment) => {
     const trigger = parseTriggerSegment(segment);
-    return trigger ? [trigger] : [];
+    return trigger
+      ? [
+          {
+            ...trigger,
+            conditionText: unmaskSelfNamePunctuation(trigger.conditionText),
+          },
+        ]
+      : [];
   });
 }
 
@@ -118,7 +127,10 @@ function parseTriggerSegment(segment: string): ParsedTriggerLine | undefined {
     return undefined;
   }
 
-  const conditionEnd = firstConditionCommaIndex(text);
+  const commaEnd = firstConditionCommaIndex(text);
+  const sentenceEnd = text.search(/[.!?]/);
+  const conditionEnd =
+    commaEnd < 0 ? sentenceEnd : sentenceEnd < 0 ? commaEnd : Math.min(commaEnd, sentenceEnd);
   const conditionText = normalize(text.slice(0, conditionEnd < 0 ? text.length : conditionEnd));
   if (conditionText === '') {
     return undefined;
@@ -133,13 +145,11 @@ function parseTriggerSegment(segment: string): ParsedTriggerLine | undefined {
 
 function triggerSegments(text: string): string[] {
   const starts = triggerStartIndices(text);
-  if (starts.length === 0 || starts[0] !== 0) {
+  if (starts.length === 0) {
     return [];
   }
 
-  return starts.map((start, index) =>
-    text.slice(start, starts[index + 1] ?? text.length).trim(),
-  );
+  return starts.map((start, index) => text.slice(start, starts[index + 1] ?? text.length).trim());
 }
 
 function triggerStartIndices(text: string): number[] {
@@ -158,13 +168,39 @@ function isTriggerClauseStart(text: string, index: number): boolean {
   if (index === 0) {
     return true;
   }
+  if (/^(?:When|Whenever)\b/i.test(text.slice(index))) {
+    return true;
+  }
 
   const before = text.slice(0, index).trimEnd();
-  return /[.!?]$/.test(before);
+  if (/[.!?]$/.test(before)) {
+    return true;
+  }
+
+  const sentenceStart = Math.max(
+    before.lastIndexOf('.'),
+    before.lastIndexOf('!'),
+    before.lastIndexOf('?'),
+  );
+  const prefix = before.slice(sentenceStart + 1).trim();
+
+  return (
+    prefix === '•' ||
+    /(?:--|[\u2013\u2014]|\|)$/.test(prefix) ||
+    /:$/.test(prefix) ||
+    /^(?:(?:[+\-\u2212]?\d+|[IVX]+(?:\s*,\s*[IVX]+)*|\d+\+)\s*:\s*)?(?:until|during|for)\b[^,]{0,180},$/i.test(
+      prefix,
+    )
+  );
 }
 
 function stripAbilityWordPrefix(text: string): string {
-  return normalize(text.replace(/^[A-Z][A-Za-z' -]{0,60}\s+(?:--|[\u2013\u2014])\s+/u, ''));
+  if (/^(?:Whenever|When|At)\b/i.test(text)) {
+    return text;
+  }
+  return normalize(
+    text.replace(/^(?:•\s*)?[A-Z0-9{][^.\u2013\u2014]{0,80}(?:--|[\u2013\u2014])\s+/u, ''),
+  );
 }
 
 function triggerShape(text: string): TriggerShape | undefined {
@@ -247,9 +283,7 @@ function isEnumeratedTriggerConditionContinuation(text: string): boolean {
 
   return (
     startsWithOr &&
-    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(
-      continuation,
-    ) &&
+    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(continuation) &&
     /\b(?:dies|die|enters?|leaves?|attacks?|blocks?|casts?|draws?|discards?|sacrifices?|deals?|is\s+put|are\s+put|is\s+exiled|are\s+exiled)\b/i.test(
       continuation,
     )
@@ -263,8 +297,7 @@ function startsWithInterveningIf(afterTriggerCondition: string): boolean {
   }
 
   const firstSentenceEnd = rest.search(/[.!?]/);
-  const firstSentence =
-    firstSentenceEnd < 0 ? rest : rest.slice(0, Math.max(0, firstSentenceEnd));
+  const firstSentence = firstSentenceEnd < 0 ? rest : rest.slice(0, Math.max(0, firstSentenceEnd));
   return firstSentence.includes(',');
 }
 
@@ -351,12 +384,14 @@ function isDiesCondition(text: string): boolean {
 
 function isNonCreatureBattlefieldToGraveyardCondition(text: string): boolean {
   return battlefieldToGraveyardSubjects(text).some((subject) => {
-    if (!/\bcreatures?\b/i.test(subject)) {
+    if (
+      /\b(?:artifacts?|lands?|enchantments?|auras?|permanents?|planeswalkers?|battles?)\b/i.test(
+        subject,
+      )
+    ) {
       return true;
     }
-    return /\bcreatures?\b[^,.;]*\bor\b[^,.;]*\b(?:artifacts?|lands?|enchantments?|planeswalkers?|battles?)\b/i.test(
-      subject,
-    );
+    return !/\bcreatures?\b/i.test(subject);
   });
 }
 
@@ -424,9 +459,7 @@ function isManaTapCondition(text: string): boolean {
 }
 
 function isTapStateChangeCondition(text: string): boolean {
-  return /\bbecomes?\s+(?:tapped|untapped)\b|\b(?:is|are)\s+(?:tapped|untapped)\b/i.test(
-    text,
-  );
+  return /\bbecomes?\s+(?:tapped|untapped)\b|\b(?:is|are)\s+(?:tapped|untapped)\b/i.test(text);
 }
 
 function classifyObservers(
@@ -571,9 +604,7 @@ function isAnyObjectScope(text: string): boolean {
 }
 
 function hasAdditionalUnpossessedCreatureScope(text: string): boolean {
-  return /(?:^|\bor\s+)another creature(?![^,.;]*\byou control\b)[^,.;]*\bdies\b/i.test(
-    text,
-  );
+  return /(?:^|\bor\s+)another creature(?![^,.;]*\byou control\b)[^,.;]*\bdies\b/i.test(text);
 }
 
 function selfNames(def: CardDef | undefined): string[] {
@@ -584,9 +615,22 @@ function selfNames(def: CardDef | undefined): string[] {
     ...selfNameAliases(def.name, def.typeLine),
     ...def.faces.flatMap((face) => selfNameAliases(face.name, face.typeLine)),
   ];
-  return [...new Set(names.filter((name) => name.length > 0))].sort(
-    (a, b) => b.length - a.length,
-  );
+  return [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => b.length - a.length);
+}
+
+function maskSelfNamePunctuation(text: string, def: CardDef | undefined): string {
+  let masked = text;
+  for (const name of selfNames(def).filter((candidate) => /[,.;]/.test(candidate))) {
+    masked = masked.replace(
+      new RegExp(escapeRegExp(name), 'gi'),
+      name.replaceAll(',', '\u0000').replaceAll('.', '\u0001').replaceAll(';', '\u0002'),
+    );
+  }
+  return masked;
+}
+
+function unmaskSelfNamePunctuation(text: string): string {
+  return text.replaceAll('\u0000', ',').replaceAll('\u0001', '.').replaceAll('\u0002', ';');
 }
 
 function selfNameAliases(name: string, typeLine: string): string[] {

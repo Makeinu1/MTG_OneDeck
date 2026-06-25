@@ -1875,6 +1875,32 @@ silent に許容しない(全 allowance は CR 引用必須=method §3 鉄則の
 Fable がクラスタ単位で裁定 → 合意後に Codex が `ruleClassifier.ts`/`*Classify.ts`/allowance を修正し parity を 0 へ。
 runtime 修正は `review.classifier-corpus`/`review.golden-replay`/`review.classifier-parity` を回帰ゲートにする。
 
+### 34.7.3.1 クラスタ裁定(Fable・2026-06-25・M-GATE-2 本体)
+ワークシート(`reconciliation.md`)9クラスタ225枚を、両分類器の実出力をコーパスで実機検証した上で Fable が裁定した。
+**構造的事実(裁定の土台)**: research(`eventClassify`)は**誘発条件のみ**を分類し、かつ**誘発節がアビリティ行の先頭(`triggerSegments` の `starts[0]===0`)にある場合のみ**認識する。runtime(`ruleClassifier`)は**段落全体の緩い正規表現**(例 `when|whenever [^.]* casts? [^.]* spell`)で動詞を拾う=条件と効果文を区別しない。この非対称が225枚の大半を生む。
+
+**重要な裁定の方針転換**: ワークシートが `granularity-allowance` と下書きした3クラスタ(cast 70・enters\|runtime-only 21・draw 2)は**許容差ではなく両側の修正可能なバグ**である。効果文中の "cast a spell" を cast 誘発と数えるのは CR 603.1(誘発条件が族を定義する)違反の runtime-FP であり、粒度差ではない。**したがって本ゲートの目標 allowance 追加=0**(既存 axis 級 allowance は不変。新規 per-card/pattern allowance は導入しない)。parity=0 = `divergentCards === 0`。
+
+クラスタ別帰属(CR 接地・修正側):
+
+| Cluster | 枚 | 帰属 | 修正側 | CR 根拠と内容 |
+| --- | ---: | --- | --- | --- |
+| cast\|runtime-only | 70 | runtime-FP **+** research-FN(混在) | 両 | **runtime-FP**: 別誘発(combat-damage/attacks/etb/dies/起動型)の効果文 "you may cast a spell" を `trigger.cast` が誤検出(CR 603.1=族は誘発条件で決まる)。runtime の cast 検出を**誘発条件内に限定**。**research-FN**: 箇条書き `•`・Saga章 `II, III —`・能力語接頭辞・持続時間前置 `Until …, whenever you cast`・反射/遅延 `When you next cast`/`When that mana is spent to cast`(CR 603.1/603.12 反射誘発)を research が行頭規則で落とす。research を非行頭誘発に拡張。 |
+| enters\|research-only | 36 | runtime-FN | runtime | CR 603.6a。runtime `trigger.etb(-other)` 正規表現が単数 `enters` のみで複数形 `enter`(`one or more … enter`)を落とす。複数形・watcher を追加。 |
+| dies\|runtime-only | 33 | research-FN | research | CR 700.4/603.7。遅延誘発 `When that creature dies this turn` や `{TK}`/箇条書き接頭辞後の死亡誘発を research が行頭規則で落とす。非行頭・遅延誘発に拡張。 |
+| attacks\|runtime-only | 29 | research-FN | research | CR 508.1m/508.3。箇条書き・Saga・忠誠度 `+1:` 後置・`{TK} —` 接頭辞の attack 誘発を research が落とす。非行頭誘発に拡張。 |
+| enters\|runtime-only | 21 | research-FN **+** runtime-FP(混在) | 両 | **research-FN**: 箇条書き/`{TK}`/能力語 `Avalanche! —` 接頭辞の enters 誘発を research が落とす。**runtime-FP**: `enters with/as` 置換(CR 603.6d=静的能力、誘発でない)を runtime が `trigger.etb-other` 誤検出(例 Wildgrowth Archaic「that creature enters with X counters」)。runtime を置換 `enters with/as` 除外へ。 |
+| dies\|research-only | 15 | runtime-FN | runtime | CR 700.4/603.2c。複数形 `one or more creatures die` を runtime が単数中心で落とす(`isDiesCondition` は複数を拾うが `classifyBattlefieldDepartureTriggers` の死亡発火が `put into a graveyard from the battlefield` 語形に限定され `die` を取りこぼす)。複数形 `die` 発火を追加。 |
+| leaves\|runtime-only | 13 | research-FN | research | CR 603.6c。明示 `When that token leaves the battlefield`(遅延)・`artifact or creature is put into a graveyard from the battlefield`(語順 `artifact or creature`)を research が落とす。非行頭遅延 leaves と混在主語語順を追加。 |
+| attacks\|research-only | 6 | runtime-FN | runtime | CR 508.3b/508.4。受動 `enchanted player is attacked`(Curse 系)を runtime `attacks?` が `attacked` 不一致で落とす。カード名内のピリオド(`Mr. Foxglove`)が `[^,.]*` を分断。受動 `is attacked` と名前マスキングを追加。 |
+| draw\|mixed | 2 | runtime-FN(Trouble in Pairs)**+** research-FN(Starving Revenant) | 両 | CR 121.1/603.1。**runtime-FN**: カンマ列挙 `draws their second card each turn` を runtime が落とす。**research-FN**: 能力語+数字 `Descend 8 — Whenever you draw` を research の接頭辞剥離(数字非対応)が落とす。 |
+
+**追加で確定した runtime-FP(enters クラスタ横断・別系統)**: 能力語 `Landfall` 単独キーワード一致(`/\blandfall\b/`)が、誘発でない一回限り呪文(`Landfall — If you had a land enter … this turn`=介在条件、例 Groundswell/Searing Blaze)で `trigger.landfall` を誤検出。CR 603.6a の上陸誘発は `Whenever a land … enters` 構文に限る。runtime の上陸検出を `LAND_ENTERS_TRIGGER_PATTERN` 相当の誘発構文へ限定し、裸の `landfall` キーワード一致を除去。
+
+**research 拡張の統一機構(research-FN 群の根治)**: `stripAbilityWordPrefix` を能力語の数字・終端記号(`Descend 8 —`/`Exterminate! —`/`Do You Like Squirrels? —`)対応へ拡張し、`triggerStartIndices`/`triggerSegments` を箇条書き `•`・`{TK}`/`{cost}` 接頭辞・忠誠度 `+1:`・モード/持続時間前置の非行頭誘発、および反射/遅延誘発(`When you next …`/`When that … dies this turn`)を認識へ拡張。`enters or attacks` 等の列挙誘発も両族を立てる。**これは Slice2 凍結候補(`eventClassify`)の改変**ゆえ、`review.event-coverage`/`review.event-oracle` の Fable ゴールド維持を必須回帰ゲートとし、変更後に `event-coverage` churn と凍結 `predictions.json`(promptHash 不変)への `event-oracle-diff` 再実行(機械的・LLM 不要)で Slice2 KPI 非悪化を確認する。
+
+**回帰ゲート(本ゲート専有)**: `review.classifier-parity`(Fable author)が**コーパス全数 `divergentCards === 0`** を主張し、各クラスタ代表カードの一致を pin する。併せて `review.event-coverage`/`review.event-oracle`/`review.golden-replay`/`review.classifier-corpus` を緑に保つ。
+
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
 **契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
 

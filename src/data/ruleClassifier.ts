@@ -400,60 +400,13 @@ export function classifyCardRules(def: CardDef): RuleTag[] {
 }
 
 function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: CardDef): void {
-  matchTag(tags, core, 'trigger.etb', /\b(?:when|whenever)\b[^,.]*\benters\b/i, 'high');
-  matchTag(tags, core, 'trigger.death', /\b(?:when|whenever)\b[^,.]*\bdies\b/i, 'high');
-  classifyBattlefieldDepartureTriggers(tags, core, def);
-  matchTag(
-    tags,
-    core,
-    'trigger.cast',
-    /\b(?:when|whenever)\b[^.]*\bcasts?\b[^.]*\bspell\b/i,
-    'high',
-  );
-  matchTag(tags, core, 'trigger.cast-watcher', /\bwhenever\b[^.]{0,40}\bcasts?\b/i, 'high');
-  matchTag(tags, core, 'trigger.cast-watcher', /\bmagecraft\b/i, 'high');
-  matchTag(
-    tags,
-    core,
-    'trigger.etb-other',
-    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\benters\b/i,
-    'high',
-  );
-  matchTag(
-    tags,
-    core,
-    'trigger.death-other',
-    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\bdies\b/i,
-    'high',
-  );
-  matchTag(tags, core, 'trigger.attack', /\b(?:when|whenever)\b[^,.]*\battacks?\b/i, 'high');
-  matchTag(
-    tags,
-    core,
-    'trigger.attack-watcher',
-    /\b(?:when|whenever)\b[^.]*\b(?:another|a|an|one or more)\b[^.]{0,40}\battacks?\b/i,
-    'high',
-  );
-  matchTag(tags, core, 'trigger.landfall', /\blandfall\b/i, 'high');
-  matchTag(tags, core, 'trigger.landfall', LAND_ENTERS_TRIGGER_PATTERN, 'high');
+  const triggerConditions = triggerConditionClauses(core, def);
+  classifyMappedTriggerConditions(tags, triggerConditions, def);
+  classifyBattlefieldDepartureTriggers(tags, triggerConditions, def);
   matchTag(tags, core, 'trigger.upkeep', /\bat the beginning of[^.]*\bupkeep\b/i, 'high');
   if (!/\bnext end step\b/i.test(core)) {
     matchTag(tags, core, 'trigger.end-step', /\bat the beginning of\b[^.]*\bend step\b/i, 'high');
   }
-  matchTag(
-    tags,
-    core,
-    'trigger.draw',
-    /\b(?:when|whenever)\b[^,.]*\bdraws?\b[^,.]*\bcards?\b/i,
-    'high',
-  );
-  matchTag(
-    tags,
-    core,
-    'trigger.sacrifice',
-    /\b(?:when|whenever)\b[^,.]*\b(?:sacrifices?|sacrificed)\b/i,
-    'high',
-  );
   matchTag(
     tags,
     core,
@@ -517,13 +470,7 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: Card
   matchTag(tags, core, 'action.surveil', /\bsurveil\b\s*\d*/i, 'medium');
   classifyAttachAction(tags, core);
   matchTag(tags, core, 'concept.target', /\btarget\b/i, 'high');
-  matchTag(
-    tags,
-    core,
-    'concept.alt-cast',
-    ALT_CAST_KEYWORD_PATTERN,
-    'medium',
-  );
+  matchTag(tags, core, 'concept.alt-cast', ALT_CAST_KEYWORD_PATTERN, 'medium');
   matchTag(
     tags,
     core,
@@ -531,13 +478,7 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: Card
     /\b(?:cast|play)s?\b[^.]*\bfrom\b[^.]*\b(?:your\s+)?(?:graveyard|exile)\b/i,
     'medium',
   );
-  matchTag(
-    tags,
-    core,
-    'cost.additional',
-    /\bas an additional cost to cast\b/i,
-    'medium',
-  );
+  matchTag(tags, core, 'cost.additional', /\bas an additional cost to cast\b/i, 'medium');
   matchTag(
     tags,
     core,
@@ -550,32 +491,85 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: Card
   matchTag(tags, core, 'effect.replacement', /\benters\s+(?:with|as)\b/i, 'high');
 }
 
-function classifyBattlefieldDepartureTriggers(
+interface TriggerConditionClause {
+  shape: 'when' | 'whenever';
+  text: string;
+}
+
+function classifyMappedTriggerConditions(
   tags: Map<string, RuleTag>,
-  core: string,
+  conditions: readonly TriggerConditionClause[],
   def: CardDef,
 ): void {
-  for (const condition of triggerConditionBodies(core, def)) {
-    const graveyardSubjects = battlefieldToGraveyardSubjects(condition);
-    const explicitLeavesSubjects = leavesBattlefieldSubjects(condition);
+  for (const condition of conditions) {
+    const text = condition.text;
+    const entersMatch = /\benters?\b(?:\s+the battlefield)?\b/i.exec(text);
+    if (entersMatch) {
+      addTemplateTag(tags, 'trigger.etb', text, 'high');
+      if (isWatcherEventSubject(text.slice(0, entersMatch.index), def)) {
+        addTemplateTag(tags, 'trigger.etb-other', text, 'high');
+      }
+      if (LAND_ENTERS_TRIGGER_PATTERN.test(`Whenever ${text}`)) {
+        addTemplateTag(tags, 'trigger.landfall', text, 'high');
+      }
+    }
+
+    if (/\bcasts?\b[^.;]*\bspells?\b/i.test(text)) {
+      addTemplateTag(tags, 'trigger.cast', text, 'high');
+      if (condition.shape === 'whenever') {
+        addTemplateTag(tags, 'trigger.cast-watcher', text, 'high');
+      }
+    }
+
+    const attackMatch = /\battacks?\b|\b(?:is|are)\s+attacked\b/i.exec(text);
+    if (attackMatch) {
+      addTemplateTag(tags, 'trigger.attack', text, 'high');
+      if (
+        condition.shape === 'whenever' &&
+        isWatcherEventSubject(text.slice(0, attackMatch.index), def)
+      ) {
+        addTemplateTag(tags, 'trigger.attack-watcher', text, 'high');
+      }
+    }
+
+    if (/\bdraws?\b[^.;]*\bcards?\b/i.test(text)) {
+      addTemplateTag(tags, 'trigger.draw', text, 'high');
+    }
+
+    if (/\bsacrifices?\b|\b(?:is|are)\s+sacrificed\b/i.test(text)) {
+      addTemplateTag(tags, 'trigger.sacrifice', text, 'high');
+    }
+  }
+}
+
+function classifyBattlefieldDepartureTriggers(
+  tags: Map<string, RuleTag>,
+  conditions: readonly TriggerConditionClause[],
+  def: CardDef,
+): void {
+  for (const condition of conditions) {
+    const graveyardSubjects = battlefieldToGraveyardSubjects(condition.text);
+    const explicitDiesSubjects = explicitDiesSubjectsOf(condition.text);
+    const explicitLeavesSubjects = leavesBattlefieldSubjects(condition.text);
 
     // CR 700.4: only creature/planeswalker subjects use the dies runtime family.
-    if (isDiesCondition(condition, def)) {
-      const deathSubjects = graveyardSubjects.filter((subject) =>
-        isCreatureOrPlaneswalkerSubject(subject, def),
-      );
+    if (isDiesCondition(condition.text, def)) {
+      const deathSubjects = [
+        ...graveyardSubjects.filter((subject) => isCreatureOrPlaneswalkerSubject(subject, def)),
+        ...explicitDiesSubjects,
+      ];
       if (deathSubjects.length > 0) {
-        addTemplateTag(tags, 'trigger.death', condition, 'high');
+        addTemplateTag(tags, 'trigger.death', condition.text, 'high');
       }
       if (deathSubjects.some((subject) => isWatcherSubject(subject, def))) {
-        addTemplateTag(tags, 'trigger.death-other', condition, 'high');
+        addTemplateTag(tags, 'trigger.death-other', condition.text, 'high');
       }
     }
 
     // CR 603.6c: explicit LTB conditions and noncreature battlefield-to-graveyard
     // conditions are leaves-the-battlefield triggers, not dies triggers.
     if (
-      isNonCreatureBattlefieldToGraveyardCondition(condition, def) ||
+      isNonCreatureBattlefieldToGraveyardCondition(condition.text, def) ||
       explicitLeavesSubjects.length > 0
     ) {
       const leavesSubjects = [
@@ -583,29 +577,142 @@ function classifyBattlefieldDepartureTriggers(
         ...explicitLeavesSubjects,
       ];
       if (leavesSubjects.some((subject) => isSelfSubject(subject, def))) {
-        addTemplateTag(tags, 'trigger.leaves', condition, 'high');
+        addTemplateTag(tags, 'trigger.leaves', condition.text, 'high');
       }
       if (leavesSubjects.some((subject) => isWatcherSubject(subject, def))) {
-        addTemplateTag(tags, 'trigger.leaves-other', condition, 'high');
+        addTemplateTag(tags, 'trigger.leaves-other', condition.text, 'high');
       }
     }
   }
 }
 
-function triggerConditionBodies(core: string, def: CardDef): string[] {
-  const conditions: string[] = [];
-  const probe = /\b(?:when|whenever)\b\s+([^,.;]+)/gi;
-  let protectedCore = core;
-  for (const name of selfNames(def).filter((candidate) => candidate.includes(','))) {
-    protectedCore = protectedCore.replace(
+function triggerConditionClauses(core: string, def: CardDef): TriggerConditionClause[] {
+  const conditions: TriggerConditionClause[] = [];
+  const protectedCore = maskSelfNamePunctuation(core, def);
+  const probe = /\b(when|whenever)\b/gi;
+
+  for (const match of protectedCore.matchAll(probe)) {
+    const shape = match[1]?.toLowerCase();
+    const index = match.index;
+    if ((shape !== 'when' && shape !== 'whenever') || typeof index !== 'number') {
+      continue;
+    }
+
+    const bodyStart = index + match[0].length;
+    const remaining = protectedCore.slice(bodyStart).trimStart();
+    const sentenceEnd = remaining.search(/[.;]/);
+    const sentence = sentenceEnd < 0 ? remaining : remaining.slice(0, sentenceEnd);
+    const conditionEnd = firstTriggerConditionCommaIndex(sentence);
+    const condition = sentence.slice(0, conditionEnd < 0 ? sentence.length : conditionEnd);
+    const text = normalizeWhitespace(unmaskSelfNamePunctuation(condition));
+    if (text !== '') {
+      conditions.push({ shape, text });
+    }
+  }
+
+  return conditions;
+}
+
+function firstTriggerConditionCommaIndex(text: string): number {
+  const firstComma = text.indexOf(',');
+  if (firstComma < 0) {
+    return -1;
+  }
+
+  const castEnumerationEnd = castEnumeratedSpellConditionCommaIndex(text, firstComma);
+  if (castEnumerationEnd !== undefined) {
+    return castEnumerationEnd;
+  }
+
+  let conditionEnd = firstComma;
+  while (conditionEnd >= 0) {
+    const nextComma = text.indexOf(',', conditionEnd + 1);
+    if (nextComma < 0) {
+      return conditionEnd;
+    }
+
+    const continuation = normalizeWhitespace(text.slice(conditionEnd + 1, nextComma));
+    if (!isEnumeratedTriggerConditionContinuation(continuation)) {
+      return conditionEnd;
+    }
+    conditionEnd = nextComma;
+  }
+
+  return firstComma;
+}
+
+function castEnumeratedSpellConditionCommaIndex(
+  text: string,
+  firstComma: number,
+): number | undefined {
+  const castMatch = /\bcasts?\b/i.exec(text);
+  if (!castMatch || firstComma <= castMatch.index) {
+    return undefined;
+  }
+
+  const afterCast = text.slice(castMatch.index);
+  const spellMatch = /\bspells?\b/i.exec(afterCast);
+  if (!spellMatch) {
+    return undefined;
+  }
+
+  const spellStart = castMatch.index + spellMatch.index;
+  if (spellStart <= firstComma) {
+    return undefined;
+  }
+
+  const spellEnd = spellStart + spellMatch[0].length;
+  const conditionComma = text.indexOf(',', spellEnd);
+  return conditionComma >= 0 ? conditionComma : undefined;
+}
+
+function isEnumeratedTriggerConditionContinuation(text: string): boolean {
+  const startsWithOr = /^or\s+/i.test(text);
+  const continuation = text.replace(/^or\s+/i, '');
+  if (
+    /^(?:attacks|blocks|casts|draws|discards|sacrifices|deals|leaves|enters|dies|becomes)\b/i.test(
+      continuation,
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    startsWithOr &&
+    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(continuation) &&
+    /\b(?:dies|die|enters?|leaves?|attacks?|blocks?|casts?|draws?|discards?|sacrifices?|deals?|is\s+put|are\s+put|is\s+exiled|are\s+exiled)\b/i.test(
+      continuation,
+    )
+  );
+}
+
+function maskSelfNamePunctuation(core: string, def: CardDef): string {
+  let masked = core;
+  for (const name of selfNames(def).filter((candidate) => /[,.;]/.test(candidate))) {
+    masked = masked.replace(
       new RegExp(escapeRegExp(name), 'gi'),
-      name.replaceAll(',', '\u0000'),
+      name.replaceAll(',', '\u0000').replaceAll('.', '\u0001').replaceAll(';', '\u0002'),
     );
   }
-  for (const match of protectedCore.matchAll(probe)) {
-    conditions.push(normalizeWhitespace(match[1].replaceAll('\u0000', ',')));
+  return masked;
+}
+
+function unmaskSelfNamePunctuation(text: string): string {
+  return text.replaceAll('\u0000', ',').replaceAll('\u0001', '.').replaceAll('\u0002', ';');
+}
+
+function explicitDiesSubjectsOf(text: string): string[] {
+  const subjects: string[] = [];
+  const probe = /(?:^|,\s*(?:or\s+)?)([^,.;]*?)\b(?:dies|die)\b/gi;
+  for (const match of text.matchAll(probe)) {
+    subjects.push(normalizeWhitespace(match[1]));
   }
-  return conditions;
+  return subjects;
+}
+
+function isWatcherEventSubject(subject: string, def: CardDef): boolean {
+  const normalized = normalizeWhitespace(subject);
+  return normalized !== '' && isWatcherSubject(normalized, def);
 }
 
 function isDiesCondition(text: string, def: CardDef): boolean {
@@ -619,13 +726,8 @@ function isDiesCondition(text: string, def: CardDef): boolean {
   );
 }
 
-function isNonCreatureBattlefieldToGraveyardCondition(
-  text: string,
-  def: CardDef,
-): boolean {
-  return battlefieldToGraveyardSubjects(text).some((subject) =>
-    isNonCreatureSubject(subject, def),
-  );
+function isNonCreatureBattlefieldToGraveyardCondition(text: string, def: CardDef): boolean {
+  return battlefieldToGraveyardSubjects(text).some((subject) => isNonCreatureSubject(subject, def));
 }
 
 function battlefieldToGraveyardSubjects(text: string): string[] {
@@ -656,9 +758,7 @@ function isCreatureOrPlaneswalkerSubject(subject: string, def: CardDef): boolean
 
 function isNonCreatureSubject(subject: string, def: CardDef): boolean {
   const explicitlyNonCreature =
-    /\b(?:artifacts?|lands?|enchantments?|auras?|permanents?|battles?|tokens?)\b/i.test(
-      subject,
-    );
+    /\b(?:artifacts?|lands?|enchantments?|auras?|permanents?|battles?|tokens?)\b/i.test(subject);
   if (explicitlyNonCreature) {
     return true;
   }
@@ -675,7 +775,9 @@ function isSelfSubject(subject: string, def: CardDef): boolean {
   if (/\b(?:this|it)\b/i.test(subject)) {
     return true;
   }
-  return selfNames(def).some((name) => new RegExp(`\\b${escapeRegExp(name)}\\b`, 'i').test(subject));
+  return selfNames(def).some((name) =>
+    new RegExp(`\\b${escapeRegExp(name)}\\b`, 'i').test(subject),
+  );
 }
 
 function isWatcherSubject(subject: string, def: CardDef): boolean {
