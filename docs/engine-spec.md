@@ -1806,7 +1806,54 @@ state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条件
 6. **研究分類器 ⇄ runtime 分類器の乖離 = 0**(parity テスト緑)。
 7. **検証不能率**を明示公開し上限以下。
 
-> **現況(2026-06-24)**: Slice1(層)実質収束 + Slice2(イベント語彙)iter3 で凍結候補(family 0.49%/observer 0.00%)。だが **Slice3/4 未完・条件4〜6 の計測器が未整備**のため **M-CONTRACT は未到達**。本節が draft である状態は維持する(条件1〜7 を満たすまで凍結しない)。
+> **現況(2026-06-25・M-GATE-1 初回採点)= NOT FROZEN**(`research/m-contract-gate/scorecard.md`)。
+> ゲート・スコアカード器(§34.7.2)を建て、全7条件を再現可能数値で確定した。
+> - **条件1 ✅ PASS**(Slice1〜4 一巡・commit `3e220e7`)。
+> - **条件2 ✅ PASS = 頭被覆 92.45% ≥ 90%**(最弱=event-family 92.45% / timing-juncture 99.20% / zone-scope 99.03%)。
+>   **🎯 トラック分岐の結論=モデルは頭を覆う→追加スライス(more modeling)は不要。残りは計測ギャップ閉鎖**。
+>   ただし PASS は逃し箱を持つ3軸のみの計測。oracle-gated 軸(layer/zone-axis/castTiming)は低オラクル不一致(family 0.49%/observer 0.00%)で担保。
+> - **条件3 ❌ FAIL = 11.86%**(zone-coverage の*最新単独*churn=iter3-b の CR 再接地 graveyard +1945 の意図的再分類が主因。§4 の「下面抽出単独 churn=弱い陽性」そのもの)。
+>   **不安定でなく計測の欠落**: 4スライス*同時*の post-independent-yardstick churn スナップショットが未取得。これを清算する計測が要る(churn 清算サブタスク)。
+> - **条件4 ⛔ BLOCKED**(非LLM独立物差し=CR真理テーブル/cr-conformance を代表カード集合へ体系化=M-GATE-2)。
+> - **条件5 ⛔ BLOCKED**(golden-replay 13/13 だが検証不能 69.23%・実デッキ加重未整備=M-GATE-3。検証不能は §3 で緑不可)。
+> - **条件6 ❌ FAIL = parity 3.49%**(研究⇄runtime 乖離=M-GATE-2)。
+> - **条件7 ✅ PASS = 検証不能率 2.44% ≤ 10%**(max 5.82%・4分類オラクル加重平均)。
+>
+> **次トラック(凍結まで・追加スライス不要)**: M-GATE-2(条件6 parity→0 + 条件4 CR-conformance 体系化 + 条件3 churn 清算)→
+> M-GATE-3(条件5 実デッキ加重 golden-replay)→ M-FREEZE(全7緑確認→§34 draft→凍結→S-EVENTS)。
+> 本節が draft である状態は維持する(条件1〜7 を満たすまで凍結しない)。
+
+### 34.7.2 M-CONTRACT ゲート・スコアカード(契約)
+§34.7.1 の7条件を**一枚で再現可能に判定する物差し**。判定を散在データの目視でなく、決定的な集計器に固定する。
+
+**成果物**: `research/m-contract-gate/scorecard.{md,json}`。生成器 = `npm run m-contract-gate`
+(`scripts/m-contract-gate.ts` + 純関数 `scripts/lib/mContractGate.ts`)。json は再現可能・監査可能。
+表は **7条件 × {status, value, threshold, source(artifact path), note}** + 総合判定。
+既存 report.json(`research/{layer,event,zone,timing}-coverage`・`research/{llm,event,zone,timing}-oracle`・
+`research/classifier-parity`)と golden-replay の compute(`src/engine/goldenReplay.ts` 再利用)を入力にする
+(分類器・物差しを**再実装しない**)。`src/engine/` の挙動は不変(本器は計測専用)。
+
+**status 語彙**: `PASS`(数値が閾値達成 **かつ** 検証不能を緑に混ぜていない)/ `FAIL`(数値未達)/
+`BLOCKED`(後続 MS 待ち=器が未整備)/ `UNMEASURED`(本 MS で初計測)。
+
+**条件2 頭被覆率の定義(Fable 確定)**: 各分類器の**明示的逃し箱**(catch-all)へ落ちる頻度シェアを未写像とみなす。
+- 逃し箱を持つ軸: **event(族)=`other`** / **timing(juncture)=`other`** / **zone(playerScope)=`unknown`**。
+  `head被覆(軸) = 1 − (逃し箱頻度 / 当該軸の総頻度)`(頻度 = event は lineCount、timing/zone は cardCount)。
+- **逃し箱を持たない軸**(layer の L*、zone の zone-axis、timing の step/castTiming)は **self-coverage が
+  構造的に FN 検出不能**(毎反復同一に取りこぼす=§4 churn precedent と同型)。これらは self 数値を 100% と
+  **主張しない**。真の被覆は独立オラクルの不一致/検証不能(条件3/7)へ委ねる。scorecard は `escape-box-free:
+  oracle-gated` と明示する。
+- **集約 head被覆 = 逃し箱を持つ軸の最小値**(最弱の軸が凍結を律する)。逃し箱無し軸は別掲。
+- **閾値 T = 90%**(初期・改訂可)。`< T` なら条件2 FAIL = **追加スライス(more modeling)が必要**の信号。
+
+**条件7 検証不能率の上限(Fable 確定)**: 4分類オラクル(layer/event/zone/timing)の `unverifiableRate` を
+**サンプル加重平均**で集約(max も併記)。**公開上限 U = 10%**(初期・改訂可)。
+golden-replay の検証不能ケース率は**実行計測の成熟度=条件5の sub-metric** として別枠で報告し、条件7 の U には混ぜない。
+
+**ゲート判定ロジック(決定的)**:
+1. 条件は「value が threshold 達成 **かつ** 当該軸に検証不能を緑へ混入していない」のときのみ `PASS`(method §3 鉄則)。
+2. 1つでも `PASS` でなければ総合 = **NOT FROZEN**。
+3. 検証不能(`unverifiable > 0`)を含む条件は数値が閾値達成でも `PASS` にできない(silent divergence 禁止)。
 
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
 **契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。

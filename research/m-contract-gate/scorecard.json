@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-06-25T01:29:59.143Z",
+  "conditions": [
+    {
+      "id": 1,
+      "name": "Slice1-4 complete",
+      "status": "PASS",
+      "value": null,
+      "threshold": null,
+      "unverifiable": 0,
+      "source": "docs/engine-state-ontology.md",
+      "note": "Slice1-4 完了(commit 3e220e7)"
+    },
+    {
+      "id": 2,
+      "name": "Head coverage",
+      "status": "PASS",
+      "value": 0.9245225206822593,
+      "threshold": 0.9,
+      "unverifiable": 0,
+      "source": "research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json",
+      "note": "escape-box-free: oracle-gated(真の被覆は条件3/7 へ委ねる)"
+    },
+    {
+      "id": 3,
+      "name": "Model churn",
+      "status": "FAIL",
+      "value": 0.11857526728031559,
+      "threshold": 0.05,
+      "unverifiable": 0,
+      "source": "research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json",
+      "note": "下面抽出単独 churn=§4 では弱い陽性のみ。post-independent-yardstick churn は per-slice oracle log 参照"
+    },
+    {
+      "id": 4,
+      "name": "Non-LLM independent yardstick",
+      "status": "BLOCKED",
+      "value": null,
+      "threshold": null,
+      "unverifiable": 0,
+      "source": "research/cr-conformance-audit.md",
+      "note": "CR真理テーブル/cr-conformance-audit.md を代表カード集合へ体系化=M-GATE-2"
+    },
+    {
+      "id": 5,
+      "name": "Golden replay (deck-weighted)",
+      "status": "BLOCKED",
+      "value": 0.6923076923076923,
+      "threshold": null,
+      "unverifiable": 0.6923076923076923,
+      "source": "research/golden-replay/cases",
+      "note": "cases=13, pass=13, unverifiableCaseRate=69.23%; 実デッキ加重サンプル未整備=M-GATE-3。検証不能は method §3 により緑不可"
+    },
+    {
+      "id": 6,
+      "name": "Classifier parity",
+      "status": "FAIL",
+      "value": 0.03487831343977678,
+      "threshold": 0,
+      "unverifiable": 0,
+      "source": "research/classifier-parity/report.json",
+      "note": "研究分類器と runtime 分類器の乖離解消=M-GATE-2"
+    },
+    {
+      "id": 7,
+      "name": "Unverifiable rate",
+      "status": "PASS",
+      "value": 0.02435897435897436,
+      "threshold": 0.1,
+      "unverifiable": 0.02435897435897436,
+      "source": "research/llm-oracle/report.json, research/event-oracle/report.json, research/zone-oracle/report.json, research/timing-oracle/report.json",
+      "note": "max=5.82%; per-oracle: layer=0.00%(n=192), event=2.46%(n=203), zone=5.82%(n=189), timing=1.53%(n=196); golden-replay 検証不能は条件5へ分離"
+    }
+  ],
+  "frozen": false,
+  "headCoverage": {
+    "axes": [
+      {
+        "axis": "event-family",
+        "escapeBox": "other",
+        "total": 9791,
+        "escapeFreq": 739,
+        "oracleGated": false,
+        "coverage": 0.9245225206822593
+      },
+      {
+        "axis": "timing-juncture",
+        "escapeBox": "other",
+        "total": 1129,
+        "escapeFreq": 9,
+        "oracleGated": false,
+        "coverage": 0.9920283436669619
+      },
+      {
+        "axis": "zone-scope",
+        "escapeBox": "unknown",
+        "total": 17138,
+        "escapeFreq": 166,
+        "oracleGated": false,
+        "coverage": 0.9903139222779788
+      },
+      {
+        "axis": "layer",
+        "escapeBox": null,
+        "total": 17491,
+        "escapeFreq": 0,
+        "oracleGated": true,
+        "coverage": null
+      },
+      {
+        "axis": "zone-axis",
+        "escapeBox": null,
+        "total": 25541,
+        "escapeFreq": 0,
+        "oracleGated": true,
+        "coverage": null
+      },
+      {
+        "axis": "timing-castTiming",
+        "escapeBox": null,
+        "total": 17504,
+        "escapeFreq": 0,
+        "oracleGated": true,
+        "coverage": null
+      }
+    ],
+    "aggregate": 0.9245225206822593,
+    "threshold": 0.9
+  },
+  "unverifiable": {
+    "perOracle": [
+      {
+        "name": "layer",
+        "rate": 0,
+        "sampleSize": 192
+      },
+      {
+        "name": "event",
+        "rate": 0.024630541871921183,
+        "sampleSize": 203
+      },
+      {
+        "name": "zone",
+        "rate": 0.0582010582010582,
+        "sampleSize": 189
+      },
+      {
+        "name": "timing",
+        "rate": 0.015306122448979591,
+        "sampleSize": 196
+      }
+    ],
+    "weightedMean": 0.02435897435897436,
+    "max": 0.0582010582010582,
+    "ceiling": 0.1
+  }
+}

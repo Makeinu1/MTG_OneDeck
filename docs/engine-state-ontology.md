@@ -6,6 +6,9 @@
 > 本文書は **コードではない**。「MTG を再現するためにエンジンが持つべき変数の最小十分集合」を
 > CR(上から)とコーパス需要(下から)の二面分析で収束させるための台帳である。
 > M0 が churn 閾値・頭被覆を満たした時点で、確定エントリを engine-spec §34 へ凍結する。
+> **頭被覆率の定義(正本=engine-spec §34.7.2)**: 頻度加重で各分類器の逃し箱(event/timing=`other`・
+> zone playerScope=`unknown`)へ落ちる割合を未写像とみなし `1 − 逃し箱頻度シェア`。逃し箱を持たない軸
+> (layer の L*・zone-axis・timing step/castTiming)は self では FN 検出不能ゆえ oracle-gated と明示する。閾値 T=90%。
 
 ## 文書規約(列定義 — method §1 準拠)
 
