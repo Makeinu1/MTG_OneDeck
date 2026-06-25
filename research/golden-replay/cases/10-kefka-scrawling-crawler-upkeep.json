@@ -53,7 +53,11 @@
     "phase": "upkeep",
     "zoneCounts": { "library": 1, "hand": 0, "battlefield": 1, "graveyard": 0, "stack": 0 }
   },
-  "limitations": [
-    "Opponent draw and opponent life are not represented as command targets, so the upkeep ability is not resolved."
+  "unverifiable": [
+    {
+      "kind": "scope-boundary",
+      "reason": "The upkeep ability draws for each player, but opponent libraries, hands, and draw events are not represented by GameState.",
+      "ref": "engine-spec §34.5 (opponent zones are unmodeled)"
+    }
   ]
 }

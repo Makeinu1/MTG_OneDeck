@@ -1850,6 +1850,15 @@ state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条件
 **サンプル加重平均**で集約(max も併記)。**公開上限 U = 10%**(初期・改訂可)。
 golden-replay の検証不能ケース率は**実行計測の成熟度=条件5の sub-metric** として別枠で報告し、条件7 の U には混ぜない。
 
+**条件5 ゴールデン再生(実デッキ加重)の閾値(Fable 確定・M-GATE-3)**: 実装と手順は §34.7.4。
+- **検証可能在圏率 T5 = 70%**(初期・改訂可)。kill 基準(§ method「反復効果の auto+guided が目標 例 70%」)に整合。
+  `verifiedInScopeRate = verified在圏ケース数 / 在圏ケース数 ≥ T5` で `value` を採る。
+- **在圏(in-scope)** = 全ケース − **純 scope-boundary ケース**(§34.5 の対象外機構のみが阻む検証不能)。
+  純 scope-boundary は分母から除外し**別枠で報告**(凍結を律しない)。
+- **§3 鉄則の適用**: `runtime-gap`(閉じられる検証不能)ケースは verified 分子に**入れない**=緑に混ざらない。
+  条件5 PASS = `在圏ケース数 ≥ 最小標本(§34.7.4)` **かつ** `verifiedInScopeRate ≥ T5` **かつ** 残存 `runtime-gap` を別枠明示。
+- `buildConditionFive` は BLOCKED 固定をやめ、構造化検証可能性(§34.7.4)から上式を決定的に集計し PASS/FAIL を返す。
+
 **ゲート判定ロジック(決定的)**:
 1. 条件は「value が threshold 達成 **かつ** 当該軸に検証不能を緑へ混入していない」のときのみ `PASS`(method §3 鉄則)。
 2. 1つでも `PASS` でなければ総合 = **NOT FROZEN**。
@@ -1900,6 +1909,59 @@ runtime 修正は `review.classifier-corpus`/`review.golden-replay`/`review.clas
 **research 拡張の統一機構(research-FN 群の根治)**: `stripAbilityWordPrefix` を能力語の数字・終端記号(`Descend 8 —`/`Exterminate! —`/`Do You Like Squirrels? —`)対応へ拡張し、`triggerStartIndices`/`triggerSegments` を箇条書き `•`・`{TK}`/`{cost}` 接頭辞・忠誠度 `+1:`・モード/持続時間前置の非行頭誘発、および反射/遅延誘発(`When you next …`/`When that … dies this turn`)を認識へ拡張。`enters or attacks` 等の列挙誘発も両族を立てる。**これは Slice2 凍結候補(`eventClassify`)の改変**ゆえ、`review.event-coverage`/`review.event-oracle` の Fable ゴールド維持を必須回帰ゲートとし、変更後に `event-coverage` churn と凍結 `predictions.json`(promptHash 不変)への `event-oracle-diff` 再実行(機械的・LLM 不要)で Slice2 KPI 非悪化を確認する。
 
 **回帰ゲート(本ゲート専有)**: `review.classifier-parity`(Fable author)が**コーパス全数 `divergentCards === 0`** を主張し、各クラスタ代表カードの一致を pin する。併せて `review.event-coverage`/`review.event-oracle`/`review.golden-replay`/`review.classifier-corpus` を緑に保つ。
+
+### 34.7.4 ゴールデン再生 実デッキ加重(M-GATE-3・条件5=緑への手順)
+条件5 の現況 BLOCKED の正体は **2つの欠落**:(a)13ケースは少数・無加重で「実デッキ加重」を満たさない、(b)各ケースの
+検証不能を自由文字列 `limitations[]` で表し、**scope-boundary(§34.5 で構造的に対象外)/ runtime-gap(閉じられる)/
+既に検証済の注記** を区別なく全部「検証不能」へ数えるため率が 69.23% に膨らむ(例:`03-…-watcher` は M-GATE-2 で
+watcher 自動検出済みだが説明文字列が残るだけで検証不能計上)。M-GATE-3 はこの両方を解く。**`src/engine/` の盤面公開挙動は
+不変**(本ゲートは計測+分類器の成熟であって新ルールの追加ではない)。
+
+**(1) 構造化検証可能性(自由文字列の置換)** — `src/engine/goldenReplay.ts`:
+```ts
+export type GoldenUnverifiableKind = 'scope-boundary' | 'runtime-gap';
+export interface GoldenUnverifiable {
+  kind: GoldenUnverifiableKind;
+  reason: string;   // 何が検証できないか
+  ref: string;      // 接地: scope-boundary は §34.5 or CR 条文 / runtime-gap は修正対象シンボル or CR
+}
+// GoldenReplayCase に追加:
+//   unverifiable?: GoldenUnverifiable[];  // 空 or 未指定 = 完全検証済(verified)
+//   notes?: string[];                     // 説明専用・検証可能性に算入しない
+// 旧 `limitations?: string[]` は廃止(全ケースを unverifiable[]/notes[] へ移行)。
+```
+ケース分類(決定的・純関数):
+- `verified` = `unverifiable` が空。盤面遷移(events→誘発→スタック解決→SBA→期待盤面)が完全再現。
+- `pureScopeBoundary` = `unverifiable` 非空 かつ 全エントリ `kind==='scope-boundary'`。
+- `runtimeGap` = `unverifiable` に `kind==='runtime-gap'` を1つ以上含む。
+- **作問規律**: 1ケース=1機構に分離する。scope-boundary と runtime-gap を**同一ケースに混在させない**(混在は分割)。
+
+**(2) scope-boundary の正本接地(§34.5)** — 以下は分母から除外し別枠報告(凍結を律しない):
+相手ライブラリ/ゾーン未モデル(`opponentLife` 以外の相手領域は非モデル=mill/相手ドロー)・攻撃宣言が store action(`declareAttack`、
+GameCommand でなく §25.3)・プレイヤー対象 manual(`target player/opponent`=spec 1574)・層依存/置換相互作用/特殊タイミング/
+サブゲーム/周辺型(§34.5 列挙)。これらに**のみ**依存するケースは `scope-boundary`。
+
+**(3) 閉じられる runtime-gap(在圏・T5 達成のため Codex が潰す)**:
+コンパイラ/分類器の成熟で検証可能化できるもの。例 = 複合効果(`gain life and draw` 等)が non-auto compile で盤面差分を作らない・
+guided 据え置きが本来 auto 可能なアトム列。Codex は本サンプルが露呈した runtime-gap を、**研究⇄runtime parity(条件6=0)と
+`review.*` 回帰を壊さない範囲で** 潰し verified を増やす。潰せない構造的事由は scope-boundary へ再分類(CR/§34.5 引用必須)。
+
+**(4) 実デッキ加重サンプル** — `research/golden-replay/cases/*.json`:
+- 4デッキ(`Mydeck/{Celes,Gogo,Kefka,Muldrotha}.txt`)の**反復効果カード**(誘発型/起動型の recurring)から作問。
+- **加重** = 各デッキの反復効果カード母数に概ね比例(±許容)。**最小標本 = 各デッキ ≥ 8・合計 ≥ 32**(初期・改訂可)。
+- 各ケースは初期盤面+コマンド列+`expectedEvents`/`expectedTriggerCandidates`/`expectedFinalState` を持ち、
+  `unverifiable[]`(あれば構造化)+`notes[]` を付す。カード文言は snapshot/実 oracleText に一致させる。
+
+**(5) ゲート配線** — `scripts/m-contract-gate.ts` `buildConditionFive` + `scripts/lib/mContractGate.ts`:
+構造化検証可能性から `inScope = total − pureScopeBoundary`・`verifiedInScopeRate = verified在圏 / inScope` を集計。
+`status = (inScope ≥ 最小標本 && verifiedInScopeRate ≥ 0.70) ? PASS : FAIL`(BLOCKED 固定を撤去)。
+`note` に `total/verified/pureScopeBoundary/runtimeGap/perDeck` を内訳明示(残存 runtime-gap は別枠=§3 緑非混入)。
+`research/golden-replay/report.md` も新内訳(kind 別・デッキ別)で再生成。`npm run m-contract-gate` で scorecard 再生成。
+
+**回帰ゲート(本ゲート専有)**: `review.golden-replay`(Fable author)を実デッキ加重・構造化検証可能性・T5 集計へ更新し、
+**全ケース pass(差分0)+ kind 別不変条件 + デッキ網羅 + verifiedInScopeRate ≥ 0.70 + 最小標本** を pin する。
+併せて `review.classifier-parity`(条件6=0 不変)/`review.classifier-corpus`/`review.event-coverage`/`review.event-oracle`/
+`review.m-contract-gate` を緑に保つ(runtime-gap を潰した副作用で parity/被覆を悪化させない)。
 
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
 **契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。

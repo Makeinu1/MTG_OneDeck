@@ -1,6 +1,6 @@
 # M-CONTRACT Gate Scorecard
 
-Generated: 2026-06-25T01:29:59.143Z
+Generated: 2026-06-25T13:40:37.869Z
 
 ## Conditions
 
@@ -10,8 +10,8 @@ Generated: 2026-06-25T01:29:59.143Z
 | 2 | Head coverage | PASS | 92.45% | 90.00% | 0.00% | research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json | escape-box-free: oracle-gated(真の被覆は条件3/7 へ委ねる) |
 | 3 | Model churn | FAIL | 11.86% | 5.00% | 0.00% | research/layer-coverage/report.json, research/event-coverage/report.json, research/zone-coverage/report.json, research/timing-coverage/report.json | 下面抽出単独 churn=§4 では弱い陽性のみ。post-independent-yardstick churn は per-slice oracle log 参照 |
 | 4 | Non-LLM independent yardstick | BLOCKED | - | - | 0.00% | research/cr-conformance-audit.md | CR真理テーブル/cr-conformance-audit.md を代表カード集合へ体系化=M-GATE-2 |
-| 5 | Golden replay (deck-weighted) | BLOCKED | 69.23% | - | 69.23% | research/golden-replay/cases | cases=13, pass=13, unverifiableCaseRate=69.23%; 実デッキ加重サンプル未整備=M-GATE-3。検証不能は method §3 により緑不可 |
-| 6 | Classifier parity | FAIL | 3.49% | 0.00% | 0.00% | research/classifier-parity/report.json | 研究分類器と runtime 分類器の乖離解消=M-GATE-2 |
+| 5 | Golden replay (deck-weighted) | PASS | 88.89% | 70.00% | 0.00% | research/golden-replay/cases | total=32, pass=32, verified=24, pureScopeBoundary=5, runtimeGap=3, inScope=27, verifiedInScopeRate=88.89%, perDeck(total/verified/pureScopeBoundary/runtimeGap): Celes=8/6/1/1, Gogo=8/6/1/1, Kefka=8/6/2/0, Muldrotha=8/6/1/1; remaining runtime-gap: Celes / Karmic Guide ETB candidate[src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets: The replay can emit Karmic Guide's ETB candidate, but guided target selection cannot choose a creature card in the graveyard and apply the return command.]; Gogo / Displacer Kitten watches a noncreature cast[src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets: The cast watcher is detected, but the replay cannot yet answer the guided target prompt and execute Displacer Kitten's exile-and-return sequence.]; Muldrotha / Tatyova landfall stack resolution[src/engine/grammar/index.ts: classifyAbilityShape / src/engine/grammar/compile.ts: compileAbilityIR: The ability-word-prefixed landfall line is classified as static during stack resolution, so the otherwise auto-capable gain-life and draw atoms do not execute.] |
+| 6 | Classifier parity | PASS | 0.00% | 0.00% | 0.00% | research/classifier-parity/report.json | 研究分類器と runtime 分類器の乖離解消=M-GATE-2 |
 | 7 | Unverifiable rate | PASS | 2.44% | 10.00% | 2.44% | research/llm-oracle/report.json, research/event-oracle/report.json, research/zone-oracle/report.json, research/timing-oracle/report.json | max=5.82%; per-oracle: layer=0.00%(n=192), event=2.46%(n=203), zone=5.82%(n=189), timing=1.53%(n=196); golden-replay 検証不能は条件5へ分離 |
 
 ## Head Coverage

@@ -2,7 +2,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import process from 'node:process';
 
-import { replayGoldenCase } from '../src/engine/goldenReplay.ts';
+import {
+  classifyGoldenReplay,
+  replayGoldenCase,
+  type GoldenUnverifiable,
+} from '../src/engine/goldenReplay.ts';
 import { loadGoldenReplayCases } from './lib/goldenReplayLoader.ts';
 import {
   HEAD_COVERAGE_THRESHOLD,
@@ -41,10 +45,24 @@ interface LoadedReport {
 }
 
 interface GoldenReplaySummary {
-  cases: number;
+  total: number;
   passed: number;
-  unverifiableCaseRate: number | null;
+  verified: number;
+  pureScopeBoundary: number;
+  runtimeGap: number;
+  perDeck: Record<string, GoldenReplayDeckSummary>;
+  runtimeGapCases: {
+    caseName: string;
+    entries: GoldenUnverifiable[];
+  }[];
   error: string | null;
+}
+
+interface GoldenReplayDeckSummary {
+  total: number;
+  verified: number;
+  pureScopeBoundary: number;
+  runtimeGap: number;
 }
 
 async function main(): Promise<void> {
@@ -254,21 +272,45 @@ function buildConditionFour(): GateCondition {
 }
 
 function buildConditionFive(summary: GoldenReplaySummary): GateCondition {
-  const rate = summary.unverifiableCaseRate;
+  const inScope = summary.total - summary.pureScopeBoundary;
+  const verifiedInScopeRate = inScope === 0 ? 0 : summary.verified / inScope;
+  const perDeck = Object.entries(summary.perDeck)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([deck, values]) =>
+        `${deck}=${values.total}/${values.verified}/${values.pureScopeBoundary}/${values.runtimeGap}`,
+    )
+    .join(', ');
+  const runtimeGaps =
+    summary.runtimeGapCases.length === 0
+      ? 'none'
+      : summary.runtimeGapCases
+          .map(
+            (item) =>
+              `${item.caseName}[${item.entries
+                .map((entry) => `${entry.ref}: ${entry.reason}`)
+                .join(' | ')}]`,
+          )
+          .join('; ');
   const details =
-    rate === null
-      ? `cases=${summary.cases}, pass=${summary.passed}, unverifiableCaseRate=unmeasured`
-      : `cases=${summary.cases}, pass=${summary.passed}, unverifiableCaseRate=${percent(rate)}`;
+    `total=${summary.total}, pass=${summary.passed}, verified=${summary.verified}, ` +
+    `pureScopeBoundary=${summary.pureScopeBoundary}, runtimeGap=${summary.runtimeGap}, ` +
+    `inScope=${inScope}, verifiedInScopeRate=${percent(verifiedInScopeRate)}, ` +
+    `perDeck(total/verified/pureScopeBoundary/runtimeGap): ${perDeck || 'none'}; ` +
+    `remaining runtime-gap: ${runtimeGaps}`;
   return {
     id: 5,
     name: 'Golden replay (deck-weighted)',
-    status: 'BLOCKED',
-    value: rate,
-    threshold: null,
-    unverifiable: rate ?? 0,
+    status:
+      summary.error === null && inScope >= 24 && verifiedInScopeRate >= 0.7
+        ? 'PASS'
+        : 'FAIL',
+    value: verifiedInScopeRate,
+    threshold: 0.7,
+    unverifiable: 0,
     source: 'research/golden-replay/cases',
     note: appendProblems(
-      `${details}; 実デッキ加重サンプル未整備=M-GATE-3。検証不能は method §3 により緑不可`,
+      details,
       summary.error === null ? [] : [summary.error],
     ),
   };
@@ -335,19 +377,59 @@ async function summarizeGoldenReplay(): Promise<GoldenReplaySummary> {
   try {
     const cases = await loadGoldenReplayCases(GOLDEN_CASE_DIRECTORY);
     const results = cases.map(replayGoldenCase);
+    const perDeck: Record<string, GoldenReplayDeckSummary> = {};
+    const runtimeGapCases: GoldenReplaySummary['runtimeGapCases'] = [];
+    let verified = 0;
+    let pureScopeBoundary = 0;
+    let runtimeGap = 0;
+
+    for (const [index, testCase] of cases.entries()) {
+      const classification = classifyGoldenReplay(testCase.unverifiable);
+      const deck = (perDeck[testCase.sourceDeck] ??= {
+        total: 0,
+        verified: 0,
+        pureScopeBoundary: 0,
+        runtimeGap: 0,
+      });
+      deck.total += 1;
+      if (classification.verified) {
+        verified += 1;
+        deck.verified += 1;
+      }
+      if (classification.pureScopeBoundary) {
+        pureScopeBoundary += 1;
+        deck.pureScopeBoundary += 1;
+      }
+      if (classification.runtimeGap) {
+        runtimeGap += 1;
+        deck.runtimeGap += 1;
+        runtimeGapCases.push({
+          caseName: results[index]?.caseName ?? testCase.name,
+          entries: testCase.unverifiable ?? [],
+        });
+      }
+    }
+
     const passed = results.filter((result) => result.pass).length;
-    const unverifiable = results.filter((result) => result.limitations.length > 0).length;
     return {
-      cases: results.length,
+      total: results.length,
       passed,
-      unverifiableCaseRate: results.length === 0 ? null : unverifiable / results.length,
+      verified,
+      pureScopeBoundary,
+      runtimeGap,
+      perDeck,
+      runtimeGapCases,
       error: results.length === 0 ? 'golden replay cases missing' : null,
     };
   } catch (error: unknown) {
     return {
-      cases: 0,
+      total: 0,
       passed: 0,
-      unverifiableCaseRate: null,
+      verified: 0,
+      pureScopeBoundary: 0,
+      runtimeGap: 0,
+      perDeck: {},
+      runtimeGapCases: [],
       error: `golden replay unavailable: ${errorMessage(error)}`,
     };
   }

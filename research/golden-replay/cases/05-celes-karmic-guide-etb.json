@@ -54,7 +54,11 @@
   "expectedFinalState": {
     "zoneCounts": { "library": 1, "hand": 0, "battlefield": 1, "graveyard": 0, "stack": 0 }
   },
-  "limitations": [
-    "Target selection and returning a graveyard creature are guided/manual, so only candidate emission is measured."
+  "unverifiable": [
+    {
+      "kind": "runtime-gap",
+      "reason": "The replay can emit Karmic Guide's ETB candidate, but guided target selection cannot choose a creature card in the graveyard and apply the return command.",
+      "ref": "src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets"
+    }
   ]
 }

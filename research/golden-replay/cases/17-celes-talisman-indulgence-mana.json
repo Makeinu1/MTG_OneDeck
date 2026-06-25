@@ -1,0 +1,83 @@
+{
+  "name": "Celes / Talisman of Indulgence colorless mana",
+  "sourceDeck": "Celes",
+  "initialState": {
+    "seed": 117,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "ccacf88d-407d-465d-958a-1389b7d700e6",
+          "oracleId": "1d9aeaaa-66f6-41cb-9bac-162d6fd8662c",
+          "name": "Talisman of Indulgence",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": [
+            "B",
+            "R"
+          ],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Talisman of Indulgence",
+              "typeLine": "Artifact",
+              "oracleText": "{T}: Add {C}.\n{T}: Add {B} or {R}. This artifact deals 1 damage to you."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "C": 1
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

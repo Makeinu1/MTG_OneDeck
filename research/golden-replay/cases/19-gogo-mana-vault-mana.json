@@ -1,0 +1,80 @@
+{
+  "name": "Gogo / Mana Vault activated mana",
+  "sourceDeck": "Gogo",
+  "initialState": {
+    "seed": 119,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "c1a31d52-a407-4ded-bfca-cc812f11afa0",
+          "oracleId": "736892cb-a34b-4bb9-b56c-e26e3db207a2",
+          "name": "Mana Vault",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 1,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Mana Vault",
+              "typeLine": "Artifact",
+              "oracleText": "This artifact doesn't untap during your untap step.\nAt the beginning of your upkeep, you may pay {4}. If you do, untap this artifact.\nAt the beginning of your draw step, if this artifact is tapped, it deals 1 damage to you.\n{T}: Add {C}{C}{C}."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+        "abilityLineIndex": 3
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "C": 3
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

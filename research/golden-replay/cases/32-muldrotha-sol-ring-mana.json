@@ -1,0 +1,80 @@
+{
+  "name": "Muldrotha / Sol Ring activated mana",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 132,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "91fdb56b-54d5-4272-8319-505ff987fe9b",
+          "oracleId": "6ad8011d-3471-4369-9d68-b264cc027487",
+          "name": "Sol Ring",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 1,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Sol Ring",
+              "typeLine": "Artifact",
+              "oracleText": "{T}: Add {C}{C}."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "C": 2
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "name": "Muldrotha / Haywire Mite death life gain",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 129,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "6f813bc3-6d81-4555-8e4b-6ecd9a6757b7",
+          "oracleId": "749d2994-44e7-40d3-8630-7bebed239e9e",
+          "name": "Haywire Mite",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 1,
+          "colorIdentity": [
+            "G"
+          ],
+          "typeLine": "Artifact Creature — Insect",
+          "faces": [
+            {
+              "name": "Haywire Mite",
+              "typeLine": "Artifact Creature — Insect",
+              "oracleText": "When this creature dies, you gain 2 life.\n{G}, Sacrifice this creature: Exile target noncreature artifact or noncreature enchantment.",
+              "power": "1",
+              "toughness": "1"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "moveCard",
+      "cardId": "c1",
+      "to": "graveyard",
+      "position": "bottom"
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "triggered",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "zone-change",
+      "cardId": "c1",
+      "from": "battlefield",
+      "to": "graveyard"
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "life-change",
+      "value": 42
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [
+    {
+      "step": 1,
+      "sourceId": "c1",
+      "triggerId": "trigger.death",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedFinalState": {
+    "life": 42,
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 0,
+      "graveyard": 1,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "cards": {
+      "c1": {
+        "zone": "graveyard"
+      }
+    }
+  }
+}

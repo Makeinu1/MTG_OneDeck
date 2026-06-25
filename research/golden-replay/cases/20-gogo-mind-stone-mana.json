@@ -1,0 +1,80 @@
+{
+  "name": "Gogo / Mind Stone activated mana",
+  "sourceDeck": "Gogo",
+  "initialState": {
+    "seed": 120,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "ad881aa0-decc-447b-8c8a-983546a9a55a",
+          "oracleId": "c97361b5-af16-4a7b-af85-a429dbaf4ad2",
+          "name": "Mind Stone",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Mind Stone",
+              "typeLine": "Artifact",
+              "oracleText": "{T}: Add {C}.\n{1}, {T}, Sacrifice this artifact: Draw a card."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "C": 1
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

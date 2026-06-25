@@ -1,0 +1,177 @@
+{
+  "name": "Muldrotha / Aftermath Analyst ETB mill three",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 130,
+    "cards": [
+      {
+        "zone": "hand",
+        "def": {
+          "scryfallId": "66f135b4-8cb3-4a4e-86ae-81a3cf4b7259",
+          "oracleId": "374e54d8-8e73-4268-9dde-c28c77bbbf32",
+          "name": "Aftermath Analyst",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": [
+            "G"
+          ],
+          "typeLine": "Creature — Elf Detective",
+          "keywords": [
+            "Mill"
+          ],
+          "faces": [
+            {
+              "name": "Aftermath Analyst",
+              "typeLine": "Creature — Elf Detective",
+              "oracleText": "When this creature enters, mill three cards. (Put the top three cards of your library into your graveyard.)\n{3}{G}, Sacrifice this creature: Return all land cards from your graveyard to the battlefield tapped.",
+              "power": "1",
+              "toughness": "3"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-aftermath-a",
+          "oracleId": "golden-aftermath-a",
+          "name": "Golden Filler aftermath-a",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler aftermath-a",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-aftermath-b",
+          "oracleId": "golden-aftermath-b",
+          "name": "Golden Filler aftermath-b",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler aftermath-b",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-aftermath-c",
+          "oracleId": "golden-aftermath-c",
+          "name": "Golden Filler aftermath-c",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler aftermath-c",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-aftermath-d",
+          "oracleId": "golden-aftermath-d",
+          "name": "Golden Filler aftermath-d",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler aftermath-d",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "moveCard",
+      "cardId": "c1",
+      "to": "battlefield",
+      "position": "bottom"
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "triggered",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "zone-change",
+      "cardId": "c1",
+      "from": "hand",
+      "to": "battlefield"
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "zone-change",
+      "from": "library",
+      "to": "graveyard"
+    },
+    {
+      "step": 3,
+      "type": "zone-change",
+      "from": "library",
+      "to": "graveyard"
+    },
+    {
+      "step": 3,
+      "type": "zone-change",
+      "from": "library",
+      "to": "graveyard"
+    }
+  ],
+  "expectedTriggerCandidates": [
+    {
+      "step": 1,
+      "sourceId": "c1",
+      "triggerId": "trigger.etb",
+      "abilityLineIndex": 0
+    }
+  ],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 1,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 3,
+      "stack": 0
+    },
+    "stackDepth": 0
+  }
+}

@@ -87,6 +87,14 @@ export interface GoldenInitialState {
   effectsAuto?: boolean;
 }
 
+export type GoldenUnverifiableKind = 'scope-boundary' | 'runtime-gap';
+
+export interface GoldenUnverifiable {
+  kind: GoldenUnverifiableKind;
+  reason: string;
+  ref: string;
+}
+
 export interface GoldenReplayCase {
   name: string;
   sourceDeck: string;
@@ -96,7 +104,8 @@ export interface GoldenReplayCase {
   expectedEvents?: ExpectedReplayEvent[];
   expectedTriggerCandidates?: ExpectedTriggerCandidate[];
   expectedFinalState: Record<string, unknown>;
-  limitations?: string[];
+  unverifiable?: GoldenUnverifiable[];
+  notes?: string[];
 }
 
 export type ReplayEventType =
@@ -157,12 +166,21 @@ export interface GoldenReplayResult {
   triggerCandidates: ReplayTriggerCandidate[];
   finalState: GameState;
   diffs: GoldenReplayDiff[];
-  limitations: string[];
+  unverifiable: GoldenUnverifiable[];
+}
+
+export interface GoldenReplayClassification {
+  verified: boolean;
+  pureScopeBoundary: boolean;
+  runtimeGap: boolean;
 }
 
 export function parseGoldenReplayCase(value: unknown, source: string): GoldenReplayCase {
   if (!isRecord(value)) {
     throw new Error(`${source}: case must be an object`);
+  }
+  if (Object.prototype.hasOwnProperty.call(value, 'limitations')) {
+    throw new Error(`${source}.limitations: legacy key is not allowed`);
   }
   const name = requireString(value.name, `${source}.name`);
   const sourceDeck = requireString(value.sourceDeck, `${source}.sourceDeck`);
@@ -175,6 +193,15 @@ export function parseGoldenReplayCase(value: unknown, source: string): GoldenRep
   );
   if (!isRecord(value.expectedFinalState)) {
     throw new Error(`${source}.expectedFinalState: expected an object`);
+  }
+  const unverifiable = parseOptionalUnverifiableArray(
+    value.unverifiable,
+    `${source}.unverifiable`,
+  );
+  if (new Set(unverifiable?.map((entry) => entry.kind)).size > 1) {
+    throw new Error(
+      `${source}.unverifiable: scope-boundary and runtime-gap must not be mixed`,
+    );
   }
 
   return {
@@ -193,7 +220,20 @@ export function parseGoldenReplayCase(value: unknown, source: string): GoldenRep
       `${source}.expectedTriggerCandidates`,
     ),
     expectedFinalState: value.expectedFinalState,
-    limitations: parseOptionalStringArray(value.limitations, `${source}.limitations`),
+    unverifiable,
+    notes: parseOptionalStringArray(value.notes, `${source}.notes`),
+  };
+}
+
+export function classifyGoldenReplay(
+  unverifiable: readonly GoldenUnverifiable[] | undefined,
+): GoldenReplayClassification {
+  const entries = unverifiable ?? [];
+  return {
+    verified: entries.length === 0,
+    pureScopeBoundary:
+      entries.length > 0 && entries.every((entry) => entry.kind === 'scope-boundary'),
+    runtimeGap: entries.some((entry) => entry.kind === 'runtime-gap'),
   };
 }
 
@@ -241,7 +281,7 @@ export function replayGoldenCase(testCase: GoldenReplayCase): GoldenReplayResult
           actual: message,
         },
       ],
-      limitations: testCase.limitations ?? [],
+      unverifiable: testCase.unverifiable ?? [],
     };
   }
 
@@ -279,7 +319,7 @@ export function replayGoldenCase(testCase: GoldenReplayCase): GoldenReplayResult
     triggerCandidates,
     finalState: state,
     diffs,
-    limitations: testCase.limitations ?? [],
+    unverifiable: testCase.unverifiable ?? [],
   };
 }
 
@@ -657,14 +697,48 @@ function parseOptionalRecordArray<T>(
 
 function parseOptionalStringArray(value: unknown, path: string): string[] | undefined {
   if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== 'string' || entry.trim().length === 0)
+  ) {
     throw new Error(`${path}: expected an array of strings`);
   }
   return value as string[];
 }
 
+function parseOptionalUnverifiableArray(
+  value: unknown,
+  path: string,
+): GoldenUnverifiable[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(`${path}: expected an array`);
+  }
+  return value.map((entry, index) => {
+    const entryPath = `${path}[${index}]`;
+    if (!isRecord(entry)) {
+      throw new Error(`${entryPath}: expected an object`);
+    }
+    if (entry.kind !== 'scope-boundary' && entry.kind !== 'runtime-gap') {
+      throw new Error(`${entryPath}.kind: expected scope-boundary or runtime-gap`);
+    }
+    return {
+      kind: entry.kind,
+      reason: requireTrimmedString(entry.reason, `${entryPath}.reason`),
+      ref: requireTrimmedString(entry.ref, `${entryPath}.ref`),
+    };
+  });
+}
+
 function requireString(value: unknown, path: string): string {
   if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${path}: expected a non-empty string`);
+  }
+  return value;
+}
+
+function requireTrimmedString(value: unknown, path: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${path}: expected a non-empty string`);
   }
   return value;

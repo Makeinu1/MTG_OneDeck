@@ -1,0 +1,85 @@
+{
+  "name": "Kefka / Arena of Glory red mana",
+  "sourceDeck": "Kefka",
+  "initialState": {
+    "seed": 127,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "dd148edc-9e43-41aa-bb50-f912115d3e72",
+          "oracleId": "63dfe794-5f56-41ec-9883-5523b41cc3e0",
+          "name": "Arena of Glory",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [
+            "R"
+          ],
+          "typeLine": "Land",
+          "keywords": [
+            "Exert"
+          ],
+          "faces": [
+            {
+              "name": "Arena of Glory",
+              "typeLine": "Land",
+              "oracleText": "This land enters tapped unless you control a Mountain.\n{T}: Add {R}.\n{R}, {T}, Exert this land: Add {R}{R}. If that mana is spent on a creature spell, it gains haste until end of turn. (An exerted permanent won't untap during your next untap step.)"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+        "abilityLineIndex": 1
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "R": 1
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

@@ -85,7 +85,11 @@
     "spellsCastThisTurn": 1,
     "drawnThisTurn": 1
   },
-  "limitations": [
-    "Displacer Kitten target selection and blink resolution are guided/manual and are not expected."
+  "unverifiable": [
+    {
+      "kind": "runtime-gap",
+      "reason": "The cast watcher is detected, but the replay cannot yet answer the guided target prompt and execute Displacer Kitten's exile-and-return sequence.",
+      "ref": "src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets"
+    }
   ]
 }

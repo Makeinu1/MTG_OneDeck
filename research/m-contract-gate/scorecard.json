@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T01:29:59.143Z",
+  "generatedAt": "2026-06-25T13:40:37.869Z",
   "conditions": [
     {
       "id": 1,
@@ -44,18 +44,18 @@
     {
       "id": 5,
       "name": "Golden replay (deck-weighted)",
-      "status": "BLOCKED",
-      "value": 0.6923076923076923,
-      "threshold": null,
-      "unverifiable": 0.6923076923076923,
+      "status": "PASS",
+      "value": 0.8888888888888888,
+      "threshold": 0.7,
+      "unverifiable": 0,
       "source": "research/golden-replay/cases",
-      "note": "cases=13, pass=13, unverifiableCaseRate=69.23%; 実デッキ加重サンプル未整備=M-GATE-3。検証不能は method §3 により緑不可"
+      "note": "total=32, pass=32, verified=24, pureScopeBoundary=5, runtimeGap=3, inScope=27, verifiedInScopeRate=88.89%, perDeck(total/verified/pureScopeBoundary/runtimeGap): Celes=8/6/1/1, Gogo=8/6/1/1, Kefka=8/6/2/0, Muldrotha=8/6/1/1; remaining runtime-gap: Celes / Karmic Guide ETB candidate[src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets: The replay can emit Karmic Guide's ETB candidate, but guided target selection cannot choose a creature card in the graveyard and apply the return command.]; Gogo / Displacer Kitten watches a noncreature cast[src/engine/commands.ts: guidedPlanForStackTop / eligibleTargets: The cast watcher is detected, but the replay cannot yet answer the guided target prompt and execute Displacer Kitten's exile-and-return sequence.]; Muldrotha / Tatyova landfall stack resolution[src/engine/grammar/index.ts: classifyAbilityShape / src/engine/grammar/compile.ts: compileAbilityIR: The ability-word-prefixed landfall line is classified as static during stack resolution, so the otherwise auto-capable gain-life and draw atoms do not execute.]"
     },
     {
       "id": 6,
       "name": "Classifier parity",
-      "status": "FAIL",
-      "value": 0.03487831343977678,
+      "status": "PASS",
+      "value": 0,
       "threshold": 0,
       "unverifiable": 0,
       "source": "research/classifier-parity/report.json",

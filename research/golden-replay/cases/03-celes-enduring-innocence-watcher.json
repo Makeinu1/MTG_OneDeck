@@ -95,7 +95,7 @@
     "zoneCounts": { "library": 1, "hand": 1, "battlefield": 2, "graveyard": 0, "stack": 0 },
     "drawnThisTurn": 1
   },
-  "limitations": [
+  "notes": [
     "M-GATE-2 (CR 603.6a): the runtime watcher classifier now detects the plural verb in 'one or more other creatures ... enter', so the watcher trigger candidate is auto-detected when Mother of Runes (power 1) enters."
   ]
 }

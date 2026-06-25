@@ -1,0 +1,80 @@
+{
+  "name": "Gogo / Thought Vessel activated mana",
+  "sourceDeck": "Gogo",
+  "initialState": {
+    "seed": 121,
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "6ec6a910-f6d0-4225-8b55-d329dc788c64",
+          "oracleId": "9965d9c5-2ebf-4a6c-930e-55c5890979be",
+          "name": "Thought Vessel",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 2,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Thought Vessel",
+              "typeLine": "Artifact",
+              "oracleText": "You have no maximum hand size.\n{T}: Add {C}."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "setTapped",
+      "cardId": "c1",
+      "tapped": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "activated",
+        "abilityLineIndex": 1
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "tap-change",
+      "cardId": "c1",
+      "value": true
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    }
+  ],
+  "expectedTriggerCandidates": [],
+  "expectedFinalState": {
+    "zoneCounts": {
+      "library": 0,
+      "hand": 0,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0,
+    "manaPool": {
+      "C": 1
+    },
+    "cards": {
+      "c1": {
+        "zone": "battlefield",
+        "tapped": true
+      }
+    }
+  }
+}

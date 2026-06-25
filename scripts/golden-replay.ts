@@ -3,8 +3,10 @@ import { dirname, relative, resolve } from 'node:path';
 import process from 'node:process';
 
 import {
+  classifyGoldenReplay,
   formatGoldenReplayDiffs,
   replayGoldenCase,
+  type GoldenReplayCase,
   type GoldenReplayResult,
 } from '../src/engine/goldenReplay.ts';
 import { loadGoldenReplayCases } from './lib/goldenReplayLoader.ts';
@@ -15,7 +17,7 @@ const REPORT_PATH = resolve(process.cwd(), 'research/golden-replay/report.md');
 async function main(): Promise<void> {
   const cases = await loadGoldenReplayCases(CASE_DIRECTORY);
   const results = cases.map(replayGoldenCase);
-  const report = renderReport(results);
+  const report = renderReport(cases, results);
 
   await mkdir(dirname(REPORT_PATH), { recursive: true });
   await writeFile(REPORT_PATH, report, 'utf8');
@@ -25,11 +27,41 @@ async function main(): Promise<void> {
   console.log(`cases=${results.length} pass=${passed} fail=${results.length - passed}`);
 }
 
-function renderReport(results: readonly GoldenReplayResult[]): string {
+function renderReport(
+  cases: readonly GoldenReplayCase[],
+  results: readonly GoldenReplayResult[],
+): string {
   const passed = results.filter((result) => result.pass).length;
   const failed = results.length - passed;
-  const limited = results.filter((result) => result.limitations.length > 0).length;
-  const limitationRate = results.length === 0 ? 0 : limited / results.length;
+  const entries = cases.map((testCase, index) => ({
+    testCase,
+    result: results[index],
+    classification: classifyGoldenReplay(testCase.unverifiable),
+  }));
+  const verified = entries.filter((entry) => entry.classification.verified).length;
+  const pureScopeBoundary = entries.filter(
+    (entry) => entry.classification.pureScopeBoundary,
+  ).length;
+  const runtimeGap = entries.filter((entry) => entry.classification.runtimeGap).length;
+  const inScope = entries.length - pureScopeBoundary;
+  const verifiedInScopeRate = inScope === 0 ? 0 : verified / inScope;
+  const perDeck = new Map<
+    string,
+    { total: number; verified: number; pureScopeBoundary: number; runtimeGap: number }
+  >();
+  for (const entry of entries) {
+    const summary = perDeck.get(entry.testCase.sourceDeck) ?? {
+      total: 0,
+      verified: 0,
+      pureScopeBoundary: 0,
+      runtimeGap: 0,
+    };
+    summary.total += 1;
+    if (entry.classification.verified) summary.verified += 1;
+    if (entry.classification.pureScopeBoundary) summary.pureScopeBoundary += 1;
+    if (entry.classification.runtimeGap) summary.runtimeGap += 1;
+    perDeck.set(entry.testCase.sourceDeck, summary);
+  }
   const lines = [
     '# Golden Replay Report',
     '',
@@ -40,13 +72,30 @@ function renderReport(results: readonly GoldenReplayResult[]): string {
     `- Cases: ${results.length}`,
     `- PASS: ${passed}`,
     `- FAIL: ${failed}`,
-    `- Cases with unverifiable behavior: ${limited} (${percent(limitationRate)})`,
+    `- Verified: ${verified}`,
+    `- Pure scope-boundary: ${pureScopeBoundary}`,
+    `- Runtime-gap: ${runtimeGap}`,
+    `- In-scope: ${inScope}`,
+    `- Verified in-scope rate: ${percent(verifiedInScopeRate)}`,
     '',
-    '| Case | Source deck | Result | Events | Trigger candidates | Limitations |',
-    '| --- | --- | --- | ---: | ---: | ---: |',
-    ...results.map(
-      (result) =>
-        `| ${cell(result.caseName)} | ${cell(result.sourceDeck)} | ${result.pass ? 'PASS' : 'FAIL'} | ${result.events.length} | ${result.triggerCandidates.length} | ${result.limitations.length} |`,
+    '## Per Deck',
+    '',
+    '| Source deck | Total | Verified | Pure scope-boundary | Runtime-gap |',
+    '| --- | ---: | ---: | ---: | ---: |',
+    ...[...perDeck.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(
+        ([deck, summary]) =>
+          `| ${cell(deck)} | ${summary.total} | ${summary.verified} | ${summary.pureScopeBoundary} | ${summary.runtimeGap} |`,
+      ),
+    '',
+    '## Cases',
+    '',
+    '| Case | Source deck | Result | Classification | Events | Trigger candidates | Unverifiable |',
+    '| --- | --- | --- | --- | ---: | ---: | ---: |',
+    ...entries.map(
+      ({ testCase, result, classification }) =>
+        `| ${cell(testCase.name)} | ${cell(testCase.sourceDeck)} | ${result?.pass ? 'PASS' : 'FAIL'} | ${classificationLabel(classification)} | ${result?.events.length ?? 0} | ${result?.triggerCandidates.length ?? 0} | ${testCase.unverifiable?.length ?? 0} |`,
     ),
     '',
     '## Differences',
@@ -70,17 +119,32 @@ function renderReport(results: readonly GoldenReplayResult[]): string {
   }
 
   lines.push('## Unverifiable Behavior', '');
-  const limitations = results.flatMap((result) =>
-    result.limitations.map((limitation) => ({
-      caseName: result.caseName,
-      limitation,
+  const unverifiable = cases.flatMap((testCase) =>
+    (testCase.unverifiable ?? []).map((entry) => ({
+      caseName: testCase.name,
+      entry,
     })),
   );
-  if (limitations.length === 0) {
+  if (unverifiable.length === 0) {
     lines.push('- none', '');
   } else {
-    for (const item of limitations) {
-      lines.push(`- ${cell(item.caseName)}: ${cell(item.limitation)}`);
+    for (const item of unverifiable) {
+      lines.push(
+        `- ${cell(item.caseName)} [${item.entry.kind}] (${cell(item.entry.ref)}): ${cell(item.entry.reason)}`,
+      );
+    }
+    lines.push('');
+  }
+
+  lines.push('## Notes', '');
+  const notes = cases.flatMap((testCase) =>
+    (testCase.notes ?? []).map((note) => ({ caseName: testCase.name, note })),
+  );
+  if (notes.length === 0) {
+    lines.push('- none', '');
+  } else {
+    for (const item of notes) {
+      lines.push(`- ${cell(item.caseName)}: ${cell(item.note)}`);
     }
     lines.push('');
   }
@@ -102,6 +166,14 @@ function percent(value: number): string {
 
 function cell(value: string): string {
   return value.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+}
+
+function classificationLabel(
+  classification: ReturnType<typeof classifyGoldenReplay>,
+): string {
+  if (classification.verified) return 'verified';
+  if (classification.pureScopeBoundary) return 'pureScopeBoundary';
+  return 'runtimeGap';
 }
 
 main().catch((error: unknown) => {

@@ -54,7 +54,11 @@
     "zoneCounts": { "library": 0, "hand": 0, "battlefield": 2, "graveyard": 0, "stack": 0 },
     "landsPlayedThisTurn": 1
   },
-  "limitations": [
-    "Opponent libraries are not modeled in GameState, so opponent mill is not expected."
+  "unverifiable": [
+    {
+      "kind": "scope-boundary",
+      "reason": "Ruin Crab mills each opponent, but opponent libraries and graveyards are not represented by GameState.",
+      "ref": "engine-spec §34.5 (opponent zones are unmodeled)"
+    }
   ]
 }

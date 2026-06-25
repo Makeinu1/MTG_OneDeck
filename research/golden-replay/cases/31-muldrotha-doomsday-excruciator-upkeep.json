@@ -1,0 +1,134 @@
+{
+  "name": "Muldrotha / Doomsday Excruciator upkeep draw",
+  "sourceDeck": "Muldrotha",
+  "initialState": {
+    "seed": 131,
+    "phase": "untap",
+    "cards": [
+      {
+        "zone": "battlefield",
+        "def": {
+          "scryfallId": "542c89b6-48c6-4fcb-8a4c-b5ed2fa1d384",
+          "oracleId": "ad0db433-a406-4ef0-8ffa-416af610c4e7",
+          "name": "Doomsday Excruciator",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 6,
+          "colorIdentity": [
+            "B"
+          ],
+          "typeLine": "Creature — Demon",
+          "keywords": [
+            "Flying"
+          ],
+          "faces": [
+            {
+              "name": "Doomsday Excruciator",
+              "typeLine": "Creature — Demon",
+              "oracleText": "Flying\nWhen this creature enters, if it was cast, each player exiles all but the bottom six cards of their library face down.\nAt the beginning of your upkeep, draw a card.",
+              "power": "6",
+              "toughness": "6"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-doomsday-a",
+          "oracleId": "golden-doomsday-a",
+          "name": "Golden Filler doomsday-a",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler doomsday-a",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      },
+      {
+        "def": {
+          "scryfallId": "golden-doomsday-b",
+          "oracleId": "golden-doomsday-b",
+          "name": "Golden Filler doomsday-b",
+          "lang": "en",
+          "layout": "normal",
+          "cmc": 0,
+          "colorIdentity": [],
+          "typeLine": "Artifact",
+          "faces": [
+            {
+              "name": "Golden Filler doomsday-b",
+              "typeLine": "Artifact"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "commands": [
+    {
+      "type": "nextPhase",
+      "drawnHandled": true
+    },
+    {
+      "type": "addAbilityToStack",
+      "sourceId": "c1",
+      "kind": "triggered",
+        "abilityLineIndex": 2
+    }
+  ],
+  "expectedEvents": [
+    {
+      "step": 1,
+      "type": "phase-change",
+      "from": "untap",
+      "to": "upkeep"
+    },
+    {
+      "step": 2,
+      "type": "stack-item-added",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "draw",
+      "count": 1
+    },
+    {
+      "step": 3,
+      "type": "stack-item-resolved",
+      "cardId": "a1"
+    },
+    {
+      "step": 3,
+      "type": "zone-change",
+      "from": "library",
+      "to": "hand"
+    }
+  ],
+  "expectedTriggerCandidates": [
+    {
+      "step": 1,
+      "sourceId": "c1",
+      "triggerId": "trigger.upkeep",
+        "abilityLineIndex": 2
+    }
+  ],
+  "expectedFinalState": {
+    "phase": "upkeep",
+    "drawnThisTurn": 1,
+    "zoneCounts": {
+      "library": 1,
+      "hand": 1,
+      "battlefield": 1,
+      "graveyard": 0,
+      "stack": 0
+    },
+    "stackDepth": 0
+  }
+}

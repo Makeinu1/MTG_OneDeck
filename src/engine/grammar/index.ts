@@ -2,7 +2,6 @@ import type { CardDef } from '../../types/card';
 import {
   cardOracleTexts,
   parsePureKeywordLine,
-  possessedKeywords,
   removeReminderAndQuotes,
   splitParagraphs,
 } from '../keywordGrammar';
@@ -138,7 +137,6 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
     return [];
   }
 
-  const hasKnownKeywordLine = possessedKeywords(def).length > 0;
   const lines: AbilityLine[] = [];
   for (const [faceIndex, face] of def.faces.entries()) {
     if (typeof face.oracleText !== 'string') {
@@ -150,7 +148,7 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
         continue;
       }
       const shape =
-        hasKnownKeywordLine && parsePureKeywordLine(text)
+        parsePureKeywordLine(text)
           ? 'keyword'
           : classifyAbilityShape(text, face.typeLine);
       lines.push({ faceIndex, text, shape });

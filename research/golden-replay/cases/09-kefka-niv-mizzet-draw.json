@@ -67,7 +67,11 @@
     "zoneCounts": { "library": 1, "hand": 1, "battlefield": 1, "graveyard": 0, "stack": 0 },
     "drawnThisTurn": 1
   },
-  "limitations": [
-    "The damage target for Niv-Mizzet's draw trigger is guided/manual, so resolution is not expected."
+  "unverifiable": [
+    {
+      "kind": "scope-boundary",
+      "reason": "Niv-Mizzet's draw trigger requires choosing any target, including a player or opponent, and player targeting remains manual in the single-player state model.",
+      "ref": "engine-spec §34.5; CR 115"
+    }
   ]
 }

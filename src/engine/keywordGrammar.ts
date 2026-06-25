@@ -224,6 +224,16 @@ for (const definition of KEYWORD_DEFINITIONS) {
   }
 }
 
+const KEYWORD_PREFIX_PATTERNS = new Map<string, RegExp>();
+for (const definition of KEYWORD_DEFINITIONS) {
+  for (const name of [definition.name, ...(definition.aliases ?? [])]) {
+    KEYWORD_PREFIX_PATTERNS.set(
+      name,
+      new RegExp(`^${escapeRegex(name)}(?:\\s|\\{|\\d|x\\b|n\\b|[-:])`),
+    );
+  }
+}
+
 export function cardOracleTexts(def: CardDef | undefined): string[] {
   if (!Array.isArray(def?.faces)) {
     return [];
@@ -427,8 +437,7 @@ function keywordStartsClause(clause: string, keyword: string): boolean {
   if (clause === keyword) {
     return true;
   }
-  const escaped = escapeRegex(keyword);
-  return new RegExp(`^${escaped}(?:\\s|\\{|\\d|x\\b|n\\b|[-:])`).test(clause);
+  return KEYWORD_PREFIX_PATTERNS.get(keyword)?.test(clause) ?? false;
 }
 
 function normalizeKeywordText(text: string): string {

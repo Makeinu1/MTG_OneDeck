@@ -87,7 +87,11 @@
     "drawnThisTurn": 0,
     "landsPlayedThisTurn": 1
   },
-  "limitations": [
-    "The compound 'gain life and draw' effect currently compiles as non-auto, so stack removal is measured without life or draw changes."
+  "unverifiable": [
+    {
+      "kind": "runtime-gap",
+      "reason": "The ability-word-prefixed landfall line is classified as static during stack resolution, so the otherwise auto-capable gain-life and draw atoms do not execute.",
+      "ref": "src/engine/grammar/index.ts: classifyAbilityShape / src/engine/grammar/compile.ts: compileAbilityIR"
+    }
   ]
 }
