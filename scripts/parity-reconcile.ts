@@ -1,264 +1,467 @@
-// M-GATE-2 step1: parity 和解ワークシート草稿の生成器(契約 = docs/engine-spec.md §34.7.3)。
-// research/classifier-parity/report.json の per-card 不一致(225枚/233 比較)を族×方向クラスタへ束ね、
-// snapshot から oracleText を join し、各クラスタへ Fable 裁定用の「草稿帰属 + 統べる CR 条文」を添える。
-//
-// 重要: CLUSTER_ANALYSIS は **草稿**(judgment ではない)。最終帰属はクラスタ単位で Fable が CR を引いて裁定する
-// (method §3 = CR 一次権威)。本器は分類器コードを一切変更しない(計測・整理専用)。
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import process from 'node:process';
 
 import { mapScryfallCardToCardDef, type ScryfallCard } from '../src/data/scryfall';
 
-const REPORT_PATH = resolve(process.cwd(), 'research/classifier-parity/report.json');
-const SNAPSHOT_PATH = resolve(
+const INPUT_PATH = resolve(
   process.cwd(),
   'research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json',
 );
-const OUT_PATH = resolve(process.cwd(), 'research/classifier-parity/reconciliation.md');
+const REPORT_PATH = resolve(process.cwd(), 'research/classifier-parity/report.json');
+const OUTPUT_PATH = resolve(process.cwd(), 'research/classifier-parity/reconciliation.md');
+const EXPECTED_CARD_COUNT = 225;
 
-type Attribution =
+type Direction = 'research-only' | 'runtime-only';
+type DraftAttribution =
   | 'runtime-FP'
   | 'runtime-FN'
   | 'research-FP'
   | 'research-FN'
-  | 'granularity-allowance'
-  | 'undecided';
+  | 'granularity-allowance';
+type ClusterKey =
+  | 'cast|runtime-only'
+  | 'enters|research-only'
+  | 'dies|runtime-only'
+  | 'attacks|runtime-only'
+  | 'enters|runtime-only'
+  | 'dies|research-only'
+  | 'leaves|runtime-only'
+  | 'attacks|research-only'
+  | 'draw|mixed';
+
+interface ReportMismatch {
+  eventFamily: string;
+  direction: Direction;
+}
+
+interface ReportCard {
+  oracleId: string;
+  name: string;
+  mismatches: ReportMismatch[];
+}
+
+interface ReportPayload {
+  generatedAt?: string;
+  mismatches: ReportCard[];
+}
 
 interface ClusterAnalysis {
+  clusterKey: ClusterKey;
   governingCR: string;
-  draftAttribution: Attribution;
+  draftAttribution: DraftAttribution;
   rationale: string;
   proposedFix: string;
 }
 
-// 草稿(Fable が per-card で覆しうる)。CR 条文は rule/Magic_The_Gathering_Comprehensive_Rules.txt 由来。
-const CLUSTER_ANALYSIS: Record<string, ClusterAnalysis> = {
-  'cast|runtime-only': {
-    governingCR: 'CR 603.2 / 603.3(誘発条件)・608(解決)',
-    draftAttribution: 'runtime-FP',
-    rationale:
-      'runtime が "cast" の語(`spent to cast`・装備/呪文文中の cast 言及)で trigger.cast を過剰検出している疑い。研究 eventClassify は「Whenever ... cast(s) a spell」型の cast 誘発のみを族 cast とする。',
-    proposedFix:
-      'runtime trigger.cast を「Whenever <player> cast(s) ...」の cast 誘発へ限定し、mana-spent 反射誘発・非誘発の cast 言及を除外(per-card 確認後)。',
-  },
-  'enters|research-only': {
-    governingCR: 'CR 603.2 / 603.6e(ETB 誘発)・603.10',
-    draftAttribution: 'runtime-FN',
-    rationale:
-      '「Whenever another creature enters under your control」型 ETB watcher を runtime が取りこぼしている疑い(研究は enters 族として検出)。',
-    proposedFix: 'runtime etb-other 検出を「another ... enters (under your control)」へ拡張(per-card 確認後)。',
-  },
-  'dies|runtime-only': {
-    governingCR: 'CR 700.4(dies=creature/PW 限定)・603.6c',
-    draftAttribution: 'runtime-FP',
-    rationale:
-      'runtime が dies を過剰検出している疑い(置換「would die」や非 creature の戦場→墓地を死亡として拾う)。',
-    proposedFix: '「would die」置換を除外し主語を creature/PW へ限定(trigger.leaves との弁別=Slice2/iter3 裁定の runtime ミラー)。',
-  },
-  'attacks|runtime-only': {
-    governingCR: 'CR 508(攻撃クリーチャー指定)・603.3',
-    draftAttribution: 'runtime-FP',
-    rationale: 'runtime が attacks を過剰検出している疑い(攻撃誘発でない attack 言及を拾う)。',
-    proposedFix: 'runtime trigger.attack を「Whenever <creature> attacks」型へ限定(per-card 確認後)。',
-  },
-  'enters|runtime-only': {
-    governingCR: 'CR 603.6e(ETB 誘発)',
-    draftAttribution: 'runtime-FP',
-    rationale: 'runtime が enters を過剰検出している疑い(自己 ETB でない enters 言及)。研究との境界を要確認。',
-    proposedFix: 'runtime etb/etb-other の発火条件を CR 603.6e に合わせ精密化(per-card 確認後)。',
-  },
-  'dies|research-only': {
-    governingCR: 'CR 700.4・603.2(複数主語「one or more ... die」)',
-    draftAttribution: 'runtime-FN',
-    rationale:
-      '「Whenever one or more other creatures die」型を runtime が取りこぼす疑い(研究は dies 族・iter2 で複数形を閉鎖済み。Morbid Opportunist 等)。',
-    proposedFix: 'runtime death-other 検出を複数形「one or more (other) creatures die」へ拡張(per-card 確認後)。',
-  },
-  'leaves|runtime-only': {
-    governingCR: 'CR 603.6c(leaves-the-battlefield 誘発)・700.4',
-    draftAttribution: 'undecided',
-    rationale:
-      'runtime は trigger.leaves を持つが研究 leaves が未検出の対。新設 trigger.leaves の境界差(延長誘発の構文粒度差=許容差 候補)か研究 FN かを per-card で弁別する。',
-    proposedFix: '研究 leaves と runtime trigger.leaves の境界を突合し、粒度差なら allowance(CR 引用付き)・取りこぼしなら研究側を拡張。',
-  },
-  'attacks|research-only': {
-    governingCR: 'CR 508・802(攻撃される=is attacked)',
-    draftAttribution: 'runtime-FN',
-    rationale:
-      '「Whenever enchanted player is attacked」型(Curse 系)を runtime が取りこぼす疑い(研究は受動 is-attacked を attacks 族へ・Curse of Opulence 等)。',
-    proposedFix: 'runtime attack 検出を受動「is attacked」へ拡張(per-card 確認後)。',
-  },
-  'draw|research-only': {
-    governingCR: 'CR 603.2・120(draw)',
-    draftAttribution: 'undecided',
-    rationale: '単発(Trouble in Pairs)。複合誘発の draw 条件の取りこぼし候補。per-card 確認。',
-    proposedFix: 'oracleText を精査し研究/runtime いずれの境界かを裁定。',
-  },
-  'draw|runtime-only': {
-    governingCR: 'CR 603.2・120(draw)',
-    draftAttribution: 'undecided',
-    rationale: '単発(Starving Revenant)。runtime の draw 誘発過剰 or 研究取りこぼし候補。per-card 確認。',
-    proposedFix: 'oracleText を精査し裁定。',
-  },
-};
-
-interface ParityComparison {
-  eventFamily: string;
-  direction: string;
-}
-
-interface ParityMismatchCard {
-  oracleId: string;
-  name: string;
-  edhrecRank?: number;
-  mismatches: ParityComparison[];
-}
-
-interface ParityReport {
-  mismatches: ParityMismatchCard[];
-}
-
-interface ClusterRow {
-  oracleId: string;
-  name: string;
+interface ReconciliationCard extends ReportCard {
   oracleText: string;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+const CLUSTER_ORDER: readonly ClusterKey[] = [
+  'cast|runtime-only',
+  'enters|research-only',
+  'dies|runtime-only',
+  'attacks|runtime-only',
+  'enters|runtime-only',
+  'dies|research-only',
+  'leaves|runtime-only',
+  'attacks|research-only',
+  'draw|mixed',
+];
+
+// Fable 裁定前の草稿。分類器の変更は proposedFix に記録するだけで、この CLI は適用しない。
+const CLUSTER_ANALYSIS: Record<ClusterKey, ClusterAnalysis> = {
+  'cast|runtime-only': {
+    clusterKey: 'cast|runtime-only',
+    governingCR:
+      'CR 603.1: “Triggered abilities have a trigger condition and an effect.” CR 601.2i: casting完了後に cast 誘発が誘発する。',
+    draftAttribution: 'granularity-allowance',
+    rationale:
+      '真の埋め込み/遅延 cast 誘発（“When you next cast ...”）と、別誘発の効果や mana-spent 条件内に cast が現れるだけのカードが混在する。族の有無だけでは単一帰属にできない。',
+    proposedFix:
+      '裁定後、runtime の cast 検出を構文解析済み trigger condition と単なる効果/参照文へ分離し、research は bullet・threshold・埋め込み遅延誘発の接頭辞を認識する。',
+  },
+  'enters|research-only': {
+    clusterKey: 'enters|research-only',
+    governingCR:
+      'CR 603.6a: ETB能力は “When [this object] enters” / “Whenever a [type] enters” と書かれ、各 entry event に一致する誘発を確認する。',
+    draftAttribution: 'runtime-FN',
+    rationale:
+      '代表文は “one or more tokens ... enter”、 “other Elves ... enter”、 “enter or attack” など有効な watcher 条件。runtime が複数主語・修飾語・列挙条件を狭く扱っている候補。',
+    proposedFix:
+      'runtime ETB の trigger condition を構造的に解析し、複数形・修飾付き watcher・列挙条件を追加する。CR 603.6d の static “enters with/as/tapped” は除外する。',
+  },
+  'dies|runtime-only': {
+    clusterKey: 'dies|runtime-only',
+    governingCR:
+      'CR 700.4: dies は “is put into a graveyard from the battlefield”。CR 603.7: 解決中に作られる delayed trigger も when/whenever/at を含む。',
+    draftAttribution: 'research-FN',
+    rationale:
+      '“When that creature dies this turn” などの真の遅延誘発や、mode/bullet/attraction 接頭辞の後にある死亡誘発が多数。research の行頭前提で落ちる候補。',
+    proposedFix:
+      'research が文境界の delayed trigger と bullet・room・saga・attraction・threshold 接頭辞を正規化して解析する。効果文だけの runtime-FP は別途 per-card 裁定する。',
+  },
+  'attacks|runtime-only': {
+    clusterKey: 'attacks|runtime-only',
+    governingCR:
+      'CR 508.1m: attacker 宣言で該当能力が誘発する。CR 508.3a–d: “attacks” / “is attacked” / player attacks の各条件を定義する。',
+    draftAttribution: 'research-FN',
+    rationale:
+      'mode bullet、loyalty effect、station threshold、duration 文の後ろに実在する attack trigger が代表例。意味上は攻撃イベントだが research の ability line 先頭に来ない。',
+    proposedFix:
+      'research の非標準接頭辞を正規化し、文境界の trigger clause を解析する。CR 508.4 の「attacking だが attacked ではない」ケースは区別する。',
+  },
+  'enters|runtime-only': {
+    clusterKey: 'enters|runtime-only',
+    governingCR:
+      'CR 603.6a が ETB誘発を定義する一方、CR 603.6d は “enters with/as/tapped” を triggered ability ではなく static ability とする。',
+    draftAttribution: 'granularity-allowance',
+    rationale:
+      '接頭辞で隠れた有効な ETB 誘発と、“enters tapped/with” や “if ... entered this turn” の static/replacement/履歴条件が混在する。enters 語だけでは裁定できない。',
+    proposedFix:
+      '裁定後、runtime ETB tag を解析済み trigger condition に限定し、CR 603.6d は別 concept へ分離する。真の誘発について research の接頭辞処理を拡張する。',
+  },
+  'dies|research-only': {
+    clusterKey: 'dies|research-only',
+    governingCR:
+      'CR 700.4 が dies を定義し、CR 603.2c は一つの event に複数 occurrence がある場合の反復誘発を認める。',
+    draftAttribution: 'runtime-FN',
+    rationale:
+      '“Whenever one or more creatures die” 型が一貫している。runtime の singular “dies” 中心のパターンが plural subject の verb “die” と修飾語を落とす候補。',
+    proposedFix:
+      'runtime death condition に die/dies、one-or-more、other、attacking、token、controller/opponent 修飾を追加し、効果文の die 言及とは分離する。',
+  },
+  'leaves|runtime-only': {
+    clusterKey: 'leaves|runtime-only',
+    governingCR:
+      'CR 603.6c が leaves-the-battlefield trigger と “from anywhere” の非該当を定義し、CR 603.10a が leaves trigger の look-back を定める。',
+    draftAttribution: 'research-FN',
+    rationale:
+      '明示的 “leaves the battlefield” または battlefield-to-graveyard watcher が代表例。別文・mode 接頭辞・固有名の後ろに埋め込まれ、research の行頭解析で落ちる候補。',
+    proposedFix:
+      'research が埋め込み explicit-leaves と CR 603.6c の noncreature battlefield-to-graveyard を解析する。“from anywhere” は除外を維持する。',
+  },
+  'attacks|research-only': {
+    clusterKey: 'attacks|research-only',
+    governingCR:
+      'CR 508.3b: “Whenever [a player/permanent] is attacked” は attacker 宣言で誘発する。CR 508.3d は “Whenever [a player] attacks” を定義する。',
+    draftAttribution: 'runtime-FN',
+    rationale:
+      'Curse 系の passive “enchanted player is attacked” と “opponents are attacked” を runtime が未対応。Mr. Foxglove は省略名の句点に対する正規表現の脆弱性候補。',
+    proposedFix:
+      'runtime attack condition に passive attacked-subject と句読点を含むカード名を追加し、CR 508.4 の attacking/attacked 差は維持する。',
+  },
+  'draw|mixed': {
+    clusterKey: 'draw|mixed',
+    governingCR:
+      'CR 121.1 が draw を定義し、CR 121.5 は “draw” を使わない hand 移動を draw でないとする。CR 603.1 は trigger condition を要求する。',
+    draftAttribution: 'granularity-allowance',
+    rationale:
+      'Trouble in Pairs は comma 列挙の “draws their second card” を runtime が落とし、Starving Revenant は接頭辞付きの真の “Whenever you draw a card” を research が落とす。逆方向の parser boundary 問題。',
+    proposedFix:
+      'runtime は comma 列挙条件、research は数字を含む ability-word 接頭辞を処理する。単に draw を指示する action text と draw trigger condition は分離する。',
+  },
+};
+
+async function main(): Promise<void> {
+  const [snapshotPayload, reportPayload] = await Promise.all([
+    readJson(INPUT_PATH),
+    readJson(REPORT_PATH),
+  ]);
+  const rawCards = extractRawCards(snapshotPayload);
+  const report = parseReport(reportPayload);
+  if (report.mismatches.length !== EXPECTED_CARD_COUNT) {
+    throw new Error(
+      `Expected ${EXPECTED_CARD_COUNT} mismatch cards, got ${report.mismatches.length}.`,
+    );
+  }
+
+  const oracleTextById = buildOracleTextMap(rawCards);
+  const joinedCards = report.mismatches.map((card) => joinOracleText(card, oracleTextById));
+  const clusters = groupCards(joinedCards);
+  const markdown = renderMarkdown(report, clusters);
+
+  await mkdir(dirname(OUTPUT_PATH), { recursive: true });
+  await writeFile(OUTPUT_PATH, markdown, 'utf8');
+
+  console.log(`Parity reconciliation written: ${relative(process.cwd(), OUTPUT_PATH)}`);
+  console.log(
+    `cards=${joinedCards.length} clusters=${CLUSTER_ORDER.length} assigned=${sumClusterCards(clusters)}`,
+  );
 }
 
 async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, 'utf8')) as unknown;
 }
 
-function coerceScryfallCard(value: unknown): ScryfallCard | undefined {
-  if (isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string') {
-    return value as unknown as ScryfallCard;
+function extractRawCards(payload: unknown): unknown[] {
+  if (!isRecord(payload) || !Array.isArray(payload.cards)) {
+    throw new Error('Snapshot JSON must be an object with a cards array.');
   }
-  return undefined;
+  return payload.cards;
 }
 
-async function buildOracleTextMap(): Promise<Map<string, string>> {
-  const payload = await readJson(SNAPSHOT_PATH);
-  const cards = isRecord(payload) && Array.isArray(payload.cards) ? payload.cards : [];
-  const map = new Map<string, string>();
-  for (const raw of cards) {
-    const card = coerceScryfallCard(raw);
-    if (!card) continue;
-    try {
-      const def = mapScryfallCardToCardDef(card);
-      // oracleText は CardDef.faces[].oracleText に入る(top-level oracleText は未設定)。
-      // join キーは def.oracleId(= Scryfall oracle_id ?? id。parity report の oracleId と一致)。
-      const text = def.faces
-        .map((face) => face.oracleText ?? '')
-        .filter((t) => t.length > 0)
-        .join(' // ');
-      map.set(def.oracleId, text);
-    } catch {
-      // マップ失敗カードはスキップ(join 失敗として後段で空文字)。
+function parseReport(payload: unknown): ReportPayload {
+  if (!isRecord(payload) || !Array.isArray(payload.mismatches)) {
+    throw new Error('Parity report JSON must contain a mismatches array.');
+  }
+  return {
+    generatedAt:
+      typeof payload.generatedAt === 'string' ? payload.generatedAt : undefined,
+    mismatches: payload.mismatches.map((value, index) => parseReportCard(value, index)),
+  };
+}
+
+function parseReportCard(value: unknown, index: number): ReportCard {
+  if (!isRecord(value)) {
+    throw new Error(`Invalid report card at index ${index}.`);
+  }
+  const oracleId = readRequiredString(value, 'oracleId', `report card ${index}`);
+  const name = readRequiredString(value, 'name', `report card ${index}`);
+  if (!Array.isArray(value.mismatches) || value.mismatches.length === 0) {
+    throw new Error(`Report card ${name} must contain mismatches.`);
+  }
+  return {
+    oracleId,
+    name,
+    mismatches: value.mismatches.map((mismatch, mismatchIndex) =>
+      parseMismatch(mismatch, `${name} mismatch ${mismatchIndex}`),
+    ),
+  };
+}
+
+function parseMismatch(value: unknown, context: string): ReportMismatch {
+  if (!isRecord(value)) {
+    throw new Error(`Invalid ${context}.`);
+  }
+  const eventFamily = readRequiredString(value, 'eventFamily', context);
+  const direction = readRequiredString(value, 'direction', context);
+  if (direction !== 'research-only' && direction !== 'runtime-only') {
+    throw new Error(`Invalid direction in ${context}: ${direction}`);
+  }
+  return { eventFamily, direction };
+}
+
+function buildOracleTextMap(rawCards: readonly unknown[]): Map<string, string> {
+  const oracleTextById = new Map<string, string>();
+
+  for (const [index, rawCard] of rawCards.entries()) {
+    if (!isRecord(rawCard)) {
+      throw new Error(`Invalid Scryfall card at snapshot index ${index}.`);
     }
+    const rawId = readRequiredString(rawCard, 'id', `snapshot card ${index}`);
+    const def = mapScryfallCardToCardDef(rawCard as unknown as ScryfallCard);
+    const oracleText = def.faces
+      .map((face) => face.oracleText?.trim())
+      .filter((text): text is string => Boolean(text))
+      .join('\n//\n');
+
+    // raw id と CardDef oracle id の双方を登録する。現 report.json は後者で join される。
+    oracleTextById.set(rawId, oracleText);
+    oracleTextById.set(def.oracleId, oracleText);
   }
-  return map;
+
+  return oracleTextById;
 }
 
-function firstSentences(text: string, max: number): string {
-  const flat = text.replace(/\n+/g, ' ').trim();
-  if (flat.length <= max) return flat;
-  return `${flat.slice(0, max).trimEnd()}…`;
+function joinOracleText(
+  card: ReportCard,
+  oracleTextById: ReadonlyMap<string, string>,
+): ReconciliationCard {
+  const oracleText = oracleTextById.get(card.oracleId);
+  if (oracleText === undefined) {
+    throw new Error(`Snapshot join failed: ${card.oracleId} — ${card.name}`);
+  }
+  return { ...card, oracleText };
 }
 
-function escapeCell(text: string): string {
-  return text.replace(/\|/g, '\\|');
-}
+function groupCards(
+  cards: readonly ReconciliationCard[],
+): Map<ClusterKey, ReconciliationCard[]> {
+  const clusters = new Map<ClusterKey, ReconciliationCard[]>(
+    CLUSTER_ORDER.map(
+      (clusterKey): [ClusterKey, ReconciliationCard[]] => [clusterKey, []],
+    ),
+  );
 
-async function main(): Promise<void> {
-  const report = (await readJson(REPORT_PATH)) as ParityReport;
-  const oracleMap = await buildOracleTextMap();
-
-  // クラスタ(族|方向)→ 行。1カードが複数族で割れる場合は各クラスタへ計上(比較=233)。
-  const clusters = new Map<string, ClusterRow[]>();
-  const uniqueCards = new Set<string>();
-  for (const card of report.mismatches) {
-    uniqueCards.add(card.oracleId);
-    const seen = new Set<string>();
-    for (const mm of card.mismatches) {
-      const key = `${mm.eventFamily}|${mm.direction}`;
-      if (seen.has(key)) continue; // 同カード同クラスタの重複比較は1回
-      seen.add(key);
-      const rows = clusters.get(key) ?? [];
-      rows.push({
-        oracleId: card.oracleId,
-        name: card.name,
-        oracleText: oracleMap.get(card.oracleId) ?? '(oracleText join 失敗)',
-      });
-      clusters.set(key, rows);
+  for (const card of cards) {
+    const primaryMismatch = card.mismatches[0];
+    if (!primaryMismatch) {
+      throw new Error(`No mismatch available for ${card.name}.`);
     }
+    clusters.get(clusterKeyFor(primaryMismatch))?.push(card);
   }
 
-  const orderedKeys = [...clusters.keys()].sort((a, b) => clusters.get(b)!.length - clusters.get(a)!.length);
-  let totalRows = 0;
+  const assigned = sumClusterCards(clusters);
+  if (assigned !== cards.length) {
+    throw new Error(`Cluster assignment mismatch: assigned=${assigned}, cards=${cards.length}`);
+  }
+  if ([...clusters.values()].some((clusterCards) => clusterCards.length === 0)) {
+    throw new Error('All nine reconciliation clusters must be non-empty.');
+  }
+  return clusters;
+}
 
-  const lines: string[] = [
-    '# Parity 和解ワークシート(草稿・判定なし)',
+function clusterKeyFor(mismatch: ReportMismatch): ClusterKey {
+  if (mismatch.eventFamily === 'draw') {
+    return 'draw|mixed';
+  }
+  const clusterKey = `${mismatch.eventFamily}|${mismatch.direction}`;
+  if (isClusterKey(clusterKey)) {
+    return clusterKey;
+  }
+  throw new Error(`No reconciliation cluster for ${clusterKey}.`);
+}
+
+function isClusterKey(value: string): value is ClusterKey {
+  return (CLUSTER_ORDER as readonly string[]).includes(value);
+}
+
+function renderMarkdown(
+  report: ReportPayload,
+  clusters: ReadonlyMap<ClusterKey, readonly ReconciliationCard[]>,
+): string {
+  const assigned = sumClusterCards(clusters);
+  const mismatchComparisons = report.mismatches.reduce(
+    (total, card) => total + card.mismatches.length,
+    0,
+  );
+  const lines = [
+    '# Parity 和解ワークシート（草稿・判定なし）',
     '',
-    `生成: ${new Date().toISOString()} / 生成器: \`npm run parity-reconcile\``,
+    '> Codex による Fable 裁定用の草稿。どちらの分類器が正しいかは確定せず、分類器も変更しない。',
     '',
-    '> 契約 = engine-spec §34.7.3。**本書は草稿**。`draftAttribution` は Codex/器の暫定見立てで、',
-    '> 最終帰属はクラスタ単位で **Fable が CR(`rule/...txt`)を引いて裁定**する(method §3 = CR 一次権威)。',
-    '> 裁定後に Codex が `ruleClassifier.ts`/`*Classify.ts`/`CLASSIFIER_PARITY_ALLOWANCES` を修正し parity を 0 へ。',
+    '## 入力と分類方法',
+    '',
+    `- parity report: \`${relative(process.cwd(), REPORT_PATH)}\``,
+    `- Scryfall snapshot: \`${relative(process.cwd(), INPUT_PATH)}\``,
+    `- report generated: ${report.generatedAt ?? 'unknown'}`,
+    `- report mismatch cards: ${report.mismatches.length}`,
+    '- snapshot join failures: 0',
+    `- mismatch comparison records represented: ${mismatchComparisons}`,
+    '- 一意配属規則: 各カードを report 内の先頭 mismatch へ1回だけ配属する。draw の両方向は mixed 1クラスタへ統合する。複数族カードの全 mismatch key は各行へ残す。',
     '',
     '## クラスタ一覧',
     '',
-    '| Cluster (family\\|direction) | 件数 | 草稿帰属 | 統べる CR |',
+    '| Cluster | Assigned cards | Draft attribution | Governing CR |',
     '| --- | ---: | --- | --- |',
+    ...CLUSTER_ORDER.map((clusterKey) => {
+      const analysis = CLUSTER_ANALYSIS[clusterKey];
+      const count = clusters.get(clusterKey)?.length ?? 0;
+      return `| ${cell(clusterKey)} | ${count} | \`${analysis.draftAttribution}\` | ${cell(analysis.governingCR)} |`;
+    }),
+    '',
   ];
-  for (const key of orderedKeys) {
-    const rows = clusters.get(key)!;
-    totalRows += rows.length;
-    const a = CLUSTER_ANALYSIS[key];
+
+  for (const clusterKey of CLUSTER_ORDER) {
+    const cards = clusters.get(clusterKey) ?? [];
+    const analysis = CLUSTER_ANALYSIS[clusterKey];
     lines.push(
-      `| ${escapeCell(key)} | ${rows.length} | ${a ? a.draftAttribution : 'undecided'} | ${a ? escapeCell(a.governingCR) : '(未登録)'} |`,
+      `## ${clusterKey} (${cards.length} cards)`,
+      '',
+      `- Governing CR: ${analysis.governingCR}`,
+      `- Draft attribution: \`${analysis.draftAttribution}\``,
+      `- Rationale: ${analysis.rationale}`,
+      `- Proposed fix (not applied): ${analysis.proposedFix}`,
+      '',
+      '| Oracle ID | Name | All mismatch keys | Relevant Oracle text |',
+      '| --- | --- | --- | --- |',
+      ...cards.map(renderCardRow),
+      '',
     );
   }
+
   lines.push(
+    '## 225枚の完全性検算',
     '',
-    `**検算**: 比較行合計 = ${totalRows}(report.json mismatchedComparisons=233 と一致するはず)/ ユニークカード = ${uniqueCards.size}(divergentCards=225 と一致するはず)。`,
+    '| Cluster | Assigned cards |',
+    '| --- | ---: |',
+    ...CLUSTER_ORDER.map((clusterKey) => {
+      const count = clusters.get(clusterKey)?.length ?? 0;
+      return `| \`${clusterKey}\` | ${count} |`;
+    }),
+    `| **Total** | **${assigned}** |`,
     '',
-    '---',
+    `検算結果: クラスタ合計 = ${assigned}。${assigned} assigned cards = ${report.mismatches.length} report mismatch cards。全225枚が9クラスタへ重複なく分類された。`,
     '',
   );
+  return `${lines.join('\n')}\n`;
+}
 
-  for (const key of orderedKeys) {
-    const rows = clusters.get(key)!;
-    const a = CLUSTER_ANALYSIS[key];
-    lines.push(`## ${key}(${rows.length}件)`, '');
-    if (a) {
-      lines.push(
-        `- **統べる CR**: ${a.governingCR}`,
-        `- **草稿帰属**: \`${a.draftAttribution}\``,
-        `- **根拠(草稿)**: ${a.rationale}`,
-        `- **提案する修正(草稿)**: ${a.proposedFix}`,
-        '',
-      );
-    } else {
-      lines.push('- **草稿未登録**(CLUSTER_ANALYSIS に追記要)', '');
-    }
-    lines.push('| oracleId | name | oracleText 抜粋 |', '| --- | --- | --- |');
-    for (const row of rows) {
-      lines.push(`| \`${row.oracleId}\` | ${escapeCell(row.name)} | ${escapeCell(firstSentences(row.oracleText, 180))} |`);
-    }
-    lines.push('');
+function renderCardRow(card: ReconciliationCard): string {
+  const mismatchKeys = card.mismatches
+    .map((mismatch) => `${mismatch.eventFamily}|${mismatch.direction}`)
+    .join(', ');
+  const families = new Set(card.mismatches.map((mismatch) => mismatch.eventFamily));
+  return `| \`${card.oracleId}\` | ${cell(card.name)} | ${cell(mismatchKeys)} | ${cell(relevantExcerpt(card.oracleText, families))} |`;
+}
+
+function relevantExcerpt(oracleText: string, families: ReadonlySet<string>): string {
+  const segments = oracleText
+    .split('\n')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const matching = segments.filter((segment) =>
+    [...families].some((family) => familyPattern(family).test(segment)),
+  );
+  return (matching.length > 0 ? matching : segments).slice(0, 2).join(' / ');
+}
+
+function familyPattern(family: string): RegExp {
+  switch (family) {
+    case 'cast':
+      return /\b(?:cast|casts|spell)\b/i;
+    case 'enters':
+      return /\b(?:enter|enters|entered|landfall)\b/i;
+    case 'dies':
+      return /\b(?:die|dies)\b|graveyard from the battlefield/i;
+    case 'attacks':
+      return /\b(?:attack|attacks|attacked|attacking)\b/i;
+    case 'leaves':
+      return /\b(?:leave|leaves|left)\b|graveyard from the battlefield/i;
+    case 'draw':
+      return /\b(?:draw|draws|drew)\b/i;
+    default:
+      return new RegExp(`\\b${escapeRegExp(family)}\\b`, 'i');
   }
+}
 
-  await mkdir(dirname(OUT_PATH), { recursive: true });
-  await writeFile(OUT_PATH, lines.join('\n'), 'utf8');
-  console.log(`Parity reconciliation worksheet written: ${relative(process.cwd(), OUT_PATH)}`);
-  console.log(`clusters=${orderedKeys.length} comparisonRows=${totalRows} uniqueCards=${uniqueCards.size}`);
+function sumClusterCards(
+  clusters: ReadonlyMap<ClusterKey, readonly ReconciliationCard[]>,
+): number {
+  return [...clusters.values()].reduce((total, cards) => total + cards.length, 0);
+}
+
+function readRequiredString(
+  value: Record<string, unknown>,
+  key: string,
+  context: string,
+): string {
+  const field = value[key];
+  if (typeof field !== 'string' || field === '') {
+    throw new Error(`Missing ${key} in ${context}.`);
+  }
+  return field;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function cell(value: string): string {
+  return value.replace(/\|/g, '\\|').replace(/\n/g, ' / ');
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(errorMessage(error));
   process.exitCode = 1;
 });
