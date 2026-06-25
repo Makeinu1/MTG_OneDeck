@@ -25,6 +25,7 @@
     "timing-oracle-diff": "tsx scripts/timing-oracle-diff.ts",
     "golden-replay": "tsx scripts/golden-replay.ts",
     "classifier-parity": "tsx scripts/classifier-parity.ts",
+    "parity-reconcile": "tsx scripts/parity-reconcile.ts",
     "m-contract-gate": "tsx scripts/m-contract-gate.ts",
     "preview": "vite preview",
     "test": "vitest run",
