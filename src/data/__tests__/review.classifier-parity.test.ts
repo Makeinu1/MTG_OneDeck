@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -10,9 +10,9 @@ import {
   CLASSIFIER_PARITY_ALLOWANCES,
   CLASSIFIER_PARITY_MAPPINGS,
   compareCardClassifiers,
-  type ClassifierParityReport,
 } from '../../../scripts/lib/classifierParity.ts';
 import type { CardDef } from '../../types/card';
+import { classifierParityPins } from './fixtures/classifier-parity-pins';
 
 function card(id: string, oracleText: string): CardDef {
   return {
@@ -50,76 +50,31 @@ const samples = [
   card('allowed-phase-gap', 'At the beginning of combat on your turn, draw a card.'),
 ];
 
-// The snapshot is ~30MB — too large for Vite's eager glob inline transform, so it is
-// read from disk (vitest cwd = project root). This mirrors scripts/classifier-parity.ts.
+// Full corpus is gitignored; the corpus-level gate runs locally (and via
+// `npm run classifier-parity`), and is skipped in CI where the snapshot is absent.
 const SNAPSHOT_PATH = resolve(
   'research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json',
 );
+const hasSnapshot = existsSync(SNAPSHOT_PATH);
 
 interface SnapshotPayload {
   cards?: unknown[];
 }
 
-function rawSnapshotCards(): unknown[] {
+function loadCorpusDefs(): CardDef[] {
   const payload: unknown = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf8'));
-  if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === 'object' && Array.isArray((payload as SnapshotPayload).cards)) {
-    return (payload as SnapshotPayload).cards ?? [];
+  const raw = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === 'object'
+      ? ((payload as SnapshotPayload).cards ?? [])
+      : [];
+  const defs: CardDef[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    defs.push(mapScryfallCardToCardDef(entry as ScryfallCard));
   }
-  throw new Error('snapshot payload missing cards[]');
+  return defs;
 }
-
-let corpusDefs: CardDef[] | undefined;
-let corpusByOracleId: Map<string, CardDef> | undefined;
-let corpusReport: ClassifierParityReport | undefined;
-
-function loadCorpus(): { defs: CardDef[]; byOracleId: Map<string, CardDef> } {
-  if (!corpusDefs || !corpusByOracleId) {
-    const defs: CardDef[] = [];
-    const byOracleId = new Map<string, CardDef>();
-    for (const raw of rawSnapshotCards()) {
-      if (typeof raw !== 'object' || raw === null) continue;
-      const def = mapScryfallCardToCardDef(raw as unknown as ScryfallCard);
-      defs.push(def);
-      byOracleId.set(def.oracleId, def);
-    }
-    corpusDefs = defs;
-    corpusByOracleId = byOracleId;
-  }
-  return { defs: corpusDefs, byOracleId: corpusByOracleId };
-}
-
-function corpusParityReport(): ClassifierParityReport {
-  if (!corpusReport) {
-    corpusReport = buildClassifierParityReport(loadCorpus().defs);
-  }
-  return corpusReport;
-}
-
-// One+ representative card per adjudicated cluster (docs/engine-spec.md §34.7.3.1).
-// After the fixes each must produce ZERO mapped-family mismatches. Some (Buster Sword)
-// become non-comparable by design: the spurious cast tag was a runtime-FP and the card
-// has no other mapped family, so it leaves the parity denominator entirely.
-const CLUSTER_PINS: ReadonlyArray<{ oracleId: string; name: string; cluster: string }> = [
-  { oracleId: '5e060d58-4d6e-425c-b7d4-727669fcce5b', name: 'Buster Sword', cluster: 'cast runtime-FP (effect cast)' },
-  { oracleId: '674e2683-31c0-4fee-95fb-98b1201e41e7', name: 'Mirrodin Besieged', cluster: 'cast research-FN (bullet)' },
-  { oracleId: '93989dd7-2d3e-46e2-8e92-8d0479796087', name: 'Twinferno', cluster: 'cast research-FN (delayed)' },
-  { oracleId: '605c1ee0-5e8a-4e0a-a99b-42a38873f822', name: 'Welcoming Vampire', cluster: 'enters runtime-FN (plural)' },
-  { oracleId: '4cfaa5cf-cc3d-49a7-9544-38a8bb7e9ec1', name: 'Frontier Siege', cluster: 'enters research-FN (bullet)' },
-  { oracleId: '4469ff35-54ec-4ff5-bc19-3808ae0f711b', name: 'Wildgrowth Archaic', cluster: 'enters runtime-FP (enters with replacement)' },
-  { oracleId: '322f44f0-e6da-4ee0-b474-e7d5e9a461c5', name: 'Morbid Opportunist', cluster: 'dies runtime-FN (plural)' },
-  { oracleId: '36b19ec0-d581-4213-bfae-1d7808a2f60d', name: 'Together Forever', cluster: 'dies research-FN (delayed)' },
-  { oracleId: '13d9822f-0398-4915-818b-b9fbaf63b93c', name: 'Demonic Tourist Laser', cluster: 'dies research-FN ({TK} prefix)' },
-  { oracleId: '18bdc181-9592-4147-81fb-7f83ce137f70', name: 'Ugin, the Ineffable', cluster: 'leaves research-FN (delayed token)' },
-  { oracleId: '2ffb38ec-5852-4e91-85a5-cfccd1f23556', name: "Tarrian's Soulcleaver", cluster: 'leaves research-FN (artifact or creature)' },
-  { oracleId: '5958e9e3-9457-48e1-afc1-a5c89e3b0ed0', name: 'Struggle for Project Purity', cluster: 'attacks research-FN (bullet)' },
-  { oracleId: '2274c7ae-5a40-4fd4-a4ac-6f56b23034e4', name: 'Jace, Architect of Thought', cluster: 'attacks research-FN (loyalty prefix)' },
-  { oracleId: 'ba0d3df2-3acf-46d7-8d64-8d67d1579adc', name: 'Curse of Opulence', cluster: 'attacks runtime-FN (is attacked)' },
-  { oracleId: 'c2008ba9-00df-4607-ba0c-189af52033eb', name: 'Mr. Foxglove', cluster: 'attacks runtime-FN (name period)' },
-  { oracleId: 'f349f58b-8cc8-45e4-9565-2b46fdf976c9', name: 'Trouble in Pairs', cluster: 'draw runtime-FN (comma enumeration)' },
-  { oracleId: '2ca969eb-3d79-4d1f-8d9d-7b8204ad166a', name: 'Starving Revenant', cluster: 'draw research-FN (Descend prefix)' },
-  { oracleId: 'ddbacb74-1f98-4607-a92e-d14973b9d0ef', name: 'Groundswell', cluster: 'landfall runtime-FP (ability-word on spell)' },
-];
 
 describe('research/runtime classifier parity', () => {
   it('keeps the explicit mapping and allowance tables stable', () => {
@@ -163,10 +118,28 @@ describe('research/runtime classifier parity', () => {
     expect(report.summary.mismatchedComparisons).toBe(0);
   });
 
-  it(
-    'reaches full corpus parity: divergentCards === 0',
+  // CI-safe gate: committed real-card fixtures, one per adjudicated cluster
+  // (docs/engine-spec.md §34.7.3.1). Each must carry ZERO mapped-family mismatches.
+  // A card may become non-comparable (e.g. Buster Sword loses its only mapped family
+  // when the spurious cast runtime-FP is removed) — that is also clean.
+  it('agrees on every adjudicated cluster representative (§34.7.3.1)', () => {
+    expect(classifierParityPins.length).toBe(18);
+    for (const pin of classifierParityPins) {
+      const parity = compareCardClassifiers(pin.def);
+      expect(
+        parity.mismatches.map((m) => `${m.direction}:${m.eventFamily}`).join(','),
+        `${pin.def.name} [${pin.cluster}]`,
+      ).toBe('');
+    }
+  });
+
+  // Local-only strong gate: the entire snapshot must reach divergentCards === 0.
+  // Skipped in CI (snapshot gitignored); enforced on the maintainer machine and by
+  // `npm run classifier-parity`.
+  it.skipIf(!hasSnapshot)(
+    'reaches full corpus parity: divergentCards === 0 (local snapshot)',
     () => {
-      const report = corpusParityReport();
+      const report = buildClassifierParityReport(loadCorpusDefs());
       const offenders = report.mismatches
         .slice(0, 25)
         .map(
@@ -175,26 +148,6 @@ describe('research/runtime classifier parity', () => {
         );
       expect(report.summary.comparableCards).toBeGreaterThan(6000);
       expect(report.summary.divergentCards, offenders.join(' | ')).toBe(0);
-    },
-    60000,
-  );
-
-  it(
-    'agrees on every adjudicated cluster representative (§34.7.3.1)',
-    () => {
-      const { byOracleId } = loadCorpus();
-      for (const pin of CLUSTER_PINS) {
-        const def = byOracleId.get(pin.oracleId);
-        expect(def, `missing ${pin.name} (${pin.oracleId})`).toBeDefined();
-        if (!def) continue;
-        const parity = compareCardClassifiers(def);
-        // Each adjudicated card must carry ZERO mapped-family mismatches. A card may be
-        // non-comparable (e.g. Buster Sword loses its only mapped family) — also clean.
-        expect(
-          parity.mismatches.map((m) => `${m.direction}:${m.eventFamily}`).join(','),
-          `${pin.name} [${pin.cluster}]`,
-        ).toBe('');
-      }
     },
     60000,
   );
