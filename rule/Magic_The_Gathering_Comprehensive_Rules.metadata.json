@@ -1,0 +1,8 @@
+{
+  "object": "mtg_onedeck_comprehensive_rules_pin",
+  "effectiveAsOf": "2026-06-19",
+  "source": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt",
+  "localFile": "rule/Magic_The_Gathering_Comprehensive_Rules.txt",
+  "sha256": "e99cd70eb64ca854acb6420ebbf06e369e3f258e0cfba4f03f70bd881386f79b",
+  "policy": "Use the pinned CR as a yardstick. Do not treat corpus/classifier parity as CR conformance unless the relevant rule invariant is covered by a CR-grounded golden case."
+}
