@@ -1,8 +1,6 @@
 # M-CONTRACT Gate Scorecard
 
-Generated: 2026-06-25T14:50:07.802Z
-
-> Superseded on 2026-06-26 by M-CR-RECONCILE. This scorecard remains useful as a research measurement, but it is no longer sufficient to freeze the implementation contract because CR-grounded state-transition golden cases were missing for commander tax, mana abilities, token zone changes, pending triggers/SBA/priority, and object incarnation/LKI.
+Generated: 2026-06-29T15:38:50.182Z
 
 ## Conditions
 
@@ -43,6 +41,38 @@ Generated: 2026-06-25T14:50:07.802Z
 | zone | 189 | 5.82% |
 | timing | 196 | 1.53% |
 
+## CR-grounding Overlay
+
+- CR version: 2026-06-19
+- Overlay status: ready-for-fable-review
+
+| ID | Name | Status | Freeze treatment | Evidence | Remaining boundary |
+| --- | --- | --- | --- | --- | --- |
+| CRG-1 | CR 2026-06-19 fixed | PASS | required-pass | rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json, research/cr-grounding/README.md | - |
+| CRG-2 | CR-grounded golden cases defined | PASS | required-pass | research/cr-grounding/golden-cases.json | - |
+| CRG-3 | Commander tax CR 903.8 | PASS | required-pass | src/engine/__tests__/m431.test.ts, src/store/__tests__/review.m431.test.ts, research/cr-grounding/golden-cases.json#cr-commander-tax-cast-not-return | - |
+| CRG-4 | Mana abilities CR 605 | PARTIAL | partial-allowed-only-if-605-1b-is-s-carry | src/engine/__tests__/review.g4-activate.test.ts, research/cr-grounding/mana-ability-substrate.md | Triggered mana abilities CR 605.1b/605.4a are not implemented and must not be reported as PASS. |
+| CRG-4.5 | Commander zone choice CR 903.9a/b | PARTIAL | partial-allowed-only-if-generic-rule-choice-is-s-carry | src/store/__tests__/crGrounding.test.ts, src/components/playmat/Playmat.test.tsx, research/cr-grounding/rule-choice-substrate.md | 903.9a bridge is implemented, but generic pendingRuleChoices/deferred SBA choice UI are S-CHOICE carry. |
+| CRG-5 | Token death before token cease CR 111.7/704.5d | PASS | required-pass | src/store/__tests__/crGroundingGoldenCases.test.ts#cr-token-dies-before-ceases, research/cr-grounding/golden-cases.json#cr-token-dies-before-ceases | - |
+| CRG-6 | Triggered abilities, SBA, priority CR 603/704/117 | PARTIAL | partial-allowed-only-if-second-bucket-and-full-sba-are-s-carry | src/store/__tests__/crGroundingGoldenCases.test.ts#cr-trigger-sba-priority-loop, research/cr-grounding/priority-event-loop.md, research/cr-grounding/sba-inventory.md | 603.3b second bucket and full SBA suite are not implemented and must not be reported as PASS. |
+| CRG-7 | Zone movement and LKI CR 400.7/603.10a | PASS(core) | core-pass-only | src/store/__tests__/crGroundingGoldenCases.test.ts#cr-zone-change-new-object-lki, research/cr-grounding/scope-partition.md | CR 400.7 exceptions and full effective-characteristics snapshots are S-* carry. |
+| CRG-8 | 2026-06-19 new vocabulary | PASS(boundary) | boundary-pass-only | research/cr-grounding/golden-cases.json#cr-20260619-new-mechanics-boundary, research/cr-grounding/scope-partition.md | Heal/Power-up/Teamwork/Preparation executors are scope-boundary and must not be reported as implemented. |
+
+## R-FREEZE Designs
+
+| ID | Status | Artifact | Decision direction |
+| --- | --- | --- | --- |
+| R-FREEZE-1 | drafted | research/cr-grounding/rule-choice-substrate.md | Generalize pendingSbaChoices into pendingRuleChoices. |
+| R-FREEZE-2 | drafted | research/cr-grounding/priority-event-loop.md | Add PendingTrigger.stackPlacementBucket and order as bucket -> APNAP -> controller choice. |
+| R-FREEZE-3 | drafted | research/cr-grounding/mana-ability-substrate.md | Keep triggered mana abilities out of normal pendingTriggers and resolve inside mana transactions. |
+| R-FREEZE-4 | drafted | research/cr-grounding/scope-partition.md | Classify remaining unimplemented CR areas as S-* carry, scope-boundary, or PASS(core). |
+
+
 ## Verdict
 
-**NOT FROZEN — superseded by M-CR-RECONCILE**
+- Legacy seven-condition verdict: FROZEN
+- CR-grounding overlay: APPROVED
+**FROZEN**
+
+> M-CR-RECONCILE overlay is included. `PARTIAL`, `PASS(core)`, and `PASS(boundary)` are not plain PASS; remaining boundaries are displayed below and must remain out of green coverage.
+

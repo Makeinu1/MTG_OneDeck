@@ -28,7 +28,7 @@ M0-FREEZE のゴールは、S-* 実装を増やすことではない。
 | docs契約反映 | Pending | Fable only |
 | `m-contract-gate` overlay wiring | Pending | Codex only after docs approval |
 | overlay込み scorecard 再生成 | Pending | after wiring |
-| M0-FREEZE final approval | Pending | Fable final audit |
+| M0-FREEZE final approval | Approved (2026-06-30 Fable) | Fable Q4 final audit 緑: 機械4点(lint/tsc/vitest 280f-3020t/build)+ verify-q2-scorecard-output / verify-q4-codex-audit 緑 + scorecard frozen=true 決定的再現。overlay=docs契約一致・CRG-4/4.5/6=PARTIAL境界明示・CRG-7=PASS(core)・CRG-8=PASS(boundary) |
 
 ## Queue
 

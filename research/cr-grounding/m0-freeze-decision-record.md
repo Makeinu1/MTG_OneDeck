@@ -6,7 +6,23 @@
 
 ## 現在の状態
 
-**Decision status: Approved to contract-update stage by Fable.**
+**Decision status: M0-FREEZE FINAL APPROVAL — Approved by Fable (2026-06-30).**
+
+Q1(契約判定 D1〜D6・docs 昇格)→ Q2(scorecard overlay 配線・Codex)→ Q3(再生成・Codex)→ Q4(最終監査)まで完了。Fable が Q4 独立監査を完走し M0-FREEZE を最終承認した。
+
+**Q4 Fable 独立監査(検証プロトコル=実装側報告に依存せず Fable が独立実行):**
+- 赤旗チェック: Codex は `docs/`・`review.*` を一切変更していない(`git diff --name-only` 確認)。新規 `src/engine/__tests__/m-contract-gate-overlay.test.ts` は `review.*` でない通常テストで規約内。
+- 配線監査: `scripts/lib/mContractGate.ts` の `judgeCrGroundingOverlay`/`judgeTotalFrozen` は §34.7.2 契約・`scorecard-overlay-wiring-spec.md` と完全一致(missing→false・FAIL不可・required-pass=PASS・core/boundary/partial は status一致+remainingBoundary必須・`frozen=legacyFrozen && crGroundingOverlayApproved`)。
+- 機械チェック4点 全緑: `npm run lint` / `npx tsc --noEmit` / `npx vitest run`(280 files / 3020 tests) / `npm run build`。
+- gate 再生成で `frozen=true` 決定的再現。`verify-q2-scorecard-output` / `verify-q4-codex-audit` 緑。`review.m-contract-gate` + overlay test 56 緑。
+- scorecard.md/json は overlay status と remainingBoundary を表示し、PARTIAL/PASS(core)/PASS(boundary) を plain PASS に潰していない。superseded 注記は overlay-included 注記へ置換済み。
+- 「定規を作れた」7条件すべて充足。`frozen` は「未実装ゼロ」でなく「S-* carry/scope-boundary を明示したうえで次段階へ進める」の意味として正しく記録されている。
+
+**次=Q5(S-* 実装)が解放されたが、1セッション=1マイルストーンにより本セッションでは着手しない**(新セッションで S-CHOICE/S-TURN から)。
+
+---
+
+**(参考)contract-update stage 承認(Q1・2026-06-30):**
 
 Codex の推奨は、`m0-freeze-review-sheet.md` と同じく次の通り。
 

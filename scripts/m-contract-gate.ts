@@ -15,8 +15,11 @@ import {
   aggregateUnverifiable,
   computeAxisCoverage,
   judgeCondition,
+  judgeCrGroundingOverlay,
   judgeFrozen,
+  judgeTotalFrozen,
   type AxisCoverage,
+  type CrGroundingOverlay,
   type GateCondition,
   type GateScorecard,
 } from './lib/mContractGate.ts';
@@ -26,6 +29,10 @@ const REPORT_DIRECTORY = resolve(process.cwd(), 'research/m-contract-gate');
 const REPORT_JSON_PATH = resolve(REPORT_DIRECTORY, 'scorecard.json');
 const REPORT_MD_PATH = resolve(REPORT_DIRECTORY, 'scorecard.md');
 const GOLDEN_CASE_DIRECTORY = resolve(process.cwd(), 'research/golden-replay/cases');
+const CR_GROUNDING_OVERLAY_PATH = resolve(
+  process.cwd(),
+  'research/cr-grounding/m0-freeze-overlay.json',
+);
 
 const REPORT_PATHS = {
   layerCoverage: 'research/layer-coverage/report.json',
@@ -111,10 +118,21 @@ async function main(): Promise<void> {
     buildConditionSeven(unverifiable, oracleReports),
   ].sort((left, right) => left.id - right.id);
 
+  const crGroundingOverlay = await loadCrGroundingOverlay();
+  const crGroundingOverlayVerdict = judgeCrGroundingOverlay(crGroundingOverlay);
+  const legacyFrozen = judgeFrozen(conditions);
+
   const scorecard: GateScorecard = {
     generatedAt: new Date().toISOString(),
     conditions,
-    frozen: judgeFrozen(conditions),
+    legacyFrozen,
+    crGroundingOverlay: crGroundingOverlay ?? undefined,
+    crGroundingOverlayApproved: crGroundingOverlayVerdict.approved,
+    crGroundingOverlayProblems: crGroundingOverlayVerdict.problems,
+    frozen: judgeTotalFrozen({
+      legacyFrozen,
+      crGroundingOverlayApproved: crGroundingOverlayVerdict.approved,
+    }),
     headCoverage,
     unverifiable,
   };
@@ -501,6 +519,15 @@ async function loadReport(path: string): Promise<LoadedReport> {
   }
 }
 
+async function loadCrGroundingOverlay(): Promise<CrGroundingOverlay | null> {
+  try {
+    const source = await readFile(CR_GROUNDING_OVERLAY_PATH, 'utf8');
+    return JSON.parse(source) as CrGroundingOverlay;
+  } catch {
+    return null;
+  }
+}
+
 function requiredReport(reports: Map<string, LoadedReport>, path: string): LoadedReport {
   return reports.get(path) ?? { path, data: null, error: 'report was not loaded' };
 }
@@ -593,12 +620,59 @@ function renderMarkdown(scorecard: GateScorecard): string {
       (oracle) => `| ${cell(oracle.name)} | ${oracle.sampleSize} | ${percent(oracle.rate)} |`,
     ),
     '',
+    ...renderCrGroundingOverlay(scorecard),
+    '',
     '## Verdict',
     '',
+    `- Legacy seven-condition verdict: ${scorecard.legacyFrozen === true ? 'FROZEN' : 'NOT FROZEN'}`,
+    `- CR-grounding overlay: ${scorecard.crGroundingOverlayApproved === true ? 'APPROVED' : 'NOT APPROVED'}`,
+    ...(scorecard.crGroundingOverlayProblems !== undefined &&
+    scorecard.crGroundingOverlayProblems.length > 0
+      ? [
+          '',
+          '### CR-grounding Overlay Problems',
+          '',
+          ...scorecard.crGroundingOverlayProblems.map((problem) => `- ${problem}`),
+          '',
+        ]
+      : []),
     `**${scorecard.frozen ? 'FROZEN' : 'NOT FROZEN'}**`,
+    '',
+    '> M-CR-RECONCILE overlay is included. `PARTIAL`, `PASS(core)`, and `PASS(boundary)` are not plain PASS; remaining boundaries are displayed below and must remain out of green coverage.',
     '',
   ];
   return `${lines.join('\n')}\n`;
+}
+
+function renderCrGroundingOverlay(scorecard: GateScorecard): string[] {
+  if (scorecard.crGroundingOverlay === undefined) {
+    return ['## CR-grounding Overlay', '', 'CR-grounding overlay missing.', ''];
+  }
+
+  const overlay = scorecard.crGroundingOverlay;
+  return [
+    '## CR-grounding Overlay',
+    '',
+    `- CR version: ${cell(overlay.crVersion)}`,
+    `- Overlay status: ${cell(overlay.status)}`,
+    '',
+    '| ID | Name | Status | Freeze treatment | Evidence | Remaining boundary |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...overlay.overlayConditions.map(
+      (condition) =>
+        `| ${cell(condition.id)} | ${cell(condition.name)} | ${cell(condition.status)} | ${cell(condition.freezeTreatment)} | ${cell(condition.evidence.join(', '))} | ${cell(condition.remainingBoundary ?? '-')} |`,
+    ),
+    '',
+    '## R-FREEZE Designs',
+    '',
+    '| ID | Status | Artifact | Decision direction |',
+    '| --- | --- | --- | --- |',
+    ...overlay.rFreezeDesigns.map(
+      (design) =>
+        `| ${cell(design.id)} | ${cell(design.status)} | ${cell(design.artifact)} | ${cell(design.decisionDirection)} |`,
+    ),
+    '',
+  ];
 }
 
 function formatMetric(value: number | null): string {
