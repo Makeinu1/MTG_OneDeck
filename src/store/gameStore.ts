@@ -31,8 +31,10 @@ import {
 import type {
   CardInstance,
   GameState,
+  PendingRuleChoice,
   PendingSbaChoice,
   PendingTrigger,
+  RuleChoiceSelection,
   ZoneChangeEvent,
   ZoneId,
 } from '../engine/types';
@@ -86,6 +88,8 @@ const PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING =
   '優先権前の固定点処理で新しい誘発が発生しました。順序を指定してください。';
 const PRIORITY_TRIGGER_FIXED_POINT_LIMIT_WARNING =
   '優先権前の固定点処理が上限に達しました。盤面を確認してください。';
+const PRIORITY_RULE_CHOICE_PENDING_WARNING =
+  '優先権前に解決するルール選択が残っています。先に pending rule choice を解決してください。';
 
 export type { TriggerCandidate } from '../engine/triggers';
 
@@ -153,6 +157,26 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
   return changed ? out : cards;
 }
 
+function normalizePendingRuleChoices(state: GameState): PendingRuleChoice[] {
+  const snapshot = state as Partial<GameState>;
+  const current = Array.isArray(snapshot.pendingRuleChoices)
+    ? snapshot.pendingRuleChoices
+    : [];
+  const legacy = Array.isArray(snapshot.pendingSbaChoices)
+    ? snapshot.pendingSbaChoices
+    : [];
+  const choices: PendingRuleChoice[] = [];
+  const seenIds = new Set<string>();
+
+  for (const choice of [...current, ...legacy]) {
+    if (seenIds.has(choice.choiceId)) continue;
+    choices.push(choice);
+    seenIds.add(choice.choiceId);
+  }
+
+  return choices;
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
@@ -179,9 +203,8 @@ function normalizeSnapshotState(state: GameState): GameState {
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
     eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
     pendingTriggers,
-    pendingSbaChoices: Array.isArray(state.pendingSbaChoices)
-      ? state.pendingSbaChoices
-      : [],
+    pendingRuleChoices: normalizePendingRuleChoices(state),
+    pendingSbaChoices: [],
   };
 }
 
@@ -232,21 +255,27 @@ function removePendingTriggersById(
     : { ...state, pendingTriggers };
 }
 
-function appendPendingSbaChoice(state: GameState, choice: PendingSbaChoice): GameState {
-  const choices = Array.isArray(state.pendingSbaChoices) ? state.pendingSbaChoices : [];
+function appendPendingRuleChoice(state: GameState, choice: PendingRuleChoice): GameState {
+  const choices = Array.isArray(state.pendingRuleChoices) ? state.pendingRuleChoices : [];
   if (choices.some((existing) => existing.choiceId === choice.choiceId)) {
     return state;
   }
   return {
     ...state,
-    pendingSbaChoices: [...choices, choice],
+    pendingRuleChoices: [...choices, choice],
+    pendingSbaChoices: [],
   };
 }
 
-function removePendingSbaChoiceById(state: GameState, choiceId: string): GameState {
-  const choices = Array.isArray(state.pendingSbaChoices) ? state.pendingSbaChoices : [];
-  const pendingSbaChoices = choices.filter((choice) => choice.choiceId !== choiceId);
-  return pendingSbaChoices.length === choices.length ? state : { ...state, pendingSbaChoices };
+function removePendingRuleChoiceById(state: GameState, choiceId: string): GameState {
+  const choices = Array.isArray(state.pendingRuleChoices) ? state.pendingRuleChoices : [];
+  const legacyChoices = Array.isArray(state.pendingSbaChoices) ? state.pendingSbaChoices : [];
+  const pendingRuleChoices = choices.filter((choice) => choice.choiceId !== choiceId);
+  const pendingSbaChoices = legacyChoices.filter((choice) => choice.choiceId !== choiceId);
+  return pendingRuleChoices.length === choices.length &&
+    pendingSbaChoices.length === legacyChoices.length
+    ? state
+    : { ...state, pendingRuleChoices, pendingSbaChoices };
 }
 
 function lastZoneChangeEventTo(
@@ -416,6 +445,7 @@ export interface GameStore {
     kind: 'activated' | 'triggered',
     abilityLineIndex?: number
   ): void;
+  resolveRuleChoice(choiceId: string, selection: RuleChoiceSelection): void;
   putPendingTriggerOnStack(pendingTriggerId: string): void;
   putPendingTriggersOnStack(pendingTriggerIds: string[]): void;
   placePendingTriggersForPriority(pendingTriggerIds: string[]): void;
@@ -494,6 +524,96 @@ function appendLog(state: GameState, message: string): GameState {
         message,
       },
     ],
+  };
+}
+
+function resolveRuleChoiceInState(
+  state: GameState,
+  choiceId: string,
+  selection: RuleChoiceSelection,
+): ApplyResult {
+  const pendingRuleChoices = Array.isArray(state.pendingRuleChoices)
+    ? state.pendingRuleChoices
+    : [];
+  const choice = pendingRuleChoices.find((entry) => entry.choiceId === choiceId);
+  if (!choice) {
+    return {
+      state,
+      warnings: [`ルール選択が見つかりません: ${choiceId}`],
+    };
+  }
+
+  if (choice.kind === 'commander-zone') {
+    if (selection.kind !== 'commander-zone') {
+      return {
+        state,
+        warnings: [`ルール選択の種類が一致しません: ${choiceId}`],
+      };
+    }
+    if (!selection.toCommandZone) {
+      return {
+        state: removePendingRuleChoiceById(state, choiceId),
+        warnings: [],
+      };
+    }
+
+    const card = state.cards[choice.cardId];
+    if (!card || card.zone !== choice.fromZone) {
+      return {
+        state: removePendingRuleChoiceById(state, choiceId),
+        warnings: [],
+      };
+    }
+
+    const moved = applyCommand(state, {
+      type: 'moveCard',
+      cardId: choice.cardId,
+      to: choice.toZone,
+      position: 'top',
+      reason: 'sba',
+      sbaApplied: choice.ruleRef,
+      simultaneousGroupId: choice.choiceId,
+    });
+    return {
+      state: removePendingRuleChoiceById(moved.state, choiceId),
+      warnings: moved.warnings,
+    };
+  }
+
+  if (selection.kind !== 'legend-rule') {
+    return {
+      state,
+      warnings: [`ルール選択の種類が一致しません: ${choiceId}`],
+    };
+  }
+
+  if (!choice.cardIds.includes(selection.keepCardId)) {
+    return {
+      state,
+      warnings: [`レジェンド・ルールで残すカードが選択肢にありません: ${selection.keepCardId}`],
+    };
+  }
+
+  const commands: GameCommand[] = choice.cardIds.flatMap((cardId) => {
+    const card = state.cards[cardId];
+    return card && card.zone === 'battlefield' && cardId !== selection.keepCardId
+      ? [
+          {
+            type: 'moveCard',
+            cardId,
+            to: 'graveyard',
+            position: 'bottom',
+            reason: 'sba',
+            sbaApplied: choice.ruleRef,
+            simultaneousGroupId: choice.choiceId,
+          } satisfies GameCommand,
+        ]
+      : [];
+  });
+  const resolved = commands.length > 0 ? applyCommands(state, commands) : { state, warnings: [] };
+  return {
+    state: removePendingRuleChoiceById(resolved.state, choiceId),
+    warnings: resolved.warnings,
   };
 }
 
@@ -967,21 +1087,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       const card = cur.cards[cardId];
       if (!card || !isCommander(cur, cardId)) return;
 
-      if (!toCommandZone) {
-        dispatch({
-          type: 'moveCard',
-          cardId,
-          to,
-          position: to === 'stack' ? 'bottom' : 'top',
-        });
-        return;
-      }
-
       // CR 903.9a: graveyard/exile are not replacement effects. The commander
       // is put into that zone first, relevant death/LTB pending triggers are
-      // collected from the zone-change event, then the SBA-like command move is
-      // applied before priority. This is still a store-level bridge; the full
-      // SBA loop remains Z4 work.
+      // collected from the zone-change event, then the generic rule-choice
+      // substrate resolves whether to move it to command before priority.
       if (to === 'graveyard' || to === 'exile') {
         try {
           const toDestination = applyCommand(cur, {
@@ -992,21 +1101,15 @@ export const useGameStore = create<GameStore>((set, get) => {
           });
           const choice = commanderZoneSbaChoiceFromMove(toDestination.state, cardId, to);
           const withPendingChoice = choice
-            ? appendPendingSbaChoice(toDestination.state, choice)
+            ? appendPendingRuleChoice(toDestination.state, choice)
             : toDestination.state;
-          const toCommand = applyCommand(withPendingChoice, {
-            type: 'moveCard',
-            cardId,
-            to: 'command',
-            position: 'top',
-            reason: 'sba',
-            sbaApplied: '903.9a',
-            ...(choice ? { simultaneousGroupId: choice.choiceId } : {}),
-          });
           const resolved = choice
-            ? removePendingSbaChoiceById(toCommand.state, choice.choiceId)
-            : toCommand.state;
-          commit(resolved, [...toDestination.warnings, ...toCommand.warnings]);
+            ? resolveRuleChoiceInState(withPendingChoice, choice.choiceId, {
+                kind: 'commander-zone',
+                toCommandZone,
+              })
+            : { state: withPendingChoice, warnings: [] };
+          commit(resolved.state, [...toDestination.warnings, ...resolved.warnings]);
         } catch (err) {
           if (err instanceof EngineError) {
             console.error(err.message);
@@ -1014,6 +1117,16 @@ export const useGameStore = create<GameStore>((set, get) => {
             console.error(err);
           }
         }
+        return;
+      }
+
+      if (!toCommandZone) {
+        dispatch({
+          type: 'moveCard',
+          cardId,
+          to,
+          position: to === 'stack' ? 'bottom' : 'top',
+        });
         return;
       }
 
@@ -1416,6 +1529,22 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     },
 
+    resolveRuleChoice(choiceId, selection) {
+      const cur = get().state;
+      if (!cur) return;
+
+      try {
+        const result = resolveRuleChoiceInState(cur, choiceId, selection);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
+    },
+
     putPendingTriggerOnStack(pendingTriggerId) {
       get().putPendingTriggersOnStack([pendingTriggerId]);
     },
@@ -1464,7 +1593,20 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     placePendingTriggersForPriority(pendingTriggerIds) {
       const cur = get().state;
-      if (!cur || cur.pendingTriggers.length === 0) return;
+      if (!cur) return;
+      const pendingRuleChoices = Array.isArray(cur.pendingRuleChoices)
+        ? cur.pendingRuleChoices
+        : [];
+      if (pendingRuleChoices.length > 0) {
+        set({
+          warnings: [
+            ...get().warnings,
+            PRIORITY_RULE_CHOICE_PENDING_WARNING,
+          ],
+        });
+        return;
+      }
+      if (cur.pendingTriggers.length === 0) return;
 
       const orderResult = orderPendingTriggersApnap(
         cur.pendingTriggers,

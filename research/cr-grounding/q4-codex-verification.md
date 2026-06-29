@@ -9,7 +9,7 @@ Purpose: record the Codex-owned part of M0-FREEZE Q4. This is not Fable final ap
 
 Codex verification for Q4 passes.
 
-Q5 post-freeze implementation is still gated by Fable final approval. The current queue records `M0-FREEZE final approval` as pending, so Codex must not start S-CHOICE, S-EVENTS, S-SBA, S-ZONES/S-LAYERS, or C-GRAMMAR implementation from this artifact alone.
+Fable final approval is now recorded in `m0-freeze-execution-queue.md` and `m0-freeze-decision-record.md`, so Q5 is unblocked. The approval record also says Q5 should start in a new session from S-CHOICE/S-TURN; do not treat this Codex verification artifact alone as authorization to skip the session boundary.
 
 ## Evidence
 
@@ -24,7 +24,7 @@ Codex audit consistency:
 - `node research/cr-grounding/verify-q4-codex-audit.mjs`
 - Result: pass
 - Checks Q1 docs contract verifier, Q2 scorecard output verifier, source overlay vs embedded scorecard overlay, total `frozen` equation, scorecard Markdown sections, status preservation, and required docs anchors.
-- Reports Fable final approval separately; missing final approval is not a Codex audit failure, but it blocks Q5.
+- Reports Fable final approval separately. Current result: recorded.
 
 Q2/Q3 scorecard output:
 
@@ -52,8 +52,8 @@ Machine checks:
 - `scripts/m-contract-gate.ts` reads `research/cr-grounding/m0-freeze-overlay.json`.
 - `scripts/lib/mContractGate.ts` rejects missing overlay, `FAIL`, unknown treatment, and partial/core/boundary conditions without `remainingBoundary`.
 - Scorecard JSON and Markdown preserve `PARTIAL`, `PASS(core)`, and `PASS(boundary)`.
-- No final approval record was found. `research/cr-grounding/m0-freeze-execution-queue.md` still lists `M0-FREEZE final approval` as pending.
+- Final approval record is present. `research/cr-grounding/m0-freeze-execution-queue.md` lists `M0-FREEZE final approval` as approved by Fable.
 
 ## Next required owner action
 
-Fable must perform Q4 final audit and either record M0-FREEZE final approval or return a concrete rejection/hold reason. Only after that approval may Codex execute Q5.
+Start Q5 in a new session from S-CHOICE/S-TURN, following `post-freeze-codex-brief.md`.

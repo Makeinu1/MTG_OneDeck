@@ -124,7 +124,7 @@ export interface PendingTrigger {
   abilityLineIndex?: number;
 }
 
-export interface CommanderZoneSbaChoice {
+export interface CommanderZoneRuleChoice {
   choiceId: string;
   kind: 'commander-zone';
   ruleRef: '903.9a';
@@ -136,7 +136,22 @@ export interface CommanderZoneSbaChoice {
   controllerId: PlayerId;
 }
 
-export type PendingSbaChoice = CommanderZoneSbaChoice;
+export interface LegendRuleChoice {
+  choiceId: string;
+  kind: 'legend-rule';
+  ruleRef: '704.5j';
+  controllerId: PlayerId;
+  name: string;
+  cardIds: PhysicalCardId[];
+}
+
+export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice;
+
+export type PendingSbaChoice = CommanderZoneRuleChoice;
+
+export type RuleChoiceSelection =
+  | { kind: 'commander-zone'; toCommandZone: boolean }
+  | { kind: 'legend-rule'; keepCardId: PhysicalCardId };
 
 export interface CommanderInfo {
   cardId: string; // CardInstance.id
@@ -172,6 +187,7 @@ export interface GameState {
   drawnThisTurn: number;
   eventLog: GameEvent[];
   pendingTriggers: PendingTrigger[];
+  pendingRuleChoices: PendingRuleChoice[];
   pendingSbaChoices: PendingSbaChoice[];
   log: LogEntry[];
 }

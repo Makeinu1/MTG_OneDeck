@@ -17,6 +17,7 @@ import type {
   CardInstance,
   GameEvent,
   GameState,
+  LegendRuleChoice,
   LogEntry,
   ManaPool,
   ObjectSnapshot,
@@ -151,6 +152,9 @@ function makeDraft(state: GameState): Draft {
       eventLog: eventLog.slice(),
       pendingTriggers: Array.isArray(state.pendingTriggers)
         ? state.pendingTriggers.slice()
+        : [],
+      pendingRuleChoices: Array.isArray(state.pendingRuleChoices)
+        ? state.pendingRuleChoices.slice()
         : [],
       pendingSbaChoices: Array.isArray(state.pendingSbaChoices)
         ? state.pendingSbaChoices.slice()
@@ -373,6 +377,69 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
   };
 }
 
+function nameForLegendRule(draft: Draft, card: CardInstance): string {
+  const def = draft.state.defs[card.defId];
+  const face = currentFaceOf(draft, card);
+  return face?.name ?? def?.name ?? card.defId;
+}
+
+function isLegendaryPermanent(draft: Draft, card: CardInstance): boolean {
+  return card.zone === 'battlefield' && /\bLegendary\b/i.test(typeLineOf(draft, card));
+}
+
+function legendRuleChoiceId(
+  controllerId: LegendRuleChoice['controllerId'],
+  name: string,
+  cardIds: readonly string[]
+): string {
+  return `704.5j:${controllerId}:${name}:${cardIds.slice().sort().join(',')}`;
+}
+
+function pendingLegendRuleChoices(draft: Draft): LegendRuleChoice[] {
+  const groups = new Map<
+    string,
+    { controllerId: LegendRuleChoice['controllerId']; name: string; cardIds: string[] }
+  >();
+
+  for (const card of Object.values(draft.state.cards)) {
+    if (!isLegendaryPermanent(draft, card)) continue;
+    const controllerId = card.controllerId;
+    const name = nameForLegendRule(draft, card);
+    const key = `${controllerId}\u0000${name}`;
+    const group = groups.get(key) ?? { controllerId, name, cardIds: [] };
+    group.cardIds.push(card.id);
+    groups.set(key, group);
+  }
+
+  return [...groups.values()]
+    .filter((group) => group.cardIds.length >= 2)
+    .map((group) => {
+      const cardIds = group.cardIds.slice().sort();
+      return {
+        choiceId: legendRuleChoiceId(group.controllerId, group.name, cardIds),
+        kind: 'legend-rule',
+        ruleRef: '704.5j',
+        controllerId: group.controllerId,
+        name: group.name,
+        cardIds,
+      } satisfies LegendRuleChoice;
+    })
+    .sort((left, right) => left.choiceId.localeCompare(right.choiceId));
+}
+
+function appendPendingRuleChoices(draft: Draft, choices: readonly LegendRuleChoice[]): boolean {
+  if (choices.length === 0) return false;
+
+  const existingIds = new Set(
+    draft.state.pendingRuleChoices.map((choice) => choice.choiceId)
+  );
+  const additions = choices.filter((choice) => !existingIds.has(choice.choiceId));
+  if (additions.length === 0) return false;
+
+  draft.state.pendingRuleChoices = [...draft.state.pendingRuleChoices, ...additions];
+  return true;
+}
+
 /** Core move. Handles disappearance rules, state reset, and destination ordering. */
 function moveCardInternal(
   draft: Draft,
@@ -455,6 +522,10 @@ function moveCardInternal(
 }
 
 function performStateBasedActionsOnce(draft: Draft): boolean {
+  if (draft.state.pendingRuleChoices.length > 0) {
+    return false;
+  }
+
   const simultaneousGroupId = `sba-${draft.nextEventSeq}`;
   const zeroToughnessCreatureIds = Object.values(draft.state.cards).flatMap((card) => {
     if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Creature')) {
@@ -488,7 +559,7 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     offBattlefieldTokenIds.length === 0 &&
     counterPairIds.length === 0
   ) {
-    return false;
+    return appendPendingRuleChoices(draft, pendingLegendRuleChoices(draft));
   }
 
   for (const cardId of zeroToughnessCreatureIds) {

@@ -109,6 +109,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     drawnThisTurn: 0,
     eventLog: [],
     pendingTriggers: [],
+    pendingRuleChoices: [],
     pendingSbaChoices: [],
     log,
   };

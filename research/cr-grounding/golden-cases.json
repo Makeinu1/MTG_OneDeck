@@ -76,15 +76,109 @@
         "統率領域へ戻したことを理由に死亡誘発を消さない。"
       ],
       "implementationRefs": [
-        "src/store/gameStore.ts moveCommanderWithZoneChoice applies a graveyard/exile intermediate state for detection, creates and resolves pendingSbaChoices substrate v1, then moves the commander to command in one history entry",
+        "src/store/gameStore.ts moveCommanderWithZoneChoice applies a graveyard/exile intermediate state for detection, creates a pendingRuleChoices commander-zone entry, and resolves it through resolveRuleChoiceInState in the current dialog flow",
+        "src/store/gameStore.ts normalizePendingRuleChoices migrates legacy pendingSbaChoices snapshots into pendingRuleChoices and clears pendingSbaChoices",
         "src/engine/commands.ts supports moveCard event metadata so the command-zone follow-up move is recorded as reason='sba' with sbaApplied='903.9a'",
         "src/engine/triggers.ts collects pending death/leaves triggers from ZoneChangeEvent before the commander is moved to command",
-        "src/store/__tests__/crGrounding.test.ts covers graveyard death and exile leaves candidates, empty resolved pendingSbaChoices, and the 903.9a SBA follow-up event when command is chosen",
+        "src/store/__tests__/ruleChoices.test.ts covers cr-commander-9039a-rule-choice pendingRuleChoices migration and the 903.9a SBA follow-up event when command is chosen",
         "src/components/playmat/Playmat.test.tsx covers the CR 903.9a commander dialog path"
       ],
       "currentImplementationGapRefs": [
-        "This is still a store-level transaction bridge, not a deferred user choice inside stabilizeBeforePriority()",
-        "commander 903.9a pendingSbaChoices is not yet integrated with a general priority-boundary choice UI"
+        "Generic priority-boundary choice substrate (pendingRuleChoices) is implemented, including legacy pendingSbaChoices snapshot migration and resolveRuleChoiceInState resolution",
+        "commander 903.9a currently resolves the dialog answer immediately through the store flow; only the deferred priority-boundary choice UI remains future work"
+      ]
+    },
+    {
+      "id": "cr-commander-9039a-rule-choice",
+      "title": "統率者903.9aの墓地/追放SBA選択は汎用pendingRuleChoicesで表現される",
+      "crRefs": ["903.9a", "704.6d", "603.6c", "603.10a", "117.5"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "isCommander": true,
+        "hasDeathTriggerWatcher": true,
+        "choiceSubstrate": "pendingRuleChoices"
+      },
+      "steps": [
+        "戦場の統率者を destroy/sacrifice 等で graveyard または exile へ置く。",
+        "battlefield -> graveyard/exile の zone-change event を発行し、死亡/離脱誘発を pendingTriggers に記録する。",
+        "プレイヤーが優先権を得る前に CR 903.9a の commander-zone rule choice を pendingRuleChoices に生成する。",
+        "move-to-command を選んだ場合は resolveRuleChoiceInState で command へ移す。",
+        "leave-in-zone を選んだ場合は同じ choice を解決済みにし、card を graveyard/exile に残す。"
+      ],
+      "requiredObservations": [
+        "battlefield -> graveyard/exile の zone-change event が command への後続 event より先に存在する。",
+        "死亡/離脱誘発は pendingRuleChoices 生成中および command へ移した後も保持される。",
+        "pendingRuleChoices[0].kind === 'commander-zone' かつ ruleRef === '903.9a' で、発生元 eventId/sourceObjectId に接地している。",
+        "live state の選択基盤は commander 専用 pendingSbaChoices ではなく pendingRuleChoices であり、legacy pendingSbaChoices snapshot は restore 時に pendingRuleChoices へ正規化される。",
+        "move-to-command 解決では graveyard/exile -> command の event が reason='sba' / sbaApplied='903.9a' / simultaneousGroupId=choiceId を持つ。",
+        "leave-in-zone 解決では command への event は発生せず、card は graveyard/exile に残る。"
+      ],
+      "mustNot": [
+        "graveyard/exile 行きを command 行きに事前置換しない。",
+        "903.9a の live choice を commander 専用 pendingSbaChoices substrate に戻さない。",
+        "統率領域へ移したことを理由に死亡/離脱誘発を消さない。",
+        "leave-in-zone 解決で command への zone-change event を発行しない。"
+      ],
+      "implementationRefs": [
+        "src/store/gameStore.ts resolveRuleChoiceInState resolves commander-zone pendingRuleChoices and normalizePendingRuleChoices performs snapshot migration",
+        "src/engine/commands.ts moveCard event metadata records reason='sba', sbaApplied='903.9a', and simultaneousGroupId=choiceId on command-zone follow-up moves",
+        "src/store/__tests__/ruleChoices.test.ts covers cr-commander-9039a-rule-choice"
+      ],
+      "currentImplementationGapRefs": [
+        "Generic pendingRuleChoices substrate and 903.9a command event metadata are implemented",
+        "commander 903.9a currently resolves the dialog answer immediately through the store flow; only the deferred priority-boundary choice UI remains future work"
+      ]
+    },
+    {
+      "id": "cr-legend-rule-choice",
+      "title": "同一controllerの同名legendary permanentは704.5jのlegend-rule choiceで残す1つを選ぶ",
+      "crRefs": ["704.5j", "117.5", "704.3"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "controllerId": "P1",
+        "permanents": [
+          {
+            "zone": "battlefield",
+            "typeLine": "Legendary Creature",
+            "name": "Shared Legend"
+          },
+          {
+            "zone": "battlefield",
+            "typeLine": "Legendary Creature",
+            "name": "Shared Legend",
+            "hasDeathTriggerWatcher": true
+          }
+        ]
+      },
+      "steps": [
+        "同一 controller が同名の legendary permanent を2つ以上 control する状態を作る。",
+        "プレイヤーが優先権を得る前に SBA を実行し、CR 704.5j の legend-rule choice を pendingRuleChoices に生成する。",
+        "controller は keepCardId として残す1つを必ず選ぶ。",
+        "keep 以外の object を owners' graveyards へ同時に置く。",
+        "墓地へ置かれた側の死亡誘発を pendingTriggers に保持する。"
+      ],
+      "requiredObservations": [
+        "pendingRuleChoices に kind='legend-rule' / ruleRef='704.5j' / controllerId / name / cardIds を持つ choice が生成される。",
+        "keep selection は必須であり、keepCardId は choice.cardIds 内から選ぶ。",
+        "keep に選んだ permanent は battlefield に残る。",
+        "keep 以外の permanent は graveyard へ移り、それぞれの zone-change event は reason='sba' / sbaApplied='704.5j' / simultaneousGroupId=choiceId を持つ。",
+        "墓地へ置かれた側の death trigger は pendingTriggers に保持される。"
+      ],
+      "mustNot": [
+        "controller の選択なしに任意の1枚を自動で残さない。",
+        "keep 以外を異なる simultaneousGroupId で処理しない。",
+        "keep に選んだ permanent を墓地へ置かない。",
+        "墓地へ置かれた側の死亡誘発を消さない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts pendingLegendRuleChoices creates legend-rule pendingRuleChoices and performStateBasedActionsOnce pauses SBA while choices are pending",
+        "src/store/gameStore.ts resolveRuleChoiceInState resolves legend-rule choices by moving unchosen legends to graveyard with SBA metadata",
+        "src/store/__tests__/ruleChoices.test.ts covers cr-legend-rule-choice"
+      ],
+      "currentImplementationGapRefs": [
+        "Legend-rule pendingRuleChoices generation and resolveRuleChoiceInState resolution are implemented",
+        "Only the deferred priority-boundary choice UI remains future work"
       ]
     },
     {
