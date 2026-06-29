@@ -1,0 +1,386 @@
+{
+  "object": "mtg_onedeck_cr_grounding_golden_cases",
+  "crVersion": "2026-06-19",
+  "crSource": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt",
+  "localCrMetadata": "rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json",
+  "purpose": "CR全文を参照資料ではなく検査器として使うための、実装前/実装中ゴールデンケース。現行 golden replay が eventLog/pendingTriggers/sourceSnapshot を表現できるまでは、CR-grounding専用テストで実行可能化する。",
+  "status": "contract-gold-partially-executable",
+  "executableSubsetTest": "src/store/__tests__/crGroundingGoldenCases.test.ts",
+  "executableCaseIds": [
+    "cr-token-dies-before-ceases",
+    "cr-trigger-sba-priority-loop",
+    "cr-sba-copy-ceases-outside-stack",
+    "cr-sba-zero-loyalty-planeswalker",
+    "cr-sba-plus-minus-counter-annihilation",
+    "cr-zone-change-new-object-lki"
+  ],
+  "cases": [
+    {
+      "id": "cr-commander-tax-cast-not-return",
+      "title": "統率者税は戻し時ではなく統率領域からのキャスト完了時に増える",
+      "crRefs": ["903.8", "601.2i"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "command",
+        "isCommander": true,
+        "castCount": 0
+      },
+      "steps": [
+        "統率者を command から castToStack する。",
+        "CR 601.2i の spell becomes cast 時点まで進める。",
+        "その後、統率者を戦場経由で graveyard へ置き、SBA/確認で command へ戻す。",
+        "再度 command から castToStack する。"
+      ],
+      "requiredObservations": [
+        "初回キャストで支払う統率税は +0。",
+        "初回キャスト完了後に castCount は 1。",
+        "graveyard/exile から command へ戻す操作だけでは castCount は変化しない。",
+        "2回目の command からのキャストで支払う統率税は +2。",
+        "2回目のキャスト完了後に castCount は 2。"
+      ],
+      "mustNot": [
+        "moveCard to command を castCount 加算契機にしない。",
+        "hand/graveyard/exile など command 以外から唱えた将来ケースを CR 903.8 の過去回数に入れない。"
+      ],
+      "implementationRefs": [
+        "docs/engine-spec.md §15 was corrected by M-CR-RECONCILE",
+        "src/engine/commands.ts increments castCount on command-zone castToStack/castCommander and no longer increments on moveCard to command",
+        "src/engine/__tests__/m431.test.ts and src/store/__tests__/review.m431.test.ts cover the CR 903.8 timing"
+      ]
+    },
+    {
+      "id": "cr-commander-graveyard-exile-sba-not-replacement",
+      "title": "統率者が墓地/追放へ行く場合は一度その領域へ置かれ、死亡/離脱誘発を保持してからSBAで統率領域へ移せる",
+      "crRefs": ["903.9a", "704.6d", "603.6c", "603.10a", "117.5"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "isCommander": true,
+        "hasDeathTriggerWatcher": true
+      },
+      "steps": [
+        "戦場の統率者を destroy/sacrifice 等で graveyard へ置く。",
+        "zone-change event を発行する。",
+        "死亡/離脱誘発を pendingTriggers に記録する。",
+        "プレイヤーが優先権を得る前に SBA を実行し、オーナーが command へ移す選択を行う。",
+        "pendingTriggers を APNAP/選択順でスタックへ置く。"
+      ],
+      "requiredObservations": [
+        "battlefield -> graveyard の zone-change event が存在する。",
+        "死亡/離脱誘発は統率領域へ移しても失われない。",
+        "command への移動は SBA による後続イベントであり、graveyard 行きを置換しない。",
+        "castCount はこの一連の戻し処理では変化しない。"
+      ],
+      "mustNot": [
+        "graveyard/exile 行きを command 行きに事前置換しない。",
+        "統率領域へ戻したことを理由に死亡誘発を消さない。"
+      ],
+      "implementationRefs": [
+        "src/store/gameStore.ts moveCommanderWithZoneChoice applies a graveyard/exile intermediate state for detection, creates and resolves pendingSbaChoices substrate v1, then moves the commander to command in one history entry",
+        "src/engine/commands.ts supports moveCard event metadata so the command-zone follow-up move is recorded as reason='sba' with sbaApplied='903.9a'",
+        "src/engine/triggers.ts collects pending death/leaves triggers from ZoneChangeEvent before the commander is moved to command",
+        "src/store/__tests__/crGrounding.test.ts covers graveyard death and exile leaves candidates, empty resolved pendingSbaChoices, and the 903.9a SBA follow-up event when command is chosen",
+        "src/components/playmat/Playmat.test.tsx covers the CR 903.9a commander dialog path"
+      ],
+      "currentImplementationGapRefs": [
+        "This is still a store-level transaction bridge, not a deferred user choice inside stabilizeBeforePriority()",
+        "commander 903.9a pendingSbaChoices is not yet integrated with a general priority-boundary choice UI"
+      ]
+    },
+    {
+      "id": "cr-sba-copy-ceases-outside-stack",
+      "title": "スタック以外の領域にある呪文コピーはSBAで消滅する",
+      "crRefs": ["704.3", "704.5e", "707.10a", "117.5"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "hand",
+        "isCopy": true
+      },
+      "steps": [
+        "コピーオブジェクトが stack 以外の zone に存在する状態を作る。",
+        "次に優先権を得る前のSBAとして 704.5e を実行する。",
+        "その copy object を cards/zones から削除し、cease event を残す。"
+      ],
+      "requiredObservations": [
+        "copy object は最終 state の cards/zones に存在しない。",
+        "zone-change event は reason='copy-cease' / sbaApplied='704.5e' を持つ。",
+        "この処理は stack item や graveyard card を作らない。"
+      ],
+      "mustNot": [
+        "copy を墓地や手札にカードとして残さない。",
+        "copy cease を token cease と同じ reason に潰さない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performStateBasedActionsOnce handles CR 704.5e",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-commander-hand-library-replacement",
+      "title": "統率者が手札/ライブラリーへ行く場合は置換効果として統率領域へ行ける",
+      "crRefs": ["903.9b", "614.5", "400.7"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "isCommander": true
+      },
+      "steps": [
+        "統率者を owner hand または library へ put する効果を適用しようとする。",
+        "オーナーに CR 903.9b の replacement choice を提示する。",
+        "command を選んだ場合、実際の zone-change は battlefield -> command として記録する。"
+      ],
+      "requiredObservations": [
+        "hand/library 行きは graveyard/exile と異なり、SBA後処理ではなく replacement effect。",
+        "command を選んだ場合、hand/library に一度置かれた zone-change event は発生しない。",
+        "いずれの選択でも castCount は変化しない。"
+      ],
+      "mustNot": [
+        "graveyard/exile の SBA モデルと hand/library の replacement モデルを同じ処理にしない。"
+      ],
+      "implementationRefs": [
+        "src/store/gameStore.ts moveCommanderWithZoneChoice sends hand/library choices directly to command when command is chosen",
+        "src/components/playmat/Playmat.tsx only opens commander zone choices for graveyard/exile/hand/library destinations, not generic battlefield/stack movement",
+        "src/store/__tests__/crGrounding.test.ts covers hand replacement without an intermediate hand zone move",
+        "src/store/__tests__/crGrounding.test.ts covers absence of an intermediate hand ZoneChangeEvent"
+      ]
+    },
+    {
+      "id": "cr-mana-ability-no-stack",
+      "title": "起動型マナ能力はスタックに置かれず即解決する",
+      "crRefs": ["605.1a", "605.3b", "405.6c"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "oracleText": "{T}: Add {G}.",
+        "tapped": false,
+        "manaPool": {}
+      },
+      "steps": [
+        "対象を取らず、解決時にマナを加え、忠誠度能力でない起動型能力を起動する。"
+      ],
+      "requiredObservations": [
+        "コストとして source は tapped=true になる。",
+        "能力オブジェクトは stack に追加されない。",
+        "マナは同一操作内で即座に manaPool へ加算される。"
+      ],
+      "mustNot": [
+        "addAbilityToStack を経由しない。",
+        "effectsAuto OFF を理由にマナ能力を通常能力としてスタック化しない。"
+      ],
+      "implementationRefs": [
+        "src/store/gameStore.ts tapForMana shortcut resolves mana immediately",
+        "src/engine/commands.ts activatedManaAbilityPlanForSource handles simple CR 605 activated mana abilities without addAbilityToStack",
+        "src/store/gameStore.ts activateAbility dispatches simple mana abilities through the no-stack path",
+        "src/engine/__tests__/review.g4-activate.test.ts and src/engine/__tests__/gameStore.test.ts cover simple {T}: Add {G}"
+      ],
+      "currentImplementationGapRefs": [
+        "triggered mana abilities are still pending the event/pending-trigger model; do not mark CR 605 complete solely from the activated-mana test"
+      ]
+    },
+    {
+      "id": "cr-token-dies-before-ceases",
+      "title": "トークンは battlefield 外へ移動した後、誘発確認を経てSBAで消滅する",
+      "crRefs": ["111.7", "704.5d", "603.6c", "117.5"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "isToken": true,
+        "oracleText": "When this token dies, it deals 1 damage to any target."
+      },
+      "steps": [
+        "トークンを battlefield から graveyard へ置く。",
+        "zone-change event を発行し、死亡誘発を pendingTriggers に記録する。",
+        "優先権前の SBA で graveyard にある token object を cease-to-exist する。",
+        "pending trigger をスタックに置く。"
+      ],
+      "requiredObservations": [
+        "battlefield -> graveyard の event が存在する。",
+        "death trigger は token 消滅前に検出される。",
+        "最終状態では token はどの zone にも存在しない。",
+        "trigger object は token object の消滅後も stack 上に残れる。"
+      ],
+      "mustNot": [
+        "battlefield から移動する瞬間に token を即削除して death/LTB trigger を失わない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts records a battlefield -> graveyard/exile ZoneChangeEvent before token cease",
+        "src/engine/triggers.ts collects the death pending trigger from event.before/sourceSnapshot",
+        "src/engine/commands.ts stabilizeBeforePriority applies CR 704.5d token cease and records reason:'token-cease'",
+        "src/store/gameStore.ts putPendingTriggerOnStack/putPendingTriggersOnStack creates triggered ability objects from sourceSnapshot even after the token source has ceased to exist",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ],
+      "currentImplementationGapRefs": [
+        "explicit-order pending trigger placement, complete-order priority boundary placement, APNAP controller-group ordering core v1, trigger ordering UI v1, and deterministic fixed-point v1 are implemented; full SBA suite remains future work"
+      ]
+    },
+    {
+      "id": "cr-trigger-sba-priority-loop",
+      "title": "誘発は即スタックではなく、優先権前のSBA/誘発ループで積まれる",
+      "crRefs": ["117.5", "603.3", "603.3b", "704.3", "704.5f", "704.5i", "704.5q"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "activePlayer": "P1",
+        "pendingTriggers": [],
+        "stack": []
+      },
+      "steps": [
+        "単一イベントで複数の誘発条件を満たす。",
+        "イベント直後は stack ではなく pendingTriggers に記録する。",
+        "次にプレイヤーが優先権を得る直前に stabilizeBeforePriority() を実行する。",
+        "SBA を固定点まで実行し、pending trigger を APNAP 順・同一プレイヤー内選択順で stack へ置き、必要なら再度 SBA を行う。"
+      ],
+      "requiredObservations": [
+        "イベント発生直後の stackDepth は増えない。",
+        "pendingTriggers は eventId/simultaneousGroupId/controllerAtEvent を持つ。",
+        "優先権付与前に stackDepth が増える。",
+        "SBA と trigger placement の反復で新たな SBA/誘発が出た場合も固定点まで処理する。"
+      ],
+      "mustNot": [
+        "event observer が addAbilityToStack を直接呼ばない。",
+        "SBA と trigger placement の順序を UI 操作順に依存させない。"
+      ],
+      "currentImplementationGapRefs": [
+        "Z3 implements pendingTriggers, records eventId/simultaneousGroupId/controllerId at trigger time, and prevents direct stack insertion at event time",
+        "Z5 adds explicit-order pendingTriggerId placement onto stack, including multi-trigger batch placement, complete-order priority boundary placement, and mixed-controller APNAP ordering core v1",
+        "M2 adds GameState.activePlayerId plus CardInstance ownerId/controllerId and records controller at event time",
+        "R1 adds orderPendingTriggersApnap and APNAP golden coverage for P1/OPPONENT_A controller groups",
+        "R2 adds TriggerCandidatePanel ordering controls and Playmat UI coverage for same-controller trigger ordering",
+        "R3 adds CR 704.5f toughness-zero SBA and deterministic priority-boundary fixed-point placement",
+        "R4 adds CR 704.5i zero-loyalty planeswalker and CR 704.5q +1/+1/-1/-1 counter annihilation",
+        "603.3b second-bucket handling and the remaining full SBA suite remain future work"
+      ]
+    },
+    {
+      "id": "cr-sba-zero-loyalty-planeswalker",
+      "title": "忠誠度0のプレインズウォーカーはSBAで墓地へ置かれる",
+      "crRefs": ["704.3", "704.5i", "117.5", "122.1e"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "typeLine": "Legendary Planeswalker",
+        "loyaltyCounters": 1
+      },
+      "steps": [
+        "戦場のプレインズウォーカーの忠誠カウンターを0にする。",
+        "次に優先権を得る前のSBAとして 704.5i を実行する。",
+        "battlefield -> graveyard の zone-change event を発行する。"
+      ],
+      "requiredObservations": [
+        "最終 zone は graveyard。",
+        "zone-change event は reason='sba' / sbaApplied='704.5i' を持つ。",
+        "この処理は stack を使わない。"
+      ],
+      "mustNot": [
+        "忠誠度0のプレインズウォーカーを戦場に残さない。",
+        "手動誘発候補や能力オブジェクトとして処理しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performStateBasedActionsOnce handles CR 704.5i",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-plus-minus-counter-annihilation",
+      "title": "+1/+1カウンターと-1/-1カウンターはSBAで同数相殺される",
+      "crRefs": ["704.3", "704.5q", "117.5", "122.3"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "zone": "battlefield",
+        "counters": {
+          "+1/+1": 2,
+          "-1/-1": 1
+        }
+      },
+      "steps": [
+        "戦場の permanent が +1/+1 と -1/-1 の両方のカウンターを持つ。",
+        "次に優先権を得る前のSBAとして 704.5q を実行する。",
+        "少ない方の個数 N だけ、両方のカウンターを取り除く。"
+      ],
+      "requiredObservations": [
+        "+1/+1 が 2、-1/-1 が 1 なら、処理後は +1/+1 が 1、-1/-1 は0になる。",
+        "この処理だけでは zone-change event を発行しない。",
+        "死亡する permanent の LKI は SBA 処理前の snapshot を使う。"
+      ],
+      "mustNot": [
+        "カウンターを片側だけ取り除かない。",
+        "704.5q を通常の addCounters 操作として user action 扱いしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performStateBasedActionsOnce handles CR 704.5q",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-zone-change-new-object-lki",
+      "title": "領域移動は原則として新オブジェクトになり、LKIが必要な誘発は移動前情報を読む",
+      "crRefs": ["400.7", "603.10a"],
+      "scope": "in-scope-before-s-events",
+      "initialFixture": {
+        "physicalCardId": "c1",
+        "objectId": "obj-1",
+        "zone": "battlefield",
+        "power": 2,
+        "toughness": 2
+      },
+      "steps": [
+        "battlefield の object obj-1 を graveyard へ移動する。",
+        "zone-change event に before/after snapshot と LKI を保存する。",
+        "移動後の墓地 object は同じ physicalCardId を持つが、新しい objectId または zoneChangeCounter を持つ。",
+        "leaves-the-battlefield trigger は before snapshot/LKI を参照する。"
+      ],
+      "requiredObservations": [
+        "physical card identity と zone incarnation identity が分離される。",
+        "移動後 object は CR 400.7 上の新オブジェクトとして扱われる。",
+        "LTB/death trigger は戦場にあった時点の controller/effective characteristics を読める。",
+        "公開ゾーンへ動いた場合の例外参照(CR 400.7e 等)は明示的に扱う。"
+      ],
+      "mustNot": [
+        "同じ cardId だけで zone incarnation を表現しない。",
+        "移動後の現在値で LTB 条件や controller を後読みしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/types.ts CardInstance.zoneChangeCounter and objectIdOf separate physical card identity from zone incarnation identity",
+        "src/engine/commands.ts records before/after ObjectSnapshot on ZoneChangeEvent",
+        "src/engine/triggers.ts stores pending trigger sourceSnapshot/sourceObjectId from event.before for LKI",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ],
+      "currentImplementationGapRefs": [
+        "CR 400.7 public-zone exception handling and full effective-characteristics snapshots remain future work"
+      ]
+    },
+    {
+      "id": "cr-20260619-new-mechanics-boundary",
+      "title": "2026-06-19 新規/更新メカニズムは未対応でもCR語彙として認識し、covered扱いにしない",
+      "crRefs": ["701.69", "702.193", "702.194", "722"],
+      "scope": "classification-and-boundary",
+      "initialFixture": {
+        "oracleTextExamples": [
+          "Heal damage already dealt to target creature.",
+          "Power-up — {5}{U}: Put a +1/+1 counter on this creature and draw two cards.",
+          "Teamwork 2",
+          "A permanent becomes prepared."
+        ]
+      },
+      "steps": [
+        "CR 701/702/722 の語彙抽出を 2026-06-19 版で実行する。",
+        "Heal/Power-up/Teamwork/Preparation を既知語彙として分類する。",
+        "実行器が未対応の場合は manual/scope-boundary として報告する。"
+      ],
+      "requiredObservations": [
+        "701.69 Heal は valid ruleRef。",
+        "Power-up は ability word ではなく CR 702.193 keyword ability。",
+        "Teamwork は CR 702.194 の追加コスト能力。",
+        "Preparation Cards は CR 722 のカード枠/コピー/準備 designation 機構。",
+        "未実装を coverage/pass に混ぜない。"
+      ],
+      "mustNot": [
+        "Power-up を単なる能力語ラベルとして処理しない。",
+        "旧 2026-04-17 CR 由来の 701.68 終端を最新扱いしない。"
+      ],
+      "currentImplementationGapRefs": [
+        "src/engine/grammar/rule-refs.ts now includes 701.69",
+        "docs/engine-spec.md §33.4 was corrected to treat Power-up as CR 702.193"
+      ]
+    }
+  ]
+}

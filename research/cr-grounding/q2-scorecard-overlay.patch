@@ -1,0 +1,409 @@
+diff --git a/scripts/lib/mContractGate.ts b/scripts/lib/mContractGate.ts
+--- a/scripts/lib/mContractGate.ts
++++ b/scripts/lib/mContractGate.ts
+@@ -3,6 +3,42 @@ export const UNVERIFIABLE_CEILING = 0.1;
+ 
+ export type GateStatus = 'PASS' | 'FAIL' | 'BLOCKED' | 'UNMEASURED';
+ 
++export type CrGroundingStatus =
++  | 'PASS'
++  | 'PASS(core)'
++  | 'PASS(boundary)'
++  | 'PARTIAL'
++  | 'FAIL';
++
++export interface CrGroundingOverlayCondition {
++  id: string;
++  name: string;
++  status: CrGroundingStatus;
++  evidence: string[];
++  freezeTreatment: string;
++  remainingBoundary?: string;
++}
++
++export interface RFreezeDesign {
++  id: string;
++  artifact: string;
++  status: 'drafted' | 'approved' | 'rejected';
++  decisionDirection: string;
++}
++
++export interface CrGroundingOverlay {
++  object?: string;
++  crVersion: string;
++  status: string;
++  overlayConditions: CrGroundingOverlayCondition[];
++  rFreezeDesigns: RFreezeDesign[];
++}
++
++export interface CrGroundingOverlayVerdict {
++  approved: boolean;
++  problems: string[];
++}
++
+ export interface AxisCoverage {
+   axis: string;
+   escapeBox: string | null;
+@@ -32,6 +68,10 @@ export interface GateScorecard {
+   generatedAt: string;
+   conditions: GateCondition[];
+   frozen: boolean;
++  legacyFrozen?: boolean;
++  crGroundingOverlay?: CrGroundingOverlay;
++  crGroundingOverlayApproved?: boolean;
++  crGroundingOverlayProblems?: string[];
+   headCoverage: HeadCoverageResult;
+   unverifiable: UnverifiableResult;
+ }
+@@ -109,2 +149,71 @@ export function judgeFrozen(conditions: GateCondition[]): boolean {
+   return conditions.every((condition) => condition.status === 'PASS');
+ }
++
++export function judgeCrGroundingOverlay(
++  overlay: CrGroundingOverlay | null,
++): CrGroundingOverlayVerdict {
++  if (overlay === null) {
++    return { approved: false, problems: ['CR-grounding overlay missing'] };
++  }
++
++  const problems: string[] = [];
++
++  for (const condition of overlay.overlayConditions) {
++    const hasBoundary =
++      typeof condition.remainingBoundary === 'string' &&
++      condition.remainingBoundary.trim().length > 0;
++
++    if (condition.status === 'FAIL') {
++      problems.push(`${condition.id}: FAIL is not allowed`);
++      continue;
++    }
++
++    if (condition.freezeTreatment === 'required-pass') {
++      if (condition.status !== 'PASS') {
++        problems.push(`${condition.id}: required-pass must be PASS`);
++      }
++      continue;
++    }
++
++    if (condition.freezeTreatment === 'core-pass-only') {
++      if (condition.status !== 'PASS(core)') {
++        problems.push(`${condition.id}: core-pass-only must be PASS(core)`);
++      }
++      if (!hasBoundary) {
++        problems.push(`${condition.id}: remainingBoundary required`);
++      }
++      continue;
++    }
++
++    if (condition.freezeTreatment === 'boundary-pass-only') {
++      if (condition.status !== 'PASS(boundary)') {
++        problems.push(`${condition.id}: boundary-pass-only must be PASS(boundary)`);
++      }
++      if (!hasBoundary) {
++        problems.push(`${condition.id}: remainingBoundary required`);
++      }
++      continue;
++    }
++
++    if (condition.freezeTreatment.startsWith('partial-allowed-')) {
++      if (condition.status !== 'PARTIAL') {
++        problems.push(`${condition.id}: partial treatment must be PARTIAL`);
++      }
++      if (!hasBoundary) {
++        problems.push(`${condition.id}: remainingBoundary required`);
++      }
++      continue;
++    }
++
++    problems.push(`${condition.id}: unknown freezeTreatment ${condition.freezeTreatment}`);
++  }
++
++  return { approved: problems.length === 0, problems };
++}
++
++export function judgeTotalFrozen(input: {
++  legacyFrozen: boolean;
++  crGroundingOverlayApproved: boolean;
++}): boolean {
++  return input.legacyFrozen && input.crGroundingOverlayApproved;
++}
+diff --git a/scripts/m-contract-gate.ts b/scripts/m-contract-gate.ts
+--- a/scripts/m-contract-gate.ts
++++ b/scripts/m-contract-gate.ts
+@@ -15,16 +15,23 @@ import {
+   computeAxisCoverage,
+   judgeCondition,
+   judgeFrozen,
++  judgeCrGroundingOverlay,
++  judgeTotalFrozen,
+   type AxisCoverage,
++  type CrGroundingOverlay,
+   type GateCondition,
+   type GateScorecard,
+ } from './lib/mContractGate.ts';
+ import { CR_CONFORMANCE_THRESHOLD } from './lib/crConformance.ts';
+ 
+ const REPORT_DIRECTORY = resolve(process.cwd(), 'research/m-contract-gate');
+ const REPORT_JSON_PATH = resolve(REPORT_DIRECTORY, 'scorecard.json');
+ const REPORT_MD_PATH = resolve(REPORT_DIRECTORY, 'scorecard.md');
+ const GOLDEN_CASE_DIRECTORY = resolve(process.cwd(), 'research/golden-replay/cases');
++const CR_GROUNDING_OVERLAY_PATH = resolve(
++  process.cwd(),
++  'research/cr-grounding/m0-freeze-overlay.json',
++);
+ 
+ const REPORT_PATHS = {
+   layerCoverage: 'research/layer-coverage/report.json',
+@@ -111,10 +118,18 @@ async function main(): Promise<void> {
+     buildConditionSeven(unverifiable, oracleReports),
+   ].sort((left, right) => left.id - right.id);
+ 
++  const crGroundingOverlay = await loadCrGroundingOverlay();
++  const crGroundingOverlayVerdict = judgeCrGroundingOverlay(crGroundingOverlay);
++  const legacyFrozen = judgeFrozen(conditions);
++
+   const scorecard: GateScorecard = {
+     generatedAt: new Date().toISOString(),
+     conditions,
+-    frozen: judgeFrozen(conditions),
++    legacyFrozen,
++    crGroundingOverlay: crGroundingOverlay ?? undefined,
++    crGroundingOverlayApproved: crGroundingOverlayVerdict.approved,
++    crGroundingOverlayProblems: crGroundingOverlayVerdict.problems,
++    frozen: judgeTotalFrozen({ legacyFrozen, crGroundingOverlayApproved: crGroundingOverlayVerdict.approved }),
+     headCoverage,
+     unverifiable,
+   };
+@@ -497,6 +510,15 @@ async function loadReport(path: string): Promise<LoadedReport> {
+   }
+ }
+ 
++async function loadCrGroundingOverlay(): Promise<CrGroundingOverlay | null> {
++  try {
++    const source = await readFile(CR_GROUNDING_OVERLAY_PATH, 'utf8');
++    return JSON.parse(source) as CrGroundingOverlay;
++  } catch {
++    return null;
++  }
++}
++
+ function requiredReport(reports: Map<string, LoadedReport>, path: string): LoadedReport {
+   return reports.get(path) ?? { path, data: null, error: 'report was not loaded' };
+ }
+@@ -592,14 +616,61 @@ function renderMarkdown(scorecard: GateScorecard): string {
+     ...scorecard.unverifiable.perOracle.map(
+       (oracle) => `| ${cell(oracle.name)} | ${oracle.sampleSize} | ${percent(oracle.rate)} |`,
+     ),
++    '',
++    ...renderCrGroundingOverlay(scorecard),
+     '',
+     '## Verdict',
+     '',
++    `- Legacy seven-condition verdict: ${scorecard.legacyFrozen === true ? 'FROZEN' : 'NOT FROZEN'}`,
++    `- CR-grounding overlay: ${scorecard.crGroundingOverlayApproved === true ? 'APPROVED' : 'NOT APPROVED'}`,
++    ...(scorecard.crGroundingOverlayProblems !== undefined &&
++    scorecard.crGroundingOverlayProblems.length > 0
++      ? [
++          '',
++          '### CR-grounding Overlay Problems',
++          '',
++          ...scorecard.crGroundingOverlayProblems.map((problem) => `- ${problem}`),
++          '',
++        ]
++      : []),
+     `**${scorecard.frozen ? 'FROZEN' : 'NOT FROZEN'}**`,
+     '',
++    '> M-CR-RECONCILE overlay is included. `PARTIAL`, `PASS(core)`, and `PASS(boundary)` are not plain PASS; remaining boundaries are displayed below and must remain out of green coverage.',
++    '',
+   ];
+   return `${lines.join('\n')}\n`;
+ }
+ 
++function renderCrGroundingOverlay(scorecard: GateScorecard): string[] {
++  if (scorecard.crGroundingOverlay === undefined) {
++    return ['## CR-grounding Overlay', '', 'CR-grounding overlay missing.', ''];
++  }
++
++  const overlay = scorecard.crGroundingOverlay;
++  return [
++    '## CR-grounding Overlay',
++    '',
++    `- CR version: ${cell(overlay.crVersion)}`,
++    `- Overlay status: ${cell(overlay.status)}`,
++    '',
++    '| ID | Name | Status | Freeze treatment | Evidence | Remaining boundary |',
++    '| --- | --- | --- | --- | --- | --- |',
++    ...overlay.overlayConditions.map(
++      (condition) =>
++        `| ${cell(condition.id)} | ${cell(condition.name)} | ${cell(condition.status)} | ${cell(condition.freezeTreatment)} | ${cell(condition.evidence.join(', '))} | ${cell(condition.remainingBoundary ?? '-')} |`,
++    ),
++    '',
++    '## R-FREEZE Designs',
++    '',
++    '| ID | Status | Artifact | Decision direction |',
++    '| --- | --- | --- | --- |',
++    ...overlay.rFreezeDesigns.map(
++      (design) =>
++        `| ${cell(design.id)} | ${cell(design.status)} | ${cell(design.artifact)} | ${cell(design.decisionDirection)} |`,
++    ),
++    '',
++  ];
++}
++
+ function formatMetric(value: number | null): string {
+   return value === null ? '-' : percent(value);
+ }
+diff --git a/src/engine/__tests__/m-contract-gate-overlay.test.ts b/src/engine/__tests__/m-contract-gate-overlay.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/engine/__tests__/m-contract-gate-overlay.test.ts
+@@ -0,0 +1,149 @@
++import { readFileSync } from 'node:fs';
++
++import { describe, expect, it } from 'vitest';
++
++import {
++  judgeCrGroundingOverlay,
++  judgeTotalFrozen,
++  type CrGroundingOverlay,
++  type CrGroundingOverlayCondition,
++} from '../../../scripts/lib/mContractGate';
++
++function condition(
++  overrides: Partial<CrGroundingOverlayCondition>,
++): CrGroundingOverlayCondition {
++  return {
++    id: 'CRG-X',
++    name: 'example',
++    status: 'PASS',
++    evidence: ['x'],
++    freezeTreatment: 'required-pass',
++    ...overrides,
++  };
++}
++
++function overlay(
++  conditionOverrides: Partial<CrGroundingOverlayCondition>,
++): CrGroundingOverlay {
++  return {
++    crVersion: '2026-06-19',
++    status: 'test',
++    overlayConditions: [condition(conditionOverrides)],
++    rFreezeDesigns: [],
++  };
++}
++
++describe('judgeCrGroundingOverlay', () => {
++  it('missing overlay is not approved', () => {
++    expect(judgeCrGroundingOverlay(null)).toEqual({
++      approved: false,
++      problems: ['CR-grounding overlay missing'],
++    });
++  });
++
++  it('required-pass must be PASS', () => {
++    const result = judgeCrGroundingOverlay(
++      overlay({ status: 'PARTIAL', freezeTreatment: 'required-pass' }),
++    );
++    expect(result.approved).toBe(false);
++    expect(result.problems).toContain('CRG-X: required-pass must be PASS');
++  });
++
++  it('PASS(core) requires core-pass-only and remainingBoundary', () => {
++    const missingBoundary = judgeCrGroundingOverlay(
++      overlay({ status: 'PASS(core)', freezeTreatment: 'core-pass-only' }),
++    );
++    expect(missingBoundary.approved).toBe(false);
++    expect(missingBoundary.problems).toContain('CRG-X: remainingBoundary required');
++
++    const wrongStatus = judgeCrGroundingOverlay(
++      overlay({
++        status: 'PASS',
++        freezeTreatment: 'core-pass-only',
++        remainingBoundary: 'CR 400.7 exceptions remain S-* carry.',
++      }),
++    );
++    expect(wrongStatus.approved).toBe(false);
++    expect(wrongStatus.problems).toContain('CRG-X: core-pass-only must be PASS(core)');
++  });
++
++  it('PASS(boundary) requires boundary-pass-only and remainingBoundary', () => {
++    const missingBoundary = judgeCrGroundingOverlay(
++      overlay({ status: 'PASS(boundary)', freezeTreatment: 'boundary-pass-only' }),
++    );
++    expect(missingBoundary.approved).toBe(false);
++    expect(missingBoundary.problems).toContain('CRG-X: remainingBoundary required');
++
++    const wrongStatus = judgeCrGroundingOverlay(
++      overlay({
++        status: 'PASS',
++        freezeTreatment: 'boundary-pass-only',
++        remainingBoundary: 'Executors remain scope-boundary.',
++      }),
++    );
++    expect(wrongStatus.approved).toBe(false);
++    expect(wrongStatus.problems).toContain(
++      'CRG-X: boundary-pass-only must be PASS(boundary)',
++    );
++  });
++
++  it('PARTIAL requires partial-allowed treatment and remainingBoundary', () => {
++    const missingBoundary = judgeCrGroundingOverlay(
++      overlay({
++        status: 'PARTIAL',
++        freezeTreatment: 'partial-allowed-only-if-second-bucket-and-full-sba-are-s-carry',
++      }),
++    );
++    expect(missingBoundary.approved).toBe(false);
++    expect(missingBoundary.problems).toContain('CRG-X: remainingBoundary required');
++
++    const wrongStatus = judgeCrGroundingOverlay(
++      overlay({
++        status: 'PASS',
++        freezeTreatment: 'partial-allowed-only-if-second-bucket-and-full-sba-are-s-carry',
++        remainingBoundary: '603.3b second bucket remains S-* carry.',
++      }),
++    );
++    expect(wrongStatus.approved).toBe(false);
++    expect(wrongStatus.problems).toContain('CRG-X: partial treatment must be PARTIAL');
++  });
++
++  it('FAIL and unknown treatments are not approved', () => {
++    const fail = judgeCrGroundingOverlay(overlay({ status: 'FAIL' }));
++    expect(fail.approved).toBe(false);
++    expect(fail.problems).toContain('CRG-X: FAIL is not allowed');
++
++    const unknown = judgeCrGroundingOverlay(
++      overlay({ status: 'PASS', freezeTreatment: 'unknown-treatment' }),
++    );
++    expect(unknown.approved).toBe(false);
++    expect(unknown.problems).toContain('CRG-X: unknown freezeTreatment unknown-treatment');
++  });
++
++  it('current real overlay is approved by the Q2 rules', () => {
++    const realOverlay = JSON.parse(
++      readFileSync('research/cr-grounding/m0-freeze-overlay.json', 'utf8'),
++    ) as CrGroundingOverlay;
++
++    expect(judgeCrGroundingOverlay(realOverlay)).toEqual({
++      approved: true,
++      problems: [],
++    });
++  });
++});
++
++describe('judgeTotalFrozen', () => {
++  it.each([
++    [true, true, true],
++    [true, false, false],
++    [false, true, false],
++    [false, false, false],
++  ])('legacy=%s overlay=%s => frozen=%s', (legacyFrozen, overlayApproved, expected) => {
++    expect(
++      judgeTotalFrozen({
++        legacyFrozen,
++        crGroundingOverlayApproved: overlayApproved,
++      }),
++    ).toBe(expected);
++  });
++});

@@ -1,7 +1,7 @@
 /**
- * Reviewer-owned adversarial tests for M4.31: commander tax now increments when
- * the commander RETURNS to the command zone (docs/engine-spec.md §15), not on
- * cast. Implementation agents must NOT modify this file.
+ * Reviewer-owned adversarial tests for M-CR-RECONCILE: commander tax follows
+ * CR 903.8 and increments when a commander is cast from the command zone, not
+ * when it returns to the command zone (docs/engine-spec.md §15 / §34.0).
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../gameStore';
@@ -28,38 +28,38 @@ function newGameWithCommander() {
   store().newGame(makeDeck(12, [cmd]), 7);
 }
 
-describe('commander tax increments on return to the command zone (M4.31)', () => {
-  it('starts at 0 and does not increment on cast or on leaving the command zone', () => {
+describe('commander tax follows casts from the command zone (M-CR-RECONCILE)', () => {
+  it('starts at 0 and increments on cast from the command zone', () => {
     newGameWithCommander();
     const id = commanderId();
     expect(snap().cards[id].zone).toBe('command');
     expect(commanderTax(snap(), id)).toBe(0);
 
     store().castToStack(id); // command -> stack (a cast)
-    expect(commanderTax(snap(), id)).toBe(0); // cast does NOT increment
+    expect(commanderTax(snap(), id)).toBe(2);
 
     store().moveCard(id, 'battlefield'); // leaving (well, from stack) -> battlefield
-    expect(commanderTax(snap(), id)).toBe(0);
+    expect(commanderTax(snap(), id)).toBe(2);
   });
 
-  it('increments by 2 each time the commander returns to the command zone', () => {
+  it('does not increment when the commander returns to the command zone', () => {
     newGameWithCommander();
     const id = commanderId();
     store().moveCard(id, 'battlefield'); // command -> battlefield (no increment)
     expect(commanderTax(snap(), id)).toBe(0);
 
-    store().moveCard(id, 'command'); // battlefield -> command : +1 (tax 2)
-    expect(commanderTax(snap(), id)).toBe(2);
+    store().moveCard(id, 'command'); // battlefield -> command : no tax increment
+    expect(commanderTax(snap(), id)).toBe(0);
 
     store().moveCard(id, 'graveyard'); // command -> graveyard (no increment)
-    expect(commanderTax(snap(), id)).toBe(2);
+    expect(commanderTax(snap(), id)).toBe(0);
 
-    store().moveCard(id, 'command'); // graveyard -> command : +1 (tax 4)
-    expect(commanderTax(snap(), id)).toBe(4);
+    store().moveCard(id, 'command'); // graveyard -> command : no tax increment
+    expect(commanderTax(snap(), id)).toBe(0);
 
-    // single undo reverts the last return
+    // single undo reverts the last move; tax remains unchanged.
     store().undo();
-    expect(commanderTax(snap(), id)).toBe(2);
+    expect(commanderTax(snap(), id)).toBe(0);
   });
 
   it('does not increment on a command -> command no-op move', () => {
@@ -69,15 +69,14 @@ describe('commander tax increments on return to the command zone (M4.31)', () =>
     expect(commanderTax(snap(), id)).toBe(0);
   });
 
-  it('only the returning commander is taxed (independent castCount)', () => {
+  it('only the cast commander is taxed (independent castCount)', () => {
     const a = makeDef({ scryfallId: 'cmdA', typeLine: 'Legendary Creature — God' });
     const b = makeDef({ scryfallId: 'cmdB', typeLine: 'Legendary Creature — Bird' });
     store().newGame(makeDeck(12, [a, b]), 7);
     const idA = Object.values(snap().cards).find((c) => c.defId === 'cmdA')!.id;
     const idB = Object.values(snap().cards).find((c) => c.defId === 'cmdB')!.id;
 
-    store().moveCard(idA, 'battlefield');
-    store().moveCard(idA, 'command'); // A returns: A tax 2, B tax 0
+    store().castToStack(idA); // A cast from command: A tax 2, B tax 0
     expect(commanderTax(snap(), idA)).toBe(2);
     expect(commanderTax(snap(), idB)).toBe(0);
   });

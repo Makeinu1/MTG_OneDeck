@@ -10,6 +10,8 @@
 - Priority: Scryfall `edhrec_rank`。低いrankほど重い。
 - Current deck: このシェルからブラウザ localStorage の `mtg-onedeck:deck-cards` は読めないため、この実行では未適用。ユーザー指定どおりEDH頻度を優先する。
 
+M-CR-RECONCILE note(2026-06-26): 最新正本は Comprehensive Rules effective 2026-06-19 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`)。本レポートは 2026-04-17 CR で生成された stale 研究資産であり、2026-06-19 差分の実装優先度・coverage 根拠には使わない。
+
 ## Method
 
 1. `docs/mtg-rule-terms.md` の分類に沿って、CR概念、CR 701キーワード処理、CR 702キーワード能力を正規タグ化した。

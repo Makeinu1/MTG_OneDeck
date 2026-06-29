@@ -3,11 +3,12 @@
 //
 // 対象: 純ヘルパ activationPlanForSource(commands.ts・state 読み取りのみ)と、
 // その commands + addAbilityToStack を applyCommands で1バッチ適用したときの盤面、
-// および I9(effectsAuto OFF 時はコスト精算しない=plan===null → addAbilityToStack 単独と差分ゼロ)。
+// および I9(非マナ能力は effectsAuto OFF 時に plan===null → addAbilityToStack 単独と差分ゼロ)。
+// マナ能力は CR 605 により I9 の例外としてスタックを使わない。
 import { describe, expect, it } from 'vitest';
 
 import type { CardDef } from '../../types/card';
-import { applyCommand, activationPlanForSource } from '../commands';
+import { applyCommand, activatedManaAbilityPlanForSource, activationPlanForSource } from '../commands';
 import { applyCommands } from '../batch';
 import { initGame } from '../init';
 import type { GameState } from '../types';
@@ -85,6 +86,27 @@ describe('§33.2 auto: tap-self のみ', () => {
     ]);
     expect(result.state.cards[sourceId].tapped).toBe(true);
     expect(stackCount(result.state)).toBe(before + 1);
+  });
+});
+
+describe('M-CR-RECONCILE / CR 605: マナ能力はスタックを使わない', () => {
+  it('「{T}: Add {G}.」→ source タップ + Gマナ即加算、stack 追加なし', () => {
+    const { state, sourceId } = setup(activatedSource('g4-mana-ability', 'Creature — Elf Druid', '{T}: Add {G}.'));
+    const plan = activatedManaAbilityPlanForSource(state, sourceId);
+    expect(plan).not.toBeNull();
+    expect(plan!.decision).toBe('auto');
+
+    const result = applyCommands(state, plan!.commands);
+    expect(result.state.cards[sourceId].tapped).toBe(true);
+    expect(result.state.manaPool.G).toBe(1);
+    expect(stackCount(result.state)).toBe(0);
+  });
+
+  it('対象を取る「Add mana」能力は CR605 のマナ能力扱いにしない', () => {
+    const { state, sourceId } = setup(
+      activatedSource('g4-targeted-mana', 'Artifact', '{T}: Add {G}. This artifact deals 1 damage to any target.'),
+    );
+    expect(activatedManaAbilityPlanForSource(state, sourceId)).toBeNull();
   });
 });
 

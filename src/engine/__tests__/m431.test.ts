@@ -16,7 +16,7 @@ describe('M4.31 commander tax timing', () => {
     expect(state.commanders[0].castCount).toBe(0);
   });
 
-  it('increments castCount when a commander returns to command from another zone', () => {
+  it('does not increment castCount when a commander returns to command from another zone', () => {
     const commander = makeDef({ scryfallId: 'm431-return', typeLine: 'Legendary Creature' });
     let state = initGame(makeDeck(5, [commander]), 1);
     const commanderId = state.commanders[0].cardId;
@@ -35,7 +35,7 @@ describe('M4.31 commander tax timing', () => {
       to: 'command',
       position: 'top',
     }).state;
-    expect(state.commanders[0].castCount).toBe(1);
+    expect(state.commanders[0].castCount).toBe(0);
 
     state = applyCommand(state, {
       type: 'moveCard',
@@ -43,7 +43,7 @@ describe('M4.31 commander tax timing', () => {
       to: 'graveyard',
       position: 'top',
     }).state;
-    expect(state.commanders[0].castCount).toBe(1);
+    expect(state.commanders[0].castCount).toBe(0);
 
     state = applyCommand(state, {
       type: 'moveCard',
@@ -51,7 +51,7 @@ describe('M4.31 commander tax timing', () => {
       to: 'command',
       position: 'top',
     }).state;
-    expect(state.commanders[0].castCount).toBe(2);
+    expect(state.commanders[0].castCount).toBe(0);
   });
 
   it('does not increment while the commander stays on the battlefield or command zone', () => {
@@ -79,7 +79,7 @@ describe('M4.31 commander tax timing', () => {
       to: 'command',
       position: 'top',
     }).state;
-    expect(state.commanders[0].castCount).toBe(1);
+    expect(state.commanders[0].castCount).toBe(0);
 
     state = applyCommand(state, {
       type: 'moveCard',
@@ -87,10 +87,10 @@ describe('M4.31 commander tax timing', () => {
       to: 'command',
       position: 'top',
     }).state;
-    expect(state.commanders[0].castCount).toBe(1);
+    expect(state.commanders[0].castCount).toBe(0);
   });
 
-  it('does not increment on castToStack from the command zone', () => {
+  it('increments on castToStack from the command zone', () => {
     const commander = makeDef({
       scryfallId: 'm431-stack',
       typeLine: 'Legendary Creature',
@@ -106,6 +106,6 @@ describe('M4.31 commander tax timing', () => {
       forced: true,
     }).state;
     expect(state.cards[commanderId].zone).toBe('stack');
-    expect(state.commanders[0].castCount).toBe(0);
+    expect(state.commanders[0].castCount).toBe(1);
   });
 });

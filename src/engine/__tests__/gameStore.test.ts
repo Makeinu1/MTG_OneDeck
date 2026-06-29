@@ -122,6 +122,31 @@ describe('GameStore', () => {
     expect(s.manaPool.G).toBe(1);
   });
 
+  it('activateAbility resolves activated mana abilities without using the stack', () => {
+    const dork = makeDef({
+      scryfallId: 'llanowar',
+      typeLine: 'Creature — Elf Druid',
+      faces: [
+        {
+          name: 'llanowar',
+          typeLine: 'Creature — Elf Druid',
+          oracleText: '{T}: Add {G}.',
+        },
+      ],
+    });
+    const deck = [{ def: dork, isCommander: false }, ...makeDeck(5)];
+    store().newGame(deck, 1);
+    const dorkId = Object.values(store().state!.cards).find((c) => c.defId === 'llanowar')!.id;
+    store().moveCard(dorkId, 'battlefield', 'bottom');
+
+    store().activateAbility(dorkId, 0);
+
+    const s = store().state!;
+    expect(s.cards[dorkId].tapped).toBe(true);
+    expect(s.manaPool.G).toBe(1);
+    expect(s.zones.stack).toHaveLength(0);
+  });
+
   it('tapForMana adds the parsed amount for multi-mana sources', () => {
     const vault = makeDef({
       scryfallId: 'vault',
@@ -205,13 +230,12 @@ describe('GameStore', () => {
     expect(store().castCommander(cmdId)).toBe('ok');
     expect(store().state!.commanders[0].castCount).toBe(1);
 
-    // send back to command zone
+    // send back to command zone; returning does not change CR 903.8 cast history.
     store().moveCard(cmdId, 'command', 'top');
-    // castCommander remains on the legacy path: the cast itself increments
-    // castCount, and returning to command increments it again.
-    store().dispatch({ type: 'addMana', color: 'G', amount: 3 });
+    store().dispatch({ type: 'addMana', color: 'G', amount: 4 });
     const res = store().castCommander(cmdId);
-    expect(res).toEqual({ shortfall: 3 });
+    expect(res).toBe('ok');
+    expect(store().state!.commanders[0].castCount).toBe(2);
   });
 
   it('adjustMana edits the pool through the store and clamps at 0', () => {

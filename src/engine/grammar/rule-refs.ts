@@ -66,6 +66,7 @@ export const CR_KEYWORD_ACTIONS: ReadonlyArray<{ id: string; name: string }> = [
   { id: '701.66', name: 'Earthbend' },
   { id: '701.67', name: 'Waterbend' },
   { id: '701.68', name: 'Blight' },
+  { id: '701.69', name: 'Heal' },
 ];
 
 const VALID_RULE_REFS = new Set<string>([

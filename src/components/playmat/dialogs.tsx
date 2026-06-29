@@ -502,19 +502,27 @@ export function ConfirmDialog({
 export function CommanderMoveDialog({
   cardName,
   destinationLabel,
+  mode,
   onChoose,
   onCancel,
 }: {
   cardName: string;
   destinationLabel: string;
+  mode: 'replacement' | 'sba';
   onChoose: (toCommandZone: boolean) => void;
   onCancel: () => void;
 }) {
+  const description =
+    mode === 'sba'
+      ? `《${cardName}》は統率者です。CR 903.9a により、まず${destinationLabel}に置かれ、死亡/離場の確認後、優先権前に統率領域へ移せます。`
+      : `《${cardName}》は統率者です。CR 903.9b により、${destinationLabel}へ行く代わりに統率領域へ置けます。`;
+  const keepLabel = mode === 'sba' ? `${destinationLabel}に置く` : `${destinationLabel}へ送る`;
+  const commandLabel =
+    mode === 'sba' ? `${destinationLabel}に置いてから統率領域へ` : '統率領域へ置く';
+
   return (
     <Modal title="統率者の移動先" onClose={onCancel} width="sm" testId="commander-move-dialog">
-      <p>
-        《{cardName}》は統率者です。{destinationLabel}に送る代わりに統率領域へ戻しますか?
-      </p>
+      <p>{description}</p>
       <div className="dialog__actions">
         <button
           type="button"
@@ -522,7 +530,7 @@ export function CommanderMoveDialog({
           onClick={() => onChoose(false)}
           data-testid="commander-move-keep"
         >
-          {destinationLabel}へ送る
+          {keepLabel}
         </button>
         <button
           type="button"
@@ -530,7 +538,7 @@ export function CommanderMoveDialog({
           onClick={() => onChoose(true)}
           data-testid="commander-move-command"
         >
-          統率領域へ戻す
+          {commandLabel}
         </button>
       </div>
     </Modal>

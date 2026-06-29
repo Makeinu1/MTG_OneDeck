@@ -18,6 +18,8 @@
 - Comprehensive Rules TXT, effective 2026-04-17: https://media.wizards.com/2026/downloads/MagicCompRules%2020260417.txt
 - 日本公式サイト「マジック総合ルール（和訳 20260417.2 版）」: https://mtg-jp.com/gameplay/rules/docs/0006836/
 
+M-CR-RECONCILE note(2026-06-26): 最新正本は Comprehensive Rules effective 2026-06-19 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`)。本レポートは 2026-04-17 CR で生成された研究資産であり、Power-up/Teamwork/Preparation/Heal など 2026-06-19 差分の根拠には使わない。
+
 補助情報:
 
 - MTG Wiki: Oracle: https://mtg.fandom.com/wiki/Oracle
@@ -437,4 +439,3 @@ parseFace(face):
 4. CR 702辞書 + パラメータ形で純キーワード行を検出する。
 5. `have/gain/with/from among/can't be countered/create token` を別分類にする。
 6. Odric の受け入れ条件は `ownedKeywords=[]`, `triggered:enters=true`, `createToken=true`。
-

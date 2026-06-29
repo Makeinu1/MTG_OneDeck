@@ -15,16 +15,28 @@ import { normalizeKeywords } from './status';
 import type {
   AbilityKind,
   CardInstance,
+  GameEvent,
   GameState,
   LogEntry,
   ManaPool,
+  ObjectSnapshot,
   Phase,
+  ZoneChangeReason,
   ZoneId,
 } from './types';
-import { PHASE_ORDER } from './types';
+import { objectIdOf, PHASE_ORDER } from './types';
 
 export type GameCommand =
-  | { type: 'moveCard'; cardId: string; to: ZoneId; position: 'top' | 'bottom' | number }
+  | {
+      type: 'moveCard';
+      cardId: string;
+      to: ZoneId;
+      position: 'top' | 'bottom' | number;
+      reason?: ZoneChangeReason;
+      replacementApplied?: string;
+      sbaApplied?: string;
+      simultaneousGroupId?: string;
+    }
   | { type: 'setTapped'; cardId: string; tapped: boolean }
   | { type: 'setFace'; cardId: string; faceIndex: number }
   | { type: 'setFaceDown'; cardId: string; faceDown: boolean }
@@ -53,7 +65,13 @@ export type GameCommand =
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean }
-  | { type: 'addAbilityToStack'; sourceId: string; kind: AbilityKind; abilityLineIndex?: number }
+  | {
+      type: 'addAbilityToStack';
+      sourceId: string;
+      kind: AbilityKind;
+      abilityLineIndex?: number;
+      sourceSnapshot?: ObjectSnapshot;
+    }
   | { type: 'resolveStackTop'; to?: ZoneId }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
   | { type: 'copyStackItem'; cardId: string }
@@ -94,6 +112,7 @@ interface Draft {
   state: GameState;
   warnings: string[];
   nextSeq: number;
+  nextEventSeq: number;
 }
 
 const ZONE_LABELS: Record<ZoneId, string> = {
@@ -118,6 +137,8 @@ function emptyManaPool(): ManaPool {
 /** Shallow clone of state for editing. Sub-collections cloned lazily. */
 function makeDraft(state: GameState): Draft {
   const maxSeq = state.log.reduce((m, e) => Math.max(m, e.seq), -1);
+  const eventLog = Array.isArray(state.eventLog) ? state.eventLog : [];
+  const maxEventSeq = eventLog.reduce((m, e) => Math.max(m, e.sequence), -1);
   return {
     state: {
       ...state,
@@ -127,10 +148,18 @@ function makeDraft(state: GameState): Draft {
       commanders: state.commanders,
       commanderDamage: { ...state.commanderDamage },
       opponentLife: { ...state.opponentLife },
+      eventLog: eventLog.slice(),
+      pendingTriggers: Array.isArray(state.pendingTriggers)
+        ? state.pendingTriggers.slice()
+        : [],
+      pendingSbaChoices: Array.isArray(state.pendingSbaChoices)
+        ? state.pendingSbaChoices.slice()
+        : [],
       log: state.log.slice(),
     },
     warnings: [],
     nextSeq: maxSeq + 1,
+    nextEventSeq: maxEventSeq + 1,
   };
 }
 
@@ -164,6 +193,18 @@ function pushLog(draft: Draft, message: string): void {
     message,
   };
   draft.state.log = [...draft.state.log, entry];
+}
+
+function pushEvent(draft: Draft, event: Omit<GameEvent, 'eventId' | 'sequence'>): void {
+  const sequence = draft.nextEventSeq++;
+  draft.state.eventLog = [
+    ...draft.state.eventLog,
+    {
+      ...event,
+      eventId: `e${sequence}`,
+      sequence,
+    },
+  ];
 }
 
 function requireCard(draft: Draft, cardId: string): CardInstance {
@@ -227,11 +268,12 @@ function insertIntoZone(
   }
 }
 
-/** Reset card state on a true zone change (not battlefield->battlefield). */
+/** Reset card state on a true zone change (not same-zone reordering). */
 function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
   return {
     ...card,
     zone: to,
+    zoneChangeCounter: card.zoneChangeCounter + 1,
     tapped: false,
     faceDown: false,
     faceIndex: 0,
@@ -250,6 +292,61 @@ function typeLineOf(draft: Draft, card: CardInstance): string {
   const def = draft.state.defs[card.defId];
   const face = currentFaceOf(draft, card);
   return (face?.typeLine ?? def?.typeLine ?? '').toString();
+}
+
+function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
+  const face = currentFaceOf(draft, card);
+  const ownerId = card.ownerId ?? 'P1';
+  const controllerId = card.controllerId ?? ownerId;
+  return {
+    physicalCardId: card.id,
+    objectId: objectIdOf(card),
+    defId: card.defId,
+    zone: card.zone,
+    ownerId,
+    controllerId,
+    isToken: card.isToken,
+    isCommander: card.isCommander,
+    faceIndex: card.faceIndex,
+    tapped: card.tapped,
+    counters: { ...card.counters },
+    typeLine: typeLineOf(draft, card),
+    power: face?.power,
+    toughness: face?.toughness,
+  };
+}
+
+function effectiveToughnessForSba(draft: Draft, card: CardInstance): number | null {
+  const face = currentFaceOf(draft, card);
+  const baseToughness = Number.parseInt(face?.toughness ?? '', 10);
+  if (Number.isNaN(baseToughness)) {
+    return null;
+  }
+
+  return baseToughness + (card.counters['+1/+1'] ?? 0) - (card.counters['-1/-1'] ?? 0);
+}
+
+function pushZoneChangeEvent(
+  draft: Draft,
+  before: ObjectSnapshot,
+  after: ObjectSnapshot | undefined,
+  fromZone: ZoneId,
+  toZone: ZoneId | undefined,
+  reason: ZoneChangeReason,
+  options?: Pick<GameEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
+): void {
+  pushEvent(draft, {
+    type: 'zoneChange',
+    reason,
+    physicalCardId: before.physicalCardId,
+    oldObjectId: before.objectId,
+    newObjectId: after?.objectId,
+    fromZone,
+    toZone,
+    ...options,
+    before,
+    after,
+  });
 }
 
 function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardInstance {
@@ -282,14 +379,19 @@ function moveCardInternal(
   cardId: string,
   to: ZoneId,
   position: 'top' | 'bottom' | number,
-  log: boolean
+  log: boolean,
+  reason: ZoneChangeReason = 'move',
+  eventOptions?: Pick<GameEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
 ): void {
   const card = requireCard(draft, cardId);
   const from = card.zone;
-  const sameBattlefield = from === 'battlefield' && to === 'battlefield';
+  const sameZone = from === to;
 
   if (card.isAbility && to !== 'stack') {
     const name = stackNameOf(draft, card);
+    if (!sameZone) {
+      pushZoneChangeEvent(draft, objectSnapshotOf(draft, card), undefined, from, to, reason, eventOptions);
+    }
     deleteCardFromState(draft, cardId);
     if (log) {
       pushLog(draft, `${name}の能力が${ZONE_LABELS[to]}へ移動したため消滅しました。`);
@@ -297,19 +399,12 @@ function moveCardInternal(
     return;
   }
 
-  // Token leaving battlefield -> ceases to exist.
-  if (card.isToken && from === 'battlefield' && to !== 'battlefield') {
-    const name = nameOf(draft, cardId);
-    deleteCardFromState(draft, cardId);
-    if (log) {
-      pushLog(draft, `トークン${name}が${ZONE_LABELS[to]}へ移動したため消滅しました。`);
-    }
-    return;
-  }
-
   if (card.isCopy) {
-    if (to !== 'battlefield') {
+    if (!sameZone && to !== 'battlefield') {
       const name = nameOfCard(draft, card);
+      const before = objectSnapshotOf(draft, card);
+      const after = objectSnapshotOf(draft, resetCardForZoneChange(card, to));
+      pushZoneChangeEvent(draft, before, after, from, to, reason, eventOptions);
       deleteCardFromState(draft, cardId);
       if (log) {
         pushLog(draft, `コピー${name}は消滅した。`);
@@ -326,8 +421,9 @@ function moveCardInternal(
     to === 'battlefield' ? 'bottom' : position;
   insertIntoZone(dest, cardId, effectivePosition);
 
-  let updated = sameBattlefield ? { ...card, zone: to } : resetCardForZoneChange(card, to);
-  if (!sameBattlefield && to === 'battlefield') {
+  const before = sameZone ? undefined : objectSnapshotOf(draft, card);
+  let updated = sameZone ? { ...card, zone: to } : resetCardForZoneChange(card, to);
+  if (!sameZone && to === 'battlefield') {
     updated = applyBattlefieldEntryEffects(draft, updated);
     if (card.isCopy) {
       updated = {
@@ -338,21 +434,163 @@ function moveCardInternal(
     }
   }
   setCard(draft, updated);
-
-  if (to === 'command' && from !== 'command' && isCommander(draft.state, cardId)) {
-    draft.state.commanders = draft.state.commanders.map((commander) =>
-      commander.cardId === cardId
-        ? { ...commander, castCount: commander.castCount + 1 }
-        : commander
+  if (!sameZone && before) {
+    pushZoneChangeEvent(
+      draft,
+      before,
+      objectSnapshotOf(draft, updated),
+      from,
+      to,
+      reason,
+      eventOptions
     );
-    pushLog(draft, `${nameOf(draft, cardId)}が統率領域に戻り統率税が上がった。`);
   }
 
-  if (log && !sameBattlefield) {
+  if (log && !sameZone) {
     pushLog(
       draft,
       `${nameOf(draft, cardId)}を${ZONE_LABELS[from]}から${ZONE_LABELS[to]}へ移動しました。`
     );
+  }
+}
+
+function performStateBasedActionsOnce(draft: Draft): boolean {
+  const simultaneousGroupId = `sba-${draft.nextEventSeq}`;
+  const zeroToughnessCreatureIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Creature')) {
+      return [];
+    }
+    const toughness = effectiveToughnessForSba(draft, card);
+    return toughness !== null && toughness <= 0 ? [card.id] : [];
+  });
+  const zeroLoyaltyPlaneswalkerIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Planeswalker')) {
+      return [];
+    }
+    return (card.counters.loyalty ?? 0) === 0 ? [card.id] : [];
+  });
+  const invalidCopyIds = Object.values(draft.state.cards).flatMap((card) =>
+    card.isCopy && card.zone !== 'stack' ? [card.id] : []
+  );
+  const offBattlefieldTokenIds = Object.values(draft.state.cards).flatMap((card) =>
+    card.isToken && card.zone !== 'battlefield' ? [card.id] : []
+  );
+  const counterPairIds = Object.values(draft.state.cards).flatMap((card) => {
+    const plus = card.counters['+1/+1'] ?? 0;
+    const minus = card.counters['-1/-1'] ?? 0;
+    return card.zone === 'battlefield' && plus > 0 && minus > 0 ? [card.id] : [];
+  });
+
+  if (
+    zeroToughnessCreatureIds.length === 0 &&
+    zeroLoyaltyPlaneswalkerIds.length === 0 &&
+    invalidCopyIds.length === 0 &&
+    offBattlefieldTokenIds.length === 0 &&
+    counterPairIds.length === 0
+  ) {
+    return false;
+  }
+
+  for (const cardId of zeroToughnessCreatureIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5f',
+    });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}はタフネスが0以下のため状況起因処理で墓地に置かれました。`
+    );
+  }
+
+  for (const cardId of zeroLoyaltyPlaneswalkerIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5i',
+    });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}は忠誠度が0のため状況起因処理で墓地に置かれました。`
+    );
+  }
+
+  for (const cardId of invalidCopyIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || !card.isCopy || card.zone === 'stack') continue;
+
+    const before = objectSnapshotOf(draft, card);
+    const name = nameOfCard(draft, card);
+    pushZoneChangeEvent(
+      draft,
+      before,
+      undefined,
+      card.zone,
+      undefined,
+      'copy-cease',
+      { simultaneousGroupId, sbaApplied: '704.5e' }
+    );
+    deleteCardFromState(draft, card.id);
+    pushLog(draft, `コピー${name}は状況起因処理により消滅しました。`);
+  }
+
+  for (const cardId of offBattlefieldTokenIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || !card.isToken || card.zone === 'battlefield') continue;
+
+    const before = objectSnapshotOf(draft, card);
+    const name = nameOfCard(draft, card);
+    pushZoneChangeEvent(
+      draft,
+      before,
+      undefined,
+      card.zone,
+      undefined,
+      'token-cease',
+      { simultaneousGroupId, sbaApplied: '704.5d' }
+    );
+    deleteCardFromState(draft, card.id);
+    pushLog(draft, `トークン${name}は状況起因処理により消滅しました。`);
+  }
+
+  for (const cardId of counterPairIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+    const plus = card.counters['+1/+1'] ?? 0;
+    const minus = card.counters['-1/-1'] ?? 0;
+    const removeCount = Math.min(plus, minus);
+    if (removeCount <= 0) continue;
+
+    const counters = { ...card.counters };
+    const nextPlus = plus - removeCount;
+    const nextMinus = minus - removeCount;
+    if (nextPlus === 0) {
+      delete counters['+1/+1'];
+    } else {
+      counters['+1/+1'] = nextPlus;
+    }
+    if (nextMinus === 0) {
+      delete counters['-1/-1'];
+    } else {
+      counters['-1/-1'] = nextMinus;
+    }
+    setCard(draft, { ...card, counters });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}の+1/+1カウンターと-1/-1カウンターを${removeCount}個ずつ取り除きました。`
+    );
+  }
+
+  return true;
+}
+
+function stabilizeBeforePriority(draft: Draft): void {
+  while (performStateBasedActionsOnce(draft)) {
+    // CR 704.3 repeats state-based action checks until none apply.
   }
 }
 
@@ -636,11 +874,11 @@ function applyCast(
     draft.state.commanders = draft.state.commanders.map((c) =>
       c.cardId === cardId ? { ...c, castCount: c.castCount + 1 } : c
     );
-    moveCardInternal(draft, cardId, dest, 'bottom', false);
+    moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
     draft.state.spellsCastThisTurn += 1;
     pushLog(draft, `統率者${name}をキャストしました(支払い: ${payStr})。`);
   } else {
-    moveCardInternal(draft, cardId, dest, 'bottom', false);
+    moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
     draft.state.spellsCastThisTurn += 1;
     pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
   }
@@ -666,17 +904,30 @@ function nextCopyId(state: GameState): string {
   return `k${max + 1}`;
 }
 
+function incrementCommanderCastCount(draft: Draft, cardId: string): void {
+  draft.state.commanders = draft.state.commanders.map((commander) =>
+    commander.cardId === cardId
+      ? { ...commander, castCount: commander.castCount + 1 }
+      : commander
+  );
+}
+
 function createAbilityObject(
   abilityId: string,
   sourceId: string,
   defId: string,
   kind: AbilityKind,
-  abilityLineIndex?: number
+  abilityLineIndex?: number,
+  ownerId: CardInstance['ownerId'] = 'P1',
+  controllerId: CardInstance['controllerId'] = ownerId,
 ): CardInstance {
   return {
     id: abilityId,
     defId,
     zone: 'stack',
+    ownerId,
+    controllerId,
+    zoneChangeCounter: 0,
     tapped: false,
     faceIndex: 0,
     faceDown: false,
@@ -697,7 +948,8 @@ function applyCastToStack(
   payment: ManaPool,
   forced: boolean
 ): void {
-  requireCard(draft, cardId);
+  const card = requireCard(draft, cardId);
+  const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
 
   const { shortfall } = subtractPayment(draft, payment);
   if (shortfall > 0) {
@@ -709,7 +961,10 @@ function applyCastToStack(
     draft.warnings.push('マナ不足のまま強行で唱えました。');
   }
 
-  moveCardInternal(draft, cardId, 'stack', 'bottom', false);
+  moveCardInternal(draft, cardId, 'stack', 'bottom', false, 'cast');
+  if (fromCommand) {
+    incrementCommanderCastCount(draft, cardId);
+  }
   draft.state.spellsCastThisTurn += 1;
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
@@ -718,9 +973,16 @@ function applyAddAbilityToStack(
   draft: Draft,
   sourceId: string,
   kind: AbilityKind,
-  abilityLineIndex?: number
+  abilityLineIndex?: number,
+  sourceSnapshot?: ObjectSnapshot
 ): void {
-  const source = requireCard(draft, sourceId);
+  const source = draft.state.cards[sourceId];
+  const defId = source?.defId ?? sourceSnapshot?.defId;
+  if (!defId) {
+    throw new EngineError(`能力の発生源が存在しません: ${sourceId}`);
+  }
+  const ownerId = sourceSnapshot?.ownerId ?? source?.ownerId ?? 'P1';
+  const controllerId = sourceSnapshot?.controllerId ?? source?.controllerId ?? ownerId;
   const abilityId = nextAbilityId(draft.state);
   const cards = { ...draft.state.cards };
   const stack = editZone(draft, 'stack');
@@ -728,16 +990,19 @@ function applyAddAbilityToStack(
   cards[abilityId] = createAbilityObject(
     abilityId,
     sourceId,
-    source.defId,
+    defId,
     kind,
-    abilityLineIndex
+    abilityLineIndex,
+    ownerId,
+    controllerId,
   );
   draft.state.cards = cards;
   stack.push(abilityId);
+  const sourceName = source ? nameOf(draft, sourceId) : `《${cardName(draft.state.defs[defId])}》`;
 
   pushLog(
     draft,
-    `${nameOf(draft, sourceId)}の${ABILITY_KIND_LABELS[kind]}能力をスタックに積んだ。`
+    `${sourceName}の${ABILITY_KIND_LABELS[kind]}能力をスタックに積んだ。`
   );
 }
 
@@ -766,7 +1031,10 @@ function effectLinesForStackItemState(
   }
 
   const source = state.cards[sourceId];
-  if (!source || source.effectsAuto === false) {
+  if (source?.effectsAuto === false) {
+    return [];
+  }
+  if (!source && !card.isAbility) {
     return [];
   }
 
@@ -909,6 +1177,78 @@ export function activationPlanForSource(
   return { commands, decision: 'auto', manaShortfall };
 }
 
+export function activatedManaAbilityPlanForSource(
+  state: GameState,
+  sourceId: string,
+  abilityLineIndex?: number,
+): { commands: GameCommand[]; decision: CostDecision; manaShortfall: number } | null {
+  const source = state.cards[sourceId];
+  if (!source) {
+    return null;
+  }
+
+  const def = state.defs[source.defId];
+  if (!def) {
+    return null;
+  }
+
+  const resolvedIndex =
+    abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
+  if (resolvedIndex === undefined) {
+    return null;
+  }
+
+  const line = splitAbilityLines(def)[resolvedIndex];
+  if (!line || line.shape !== 'activated') {
+    return null;
+  }
+
+  const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
+  if (isLoyaltyAbilityLine(line.text, typeLine)) {
+    return null;
+  }
+
+  const ir = parseAbilityIR(line.text, typeLine);
+  if (!isActivatedManaAbilityIR(ir)) {
+    return null;
+  }
+
+  const compiledCost = compileAbilityCost(ir.cost, { sourceId, def });
+  if (compiledCost.decision === 'manual') {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const compiledEffect = compileAbilityIR(ir, { sourceId, def });
+  if (compiledEffect.decision !== 'auto') {
+    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  }
+
+  const commands: GameCommand[] = compiledCost.commands.slice();
+  let manaShortfall = 0;
+  if (compiledCost.manaCost !== null) {
+    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
+    commands.push(...tapCommands(plan.taps), { type: 'payMana', payment: plan.payment });
+    manaShortfall = plan.shortfall;
+  }
+  commands.push(...compiledEffect.commands);
+
+  return { commands, decision: 'auto', manaShortfall };
+}
+
+function isActivatedManaAbilityIR(ir: ReturnType<typeof parseAbilityIR>): boolean {
+  if (ir.shape !== 'activated') {
+    return false;
+  }
+  if (ir.constructs.includes('construct.target')) {
+    return false;
+  }
+  return ir.effects.some((effect) => effect.atom === 'effect.add-mana');
+}
+
+function isLoyaltyAbilityLine(text: string, typeLine: string): boolean {
+  return /\bPlaneswalker\b/i.test(typeLine) && /^\s*[+−-]\d+\s*:/.test(text);
+}
+
 export function eligibleTargets(state: GameState, filter: TargetFilter): string[] {
   if (filter.controller === 'opponent') {
     return [];
@@ -1037,7 +1377,7 @@ function applyResolveStackTop(draft: Draft, to?: ZoneId): void {
   }
 
   const destination = to ?? defaultStackResolveDestination(draft, card);
-  moveCardInternal(draft, topId, destination, 'bottom', false);
+  moveCardInternal(draft, topId, destination, 'bottom', false, 'resolve');
   pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
   applyCompiledEffectsForStackItem(draft, card, effectLines);
 }
@@ -1075,7 +1415,9 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
       source.sourceId ?? cardId,
       source.defId,
       source.abilityKind ?? 'activated',
-      source.abilityLineIndex
+      source.abilityLineIndex,
+      source.ownerId,
+      source.controllerId,
     );
     draft.state.cards = cards;
     stack.push(abilityId);
@@ -1088,6 +1430,9 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
     id: copyId,
     defId: source.defId,
     zone: 'stack',
+    ownerId: source.ownerId,
+    controllerId: source.controllerId,
+    zoneChangeCounter: 0,
     tapped: false,
     faceIndex: source.faceIndex,
     faceDown: source.faceDown,
@@ -1116,6 +1461,9 @@ function applyCopyPermanent(draft: Draft, cardId: string, quantity: number): voi
       id: genId(i),
       defId: source.defId,
       zone: 'battlefield',
+      ownerId: source.ownerId,
+      controllerId: source.controllerId,
+      zoneChangeCounter: 0,
       tapped: false,
       faceIndex: source.faceIndex,
       faceDown: source.faceDown,
@@ -1150,7 +1498,7 @@ function applyCrackTreasure(draft: Draft, cardId: string, color: ManaColor): voi
     ...draft.state.manaPool,
     [color]: draft.state.manaPool[color] + 1,
   };
-  moveCardInternal(draft, cardId, 'graveyard', 'top', false);
+  moveCardInternal(draft, cardId, 'graveyard', 'top', false, 'cost');
   pushLog(draft, `${nameOfCard(draft, card)}を割って${color}マナを1点加えました。`);
 }
 
@@ -1225,6 +1573,9 @@ function applyCreateToken(
       id,
       defId,
       zone: 'battlefield',
+      ownerId: 'P1',
+      controllerId: 'P1',
+      zoneChangeCounter: 0,
       tapped: false,
       faceIndex: 0,
       faceDown: false,
@@ -1297,7 +1648,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
   switch (cmd.type) {
     case 'moveCard': {
       requireCard(draft, cmd.cardId);
-      moveCardInternal(draft, cmd.cardId, cmd.to, cmd.position, true);
+      moveCardInternal(draft, cmd.cardId, cmd.to, cmd.position, true, cmd.reason ?? 'move', {
+        ...(cmd.replacementApplied === undefined
+          ? {}
+          : { replacementApplied: cmd.replacementApplied }),
+        ...(cmd.sbaApplied === undefined ? {} : { sbaApplied: cmd.sbaApplied }),
+        ...(cmd.simultaneousGroupId === undefined
+          ? {}
+          : { simultaneousGroupId: cmd.simultaneousGroupId }),
+      });
       break;
     }
     case 'setTapped': {
@@ -1514,7 +1873,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'addAbilityToStack': {
-      applyAddAbilityToStack(draft, cmd.sourceId, cmd.kind, cmd.abilityLineIndex);
+      applyAddAbilityToStack(
+        draft,
+        cmd.sourceId,
+        cmd.kind,
+        cmd.abilityLineIndex,
+        cmd.sourceSnapshot
+      );
       break;
     }
     case 'resolveStackTop': {
@@ -1560,5 +1925,6 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
   }
 
+  stabilizeBeforePriority(draft);
   return { state: draft.state, warnings: draft.warnings };
 }

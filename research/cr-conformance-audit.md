@@ -6,6 +6,8 @@
 
 ## 所見サマリ
 
+M-CR-RECONCILE note(2026-06-26): 本監査は主に分類器/用語/既存 runtime 誘発検出の CR 接地を扱ったものであり、CR 状態遷移そのものの完全な検査ではない。CR 2026-06-19 固定後、統率者税(CR903.8)、マナ能力(CR605)、トークンの領域移動と消滅(CR111.7/704.5d)、誘発/SBA/優先権(CR603/704/117)、領域移動の新オブジェクト性(CR400.7)について、別途 `research/cr-grounding/golden-cases.json` を正本とする。
+
 | 対象 | CR 条文 | 状態 | 措置 |
 |---|---|---|---|
 | Slice3 `zoneClassify` destroy/sacrifice | 701.8a / 701.21a | **🔴 違反→修正済** | destroy/sacrifice が `graveyard` を欠落(battlefield→owner's graveyard を取りこぼし)。iter3-b で CR 準拠化(本セッション・graveyard +1945) |

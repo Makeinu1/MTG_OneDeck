@@ -9,6 +9,8 @@
 - `research/scryfall-rules/2026-06-19/analysis/m5-edh-priority-analysis.md`
 - `research/scryfall-rules/2026-06-19/analysis/m5-edh-priority-analysis.json`
 
+M-CR-RECONCILE note(2026-06-26): 上記 M5 分析は CR 2026-04-17 生成の研究資産。最新CR差分、特に Heal/Power-up/Teamwork/Preparation と状態遷移判断は、CR 2026-06-19 固定 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`) と `research/cr-grounding/golden-cases.json` を優先する。
+
 ## 1. 方針
 
 M6の実装順は EDH頻度(`edhrec_rank`)を主軸にする。A-Eリスクは優先度の減点ではなく、実装レイヤーを決めるために使う。

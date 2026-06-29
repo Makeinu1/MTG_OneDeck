@@ -9,15 +9,18 @@ import type { CardDef, ManaColor } from '../types/card';
 import { applyCommands } from '../engine/batch';
 import {
   applyCommand,
+  activatedManaAbilityPlanForSource,
   activationPlanForSource,
   EngineError,
   guidedPlanForStackTop,
+  type ApplyResult,
   type GameCommand,
 } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
+import { orderPendingTriggersApnap } from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
@@ -25,11 +28,19 @@ import {
   compileAbilityIR,
   type EffectPrompt,
 } from '../engine/grammar/compile';
-import type { CardInstance, GameState, ZoneId } from '../engine/types';
+import type {
+  CardInstance,
+  GameState,
+  PendingSbaChoice,
+  PendingTrigger,
+  ZoneChangeEvent,
+  ZoneId,
+} from '../engine/types';
 import {
   abilityLineIndexForKind,
-  detectAttackTriggerCandidates,
-  detectTriggerCandidates,
+  collectAttackPendingTriggers,
+  collectPendingTriggers,
+  triggerCandidatesFromPendingTriggers,
   type TriggerCandidate,
 } from '../engine/triggers';
 import {
@@ -69,6 +80,12 @@ const ALL_ZONES: ZoneId[] = [
 ];
 const STACK_TRANSITION_BLOCKED_WARNING =
   'スタックに未解決の効果があります。先に解決してください。';
+const PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING =
+  '優先権前に置く誘発の順序が未指定です。すべての pending trigger を順序指定してください。';
+const PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING =
+  '優先権前の固定点処理で新しい誘発が発生しました。順序を指定してください。';
+const PRIORITY_TRIGGER_FIXED_POINT_LIMIT_WARNING =
+  '優先権前の固定点処理が上限に達しました。盤面を確認してください。';
 
 export type { TriggerCandidate } from '../engine/triggers';
 
@@ -101,17 +118,34 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
   const out: Record<string, CardInstance> = {};
 
   for (const [cardId, card] of Object.entries(cards)) {
+    const ownerId = card.ownerId ?? 'P1';
+    const controllerId = card.controllerId ?? ownerId;
+    const zoneChangeCounter =
+      typeof card.zoneChangeCounter === 'number' && Number.isFinite(card.zoneChangeCounter)
+        ? card.zoneChangeCounter
+        : 0;
     const manualKeywords = normalizeKeywords(card.manualKeywords);
+    let normalized: CardInstance = card;
+    if (
+      card.ownerId !== ownerId ||
+      card.controllerId !== controllerId ||
+      card.zoneChangeCounter !== zoneChangeCounter
+    ) {
+      normalized = { ...normalized, ownerId, controllerId, zoneChangeCounter };
+      changed = true;
+    }
+
     if (manualKeywords.length > 0) {
-      const sameLength = card.manualKeywords?.length === manualKeywords.length;
+      const sameLength = normalized.manualKeywords?.length === manualKeywords.length;
       const sameValues =
-        sameLength && manualKeywords.every((keyword, index) => card.manualKeywords?.[index] === keyword);
-      out[cardId] = sameValues ? card : { ...card, manualKeywords };
+        sameLength &&
+        manualKeywords.every((keyword, index) => normalized.manualKeywords?.[index] === keyword);
+      out[cardId] = sameValues ? normalized : { ...normalized, manualKeywords };
       changed = changed || !sameValues;
-    } else if (card.manualKeywords === undefined) {
-      out[cardId] = card;
+    } else if (normalized.manualKeywords === undefined) {
+      out[cardId] = normalized;
     } else {
-      out[cardId] = { ...card, manualKeywords: undefined };
+      out[cardId] = { ...normalized, manualKeywords: undefined };
       changed = true;
     }
   }
@@ -120,14 +154,202 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
 }
 
 function normalizeSnapshotState(state: GameState): GameState {
+  const pendingTriggers = Array.isArray(state.pendingTriggers)
+    ? state.pendingTriggers.map((trigger) => {
+        const controllerId =
+          trigger.controllerId ??
+          trigger.sourceSnapshot?.controllerId ??
+          trigger.sourceSnapshot?.ownerId ??
+          'P1';
+        const simultaneousGroupId = trigger.simultaneousGroupId ?? trigger.eventId;
+        return controllerId === trigger.controllerId &&
+          simultaneousGroupId === trigger.simultaneousGroupId
+          ? trigger
+          : { ...trigger, controllerId, simultaneousGroupId };
+      })
+    : [];
+
   return {
     ...state,
     effectsAuto: typeof state.effectsAuto === 'boolean' ? state.effectsAuto : true,
+    activePlayerId: state.activePlayerId ?? 'P1',
     cards: normalizeSnapshotCards(state.cards),
     zones: normalizeSnapshotZones(state.zones),
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
+    eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
+    pendingTriggers,
+    pendingSbaChoices: Array.isArray(state.pendingSbaChoices)
+      ? state.pendingSbaChoices
+      : [],
   };
+}
+
+function appendPendingTriggers(
+  state: GameState,
+  pendingTriggers: readonly PendingTrigger[]
+): GameState {
+  if (pendingTriggers.length === 0) {
+    return state;
+  }
+  const existingIds = new Set(state.pendingTriggers.map((trigger) => trigger.pendingTriggerId));
+  const additions = pendingTriggers.filter(
+    (trigger) => !existingIds.has(trigger.pendingTriggerId)
+  );
+  if (additions.length === 0) {
+    return state;
+  }
+  return {
+    ...state,
+    pendingTriggers: [...state.pendingTriggers, ...additions],
+  };
+}
+
+function clearPendingTriggers(state: GameState): GameState {
+  return state.pendingTriggers.length === 0 ? state : { ...state, pendingTriggers: [] };
+}
+
+function removePendingTriggersForSource(state: GameState, sourceId: string): GameState {
+  const pendingTriggers = state.pendingTriggers.filter(
+    (trigger) => trigger.sourceId !== sourceId
+  );
+  return pendingTriggers.length === state.pendingTriggers.length
+    ? state
+    : { ...state, pendingTriggers };
+}
+
+function removePendingTriggersById(
+  state: GameState,
+  pendingTriggerIds: readonly string[]
+): GameState {
+  if (pendingTriggerIds.length === 0) return state;
+  const idSet = new Set(pendingTriggerIds);
+  const pendingTriggers = state.pendingTriggers.filter(
+    (trigger) => !idSet.has(trigger.pendingTriggerId)
+  );
+  return pendingTriggers.length === state.pendingTriggers.length
+    ? state
+    : { ...state, pendingTriggers };
+}
+
+function appendPendingSbaChoice(state: GameState, choice: PendingSbaChoice): GameState {
+  const choices = Array.isArray(state.pendingSbaChoices) ? state.pendingSbaChoices : [];
+  if (choices.some((existing) => existing.choiceId === choice.choiceId)) {
+    return state;
+  }
+  return {
+    ...state,
+    pendingSbaChoices: [...choices, choice],
+  };
+}
+
+function removePendingSbaChoiceById(state: GameState, choiceId: string): GameState {
+  const choices = Array.isArray(state.pendingSbaChoices) ? state.pendingSbaChoices : [];
+  const pendingSbaChoices = choices.filter((choice) => choice.choiceId !== choiceId);
+  return pendingSbaChoices.length === choices.length ? state : { ...state, pendingSbaChoices };
+}
+
+function lastZoneChangeEventTo(
+  state: GameState,
+  cardId: string,
+  toZone: 'graveyard' | 'exile',
+): ZoneChangeEvent | null {
+  for (let index = state.eventLog.length - 1; index >= 0; index -= 1) {
+    const event = state.eventLog[index];
+    if (
+      event.type === 'zoneChange' &&
+      event.physicalCardId === cardId &&
+      event.toZone === toZone
+    ) {
+      return event;
+    }
+  }
+  return null;
+}
+
+function commanderZoneSbaChoiceFromMove(
+  state: GameState,
+  cardId: string,
+  fromZone: 'graveyard' | 'exile',
+): PendingSbaChoice | null {
+  const event = lastZoneChangeEventTo(state, cardId, fromZone);
+  if (!event) return null;
+  const controllerId =
+    event.after?.controllerId ?? event.before.controllerId ?? event.before.ownerId;
+  const sourceObjectId = event.after?.objectId ?? event.oldObjectId;
+  return {
+    choiceId: `${event.eventId}:903.9a:${cardId}`,
+    kind: 'commander-zone',
+    ruleRef: '903.9a',
+    cardId,
+    fromZone,
+    toZone: 'command',
+    eventId: event.eventId,
+    sourceObjectId,
+    controllerId,
+  };
+}
+
+function commandForPendingTrigger(pending: PendingTrigger): GameCommand {
+  return {
+    type: 'addAbilityToStack',
+    sourceId: pending.sourceId,
+    kind: 'triggered',
+    ...(pending.abilityLineIndex === undefined
+      ? {}
+      : { abilityLineIndex: pending.abilityLineIndex }),
+    sourceSnapshot: pending.sourceSnapshot,
+  };
+}
+
+function pendingTriggersForIds(
+  state: GameState,
+  pendingTriggerIds: readonly string[]
+): PendingTrigger[] {
+  const pendingById = new Map(
+    state.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
+  );
+  return pendingTriggerIds
+    .map((id) => pendingById.get(id))
+    .filter((trigger): trigger is PendingTrigger => trigger !== undefined);
+}
+
+function applyPendingTriggerStackPlacement(
+  state: GameState,
+  pendingInOrder: readonly PendingTrigger[]
+): ApplyResult {
+  const result = applyCommands(state, pendingInOrder.map(commandForPendingTrigger));
+  const withNewPending = appendPendingTriggers(
+    result.state,
+    collectPendingTriggers(state, result.state)
+  );
+  return {
+    state: removePendingTriggersById(
+      withNewPending,
+      pendingInOrder.map((trigger) => trigger.pendingTriggerId)
+    ),
+    warnings: result.warnings,
+  };
+}
+
+function deterministicPendingTriggerOrderForPriority(state: GameState): string[] | null {
+  const countsByController = new Map<string, number>();
+  for (const trigger of state.pendingTriggers) {
+    countsByController.set(
+      trigger.controllerId,
+      (countsByController.get(trigger.controllerId) ?? 0) + 1
+    );
+  }
+  if ([...countsByController.values()].some((count) => count > 1)) {
+    return null;
+  }
+
+  const orderResult = orderPendingTriggersApnap(
+    state.pendingTriggers,
+    state.pendingTriggers.map((trigger) => trigger.pendingTriggerId),
+    state.activePlayerId
+  );
+  return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
 }
 
 export interface GameStore {
@@ -160,6 +382,7 @@ export interface GameStore {
   mill(count: number): void;
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
+  moveCommanderWithZoneChoice(cardId: string, to: ZoneId, toCommandZone: boolean): void;
   setManualKeywords(cardId: string, keywords: string[]): void;
   tapAllPermanents(): void;
   untapAllPermanents(): void;
@@ -193,6 +416,9 @@ export interface GameStore {
     kind: 'activated' | 'triggered',
     abilityLineIndex?: number
   ): void;
+  putPendingTriggerOnStack(pendingTriggerId: string): void;
+  putPendingTriggersOnStack(pendingTriggerIds: string[]): void;
+  placePendingTriggersForPriority(pendingTriggerIds: string[]): void;
   activateAbility(sourceId: string, abilityLineIndex?: number): void;
   dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
@@ -390,9 +616,16 @@ export const useGameStore = create<GameStore>((set, get) => {
   };
   snapshotInternal = internal;
 
-  function commit(next: GameState, warnings: string[]): void {
+  function commit(
+    next: GameState,
+    warnings: string[],
+    options: { collectPending?: boolean } = {}
+  ): void {
     const cur = get().state;
-    const detectedTriggerCandidates = cur ? detectTriggerCandidates(cur, next) : null;
+    const shouldCollectPending = options.collectPending ?? true;
+    const nextWithPending = cur && shouldCollectPending
+      ? appendPendingTriggers(next, collectPendingTriggers(cur, next))
+      : next;
     if (cur) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
@@ -401,15 +634,15 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
     internal.future = [];
     const nextStoreState: Partial<GameStore> = {
-      state: next,
+      state: nextWithPending,
       warnings,
+      triggerCandidates: triggerCandidatesFromPendingTriggers(
+        nextWithPending.pendingTriggers
+      ),
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
     };
-    if (detectedTriggerCandidates !== null) {
-      nextStoreState.triggerCandidates = detectedTriggerCandidates;
-    }
     set(nextStoreState);
   }
 
@@ -672,8 +905,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     undo() {
       const cur = get().state;
       if (internal.past.length === 0 || !cur) return;
-      const prev = internal.past.pop() as GameState;
-      internal.future.push(cur);
+      const prev = clearPendingTriggers(internal.past.pop() as GameState);
+      internal.future.push(clearPendingTriggers(cur));
       if (internal.future.length > HISTORY_LIMIT) {
         internal.future.shift();
       }
@@ -689,8 +922,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     redo() {
       const cur = get().state;
       if (internal.future.length === 0 || !cur) return;
-      const next = internal.future.pop() as GameState;
-      internal.past.push(cur);
+      const next = clearPendingTriggers(internal.future.pop() as GameState);
+      internal.past.push(clearPendingTriggers(cur));
       if (internal.past.length > HISTORY_LIMIT) {
         internal.past.shift();
       }
@@ -725,6 +958,72 @@ export const useGameStore = create<GameStore>((set, get) => {
         cardId,
         to,
         position: position ?? (to === 'stack' ? 'bottom' : 'top'),
+      });
+    },
+
+    moveCommanderWithZoneChoice(cardId, to, toCommandZone) {
+      const cur = get().state;
+      if (!cur) return;
+      const card = cur.cards[cardId];
+      if (!card || !isCommander(cur, cardId)) return;
+
+      if (!toCommandZone) {
+        dispatch({
+          type: 'moveCard',
+          cardId,
+          to,
+          position: to === 'stack' ? 'bottom' : 'top',
+        });
+        return;
+      }
+
+      // CR 903.9a: graveyard/exile are not replacement effects. The commander
+      // is put into that zone first, relevant death/LTB pending triggers are
+      // collected from the zone-change event, then the SBA-like command move is
+      // applied before priority. This is still a store-level bridge; the full
+      // SBA loop remains Z4 work.
+      if (to === 'graveyard' || to === 'exile') {
+        try {
+          const toDestination = applyCommand(cur, {
+            type: 'moveCard',
+            cardId,
+            to,
+            position: 'top',
+          });
+          const choice = commanderZoneSbaChoiceFromMove(toDestination.state, cardId, to);
+          const withPendingChoice = choice
+            ? appendPendingSbaChoice(toDestination.state, choice)
+            : toDestination.state;
+          const toCommand = applyCommand(withPendingChoice, {
+            type: 'moveCard',
+            cardId,
+            to: 'command',
+            position: 'top',
+            reason: 'sba',
+            sbaApplied: '903.9a',
+            ...(choice ? { simultaneousGroupId: choice.choiceId } : {}),
+          });
+          const resolved = choice
+            ? removePendingSbaChoiceById(toCommand.state, choice.choiceId)
+            : toCommand.state;
+          commit(resolved, [...toDestination.warnings, ...toCommand.warnings]);
+        } catch (err) {
+          if (err instanceof EngineError) {
+            console.error(err.message);
+          } else {
+            console.error(err);
+          }
+        }
+        return;
+      }
+
+      // CR 903.9b: hand/library destinations are replacement effects. Choosing
+      // command means the hand/library zone-change never happens.
+      dispatch({
+        type: 'moveCard',
+        cardId,
+        to: 'command',
+        position: 'top',
       });
     },
 
@@ -1105,12 +1404,115 @@ export const useGameStore = create<GameStore>((set, get) => {
           : { abilityLineIndex: resolvedAbilityLineIndex }),
       });
       if (kind === 'triggered' && get().state !== before) {
+        const next = get().state;
+        if (!next) return;
+        const nextWithoutPending = removePendingTriggersForSource(next, sourceId);
         set({
-          triggerCandidates: get().triggerCandidates.filter(
-            (candidate) => candidate.sourceId !== sourceId,
+          state: nextWithoutPending,
+          triggerCandidates: triggerCandidatesFromPendingTriggers(
+            nextWithoutPending.pendingTriggers
           ),
         });
       }
+    },
+
+    putPendingTriggerOnStack(pendingTriggerId) {
+      get().putPendingTriggersOnStack([pendingTriggerId]);
+    },
+
+    putPendingTriggersOnStack(pendingTriggerIds) {
+      const before = get().state;
+      if (!before || pendingTriggerIds.length === 0) return;
+
+      const seenIds = new Set<string>();
+      const orderedIds = pendingTriggerIds.filter((id) => {
+        if (seenIds.has(id)) return false;
+        seenIds.add(id);
+        return true;
+      });
+      const pendingById = new Map(
+        before.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
+      );
+      const pendingInOrder = orderedIds
+        .map((id) => pendingById.get(id))
+        .filter((trigger): trigger is PendingTrigger => trigger !== undefined);
+      if (pendingInOrder.length === 0) return;
+
+      try {
+        const result = applyCommands(before, pendingInOrder.map(commandForPendingTrigger));
+        commit(result.state, result.warnings);
+        const next = get().state;
+        if (!next) return;
+        const nextWithoutPending = removePendingTriggersById(
+          next,
+          pendingInOrder.map((trigger) => trigger.pendingTriggerId)
+        );
+        set({
+          state: nextWithoutPending,
+          triggerCandidates: triggerCandidatesFromPendingTriggers(
+            nextWithoutPending.pendingTriggers
+          ),
+        });
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
+    },
+
+    placePendingTriggersForPriority(pendingTriggerIds) {
+      const cur = get().state;
+      if (!cur || cur.pendingTriggers.length === 0) return;
+
+      const orderResult = orderPendingTriggersApnap(
+        cur.pendingTriggers,
+        pendingTriggerIds,
+        cur.activePlayerId
+      );
+      if (orderResult.status !== 'ordered') {
+        set({
+          warnings: [
+            ...get().warnings,
+            PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING,
+          ],
+        });
+        return;
+      }
+
+      let workingState = cur;
+      let orderedIds: string[] | null = orderResult.orderedIds;
+      const warnings: string[] = [];
+      let iterations = 0;
+      const maxIterations = 10;
+
+      while (workingState.pendingTriggers.length > 0) {
+        if (!orderedIds) {
+          warnings.push(PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING);
+          break;
+        }
+
+        const pendingInOrder = pendingTriggersForIds(workingState, orderedIds);
+        if (pendingInOrder.length === 0) break;
+
+        const placement = applyPendingTriggerStackPlacement(workingState, pendingInOrder);
+        workingState = placement.state;
+        warnings.push(...placement.warnings);
+        iterations += 1;
+
+        if (iterations >= maxIterations && workingState.pendingTriggers.length > 0) {
+          warnings.push(PRIORITY_TRIGGER_FIXED_POINT_LIMIT_WARNING);
+          break;
+        }
+
+        orderedIds =
+          workingState.pendingTriggers.length === 0
+            ? []
+            : deterministicPendingTriggerOrderForPriority(workingState);
+      }
+
+      commit(workingState, warnings, { collectPending: false });
     },
 
     activateAbility(sourceId, abilityLineIndex) {
@@ -1119,6 +1521,42 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       const resolvedAbilityLineIndex =
         abilityLineIndex ?? abilityLineIndexForKind(cur, sourceId, 'activated');
+      const manaAbilityPlan = activatedManaAbilityPlanForSource(
+        cur,
+        sourceId,
+        resolvedAbilityLineIndex,
+      );
+      if (manaAbilityPlan) {
+        if (manaAbilityPlan.decision === 'manual') {
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}のマナ能力はスタックに置かず、手動でコストとマナを反映してください。`,
+            ],
+          });
+          return;
+        }
+
+        try {
+          const result = applyCommands(cur, manaAbilityPlan.commands);
+          const warnings = result.warnings.slice();
+          if (manaAbilityPlan.manaShortfall > 0) {
+            warnings.push(
+              `${cardLabel(cur, sourceId)}のマナ能力の起動コストのマナが${manaAbilityPlan.manaShortfall}点不足しています。`
+            );
+          }
+          const next = appendLog(result.state, `${cardLabel(cur, sourceId)}のマナ能力を起動。`);
+          commit(next, warnings);
+        } catch (err) {
+          if (err instanceof EngineError) {
+            console.error(err.message);
+          } else {
+            console.error(err);
+          }
+        }
+        return;
+      }
+
       const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex);
       const addCmd: GameCommand = {
         type: 'addAbilityToStack',
@@ -1156,7 +1594,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     dismissTriggerCandidates() {
-      set({ triggerCandidates: [] });
+      const cur = get().state;
+      set({
+        state: cur ? clearPendingTriggers(cur) : cur,
+        triggerCandidates: [],
+      });
     },
 
     copyStackItem(cardId) {
@@ -1296,7 +1738,18 @@ export const useGameStore = create<GameStore>((set, get) => {
           ...tapCommands,
         ]);
         commit(result.state, [...result.warnings, ...warnings]);
-        set({ triggerCandidates: detectAttackTriggerCandidates(result.state, attackerIds) });
+        const committed = get().state;
+        if (!committed) return;
+        const nextWithPending = appendPendingTriggers(
+          committed,
+          collectAttackPendingTriggers(committed, attackerIds)
+        );
+        set({
+          state: nextWithPending,
+          triggerCandidates: triggerCandidatesFromPendingTriggers(
+            nextWithPending.pendingTriggers
+          ),
+        });
       } catch (err) {
         console.error(err);
       }

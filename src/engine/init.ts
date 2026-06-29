@@ -52,6 +52,9 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
       id,
       defId: entry.def.scryfallId,
       zone: entry.isCommander ? 'command' : 'library',
+      ownerId: 'P1',
+      controllerId: 'P1',
+      zoneChangeCounter: 0,
       tapped: false,
       faceIndex: 0,
       faceDown: false,
@@ -90,6 +93,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     zones,
     commanders,
     effectsAuto: true,
+    activePlayerId: 'P1',
     turn: 1,
     phase: 'untap',
     life: 40,
@@ -103,6 +107,9 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     landsPlayedThisTurn: 0,
     spellsCastThisTurn: 0,
     drawnThisTurn: 0,
+    eventLog: [],
+    pendingTriggers: [],
+    pendingSbaChoices: [],
     log,
   };
 }

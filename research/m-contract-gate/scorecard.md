@@ -2,6 +2,8 @@
 
 Generated: 2026-06-25T14:50:07.802Z
 
+> Superseded on 2026-06-26 by M-CR-RECONCILE. This scorecard remains useful as a research measurement, but it is no longer sufficient to freeze the implementation contract because CR-grounded state-transition golden cases were missing for commander tax, mana abilities, token zone changes, pending triggers/SBA/priority, and object incarnation/LKI.
+
 ## Conditions
 
 | ID | Condition | Status | Value | Threshold | Unverifiable | Source | Note |
@@ -43,5 +45,4 @@ Generated: 2026-06-25T14:50:07.802Z
 
 ## Verdict
 
-**FROZEN**
-
+**NOT FROZEN — superseded by M-CR-RECONCILE**

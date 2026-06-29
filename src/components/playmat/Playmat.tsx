@@ -106,6 +106,14 @@ const TARGET_RULE_ACTION_TITLES: Record<TargetRuleActionCandidateKind, string> =
   'attach-target': '装備/付与',
 };
 
+function isCommanderZoneChoiceDestination(zone: ZoneId): boolean {
+  return zone === 'graveyard' || zone === 'exile' || zone === 'hand' || zone === 'library';
+}
+
+function commanderZoneChoiceMode(zone: ZoneId): 'replacement' | 'sba' {
+  return zone === 'graveyard' || zone === 'exile' ? 'sba' : 'replacement';
+}
+
 const MANUAL_KEYWORD_OPTIONS: ReadonlyArray<{ id: Keyword; label: string }> = [
   { id: 'flying', label: '飛行' },
   { id: 'vigilance', label: '警戒' },
@@ -496,8 +504,12 @@ export function Playmat({ keybindings }: PlaymatProps) {
       requestPlayLand(move.cardId);
       return;
     }
-    // Commander leaving battlefield/hand/library/graveyard/exile -> offer command zone.
-    if (isCommander(state!, move.cardId) && move.to !== 'command' && card.zone !== 'command') {
+    // CR 903.9a/b only applies to graveyard/exile/hand/library destinations.
+    if (
+      isCommander(state!, move.cardId) &&
+      card.zone !== 'command' &&
+      isCommanderZoneChoiceDestination(move.to)
+    ) {
       setCommanderMove({ cardId: move.cardId, to: move.to });
       return;
     }
@@ -1070,6 +1082,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
       items.push({
         key: `move-${t.zone}`,
         label: t.label,
+        testId: `move-${t.zone}`,
         onSelect: () => performMove({ cardId, to: t.zone }),
         separator: i === 0,
       });
@@ -1459,12 +1472,13 @@ export function Playmat({ keybindings }: PlaymatProps) {
           <CommanderMoveDialog
             cardName={cardNameFor(commanderMove.cardId)}
             destinationLabel={ZONE_LABELS[commanderMove.to]}
+            mode={commanderZoneChoiceMode(commanderMove.to)}
             onChoose={(toCommandZone) => {
-              if (toCommandZone) {
-                store.moveCard(commanderMove.cardId, 'command');
-              } else {
-                store.moveCard(commanderMove.cardId, commanderMove.to);
-              }
+              store.moveCommanderWithZoneChoice(
+                commanderMove.cardId,
+                commanderMove.to,
+                toCommandZone,
+              );
               setCommanderMove(null);
             }}
             onCancel={() => setCommanderMove(null)}

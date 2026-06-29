@@ -1,0 +1,88 @@
+diff --git a/docs/engine-spec.md b/docs/engine-spec.md
+--- a/docs/engine-spec.md
++++ b/docs/engine-spec.md
+@@ -1797,6 +1797,8 @@
+ 実装へ入る前の CR-golden は `research/cr-grounding/golden-cases.json` を正本とする。S-EVENTS/S-TURN/S-ZONES は、同ファイルの in-scope ケースを実行可能 golden replay へ移植してから合格判定する。
+ 
+ M0 CR Grounding Gate の status 正本は `research/cr-grounding/README.md` の "M0 CR Grounding Gate status" と `docs/acceptance.md` の CRG 表とする。`PASS` / `PASS(core)` / `PASS(boundary)` / `PARTIAL` を区別し、`PARTIAL` の残る境界(full SBA suite、603.3b second-bucket、commander 903.9a 汎用SBA choice、誘発型マナ能力など)を完了済みに混ぜてはならない。
++
++M0-FREEZE の CR-grounding overlay 正本は `research/cr-grounding/m0-freeze-overlay.json` とする。`research/cr-grounding/README.md` と `docs/acceptance.md` の CRG 表は人間向け表示であり、scorecard 配線時の機械可読入力は overlay JSON を使う。Fable の承認/差戻し記録は `research/cr-grounding/m0-freeze-decision-record.md`、証拠監査は `research/cr-grounding/m0-freeze-evidence-audit.md`、CR refs / golden / executable / overlay / boundary の追跡表は `research/cr-grounding/m0-freeze-traceability-matrix.md` を参照する。
+ 
+ Zone/zone-change の設計正本は `research/cr-grounding/zone-change-study.md`。CRG-5 トークン死亡、CRG-6 誘発/SBA/優先権、CRG-7 領域移動/LKI は共有 substrate を持つため、個別実装へ直行しない。順序は Z1 object incarnation scaffold → Z2 ZoneChangeEvent → Z3 pendingTriggers → Z4 stabilizeBeforePriority → Z5 executable CR-golden。
+ 
+@@ -1889,7 +1891,10 @@ state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条
+ >
+ >
+ > **次 = M-CR-RECONCILE**(CR 2026-06-19 固定・仕様判断ごとの条文根拠・CR-golden 整備 → scorecard 再判定)。M-FREEZE / S-EVENTS はその後。
+ 
++> **現況(2026-06-28・M0-FREEZE review)= CONTRACT-UPDATE READY / M0-FREEZE NOT COMPLETE**。
++> `research/cr-grounding/` の CR-grounding handoff は contract-update stage へ進める材料が揃った。ただし M0-FREEZE 完了には、docs契約反映、scorecard overlay配線、scorecard再生成、Fable最終承認が必要である。したがって S-* 実装にはまだ進まない。
++
+ ### 34.7.2 M-CONTRACT ゲート・スコアカード(契約)
+ §34.7.1 の7条件を**一枚で再現可能に判定する物差し**。判定を散在データの目視でなく、決定的な集計器に固定する。
+ 
+@@ -1896,8 +1901,10 @@ state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条
+ (`scripts/m-contract-gate.ts` + 純関数 `scripts/lib/mContractGate.ts`)。json は再現可能・監査可能。
+ 表は **7条件 × {status, value, threshold, source(artifact path), note}** + 総合判定。
+ 既存 report.json(`research/{layer,event,zone,timing}-coverage`・`research/{llm,event,zone,timing}-oracle`・
+ `research/classifier-parity`)と golden-replay の compute(`src/engine/goldenReplay.ts` 再利用)を入力にする
+ (分類器・物差しを**再実装しない**)。`src/engine/` の挙動は不変(本器は計測専用)。
+ 
++M-CR-RECONCILE 以後の scorecard は、legacy seven-condition reports に加えて `research/cr-grounding/m0-freeze-overlay.json` を入力にする。overlay wiring 後の `scorecard.json` は `legacyFrozen`、`crGroundingOverlay`、`crGroundingOverlayApproved`、`crGroundingOverlayProblems` を含む。Markdown は `CR-grounding Overlay` と `R-FREEZE Designs` を表示し、旧 `Superseded` 注記を overlay included 注記へ置き換える。
++
+ **status 語彙**: `PASS`(数値が閾値達成 **かつ** 検証不能を緑に混ぜていない)/ `FAIL`(数値未達)/
+ `BLOCKED`(後続 MS 待ち=器が未整備)/ `UNMEASURED`(本 MS で初計測)。
+@@ -1929,7 +1936,20 @@ golden-replay の検証不能ケース率は**実行計測の成熟度=条件5
+ **ゲート判定ロジック(決定的)**:
+ 1. 条件は「value が threshold 達成 **かつ** 当該軸に検証不能を緑へ混入していない」のときのみ `PASS`(method §3 鉄則)。
+ 2. 1つでも `PASS` でなければ総合 = **NOT FROZEN**。
+ 3. 検証不能(`unverifiable > 0`)を含む条件は数値が閾値達成でも `PASS` にできない(silent divergence 禁止)。
+ 
++M-CR-RECONCILE 以後の追加判定:
++
++4. 総合判定は legacy seven conditions と CR-grounding overlay の合成とする。
++   - 入力: legacy seven-condition reports + `research/cr-grounding/m0-freeze-overlay.json`。
++   - `required-pass`: `PASS` 必須。
++   - `core-pass-only`: `PASS(core)` を許可。ただし `remainingBoundary` 必須。
++   - `boundary-pass-only`: `PASS(boundary)` を許可。ただし `remainingBoundary` 必須。
++   - `partial-allowed-*`: `PARTIAL` を許可。ただし `remainingBoundary` 必須。
++   - `FAIL` は不可。
++5. `frozen = legacyFrozen && crGroundingOverlayApproved` とする。
++6. `PARTIAL` / `PASS(core)` / `PASS(boundary)` は plain `PASS` に変換しない。Markdown scorecard でも status と remaining boundary を表示する。
++7. `frozen` は「未実装ゼロ」を意味しない。S-* carry / scope-boundary を明示したうえで次段階へ進める、という M0-FREEZE 契約上の判定である。
++
+ ### 34.7.3 parity 和解(M-GATE-2・条件6=研究⇄runtime 乖離 0 への手順)
+ 条件6 の parity=0 は、研究計測器(`scripts/lib/*Classify.ts`)と runtime 分類器(`src/data/ruleClassifier.ts`)の
+diff --git a/docs/acceptance.md b/docs/acceptance.md
+--- a/docs/acceptance.md
++++ b/docs/acceptance.md
+@@ -516,3 +516,29 @@ S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための
+ | CRG-6 | PARTIAL | 誘発/SBA/優先権ケースを実装/テスト化 | event 直後に stack へ直積みせず `pendingTriggers` へ置く。activePlayer/card owner/controller substrate、controller/group 保持、全pending明示順の priority boundary、explicit-order stack placement、mixed-controller APNAP ordering core v1、同一controller内順序選択UI v1、704.5f + deterministic fixed-point v1 は実装済み。603.3b second-bucket、full SBA suite は未実装 |
+ | CRG-7 | PASS(core) | 領域移動/LKIケースを実装/テスト化 | physical card identity と object incarnation が分離され、LTB/death は移動前 snapshot を参照できる。CR400.7 例外群と full effective-characteristics snapshot は未実装 |
+ | CRG-8 | PASS(boundary) | 2026-06-19 新語彙を分類確認 | `701.69 Heal` は valid ruleRef。`Power-up` は能力語ではなく CR 702.193。未実装なら covered/pass に混ぜない |
++
++M0-FREEZE は旧 M-CONTRACT scorecard に加えて CR-grounding overlay を確認する。
++
++| Gate | Required treatment |
++|---|---|
++| CRG-1 CR 2026-06-19 fixed | required PASS |
++| CRG-2 CR-grounded golden cases defined | required PASS |
++| CRG-3 Commander tax CR 903.8 | required PASS |
++| CRG-4 Mana abilities CR 605 | PARTIAL allowed only if CR 605.1b/605.4a is explicit S-* carry |
++| CRG-4.5 Commander zone choice CR 903.9a/b | PARTIAL allowed only if generic rule choice is explicit S-CHOICE carry |
++| CRG-5 Token death CR 111.7/704.5d | required PASS |
++| CRG-6 Trigger/SBA/priority CR 603/704/117 | PARTIAL allowed only if 603.3b second bucket and full SBA are explicit S-* carry |
++| CRG-7 Zone movement/LKI CR 400.7/603.10a | PASS(core); CR 400.7 exceptions and full effective-characteristics snapshot remain S-* carry |
++| CRG-8 2026-06-19 new vocabulary | PASS(boundary); Heal / Power-up / Teamwork / Preparation executors remain scope-boundary |
++
++Acceptance rule: 未実装機構を `PASS` に混ぜない。`PARTIAL` / `PASS(core)` / `PASS(boundary)` は残境界を伴ってのみ許可する。
++
++判定材料:
++
++- `research/cr-grounding/m0-freeze-overlay.json`
++- `research/cr-grounding/m0-freeze-review-packet.md`
++- `research/cr-grounding/m0-freeze-review-sheet.md`
++- `research/cr-grounding/m0-freeze-decision-record.md`
++- `research/cr-grounding/m0-freeze-evidence-audit.md`
++- `research/cr-grounding/m0-freeze-traceability-matrix.md`
++- `research/cr-grounding/docs-contract-update-map.md`

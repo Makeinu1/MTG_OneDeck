@@ -7,7 +7,7 @@
 - Query: `game:paper date>=2021-06-19`
 - Unique mode: `cards`
 - API: `https://api.scryfall.com/cards/search`
-- Rules source: Magic: The Gathering Comprehensive Rules, effective 2026-04-17
+- Rules source pinned after M-CR-RECONCILE: Magic: The Gathering Comprehensive Rules, effective 2026-06-19 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`)
 - Saved cards: 17,491
 - Page count: 100
 - Manifest: `manifest.json`
@@ -25,6 +25,8 @@
 - `analysis/rule-vocabulary-summary.md`: 人間レビュー用の同集計。
 
 `raw/` は 242MB 程度あるため `.gitignore` で除外している。分析結果と manifest は小さいのでレビュー対象にできる。
+
+注意: `analysis/m5-edh-priority-analysis.*` / `analysis/cr-term-analysis.*` / `analysis/oracle-grammar-analysis.md` は当初 CR 2026-04-17 版を元に生成された。M-CR-RECONCILE 以後は CR 2026-06-19 を正本とし、CR 701/702/722 の語彙や Power-up/Teamwork/Preparation を扱う判断ではこれらを最新版の根拠として使わない。必要なら再生成する。
 
 ## Notes
 

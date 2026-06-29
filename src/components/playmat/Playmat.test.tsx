@@ -70,6 +70,7 @@ function resetStore(): void {
   useGameStore.setState({
     state: null,
     warnings: [],
+    triggerCandidates: [],
     canUndo: false,
     canRedo: false,
     autoAdvanceToMain: true,
@@ -217,6 +218,147 @@ describe('Playmat', () => {
 
     expect(castToStack).toHaveBeenCalledWith(commanderId, { xValue: 0 });
     expect(castCommander).not.toHaveBeenCalled();
+
+    cleanupRender(root, container);
+  });
+
+  it('CR 903.9a commander graveyard choice keeps the graveyard event before moving to command', () => {
+    const commander = makeDef({
+      scryfallId: 'playmat-commander-9039a',
+      printedName: 'UI統率者',
+      typeLine: 'Legendary Creature',
+      faces: [
+        {
+          name: 'UI Commander',
+          printedName: 'UI統率者',
+          typeLine: 'Legendary Creature',
+          oracleText: 'When UI Commander dies, draw a card.',
+        },
+      ],
+    });
+    act(() => {
+      useGameStore.getState().newGame(makeDeck(12, [commander]), 1);
+    });
+    const commanderId = useGameStore.getState().state?.zones.command[0];
+    if (!commanderId) {
+      throw new Error('commander card was not created');
+    }
+    act(() => {
+      useGameStore.getState().moveCard(commanderId, 'battlefield');
+    });
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${commanderId}"]`);
+    if (!card) {
+      throw new Error('commander card element was not rendered');
+    }
+
+    dispatchContextMenu(card);
+    const moveGraveyard = container.querySelector('[data-testid="move-graveyard"]');
+    if (!moveGraveyard) {
+      throw new Error('move to graveyard menu item was not rendered');
+    }
+    dispatchClick(moveGraveyard);
+
+    expect(container.querySelector('[data-testid="commander-move-dialog"]')?.textContent).toContain(
+      'CR 903.9a',
+    );
+
+    const commandChoice = container.querySelector('[data-testid="commander-move-command"]');
+    if (!commandChoice) {
+      throw new Error('commander command choice was not rendered');
+    }
+    dispatchClick(commandChoice);
+
+    const state = useGameStore.getState().state;
+    expect(state?.cards[commanderId]?.zone).toBe('command');
+    expect(state?.zones.graveyard).not.toContain(commanderId);
+    expect(useGameStore.getState().triggerCandidates).toEqual([
+      {
+        sourceId: commanderId,
+        triggerId: 'trigger.death',
+        label: '死亡したとき: 《UI統率者》',
+      },
+    ]);
+
+    cleanupRender(root, container);
+  });
+
+  it('lets the user choose simultaneous trigger order before priority placement', () => {
+    const watcher = makeDef({
+      scryfallId: 'playmat-trigger-order-watcher',
+      printedName: 'UI誘発監視者',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'UI Trigger Watcher',
+          printedName: 'UI誘発監視者',
+          typeLine: 'Creature',
+          oracleText: 'Whenever another creature enters the battlefield, you gain 1 life.',
+        },
+      ],
+    });
+    const entrant = makeDef({
+      scryfallId: 'playmat-trigger-order-entrant',
+      printedName: 'UI誘発入場者',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'UI Trigger Entrant',
+          printedName: 'UI誘発入場者',
+          typeLine: 'Creature',
+          oracleText: 'When UI Trigger Entrant enters, draw a card.',
+        },
+      ],
+    });
+
+    startGameWithDefs([watcher, entrant]);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const entrantId = findInstanceId(entrant.scryfallId);
+    act(() => {
+      useGameStore.getState().moveCard(watcherId, 'battlefield');
+      useGameStore.getState().moveCard(entrantId, 'battlefield');
+    });
+
+    const pending = useGameStore.getState().state?.pendingTriggers ?? [];
+    const watcherPending = pending.find((trigger) => trigger.sourceId === watcherId);
+    const entrantPending = pending.find((trigger) => trigger.sourceId === entrantId);
+    expect(watcherPending).toBeDefined();
+    expect(entrantPending).toBeDefined();
+
+    const { container, root } = renderPlaymat();
+    expect(container.querySelector('[data-testid="trigger-candidates"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="trigger-candidates-place-ordered"]')).not.toBeNull();
+
+    const watcherUp = container.querySelector(
+      `[data-testid="trigger-order-up-${watcherPending?.pendingTriggerId}"]`,
+    );
+    if (!watcherUp) {
+      throw new Error('watcher trigger order-up control was not rendered');
+    }
+    dispatchClick(watcherUp);
+
+    const placeOrdered = container.querySelector(
+      '[data-testid="trigger-candidates-place-ordered"]',
+    );
+    if (!placeOrdered) {
+      throw new Error('ordered trigger placement button was not rendered');
+    }
+    dispatchClick(placeOrdered);
+
+    const state = useGameStore.getState().state;
+    expect(state?.pendingTriggers).toEqual([]);
+    expect(useGameStore.getState().triggerCandidates).toEqual([]);
+    expect(state?.zones.stack).toHaveLength(2);
+    const [lowerAbilityId, topAbilityId] = state?.zones.stack ?? [];
+    expect(state?.cards[lowerAbilityId]).toMatchObject({
+      isAbility: true,
+      sourceId: watcherId,
+    });
+    expect(state?.cards[topAbilityId]).toMatchObject({
+      isAbility: true,
+      sourceId: entrantId,
+    });
 
     cleanupRender(root, container);
   });

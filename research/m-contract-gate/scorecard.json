@@ -1,5 +1,10 @@
 {
   "generatedAt": "2026-06-25T14:50:07.802Z",
+  "supersededBy": {
+    "date": "2026-06-26",
+    "milestone": "M-CR-RECONCILE",
+    "reason": "CR-grounded state-transition golden cases were missing for commander tax, mana abilities, token zone changes, pending triggers/SBA/priority, and object incarnation/LKI."
+  },
   "conditions": [
     {
       "id": 1,
@@ -72,7 +77,7 @@
       "note": "max=5.82%; per-oracle: layer=0.00%(n=192), event=2.46%(n=203), zone=5.82%(n=189), timing=1.53%(n=196); golden-replay 検証不能は条件5へ分離"
     }
   ],
-  "frozen": true,
+  "frozen": false,
   "headCoverage": {
     "axes": [
       {

@@ -2,6 +2,8 @@
 
 Source: Magic: The Gathering Comprehensive Rules, effective 2026-04-17.
 
+M-CR-RECONCILE note(2026-06-26): 最新正本は Comprehensive Rules effective 2026-06-19 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`)。本レポートは 2026-04-17 CR で生成された stale 研究資産であり、CR 701.69 Heal / 702.193 Power-up / 702.194 Teamwork / 722 Preparation Cards の coverage 根拠には使わない。
+
 Dataset: 17491 cards from `game:paper date>=2021-06-19&unique=cards`.
 
 ## Concepts

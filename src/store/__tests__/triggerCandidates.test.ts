@@ -84,6 +84,14 @@ describe('trigger candidates', () => {
       },
     ]);
     expect(Object.prototype.hasOwnProperty.call(snap(), 'triggerCandidates')).toBe(false);
+    expect(snap().pendingTriggers).toMatchObject([
+      {
+        sourceId,
+        triggerId: 'trigger.etb',
+        label: '戦場に出たとき: 《入場する熊》',
+        eventId: snap().eventLog[snap().eventLog.length - 1].eventId,
+      },
+    ]);
   });
 
   it('clears candidates on undo and redo instead of re-detecting them', () => {
@@ -129,10 +137,111 @@ describe('trigger candidates', () => {
     store().addAbilityToStack(sourceId, 'triggered');
 
     expect(store().triggerCandidates).toEqual([]);
+    expect(snap().pendingTriggers).toEqual([]);
     expect(snap().zones.stack).toHaveLength(1);
     const abilityId = snap().zones.stack[0];
     expect(snap().cards[abilityId]?.sourceId).toBe(sourceId);
     expect(snap().cards[abilityId]?.abilityKind).toBe('triggered');
+  });
+
+  it('requires a complete explicit trigger order before priority placement', () => {
+    const etb = makeDef({
+      scryfallId: 'candidate-priority-incomplete',
+      faces: [
+        {
+          name: 'Candidate Priority Incomplete',
+          typeLine: 'Creature',
+          oracleText: 'When Candidate Priority Incomplete enters, draw a card.',
+        },
+      ],
+    });
+    startGameWith([etb]);
+    const sourceId = findInstanceId(etb.scryfallId);
+    store().moveCard(sourceId, 'battlefield');
+
+    store().placePendingTriggersForPriority([]);
+
+    expect(snap().pendingTriggers).toHaveLength(1);
+    expect(snap().zones.stack).toHaveLength(0);
+    expect(store().warnings).toContain(
+      '優先権前に置く誘発の順序が未指定です。すべての pending trigger を順序指定してください。'
+    );
+  });
+
+  it('places mixed-controller pending triggers in APNAP order at the priority boundary', () => {
+    const p1Etb = makeDef({
+      scryfallId: 'candidate-priority-apnap-p1',
+      faces: [
+        {
+          name: 'Candidate Priority APNAP P1',
+          typeLine: 'Creature',
+          oracleText: 'When Candidate Priority APNAP P1 enters, draw a card.',
+        },
+      ],
+    });
+    const opponentEtb = makeDef({
+      scryfallId: 'candidate-priority-apnap-opponent',
+      faces: [
+        {
+          name: 'Candidate Priority APNAP Opponent',
+          typeLine: 'Creature',
+          oracleText: 'When Candidate Priority APNAP Opponent enters, draw a card.',
+        },
+      ],
+    });
+    startGameWith([p1Etb, opponentEtb]);
+    const p1SourceId = findInstanceId(p1Etb.scryfallId);
+    const opponentSourceId = findInstanceId(opponentEtb.scryfallId);
+    store().moveCard(p1SourceId, 'battlefield');
+    store().moveCard(opponentSourceId, 'battlefield');
+    const p1Pending = snap().pendingTriggers.find(
+      (trigger) => trigger.sourceId === p1SourceId
+    );
+    const opponentPending = snap().pendingTriggers.find(
+      (trigger) => trigger.sourceId === opponentSourceId
+    );
+    expect(p1Pending).toBeDefined();
+    expect(opponentPending).toBeDefined();
+
+    useGameStore.setState({
+      state: {
+        ...snap(),
+        activePlayerId: 'P1',
+        pendingTriggers: snap().pendingTriggers.map((trigger) =>
+          trigger.pendingTriggerId === opponentPending?.pendingTriggerId
+            ? {
+                ...trigger,
+                controllerId: 'OPPONENT_A',
+                sourceSnapshot: {
+                  ...trigger.sourceSnapshot,
+                  controllerId: 'OPPONENT_A',
+                },
+              }
+            : trigger
+        ),
+      },
+    });
+
+    store().placePendingTriggersForPriority([
+      opponentPending?.pendingTriggerId as string,
+      p1Pending?.pendingTriggerId as string,
+    ]);
+
+    expect(snap().pendingTriggers).toEqual([]);
+    expect(store().triggerCandidates).toEqual([]);
+    expect(store().warnings).toEqual([]);
+    expect(snap().zones.stack).toHaveLength(2);
+    const [lowerAbilityId, topAbilityId] = snap().zones.stack;
+    expect(snap().cards[lowerAbilityId]).toMatchObject({
+      isAbility: true,
+      sourceId: p1SourceId,
+      controllerId: 'P1',
+    });
+    expect(snap().cards[topAbilityId]).toMatchObject({
+      isAbility: true,
+      sourceId: opponentSourceId,
+      controllerId: 'OPPONENT_A',
+    });
   });
 
   it('dismisses candidates without changing the board state', () => {
@@ -150,11 +259,15 @@ describe('trigger candidates', () => {
     const sourceId = findInstanceId(etb.scryfallId);
     store().moveCard(sourceId, 'battlefield');
     const beforeDismiss = snap();
+    const beforeCards = beforeDismiss.cards;
+    const beforeZones = beforeDismiss.zones;
 
     store().dismissTriggerCandidates();
 
     expect(store().triggerCandidates).toEqual([]);
-    expect(snap()).toBe(beforeDismiss);
+    expect(snap().pendingTriggers).toEqual([]);
+    expect(snap().cards).toBe(beforeCards);
+    expect(snap().zones).toBe(beforeZones);
   });
 
   it('shows landfall candidates for battlefield permanents after a land play', () => {

@@ -13,7 +13,7 @@
 - crossPlayerOracleOnly: 5
 - ownershipDiscrepancyRate: 2.67%
 - playerScopeDiscrepancyRate: 10.16%
-- unverifiableRate: 6.35%
+- unverifiableRate: 5.82%
 - discrepancies: 36
 - attributionDistribution: substrate=0, compiler=16, oracle=4, ambiguous=9, null=7
 - unresolvedGold: none

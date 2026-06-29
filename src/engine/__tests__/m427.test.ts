@@ -14,7 +14,7 @@ function drawCards(state: GameState, count: number): GameState {
 }
 
 describe('M4.27 engine commands', () => {
-  it('casts a commander to the stack without incrementing castCount from the command zone', () => {
+  it('casts a commander to the stack and increments castCount from the command zone', () => {
     const commander = makeDef({
       scryfallId: 'cmd-stack',
       typeLine: 'Legendary Creature',
@@ -32,7 +32,7 @@ describe('M4.27 engine commands', () => {
 
     expect(result.state.cards[commanderId].zone).toBe('stack');
     expect(result.state.zones.stack[result.state.zones.stack.length - 1]).toBe(commanderId);
-    expect(result.state.commanders[0].castCount).toBe(0);
+    expect(result.state.commanders[0].castCount).toBe(1);
     expect(result.state.zones.battlefield).toHaveLength(0);
   });
 
@@ -204,7 +204,7 @@ describe('M4.27 store actions', () => {
     expect(useGameStore.getState().state!.cards[boltId].zone).toBe('hand');
   });
 
-  it('applies commander tax after a commander returns to the command zone', () => {
+  it('applies commander tax after a commander was cast from the command zone', () => {
     const commander = makeDef({
       scryfallId: 'm427-commander',
       typeLine: 'Legendary Creature',
@@ -216,12 +216,13 @@ describe('M4.27 store actions', () => {
     useGameStore.getState().dispatch({ type: 'addMana', color: 'G', amount: 2 });
     expect(useGameStore.getState().castToStack(commanderId)).toBe('ok');
     expect(useGameStore.getState().state!.cards[commanderId].zone).toBe('stack');
-    expect(useGameStore.getState().state!.commanders[0].castCount).toBe(0);
+    expect(useGameStore.getState().state!.commanders[0].castCount).toBe(1);
 
     useGameStore.getState().moveCard(commanderId, 'command', 'top');
     expect(useGameStore.getState().state!.commanders[0].castCount).toBe(1);
-    useGameStore.getState().dispatch({ type: 'addMana', color: 'G', amount: 3 });
-    expect(useGameStore.getState().castToStack(commanderId)).toEqual({ shortfall: 1 });
+    useGameStore.getState().dispatch({ type: 'addMana', color: 'G', amount: 4 });
+    expect(useGameStore.getState().castToStack(commanderId)).toBe('ok');
+    expect(useGameStore.getState().state!.commanders[0].castCount).toBe(2);
   });
 
   it('resolves the whole stack as a single undo step', () => {

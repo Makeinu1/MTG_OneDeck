@@ -1,0 +1,150 @@
+{
+  "object": "mtg_onedeck_m0_freeze_cr_grounding_overlay",
+  "crVersion": "2026-06-19",
+  "status": "ready-for-fable-review",
+  "purpose": "M-CONTRACT legacy seven-condition scorecardに追加して確認するCR-grounding overlay。現行m-contract-gate scriptはこのoverlayをまだ判定しない。",
+  "legacyScorecard": {
+    "path": "research/m-contract-gate/scorecard.md",
+    "status": "superseded-by-m-cr-reconcile",
+    "reason": "旧7条件は有用な研究測定だが、CR-grounded state-transition golden casesとR-FREEZE設計判断を含まない。"
+  },
+  "freezeDecision": {
+    "codexRecommendation": "do-not-freeze-without-fable-review",
+    "reason": "CR-grounding handoffは揃ったが、docs契約反映・scorecard overlay配線・Fable承認が未完了。"
+  },
+  "overlayConditions": [
+    {
+      "id": "CRG-1",
+      "name": "CR 2026-06-19 fixed",
+      "status": "PASS",
+      "evidence": [
+        "rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json",
+        "research/cr-grounding/README.md"
+      ],
+      "freezeTreatment": "required-pass"
+    },
+    {
+      "id": "CRG-2",
+      "name": "CR-grounded golden cases defined",
+      "status": "PASS",
+      "evidence": [
+        "research/cr-grounding/golden-cases.json"
+      ],
+      "freezeTreatment": "required-pass"
+    },
+    {
+      "id": "CRG-3",
+      "name": "Commander tax CR 903.8",
+      "status": "PASS",
+      "evidence": [
+        "src/engine/__tests__/m431.test.ts",
+        "src/store/__tests__/review.m431.test.ts",
+        "research/cr-grounding/golden-cases.json#cr-commander-tax-cast-not-return"
+      ],
+      "freezeTreatment": "required-pass"
+    },
+    {
+      "id": "CRG-4",
+      "name": "Mana abilities CR 605",
+      "status": "PARTIAL",
+      "evidence": [
+        "src/engine/__tests__/review.g4-activate.test.ts",
+        "research/cr-grounding/mana-ability-substrate.md"
+      ],
+      "freezeTreatment": "partial-allowed-only-if-605-1b-is-s-carry",
+      "remainingBoundary": "Triggered mana abilities CR 605.1b/605.4a are not implemented and must not be reported as PASS."
+    },
+    {
+      "id": "CRG-4.5",
+      "name": "Commander zone choice CR 903.9a/b",
+      "status": "PARTIAL",
+      "evidence": [
+        "src/store/__tests__/crGrounding.test.ts",
+        "src/components/playmat/Playmat.test.tsx",
+        "research/cr-grounding/rule-choice-substrate.md"
+      ],
+      "freezeTreatment": "partial-allowed-only-if-generic-rule-choice-is-s-carry",
+      "remainingBoundary": "903.9a bridge is implemented, but generic pendingRuleChoices/deferred SBA choice UI are S-CHOICE carry."
+    },
+    {
+      "id": "CRG-5",
+      "name": "Token death before token cease CR 111.7/704.5d",
+      "status": "PASS",
+      "evidence": [
+        "src/store/__tests__/crGroundingGoldenCases.test.ts#cr-token-dies-before-ceases",
+        "research/cr-grounding/golden-cases.json#cr-token-dies-before-ceases"
+      ],
+      "freezeTreatment": "required-pass"
+    },
+    {
+      "id": "CRG-6",
+      "name": "Triggered abilities, SBA, priority CR 603/704/117",
+      "status": "PARTIAL",
+      "evidence": [
+        "src/store/__tests__/crGroundingGoldenCases.test.ts#cr-trigger-sba-priority-loop",
+        "research/cr-grounding/priority-event-loop.md",
+        "research/cr-grounding/sba-inventory.md"
+      ],
+      "freezeTreatment": "partial-allowed-only-if-second-bucket-and-full-sba-are-s-carry",
+      "remainingBoundary": "603.3b second bucket and full SBA suite are not implemented and must not be reported as PASS."
+    },
+    {
+      "id": "CRG-7",
+      "name": "Zone movement and LKI CR 400.7/603.10a",
+      "status": "PASS(core)",
+      "evidence": [
+        "src/store/__tests__/crGroundingGoldenCases.test.ts#cr-zone-change-new-object-lki",
+        "research/cr-grounding/scope-partition.md"
+      ],
+      "freezeTreatment": "core-pass-only",
+      "remainingBoundary": "CR 400.7 exceptions and full effective-characteristics snapshots are S-* carry."
+    },
+    {
+      "id": "CRG-8",
+      "name": "2026-06-19 new vocabulary",
+      "status": "PASS(boundary)",
+      "evidence": [
+        "research/cr-grounding/golden-cases.json#cr-20260619-new-mechanics-boundary",
+        "research/cr-grounding/scope-partition.md"
+      ],
+      "freezeTreatment": "boundary-pass-only",
+      "remainingBoundary": "Heal/Power-up/Teamwork/Preparation executors are scope-boundary and must not be reported as implemented."
+    }
+  ],
+  "rFreezeDesigns": [
+    {
+      "id": "R-FREEZE-1",
+      "artifact": "research/cr-grounding/rule-choice-substrate.md",
+      "status": "drafted",
+      "decisionDirection": "Generalize pendingSbaChoices into pendingRuleChoices."
+    },
+    {
+      "id": "R-FREEZE-2",
+      "artifact": "research/cr-grounding/priority-event-loop.md",
+      "status": "drafted",
+      "decisionDirection": "Add PendingTrigger.stackPlacementBucket and order as bucket -> APNAP -> controller choice."
+    },
+    {
+      "id": "R-FREEZE-3",
+      "artifact": "research/cr-grounding/mana-ability-substrate.md",
+      "status": "drafted",
+      "decisionDirection": "Keep triggered mana abilities out of normal pendingTriggers and resolve inside mana transactions."
+    },
+    {
+      "id": "R-FREEZE-4",
+      "artifact": "research/cr-grounding/scope-partition.md",
+      "status": "drafted",
+      "decisionDirection": "Classify remaining unimplemented CR areas as S-* carry, scope-boundary, or PASS(core)."
+    }
+  ],
+  "nextAction": {
+    "owner": "Fable",
+    "action": "Review overlay, update docs contract, then decide whether to delegate scorecard overlay wiring to Codex.",
+    "codexShouldNotDoBeforeReview": [
+      "Modify docs/ contract files",
+      "Modify review.* tests",
+      "Run m-contract-gate and replace superseded scorecard as if CR overlay were included",
+      "Proceed to 704.5p or other individual SBA implementation"
+    ]
+  }
+}

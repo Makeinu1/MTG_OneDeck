@@ -110,6 +110,11 @@
   font-size: 12px;
 }
 
+.btn--xs {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
 /* =========================================================================
    Import screen
    ========================================================================= */
@@ -2698,10 +2703,25 @@
   justify-content: space-between;
 }
 
+.trigger-candidates__actions,
+.trigger-candidates__order-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .trigger-candidates__header h2 {
   margin: 0;
   font-size: 14px;
   color: var(--gold-bright);
+}
+
+.trigger-candidates__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .trigger-candidates__list {
@@ -2724,6 +2744,7 @@
 }
 
 .trigger-candidates__label {
+  flex: 1 1 auto;
   min-width: 0;
   color: var(--text);
   font-size: 13px;

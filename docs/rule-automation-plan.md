@@ -9,6 +9,8 @@
 - `research/scryfall-rules/2026-06-19/analysis/cr-term-analysis.md` — 公式CR 701/702とScryfall本文を突き合わせた集計。
 - `research/scryfall-rules/2026-06-19/analysis/rule-vocabulary-summary.md` — Scryfall `keywords` と頻出本文句の集計。
 
+M-CR-RECONCILE note(2026-06-26): 上記 `m5-edh-priority-analysis` と `cr-term-analysis` は CR 2026-04-17 で生成された研究資産。最新の仕様判断・語彙境界は CR 2026-06-19 (`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`) と `research/cr-grounding/golden-cases.json` を優先する。
+
 前提:
 - サンドボックス哲学を維持する。アプリは警告・候補提示・一括操作を提供するが、ユーザーの強行操作を妨げない。
 - `src/engine/` は純粋関数のみ。カード本文分類は状態を書き換えず、実際の盤面変更は既存/追加コマンドを store から明示実行する。
