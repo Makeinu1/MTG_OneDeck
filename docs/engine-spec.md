@@ -114,7 +114,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult;
 - **moveCard**: `position` は移動先ゾーン配列内の挿入位置。`'top'` = index 0。battlefield 行きは常に末尾追加でよい(UIが並び順を管理しない)。ゾーン移動時に `tapped=false, faceDown=false, faceIndex=0, counters={}, attachedTo=undefined` にリセット(battlefield → battlefield 内移動は対象外)。トークンが battlefield 外へ移動した場合は zone-change event / pending trigger 収集後、`stabilizeBeforePriority()` の CR 704.5d で消滅する(I2)
 - **castSpell**: 手札(または指定ゾーン—v1は手札のみ)から、`typeLine` に `Instant`/`Sorcery` を含むなら graveyard へ、それ以外は battlefield へ移動し、`payment` をプールから減算。プール不足分があるのに `forced=false` ならコマンド拒否ではなく **payment はソルバ計算済みが前提**なので、エンジンは payment > pool の場合 pool を下限0でクランプし warning を返す
 - **castCommander**: castSpell と同様 + 対象が commanders に含まれることを検証し `castCount += 1`。統率領域からのみ
-- **nextPhase**: `PHASE_ORDER` の次へ(end の次は turn+1 の untap)。**untap 進入時**: battlefield 全カードを `tapped=false`。**draw 進入時**: 1枚ドロー(ただし turn===1 ではドローしない=先手想定。設定パラメータ化は store 層の責務外、v1 固定でよい)。フェイズ遷移時にプールをクリア(I5)
+- **nextPhase**: `PHASE_ORDER` の次へ(end の次は turn+1 の untap)。**untap 進入時**: battlefield 全カードを `tapped=false`。**draw 進入時**: 1枚ドロー(`turn===1` でも引く=EDH/多人数戦準拠。§7.5 の M4.6 改訂でターン1のドロースキップは廃止された)。フェイズ遷移時にプールをクリア(I5)
 - **mulligan**: 現在の手札全カードを library へ移し、`order`(手札+ライブラリ全体の新順列)で並べ、`mulliganCount += 1`。その後の draw(7) と putOnBottom(mulliganCount 枚) はストア層が別コマンドとして発行
 - すべてのコマンドは適切な日本語 LogEntry を log に追加する
 
