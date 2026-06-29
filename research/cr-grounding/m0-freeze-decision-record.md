@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-**Decision status: Pending Fable decision.**
+**Decision status: Approved to contract-update stage by Fable.**
 
 Codex の推奨は、`m0-freeze-review-sheet.md` と同じく次の通り。
 
@@ -23,12 +23,12 @@ Codex の推奨は、`m0-freeze-review-sheet.md` と同じく次の通り。
 
 | Decision | Codex推奨 | Fable decision | 差戻し先 |
 |---|---|---|---|
-| D1: CR-grounding overlay を旧7条件に追加する | Approve | Pending | `m0-freeze-overlay.json` / `m0-freeze-handoff.md` |
-| D2: `PASS(core)` / `PASS(boundary)` / `PARTIAL` を契約語彙にする | Approve | Pending | `m0-freeze-contract-draft.md` |
-| D3: `pendingRuleChoices` 方針 | Approve | Pending | `rule-choice-substrate.md` |
-| D4: `PendingTrigger.stackPlacementBucket` 方針 | Approve | Pending | `priority-event-loop.md` |
-| D5: triggered mana ability no-stack transaction 方針 | Approve | Pending | `mana-ability-substrate.md` |
-| D6: scope partition 方針 | Approve | Pending | `scope-partition.md` |
+| D1: CR-grounding overlay を旧7条件に追加する | Approve | Approve to contract-update stage | `m0-freeze-overlay.json` / `m0-freeze-handoff.md` |
+| D2: `PASS(core)` / `PASS(boundary)` / `PARTIAL` を契約語彙にする | Approve | Approve to contract-update stage | `m0-freeze-contract-draft.md` |
+| D3: `pendingRuleChoices` 方針 | Approve | Approve to contract-update stage | `rule-choice-substrate.md` |
+| D4: `PendingTrigger.stackPlacementBucket` 方針 | Approve | Approve to contract-update stage | `priority-event-loop.md` |
+| D5: triggered mana ability no-stack transaction 方針 | Approve | Approve to contract-update stage | `mana-ability-substrate.md` |
+| D6: scope partition 方針 | Approve | Approve to contract-update stage | `scope-partition.md` |
 
 Fable decision には `Approve` / `Reject` / `Hold` のいずれかを書く。
 

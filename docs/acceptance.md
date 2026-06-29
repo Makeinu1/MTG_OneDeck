@@ -516,3 +516,29 @@ S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固
 | CRG-6 | PARTIAL | 誘発/SBA/優先権ケースを実装/テスト化 | event 直後に stack へ直積みせず `pendingTriggers` へ置く。activePlayer/card owner/controller substrate、controller/group 保持、全pending明示順の priority boundary、explicit-order stack placement、mixed-controller APNAP ordering core v1、同一controller内順序選択UI v1、704.5f + deterministic fixed-point v1 は実装済み。603.3b second-bucket、full SBA suite は未実装 |
 | CRG-7 | PASS(core) | 領域移動/LKIケースを実装/テスト化 | physical card identity と object incarnation が分離され、LTB/death は移動前 snapshot を参照できる。CR400.7 例外群と full effective-characteristics snapshot は未実装 |
 | CRG-8 | PASS(boundary) | 2026-06-19 新語彙を分類確認 | `701.69 Heal` は valid ruleRef。`Power-up` は能力語ではなく CR 702.193。未実装なら covered/pass に混ぜない |
+
+M0-FREEZE は旧 M-CONTRACT scorecard に加えて CR-grounding overlay を確認する。
+
+| Gate | Required treatment |
+|---|---|
+| CRG-1 CR 2026-06-19 fixed | required PASS |
+| CRG-2 CR-grounded golden cases defined | required PASS |
+| CRG-3 Commander tax CR 903.8 | required PASS |
+| CRG-4 Mana abilities CR 605 | PARTIAL allowed only if CR 605.1b/605.4a is explicit S-* carry |
+| CRG-4.5 Commander zone choice CR 903.9a/b | PARTIAL allowed only if generic rule choice is explicit S-CHOICE carry |
+| CRG-5 Token death CR 111.7/704.5d | required PASS |
+| CRG-6 Trigger/SBA/priority CR 603/704/117 | PARTIAL allowed only if 603.3b second bucket and full SBA are explicit S-* carry |
+| CRG-7 Zone movement/LKI CR 400.7/603.10a | PASS(core); CR 400.7 exceptions and full effective-characteristics snapshot remain S-* carry |
+| CRG-8 2026-06-19 new vocabulary | PASS(boundary); Heal / Power-up / Teamwork / Preparation executors remain scope-boundary |
+
+Acceptance rule: 未実装機構を `PASS` に混ぜない。`PARTIAL` / `PASS(core)` / `PASS(boundary)` は残境界を伴ってのみ許可する。
+
+判定材料:
+
+- `research/cr-grounding/m0-freeze-overlay.json`
+- `research/cr-grounding/m0-freeze-review-packet.md`
+- `research/cr-grounding/m0-freeze-review-sheet.md`
+- `research/cr-grounding/m0-freeze-decision-record.md`
+- `research/cr-grounding/m0-freeze-evidence-audit.md`
+- `research/cr-grounding/m0-freeze-traceability-matrix.md`
+- `research/cr-grounding/docs-contract-update-map.md`
