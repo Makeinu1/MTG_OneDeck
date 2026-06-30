@@ -56,21 +56,22 @@
 | S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | **Done**(d9e3a63・2026-06-30) | 605.1bが通常 `pendingTriggers` に混ざらない。活性化源(第1節)検出は C-GRAMMAR defer |
 | S-SBA: damage-marked substrate | CR 704.5g/h(lethal/deathtouch combat damage destroy)+ CR 120.3 damage-marked state + CR 514.2 cleanup clearing | Codex | **Done**(b6ab728・2026-06-30) | `damageMarked`/`hasDeathtouchDamage` state + `markDamage`/`clearMarkedDamage` command + 704.5g/h SBA。combat orchestration/regen/first-strike は defer |
 | S-COMBAT: combat structure(first slice) | CR 506–510 の combat 構造 substrate。declare attackers/blockers state + combat damage step が `markDamage` を発行し既存 704.5g/h へ接続 | Codex | **Done**(872605e・2026-06-30) | `GameState.combat` + enterCombat/declareAttackers/declareBlockers/resolveCombatDamage(atomic CR510.2)。creature-vs-creature のみ。player damage/first-strike/multi-blocker割当 は defer |
-| S-COMBAT slice 2: player/PW combat damage + 統合 | 未ブロック attacker の player/planeswalker への combat damage(CR510.1b/120.3)+ 既存 store `declareAttack`(life 調整hack)を新 substrate へ統合/置換 | Codex | **Active(next)** | 未ブロック attacker が defending player に combat damage を与え life が減る。既存 declareAttack の二重経路を解消。defer=trample-to-player(別)・first/double strike |
+| S-COMBAT slice 2: player combat damage + 統合 | 未ブロック attacker の player への combat damage(CR510.1b/120.3)+ 既存 store `declareAttack` を combat substrate へ統合 | Codex | **Done**(bf2c21d・2026-07-01) | 未ブロック attacker が defending player の life を減らす(atomic CR510.2)。declareAttack 互換ラッパで二重経路解消。§34.14。defer=PW target/trample/first-strike/infect |
+| S-SBA defeat-state(loss conditions) | CR 704.5a(life≤0)/704.5b(空ライブラリ draw)/704.5c(poison≥10)の敗北判定 substrate。combat が life を減らせる今が適時 | Codex | **Active(next)** | player ごとの defeat フラグ + 「前回SBA以降に空ライブラリから draw 企図」フラグ。704.5a/b/c が SBA で defeat を立てる(サンドボックス=advisory・続行可)。次の commander damage 敗北(CR903.10)の土台 |
 | S-SBA incremental(残) | 残り SBA(704.5a/b/c 敗北 state・704.5p 等)を価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
 | C-GRAMMAR | Oracle compiler の対応構文を増やす | Codex | Not started | compiler誤訳がGameStateを直接書かず、command列とundoで閉じる |
 
 ## Immediate next action
 
-S-COMBAT slice 2 = 未ブロック attacker の player/planeswalker combat damage + 既存 store `declareAttack` 統合。slice 1(§34.13・872605e)で creature-vs-creature combat は動くが、**未ブロック attacker は player に damage を与えない**(creature mark のみ・player damage は対象外にした)。一方で既存 store `declareAttack` が life を直接いじる hack として併存=二重経路。CR 完全性逆算で次の高レバレッジ = combat が**勝利条件(player life)に効く**ようにし、二重経路を解消すること。
+S-SBA defeat-state = CR 704.5a(life≤0)/704.5b(空ライブラリから draw 企図)/704.5c(poison≥10)の敗北判定 substrate。slice2(§34.14・bf2c21d)で combat が player life を減らせるようになった今、**敗北検出が closing the win/lose loop の次の高レバレッジ**(life-loss・poison・将来の commander damage CR903.10 が全部この「player が負ける」機構に集まる)。サンドボックス哲学=defeat は advisory(警告・続行可)。
 
 Fable のアーキ方向(次 bootstrap で Codex draft → CR 照合・確定):
-1. `resolveCombatDamage` に未ブロック attacker → `defendingPlayerId` への combat damage(CR 510.1b)を追加。life を減らす(`adjustOpponentLife` 相当を engine command 経路で・決定的)。
-2. 既存 store `declareAttack`(tap + life 調整 + attack trigger)を新 combat substrate(`enterCombat`/`declareAttackers`)へ統合 or 置換。二重経路を1本化。attack trigger 収集の扱いは draft で決める(trigger substrate との接続点)。
-3. **defer**: trample-to-player(別 slice・CR 702.19/120.4a)・first/double strike・combat 中の player damage prevention/replacement。
+1. player ごとの状態: defeat フラグ(or 敗北 reason)。`state.life`/`opponentLife`/poison は既存。704.5b 用に「前回 SBA 以降に空ライブラリから draw 企図したか」フラグが必要(新 state)。
+2. `performStateBasedActionsOnce` に 704.5a(life≤0)・704.5b(空ライブラリ draw 企図)・704.5c(poison≥10)。**サンドボックス=敗北を強制せず advisory(warning/フラグ)で表示・続行可**にするか、defeat state を立てるだけにするかは draft で Fable 裁定。
+3. **defer**: commander damage 敗北(CR903.10=次 slice・本 substrate の上に乗る)・複数人敗北の同時性の細部・敗北による game 終了処理。
 
-手順: Codex が現 `declareAttack` と combat substrate を調査し engine-spec §34.13 追補 or §34.14 草稿 + golden を `*.draft`(CR 条番号併記)へ → Fable が CR 照合・`review.*` author・docs 昇格 → Codex 実装 → Tier-1(冷却)→ Tier-2 → Sonnet ship。**最大リスク=declareAttack 統合で既存 UI/挙動を壊すこと。回帰テストで縛る。**
+手順: Codex が現 life/poison/draw 経路と SBA を調査し engine-spec §34.15 草稿 + golden を `*.draft`(CR 条番号併記)へ → Fable が CR 照合・`review.*` author・docs 昇格 → Codex 実装 → Tier-1(冷却)→ Tier-2 → Sonnet ship。**最大リスク=サンドボックス哲学(強制しない)を破り敗北を hard-enforce すること。advisory に留める。**
 
 Codex は引き続き git 操作禁止、判定者在席中は `docs/`・`review.*` の直接変更禁止(草稿はレーンへ)。
 
@@ -101,4 +102,4 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 
 ## Session rule
 
-1セッションは1マイルストーンに閉じる。次のマイルストーンは **S-COMBAT slice 2**(未ブロック attacker の player/PW combat damage + 既存 store `declareAttack` 統合)であり、trample-to-player・first/double strike・combat 優先権完全自動化へは広げない。**最大リスク = declareAttack 統合で既存 UI/挙動を壊すこと。回帰テストで縛り、slice 1 の atomic combat damage 経路を再利用する。**
+1セッションは1マイルストーンに閉じる。次のマイルストーンは **S-SBA defeat-state**(CR 704.5a/b/c 敗北判定 substrate)であり、commander damage 敗北(CR903.10)・敗北 game 終了処理へは広げない。**最大リスク = サンドボックス哲学(ルールを強制しない)を破ること。敗北は advisory(警告/フラグ)に留め、ユーザーは続行できる。**
