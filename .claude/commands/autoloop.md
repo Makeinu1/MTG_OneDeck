@@ -1,0 +1,48 @@
+---
+description: 自律マイルストーン・ループ(無人で clear→milestone→codex→audit→ship→更新 を回す。Opus は判断だけ)
+---
+
+`$ARGUMENTS` があれば今回の起点マイルストーン指定として使う。無ければロードマップから自動選定。
+
+**目的**: マイルストーン・サイクルを無人で回す。Fable(Opus)は希少資源ゆえ**判断にだけ**使い、機械作業は全部 Codex/Sonnet/Explore(別 transcript=Fable 文脈を汚さない)へ寄せる。理想状態=**Codex-bound**(両者の5時間予算を均衡消費)。起動は `/loop /autoloop`(interval 無し=自己ペース)。
+
+## 1周の手順(Fable がやるのは判断4点だけ)
+
+### 0. Bootstrap(Fable・薄)
+`MEMORY.md` + `research/cr-grounding/project-goal-milestones.md` を読み、**次フェーズを substrate-first 順で確認**する。次が一意に決まる(設計=R-FREEZE 文書が既存)なら自走。**ロードマップ分岐・価値判断なら STOP→`AskUserQuestion`**(下記 STOP 条件1)。要件化は「起案」でなく「ロードマップ参照」。
+
+### 1. 契約起案(Codex 草稿 → Fable 承認)
+Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクション草稿 + golden/敵対テスト草稿**を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。Fable は **CR 照合して承認**し、`review.<key>` の最終 author だけ担い(=要石。実装者に書かせない)、契約を `docs/` へ昇格。Codex は `docs/`・`review.*`・`CLAUDE.md`・git 不可侵。
+
+### 2. 実装(Codex 背景)
+自己完結ブリーフ(対象ファイル・変更禁止・受け入れ条件・必須4チェック・defer/隔離の明示)を渡して Codex 背景起動。`ScheduleWakeup` で待機(Fable 非消費)。中断時は再実行(最大2回、それでも未完なら Fable 外科仕上げ)。
+
+### 3. 監査 Tier-1(別 Codex/Sonnet・委譲)
+完了通知で起動。**実装の文脈を持たない別の冷たいセッション**へ**自己批判的・敵対的プロンプト**で出す(詳細=`/audit` Tier-1)。findings を `research/cr-grounding/<key>-tier1-findings.md` へ。**契約は変えない(findings only)**。Fable はここで raw diff を読まない。
+
+### 4. 監査 Tier-2(Fable・薄)
+findings の**赤旗だけ**読み `{substrate誤り/compiler誤訳/物差し誤り/曖昧/誤検出}` を裁定。草稿 docs を独立に CR へ当てて**再オーナー化**(commit 前必須1回=judge-absent 条件の充足)。全緑なら次へ。差し戻しは Codex へ(理由明示)。
+
+### 5. リリース(Sonnet 委譲)
+`/ship` を Sonnet サブエージェント(`Agent` `model: sonnet`)へ委譲。Fable は**ステージ明示リスト+コミットメッセージ+除外ファイル**を渡すだけ。除外前に `git grep -n "<name>" -- docs/ research/` で契約参照を確認。**CI 緑=本番 Pages 公開まで自走**(監査合格=認可)。
+
+### 6. ロードマップ更新(Sonnet 草稿 → Fable)
+status/churn/次フェーズの更新を Sonnet が草稿。Fable は**北極星(ゴール定義)に触る変更だけ**承認。それ以外は Sonnet 草稿を薄く確認して commit。
+
+### 7. Handoff & 継続(Fable・薄)
+次フェーズ状態を memory(`m0-1-layer-slice-progress.md` 等)+ plan へ記録。STOP 条件未該当なら `ScheduleWakeup`(idle は 1200–1800s)でループ継続。該当なら一時停止して `AskUserQuestion`。
+
+## STOP 条件(止まってユーザーに聞く=これだけ)
+CI ゲート + git revert 可逆性が安全網。以下のみ停止:
+1. **ロードマップ分岐の価値判断**(substrate-first 順で一意に決まらない・価値トレードオフ)。
+2. **CR 解釈の真の曖昧**(CR で決定論的に解けない=人間 ruling。決定論的なら CR を引いて自走)。
+3. **不可逆・外部書込**(通常 Pages push を超える=依存追加/更新・データ削除・外部 API 書込・秘密情報・北極星/契約原則の変更)。
+4. **Codex 2連敗**かつ Fable が有界な外科修正で仕上げられない / CI が有界変更で直らない。
+
+上記以外は無人続行。
+
+## Opus-spend 規律(自己監視)
+Fable が **raw ソース精読 / 機械チェック自走 / diff 行読み / 契約・テスト初稿の自筆**をしていたら委譲漏れのシグナル。即 Codex/Sonnet/Explore へ寄せる。
+
+## 周期メタレビュー
+各フェーズ境界(or 3マイルストーンごと)に Fable が薄く自問: ①CR 完全性への最短路か ②袋小路でないか ③委譲は最大か ④両予算は均衡へ向かうか。ドリフト検知時は STOP 条件1へ。
