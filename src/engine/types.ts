@@ -109,7 +109,19 @@ export interface ZoneChangeEvent {
   after?: ObjectSnapshot;
 }
 
+export interface AbilityTriggeredEvent {
+  type: 'abilityTriggered';
+  eventId: string;
+  sequence: number;
+  pendingTriggerId: string;
+  sourceObjectId: ObjectId;
+  controllerId: PlayerId;
+  causeEventId?: string;
+}
+
 export type GameEvent = ZoneChangeEvent;
+
+export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 
 export interface PendingTrigger {
   pendingTriggerId: string;
@@ -122,6 +134,9 @@ export interface PendingTrigger {
   controllerId: PlayerId;
   label: string;
   abilityLineIndex?: number;
+  stackPlacementBucket: TriggerStackPlacementBucket;
+  triggeredByPendingTriggerId?: string;
+  triggeredByAbilityEventId?: string;
 }
 
 export interface CommanderZoneRuleChoice {

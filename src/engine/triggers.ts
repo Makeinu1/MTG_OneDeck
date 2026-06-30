@@ -432,6 +432,7 @@ function makePendingTrigger(
     sourceSnapshot,
     controllerId: sourceSnapshot.controllerId ?? sourceSnapshot.ownerId,
     label: `${label}: ${cardLabelFromSnapshot(state, sourceSnapshot)}`,
+    stackPlacementBucket: 'ordinary',
   };
   const abilityLineIndex = abilityLineIndexForTriggerDef(
     state,

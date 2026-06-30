@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCommand } from '../commands';
 import { initGame } from '../init';
 import { objectIdOf } from '../types';
+import type { ZoneChangeEvent } from '../types';
 import { makeDeck, makeDef } from './helpers';
 
 describe('CR 400.7 zone-change events (Z2)', () => {
@@ -94,7 +95,8 @@ describe('CR 400.7 zone-change events (Z2)', () => {
 
     expect(state.cards[tokenId as string]).toBeUndefined();
     const moveEvent = state.eventLog.find(
-      (event) =>
+      (event): event is ZoneChangeEvent =>
+        event.type === 'zoneChange' &&
         event.physicalCardId === tokenId &&
         event.fromZone === 'battlefield' &&
         event.toZone === 'graveyard'
@@ -109,7 +111,10 @@ describe('CR 400.7 zone-change events (Z2)', () => {
     });
 
     const ceaseEvent = state.eventLog.find(
-      (event) => event.physicalCardId === tokenId && event.reason === 'token-cease'
+      (event): event is ZoneChangeEvent =>
+        event.type === 'zoneChange' &&
+        event.physicalCardId === tokenId &&
+        event.reason === 'token-cease'
     );
     expect(ceaseEvent).toMatchObject({
       fromZone: 'graveyard',

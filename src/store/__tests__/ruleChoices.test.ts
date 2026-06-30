@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
-import type { GameState, PendingSbaChoice } from '../../engine/types';
+import type { GameState, PendingSbaChoice, ZoneChangeEvent } from '../../engine/types';
 import { useGameStore } from '../gameStore';
 
 function store() {
@@ -61,7 +61,8 @@ describe('rule choices', () => {
     store().moveCard(commanderId, 'graveyard');
 
     const graveyardEvent = snap().eventLog.find(
-      (event) =>
+      (event): event is ZoneChangeEvent =>
+        event.type === 'zoneChange' &&
         event.physicalCardId === commanderId &&
         event.fromZone === 'battlefield' &&
         event.toZone === 'graveyard',

@@ -5,25 +5,34 @@
 
 ## Project goal
 
-このプロジェクトのルールエンジン側のゴールは、MTGの全ルールを丸ごと自動裁定することではない。
+最終更新: 2026-06-30(Fable 判断で北極星を再定義)
 
-ゴールは次の状態を作ること。
+**到達点(destination)= CR 完全性**。ユーザー裁定: 「最終的なゴールは CR 完全性だ」。
+このプロジェクトのルールエンジンは、最終的に CR 2026-06-19 の構造規則を完全に盤面再現することを目指す。
 
-> CR 2026-06-19 を検査器として使い、EDH一人回しで価値の高い範囲だけを、根拠条文・状態不変条件・実行可能golden/test付きで安全に自動化する。
+ただし**到達の仕方(method)は「丸ごと一括」ではない**。CLAUDE.md 設計原則「完全ルールエンジン化に『丸ごと』は踏み込まないが、統制された範囲で自動化を進める(少数の誤謬は許容)」を堅持する。完全性は asymptote(漸近線)であり、そこへ**最短で**近づく道は:
 
-このゴールでは、便利な自動化より先に正しい定規を作る。未実装領域は消すのではなく、`S-* carry` / `scope-boundary` / `manual` として見える場所に置く。`PASS` は「未実装がない」ではなく、「その範囲と境界がCR根拠付きで検査できる」という意味でだけ使う。
+> CR 2026-06-19 を検査器として使い、**再利用可能な substrate を CR 依存順に積む**ことで、根拠条文・状態不変条件・実行可能golden/test付きで安全に、完全性へ向けて段階的に自動化する。
+
+最短路の判断基準(2026-06-30 Fable):
+
+- **substrate(背骨)を優先する**。priority loop / choice / event 語彙のように、後続マイルストーンが全部ぶら下がる土台を、CR 依存順に先に積む。土台は後で作り直しが効かない=最も rework を減らす。
+- **leaf/detection と per-deck patch は後回し**。個別カードの検出配線や4デッキ固有の穴埋めは、substrate が揃えば zero-rework で後から差し込める。完全性へ最短で近づくのは「再利用可能な土台 → 個別検出」の順。
+- **未実装領域は消さない**。`S-* carry` / `scope-boundary` / `manual` として見える場所に置く。`PASS` は「未実装がない」ではなく「その範囲と境界がCR根拠付きで検査できる」という意味でだけ使う。完全性は destination だが、各時点の scorecard は「どこまで来たか」を境界付きで正直に表示する。
 
 ## Current verdict
 
-現時点の進め方は理念に沿っている。
+最終更新: 2026-06-30
 
-理由:
+進め方は理念(完全性 destination / substrate-first method)に沿っている。
 
-- CR 2026-06-19 固定、CR refs、golden cases、traceability、overlay、R-FREEZE設計草稿は揃っている。
-- 直近の次手は追加SBAや新機能ではなく、M0-FREEZE判定器を docs 契約と scorecard に接続することになっている。
-- `PARTIAL` / `PASS(core)` / `PASS(boundary)` を plain `PASS` に潰さない設計になっている。
+到達済み:
 
-ただし、まだ「定規を作れた」とは言わない。現在は定規の部品が揃い、Fableの契約判断へ渡せる状態である。定規が完成するのは、overlay が docs 契約と `m-contract-gate` の両方に接続され、scorecard 出力が未実装境界を表示し、Fable が final approval を記録した後である。
+- **M0-FREEZE 達成(FROZEN)**: 旧7条件 FROZEN + CR-grounding overlay APPROVED(commit 02d1f2c)。scorecard が overlay と残境界を表示し、Fable final approval 済み。定規は完成し、S-* 実装フェーズへ入った。
+- **Q5 Phase 1 = S-CHOICE/S-TURN 完了**(commit c6dcb7c): 汎用 `pendingRuleChoices` substrate。903.9a commander choice と 704.5j legend rule が同一 choice substrate で説明できる。
+- CR 2026-06-19 固定、CR refs、golden cases、traceability、overlay は版管理下で生きている。
+
+現在地: **Q5 Phase 2 = S-EVENTS/PRIORITY 着手前**。これは substrate-first 最短路の次の背骨(priority fixed-point loop)であり、後続の S-EVENTS/MANA・S-SBA・S-LAYERS が全部この loop にぶら下がる。
 
 ## Non-negotiable invariant
 
@@ -41,12 +50,9 @@
 | Milestone | Goal | Owner | Current status | Exit criteria |
 |---|---|---|---|---|
 | M0-R: CR grounding research | CRを読むだけでなく、CRG-1〜8の検査観点・golden・境界へ落とす | Codex | Done as research | `m0-freeze-overlay.json`、`golden-cases.json`、traceability、R-FREEZE草稿が存在する |
-| M0-FREEZE Q1: Contract decision | CR-grounding overlay を docs 契約へ昇格できるか判断する | Fable | Pending | D1〜D6 decision recorded; docsが overlay JSON、合成freeze判定、status語彙、required treatmentを持つ |
-| M0-FREEZE Q2: Scorecard wiring | `m-contract-gate` を旧7条件 + CR-grounding overlay の判定器にする | Codex after Q1 | Pending | `legacyFrozen`、`crGroundingOverlayApproved`、`crGroundingOverlayProblems`、総合 `frozen` が出る |
-| M0-FREEZE Q3: Scorecard regeneration | overlay込みの scorecard JSON/Markdown を生成する | Codex after Q2 | Pending | Markdown/JSONにCR-grounding overlayと残境界が表示される |
-| M0-FREEZE Q4: Final audit | docs、overlay、scorecard、tests が同じ判定をしているか確認する | Fable + Codex checks | Pending | targeted review、機械チェック4点、Fable final approval |
-| S-CHOICE / S-TURN | 903.9a と 704.5j を汎用 `pendingRuleChoices` に載せる | Codex after final approval | Not started | commander choice と legend rule が同じchoice substrateで説明できる |
-| S-EVENTS / PRIORITY | CR 603.3b second bucket をAPNAP順序とpriority loopへ接続する | Codex | Not started | bucket -> APNAP -> controller order が実行可能testで固定される |
+| M0-FREEZE Q1〜Q4: Contract freeze | overlay を docs 契約 + scorecard 判定器へ接続し Fable final approval | Fable + Codex | **Done**(02d1f2c) | FROZEN: legacy 7-condition + CR-grounding overlay APPROVED、scorecard が境界表示 |
+| Q5 Phase 1 — S-CHOICE / S-TURN | 903.9a と 704.5j を汎用 `pendingRuleChoices` に載せる | Codex | **Done**(c6dcb7c) | commander choice と legend rule が同じchoice substrateで説明できる |
+| Q5 Phase 2 — S-EVENTS / PRIORITY | priority fixed-point loop(`SBA→choice→trigger→repeat`)+ `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering | Codex | **Active(next)** | bucket -> APNAP -> controller order が実行可能testで固定。`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer(field は ordinary backfill 済み=zero-rework) |
 | S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | Not started | 605.1bが通常 `pendingTriggers` に混ざらない |
 | S-SBA incremental | full SBA suite を一括ではなく価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
@@ -54,14 +60,16 @@
 
 ## Immediate next action
 
-次に進むべき実作業は Fable 側の Q1 である。
+Q5 Phase 2 = S-EVENTS / PRIORITY。設計正本 = `priority-event-loop.md`(R-FREEZE-2)。
 
-1. `m0-freeze-decision-record.md` の D1〜D6 を contract-update stage として承認または差し戻す。
-2. 承認なら `q1-decision-record-approve.patch` と `q1-docs-contract.patch` を確認・適用する。
-3. `verify-q1-docs-contract.mjs` と `review.m-contract-gate` を走らせる。
-4. Q1 が通った後にだけ、Codex が Q2 scorecard overlay wiring へ進む。
+Fable のスコープ判断(2026-06-30):**substrate(背骨)はフル実装、detection observer は defer**。
 
-Codex は Q1 が完了するまで、`docs/`、`review.*`、`scripts/m-contract-gate.ts`、`scripts/lib/mContractGate.ts`、scorecard再生成、S-* 実装、git操作を行わない。
+1. Codex が engine-spec §34 系へ Phase 2 型契約の草稿を自分のレーン(`research/cr-grounding/*.draft`・CR 条番号併記)へ出す。
+2. Codex が実装: `PendingTrigger.stackPlacementBucket`(`'ordinary' | 'ability-triggered'`、既存は `ordinary` backfill)、`orderPendingTriggersApnap` を bucket→APNAP→controller へ拡張、`advanceToPriority` 固定点ループ(`SBA→choice→trigger placement→repeat`)、`priority-event-loop.md` の3 golden ケース、機械チェック4点。
+3. **defer**: `AbilityTriggeredEvent` の検出 observer(どの実カードが second bucket を populate するか)は C-GRAMMAR トラックへ。substrate の field は既に存在し ordinary backfill なので zero-rework で後付け可能。
+4. Fable が独立監査(`/audit`)→ 草稿 spec/docs を再オーナー化し commit。
+
+Codex は引き続き git 操作禁止、判定者在席中は `docs/`・`review.*` の直接変更禁止(草稿はレーンへ)。
 
 ## How CR is used
 
@@ -90,4 +98,4 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 
 ## Session rule
 
-1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは M0-FREEZE Q1/Q2 の接続準備までであり、S-* 実装へは広げない。
+1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **Q5 Phase 2 = S-EVENTS / PRIORITY**(priority loop substrate + bucket ordering)であり、S-EVENTS/MANA・S-SBA・S-LAYERS へは広げない。**最大リスク = priority loop が呼ぶ `performStateBasedActions` 経由で「full SBA suite」を引き込むこと。SBA は S-SBA 別マイルストーンに隔離し、Phase 2 では既存 SBA 範囲のみ loop へ接続する。**

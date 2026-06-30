@@ -15,13 +15,13 @@ import { normalizeKeywords } from './status';
 import type {
   AbilityKind,
   CardInstance,
-  GameEvent,
   GameState,
   LegendRuleChoice,
   LogEntry,
   ManaPool,
   ObjectSnapshot,
   Phase,
+  ZoneChangeEvent,
   ZoneChangeReason,
   ZoneId,
 } from './types';
@@ -199,7 +199,10 @@ function pushLog(draft: Draft, message: string): void {
   draft.state.log = [...draft.state.log, entry];
 }
 
-function pushEvent(draft: Draft, event: Omit<GameEvent, 'eventId' | 'sequence'>): void {
+function pushEvent(
+  draft: Draft,
+  event: Omit<ZoneChangeEvent, 'eventId' | 'sequence'>
+): void {
   const sequence = draft.nextEventSeq++;
   draft.state.eventLog = [
     ...draft.state.eventLog,
@@ -337,7 +340,7 @@ function pushZoneChangeEvent(
   fromZone: ZoneId,
   toZone: ZoneId | undefined,
   reason: ZoneChangeReason,
-  options?: Pick<GameEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
+  options?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
 ): void {
   pushEvent(draft, {
     type: 'zoneChange',
@@ -448,7 +451,7 @@ function moveCardInternal(
   position: 'top' | 'bottom' | number,
   log: boolean,
   reason: ZoneChangeReason = 'move',
-  eventOptions?: Pick<GameEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
+  eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
 ): void {
   const card = requireCard(draft, cardId);
   const from = card.zone;
@@ -663,6 +666,12 @@ function stabilizeBeforePriority(draft: Draft): void {
   while (performStateBasedActionsOnce(draft)) {
     // CR 704.3 repeats state-based action checks until none apply.
   }
+}
+
+export function performStateBasedActions(state: GameState): ApplyResult {
+  const draft = makeDraft(state);
+  stabilizeBeforePriority(draft);
+  return { state: draft.state, warnings: draft.warnings };
 }
 
 function clearPool(draft: Draft, reason: string | null): void {

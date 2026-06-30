@@ -2160,3 +2160,39 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
   event 1.95% は M-GATE-2 eventClassify の CR 修正が未スナップショットだった分の清算(計測欠落の解消)。**高 conformance + 低 churn = 物差しを当てても崩れない真の収束**(§4)。
   全7条件 PASS=**スコアカード FROZEN**。`src/engine/` 盤面挙動不変・機械4点緑・`review.cr-conformance` 緑。**当時の次手 = M-FREEZE(§34 凍結手続き → S-EVENTS)**。
 - **M-CR-RECONCILE(2026-06-26・本追補)**: 上記 FROZEN は分類器/既存 replay の研究成果としては有効だが、CR 状態遷移 gold が不足していたため凍結根拠として撤回。CR 2026-06-19 へ固定し、§34.0 と `research/cr-grounding/golden-cases.json` を追加。次手は M-FREEZE ではなく、CR-grounding gold の実行可能化と scorecard 再判定。
+
+### 34.10 S-EVENTS / PRIORITY(Q5 Phase 2 実装契約)— この節も契約である
+
+**位置づけ**: M0-FREEZE 達成(legacy 7条件 FROZEN + CR-grounding overlay APPROVED)後の最初の substrate 実装。Q5 Phase 1(S-CHOICE/S-TURN=汎用 `pendingRuleChoices`)に続く背骨。後続 S-EVENTS/MANA・S-SBA・S-LAYERS はこの priority 固定点ループにぶら下がる。設計正本 = `research/cr-grounding/priority-event-loop.md`(R-FREEZE-2)。
+
+**CR 根拠**:
+- CR 117.5 / 704.3: プレイヤーに優先権が渡る前に、SBA と待機中の誘発を**固定点まで**処理する。
+- CR 603.3 / 603.3b: 待機中の誘発を stack へ置く際、複数なら placement は二段階 = first bucket(誘発条件が「別の能力の誘発」**でない**もの=`ordinary`)→ second bucket(残り=`ability-triggered`)。各 bucket 内は APNAP 順、同一コントローラ内は本人選択順。
+- CR 101.4: APNAP(能動→非能動)順序。
+
+**1. 型契約(`src/engine/types.ts`)**:
+```ts
+type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
+interface PendingTrigger {
+  // ...既存フィールド...
+  stackPlacementBucket: TriggerStackPlacementBucket;     // 必須。CR 603.3b bucket
+  triggeredByPendingTriggerId?: string;                  // second bucket 証跡(任意)
+  triggeredByAbilityEventId?: string;
+}
+interface AbilityTriggeredEvent {                         // 型定義のみ。Phase 2 では未配線
+  type: 'abilityTriggered'; eventId: string; sequence: number;
+  pendingTriggerId: string; sourceObjectId: ObjectId;
+  controllerId: PlayerId; causeEventId?: string;
+}
+```
+`AbilityTriggeredEvent` は `GameEvent` union に**加えない**(`GameEvent = ZoneChangeEvent` 不変)。「Whenever an ability triggers」系の実カードを second bucket へ分類する検出 observer は **C-GRAMMAR へ defer**。Phase 2 で生成される全 pending trigger は `ordinary`。
+
+**2. 順序付け(`src/engine/priority.ts`)**: `orderPendingTriggersApnap` は explicit id が pending を厳密被覆することを検査後、placement を `bucket(ordinary→ability-triggered) → APNAP controller → controller 本人選択順` で正規化する。**bucket 境界はコントローラの explicit order より上位**(同一コントローラ explicit `[B(ability-triggered), A(ordinary)]` → `[A, B]`)。
+
+**3. 優先権固定点(`advanceToPriority`・純粋関数)**: 戻り値 union = `priority-ready` / `choice-required` / `trigger-order-required`。ループ = ①既存 SBA を安定まで実行(**新 SBA ルールは足さない**=full SBA suite は S-SBA へ隔離)②その zone change 由来の pending trigger を収集 ③`pendingRuleChoices.length>0` なら `choice-required` 返却 ④pending trigger があり決定的順序が取れれば batch で stack へ置き**ループ先頭(SBA)へ戻る** ⑤コントローラ選択が要れば `trigger-order-required` ⑥choice も pending trigger も無ければ `priority-ready`。**`choice-required`/`trigger-order-required` を `priority-ready` に混ぜない**。決定的自動 placement は各コントローラが各 bucket 内に高々1誘発の時のみ許す。
+
+**4. 前方互換(§34.3)**: 旧 snapshot の `PendingTrigger` は `stackPlacementBucket` 欠落 → store 復元で `'ordinary'` backfill(`normalizeTriggerStackPlacementBucket`)。
+
+**5. golden / test(4点不変条件③)**: `research/cr-grounding/golden-cases.json` に `cr-trigger-6033b-two-bucket-order`(bucket が explicit order より上位)・`cr-trigger-6033b-apnap-per-bucket`(bucket ごとに APNAP)・`cr-priority-loop-trigger-placement-rechecks-sba`(placement 後に SBA 再チェックの固定点)を追加し `src/store/__tests__/crGroundingGoldenCases.test.ts` で実行可能化。`src/engine/__tests__/priority.test.ts` に順序付け+固定点の unit。
+
+**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)`AbilityTriggeredEvent` 検出 observer と実カードの second bucket 分類 → C-GRAMMAR carry(substrate field は ordinary backfill で zero-rework 後付け可) (b)full SBA suite → S-SBA carry(本 Phase は既存 SBA のみ loop へ接続)。CRG-6 の残境界文言「603.3b second bucket and full SBA suite are not implemented and must not be reported as PASS」は、substrate 実装後も**検出/SBA 拡張の部分**について維持する。

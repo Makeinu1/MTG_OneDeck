@@ -20,7 +20,10 @@ import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
-import { orderPendingTriggersApnap } from '../engine/priority';
+import {
+  orderPendingTriggersApnap,
+  triggerStackPlacementBucketOf,
+} from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
@@ -35,6 +38,7 @@ import type {
   PendingSbaChoice,
   PendingTrigger,
   RuleChoiceSelection,
+  TriggerStackPlacementBucket,
   ZoneChangeEvent,
   ZoneId,
 } from '../engine/types';
@@ -177,6 +181,12 @@ function normalizePendingRuleChoices(state: GameState): PendingRuleChoice[] {
   return choices;
 }
 
+function normalizeTriggerStackPlacementBucket(
+  stackPlacementBucket: unknown
+): TriggerStackPlacementBucket {
+  return stackPlacementBucket === 'ability-triggered' ? 'ability-triggered' : 'ordinary';
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
@@ -186,10 +196,14 @@ function normalizeSnapshotState(state: GameState): GameState {
           trigger.sourceSnapshot?.ownerId ??
           'P1';
         const simultaneousGroupId = trigger.simultaneousGroupId ?? trigger.eventId;
+        const stackPlacementBucket = normalizeTriggerStackPlacementBucket(
+          trigger.stackPlacementBucket
+        );
         return controllerId === trigger.controllerId &&
-          simultaneousGroupId === trigger.simultaneousGroupId
+          simultaneousGroupId === trigger.simultaneousGroupId &&
+          stackPlacementBucket === trigger.stackPlacementBucket
           ? trigger
-          : { ...trigger, controllerId, simultaneousGroupId };
+          : { ...trigger, controllerId, simultaneousGroupId, stackPlacementBucket };
       })
     : [];
 
@@ -362,14 +376,15 @@ function applyPendingTriggerStackPlacement(
 }
 
 function deterministicPendingTriggerOrderForPriority(state: GameState): string[] | null {
-  const countsByController = new Map<string, number>();
+  const countsByControllerBucket = new Map<string, number>();
   for (const trigger of state.pendingTriggers) {
-    countsByController.set(
-      trigger.controllerId,
-      (countsByController.get(trigger.controllerId) ?? 0) + 1
+    const key = `${triggerStackPlacementBucketOf(trigger)}:${trigger.controllerId}`;
+    countsByControllerBucket.set(
+      key,
+      (countsByControllerBucket.get(key) ?? 0) + 1
     );
   }
-  if ([...countsByController.values()].some((count) => count > 1)) {
+  if ([...countsByControllerBucket.values()].some((count) => count > 1)) {
     return null;
   }
 

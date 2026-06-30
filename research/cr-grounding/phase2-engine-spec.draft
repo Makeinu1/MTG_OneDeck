@@ -1,0 +1,72 @@
+Q5 Phase 2 engine-spec draft: S-EVENTS / PRIORITY
+
+CR authority:
+- CR 117.5: priority is not given until state-based actions and pending triggered abilities have been processed to a fixed point.
+- CR 704.3: state-based actions are checked repeatedly until no applicable actions remain.
+- CR 603.3 / 603.3b: triggered abilities wait to be put on the stack; when multiple triggers wait, stack placement is split into the ordinary bucket, then the "another ability triggering" bucket.
+- CR 101.4: APNAP ordering applies when choices are made in active-player/nonactive-player order.
+
+Draft contract:
+
+1. Pending trigger stack placement bucket
+
+`PendingTrigger` has:
+
+```ts
+type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
+
+interface PendingTrigger {
+  stackPlacementBucket: TriggerStackPlacementBucket;
+  triggeredByPendingTriggerId?: string;
+  triggeredByAbilityEventId?: string;
+}
+```
+
+Existing/generated triggers that do not know the CR 603.3b second-bucket cause are `ordinary`. Legacy snapshots missing `stackPlacementBucket` are backfilled to `ordinary`.
+
+2. Ability-triggered event type
+
+`AbilityTriggeredEvent` is a substrate event definition only in Phase 2:
+
+```ts
+interface AbilityTriggeredEvent {
+  type: 'abilityTriggered';
+  eventId: string;
+  sequence: number;
+  pendingTriggerId: string;
+  sourceObjectId: ObjectId;
+  controllerId: PlayerId;
+  causeEventId?: string;
+}
+```
+
+Phase 2 does not install an observer that detects real-card "Whenever an ability triggers" text. That observer is deferred to C-GRAMMAR.
+
+3. Pending trigger ordering
+
+`orderPendingTriggersApnap(pendingTriggers, explicitOrderIds, activePlayerId)` first validates that explicit ids exactly cover the pending trigger ids. The resulting placement order is:
+
+`stackPlacementBucket` (`ordinary`, then `ability-triggered`) -> APNAP controller order -> that controller's explicit relative order.
+
+The bucket boundary is stronger than a controller's explicit order. Example: same controller explicit `[B, A]`, where `A` is `ordinary` and `B` is `ability-triggered`, normalizes to `[A, B]`.
+
+4. Priority boundary fixed point
+
+`advanceToPriority(state)` is a pure function returning one of:
+
+```ts
+{ status: 'priority-ready'; state: GameState; warnings: string[] }
+{ status: 'choice-required'; state: GameState; warnings: string[] }
+{ status: 'trigger-order-required'; state: GameState; warnings: string[]; order: ... }
+```
+
+The loop is:
+
+1. Run existing state-based actions to stability. Do not add new SBA rules in Phase 2.
+2. Collect pending triggers caused by those SBA zone changes.
+3. If `pendingRuleChoices.length > 0`, return `choice-required`.
+4. If pending triggers exist and a deterministic order is available, place them on the stack as a batch and repeat.
+5. If pending triggers exist but controller choice is required, return `trigger-order-required`.
+6. If no choices and no pending triggers remain, return `priority-ready`.
+
+Deterministic auto-placement is only valid when each controller has at most one pending trigger inside each CR 603.3b bucket. Multiple same-controller triggers in the same bucket require explicit order.

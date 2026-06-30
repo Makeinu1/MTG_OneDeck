@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
 import { objectIdOf } from '../../engine/types';
+import type { ZoneChangeEvent } from '../../engine/types';
 import { useGameStore } from '../gameStore';
 
 interface CrGoldenCase {
@@ -92,13 +93,17 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(state?.zones.stack.length).toBe(stackDepthBefore);
 
     const moveEvent = state?.eventLog.find(
-      (event) =>
+      (event): event is ZoneChangeEvent =>
+        event.type === 'zoneChange' &&
         event.physicalCardId === tokenId &&
         event.fromZone === 'battlefield' &&
         event.toZone === 'graveyard'
     );
     const ceaseEvent = state?.eventLog.find(
-      (event) => event.physicalCardId === tokenId && event.reason === 'token-cease'
+      (event): event is ZoneChangeEvent =>
+        event.type === 'zoneChange' &&
+        event.physicalCardId === tokenId &&
+        event.reason === 'token-cease'
     );
     expect(moveEvent).toBeDefined();
     expect(ceaseEvent).toMatchObject({
@@ -450,6 +455,204 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
   });
 
+  it('cr-trigger-6033b-two-bucket-order: bucket boundary overrides explicit controller order', () => {
+    goldenCase('cr-trigger-6033b-two-bucket-order', ['603.3b', '101.4']);
+
+    const ordinaryDef = makeDef({
+      scryfallId: 'gold-bucket-ordinary',
+      printedName: '黄金通常誘発',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Ordinary Trigger',
+          printedName: '黄金通常誘発',
+          typeLine: 'Creature',
+          oracleText: 'When Golden Ordinary Trigger enters, draw a card.',
+        },
+      ],
+    });
+    const abilityTriggeredDef = makeDef({
+      scryfallId: 'gold-bucket-ability-triggered',
+      printedName: '黄金能力誘発',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Ability-Triggered Trigger',
+          printedName: '黄金能力誘発',
+          typeLine: 'Creature',
+          oracleText: 'When Golden Ability-Triggered Trigger enters, draw a card.',
+        },
+      ],
+    });
+
+    store().newGame(
+      [
+        { def: ordinaryDef, isCommander: false },
+        { def: abilityTriggeredDef, isCommander: false },
+        ...makeDeck(12),
+      ],
+      1
+    );
+    const ordinaryId = findInstanceId(ordinaryDef.scryfallId);
+    const abilityTriggeredId = findInstanceId(abilityTriggeredDef.scryfallId);
+
+    store().moveCard(ordinaryId, 'battlefield');
+    store().moveCard(abilityTriggeredId, 'battlefield');
+
+    const state = store().state;
+    const ordinaryPending = state?.pendingTriggers.find(
+      (trigger) => trigger.sourceId === ordinaryId
+    );
+    const abilityTriggeredPending = state?.pendingTriggers.find(
+      (trigger) => trigger.sourceId === abilityTriggeredId
+    );
+    expect(ordinaryPending).toBeDefined();
+    expect(abilityTriggeredPending).toBeDefined();
+
+    useGameStore.setState({
+      state: {
+        ...state!,
+        pendingTriggers: state!.pendingTriggers.map((trigger) =>
+          trigger.pendingTriggerId === abilityTriggeredPending?.pendingTriggerId
+            ? { ...trigger, stackPlacementBucket: 'ability-triggered' }
+            : { ...trigger, stackPlacementBucket: 'ordinary' }
+        ),
+      },
+    });
+
+    store().placePendingTriggersForPriority([
+      abilityTriggeredPending?.pendingTriggerId as string,
+      ordinaryPending?.pendingTriggerId as string,
+    ]);
+
+    const stacked = store().state;
+    expect(stacked?.pendingTriggers).toEqual([]);
+    const [ordinaryAbilityId, abilityTriggeredAbilityId] = stacked?.zones.stack ?? [];
+    expect(stacked?.cards[ordinaryAbilityId]).toMatchObject({ sourceId: ordinaryId });
+    expect(stacked?.cards[abilityTriggeredAbilityId]).toMatchObject({
+      sourceId: abilityTriggeredId,
+    });
+  });
+
+  it('cr-trigger-6033b-apnap-per-bucket: APNAP is applied independently inside each bucket', () => {
+    goldenCase('cr-trigger-6033b-apnap-per-bucket', ['603.3b', '101.4']);
+
+    const defs = [
+      makeDef({
+        scryfallId: 'gold-apnap-bucket-a',
+        printedName: '黄金A',
+        typeLine: 'Creature',
+        faces: [
+          {
+            name: 'Golden Bucket Alpha',
+            printedName: '黄金A',
+            typeLine: 'Creature',
+            oracleText: 'When Golden Bucket Alpha enters, draw a card.',
+          },
+        ],
+      }),
+      makeDef({
+        scryfallId: 'gold-apnap-bucket-b',
+        printedName: '黄金B',
+        typeLine: 'Creature',
+        faces: [
+          {
+            name: 'Golden Bucket B',
+            printedName: '黄金B',
+            typeLine: 'Creature',
+            oracleText: 'When Golden Bucket B enters, draw a card.',
+          },
+        ],
+      }),
+      makeDef({
+        scryfallId: 'gold-apnap-bucket-c',
+        printedName: '黄金C',
+        typeLine: 'Creature',
+        faces: [
+          {
+            name: 'Golden Bucket C',
+            printedName: '黄金C',
+            typeLine: 'Creature',
+            oracleText: 'When Golden Bucket C enters, draw a card.',
+          },
+        ],
+      }),
+      makeDef({
+        scryfallId: 'gold-apnap-bucket-d',
+        printedName: '黄金D',
+        typeLine: 'Creature',
+        faces: [
+          {
+            name: 'Golden Bucket D',
+            printedName: '黄金D',
+            typeLine: 'Creature',
+            oracleText: 'When Golden Bucket D enters, draw a card.',
+          },
+        ],
+      }),
+    ];
+
+    store().newGame(
+      [...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(12)],
+      1
+    );
+    const [aId, bId, cId, dId] = defs.map((def) => findInstanceId(def.scryfallId));
+    for (const id of [aId, bId, cId, dId]) {
+      store().moveCard(id, 'battlefield');
+    }
+
+    const state = store().state!;
+    const pendingBySource = new Map(
+      state.pendingTriggers.map((trigger) => [trigger.sourceId, trigger])
+    );
+    const aPending = pendingBySource.get(aId);
+    const bPending = pendingBySource.get(bId);
+    const cPending = pendingBySource.get(cId);
+    const dPending = pendingBySource.get(dId);
+    expect(aPending).toBeDefined();
+    expect(bPending).toBeDefined();
+    expect(cPending).toBeDefined();
+    expect(dPending).toBeDefined();
+
+    useGameStore.setState({
+      state: {
+        ...state,
+        activePlayerId: 'P1',
+        pendingTriggers: state.pendingTriggers.map((trigger) => {
+          const controllerId =
+            trigger.sourceId === bId || trigger.sourceId === dId ? 'OPPONENT_A' : 'P1';
+          const stackPlacementBucket =
+            trigger.sourceId === cId || trigger.sourceId === dId
+              ? 'ability-triggered'
+              : 'ordinary';
+          return {
+            ...trigger,
+            controllerId,
+            stackPlacementBucket,
+            sourceSnapshot: {
+              ...trigger.sourceSnapshot,
+              controllerId,
+            },
+          };
+        }),
+      },
+    });
+
+    store().placePendingTriggersForPriority([
+      dPending?.pendingTriggerId as string,
+      cPending?.pendingTriggerId as string,
+      bPending?.pendingTriggerId as string,
+      aPending?.pendingTriggerId as string,
+    ]);
+
+    const stacked = store().state;
+    expect(stacked?.pendingTriggers).toEqual([]);
+    const stackSourceIds = (stacked?.zones.stack ?? []).map(
+      (abilityId) => stacked?.cards[abilityId]?.sourceId
+    );
+    expect(stackSourceIds).toEqual([aId, bId, cId, dId]);
+  });
+
   it('cr-trigger-sba-priority-loop: priority boundary repeats SBA and deterministic trigger placement to a fixed point', () => {
     goldenCase('cr-trigger-sba-priority-loop', [
       '117.5',
@@ -457,6 +660,12 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       '603.3b',
       '704.3',
       '704.5f',
+    ]);
+    goldenCase('cr-priority-loop-trigger-placement-rechecks-sba', [
+      '117.5',
+      '603.3',
+      '603.3b',
+      '704.3',
     ]);
 
     const initialTrigger = makeDef({

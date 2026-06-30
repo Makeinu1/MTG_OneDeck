@@ -295,6 +295,7 @@ describe('CR grounding store bridges', () => {
       eventId: 'legacy-event',
       simultaneousGroupId: 'legacy-event',
       controllerId: 'P1',
+      stackPlacementBucket: 'ordinary',
     });
   });
 

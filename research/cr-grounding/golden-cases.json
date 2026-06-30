@@ -9,6 +9,9 @@
   "executableCaseIds": [
     "cr-token-dies-before-ceases",
     "cr-trigger-sba-priority-loop",
+    "cr-trigger-6033b-two-bucket-order",
+    "cr-trigger-6033b-apnap-per-bucket",
+    "cr-priority-loop-trigger-placement-rechecks-sba",
     "cr-sba-copy-ceases-outside-stack",
     "cr-sba-zero-loyalty-planeswalker",
     "cr-sba-plus-minus-counter-annihilation",
@@ -341,7 +344,128 @@
         "R2 adds TriggerCandidatePanel ordering controls and Playmat UI coverage for same-controller trigger ordering",
         "R3 adds CR 704.5f toughness-zero SBA and deterministic priority-boundary fixed-point placement",
         "R4 adds CR 704.5i zero-loyalty planeswalker and CR 704.5q +1/+1/-1/-1 counter annihilation",
-        "603.3b second-bucket handling and the remaining full SBA suite remain future work"
+        "603.3b stack placement buckets are implemented in the substrate; AbilityTriggeredEvent detection observers and the remaining full SBA suite remain future work"
+      ]
+    },
+    {
+      "id": "cr-trigger-6033b-two-bucket-order",
+      "title": "603.3bのsecond bucketは同一controllerの明示順序より上位で正規化される",
+      "crRefs": ["603.3b", "101.4"],
+      "scope": "q5-phase-2-s-events-priority",
+      "initialFixture": {
+        "activePlayer": "P1",
+        "pendingTriggers": [
+          {
+            "id": "A",
+            "controllerId": "P1",
+            "stackPlacementBucket": "ordinary"
+          },
+          {
+            "id": "B",
+            "controllerId": "P1",
+            "stackPlacementBucket": "ability-triggered"
+          }
+        ]
+      },
+      "steps": [
+        "同一controllerの ordinary pending trigger A と ability-triggered pending trigger B を用意する。",
+        "controller chosen order として [B, A] を渡す。",
+        "orderPendingTriggersApnap で stack placement order を計算する。",
+        "その順序で pending trigger を stack へ置く。"
+      ],
+      "requiredObservations": [
+        "全体の placement order は [A, B] に正規化される。",
+        "ability-triggered bucket の B は ordinary bucket の A より先に置かれない。",
+        "bucket 境界の内側でだけ controller chosen order を尊重する。"
+      ],
+      "mustNot": [
+        "explicit order [B, A] を bucket 境界を越えてそのまま採用しない。",
+        "stackPlacementBucket 未指定の旧 pending trigger を ability-triggered 扱いしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/priority.ts orderPendingTriggersApnap applies bucket -> APNAP -> controller chosen order",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-trigger-6033b-apnap-per-bucket",
+      "title": "603.3bの各bucket内でAPNAP順を個別に適用する",
+      "crRefs": ["603.3b", "101.4"],
+      "scope": "q5-phase-2-s-events-priority",
+      "initialFixture": {
+        "activePlayer": "P1",
+        "pendingTriggers": [
+          {
+            "id": "A",
+            "controllerId": "P1",
+            "stackPlacementBucket": "ordinary"
+          },
+          {
+            "id": "B",
+            "controllerId": "OPPONENT_A",
+            "stackPlacementBucket": "ordinary"
+          },
+          {
+            "id": "C",
+            "controllerId": "P1",
+            "stackPlacementBucket": "ability-triggered"
+          },
+          {
+            "id": "D",
+            "controllerId": "OPPONENT_A",
+            "stackPlacementBucket": "ability-triggered"
+          }
+        ]
+      },
+      "steps": [
+        "P1 active の状態で A/B/C/D の pending trigger を用意する。",
+        "controller chosen order として逆順 [D, C, B, A] を渡す。",
+        "orderPendingTriggersApnap で stack placement order を計算する。",
+        "その順序で pending trigger を stack へ置く。"
+      ],
+      "requiredObservations": [
+        "ordinary bucket 内は APNAP [A, B] になる。",
+        "ability-triggered bucket 内も APNAP [C, D] になる。",
+        "全体の placement order は [A, B, C, D] になる。"
+      ],
+      "mustNot": [
+        "全triggerをbucket区別なしでAPNAP一回だけに畳み込まない。",
+        "second bucket を active player 側だけ特別扱いしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/priority.ts orderPendingTriggersApnap iterates bucket order before APNAP order",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-priority-loop-trigger-placement-rechecks-sba",
+      "title": "優先権境界はtrigger placement後にSBAへ戻る固定点として処理する",
+      "crRefs": ["117.5", "603.3", "603.3b", "704.3"],
+      "scope": "q5-phase-2-s-events-priority",
+      "initialFixture": {
+        "pendingTriggers": ["initial-trigger"],
+        "sbaCanCreateAdditionalPendingTrigger": true
+      },
+      "steps": [
+        "pending trigger を stack へ置く。",
+        "同じ priority boundary 内で SBA を再チェックする。",
+        "SBA により新しい zone-change trigger が pendingTriggers に追加された場合、同じ boundary 内で再び placement を試みる。",
+        "pendingRuleChoices または同一bucket内のcontroller choice が必要ならそこで停止する。"
+      ],
+      "requiredObservations": [
+        "trigger placement の後に SBA/check loop へ戻る。",
+        "自動順序が一意なら新しい pending trigger も同じ boundary 内で stack へ置かれる。",
+        "choice-required または trigger-order-required の状態は priority-ready ではない。"
+      ],
+      "mustNot": [
+        "最初の trigger placement だけで priority-ready とみなさない。",
+        "pendingRuleChoices が残ったまま priority-ready を返さない。",
+        "controller choice が必要な pending trigger 群を任意順で自動配置しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/priority.ts advanceToPriority implements SBA -> choice -> trigger placement -> repeat as a pure function",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case through placePendingTriggersForPriority fixed-point coverage",
+        "src/engine/__tests__/priority.test.ts covers advanceToPriority status results"
       ]
     },
     {
