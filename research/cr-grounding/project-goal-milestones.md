@@ -53,21 +53,23 @@
 | M0-FREEZE Q1〜Q4: Contract freeze | overlay を docs 契約 + scorecard 判定器へ接続し Fable final approval | Fable + Codex | **Done**(02d1f2c) | FROZEN: legacy 7-condition + CR-grounding overlay APPROVED、scorecard が境界表示 |
 | Q5 Phase 1 — S-CHOICE / S-TURN | 903.9a と 704.5j を汎用 `pendingRuleChoices` に載せる | Codex | **Done**(c6dcb7c) | commander choice と legend rule が同じchoice substrateで説明できる |
 | Q5 Phase 2 — S-EVENTS / PRIORITY | priority fixed-point loop(`SBA→choice→trigger→repeat`)+ `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering | Codex | **Done**(baa0b05・2026-06-30) | bucket -> APNAP -> controller order が実行可能testで固定。`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer(field は ordinary backfill 済み=zero-rework) |
-| S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | **Active(next)** | 605.1bが通常 `pendingTriggers` に混ざらない |
-| S-SBA incremental | full SBA suite を一括ではなく価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
+| S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | **Done**(d9e3a63・2026-06-30) | 605.1bが通常 `pendingTriggers` に混ざらない。活性化源(第1節)検出は C-GRAMMAR defer |
+| S-SBA: damage-marked substrate | CR 704.5g/h(lethal/deathtouch combat damage destroy)+ CR 120.3 damage-marked state + CR 514.2 cleanup clearing | Codex | **Active(next)** | `damageMarked` state + `markDamage`/`clearMarkedDamage` command + 704.5g/h を `performStateBasedActionsOnce` へ。full combat phase orchestration / regeneration replacement / first-strike は defer |
+| S-SBA incremental(残) | 残り SBA(704.5a/b/c 敗北 state・704.5p 等)を価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
 | C-GRAMMAR | Oracle compiler の対応構文を増やす | Codex | Not started | compiler誤訳がGameStateを直接書かず、command列とundoで閉じる |
 
 ## Immediate next action
 
-S-EVENTS / MANA = CR 605.1b triggered mana ability の no-stack transaction。設計正本 = `mana-ability-substrate.md`(R-FREEZE-3)。
+S-SBA: damage-marked substrate = CR 704.5g/h(lethal/deathtouch combat damage destroy)。ユーザー裁定(2026-06-30「最終ゴールから逆算・小手先でなく substantive な変更を」)を受け Fable が選定: **combat は最大の未モデル CR 領域であり damage-marked state は combat 系全体がぶら下がる substrate**(lethal/deathtouch/first-strike/regeneration が読む)。defeat-state(704.5a/b/c)より構造的レバレッジが高く substrate-first に合致。設計=本マイルストーンで起こす(既存 R-FREEZE なし)。
 
-Fable のスコープ判断(2026-06-30):**substrate(transaction 経路)はフル実装、detection observer は defer**。
+Fable のアーキ判断(固定制約):
+1. `CardInstance.damageMarked: number`(既定0・restore で backfill)+ deathtouch 由来の追跡(CR 704.5h 用)。
+2. command `markDamage`(cardId/amount/deathtouch?)+ `clearMarkedDamage`(CR 514.2 cleanup)。
+3. SBA を `performStateBasedActionsOnce`(commands.ts:527)へ: 704.5g(toughness>0 かつ damageMarked≥toughness → graveyard)・704.5h(deathtouch 由来 damage≥1 かつ toughness>0 → graveyard)。既存 704.5f(toughness≤0)と整合。
+4. **defer(scope-boundary)**: full combat phase orchestration(declare attackers/blockers/combat damage step 自動)・regeneration replacement(704.5g の「unless regenerated」)・first/double strike ordering。これらは leaf/compiler 後付け。
 
-1. Codex が engine-spec §34 系へ MANA 型契約の草稿を自分のレーン(`research/cr-grounding/*.draft`・CR 条番号併記)へ出す。
-2. Codex が実装: `ManaAddedEvent`/`ActivatedManaAbilityEvent`、`PendingManaTrigger`(`pendingTriggers` に入れない)、`resolveManaAbilityTransaction` 固定点ループ + iteration cap、3 golden ケース、機械チェック4点。
-3. **defer**: 605.1b の実カード検出 observer(どの実カードが triggered mana ability を持つか)は C-GRAMMAR へ。substrate の transaction 経路は zero-rework で後付け可能。**full SBA suite を引き込まない**(loop は既存 SBA のみ呼ぶ)。
-4. Fable が独立監査(`/audit`)→ 草稿 spec/docs を再オーナー化し commit。
+手順: Codex が engine-spec §34.12 草稿 + golden を `*.draft`(CR 条番号併記)へ → Fable が CR 照合・`review.*` author・docs 昇格 → Codex 実装 → Tier-1(冷却)→ Tier-2(Fable 再オーナー化)→ Sonnet ship。
 
 Codex は引き続き git 操作禁止、判定者在席中は `docs/`・`review.*` の直接変更禁止(草稿はレーンへ)。
 
@@ -98,4 +100,4 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 
 ## Session rule
 
-1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **S-EVENTS / MANA**(CR 605.1b triggered mana ability の no-stack transaction)であり、S-SBA・S-ZONES/LAYERS・C-GRAMMAR へは広げない。**最大リスク = (1) triggered mana ability を通常 `pendingTriggers` / stack placement へ誤配線すること(605.1b は no-stack で transaction 内即時解決)、(2) transaction の固定点ループが無限ループする(iteration cap + warning で防ぐ)。実カード検出 observer は C-GRAMMAR へ defer。**
+1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **S-SBA: damage-marked substrate**(CR 704.5g/h + damage-marked state)であり、defeat-state(704.5a/b/c)・full combat orchestration・C-GRAMMAR へは広げない。**最大リスク = (1) full combat phase machinery(declare attackers/blockers/combat damage step)を引き込むこと(本 Phase は state + command + SBA のみ。combat 自動化は別)、(2) regeneration replacement を SBA に混ぜること(704.5g「unless regenerated」は replacement 系で defer)、(3) 既存 704.5f(toughness≤0)との二重 destroy。damageMarked は cleanup(514.2)で確実にクリアする。**

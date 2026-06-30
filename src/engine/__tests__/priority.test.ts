@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  advanceToPriority,
-  apnapPlayerOrder,
-  orderPendingTriggersApnap,
-} from '../priority';
+import { advanceToPriority, apnapPlayerOrder, orderPendingTriggersApnap } from '../priority';
 import type {
   CardInstance,
   GameState,
@@ -19,7 +15,7 @@ import { makeDef } from './helpers';
 function pendingTrigger(
   pendingTriggerId: string,
   controllerId: PlayerId,
-  stackPlacementBucket: TriggerStackPlacementBucket = 'ordinary'
+  stackPlacementBucket: TriggerStackPlacementBucket = 'ordinary',
 ): PendingTrigger {
   return {
     pendingTriggerId,
@@ -62,7 +58,7 @@ function emptyZones(): Record<ZoneId, string[]> {
 
 function stateWithPendingTriggers(
   pendingTriggers: PendingTrigger[],
-  pendingRuleChoices: PendingRuleChoice[] = []
+  pendingRuleChoices: PendingRuleChoice[] = [],
 ): GameState {
   const zones = emptyZones();
   const cards: Record<string, CardInstance> = {};
@@ -73,7 +69,7 @@ function stateWithPendingTriggers(
         scryfallId: trigger.sourceSnapshot.defId,
         typeLine: trigger.sourceSnapshot.typeLine,
       }),
-    ])
+    ]),
   );
 
   for (const trigger of pendingTriggers) {
@@ -88,6 +84,8 @@ function stateWithPendingTriggers(
       faceIndex: 0,
       faceDown: false,
       counters: {},
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
       isToken: false,
       isCommander: false,
       enteredTurn: 1,
@@ -137,7 +135,7 @@ describe('APNAP pending trigger ordering', () => {
     const result = orderPendingTriggersApnap(
       [p1a, p1b, opponent],
       ['opponent', 'p1-b', 'p1-a'],
-      'P1'
+      'P1',
     );
 
     expect(result).toEqual({
@@ -148,16 +146,12 @@ describe('APNAP pending trigger ordering', () => {
 
   it('normalizes explicit choices to ordinary bucket before ability-triggered bucket', () => {
     const ordinary = pendingTrigger('ordinary', 'P1', 'ordinary');
-    const abilityTriggered = pendingTrigger(
-      'ability-triggered',
-      'P1',
-      'ability-triggered'
-    );
+    const abilityTriggered = pendingTrigger('ability-triggered', 'P1', 'ability-triggered');
 
     const result = orderPendingTriggersApnap(
       [ordinary, abilityTriggered],
       ['ability-triggered', 'ordinary'],
-      'P1'
+      'P1',
     );
 
     expect(result).toEqual({
@@ -168,36 +162,18 @@ describe('APNAP pending trigger ordering', () => {
 
   it('applies APNAP independently inside each 603.3b bucket', () => {
     const p1Ordinary = pendingTrigger('p1-ordinary', 'P1', 'ordinary');
-    const opponentOrdinary = pendingTrigger(
-      'opponent-ordinary',
-      'OPPONENT_A',
-      'ordinary'
-    );
-    const p1AbilityTriggered = pendingTrigger(
-      'p1-ability-triggered',
-      'P1',
-      'ability-triggered'
-    );
+    const opponentOrdinary = pendingTrigger('opponent-ordinary', 'OPPONENT_A', 'ordinary');
+    const p1AbilityTriggered = pendingTrigger('p1-ability-triggered', 'P1', 'ability-triggered');
     const opponentAbilityTriggered = pendingTrigger(
       'opponent-ability-triggered',
       'OPPONENT_A',
-      'ability-triggered'
+      'ability-triggered',
     );
 
     const result = orderPendingTriggersApnap(
-      [
-        p1Ordinary,
-        opponentOrdinary,
-        p1AbilityTriggered,
-        opponentAbilityTriggered,
-      ],
-      [
-        'opponent-ability-triggered',
-        'p1-ability-triggered',
-        'opponent-ordinary',
-        'p1-ordinary',
-      ],
-      'P1'
+      [p1Ordinary, opponentOrdinary, p1AbilityTriggered, opponentAbilityTriggered],
+      ['opponent-ability-triggered', 'p1-ability-triggered', 'opponent-ordinary', 'p1-ordinary'],
+      'P1',
     );
 
     expect(result).toEqual({
@@ -215,11 +191,7 @@ describe('APNAP pending trigger ordering', () => {
     const p1 = pendingTrigger('p1', 'P1');
     const opponent = pendingTrigger('opponent', 'OPPONENT_A');
 
-    const result = orderPendingTriggersApnap(
-      [p1, opponent],
-      ['p1', 'opponent'],
-      'OPPONENT_A'
-    );
+    const result = orderPendingTriggersApnap([p1, opponent], ['p1', 'opponent'], 'OPPONENT_A');
 
     expect(result).toEqual({
       status: 'ordered',
@@ -235,15 +207,13 @@ describe('APNAP pending trigger ordering', () => {
       status: 'incomplete',
       missingIds: ['opponent'],
     });
-    expect(
-      orderPendingTriggersApnap([p1, opponent], ['p1', 'p1', 'opponent'], 'P1')
-    ).toMatchObject({
-      status: 'incomplete',
-      duplicateIds: ['p1'],
-    });
-    expect(
-      orderPendingTriggersApnap([p1, opponent], ['p1', 'unknown'], 'P1')
-    ).toMatchObject({
+    expect(orderPendingTriggersApnap([p1, opponent], ['p1', 'p1', 'opponent'], 'P1')).toMatchObject(
+      {
+        status: 'incomplete',
+        duplicateIds: ['p1'],
+      },
+    );
+    expect(orderPendingTriggersApnap([p1, opponent], ['p1', 'unknown'], 'P1')).toMatchObject({
       status: 'incomplete',
       missingIds: ['opponent'],
       unknownIds: ['unknown'],

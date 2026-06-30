@@ -2,13 +2,7 @@ import type { CardDef } from '../types/card';
 import { applyCommand, type GameCommand } from './commands';
 import { initGame, type InitDeckCard } from './init';
 import { detectTriggerCandidates } from './triggers';
-import type {
-  CardInstance,
-  GameState,
-  ManaPool,
-  Phase,
-  ZoneId,
-} from './types';
+import type { CardInstance, GameState, ManaPool, Phase, ZoneId } from './types';
 
 const ZONE_IDS: readonly ZoneId[] = [
   'library',
@@ -29,6 +23,8 @@ const COMMAND_TYPES = new Set<GameCommand['type']>([
   'setEffectsAuto',
   'setCardEffectsAuto',
   'addCounters',
+  'markDamage',
+  'clearMarkedDamage',
   'attach',
   'adjustLife',
   'adjustPlayerCounter',
@@ -146,8 +142,9 @@ export interface ReplayTriggerCandidate {
   abilityLineIndex?: number;
 }
 
-export interface ExpectedTriggerCandidate
-  extends Partial<Omit<ReplayTriggerCandidate, 'triggerId'>> {
+export interface ExpectedTriggerCandidate extends Partial<
+  Omit<ReplayTriggerCandidate, 'triggerId'>
+> {
   triggerId: string;
 }
 
@@ -194,14 +191,9 @@ export function parseGoldenReplayCase(value: unknown, source: string): GoldenRep
   if (!isRecord(value.expectedFinalState)) {
     throw new Error(`${source}.expectedFinalState: expected an object`);
   }
-  const unverifiable = parseOptionalUnverifiableArray(
-    value.unverifiable,
-    `${source}.unverifiable`,
-  );
+  const unverifiable = parseOptionalUnverifiableArray(value.unverifiable, `${source}.unverifiable`);
   if (new Set(unverifiable?.map((entry) => entry.kind)).size > 1) {
-    throw new Error(
-      `${source}.unverifiable: scope-boundary and runtime-gap must not be mixed`,
-    );
+    throw new Error(`${source}.unverifiable: scope-boundary and runtime-gap must not be mixed`);
   }
 
   return {
@@ -286,13 +278,7 @@ export function replayGoldenCase(testCase: GoldenReplayCase): GoldenReplayResult
   }
 
   if (testCase.expectedEvents) {
-    collectPartialDiffs(
-      testCase.expectedEvents,
-      events,
-      '$',
-      'events',
-      diffs,
-    );
+    collectPartialDiffs(testCase.expectedEvents, events, '$', 'events', diffs);
   }
   if (testCase.expectedTriggerCandidates) {
     collectPartialDiffs(
@@ -303,13 +289,7 @@ export function replayGoldenCase(testCase: GoldenReplayCase): GoldenReplayResult
       diffs,
     );
   }
-  collectPartialDiffs(
-    testCase.expectedFinalState,
-    finalStateView(state),
-    '$',
-    'finalState',
-    diffs,
-  );
+  collectPartialDiffs(testCase.expectedFinalState, finalStateView(state), '$', 'finalState', diffs);
 
   return {
     caseName: testCase.name,
@@ -351,9 +331,7 @@ function parseInitialState(value: unknown, path: string): GoldenInitialState {
     throw new Error(`${path}.cards: expected a non-empty array`);
   }
 
-  const cards = value.cards.map((card, index) =>
-    parseInitialCard(card, `${path}.cards[${index}]`),
-  );
+  const cards = value.cards.map((card, index) => parseInitialCard(card, `${path}.cards[${index}]`));
   const initial: GoldenInitialState = {
     seed: value.seed as number,
     cards,
@@ -386,8 +364,7 @@ function parseInitialCard(value: unknown, path: string): GoldenInitialCard {
     zone: value.zone,
     tapped: typeof value.tapped === 'boolean' ? value.tapped : undefined,
     counters: isNumberRecord(value.counters) ? value.counters : undefined,
-    effectsAuto:
-      typeof value.effectsAuto === 'boolean' ? value.effectsAuto : undefined,
+    effectsAuto: typeof value.effectsAuto === 'boolean' ? value.effectsAuto : undefined,
   };
 }
 
@@ -492,11 +469,7 @@ function applyMeasuredCommand(
   return result.state;
 }
 
-function detectReplayEvents(
-  prev: GameState,
-  next: GameState,
-  step: number,
-): ReplayEvent[] {
+function detectReplayEvents(prev: GameState, next: GameState, step: number): ReplayEvent[] {
   const events: ReplayEvent[] = [];
   const cardIds = [...new Set([...Object.keys(prev.cards), ...Object.keys(next.cards)])].sort();
 
@@ -616,9 +589,7 @@ function compareReplayEvents(a: ReplayEvent, b: ReplayEvent): number {
 function finalStateView(state: GameState): Record<string, unknown> {
   return {
     ...state,
-    zoneCounts: Object.fromEntries(
-      ZONE_IDS.map((zone) => [zone, state.zones[zone].length]),
-    ),
+    zoneCounts: Object.fromEntries(ZONE_IDS.map((zone) => [zone, state.zones[zone].length])),
     stackDepth: state.zones.stack.length,
   };
 }
@@ -684,10 +655,7 @@ function sortJsonValue(value: unknown): unknown {
   return value;
 }
 
-function parseOptionalRecordArray<T>(
-  value: unknown,
-  path: string,
-): T[] | undefined {
+function parseOptionalRecordArray<T>(value: unknown, path: string): T[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.some((entry) => !isRecord(entry))) {
     throw new Error(`${path}: expected an array of objects`);
@@ -783,15 +751,11 @@ function isCardDef(value: unknown): value is CardDef {
 function isNumberRecord(value: unknown): value is Record<string, number> {
   return (
     isRecord(value) &&
-    Object.values(value).every(
-      (entry) => typeof entry === 'number' && Number.isFinite(entry),
-    )
+    Object.values(value).every((entry) => typeof entry === 'number' && Number.isFinite(entry))
   );
 }
 
-function copyOptionalNumber<
-  K extends 'life' | 'poison' | 'energy' | 'experience',
->(
+function copyOptionalNumber<K extends 'life' | 'poison' | 'energy' | 'experience'>(
   source: Record<string, unknown>,
   target: GoldenInitialState,
   key: K,
@@ -803,16 +767,8 @@ function copyOptionalNumber<
 }
 
 function copyOptionalInteger<
-  K extends
-    | 'turn'
-    | 'landsPlayedThisTurn'
-    | 'spellsCastThisTurn'
-    | 'drawnThisTurn',
->(
-  source: Record<string, unknown>,
-  target: GoldenInitialState,
-  key: K,
-): void {
+  K extends 'turn' | 'landsPlayedThisTurn' | 'spellsCastThisTurn' | 'drawnThisTurn',
+>(source: Record<string, unknown>, target: GoldenInitialState, key: K): void {
   const value = source[key];
   if (typeof value === 'number' && Number.isInteger(value)) {
     target[key] = value;

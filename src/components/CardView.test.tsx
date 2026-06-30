@@ -29,6 +29,8 @@ const TEST_CARD_INSTANCE: CardInstance = {
   faceIndex: 0,
   faceDown: false,
   counters: {},
+  damageMarked: 0,
+  hasDeathtouchDamage: false,
   isToken: false,
   isCommander: false,
   enteredTurn: 0,
@@ -54,7 +56,7 @@ function dispatchPointerEvent(
 
 function renderCard(
   onContextMenu?: (
-    event: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>
+    event: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>,
   ) => void,
   instance: CardInstance = TEST_CARD_INSTANCE,
   def: CardDef = TEST_CARD_DEF,

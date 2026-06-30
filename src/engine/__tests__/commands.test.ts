@@ -13,6 +13,14 @@ function freshGame(main = 10, drawCount = 7): GameState {
   return applyCommand(base, { type: 'draw', count: drawCount }).state;
 }
 
+function instanceId(state: GameState, defId: string): string {
+  const card = Object.values(state.cards).find((entry) => entry.defId === defId);
+  if (!card) {
+    throw new Error(`missing instance for ${defId}`);
+  }
+  return card.id;
+}
+
 describe('applyCommand immutability (I4)', () => {
   it('does not mutate the input state', () => {
     const state = freshGame();
@@ -26,7 +34,12 @@ describe('moveCard', () => {
   it('draws to hand (top of library)', () => {
     const state = initGame(makeDeck(5), 1);
     const topId = state.zones.library[0];
-    const res = applyCommand(state, { type: 'moveCard', cardId: topId, to: 'hand', position: 'top' });
+    const res = applyCommand(state, {
+      type: 'moveCard',
+      cardId: topId,
+      to: 'hand',
+      position: 'top',
+    });
     expect(res.state.zones.hand[0]).toBe(topId);
     expect(res.state.zones.library).not.toContain(topId);
     expect(res.state.cards[topId].zone).toBe('hand');
@@ -35,7 +48,12 @@ describe('moveCard', () => {
   it('inserts at top and bottom of library', () => {
     const state = freshGame();
     const id = state.zones.hand[0];
-    const top = applyCommand(state, { type: 'moveCard', cardId: id, to: 'library', position: 'top' });
+    const top = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'library',
+      position: 'top',
+    });
     expect(top.state.zones.library[0]).toBe(id);
 
     const bottom = applyCommand(state, {
@@ -51,7 +69,12 @@ describe('moveCard', () => {
     const state = freshGame();
     const id = state.zones.hand[0];
     // tap & add counter while on battlefield first
-    let s = applyCommand(state, { type: 'moveCard', cardId: id, to: 'battlefield', position: 'bottom' }).state;
+    let s = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
     s = applyCommand(s, { type: 'setTapped', cardId: id, tapped: true }).state;
     s = applyCommand(s, { type: 'addCounters', cardId: id, counterType: '+1/+1', delta: 2 }).state;
     expect(s.cards[id].tapped).toBe(true);
@@ -77,7 +100,12 @@ describe('moveCard', () => {
     }).state;
     const tokenId = s.zones.battlefield.find((id) => s.cards[id].isToken);
     expect(tokenId).toBeDefined();
-    s = applyCommand(s, { type: 'moveCard', cardId: tokenId as string, to: 'graveyard', position: 'top' }).state;
+    s = applyCommand(s, {
+      type: 'moveCard',
+      cardId: tokenId as string,
+      to: 'graveyard',
+      position: 'top',
+    }).state;
     expect(s.cards[tokenId as string]).toBeUndefined();
     expect(s.zones.graveyard).not.toContain(tokenId);
     expect(s.zones.battlefield).not.toContain(tokenId);
@@ -85,9 +113,9 @@ describe('moveCard', () => {
 
   it('throws on unknown cardId', () => {
     const state = freshGame();
-    expect(() => applyCommand(state, { type: 'moveCard', cardId: 'nope', to: 'hand', position: 'top' })).toThrow(
-      EngineError
-    );
+    expect(() =>
+      applyCommand(state, { type: 'moveCard', cardId: 'nope', to: 'hand', position: 'top' }),
+    ).toThrow(EngineError);
   });
 });
 
@@ -95,8 +123,18 @@ describe('counters & player counters never go negative (I3)', () => {
   it('clamps card counters at 0', () => {
     const state = freshGame();
     const id = state.zones.hand[0];
-    let s = applyCommand(state, { type: 'addCounters', cardId: id, counterType: 'charge', delta: 1 }).state;
-    s = applyCommand(s, { type: 'addCounters', cardId: id, counterType: 'charge', delta: -5 }).state;
+    let s = applyCommand(state, {
+      type: 'addCounters',
+      cardId: id,
+      counterType: 'charge',
+      delta: 1,
+    }).state;
+    s = applyCommand(s, {
+      type: 'addCounters',
+      cardId: id,
+      counterType: 'charge',
+      delta: -5,
+    }).state;
     expect(s.cards[id].counters.charge).toBeUndefined();
   });
 
@@ -106,6 +144,167 @@ describe('counters & player counters never go negative (I3)', () => {
     expect(s.poison).toBe(0);
     s = applyCommand(state, { type: 'adjustLife', delta: -50 }).state;
     expect(s.life).toBe(-10);
+  });
+});
+
+describe('marked damage and state-based actions', () => {
+  it('marks sublethal damage without destroying the creature', () => {
+    const creature = makeDef({
+      scryfallId: 'damage-3-3',
+      typeLine: 'Creature',
+      faces: [{ name: 'damage-3-3', typeLine: 'Creature', power: '3', toughness: '3' }],
+    });
+    let state = initGame([{ def: creature, isCommander: false }, ...makeDeck(3)], 1);
+    const id = instanceId(state, creature.scryfallId);
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+
+    const result = applyCommand(state, { type: 'markDamage', cardId: id, amount: 2 });
+
+    expect(result.state.cards[id].zone).toBe('battlefield');
+    expect(result.state.cards[id].damageMarked).toBe(2);
+    expect(result.state.cards[id].hasDeathtouchDamage).toBe(false);
+  });
+
+  it('moves a lethally damaged creature to the graveyard with CR 704.5g metadata', () => {
+    const creature = makeDef({
+      scryfallId: 'damage-2-2',
+      typeLine: 'Creature',
+      faces: [{ name: 'damage-2-2', typeLine: 'Creature', power: '2', toughness: '2' }],
+    });
+    let state = initGame([{ def: creature, isCommander: false }, ...makeDeck(3)], 1);
+    const id = instanceId(state, creature.scryfallId);
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+
+    const result = applyCommand(state, { type: 'markDamage', cardId: id, amount: 2 });
+
+    expect(result.state.cards[id].zone).toBe('graveyard');
+    expect(result.state.eventLog).toContainEqual(
+      expect.objectContaining({
+        physicalCardId: id,
+        fromZone: 'battlefield',
+        toZone: 'graveyard',
+        reason: 'sba',
+        sbaApplied: '704.5g',
+      }),
+    );
+  });
+
+  it('moves a creature damaged by deathtouch to the graveyard with CR 704.5h metadata', () => {
+    const creature = makeDef({
+      scryfallId: 'damage-deathtouch-4-4',
+      typeLine: 'Creature',
+      faces: [{ name: 'damage-deathtouch-4-4', typeLine: 'Creature', power: '4', toughness: '4' }],
+    });
+    let state = initGame([{ def: creature, isCommander: false }, ...makeDeck(3)], 1);
+    const id = instanceId(state, creature.scryfallId);
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+
+    const result = applyCommand(state, {
+      type: 'markDamage',
+      cardId: id,
+      amount: 1,
+      deathtouch: true,
+    });
+
+    expect(result.state.cards[id].zone).toBe('graveyard');
+    expect(result.state.eventLog).toContainEqual(
+      expect.objectContaining({
+        physicalCardId: id,
+        fromZone: 'battlefield',
+        toZone: 'graveyard',
+        reason: 'sba',
+        sbaApplied: '704.5h',
+      }),
+    );
+  });
+
+  it('clears marked damage and does not double-destroy with CR 704.5f', () => {
+    const creature = makeDef({
+      scryfallId: 'damage-zero-toughness',
+      typeLine: 'Creature',
+      faces: [{ name: 'damage-zero-toughness', typeLine: 'Creature', power: '2', toughness: '2' }],
+    });
+    let state = initGame([{ def: creature, isCommander: false }, ...makeDeck(3)], 1);
+    const id = instanceId(state, creature.scryfallId);
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+    state = applyCommand(state, { type: 'markDamage', cardId: id, amount: 1 }).state;
+    state = applyCommand(state, { type: 'clearMarkedDamage', cardId: id }).state;
+
+    expect(state.cards[id].zone).toBe('battlefield');
+    expect(state.cards[id].damageMarked).toBe(0);
+    expect(state.cards[id].hasDeathtouchDamage).toBe(false);
+
+    const invalidState: GameState = {
+      ...state,
+      cards: {
+        ...state.cards,
+        [id]: {
+          ...state.cards[id],
+          damageMarked: 2,
+          hasDeathtouchDamage: true,
+          counters: { '-1/-1': 2 },
+        },
+      },
+    };
+
+    const result = applyCommand(invalidState, { type: 'adjustLife', delta: 0 });
+    const sbaEvents = result.state.eventLog.filter(
+      (event) =>
+        event.physicalCardId === id &&
+        event.fromZone === 'battlefield' &&
+        event.toZone === 'graveyard' &&
+        event.reason === 'sba',
+    );
+    expect(sbaEvents).toHaveLength(1);
+    expect(sbaEvents[0].sbaApplied).toBe('704.5f');
+  });
+
+  it('clears marked damage on the existing end-to-untap turn transition', () => {
+    const creature = makeDef({
+      scryfallId: 'damage-cleanup-turn',
+      typeLine: 'Creature',
+      faces: [{ name: 'damage-cleanup-turn', typeLine: 'Creature', power: '3', toughness: '3' }],
+    });
+    let state = initGame([{ def: creature, isCommander: false }, ...makeDeck(3)], 1);
+    const id = instanceId(state, creature.scryfallId);
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
+    state = applyCommand(state, { type: 'markDamage', cardId: id, amount: 2 }).state;
+
+    const endState: GameState = { ...state, phase: 'end' };
+    const result = applyCommand(endState, { type: 'nextPhase' });
+
+    expect(result.state.turn).toBe(2);
+    expect(result.state.phase).toBe('untap');
+    expect(result.state.cards[id]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
   });
 });
 
@@ -154,7 +353,7 @@ describe('mill', () => {
     expect(res.state.zones.graveyard).toHaveLength(3);
     expect(res.warnings).toContain('ライブラリが5枚に満たないため3枚を切削した。');
     expect(res.state.log[res.state.log.length - 1].message).toBe(
-      '切削: ライブラリの上から3枚を墓地に置いた。'
+      '切削: ライブラリの上から3枚を墓地に置いた。',
     );
   });
 });
@@ -170,14 +369,21 @@ describe('untapAll', () => {
       to: 'battlefield',
       position: 'bottom',
     }).state;
-    s = applyCommand(s, { type: 'moveCard', cardId: secondId, to: 'battlefield', position: 'bottom' }).state;
+    s = applyCommand(s, {
+      type: 'moveCard',
+      cardId: secondId,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
     s = applyCommand(s, { type: 'setTapped', cardId: firstId, tapped: true }).state;
     s = applyCommand(s, { type: 'setTapped', cardId: secondId, tapped: true }).state;
 
     const res = applyCommand(s, { type: 'untapAll' });
     expect(res.state.cards[firstId].tapped).toBe(false);
     expect(res.state.cards[secondId].tapped).toBe(false);
-    expect(res.state.log[res.state.log.length - 1].message).toBe('すべてのパーマネントをアンタップした。');
+    expect(res.state.log[res.state.log.length - 1].message).toBe(
+      'すべてのパーマネントをアンタップした。',
+    );
   });
 
   it('is idempotent when everything is already untapped', () => {
@@ -216,10 +422,20 @@ describe('castSpell', () => {
     const sorcId = Object.values(s.cards).find((c) => c.defId === 'sorc')!.id;
     const creaId = Object.values(s.cards).find((c) => c.defId === 'crea')!.id;
 
-    const r1 = applyCommand(s, { type: 'castSpell', cardId: sorcId, payment: pool({}), forced: true });
+    const r1 = applyCommand(s, {
+      type: 'castSpell',
+      cardId: sorcId,
+      payment: pool({}),
+      forced: true,
+    });
     expect(r1.state.cards[sorcId].zone).toBe('graveyard');
 
-    const r2 = applyCommand(s, { type: 'castSpell', cardId: creaId, payment: pool({}), forced: true });
+    const r2 = applyCommand(s, {
+      type: 'castSpell',
+      cardId: creaId,
+      payment: pool({}),
+      forced: true,
+    });
     expect(r2.state.cards[creaId].zone).toBe('battlefield');
   });
 
@@ -227,7 +443,12 @@ describe('castSpell', () => {
     const state = freshGame();
     const id = state.zones.hand[0];
     let s = applyCommand(state, { type: 'addMana', color: 'C', amount: 5 }).state;
-    s = applyCommand(s, { type: 'castSpell', cardId: id, payment: pool({ C: 2 }), forced: false }).state;
+    s = applyCommand(s, {
+      type: 'castSpell',
+      cardId: id,
+      payment: pool({ C: 2 }),
+      forced: false,
+    }).state;
     expect(s.manaPool.C).toBe(3);
   });
 });
@@ -239,7 +460,12 @@ describe('castCommander', () => {
     let s = initGame(deck, 1);
     const cmdId = s.commanders[0].cardId;
 
-    s = applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool({}), forced: true }).state;
+    s = applyCommand(s, {
+      type: 'castCommander',
+      cardId: cmdId,
+      payment: pool({}),
+      forced: true,
+    }).state;
     expect(s.commanders[0].castCount).toBe(1);
     expect(s.cards[cmdId].zone).toBe('battlefield');
   });
@@ -251,11 +477,21 @@ describe('castCommander', () => {
     const id1 = s.commanders[0].cardId;
     const id2 = s.commanders[1].cardId;
 
-    s = applyCommand(s, { type: 'castCommander', cardId: id1, payment: pool({}), forced: true }).state;
+    s = applyCommand(s, {
+      type: 'castCommander',
+      cardId: id1,
+      payment: pool({}),
+      forced: true,
+    }).state;
     expect(s.commanders[0].castCount).toBe(1);
     expect(s.commanders[1].castCount).toBe(0);
 
-    s = applyCommand(s, { type: 'castCommander', cardId: id2, payment: pool({}), forced: true }).state;
+    s = applyCommand(s, {
+      type: 'castCommander',
+      cardId: id2,
+      payment: pool({}),
+      forced: true,
+    }).state;
     expect(s.commanders[1].castCount).toBe(1);
   });
 
@@ -263,10 +499,15 @@ describe('castCommander', () => {
     const cmd = makeDef({ scryfallId: 'cmd-1', typeLine: 'Legendary Creature' });
     let s = initGame(makeDeck(5, [cmd]), 1);
     const cmdId = s.commanders[0].cardId;
-    s = applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool({}), forced: true }).state;
+    s = applyCommand(s, {
+      type: 'castCommander',
+      cardId: cmdId,
+      payment: pool({}),
+      forced: true,
+    }).state;
     // now on battlefield
     expect(() =>
-      applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool({}), forced: true })
+      applyCommand(s, { type: 'castCommander', cardId: cmdId, payment: pool({}), forced: true }),
     ).toThrow(EngineError);
   });
 });
@@ -275,7 +516,12 @@ describe('nextPhase / nextTurn', () => {
   it('untaps all battlefield cards on untap entry', () => {
     const state = freshGame();
     const id = state.zones.hand[0];
-    let s = applyCommand(state, { type: 'moveCard', cardId: id, to: 'battlefield', position: 'bottom' }).state;
+    let s = applyCommand(state, {
+      type: 'moveCard',
+      cardId: id,
+      to: 'battlefield',
+      position: 'bottom',
+    }).state;
     s = applyCommand(s, { type: 'setTapped', cardId: id, tapped: true }).state;
     // advance to next turn untap
     s = applyCommand(s, { type: 'nextTurn' }).state;

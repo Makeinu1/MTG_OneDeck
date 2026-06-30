@@ -315,6 +315,8 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
     for (const v of Object.values(c.counters)) {
       expect(v, `${label}: negative card counter`).toBeGreaterThanOrEqual(0);
     }
+    // I3 (S-SBA damage-marked): marked damage is never negative (CR 120.3).
+    expect(c.damageMarked, `${label}: negative damageMarked on ${c.id}`).toBeGreaterThanOrEqual(0);
   }
   for (const v of Object.values(state.commanderDamage)) {
     expect(v).toBeGreaterThanOrEqual(0);

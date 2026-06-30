@@ -13,15 +13,7 @@ export type AbilityKind = 'activated' | 'triggered';
 
 export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end';
 
-export const PHASE_ORDER: Phase[] = [
-  'untap',
-  'upkeep',
-  'draw',
-  'main1',
-  'combat',
-  'main2',
-  'end',
-];
+export const PHASE_ORDER: Phase[] = ['untap', 'upkeep', 'draw', 'main1', 'combat', 'main2', 'end'];
 
 export interface ManaPool {
   W: number;
@@ -43,6 +35,8 @@ export interface CardInstance {
   faceIndex: number; // 表示中フェイス(両面カード用。通常カードは常に0)
   faceDown: boolean;
   counters: Record<string, number>; // '+1/+1', 'loyalty', 'charge' など。値は常に >= 0
+  damageMarked: number; // CR 120.6 damage marked on a creature; always >= 0
+  hasDeathtouchDamage: boolean; // CR 704.5h damage from a source with deathtouch
   isToken: boolean;
   isCommander: boolean;
   enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0

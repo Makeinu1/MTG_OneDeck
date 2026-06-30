@@ -1,0 +1,54 @@
+# Damage-Marked Substrate Engine-Spec Draft
+
+CR source: Magic: The Gathering Comprehensive Rules, effective 2026-06-19.
+Relevant CR refs: 120.1, 120.3, 120.6, 510.2, 514.2, 704.3, 704.5f, 704.5g, 704.5h.
+
+## State Contract
+
+- `CardInstance.damageMarked: number`
+  - Default: `0`.
+  - Invariant: always finite and `>= 0` after initialization, command application, and snapshot restore.
+  - Meaning: damage currently marked on the object for CR 120.6 / CR 704.5g checks.
+- `CardInstance.hasDeathtouchDamage: boolean`
+  - Default: `false`.
+  - Meaning: at least one positive damage amount currently marked on the object came from a source with deathtouch for CR 704.5h.
+- New game initialization, created tokens, permanent copies, stack copies, ability stack objects, and true zone changes initialize/reset both fields to `0` / `false`.
+- Legacy snapshot restore backfills missing or invalid `damageMarked` to `0` and missing `hasDeathtouchDamage` to `false`.
+
+## Command Contract
+
+- `markDamage`
+  - Shape: `{ type: 'markDamage'; cardId: string; amount: number; deathtouch?: boolean }`.
+  - Behavior: `damageMarked += max(0, amount)`.
+  - If `deathtouch === true` and normalized amount is positive, set `hasDeathtouchDamage = true`.
+  - The command is deterministic and does not infer deathtouch from Oracle text; combat/compiler integration may set the flag later.
+- `clearMarkedDamage`
+  - Shape: `{ type: 'clearMarkedDamage'; cardId?: string }`.
+  - With `cardId`, clears that object to `damageMarked = 0` and `hasDeathtouchDamage = false`.
+  - Without `cardId`, clears all battlefield creatures.
+  - Implements the damage-removal primitive needed for CR 514.2.
+
+## SBA Contract
+
+`performStateBasedActionsOnce` handles these in the same fixed-point framework as existing 704.5f/704.5i:
+
+- CR 704.5g: if a battlefield creature has defined effective toughness, toughness `> 0`, and `damageMarked >= toughness`, move it to its owner's graveyard with zone-change metadata `reason: 'sba'` and `sbaApplied: '704.5g'`.
+- CR 704.5h: if a battlefield creature has defined effective toughness, toughness `> 0`, `hasDeathtouchDamage === true`, and `damageMarked >= 1`, move it to its owner's graveyard with zone-change metadata `reason: 'sba'` and `sbaApplied: '704.5h'`.
+- CR 704.5f remains the exclusive path for toughness `<= 0`; 704.5g/h only consider toughness `> 0`, so a zero-toughness damaged creature is not double-destroyed.
+- If both 704.5g and 704.5h are true for the same object, the first move removes it from the battlefield and the later candidate is skipped in the same pass.
+
+## Cleanup Wiring Judgment
+
+Existing code has no standalone CR 514 cleanup step/phase. It does have turn-transition passages:
+
+- `nextPhase` from `end` to the next turn's `untap`.
+- `nextTurn` direct transition to the next turn's `untap`.
+
+This implementation wires marked-damage clearing into both passages using the same helper as `clearMarkedDamage`, treating them as the current cleanup surrogate. A future standalone cleanup step can call `clearMarkedDamage` directly without changing the state/command contract.
+
+## Scope Boundaries
+
+- Full combat phase orchestration is out of scope: no declare attackers/blockers automation and no combat damage step automation. Damage enters the substrate through `markDamage`.
+- Regeneration replacement is out of scope: CR 704.5g's regeneration exception is not implemented because no regeneration shield state exists yet.
+- First strike / double strike damage-step splitting is out of scope.
+- A standalone CR 514 cleanup phase/step is out of scope; current turn transitions clear marked damage as described above.

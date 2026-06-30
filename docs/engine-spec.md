@@ -2236,3 +2236,36 @@ interface PendingManaTrigger {                 // transaction-local のみ。sta
 **4. golden / test(4点不変条件③)**: `research/cr-grounding/golden-cases.json` に `cr-triggered-mana-ability-no-stack`(605.1b/605.4a の no-stack 即時解決)・`cr-add-mana-trigger-from-non-mana-event-is-normal-trigger`(CR 605.5a=通常誘発)・`cr-targeted-add-mana-trigger-is-normal-trigger`(targetless 違反=通常誘発)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.mana-transaction.test.ts`(**レビュー担当専有**=no-stack/pendingTriggers 不混入/単発発火/通常誘発分離/活性化源 defer/iteration cap の敵対 pin)。
 
 **5. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: **CR 605.1b 第1節(「起動型マナ能力の起動/解決」から trigger)の実カード検出 → C-GRAMMAR carry**。理由: 起動/解決源の分類は IR 級の trigger-source 分類を要し、raw-text regex では (i) substrate が発行する distinct な `activated`/`resolved` イベントを stage 非依存パターンが二重発火させ、(ii) 活性化文言カードを mana-added 分岐が誤一致させる。よって `isManaRelatedTriggerCondition` は `activatedManaAbility` イベントに対し現状 `false`(defer)を返す。**本 Phase で生きている 605.1b 経路は「mana が加えられたこと」(第2節)のみ**(golden `cr-triggered-mana-ability-no-stack` + review.mana-transaction が固定)。`AbilityTriggeredEvent` 同様、substrate(型 + transaction 経路 + 合成 golden)は置き、実カード検出は後付け zero-rework。full SBA suite は引き込まない(loop は既存 SBA のみ)。CRG の「誘発型マナ能力は未実装」境界は、第1節検出の部分について維持する。
+
+### 34.12 S-SBA: damage-marked substrate(CR 704.5g/h)— この節も契約である
+
+**位置づけ**: 実装フェーズの SBA 拡張第1スライス。ユーザー裁定(2026-06-30「最終ゴール=CR 完全性から逆算・substantive な変更を」)を受け Fable が選定 = **combat は最大の未モデル CR 領域であり、damage-marked state は lethal/deathtouch/first-strike/regeneration が読む combat 系の共有 substrate**。設計=本マイルストーンで起こした(`research/cr-grounding/damage-marked-engine-spec.draft`)。**substrate(state + command + SBA)のみ。combat phase orchestration は defer**。
+
+**CR 根拠**:
+- CR 120.1 / 120.3 / 120.6: damage はオブジェクトにマークされ、creature の lethal damage = toughness 以上のマーク。
+- CR 704.5g: toughness > 0 の creature に toughness 以上の damage がマークされていれば破壊。
+- CR 704.5h: toughness > 0 の creature に deathtouch を持つ発生源からの damage が1点以上マークされていれば破壊。
+- CR 704.5f: toughness ≤ 0 の creature は graveyard(既存)。704.5g/h は **toughness > 0 のみ**対象=二重破壊しない。
+- CR 514.2: cleanup で全オブジェクトのマーク damage を除去。
+
+**1. 型契約(`src/engine/types.ts`)**:
+```ts
+interface CardInstance {
+  // ...既存...
+  damageMarked: number;          // 既定 0・常に有限かつ >= 0(I3 不変条件に追加)
+  hasDeathtouchDamage: boolean;  // 既定 false・deathtouch 発生源由来の正の damage が現在マークされているか(704.5h)
+}
+```
+初期化・token/copy/ability 生成・true zone change で 0/false にリセット。旧 snapshot 復元で欠落/不正を 0/false に backfill(前方互換)。
+
+**2. command(`src/engine/commands.ts`)**:
+- `markDamage{ cardId; amount; deathtouch? }`: `damageMarked += max(0, amount)`(負を clamp=I3 維持)、`deathtouch===true` かつ正の amount で `hasDeathtouchDamage=true`。Oracle 文から deathtouch を推論しない(combat/compiler が後でセット)。
+- `clearMarkedDamage{ cardId? }`: 指定カード(無指定なら全 battlefield creature)を 0/false へ(CR 514.2 の除去プリミティブ)。
+
+**3. SBA(`performStateBasedActionsOnce`・既存 704.5f/i/d/e と同枠)**: 704.5g(effective toughness>0 かつ `damageMarked>=toughness` → owner's graveyard・`sbaApplied:'704.5g'`)・704.5h(effective toughness>0 かつ `hasDeathtouchDamage` かつ `damageMarked>=1` → owner's graveyard・`sbaApplied:'704.5h'`)。effective toughness は 704.5f と同一ヘルパ(counter 込み)=分岐なし。704.5f が toughness≤0 を専有するので 0-toughness は g/h 非該当=二重破壊なし。
+
+**4. cleanup 配線判断(§34.5)**: 現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。将来 standalone cleanup step は contract 不変のまま `clearMarkedDamage` を呼べばよい。
+
+**5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-sba-lethal-damage-destroys-creature`(704.5g/120.6)・`cr-sba-sublethal-damage-survives`・`cr-sba-deathtouch-any-damage-destroys`(704.5h)・`cr-cleanup-clears-marked-damage`(514.2)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.damage-marked.test.ts`(**レビュー担当専有**=exactly-lethal/sublethal/deathtouch-by-flag/cleanup/負 clamp/0-toughness 単発破壊 の敵対 pin)。I3 不変条件に `damageMarked>=0` を追加(`review.properties`)。
+
+**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)**full combat phase orchestration**(declare attackers/blockers・combat damage step 自動)→ C-GRAMMAR/combat carry。damage は `markDamage` 経由でのみ入る (b)**regeneration replacement**(704.5g の「unless regenerated」/ CR 701.18)→ regeneration shield state が無いので未実装・704.5g は無条件破壊 (c)**first/double strike** の damage step 分割 → defer (d)**standalone CR 514 cleanup step** → 未モデル(turn 遷移が surrogate)。これらは leaf/compiler 後付けで substrate を壊さず差し込める。

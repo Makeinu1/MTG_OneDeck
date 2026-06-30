@@ -20,10 +20,7 @@ import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
 import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
-import {
-  orderPendingTriggersApnap,
-  triggerStackPlacementBucketOf,
-} from '../engine/priority';
+import { orderPendingTriggersApnap, triggerStackPlacementBucketOf } from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
@@ -85,8 +82,7 @@ const ALL_ZONES: ZoneId[] = [
   'command',
   'stack',
 ];
-const STACK_TRANSITION_BLOCKED_WARNING =
-  'スタックに未解決の効果があります。先に解決してください。';
+const STACK_TRANSITION_BLOCKED_WARNING = 'スタックに未解決の効果があります。先に解決してください。';
 const PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING =
   '優先権前に置く誘発の順序が未指定です。すべての pending trigger を順序指定してください。';
 const PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING =
@@ -111,7 +107,7 @@ export interface PendingGuidedResolution {
  * would otherwise restore a state with `undefined` zone arrays and crash.
  */
 function normalizeSnapshotZones(
-  zones: Partial<Record<ZoneId, string[]>>
+  zones: Partial<Record<ZoneId, string[]>>,
 ): Record<ZoneId, string[]> {
   const out = {} as Record<ZoneId, string[]>;
   for (const zone of ALL_ZONES) out[zone] = zones[zone] ?? [];
@@ -120,6 +116,10 @@ function normalizeSnapshotZones(
 
 function normalizePerTurnCounter(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeMarkedDamage(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 
 function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<string, CardInstance> {
@@ -133,14 +133,25 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
       typeof card.zoneChangeCounter === 'number' && Number.isFinite(card.zoneChangeCounter)
         ? card.zoneChangeCounter
         : 0;
+    const damageMarked = normalizeMarkedDamage(card.damageMarked);
+    const hasDeathtouchDamage = card.hasDeathtouchDamage === true;
     const manualKeywords = normalizeKeywords(card.manualKeywords);
     let normalized: CardInstance = card;
     if (
       card.ownerId !== ownerId ||
       card.controllerId !== controllerId ||
-      card.zoneChangeCounter !== zoneChangeCounter
+      card.zoneChangeCounter !== zoneChangeCounter ||
+      card.damageMarked !== damageMarked ||
+      card.hasDeathtouchDamage !== hasDeathtouchDamage
     ) {
-      normalized = { ...normalized, ownerId, controllerId, zoneChangeCounter };
+      normalized = {
+        ...normalized,
+        ownerId,
+        controllerId,
+        zoneChangeCounter,
+        damageMarked,
+        hasDeathtouchDamage,
+      };
       changed = true;
     }
 
@@ -164,12 +175,8 @@ function normalizeSnapshotCards(cards: Record<string, CardInstance>): Record<str
 
 function normalizePendingRuleChoices(state: GameState): PendingRuleChoice[] {
   const snapshot = state as Partial<GameState>;
-  const current = Array.isArray(snapshot.pendingRuleChoices)
-    ? snapshot.pendingRuleChoices
-    : [];
-  const legacy = Array.isArray(snapshot.pendingSbaChoices)
-    ? snapshot.pendingSbaChoices
-    : [];
+  const current = Array.isArray(snapshot.pendingRuleChoices) ? snapshot.pendingRuleChoices : [];
+  const legacy = Array.isArray(snapshot.pendingSbaChoices) ? snapshot.pendingSbaChoices : [];
   const choices: PendingRuleChoice[] = [];
   const seenIds = new Set<string>();
 
@@ -183,7 +190,7 @@ function normalizePendingRuleChoices(state: GameState): PendingRuleChoice[] {
 }
 
 function normalizeTriggerStackPlacementBucket(
-  stackPlacementBucket: unknown
+  stackPlacementBucket: unknown,
 ): TriggerStackPlacementBucket {
   return stackPlacementBucket === 'ability-triggered' ? 'ability-triggered' : 'ordinary';
 }
@@ -198,7 +205,7 @@ function normalizeSnapshotState(state: GameState): GameState {
           'P1';
         const simultaneousGroupId = trigger.simultaneousGroupId ?? trigger.eventId;
         const stackPlacementBucket = normalizeTriggerStackPlacementBucket(
-          trigger.stackPlacementBucket
+          trigger.stackPlacementBucket,
         );
         return controllerId === trigger.controllerId &&
           simultaneousGroupId === trigger.simultaneousGroupId &&
@@ -225,15 +232,13 @@ function normalizeSnapshotState(state: GameState): GameState {
 
 function appendPendingTriggers(
   state: GameState,
-  pendingTriggers: readonly PendingTrigger[]
+  pendingTriggers: readonly PendingTrigger[],
 ): GameState {
   if (pendingTriggers.length === 0) {
     return state;
   }
   const existingIds = new Set(state.pendingTriggers.map((trigger) => trigger.pendingTriggerId));
-  const additions = pendingTriggers.filter(
-    (trigger) => !existingIds.has(trigger.pendingTriggerId)
-  );
+  const additions = pendingTriggers.filter((trigger) => !existingIds.has(trigger.pendingTriggerId));
   if (additions.length === 0) {
     return state;
   }
@@ -248,9 +253,7 @@ function clearPendingTriggers(state: GameState): GameState {
 }
 
 function removePendingTriggersForSource(state: GameState, sourceId: string): GameState {
-  const pendingTriggers = state.pendingTriggers.filter(
-    (trigger) => trigger.sourceId !== sourceId
-  );
+  const pendingTriggers = state.pendingTriggers.filter((trigger) => trigger.sourceId !== sourceId);
   return pendingTriggers.length === state.pendingTriggers.length
     ? state
     : { ...state, pendingTriggers };
@@ -258,12 +261,12 @@ function removePendingTriggersForSource(state: GameState, sourceId: string): Gam
 
 function removePendingTriggersById(
   state: GameState,
-  pendingTriggerIds: readonly string[]
+  pendingTriggerIds: readonly string[],
 ): GameState {
   if (pendingTriggerIds.length === 0) return state;
   const idSet = new Set(pendingTriggerIds);
   const pendingTriggers = state.pendingTriggers.filter(
-    (trigger) => !idSet.has(trigger.pendingTriggerId)
+    (trigger) => !idSet.has(trigger.pendingTriggerId),
   );
   return pendingTriggers.length === state.pendingTriggers.length
     ? state
@@ -300,11 +303,7 @@ function lastZoneChangeEventTo(
 ): ZoneChangeEvent | null {
   for (let index = state.eventLog.length - 1; index >= 0; index -= 1) {
     const event = state.eventLog[index];
-    if (
-      event.type === 'zoneChange' &&
-      event.physicalCardId === cardId &&
-      event.toZone === toZone
-    ) {
+    if (event.type === 'zoneChange' && event.physicalCardId === cardId && event.toZone === toZone) {
       return event;
     }
   }
@@ -348,10 +347,10 @@ function commandForPendingTrigger(pending: PendingTrigger): GameCommand {
 
 function pendingTriggersForIds(
   state: GameState,
-  pendingTriggerIds: readonly string[]
+  pendingTriggerIds: readonly string[],
 ): PendingTrigger[] {
   const pendingById = new Map(
-    state.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
+    state.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger]),
   );
   return pendingTriggerIds
     .map((id) => pendingById.get(id))
@@ -360,17 +359,17 @@ function pendingTriggersForIds(
 
 function applyPendingTriggerStackPlacement(
   state: GameState,
-  pendingInOrder: readonly PendingTrigger[]
+  pendingInOrder: readonly PendingTrigger[],
 ): ApplyResult {
   const result = applyCommands(state, pendingInOrder.map(commandForPendingTrigger));
   const withNewPending = appendPendingTriggers(
     result.state,
-    collectPendingTriggers(state, result.state)
+    collectPendingTriggers(state, result.state),
   );
   return {
     state: removePendingTriggersById(
       withNewPending,
-      pendingInOrder.map((trigger) => trigger.pendingTriggerId)
+      pendingInOrder.map((trigger) => trigger.pendingTriggerId),
     ),
     warnings: result.warnings,
   };
@@ -380,10 +379,7 @@ function deterministicPendingTriggerOrderForPriority(state: GameState): string[]
   const countsByControllerBucket = new Map<string, number>();
   for (const trigger of state.pendingTriggers) {
     const key = `${triggerStackPlacementBucketOf(trigger)}:${trigger.controllerId}`;
-    countsByControllerBucket.set(
-      key,
-      (countsByControllerBucket.get(key) ?? 0) + 1
-    );
+    countsByControllerBucket.set(key, (countsByControllerBucket.get(key) ?? 0) + 1);
   }
   if ([...countsByControllerBucket.values()].some((count) => count > 1)) {
     return null;
@@ -392,7 +388,7 @@ function deterministicPendingTriggerOrderForPriority(state: GameState): string[]
   const orderResult = orderPendingTriggersApnap(
     state.pendingTriggers,
     state.pendingTriggers.map((trigger) => trigger.pendingTriggerId),
-    state.activePlayerId
+    state.activePlayerId,
   );
   return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
 }
@@ -436,7 +432,7 @@ export interface GameStore {
   discardRandom(count: number): void;
   playLand(
     cardId: string,
-    opts?: { force?: boolean; entersTapped?: boolean }
+    opts?: { force?: boolean; entersTapped?: boolean },
   ): 'ok' | 'needs-confirm' | 'needs-tap-choice';
   toggleTap(cardId: string): void;
   tapForMana(cardId: string, color?: ManaColor): 'ok' | 'needs-choice';
@@ -446,20 +442,20 @@ export interface GameStore {
   crackBlood(cardId: string, discardCardId?: string): void;
   castFromHand(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean }
+    opts?: { xValue?: number; force?: boolean },
   ): 'ok' | { shortfall: number };
   castCommander(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean }
+    opts?: { xValue?: number; force?: boolean },
   ): 'ok' | { shortfall: number };
   castToStack(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean }
+    opts?: { xValue?: number; force?: boolean },
   ): 'ok' | { shortfall: number };
   addAbilityToStack(
     sourceId: string,
     kind: 'activated' | 'triggered',
-    abilityLineIndex?: number
+    abilityLineIndex?: number,
   ): void;
   resolveRuleChoice(choiceId: string, selection: RuleChoiceSelection): void;
   putPendingTriggerOnStack(pendingTriggerId: string): void;
@@ -491,7 +487,7 @@ export interface GameStore {
     opts?: {
       producedMana?: ManaColor[];
       tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
-    }
+    },
   ): void;
   announce(message: string): void;
   rollDie(sides: number): void;
@@ -500,7 +496,11 @@ export interface GameStore {
   cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
   activateFetch(sourceId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
   resolveFetch(abilityId: string, targetId: string, opts: { entersTapped: boolean }): void;
-  fetchLand(sourceId: string, targetId: string, opts: { entersTapped: boolean; lifeCost: number }): void;
+  fetchLand(
+    sourceId: string,
+    targetId: string,
+    opts: { entersTapped: boolean; lifeCost: number },
+  ): void;
 }
 
 interface InternalState {
@@ -515,7 +515,7 @@ let snapshotInternal: InternalState | null = null;
 let snapshotSaveTimer: ReturnType<typeof setTimeout> | undefined;
 
 function randomSeed(): number {
-  return (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1;
+  return Math.floor(Math.random() * 0xffffffff) >>> 0 || 1;
 }
 
 function cardLabel(state: GameState, cardId: string): string {
@@ -635,7 +635,7 @@ function resolveRuleChoiceInState(
 
 function sourceDefFor(state: GameState, sourceId: string): CardDef | null {
   const source = state.cards[sourceId];
-  return source ? state.defs[source.defId] ?? null : null;
+  return source ? (state.defs[source.defId] ?? null) : null;
 }
 
 function sourceTypeLineFor(state: GameState, sourceId: string): string {
@@ -701,7 +701,7 @@ function manaProductionAmount(def: CardDef | undefined, color: ManaColor): numbe
       }
 
       const englishAmount = clause.match(
-        /add\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+mana\s+of\s+any/i
+        /add\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+mana\s+of\s+any/i,
       );
       if (englishAmount) {
         const parsed = parseAmountToken(englishAmount[1]);
@@ -731,11 +731,7 @@ function isFetchAbilityStackItem(state: GameState, cardId: string): boolean {
 }
 
 function untapToMainCommands(): GameCommand[] {
-  return [
-    { type: 'nextPhase' },
-    { type: 'nextPhase' },
-    { type: 'nextPhase' },
-  ];
+  return [{ type: 'nextPhase' }, { type: 'nextPhase' }, { type: 'nextPhase' }];
 }
 
 export function freeMulliganBottomCount(mulliganCount: number): number {
@@ -755,13 +751,14 @@ export const useGameStore = create<GameStore>((set, get) => {
   function commit(
     next: GameState,
     warnings: string[],
-    options: { collectPending?: boolean } = {}
+    options: { collectPending?: boolean } = {},
   ): void {
     const cur = get().state;
     const shouldCollectPending = options.collectPending ?? true;
-    const nextWithPending = cur && shouldCollectPending
-      ? appendPendingTriggers(next, collectPendingTriggers(cur, next))
-      : next;
+    const nextWithPending =
+      cur && shouldCollectPending
+        ? appendPendingTriggers(next, collectPendingTriggers(cur, next))
+        : next;
     if (cur) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
@@ -772,9 +769,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const nextStoreState: Partial<GameStore> = {
       state: nextWithPending,
       warnings,
-      triggerCandidates: triggerCandidatesFromPendingTriggers(
-        nextWithPending.pendingTriggers
-      ),
+      triggerCandidates: triggerCandidatesFromPendingTriggers(nextWithPending.pendingTriggers),
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
@@ -802,7 +797,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     return [`${cardLabel(state, cardId)}は召喚酔い中です。`];
   }
 
-  function dispatchTurnTransition(cmd: Extract<GameCommand, { type: 'nextPhase' | 'nextTurn' }>): void {
+  function dispatchTurnTransition(
+    cmd: Extract<GameCommand, { type: 'nextPhase' | 'nextTurn' }>,
+  ): void {
     const cur = get().state;
     if (!cur) return;
     if (cur.zones.stack.length > 0) {
@@ -1370,7 +1367,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       commands.push(
         { type: 'moveCard', cardId, to: 'graveyard', position: 'top' },
-        { type: 'draw', count: 1 }
+        { type: 'draw', count: 1 },
       );
 
       try {
@@ -1542,7 +1539,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         set({
           state: nextWithoutPending,
           triggerCandidates: triggerCandidatesFromPendingTriggers(
-            nextWithoutPending.pendingTriggers
+            nextWithoutPending.pendingTriggers,
           ),
         });
       }
@@ -1579,7 +1576,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return true;
       });
       const pendingById = new Map(
-        before.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
+        before.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger]),
       );
       const pendingInOrder = orderedIds
         .map((id) => pendingById.get(id))
@@ -1593,12 +1590,12 @@ export const useGameStore = create<GameStore>((set, get) => {
         if (!next) return;
         const nextWithoutPending = removePendingTriggersById(
           next,
-          pendingInOrder.map((trigger) => trigger.pendingTriggerId)
+          pendingInOrder.map((trigger) => trigger.pendingTriggerId),
         );
         set({
           state: nextWithoutPending,
           triggerCandidates: triggerCandidatesFromPendingTriggers(
-            nextWithoutPending.pendingTriggers
+            nextWithoutPending.pendingTriggers,
           ),
         });
       } catch (err) {
@@ -1618,10 +1615,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         : [];
       if (pendingRuleChoices.length > 0) {
         set({
-          warnings: [
-            ...get().warnings,
-            PRIORITY_RULE_CHOICE_PENDING_WARNING,
-          ],
+          warnings: [...get().warnings, PRIORITY_RULE_CHOICE_PENDING_WARNING],
         });
         return;
       }
@@ -1630,14 +1624,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const orderResult = orderPendingTriggersApnap(
         cur.pendingTriggers,
         pendingTriggerIds,
-        cur.activePlayerId
+        cur.activePlayerId,
       );
       if (orderResult.status !== 'ordered') {
         set({
-          warnings: [
-            ...get().warnings,
-            PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING,
-          ],
+          warnings: [...get().warnings, PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING],
         });
         return;
       }
@@ -1709,7 +1700,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           const warnings = result.warnings.slice();
           if (manaAbilityPlan.manaShortfall > 0) {
             warnings.push(
-              `${cardLabel(cur, sourceId)}のマナ能力の起動コストのマナが${manaAbilityPlan.manaShortfall}点不足しています。`
+              `${cardLabel(cur, sourceId)}のマナ能力の起動コストのマナが${manaAbilityPlan.manaShortfall}点不足しています。`,
             );
           }
           const next = appendLog(result.state, `${cardLabel(cur, sourceId)}のマナ能力を起動。`);
@@ -1743,7 +1734,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
         if (plan?.manaShortfall && plan.manaShortfall > 0) {
           warnings.push(
-            `${cardLabel(cur, sourceId)}の起動コストのマナが${plan.manaShortfall}点不足しています。`
+            `${cardLabel(cur, sourceId)}の起動コストのマナが${plan.manaShortfall}点不足しています。`,
           );
         }
         const next =
@@ -1909,13 +1900,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         if (!committed) return;
         const nextWithPending = appendPendingTriggers(
           committed,
-          collectAttackPendingTriggers(committed, attackerIds)
+          collectAttackPendingTriggers(committed, attackerIds),
         );
         set({
           state: nextWithPending,
-          triggerCandidates: triggerCandidatesFromPendingTriggers(
-            nextWithPending.pendingTriggers
-          ),
+          triggerCandidates: triggerCandidatesFromPendingTriggers(nextWithPending.pendingTriggers),
         });
       } catch (err) {
         console.error(err);
@@ -2034,7 +2023,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           sourceId,
           kind: 'activated',
           ...(abilityLineIndex === undefined ? {} : { abilityLineIndex }),
-        }
+        },
       );
 
       try {
@@ -2056,7 +2045,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const rng = createRng(randomSeed());
       const order = shuffledOrder(
         cur.zones.library.filter((cardId) => cardId !== targetId),
-        rng
+        rng,
       );
 
       const commands: GameCommand[] = [
@@ -2086,7 +2075,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const rng = createRng(randomSeed());
       const order = shuffledOrder(
         cur.zones.library.filter((cardId) => cardId !== targetId),
-        rng
+        rng,
       );
 
       const commands: GameCommand[] = [];
@@ -2095,7 +2084,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       commands.push(
         { type: 'moveCard', cardId: sourceId, to: 'graveyard', position: 'top' },
-        { type: 'moveCard', cardId: targetId, to: 'battlefield', position: 'top' }
+        { type: 'moveCard', cardId: targetId, to: 'battlefield', position: 'top' },
       );
       if (opts.entersTapped) {
         commands.push({ type: 'setTapped', cardId: targetId, tapped: true });

@@ -45,6 +45,8 @@ export type GameCommand =
   | { type: 'setEffectsAuto'; value: boolean }
   | { type: 'setCardEffectsAuto'; cardId: string; value: boolean }
   | { type: 'addCounters'; cardId: string; counterType: string; delta: number }
+  | { type: 'markDamage'; cardId: string; amount: number; deathtouch?: boolean }
+  | { type: 'clearMarkedDamage'; cardId?: string }
   | { type: 'attach'; cardId: string; to: string | undefined }
   | { type: 'adjustLife'; delta: number }
   | { type: 'adjustPlayerCounter'; kind: 'poison' | 'energy' | 'experience'; delta: number }
@@ -150,9 +152,7 @@ function makeDraft(state: GameState): Draft {
       commanderDamage: { ...state.commanderDamage },
       opponentLife: { ...state.opponentLife },
       eventLog: eventLog.slice(),
-      pendingTriggers: Array.isArray(state.pendingTriggers)
-        ? state.pendingTriggers.slice()
-        : [],
+      pendingTriggers: Array.isArray(state.pendingTriggers) ? state.pendingTriggers.slice() : [],
       pendingRuleChoices: Array.isArray(state.pendingRuleChoices)
         ? state.pendingRuleChoices.slice()
         : [],
@@ -199,10 +199,7 @@ function pushLog(draft: Draft, message: string): void {
   draft.state.log = [...draft.state.log, entry];
 }
 
-function pushEvent(
-  draft: Draft,
-  event: Omit<ZoneChangeEvent, 'eventId' | 'sequence'>
-): void {
+function pushEvent(draft: Draft, event: Omit<ZoneChangeEvent, 'eventId' | 'sequence'>): void {
   const sequence = draft.nextEventSeq++;
   draft.state.eventLog = [
     ...draft.state.eventLog,
@@ -260,11 +257,7 @@ function deleteCardFromState(draft: Draft, cardId: string): ZoneId {
   return from;
 }
 
-function insertIntoZone(
-  arr: string[],
-  cardId: string,
-  position: 'top' | 'bottom' | number
-): void {
+function insertIntoZone(arr: string[], cardId: string, position: 'top' | 'bottom' | number): void {
   if (position === 'top') {
     arr.unshift(cardId);
   } else if (position === 'bottom') {
@@ -285,6 +278,8 @@ function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
     faceDown: false,
     faceIndex: 0,
     counters: {},
+    damageMarked: 0,
+    hasDeathtouchDamage: false,
     attachedTo: undefined,
     enteredTurn: 0,
   };
@@ -333,6 +328,16 @@ function effectiveToughnessForSba(draft: Draft, card: CardInstance): number | nu
   return baseToughness + (card.counters['+1/+1'] ?? 0) - (card.counters['-1/-1'] ?? 0);
 }
 
+function markedDamageOf(card: CardInstance): number {
+  return typeof card.damageMarked === 'number' && Number.isFinite(card.damageMarked)
+    ? Math.max(0, card.damageMarked)
+    : 0;
+}
+
+function hasDeathtouchDamage(card: CardInstance): boolean {
+  return card.hasDeathtouchDamage === true;
+}
+
 function pushZoneChangeEvent(
   draft: Draft,
   before: ObjectSnapshot,
@@ -340,7 +345,7 @@ function pushZoneChangeEvent(
   fromZone: ZoneId,
   toZone: ZoneId | undefined,
   reason: ZoneChangeReason,
-  options?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
+  options?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
 ): void {
   pushEvent(draft, {
     type: 'zoneChange',
@@ -393,7 +398,7 @@ function isLegendaryPermanent(draft: Draft, card: CardInstance): boolean {
 function legendRuleChoiceId(
   controllerId: LegendRuleChoice['controllerId'],
   name: string,
-  cardIds: readonly string[]
+  cardIds: readonly string[],
 ): string {
   return `704.5j:${controllerId}:${name}:${cardIds.slice().sort().join(',')}`;
 }
@@ -433,9 +438,7 @@ function pendingLegendRuleChoices(draft: Draft): LegendRuleChoice[] {
 function appendPendingRuleChoices(draft: Draft, choices: readonly LegendRuleChoice[]): boolean {
   if (choices.length === 0) return false;
 
-  const existingIds = new Set(
-    draft.state.pendingRuleChoices.map((choice) => choice.choiceId)
-  );
+  const existingIds = new Set(draft.state.pendingRuleChoices.map((choice) => choice.choiceId));
   const additions = choices.filter((choice) => !existingIds.has(choice.choiceId));
   if (additions.length === 0) return false;
 
@@ -451,7 +454,7 @@ function moveCardInternal(
   position: 'top' | 'bottom' | number,
   log: boolean,
   reason: ZoneChangeReason = 'move',
-  eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>
+  eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
 ): void {
   const card = requireCard(draft, cardId);
   const from = card.zone;
@@ -460,7 +463,15 @@ function moveCardInternal(
   if (card.isAbility && to !== 'stack') {
     const name = stackNameOf(draft, card);
     if (!sameZone) {
-      pushZoneChangeEvent(draft, objectSnapshotOf(draft, card), undefined, from, to, reason, eventOptions);
+      pushZoneChangeEvent(
+        draft,
+        objectSnapshotOf(draft, card),
+        undefined,
+        from,
+        to,
+        reason,
+        eventOptions,
+      );
     }
     deleteCardFromState(draft, cardId);
     if (log) {
@@ -487,8 +498,7 @@ function moveCardInternal(
   const dest = editZone(draft, to);
 
   // battlefield destination always appended (UI manages order otherwise).
-  const effectivePosition: 'top' | 'bottom' | number =
-    to === 'battlefield' ? 'bottom' : position;
+  const effectivePosition: 'top' | 'bottom' | number = to === 'battlefield' ? 'bottom' : position;
   insertIntoZone(dest, cardId, effectivePosition);
 
   const before = sameZone ? undefined : objectSnapshotOf(draft, card);
@@ -512,15 +522,72 @@ function moveCardInternal(
       from,
       to,
       reason,
-      eventOptions
+      eventOptions,
     );
   }
 
   if (log && !sameZone) {
     pushLog(
       draft,
-      `${nameOf(draft, cardId)}を${ZONE_LABELS[from]}から${ZONE_LABELS[to]}へ移動しました。`
+      `${nameOf(draft, cardId)}を${ZONE_LABELS[from]}から${ZONE_LABELS[to]}へ移動しました。`,
     );
+  }
+}
+
+function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouch?: boolean): void {
+  const card = requireCard(draft, cardId);
+  const markedAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+  const nextDamage = markedDamageOf(card) + markedAmount;
+  const nextHasDeathtouchDamage =
+    hasDeathtouchDamage(card) || (deathtouch === true && markedAmount > 0);
+
+  if (nextDamage === card.damageMarked && nextHasDeathtouchDamage === card.hasDeathtouchDamage) {
+    return;
+  }
+
+  setCard(draft, {
+    ...card,
+    damageMarked: nextDamage,
+    hasDeathtouchDamage: nextHasDeathtouchDamage,
+  });
+
+  if (markedAmount > 0) {
+    const deathtouchLabel = deathtouch === true ? '(接死)' : '';
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}に${markedAmount}点のダメージ${deathtouchLabel}を記録しました。`,
+    );
+  }
+}
+
+function clearMarkedDamageInternal(draft: Draft, cardId?: string): boolean {
+  const cardIds =
+    cardId === undefined
+      ? draft.state.zones.battlefield.filter((id) => {
+          const card = draft.state.cards[id];
+          return card && typeLineOf(draft, card).includes('Creature');
+        })
+      : [requireCard(draft, cardId).id];
+
+  let changed = false;
+  for (const id of cardIds) {
+    const card = draft.state.cards[id];
+    if (!card) continue;
+    if (markedDamageOf(card) === 0 && !hasDeathtouchDamage(card)) continue;
+    setCard(draft, {
+      ...card,
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
+    changed = true;
+  }
+
+  return changed;
+}
+
+function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
+  if (clearMarkedDamageInternal(draft, cardId)) {
+    pushLog(draft, 'クリーチャーのダメージ記録を消しました。');
   }
 }
 
@@ -537,6 +604,27 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     const toughness = effectiveToughnessForSba(draft, card);
     return toughness !== null && toughness <= 0 ? [card.id] : [];
   });
+  const lethalDamageCreatureIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Creature')) {
+      return [];
+    }
+    const toughness = effectiveToughnessForSba(draft, card);
+    return toughness !== null && toughness > 0 && markedDamageOf(card) >= toughness
+      ? [card.id]
+      : [];
+  });
+  const deathtouchDamageCreatureIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Creature')) {
+      return [];
+    }
+    const toughness = effectiveToughnessForSba(draft, card);
+    return toughness !== null &&
+      toughness > 0 &&
+      hasDeathtouchDamage(card) &&
+      markedDamageOf(card) >= 1
+      ? [card.id]
+      : [];
+  });
   const zeroLoyaltyPlaneswalkerIds = Object.values(draft.state.cards).flatMap((card) => {
     if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Planeswalker')) {
       return [];
@@ -544,10 +632,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     return (card.counters.loyalty ?? 0) === 0 ? [card.id] : [];
   });
   const invalidCopyIds = Object.values(draft.state.cards).flatMap((card) =>
-    card.isCopy && card.zone !== 'stack' ? [card.id] : []
+    card.isCopy && card.zone !== 'stack' ? [card.id] : [],
   );
   const offBattlefieldTokenIds = Object.values(draft.state.cards).flatMap((card) =>
-    card.isToken && card.zone !== 'battlefield' ? [card.id] : []
+    card.isToken && card.zone !== 'battlefield' ? [card.id] : [],
   );
   const counterPairIds = Object.values(draft.state.cards).flatMap((card) => {
     const plus = card.counters['+1/+1'] ?? 0;
@@ -557,6 +645,8 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
 
   if (
     zeroToughnessCreatureIds.length === 0 &&
+    lethalDamageCreatureIds.length === 0 &&
+    deathtouchDamageCreatureIds.length === 0 &&
     zeroLoyaltyPlaneswalkerIds.length === 0 &&
     invalidCopyIds.length === 0 &&
     offBattlefieldTokenIds.length === 0 &&
@@ -575,7 +665,35 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     });
     pushLog(
       draft,
-      `${nameOf(draft, cardId)}はタフネスが0以下のため状況起因処理で墓地に置かれました。`
+      `${nameOf(draft, cardId)}はタフネスが0以下のため状況起因処理で墓地に置かれました。`,
+    );
+  }
+
+  for (const cardId of lethalDamageCreatureIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5g',
+    });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}は致死ダメージを受けているため状況起因処理で墓地に置かれました。`,
+    );
+  }
+
+  for (const cardId of deathtouchDamageCreatureIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5h',
+    });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}は接死を持つ発生源からダメージを受けているため状況起因処理で墓地に置かれました。`,
     );
   }
 
@@ -587,10 +705,7 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
       simultaneousGroupId,
       sbaApplied: '704.5i',
     });
-    pushLog(
-      draft,
-      `${nameOf(draft, cardId)}は忠誠度が0のため状況起因処理で墓地に置かれました。`
-    );
+    pushLog(draft, `${nameOf(draft, cardId)}は忠誠度が0のため状況起因処理で墓地に置かれました。`);
   }
 
   for (const cardId of invalidCopyIds) {
@@ -599,15 +714,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
 
     const before = objectSnapshotOf(draft, card);
     const name = nameOfCard(draft, card);
-    pushZoneChangeEvent(
-      draft,
-      before,
-      undefined,
-      card.zone,
-      undefined,
-      'copy-cease',
-      { simultaneousGroupId, sbaApplied: '704.5e' }
-    );
+    pushZoneChangeEvent(draft, before, undefined, card.zone, undefined, 'copy-cease', {
+      simultaneousGroupId,
+      sbaApplied: '704.5e',
+    });
     deleteCardFromState(draft, card.id);
     pushLog(draft, `コピー${name}は状況起因処理により消滅しました。`);
   }
@@ -618,15 +728,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
 
     const before = objectSnapshotOf(draft, card);
     const name = nameOfCard(draft, card);
-    pushZoneChangeEvent(
-      draft,
-      before,
-      undefined,
-      card.zone,
-      undefined,
-      'token-cease',
-      { simultaneousGroupId, sbaApplied: '704.5d' }
-    );
+    pushZoneChangeEvent(draft, before, undefined, card.zone, undefined, 'token-cease', {
+      simultaneousGroupId,
+      sbaApplied: '704.5d',
+    });
     deleteCardFromState(draft, card.id);
     pushLog(draft, `トークン${name}は状況起因処理により消滅しました。`);
   }
@@ -655,7 +760,7 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     setCard(draft, { ...card, counters });
     pushLog(
       draft,
-      `${nameOf(draft, cardId)}の+1/+1カウンターと-1/-1カウンターを${removeCount}個ずつ取り除きました。`
+      `${nameOf(draft, cardId)}の+1/+1カウンターと-1/-1カウンターを${removeCount}個ずつ取り除きました。`,
     );
   }
 
@@ -791,9 +896,7 @@ function applyMill(draft: Draft, count: number): void {
 
   pushLog(draft, `切削: ライブラリの上から${milled}枚を墓地に置いた。`);
   if (requested > available) {
-    draft.warnings.push(
-      `ライブラリが${requested}枚に満たないため${milled}枚を切削した。`
-    );
+    draft.warnings.push(`ライブラリが${requested}枚に満たないため${milled}枚を切削した。`);
   }
 }
 
@@ -831,6 +934,7 @@ function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
   const idx = PHASE_ORDER.indexOf(draft.state.phase);
   if (idx === PHASE_ORDER.length - 1) {
     // end -> next turn untap
+    clearMarkedDamageInternal(draft);
     draft.state.turn += 1;
     enterPhase(draft, 'untap', drawnHandled);
     pushLog(draft, `ターン${draft.state.turn}に移行しました。`);
@@ -843,6 +947,7 @@ function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
 
 function applyNextTurn(draft: Draft): void {
   clearPool(draft, 'ターン移行によりマナプールが空になりました。');
+  clearMarkedDamageInternal(draft);
   draft.state.turn += 1;
   enterPhase(draft, 'untap', false);
   pushLog(draft, `ターン${draft.state.turn}(アンタップ)に移行しました。`);
@@ -882,7 +987,7 @@ function applyArrangeTop(
   draft: Draft,
   topOrder: string[],
   toBottom: string[],
-  toGraveyard: string[]
+  toGraveyard: string[],
 ): void {
   const originalLibrary = draft.state.zones.library.slice();
   const count = topOrder.length + toBottom.length + toGraveyard.length;
@@ -918,7 +1023,7 @@ function applyCast(
   cardId: string,
   payment: ManaPool,
   forced: boolean,
-  commander: boolean
+  commander: boolean,
 ): void {
   const card = requireCard(draft, cardId);
 
@@ -952,7 +1057,7 @@ function applyCast(
 
   if (commander) {
     draft.state.commanders = draft.state.commanders.map((c) =>
-      c.cardId === cardId ? { ...c, castCount: c.castCount + 1 } : c
+      c.cardId === cardId ? { ...c, castCount: c.castCount + 1 } : c,
     );
     moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
     draft.state.spellsCastThisTurn += 1;
@@ -986,9 +1091,7 @@ function nextCopyId(state: GameState): string {
 
 function incrementCommanderCastCount(draft: Draft, cardId: string): void {
   draft.state.commanders = draft.state.commanders.map((commander) =>
-    commander.cardId === cardId
-      ? { ...commander, castCount: commander.castCount + 1 }
-      : commander
+    commander.cardId === cardId ? { ...commander, castCount: commander.castCount + 1 } : commander,
   );
 }
 
@@ -1015,6 +1118,8 @@ function createAbilityObject(
     isToken: false,
     isCommander: false,
     enteredTurn: 0,
+    damageMarked: 0,
+    hasDeathtouchDamage: false,
     isAbility: true,
     sourceId,
     abilityKind: kind,
@@ -1022,12 +1127,7 @@ function createAbilityObject(
   };
 }
 
-function applyCastToStack(
-  draft: Draft,
-  cardId: string,
-  payment: ManaPool,
-  forced: boolean
-): void {
+function applyCastToStack(draft: Draft, cardId: string, payment: ManaPool, forced: boolean): void {
   const card = requireCard(draft, cardId);
   const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
 
@@ -1054,7 +1154,7 @@ function applyAddAbilityToStack(
   sourceId: string,
   kind: AbilityKind,
   abilityLineIndex?: number,
-  sourceSnapshot?: ObjectSnapshot
+  sourceSnapshot?: ObjectSnapshot,
 ): void {
   const source = draft.state.cards[sourceId];
   const defId = source?.defId ?? sourceSnapshot?.defId;
@@ -1080,10 +1180,7 @@ function applyAddAbilityToStack(
   stack.push(abilityId);
   const sourceName = source ? nameOf(draft, sourceId) : `《${cardName(draft.state.defs[defId])}》`;
 
-  pushLog(
-    draft,
-    `${sourceName}の${ABILITY_KIND_LABELS[kind]}能力をスタックに積んだ。`
-  );
+  pushLog(draft, `${sourceName}の${ABILITY_KIND_LABELS[kind]}能力をスタックに積んだ。`);
 }
 
 function defaultStackResolveDestination(draft: Draft, card: CardInstance): ZoneId {
@@ -1099,7 +1196,7 @@ interface ResolvableEffectLine {
 
 function effectLinesForStackItemState(
   state: GameState,
-  card: CardInstance
+  card: CardInstance,
 ): ResolvableEffectLine[] {
   if (state.effectsAuto !== true) {
     return [];
@@ -1152,10 +1249,7 @@ function effectLinesForStackItemState(
     }));
 }
 
-function effectLinesForResolvedStackItem(
-  draft: Draft,
-  card: CardInstance
-): ResolvableEffectLine[] {
+function effectLinesForResolvedStackItem(draft: Draft, card: CardInstance): ResolvableEffectLine[] {
   return effectLinesForStackItemState(draft.state, card);
 }
 
@@ -1170,9 +1264,7 @@ function abilityLineIndexForKind(
   if (!def) return undefined;
 
   const shapes =
-    kind === 'activated'
-      ? new Set(['activated'])
-      : new Set(['triggered', 'delayed-triggered']);
+    kind === 'activated' ? new Set(['activated']) : new Set(['triggered', 'delayed-triggered']);
   const matches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
     .filter((entry) => shapes.has(entry.line.shape));
@@ -1181,7 +1273,7 @@ function abilityLineIndexForKind(
 }
 
 export function guidedPlanForStackTop(
-  state: GameState
+  state: GameState,
 ): { sourceId: string; prompts: EffectPrompt[] } | null {
   const topId = state.zones.stack[state.zones.stack.length - 1];
   if (!topId) {
@@ -1228,8 +1320,7 @@ export function activationPlanForSource(
     return { commands: [], decision: 'manual', manaShortfall: 0 };
   }
 
-  const resolvedIndex =
-    abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
+  const resolvedIndex = abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
   if (resolvedIndex === undefined) {
     return { commands: [], decision: 'manual', manaShortfall: 0 };
   }
@@ -1272,8 +1363,7 @@ export function activatedManaAbilityPlanForSource(
     return null;
   }
 
-  const resolvedIndex =
-    abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
+  const resolvedIndex = abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
   if (resolvedIndex === undefined) {
     return null;
   }
@@ -1383,8 +1473,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       const current = draft.state[cmd.kind];
       const next = Math.max(0, current + cmd.delta);
       draft.state[cmd.kind] = next;
-      const label =
-        cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
+      const label = cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
       pushLog(draft, `${label}カウンターを${next}個にしました。`);
       break;
     }
@@ -1407,7 +1496,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
         cmd.toughness,
         cmd.quantity,
         cmd.producedMana,
-        cmd.tokenKind
+        cmd.tokenKind,
       );
       break;
     }
@@ -1425,7 +1514,7 @@ function applyAutoCommands(draft: Draft, commands: readonly GameCommand[]): void
 function applyCompiledEffectsForStackItem(
   draft: Draft,
   card: CardInstance,
-  effectLines: readonly ResolvableEffectLine[]
+  effectLines: readonly ResolvableEffectLine[],
 ): void {
   for (const effectLine of effectLines) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
@@ -1517,6 +1606,8 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
     faceIndex: source.faceIndex,
     faceDown: source.faceDown,
     counters: {},
+    damageMarked: 0,
+    hasDeathtouchDamage: false,
     isToken: false,
     isCommander: false,
     enteredTurn: 0,
@@ -1548,6 +1639,8 @@ function applyCopyPermanent(draft: Draft, cardId: string, quantity: number): voi
       faceIndex: source.faceIndex,
       faceDown: source.faceDown,
       counters: {},
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
       isToken: true,
       isCommander: false,
       enteredTurn: 0,
@@ -1616,7 +1709,7 @@ function applyCreateToken(
   toughness: string | undefined,
   quantity: number,
   producedMana: ManaColor[] | undefined,
-  tokenKind: CardDef['tokenKind']
+  tokenKind: CardDef['tokenKind'],
 ): void {
   const qty = Math.max(0, Math.floor(quantity));
   if (qty === 0) return;
@@ -1660,6 +1753,8 @@ function applyCreateToken(
       faceIndex: 0,
       faceDown: false,
       counters: {},
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
       isToken: true,
       isCommander: false,
       enteredTurn: 0,
@@ -1685,7 +1780,9 @@ function applyMulligan(draft: Draft, order: string[]): void {
   // Validate + apply order as the new library permutation.
   const lib = draft.state.zones.library;
   const valid =
-    order.length === lib.length && new Set(order).size === order.length && order.every((id) => lib.includes(id));
+    order.length === lib.length &&
+    new Set(order).size === order.length &&
+    order.every((id) => lib.includes(id));
   if (valid) {
     draft.state.zones = { ...draft.state.zones, library: order.slice() };
   } else {
@@ -1745,7 +1842,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         setCard(draft, { ...card, tapped: cmd.tapped });
         pushLog(
           draft,
-          `${nameOf(draft, cmd.cardId)}を${cmd.tapped ? 'タップ' : 'アンタップ'}しました。`
+          `${nameOf(draft, cmd.cardId)}を${cmd.tapped ? 'タップ' : 'アンタップ'}しました。`,
         );
       }
       break;
@@ -1764,7 +1861,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         setCard(draft, { ...card, faceDown: cmd.faceDown });
         pushLog(
           draft,
-          `${nameOf(draft, cmd.cardId)}を${cmd.faceDown ? '裏向き' : '表向き'}にしました。`
+          `${nameOf(draft, cmd.cardId)}を${cmd.faceDown ? '裏向き' : '表向き'}にしました。`,
         );
       }
       break;
@@ -1792,7 +1889,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         setCard(draft, { ...card, effectsAuto: cmd.value });
         pushLog(
           draft,
-          `${nameOf(draft, cmd.cardId)}の効果自動実行を${cmd.value ? 'ON' : 'OFF'}にしました。`
+          `${nameOf(draft, cmd.cardId)}の効果自動実行を${cmd.value ? 'ON' : 'OFF'}にしました。`,
         );
       }
       break;
@@ -1810,8 +1907,16 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       setCard(draft, { ...card, counters });
       pushLog(
         draft,
-        `${nameOf(draft, cmd.cardId)}の${cmd.counterType}カウンターを${next}個にしました。`
+        `${nameOf(draft, cmd.cardId)}の${cmd.counterType}カウンターを${next}個にしました。`,
       );
+      break;
+    }
+    case 'markDamage': {
+      applyMarkDamage(draft, cmd.cardId, cmd.amount, cmd.deathtouch);
+      break;
+    }
+    case 'clearMarkedDamage': {
+      applyClearMarkedDamage(draft, cmd.cardId);
       break;
     }
     case 'attach': {
@@ -1821,10 +1926,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       }
       setCard(draft, { ...card, attachedTo: cmd.to });
       if (cmd.to !== undefined) {
-        pushLog(
-          draft,
-          `${nameOf(draft, cmd.cardId)}を${nameOf(draft, cmd.to)}に付けました。`
-        );
+        pushLog(draft, `${nameOf(draft, cmd.cardId)}を${nameOf(draft, cmd.to)}に付けました。`);
       } else {
         pushLog(draft, `${nameOf(draft, cmd.cardId)}の装備/付与を外しました。`);
       }
@@ -1840,8 +1942,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       const current = draft.state[cmd.kind];
       const next = Math.max(0, current + cmd.delta);
       draft.state[cmd.kind] = next;
-      const label =
-        cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
+      const label = cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
       pushLog(draft, `${label}カウンターを${next}個にしました。`);
       break;
     }
@@ -1958,7 +2059,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.sourceId,
         cmd.kind,
         cmd.abilityLineIndex,
-        cmd.sourceSnapshot
+        cmd.sourceSnapshot,
       );
       break;
     }
@@ -1987,7 +2088,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.toughness,
         cmd.quantity,
         cmd.producedMana,
-        cmd.tokenKind
+        cmd.tokenKind,
       );
       break;
     }

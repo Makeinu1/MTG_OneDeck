@@ -19,7 +19,7 @@ function commanderId(): string {
 
 function findInstanceId(defId: string): string {
   const card = Object.values(store().state?.cards ?? {}).find(
-    (instance) => instance.defId === defId
+    (instance) => instance.defId === defId,
   );
   if (!card) {
     throw new Error(`card instance not found for ${defId}`);
@@ -73,18 +73,18 @@ describe('CR grounding store bridges', () => {
     expect(state?.zones.command).toContain(id);
     expect(state?.pendingSbaChoices).toEqual([]);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === id &&
-        event.toZone === 'graveyard' &&
-        event.reason === 'move'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === id && event.toZone === 'graveyard' && event.reason === 'move',
       ),
     ).toBe(true);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === id &&
-        event.toZone === 'command' &&
-        event.reason === 'sba' &&
-        event.sbaApplied === '903.9a'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === id &&
+          event.toZone === 'command' &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '903.9a',
       ),
     ).toBe(true);
     expect(store().triggerCandidates).toEqual([
@@ -107,18 +107,18 @@ describe('CR grounding store bridges', () => {
     expect(state?.zones.command).toContain(id);
     expect(state?.pendingSbaChoices).toEqual([]);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === id &&
-        event.toZone === 'exile' &&
-        event.reason === 'move'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === id && event.toZone === 'exile' && event.reason === 'move',
       ),
     ).toBe(true);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === id &&
-        event.toZone === 'command' &&
-        event.reason === 'sba' &&
-        event.sbaApplied === '903.9a'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === id &&
+          event.toZone === 'command' &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '903.9a',
       ),
     ).toBe(true);
     expect(store().triggerCandidates).toEqual([
@@ -166,6 +166,36 @@ describe('CR grounding store bridges', () => {
     store().restoreGame(snapshot);
 
     expect(store().state?.cards[id].zoneChangeCounter).toBe(0);
+  });
+
+  it('CR 120.6/704.5g/704.5h: restoreGame backfills missing marked damage state', () => {
+    const deck = makeDeck(12);
+    store().newGame(deck, 1);
+    const state = store().state as GameState;
+    const id = state.zones.library[0];
+    const legacyCard = { ...state.cards[id] } as Partial<CardInstance>;
+    delete legacyCard.damageMarked;
+    delete legacyCard.hasDeathtouchDamage;
+
+    const snapshot: GameSnapshot = {
+      version: SNAPSHOT_VERSION,
+      state: {
+        ...state,
+        cards: {
+          ...state.cards,
+          [id]: legacyCard as CardInstance,
+        },
+      },
+      deck,
+      autoAdvanceToMain: store().autoAdvanceToMain,
+    };
+
+    store().restoreGame(snapshot);
+
+    expect(store().state?.cards[id]).toMatchObject({
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
   });
 
   it('M2 player/controller substrate: new games initialize active player and card ownership to P1', () => {
@@ -326,13 +356,13 @@ describe('CR grounding store bridges', () => {
       (event) =>
         event.physicalCardId === tokenId &&
         event.fromZone === 'battlefield' &&
-        event.toZone === 'graveyard'
+        event.toZone === 'graveyard',
     );
     const ceaseEvent = store().state?.eventLog.find(
       (event) =>
         event.physicalCardId === tokenId &&
         event.reason === 'token-cease' &&
-        event.sbaApplied === '704.5d'
+        event.sbaApplied === '704.5d',
     );
 
     expect(store().state?.cards[tokenId as string]).toBeUndefined();
@@ -396,7 +426,7 @@ describe('CR grounding store bridges', () => {
     store().moveCard(id, 'battlefield');
 
     const event = store().state?.eventLog.find(
-      (entry) => entry.physicalCardId === id && entry.toZone === 'battlefield'
+      (entry) => entry.physicalCardId === id && entry.toZone === 'battlefield',
     );
     const pending = store().state?.pendingTriggers[0];
     expect(event?.after).toMatchObject({
@@ -419,7 +449,7 @@ describe('CR grounding store bridges', () => {
 
     const events = store().state?.eventLog ?? [];
     expect(events.some((event) => event.physicalCardId === id && event.toZone === 'hand')).toBe(
-      false
+      false,
     );
     expect(events[events.length - 1]).toMatchObject({
       physicalCardId: id,

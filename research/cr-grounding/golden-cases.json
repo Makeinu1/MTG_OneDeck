@@ -14,6 +14,10 @@
     "cr-priority-loop-trigger-placement-rechecks-sba",
     "cr-sba-copy-ceases-outside-stack",
     "cr-sba-zero-loyalty-planeswalker",
+    "cr-sba-lethal-damage-destroys-creature",
+    "cr-sba-sublethal-damage-survives",
+    "cr-sba-deathtouch-any-damage-destroys",
+    "cr-cleanup-clears-marked-damage",
     "cr-sba-plus-minus-counter-annihilation",
     "cr-zone-change-new-object-lki",
     "cr-triggered-mana-ability-no-stack",
@@ -255,9 +259,7 @@
         "tapped": false,
         "manaPool": {}
       },
-      "steps": [
-        "対象を取らず、解決時にマナを加え、忠誠度能力でない起動型能力を起動する。"
-      ],
+      "steps": ["対象を取らず、解決時にマナを加え、忠誠度能力でない起動型能力を起動する。"],
       "requiredObservations": [
         "コストとして source は tapped=true になる。",
         "能力オブジェクトは stack に追加されない。",
@@ -498,6 +500,141 @@
       "implementationRefs": [
         "src/engine/commands.ts performStateBasedActionsOnce handles CR 704.5i",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-lethal-damage-destroys-creature",
+      "title": "致死ダメージがマークされたクリーチャーはSBAで墓地へ置かれる",
+      "crRefs": ["704.3", "704.5g", "120.6", "117.5"],
+      "scope": "s-sba-damage-marked-substrate",
+      "initialFixture": {
+        "zone": "battlefield",
+        "typeLine": "Creature",
+        "power": 2,
+        "toughness": 2,
+        "damageMarked": 0
+      },
+      "steps": [
+        "2/2 creature に markDamage amount=2 を適用する。",
+        "次に優先権を得る前のSBAとして 704.5g を実行する。",
+        "battlefield -> graveyard の zone-change event を発行する。"
+      ],
+      "requiredObservations": [
+        "最終 zone は graveyard。",
+        "zone-change event は reason='sba' / sbaApplied='704.5g' を持つ。",
+        "toughness は既存 704.5f と同じ実効値計算を使う。"
+      ],
+      "mustNot": [
+        "致死ダメージを受けた creature を battlefield に残さない。",
+        "704.5f(toughness<=0) と 704.5g で同一 card を二重に墓地へ置かない。",
+        "regeneration replacement をこの substrate に混ぜない。"
+      ],
+      "implementationRefs": [
+        "src/engine/types.ts CardInstance.damageMarked stores CR 120.6 marked damage",
+        "src/engine/commands.ts markDamage records damage and performStateBasedActionsOnce handles CR 704.5g",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ],
+      "currentImplementationGapRefs": [
+        "CR 701.18 regeneration replacement is intentionally out of scope for this substrate"
+      ]
+    },
+    {
+      "id": "cr-sba-sublethal-damage-survives",
+      "title": "致死未満のダメージがマークされたクリーチャーは704.5gでは墓地へ置かれない",
+      "crRefs": ["704.3", "704.5g", "120.6", "117.5"],
+      "scope": "s-sba-damage-marked-substrate",
+      "initialFixture": {
+        "zone": "battlefield",
+        "typeLine": "Creature",
+        "power": 3,
+        "toughness": 3,
+        "damageMarked": 0
+      },
+      "steps": [
+        "3/3 creature に markDamage amount=2 を適用する。",
+        "次に優先権を得る前のSBAとして 704.5g を確認する。"
+      ],
+      "requiredObservations": [
+        "creature は battlefield に残る。",
+        "damageMarked は 2 として保持される。",
+        "704.5g の zone-change event は発行されない。"
+      ],
+      "mustNot": [
+        "damageMarked > 0 だけを理由に creature を墓地へ置かない。",
+        "toughness が未定義の object を lethal damage SBA 対象にしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performStateBasedActionsOnce requires damageMarked >= effective toughness for CR 704.5g",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-deathtouch-any-damage-destroys",
+      "title": "接死を持つ発生源からダメージを受けたクリーチャーはSBAで墓地へ置かれる",
+      "crRefs": ["704.3", "704.5h", "120.6", "117.5"],
+      "scope": "s-sba-damage-marked-substrate",
+      "initialFixture": {
+        "zone": "battlefield",
+        "typeLine": "Creature",
+        "power": 4,
+        "toughness": 4,
+        "damageMarked": 0,
+        "hasDeathtouchDamage": false
+      },
+      "steps": [
+        "4/4 creature に markDamage amount=1 deathtouch=true を適用する。",
+        "次に優先権を得る前のSBAとして 704.5h を実行する。",
+        "battlefield -> graveyard の zone-change event を発行する。"
+      ],
+      "requiredObservations": [
+        "最終 zone は graveyard。",
+        "zone-change event は reason='sba' / sbaApplied='704.5h' を持つ。",
+        "704.5h は damage amount ではなく deathtouch source damage の有無を見る。"
+      ],
+      "mustNot": [
+        "接死由来でない sublethal damage を 704.5h として扱わない。",
+        "amount=0 の deathtouch flag だけで hasDeathtouchDamage を立てない。",
+        "704.5g と 704.5h で同一 card を同一 pass 内に二重処理しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/types.ts CardInstance.hasDeathtouchDamage stores whether marked damage came from a deathtouch source",
+        "src/engine/commands.ts markDamage deathtouch=true sets hasDeathtouchDamage only when amount > 0",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-cleanup-clears-marked-damage",
+      "title": "クリンナップではクリーチャーからマーク済みダメージが取り除かれる",
+      "crRefs": ["514.2", "120.6", "704.3"],
+      "scope": "s-sba-damage-marked-substrate",
+      "initialFixture": {
+        "zone": "battlefield",
+        "typeLine": "Creature",
+        "power": 3,
+        "toughness": 3,
+        "damageMarked": 0
+      },
+      "steps": [
+        "3/3 creature に markDamage amount=2 を適用する。",
+        "clearMarkedDamage を適用する。",
+        "次のSBA確認で creature が battlefield に残ることを確認する。"
+      ],
+      "requiredObservations": [
+        "clearMarkedDamage 後の damageMarked は 0。",
+        "clearMarkedDamage 後の hasDeathtouchDamage は false。",
+        "creature は battlefield に残る。"
+      ],
+      "mustNot": [
+        "clearMarkedDamage 後に古い damageMarked を理由に 704.5g/h を適用しない。",
+        "full cleanup step orchestration をこの case に含めない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts clearMarkedDamage clears damageMarked and hasDeathtouchDamage",
+        "src/engine/commands.ts nextTurn and end->untap nextPhase call the same clearing helper as the existing cleanup surrogate",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ],
+      "currentImplementationGapRefs": [
+        "A standalone CR 514 cleanup phase/step is not modeled; existing turn transitions perform the damage clear"
       ]
     },
     {

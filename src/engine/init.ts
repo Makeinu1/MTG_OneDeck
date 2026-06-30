@@ -1,13 +1,6 @@
 import type { CardDef } from '../types/card';
 import { createRng, shuffledOrder } from './random';
-import type {
-  CardInstance,
-  CommanderInfo,
-  GameState,
-  LogEntry,
-  ManaPool,
-  ZoneId,
-} from './types';
+import type { CardInstance, CommanderInfo, GameState, LogEntry, ManaPool, ZoneId } from './types';
 
 export interface InitDeckCard {
   def: CardDef;
@@ -59,6 +52,8 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
       faceIndex: 0,
       faceDown: false,
       counters: {},
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
       isToken: false,
       isCommander: entry.isCommander,
       enteredTurn: 0,

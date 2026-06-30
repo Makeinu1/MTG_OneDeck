@@ -48,7 +48,7 @@ function goldenCase(id: string, requiredCrRefs: string[]): CrGoldenCase {
 
 function findInstanceId(defId: string): string {
   const card = Object.values(store().state?.cards ?? {}).find(
-    (instance) => instance.defId === defId
+    (instance) => instance.defId === defId,
   );
   if (!card) {
     throw new Error(`card instance not found for ${defId}`);
@@ -94,12 +94,8 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     store().newGame(
-      [
-        { def: land, isCommander: false },
-        { def: watcher, isCommander: false },
-        ...makeDeck(12),
-      ],
-      1
+      [{ def: land, isCommander: false }, { def: watcher, isCommander: false }, ...makeDeck(12)],
+      1,
     );
     const landId = findInstanceId(land.scryfallId);
     const watcherId = findInstanceId(watcher.scryfallId);
@@ -118,10 +114,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
   });
 
   it('cr-add-mana-trigger-from-non-mana-event-is-normal-trigger: non-mana source events use pendingTriggers', () => {
-    goldenCase('cr-add-mana-trigger-from-non-mana-event-is-normal-trigger', [
-      '605.1b',
-      '603.3',
-    ]);
+    goldenCase('cr-add-mana-trigger-from-non-mana-event-is-normal-trigger', ['605.1b', '603.3']);
 
     const watcher = makeDef({
       scryfallId: 'gold-cast-add-mana',
@@ -152,12 +145,8 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     store().newGame(
-      [
-        { def: watcher, isCommander: false },
-        { def: spell, isCommander: false },
-        ...makeDeck(12),
-      ],
-      1
+      [{ def: watcher, isCommander: false }, { def: spell, isCommander: false }, ...makeDeck(12)],
+      1,
     );
     const watcherId = findInstanceId(watcher.scryfallId);
     const spellId = findInstanceId(spell.scryfallId);
@@ -215,12 +204,8 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     store().newGame(
-      [
-        { def: watcher, isCommander: false },
-        { def: spell, isCommander: false },
-        ...makeDeck(12),
-      ],
-      1
+      [{ def: watcher, isCommander: false }, { def: spell, isCommander: false }, ...makeDeck(12)],
+      1,
     );
     const watcherId = findInstanceId(watcher.scryfallId);
     const spellId = findInstanceId(spell.scryfallId);
@@ -282,13 +267,13 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         event.type === 'zoneChange' &&
         event.physicalCardId === tokenId &&
         event.fromZone === 'battlefield' &&
-        event.toZone === 'graveyard'
+        event.toZone === 'graveyard',
     );
     const ceaseEvent = state?.eventLog.find(
       (event): event is ZoneChangeEvent =>
         event.type === 'zoneChange' &&
         event.physicalCardId === tokenId &&
-        event.reason === 'token-cease'
+        event.reason === 'token-cease',
     );
     expect(moveEvent).toBeDefined();
     expect(ceaseEvent).toMatchObject({
@@ -299,7 +284,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect((moveEvent?.sequence ?? 0) < (ceaseEvent?.sequence ?? 0)).toBe(true);
 
     const pending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === tokenId && trigger.triggerId === 'trigger.death'
+      (trigger) => trigger.sourceId === tokenId && trigger.triggerId === 'trigger.death',
     );
     expect(pending).toMatchObject({
       eventId: moveEvent?.eventId,
@@ -381,12 +366,13 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(state?.zones.hand).not.toContain(copyId);
     expect(state?.zones.stack).not.toContain(copyId);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === copyId &&
-        event.fromZone === 'hand' &&
-        event.toZone === undefined &&
-        event.reason === 'copy-cease' &&
-        event.sbaApplied === '704.5e'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === copyId &&
+          event.fromZone === 'hand' &&
+          event.toZone === undefined &&
+          event.reason === 'copy-cease' &&
+          event.sbaApplied === '704.5e',
       ),
     ).toBe(true);
   });
@@ -418,7 +404,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       (event) =>
         event.physicalCardId === sourceId &&
         event.fromZone !== 'battlefield' &&
-        event.toZone === 'battlefield'
+        event.toZone === 'battlefield',
     );
     expect(entryEvent).toBeDefined();
     expect(state?.zones.stack.length).toBe(stackDepthBefore);
@@ -486,12 +472,8 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     store().newGame(
-      [
-        { def: watcher, isCommander: false },
-        { def: entrant, isCommander: false },
-        ...makeDeck(12),
-      ],
-      1
+      [{ def: watcher, isCommander: false }, { def: entrant, isCommander: false }, ...makeDeck(12)],
+      1,
     );
     const watcherId = findInstanceId(watcher.scryfallId);
     const entrantId = findInstanceId(entrant.scryfallId);
@@ -505,10 +487,10 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(state?.zones.stack).toHaveLength(0);
     expect(state?.pendingTriggers).toHaveLength(2);
     const entrantPending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === entrantId && trigger.triggerId === 'trigger.etb'
+      (trigger) => trigger.sourceId === entrantId && trigger.triggerId === 'trigger.etb',
     );
     const watcherPending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === watcherId && trigger.triggerId === 'trigger.etb-other'
+      (trigger) => trigger.sourceId === watcherId && trigger.triggerId === 'trigger.etb-other',
     );
     expect(entrantPending).toBeDefined();
     expect(watcherPending).toBeDefined();
@@ -582,7 +564,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         { def: opponentEtb, isCommander: false },
         ...makeDeck(12),
       ],
-      1
+      1,
     );
     const p1SourceId = findInstanceId(p1Etb.scryfallId);
     const opponentSourceId = findInstanceId(opponentEtb.scryfallId);
@@ -591,11 +573,9 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     store().moveCard(opponentSourceId, 'battlefield');
 
     const state = store().state;
-    const p1Pending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === p1SourceId
-    );
+    const p1Pending = state?.pendingTriggers.find((trigger) => trigger.sourceId === p1SourceId);
     const opponentPending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === opponentSourceId
+      (trigger) => trigger.sourceId === opponentSourceId,
     );
     expect(p1Pending).toBeDefined();
     expect(opponentPending).toBeDefined();
@@ -614,7 +594,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
                   controllerId: 'OPPONENT_A',
                 },
               }
-            : trigger
+            : trigger,
         ),
       },
     });
@@ -676,7 +656,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         { def: abilityTriggeredDef, isCommander: false },
         ...makeDeck(12),
       ],
-      1
+      1,
     );
     const ordinaryId = findInstanceId(ordinaryDef.scryfallId);
     const abilityTriggeredId = findInstanceId(abilityTriggeredDef.scryfallId);
@@ -686,10 +666,10 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
 
     const state = store().state;
     const ordinaryPending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === ordinaryId
+      (trigger) => trigger.sourceId === ordinaryId,
     );
     const abilityTriggeredPending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === abilityTriggeredId
+      (trigger) => trigger.sourceId === abilityTriggeredId,
     );
     expect(ordinaryPending).toBeDefined();
     expect(abilityTriggeredPending).toBeDefined();
@@ -700,7 +680,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         pendingTriggers: state!.pendingTriggers.map((trigger) =>
           trigger.pendingTriggerId === abilityTriggeredPending?.pendingTriggerId
             ? { ...trigger, stackPlacementBucket: 'ability-triggered' }
-            : { ...trigger, stackPlacementBucket: 'ordinary' }
+            : { ...trigger, stackPlacementBucket: 'ordinary' },
         ),
       },
     });
@@ -777,10 +757,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       }),
     ];
 
-    store().newGame(
-      [...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(12)],
-      1
-    );
+    store().newGame([...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(12)], 1);
     const [aId, bId, cId, dId] = defs.map((def) => findInstanceId(def.scryfallId));
     for (const id of [aId, bId, cId, dId]) {
       store().moveCard(id, 'battlefield');
@@ -788,7 +765,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
 
     const state = store().state!;
     const pendingBySource = new Map(
-      state.pendingTriggers.map((trigger) => [trigger.sourceId, trigger])
+      state.pendingTriggers.map((trigger) => [trigger.sourceId, trigger]),
     );
     const aPending = pendingBySource.get(aId);
     const bPending = pendingBySource.get(bId);
@@ -807,9 +784,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
           const controllerId =
             trigger.sourceId === bId || trigger.sourceId === dId ? 'OPPONENT_A' : 'P1';
           const stackPlacementBucket =
-            trigger.sourceId === cId || trigger.sourceId === dId
-              ? 'ability-triggered'
-              : 'ordinary';
+            trigger.sourceId === cId || trigger.sourceId === dId ? 'ability-triggered' : 'ordinary';
           return {
             ...trigger,
             controllerId,
@@ -833,19 +808,13 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     const stacked = store().state;
     expect(stacked?.pendingTriggers).toEqual([]);
     const stackSourceIds = (stacked?.zones.stack ?? []).map(
-      (abilityId) => stacked?.cards[abilityId]?.sourceId
+      (abilityId) => stacked?.cards[abilityId]?.sourceId,
     );
     expect(stackSourceIds).toEqual([aId, bId, cId, dId]);
   });
 
   it('cr-trigger-sba-priority-loop: priority boundary repeats SBA and deterministic trigger placement to a fixed point', () => {
-    goldenCase('cr-trigger-sba-priority-loop', [
-      '117.5',
-      '603.3',
-      '603.3b',
-      '704.3',
-      '704.5f',
-    ]);
+    goldenCase('cr-trigger-sba-priority-loop', ['117.5', '603.3', '603.3b', '704.3', '704.5f']);
     goldenCase('cr-priority-loop-trigger-placement-rechecks-sba', [
       '117.5',
       '603.3',
@@ -888,7 +857,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         { def: fragile, isCommander: false },
         ...makeDeck(12),
       ],
-      1
+      1,
     );
     const initialId = findInstanceId(initialTrigger.scryfallId);
     const fragileId = findInstanceId(fragile.scryfallId);
@@ -896,7 +865,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     store().moveCard(initialId, 'battlefield');
     store().moveCard(fragileId, 'battlefield');
     const initialPending = store().state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === initialId
+      (trigger) => trigger.sourceId === initialId,
     );
     expect(initialPending).toBeDefined();
 
@@ -923,7 +892,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         event.physicalCardId === fragileId &&
         event.fromZone === 'battlefield' &&
         event.toZone === 'graveyard' &&
-        event.sbaApplied === '704.5f'
+        event.sbaApplied === '704.5f',
     );
     expect(sbaEvent).toBeDefined();
     expect(state?.zones.stack).toHaveLength(2);
@@ -974,15 +943,180 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(state?.zones.battlefield).not.toContain(walkerId);
     expect(state?.zones.graveyard).toContain(walkerId);
     expect(
-      state?.eventLog.some((event) =>
-        event.physicalCardId === walkerId &&
-        event.fromZone === 'battlefield' &&
-        event.toZone === 'graveyard' &&
-        event.reason === 'sba' &&
-        event.sbaApplied === '704.5i'
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === walkerId &&
+          event.fromZone === 'battlefield' &&
+          event.toZone === 'graveyard' &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '704.5i',
       ),
     ).toBe(true);
     expect(state?.zones.stack).toEqual([]);
+  });
+
+  it('cr-sba-lethal-damage-destroys-creature: CR 704.5g puts a lethally damaged creature into the graveyard', () => {
+    goldenCase('cr-sba-lethal-damage-destroys-creature', ['704.5g', '120.6']);
+
+    const creature = makeDef({
+      scryfallId: 'gold-sba-lethal-damage',
+      printedName: '黄金致死傷',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Lethal Damage',
+          printedName: '黄金致死傷',
+          typeLine: 'Creature',
+          power: '2',
+          toughness: '2',
+          oracleText: '',
+        },
+      ],
+    });
+    store().newGame([{ def: creature, isCommander: false }, ...makeDeck(12)], 1);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(creatureId, 'battlefield');
+
+    store().dispatch({ type: 'markDamage', cardId: creatureId, amount: 2 });
+
+    const state = store().state;
+    expect(state?.cards[creatureId]?.zone).toBe('graveyard');
+    expect(state?.zones.battlefield).not.toContain(creatureId);
+    expect(state?.zones.graveyard).toContain(creatureId);
+    expect(
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === creatureId &&
+          event.fromZone === 'battlefield' &&
+          event.toZone === 'graveyard' &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '704.5g',
+      ),
+    ).toBe(true);
+  });
+
+  it('cr-sba-sublethal-damage-survives: CR 704.5g does not destroy sublethally damaged creatures', () => {
+    goldenCase('cr-sba-sublethal-damage-survives', ['704.5g']);
+
+    const creature = makeDef({
+      scryfallId: 'gold-sba-sublethal-damage',
+      printedName: '黄金浅傷',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Sublethal Damage',
+          printedName: '黄金浅傷',
+          typeLine: 'Creature',
+          power: '3',
+          toughness: '3',
+          oracleText: '',
+        },
+      ],
+    });
+    store().newGame([{ def: creature, isCommander: false }, ...makeDeck(12)], 1);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(creatureId, 'battlefield');
+
+    store().dispatch({ type: 'markDamage', cardId: creatureId, amount: 2 });
+
+    const state = store().state;
+    expect(state?.cards[creatureId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 2,
+      hasDeathtouchDamage: false,
+    });
+    expect(state?.zones.graveyard).not.toContain(creatureId);
+    expect(
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === creatureId &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '704.5g',
+      ),
+    ).toBe(false);
+  });
+
+  it('cr-sba-deathtouch-any-damage-destroys: CR 704.5h destroys a creature damaged by a deathtouch source', () => {
+    goldenCase('cr-sba-deathtouch-any-damage-destroys', ['704.5h', '120.6']);
+
+    const creature = makeDef({
+      scryfallId: 'gold-sba-deathtouch-damage',
+      printedName: '黄金接死傷',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Deathtouch Damage',
+          printedName: '黄金接死傷',
+          typeLine: 'Creature',
+          power: '4',
+          toughness: '4',
+          oracleText: '',
+        },
+      ],
+    });
+    store().newGame([{ def: creature, isCommander: false }, ...makeDeck(12)], 1);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(creatureId, 'battlefield');
+
+    store().dispatch({
+      type: 'markDamage',
+      cardId: creatureId,
+      amount: 1,
+      deathtouch: true,
+    });
+
+    const state = store().state;
+    expect(state?.cards[creatureId]?.zone).toBe('graveyard');
+    expect(state?.zones.battlefield).not.toContain(creatureId);
+    expect(state?.zones.graveyard).toContain(creatureId);
+    expect(
+      state?.eventLog.some(
+        (event) =>
+          event.physicalCardId === creatureId &&
+          event.fromZone === 'battlefield' &&
+          event.toZone === 'graveyard' &&
+          event.reason === 'sba' &&
+          event.sbaApplied === '704.5h',
+      ),
+    ).toBe(true);
+  });
+
+  it('cr-cleanup-clears-marked-damage: CR 514.2 clearMarkedDamage removes marked damage before SBA destruction', () => {
+    goldenCase('cr-cleanup-clears-marked-damage', ['514.2', '120.6']);
+
+    const creature = makeDef({
+      scryfallId: 'gold-cleanup-clears-damage',
+      printedName: '黄金清掃',
+      typeLine: 'Creature',
+      faces: [
+        {
+          name: 'Golden Cleanup',
+          printedName: '黄金清掃',
+          typeLine: 'Creature',
+          power: '3',
+          toughness: '3',
+          oracleText: '',
+        },
+      ],
+    });
+    store().newGame([{ def: creature, isCommander: false }, ...makeDeck(12)], 1);
+    const creatureId = findInstanceId(creature.scryfallId);
+    store().moveCard(creatureId, 'battlefield');
+    store().dispatch({ type: 'markDamage', cardId: creatureId, amount: 2 });
+    expect(store().state?.cards[creatureId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 2,
+    });
+
+    store().dispatch({ type: 'clearMarkedDamage' });
+
+    const state = store().state;
+    expect(state?.cards[creatureId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
+    expect(state?.zones.graveyard).not.toContain(creatureId);
   });
 
   it('cr-sba-plus-minus-counter-annihilation: CR 704.5q removes paired +1/+1 and -1/-1 counters', () => {
@@ -1070,7 +1204,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       (entry) =>
         entry.physicalCardId === sourceId &&
         entry.fromZone === 'battlefield' &&
-        entry.toZone === 'exile'
+        entry.toZone === 'exile',
     );
     expect(event).toBeDefined();
     expect(event).toMatchObject({
@@ -1092,7 +1226,7 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     const pending = state?.pendingTriggers.find(
-      (trigger) => trigger.sourceId === sourceId && trigger.triggerId === 'trigger.leaves'
+      (trigger) => trigger.sourceId === sourceId && trigger.triggerId === 'trigger.leaves',
     );
     expect(pending).toMatchObject({
       eventId: event?.eventId,
