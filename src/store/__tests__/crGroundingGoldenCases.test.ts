@@ -61,6 +61,191 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     resetStore();
   });
 
+  it('cr-triggered-mana-ability-no-stack: CR 605.1b resolves inside the mana transaction', () => {
+    goldenCase('cr-triggered-mana-ability-no-stack', ['605.1b', '605.4a']);
+
+    const land = makeDef({
+      scryfallId: 'gold-mana-land',
+      printedName: '黄金マナ土地',
+      typeLine: 'Land',
+      producedMana: ['G'],
+      faces: [
+        {
+          name: 'Golden Mana Land',
+          printedName: '黄金マナ土地',
+          typeLine: 'Land',
+          oracleText: '{T}: Add {G}.',
+        },
+      ],
+    });
+    const watcher = makeDef({
+      scryfallId: 'gold-triggered-mana',
+      printedName: '黄金誘発マナ',
+      typeLine: 'Enchantment',
+      faces: [
+        {
+          name: 'Golden Triggered Mana',
+          printedName: '黄金誘発マナ',
+          typeLine: 'Enchantment',
+          oracleText:
+            'Whenever a player taps a land for mana, that player adds one mana of any type that land produced.',
+        },
+      ],
+    });
+
+    store().newGame(
+      [
+        { def: land, isCommander: false },
+        { def: watcher, isCommander: false },
+        ...makeDeck(12),
+      ],
+      1
+    );
+    const landId = findInstanceId(land.scryfallId);
+    const watcherId = findInstanceId(watcher.scryfallId);
+    store().moveCard(landId, 'battlefield');
+    store().moveCard(watcherId, 'battlefield');
+    const stackDepthBefore = store().state?.zones.stack.length;
+
+    store().activateAbility(landId);
+
+    const state = store().state;
+    expect(state?.cards[landId].tapped).toBe(true);
+    expect(state?.manaPool.G).toBe(2);
+    expect(state?.zones.stack.length).toBe(stackDepthBefore);
+    expect(state?.pendingTriggers).toEqual([]);
+    expect(store().triggerCandidates).toEqual([]);
+  });
+
+  it('cr-add-mana-trigger-from-non-mana-event-is-normal-trigger: non-mana source events use pendingTriggers', () => {
+    goldenCase('cr-add-mana-trigger-from-non-mana-event-is-normal-trigger', [
+      '605.1b',
+      '603.3',
+    ]);
+
+    const watcher = makeDef({
+      scryfallId: 'gold-cast-add-mana',
+      printedName: '黄金詠唱マナ',
+      typeLine: 'Enchantment',
+      faces: [
+        {
+          name: 'Golden Cast Mana',
+          printedName: '黄金詠唱マナ',
+          typeLine: 'Enchantment',
+          oracleText: 'Whenever you cast a spell, add {G}.',
+        },
+      ],
+    });
+    const spell = makeDef({
+      scryfallId: 'gold-free-spell',
+      printedName: '黄金呪文',
+      typeLine: 'Sorcery',
+      faces: [
+        {
+          name: 'Golden Free Spell',
+          printedName: '黄金呪文',
+          typeLine: 'Sorcery',
+          manaCost: '',
+          oracleText: 'Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame(
+      [
+        { def: watcher, isCommander: false },
+        { def: spell, isCommander: false },
+        ...makeDeck(12),
+      ],
+      1
+    );
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const spellId = findInstanceId(spell.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+    store().moveCard(spellId, 'hand');
+
+    store().dispatch({
+      type: 'castToStack',
+      cardId: spellId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+    });
+
+    const state = store().state;
+    expect(state?.manaPool.G).toBe(0);
+    expect(state?.zones.stack).toEqual([spellId]);
+    expect(state?.pendingTriggers).toMatchObject([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.cast-watcher',
+        controllerId: 'P1',
+      },
+    ]);
+  });
+
+  it('cr-targeted-add-mana-trigger-is-normal-trigger: targeted add-mana triggers are ordinary pending triggers', () => {
+    goldenCase('cr-targeted-add-mana-trigger-is-normal-trigger', ['605.1b', '603.3']);
+
+    const watcher = makeDef({
+      scryfallId: 'gold-targeted-add-mana',
+      printedName: '黄金対象マナ',
+      typeLine: 'Enchantment',
+      faces: [
+        {
+          name: 'Golden Targeted Mana',
+          printedName: '黄金対象マナ',
+          typeLine: 'Enchantment',
+          oracleText: 'Whenever you cast a spell, target player adds {G}.',
+        },
+      ],
+    });
+    const spell = makeDef({
+      scryfallId: 'gold-target-trigger-spell',
+      printedName: '黄金対象誘発呪文',
+      typeLine: 'Sorcery',
+      faces: [
+        {
+          name: 'Golden Target Trigger Spell',
+          printedName: '黄金対象誘発呪文',
+          typeLine: 'Sorcery',
+          manaCost: '',
+          oracleText: 'Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame(
+      [
+        { def: watcher, isCommander: false },
+        { def: spell, isCommander: false },
+        ...makeDeck(12),
+      ],
+      1
+    );
+    const watcherId = findInstanceId(watcher.scryfallId);
+    const spellId = findInstanceId(spell.scryfallId);
+    store().moveCard(watcherId, 'battlefield');
+    store().moveCard(spellId, 'hand');
+
+    store().dispatch({
+      type: 'castToStack',
+      cardId: spellId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+    });
+
+    const state = store().state;
+    expect(state?.manaPool.G).toBe(0);
+    expect(state?.zones.stack).toEqual([spellId]);
+    expect(state?.pendingTriggers).toMatchObject([
+      {
+        sourceId: watcherId,
+        triggerId: 'trigger.cast-watcher',
+        controllerId: 'P1',
+      },
+    ]);
+  });
+
   it('cr-token-dies-before-ceases: token move event is recorded before CR 704.5d token-cease SBA', () => {
     goldenCase('cr-token-dies-before-ceases', ['111.7', '704.5d', '603.6c', '117.5']);
 

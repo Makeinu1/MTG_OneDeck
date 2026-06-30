@@ -31,6 +31,7 @@ import {
   compileAbilityIR,
   type EffectPrompt,
 } from '../engine/grammar/compile';
+import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import type {
   CardInstance,
   GameState,
@@ -1301,10 +1302,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       // and commit once so undo reverts both.
       try {
         const amount = Math.max(1, manaProductionAmount(def, chosen));
-        const result = applyCommands(cur, [
-          { type: 'setTapped', cardId, tapped: true },
-          { type: 'addMana', color: chosen, amount },
-        ]);
+        const result = resolveManaAbilityTransaction(cur, {
+          sourceId: cardId,
+          commands: [
+            { type: 'setTapped', cardId, tapped: true },
+            { type: 'addMana', color: chosen, amount },
+          ],
+        });
         commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
       } catch (err) {
         console.error(err);
@@ -1695,7 +1699,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
 
         try {
-          const result = applyCommands(cur, manaAbilityPlan.commands);
+          const result = resolveManaAbilityTransaction(cur, {
+            sourceId,
+            ...(resolvedAbilityLineIndex === undefined
+              ? {}
+              : { abilityLineIndex: resolvedAbilityLineIndex }),
+            commands: manaAbilityPlan.commands,
+          });
           const warnings = result.warnings.slice();
           if (manaAbilityPlan.manaShortfall > 0) {
             warnings.push(

@@ -1,0 +1,92 @@
+# Engine Spec Draft: Mana Ability Transaction (CR 605)
+
+Draft lane only. Do not copy to `docs/engine-spec.md` until Fable review.
+
+CR anchors: 605.1a, 605.1b, 605.3b, 605.4a, 605.5, 405.6c.
+
+## Types
+
+`ActivatedManaAbilityEvent` represents the activation/resolution of a CR 605.1a mana ability inside a mana transaction.
+
+```ts
+interface ActivatedManaAbilityEvent {
+  type: 'activatedManaAbility';
+  eventId: string;
+  sequence: number;
+  sourceObjectId: ObjectId;
+  sourceSnapshot: ObjectSnapshot;
+  controllerId: PlayerId;
+  abilityLineIndex?: number;
+  stage: 'activated' | 'resolved';
+}
+```
+
+`ManaAddedEvent` represents mana entering a mana pool. It is a transaction event, not a zone-change event.
+
+```ts
+interface ManaAddedEvent {
+  type: 'manaAdded';
+  eventId: string;
+  sequence: number;
+  playerId: PlayerId;
+  sourceObjectId?: ObjectId;
+  sourceSnapshot?: ObjectSnapshot;
+  amount: ManaPool;
+  causeEventId?: string;
+}
+```
+
+`PendingManaTrigger` is transaction-local only. It must never be stored in `GameState.pendingTriggers`.
+
+```ts
+interface PendingManaTrigger {
+  kind: 'triggered-mana-ability';
+  ruleRef: '605.1b';
+  triggerEventId: string;
+  sourceId: PhysicalCardId;
+  sourceObjectId: ObjectId;
+  sourceSnapshot: ObjectSnapshot;
+  controllerId: PlayerId;
+  abilityLineIndex?: number;
+  label: string;
+}
+```
+
+## Classification
+
+CR 605.1a activated mana ability:
+
+- activated ability;
+- no targets;
+- can add mana when it resolves;
+- is not a loyalty ability.
+
+CR 605.1b triggered mana ability:
+
+- triggered ability;
+- no targets;
+- triggers from activation/resolution of an activated mana ability or from mana being added to a mana pool;
+- can add mana when it resolves.
+
+`effect.add-mana` alone is insufficient for CR 605.1b. A cast, ETB, draw, attack, or other non-mana trigger source remains an ordinary triggered ability under CR 603/117/704. A targeted add-mana triggered ability is also ordinary because it fails the targetless requirement of CR 605.1b.
+
+## Transaction Behavior
+
+`resolveManaAbilityTransaction(state, input)` applies the CR 605.1a mana ability commands, emits transaction-local mana events, collects CR 605.1b `PendingManaTrigger`s, and resolves them immediately to a fixed point.
+
+Required behavior:
+
+- CR 605.3b/405.6c: activated mana abilities are not put on the stack.
+- CR 605.4a/405.6c: triggered mana abilities are not put on the stack.
+- CR 605.4a: triggered mana abilities resolve immediately after the mana ability that triggered them, without waiting for a priority boundary.
+- `PendingManaTrigger` must not be appended to `GameState.pendingTriggers`.
+- `addAbilityToStack` must not be used for CR 605.1b resolution.
+- Mana added by a CR 605.1b ability can create new `ManaAddedEvent`s, so the transaction repeats until the queue reaches a fixed point.
+- The loop has an iteration cap. If the cap is reached, the transaction stops, returns a warning/log entry, and does not move unresolved CR 605.1b triggers to the ordinary stack path.
+
+Out of scope for this draft (DEFERRED to C-GRAMMAR, visible scope boundary):
+
+- real-card observer coverage for all CR 605.1b cards;
+- **detection of the CR 605.1b *first clause* (triggers "from the activation or resolution of an activated mana ability")**: the substrate emits `ActivatedManaAbilityEvent` (`stage: 'activated' | 'resolved'`) as a contract surface, but matching which real cards trigger on those events requires IR-grade trigger-source classification, not raw-text regex. A heuristic matcher double-fires (distinct activated/resolved events both match a stage-agnostic pattern) and false-matches activation-worded cards on the mana-added branch. `isManaRelatedTriggerCondition` therefore returns `false` for `activatedManaAbility` events until C-GRAMMAR. The live, tested 605.1b path in this milestone is **mana being added to a pool** (CR 605.1b second clause), exercised by golden `cr-triggered-mana-ability-no-stack` and pinned by `review.mana-transaction`.
+- full SBA expansion;
+- non-mana triggered observer changes beyond existing ordinary trigger paths.

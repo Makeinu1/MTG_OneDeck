@@ -15,7 +15,10 @@
     "cr-sba-copy-ceases-outside-stack",
     "cr-sba-zero-loyalty-planeswalker",
     "cr-sba-plus-minus-counter-annihilation",
-    "cr-zone-change-new-object-lki"
+    "cr-zone-change-new-object-lki",
+    "cr-triggered-mana-ability-no-stack",
+    "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
+    "cr-targeted-add-mana-trigger-is-normal-trigger"
   ],
   "cases": [
     {
@@ -564,6 +567,126 @@
       ],
       "currentImplementationGapRefs": [
         "CR 400.7 public-zone exception handling and full effective-characteristics snapshots remain future work"
+      ]
+    },
+    {
+      "id": "cr-triggered-mana-ability-no-stack",
+      "title": "誘発型マナ能力はpendingTriggers/stackに入らずマナ能力transaction内で即時解決される",
+      "crRefs": ["605.1b", "605.4a", "405.6c"],
+      "scope": "s-events-mana-ability-substrate",
+      "initialFixture": {
+        "permanents": [
+          {
+            "id": "A",
+            "typeLine": "Land",
+            "oracleText": "{T}: Add {G}."
+          },
+          {
+            "id": "B",
+            "typeLine": "Enchantment",
+            "oracleText": "Whenever a player taps a land for mana, that player adds one mana of any type that land produced."
+          }
+        ]
+      },
+      "steps": [
+        "A の起動型マナ能力を起動する。",
+        "transaction は A の add-mana event を観測する。",
+        "B の誘発型マナ能力を CR 605.1b として transaction-local queue に入れる。",
+        "priority boundary を待たず B を解決する。"
+      ],
+      "requiredObservations": [
+        "A の起動型マナ能力は stack に置かれない。",
+        "B の誘発型マナ能力も stack に置かれない。",
+        "GameState.pendingTriggers は増えない。",
+        "manaPool は A と B の両方のマナを反映する。",
+        "undo/redo の単位は A 起動と B 解決を含む1 transaction である。"
+      ],
+      "mustNot": [
+        "CR 605.1b の誘発を pendingTriggers に保存しない。",
+        "addAbilityToStack を使って B を stack に置かない。",
+        "priority boundary まで B の解決を遅延しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/manaTransaction.ts resolves CR 605.1b in a transaction-local queue",
+        "src/store/gameStore.ts routes activated mana ability and tap-for-mana paths through resolveManaAbilityTransaction",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
+      "title": "mana-related event由来でないadd-mana誘発はCR 605.1bではなく通常誘発としてpendingTriggersに入る",
+      "crRefs": ["605.1b", "603.3", "117.5"],
+      "scope": "s-events-mana-ability-substrate",
+      "initialFixture": {
+        "permanents": [
+          {
+            "id": "C",
+            "typeLine": "Enchantment",
+            "oracleText": "Whenever you cast a spell, add {G}."
+          }
+        ],
+        "spell": {
+          "typeLine": "Sorcery",
+          "manaCost": ""
+        }
+      },
+      "steps": [
+        "C を戦場に置く。",
+        "呪文を唱える。",
+        "C の誘発を通常の trigger substrate で収集する。"
+      ],
+      "requiredObservations": [
+        "C は add-mana effect を持つが、trigger source event は spell cast であり mana-related event ではない。",
+        "C は CR 605.1b の誘発型マナ能力として解決されない。",
+        "C は通常の pendingTriggers に入る。",
+        "stack placement は CR 603/117/704 の priority boundary に従う。"
+      ],
+      "mustNot": [
+        "effect.add-mana だけを根拠に 605.1b と分類しない。",
+        "spell cast 由来の add-mana 誘発を mana transaction 内で即時解決しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/manaTransaction.ts requires a mana-related trigger source event for CR 605.1b classification",
+        "src/engine/triggers.ts keeps cast watcher triggers on the ordinary pendingTriggers path",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-targeted-add-mana-trigger-is-normal-trigger",
+      "title": "対象を取るadd-mana誘発はCR 605.1bではなく通常誘発としてpendingTriggersに入る",
+      "crRefs": ["605.1b", "603.3", "117.5"],
+      "scope": "s-events-mana-ability-substrate",
+      "initialFixture": {
+        "permanents": [
+          {
+            "id": "D",
+            "typeLine": "Enchantment",
+            "oracleText": "Whenever you cast a spell, target player adds {G}."
+          }
+        ],
+        "spell": {
+          "typeLine": "Sorcery",
+          "manaCost": ""
+        }
+      },
+      "steps": [
+        "D を戦場に置く。",
+        "呪文を唱える。",
+        "D の誘発を通常の trigger substrate で収集する。"
+      ],
+      "requiredObservations": [
+        "D は対象を取るため CR 605.1b の targetless 要件を満たさない。",
+        "D は mana transaction 内で即時解決されない。",
+        "D は通常の pendingTriggers に入る。",
+        "stack placement は CR 603/117/704 の priority boundary に従う。"
+      ],
+      "mustNot": [
+        "対象を取る add-mana 誘発を triggered mana ability として扱わない。",
+        "D を pendingTriggers から消して no-stack 解決しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/manaTransaction.ts rejects construct.target for CR 605.1b",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
       ]
     },
     {

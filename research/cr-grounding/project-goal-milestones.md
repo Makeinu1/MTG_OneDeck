@@ -32,7 +32,7 @@
 - **Q5 Phase 1 = S-CHOICE/S-TURN 完了**(commit c6dcb7c): 汎用 `pendingRuleChoices` substrate。903.9a commander choice と 704.5j legend rule が同一 choice substrate で説明できる。
 - CR 2026-06-19 固定、CR refs、golden cases、traceability、overlay は版管理下で生きている。
 
-現在地: **Q5 Phase 2 = S-EVENTS/PRIORITY 着手前**。これは substrate-first 最短路の次の背骨(priority fixed-point loop)であり、後続の S-EVENTS/MANA・S-SBA・S-LAYERS が全部この loop にぶら下がる。
+現在地: **Q5 Phase 2 = S-EVENTS/PRIORITY 完了・shipped**(commit baa0b05・2026-06-30・CI 緑 Pages 200)。priority fixed-point loop と `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering をフル実装した(`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer)。**次 = S-EVENTS / MANA**(CR 605.1b triggered mana ability の no-stack transaction。設計正本 = `mana-ability-substrate.md` R-FREEZE-3)。
 
 ## Non-negotiable invariant
 
@@ -52,21 +52,21 @@
 | M0-R: CR grounding research | CRを読むだけでなく、CRG-1〜8の検査観点・golden・境界へ落とす | Codex | Done as research | `m0-freeze-overlay.json`、`golden-cases.json`、traceability、R-FREEZE草稿が存在する |
 | M0-FREEZE Q1〜Q4: Contract freeze | overlay を docs 契約 + scorecard 判定器へ接続し Fable final approval | Fable + Codex | **Done**(02d1f2c) | FROZEN: legacy 7-condition + CR-grounding overlay APPROVED、scorecard が境界表示 |
 | Q5 Phase 1 — S-CHOICE / S-TURN | 903.9a と 704.5j を汎用 `pendingRuleChoices` に載せる | Codex | **Done**(c6dcb7c) | commander choice と legend rule が同じchoice substrateで説明できる |
-| Q5 Phase 2 — S-EVENTS / PRIORITY | priority fixed-point loop(`SBA→choice→trigger→repeat`)+ `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering | Codex | **Active(next)** | bucket -> APNAP -> controller order が実行可能testで固定。`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer(field は ordinary backfill 済み=zero-rework) |
-| S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | Not started | 605.1bが通常 `pendingTriggers` に混ざらない |
+| Q5 Phase 2 — S-EVENTS / PRIORITY | priority fixed-point loop(`SBA→choice→trigger→repeat`)+ `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering | Codex | **Done**(baa0b05・2026-06-30) | bucket -> APNAP -> controller order が実行可能testで固定。`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer(field は ordinary backfill 済み=zero-rework) |
+| S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | **Active(next)** | 605.1bが通常 `pendingTriggers` に混ざらない |
 | S-SBA incremental | full SBA suite を一括ではなく価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
 | C-GRAMMAR | Oracle compiler の対応構文を増やす | Codex | Not started | compiler誤訳がGameStateを直接書かず、command列とundoで閉じる |
 
 ## Immediate next action
 
-Q5 Phase 2 = S-EVENTS / PRIORITY。設計正本 = `priority-event-loop.md`(R-FREEZE-2)。
+S-EVENTS / MANA = CR 605.1b triggered mana ability の no-stack transaction。設計正本 = `mana-ability-substrate.md`(R-FREEZE-3)。
 
-Fable のスコープ判断(2026-06-30):**substrate(背骨)はフル実装、detection observer は defer**。
+Fable のスコープ判断(2026-06-30):**substrate(transaction 経路)はフル実装、detection observer は defer**。
 
-1. Codex が engine-spec §34 系へ Phase 2 型契約の草稿を自分のレーン(`research/cr-grounding/*.draft`・CR 条番号併記)へ出す。
-2. Codex が実装: `PendingTrigger.stackPlacementBucket`(`'ordinary' | 'ability-triggered'`、既存は `ordinary` backfill)、`orderPendingTriggersApnap` を bucket→APNAP→controller へ拡張、`advanceToPriority` 固定点ループ(`SBA→choice→trigger placement→repeat`)、`priority-event-loop.md` の3 golden ケース、機械チェック4点。
-3. **defer**: `AbilityTriggeredEvent` の検出 observer(どの実カードが second bucket を populate するか)は C-GRAMMAR トラックへ。substrate の field は既に存在し ordinary backfill なので zero-rework で後付け可能。
+1. Codex が engine-spec §34 系へ MANA 型契約の草稿を自分のレーン(`research/cr-grounding/*.draft`・CR 条番号併記)へ出す。
+2. Codex が実装: `ManaAddedEvent`/`ActivatedManaAbilityEvent`、`PendingManaTrigger`(`pendingTriggers` に入れない)、`resolveManaAbilityTransaction` 固定点ループ + iteration cap、3 golden ケース、機械チェック4点。
+3. **defer**: 605.1b の実カード検出 observer(どの実カードが triggered mana ability を持つか)は C-GRAMMAR へ。substrate の transaction 経路は zero-rework で後付け可能。**full SBA suite を引き込まない**(loop は既存 SBA のみ呼ぶ)。
 4. Fable が独立監査(`/audit`)→ 草稿 spec/docs を再オーナー化し commit。
 
 Codex は引き続き git 操作禁止、判定者在席中は `docs/`・`review.*` の直接変更禁止(草稿はレーンへ)。
@@ -98,4 +98,4 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 
 ## Session rule
 
-1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **Q5 Phase 2 = S-EVENTS / PRIORITY**(priority loop substrate + bucket ordering)であり、S-EVENTS/MANA・S-SBA・S-LAYERS へは広げない。**最大リスク = priority loop が呼ぶ `performStateBasedActions` 経由で「full SBA suite」を引き込むこと。SBA は S-SBA 別マイルストーンに隔離し、Phase 2 では既存 SBA 範囲のみ loop へ接続する。**
+1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **S-EVENTS / MANA**(CR 605.1b triggered mana ability の no-stack transaction)であり、S-SBA・S-ZONES/LAYERS・C-GRAMMAR へは広げない。**最大リスク = (1) triggered mana ability を通常 `pendingTriggers` / stack placement へ誤配線すること(605.1b は no-stack で transaction 内即時解決)、(2) transaction の固定点ループが無限ループする(iteration cap + warning で防ぐ)。実カード検出 observer は C-GRAMMAR へ defer。**

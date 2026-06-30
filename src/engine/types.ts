@@ -119,6 +119,28 @@ export interface AbilityTriggeredEvent {
   causeEventId?: string;
 }
 
+export interface ActivatedManaAbilityEvent {
+  type: 'activatedManaAbility';
+  eventId: string;
+  sequence: number;
+  sourceObjectId: ObjectId;
+  sourceSnapshot: ObjectSnapshot;
+  controllerId: PlayerId;
+  abilityLineIndex?: number;
+  stage: 'activated' | 'resolved';
+}
+
+export interface ManaAddedEvent {
+  type: 'manaAdded';
+  eventId: string;
+  sequence: number;
+  playerId: PlayerId;
+  sourceObjectId?: ObjectId;
+  sourceSnapshot?: ObjectSnapshot;
+  amount: ManaPool;
+  causeEventId?: string;
+}
+
 export type GameEvent = ZoneChangeEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
@@ -137,6 +159,18 @@ export interface PendingTrigger {
   stackPlacementBucket: TriggerStackPlacementBucket;
   triggeredByPendingTriggerId?: string;
   triggeredByAbilityEventId?: string;
+}
+
+export interface PendingManaTrigger {
+  kind: 'triggered-mana-ability';
+  ruleRef: '605.1b';
+  triggerEventId: string;
+  sourceId: PhysicalCardId;
+  sourceObjectId: ObjectId;
+  sourceSnapshot: ObjectSnapshot;
+  controllerId: PlayerId;
+  abilityLineIndex?: number;
+  label: string;
 }
 
 export interface CommanderZoneRuleChoice {

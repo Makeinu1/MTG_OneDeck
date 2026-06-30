@@ -2196,3 +2196,43 @@ interface AbilityTriggeredEvent {                         // 型定義のみ。P
 **5. golden / test(4点不変条件③)**: `research/cr-grounding/golden-cases.json` に `cr-trigger-6033b-two-bucket-order`(bucket が explicit order より上位)・`cr-trigger-6033b-apnap-per-bucket`(bucket ごとに APNAP)・`cr-priority-loop-trigger-placement-rechecks-sba`(placement 後に SBA 再チェックの固定点)を追加し `src/store/__tests__/crGroundingGoldenCases.test.ts` で実行可能化。`src/engine/__tests__/priority.test.ts` に順序付け+固定点の unit。
 
 **6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)`AbilityTriggeredEvent` 検出 observer と実カードの second bucket 分類 → C-GRAMMAR carry(substrate field は ordinary backfill で zero-rework 後付け可) (b)full SBA suite → S-SBA carry(本 Phase は既存 SBA のみ loop へ接続)。CRG-6 の残境界文言「603.3b second bucket and full SBA suite are not implemented and must not be reported as PASS」は、substrate 実装後も**検出/SBA 拡張の部分**について維持する。
+
+### 34.11 S-EVENTS / MANA(CR 605.1b 誘発型マナ能力)— この節も契約である
+
+**位置づけ**: §34.10(priority 固定点ループ)に続く substrate。設計正本 = `research/cr-grounding/mana-ability-substrate.md`(R-FREEZE-3)。起動型マナ能力(CR 605.1a・§34 の `activatedManaAbilityPlanForSource` で実装済)に加え、**誘発型マナ能力(CR 605.1b)を `GameState.pendingTriggers` / スタックに混ぜず、mana ability transaction 内で固定点まで即時解決する**。
+
+**CR 根拠**:
+- CR 605.1a: 起動型マナ能力(targetless + 解決時 mana 加算しうる + 非 loyalty)。
+- CR 605.1b: 誘発型マナ能力(triggered + targetless + 「起動型マナ能力の起動/解決」または「mana が pool に加えられたこと」から trigger + 解決時 mana 加算しうる)。
+- CR 605.4a / 405.6c: 誘発型マナ能力はスタックに置かれず、trigger 元の直後に優先権を待たず解決する。
+- CR 605.5(a): 上記基準を満たさないものはマナ能力でない(非 mana event 由来の add-mana 誘発・対象を取る add-mana 誘発・呪文は通常誘発)。
+
+**1. 型契約(`src/engine/types.ts`)**:
+```ts
+interface ActivatedManaAbilityEvent {        // 605.1a の起動/解決(transaction 内イベント)
+  type: 'activatedManaAbility'; eventId: string; sequence: number;
+  sourceObjectId: ObjectId; sourceSnapshot: ObjectSnapshot;
+  controllerId: PlayerId; abilityLineIndex?: number;
+  stage: 'activated' | 'resolved';
+}
+interface ManaAddedEvent {                    // mana が pool に入った(zone-change ではない)
+  type: 'manaAdded'; eventId: string; sequence: number;
+  playerId: PlayerId; sourceObjectId?: ObjectId; sourceSnapshot?: ObjectSnapshot;
+  amount: ManaPool; causeEventId?: string;
+}
+interface PendingManaTrigger {                 // transaction-local のみ。state に保存しない
+  kind: 'triggered-mana-ability'; ruleRef: '605.1b';
+  triggerEventId: string; sourceId: PhysicalCardId; sourceObjectId: ObjectId;
+  sourceSnapshot: ObjectSnapshot; controllerId: PlayerId;
+  abilityLineIndex?: number; label: string;
+}
+```
+`ManaAddedEvent`/`ActivatedManaAbilityEvent` は `GameEvent` union に**加えない**。`PendingManaTrigger` は `GameState.pendingTriggers` に**保存しない**(別経路)。
+
+**2. transaction(`src/engine/manaTransaction.ts`・純粋関数)**: `resolveManaAbilityTransaction(state, input)` は起動型マナ能力のコマンドを適用し、transaction-local な mana event を発行し、CR 605.1b の `PendingManaTrigger` を集めて固定点まで即時解決する。`addAbilityToStack` を使わず、priority boundary へ渡さない。誘発型マナ能力が加えた mana から更に 605.1b が誘発しうるため、queue を固定点まで回す。**iteration cap(既定 256)** を超えたら warning(CR 605.4a 文言)+ log を残して停止し、未解決の 605.1b を通常スタック経路へ逃がさない。ストア配線 = `tapForMana` / `activateAbility`(`src/store/gameStore.ts`)は起動型 + 誘発型を1 transaction(1 undo 単位)で解決する。
+
+**3. 分類(`isTriggeredManaAbilityForEvent`)**: triggered/delayed-triggered + `construct.target` を含まない + `effect.add-mana` を持つ + trigger source が mana-related。`effect.add-mana` 単独では 605.1b にしない。対象を取るなら 605.1b でない。
+
+**4. golden / test(4点不変条件③)**: `research/cr-grounding/golden-cases.json` に `cr-triggered-mana-ability-no-stack`(605.1b/605.4a の no-stack 即時解決)・`cr-add-mana-trigger-from-non-mana-event-is-normal-trigger`(CR 605.5a=通常誘発)・`cr-targeted-add-mana-trigger-is-normal-trigger`(targetless 違反=通常誘発)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.mana-transaction.test.ts`(**レビュー担当専有**=no-stack/pendingTriggers 不混入/単発発火/通常誘発分離/活性化源 defer/iteration cap の敵対 pin)。
+
+**5. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: **CR 605.1b 第1節(「起動型マナ能力の起動/解決」から trigger)の実カード検出 → C-GRAMMAR carry**。理由: 起動/解決源の分類は IR 級の trigger-source 分類を要し、raw-text regex では (i) substrate が発行する distinct な `activated`/`resolved` イベントを stage 非依存パターンが二重発火させ、(ii) 活性化文言カードを mana-added 分岐が誤一致させる。よって `isManaRelatedTriggerCondition` は `activatedManaAbility` イベントに対し現状 `false`(defer)を返す。**本 Phase で生きている 605.1b 経路は「mana が加えられたこと」(第2節)のみ**(golden `cr-triggered-mana-ability-no-stack` + review.mana-transaction が固定)。`AbilityTriggeredEvent` 同様、substrate(型 + transaction 経路 + 合成 golden)は置き、実カード検出は後付け zero-rework。full SBA suite は引き込まない(loop は既存 SBA のみ)。CRG の「誘発型マナ能力は未実装」境界は、第1節検出の部分について維持する。
