@@ -65,7 +65,7 @@ export type CombatStep =
   | 'combatDamage'
   | 'endOfCombat';
 
-export type CombatTarget = { type: 'player'; playerId: PlayerId };
+export type CombatTarget = { type: 'player'; playerId: PlayerId; lifeLabel?: string };
 
 export interface CombatAttacker {
   cardId: string;

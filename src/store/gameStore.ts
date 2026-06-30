@@ -48,9 +48,7 @@ import {
   type TriggerCandidate,
 } from '../engine/triggers';
 import {
-  effectivePower,
   fetchAbility,
-  hasVigilance,
   isSummoningSick,
   landEntersTapped,
   cyclingCost,
@@ -1895,16 +1893,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur) return;
 
       const warnings = attackerIds.flatMap((cardId) => warningForSummoningSickness(cur, cardId));
-      const damage = attackerIds.reduce((total, cardId) => total + effectivePower(cur, cardId), 0);
-      const tapCommands: GameCommand[] = attackerIds
-        .filter((cardId) => !hasVigilance(cur, cardId))
-        .map((cardId) => ({ type: 'setTapped', cardId, tapped: true }));
+      const commands: GameCommand[] = [
+        { type: 'enterCombat', attackingPlayerId: 'P1', defendingPlayerId: 'OPPONENT_A' },
+        {
+          type: 'declareAttackers',
+          attackers: attackerIds.map((cardId) => ({
+            cardId,
+            target: { type: 'player', playerId: 'OPPONENT_A', lifeLabel: targetLabel },
+          })),
+        },
+        { type: 'declareBlockers', blockers: [] },
+        { type: 'resolveCombatDamage' },
+      ];
 
       try {
-        const result = applyCommands(cur, [
-          { type: 'adjustOpponentLife', label: targetLabel, delta: -damage },
-          ...tapCommands,
-        ]);
+        const result = applyCommands(cur, commands);
         commit(result.state, [...result.warnings, ...warnings]);
         const committed = get().state;
         if (!committed) return;

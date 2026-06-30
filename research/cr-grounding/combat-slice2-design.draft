@@ -1,0 +1,400 @@
+# S-COMBAT Slice 2 Design Draft
+
+Draft lane only. Do not copy to `docs/engine-spec.md` until Fable review.
+
+CR source: Magic: The Gathering Comprehensive Rules, effective 2026-06-19.
+Pinned local source: `rule/Magic_The_Gathering_Comprehensive_Rules.txt`
+(`rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json` sha256
+`e99cd70eb64ca854acb6420ebbf06e369e3f258e0cfba4f03f70bd881386f79b`).
+
+Relevant CR refs: 120.3, 120.3a, 120.3b, 120.3c, 120.3f, 120.3g,
+120.4a, 120.8, 306.7, 306.8, 506.1, 506.2, 506.3, 506.4c,
+508.1b, 508.1f, 508.3, 509.1h, 510.1a, 510.1b, 510.1c,
+510.1d, 510.2, 614.9, 615, 702.4, 702.7, 702.19, 704.5i.
+
+## Goal
+
+S-COMBAT slice 1 added `GameState.combat` plus
+`enterCombat` / `declareAttackers` / `declareBlockers` /
+`resolveCombatDamage`, but intentionally left unblocked attacker player damage
+out of scope. Current `src/store/gameStore.ts` still has a separate
+`declareAttack` shortcut that directly changes opponent life. Slice 2 should:
+
+1. Add unblocked attacker damage to the attacked player through
+   `resolveCombatDamage` (CR 510.1b, CR 120.3a).
+2. Keep combat damage atomic inside one public damage command (CR 510.2).
+3. Integrate existing store `declareAttack` so UI and tests keep working while
+   the actual damage path becomes the combat substrate.
+
+Non-goal: implement full combat legality, full blocker UI, trample overflow,
+first/double strike step splitting, prevention/replacement, or combat-damage
+trigger automation in this slice.
+
+## Current Findings
+
+### Existing `declareAttack` behavior
+
+`src/store/gameStore.ts` `declareAttack(attackerIds, targetLabel)` currently:
+
+- Reads the current state and returns if no game state exists.
+- Collects summoning-sickness warnings for every attacker id via
+  `warningForSummoningSickness(cur, cardId)`.
+- Computes `damage` as the raw sum of `effectivePower(cur, cardId)` for all
+  attacker ids. This is not clamped to positive damage in the store shortcut.
+- Builds `setTapped` commands for every attacker without vigilance.
+- Calls `applyCommands(cur, [{ type: 'adjustOpponentLife', label: targetLabel,
+  delta: -damage }, ...tapCommands])`.
+- Commits the batch once, so existing UI shortcut attack is one undo step.
+- After commit, appends pending attack triggers with
+  `collectAttackPendingTriggers(committed, attackerIds)` and sets
+  `triggerCandidates` from the resulting pending triggers.
+
+Important compatibility details:
+
+- Existing attack trigger candidates are not collected by normal state-diff
+  trigger detection. The store action explicitly calls
+  `collectAttackPendingTriggers` after commit.
+- Undo/redo clear pending triggers and trigger candidates. The current
+  `triggerCandidates.test.ts` expects attack candidates to appear after
+  `declareAttack`, then be absent after undo and redo.
+- `declareAttack` does not create or update `GameState.combat`, does not record
+  blockers, and does not use `resolveCombatDamage`.
+
+### UI callers and data-testids
+
+Only one UI call site invokes `store.declareAttack`:
+
+- `src/components/playmat/Playmat.tsx`: `AttackDialog.onConfirm` calls
+  `store.declareAttack(attackerIds, targetLabel)`.
+
+Attack UI test ids currently exposed:
+
+- `attack-button` in `OtherActions` opens the attack dialog.
+- `attack-dialog` is the modal test id.
+- `attack-select-${cardId}` selects a battlefield creature.
+- `attack-target-select` chooses the opponent-life label.
+- `attack-confirm` confirms the shortcut attack.
+
+The dialog lists battlefield creatures, shows total effective power, warns
+visually for summoning sickness, and passes an arbitrary opponent label from
+`opponentLife` / `commanderDamage` keys. The combat substrate currently only has
+`PlayerId = 'P1' | 'OPPONENT_A'` and `CombatTarget = { type: 'player';
+playerId: PlayerId }`, so target-label preservation is an integration issue.
+
+### Slice 1 combat substrate behavior
+
+Current `resolveCombatDamage`:
+
+- Requires active `state.combat`.
+- Sorts attackers by `declaredOrder`, then `cardId`.
+- Skips unblocked attackers entirely (`blockedBy.length === 0`).
+- Defers attackers blocked by multiple blockers with a
+  `manual-combat-damage` warning/log.
+- For exactly one blocker, checks live battlefield creature participants by
+  stored `objectId`, then applies positive reciprocal creature damage on one
+  draft through the existing marked-damage helper.
+- Sets combat step to `endOfCombat`.
+- Relies on the single end-of-command `stabilizeBeforePriority(draft)` call in
+  `applyCommand`, preserving CR 510.2 simultaneity.
+
+Current life-change paths:
+
+- `adjustLife` changes `state.life` for P1.
+- `adjustOpponentLife` changes `state.opponentLife[label]`, defaulting missing
+  labels to 40.
+- Both public commands are ordinary `GameCommand`s. Calling them through
+  `applyCommands` is serial and therefore should not be the public mechanism for
+  simultaneous combat damage resolution.
+
+### Existing tests depending on `declareAttack`
+
+Direct `declareAttack` dependencies found:
+
+- `src/engine/__tests__/review.m47.test.ts`: sums power, taps non-vigilance
+  attackers, drains chosen opponent.
+- `src/engine/__tests__/m47.test.ts`: uses effective power including counters,
+  warns on summoning sickness, leaves vigilance untapped.
+- `src/store/__tests__/review.m6_10.test.ts`: attack declaration surfaces
+  `trigger.attack`.
+- `src/store/__tests__/review.phaseC.test.ts`: combat-damage trigger does not
+  become a live candidate merely from attack declaration.
+- `src/store/__tests__/triggerCandidates.test.ts`: attack candidates include the
+  declared attacker and battlefield watchers; undo/redo clear candidates.
+
+Combat-substrate tests that slice 2 must account for:
+
+- `src/store/__tests__/review.combat.test.ts` includes an unblocked attacker
+  case asserting no creature damage mark. It does not assert opponent life.
+- `src/store/__tests__/crGroundingGoldenCases.test.ts` currently asserts
+  `opponentLife['対戦相手A']` is unchanged for
+  `cr-combat-unblocked-attacker-no-creature-mark`. This is the executable slice 1
+  boundary that Fable should intentionally replace when promoting slice 2.
+
+## Proposed Damage Contract
+
+### Player damage in `resolveCombatDamage`
+
+Add unblocked attacker player damage to `applyResolveCombatDamage`, not to the
+store shortcut as a separate public life command.
+
+Algorithm sketch:
+
+1. During `resolveCombatDamage`, build a deterministic list of combat damage
+   assignments from the current `CombatState`.
+2. For each attacker with `blockedBy.length === 0`, if the stored attacker
+   object is still a live battlefield creature and its target is a player, assign
+   `max(0, effectivePower(state, attacker.cardId))` to that player
+   (CR 510.1a, CR 510.1b, CR 120.8).
+3. Aggregate player damage per target before writing state. For `P1`, subtract
+   from `state.life`; for `OPPONENT_A`, subtract from
+   `state.opponentLife[label]`, defaulting missing labels to 40 as the existing
+   `adjustOpponentLife` command does.
+4. Apply creature damage, player life changes, and future planeswalker counter
+   changes on the same draft before the end-of-command stabilize call
+   (CR 510.2).
+5. Do not call public `adjustOpponentLife` or public `adjustLife` from an
+   `applyCommands` sequence to represent combat damage. If code reuse is wanted,
+   extract small internal draft helpers and have both public commands and
+   `resolveCombatDamage` call those helpers.
+
+State/logging recommendation:
+
+- Keep `resolveCombatDamage` as the only public combat-damage command.
+- Add no new SBA for player damage.
+- Preserve existing opponent life semantics: opponent life may go below zero.
+- Clamp combat damage assignment at zero per CR 510.1a/120.8. This differs from
+  the legacy store shortcut's raw `effectivePower` sum only for zero/negative
+  power edge cases; no current direct `declareAttack` test pins negative power.
+
+### Target label preservation
+
+The existing UI passes an arbitrary `targetLabel`, but the engine target only
+knows `PlayerId`. To preserve existing UI behavior while avoiding a legacy damage
+path, Fable should choose one of these narrow mappings:
+
+Option 1: Extend `CombatTarget` for players with a life label.
+
+```ts
+type CombatTarget =
+  | { type: 'player'; playerId: PlayerId; lifeLabel?: string }
+  | { type: 'planeswalker'; cardId: string; objectId: ObjectId };
+```
+
+`declareAttack` passes `{ type: 'player', playerId: 'OPPONENT_A', lifeLabel:
+targetLabel }`. `resolveCombatDamage` uses `lifeLabel ?? '対戦相手A'` for
+`OPPONENT_A`.
+
+Option 2: Keep `CombatTarget` unchanged and add an optional deterministic payload
+to `resolveCombatDamage`, for example
+`playerDamageLabels?: Partial<Record<PlayerId, string>>`.
+
+Recommendation: Option 1. The attacked object/player is part of the combat
+relationship (CR 508.1b, CR 510.1b), and preserving the life label in
+`CombatState.attackers[].target` makes later granular UI possible without store
+side memory. It is still narrow: `PlayerId` remains the rules identity, while
+`lifeLabel` is only the app's existing opponent-life record key.
+
+### Planeswalker damage
+
+CR 510.1b also covers an unblocked creature attacking a planeswalker. CR 120.3c
+and CR 306.8 remove loyalty counters; CR 704.5i then handles a planeswalker with
+0 loyalty.
+
+Minimal compatible design if Fable includes planeswalkers in slice 2:
+
+- Extend `CombatTarget` with `{ type: 'planeswalker'; cardId; objectId }`.
+- `declareAttackers` records that target when UI or a command payload supplies
+  it.
+- `resolveCombatDamage` checks that the target object is still live, still a
+  planeswalker, and has the matching `objectId`. If not, the attacker is no
+  longer attacking anything for CR 510.1b purposes and assigns no unblocked
+  damage (see CR 506.4c / 510.1b).
+- Positive combat damage removes that many loyalty counters on the same draft.
+  Existing end-of-command SBA then applies CR 704.5i if loyalty is 0.
+
+Recommendation for this implementation slice: implement player target damage
+first and make the `CombatTarget` type extension compatible with planeswalker
+targets, but only expose a planeswalker target UI/golden if Fable explicitly
+accepts that extra scope. The existing UI has no planeswalker attack target
+picker, so player damage is the non-breaking path.
+
+## Integration Options for Store `declareAttack`
+
+### A. Rewrite `declareAttack` as a compatibility wrapper over combat substrate
+
+Keep the public store method and UI unchanged. Internally, have it perform a
+single store transaction roughly equivalent to:
+
+```ts
+const commands: GameCommand[] = [
+  { type: 'enterCombat', attackingPlayerId: 'P1', defendingPlayerId: 'OPPONENT_A' },
+  {
+    type: 'declareAttackers',
+    attackers: attackerIds.map((cardId) => ({
+      cardId,
+      target: { type: 'player', playerId: 'OPPONENT_A', lifeLabel: targetLabel },
+    })),
+  },
+  { type: 'declareBlockers', blockers: [] },
+  { type: 'resolveCombatDamage' },
+];
+```
+
+Then commit once, append attack pending triggers exactly as today, and set
+`triggerCandidates` from pending triggers.
+
+Pros:
+
+- One damage path: `resolveCombatDamage` owns combat damage and life loss.
+- Existing UI call site and data-testids remain unchanged.
+- Existing direct `declareAttack` tests can keep their tap/life/warning/trigger
+  expectations.
+- Single undo for the shortcut is preserved because the store commits the batch
+  once.
+- Non-vigilance tapping is now owned by `declareAttackers` (CR 508.1f), removing
+  one duplicate behavior.
+
+Cons:
+
+- The shortcut still means "declare and immediately resolve unblocked attack"
+  because there is no blocker UI. The method name remains legacy.
+- Needs a target label bridge (`lifeLabel` or command payload) to preserve custom
+  opponent labels.
+- Attack trigger collection remains store-side until a combat event substrate
+  exists.
+
+### B. Keep both paths temporarily and move UI to the new path
+
+Add a new store action or UI flow for combat substrate, leave `declareAttack`
+unchanged for old tests/manual calls, and migrate UI to the new action.
+
+Pros:
+
+- Lowest short-term risk to existing `declareAttack` tests.
+- Lets Fable author new review tests before removing the shortcut.
+
+Cons:
+
+- The core problem remains: two damage paths can disagree or double-apply if
+  called together.
+- Attack behavior depends on which caller is used.
+- More migration states for tests and docs.
+
+### C. Deprecate `declareAttack` and replace callers with explicit combat actions
+
+Remove or stop using the shortcut and expose explicit store/UI actions for
+enter combat, declare attackers, declare blockers, and resolve damage.
+
+Pros:
+
+- Cleanest long-term API.
+- Matches CR step structure most directly.
+
+Cons:
+
+- Breaks existing UI workflow and direct tests unless a larger UI migration is
+  done in the same slice.
+- Requires blocker/target UI decisions beyond the requested minimal integration.
+- Higher risk against the user's priority: do not break existing UI/behavior.
+
+### Recommendation
+
+Choose Option A for slice 2.
+
+Keep `declareAttack` as a compatibility wrapper, but route its tap and damage
+through `enterCombat` / `declareAttackers` / empty `declareBlockers` /
+`resolveCombatDamage`. This resolves the double-path problem while preserving the
+existing one-click goldfish attack UI. Mark the method as legacy-compatible in
+the spec text rather than removing it. A future UI slice can split it into
+granular combat controls.
+
+Acceptance compatibility pins for Option A:
+
+- `declareAttack([4-power, 2-power vigilance], '対戦相手A')` still sets opponent
+  life to 34 and only taps the non-vigilance attacker.
+- Summoning sickness warnings still appear.
+- Attack trigger candidates still appear after the shortcut and still clear on
+  undo/redo.
+- `trigger.combat-damage` candidates are not created by this slice.
+- The old unblocked golden that asserted unchanged opponent life is replaced by
+  a slice 2 golden that asserts player life loss.
+
+## Golden Sketches
+
+1. `cr-combat-unblocked-attacker-damages-defending-player`
+   - CR refs: 509.1h, 510.1a, 510.1b, 510.2, 120.3a, 120.8.
+   - Board: P1 controls a live 3/3 creature; opponent life `対戦相手A` is 40.
+   - Steps: `enterCombat` -> `declareAttackers([{ attacker }])` ->
+     `declareBlockers([])` -> `resolveCombatDamage`.
+   - Expected: attacker remains on battlefield with no creature damage marked;
+     `opponentLife['対戦相手A']` becomes 37; combat step becomes `endOfCombat`.
+
+2. `cr-combat-blocked-attacker-does-not-damage-player`
+   - CR refs: 509.1h, 510.1c, 510.1d, 510.2, 120.3a.
+   - Board: P1 3/3 attacker, opponent 1/4 blocker, opponent life 40.
+   - Steps: enter combat, declare attacker, declare blocker blocking it, resolve.
+   - Expected: creature marks are applied as in slice 1; opponent life remains
+     40 because the attacker is blocked.
+
+3. `cr-combat-multiple-unblocked-attackers-aggregate-player-damage`
+   - CR refs: 510.1a, 510.1b, 510.2, 120.3a.
+   - Board: P1 controls 2/2 and 4/4 attackers; opponent life 40.
+   - Steps: enter combat, declare both attackers, declare no blockers, resolve.
+   - Expected: opponent life becomes 34. The implementation may aggregate the
+     state write/log by player target, but the assignments are computed from
+     each attacking source before one end-of-command stabilize pass.
+
+Optional planeswalker sketch if Fable includes it in slice 2:
+
+- `cr-combat-unblocked-attacker-removes-planeswalker-loyalty`
+  (510.1b, 120.3c, 306.8, 704.5i): a 3-power unblocked attacker attacking a
+  planeswalker with 3 loyalty removes 3 loyalty; end-of-command SBA puts that
+  planeswalker into its owner's graveyard with `sbaApplied:'704.5i'`.
+
+## Defer Boundaries
+
+- Trample excess to player/planeswalker/battle, including trample over
+  planeswalkers (CR 702.19, CR 120.4a, CR 510.1c).
+- First strike and double strike combat damage step splitting (CR 510.4,
+  CR 702.4, CR 702.7).
+- Damage prevention, replacement, and redirection effects (CR 614.9, CR 615).
+- Old planeswalker damage redirection is not a current combat rule: CR 306.7
+  says the old noncombat damage redirection rule was removed. If "planeswalker
+  redirect" is desired, define whether Fable means direct planeswalker attack
+  target support (CR 508.1b / 510.1b) or replacement/redirection effects
+  (CR 614.9). Do not silently implement either as player-to-planeswalker combat
+  damage redirection.
+- Infect, toxic, and lifelink combat damage results (CR 120.3b, 120.3f,
+  120.3g). The minimal player-life slice should be documented as the default
+  non-infect life-loss path unless Fable expands scope.
+- Combat-damage trigger detection such as "Whenever a creature deals combat
+  damage to a player" remains out of scope; existing tests already pin that
+  attack declaration alone must not create `trigger.combat-damage`.
+- Commander damage loss tracking / commander-damage SBA is out of scope
+  (current app has manual `commanderDamage` trackers but no automatic combat
+  damage integration).
+- Full attack/block legality, evasion, attack requirements/restrictions/costs,
+  and illegal-action rollback.
+- Multiple-blocker allocation remains the slice 1 manual/deferred boundary.
+- Battle combat damage (CR 120.3h) and battle target UI.
+
+## Open Questions for Fable
+
+1. Should slice 2 include direct planeswalker target damage now, or should the
+   promoted contract say "player damage now; planeswalker target type is prepared
+   but UI/golden are next slice"?
+2. Which target-label bridge should be canonical: `CombatTarget.lifeLabel` or a
+   `resolveCombatDamage.playerDamageLabels` command payload? Recommendation:
+   `CombatTarget.lifeLabel`.
+3. For CR 120.3 edge cases, should an unblocked source with infect/toxic/lifelink
+   use a warning/manual boundary, or should this slice intentionally preserve the
+   legacy life-loss behavior for all attackers until those keywords are modeled?
+   Recommendation: do not claim CR PASS for those keywords; either warn/manual or
+   limit goldens to non-infect, non-toxic, non-lifelink attackers.
+4. Is it acceptable that the legacy `declareAttack` wrapper immediately declares
+   zero blockers and resolves damage, preserving current goldfish UI, while
+   granular blocker declaration remains available only through lower-level
+   commands/tests for now?
+5. Should the old golden id `cr-combat-unblocked-attacker-no-creature-mark` be
+   renamed, or kept with updated expectations? Recommendation: rename to make the
+   slice boundary explicit and avoid preserving "no player damage" in the id.

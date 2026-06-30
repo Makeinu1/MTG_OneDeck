@@ -1226,13 +1226,19 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(state?.zones.graveyard).not.toContain(blockerId);
   });
 
-  it('cr-combat-unblocked-attacker-no-creature-mark: CR 510.1b is outside creature damage slice', () => {
-    goldenCase('cr-combat-unblocked-attacker-no-creature-mark', ['509.1h', '510.1b', '120.3a']);
+  it('cr-combat-unblocked-attacker-damages-defending-player: CR 510.1b damages defending player', () => {
+    goldenCase('cr-combat-unblocked-attacker-damages-defending-player', [
+      '509.1h',
+      '510.1a',
+      '510.1b',
+      '510.2',
+      '120.3a',
+      '120.8',
+    ]);
 
     const attacker = makeCombatCreature('gold-combat-unblocked-attacker', '黄金素通り', '3', '3');
     startCombatFixture([attacker]);
     const attackerId = findInstanceId(attacker.scryfallId);
-    const opponentLifeBefore = store().state?.opponentLife['対戦相手A'];
 
     store().dispatch({ type: 'enterCombat' });
     store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
@@ -1249,7 +1255,81 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       damageMarked: 0,
       hasDeathtouchDamage: false,
     });
-    expect(state?.opponentLife['対戦相手A']).toBe(opponentLifeBefore);
+    expect(state?.opponentLife['対戦相手A']).toBe(37);
+    expect(state?.combat?.step).toBe('endOfCombat');
+  });
+
+  it('cr-combat-blocked-attacker-does-not-damage-player: blocked attacker leaves defending player life unchanged', () => {
+    goldenCase('cr-combat-blocked-attacker-does-not-damage-player', [
+      '509.1h',
+      '510.1c',
+      '510.1d',
+      '510.2',
+      '120.3a',
+    ]);
+
+    const attacker = makeCombatCreature('gold-combat-blocked-attacker', '黄金遮断攻撃', '3', '3');
+    const blocker = makeCombatCreature('gold-combat-blocked-blocker', '黄金遮断防御', '1', '4');
+    startCombatFixture([attacker, blocker]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const blockerId = findInstanceId(blocker.scryfallId);
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    store().dispatch({
+      type: 'declareBlockers',
+      blockers: [{ cardId: blockerId, attackerId }],
+    });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    expect(state?.cards[attackerId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 1,
+    });
+    expect(state?.cards[blockerId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 3,
+    });
+    expect(state?.opponentLife['対戦相手A']).toBe(40);
+  });
+
+  it('cr-combat-multiple-unblocked-attackers-aggregate-player-damage: player damage aggregates by target', () => {
+    goldenCase('cr-combat-multiple-unblocked-attackers-aggregate-player-damage', [
+      '510.1a',
+      '510.1b',
+      '510.2',
+      '120.3a',
+      '120.8',
+    ]);
+
+    const attackerA = makeCombatCreature('gold-combat-unblocked-a', '黄金素通りA', '2', '2');
+    const attackerB = makeCombatCreature('gold-combat-unblocked-b', '黄金素通りB', '4', '4');
+    startCombatFixture([attackerA, attackerB]);
+    const attackerAId = findInstanceId(attackerA.scryfallId);
+    const attackerBId = findInstanceId(attackerB.scryfallId);
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({
+      type: 'declareAttackers',
+      attackers: [{ cardId: attackerAId }, { cardId: attackerBId }],
+    });
+    store().dispatch({ type: 'declareBlockers', blockers: [] });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    expect(state?.opponentLife['対戦相手A']).toBe(34);
+    expect(state?.cards[attackerAId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
+    expect(state?.cards[attackerBId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
+    expect(state?.combat?.step).toBe('endOfCombat');
   });
 
   it('cr-combat-multiple-blockers-deferred: CR 510.1c choice is manual for multi-blocker damage', () => {

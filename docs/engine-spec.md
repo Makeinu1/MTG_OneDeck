@@ -2286,4 +2286,22 @@ interface CardInstance {
 
 **5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-combat-single-block-lethal-mutual-damage`(510.2 atomic=両死が単一 `simultaneousGroupId`)・`cr-combat-single-block-sublethal-survives`・`cr-combat-unblocked-attacker-no-creature-mark`・`cr-combat-multiple-blockers-deferred`(manual-combat-damage)を追加。受け入れ acceptance contract = `src/store/__tests__/review.combat.test.ts`(**レビュー専有**=atomicity/sublethal/unblocked/deathtouch→704.5h 単離/multi-blocker defer/combat-context invariant)。`review.properties` I3 に combat 不変条件(`combat≠null ⇒ phase==combat ∧ combat.turn==turn ∧ participant.cardId∈cards`)追加。
 
-**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: first/double strike step 分割・banding・trample-to-player・blocker-blocks-multiple-attackers・複数 blocker への明示割当 UI・full attack/block legality(restriction/requirement/cost/evasion)・combat 優先権完全自動化・player/planeswalker/battle combat damage・combat trigger 収集・prevention/replacement・regeneration → 全て C-GRAMMAR/後続 combat slice へ carry。未ブロック player damage と既存 store `declareAttack` 統合も follow slice。substrate(state + atomic command 経路)は壊さず後付け可能。
+**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: first/double strike step 分割・banding・trample-to-player・blocker-blocks-multiple-attackers・複数 blocker への明示割当 UI・full attack/block legality(restriction/requirement/cost/evasion)・combat 優先権完全自動化・player/planeswalker/battle combat damage・combat trigger 収集・prevention/replacement・regeneration → 全て C-GRAMMAR/後続 combat slice へ carry。substrate(state + atomic command 経路)は壊さず後付け可能。**(更新: 未ブロック player combat damage と既存 store `declareAttack` 統合は §34.14 slice 2 で実装済)**。
+
+### 34.14 S-COMBAT slice 2: 未ブロック player combat damage + `declareAttack` 統合 — この節も契約である
+
+**位置づけ**: §34.13(combat 構造 slice 1=creature-vs-creature)に続き、combat を**勝利条件(player life)に効く**ようにし、既存 store `declareAttack`(life 直接いじり hack)を combat substrate へ統合して二重ダメージ経路を解消。設計正本=`research/cr-grounding/combat-slice2-design.draft`(Option A 採用)。
+
+**CR 根拠**: 508.1b(attacked player/PW)/508.1f(non-vigilance tap)/509.1h(blocked 判定)/510.1a・510.1b(combat damage 割当)/510.2(simultaneity)/120.3a(life loss)/120.8(0以下は割当なし)。
+
+**1. 型**: `CombatTarget = { type: 'player'; playerId: PlayerId; lifeLabel?: string }`(**planeswalker variant は足さない=player only**)。`lifeLabel` = rules の player identity から app の opponent-life map への bridge。`OPPONENT_A` は `lifeLabel ?? '対戦相手A'`、`P1` は `state.life`。
+
+**2. `resolveCombatDamage` の player damage**: 未ブロック attacker(`blockedBy.length===0`)で stored object が live battlefield creature かつ target が player なら `max(0, effectivePower)` をその player へ割当(CR510.1a/510.1b/120.8)。**player ごとに集計**して creature damage と**同一 draft 上**で life 減算(CR510.2 atomic)。public `adjustLife`/`adjustOpponentLife` の serial 連発で表さない(内部 draft helper)。新 SBA 無し。opponent life は0未満可。
+
+**3. `declareAttack` 互換ラッパ(Option A)**: store `declareAttack(attackerIds, targetLabel)` は legacy UI API として残すが、内部は `enterCombat(P1→OPPONENT_A)` → `declareAttackers`(各 target に `lifeLabel:targetLabel`)→ `declareBlockers([])` → `resolveCombatDamage` の単一 commit。non-vigilance tap は `declareAttackers`(CR508.1f)が担う(旧重複 tap 除去)。commit 後に従来通り attack pending triggers を append。**二重ダメージ経路を解消=life は `resolveCombatDamage` 経路のみで減る**。
+
+**4. golden / test(4点不変条件③)**: slice 1 の `cr-combat-unblocked-attacker-no-creature-mark`(life 不変主張)を**削除**し `cr-combat-unblocked-attacker-damages-defending-player`(40→37・creature mark 無し)へ置換。追加 `cr-combat-blocked-attacker-does-not-damage-player`(blocked→life 不変)・`cr-combat-multiple-unblocked-attackers-aggregate-player-damage`(40→34)。受け入れ acceptance contract = `review.combat`(unblocked pin を player life loss 主張へ強化 + aggregate + blocked-no-player pin 追加)。回帰=m47/review.m47/review.m6_10/review.phaseC/triggerCandidates 全緑(declareAttack 依存)。
+
+**5. スコープ境界(§34.5)**: planeswalker/battle combat target・trample-to-player(CR702.19/120.4a)・first/double strike・damage prevention/replacement/redirection(CR614.9/615)・infect/toxic/lifelink/wither の damage 結果(**plain life-loss のみ=これらキーワードで CR PASS 主張せず**・golden は vanilla creature)・combat-damage trigger 検出・commander damage 自動集計 → 全て後続 slice へ carry。
+
+**(運用注記)** `.claude/`(git worktree チェックアウト)を eslint ignore と vitest exclude に追加=worktree 複製が重複テスト/lint 汚染を起こす問題を config で解消(slice 2 で同梱)。

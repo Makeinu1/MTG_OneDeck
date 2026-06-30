@@ -727,10 +727,10 @@
       ]
     },
     {
-      "id": "cr-combat-unblocked-attacker-no-creature-mark",
-      "title": "未ブロック攻撃クリーチャーは本スライスでは creature damage mark を発生させない",
-      "crRefs": ["509.1h", "510.1b", "120.3a"],
-      "scope": "s-combat-structure-first-slice",
+      "id": "cr-combat-unblocked-attacker-damages-defending-player",
+      "title": "未ブロック攻撃クリーチャーは防御プレイヤーへ戦闘ダメージを与える",
+      "crRefs": ["509.1h", "510.1a", "510.1b", "510.2", "120.3a", "120.8"],
+      "scope": "s-combat-slice2-player-damage",
       "initialFixture": {
         "attacker": {
           "zone": "battlefield",
@@ -738,24 +738,113 @@
           "power": 3,
           "toughness": 3
         },
+        "opponentLife": {
+          "対戦相手A": 40
+        },
         "blockers": []
       },
       "steps": [
         "enterCombat -> declareAttackers を適用する。",
         "declareBlockers は空配列で適用する。",
-        "resolveCombatDamage を適用する。"
+        "resolveCombatDamage の単一 command 内で未ブロック attacker の power を防御プレイヤーへ割り振る。"
       ],
       "requiredObservations": [
         "attacker.blockedBy は空配列のまま。",
         "attacker の damageMarked は変化しない。",
-        "player damage は first slice 対象外のため opponentLife は変化しない。"
+        "opponentLife['対戦相手A'] は 40 から 37 になる。",
+        "combat step は endOfCombat になる。"
       ],
       "mustNot": [
         "未ブロック attacker に creature markDamage を発生させない。",
-        "既存 store declareAttack の opponent life 調整と統合しない。"
+        "player damage を public adjustOpponentLife command の serial 適用で表さない。"
       ],
       "implementationRefs": [
-        "src/engine/commands.ts resolveCombatDamage skips creature damage for unblocked attackers",
+        "src/engine/commands.ts resolveCombatDamage aggregates unblocked player damage and applies life loss on the same draft as creature damage",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-combat-blocked-attacker-does-not-damage-player",
+      "title": "ブロックされた攻撃クリーチャーは通常、防御プレイヤーへ戦闘ダメージを与えない",
+      "crRefs": ["509.1h", "510.1c", "510.1d", "510.2", "120.3a"],
+      "scope": "s-combat-slice2-player-damage",
+      "initialFixture": {
+        "attacker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 3,
+          "toughness": 3
+        },
+        "blocker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 1,
+          "toughness": 4
+        },
+        "opponentLife": {
+          "対戦相手A": 40
+        }
+      },
+      "steps": [
+        "enterCombat -> declareAttackers を適用する。",
+        "declareBlockers で blocker が attacker をブロックする。",
+        "resolveCombatDamage を適用する。"
+      ],
+      "requiredObservations": [
+        "attacker は battlefield に残り damageMarked=1。",
+        "blocker は battlefield に残り damageMarked=3。",
+        "opponentLife['対戦相手A'] は 40 のまま。"
+      ],
+      "mustNot": [
+        "ブロック済み attacker の通常戦闘ダメージを player damage にも重複割当しない。",
+        "trample excess をこの slice で自動実装しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage only assigns player damage for attackers with blockedBy.length === 0",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-combat-multiple-unblocked-attackers-aggregate-player-damage",
+      "title": "複数の未ブロック攻撃クリーチャーのプレイヤー戦闘ダメージは集計して適用される",
+      "crRefs": ["510.1a", "510.1b", "510.2", "120.3a", "120.8"],
+      "scope": "s-combat-slice2-player-damage",
+      "initialFixture": {
+        "attackers": [
+          {
+            "zone": "battlefield",
+            "typeLine": "Creature",
+            "power": 2,
+            "toughness": 2
+          },
+          {
+            "zone": "battlefield",
+            "typeLine": "Creature",
+            "power": 4,
+            "toughness": 4
+          }
+        ],
+        "opponentLife": {
+          "対戦相手A": 40
+        },
+        "blockers": []
+      },
+      "steps": [
+        "enterCombat -> declareAttackers で2体の attacker を宣言する。",
+        "declareBlockers は空配列で適用する。",
+        "resolveCombatDamage の単一 command 内で同じ defending player への damage を集計する。"
+      ],
+      "requiredObservations": [
+        "opponentLife['対戦相手A'] は 40 から 34 になる。",
+        "両 attacker の damageMarked は変化しない。",
+        "combat step は endOfCombat になる。"
+      ],
+      "mustNot": [
+        "player damage を attacker ごとの public life command 連発で表さない。",
+        "combat-damage trigger や commander damage をこの slice で自動生成しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage aggregates player damage by combat target before applying life loss",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
       ]
     },

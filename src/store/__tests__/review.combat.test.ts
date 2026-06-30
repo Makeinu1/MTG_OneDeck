@@ -109,18 +109,58 @@ describe('review.combat: CR 506-510 combat structure first slice', () => {
     expect(state?.cards[blockerId]?.damageMarked).toBe(2);
   });
 
-  it('510.1b: unblocked attacker marks no creature damage (player damage out of slice)', () => {
+  it('510.1b: unblocked attacker damages the defending player, marks no creature damage', () => {
     const attacker = combatCreature('rev-unblocked', '3', '3');
     startCombat([attacker]);
     const attackerId = findInstanceId(attacker.scryfallId);
+    const lifeBefore = store().state?.opponentLife['対戦相手A'] ?? 40;
 
     store().dispatch({ type: 'enterCombat' });
     store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
     store().dispatch({ type: 'resolveCombatDamage' });
 
     const state = store().state;
+    // No creature damage marked on an unblocked attacker...
     expect(state?.cards[attackerId]?.zone).toBe('battlefield');
     expect(state?.cards[attackerId]?.damageMarked).toBe(0);
+    // ...but the defending player loses life equal to the attacker's power (CR 510.1b).
+    expect(state?.opponentLife['対戦相手A']).toBe(lifeBefore - 3);
+  });
+
+  it('510.1a/b: multiple unblocked attackers aggregate damage to the defending player', () => {
+    const a = combatCreature('rev-agg-a', '2', '2');
+    const b = combatCreature('rev-agg-b', '4', '4');
+    startCombat([a, b]);
+    const aId = findInstanceId(a.scryfallId);
+    const bId = findInstanceId(b.scryfallId);
+    const lifeBefore = store().state?.opponentLife['対戦相手A'] ?? 40;
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({
+      type: 'declareAttackers',
+      attackers: [{ cardId: aId }, { cardId: bId }],
+    });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    expect(store().state?.opponentLife['対戦相手A']).toBe(lifeBefore - 6);
+  });
+
+  it('510.1c: a blocked attacker deals no damage to the defending player', () => {
+    const attacker = combatCreature('rev-blk-noplayer', '3', '3');
+    const blocker = combatCreature('rev-blk-noplayer-b', '1', '4');
+    startCombat([attacker, blocker]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const blockerId = findInstanceId(blocker.scryfallId);
+    const lifeBefore = store().state?.opponentLife['対戦相手A'] ?? 40;
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    store().dispatch({ type: 'declareBlockers', blockers: [{ cardId: blockerId, attackerId }] });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    // Blocked: player takes no damage; creatures take reciprocal combat damage.
+    expect(store().state?.opponentLife['対戦相手A']).toBe(lifeBefore);
+    expect(store().state?.cards[blockerId]?.damageMarked).toBe(3);
   });
 
   it('704.5h: deathtouch combat damage kills a high-toughness blocker; attacker survives', () => {

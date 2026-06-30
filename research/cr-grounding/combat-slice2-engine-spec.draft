@@ -1,0 +1,62 @@
+# S-COMBAT Slice 2 Engine Spec Draft
+
+Draft lane only. Do not copy to `docs/engine-spec.md` until Fable review.
+
+CR source: Magic: The Gathering Comprehensive Rules, effective 2026-06-19.
+Relevant CR refs: 506.1, 508.1b, 508.1f, 509.1h, 510.1a, 510.1b,
+510.1c, 510.1d, 510.2, 120.3a, 120.8.
+
+## CombatTarget
+
+`CombatTarget` remains player-only in this slice:
+
+```ts
+type CombatTarget = { type: 'player'; playerId: PlayerId; lifeLabel?: string };
+```
+
+`lifeLabel` is the app bridge from the rules player identity to the existing
+opponent-life map. `OPPONENT_A` damage uses `lifeLabel ?? '対戦相手A'`; `P1`
+damage uses `GameState.life`. This implements player targets only from
+CR 508.1b / CR 510.1b. Planeswalker and battle combat targets are deferred.
+
+## resolveCombatDamage
+
+`resolveCombatDamage` is the only public command for automatic combat damage in
+this slice (CR 510.2). It computes combat damage assignments and applies creature
+damage plus unblocked player life loss on the same draft before the normal
+end-of-command state-based-action pass.
+
+For each unblocked attacker (`blockedBy.length === 0`) whose declared object is
+still a live battlefield creature, if its target is a player, assign
+`max(0, effectivePower(state, attacker.cardId))` damage to that player
+(CR 510.1a / CR 510.1b / CR 120.8). Player damage is aggregated by resulting
+life target before life is changed. `P1` subtracts from `state.life`;
+`OPPONENT_A` subtracts from `state.opponentLife[label]`, defaulting missing
+labels to 40 as `adjustOpponentLife` does (CR 120.3a).
+
+Blocked attacker creature damage remains the slice 1 behavior: one blocker means
+reciprocal creature damage is marked on the same draft (CR 510.1c / CR 510.1d /
+CR 510.2); multiple blockers remain manual/deferred.
+
+## declareAttack Compatibility Wrapper
+
+`store.declareAttack(attackerIds, targetLabel)` remains as the legacy UI API but
+is implemented as one store commit over:
+
+1. `enterCombat` with `P1` attacking `OPPONENT_A` (CR 506.1).
+2. `declareAttackers` with each target
+   `{ type: 'player', playerId: 'OPPONENT_A', lifeLabel: targetLabel }`
+   (CR 508.1b).
+3. `declareBlockers` with an empty blocker list, making those attackers
+   unblocked (CR 509.1h).
+4. `resolveCombatDamage` (CR 510.1b / CR 510.2).
+
+Non-vigilance tapping is owned by `declareAttackers` (CR 508.1f). The wrapper
+still appends attack pending triggers after the commit for compatibility.
+
+## Deferred
+
+Deferred from this slice: planeswalker targets, trample, first/double strike,
+prevention/replacement/redirection, infect/toxic/lifelink results beyond plain
+life loss, combat-damage trigger automation, commander damage automation, and
+battle targets.

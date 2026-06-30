@@ -152,6 +152,7 @@ const ABILITY_KIND_LABELS: Record<AbilityKind, string> = {
   activated: '起動',
   triggered: '誘発',
 };
+const DEFAULT_OPPONENT_LIFE_LABEL = '対戦相手A';
 
 function emptyManaPool(): ManaPool {
   return { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
@@ -628,6 +629,22 @@ function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
   }
 }
 
+function applyPlayerLifeDelta(draft: Draft, delta: number): void {
+  draft.state.life += delta;
+  const sign = delta >= 0 ? '+' : '';
+  pushLog(draft, `ライフが${sign}${delta}(現在${draft.state.life})。`);
+}
+
+function applyOpponentLifeDelta(draft: Draft, label: string, delta: number): void {
+  const current = draft.state.opponentLife[label] ?? 40;
+  const next = current + delta;
+  draft.state.opponentLife = {
+    ...draft.state.opponentLife,
+    [label]: next,
+  };
+  pushLog(draft, `対戦相手ライフ(${label})を${next}にしました。`);
+}
+
 // ---------------------------------------------------------------------------
 // Combat handling (CR 506-510 first slice)
 // ---------------------------------------------------------------------------
@@ -675,6 +692,59 @@ function liveCombatCreature(
 
 function sourceHasDeathtouch(draft: Draft, cardId: string): boolean {
   return effectiveKeywords(draft.state, cardId).includes('deathtouch');
+}
+
+interface CombatPlayerDamageTotal {
+  target: CombatTarget;
+  amount: number;
+}
+
+function combatPlayerDamageKey(target: CombatTarget): string {
+  if (target.playerId === 'P1') {
+    return 'P1';
+  }
+  return `${target.playerId}:${target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL}`;
+}
+
+function addCombatPlayerDamage(
+  totals: Map<string, CombatPlayerDamageTotal>,
+  target: CombatTarget,
+  amount: number,
+): void {
+  if (amount <= 0) return;
+  const key = combatPlayerDamageKey(target);
+  const existing = totals.get(key);
+  if (existing) {
+    totals.set(key, { ...existing, amount: existing.amount + amount });
+    return;
+  }
+  totals.set(key, {
+    target: {
+      ...target,
+      ...(target.playerId === 'OPPONENT_A'
+        ? { lifeLabel: target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL }
+        : {}),
+    },
+    amount,
+  });
+}
+
+function applyCombatPlayerDamageTotals(
+  draft: Draft,
+  totals: Iterable<CombatPlayerDamageTotal>,
+): void {
+  for (const total of totals) {
+    if (total.amount <= 0) continue;
+    if (total.target.playerId === 'P1') {
+      applyPlayerLifeDelta(draft, -total.amount);
+    } else {
+      applyOpponentLifeDelta(
+        draft,
+        total.target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL,
+        -total.amount,
+      );
+    }
+  }
 }
 
 function applyEnterCombat(
@@ -808,10 +878,19 @@ function applyResolveCombatDamage(draft: Draft): void {
     const declared = left.declaredOrder - right.declaredOrder;
     return declared !== 0 ? declared : left.cardId.localeCompare(right.cardId);
   });
+  const playerDamageTotals = new Map<string, CombatPlayerDamageTotal>();
   let deferredCount = 0;
 
   for (const attacker of attackers) {
     if (attacker.blockedBy.length === 0) {
+      const attackerCard = liveCombatCreature(draft, attacker.cardId, attacker.objectId);
+      if (attackerCard && attacker.target.type === 'player') {
+        addCombatPlayerDamage(
+          playerDamageTotals,
+          attacker.target,
+          Math.max(0, effectivePower(draft.state, attackerCard.id)),
+        );
+      }
       continue;
     }
 
@@ -849,6 +928,8 @@ function applyResolveCombatDamage(draft: Draft): void {
       effectivePower(draft.state, blockerCard.id),
     );
   }
+
+  applyCombatPlayerDamageTotals(draft, playerDamageTotals.values());
 
   draft.state.combat = {
     ...combat,
@@ -1735,9 +1816,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       break;
     }
     case 'adjustLife': {
-      draft.state.life += cmd.delta;
-      const sign = cmd.delta >= 0 ? '+' : '';
-      pushLog(draft, `ライフが${sign}${cmd.delta}(現在${draft.state.life})。`);
+      applyPlayerLifeDelta(draft, cmd.delta);
       break;
     }
     case 'adjustPlayerCounter': {
@@ -2220,9 +2299,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'adjustLife': {
-      draft.state.life += cmd.delta;
-      const sign = cmd.delta >= 0 ? '+' : '';
-      pushLog(draft, `ライフが${sign}${cmd.delta}(現在${draft.state.life})。`);
+      applyPlayerLifeDelta(draft, cmd.delta);
       break;
     }
     case 'adjustPlayerCounter': {
@@ -2243,13 +2320,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'adjustOpponentLife': {
-      const current = draft.state.opponentLife[cmd.label] ?? 40;
-      const next = current + cmd.delta;
-      draft.state.opponentLife = {
-        ...draft.state.opponentLife,
-        [cmd.label]: next,
-      };
-      pushLog(draft, `対戦相手ライフ(${cmd.label})を${next}にしました。`);
+      applyOpponentLifeDelta(draft, cmd.label, cmd.delta);
       break;
     }
     case 'addMana': {
