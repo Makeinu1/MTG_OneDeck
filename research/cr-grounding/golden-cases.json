@@ -638,6 +638,174 @@
       ]
     },
     {
+      "id": "cr-combat-single-block-lethal-mutual-damage",
+      "title": "単一ブロックの致死戦闘ダメージは同時に割り振られ、SBAで双方が墓地へ置かれる",
+      "crRefs": [
+        "506.1",
+        "508.1k",
+        "509.1g",
+        "509.1h",
+        "510.1c",
+        "510.1d",
+        "510.2",
+        "704.5g",
+        "120.6"
+      ],
+      "scope": "s-combat-structure-first-slice",
+      "initialFixture": {
+        "attacker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 2,
+          "toughness": 2
+        },
+        "blocker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 2,
+          "toughness": 2
+        }
+      },
+      "steps": [
+        "enterCombat を適用して GameState.combat を開始する。",
+        "declareAttackers で attacker を宣言し、CR 508.1f により vigilance を持たないためタップする。",
+        "declareBlockers で blocker が attacker をブロックする。",
+        "resolveCombatDamage の単一 command 内で attacker と blocker の damageMarked を同一 draft 上で更新する。",
+        "command 末尾の SBA で双方を graveyard へ置く。"
+      ],
+      "requiredObservations": [
+        "attacker と blocker はどちらも graveyard にある。",
+        "双方の zone-change event は reason='sba' / sbaApplied='704.5g' を持つ。",
+        "双方の SBA event は同じ simultaneousGroupId を持つ。",
+        "片方だけが先に死亡してもう片方へ戦闘ダメージを与えない serial 挙動ではこの case は失敗する。"
+      ],
+      "mustNot": [
+        "resolveCombatDamage を public markDamage command の serial 適用として実装しない。",
+        "新しい SBA を追加しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage applies all creature damage marks before the end-of-command stabilizeBeforePriority call",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-combat-single-block-sublethal-survives",
+      "title": "単一ブロックの致死未満戦闘ダメージはマークされるが704.5gでは破壊されない",
+      "crRefs": ["510.1c", "510.1d", "510.2", "704.5g", "120.6"],
+      "scope": "s-combat-structure-first-slice",
+      "initialFixture": {
+        "attacker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 2,
+          "toughness": 2
+        },
+        "blocker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 1,
+          "toughness": 3
+        }
+      },
+      "steps": [
+        "enterCombat -> declareAttackers -> declareBlockers -> resolveCombatDamage を適用する。",
+        "attacker は blocker に2点、blocker は attacker に1点を割り振る。",
+        "command 末尾の SBA で 704.5g を確認する。"
+      ],
+      "requiredObservations": [
+        "attacker は battlefield に残り damageMarked=1。",
+        "blocker は battlefield に残り damageMarked=2。",
+        "704.5g の zone-change event は発行されない。"
+      ],
+      "mustNot": [
+        "damageMarked > 0 だけを理由に creature を graveyard へ置かない。",
+        "戦闘ダメージを player damage と混同しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage reuses markDamage semantics on one draft",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-combat-unblocked-attacker-no-creature-mark",
+      "title": "未ブロック攻撃クリーチャーは本スライスでは creature damage mark を発生させない",
+      "crRefs": ["509.1h", "510.1b", "120.3a"],
+      "scope": "s-combat-structure-first-slice",
+      "initialFixture": {
+        "attacker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 3,
+          "toughness": 3
+        },
+        "blockers": []
+      },
+      "steps": [
+        "enterCombat -> declareAttackers を適用する。",
+        "declareBlockers は空配列で適用する。",
+        "resolveCombatDamage を適用する。"
+      ],
+      "requiredObservations": [
+        "attacker.blockedBy は空配列のまま。",
+        "attacker の damageMarked は変化しない。",
+        "player damage は first slice 対象外のため opponentLife は変化しない。"
+      ],
+      "mustNot": [
+        "未ブロック attacker に creature markDamage を発生させない。",
+        "既存 store declareAttack の opponent life 調整と統合しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage skips creature damage for unblocked attackers",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-combat-multiple-blockers-deferred",
+      "title": "複数ブロッカーへの戦闘ダメージ割当は選択を捏造せず手動へ延期する",
+      "crRefs": ["509.1g", "509.1h", "510.1c"],
+      "scope": "s-combat-structure-first-slice",
+      "initialFixture": {
+        "attacker": {
+          "zone": "battlefield",
+          "typeLine": "Creature",
+          "power": 4,
+          "toughness": 4
+        },
+        "blockers": [
+          {
+            "zone": "battlefield",
+            "typeLine": "Creature",
+            "power": 1,
+            "toughness": 3
+          },
+          {
+            "zone": "battlefield",
+            "typeLine": "Creature",
+            "power": 1,
+            "toughness": 3
+          }
+        ]
+      },
+      "steps": [
+        "enterCombat -> declareAttackers を適用する。",
+        "declareBlockers で同一 attacker を2体の blocker がブロックする。",
+        "resolveCombatDamage を適用する。"
+      ],
+      "requiredObservations": [
+        "attacker.blockedBy は2体の blocker を含む。",
+        "manual-combat-damage warning/log が残る。",
+        "attacker と blockers の damageMarked は変化しない。"
+      ],
+      "mustNot": [
+        "複数ブロッカーの先頭へ自動で全ダメージを割り当てない。",
+        "manual/deferred の attacker について blocker から attacker への creature markDamage も出さない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts resolveCombatDamage defers multi-blocker assignment without applying markDamage",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
       "id": "cr-sba-plus-minus-counter-annihilation",
       "title": "+1/+1カウンターと-1/-1カウンターはSBAで同数相殺される",
       "crRefs": ["704.3", "704.5q", "117.5", "122.3"],

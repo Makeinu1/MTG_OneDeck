@@ -195,6 +195,15 @@ function normalizeTriggerStackPlacementBucket(
   return stackPlacementBucket === 'ability-triggered' ? 'ability-triggered' : 'ordinary';
 }
 
+function normalizeSnapshotCombat(state: GameState): GameState['combat'] {
+  const snapshot = state as Partial<GameState>;
+  const combat = snapshot.combat;
+  if (!combat || snapshot.phase !== 'combat' || combat.turn !== snapshot.turn) {
+    return null;
+  }
+  return combat;
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
@@ -219,6 +228,7 @@ function normalizeSnapshotState(state: GameState): GameState {
     ...state,
     effectsAuto: typeof state.effectsAuto === 'boolean' ? state.effectsAuto : true,
     activePlayerId: state.activePlayerId ?? 'P1',
+    combat: normalizeSnapshotCombat(state),
     cards: normalizeSnapshotCards(state.cards),
     zones: normalizeSnapshotZones(state.zones),
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),

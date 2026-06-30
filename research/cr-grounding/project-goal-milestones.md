@@ -54,22 +54,22 @@
 | Q5 Phase 1 — S-CHOICE / S-TURN | 903.9a と 704.5j を汎用 `pendingRuleChoices` に載せる | Codex | **Done**(c6dcb7c) | commander choice と legend rule が同じchoice substrateで説明できる |
 | Q5 Phase 2 — S-EVENTS / PRIORITY | priority fixed-point loop(`SBA→choice→trigger→repeat`)+ `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering | Codex | **Done**(baa0b05・2026-06-30) | bucket -> APNAP -> controller order が実行可能testで固定。`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer(field は ordinary backfill 済み=zero-rework) |
 | S-EVENTS / MANA | CR 605.1b triggered mana ability をno-stack transactionとして扱う | Codex | **Done**(d9e3a63・2026-06-30) | 605.1bが通常 `pendingTriggers` に混ざらない。活性化源(第1節)検出は C-GRAMMAR defer |
-| S-SBA: damage-marked substrate | CR 704.5g/h(lethal/deathtouch combat damage destroy)+ CR 120.3 damage-marked state + CR 514.2 cleanup clearing | Codex | **Active(next)** | `damageMarked` state + `markDamage`/`clearMarkedDamage` command + 704.5g/h を `performStateBasedActionsOnce` へ。full combat phase orchestration / regeneration replacement / first-strike は defer |
+| S-SBA: damage-marked substrate | CR 704.5g/h(lethal/deathtouch combat damage destroy)+ CR 120.3 damage-marked state + CR 514.2 cleanup clearing | Codex | **Done**(b6ab728・2026-06-30) | `damageMarked`/`hasDeathtouchDamage` state + `markDamage`/`clearMarkedDamage` command + 704.5g/h SBA。combat orchestration/regen/first-strike は defer |
+| S-COMBAT: combat structure(first slice) | CR 506–510 の combat 構造 substrate。declare attackers/blockers state + combat damage step が `markDamage` を発行し既存 704.5g/h へ接続 | Codex | **Active(next)** | attacking/blocking/blockedBy state + combat damage assignment → markDamage。defer=first/double strike step分割・banding・複数blocker damage ordering nuance・trample-to-player(follow slice) |
 | S-SBA incremental(残) | 残り SBA(704.5a/b/c 敗北 state・704.5p 等)を価値順に増やす | Codex | Not started | 各SBAがCR refs、event metadata、golden/test付きで追加される |
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
 | C-GRAMMAR | Oracle compiler の対応構文を増やす | Codex | Not started | compiler誤訳がGameStateを直接書かず、command列とundoで閉じる |
 
 ## Immediate next action
 
-S-SBA: damage-marked substrate = CR 704.5g/h(lethal/deathtouch combat damage destroy)。ユーザー裁定(2026-06-30「最終ゴールから逆算・小手先でなく substantive な変更を」)を受け Fable が選定: **combat は最大の未モデル CR 領域であり damage-marked state は combat 系全体がぶら下がる substrate**(lethal/deathtouch/first-strike/regeneration が読む)。defeat-state(704.5a/b/c)より構造的レバレッジが高く substrate-first に合致。設計=本マイルストーンで起こす(既存 R-FREEZE なし)。
+S-COMBAT: combat structure(first slice)= CR 506–510。damage-marked substrate(§34.12・b6ab728)で creature は致死 damage で死ねるが、**combat が未モデルゆえ damage は manual `markDamage` 経由でしか入らない**。combat 構造を起こして damage-marked substrate を「生かす」のが CR 完全性逆算で最も高レバレッジ(combat は CR 5xx の大領域)。設計=本マイルストーンで起こす(既存 R-FREEZE なし)。
 
-Fable のアーキ判断(固定制約):
-1. `CardInstance.damageMarked: number`(既定0・restore で backfill)+ deathtouch 由来の追跡(CR 704.5h 用)。
-2. command `markDamage`(cardId/amount/deathtouch?)+ `clearMarkedDamage`(CR 514.2 cleanup)。
-3. SBA を `performStateBasedActionsOnce`(commands.ts:527)へ: 704.5g(toughness>0 かつ damageMarked≥toughness → graveyard)・704.5h(deathtouch 由来 damage≥1 かつ toughness>0 → graveyard)。既存 704.5f(toughness≤0)と整合。
-4. **defer(scope-boundary)**: full combat phase orchestration(declare attackers/blockers/combat damage step 自動)・regeneration replacement(704.5g の「unless regenerated」)・first/double strike ordering。これらは leaf/compiler 後付け。
+Fable のアーキ方向(次 bootstrap で Codex draft → CR 照合・確定):
+1. combat 構造 state: creature の attacking / blocking / blockedBy(CR 506–509)。GameState に combat 局面を持つか、card flag か は draft で決める(イミュータブル・前方互換 backfill 必須)。
+2. combat damage step: 攻撃/ブロックから damage 割当を決定的に算出し **既存 `markDamage` command を発行**(新 SBA は足さない=704.5g/h が destroy を担う)。
+3. **defer(scope-boundary)**: first/double strike の damage step 分割・banding・複数 blocker への damage ordering の細部・trample-to-defending-player(follow slice)・combat 中の優先権ループの完全自動化。最小=「攻撃宣言→ブロック宣言→combat damage が markDamage を出し 704.5g/h が解決」。
 
-手順: Codex が engine-spec §34.12 草稿 + golden を `*.draft`(CR 条番号併記)へ → Fable が CR 照合・`review.*` author・docs 昇格 → Codex 実装 → Tier-1(冷却)→ Tier-2(Fable 再オーナー化)→ Sonnet ship。
+手順: Codex が現 turn/phase 構造を調査し engine-spec §34.13 草稿 + golden を `*.draft`(CR 条番号併記)へ → Fable が CR 照合・`review.*` author・docs 昇格 → Codex 実装 → Tier-1(冷却)→ Tier-2(Fable 再オーナー化)→ Sonnet ship。**最大リスク=combat 全体を一気に引き込むこと。first slice に厳格に限る。**
 
 Codex は引き続き git 操作禁止、判定者在席中は `docs/`・`review.*` の直接変更禁止(草稿はレーンへ)。
 
@@ -100,4 +100,4 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 
 ## Session rule
 
-1セッションは1マイルストーンに閉じる。今のセッションのマイルストーンは **S-SBA: damage-marked substrate**(CR 704.5g/h + damage-marked state)であり、defeat-state(704.5a/b/c)・full combat orchestration・C-GRAMMAR へは広げない。**最大リスク = (1) full combat phase machinery(declare attackers/blockers/combat damage step)を引き込むこと(本 Phase は state + command + SBA のみ。combat 自動化は別)、(2) regeneration replacement を SBA に混ぜること(704.5g「unless regenerated」は replacement 系で defer)、(3) 既存 704.5f(toughness≤0)との二重 destroy。damageMarked は cleanup(514.2)で確実にクリアする。**
+1セッションは1マイルストーンに閉じる。次のマイルストーンは **S-COMBAT: combat structure(first slice)**(CR 506–510 の攻撃/ブロック宣言 + combat damage が `markDamage` を発行)であり、first/double strike・banding・trample-to-player・combat 優先権完全自動化へは広げない。**最大リスク = combat 全体(全ステップ・全キーワード)を一気に実装すること。first slice = 攻撃宣言→ブロック宣言→combat damage→既存 704.5g/h destroy に厳格に限る。新 SBA は足さない(704.5g/h を再利用)。**

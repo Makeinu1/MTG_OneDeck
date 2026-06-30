@@ -198,6 +198,48 @@ describe('CR grounding store bridges', () => {
     });
   });
 
+  it('CR 506.1: restoreGame backfills missing or stale combat state to null', () => {
+    const deck = makeDeck(12);
+    store().newGame(deck, 1);
+    const state = store().state as GameState;
+    const missingCombat = { ...state } as Partial<GameState>;
+    delete missingCombat.combat;
+
+    store().restoreGame({
+      version: SNAPSHOT_VERSION,
+      state: missingCombat as GameState,
+      deck,
+      autoAdvanceToMain: store().autoAdvanceToMain,
+    });
+    expect(store().state?.combat).toBeNull();
+
+    const combat = {
+      combatId: 'legacy-combat',
+      turn: state.turn,
+      step: 'declareAttackers',
+      attackingPlayerId: 'P1',
+      defendingPlayerId: 'OPPONENT_A',
+      attackers: [],
+      blockers: [],
+    } satisfies NonNullable<GameState['combat']>;
+
+    store().restoreGame({
+      version: SNAPSHOT_VERSION,
+      state: { ...state, phase: 'main1', combat },
+      deck,
+      autoAdvanceToMain: store().autoAdvanceToMain,
+    });
+    expect(store().state?.combat).toBeNull();
+
+    store().restoreGame({
+      version: SNAPSHOT_VERSION,
+      state: { ...state, phase: 'combat', turn: state.turn + 1, combat },
+      deck,
+      autoAdvanceToMain: store().autoAdvanceToMain,
+    });
+    expect(store().state?.combat).toBeNull();
+  });
+
   it('M2 player/controller substrate: new games initialize active player and card ownership to P1', () => {
     const deck = makeDeck(12);
     store().newGame(deck, 1);

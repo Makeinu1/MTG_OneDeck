@@ -1,0 +1,206 @@
+# Combat Structure Substrate Design Draft
+
+CR source: Magic: The Gathering Comprehensive Rules, effective 2026-06-19.
+Pinned local source: `rule/Magic_The_Gathering_Comprehensive_Rules.txt`.
+Relevant CR refs: 117.5, 120.2a, 120.3a, 120.3e, 120.6, 506.1, 506.2, 506.3, 506.4, 508.1a, 508.1f, 508.1k, 508.1m, 508.2, 508.8, 509.1a, 509.1g, 509.1h, 509.2, 510.1a, 510.1b, 510.1c, 510.1d, 510.2, 510.3, 510.4, 514.2, 704.3, 704.5g, 704.5h.
+
+## Current Engine Findings
+
+- `src/engine/types.ts` has `type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end'`; there is no combat step type. `PHASE_ORDER` treats combat as one coarse phase, not CR 506.1's five combat steps.
+- `src/engine/commands.ts` `nextPhase` advances through `PHASE_ORDER`; `end -> untap` and `nextTurn` clear marked damage through the current cleanup surrogate. There is no begin-combat / declare-attackers / declare-blockers / combat-damage command.
+- `src/engine/priority.ts` `advanceToPriority` is a fixed-point boundary: state-based actions, trigger collection/placement, choices/order stops, then priority-ready. This matches the place where combat damage should hand off to CR 704.3 / 117.5 after damage is dealt.
+- `GameState` has no combat structure field. `CardInstance` has damage substrate fields only: `damageMarked` and `hasDeathtouchDamage`.
+- Existing damage substrate from commit b6ab728 / engine-spec §34.12:
+  - `markDamage { cardId; amount; deathtouch? }` records CR 120.6 marked damage and the CR 704.5h deathtouch flag.
+  - `performStateBasedActionsOnce` handles 704.5g and 704.5h using effective toughness, with 704.5f kept disjoint by a `toughness > 0` guard.
+  - No new SBA is needed for this combat slice; combat should only create damage and let existing 704.5g/h destroy.
+- Existing store-level `declareAttack` in `src/store/gameStore.ts` is not a combat substrate. It immediately adjusts opponent life, taps non-vigilance attackers, and appends attack triggers; it does not record attackers/blockers or produce creature combat damage.
+- Important execution constraint: `applyCommand` always calls `stabilizeBeforePriority` at the end, and `applyCommands` calls `applyCommand` one command at a time. Therefore reciprocal combat damage must not be implemented as serial public `markDamage` commands through `applyCommands`, because SBA could run after the first mark. The implementation slice should use one atomic combat-damage command that reuses the `markDamage` semantics internally, or add an explicit atomic command application primitive. This preserves CR 510.2 simultaneity while still reusing the damage-marked substrate.
+
+## State Model Options
+
+### Option A: `GameState.combat`局面オブジェクト
+
+Shape sketch:
+
+```ts
+type CombatStep =
+  | 'beginningOfCombat'
+  | 'declareAttackers'
+  | 'declareBlockers'
+  | 'combatDamage'
+  | 'endOfCombat';
+
+interface CombatState {
+  combatId: string;
+  turn: number;
+  step: CombatStep;
+  attackingPlayerId: PlayerId;
+  defendingPlayerId: PlayerId;
+  attackers: CombatAttacker[];
+  blockers: CombatBlocker[];
+}
+
+interface CombatAttacker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  target: CombatTarget;
+  blockedBy: string[];
+  declaredOrder: number;
+}
+
+interface CombatBlocker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  blocking: string[];
+  declaredOrder: number;
+}
+```
+
+Trade-offs:
+
+- Pros:
+  - Phase-scoped attacking/blocking status is centralized and can be reset on combat end or `phase !== 'combat'` without touching every `CardInstance`.
+  - Backfill is cheap: legacy snapshots can set `combat: null`.
+  - Determinism is explicit: `declaredOrder` provides stable attacker/blocker order for golden replay and deterministic default choices.
+  - Undo remains snapshot-friendly because all combat structure lives in `GameState`.
+  - `objectId` pins the declared object incarnation; if a card leaves/re-enters the battlefield, damage assignment can ignore the stale participant without mistaking the new object for the old one (CR 506.4 / CR 400.7 direction).
+  - Future backfill is easier: add fields inside `combat` rather than adding optional flags to every card.
+- Cons:
+  - UI selectors need helper functions such as `isAttacking(state, cardId)`, `blockersOf(state, attackerId)`, and `blockedStatusOf(state, attackerId)`.
+  - Any command that removes an object from combat needs to update `GameState.combat` or damage assignment must filter stale participants.
+
+### Option B: `CardInstance`フラグ
+
+Shape sketch:
+
+```ts
+interface CardInstance {
+  attacking?: CombatTarget;
+  blocking?: string[];
+  blockedBy?: string[];
+}
+```
+
+Trade-offs:
+
+- Pros:
+  - Very direct UI reads: the card carries its current attacking/blocking status.
+  - Mirrors common rules language ("this creature is attacking/blocking") at the object field level.
+- Cons:
+  - Combat flags are temporary, but `CardInstance` persists across zones and turns. Every zone move, control change, phase transition, copy/token cleanup, and restore path must remember to clear or backfill them.
+  - Stale flags are easy: a card that leaves and returns could retain attacking/blocking meaning unless every true zone change clears all combat fields.
+  - More structural churn for immutable updates because declaring blockers mutates several card objects at once.
+  - Backfill requires normalizing every card, not just one nullable `GameState` field.
+  - Future combat choices (damage assignment, blocked-but-all-blockers-gone, attacking target, banding/trample metadata) do not naturally fit on a single card without duplicating relationship state.
+
+### Recommendation
+
+Use Option A: add a nullable `GameState.combat`局面オブジェクト and keep `CardInstance` free of attacking/blocking flags.
+
+Reasoning:
+
+- CR 120.6 damage is a persistent per-object fact until cleanup, so it belongs on `CardInstance` as implemented. CR 506-510 combat status is phase-scoped and relational, so it belongs in a combat context.
+- The project requires immutable updates, deterministic replay, snapshot undo, and legacy restore backfill. A single `combat: null | CombatState` field satisfies those with the smallest blast radius.
+- `blockedBy` / `blocking` can still exist as first-class data, but inside `GameState.combat.attackers/blockers`, not as permanent card flags.
+- Store/UI code can derive card badges from `state.combat`; no rule authority is lost by not storing flags directly on the card.
+
+Backfill rule:
+
+- Legacy snapshots with missing `combat` restore as `combat: null`.
+- If `combat.turn !== state.turn` or `state.phase !== 'combat'`, restore should normalize to `combat: null`.
+- Within a combat state, participants whose `objectId` no longer matches `objectIdOf(state.cards[cardId])` should be ignored for damage assignment and eventually removed by a cleanup helper. Full CR 506.4 removal automation can be a follow slice.
+
+## First Slice Scope
+
+Target: the smallest CR 506-510 substrate that turns the existing damage-marked implementation into usable creature combat.
+
+Include:
+
+1. Combat state exists during `phase: 'combat'` and tracks declare-attackers -> declare-blockers -> combat-damage progress (CR 506.1).
+2. Declare attackers records attacking creatures, their object ids, declaration order, controller, and attack target (CR 508.1a, 508.1k). Tapping non-vigilance attackers follows CR 508.1f if Fable wants to include the existing store behavior in the engine command.
+3. Declare blockers records blocking creatures and relationships to attackers (CR 509.1a, 509.1g). For first slice, one blocker blocks one attacker; exotic cases that let one blocker block multiple attackers are deferred.
+4. Blocked/unblocked status is derived at blockers declaration (CR 509.1h). An attacker that had at least one declared blocker remains blocked for this combat even if the blocker later leaves, unless a future effect explicitly changes it.
+5. Combat damage step computes deterministic damage assignments from `GameState.combat` and applies creature damage through the existing marked-damage substrate (CR 510.1a-d, 510.2, 120.2a, 120.3e).
+6. After combat damage is dealt, existing `performStateBasedActionsOnce` / `advanceToPriority` handles CR 704.5g/h destruction. No new SBA is added.
+
+Do not include:
+
+- New SBA rules.
+- Full CR 507 beginning-of-combat and CR 510.3 priority automation. The existing `advanceToPriority` boundary can be called after command resolution, but this slice does not fully model every priority pass inside combat.
+- Full attack/block restrictions, requirements, attack/block costs, evasion legality, or illegal-action rollback (CR 508.1c-j, 509.1b-f). The app's sandbox philosophy can surface warnings, but the substrate should not claim full legality enforcement.
+- Full player/planeswalker/battle attack target model. The first slice can record a player target for unblocked attacks, but creature-vs-creature combat is the primary acceptance surface.
+
+## Combat Damage Algorithm
+
+Input: current `GameState.combat` at `step: 'combatDamage'`.
+
+Preconditions:
+
+- Only live battlefield creature participants whose stored `objectId` still matches the current object are damage sources/recipients.
+- Power is read with the existing effective-power helper. Damage amount `<= 0` assigns no damage (CR 510.1a, 120.8).
+- Deathtouch source status is read from existing effective keywords and passed as `deathtouch: true` to the mark-damage substrate for positive creature damage (CR 704.5h). No deathtouch inference belongs in `markDamage` itself.
+
+Assignment:
+
+1. Unblocked attacker:
+   - CR 510.1b assigns damage to the player/planeswalker/battle it is attacking.
+   - First-slice recommendation: if the target is the existing opponent-life label, emit `adjustOpponentLife(label, -power)` after creature damage has been prepared; otherwise record no creature `markDamage` and leave non-player targets deferred.
+   - Golden emphasis should be "no blocker means no creature receives `markDamage`"; player damage can be asserted only if Fable elects to include existing opponent-life plumbing in scope.
+2. Attacker blocked by exactly one live blocker:
+   - Attacker assigns all positive power to that blocker (CR 510.1c).
+   - That blocker assigns all positive power to the attacker (CR 510.1d).
+   - Both marks must be applied atomically before SBA, satisfying CR 510.2.
+3. Attacker blocked by multiple live blockers:
+   - Pinned CR 2026-06-19 CR 510.1c says the attacking creature's damage is divided among those blockers as its controller chooses.
+   - First-slice deterministic default: use blocker declaration order as the controller's implicit choice and assign all attacking damage to the first live blocker, with no trample overflow. This is deterministic and narrow, but not a claim of full multiple-blocker allocation UI.
+   - Alternative for stricter CR ownership: require explicit allocation payload for multi-blocked attackers and refuse/skip auto assignment without it. If Fable wants fewer implicit choices, choose this alternative.
+   - Each blocker that blocks exactly one attacker still assigns all positive power to that attacker (CR 510.1d).
+4. Blocked attacker with no live blockers remaining:
+   - It remains blocked under CR 509.1h and assigns no combat damage under CR 510.1c.
+
+Execution note:
+
+- Because current public `markDamage` commands stabilize after each command, combat damage should be one public command such as `resolveCombatDamage` / `assignCombatDamage`, implemented in `commands.ts` so it can call the same internal mark-damage logic for every assignment on one draft and then run the existing end-of-command SBA once.
+- This is still "combat damage emits markDamage effects into the existing substrate"; it avoids serial-SBA behavior that would violate CR 510.2.
+
+## Golden Case Sketches
+
+1. `cr-combat-single-block-lethal-mutual-damage`
+   - CR refs: 506.1, 508.1k, 509.1g, 509.1h, 510.1a, 510.1c, 510.1d, 510.2, 704.5g, 120.6.
+   - Board: P1 2/2 attacker, opponent 2/2 blocker, both battlefield.
+   - Steps: enter combat, declare attacker, declare blocker blocking it, resolve combat damage.
+   - Expected: both creatures get 2 marked damage atomically, then SBA moves both to graveyard with `sbaApplied: '704.5g'`.
+   - Regression pin: applying damage serially must not let the first destroyed creature avoid dealing combat damage back.
+2. `cr-combat-single-block-sublethal-survives`
+   - CR refs: 510.1c, 510.1d, 510.2, 704.5g, 120.6.
+   - Board: P1 2/2 attacker, opponent 0/3 or 1/3 blocker.
+   - Expected: blocker and attacker receive the assigned creature damage; no 704.5g event fires for a creature whose marked damage is below toughness.
+3. `cr-combat-unblocked-attacker-no-creature-mark`
+   - CR refs: 509.1h, 510.1b, 120.3a.
+   - Board: P1 attacker declared, no blockers declared.
+   - Expected: attacker is unblocked; no creature `damageMarked` changes. If first slice includes opponent player damage, opponent life decreases by attacker power through existing `adjustOpponentLife`; otherwise this case is a structural unblocked/no-creature-damage pin.
+4. `cr-combat-multiple-blockers-no-trample-default`
+   - CR refs: 509.1g, 509.1h, 510.1c, 510.1d, 510.2.
+   - Board: one attacker blocked by two blockers, no trample handling.
+   - Expected: attacker is blocked by both. With deterministic default, attacker assigns all damage to the first declared live blocker; both blockers assign damage to the attacker if each blocks only that attacker. No excess/trample damage reaches a player. If Fable chooses explicit allocation instead, the case should assert that missing allocation is deferred/manual rather than silently claiming full CR allocation.
+
+## Defer Boundaries
+
+- First strike / double strike combat damage step splitting (CR 510.4, CR 702.7, CR 702.4).
+- Banding and "bands with other" (CR 508.1e, CR 702.22).
+- Trample excess damage to the defending player / planeswalker / battle (CR 702.19, CR 120.4a, CR 510.1c).
+- Multiple-blocker allocation UI and any "controller chooses division" surface beyond the deterministic first-slice default (CR 510.1c).
+- A blocker blocking multiple attackers and related allocation choices (CR 510.1d).
+- Full combat priority automation for every step (CR 507.2, 508.2, 509.2, 510.3), including complete trigger ordering during those windows.
+- Full attack/block legality: restrictions, requirements, costs, evasion, menace, flying/reach, defender, "can't attack/block", and illegal-action rollback (CR 508.1c-j, 509.1b-f, 733).
+- Put-onto-battlefield attacking/blocking, remove-from-combat automation, retargeting attacked player/permanent, planeswalker/battle combat damage, infect/wither/lifelink/toxic/combat-damage triggers, prevention/replacement effects, regeneration replacement, and standalone cleanup step.
+
+## Open Decisions for Fable
+
+1. Should unblocked player damage be in first slice via existing `adjustOpponentLife`, or should first slice only assert that no creature `markDamage` occurs?
+2. For multi-blocked attackers, prefer deterministic implicit assignment to first declared blocker, or require explicit allocation payload and mark auto-resolution as manual/deferred?
+3. Should the first implementation add a new public atomic command (`resolveCombatDamage`) or add a general atomic command-batch primitive? The former is narrower and lower risk.
+4. Should declare-attackers command own tapping and existing attack-trigger collection, or should those remain store-level adapters until combat substrate is accepted?

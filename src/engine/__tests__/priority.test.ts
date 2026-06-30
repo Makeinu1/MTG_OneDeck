@@ -102,6 +102,7 @@ function stateWithPendingTriggers(
     activePlayerId: 'P1',
     turn: 1,
     phase: 'main1',
+    combat: null,
     life: 40,
     poison: 0,
     energy: 0,

@@ -322,6 +322,16 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
     expect(v).toBeGreaterThanOrEqual(0);
   }
 
+  // I3 (S-COMBAT): combat context is null unless it is this turn's combat phase,
+  // and every combat participant references a real card (CR 506.1).
+  if (state.combat !== null) {
+    expect(state.phase, `${label}: combat set outside combat phase`).toBe('combat');
+    expect(state.combat.turn, `${label}: combat.turn != state.turn`).toBe(state.turn);
+    for (const p of [...state.combat.attackers, ...state.combat.blockers]) {
+      expect(state.cards[p.cardId], `${label}: combat participant ${p.cardId} missing`).toBeDefined();
+    }
+  }
+
   // I6: lands-played counter is never negative
   expect(state.landsPlayedThisTurn, `${label}: negative landsPlayedThisTurn`).toBeGreaterThanOrEqual(0);
 

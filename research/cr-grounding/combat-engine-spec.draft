@@ -1,0 +1,78 @@
+# Combat Structure Engine Spec Draft
+
+Draft lane only. Do not copy to `docs/engine-spec.md` until Fable review.
+
+CR source: Magic: The Gathering Comprehensive Rules, effective 2026-06-19.
+Relevant CR refs: 506.1, 508.1a, 508.1f, 508.1k, 509.1a, 509.1g, 509.1h, 510.1a, 510.1b, 510.1c, 510.1d, 510.2, 120.6, 514.2, 704.5g, 704.5h.
+
+## State Contract
+
+`GameState.combat: CombatState | null` is the only combat-status substrate for this slice. `CardInstance` does not gain attacking/blocking flags.
+
+```ts
+type CombatStep =
+  | 'beginningOfCombat'
+  | 'declareAttackers'
+  | 'declareBlockers'
+  | 'combatDamage'
+  | 'endOfCombat';
+
+type CombatTarget = { type: 'player'; playerId: PlayerId };
+
+interface CombatState {
+  combatId: string;
+  turn: number;
+  step: CombatStep;
+  attackingPlayerId: PlayerId;
+  defendingPlayerId: PlayerId;
+  attackers: CombatAttacker[];
+  blockers: CombatBlocker[];
+}
+
+interface CombatAttacker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  target: CombatTarget;
+  blockedBy: string[];
+  declaredOrder: number;
+}
+
+interface CombatBlocker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  blocking: string[];
+  declaredOrder: number;
+}
+```
+
+`combat` is `null` for legacy snapshots, for any restored state whose `phase !== 'combat'`, and for any restored state whose `combat.turn !== state.turn` (CR 506.1). Phase transitions out of `combat` clear the field to `null`.
+
+## Command Contract
+
+`enterCombat` starts a combat context, sets `phase: 'combat'`, records attacking/defending players, and initializes `step: 'beginningOfCombat'` (CR 506.1).
+
+`declareAttackers` records attacker object ids, controller ids, targets, and declared order (CR 508.1a, 508.1k). A non-vigilance attacker is tapped during this command (CR 508.1f). This slice does not implement attack restrictions, requirements, costs, or attack triggers.
+
+`declareBlockers` records one blocker blocking one attacker and updates the attacker's `blockedBy` relationship (CR 509.1a, 509.1g). An attacker with a non-empty `blockedBy` is blocked for this combat (CR 509.1h).
+
+`resolveCombatDamage` is the only public combat-damage command for this slice (CR 510.2). It computes all first-slice creature damage assignments and applies the existing marked-damage semantics on one draft before `applyCommand` reaches its normal end-of-command `stabilizeBeforePriority` call.
+
+## Damage Contract
+
+Only live battlefield creature participants whose stored `objectId` still matches the current object can deal or receive automatic combat damage in this slice.
+
+For an unblocked attacker, no creature `markDamage` is produced. Player damage from CR 510.1b is out of scope and existing store `declareAttack` opponent-life behavior remains separate.
+
+For an attacker blocked by exactly one blocker, positive attacker power is marked on the blocker and positive blocker power is marked on the attacker (CR 510.1a, 510.1c, 510.1d, 120.6). Deathtouch on the damage source is read from effective keywords and passed into the existing marked-damage substrate for CR 704.5h.
+
+For an attacker blocked by multiple blockers, automatic damage assignment is deferred. The command emits `manual-combat-damage` warning/log and produces no creature `markDamage` for that blocked group. This avoids inventing the attacking player's CR 510.1c division choice.
+
+After damage is marked, existing state-based actions handle lethal damage and deathtouch damage via CR 704.5g and 704.5h. This draft adds no new SBA.
+
+## Explicit Defers
+
+First strike/double strike step splitting, trample excess, banding, blocker-blocks-multiple-attackers, full attack/block legality, combat trigger collection, player/planeswalker/battle combat damage, prevention/replacement effects, regeneration, and full combat priority automation remain out of scope.
+
+Property invariant note for reviewer re-ownership: future `review.properties` coverage should include `combat === null || (phase === 'combat' && combat.turn === turn)` and participant `cardId` existence/object-id consistency. Implementer did not edit reviewer-owned tests.

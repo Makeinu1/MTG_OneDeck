@@ -58,6 +58,42 @@ export type PlayerId = 'P1' | 'OPPONENT_A';
 export type PhysicalCardId = string;
 export type ObjectId = string;
 
+export type CombatStep =
+  | 'beginningOfCombat'
+  | 'declareAttackers'
+  | 'declareBlockers'
+  | 'combatDamage'
+  | 'endOfCombat';
+
+export type CombatTarget = { type: 'player'; playerId: PlayerId };
+
+export interface CombatAttacker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  target: CombatTarget;
+  blockedBy: string[];
+  declaredOrder: number;
+}
+
+export interface CombatBlocker {
+  cardId: string;
+  objectId: ObjectId;
+  controllerId: PlayerId;
+  blocking: string[];
+  declaredOrder: number;
+}
+
+export interface CombatState {
+  combatId: string;
+  turn: number;
+  step: CombatStep;
+  attackingPlayerId: PlayerId;
+  defendingPlayerId: PlayerId;
+  attackers: CombatAttacker[];
+  blockers: CombatBlocker[];
+}
+
 export interface ObjectSnapshot {
   physicalCardId: PhysicalCardId;
   objectId: ObjectId;
@@ -217,6 +253,7 @@ export interface GameState {
   activePlayerId: PlayerId;
   turn: number; // 1始まり
   phase: Phase;
+  combat: CombatState | null;
   life: number; // 初期40
   poison: number;
   energy: number;

@@ -56,6 +56,37 @@ function findInstanceId(defId: string): string {
   return card.id;
 }
 
+function makeCombatCreature(
+  scryfallId: string,
+  printedName: string,
+  power: string,
+  toughness: string,
+  oracleText = '',
+) {
+  return makeDef({
+    scryfallId,
+    printedName,
+    typeLine: 'Creature',
+    faces: [
+      {
+        name: scryfallId,
+        printedName,
+        typeLine: 'Creature',
+        power,
+        toughness,
+        oracleText,
+      },
+    ],
+  });
+}
+
+function startCombatFixture(defs: ReturnType<typeof makeCombatCreature>[]): void {
+  store().newGame([...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(12)], 1);
+  for (const def of defs) {
+    store().moveCard(findInstanceId(def.scryfallId), 'battlefield');
+  }
+}
+
 describe('CR grounding golden cases executable subset (Z5)', () => {
   beforeEach(() => {
     resetStore();
@@ -1117,6 +1148,146 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
       hasDeathtouchDamage: false,
     });
     expect(state?.zones.graveyard).not.toContain(creatureId);
+  });
+
+  it('cr-combat-single-block-lethal-mutual-damage: CR 510.2 marks reciprocal damage atomically', () => {
+    goldenCase('cr-combat-single-block-lethal-mutual-damage', [
+      '506.1',
+      '508.1k',
+      '509.1g',
+      '509.1h',
+      '510.1c',
+      '510.1d',
+      '510.2',
+      '704.5g',
+      '120.6',
+    ]);
+
+    const attacker = makeCombatCreature('gold-combat-lethal-attacker', '黄金攻撃熊', '2', '2');
+    const blocker = makeCombatCreature('gold-combat-lethal-blocker', '黄金防御熊', '2', '2');
+    startCombatFixture([attacker, blocker]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const blockerId = findInstanceId(blocker.scryfallId);
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    expect(store().state?.cards[attackerId].tapped).toBe(true);
+    store().dispatch({
+      type: 'declareBlockers',
+      blockers: [{ cardId: blockerId, attackerId }],
+    });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    const sbaEvents = (state?.eventLog ?? []).filter(
+      (event) =>
+        (event.physicalCardId === attackerId || event.physicalCardId === blockerId) &&
+        event.reason === 'sba' &&
+        event.sbaApplied === '704.5g',
+    );
+    expect(state?.cards[attackerId]?.zone).toBe('graveyard');
+    expect(state?.cards[blockerId]?.zone).toBe('graveyard');
+    expect(sbaEvents).toHaveLength(2);
+    expect(new Set(sbaEvents.map((event) => event.simultaneousGroupId)).size).toBe(1);
+  });
+
+  it('cr-combat-single-block-sublethal-survives: CR 510.1c/d marks nonlethal reciprocal damage', () => {
+    goldenCase('cr-combat-single-block-sublethal-survives', [
+      '510.1c',
+      '510.1d',
+      '510.2',
+      '704.5g',
+    ]);
+
+    const attacker = makeCombatCreature('gold-combat-sublethal-attacker', '黄金浅攻撃', '2', '2');
+    const blocker = makeCombatCreature('gold-combat-sublethal-blocker', '黄金硬防御', '1', '3');
+    startCombatFixture([attacker, blocker]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const blockerId = findInstanceId(blocker.scryfallId);
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    store().dispatch({
+      type: 'declareBlockers',
+      blockers: [{ cardId: blockerId, attackerId }],
+    });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    expect(state?.cards[attackerId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 1,
+    });
+    expect(state?.cards[blockerId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 2,
+    });
+    expect(state?.zones.graveyard).not.toContain(attackerId);
+    expect(state?.zones.graveyard).not.toContain(blockerId);
+  });
+
+  it('cr-combat-unblocked-attacker-no-creature-mark: CR 510.1b is outside creature damage slice', () => {
+    goldenCase('cr-combat-unblocked-attacker-no-creature-mark', ['509.1h', '510.1b', '120.3a']);
+
+    const attacker = makeCombatCreature('gold-combat-unblocked-attacker', '黄金素通り', '3', '3');
+    startCombatFixture([attacker]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const opponentLifeBefore = store().state?.opponentLife['対戦相手A'];
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    store().dispatch({ type: 'declareBlockers', blockers: [] });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    expect(state?.combat?.attackers[0]).toMatchObject({
+      cardId: attackerId,
+      blockedBy: [],
+    });
+    expect(state?.cards[attackerId]).toMatchObject({
+      zone: 'battlefield',
+      damageMarked: 0,
+      hasDeathtouchDamage: false,
+    });
+    expect(state?.opponentLife['対戦相手A']).toBe(opponentLifeBefore);
+  });
+
+  it('cr-combat-multiple-blockers-deferred: CR 510.1c choice is manual for multi-blocker damage', () => {
+    goldenCase('cr-combat-multiple-blockers-deferred', ['509.1g', '509.1h', '510.1c']);
+
+    const attacker = makeCombatCreature('gold-combat-multi-attacker', '黄金多重攻撃', '4', '4');
+    const blockerA = makeCombatCreature('gold-combat-multi-blocker-a', '黄金多重防御A', '1', '3');
+    const blockerB = makeCombatCreature('gold-combat-multi-blocker-b', '黄金多重防御B', '1', '3');
+    startCombatFixture([attacker, blockerA, blockerB]);
+    const attackerId = findInstanceId(attacker.scryfallId);
+    const blockerAId = findInstanceId(blockerA.scryfallId);
+    const blockerBId = findInstanceId(blockerB.scryfallId);
+
+    store().dispatch({ type: 'enterCombat' });
+    store().dispatch({ type: 'declareAttackers', attackers: [{ cardId: attackerId }] });
+    store().dispatch({
+      type: 'declareBlockers',
+      blockers: [
+        { cardId: blockerAId, attackerId },
+        { cardId: blockerBId, attackerId },
+      ],
+    });
+    store().dispatch({ type: 'resolveCombatDamage' });
+
+    const state = store().state;
+    expect(state?.combat?.attackers[0]).toMatchObject({
+      cardId: attackerId,
+      blockedBy: [blockerAId, blockerBId],
+    });
+    for (const cardId of [attackerId, blockerAId, blockerBId]) {
+      expect(state?.cards[cardId]).toMatchObject({
+        zone: 'battlefield',
+        damageMarked: 0,
+        hasDeathtouchDamage: false,
+      });
+    }
+    expect(store().warnings.some((warning) => warning.includes('manual-combat-damage'))).toBe(true);
+    expect(state?.log.some((entry) => entry.message.includes('manual-combat-damage'))).toBe(true);
   });
 
   it('cr-sba-plus-minus-counter-annihilation: CR 704.5q removes paired +1/+1 and -1/-1 counters', () => {

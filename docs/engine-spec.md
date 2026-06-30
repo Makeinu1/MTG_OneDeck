@@ -2269,3 +2269,21 @@ interface CardInstance {
 **5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-sba-lethal-damage-destroys-creature`(704.5g/120.6)・`cr-sba-sublethal-damage-survives`・`cr-sba-deathtouch-any-damage-destroys`(704.5h)・`cr-cleanup-clears-marked-damage`(514.2)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.damage-marked.test.ts`(**レビュー担当専有**=exactly-lethal/sublethal/deathtouch-by-flag/cleanup/負 clamp/0-toughness 単発破壊 の敵対 pin)。I3 不変条件に `damageMarked>=0` を追加(`review.properties`)。
 
 **6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)**full combat phase orchestration**(declare attackers/blockers・combat damage step 自動)→ C-GRAMMAR/combat carry。damage は `markDamage` 経由でのみ入る (b)**regeneration replacement**(704.5g の「unless regenerated」/ CR 701.18)→ regeneration shield state が無いので未実装・704.5g は無条件破壊 (c)**first/double strike** の damage step 分割 → defer (d)**standalone CR 514 cleanup step** → 未モデル(turn 遷移が surrogate)。これらは leaf/compiler 後付けで substrate を壊さず差し込める。
+
+### 34.13 S-COMBAT: combat structure(first slice・CR 506–510)— この節も契約である
+
+**位置づけ**: §34.12 の damage-marked substrate を「生かす」combat 構造 substrate(ユーザー裁定「最終ゴールから逆算」で combat を選定=最大の未モデル CR 領域)。設計正本=`research/cr-grounding/combat-structure-design.draft`(Option A 採用)。**state + 宣言 + atomic combat damage のみ。新 SBA を足さず既存 704.5g/h を再利用**。
+
+**CR 根拠**: 506.1(combat step)/508.1a・508.1f・508.1k(attacker 宣言・non-vigilance tap)/509.1a・509.1g・509.1h(blocker 宣言・blocked 判定)/510.1a–d・510.2(combat damage・simultaneity)/120.6(lethal)/704.5g・704.5h(destroy)。
+
+**1. state(`GameState.combat: CombatState | null`)**: combat 局面は phase-scoped・relational ゆえ `CardInstance` フラグにせず `GameState.combat` に集約。型 = `CombatState{combatId,turn,step,attackingPlayerId,defendingPlayerId,attackers[],blockers[]}`・`CombatAttacker{cardId,objectId,controllerId,target,blockedBy[],declaredOrder}`・`CombatBlocker{cardId,objectId,controllerId,blocking[],declaredOrder}`・`CombatTarget={type:'player';playerId}`・`CombatStep` 5値。前方互換: legacy/`phase!==combat`/`combat.turn!==turn` の復元は `null` 正規化(`normalizeSnapshotCombat`)。combat phase を出ると `null`。
+
+**2. command(`src/engine/commands.ts`)**: `enterCombat`(combat 開始・`phase:'combat'`)・`declareAttackers`(attacker・target・order 記録 + non-vigilance tap CR508.1f)・`declareBlockers`(1 blocker=1 attacker・`blockedBy` 更新)・**`resolveCombatDamage`(唯一の combat damage public command)**。
+
+**3. atomicity(CR 510.2・要石)**: `applyCommand` は末尾で必ず `stabilizeBeforePriority` を1回呼ぶ。`resolveCombatDamage` は全 assignment を**単一 draft 上**で既存 mark-damage 内部ロジックにより適用し、SBA は command 末尾の1回だけ走らせる。**serial な公開 `markDamage` 連発を使わない**(途中 SBA で先に死んだ側が反撃 damage を出さない=CR510.2 違反になるため)。
+
+**4. damage(first slice)**: 未ブロック attacker → creature markDamage を出さない(player damage は対象外=既存 store `declareAttack` と併存)。1 blocker にブロックされた attacker ↔ blocker は両 power を atomic に相互マーク(deathtouch は effective keyword から `deathtouch:true`)。**複数 blocker → 自動割当しない**(CR510.1c は攻撃側コントローラの選択=真の choice ゆえ silent 割当禁止=北極星「決定論捏造禁止」)。`manual-combat-damage` warning/log を残し creature markDamage を出さない。
+
+**5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-combat-single-block-lethal-mutual-damage`(510.2 atomic=両死が単一 `simultaneousGroupId`)・`cr-combat-single-block-sublethal-survives`・`cr-combat-unblocked-attacker-no-creature-mark`・`cr-combat-multiple-blockers-deferred`(manual-combat-damage)を追加。受け入れ acceptance contract = `src/store/__tests__/review.combat.test.ts`(**レビュー専有**=atomicity/sublethal/unblocked/deathtouch→704.5h 単離/multi-blocker defer/combat-context invariant)。`review.properties` I3 に combat 不変条件(`combat≠null ⇒ phase==combat ∧ combat.turn==turn ∧ participant.cardId∈cards`)追加。
+
+**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: first/double strike step 分割・banding・trample-to-player・blocker-blocks-multiple-attackers・複数 blocker への明示割当 UI・full attack/block legality(restriction/requirement/cost/evasion)・combat 優先権完全自動化・player/planeswalker/battle combat damage・combat trigger 収集・prevention/replacement・regeneration → 全て C-GRAMMAR/後続 combat slice へ carry。未ブロック player damage と既存 store `declareAttack` 統合も follow slice。substrate(state + atomic command 経路)は壊さず後付け可能。

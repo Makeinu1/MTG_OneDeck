@@ -91,6 +91,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     activePlayerId: 'P1',
     turn: 1,
     phase: 'untap',
+    combat: null,
     life: 40,
     poison: 0,
     energy: 0,

@@ -11,16 +11,21 @@ import {
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR } from './grammar/ir';
 import { parseManaCost } from './mana';
-import { normalizeKeywords } from './status';
+import { effectiveKeywords, effectivePower, hasVigilance, normalizeKeywords } from './status';
 import type {
   AbilityKind,
   CardInstance,
+  CombatAttacker,
+  CombatBlocker,
+  CombatState,
+  CombatTarget,
   GameState,
   LegendRuleChoice,
   LogEntry,
   ManaPool,
   ObjectSnapshot,
   Phase,
+  PlayerId,
   ZoneChangeEvent,
   ZoneChangeReason,
   ZoneId,
@@ -47,6 +52,21 @@ export type GameCommand =
   | { type: 'addCounters'; cardId: string; counterType: string; delta: number }
   | { type: 'markDamage'; cardId: string; amount: number; deathtouch?: boolean }
   | { type: 'clearMarkedDamage'; cardId?: string }
+  | {
+      type: 'enterCombat';
+      attackingPlayerId?: PlayerId;
+      defendingPlayerId?: PlayerId;
+      combatId?: string;
+    }
+  | {
+      type: 'declareAttackers';
+      attackers: Array<{ cardId: string; target?: CombatTarget }>;
+    }
+  | {
+      type: 'declareBlockers';
+      blockers: Array<{ cardId: string; attackerId: string }>;
+    }
+  | { type: 'resolveCombatDamage' }
   | { type: 'attach'; cardId: string; to: string | undefined }
   | { type: 'adjustLife'; delta: number }
   | { type: 'adjustPlayerCounter'; kind: 'poison' | 'energy' | 'experience'; delta: number }
@@ -137,6 +157,22 @@ function emptyManaPool(): ManaPool {
   return { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
 }
 
+function cloneCombatState(combat: CombatState | null | undefined): CombatState | null {
+  if (!combat) return null;
+  return {
+    ...combat,
+    attackers: combat.attackers.map((attacker) => ({
+      ...attacker,
+      target: { ...attacker.target },
+      blockedBy: attacker.blockedBy.slice(),
+    })),
+    blockers: combat.blockers.map((blocker) => ({
+      ...blocker,
+      blocking: blocker.blocking.slice(),
+    })),
+  };
+}
+
 /** Shallow clone of state for editing. Sub-collections cloned lazily. */
 function makeDraft(state: GameState): Draft {
   const maxSeq = state.log.reduce((m, e) => Math.max(m, e.seq), -1);
@@ -145,6 +181,7 @@ function makeDraft(state: GameState): Draft {
   return {
     state: {
       ...state,
+      combat: cloneCombatState(state.combat),
       cards: { ...state.cards },
       zones: { ...state.zones },
       manaPool: { ...state.manaPool },
@@ -591,6 +628,237 @@ function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Combat handling (CR 506-510 first slice)
+// ---------------------------------------------------------------------------
+
+function defaultDefendingPlayer(attackingPlayerId: PlayerId): PlayerId {
+  return attackingPlayerId === 'P1' ? 'OPPONENT_A' : 'P1';
+}
+
+function defaultCombatTarget(defendingPlayerId: PlayerId): CombatTarget {
+  return { type: 'player', playerId: defendingPlayerId };
+}
+
+function nextCombatId(draft: Draft): string {
+  return `combat-${draft.state.turn}-${draft.nextSeq}`;
+}
+
+function requireCombat(draft: Draft): CombatState {
+  const combat = draft.state.combat;
+  if (!combat || draft.state.phase !== 'combat') {
+    throw new EngineError('戦闘が開始されていません。');
+  }
+  return combat;
+}
+
+function isBattlefieldCreature(draft: Draft, card: CardInstance): boolean {
+  return card.zone === 'battlefield' && typeLineOf(draft, card).includes('Creature');
+}
+
+function warnIfNotBattlefieldCreature(draft: Draft, card: CardInstance): void {
+  if (isBattlefieldCreature(draft, card)) return;
+  draft.warnings.push(`${nameOfCard(draft, card)}は戦場のクリーチャーではありません。`);
+}
+
+function liveCombatCreature(
+  draft: Draft,
+  cardId: string,
+  declaredObjectId: string,
+): CardInstance | null {
+  const card = draft.state.cards[cardId];
+  if (!card || !isBattlefieldCreature(draft, card) || objectIdOf(card) !== declaredObjectId) {
+    return null;
+  }
+  return card;
+}
+
+function sourceHasDeathtouch(draft: Draft, cardId: string): boolean {
+  return effectiveKeywords(draft.state, cardId).includes('deathtouch');
+}
+
+function applyEnterCombat(
+  draft: Draft,
+  attackingPlayerId?: PlayerId,
+  defendingPlayerId?: PlayerId,
+  combatId?: string,
+): void {
+  if (draft.state.phase !== 'combat') {
+    clearPool(draft, 'フェイズ移行によりマナプールが空になりました。');
+  }
+
+  const attacking = attackingPlayerId ?? draft.state.activePlayerId;
+  const defending = defendingPlayerId ?? defaultDefendingPlayer(attacking);
+  draft.state.phase = 'combat';
+  draft.state.combat = {
+    combatId: combatId ?? nextCombatId(draft),
+    turn: draft.state.turn,
+    step: 'beginningOfCombat',
+    attackingPlayerId: attacking,
+    defendingPlayerId: defending,
+    attackers: [],
+    blockers: [],
+  };
+  pushLog(draft, '戦闘を開始しました。');
+}
+
+function applyDeclareAttackers(
+  draft: Draft,
+  attackers: Array<{ cardId: string; target?: CombatTarget }>,
+): void {
+  const combat = requireCombat(draft);
+  const seen = new Set<string>();
+  const declared: CombatAttacker[] = [];
+
+  for (const attacker of attackers) {
+    if (seen.has(attacker.cardId)) {
+      draft.warnings.push(`攻撃クリーチャーが重複しています: ${attacker.cardId}`);
+      continue;
+    }
+    seen.add(attacker.cardId);
+
+    const card = requireCard(draft, attacker.cardId);
+    warnIfNotBattlefieldCreature(draft, card);
+    if (isBattlefieldCreature(draft, card) && !hasVigilance(draft.state, card.id) && !card.tapped) {
+      setCard(draft, { ...card, tapped: true });
+      pushLog(draft, `${nameOfCard(draft, card)}は攻撃のためタップされました。`);
+    }
+
+    declared.push({
+      cardId: card.id,
+      objectId: objectIdOf(card),
+      controllerId: card.controllerId,
+      target: attacker.target ?? defaultCombatTarget(combat.defendingPlayerId),
+      blockedBy: [],
+      declaredOrder: declared.length,
+    });
+  }
+
+  draft.state.combat = {
+    ...combat,
+    step: 'declareBlockers',
+    attackers: declared,
+    blockers: [],
+  };
+  pushLog(draft, `${declared.length}体の攻撃クリーチャーを宣言しました。`);
+}
+
+function applyDeclareBlockers(
+  draft: Draft,
+  blockers: Array<{ cardId: string; attackerId: string }>,
+): void {
+  const combat = requireCombat(draft);
+  const attackers: CombatAttacker[] = combat.attackers.map((attacker) => ({
+    ...attacker,
+    blockedBy: [],
+  }));
+  const attackersById = new Map(attackers.map((attacker) => [attacker.cardId, attacker]));
+  const seenBlockers = new Set<string>();
+  const declared: CombatBlocker[] = [];
+
+  for (const blocker of blockers) {
+    if (seenBlockers.has(blocker.cardId)) {
+      draft.warnings.push(`ブロック・クリーチャーが重複しています: ${blocker.cardId}`);
+      continue;
+    }
+    seenBlockers.add(blocker.cardId);
+
+    const attacker = attackersById.get(blocker.attackerId);
+    if (!attacker) {
+      draft.warnings.push(`ブロック先の攻撃クリーチャーが見つかりません: ${blocker.attackerId}`);
+      continue;
+    }
+
+    const card = requireCard(draft, blocker.cardId);
+    warnIfNotBattlefieldCreature(draft, card);
+    attacker.blockedBy = [...attacker.blockedBy, card.id];
+    declared.push({
+      cardId: card.id,
+      objectId: objectIdOf(card),
+      controllerId: card.controllerId,
+      blocking: [attacker.cardId],
+      declaredOrder: declared.length,
+    });
+  }
+
+  draft.state.combat = {
+    ...combat,
+    step: 'combatDamage',
+    attackers,
+    blockers: declared,
+  };
+  pushLog(draft, `${declared.length}体のブロック・クリーチャーを宣言しました。`);
+}
+
+function applyPositiveCombatDamage(
+  draft: Draft,
+  recipientId: string,
+  sourceId: string,
+  amount: number,
+): void {
+  const positiveAmount = Math.max(0, amount);
+  if (positiveAmount <= 0) return;
+  applyMarkDamage(draft, recipientId, positiveAmount, sourceHasDeathtouch(draft, sourceId));
+}
+
+function applyResolveCombatDamage(draft: Draft): void {
+  const combat = requireCombat(draft);
+  const blockersById = new Map(combat.blockers.map((blocker) => [blocker.cardId, blocker]));
+  const attackers = combat.attackers.slice().sort((left, right) => {
+    const declared = left.declaredOrder - right.declaredOrder;
+    return declared !== 0 ? declared : left.cardId.localeCompare(right.cardId);
+  });
+  let deferredCount = 0;
+
+  for (const attacker of attackers) {
+    if (attacker.blockedBy.length === 0) {
+      continue;
+    }
+
+    if (attacker.blockedBy.length > 1) {
+      deferredCount += 1;
+      const warning =
+        `manual-combat-damage: ${attacker.cardId} は複数のブロッカーにブロックされています。` +
+        '戦闘ダメージ割当を手動で行ってください。';
+      draft.warnings.push(warning);
+      pushLog(draft, warning);
+      continue;
+    }
+
+    const blocker = blockersById.get(attacker.blockedBy[0]);
+    if (!blocker || blocker.blocking.length !== 1 || blocker.blocking[0] !== attacker.cardId) {
+      continue;
+    }
+
+    const attackerCard = liveCombatCreature(draft, attacker.cardId, attacker.objectId);
+    const blockerCard = liveCombatCreature(draft, blocker.cardId, blocker.objectId);
+    if (!attackerCard || !blockerCard) {
+      continue;
+    }
+
+    applyPositiveCombatDamage(
+      draft,
+      blockerCard.id,
+      attackerCard.id,
+      effectivePower(draft.state, attackerCard.id),
+    );
+    applyPositiveCombatDamage(
+      draft,
+      attackerCard.id,
+      blockerCard.id,
+      effectivePower(draft.state, blockerCard.id),
+    );
+  }
+
+  draft.state.combat = {
+    ...combat,
+    step: 'endOfCombat',
+  };
+  if (deferredCount === 0) {
+    pushLog(draft, '戦闘ダメージを解決しました。');
+  }
+}
+
 function performStateBasedActionsOnce(draft: Draft): boolean {
   if (draft.state.pendingRuleChoices.length > 0) {
     return false;
@@ -916,6 +1184,9 @@ function applyDiscard(draft: Draft, cardIds: string[]): void {
 
 function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
   draft.state.phase = phase;
+  if (phase !== 'combat' && draft.state.combat !== null) {
+    draft.state.combat = null;
+  }
   if (phase === 'untap') {
     handleUntapEntry(draft);
   }
@@ -1917,6 +2188,22 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'clearMarkedDamage': {
       applyClearMarkedDamage(draft, cmd.cardId);
+      break;
+    }
+    case 'enterCombat': {
+      applyEnterCombat(draft, cmd.attackingPlayerId, cmd.defendingPlayerId, cmd.combatId);
+      break;
+    }
+    case 'declareAttackers': {
+      applyDeclareAttackers(draft, cmd.attackers);
+      break;
+    }
+    case 'declareBlockers': {
+      applyDeclareBlockers(draft, cmd.blockers);
+      break;
+    }
+    case 'resolveCombatDamage': {
+      applyResolveCombatDamage(draft);
       break;
     }
     case 'attach': {
