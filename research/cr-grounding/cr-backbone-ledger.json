@@ -2,15 +2,41 @@
   "object": "mtg_onedeck_cr_backbone_ledger",
   "crVersion": "2026-06-19",
   "status": "fable-promoted",
-  "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。",
+  "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
   "plannedSequence": [
     {
       "domainId": "cr-player-specific-zones",
-      "note": "後期背骨 design-lock(コード無し)。最高fan-out・最高後期コスト。903.10aの正直な形(per-opponent)・dummy opponent・multiplayer SBA が全部ここに載る。cr-903-10a-commander-damage の advisory-level 出荷(2026-07-02)で next へ昇格。無期限holdでなく背後で即開始。"
+      "note": "後期背骨 design-lock(コード無し)。最高fan-out・最高後期コスト。903.10aの正直な形(per-opponent)・dummy opponent・multiplayer SBA が全部ここに載る。cr-903-10a-commander-damage の advisory-level 出荷(2026-07-02)で next へ昇格。無期限holdでなく背後で即開始。",
+      "type": "domain-slice"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-119-life",
+      "note": "S-EVENTS 起点。damage/life-loss/gain/draw/zone-change の event envelope を events.ts substrate として凍結(cr-121-drawing の draw event と同時)。誘発はイベント購読(engine-spec §34.1 C-C)・イベント決定性 I14 を同時に立てる。依存=#1 の design-lock。"
+    },
+    {
+      "type": "checkpoint",
+      "id": "checkpoint-mydeck-design-scoring",
+      "note": "製品価値チェックポイント(メタレビュー⑤の実データ源)。MyDeck 4デッキで設計そのものを採点=ESO が実カードの read/write を保持できるか(レベルA表現可能性)。結果はスライス優先度の実デッキ需要信号として plannedSequence 次バッチへ反映。コードを書かないマイルストーン。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-102-players",
+      "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装。旧 snapshot backfill(restoreGame 補完=前方互換 I16)必須。CR 400.1 正本。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-500-514-turn-structure",
+      "note": "S-TURN 前半。stack 未解決時の turn 進行禁止(サンドボックス哲学の唯一の強制例外)+ cleanup surrogate を既存 UI 契約へ接続。CR 500/514 正本。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-703-704-sba-turn-based",
+      "note": "S-TURN 後半。SBA スイートを event/turn substrate 上へ載せ替え。legend/attachment 系 SBA は choice/attachment 設計後という既存 boundary を維持(スコープ拡張しない)。CR 703/704 正本。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(Fable の standing 裁定)。空なら lane∈{backbone,late-backbone} かつ status<shipped(deferred除外)かつ nextGate明確 の最高 edhValue へフォールバック。同点/価値トレードオフは STOP→AskUserQuestion(ロードマップ分岐)。",
+  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費)。**plannedSequence が枯渇したら、フォールバックへ進む前に STOP①=AskUserQuestion で次バッチをユーザーと裁定する**(Phase S/C 完了境界では「V4 オンライン前進 vs V1 磨き込み」のロードマップ分岐も同時に問う=予約済み価値判断)。フォールバック(lane∈{backbone,late-backbone} かつ status<shipped(deferred除外)かつ nextGate 明確の最高 edhValue)は、ユーザーが自走続行を明示した場合のみ使う。同点/価値トレードオフは常に STOP①。judge=user-stop の domain はティアに関わらず単独裁定しない(judgePolicy 参照)。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",
@@ -34,7 +60,8 @@
       "landingState": ["players", "activePlayerId", "ownerId", "controllerId", "opponentLife"],
       "boundary": "PlayerId/owner/controller/APNAP coreはあるが、player-specific zones と dummy opponent は未凍結。goldenはcontroller/APNAP coreのみ。",
       "evidence": ["cr-trigger-sba-priority-loop", "cr-trigger-6033b-apnap-per-bucket"],
-      "nextGate": "player-specific zones の設計凍結後に library/hand/graveyard を playerId keyed にする"
+      "nextGate": "player-specific zones の設計凍結後に library/hand/graveyard を playerId keyed にする",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-104-loss-advisory",
@@ -45,7 +72,8 @@
       "landingState": ["defeat", "lossAdvisories", "eventLog", "simultaneousGroupId"],
       "boundary": "サンドボックス方針により敗北はadvisoryで、game終了・player離脱・操作封鎖はしない。903.10a commander damageは別domainでdefer。",
       "evidence": ["cr-sba-defeat-life-zero-p1", "cr-sba-defeat-empty-library-draw", "cr-sba-defeat-poison-threshold", "cr-sba-defeat-advisory-does-not-hard-enforce"],
-      "nextGate": "903.10a を per-opponent 形で追加し、104.3j をadvisory集合へ統合する"
+      "nextGate": "903.10a を per-opponent 形で追加し、104.3j をadvisory集合へ統合する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-106-mana",
@@ -56,7 +84,8 @@
       "landingState": ["manaPool", "manaTransactions", "eventLog"],
       "boundary": "単純な起動型マナ能力はCRG-4 PARTIAL。誘発型マナ能力 CR 605.1b/605.4a は未実装扱いを維持。",
       "evidence": ["cr-mana-ability-no-stack", "src/engine/__tests__/mana.test.ts"],
-      "nextGate": "605.1b triggered mana ability を normal pendingTriggers に混ぜない transaction として閉じる"
+      "nextGate": "605.1b triggered mana ability を normal pendingTriggers に混ぜない transaction として閉じる",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-108-cards",
@@ -67,7 +96,8 @@
       "landingState": ["cardDefinitions", "physicalCardId", "oracleText"],
       "boundary": "golden未定義。Scryfall由来のcard dataはあるが、CR 108 としてのカード/非カード境界は未契約。",
       "evidence": [],
-      "nextGate": "Card と object/permanent/spell の境界を zone-change substrate から逆参照できる形にする"
+      "nextGate": "Card と object/permanent/spell の境界を zone-change substrate から逆参照できる形にする",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-109-objects",
@@ -78,7 +108,8 @@
       "landingState": ["objectIdOf", "zoneChangeCounter", "ObjectSnapshot", "sourceSnapshot"],
       "boundary": "400.7 core と LKI coreのみ。400.7a-m例外群、full effective-characteristics snapshotは未実装境界。",
       "evidence": ["cr-zone-change-new-object-lki"],
-      "nextGate": "public-zone exception と spell-to-permanent continuity をS-ZONES/S-LAYERSで段階化する"
+      "nextGate": "public-zone exception と spell-to-permanent continuity をS-ZONES/S-LAYERSで段階化する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-110-permanents",
@@ -89,7 +120,8 @@
       "landingState": ["battlefield", "CardInstance", "tapped", "counters", "attachedTo"],
       "boundary": "golden未定義。battlefield上のpermanent操作はあるが、CR 110 のpermanent分類と非permanent境界は未契約。",
       "evidence": [],
-      "nextGate": "permanent type/subtype と attachment legality をCR 110/303/301/704へ接続する"
+      "nextGate": "permanent type/subtype と attachment legality をCR 110/303/301/704へ接続する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-111-tokens",
@@ -100,7 +132,8 @@
       "landingState": ["tokens", "eventLog", "pendingTriggers", "ObjectSnapshot"],
       "boundary": "token death before cease は実行可能。Role/Map/Treasure等の全token subtype生成器はcompiler葉またはdeferred-by-demand。",
       "evidence": ["cr-token-dies-before-ceases"],
-      "nextGate": "create token keyword actionをCR 701 compilerとして増やし、token subtype差分は必要分だけ追加する"
+      "nextGate": "create token keyword actionをCR 701 compilerとして増やし、token subtype差分は必要分だけ追加する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-112-spells",
@@ -111,7 +144,8 @@
       "landingState": ["stack", "spellObjects", "isCopy", "eventLog"],
       "boundary": "stack上のspell/copy coreは一部あり。full CR601 casting procedure と spell-to-permanent continuity は後期境界。",
       "evidence": ["cr-sba-copy-ceases-outside-stack", "cr-commander-tax-cast-not-return"],
-      "nextGate": "spell object と resolving object のidentity/continuityを 400.7a-d と接続する"
+      "nextGate": "spell object と resolving object のidentity/continuityを 400.7a-d と接続する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-113-abilities",
@@ -122,7 +156,8 @@
       "landingState": ["stack", "pendingTriggers", "activatedAbilityPlans", "sourceSnapshot"],
       "boundary": "activated/triggered/mana ability coreは部分実装。static abilities と continuous effects は late-backbone。",
       "evidence": ["cr-mana-ability-no-stack", "cr-trigger-sba-priority-loop", "cr-triggered-mana-ability-no-stack"],
-      "nextGate": "ability kindごとの着地先を command/stack/no-stack/continuous に固定し、staticはS-LAYERSへ渡す"
+      "nextGate": "ability kindごとの着地先を command/stack/no-stack/continuous に固定し、staticはS-LAYERSへ渡す",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-115-targets",
@@ -133,7 +168,8 @@
       "landingState": ["targetSelections", "targetFilters", "stack"],
       "boundary": "golden未定義。対象選択はcompiler/guided UIの主要入力だが、CR 115 legality と resolution時illegal target処理は未契約。",
       "evidence": [],
-      "nextGate": "modal/target/optional compiler domain と同時に target envelope を凍結する"
+      "nextGate": "modal/target/optional compiler domain と同時に target envelope を凍結する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-117-priority",
@@ -144,7 +180,8 @@
       "landingState": ["priorityBoundary", "pendingTriggers", "stack", "eventLog"],
       "boundary": "priority fixed-point coreはあるが、603.3b second bucket と full SBA suite は未完了。",
       "evidence": ["cr-trigger-sba-priority-loop", "cr-priority-loop-trigger-placement-rechecks-sba"],
-      "nextGate": "SBA -> choice -> trigger placement -> repeat の順序を second bucket 対応込みで閉じる"
+      "nextGate": "SBA -> choice -> trigger placement -> repeat の順序を second bucket 対応込みで閉じる",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-118-costs",
@@ -155,7 +192,8 @@
       "landingState": ["costPlan", "manaPayments", "commanderCastCount", "warnings"],
       "boundary": "commander tax は実行可能。追加コスト/代替コスト/可変コスト/支払いUIは一括自動化せず、sandbox warning + guided paymentで段階化。",
       "evidence": ["cr-commander-tax-cast-not-return", "src/engine/__tests__/review.grammar-cost.test.ts"],
-      "nextGate": "full CR601前に cost envelope と強行可能なpayment UIを契約化する"
+      "nextGate": "full CR601前に cost envelope と強行可能なpayment UIを契約化する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-119-life",
@@ -166,7 +204,8 @@
       "landingState": ["life", "opponentLife", "lossAdvisories", "eventLog"],
       "boundary": "life totalの変化と0以下loss advisoryはあるが、life replacement/prevention と player-specific opponent model は未閉鎖。",
       "evidence": ["cr-sba-defeat-life-zero-p1", "cr-sba-defeat-life-zero-opponent-label", "cr-combat-unblocked-attacker-damages-defending-player"],
-      "nextGate": "damage/loss/gain life eventをreplacement/preventionへ渡せるevent shapeにする"
+      "nextGate": "damage/loss/gain life eventをreplacement/preventionへ渡せるevent shapeにする",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-120-damage",
@@ -177,7 +216,8 @@
       "landingState": ["damageMarked", "damageEvents", "life", "defeat"],
       "boundary": "marked damage/combat damage/lethal/deathtouch coreはあるが、prevention, replacement, infect, wither, lifelink, trample, commander damage は未閉鎖。",
       "evidence": ["cr-sba-lethal-damage-destroys-creature", "cr-sba-sublethal-damage-survives", "cr-sba-deathtouch-any-damage-destroys", "cr-combat-single-block-lethal-mutual-damage"],
-      "nextGate": "commander damage loss と prevention/replacement hook の順に追加する"
+      "nextGate": "commander damage loss と prevention/replacement hook の順に追加する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-121-drawing",
@@ -188,7 +228,8 @@
       "landingState": ["library", "hand", "drawEvents", "emptyLibraryDrawFlags", "lossAdvisories"],
       "boundary": "empty library draw advisoryはあるが、player-specific library と multi-draw完全形は未凍結。",
       "evidence": ["cr-sba-defeat-empty-library-draw", "cr-sba-defeat-empty-library-draw-partial-multidraw", "cr-sba-defeat-nondraw-empty-library-does-not-trigger"],
-      "nextGate": "player-specific zones と draw event envelope を同時に凍結する"
+      "nextGate": "player-specific zones と draw event envelope を同時に凍結する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-122-counters",
@@ -199,7 +240,8 @@
       "landingState": ["counters", "poisonCounters", "lossAdvisories"],
       "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryはあるが、counter cap, Saga lore counters, rad counters, defense counters は未閉鎖。",
       "evidence": ["cr-sba-plus-minus-counter-annihilation", "cr-sba-defeat-poison-threshold", "cr-sba-defeat-poison-nine-boundary"],
-      "nextGate": "counter種類ごとの state ownership を決め、Saga/battle/rad はdeferred-by-demandへ残す"
+      "nextGate": "counter種類ごとの state ownership を決め、Saga/battle/rad はdeferred-by-demandへ残す",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-400-408-zones-lki",
@@ -210,7 +252,8 @@
       "landingState": ["zones", "zoneChangeCounter", "ObjectSnapshot", "sourceSnapshot", "eventLog"],
       "boundary": "zone move creates new object と LKI core は実行可能。CR 400.7例外群、face-down exile piles、player-specific library/hand/graveyard は未実装。",
       "evidence": ["cr-zone-change-new-object-lki"],
-      "nextGate": "400.7a-d/e/j の高頻度例外だけをS-ZONES/S-LAYERSへ段階追加する"
+      "nextGate": "400.7a-d/e/j の高頻度例外だけをS-ZONES/S-LAYERSへ段階追加する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-500-514-turn-structure",
@@ -221,7 +264,8 @@
       "landingState": ["turn", "phase", "step", "combat", "damageMarked", "priorityBoundary"],
       "boundary": "combat slice と cleanup damage clear はあるが、全phase/step automation、cleanup extra loop、turn-based actions全体は未閉鎖。",
       "evidence": ["cr-cleanup-clears-marked-damage", "cr-combat-unblocked-attacker-damages-defending-player", "cr-combat-blocked-attacker-does-not-damage-player"],
-      "nextGate": "stack未解決時のturn進行禁止とcleanup surrogateを既存UI契約へ接続する"
+      "nextGate": "stack未解決時のturn進行禁止とcleanup surrogateを既存UI契約へ接続する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-703-704-sba-turn-based",
@@ -232,7 +276,8 @@
       "landingState": ["stabilizeBeforePriority", "pendingSbaChoices", "damageMarked", "defeat", "eventLog"],
       "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はあるが、full SBA suite未実装。commander damage 903.10a は advisory-level 出荷済み(§34.16)、per-opponent-exact は defer。既知境界(LOW・Tier-1所見)= pendingRuleChoices 未解決中は defeat SBA 検出を次passへ deferする(advisory model では等価だが CR704.3 simultaneous とは非一致・golden未整備)。",
       "evidence": ["cr-token-dies-before-ceases", "cr-sba-copy-ceases-outside-stack", "cr-sba-zero-loyalty-planeswalker", "cr-sba-plus-minus-counter-annihilation", "cr-sba-defeat-life-zero-p1", "cr-sba-defeat-commander-damage-threshold"],
-      "nextGate": "legend/attachment系 SBA はchoice/attachment設計後に回す。commander damage の per-opponent-exact は cr-player-specific-zones 後。"
+      "nextGate": "legend/attachment系 SBA はchoice/attachment設計後に回す。commander damage の per-opponent-exact は cr-player-specific-zones 後。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-601-casting-stack",
@@ -243,7 +288,8 @@
       "landingState": ["stack", "castCommand", "commanderCastCount", "costPlan"],
       "boundary": "commander taxを含むcast完了時の一部は実行可能。full CR601 casting procedure、modes/targets/cost locks、cast-from-zone permission は後期化。",
       "evidence": ["cr-commander-tax-cast-not-return", "src/engine/__tests__/m431.test.ts"],
-      "nextGate": "target/mode/cost envelope を先に凍結し、full casting procedureを分割実装する"
+      "nextGate": "target/mode/cost envelope を先に凍結し、full casting procedureを分割実装する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-602-activated-abilities",
@@ -254,7 +300,8 @@
       "landingState": ["activatedAbilityPlans", "stack", "manaTransactions"],
       "boundary": "単純な起動型マナ能力はno-stackで実行可能。非マナ起動型能力のstack placement/cost/targetは未閉鎖。",
       "evidence": ["cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts"],
-      "nextGate": "activated ability envelope を cost/target/stack/no-stack の4点で固定する"
+      "nextGate": "activated ability envelope を cost/target/stack/no-stack の4点で固定する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-605-mana-abilities",
@@ -265,7 +312,8 @@
       "landingState": ["manaTransactions", "manaPool", "eventLog"],
       "boundary": "CRG-4 PARTIAL。起動型マナ能力は合格、誘発型マナ能力はpendingTriggers/stackに混ぜない設計だが未実装。",
       "evidence": ["cr-mana-ability-no-stack", "cr-triggered-mana-ability-no-stack", "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger", "cr-targeted-add-mana-trigger-is-normal-trigger"],
-      "nextGate": "605.1b/605.4aをmana transaction内部の即時解決として実装する"
+      "nextGate": "605.1b/605.4aをmana transaction内部の即時解決として実装する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-608-resolution",
@@ -276,7 +324,8 @@
       "landingState": ["stack", "resolutionContext", "eventLog"],
       "boundary": "golden未定義。個別command resolveはあるが、CR 608の対象不適正・一部解決・情報参照は未契約。",
       "evidence": [],
-      "nextGate": "compiler出力command列を resolutionContext 経由にして、manual fallback と illegal target処理を分ける"
+      "nextGate": "compiler出力command列を resolutionContext 経由にして、manual fallback と illegal target処理を分ける",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-603-triggers-apnap",
@@ -287,7 +336,8 @@
       "landingState": ["eventLog", "pendingTriggers", "stack", "sourceSnapshot", "activePlayerId"],
       "boundary": "pending trigger/APNAP coreはあるが、603.3b second bucket と実カードtrigger検出は未閉鎖。",
       "evidence": ["cr-trigger-sba-priority-loop", "cr-trigger-6033b-two-bucket-order", "cr-trigger-6033b-apnap-per-bucket", "cr-zone-change-new-object-lki"],
-      "nextGate": "stackPlacementBucket を追加し、bucket -> APNAP -> controller choice の順に固定する"
+      "nextGate": "stackPlacementBucket を追加し、bucket -> APNAP -> controller choice の順に固定する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-506-510-combat",
@@ -298,7 +348,8 @@
       "landingState": ["combat", "attackers", "blockers", "damageMarked", "damageEvents", "life"],
       "boundary": "single blocker/unblocked damage coreはあるが、multiple blockers allocation, first/double strike, trample, prevention, infect, planeswalker/battle damage は後期境界。",
       "evidence": ["cr-combat-single-block-lethal-mutual-damage", "cr-combat-single-block-sublethal-survives", "cr-combat-unblocked-attacker-damages-defending-player", "cr-combat-multiple-blockers-deferred"],
-      "nextGate": "commander damage lossを先に追加し、multiple blocker allocationはchoice UI後に実装する"
+      "nextGate": "commander damage lossを先に追加し、multiple blocker allocationはchoice UI後に実装する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-903-8-commander-tax",
@@ -309,7 +360,8 @@
       "landingState": ["commanderCastCount", "commandZone", "costPlan"],
       "boundary": "command zoneからのcast完了時に増えるcoreは実行可能。command以外から唱える将来ケースは別途拡張。",
       "evidence": ["cr-commander-tax-cast-not-return", "src/engine/__tests__/m431.test.ts", "src/store/__tests__/review.m431.test.ts"],
-      "nextGate": "cast-from-zone permission導入時にtax適用条件を再照合する"
+      "nextGate": "cast-from-zone permission導入時にtax適用条件を再照合する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-903-9-commander-zone-choice",
@@ -320,7 +372,9 @@
       "landingState": ["pendingSbaChoices", "commandZone", "zoneChangeEvents", "eventLog"],
       "boundary": "graveyard/exileの903.9a bridgeとhand/library replacement goldenはあるが、deferred choice UI、generic pendingRuleChoices、stabilizeBeforePriority本体統合は未完了。",
       "evidence": ["cr-commander-graveyard-exile-sba-not-replacement", "cr-commander-9039a-rule-choice", "cr-commander-hand-library-replacement", "src/store/__tests__/crGrounding.test.ts"],
-      "nextGate": "pendingSbaChoices を pendingRuleChoices へ一般化し、903.9a と legend rule を同じchoice substrateへ載せる"
+      "nextGate": "pendingSbaChoices を pendingRuleChoices へ一般化し、903.9a と legend rule を同じchoice substrateへ載せる",
+      "judge": "deterministic-cr",
+      "judgeNote": "903.9a の command へ戻す処理は置換(replacement)であり SBA ではない=CR 903.9a 原文どおり。M-CONTRACT で deferred choice UI として裁定済み(standing)。pendingRuleChoices 一般化は S-ABILITY+DUMMY で実装。"
     },
     {
       "id": "cr-903-10a-commander-damage",
@@ -331,7 +385,8 @@
       "landingState": ["commanderDamage", "defeat", "lossAdvisories", "opponents"],
       "boundary": "advisory-level 903.10a(統率者ダメージ21以上→P1 敗北advisory・engine-spec §34.16)出荷済み(2026-07-02)。既存 commanderDamage:Record<string,number>(ラベル別)を観測しラベル非合算(702.124d)。per-opponent の正直な form・多人数の commander damage 帰属・combat 自動帰属は player-specific zones 依存で defer(実装済みに混ぜない)。",
       "evidence": ["cr-sba-defeat-commander-damage-threshold", "cr-sba-defeat-commander-damage-labels-not-summed", "cr-sba-defeat-commander-damage-independent-threshold", "cr-sba-defeat-commander-damage-simultaneous-life-zero", "cr-sba-defeat-commander-damage-snapshot-forward-compat", "src/store/__tests__/review.903-10a.test.ts"],
-      "nextGate": "per-opponent-exact/dummy opponent/combat 自動帰属は cr-player-specific-zones 設計凍結後。"
+      "nextGate": "per-opponent-exact/dummy opponent/combat 自動帰属は cr-player-specific-zones 設計凍結後。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-604-611-612-613-layers-continuous",
@@ -342,7 +397,9 @@
       "landingState": ["effectiveCharacteristics", "continuousEffects", "timestamps", "dependencyGraph"],
       "boundary": "golden未定義。ObjectSnapshotはfull effective-characteristics snapshotではない。L6 keywords / L7 power-toughness から始め、dependency/timestamp完全形は後回し。",
       "evidence": [],
-      "nextGate": "computeEffectiveCharacteristics の最小APIを設計凍結し、SBA/combat/legalityから読む単一入口にする"
+      "nextGate": "computeEffectiveCharacteristics の最小APIを設計凍結し、SBA/combat/legalityから読む単一入口にする",
+      "judge": "deterministic-cr",
+      "judgeNote": "層の適用順自体は CR 613 で決定論。ただし置換効果との相互作用はスコープ境界(engine-spec §34.5)=境界内のみ実装し、境界拡張は STOP①。"
     },
     {
       "id": "cr-614-615-616-replacement-prevention",
@@ -353,7 +410,9 @@
       "landingState": ["replacementEffects", "preventionEffects", "eventRewriteChoices", "regenerationShields"],
       "boundary": "commander 903.9b hand/library replacementのgoldenはあるが、一般replacement/prevention engineは未実装。damage prevention と regeneration はdamage/SBAに接続するため後期背骨。",
       "evidence": ["cr-commander-hand-library-replacement"],
-      "nextGate": "commander replacement / regeneration shield / ETB tapped replacement の順に具体subsetで実装する"
+      "nextGate": "commander replacement / regeneration shield / ETB tapped replacement の順に具体subsetで実装する",
+      "judge": "deterministic-cr",
+      "judgeNote": "個別 replacement の適用は CR 決定論。複数 replacement の相互作用(616.1 の適用順選択を除く)はスコープ境界(engine-spec §34.5)=境界拡張は STOP①。"
     },
     {
       "id": "cr-player-specific-zones",
@@ -364,7 +423,8 @@
       "landingState": ["zonesByPlayer", "libraryByPlayer", "handByPlayer", "graveyardByPlayer", "opponents"],
       "boundary": "golden未定義。design-lock前。flat zonesのまま進めすぎない。903.10a と draw/mill/search の per-player 実装前提。",
       "evidence": [],
-      "nextGate": "S-ZONESでplayer-specific library/hand/graveyardの保存形式と旧snapshot backfillを凍結する"
+      "nextGate": "S-ZONESでplayer-specific library/hand/graveyardの保存形式と旧snapshot backfillを凍結する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-701-keyword-actions-frequent",
@@ -375,7 +435,8 @@
       "landingState": ["compiledCommands", "guidedActions", "manualFallbacks"],
       "boundary": "golden未定義。draw/create/sacrifice/destroy/exile/discard/search/shuffle/mill/scry/surveil/attach/proliferate等はsubstrate完成後にcompilerで増やす。Healは2026 vocabulary boundary。",
       "evidence": ["cr-20260619-new-mechanics-boundary"],
-      "nextGate": "zone/counter/draw/token substrateがあるactionから個別にcommand compilerを追加する"
+      "nextGate": "zone/counter/draw/token substrateがあるactionから個別にcommand compilerを追加する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-702-keyword-abilities-frequent",
@@ -386,7 +447,8 @@
       "landingState": ["keywordAbilityIndex", "compiledCommands", "effectiveCharacteristics", "manualFallbacks"],
       "boundary": "golden未定義。flying/vigilance/haste/deathtouch/lifelink/trample/equip/enchant/ward/flashback/cycling/kicker/convoke等はsubstrate依存。Power-up/Teamworkは2026 vocabulary boundary。",
       "evidence": ["cr-20260619-new-mechanics-boundary", "src/engine/__tests__/review.grammar-compile.test.ts"],
-      "nextGate": "combat/damage/layers/cast-from-zone substrateが閉じた能力からcompiler対象へ昇格する"
+      "nextGate": "combat/damage/layers/cast-from-zone substrateが閉じた能力からcompiler対象へ昇格する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-20260619-new-vocabulary-boundary",
@@ -397,7 +459,8 @@
       "landingState": [],
       "boundary": "CRG-8 PASS(boundary)。Heal/Power-up/Teamwork/Preparation はCR語彙として認識するが、実行器はscope-boundaryで実装済みに混ぜない。",
       "evidence": ["cr-20260619-new-mechanics-boundary"],
-      "nextGate": "実デッキ需要が出た語彙だけを leaf-compiler または late-backbone へ個別昇格する"
+      "nextGate": "実デッキ需要が出た語彙だけを leaf-compiler または late-backbone へ個別昇格する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-modal-target-optional-variable",
@@ -408,7 +471,8 @@
       "landingState": ["modeChoices", "targetSelections", "optionalChoices", "variableValues", "compiledCommands"],
       "boundary": "golden未定義。modal/target/optional/variable count はcompiler/guided UIの中心だが、target legalityとcost lock前に個別実装しすぎない。",
       "evidence": ["src/engine/__tests__/review.grammar-guided.test.ts"],
-      "nextGate": "choice envelopeを rule-choice substrate と共有し、mode/target選択をstack objectに保存する"
+      "nextGate": "choice envelopeを rule-choice substrate と共有し、mode/target選択をstack objectに保存する",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-123-stickers",
@@ -419,7 +483,8 @@
       "landingState": [],
       "boundary": "golden未定義。sticker stateはEDH一人回し主価値に直結しないためscope-boundary。必要時だけCR refs付きで昇格。",
       "evidence": [],
-      "nextGate": "stickerを含む実デッキ需要が出るまで実装しない"
+      "nextGate": "stickerを含む実デッキ需要が出るまで実装しない",
+      "judge": "user-stop"
     },
     {
       "id": "cr-309-dungeons",
@@ -430,7 +495,8 @@
       "landingState": [],
       "boundary": "golden未定義。dungeon/venture/initiative連動の専用stateが必要なため初期scope外。",
       "evidence": [],
-      "nextGate": "venture/initiative採用デッキ需要が出たら dungeon state を独立domainとして再評価する"
+      "nextGate": "venture/initiative採用デッキ需要が出たら dungeon state を独立domainとして再評価する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-311-315-variant-objects",
@@ -441,7 +507,8 @@
       "landingState": [],
       "boundary": "golden未定義。planes/phenomena/vanguards/schemes/conspiracies は通常EDH一人回しの主価値外。command zone特殊objectsを増やさない。",
       "evidence": [],
-      "nextGate": "Planechase/Archenemy/Conspiracy Draft modeを明示採用する場合のみ昇格する"
+      "nextGate": "Planechase/Archenemy/Conspiracy Draft modeを明示採用する場合のみ昇格する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-407-ante",
@@ -452,7 +519,8 @@
       "landingState": [],
       "boundary": "golden未定義。anteは現代EDH一人回しで主価値がなく、専用zone/所有権処理を入れない。",
       "evidence": [],
-      "nextGate": "実装しない。表示上のCR境界としてのみ残す"
+      "nextGate": "実装しない。表示上のCR境界としてのみ残す",
+      "judge": "user-stop"
     },
     {
       "id": "cr-717-attractions",
@@ -463,7 +531,8 @@
       "landingState": [],
       "boundary": "golden未定義。attraction deck/visit/open attraction stateが必要でEDH一人回し主価値外。",
       "evidence": [],
-      "nextGate": "Un-set/attraction需要が出るまで実装しない"
+      "nextGate": "Un-set/attraction需要が出るまで実装しない",
+      "judge": "user-stop"
     },
     {
       "id": "cr-901-904-905-casual-variants",
@@ -474,7 +543,8 @@
       "landingState": [],
       "boundary": "golden未定義。Planechase/Archenemy/Conspiracy Draft は専用deck/role/team/draft stateが必要で初期scope外。",
       "evidence": [],
-      "nextGate": "variant modeをプロダクト要件に入れる場合のみ再分類する"
+      "nextGate": "variant modeをプロダクト要件に入れる場合のみ再分類する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-subgames-restart-sideboard",
@@ -485,7 +555,8 @@
       "landingState": [],
       "boundary": "golden未定義。subgames/restart game/tournament sideboard細則は一人回しの反復操作に対して重すぎるため実装しない。",
       "evidence": [],
-      "nextGate": "Wish系やKarn Liberated相当を支援対象にする場合のみmanual/advisoryから検討する"
+      "nextGate": "Wish系やKarn Liberated相当を支援対象にする場合のみmanual/advisoryから検討する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-810-two-headed-giant",
@@ -496,7 +567,8 @@
       "landingState": [],
       "boundary": "golden未定義。2HG/team variantはshared team turns/life/poisonを要求し、EDH一人回しのopponent modelと別物。",
       "evidence": [],
-      "nextGate": "team variantを対象化するプロダクト判断が出るまで実装しない"
+      "nextGate": "team variantを対象化するプロダクト判断が出るまで実装しない",
+      "judge": "user-stop"
     },
     {
       "id": "cr-310-battles-deferred-by-demand",
@@ -507,7 +579,8 @@
       "landingState": [],
       "boundary": "golden未定義。紙EDHで出うるため永久削除ではないが、battle protector/defense/attacked battle stateが必要。deferred-by-demand。",
       "evidence": [],
-      "nextGate": "battle採用デッキ需要が出たら protector/opponent model と一緒に昇格する"
+      "nextGate": "battle採用デッキ需要が出たら protector/opponent model と一緒に昇格する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-731-day-night-deferred-by-demand",
@@ -518,7 +591,8 @@
       "landingState": [],
       "boundary": "golden未定義。day/night designation と spell-count turn history が必要。紙EDHで出うるが deferred-by-demand。",
       "evidence": [],
-      "nextGate": "Werewolf/daybound需要が出たら turn history と transformation substrate 付きで再評価する"
+      "nextGate": "Werewolf/daybound需要が出たら turn history と transformation substrate 付きで再評価する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-725-726-monarch-initiative-deferred-by-demand",
@@ -529,7 +603,8 @@
       "landingState": [],
       "boundary": "golden未定義。monarch/initiativeはplayer designationとcombat damage steal/dungeonが必要。EDHで出うるためdeferred-by-demand。",
       "evidence": [],
-      "nextGate": "designation substrateを作る時に monarch と initiative を一緒に再分類する"
+      "nextGate": "designation substrateを作る時に monarch と initiative を一緒に再分類する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-303-704-roles-deferred-by-demand",
@@ -540,7 +615,8 @@
       "landingState": [],
       "boundary": "golden未定義。Role token duplicate SBA はattachment grouping/timestamp/role subtypeが必要。紙EDHで出うるためdeferred-by-demand。",
       "evidence": [],
-      "nextGate": "attachment legality と timestamp state が入った後にRole duplicateだけを昇格候補にする"
+      "nextGate": "attachment legality と timestamp state が入った後にRole duplicateだけを昇格候補にする",
+      "judge": "user-stop"
     },
     {
       "id": "cr-714-sagas-deferred-by-demand",
@@ -551,7 +627,8 @@
       "landingState": [],
       "boundary": "golden未定義。Sagaはlore counters/chapter abilities/final chapter pending-stack判定が必要。紙EDHで出うるためdeferred-by-demand。",
       "evidence": [],
-      "nextGate": "counter + triggered ability + stack pending判定が揃った後にSagasを再評価する"
+      "nextGate": "counter + triggered ability + stack pending判定が揃った後にSagasを再評価する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-716-719-720-721-722-new-card-frames-deferred-by-demand",
@@ -562,7 +639,8 @@
       "landingState": [],
       "boundary": "Case/Class/Room/Station/Omen/Preparation Cards は紙EDHで出うるが、designation/alternative characteristics/level/station/door stateが必要。deferred-by-demand。",
       "evidence": ["cr-20260619-new-mechanics-boundary"],
-      "nextGate": "採用デッキが出たcard frameだけを個別にlate-backboneまたはleafへ昇格する"
+      "nextGate": "採用デッキが出たcard frameだけを個別にlate-backboneまたはleafへ昇格する",
+      "judge": "user-stop"
     },
     {
       "id": "cr-728-rad-counters-deferred-by-demand",
@@ -573,7 +651,16 @@
       "landingState": [],
       "boundary": "golden未定義。Rad counters はcounter stateだけでなく upkeep mill/life loss loop が必要。EDH頻度が出るまでdeferred-by-demand。",
       "evidence": [],
-      "nextGate": "counter substrateの拡張時にRad専用upkeep処理の需要を再確認する"
+      "nextGate": "counter substrateの拡張時にRad専用upkeep処理の需要を再確認する",
+      "judge": "user-stop"
     }
-  ]
+  ],
+  "judgePolicy": {
+    "reference": "CLAUDE.md「判定者ラダー」参照。判定者=在席最上位の Claude(J1 Fable〜2026-07-07 / J2 Opus 4.8 / J3 Sonnet 5 / J0 不在=Codex 両担+復帰時再オーナー化)。",
+    "values": {
+      "deterministic-cr": "CR 照合で裁定可能。J3(Sonnet)判定者が CR を引いて自走してよい(prompt 再走や推測は禁止=CR が一次権威)。",
+      "user-stop": "昇格/スコープ/優先度は価値判断=autoloop STOP①。判定者はティアに関わらず単独裁定しない。"
+    },
+    "principle": "照合に還元できない判断は (a) 台帳/docs の standing 裁定を lookup → (b) なければ STOP→ユーザー。下位判定者は背伸びして裁定しない。"
+  }
 }
