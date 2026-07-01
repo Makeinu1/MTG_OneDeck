@@ -2306,7 +2306,7 @@ interface CardInstance {
 
 ### 34.15 S-SBA defeat-state substrate(CR 704.5a/b/c loss conditions)— この節も契約である
 
-**位置づけ**: §34.14(combat が player life を減らせる)に続く高レバレッジ slice = **敗北判定**。life-loss・poison・将来の commander damage(CR903.10)が全部この「player が負ける」機構へ集まる。設計正本=`research/cr-grounding/s-sba-defeat.draft.md`(Codex 草稿・Fable が CR 照合し承認)。**substrate(state + SBA)のみ。advisory に留め強制終了しない**(サンドボックス哲学=最大リスク)。
+**位置づけ**: §34.14(combat が player life を減らせる)に続く高レバレッジ slice = **敗北判定**。life-loss・poison・将来の commander damage(CR903.10)が全部この「player が負ける」機構へ集まる。設計正本=`research/cr-grounding/archive/s-sba-defeat/s-sba-defeat.draft.md`(Codex 草稿・Fable が CR 照合し承認)。**substrate(state + SBA)のみ。advisory に留め強制終了しない**(サンドボックス哲学=最大リスク)。
 
 **CR 根拠**:
 - CR 704.5a: life total が 0 以下の player は敗北。
@@ -2340,8 +2340,46 @@ interface GameState {
 
 **5. サンドボックス / advisory ポリシー(最大リスク)**: 敗北を **hard-enforce しない**=game 終了・state クリア・コマンド封鎖・phase/turn 移動封鎖・player 離脱を**してはならない**。advisory state を立て metadata/log/warning を出し、ユーザーは続行可能(CR104.5 と本アプリの差分)。UI は警告 banner/marker を表示してよいが engine state は操作可能なまま。
 
-**6. golden / test(4点不変条件③)**: `golden-cases.json` に life-zero/empty-library-draw/poison-threshold/advisory-continuation/snapshot-forward-compat を CR 付きで追加(草稿=`research/cr-grounding/s-sba-defeat-golden.draft.md`)。受け入れ acceptance contract = `src/store/__tests__/review.sba-defeat.test.ts`(**レビュー専有**=life=0/opponent label 独立/poison 9↔10 境界/empty-draw flag クリア/mill≠draw/fixed-point 終端+非重複/advisory 非強制/704.3 simultaneity/forward-compat/903.10 defer の敵対 pin)。新 state の不変条件(reason は3種のみ・各 ruleRef 対応・flag は SBA 跨ぎで非持続)を維持。
+**6. golden / test(4点不変条件③)**: `golden-cases.json` に life-zero/empty-library-draw/poison-threshold/advisory-continuation/snapshot-forward-compat を CR 付きで追加(草稿=`research/cr-grounding/archive/s-sba-defeat/s-sba-defeat-golden.draft.md`)。受け入れ acceptance contract = `src/store/__tests__/review.sba-defeat.test.ts`(**レビュー専有**=life=0/opponent label 独立/poison 9↔10 境界/empty-draw flag クリア/mill≠draw/fixed-point 終端+非重複/advisory 非強制/704.3 simultaneity/forward-compat/903.10 defer の敵対 pin)。新 state の不変条件(reason は3種のみ・各 ruleRef 対応・flag は SBA 跨ぎで非持続)を維持。
 
 **7. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: commander damage 敗北(CR903.10a・次 slice=本 substrate の上に乗る)・複数人同時敗北の draw 細部(CR104.4a)・実際の game 終了/winner 決定/離脱処理(CR104.1/104.5)・2HG team life/poison 閾値(CR704.6a/b)・opponent poison(per-opponent counter 未モデル)→ 全て carry。substrate(defeat state + SBA)は壊さず後付け可能。
 
 **(運用注記)** `.claude/`(git worktree チェックアウト)を eslint ignore と vitest exclude に追加=worktree 複製が重複テスト/lint 汚染を起こす問題を config で解消(slice 2 で同梱)。
+
+### 34.16 S-SBA commander-damage defeat advisory(CR 903.10a)— この節も契約である
+
+**位置づけ**: §34.15 の敗北 substrate の上に乗る**4つ目の advisory reason**。新 substrate ではなく、既存の advisory record・event metadata・SBA 固定点ループに **1 reason・1 rule ref・1 分岐**を足すだけ。設計正本=`research/cr-grounding/archive/s-903-10a-commander-damage/s-903-10a-commander-damage.draft.md`(Codex 草稿・Fable が CR 照合し承認)。**advisory に留め強制終了しない**(サンドボックス哲学)。
+
+**CR 根拠**:
+- CR 903.10a: 同一の commander から通算 21 点以上の**戦闘ダメージ**を受けた player は敗北。「これは state-based action(CR704 参照)」。
+- CR 104.3j: 同条件を losing-the-game 一般規則側で SBA として再掲。
+- CR 704.3/117.5: SBA は priority 前にスタック非使用で、1 チェック内は同時に実行し、何も起きなくなるまで反復。
+- CR 702.124d: partner の 2 人の commander は 21 点判定で**別々に数える**(2 ラベルの合算禁止)。
+- CR 104.5: CR では敗者は game を離れる。本アプリは advisory のみ記録し続行可(§34.15 と同じ差分)。
+
+**1. 型契約(`src/engine/types.ts`)**:
+```ts
+type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';
+type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
+// commanderDamage は既存の Record<string, number>(key=対戦相手統率者ラベル・自由文字列)が
+// 唯一の数値真理源。commanderDamageDefeat / per-label defeat state / commander object 同一性 /
+// per-opponent damage matrix を本 slice で足さない。
+```
+現 `commanderDamage[label]` は「同一 commander/source ラベルが `P1` へ与えた damage」の粗い counter と解釈する。target-player keyed な commander-damage map が無いため、本 slice は **`defeat.P1` の advisory のみ**生成する。
+
+**2. event metadata(`src/engine/types.ts`)**: `DefeatAdvisoryEvent` の `sbaApplied`/`defeatReason` union を `'903.10a'`/`'commanderDamage'` へ拡張。commander-damage 敗北は §34.15 と同じ非 zone-change 形(`type:'defeatAdvisory'`, `reason:'sba'`, `playerRef:'P1'`, `advisory:true`)。**zone change を捏造せず・カードを動かさず・物理カードへ紐付けない**。
+
+**3. SBA(`performStateBasedActionsOnce` / `applyDefeatStateBasedActions`)**:
+- `DEFEAT_RULE_REFS` に `commanderDamage:'903.10a'` を追加。警告ラベルは `統率者ダメージ21点以上` 等。
+- 分岐 1 本追加: いずれかの `state.commanderDamage[label] >= 21` かつ `defeat.P1.reasons` に `commanderDamage` 未登録なら `addDefeatAdvisory(draft,'P1','commanderDamage',simultaneousGroupId)`。
+- **ラベル独立**: 異なるラベルの値を合算して 21 に届かせない。単一ラベルが `>= 21`(CR702.124d)。
+- **要石(idempotent + fixed-point clean)**: 既登録なら counter が `>= 21` のままでも再 emit しない=無限ループ防止(CR704.3)。`performStateBasedActionsOnce` は**新 reason 追加時のみ `true`**。
+- 同一 pass で `lifeZero`/`emptyLibraryDraw`/`poison` と同時に成立したら全 event が単一 `simultaneousGroupId`、各 reason は自分の `ruleRefs` エントリを持つ(CR704.3)。
+
+**4. サンドボックス / advisory ポリシー**: game 終了・state クリア・コマンド封鎖・phase/turn 移動封鎖・player 離脱・winner 決定を**してはならない**(CR104.3j/104.5)。counter を後から 21 未満へ下げても advisory record は append-only(CR では既に敗北・本アプリは「CR なら敗北」を記録し続行)。
+
+**5. 状態不変条件**: I13 を 3 reason → 4 reason へ拡張(`commanderDamage -> 903.10a`)。`defeat.P1.reasons` は SBA チェックが `commanderDamage[label] >= 21` を観測した後のみ `commanderDamage` を含む。`defeat['opponent:${label}']` は本 slice で `commanderDamage` を受け取らない。snapshot 前方互換は `commanderDamage`/`903.10a` を既知 reason として保存し、不正 reason は drop。
+
+**6. golden / test(4点不変条件③)**: `golden-cases.json` に 20/21 境界・20→21 遷移・ラベル非合算・独立閾値・idempotent 非再 emit・§34.15 reason との同時 grouping・source 境界・snapshot 前方互換を CR 付きで追加(草稿=`research/cr-grounding/archive/s-903-10a-commander-damage/s-903-10a-golden.draft.md`)。受け入れ acceptance = `src/store/__tests__/review.903-10a.test.ts`(レビュー専有)。§34.15 の `review.sba-defeat` にあった「903.10a は defer」pin は本 slice 実装で advisory-level 実装へ反転済み。
+
+**7. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: per-opponent-exact commander damage・commander `cardId`/object 同一性 attribution・combat damage から counter への自動帰属・dummy opponent player object・multiplayer 同時敗北/draw 細部・2HG → 全て `cr-player-specific-zones` 設計凍結後へ carry。substrate は壊さず後付け可能。

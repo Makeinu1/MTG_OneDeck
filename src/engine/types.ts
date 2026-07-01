@@ -171,8 +171,8 @@ export interface ManaAddedEvent {
   causeEventId?: string;
 }
 
-export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison';
-export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c';
+export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';
+export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 export type DefeatPlayerRef = 'P1' | `opponent:${string}`;
 
 export interface DefeatAdvisoryRecord {

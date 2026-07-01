@@ -18,8 +18,9 @@
 //      single simultaneousGroupId.
 //   9. Snapshot forward-compat: an old snapshot lacking the new fields restores without
 //      throwing and backfills to empty advisory state.
-//  10. Scope boundary: commander damage 21 must NOT create a defeat advisory in this
-//      slice (CR 903.10a commander-damage loss is a deferred future slice).
+//  10. CR 903.10a (§34.16): commander damage 21 now creates a P1 commanderDamage advisory
+//      at advisory level; per-opponent-exact attribution stays deferred. Full commander-
+//      damage acceptance lives in review.903-10a.test.ts.
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -181,14 +182,16 @@ describe('review.sba-defeat: CR 704.5a/b/c loss-condition SBA substrate (advisor
     expect(defeatFor('P1')).toBeUndefined();
   });
 
-  // 10. Scope boundary: commander-damage loss (CR 903.10a) is NOT in this slice.
-  it('903.10a deferred: commander damage 21 does not create a defeat advisory here', () => {
+  // 10. CR 903.10a is now implemented at advisory level (§34.16). The commander-damage
+  //     reason lands as a P1 advisory; per-opponent-exact attribution stays deferred.
+  //     Full commander-damage acceptance lives in review.903-10a.test.ts.
+  it('903.10a: commander damage 21 creates a P1 commanderDamage advisory (advisory level)', () => {
     store().newGame(makeDeck(12), 1);
     store().dispatch({ type: 'adjustCommanderDamage', label: '対戦相手統率者', delta: 21 });
-    const anyReason = ['P1', 'opponent:対戦相手統率者']
-      .flatMap((ref) => reasonsFor(ref));
-    expect(anyReason).not.toContain('commanderDamage');
-    expect(defeatEvents('903.10a').length).toBe(0);
-    expect(defeatEvents('704.6c').length).toBe(0);
+    expect(reasonsFor('P1')).toContain('commanderDamage');
+    expect(defeatFor('P1')?.ruleRefs?.commanderDamage).toBe('903.10a');
+    expect(defeatEvents('903.10a').length).toBe(1);
+    // Per-opponent-exact commander damage remains deferred (not target-player keyed).
+    expect(reasonsFor('opponent:対戦相手統率者')).not.toContain('commanderDamage');
   });
 });

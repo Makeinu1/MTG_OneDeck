@@ -6,12 +6,8 @@
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
   "plannedSequence": [
     {
-      "domainId": "cr-903-10a-commander-damage",
-      "note": "直近出荷スライス。defeat-state substrate の4条件目(統率者ダメージ)を advisory で閉じる。既存 commanderDamage:Record<string,number>(opponent label 別)で advisory-level は zones 非依存に実装可。per-opponent-exact 形は cr-player-specific-zones に後続。"
-    },
-    {
       "domainId": "cr-player-specific-zones",
-      "note": "その直後の後期背骨 design-lock(コード無し)。最高fan-out・最高後期コスト。903.10aの正直な形(per-opponent)・dummy opponent・multiplayer SBA が全部ここに載る。無期限holdでなく背後で即開始。"
+      "note": "後期背骨 design-lock(コード無し)。最高fan-out・最高後期コスト。903.10aの正直な形(per-opponent)・dummy opponent・multiplayer SBA が全部ここに載る。cr-903-10a-commander-damage の advisory-level 出荷(2026-07-02)で next へ昇格。無期限holdでなく背後で即開始。"
     }
   ],
   "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(Fable の standing 裁定)。空なら lane∈{backbone,late-backbone} かつ status<shipped(deferred除外)かつ nextGate明確 の最高 edhValue へフォールバック。同点/価値トレードオフは STOP→AskUserQuestion(ロードマップ分岐)。",
@@ -234,9 +230,9 @@
       "edhValue": "high",
       "status": "implemented-not-green",
       "landingState": ["stabilizeBeforePriority", "pendingSbaChoices", "damageMarked", "defeat", "eventLog"],
-      "boundary": "704.5d/e/f/i/q と 704.5a/b/c advisory slice(review.sba-defeat + I13不変条件で green)はあるが、full SBA suite未実装。commander damage 903.10a未実装。既知境界(LOW・Tier-1所見)= pendingRuleChoices 未解決中は defeat SBA 検出を次passへ deferする(advisory model では等価だが CR704.3 simultaneous とは非一致・golden未整備)。",
-      "evidence": ["cr-token-dies-before-ceases", "cr-sba-copy-ceases-outside-stack", "cr-sba-zero-loyalty-planeswalker", "cr-sba-plus-minus-counter-annihilation", "cr-sba-defeat-life-zero-p1", "cr-sba-defeat-commander-damage-deferred"],
-      "nextGate": "903.10a追加でloss条件集合を閉じ、legend/attachment系はchoice/attachment設計後に回す"
+      "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はあるが、full SBA suite未実装。commander damage 903.10a は advisory-level 出荷済み(§34.16)、per-opponent-exact は defer。既知境界(LOW・Tier-1所見)= pendingRuleChoices 未解決中は defeat SBA 検出を次passへ deferする(advisory model では等価だが CR704.3 simultaneous とは非一致・golden未整備)。",
+      "evidence": ["cr-token-dies-before-ceases", "cr-sba-copy-ceases-outside-stack", "cr-sba-zero-loyalty-planeswalker", "cr-sba-plus-minus-counter-annihilation", "cr-sba-defeat-life-zero-p1", "cr-sba-defeat-commander-damage-threshold"],
+      "nextGate": "legend/attachment系 SBA はchoice/attachment設計後に回す。commander damage の per-opponent-exact は cr-player-specific-zones 後。"
     },
     {
       "id": "cr-601-casting-stack",
@@ -328,14 +324,14 @@
     },
     {
       "id": "cr-903-10a-commander-damage",
-      "crRefs": ["903.10a", "704.6c", "104.3j"],
+      "crRefs": ["903.10a", "704.6c", "104.3j", "702.124d"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "shipped",
       "landingState": ["commanderDamage", "defeat", "lossAdvisories", "opponents"],
-      "boundary": "advisory-level 903.10a(統率者ダメージ21以上→敗北advisory)は今出す(704.5a/b/c と同じ defeat レーン)。per-opponent の正直な form・多人数の commander damage 帰属は player-specific zones 依存で defer(実装済みに混ぜない)。",
-      "evidence": ["cr-sba-defeat-commander-damage-deferred"],
-      "nextGate": "advisory-level は既存 commanderDamage(opponent label別)で zones 非依存に今スライスで実装。per-opponent-exact/dummy opponent は cr-player-specific-zones 設計凍結後。"
+      "boundary": "advisory-level 903.10a(統率者ダメージ21以上→P1 敗北advisory・engine-spec §34.16)出荷済み(2026-07-02)。既存 commanderDamage:Record<string,number>(ラベル別)を観測しラベル非合算(702.124d)。per-opponent の正直な form・多人数の commander damage 帰属・combat 自動帰属は player-specific zones 依存で defer(実装済みに混ぜない)。",
+      "evidence": ["cr-sba-defeat-commander-damage-threshold", "cr-sba-defeat-commander-damage-labels-not-summed", "cr-sba-defeat-commander-damage-independent-threshold", "cr-sba-defeat-commander-damage-simultaneous-life-zero", "cr-sba-defeat-commander-damage-snapshot-forward-compat", "src/store/__tests__/review.903-10a.test.ts"],
+      "nextGate": "per-opponent-exact/dummy opponent/combat 自動帰属は cr-player-specific-zones 設計凍結後。"
     },
     {
       "id": "cr-604-611-612-613-layers-continuous",

@@ -89,6 +89,7 @@ const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
   lifeZero: '704.5a',
   emptyLibraryDraw: '704.5b',
   poison: '704.5c',
+  commanderDamage: '903.10a',
 };
 const STACK_TRANSITION_BLOCKED_WARNING = 'スタックに未解決の効果があります。先に解決してください。';
 const PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING =
@@ -219,7 +220,12 @@ function unknownRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function isDefeatReason(value: unknown): value is DefeatReason {
-  return value === 'lifeZero' || value === 'emptyLibraryDraw' || value === 'poison';
+  return (
+    value === 'lifeZero' ||
+    value === 'emptyLibraryDraw' ||
+    value === 'poison' ||
+    value === 'commanderDamage'
+  );
 }
 
 function isDefeatPlayerRef(value: string): value is DefeatPlayerRef {

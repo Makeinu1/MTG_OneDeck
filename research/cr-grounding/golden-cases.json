@@ -30,7 +30,7 @@
     "cr-sba-defeat-no-duplicate-event-fixed-point",
     "cr-sba-defeat-nondraw-empty-library-does-not-trigger",
     "cr-sba-defeat-snapshot-forward-compat",
-    "cr-sba-defeat-commander-damage-deferred",
+    "cr-sba-defeat-commander-damage-threshold",
     "cr-zone-change-new-object-lki",
     "cr-triggered-mana-ability-no-stack",
     "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
@@ -1311,21 +1311,178 @@
       ]
     },
     {
-      "id": "cr-sba-defeat-commander-damage-deferred",
-      "title": "CR 903.10a: commander damage敗北はこの704.5a/b/c sliceではdeferする",
-      "crRefs": ["903.10a", "704.6c", "104.3j", "704.5a", "704.5b", "704.5c"],
-      "scope": "s-sba-defeat-state-boundary",
-      "initialFixture": { "commanderDamage": { "対戦相手統率者": 21 } },
-      "steps": ["統率者ダメージを21にする。", "priority前のSBAチェックを実行する。"],
+      "id": "cr-sba-defeat-commander-damage-20-boundary",
+      "title": "CR 903.10a: 同一commander labelの統率者ダメージ20点では敗北advisoryを作らない",
+      "crRefs": ["903.10a", "104.3j", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 20 } },
+      "steps": ["統率者ダメージlabel Aを20にする。", "priority前のSBAチェックを実行する。"],
       "requiredObservations": [
-        "commanderDamage値は記録される。",
-        "commanderDamage defeat reason は作られない。",
-        "903.10a / 704.6c の defeatAdvisory event は記録されない。"
+        "commanderDamage値20は記録される。",
+        "state.defeat.P1.reasons に commanderDamage は追加されない。",
+        "903.10a defeatAdvisory event は記録されない。"
       ],
-      "mustNot": ["deferred scopeを704.5a/b/c PASSに混ぜない。"],
+      "mustNot": ["20点を903.10aの21点以上閾値として扱わない。"],
       "implementationRefs": [
-        "src/engine/commands.ts limits defeat advisories to CR 704.5a/b/c in this slice",
+        "src/engine/commands.ts checks each commanderDamage label independently for CR 903.10a"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-threshold",
+      "title": "CR 903.10a: 同一commander labelの統率者ダメージ21点でP1敗北advisoryを記録する",
+      "crRefs": ["903.10a", "104.3j", "117.5", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 21 } },
+      "steps": ["統率者ダメージlabel Aを21にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に commanderDamage が追加される。",
+        "state.defeat.P1.ruleRefs.commanderDamage は 903.10a を持つ。",
+        "defeatAdvisory event は sbaApplied 903.10a / playerRef P1 / advisory true を持つ。",
+        "敗北はadvisoryでありstateは継続する。"
+      ],
+      "mustNot": [
+        "commanderDamage label を opponent playerRef として扱わない。",
+        "game終了やstate null化を行わない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performs CR 903.10a commanderDamage threshold advisory",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-transition-once",
+      "title": "CR 903.10a/704.3: 20点から21点到達時にcommanderDamage advisoryを1回だけ記録する",
+      "crRefs": ["903.10a", "104.3j", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 20 } },
+      "steps": [
+        "統率者ダメージlabel Aを20にする。",
+        "priority前のSBAチェックを実行し、advisoryが無いことを確認する。",
+        "同じlabelへ1点追加して21にする。",
+        "priority前のSBAチェックを再実行する。"
+      ],
+      "requiredObservations": [
+        "21到達時に state.defeat.P1.reasons に commanderDamage が追加される。",
+        "903.10a defeatAdvisory event は1件だけ記録される。"
+      ],
+      "mustNot": ["20点時点で先行してadvisoryを作らない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts addDefeatAdvisory suppresses already-recorded defeat reasons"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-labels-not-summed",
+      "title": "CR 702.124d: 複数commander labelの統率者ダメージは合算しない",
+      "crRefs": ["903.10a", "104.3j", "702.124d", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": {
+        "commanderDamage": { "対戦相手統率者A": 10, "対戦相手統率者B": 11 }
+      },
+      "steps": ["label Aを10、label Bを11にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に commanderDamage は追加されない。",
+        "903.10a defeatAdvisory event は記録されない。"
+      ],
+      "mustNot": ["異なるlabelの10点と11点を合算して21点として扱わない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts observes Object.values(commanderDamage) per label and stops after one qualifying label"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-independent-threshold",
+      "title": "CR 702.124d/903.10a: 片方のcommander labelが21点なら他labelが20点でも敗北advisoryを記録する",
+      "crRefs": ["903.10a", "104.3j", "702.124d", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": {
+        "commanderDamage": { "対戦相手統率者A": 20, "対戦相手統率者B": 21 }
+      },
+      "steps": ["label Aを20、label Bを21にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に commanderDamage が追加される。",
+        "903.10a defeatAdvisory event は1件だけ記録される。"
+      ],
+      "mustNot": ["複数labelがあることを理由に21点到達labelを無視しない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts creates one P1 commanderDamage advisory for any qualifying label"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-no-duplicate-event-fixed-point",
+      "title": "CR 704.3: commanderDamage advisoryは固定点ループで重複eventを出さない",
+      "crRefs": ["903.10a", "104.3j", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 21 } },
+      "steps": [
+        "commanderDamage advisoryを1回作る。",
+        "同じlabelが21点以上のまま再度SBAチェックを実行する。"
+      ],
+      "requiredObservations": [
+        "903.10a defeatAdvisory event は1件だけで増えない。",
+        "固定点ループは停止する。"
+      ],
+      "mustNot": ["既登録commanderDamage reasonを毎回emitして無限ループにしない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts addDefeatAdvisory skips already-recorded defeat reasons"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-simultaneous-life-zero",
+      "title": "CR 704.3: commanderDamageとlifeZeroが同一SBA passで見つかる場合はsimultaneousGroupIdを共有する",
+      "crRefs": ["903.10a", "104.3j", "704.5a", "104.3b", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "life": 0, "commanderDamage": { "対戦相手統率者A": 21 } },
+      "steps": [
+        "P1のlifeを0、commanderDamage label Aを21にした状態でSBAチェックを実行する。"
+      ],
+      "requiredObservations": [
+        "lifeZero と commanderDamage の両reasonがP1に記録される。",
+        "704.5a event と903.10a event は同じ simultaneousGroupId を持つ。"
+      ],
+      "mustNot": ["片方の敗北reasonだけを記録してもう片方を隠さない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts uses one sba-* simultaneousGroupId per SBA pass"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-life-loss-does-not-synthesize",
+      "title": "CR 903.10a: 通常のlife lossはcommanderDamage advisoryを合成しない",
+      "crRefs": ["903.10a", "104.3j", "704.5a"],
+      "scope": "s-sba-defeat-state-boundary",
+      "initialFixture": { "life": 40, "commanderDamage": {} },
+      "steps": ["P1のlifeを21点失わせる。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "commanderDamage値は増えない。",
+        "state.defeat.P1.reasons に commanderDamage は追加されない。",
+        "903.10a defeatAdvisory event は記録されない。"
+      ],
+      "mustNot": ["通常のlife lossを統率者戦闘ダメージとして扱わない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts only observes explicit commanderDamage counters for CR 903.10a"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-snapshot-forward-compat",
+      "title": "snapshot forward-compat: commanderDamage defeat reasonは903.10a ref付きで復元できる",
+      "crRefs": ["903.10a", "104.3j"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": {
+        "defeat": {
+          "P1": {
+            "reasons": ["commanderDamage"],
+            "ruleRefs": { "commanderDamage": "903.10a" },
+            "advisory": true
+          }
+        }
+      },
+      "steps": ["commanderDamage advisoryを含むsnapshotをrestoreGameで復元する。"],
+      "requiredObservations": [
+        "復元はthrowしない。",
+        "state.defeat.P1.reasons に commanderDamage が保持される。",
+        "state.defeat.P1.ruleRefs.commanderDamage は 903.10a として復元される。"
+      ],
+      "mustNot": ["commanderDamage reasonを不正reasonとして捨てない。"],
+      "implementationRefs": [
+        "src/store/gameStore.ts normalizeSnapshotDefeat accepts commanderDamage as a known reason"
       ]
     },
     {

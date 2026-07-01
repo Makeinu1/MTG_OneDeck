@@ -1711,14 +1711,13 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     expect(store().state!.emptyLibraryDrawAttemptedSinceLastSba).toEqual({});
   });
 
-  it('cr-sba-defeat-commander-damage-deferred: CR 903.10a remains out of this slice', () => {
-    goldenCase('cr-sba-defeat-commander-damage-deferred', [
+  it('cr-sba-defeat-commander-damage-threshold: CR 903.10a creates a P1 advisory', () => {
+    goldenCase('cr-sba-defeat-commander-damage-threshold', [
       '903.10a',
-      '704.6c',
       '104.3j',
-      '704.5a',
-      '704.5b',
-      '704.5c',
+      '117.5',
+      '704.3',
+      '104.5',
     ]);
 
     store().newGame(makeDeck(12), 1);
@@ -1729,10 +1728,8 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     });
 
     expect(store().state!.commanderDamage['対戦相手統率者']).toBe(21);
-    expect(
-      Object.values(store().state!.defeat).flatMap((record) => record?.reasons ?? []),
-    ).not.toContain('commanderDamage');
-    expect(defeatEvents('903.10a')).toHaveLength(0);
-    expect(defeatEvents('704.6c')).toHaveLength(0);
+    expect(defeatReasonsFor('P1')).toContain('commanderDamage');
+    expect(store().state!.defeat.P1?.ruleRefs.commanderDamage).toBe('903.10a');
+    expect(defeatEvents('903.10a')).toHaveLength(1);
   });
 });

@@ -165,11 +165,13 @@ const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
   lifeZero: '704.5a',
   emptyLibraryDraw: '704.5b',
   poison: '704.5c',
+  commanderDamage: '903.10a',
 };
 const DEFEAT_REASON_LABELS: Record<DefeatReason, string> = {
   lifeZero: 'ライフが0以下',
   emptyLibraryDraw: '空のライブラリからのドロー',
   poison: '毒カウンター10個以上',
+  commanderDamage: '統率者ダメージ21点以上',
 };
 
 function emptyManaPool(): ManaPool {
@@ -1070,6 +1072,13 @@ function applyDefeatStateBasedActions(draft: Draft, simultaneousGroupId: string)
 
   if (draft.state.poison >= 10) {
     added = addDefeatAdvisory(draft, 'P1', 'poison', simultaneousGroupId) || added;
+  }
+
+  for (const value of Object.values(draft.state.commanderDamage)) {
+    if (value >= 21) {
+      added = addDefeatAdvisory(draft, 'P1', 'commanderDamage', simultaneousGroupId) || added;
+      break;
+    }
   }
 
   return added;

@@ -357,13 +357,14 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   expect(state.spellsCastThisTurn, `${label}: negative spellsCastThisTurn`).toBeGreaterThanOrEqual(0);
   expect(state.drawnThisTurn, `${label}: negative drawnThisTurn`).toBeGreaterThanOrEqual(0);
 
-  // I13 (S-SBA defeat-state, §34.15): every defeat advisory record is well-formed
-  // per CR 704.5a/b/c — advisory (never enforcing), non-empty & de-duplicated
-  // reasons drawn from the three known kinds, each carrying its matching CR ref.
+  // I13 (S-SBA defeat-state, §34.15/§34.16): every defeat advisory record is well-formed
+  // per CR 704.5a/b/c + 903.10a — advisory (never enforcing), non-empty & de-duplicated
+  // reasons drawn from the four known kinds, each carrying its matching CR ref.
   const DEFEAT_RULE: Record<string, string> = {
     lifeZero: '704.5a',
     emptyLibraryDraw: '704.5b',
     poison: '704.5c',
+    commanderDamage: '903.10a',
   };
   for (const [ref, rec] of Object.entries(state.defeat)) {
     expect(rec, `${label}: defeat[${ref}] undefined`).toBeDefined();
