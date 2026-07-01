@@ -55,6 +55,8 @@
 
 ## M0 CR Grounding Gate status
 
+> **参照移管(2026-07-01)**: 全CR章の 背骨/後期背骨/葉/剪定 レーン・5状態lifecycle・EDH価値・「次は何か」は **`cr-backbone-ledger.json`(単一正本)** に集約した。下表(CRG-1〜8)は既実装8領域の凍結ゲート**証跡**として残すが、レーン/次スライス選定は台帳を見る(autoloop step 0)。`m0-freeze-overlay.json` の重複役割も台帳へ subsume。
+
 2026-06-27 時点の固定ゲート。以後の S-EVENTS/S-TURN/S-ZONES 実装は、この表の「残る境界」を完了条件として扱う。`PASS` は CR refs と実行可能テストで確認済み、`PARTIAL` は明示した境界までのみ合格。
 
 | Gate | Status | Evidence | 残る境界 |

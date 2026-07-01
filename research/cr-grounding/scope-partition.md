@@ -1,5 +1,7 @@
 # Scope Partition for M0-FREEZE
 
+> **⚠️ 退役(2026-07-01)**: 背骨/後期背骨/葉/剪定 のレーン分類・scope 境界の**単一正本は `research/cr-grounding/cr-backbone-ledger.json`** に移った。本書は R-FREEZE-4 の設計スタディとして残すが、レーン/status の参照はしない(台帳を見る)。
+
 最終更新: 2026-06-27
 固定CR: Magic: The Gathering Comprehensive Rules, effective 2026-06-19
 対象: CR 400.7 例外群 / full effective-characteristics snapshot / full SBA suite / 2026-06-19 新語彙

@@ -4,6 +4,35 @@
 > まだ変更しない設計図である。実装は本書を背骨に、後述のマイルストーンを1つずつ起こす。
 > 最終更新: 2026-06-26。参照CR: 2026-06-19 版。
 
+## 0. 用語と状態語彙(正本・2026-07-01 追加)
+
+MTGを一人回しできる状態にする主役は**4部構成**。中心名詞は **`GameState`**(その瞬間を再開・undo できる完全な状態)。ルールエンジンは GameState を読み次 GameState へ変え、コンパイラは GameState を直接書かず「GameState を変える command」を作り、ゲームエンジンは GameState を保持し、検査器は「その変化が CR 根拠付きか」を見る。
+
+| 用語 | 責務 | やらないこと | 本コードでの実体 |
+|---|---|---|---|
+| ゲームエンジン | `GameState` 保持・UI操作・履歴・保存・undo/redo・入力→command化 | CR判断を全部内包しない | `src/store/`(Zustand)+ UI |
+| ルールエンジン(= 本書の「ルール基盤/Substrate」) | 構造化済み `GameCommand` を CR に沿って次 `GameState`/`GameEvent`/warning へ | 英語 oracle text を直接読まない | `src/engine/`(純粋関数)|
+| カード文法コンパイラ(Compiler) | oracle text → command/trigger/effect plan へ変換(auto/guided/manual) | `GameState` を直接書き換えない | `src/engine/grammar/` ほか(段階拡大)|
+| 検査器 | 実装済み主張と未実装境界が嘘でないかを CR 根拠で監査 | ゲームを進行しない・盤面裁定を再実装しない | `research/cr-grounding/`(golden-cases・**背骨台帳**・review.*)|
+
+用語注: 本書は歴史的経緯で「ルール基盤(Substrate)」と呼ぶが、**議論上の「ルールエンジン」と同一物**。コード/ファイル名は改名しない(payoff 無き churn)。
+
+### 進捗語彙(5状態ライフサイクル)
+「PASS(core) を PASS と誤読する」落とし穴を防ぐため、CR領域ごとの状態は次の5値で表す(**`research/cr-grounding/cr-backbone-ledger.json` の `status` カラムが正本**):
+
+| 状態 | 意味 | 旧語彙との対応 |
+|---|---|---|
+| `drafted` | 契約草稿のみ(CR接地・golden定義)| ≒ Not started 直前 / DRAFT |
+| `implemented-not-green` | 実装したが機械チェック4点 or review 未緑 | (旧語彙に無かった正直さ)|
+| `review-green` | `review.*` 緑・golden 実行可能 | ≒ Active 完了直前 |
+| `shipped` | commit + CI 緑 +(該当時)Pages | ≒ Done |
+| `deferred` | 明示的に後回し・境界として可視 | ≒ scope-boundary / PARTIAL の残境界 |
+
+`FROZEN`(契約凍結)は state ではなく**契約側のゲート印**として引き続き使う(§34)。
+
+### CR領域のレーン分類(背骨/後期背骨/葉/剪定)
+どの CR 領域を先に積み、どれを剪定するかは **`cr-backbone-ledger.json` が単一正本**(旧 `scope-partition.md`・README ゲート表・`m0-freeze-overlay.json` の重複役割を退役・subsume)。レーン定義: `backbone`(GameState/遷移/event/priority/SBA/compiler着地先を決める=CR依存順に実装)/ `late-backbone`(重要だが前提state重い=設計を先に凍結し実装は段階化)/ `leaf-compiler`(個別文法=substrate完成後)/ `pruned`(主価値に直結せず=実装しないが可視に残す)。autoloop の「次は何か」は台帳 lookup(`.claude/commands/autoloop.md` step 0)。
+
 ## 1. Context — なぜ全体設計か
 
 統率者戦(EDH)の一人回しアプリ。発端は「複数誘発カードが扱えない」だが、議論を経て本質は

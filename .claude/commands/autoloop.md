@@ -9,7 +9,7 @@ description: 自律マイルストーン・ループ(無人で clear→milestone
 ## 1周の手順(Fable がやるのは判断4点だけ)
 
 ### 0. Bootstrap(Fable・薄)
-`MEMORY.md` + `research/cr-grounding/project-goal-milestones.md` を読み、**次フェーズを substrate-first 順で確認**する。次が一意に決まる(設計=R-FREEZE 文書が既存)なら自走。**ロードマップ分岐・価値判断なら STOP→`AskUserQuestion`**(下記 STOP 条件1)。要件化は「起案」でなく「ロードマップ参照」。
+`MEMORY.md` + **`research/cr-grounding/cr-backbone-ledger.json`(正本)** を読み、**次スライスを台帳から一意に選ぶ**(台帳の `selectionRule` に従う)。優先=**`plannedSequence` を先に消費**(Fable の standing 裁定)。空なら `lane ∈ {backbone, late-backbone}` かつ `status < shipped`(drafted/implemented-not-green/review-green・`deferred` 除外)かつ `nextGate` 明確 の**最高 `edhValue`** へフォールバック。同点・`nextGate` 不明・価値トレードオフなら **STOP→`AskUserQuestion`**(下記 STOP 条件1=plannedSequence の次バッチ裁定)。要件化は「起案」でなく「台帳 lookup」。
 
 ### 1. 契約起案(Codex 草稿 → Fable 承認)
 Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクション草稿 + golden/敵対テスト草稿**を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。Fable は **CR 照合して承認**し、`review.<key>` の最終 author だけ担い(=要石。実装者に書かせない)、契約を `docs/` へ昇格。Codex は `docs/`・`review.*`・`CLAUDE.md`・git 不可侵。
@@ -30,7 +30,9 @@ findings の**赤旗だけ**読み `{substrate誤り/compiler誤訳/物差し誤
 status/churn/次フェーズの更新を Sonnet が草稿。Fable は**北極星(ゴール定義)に触る変更だけ**承認。それ以外は Sonnet 草稿を薄く確認して commit。
 
 ### 7. Handoff & 継続(Fable・薄)
-次フェーズ状態を memory(`m0-1-layer-slice-progress.md` 等)+ plan へ記録。STOP 条件未該当なら `ScheduleWakeup`(idle は 1200–1800s)でループ継続。該当なら一時停止して `AskUserQuestion`。
+出荷したスライスの `cr-backbone-ledger.json` エントリの `status` を更新(→`shipped`、`evidence` に golden id/commit)。次フェーズ状態を memory + plan へ記録。STOP 条件未該当なら `ScheduleWakeup`(idle は 1200–1800s)でループ継続。該当なら一時停止して `AskUserQuestion`。
+
+**儀式予算(集約規律・凍結/出荷境界ごと)**: 出荷済みマイルストーンが `research/cr-grounding/` に残した packet 群(handoff/review-sheet/decision-record/execution-queue/one-shot-brief/verify-*.mjs/patch 等の**判断履歴**)は、台帳の1行(`evidence`+`status`)に畳んだ上で `research/cr-grounding/archive/<key>/` へ移す。ディレクトリは**生きた契約**(台帳・golden-cases・現行 draft)のみを写し、決定履歴を溜めない。CLAUDE.md が真のボトルネックと呼ぶ「累積文脈の再読で Opus を消尽」への直接の対策。**台帳・golden-cases・review.* は畳まない**(生きた正本)。
 
 ## STOP 条件(止まってユーザーに聞く=これだけ)
 CI ゲート + git revert 可逆性が安全網。以下のみ停止:
