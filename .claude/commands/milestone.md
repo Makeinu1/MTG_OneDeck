@@ -21,4 +21,4 @@ description: 欲しいものを1マイルストーンとして起こす(Fable契
 6. **Codex を背景起動**(CLAUDE.md のコマンド・`< /dev/null`)。タスクは TaskCreate で「契約/実装/監査」を起こし in_progress 管理。
 7. Codex 完了通知を待って `/audit` へ(Tier-1 は委譲)。
 
-MyDeck デッキ(`MyDeck/`)はローカル保持。**ただし `docs/`・`research/` の契約が参照しているソースデッキ(`Mydeck/*.txt`)は版管理下に置く**(除外前に `git grep` で契約参照を確認)。
+Mydeck デッキ(`Mydeck/`)はローカル保持。**ただし `docs/`・`research/` の契約が参照しているソースデッキ(`Mydeck/*.txt`)は版管理下に置く**(除外前に `git grep` で契約参照を確認)。
