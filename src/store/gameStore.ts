@@ -31,10 +31,15 @@ import {
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import type {
   CardInstance,
+  DefeatAdvisoryRecord,
+  DefeatPlayerRef,
+  DefeatReason,
+  DefeatRuleRef,
   GameState,
   PendingRuleChoice,
   PendingSbaChoice,
   PendingTrigger,
+  PlayerId,
   RuleChoiceSelection,
   TriggerStackPlacementBucket,
   ZoneChangeEvent,
@@ -80,6 +85,11 @@ const ALL_ZONES: ZoneId[] = [
   'command',
   'stack',
 ];
+const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
+  lifeZero: '704.5a',
+  emptyLibraryDraw: '704.5b',
+  poison: '704.5c',
+};
 const STACK_TRANSITION_BLOCKED_WARNING = 'スタックに未解決の効果があります。先に解決してください。';
 const PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING =
   '優先権前に置く誘発の順序が未指定です。すべての pending trigger を順序指定してください。';
@@ -202,7 +212,71 @@ function normalizeSnapshotCombat(state: GameState): GameState['combat'] {
   return combat;
 }
 
+function unknownRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function isDefeatReason(value: unknown): value is DefeatReason {
+  return value === 'lifeZero' || value === 'emptyLibraryDraw' || value === 'poison';
+}
+
+function isDefeatPlayerRef(value: string): value is DefeatPlayerRef {
+  return value === 'P1' || (value.startsWith('opponent:') && value.length > 'opponent:'.length);
+}
+
+function normalizeSnapshotDefeat(value: unknown): GameState['defeat'] {
+  const rawDefeat = unknownRecord(value);
+  if (!rawDefeat) return {};
+
+  const defeat: GameState['defeat'] = {};
+  for (const [playerRef, rawRecord] of Object.entries(rawDefeat)) {
+    if (!isDefeatPlayerRef(playerRef)) continue;
+    const record = unknownRecord(rawRecord);
+    if (!record || !Array.isArray(record.reasons)) continue;
+
+    const reasons: DefeatReason[] = [];
+    for (const rawReason of record.reasons) {
+      if (!isDefeatReason(rawReason) || reasons.includes(rawReason)) continue;
+      reasons.push(rawReason);
+    }
+    if (reasons.length === 0) continue;
+
+    const ruleRefs: DefeatAdvisoryRecord['ruleRefs'] = {};
+    for (const reason of reasons) {
+      ruleRefs[reason] = DEFEAT_RULE_REFS[reason];
+    }
+    defeat[playerRef] = {
+      reasons,
+      ruleRefs,
+      advisory: true,
+    };
+  }
+
+  return defeat;
+}
+
+function isPlayerId(value: string): value is PlayerId {
+  return value === 'P1' || value === 'OPPONENT_A';
+}
+
+function normalizeEmptyLibraryDrawFlags(
+  value: unknown,
+): GameState['emptyLibraryDrawAttemptedSinceLastSba'] {
+  const rawFlags = unknownRecord(value);
+  if (!rawFlags) return {};
+
+  const flags: GameState['emptyLibraryDrawAttemptedSinceLastSba'] = {};
+  for (const [playerId, flag] of Object.entries(rawFlags)) {
+    if (!isPlayerId(playerId) || typeof flag !== 'boolean') continue;
+    flags[playerId] = flag;
+  }
+  return flags;
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
+  const snapshot = state as Partial<GameState>;
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
         const controllerId =
@@ -232,6 +306,10 @@ function normalizeSnapshotState(state: GameState): GameState {
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
     eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
+    defeat: normalizeSnapshotDefeat(snapshot.defeat),
+    emptyLibraryDrawAttemptedSinceLastSba: normalizeEmptyLibraryDrawFlags(
+      snapshot.emptyLibraryDrawAttemptedSinceLastSba,
+    ),
     pendingTriggers,
     pendingRuleChoices: normalizePendingRuleChoices(state),
     pendingSbaChoices: [],

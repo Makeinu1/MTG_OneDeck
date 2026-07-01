@@ -171,7 +171,37 @@ export interface ManaAddedEvent {
   causeEventId?: string;
 }
 
-export type GameEvent = ZoneChangeEvent;
+export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison';
+export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c';
+export type DefeatPlayerRef = 'P1' | `opponent:${string}`;
+
+export interface DefeatAdvisoryRecord {
+  reasons: DefeatReason[];
+  ruleRefs: Partial<Record<DefeatReason, DefeatRuleRef>>;
+  advisory: true;
+}
+
+export interface DefeatAdvisoryEvent {
+  type: 'defeatAdvisory';
+  eventId: string;
+  sequence: number;
+  reason: 'sba';
+  sbaApplied: DefeatRuleRef;
+  simultaneousGroupId: string;
+  playerRef: DefeatPlayerRef;
+  defeatReason: DefeatReason;
+  advisory: true;
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  fromZone?: never;
+  toZone?: never;
+  before?: never;
+  after?: never;
+  replacementApplied?: never;
+}
+
+export type GameEvent = ZoneChangeEvent | DefeatAdvisoryEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 
@@ -260,6 +290,8 @@ export interface GameState {
   experience: number;
   commanderDamage: Record<string, number>; // key: 対戦相手統率者のラベル(自由文字列)
   opponentLife: Record<string, number>;
+  defeat: Partial<Record<DefeatPlayerRef, DefeatAdvisoryRecord>>;
+  emptyLibraryDrawAttemptedSinceLastSba: Partial<Record<PlayerId, boolean>>;
   manaPool: ManaPool;
   mulliganCount: number;
   landsPlayedThisTurn: number;

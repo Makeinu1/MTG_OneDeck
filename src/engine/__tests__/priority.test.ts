@@ -109,6 +109,8 @@ function stateWithPendingTriggers(
     experience: 0,
     commanderDamage: {},
     opponentLife: {},
+    defeat: {},
+    emptyLibraryDrawAttemptedSinceLastSba: {},
     manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
     mulliganCount: 0,
     landsPlayedThisTurn: 0,

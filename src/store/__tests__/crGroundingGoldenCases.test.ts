@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
 import { objectIdOf } from '../../engine/types';
-import type { ZoneChangeEvent } from '../../engine/types';
+import type { DefeatAdvisoryEvent, DefeatPlayerRef, ZoneChangeEvent } from '../../engine/types';
+import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import { useGameStore } from '../gameStore';
 
 interface CrGoldenCase {
@@ -54,6 +55,17 @@ function findInstanceId(defId: string): string {
     throw new Error(`card instance not found for ${defId}`);
   }
   return card.id;
+}
+
+function defeatReasonsFor(playerRef: DefeatPlayerRef): string[] {
+  return store().state?.defeat[playerRef]?.reasons ?? [];
+}
+
+function defeatEvents(sbaApplied: string): DefeatAdvisoryEvent[] {
+  return (store().state?.eventLog ?? []).filter(
+    (event): event is DefeatAdvisoryEvent =>
+      event.type === 'defeatAdvisory' && event.sbaApplied === sbaApplied,
+  );
 }
 
 function makeCombatCreature(
@@ -1491,5 +1503,236 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
         counters: { '+1/+1': 2 },
       },
     });
+  });
+
+  it('cr-sba-defeat-life-zero-p1: CR 704.5a records an advisory for P1 life 0', () => {
+    goldenCase('cr-sba-defeat-life-zero-p1', ['704.5a', '104.3b', '704.3', '104.5']);
+
+    store().newGame(makeDeck(12), 1);
+    store().dispatch({ type: 'adjustLife', delta: -store().state!.life });
+
+    const state = store().state!;
+    expect(state.life).toBe(0);
+    expect(defeatReasonsFor('P1')).toContain('lifeZero');
+    expect(state.defeat.P1?.ruleRefs.lifeZero).toBe('704.5a');
+    expect(defeatEvents('704.5a')).toContainEqual(
+      expect.objectContaining({
+        reason: 'sba',
+        playerRef: 'P1',
+        defeatReason: 'lifeZero',
+        advisory: true,
+      }),
+    );
+    expect(
+      state.eventLog.some(
+        (event) =>
+          event.type === 'zoneChange' && event.reason === 'sba' && event.sbaApplied === '704.5a',
+      ),
+    ).toBe(false);
+  });
+
+  it('cr-sba-defeat-life-zero-opponent-label: CR 704.5a evaluates opponent life labels independently', () => {
+    goldenCase('cr-sba-defeat-life-zero-opponent-label', ['704.5a', '104.3b', '704.3']);
+
+    store().newGame(makeDeck(12), 1);
+    const label = Object.keys(store().state!.opponentLife)[0];
+    const playerRef = `opponent:${label}` as DefeatPlayerRef;
+    store().dispatch({
+      type: 'adjustOpponentLife',
+      label,
+      delta: -store().state!.opponentLife[label],
+    });
+
+    expect(store().state!.opponentLife[label]).toBe(0);
+    expect(defeatReasonsFor(playerRef)).toContain('lifeZero');
+    expect(defeatReasonsFor('P1')).not.toContain('lifeZero');
+    expect(defeatEvents('704.5a')).toContainEqual(
+      expect.objectContaining({
+        playerRef,
+        defeatReason: 'lifeZero',
+        advisory: true,
+      }),
+    );
+  });
+
+  it('cr-sba-defeat-empty-library-draw: CR 704.5b consumes the draw-attempt interval flag', () => {
+    goldenCase('cr-sba-defeat-empty-library-draw', ['704.5b', '121.1', '121.2', '121.4', '704.3']);
+
+    store().newGame(makeDeck(12), 1);
+    const drawnBefore = store().state!.drawnThisTurn;
+    useGameStore.setState({
+      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+    });
+
+    store().dispatch({ type: 'draw', count: 1 });
+
+    const state = store().state!;
+    expect(state.drawnThisTurn).toBe(drawnBefore);
+    expect(state.emptyLibraryDrawAttemptedSinceLastSba.P1 ?? false).toBe(false);
+    expect(defeatReasonsFor('P1')).toContain('emptyLibraryDraw');
+    expect(state.defeat.P1?.ruleRefs.emptyLibraryDraw).toBe('704.5b');
+    expect(defeatEvents('704.5b')).toContainEqual(
+      expect.objectContaining({
+        playerRef: 'P1',
+        defeatReason: 'emptyLibraryDraw',
+        advisory: true,
+      }),
+    );
+  });
+
+  it('cr-sba-defeat-empty-library-draw-partial-multidraw: CR 704.5b catches running out mid-draw', () => {
+    goldenCase('cr-sba-defeat-empty-library-draw-partial-multidraw', ['704.5b', '121.2', '121.4']);
+
+    store().newGame(makeDeck(12), 1);
+    const drawnBefore = store().state!.drawnThisTurn;
+    const onlyCard = store().state!.zones.library[0];
+    useGameStore.setState({
+      state: {
+        ...store().state!,
+        zones: { ...store().state!.zones, library: [onlyCard] },
+      },
+    });
+
+    store().dispatch({ type: 'draw', count: 2 });
+
+    const state = store().state!;
+    expect(state.zones.hand).toContain(onlyCard);
+    expect(state.drawnThisTurn).toBe(drawnBefore + 1);
+    expect(defeatReasonsFor('P1')).toContain('emptyLibraryDraw');
+    expect(defeatEvents('704.5b')).toHaveLength(1);
+  });
+
+  it('cr-sba-defeat-poison-threshold and poison-nine-boundary: CR 704.5c threshold is 10', () => {
+    goldenCase('cr-sba-defeat-poison-threshold', ['704.5c', '122.1f', '704.3']);
+    goldenCase('cr-sba-defeat-poison-nine-boundary', ['704.5c', '122.1f']);
+
+    store().newGame(makeDeck(12), 1);
+    store().dispatch({ type: 'adjustPlayerCounter', kind: 'poison', delta: 9 });
+    expect(store().state!.poison).toBe(9);
+    expect(defeatReasonsFor('P1')).not.toContain('poison');
+    expect(defeatEvents('704.5c')).toHaveLength(0);
+
+    store().dispatch({ type: 'adjustPlayerCounter', kind: 'poison', delta: 1 });
+    expect(store().state!.poison).toBe(10);
+    expect(defeatReasonsFor('P1')).toContain('poison');
+    expect(store().state!.defeat.P1?.ruleRefs.poison).toBe('704.5c');
+    expect(defeatEvents('704.5c')).toContainEqual(
+      expect.objectContaining({
+        playerRef: 'P1',
+        defeatReason: 'poison',
+        advisory: true,
+      }),
+    );
+  });
+
+  it('cr-sba-defeat-simultaneous-reasons-share-group: CR 704.3 groups same-pass defeat advisories', () => {
+    goldenCase('cr-sba-defeat-simultaneous-reasons-share-group', ['704.3', '704.5a', '704.5c']);
+
+    store().newGame(makeDeck(12), 1);
+    useGameStore.setState({
+      state: { ...store().state!, life: 0, poison: 10 },
+    });
+
+    store().dispatch({ type: 'adjustLife', delta: 0 });
+
+    expect(defeatReasonsFor('P1')).toEqual(expect.arrayContaining(['lifeZero', 'poison']));
+    const events = [...defeatEvents('704.5a'), ...defeatEvents('704.5c')].filter(
+      (event) => event.playerRef === 'P1',
+    );
+    expect(events).toHaveLength(2);
+    expect(new Set(events.map((event) => event.simultaneousGroupId)).size).toBe(1);
+  });
+
+  it('cr-sba-defeat-advisory-does-not-hard-enforce: defeat advisories keep the sandbox playable', () => {
+    goldenCase('cr-sba-defeat-advisory-does-not-hard-enforce', [
+      '104.1',
+      '104.5',
+      '704.5a',
+      '704.5b',
+      '704.5c',
+    ]);
+
+    store().newGame(makeDeck(20), 1);
+    store().dispatch({ type: 'adjustLife', delta: -store().state!.life });
+    expect(defeatReasonsFor('P1')).toContain('lifeZero');
+
+    expect(() => store().dispatch({ type: 'nextPhase' })).not.toThrow();
+    expect(store().state).toBeTruthy();
+    store().dispatch({ type: 'adjustLife', delta: 1 });
+    expect(store().state!.life).toBe(1);
+    expect(() => store().dispatch({ type: 'draw', count: 1 })).not.toThrow();
+  });
+
+  it('cr-sba-defeat-no-duplicate-event-fixed-point: repeated SBA checks do not duplicate advisory events', () => {
+    goldenCase('cr-sba-defeat-no-duplicate-event-fixed-point', ['704.3', '704.5a', '104.5']);
+
+    store().newGame(makeDeck(12), 1);
+    store().dispatch({ type: 'adjustLife', delta: -store().state!.life });
+    expect(defeatEvents('704.5a')).toHaveLength(1);
+
+    store().dispatch({ type: 'adjustLife', delta: 0 });
+    expect(defeatEvents('704.5a')).toHaveLength(1);
+  });
+
+  it('cr-sba-defeat-nondraw-empty-library-does-not-trigger: CR 121.5 mill is not draw', () => {
+    goldenCase('cr-sba-defeat-nondraw-empty-library-does-not-trigger', [
+      '121.1',
+      '121.5',
+      '704.5b',
+    ]);
+
+    store().newGame(makeDeck(12), 1);
+    useGameStore.setState({
+      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+    });
+
+    store().dispatch({ type: 'mill', count: 1 });
+
+    expect(defeatReasonsFor('P1')).not.toContain('emptyLibraryDraw');
+    expect(defeatEvents('704.5b')).toHaveLength(0);
+  });
+
+  it('cr-sba-defeat-snapshot-forward-compat: restore backfills missing defeat fields', () => {
+    goldenCase('cr-sba-defeat-snapshot-forward-compat', ['704.5a', '704.5b', '704.5c']);
+
+    store().newGame(makeDeck(12), 1);
+    const legacy = { ...store().state! } as Record<string, unknown>;
+    delete legacy.defeat;
+    delete legacy.emptyLibraryDrawAttemptedSinceLastSba;
+    const snapshot = {
+      version: SNAPSHOT_VERSION,
+      state: legacy,
+      deck: makeDeck(12),
+      autoAdvanceToMain: false,
+    } as unknown as GameSnapshot;
+
+    expect(() => store().restoreGame(snapshot)).not.toThrow();
+    expect(store().state!.defeat).toEqual({});
+    expect(store().state!.emptyLibraryDrawAttemptedSinceLastSba).toEqual({});
+  });
+
+  it('cr-sba-defeat-commander-damage-deferred: CR 903.10a remains out of this slice', () => {
+    goldenCase('cr-sba-defeat-commander-damage-deferred', [
+      '903.10a',
+      '704.6c',
+      '104.3j',
+      '704.5a',
+      '704.5b',
+      '704.5c',
+    ]);
+
+    store().newGame(makeDeck(12), 1);
+    store().dispatch({
+      type: 'adjustCommanderDamage',
+      label: '対戦相手統率者',
+      delta: 21,
+    });
+
+    expect(store().state!.commanderDamage['対戦相手統率者']).toBe(21);
+    expect(
+      Object.values(store().state!.defeat).flatMap((record) => record?.reasons ?? []),
+    ).not.toContain('commanderDamage');
+    expect(defeatEvents('903.10a')).toHaveLength(0);
+    expect(defeatEvents('704.6c')).toHaveLength(0);
   });
 });

@@ -19,6 +19,18 @@
     "cr-sba-deathtouch-any-damage-destroys",
     "cr-cleanup-clears-marked-damage",
     "cr-sba-plus-minus-counter-annihilation",
+    "cr-sba-defeat-life-zero-p1",
+    "cr-sba-defeat-life-zero-opponent-label",
+    "cr-sba-defeat-empty-library-draw",
+    "cr-sba-defeat-empty-library-draw-partial-multidraw",
+    "cr-sba-defeat-poison-threshold",
+    "cr-sba-defeat-poison-nine-boundary",
+    "cr-sba-defeat-simultaneous-reasons-share-group",
+    "cr-sba-defeat-advisory-does-not-hard-enforce",
+    "cr-sba-defeat-no-duplicate-event-fixed-point",
+    "cr-sba-defeat-nondraw-empty-library-does-not-trigger",
+    "cr-sba-defeat-snapshot-forward-compat",
+    "cr-sba-defeat-commander-damage-deferred",
     "cr-zone-change-new-object-lki",
     "cr-triggered-mana-ability-no-stack",
     "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
@@ -1080,6 +1092,239 @@
       ],
       "implementationRefs": [
         "src/engine/manaTransaction.ts rejects construct.target for CR 605.1b",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-life-zero-p1",
+      "title": "CR 704.5a: 自分のライフが0以下なら敗北advisoryを記録する",
+      "crRefs": ["704.5a", "104.3b", "117.5", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "player": "P1", "life": 40 },
+      "steps": ["P1のライフを0にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に lifeZero が追加される。",
+        "defeatAdvisory event は sbaApplied 704.5a / playerRef P1 / advisory true を持つ。",
+        "敗北はadvisoryでありstateは継続する。"
+      ],
+      "mustNot": [
+        "敗北advisoryのためにzoneChange eventを捏造しない。",
+        "game終了やstate null化を行わない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts performStateBasedActionsOnce records CR 704.5a defeat advisories",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-life-zero-opponent-label",
+      "title": "CR 704.5a: opponentLifeの各ラベルを独立に敗北advisory化する",
+      "crRefs": ["704.5a", "104.3b", "117.5", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "opponentLife": { "対戦相手A": 40 } },
+      "steps": ["対戦相手Aのライフを0にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat['opponent:対戦相手A'].reasons に lifeZero が追加される。",
+        "P1の lifeZero advisory は追加されない。",
+        "opponentLife ラベルは削除されず後続操作可能なまま残る。"
+      ],
+      "mustNot": [
+        "opponent label の敗北をP1の敗北として混同しない。",
+        "opponentをgameから離脱させない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts evaluates opponentLife labels for CR 704.5a",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-empty-library-draw",
+      "title": "CR 704.5b: 空ライブラリからdrawを企図したら敗北advisoryを記録しinterval flagを消費する",
+      "crRefs": ["704.5b", "121.1", "121.2", "121.4", "104.3c", "117.5", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "library": [] },
+      "steps": [
+        "空ライブラリでdraw 1を実行する。",
+        "draw hook が emptyLibraryDrawAttemptedSinceLastSba.P1 を立てる。",
+        "同じpriority前SBAチェックがflagを観測して消費する。"
+      ],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に emptyLibraryDraw が追加される。",
+        "defeatAdvisory event は sbaApplied 704.5b / playerRef P1 / advisory true を持つ。",
+        "公開stateの emptyLibraryDrawAttemptedSinceLastSba.P1 はtrueとして残らない。",
+        "drawnThisTurn は成功したdraw枚数だけを数える。"
+      ],
+      "mustNot": [
+        "millやmoveCardなど非draw経路で704.5b advisoryを作らない。",
+        "flagクリアだけをSBA performedとして余分な固定点反復にしない。"
+      ],
+      "implementationRefs": [
+        "src/engine/commands.ts drawCards records empty-library draw attempts and SBA consumes the interval flag",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-empty-library-draw-partial-multidraw",
+      "title": "CR 704.5b: multi-draw途中でライブラリが尽きても敗北advisoryを記録する",
+      "crRefs": ["704.5b", "121.2", "121.4", "104.3c", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "librarySize": 1, "drawCount": 2 },
+      "steps": [
+        "ライブラリ1枚の状態でdraw 2を実行する。",
+        "1枚目を正常に引く。",
+        "2枚目の個別draw企図で空ライブラリflagを立てる。"
+      ],
+      "requiredObservations": [
+        "残り1枚は手札へ移動する。",
+        "state.defeat.P1.reasons に emptyLibraryDraw が追加される。",
+        "704.5b event が記録される。"
+      ],
+      "mustNot": ["draw開始時のlibrary.lengthだけで判定して途中で尽きるケースを見逃さない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts drawCards checks each individual draw attempt",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-poison-threshold",
+      "title": "CR 704.5c: 毒カウンター10個で敗北advisoryを記録する",
+      "crRefs": ["704.5c", "122.1f", "104.3d", "117.5", "704.3", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "poison": 0 },
+      "steps": ["P1の毒カウンターを10にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "state.defeat.P1.reasons に poison が追加される。",
+        "defeatAdvisory event は sbaApplied 704.5c / playerRef P1 / advisory true を持つ。",
+        "毒カウンターは消されずgameも終了しない。"
+      ],
+      "mustNot": ["2HGやopponent poisonをこのsliceのPASSとして扱わない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts performs CR 704.5c poison threshold advisory",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-poison-nine-boundary",
+      "title": "CR 704.5c: 毒カウンター9個では敗北advisoryを作らない",
+      "crRefs": ["704.5c", "122.1f", "704.3"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "poison": 0 },
+      "steps": ["P1の毒カウンターを9にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "poison defeat advisory は追加されない。",
+        "704.5c event は記録されない。"
+      ],
+      "mustNot": ["10未満の毒カウンターを敗北条件として扱わない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts checks state.poison >= 10 for CR 704.5c",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-simultaneous-reasons-share-group",
+      "title": "CR 704.3: 同一SBA passの複数敗北advisoryは同じsimultaneousGroupIdを共有する",
+      "crRefs": ["704.3", "704.5a", "704.5c", "104.3b", "104.3d"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "life": 0, "poison": 10 },
+      "steps": ["P1のlifeを0、poisonを10にした状態でSBAチェックを実行する。"],
+      "requiredObservations": [
+        "lifeZero と poison の両reasonがP1に記録される。",
+        "704.5a event と704.5c event は同じ simultaneousGroupId を持つ。"
+      ],
+      "mustNot": ["片方の敗北reasonだけを記録してもう片方を隠さない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts uses one sba-* simultaneousGroupId per SBA pass",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-advisory-does-not-hard-enforce",
+      "title": "CR 104.5との差分: 敗北advisoryはgame終了やコマンド封鎖をしない",
+      "crRefs": ["104.1", "104.5", "704.5a", "704.5b", "704.5c"],
+      "scope": "s-sba-defeat-state-advisory-boundary",
+      "initialFixture": { "life": 40 },
+      "steps": ["P1のlifeZero advisoryを作る。", "nextPhaseと後続コマンドを実行する。"],
+      "requiredObservations": [
+        "stateはnullにならない。",
+        "phase移動と後続コマンドが成功する。",
+        "advisory履歴は残る。"
+      ],
+      "mustNot": ["敗北advisoryを理由にgame終了、player離脱、phase/turn/command封鎖を行わない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts records defeat as advisory-only metadata",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-no-duplicate-event-fixed-point",
+      "title": "CR 704.3: advisory-only敗北は固定点ループで重複eventを出さない",
+      "crRefs": ["704.3", "704.5a", "104.5"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "life": 0 },
+      "steps": ["lifeZero advisoryを1回作る。", "lifeが0以下のまま再度SBAチェックを実行する。"],
+      "requiredObservations": [
+        "704.5a defeatAdvisory event は1件だけで増えない。",
+        "固定点ループは停止する。"
+      ],
+      "mustNot": ["既登録reasonを毎回emitして無限ループにしない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts skips already-recorded defeat reasons",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-nondraw-empty-library-does-not-trigger",
+      "title": "CR 121.5: 空ライブラリへのmillはdrawではなく704.5b敗北advisoryを作らない",
+      "crRefs": ["121.1", "121.5", "704.5b"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "library": [] },
+      "steps": ["空ライブラリでmill 1を実行する。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "emptyLibraryDraw advisory は追加されない。",
+        "704.5b event は記録されない。"
+      ],
+      "mustNot": ["libraryが空である事実だけを根拠に704.5bを発火しない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts applyMill does not set the draw-attempt interval flag",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-snapshot-forward-compat",
+      "title": "snapshot forward-compat: 新defeatフィールド欠落を空stateへbackfillする",
+      "crRefs": ["704.5a", "704.5b", "704.5c"],
+      "scope": "s-sba-defeat-state",
+      "initialFixture": { "snapshotMissing": ["defeat", "emptyLibraryDrawAttemptedSinceLastSba"] },
+      "steps": ["旧snapshot相当からdefeat関連フィールドを削除する。", "restoreGameで復元する。"],
+      "requiredObservations": [
+        "復元はthrowしない。",
+        "defeat は空のadvisory stateへbackfillされる。",
+        "emptyLibraryDrawAttemptedSinceLastSba は空mapへbackfillされる。"
+      ],
+      "mustNot": [
+        "欠落フィールドを敗北条件成立として扱わない。",
+        "不正なdefeat reasonを信用しない。"
+      ],
+      "implementationRefs": [
+        "src/store/gameStore.ts normalizeSnapshotState backfills defeat fields",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
+      ]
+    },
+    {
+      "id": "cr-sba-defeat-commander-damage-deferred",
+      "title": "CR 903.10a: commander damage敗北はこの704.5a/b/c sliceではdeferする",
+      "crRefs": ["903.10a", "704.6c", "104.3j", "704.5a", "704.5b", "704.5c"],
+      "scope": "s-sba-defeat-state-boundary",
+      "initialFixture": { "commanderDamage": { "対戦相手統率者": 21 } },
+      "steps": ["統率者ダメージを21にする。", "priority前のSBAチェックを実行する。"],
+      "requiredObservations": [
+        "commanderDamage値は記録される。",
+        "commanderDamage defeat reason は作られない。",
+        "903.10a / 704.6c の defeatAdvisory event は記録されない。"
+      ],
+      "mustNot": ["deferred scopeを704.5a/b/c PASSに混ぜない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts limits defeat advisories to CR 704.5a/b/c in this slice",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
       ]
     },

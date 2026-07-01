@@ -234,7 +234,7 @@
       "edhValue": "high",
       "status": "implemented-not-green",
       "landingState": ["stabilizeBeforePriority", "pendingSbaChoices", "damageMarked", "defeat", "eventLog"],
-      "boundary": "704.5d/e/f/i/q と 704.5a/b/c advisory slice はあるが、full SBA suite未実装。commander damage 903.10a未実装。",
+      "boundary": "704.5d/e/f/i/q と 704.5a/b/c advisory slice(review.sba-defeat + I13不変条件で green)はあるが、full SBA suite未実装。commander damage 903.10a未実装。既知境界(LOW・Tier-1所見)= pendingRuleChoices 未解決中は defeat SBA 検出を次passへ deferする(advisory model では等価だが CR704.3 simultaneous とは非一致・golden未整備)。",
       "evidence": ["cr-token-dies-before-ceases", "cr-sba-copy-ceases-outside-stack", "cr-sba-zero-loyalty-planeswalker", "cr-sba-plus-minus-counter-annihilation", "cr-sba-defeat-life-zero-p1", "cr-sba-defeat-commander-damage-deferred"],
       "nextGate": "903.10a追加でloss条件集合を閉じ、legend/attachment系はchoice/attachment設計後に回す"
     },

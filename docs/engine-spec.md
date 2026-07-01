@@ -2304,4 +2304,44 @@ interface CardInstance {
 
 **5. スコープ境界(§34.5)**: planeswalker/battle combat target・trample-to-player(CR702.19/120.4a)・first/double strike・damage prevention/replacement/redirection(CR614.9/615)・infect/toxic/lifelink/wither の damage 結果(**plain life-loss のみ=これらキーワードで CR PASS 主張せず**・golden は vanilla creature)・combat-damage trigger 検出・commander damage 自動集計 → 全て後続 slice へ carry。
 
+### 34.15 S-SBA defeat-state substrate(CR 704.5a/b/c loss conditions)— この節も契約である
+
+**位置づけ**: §34.14(combat が player life を減らせる)に続く高レバレッジ slice = **敗北判定**。life-loss・poison・将来の commander damage(CR903.10)が全部この「player が負ける」機構へ集まる。設計正本=`research/cr-grounding/s-sba-defeat.draft.md`(Codex 草稿・Fable が CR 照合し承認)。**substrate(state + SBA)のみ。advisory に留め強制終了しない**(サンドボックス哲学=最大リスク)。
+
+**CR 根拠**:
+- CR 704.5a: life total が 0 以下の player は敗北。
+- CR 704.5b: 前回 SBA チェック以降に**空ライブラリから draw を企図**した player は敗北。
+- CR 704.5c: poison counter 10 個以上の player は敗北(2HG は CR704.6b・本 slice 対象外)。
+- CR 104.3b/c/d: いずれも「次に priority を得る時点で・SBA として」敗北。CR 704.1/704.3/117.5: SBA は priority 前にスタック非使用で fixed-point まで反復。
+- CR 104.5: CR では敗者は game を離れる。**本アプリは advisory のみ記録し続行可**=この差分を文書化する(サンドボックス)。
+
+**1. 型契約(`src/engine/types.ts`)**:
+```ts
+type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison';
+type DefeatPlayerRef = 'P1' | `opponent:${string}`;
+interface DefeatAdvisoryRecord { reasons: DefeatReason[]; ruleRefs: Partial<Record<DefeatReason, '704.5a'|'704.5b'|'704.5c'>>; advisory: true }
+interface GameState {
+  // 既存 life / opponentLife / poison が数値の真理源(重複フィールドを足さない)
+  defeat: Partial<Record<DefeatPlayerRef, DefeatAdvisoryRecord>>;
+  emptyLibraryDrawAttemptedSinceLastSba: Partial<Record<PlayerId, boolean>>;
+}
+```
+`state.life`=`P1`、`state.opponentLife[label]`=`opponent:${label}`、`state.poison`=`P1`(opponent poison は per-opponent 未モデルゆえ defer)。前方互換: 旧 snapshot の欠落は両フィールドとも `{}` へ backfill(`normalizeSnapshotState`)、不正 reason は drop。
+
+**2. event metadata(`src/engine/types.ts`)**: `DefeatAdvisoryEvent{ type:'defeatAdvisory'; reason:'sba'; sbaApplied:'704.5a'|'704.5b'|'704.5c'; simultaneousGroupId; playerRef:DefeatPlayerRef; defeatReason:DefeatReason; advisory:true }` を `GameEvent` union に追加。**zone change を捏造しない**(敗北はカードを動かさない)。`GameEvent = ZoneChangeEvent | DefeatAdvisoryEvent`。
+
+**3. draw hook(`src/engine/commands.ts`)**: `drawCards` は1枚ずつ引き、空ライブラリで個々の draw を企図したら `emptyLibraryDrawAttemptedSinceLastSba.P1=true`(CR121.2/121.4/704.5b)。**multi-draw 途中で尽きた場合も最初の不可能 draw でセット**(`library.length===0` 事前チェックだけの実装は不可=golden で縛る)。`count<=0`/`mill`/`arrangeTop`/`moveCard` 等の非 draw 経路はセットしない(CR121.5 mill≠draw)。turn-based draw step も同 hook を通す。
+
+**4. SBA(`performStateBasedActionsOnce`・既存 704.5g/h と同枠)**:
+- `lifeZero`: `state.life<=0` で `defeat.P1` に未登録なら追加 + event(`704.5a`)。各 `opponentLife[label]<=0` も独立に `opponent:${label}` へ。
+- `emptyLibraryDraw`: flag が true で未登録なら追加 + event(`704.5b`)。
+- `poison`: `state.poison>=10` で未登録なら追加 + event(`704.5c`)。
+- **要石(Fable 裁定)= idempotent + fixed-point clean**: (a)既登録 reason は再 emit しない(数値的に成立し続けても=CR では離脱するが本アプリは続行ゆえ無限ループ防止)。(b)`emptyLibraryDrawAttemptedSinceLastSba` は**観測した SBA チェックで必ずクリア**(CR704.5b「前回 SBA 以降」の interval を体現)。**(c)flag クリアは bookkeeping であり、それ単独では `performStateBasedActionsOnce` の戻り値 `true`(=SBA performed)にしない**——新 advisory reason の追加時のみ `true` を返す(クリアによる余分な 1 反復を避け CR704.3 の fixed-point 意味を保つ)。同一 pass の複数 reason は単一 `simultaneousGroupId`(CR704.3)。
+
+**5. サンドボックス / advisory ポリシー(最大リスク)**: 敗北を **hard-enforce しない**=game 終了・state クリア・コマンド封鎖・phase/turn 移動封鎖・player 離脱を**してはならない**。advisory state を立て metadata/log/warning を出し、ユーザーは続行可能(CR104.5 と本アプリの差分)。UI は警告 banner/marker を表示してよいが engine state は操作可能なまま。
+
+**6. golden / test(4点不変条件③)**: `golden-cases.json` に life-zero/empty-library-draw/poison-threshold/advisory-continuation/snapshot-forward-compat を CR 付きで追加(草稿=`research/cr-grounding/s-sba-defeat-golden.draft.md`)。受け入れ acceptance contract = `src/store/__tests__/review.sba-defeat.test.ts`(**レビュー専有**=life=0/opponent label 独立/poison 9↔10 境界/empty-draw flag クリア/mill≠draw/fixed-point 終端+非重複/advisory 非強制/704.3 simultaneity/forward-compat/903.10 defer の敵対 pin)。新 state の不変条件(reason は3種のみ・各 ruleRef 対応・flag は SBA 跨ぎで非持続)を維持。
+
+**7. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: commander damage 敗北(CR903.10a・次 slice=本 substrate の上に乗る)・複数人同時敗北の draw 細部(CR104.4a)・実際の game 終了/winner 決定/離脱処理(CR104.1/104.5)・2HG team life/poison 閾値(CR704.6a/b)・opponent poison(per-opponent counter 未モデル)→ 全て carry。substrate(defeat state + SBA)は壊さず後付け可能。
+
 **(運用注記)** `.claude/`(git worktree チェックアウト)を eslint ignore と vitest exclude に追加=worktree 複製が重複テスト/lint 汚染を起こす問題を config で解消(slice 2 で同梱)。

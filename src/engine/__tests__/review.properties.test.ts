@@ -356,6 +356,34 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   // I11/I12 (M4.30): per-turn counters are non-negative
   expect(state.spellsCastThisTurn, `${label}: negative spellsCastThisTurn`).toBeGreaterThanOrEqual(0);
   expect(state.drawnThisTurn, `${label}: negative drawnThisTurn`).toBeGreaterThanOrEqual(0);
+
+  // I13 (S-SBA defeat-state, §34.15): every defeat advisory record is well-formed
+  // per CR 704.5a/b/c — advisory (never enforcing), non-empty & de-duplicated
+  // reasons drawn from the three known kinds, each carrying its matching CR ref.
+  const DEFEAT_RULE: Record<string, string> = {
+    lifeZero: '704.5a',
+    emptyLibraryDraw: '704.5b',
+    poison: '704.5c',
+  };
+  for (const [ref, rec] of Object.entries(state.defeat)) {
+    expect(rec, `${label}: defeat[${ref}] undefined`).toBeDefined();
+    if (!rec) continue;
+    expect(rec.advisory, `${label}: defeat[${ref}] not advisory`).toBe(true);
+    expect(rec.reasons.length, `${label}: defeat[${ref}] empty reasons`).toBeGreaterThan(0);
+    expect(new Set(rec.reasons).size, `${label}: defeat[${ref}] duplicate reason`).toBe(
+      rec.reasons.length
+    );
+    for (const reason of rec.reasons) {
+      expect(DEFEAT_RULE[reason], `${label}: defeat[${ref}] unknown reason ${reason}`).toBeDefined();
+      expect(rec.ruleRefs[reason], `${label}: defeat[${ref}] ruleRef mismatch for ${reason}`).toBe(
+        DEFEAT_RULE[reason]
+      );
+    }
+  }
+  // I13b: empty-library-draw interval flags are booleans (CR 704.5b interval).
+  for (const [pid, flag] of Object.entries(state.emptyLibraryDrawAttemptedSinceLastSba)) {
+    expect(typeof flag, `${label}: emptyLibraryDraw flag for ${pid} not boolean`).toBe('boolean');
+  }
 }
 
 const DECK_SIZE = 24;

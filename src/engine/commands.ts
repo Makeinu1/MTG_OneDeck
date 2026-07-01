@@ -19,6 +19,10 @@ import type {
   CombatBlocker,
   CombatState,
   CombatTarget,
+  DefeatAdvisoryEvent,
+  DefeatPlayerRef,
+  DefeatReason,
+  DefeatRuleRef,
   GameState,
   LegendRuleChoice,
   LogEntry,
@@ -138,6 +142,10 @@ interface Draft {
   nextEventSeq: number;
 }
 
+type GameEventPayload =
+  | Omit<ZoneChangeEvent, 'eventId' | 'sequence'>
+  | Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>;
+
 const ZONE_LABELS: Record<ZoneId, string> = {
   library: 'ライブラリ',
   hand: '手札',
@@ -153,6 +161,16 @@ const ABILITY_KIND_LABELS: Record<AbilityKind, string> = {
   triggered: '誘発',
 };
 const DEFAULT_OPPONENT_LIFE_LABEL = '対戦相手A';
+const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
+  lifeZero: '704.5a',
+  emptyLibraryDraw: '704.5b',
+  poison: '704.5c',
+};
+const DEFEAT_REASON_LABELS: Record<DefeatReason, string> = {
+  lifeZero: 'ライフが0以下',
+  emptyLibraryDraw: '空のライブラリからのドロー',
+  poison: '毒カウンター10個以上',
+};
 
 function emptyManaPool(): ManaPool {
   return { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
@@ -174,6 +192,26 @@ function cloneCombatState(combat: CombatState | null | undefined): CombatState |
   };
 }
 
+function cloneDefeat(defeat: GameState['defeat'] | undefined): GameState['defeat'] {
+  if (!defeat) return {};
+  return Object.fromEntries(
+    Object.entries(defeat).flatMap(([playerRef, record]) =>
+      record
+        ? [
+            [
+              playerRef,
+              {
+                reasons: record.reasons.slice(),
+                ruleRefs: { ...record.ruleRefs },
+                advisory: true,
+              },
+            ],
+          ]
+        : [],
+    ),
+  );
+}
+
 /** Shallow clone of state for editing. Sub-collections cloned lazily. */
 function makeDraft(state: GameState): Draft {
   const maxSeq = state.log.reduce((m, e) => Math.max(m, e.seq), -1);
@@ -189,6 +227,10 @@ function makeDraft(state: GameState): Draft {
       commanders: state.commanders,
       commanderDamage: { ...state.commanderDamage },
       opponentLife: { ...state.opponentLife },
+      defeat: cloneDefeat(state.defeat),
+      emptyLibraryDrawAttemptedSinceLastSba: {
+        ...(state.emptyLibraryDrawAttemptedSinceLastSba ?? {}),
+      },
       eventLog: eventLog.slice(),
       pendingTriggers: Array.isArray(state.pendingTriggers) ? state.pendingTriggers.slice() : [],
       pendingRuleChoices: Array.isArray(state.pendingRuleChoices)
@@ -237,16 +279,25 @@ function pushLog(draft: Draft, message: string): void {
   draft.state.log = [...draft.state.log, entry];
 }
 
-function pushEvent(draft: Draft, event: Omit<ZoneChangeEvent, 'eventId' | 'sequence'>): void {
+function pushEvent(draft: Draft, event: GameEventPayload): void {
   const sequence = draft.nextEventSeq++;
-  draft.state.eventLog = [
-    ...draft.state.eventLog,
-    {
+  const eventId = `e${sequence}`;
+  if (event.type === 'zoneChange') {
+    const fullEvent: ZoneChangeEvent = {
       ...event,
-      eventId: `e${sequence}`,
+      eventId,
       sequence,
-    },
-  ];
+    };
+    draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+    return;
+  }
+
+  const fullEvent: DefeatAdvisoryEvent = {
+    ...event,
+    eventId,
+    sequence,
+  };
+  draft.state.eventLog = [...draft.state.eventLog, fullEvent];
 }
 
 function requireCard(draft: Draft, cardId: string): CardInstance {
@@ -397,6 +448,60 @@ function pushZoneChangeEvent(
     before,
     after,
   });
+}
+
+function pushDefeatAdvisoryEvent(
+  draft: Draft,
+  playerRef: DefeatPlayerRef,
+  defeatReason: DefeatReason,
+  simultaneousGroupId: string,
+): void {
+  pushEvent(draft, {
+    type: 'defeatAdvisory',
+    reason: 'sba',
+    sbaApplied: DEFEAT_RULE_REFS[defeatReason],
+    simultaneousGroupId,
+    playerRef,
+    defeatReason,
+    advisory: true,
+  } satisfies Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>);
+}
+
+function playerDefeatLabel(playerRef: DefeatPlayerRef): string {
+  if (playerRef === 'P1') return 'あなた';
+  return playerRef.slice('opponent:'.length);
+}
+
+function addDefeatAdvisory(
+  draft: Draft,
+  playerRef: DefeatPlayerRef,
+  reason: DefeatReason,
+  simultaneousGroupId: string,
+): boolean {
+  const existing = draft.state.defeat[playerRef];
+  if (existing?.reasons.includes(reason)) {
+    return false;
+  }
+
+  const nextRecord = {
+    reasons: [...(existing?.reasons ?? []), reason],
+    ruleRefs: {
+      ...(existing?.ruleRefs ?? {}),
+      [reason]: DEFEAT_RULE_REFS[reason],
+    },
+    advisory: true,
+  } satisfies NonNullable<GameState['defeat'][DefeatPlayerRef]>;
+
+  draft.state.defeat = {
+    ...draft.state.defeat,
+    [playerRef]: nextRecord,
+  };
+  pushDefeatAdvisoryEvent(draft, playerRef, reason, simultaneousGroupId);
+
+  const message = `${playerDefeatLabel(playerRef)}は${DEFEAT_REASON_LABELS[reason]}のため敗北条件を満たしました(警告のみ)。`;
+  draft.warnings.push(message);
+  pushLog(draft, message);
+  return true;
 }
 
 function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardInstance {
@@ -940,12 +1045,43 @@ function applyResolveCombatDamage(draft: Draft): void {
   }
 }
 
+function applyDefeatStateBasedActions(draft: Draft, simultaneousGroupId: string): boolean {
+  let added = false;
+
+  if (draft.state.life <= 0) {
+    added = addDefeatAdvisory(draft, 'P1', 'lifeZero', simultaneousGroupId) || added;
+  }
+
+  for (const [label, life] of Object.entries(draft.state.opponentLife).sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    if (life > 0) continue;
+    added = addDefeatAdvisory(draft, `opponent:${label}`, 'lifeZero', simultaneousGroupId) || added;
+  }
+
+  const emptyDrawFlags = draft.state.emptyLibraryDrawAttemptedSinceLastSba;
+  const emptyDrawAttemptedByP1 = emptyDrawFlags.P1 === true;
+  if (Object.keys(emptyDrawFlags).length > 0) {
+    draft.state.emptyLibraryDrawAttemptedSinceLastSba = {};
+  }
+  if (emptyDrawAttemptedByP1) {
+    added = addDefeatAdvisory(draft, 'P1', 'emptyLibraryDraw', simultaneousGroupId) || added;
+  }
+
+  if (draft.state.poison >= 10) {
+    added = addDefeatAdvisory(draft, 'P1', 'poison', simultaneousGroupId) || added;
+  }
+
+  return added;
+}
+
 function performStateBasedActionsOnce(draft: Draft): boolean {
   if (draft.state.pendingRuleChoices.length > 0) {
     return false;
   }
 
   const simultaneousGroupId = `sba-${draft.nextEventSeq}`;
+  const defeatAdvisoryAdded = applyDefeatStateBasedActions(draft, simultaneousGroupId);
   const zeroToughnessCreatureIds = Object.values(draft.state.cards).flatMap((card) => {
     if (card.zone !== 'battlefield' || !typeLineOf(draft, card).includes('Creature')) {
       return [];
@@ -1001,6 +1137,9 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     offBattlefieldTokenIds.length === 0 &&
     counterPairIds.length === 0
   ) {
+    if (defeatAdvisoryAdded) {
+      return true;
+    }
     return appendPendingRuleChoices(draft, pendingLegendRuleChoices(draft));
   }
 
@@ -1219,11 +1358,24 @@ function handleUntapEntry(draft: Draft): void {
   }
 }
 
+function markEmptyLibraryDrawAttempt(draft: Draft, playerId: PlayerId): void {
+  if (draft.state.emptyLibraryDrawAttemptedSinceLastSba[playerId] === true) {
+    return;
+  }
+  draft.state.emptyLibraryDrawAttemptedSinceLastSba = {
+    ...draft.state.emptyLibraryDrawAttemptedSinceLastSba,
+    [playerId]: true,
+  };
+}
+
 function drawCards(draft: Draft, count: number): number {
   let drawn = 0;
   for (let i = 0; i < count; i++) {
     const lib = draft.state.zones.library;
-    if (lib.length === 0) break;
+    if (lib.length === 0) {
+      markEmptyLibraryDrawAttempt(draft, 'P1');
+      break;
+    }
     const topId = lib[0];
     moveCardInternal(draft, topId, 'hand', 'bottom', false);
     drawn++;

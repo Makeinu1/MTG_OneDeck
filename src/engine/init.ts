@@ -98,6 +98,8 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     experience: 0,
     commanderDamage: {},
     opponentLife: { 対戦相手A: 40 },
+    defeat: {},
+    emptyLibraryDrawAttemptedSinceLastSba: {},
     manaPool: emptyManaPool(),
     mulliganCount: 0,
     landsPlayedThisTurn: 0,
