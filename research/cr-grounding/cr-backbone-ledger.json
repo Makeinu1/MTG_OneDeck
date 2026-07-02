@@ -294,14 +294,14 @@
     },
     {
       "id": "cr-602-activated-abilities",
-      "crRefs": ["602", "605.1a", "117"],
+      "crRefs": ["602", "602.2b", "605.1a", "605.5a", "117", "118.3", "115.1c", "601.2c", "601.2f"],
       "lane": "backbone",
       "edhValue": "high",
       "status": "implemented-not-green",
-      "landingState": ["activatedAbilityPlans", "stack", "manaTransactions"],
-      "boundary": "単純な起動型マナ能力はno-stackで実行可能。非マナ起動型能力のstack placement/cost/targetは未閉鎖。",
-      "evidence": ["cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts"],
-      "nextGate": "activated ability envelope を cost/target/stack/no-stack の4点で固定する",
+      "landingState": ["activatedAbilityPlans", "stack", "manaTransactions", "activationEnvelope(cost|target|stackPolicy)"],
+      "boundary": "envelope design-lock 凍結済み(engine-spec §34.19・2026-07-02・Fable が CR 照合し承認)。demand-first gate(MyDeck 採点最大需要=cost:activation/tap/target)。凍結=activation envelope(cost/target/stackPolicy/paymentMode)・cost envelope(mana/tap/nonmana・§33 wrap)・target envelope(activation 時選択・stack object 保存・CR115.1c/602.2b)・stack vs no-stack(605.1a マナ能力 isolation)。atomicity=rules-legal 全 or nothing / forced はサンドボックス脱出弁で非CR-legal 明示。実装(envelope 実体)未着手。設計正本=research/cr-grounding/s-activated-ability-envelope.draft.md(living draft・未 archive)。",
+      "evidence": ["cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts", "docs/engine-spec.md §34.19"],
+      "nextGate": "実装スライス: activation envelope(cost/target を stack object に保存)+ nonmana cost component(pay-life/discard/non-self sacrifice を guided/manual で)+ activation 時 target 選択 + atomicity(rules-legal/forced)。I候補(cost atomicity/determinism・target determinism・UI非変更・stack placement・mana isolation)を review.* で固定。個別 leaf・CR608・loyalty・complex cost は defer。",
       "judge": "deterministic-cr"
     },
     {
