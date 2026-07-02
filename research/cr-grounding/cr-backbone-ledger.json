@@ -4,16 +4,27 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
+  "plannedSequenceProvenance": "checkpoint-mydeck-design-scoring 実行(2026-07-02)= MyDeck 4デッキ採点(demand coverage 49.3%・catalog未写331≫substrate不足179)。実デッキ最大需要=活性化能力イディオム(cost:activation 232/cost:tap 201/mana:write 150/target 97/action verbs)。ユーザーが『最終ゴール(V1 solo playability)を見据えて選べ』と reprioritize を委譲。判定=solo で実カードが機能するか=活性化能力+cost+target+action が支配的ゲート(per-player zones は multiplayer/V4 寄りゆえ後ろへ)。demand-first へ再優先(採点レポートは private deck 内容ゆえ research/mydeck-scoring/ は local 非commit)。",
   "plannedSequence": [
     {
-      "type": "checkpoint",
-      "id": "checkpoint-mydeck-design-scoring",
-      "note": "製品価値チェックポイント(メタレビュー⑤の実データ源)。MyDeck 4デッキで設計そのものを採点=ESO が実カードの read/write を保持できるか(レベルA表現可能性)。結果はスライス優先度の実デッキ需要信号として plannedSequence 次バッチへ反映。コードを書かないマイルストーン。"
+      "type": "domain-slice",
+      "domainId": "cr-602-activated-abilities",
+      "note": "★実デッキ最大需要(MyDeck採点: cost:activation 232/cost:tap 201/target 97)。活性化能力 envelope=cost+target+stack/no-stack を design-lock(spec-first)で凍結→実装。cr-118(cost envelope)/cr-115(target envelope)を envelope 成分として引き込む。多くは既存 substrate 上の catalog未写=leaf-compiler で速く実価値。CR 602/605.1a/117 正本。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-605-mana-abilities",
+      "note": "実デッキ需要 mana:write 150。activated mana ability(605.1a)を活性化能力 envelope に載せる(605.1b 誘発型は出荷済)。マナ生成節の catalog未写を閉じる。CR 605 正本。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-701-keyword-actions-frequent",
+      "note": "実デッキ action 動詞 top(sacrifice 74/draw 65/search 36/exile 35/discard 34/token 32)。多くは既存 substrate(zone/draw event=§34.18・counter)上の catalog未写=leaf-compiler catalog で個別追加。draw event は S-EVENTS §34.18 に着地済。CR 701 正本。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-102-players",
-      "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装。旧 snapshot backfill(restoreGame 補完=前方互換 I16)必須。CR 400.1 正本。"
+      "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装(§34.17 design-lock 済)。solo では P1 flat zones で足りるため demand-first の後(multiplayer/V4 寄り)。旧 snapshot backfill(前方互換 I16)必須。CR 400.1 正本。"
     },
     {
       "type": "domain-slice",
