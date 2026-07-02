@@ -6,11 +6,6 @@
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
   "plannedSequence": [
     {
-      "type": "domain-slice",
-      "domainId": "cr-119-life",
-      "note": "S-EVENTS 起点。damage/life-loss/gain/draw/zone-change の event envelope を events.ts substrate として凍結(cr-121-drawing の draw event と同時)。誘発はイベント購読(engine-spec §34.1 C-C)・イベント決定性 I14 を同時に立てる。依存=#1 の design-lock。"
-    },
-    {
       "type": "checkpoint",
       "id": "checkpoint-mydeck-design-scoring",
       "note": "製品価値チェックポイント(メタレビュー⑤の実データ源)。MyDeck 4デッキで設計そのものを採点=ESO が実カードの read/write を保持できるか(レベルA表現可能性)。結果はスライス優先度の実デッキ需要信号として plannedSequence 次バッチへ反映。コードを書かないマイルストーン。"
@@ -192,14 +187,14 @@
     },
     {
       "id": "cr-119-life",
-      "crRefs": ["119", "104.3b", "704.5a"],
+      "crRefs": ["119", "104.3b", "704.5a", "120", "121", "400.6", "603.2", "614", "615"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
-      "landingState": ["life", "opponentLife", "lossAdvisories", "eventLog"],
-      "boundary": "life totalの変化と0以下loss advisoryはあるが、life replacement/prevention と player-specific opponent model は未閉鎖。",
-      "evidence": ["cr-sba-defeat-life-zero-p1", "cr-sba-defeat-life-zero-opponent-label", "cr-combat-unblocked-attacker-damages-defending-player"],
-      "nextGate": "damage/loss/gain life eventをreplacement/preventionへ渡せるevent shapeにする",
+      "status": "shipped",
+      "landingState": ["life", "opponentLife", "lossAdvisories", "eventLog", "GameEvent(lifeChange|draw|damage)"],
+      "boundary": "S-EVENTS event envelope 出荷済み(engine-spec §34.18・2026-07-02)。GameEvent union を additive 拡張(lifeChange/draw を全 wire・damage は type-only)。凍結境界=0-delta/0-damage 非event(CR119.9/119.10/120.8)・mill≠draw(121.5)・multi-draw individual(121.2)・damage は CR-legal source 必須(120.1)。replacement/prevention は metadata hook のみ(engine は cr-614-615 late-backbone へ defer)。source-backed DamageEvent emission と damage-result link は combat/damage slice へ defer。設計 packet は archive/cr-119-life/ へ集約。",
+      "evidence": ["src/store/__tests__/review.s-events-envelope.test.ts", "src/engine/__tests__/eventEnvelope.test.ts", "docs/engine-spec.md §34.18", "cr-sba-defeat-life-zero-p1", "cr-combat-unblocked-attacker-damages-defending-player"],
+      "nextGate": "source-backed DamageEvent emission + damage-result link(lifeChange 等)は combat/damage slice で wire。life replacement/prevention は cr-614-615。",
       "judge": "deterministic-cr"
     },
     {

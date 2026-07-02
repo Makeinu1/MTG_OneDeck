@@ -2401,3 +2401,20 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **backfill 規律**: owner を先に P1 backfill → invariant 評価。missing `zonesByPlayer`/player/zone は空配列で補完(`undefined` 厳禁=旧 snapshot crash)。`zonesByPlayer.P1` と flat 併存時は `zonesByPlayer` 優先で mirror 再構築。private-zone event snapshot は zone id + zone owner id を持つ(shared zone は owner 省略可)。
 
 **スコープ境界(混ぜない)**: full multiplayer turn structure/turn order・dummy opponent 挙動・AI・real per-player priority・hidden-info UI(opponent hand/library 可視性)・opponent deck import/search UI・combat → commander damage 自動帰属。S-ZONES は**保存形式・owner routing・event metadata・backfill のみ**凍結。
+
+### 34.18 S-EVENTS: life/damage/draw event envelope(CR 119/120/121)— この節も契約である
+
+**位置づけ**: 既存 Z2/Z3 `ZoneChangeEvent` scaffold に続く最初の S-EVENTS substrate slice。CR119 life change・CR120 damage・CR121 draw・CR400.6 zone-change を**共通 event envelope** に載せ、後続の replacement/prevention(CR614/615)・triggered ability 購読(§34.1 C-C)が同一 surface を hook できるようにする。設計正本=`research/cr-grounding/archive/cr-119-life/s-events-life-envelope.draft.md`(Codex 草稿・Fable が CR 照合し承認・2026-07-02)。受け入れ=`src/store/__tests__/review.s-events-envelope.test.ts`(レビュー専有・12 pin)。
+
+**CR 根拠**: 119.3(life gain/loss は total 調整)・119.9/119.10(0 life gain は非 event)・120.1(damage は source が与える)・120.8(0 damage は非 event・trigger しない)・121.1(draw=library top→hand)・121.2(multi-draw は個別)・121.5(「draw」語無しの library→hand は draw でない)・121.4/704.5b(空 draw attempt)・400.6/400.7(zone-change event は move 前確定・move 後は new object)・614.1/615.1(replacement/prevention は event を watch=本 slice は envelope + hook のみ・engine は defer)。
+
+**envelope 契約**: `GameEvent` union を additive 拡張(discriminant は既存 `type` 維持・`ZoneChangeEvent`/`DefeatAdvisoryEvent` を rename/削除しない)。新 kind = `lifeChange`・`damage`・`draw`(型詳細=草稿の `EventEnvelopeBase`/`LifeChangeEvent`/`DamageEvent`/`DrawEvent`)。共通 base = eventId/sequence(決定的)・simultaneousGroupId?・cause/causeEventId?・replacementApplied?/preventionApplied?(metadata hook のみ)。
+
+**凍結挙動**:
+- **lifeChange**: 非0 変化のみ emit(`delta>0`=gain・`<0`=loss)。`delta===0` は emit しない(CR119.9/119.10)。previousLife/nextLife/playerId 記録。life≤0 は SBA 境界で advisory のみ(hard-enforce しない・CR104.3b/704.5a)。
+- **draw**: 成功=`result:'drawn'` + library→hand `ZoneChangeEvent` への `zoneChangeEventId` link(CR121.1/400.6)。空=`result:'empty-library-attempt'`(card identity 無し・CR121.4/704.5b)。multi-draw は1枚ずつ個別(aggregate 禁止・CR121.2)。mill は DrawEvent を emit しない(CR121.5)。
+- **damage**: 本 slice は **union type 追加のみ**。source-backed emission は combat/damage slice へ defer。**source-less markDamage は trigger-eligible CR120 damage event を emit してはならない**(CR120.1)。0 damage 非 event(CR120.8)。damage-result link(lifeChange 等)は shape のみ予約。
+- **I14(event 決定性)**: 同一 state + command → 同一 appended event 列 + 同一 id。Date/time・非ソート iteration・applyCommand 中 RNG に依存しない(乱数は payload 確定済み)。
+- **前方互換**: union member 追加ゆえ新規必須 state field 無し。missing `eventLog`→`[]`。legacy event(新 optional field 無し)valid。`CACHE_SCHEMA_VERSION` 変更不要。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: replacement/prevention engine(CR614/615=late-backbone)・実カード triggered ability 検出(CR603.2/603.3=C-GRAMMAR)・combat source 帰属/commander damage/trample/infect/wither/lifelink/toxic(CR120.3/120.4/903.10a=後続 damage-result slice)・player-specific private zone owner metadata(§34.17 実装後)・mana transaction event の global 昇格(§34.11)→ 全 carry。

@@ -139,6 +139,92 @@ export interface ZoneChangeEvent {
   after?: ObjectSnapshot;
 }
 
+export type KnownEventKind = 'zoneChange' | 'defeatAdvisory' | 'damage' | 'lifeChange' | 'draw';
+export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';
+
+export type EventCause =
+  | { type: 'command'; commandType: string }
+  | { type: 'system'; ruleRef: string }
+  | { type: 'event'; eventId: string; eventType: KnownEventKind };
+
+export type EventDeterminismRef =
+  | { kind: 'command-payload'; commandType: string; fieldPath?: string }
+  | { kind: 'event-log-sequence' };
+
+export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeEventKind> {
+  type: T;
+  eventId: string;
+  sequence: number;
+  simultaneousGroupId?: string;
+  causeCommandId?: string;
+  causeEventId?: string;
+  cause: EventCause;
+  replacementApplied?: string | string[];
+  preventionApplied?: string | string[];
+  determinismRef?: EventDeterminismRef;
+  reason?: never;
+  fromZone?: never;
+  toZone?: never;
+  sbaApplied?: never;
+}
+
+export type EventSourceRef =
+  | { kind: 'object'; physicalCardId: PhysicalCardId; objectId: ObjectId; snapshot?: ObjectSnapshot }
+  | { kind: 'player'; playerId: PlayerId }
+  | { kind: 'command'; commandType: string }
+  | { kind: 'system'; ruleRef: string };
+
+export type EventTargetRef =
+  | { kind: 'player'; playerId: PlayerId; lifeLabel?: string }
+  | { kind: 'object'; physicalCardId: PhysicalCardId; objectId: ObjectId; snapshot?: ObjectSnapshot }
+  | { kind: 'zone'; zone: ZoneId; zoneOwnerId?: PlayerId };
+
+export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {
+  type: 'lifeChange';
+  playerId: PlayerId;
+  lifeLabel?: string;
+  delta: number;
+  previousLife: number;
+  nextLife: number;
+  direction: 'gain' | 'loss';
+  source?: EventSourceRef;
+  sourceEventId?: string;
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  before?: never;
+  after?: never;
+}
+
+export interface DamageEvent extends EventEnvelopeBase<'damage'> {
+  type: 'damage';
+  source: EventSourceRef;
+  target: EventTargetRef;
+  amount: number;
+  combatDamage: boolean;
+  damageResultEventIds?: string[];
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  before?: never;
+  after?: never;
+}
+
+export interface DrawEvent extends EventEnvelopeBase<'draw'> {
+  type: 'draw';
+  playerId: PlayerId;
+  result: 'drawn' | 'empty-library-attempt';
+  drawOrdinal?: number;
+  physicalCardId?: PhysicalCardId;
+  oldObjectId?: ObjectId;
+  newObjectId?: ObjectId;
+  fromZoneOwnerId?: PlayerId;
+  toZoneOwnerId?: PlayerId;
+  zoneChangeEventId?: string;
+  before?: ObjectSnapshot;
+  after?: ObjectSnapshot;
+}
+
 export interface AbilityTriggeredEvent {
   type: 'abilityTriggered';
   eventId: string;
@@ -199,9 +285,15 @@ export interface DefeatAdvisoryEvent {
   before?: never;
   after?: never;
   replacementApplied?: never;
+  preventionApplied?: never;
 }
 
-export type GameEvent = ZoneChangeEvent | DefeatAdvisoryEvent;
+export type GameEvent =
+  | ZoneChangeEvent
+  | DefeatAdvisoryEvent
+  | DamageEvent
+  | LifeChangeEvent
+  | DrawEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 

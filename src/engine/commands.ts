@@ -19,12 +19,17 @@ import type {
   CombatBlocker,
   CombatState,
   CombatTarget,
+  DamageEvent,
   DefeatAdvisoryEvent,
   DefeatPlayerRef,
   DefeatReason,
   DefeatRuleRef,
+  DrawEvent,
+  EventCause,
+  GameEvent,
   GameState,
   LegendRuleChoice,
+  LifeChangeEvent,
   LogEntry,
   ManaPool,
   ObjectSnapshot,
@@ -144,7 +149,10 @@ interface Draft {
 
 type GameEventPayload =
   | Omit<ZoneChangeEvent, 'eventId' | 'sequence'>
-  | Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>;
+  | Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>
+  | Omit<LifeChangeEvent, 'eventId' | 'sequence'>
+  | Omit<DamageEvent, 'eventId' | 'sequence'>
+  | Omit<DrawEvent, 'eventId' | 'sequence'>;
 
 const ZONE_LABELS: Record<ZoneId, string> = {
   library: 'ライブラリ',
@@ -281,25 +289,56 @@ function pushLog(draft: Draft, message: string): void {
   draft.state.log = [...draft.state.log, entry];
 }
 
-function pushEvent(draft: Draft, event: GameEventPayload): void {
+function pushEvent(draft: Draft, event: GameEventPayload): GameEvent {
   const sequence = draft.nextEventSeq++;
   const eventId = `e${sequence}`;
-  if (event.type === 'zoneChange') {
-    const fullEvent: ZoneChangeEvent = {
-      ...event,
-      eventId,
-      sequence,
-    };
-    draft.state.eventLog = [...draft.state.eventLog, fullEvent];
-    return;
+  switch (event.type) {
+    case 'zoneChange': {
+      const fullEvent: ZoneChangeEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'defeatAdvisory': {
+      const fullEvent: DefeatAdvisoryEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'lifeChange': {
+      const fullEvent: LifeChangeEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'damage': {
+      const fullEvent: DamageEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'draw': {
+      const fullEvent: DrawEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
   }
-
-  const fullEvent: DefeatAdvisoryEvent = {
-    ...event,
-    eventId,
-    sequence,
-  };
-  draft.state.eventLog = [...draft.state.eventLog, fullEvent];
 }
 
 function requireCard(draft: Draft, cardId: string): CardInstance {
@@ -437,8 +476,8 @@ function pushZoneChangeEvent(
   toZone: ZoneId | undefined,
   reason: ZoneChangeReason,
   options?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
-): void {
-  pushEvent(draft, {
+): ZoneChangeEvent {
+  return pushEvent(draft, {
     type: 'zoneChange',
     reason,
     physicalCardId: before.physicalCardId,
@@ -449,7 +488,7 @@ function pushZoneChangeEvent(
     ...options,
     before,
     after,
-  });
+  }) as ZoneChangeEvent;
 }
 
 function pushDefeatAdvisoryEvent(
@@ -467,6 +506,61 @@ function pushDefeatAdvisoryEvent(
     defeatReason,
     advisory: true,
   } satisfies Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>);
+}
+
+function commandCause(commandType: GameCommand['type']): EventCause {
+  return { type: 'command', commandType };
+}
+
+function pushLifeChangeEvent(
+  draft: Draft,
+  playerId: PlayerId,
+  previousLife: number,
+  nextLife: number,
+  cause: EventCause,
+  options?: Pick<LifeChangeEvent, 'lifeLabel' | 'source' | 'sourceEventId' | 'causeEventId'>,
+): void {
+  const delta = nextLife - previousLife;
+  if (delta === 0) {
+    return;
+  }
+
+  pushEvent(draft, {
+    type: 'lifeChange',
+    playerId,
+    delta,
+    previousLife,
+    nextLife,
+    direction: delta > 0 ? 'gain' : 'loss',
+    cause,
+    ...options,
+  } satisfies Omit<LifeChangeEvent, 'eventId' | 'sequence'>);
+}
+
+function pushDrawEvent(
+  draft: Draft,
+  result: 'drawn' | 'empty-library-attempt',
+  drawOrdinal: number,
+  cause: EventCause,
+  zoneChangeEvent?: ZoneChangeEvent,
+): void {
+  pushEvent(draft, {
+    type: 'draw',
+    playerId: 'P1',
+    result,
+    drawOrdinal,
+    cause,
+    ...(zoneChangeEvent
+      ? {
+          physicalCardId: zoneChangeEvent.physicalCardId,
+          oldObjectId: zoneChangeEvent.oldObjectId,
+          newObjectId: zoneChangeEvent.newObjectId,
+          zoneChangeEventId: zoneChangeEvent.eventId,
+          before: zoneChangeEvent.before,
+          after: zoneChangeEvent.after,
+        }
+      : {}),
+  } satisfies Omit<DrawEvent, 'eventId' | 'sequence'>);
 }
 
 function playerDefeatLabel(playerRef: DefeatPlayerRef): string {
@@ -600,15 +694,16 @@ function moveCardInternal(
   log: boolean,
   reason: ZoneChangeReason = 'move',
   eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
-): void {
+): ZoneChangeEvent | undefined {
   const card = requireCard(draft, cardId);
   const from = card.zone;
   const sameZone = from === to;
 
   if (card.isAbility && to !== 'stack') {
     const name = stackNameOf(draft, card);
+    let zoneChangeEvent: ZoneChangeEvent | undefined;
     if (!sameZone) {
-      pushZoneChangeEvent(
+      zoneChangeEvent = pushZoneChangeEvent(
         draft,
         objectSnapshotOf(draft, card),
         undefined,
@@ -622,7 +717,7 @@ function moveCardInternal(
     if (log) {
       pushLog(draft, `${name}の能力が${ZONE_LABELS[to]}へ移動したため消滅しました。`);
     }
-    return;
+    return zoneChangeEvent;
   }
 
   if (card.isCopy) {
@@ -630,12 +725,20 @@ function moveCardInternal(
       const name = nameOfCard(draft, card);
       const before = objectSnapshotOf(draft, card);
       const after = objectSnapshotOf(draft, resetCardForZoneChange(card, to));
-      pushZoneChangeEvent(draft, before, after, from, to, reason, eventOptions);
+      const zoneChangeEvent = pushZoneChangeEvent(
+        draft,
+        before,
+        after,
+        from,
+        to,
+        reason,
+        eventOptions,
+      );
       deleteCardFromState(draft, cardId);
       if (log) {
         pushLog(draft, `コピー${name}は消滅した。`);
       }
-      return;
+      return zoneChangeEvent;
     }
   }
 
@@ -659,8 +762,9 @@ function moveCardInternal(
     }
   }
   setCard(draft, updated);
+  let zoneChangeEvent: ZoneChangeEvent | undefined;
   if (!sameZone && before) {
-    pushZoneChangeEvent(
+    zoneChangeEvent = pushZoneChangeEvent(
       draft,
       before,
       objectSnapshotOf(draft, updated),
@@ -677,6 +781,7 @@ function moveCardInternal(
       `${nameOf(draft, cardId)}を${ZONE_LABELS[from]}から${ZONE_LABELS[to]}へ移動しました。`,
     );
   }
+  return zoneChangeEvent;
 }
 
 function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouch?: boolean): void {
@@ -736,19 +841,28 @@ function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
   }
 }
 
-function applyPlayerLifeDelta(draft: Draft, delta: number): void {
-  draft.state.life += delta;
+function applyPlayerLifeDelta(draft: Draft, delta: number, cause: EventCause): void {
+  const previousLife = draft.state.life;
+  const nextLife = previousLife + delta;
+  draft.state.life = nextLife;
+  pushLifeChangeEvent(draft, 'P1', previousLife, nextLife, cause);
   const sign = delta >= 0 ? '+' : '';
   pushLog(draft, `ライフが${sign}${delta}(現在${draft.state.life})。`);
 }
 
-function applyOpponentLifeDelta(draft: Draft, label: string, delta: number): void {
+function applyOpponentLifeDelta(
+  draft: Draft,
+  label: string,
+  delta: number,
+  cause: EventCause,
+): void {
   const current = draft.state.opponentLife[label] ?? 40;
   const next = current + delta;
   draft.state.opponentLife = {
     ...draft.state.opponentLife,
     [label]: next,
   };
+  pushLifeChangeEvent(draft, 'OPPONENT_A', current, next, cause, { lifeLabel: label });
   pushLog(draft, `対戦相手ライフ(${label})を${next}にしました。`);
 }
 
@@ -843,12 +957,13 @@ function applyCombatPlayerDamageTotals(
   for (const total of totals) {
     if (total.amount <= 0) continue;
     if (total.target.playerId === 'P1') {
-      applyPlayerLifeDelta(draft, -total.amount);
+      applyPlayerLifeDelta(draft, -total.amount, commandCause('resolveCombatDamage'));
     } else {
       applyOpponentLifeDelta(
         draft,
         total.target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL,
         -total.amount,
+        commandCause('resolveCombatDamage'),
       );
     }
   }
@@ -1377,16 +1492,20 @@ function markEmptyLibraryDrawAttempt(draft: Draft, playerId: PlayerId): void {
   };
 }
 
-function drawCards(draft: Draft, count: number): number {
+function drawCards(draft: Draft, count: number, cause: EventCause): number {
   let drawn = 0;
   for (let i = 0; i < count; i++) {
     const lib = draft.state.zones.library;
     if (lib.length === 0) {
       markEmptyLibraryDrawAttempt(draft, 'P1');
-      break;
+      pushDrawEvent(draft, 'empty-library-attempt', i + 1, cause);
+      continue;
     }
     const topId = lib[0];
-    moveCardInternal(draft, topId, 'hand', 'bottom', false);
+    const zoneChangeEvent = moveCardInternal(draft, topId, 'hand', 'bottom', false);
+    if (zoneChangeEvent) {
+      pushDrawEvent(draft, 'drawn', i + 1, cause, zoneChangeEvent);
+    }
     drawn++;
   }
   return drawn;
@@ -1433,7 +1552,7 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
     handleUntapEntry(draft);
   }
   if (phase === 'draw' && !drawnHandled) {
-    const drawn = drawCards(draft, 1);
+    const drawn = drawCards(draft, 1, commandCause('nextPhase'));
     if (drawn > 0) {
       pushLog(draft, 'カードを1枚引きました。');
     } else {
@@ -1964,7 +2083,7 @@ function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
     case 'draw': {
-      const drawn = drawCards(draft, Math.max(0, cmd.count));
+      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
       draft.state.drawnThisTurn += drawn;
       pushLog(draft, `カードを${drawn}枚引きました。`);
       if (drawn < cmd.count) {
@@ -1977,7 +2096,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       break;
     }
     case 'adjustLife': {
-      applyPlayerLifeDelta(draft, cmd.delta);
+      applyPlayerLifeDelta(draft, cmd.delta, commandCause(cmd.type));
       break;
     }
     case 'adjustPlayerCounter': {
@@ -2460,7 +2579,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'adjustLife': {
-      applyPlayerLifeDelta(draft, cmd.delta);
+      applyPlayerLifeDelta(draft, cmd.delta, commandCause(cmd.type));
       break;
     }
     case 'adjustPlayerCounter': {
@@ -2481,7 +2600,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'adjustOpponentLife': {
-      applyOpponentLifeDelta(draft, cmd.label, cmd.delta);
+      applyOpponentLifeDelta(draft, cmd.label, cmd.delta, commandCause(cmd.type));
       break;
     }
     case 'addMana': {
@@ -2520,7 +2639,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'draw': {
-      const drawn = drawCards(draft, Math.max(0, cmd.count));
+      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
       draft.state.drawnThisTurn += drawn;
       pushLog(draft, `カードを${drawn}枚引きました。`);
       if (drawn < cmd.count) {
