@@ -2383,3 +2383,21 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **6. golden / test(4点不変条件③)**: `golden-cases.json` に 20/21 境界・20→21 遷移・ラベル非合算・独立閾値・idempotent 非再 emit・§34.15 reason との同時 grouping・source 境界・snapshot 前方互換を CR 付きで追加(草稿=`research/cr-grounding/archive/s-903-10a-commander-damage/s-903-10a-golden.draft.md`)。受け入れ acceptance = `src/store/__tests__/review.903-10a.test.ts`(レビュー専有)。§34.15 の `review.sba-defeat` にあった「903.10a は defer」pin は本 slice 実装で advisory-level 実装へ反転済み。
 
 **7. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: per-opponent-exact commander damage・commander `cardId`/object 同一性 attribution・combat damage から counter への自動帰属・dummy opponent player object・multiplayer 同時敗北/draw 細部・2HG → 全て `cr-player-specific-zones` 設計凍結後へ carry。substrate は壊さず後付け可能。
+
+### 34.17 S-ZONES player-specific library/hand/graveyard(design-lock・CR 400.1/400.3)— この節も契約である
+
+**位置づけ**: late-backbone **design-lock**。実装より先に保存形式・owner routing・snapshot backfill を凍結する(spec-first=「仕様変更はまず spec を更新してから実装する」)。**本節はコード契約を規定するが実装は後続スライス**(§34.17 は凍結、`zonesByPlayer` 実体は未実装)。設計正本=`research/cr-grounding/s-zones-player-specific.draft.md`(Codex 草稿・Fable が CR 照合し fork 承認・2026-07-02)。903.10a の正直形(per-opponent)・per-player draw/mill/search が全部この上に載る(最高 fan-out)。
+
+**CR 根拠**: 400.1(library/hand/graveyard は各 player 私有、battlefield/stack/exile/command は共有)・400.3(private zone への移動先は object の owner の対応ゾーン)・400.6(zone-change event が実移動を決定)・401.1/402.1/404.1(各 zone 定義)・108.3/111.2(owner)・903.10a(per-target/per-source commander damage が本モデル依存)。前提=既存 M2 owner/controller substrate(`CardInstance.ownerId`・`PlayerId = 'P1' | 'OPPONENT_A'`)。
+
+**凍結した fork 決定(Fable 裁定・4点)**:
+1. **保存形 = `zonesByPlayer: Record<PlayerId, { library; hand; graveyard }>`**(単一マップ・CR400.1)。battlefield/stack/exile/command は既存 flat `zones` に共有のまま。移行中は flat `zones.library/hand/graveyard` を `zonesByPlayer.P1` の **P1 mirror**(独立真理源にしない)。
+2. **opponent = 一級 `PlayerId`**(CR400.1・903.10a)。`OPPONENT_A` を既定 opponent id とし既存ラベル `対戦相手A` と bridge。`opponentLife` は互換ビューとして残し同スライスで削除しない。commander damage の正直形は `target player → source commander(安定 identity・transient objectId 不可)→ 量`(per-opponent は別スライス)。
+3. **snapshot backfill = lossless P1 preservation-first**(CR400.1・[[snapshot-forward-compat]])。旧 flat private zones を順序保存で `zonesByPlayer.P1` へ、既知 opponent は空 zone。混在 owner の legacy を restore 時に CR400.3 修復しない(次の zone-change command が強制)。
+4. **移行 = progressive**(flat を P1 mirror として残す漸進)。full cutover は command/golden/review が player-aware helper へ移行後。
+
+**不変条件(I17〜・実装スライスで `review.*` 固定)**: I14/I15/I16 は既存(event 決定性/eff-char 純粋性/前方互換)ゆえ I17 から採番。I17 owner presence(108.3/111.2/400.3)・I18 private-zone owner routing(400.3/400.6)・I19 private zones disjoint(400.1 + 既存 I1)・I20 P1 mirror consistency(移行安全)・I21 backfill preservation(400.1/401.1/402.1/404.1 + 前方互換)を実装スライスと同時に昇格。I22 commander damage target/source separability(903.10a)は exact matrix 実装時・I23 per-player draw/mill/search isolation は該当 command 実装時に昇格。
+
+**backfill 規律**: owner を先に P1 backfill → invariant 評価。missing `zonesByPlayer`/player/zone は空配列で補完(`undefined` 厳禁=旧 snapshot crash)。`zonesByPlayer.P1` と flat 併存時は `zonesByPlayer` 優先で mirror 再構築。private-zone event snapshot は zone id + zone owner id を持つ(shared zone は owner 省略可)。
+
+**スコープ境界(混ぜない)**: full multiplayer turn structure/turn order・dummy opponent 挙動・AI・real per-player priority・hidden-info UI(opponent hand/library 可視性)・opponent deck import/search UI・combat → commander damage 自動帰属。S-ZONES は**保存形式・owner routing・event metadata・backfill のみ**凍結。

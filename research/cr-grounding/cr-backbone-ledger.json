@@ -6,11 +6,6 @@
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
   "plannedSequence": [
     {
-      "domainId": "cr-player-specific-zones",
-      "note": "後期背骨 design-lock(コード無し)。最高fan-out・最高後期コスト。903.10aの正直な形(per-opponent)・dummy opponent・multiplayer SBA が全部ここに載る。cr-903-10a-commander-damage の advisory-level 出荷(2026-07-02)で next へ昇格。無期限holdでなく背後で即開始。",
-      "type": "domain-slice"
-    },
-    {
       "type": "domain-slice",
       "domainId": "cr-119-life",
       "note": "S-EVENTS 起点。damage/life-loss/gain/draw/zone-change の event envelope を events.ts substrate として凍結(cr-121-drawing の draw event と同時)。誘発はイベント購読(engine-spec §34.1 C-C)・イベント決定性 I14 を同時に立てる。依存=#1 の design-lock。"
@@ -416,14 +411,14 @@
     },
     {
       "id": "cr-player-specific-zones",
-      "crRefs": ["400.1", "400.3", "401", "402", "404", "903.10a"],
+      "crRefs": ["400.1", "400.3", "400.6", "401.1", "402.1", "404.1", "108.3", "111.2", "903.10a"],
       "lane": "late-backbone",
       "edhValue": "high",
       "status": "drafted",
-      "landingState": ["zonesByPlayer", "libraryByPlayer", "handByPlayer", "graveyardByPlayer", "opponents"],
-      "boundary": "golden未定義。design-lock前。flat zonesのまま進めすぎない。903.10a と draw/mill/search の per-player 実装前提。",
-      "evidence": [],
-      "nextGate": "S-ZONESでplayer-specific library/hand/graveyardの保存形式と旧snapshot backfillを凍結する",
+      "landingState": ["zonesByPlayer", "opponents", "P1-mirror(flat zones)"],
+      "boundary": "design-lock 凍結済み(engine-spec §34.17・2026-07-02・Fable が CR 照合し fork 承認)。凍結決定=保存形 zonesByPlayer 単一マップ + flat zones を P1 mirror・opponent 一級 PlayerId(OPPONENT_A↔対戦相手A bridge)・lossless P1 preservation-first backfill・progressive 移行。実装(zonesByPlayer 実体)未着手ゆえ status=drafted。design 正本=research/cr-grounding/s-zones-player-specific.draft.md(現行 living draft・未 archive)。",
+      "evidence": ["docs/engine-spec.md §34.17"],
+      "nextGate": "実装スライス1=zonesByPlayer + P1 mirror + lossless P1 backfill を実装し I17-I21 を reviewer-owned review.* で固定(§34.17 契約に対する敵対 pin)。per-player draw/mill/search と per-opponent commander damage(I22/I23)は後続スライス。",
       "judge": "deterministic-cr"
     },
     {
