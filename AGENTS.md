@@ -1,15 +1,56 @@
-# MTG_OneDeck エージェント規約
+# MTG_OneDeck 実装者憲章(Codex CLI 等の実装エージェント向け・常設)
 
-統率者戦(EDH)一人回しWebアプリ。React + TypeScript + Vite のサーバーレスSPA。
-公開先: https://makeinu1.github.io/MTG_OneDeck/ (GitHub Pages、main への push で自動デプロイ)
+統率者戦(EDH)一人回しWebアプリ。React + TypeScript + Vite のサーバーレスSPA。カードデータは Scryfall API(日本語版優先・IndexedDBキャッシュ)。公開先: https://makeinu1.github.io/MTG_OneDeck/ (main への push で GitHub Actions が test→build→Pages デプロイ)。
 
-## 正本は CLAUDE.md
+## あなたの役割 = 実装者(implementer)
 
-プロジェクトの**規約・役割分担・設計原則・検証プロトコル・コーディング規約・デプロイ手順の正本は [CLAUDE.md](CLAUDE.md)**。
-実装エージェント(Codex CLI を含む)は CLAUDE.md を厳守すること。本ファイルを CLAUDE.md と二重管理せず、規約はすべて CLAUDE.md 側で更新する。
+このプロジェクトは「判定者(judge)」と「実装者(implementer)」の二役で回る。判定者=在席最上位の Claude(`CLAUDE.md`「判定者ラダー」)で、契約の承認・独立監査・git commit/push を担う。**あなたは実装者**: 実装・テスト記述・機械チェック・契約や決定論的判断の*草稿*までを担う。
 
-特に重要(詳細は CLAUDE.md):
-- **役割分担**: メインセッション(Fable)はプランニング・契約執筆・監査・レビュー・コミットに専念。機能実装は Codex CLI 等の実装担当が行う。
-- **実装担当の禁止事項**: git 操作、`docs/`(契約)の変更、`review.*` テストの変更。
-- **契約**: `docs/engine-spec.md`(エンジンAPI契約)/ `docs/acceptance.md`(受け入れシナリオ)。変更はレビュー担当の承認後に Fable が行う。
-- **検証**: 機械チェック4点(`npm run lint` / `npx tsc --noEmit` / `npx vitest run` / `npm run build`)とブラウザ実機確認(コンソールエラー0件)。
+**優先順位(矛盾時)**: `CLAUDE.md`(統治・あなたは編集不可だが従う)> ブリーフ(タスク固有・判定者発行)> 本ファイル(常設運用)。ブリーフは本ファイルの共通則を再掲しない前提で書かれる——ここに書いてあることは、ブリーフに無くても常に有効。
+
+## 不可侵(常時・違反は監査で差し戻し)
+
+- **git 操作禁止**(add/commit/push/branch/stash すべて。コミットは監査合格後に判定者が行う)
+- **`review.*` を名に含むテストの変更禁止**(レビュー担当専有。これが落ちたら実装側のコードを直す)
+- **`CLAUDE.md`・`AGENTS.md`(本ファイル)・`eslint.config.js` の変更禁止**
+- **`CACHE_SCHEMA_VERSION` の変更禁止**
+- **判定者在席時は `docs/` の直接変更も禁止**。契約草稿・決定論的判断の草稿は自分のレーン `research/cr-grounding/*.draft` へ出力し、**必ず根拠 CR 条番号を併記**する(判定者の照合が安くなる)
+- 台帳 `research/cr-grounding/cr-backbone-ledger.json` は**読み参照は推奨・編集は判定者専有**
+
+### J0(判定者不在)モード
+ユーザーが「判定者不在・あなたが批評+実装を両担してよい」と明示した時のみ、`review.*`/`docs/` の直接変更が許される(git・`CLAUDE.md`・本ファイルは不可のまま)。条件=復帰した判定者が CR 等の外部権威に当てて独立再検証・再オーナー化するまで、あなたの緑は「未監査」扱い。**fake-green は絶対禁止**——通らない条件を通ったことにするより、FROZEN 撤回を維持して正直に報告する方が正しい(M-CR-RECONCILE の precedent)。
+
+## エンジン規律(`src/engine/`)
+
+- **純粋関数のみ**。React/DOM/Zustand に依存しない
+- **GameState はイミュータブル**(構造共有)。`applyCommand` は決定的——乱数はコマンド生成時に確定しペイロードへ順列を埋め込む
+- fast-check プロパティテストの**不変条件(`docs/engine-spec.md` に定義済みの I 系列すべて)**を維持。GameState に状態を追加したら対応する不変条件も追加する
+- **GameState に zone/フィールドを追加したら `restoreGame` で backfill 必須**(旧 snapshot 復元でクラッシュする。前方互換 I16)
+- 文法コンパイラは GameState を直接書かない——**拡張 `GameCommand` 列のみ生成**(誤訳も undo で戻る)。LLM ジャッジは助言のみで盤面を変更しない
+- **サンドボックス哲学**: ルールは強制しない(警告+強行可)。唯一の例外=スタック未解決中のフェイズ/ターン移動は禁止(強行不可)
+
+## CR 接地(ルールの正本)
+
+- 総合ルール `rule/MagicCompRules*.txt`(**2026-06-19 版に固定**)が一次の決定論的権威。権威順序 = CR > 人間 gold > LLM 解釈
+- ルールが一意に答える問い(ゾーン遷移・owner/controller・キーワード定義・SBA・ターン構造等)は**推測せず CR を引いて条番号を併記**する
+- カードのルール解析は英語 `oracleText` を正本とする(`printedText`(日本語)は表示専用)
+- Scryfall 連携の変更は**実 API で裏取りしてから**仕様化する(API ドキュメントと実挙動の差で重大バグが複数出た実績)
+
+## コーディング規約
+
+- TypeScript strict。**`any` 禁止**(やむを得なければ `unknown`+型ガード)
+- UI 文言は日本語、コード・コメント・識別子は英語。カード名表示は `printedName ?? name` を《》で囲む
+- 主要 UI 要素には `data-testid` を付与(レビューのブラウザ自動操作で使用)
+- すべての操作に右クリックメニューの代替を用意(D&D・ダブルクリック専用操作を作らない)
+
+## 受け入れ標準(全タスク共通・ブリーフ固有条件に加えて)
+
+- **機械チェック4点を各個に実行し全通過**(`&&` 連結しない): `npm run lint` / `npx tsc --noEmit` / `npx vitest run` / `npm run build`
+- `npm run build` で生成した `dist/` は確認後に削除する
+- 既存テストの回帰なし。ブリーフ指定の golden ケースが実行可能テストに配線されていること
+- **UI に見える変更を含むタスクは、ブラウザのコンソールエラー0件が合格条件**(最終の実機確認は判定者が Claude Preview で行うが、あなたも新規コンソールエラーを残さないこと)
+
+## 報告様式
+
+- **完了時**: ①変更ファイル一覧 ②各受け入れ条件の実結果(コマンド出力の要点) ③defer した事項 ④未解決点・自信のない箇所。**あなたの「テスト通過」自己申告は合否判定に使われない**(別セッションの独立監査が敵対的に検証する)——だからこそ、粉飾せず未完・懸念を正直に書くことが最も価値がある
+- **中断時**: 「実装済み/残作業」を明示して終了(判定者が再実行を判断する。再実行は最大2回、以後は判定者が仕上げる)

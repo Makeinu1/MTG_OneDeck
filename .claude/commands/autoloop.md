@@ -12,7 +12,7 @@ description: 自律マイルストーン・ループ(無人で clear→milestone
 Claude project memory index(`.../memory/MEMORY.md`) + **`research/cr-grounding/cr-backbone-ledger.json`(正本)** を読み、**次スライスを台帳から一意に選ぶ**(台帳の `selectionRule` に従う)。優先=**`plannedSequence` を先に消費**(判定者の standing 裁定)。空なら `lane ∈ {backbone, late-backbone}` かつ `status < shipped`(drafted/implemented-not-green/review-green・`deferred` 除外)かつ `nextGate` 明確 の**最高 `edhValue`** へフォールバック。同点・`nextGate` 不明・価値トレードオフなら **STOP→`AskUserQuestion`**(下記 STOP 条件1=plannedSequence の次バッチ裁定)。要件化は「起案」でなく「台帳 lookup」。
 
 ### 1. 契約起案(Codex 草稿 → 判定者承認)
-Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクション草稿 + golden/敵対テスト草稿**を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。判定者は **CR 照合して承認**し、`review.<key>` の最終 author だけ担い(=要石。実装者に書かせない)、契約を `docs/` へ昇格。Codex は `docs/`・`review.*`・`CLAUDE.md`・git 不可侵。
+Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクション草稿 + golden/敵対テスト草稿**を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。判定者は **CR 照合して承認**し、`review.<key>` の最終 author だけ担い(=要石。実装者に書かせない)、契約を `docs/` へ昇格。Codex は `docs/`・`review.*`・`CLAUDE.md`・`AGENTS.md`・git 不可侵(共通則は `AGENTS.md` が常設で伝える=ブリーフはタスク固有のみ)。
 
 ### 2. 実装(Codex 背景)
 自己完結ブリーフ(対象ファイル・変更禁止・受け入れ条件・必須4チェック・defer/隔離の明示)を渡して Codex 背景起動。`ScheduleWakeup` で待機(判定者非消費)。中断時は再実行(最大2回、それでも未完なら判定者外科仕上げ)。
