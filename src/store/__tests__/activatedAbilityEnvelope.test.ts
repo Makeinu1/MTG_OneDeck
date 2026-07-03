@@ -218,4 +218,170 @@ describe('activated ability activation envelope', () => {
       selection: { kind: 'player', playerId: 'P1' },
     });
   });
+
+  it('blocks unpayable pay-life costs in rules-legal mode but forced mode commits with warning', () => {
+    const source = makeDef({
+      scryfallId: 'env-pay-life',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'env-pay-life',
+          typeLine: 'Artifact',
+          oracleText: 'Pay 3 life: Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 1);
+    const sourceId = findInstanceId('env-pay-life');
+    moveToBattlefield(sourceId);
+    useGameStore.setState({ state: { ...store().state!, life: 2 } });
+    store().clearWarnings();
+    const before = stateSnapshot();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(stateSnapshot()).toBe(before);
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().warnings.some((warning) => warning.includes('ライフ'))).toBe(true);
+
+    store().clearWarnings();
+    store().activateAbility(sourceId, 0, { force: true });
+
+    const state = store().state!;
+    const ability = state.cards[state.zones.stack[0]];
+    expect(state.life).toBe(-1);
+    expect(ability.activationEnvelope?.cost).toContainEqual(
+      expect.objectContaining({
+        kind: 'pay-life',
+        status: 'guided',
+        amount: 3,
+        raw: 'Pay 3 life',
+      }),
+    );
+    expect(store().warnings.some((warning) => warning.includes('CR-legalとして扱いません'))).toBe(
+      true,
+    );
+  });
+
+  it('guides discard costs and records the chosen hand card in the cost envelope', () => {
+    const source = makeDef({
+      scryfallId: 'env-discard',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'env-discard',
+          typeLine: 'Artifact',
+          oracleText: '{T}, Discard a card: Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(12)], 2);
+    const sourceId = findInstanceId('env-discard');
+    moveToBattlefield(sourceId);
+    const discardId = store().state!.zones.hand.find((cardId) => cardId !== sourceId);
+    if (!discardId) throw new Error('discard fixture did not draw a spare hand card');
+    store().clearWarnings();
+    const before = stateSnapshot();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(stateSnapshot()).toBe(before);
+    expect(store().pendingGuided?.mode).toBe('activation');
+    expect(store().pendingGuided?.prompts[0]?.kind).toBe('cost-discard');
+    expect(store().state!.zones.stack).toHaveLength(0);
+
+    store().confirmGuidedCostSubject(discardId);
+
+    const state = store().state!;
+    const ability = state.cards[state.zones.stack[0]];
+    const discardCost = ability.activationEnvelope?.cost.find((cost) => cost.kind === 'discard');
+    expect(state.cards[sourceId].tapped).toBe(true);
+    expect(state.cards[discardId].zone).toBe('graveyard');
+    expect(discardCost).toMatchObject({
+      status: 'guided',
+      amount: 1,
+      subjectRef: { physicalCardId: discardId },
+    });
+  });
+
+  it('guides non-self sacrifice costs and sacrifices the selected permanent', () => {
+    const source = makeDef({
+      scryfallId: 'env-sacrifice-source',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'env-sacrifice-source',
+          typeLine: 'Artifact',
+          oracleText: '{T}, Sacrifice a creature: Draw a card.',
+        },
+      ],
+    });
+    const creature = makeDef({
+      scryfallId: 'env-sacrifice-creature',
+      typeLine: 'Creature',
+      faces: [{ name: 'env-sacrifice-creature', typeLine: 'Creature' }],
+    });
+
+    store().newGame(
+      [{ def: source, isCommander: false }, { def: creature, isCommander: false }, ...makeDeck(12)],
+      3,
+    );
+    const sourceId = findInstanceId('env-sacrifice-source');
+    const creatureId = findInstanceId('env-sacrifice-creature');
+    moveToBattlefield(sourceId);
+    moveToBattlefield(creatureId);
+    store().clearWarnings();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(store().pendingGuided?.prompts[0]?.kind).toBe('cost-sacrifice');
+    store().confirmGuidedCostSubject(creatureId);
+
+    const state = store().state!;
+    const ability = state.cards[state.zones.stack[0]];
+    const sacrificeCost = ability.activationEnvelope?.cost.find(
+      (cost) => cost.kind === 'sacrifice-object',
+    );
+    expect(state.cards[sourceId].tapped).toBe(true);
+    expect(state.cards[creatureId].zone).toBe('graveyard');
+    expect(sacrificeCost).toMatchObject({
+      status: 'guided',
+      amount: 1,
+      subjectRef: { physicalCardId: creatureId },
+    });
+  });
+
+  it('keeps multiple nonmana costs atomic when one modeled component cannot be paid', () => {
+    const source = makeDef({
+      scryfallId: 'env-atomic-nonmana',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'env-atomic-nonmana',
+          typeLine: 'Artifact',
+          oracleText: 'Pay 5 life, Discard a card: Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(12)], 4);
+    const sourceId = findInstanceId('env-atomic-nonmana');
+    moveToBattlefield(sourceId);
+    const discardId = store().state!.zones.hand.find((cardId) => cardId !== sourceId);
+    if (!discardId) throw new Error('atomic fixture did not draw a spare hand card');
+    useGameStore.setState({ state: { ...store().state!, life: 2 } });
+    store().clearWarnings();
+    const before = stateSnapshot();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(stateSnapshot()).toBe(before);
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().state!.cards[discardId].zone).toBe('hand');
+    expect(store().state!.life).toBe(2);
+    expect(store().warnings.some((warning) => warning.includes('ライフ'))).toBe(true);
+  });
 });

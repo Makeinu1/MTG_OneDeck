@@ -208,3 +208,118 @@ describe('review.activated-envelope: CR 602/115/118/605 activation envelope (§3
     expect(store().pendingGuided?.mode).toBe('activation');
   });
 });
+
+// Slice 2: nonmana cost components (pay-life / discard / non-self sacrifice).
+// CR grounding: costs may include paying life, discarding, and sacrificing (601.2f); a cost can't
+// be paid without full resources and no partial payment (118.3/601.2h); paying life subtracts from
+// the life total (118.3b). These land as guided/manual components, never faking auto (§34.19).
+describe('review.activated-envelope: CR 118 nonmana cost components (§34.19 slice 2)', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  function bfArtifact(id: string, oracleText: string) {
+    return makeDef({
+      scryfallId: id,
+      typeLine: 'Artifact',
+      faces: [{ name: id, typeLine: 'Artifact', oracleText }],
+    });
+  }
+
+  // 1. CR 118.3/118.3b: rules-legal activation with insufficient life commits nothing.
+  it('118.3b: "Pay N life" with insufficient life commits no stack object and no life change', () => {
+    const src = bfArtifact('rv-paylife', 'Pay 5 life: Draw a card.');
+    store().newGame([{ def: src, isCommander: false }, ...makeDeck(10)], 1);
+    const srcId = instanceId('rv-paylife');
+    toBattlefield(srcId);
+    store().dispatch({ type: 'adjustLife', delta: -(store().state!.life - 4) }); // life = 4 < 5
+    store().clearWarnings();
+    const before = JSON.stringify(store().state);
+
+    store().activateAbility(srcId, 0);
+
+    expect(JSON.stringify(store().state)).toBe(before);
+    expect(store().state!.life).toBe(4);
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().warnings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // 2. Sandbox: forced mode commits the unpayable life cost with a non-CR-legal warning.
+  it('forced: "Pay N life" past insufficient life commits with a non-CR-legal warning', () => {
+    const src = bfArtifact('rv-paylife-f', 'Pay 5 life: Draw a card.');
+    store().newGame([{ def: src, isCommander: false }, ...makeDeck(10)], 1);
+    const srcId = instanceId('rv-paylife-f');
+    toBattlefield(srcId);
+    store().dispatch({ type: 'adjustLife', delta: -(store().state!.life - 4) });
+    store().clearWarnings();
+
+    store().activateAbility(srcId, 0, { force: true });
+
+    expect(store().state!.zones.stack).toHaveLength(1);
+    expect(store().warnings.some((w) => w.includes('CR-legal'))).toBe(true);
+  });
+
+  // 3. CR 601.2f: a discard cost is guided — the chosen hand card is recorded and moved to
+  //    graveyard as a cost component (status guided, never auto).
+  it('601.2f: "Discard a card" guides subject choice, records it, and moves it to graveyard', () => {
+    const src = bfArtifact('rv-discard', 'Discard a card: Draw a card.');
+    store().newGame([{ def: src, isCommander: false }, ...makeDeck(12)], 1);
+    const srcId = instanceId('rv-discard');
+    toBattlefield(srcId);
+    const handCard = store().state!.zones.hand.find((c) => c !== srcId);
+    if (!handCard) throw new Error('no spare hand card');
+    store().clearWarnings();
+
+    store().activateAbility(srcId, 0);
+    // Guided cost: no stack object committed until the discard subject is chosen.
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().pendingGuided?.prompts[0]?.kind).toBe('cost-discard');
+
+    store().confirmGuidedCostSubject(handCard);
+    expect(store().state!.cards[handCard].zone).toBe('graveyard');
+    const ability = stackObjects()[0];
+    const comp = ability.activationEnvelope?.cost.find((c) => c.kind === 'discard');
+    expect(comp?.status).not.toBe('auto');
+    expect(comp?.subjectRef).toMatchObject({ physicalCardId: handCard });
+  });
+
+  // 4. Non-self sacrifice is distinct from self-sacrifice: the chosen (other) permanent is
+  //    sacrificed, not the source.
+  it('601.2f: "Sacrifice a creature" sacrifices the guided-chosen creature, not the source', () => {
+    const src = bfArtifact('rv-sac-src', 'Sacrifice a creature: Draw a card.');
+    const victim = makeDef({
+      scryfallId: 'rv-sac-victim',
+      typeLine: 'Creature',
+      faces: [{ name: 'rv-sac-victim', typeLine: 'Creature' }],
+    });
+    store().newGame([{ def: src, isCommander: false }, { def: victim, isCommander: false }, ...makeDeck(10)], 1);
+    const srcId = instanceId('rv-sac-src');
+    const victimId = instanceId('rv-sac-victim');
+    toBattlefield(srcId);
+    toBattlefield(victimId);
+    store().clearWarnings();
+
+    store().activateAbility(srcId, 0);
+    expect(store().pendingGuided?.prompts[0]?.kind).toBe('cost-sacrifice');
+    store().confirmGuidedCostSubject(victimId);
+
+    expect(store().state!.cards[victimId].zone).toBe('graveyard');
+    expect(store().state!.cards[srcId].zone).toBe('battlefield'); // source not sacrificed
+  });
+
+  // 5. F-4 analog for cost subjects: forced bypasses cost PAYABILITY, not subject CHOICE. A
+  //    forced discard/sacrifice must still require the subject, never committing an empty subject.
+  it('118.3: forced mode still requires the discard subject (no empty-subject commit)', () => {
+    const src = bfArtifact('rv-discard-f', 'Discard a card: Draw a card.');
+    store().newGame([{ def: src, isCommander: false }, ...makeDeck(12)], 1);
+    const srcId = instanceId('rv-discard-f');
+    toBattlefield(srcId);
+    store().clearWarnings();
+
+    store().activateAbility(srcId, 0, { force: true });
+
+    // Forced does not skip subject selection: still awaiting the discard choice, nothing committed.
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().pendingGuided?.prompts[0]?.kind).toBe('cost-discard');
+  });
+});

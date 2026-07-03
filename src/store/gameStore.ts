@@ -34,8 +34,10 @@ import {
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import type {
   CardInstance,
+  ActivationCostComponent,
   ActivationEnvelope,
   ActivationPaymentMode,
+  ActivationSourceRef,
   DefeatAdvisoryRecord,
   DefeatPlayerRef,
   DefeatReason,
@@ -114,6 +116,7 @@ export interface PendingActivation {
   abilityLineIndex?: number;
   commands: GameCommand[];
   costComponents: ActivationEnvelope['cost'];
+  costPrompts: EffectPrompt[];
   sourceSnapshot: NonNullable<ActivationEnvelope['sourceRef']['snapshot']>;
   targetSelections: TargetSelection[];
   paymentMode: ActivationPaymentMode;
@@ -579,6 +582,7 @@ export interface GameStore {
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   confirmGuidedTarget(cardId: string): void;
+  confirmGuidedCostSubject(cardId: string): void;
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   confirmGuidedModal(chosen: number[]): void;
@@ -1023,6 +1027,80 @@ export const useGameStore = create<GameStore>((set, get) => {
     return prompt.slotId ?? `target-${fallbackIndex}`;
   }
 
+  function costComponentSlotIdForPrompt(prompt: EffectPrompt): string | null {
+    const slotId = prompt.slotId;
+    if (!slotId) {
+      return null;
+    }
+    const match = /^(cost-\d+)-choice-\d+$/.exec(slotId);
+    return match?.[1] ?? slotId;
+  }
+
+  function activationSubjectRefFromSnapshot(snapshot: NonNullable<ActivationSourceRef['snapshot']>): ActivationSourceRef {
+    return {
+      physicalCardId: snapshot.physicalCardId,
+      objectId: snapshot.objectId,
+      snapshot,
+    };
+  }
+
+  function selectedCostSubjectIds(activation: PendingActivation): Set<string> {
+    const ids = new Set<string>();
+    for (const component of activation.costComponents) {
+      if (component.subjectRef) {
+        ids.add(component.subjectRef.physicalCardId);
+      }
+      for (const subjectRef of component.subjectRefs ?? []) {
+        ids.add(subjectRef.physicalCardId);
+      }
+    }
+    return ids;
+  }
+
+  function eligibleCostSubjectIds(
+    state: GameState,
+    pending: PendingActivation,
+    prompt: EffectPrompt,
+    options: { excludeSelected?: boolean } = {},
+  ): string[] {
+    const selected = options.excludeSelected === false ? new Set<string>() : selectedCostSubjectIds(pending);
+    if (prompt.kind === 'cost-discard') {
+      return state.zones.hand.filter((cardId) => !selected.has(cardId));
+    }
+    if (prompt.kind === 'cost-sacrifice') {
+      return eligibleTargets(state, prompt.filter ?? { types: ['permanent'], controller: 'you' }).filter(
+        (cardId) => cardId !== pending.sourceId && !selected.has(cardId),
+      );
+    }
+    return [];
+  }
+
+  function appendSubjectRef(
+    component: ActivationCostComponent,
+    subjectRef: ActivationSourceRef,
+  ): ActivationCostComponent {
+    const subjectRefs = [...(component.subjectRefs ?? []), subjectRef];
+    return {
+      ...component,
+      subjectRef: component.subjectRef ?? subjectRef,
+      subjectRefs,
+    };
+  }
+
+  function costComponentsWithSubject(
+    components: readonly ActivationCostComponent[],
+    prompt: EffectPrompt,
+    subjectRef: ActivationSourceRef,
+  ): ActivationCostComponent[] {
+    const componentSlotId = costComponentSlotIdForPrompt(prompt);
+    if (!componentSlotId) {
+      return components.map((component) => ({ ...component }));
+    }
+    return components.map((component) =>
+      component.slotId === componentSlotId ? appendSubjectRef(component, subjectRef) : { ...component },
+    );
+  }
+
   function activationEnvelopeFromPending(
     pending: PendingActivation,
     targetSelections: readonly TargetSelection[],
@@ -1058,6 +1136,34 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (paysTapSelf && source?.tapped) {
       warnings.push(`${cardLabel(state, pending.sourceId)}はすでにタップされています。`);
     }
+    for (const component of pending.costComponents) {
+      const amount = component.amount ?? 0;
+      if (component.kind === 'pay-life' && state.life < amount) {
+        warnings.push(
+          `${cardLabel(state, pending.sourceId)}の起動コストのライフが${amount - state.life}点不足しています。`,
+        );
+      }
+      if (component.kind === 'discard' && state.zones.hand.length < amount) {
+        warnings.push(
+          `${cardLabel(state, pending.sourceId)}の起動コストで捨てる手札が${amount - state.zones.hand.length}枚不足しています。`,
+        );
+      }
+      if (component.kind === 'sacrifice-object') {
+        const prompt = pending.costPrompts.find(
+          (entry) =>
+            entry.kind === 'cost-sacrifice' &&
+            costComponentSlotIdForPrompt(entry) === component.slotId,
+        );
+        const eligibleCount = prompt
+          ? eligibleCostSubjectIds(state, pending, prompt, { excludeSelected: false }).length
+          : 0;
+        if (eligibleCount < amount) {
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}の起動コストで生け贄に捧げるパーマネントが${amount - eligibleCount}体不足しています。`,
+          );
+        }
+      }
+    }
     return warnings;
   }
 
@@ -1086,6 +1192,52 @@ export const useGameStore = create<GameStore>((set, get) => {
       : [];
   }
 
+  function costSubjectWarnings(state: GameState, pending: PendingActivation): string[] {
+    const warnings: string[] = [];
+    for (const component of pending.costComponents) {
+      if (component.kind !== 'discard' && component.kind !== 'sacrifice-object') {
+        continue;
+      }
+      const amount = component.amount ?? 0;
+      const subjectRefs = component.subjectRefs ?? (component.subjectRef ? [component.subjectRef] : []);
+      if (subjectRefs.length < amount) {
+        warnings.push(`${cardLabel(state, pending.sourceId)}の起動コストの選択が未完了です。`);
+        continue;
+      }
+      if (component.kind === 'discard') {
+        const invalid = subjectRefs.some(
+          (subjectRef) => !state.zones.hand.includes(subjectRef.physicalCardId),
+        );
+        if (invalid) {
+          warnings.push(`${cardLabel(state, pending.sourceId)}の捨てるカードが現在の手札にありません。`);
+        }
+        continue;
+      }
+
+      const prompt = pending.costPrompts.find(
+        (entry) =>
+          entry.kind === 'cost-sacrifice' && costComponentSlotIdForPrompt(entry) === component.slotId,
+      );
+      const eligible = new Set(
+        prompt ? eligibleCostSubjectIds(state, pending, prompt, { excludeSelected: false }) : [],
+      );
+      const invalid = subjectRefs.some((subjectRef) => {
+        const snapshot = objectSnapshotForCard(state, subjectRef.physicalCardId);
+        return (
+          !snapshot ||
+          snapshot.objectId !== subjectRef.objectId ||
+          !eligible.has(subjectRef.physicalCardId)
+        );
+      });
+      if (invalid) {
+        warnings.push(
+          `${cardLabel(state, pending.sourceId)}の生け贄コストの選択が現在の候補にありません。`,
+        );
+      }
+    }
+    return warnings;
+  }
+
   function forcedActivationWarning(state: GameState, pending: PendingActivation): string {
     return `${cardLabel(state, pending.sourceId)}の能力を強行起動しました。CR-legalとして扱いません。`;
   }
@@ -1102,6 +1254,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       ...activationCostWarnings(cur, pending),
       ...missingTargetWarnings(cur, pending, remainingPrompts, targetSelections),
       ...uncheckedTargetWarnings(cur, pending, targetSelections),
+      ...costSubjectWarnings(cur, pending),
     ];
     const forced = pending.paymentMode === 'forced';
     if (!forced && warnings.length > 0) {
@@ -1215,6 +1368,34 @@ export const useGameStore = create<GameStore>((set, get) => {
           ...activation,
           targetSelections,
         },
+      },
+    });
+  }
+
+  function advanceActivationCostSubject(
+    command: GameCommand,
+    costComponents: ActivationCostComponent[],
+  ): void {
+    const pendingGuided = get().pendingGuided;
+    if (!isActivationPending(pendingGuided)) {
+      return;
+    }
+    const activation: PendingActivation = {
+      ...pendingGuided.activation,
+      commands: [...pendingGuided.activation.commands, command],
+      costComponents,
+    };
+    const prompts = pendingGuided.prompts.slice(1);
+    if (prompts.length === 0) {
+      commitActivation(activation, [], activation.targetSelections);
+      return;
+    }
+
+    set({
+      pendingGuided: {
+        ...pendingGuided,
+        prompts,
+        activation,
       },
     });
   }
@@ -2049,6 +2230,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           : { abilityLineIndex: resolvedAbilityLineIndex }),
         commands: plan?.commands ?? [],
         costComponents: plan?.costComponents ?? [],
+        costPrompts: plan?.costPrompts ?? [],
         sourceSnapshot,
         targetSelections: [],
         paymentMode,
@@ -2070,12 +2252,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Targets are chosen as the ability is activated (CR 115.1c/602.2b), regardless of
       // paymentMode: the `forced` sandbox escape bypasses unpayable COSTS, not target choice.
       // So a targeted ability always routes through the target picker before commit.
-      if (targetPrompts.length > 0) {
+      const activationPrompts = [...targetPrompts, ...pendingActivation.costPrompts];
+      if (activationPrompts.length > 0) {
         set({
           pendingGuided: {
             mode: 'activation',
             sourceId,
-            prompts: targetPrompts,
+            prompts: activationPrompts,
             commands: [],
             activation: pendingActivation,
           },
@@ -2153,6 +2336,64 @@ export const useGameStore = create<GameStore>((set, get) => {
         { sourceId: pending.sourceId, def },
       );
       advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedCostSubject(cardId) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (
+        !cur ||
+        !isActivationPending(pending) ||
+        (prompt?.kind !== 'cost-discard' && prompt?.kind !== 'cost-sacrifice')
+      ) {
+        return;
+      }
+
+      const snapshot = objectSnapshotForCard(cur, cardId);
+      if (!snapshot) {
+        set({ warnings: [...get().warnings, `コストに選択したカードが存在しません: ${cardId}`] });
+        return;
+      }
+      if (selectedCostSubjectIds(pending.activation).has(cardId)) {
+        set({ warnings: [...get().warnings, `コストに同じカードは選択できません: ${cardId}`] });
+        return;
+      }
+
+      const forced = pending.activation.paymentMode === 'forced';
+      const legalIds = new Set(eligibleCostSubjectIds(cur, pending.activation, prompt));
+      if (!legalIds.has(cardId) && !forced) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は起動コストの候補にありません。`] });
+        return;
+      }
+      if (prompt.kind === 'cost-discard' && !cur.zones.hand.includes(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`] });
+        return;
+      }
+      if (
+        prompt.kind === 'cost-sacrifice' &&
+        (cardId === pending.activation.sourceId || cur.cards[cardId]?.zone !== 'battlefield')
+      ) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, cardId)}は生け贄コストの候補にありません。`,
+          ],
+        });
+        return;
+      }
+
+      const subjectRef = activationSubjectRefFromSnapshot(snapshot);
+      const costComponents = costComponentsWithSubject(
+        pending.activation.costComponents,
+        prompt,
+        subjectRef,
+      );
+      const command: GameCommand =
+        prompt.kind === 'cost-discard'
+          ? { type: 'discard', cardIds: [cardId] }
+          : { type: 'moveCard', cardId, to: 'graveyard', position: 'top' };
+      advanceActivationCostSubject(command, costComponents);
     },
 
     confirmGuidedPlayerTarget(playerId) {

@@ -2421,7 +2421,7 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 ### 34.19 S-ACTIVATED-ABILITY envelope(CR 602 + 115 + 118 + 605)— この節も契約である
 
-**位置づけ**: plannedSequence[0]・MyDeck 採点(2026-07-02)で判明した**実デッキ最大需要**=活性化能力イディオム({T}: / {cost}, Sacrifice: 等)への demand-first gate。**design-lock**(実装より先に envelope 形を凍結・spec-first)。既存 §33(G4 起動型コスト精算)・§34.11(マナ transaction)は**既にある**=§34.19 はその周りに activation envelope を凍結し**restate しない**。設計正本=`research/cr-grounding/s-activated-ability-envelope.draft.md`(Codex 草稿・Fable が CR 照合し承認・2026-07-02)。**本節はコード契約を規定するが実装は後続スライス**。
+**位置づけ**: plannedSequence[0]・MyDeck 採点(2026-07-02)で判明した**実デッキ最大需要**=活性化能力イディオム({T}: / {cost}, Sacrifice: 等)への demand-first gate。**design-lock**(実装より先に envelope 形を凍結・spec-first)。既存 §33(G4 起動型コスト精算)・§34.11(マナ transaction)は**既にある**=§34.19 はその周りに activation envelope を凍結し**restate しない**。設計正本=`research/cr-grounding/archive/cr-602/s-activated-ability-envelope.draft.md`(Codex 草稿・Fable が CR 照合し承認・2026-07-02)。**本節はコード契約を規定するが実装は後続スライス**。
 
 **CR 根拠**: 602.1(活性化能力=`[Cost]: [Effect]`)・602.2(activate=stack へ置き cost 支払い。**途中で従えなければ activation は不成立=直前へ巻き戻す**=atomicity の CR 根拠・CR733)・602.2b(**601.2b-i が activation に適用**・activation cost=mana cost の analog)・117.1b(優先権中に起動可)・117.3c/117.7(stack 順)・118.3(**必要資源が無ければ cost を払えない=部分払い不可**・既 tap 済は tap 不可)・601.2f-h(total cost 確定→lock→支払い)・115.1c(**対象は activation 時に選ぶ**・see 602.2b)・115.2/115.3(legal target・同一 target 重複不可)・605.1a(マナ能力=無 target・マナ生成可・非 loyalty)・605.5a(**target 有りはマナ能力でない**)・605.3b/405.6c(マナ能力は stack 不使用・即時)。
 

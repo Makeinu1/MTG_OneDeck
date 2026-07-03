@@ -12,7 +12,7 @@ export interface CompileContext {
 export type AutoDecision = 'auto' | 'guided' | 'manual';
 export type CostDecision = 'auto' | 'manual';
 export type RiskLevel = 'low' | 'medium' | 'high';
-export type PromptKind = 'target' | 'scry-surveil' | 'modal';
+export type PromptKind = 'target' | 'scry-surveil' | 'modal' | 'cost-discard' | 'cost-sacrifice';
 
 export interface TargetFilter {
   types?: string[];
@@ -521,6 +521,9 @@ export function buildGuidedCommands(
   _ctx: CompileContext,
 ): GameCommand[] {
   void _ctx;
+  if (prompt.kind === 'cost-discard' || prompt.kind === 'cost-sacrifice') {
+    return [];
+  }
   if (prompt.kind !== answer.kind) {
     return [];
   }

@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-602-activated-abilities",
-      "note": "★実デッキ最大需要(MyDeck採点: cost:activation 232/cost:tap 201/target 97)。活性化能力 envelope=cost+target+stack/no-stack を design-lock(spec-first)で凍結→実装。cr-118(cost envelope)/cr-115(target envelope)を envelope 成分として引き込む。多くは既存 substrate 上の catalog未写=leaf-compiler で速く実価値。CR 602/605.1a/117 正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-605-mana-abilities",
       "note": "実デッキ需要 mana:write 150。activated mana ability(605.1a)を活性化能力 envelope に載せる(605.1b 誘発型は出荷済)。マナ生成節の catalog未写を閉じる。CR 605 正本。"
     },
@@ -297,11 +292,11 @@
       "crRefs": ["602", "602.2b", "605.1a", "605.5a", "117", "118.3", "115.1c", "601.2c", "601.2f"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": ["activatedAbilityPlans", "stack", "manaTransactions", "activationEnvelope(cost|target|stackPolicy)"],
-      "boundary": "envelope design-lock §34.19 凍結(2026-07-02)。**slice 1 出荷**(2026-07-03・review.activated-envelope 6 pin green)= activation 時 target を stack object に保存(CR115.1c/602.2b)+ atomicity(rules-legal 全or無・forced はサンドボックス脱出弁で非CR-legal 明示・target 選択は force でも必須=Tier-1 F-4 修正済)+ mana isolation(605.1a 無target→no-stack・605.5a targeted→通常stack)。cost は既存 §33(mana/tap-self/sacrifice-self)のみ。**slice 2 未実装**=nonmana cost component(pay-life/discard/non-self sacrifice/counter)。設計正本=research/cr-grounding/s-activated-ability-envelope.draft.md(living draft)。",
+      "boundary": "envelope design-lock §34.19 凍結(2026-07-02)→ slice 1 出荷(c1b47f9・target 保存 + atomicity + mana isolation・F-4 修正済)→ **slice 2 出荷**(2026-07-03・nonmana cost component=pay-life/discard/non-self sacrifice を guided status で実装・auto 詐称なし・複数 component atomicity・forced でも subject 選択必須=F-4 原則維持・Tier-1 Sonnet 監査 8観点全緑)。envelope の契約4点(cost/target/stack-no-stack/atomicity)完了。counter 系 cost・CR608 illegal target・個別 leaf effect・loyalty(CR606)・complex cost は §34.19 明示境界として defer(別 domain/需要時)。設計 packet は archive/cr-602/ へ集約。",
       "evidence": ["src/store/__tests__/review.activated-envelope.test.ts", "src/store/__tests__/activatedAbilityEnvelope.test.ts", "docs/engine-spec.md §34.19", "cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts"],
-      "nextGate": "slice 2: nonmana cost component(pay-life/discard/non-self sacrifice/counter)を cost envelope の guided/manual status で実装し review.* で固定。CR608 illegal target 解決・個別 leaf effect・loyalty(CR606)・complex cost は defer 継続。",
+      "nextGate": "envelope 消費側へ: cr-605(mana:write catalog)・cr-701(action 動詞 leaf)が envelope 上に効果 compiler を載せる。CR608 illegal target 解決は resolution slice で。",
       "judge": "deterministic-cr"
     },
     {

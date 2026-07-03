@@ -146,15 +146,24 @@ export interface ActivationSourceRef {
   snapshot: ObjectSnapshot;
 }
 
-export type ActivationCostComponentKind = 'mana' | 'tap-self' | 'sacrifice-self';
-export type ActivationCostComponentStatus = 'auto' | 'manual' | 'unparsed';
+export type ActivationCostComponentKind =
+  | 'mana'
+  | 'tap-self'
+  | 'sacrifice-self'
+  | 'sacrifice-object'
+  | 'pay-life'
+  | 'discard';
+export type ActivationCostComponentStatus = 'auto' | 'guided' | 'manual' | 'unparsed';
 
 export interface ActivationCostComponent {
   kind: ActivationCostComponentKind;
   raw: string;
   payerId: PlayerId;
   status: ActivationCostComponentStatus;
+  amount?: number;
+  slotId?: string;
   subjectRef?: ActivationSourceRef;
+  subjectRefs?: ActivationSourceRef[];
   manaCost?: string;
 }
 

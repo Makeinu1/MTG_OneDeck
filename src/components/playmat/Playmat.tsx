@@ -1132,6 +1132,20 @@ export function Playmat({ keybindings }: PlaymatProps) {
     (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
       ? ['P1', 'OPPONENT_A']
       : [];
+  const guidedCostSelectedIds = new Set(
+    (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
+      ...(component.subjectRef ? [component.subjectRef.physicalCardId] : []),
+      ...(component.subjectRefs?.map((subjectRef) => subjectRef.physicalCardId) ?? []),
+    ]),
+  );
+  const guidedCostSubjectIds =
+    guidedPrompt?.kind === 'cost-discard'
+      ? state.zones.hand.filter((cardId) => !guidedCostSelectedIds.has(cardId))
+      : guidedPrompt?.kind === 'cost-sacrifice'
+        ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' }).filter(
+            (cardId) => cardId !== store.pendingGuided?.sourceId && !guidedCostSelectedIds.has(cardId),
+          )
+        : [];
   const bloodDiscardIds = pendingBloodCrackCardId ? state.zones.hand : [];
   const peekIds =
     peekCount === null
@@ -1436,6 +1450,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
             state={state}
             onPick={(targetId) => store.confirmGuidedTarget(targetId)}
             onPickPlayer={(playerId) => store.confirmGuidedPlayerTarget(playerId)}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {(guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') && (
+          <TargetPickerDialog
+            title={guidedPrompt.kind === 'cost-discard' ? '捨てるカードを選択' : '生け贄を選択'}
+            cardIds={guidedCostSubjectIds}
+            state={state}
+            onPick={(cardId) => store.confirmGuidedCostSubject(cardId)}
             onCancel={() => store.cancelGuidedPrompt()}
           />
         )}
