@@ -536,9 +536,9 @@ Acceptance rule: 未実装機構を `PASS` に混ぜない。`PARTIAL` / `PASS(c
 判定材料:
 
 - `research/cr-grounding/m0-freeze-overlay.json`
-- `research/cr-grounding/m0-freeze-review-packet.md`
-- `research/cr-grounding/m0-freeze-review-sheet.md`
-- `research/cr-grounding/m0-freeze-decision-record.md`
-- `research/cr-grounding/m0-freeze-evidence-audit.md`
-- `research/cr-grounding/m0-freeze-traceability-matrix.md`
-- `research/cr-grounding/docs-contract-update-map.md`
+- `research/cr-grounding/archive/m0-freeze/m0-freeze-review-packet.md`
+- `research/cr-grounding/archive/m0-freeze/m0-freeze-review-sheet.md`
+- `research/cr-grounding/archive/m0-freeze/m0-freeze-decision-record.md`
+- `research/cr-grounding/archive/m0-freeze/m0-freeze-evidence-audit.md`
+- `research/cr-grounding/archive/m0-freeze/m0-freeze-traceability-matrix.md`
+- `research/cr-grounding/archive/m0-freeze/docs-contract-update-map.md`

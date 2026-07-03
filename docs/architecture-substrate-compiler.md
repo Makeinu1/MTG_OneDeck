@@ -31,7 +31,7 @@ MTGを一人回しできる状態にする主役は**4部構成**。中心名詞
 `FROZEN`(契約凍結)は state ではなく**契約側のゲート印**として引き続き使う(§34)。
 
 ### CR領域のレーン分類(背骨/後期背骨/葉/剪定)
-どの CR 領域を先に積み、どれを剪定するかは **`cr-backbone-ledger.json` が単一正本**(旧 `scope-partition.md`・README ゲート表・`m0-freeze-overlay.json` の重複役割を退役・subsume)。レーン定義: `backbone`(GameState/遷移/event/priority/SBA/compiler着地先を決める=CR依存順に実装)/ `late-backbone`(重要だが前提state重い=設計を先に凍結し実装は段階化)/ `leaf-compiler`(個別文法=substrate完成後)/ `pruned`(主価値に直結せず=実装しないが可視に残す)。autoloop の「次は何か」は台帳 lookup(`.claude/commands/autoloop.md` step 0)。
+どの CR 領域を先に積み、どれを剪定するかは **`cr-backbone-ledger.json` が単一正本**(旧 `scope-partition.md`(現在は `research/cr-grounding/archive/m0-freeze/` に退蔵)・README ゲート表・`m0-freeze-overlay.json` の重複役割を退役・subsume)。レーン定義: `backbone`(GameState/遷移/event/priority/SBA/compiler着地先を決める=CR依存順に実装)/ `late-backbone`(重要だが前提state重い=設計を先に凍結し実装は段階化)/ `leaf-compiler`(個別文法=substrate完成後)/ `pruned`(主価値に直結せず=実装しないが可視に残す)。autoloop の「次は何か」は台帳 lookup(`.claude/commands/autoloop.md` step 0)。
 
 ## 1. Context — なぜ全体設計か
 

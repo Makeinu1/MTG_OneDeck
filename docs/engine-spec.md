@@ -1798,9 +1798,9 @@ function activatedManaAbilityPlanForSource(
 
 M0 CR Grounding Gate の status 正本は `research/cr-grounding/README.md` の "M0 CR Grounding Gate status" と `docs/acceptance.md` の CRG 表とする。`PASS` / `PASS(core)` / `PASS(boundary)` / `PARTIAL` を区別し、`PARTIAL` の残る境界(full SBA suite、603.3b second-bucket、commander 903.9a 汎用SBA choice、誘発型マナ能力など)を完了済みに混ぜてはならない。
 
-M0-FREEZE の CR-grounding overlay 正本は `research/cr-grounding/m0-freeze-overlay.json` とする。`research/cr-grounding/README.md` と `docs/acceptance.md` の CRG 表は人間向け表示であり、scorecard 配線時の機械可読入力は overlay JSON を使う。Fable の承認/差戻し記録は `research/cr-grounding/m0-freeze-decision-record.md`、証拠監査は `research/cr-grounding/m0-freeze-evidence-audit.md`、CR refs / golden / executable / overlay / boundary の追跡表は `research/cr-grounding/m0-freeze-traceability-matrix.md` を参照する。
+M0-FREEZE の CR-grounding overlay 正本は `research/cr-grounding/m0-freeze-overlay.json` とする。`research/cr-grounding/README.md` と `docs/acceptance.md` の CRG 表は人間向け表示であり、scorecard 配線時の機械可読入力は overlay JSON を使う。Fable の承認/差戻し記録は `research/cr-grounding/archive/m0-freeze/m0-freeze-decision-record.md`、証拠監査は `research/cr-grounding/archive/m0-freeze/m0-freeze-evidence-audit.md`、CR refs / golden / executable / overlay / boundary の追跡表は `research/cr-grounding/archive/m0-freeze/m0-freeze-traceability-matrix.md` を参照する。
 
-Zone/zone-change の設計正本は `research/cr-grounding/zone-change-study.md`。CRG-5 トークン死亡、CRG-6 誘発/SBA/優先権、CRG-7 領域移動/LKI は共有 substrate を持つため、個別実装へ直行しない。順序は Z1 object incarnation scaffold → Z2 ZoneChangeEvent → Z3 pendingTriggers → Z4 stabilizeBeforePriority → Z5 executable CR-golden。
+Zone/zone-change の設計正本は `research/cr-grounding/archive/m0-freeze/zone-change-study.md`。CRG-5 トークン死亡、CRG-6 誘発/SBA/優先権、CRG-7 領域移動/LKI は共有 substrate を持つため、個別実装へ直行しない。順序は Z1 object incarnation scaffold → Z2 ZoneChangeEvent → Z3 pendingTriggers → Z4 stabilizeBeforePriority → Z5 executable CR-golden。
 
 Z1 object incarnation scaffold は 2026-06-27 に実装済み。`CardInstance.id` は物理/表示ID、`zoneChangeCounter` は CR 400.7 の object incarnation counter、`objectIdOf(card)` は `id:zoneChangeCounter` の派生IDとする。true zone-change でのみ increment し、同一 zone 内 reordering では increment/reset しない。pre-Z1 snapshot は `restoreGame` で `zoneChangeCounter: 0` を backfill する。
 
@@ -2163,7 +2163,7 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
 
 ### 34.10 S-EVENTS / PRIORITY(Q5 Phase 2 実装契約)— この節も契約である
 
-**位置づけ**: M0-FREEZE 達成(legacy 7条件 FROZEN + CR-grounding overlay APPROVED)後の最初の substrate 実装。Q5 Phase 1(S-CHOICE/S-TURN=汎用 `pendingRuleChoices`)に続く背骨。後続 S-EVENTS/MANA・S-SBA・S-LAYERS はこの priority 固定点ループにぶら下がる。設計正本 = `research/cr-grounding/priority-event-loop.md`(R-FREEZE-2)。
+**位置づけ**: M0-FREEZE 達成(legacy 7条件 FROZEN + CR-grounding overlay APPROVED)後の最初の substrate 実装。Q5 Phase 1(S-CHOICE/S-TURN=汎用 `pendingRuleChoices`)に続く背骨。後続 S-EVENTS/MANA・S-SBA・S-LAYERS はこの priority 固定点ループにぶら下がる。設計正本 = `research/cr-grounding/archive/m0-freeze/priority-event-loop.md`(R-FREEZE-2)。
 
 **CR 根拠**:
 - CR 117.5 / 704.3: プレイヤーに優先権が渡る前に、SBA と待機中の誘発を**固定点まで**処理する。
@@ -2199,7 +2199,7 @@ interface AbilityTriggeredEvent {                         // 型定義のみ。P
 
 ### 34.11 S-EVENTS / MANA(CR 605.1b 誘発型マナ能力)— この節も契約である
 
-**位置づけ**: §34.10(priority 固定点ループ)に続く substrate。設計正本 = `research/cr-grounding/mana-ability-substrate.md`(R-FREEZE-3)。起動型マナ能力(CR 605.1a・§34 の `activatedManaAbilityPlanForSource` で実装済)に加え、**誘発型マナ能力(CR 605.1b)を `GameState.pendingTriggers` / スタックに混ぜず、mana ability transaction 内で固定点まで即時解決する**。
+**位置づけ**: §34.10(priority 固定点ループ)に続く substrate。設計正本 = `research/cr-grounding/archive/mana/mana-ability-substrate.md`(R-FREEZE-3)。起動型マナ能力(CR 605.1a・§34 の `activatedManaAbilityPlanForSource` で実装済)に加え、**誘発型マナ能力(CR 605.1b)を `GameState.pendingTriggers` / スタックに混ぜず、mana ability transaction 内で固定点まで即時解決する**。
 
 **CR 根拠**:
 - CR 605.1a: 起動型マナ能力(targetless + 解決時 mana 加算しうる + 非 loyalty)。
@@ -2239,7 +2239,7 @@ interface PendingManaTrigger {                 // transaction-local のみ。sta
 
 ### 34.12 S-SBA: damage-marked substrate(CR 704.5g/h)— この節も契約である
 
-**位置づけ**: 実装フェーズの SBA 拡張第1スライス。ユーザー裁定(2026-06-30「最終ゴール=CR 完全性から逆算・substantive な変更を」)を受け Fable が選定 = **combat は最大の未モデル CR 領域であり、damage-marked state は lethal/deathtouch/first-strike/regeneration が読む combat 系の共有 substrate**。設計=本マイルストーンで起こした(`research/cr-grounding/damage-marked-engine-spec.draft`)。**substrate(state + command + SBA)のみ。combat phase orchestration は defer**。
+**位置づけ**: 実装フェーズの SBA 拡張第1スライス。ユーザー裁定(2026-06-30「最終ゴール=CR 完全性から逆算・substantive な変更を」)を受け Fable が選定 = **combat は最大の未モデル CR 領域であり、damage-marked state は lethal/deathtouch/first-strike/regeneration が読む combat 系の共有 substrate**。設計=本マイルストーンで起こした(`research/cr-grounding/archive/damage-marked/damage-marked-engine-spec.draft`)。**substrate(state + command + SBA)のみ。combat phase orchestration は defer**。
 
 **CR 根拠**:
 - CR 120.1 / 120.3 / 120.6: damage はオブジェクトにマークされ、creature の lethal damage = toughness 以上のマーク。
@@ -2272,7 +2272,7 @@ interface CardInstance {
 
 ### 34.13 S-COMBAT: combat structure(first slice・CR 506–510)— この節も契約である
 
-**位置づけ**: §34.12 の damage-marked substrate を「生かす」combat 構造 substrate(ユーザー裁定「最終ゴールから逆算」で combat を選定=最大の未モデル CR 領域)。設計正本=`research/cr-grounding/combat-structure-design.draft`(Option A 採用)。**state + 宣言 + atomic combat damage のみ。新 SBA を足さず既存 704.5g/h を再利用**。
+**位置づけ**: §34.12 の damage-marked substrate を「生かす」combat 構造 substrate(ユーザー裁定「最終ゴールから逆算」で combat を選定=最大の未モデル CR 領域)。設計正本=`research/cr-grounding/archive/combat/combat-structure-design.draft`(Option A 採用)。**state + 宣言 + atomic combat damage のみ。新 SBA を足さず既存 704.5g/h を再利用**。
 
 **CR 根拠**: 506.1(combat step)/508.1a・508.1f・508.1k(attacker 宣言・non-vigilance tap)/509.1a・509.1g・509.1h(blocker 宣言・blocked 判定)/510.1a–d・510.2(combat damage・simultaneity)/120.6(lethal)/704.5g・704.5h(destroy)。
 
@@ -2290,7 +2290,7 @@ interface CardInstance {
 
 ### 34.14 S-COMBAT slice 2: 未ブロック player combat damage + `declareAttack` 統合 — この節も契約である
 
-**位置づけ**: §34.13(combat 構造 slice 1=creature-vs-creature)に続き、combat を**勝利条件(player life)に効く**ようにし、既存 store `declareAttack`(life 直接いじり hack)を combat substrate へ統合して二重ダメージ経路を解消。設計正本=`research/cr-grounding/combat-slice2-design.draft`(Option A 採用)。
+**位置づけ**: §34.13(combat 構造 slice 1=creature-vs-creature)に続き、combat を**勝利条件(player life)に効く**ようにし、既存 store `declareAttack`(life 直接いじり hack)を combat substrate へ統合して二重ダメージ経路を解消。設計正本=`research/cr-grounding/archive/combat/combat-slice2-design.draft`(Option A 採用)。
 
 **CR 根拠**: 508.1b(attacked player/PW)/508.1f(non-vigilance tap)/509.1h(blocked 判定)/510.1a・510.1b(combat damage 割当)/510.2(simultaneity)/120.3a(life loss)/120.8(0以下は割当なし)。
 
