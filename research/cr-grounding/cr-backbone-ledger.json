@@ -297,11 +297,11 @@
       "crRefs": ["602", "602.2b", "605.1a", "605.5a", "117", "118.3", "115.1c", "601.2c", "601.2f"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "review-green",
       "landingState": ["activatedAbilityPlans", "stack", "manaTransactions", "activationEnvelope(cost|target|stackPolicy)"],
-      "boundary": "envelope design-lock 凍結済み(engine-spec §34.19・2026-07-02・Fable が CR 照合し承認)。demand-first gate(MyDeck 採点最大需要=cost:activation/tap/target)。凍結=activation envelope(cost/target/stackPolicy/paymentMode)・cost envelope(mana/tap/nonmana・§33 wrap)・target envelope(activation 時選択・stack object 保存・CR115.1c/602.2b)・stack vs no-stack(605.1a マナ能力 isolation)。atomicity=rules-legal 全 or nothing / forced はサンドボックス脱出弁で非CR-legal 明示。実装(envelope 実体)未着手。設計正本=research/cr-grounding/s-activated-ability-envelope.draft.md(living draft・未 archive)。",
-      "evidence": ["cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts", "docs/engine-spec.md §34.19"],
-      "nextGate": "実装スライス: activation envelope(cost/target を stack object に保存)+ nonmana cost component(pay-life/discard/non-self sacrifice を guided/manual で)+ activation 時 target 選択 + atomicity(rules-legal/forced)。I候補(cost atomicity/determinism・target determinism・UI非変更・stack placement・mana isolation)を review.* で固定。個別 leaf・CR608・loyalty・complex cost は defer。",
+      "boundary": "envelope design-lock §34.19 凍結(2026-07-02)。**slice 1 出荷**(2026-07-03・review.activated-envelope 6 pin green)= activation 時 target を stack object に保存(CR115.1c/602.2b)+ atomicity(rules-legal 全or無・forced はサンドボックス脱出弁で非CR-legal 明示・target 選択は force でも必須=Tier-1 F-4 修正済)+ mana isolation(605.1a 無target→no-stack・605.5a targeted→通常stack)。cost は既存 §33(mana/tap-self/sacrifice-self)のみ。**slice 2 未実装**=nonmana cost component(pay-life/discard/non-self sacrifice/counter)。設計正本=research/cr-grounding/s-activated-ability-envelope.draft.md(living draft)。",
+      "evidence": ["src/store/__tests__/review.activated-envelope.test.ts", "src/store/__tests__/activatedAbilityEnvelope.test.ts", "docs/engine-spec.md §34.19", "cr-mana-ability-no-stack", "src/engine/__tests__/review.g4-activate.test.ts"],
+      "nextGate": "slice 2: nonmana cost component(pay-life/discard/non-self sacrifice/counter)を cost envelope の guided/manual status で実装し review.* で固定。CR608 illegal target 解決・個別 leaf effect・loyalty(CR606)・complex cost は defer 継続。",
       "judge": "deterministic-cr"
     },
     {

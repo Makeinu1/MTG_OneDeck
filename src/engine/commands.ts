@@ -2,6 +2,7 @@ import type { CardDef, ManaColor } from '../types/card';
 import { planAutoTap } from './autotap';
 import { isCommander } from './commander';
 import {
+  buildGuidedCommands,
   compileAbilityCost,
   compileAbilityIR,
   type CostDecision,
@@ -14,6 +15,9 @@ import { parseManaCost } from './mana';
 import { effectiveKeywords, effectivePower, hasVigilance, normalizeKeywords } from './status';
 import type {
   AbilityKind,
+  ActivationCostComponent,
+  ActivationEnvelope,
+  ActivationSourceRef,
   CardInstance,
   CombatAttacker,
   CombatBlocker,
@@ -35,6 +39,8 @@ import type {
   ObjectSnapshot,
   Phase,
   PlayerId,
+  TargetSelection,
+  TargetSelectionKind,
   ZoneChangeEvent,
   ZoneChangeReason,
   ZoneId,
@@ -103,6 +109,8 @@ export type GameCommand =
       kind: AbilityKind;
       abilityLineIndex?: number;
       sourceSnapshot?: ObjectSnapshot;
+      targetSelections?: TargetSelection[];
+      activationEnvelope?: ActivationEnvelope;
     }
   | { type: 'resolveStackTop'; to?: ZoneId }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
@@ -443,6 +451,33 @@ function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
     tapped: card.tapped,
     counters: { ...card.counters },
     typeLine: typeLineOf(draft, card),
+    power: face?.power,
+    toughness: face?.toughness,
+  };
+}
+
+export function objectSnapshotForCard(state: GameState, cardId: string): ObjectSnapshot | null {
+  const card = state.cards[cardId];
+  if (!card) {
+    return null;
+  }
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  const ownerId = card.ownerId ?? 'P1';
+  const controllerId = card.controllerId ?? ownerId;
+  return {
+    physicalCardId: card.id,
+    objectId: objectIdOf(card),
+    defId: card.defId,
+    zone: card.zone,
+    ownerId,
+    controllerId,
+    isToken: card.isToken,
+    isCommander: card.isCommander,
+    faceIndex: card.faceIndex,
+    tapped: card.tapped,
+    counters: { ...card.counters },
+    typeLine: (face?.typeLine ?? def?.typeLine ?? '').toString(),
     power: face?.power,
     toughness: face?.toughness,
   };
@@ -1735,6 +1770,9 @@ function createAbilityObject(
   abilityLineIndex?: number,
   ownerId: CardInstance['ownerId'] = 'P1',
   controllerId: CardInstance['controllerId'] = ownerId,
+  sourceSnapshot?: ObjectSnapshot,
+  targetSelections: TargetSelection[] = [],
+  activationEnvelope?: ActivationEnvelope,
 ): CardInstance {
   return {
     id: abilityId,
@@ -1754,8 +1792,11 @@ function createAbilityObject(
     hasDeathtouchDamage: false,
     isAbility: true,
     sourceId,
+    sourceSnapshot,
     abilityKind: kind,
     abilityLineIndex,
+    targetSelections: targetSelections.map((selection) => ({ ...selection })),
+    activationEnvelope,
   };
 }
 
@@ -1787,6 +1828,8 @@ function applyAddAbilityToStack(
   kind: AbilityKind,
   abilityLineIndex?: number,
   sourceSnapshot?: ObjectSnapshot,
+  targetSelections: TargetSelection[] = [],
+  activationEnvelope?: ActivationEnvelope,
 ): void {
   const source = draft.state.cards[sourceId];
   const defId = source?.defId ?? sourceSnapshot?.defId;
@@ -1807,6 +1850,9 @@ function applyAddAbilityToStack(
     abilityLineIndex,
     ownerId,
     controllerId,
+    sourceSnapshot,
+    targetSelections,
+    activationEnvelope,
   );
   draft.state.cards = cards;
   stack.push(abilityId);
@@ -1904,6 +1950,200 @@ function abilityLineIndexForKind(
   return matches.length === 1 ? matches[0].index : undefined;
 }
 
+function activationSourceRefFromSnapshot(snapshot: ObjectSnapshot): ActivationSourceRef {
+  return {
+    physicalCardId: snapshot.physicalCardId,
+    objectId: snapshot.objectId,
+    snapshot,
+  };
+}
+
+function activationCostComponents(
+  sourceId: string,
+  sourceSnapshot: ObjectSnapshot,
+  rawCost: string,
+  manaCost: string | null,
+  commands: readonly GameCommand[],
+  status: ActivationCostComponent['status'],
+): ActivationCostComponent[] {
+  const payerId = sourceSnapshot.controllerId ?? sourceSnapshot.ownerId;
+  const sourceRef = activationSourceRefFromSnapshot(sourceSnapshot);
+  const components: ActivationCostComponent[] = [];
+
+  if (manaCost !== null) {
+    components.push({
+      kind: 'mana',
+      raw: manaCost,
+      payerId,
+      status,
+      manaCost,
+    });
+  }
+
+  if (
+    commands.some(
+      (cmd) => cmd.type === 'setTapped' && cmd.cardId === sourceId && cmd.tapped === true,
+    )
+  ) {
+    components.push({
+      kind: 'tap-self',
+      raw: rawCost,
+      payerId,
+      status,
+      subjectRef: sourceRef,
+    });
+  }
+
+  if (
+    commands.some(
+      (cmd) =>
+        cmd.type === 'moveCard' &&
+        cmd.cardId === sourceId &&
+        cmd.to === 'graveyard' &&
+        cmd.reason !== 'resolve',
+    )
+  ) {
+    components.push({
+      kind: 'sacrifice-self',
+      raw: rawCost,
+      payerId,
+      status,
+      subjectRef: sourceRef,
+    });
+  }
+
+  return components;
+}
+
+function targetKindForRaw(raw: string): TargetSelectionKind {
+  if (/\bany target\b/i.test(raw)) {
+    return 'object-or-player';
+  }
+  const match = /\btarget\b([\s\S]*)/i.exec(raw);
+  const afterTarget = match?.[1] ?? '';
+  const nounPhrase = afterTarget
+    .split(/\b(?:adds?|to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.,;]/i)[0]
+    .toLowerCase();
+  return /\bplayers?\b/i.test(nounPhrase) ? 'player' : 'object';
+}
+
+function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): TargetFilter {
+  if (kind === 'player') {
+    return {};
+  }
+  const match = /\btarget\b([\s\S]*)/i.exec(raw);
+  const afterTarget = match?.[1] ?? '';
+  const nounPhrase = afterTarget
+    .split(/\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.,;]/i)[0]
+    .toLowerCase();
+  const supportedTypes = [
+    'creature',
+    'artifact',
+    'enchantment',
+    'land',
+    'planeswalker',
+    'permanent',
+  ];
+  const types = supportedTypes.filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(nounPhrase));
+  const filter: TargetFilter = { types: types.length > 0 ? types : ['permanent'] };
+  if (/\byou control\b/i.test(raw)) {
+    filter.controller = 'you';
+  }
+  return filter;
+}
+
+function isSingleActivationTargetClause(raw: string): boolean {
+  if (!/\btarget\b/i.test(raw)) {
+    return false;
+  }
+  if (/\bup to\b/i.test(raw)) {
+    return false;
+  }
+  if (/\b(?:two|three|four|five|six|seven|eight|nine|ten|\d+)\s+target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\beach target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\bany number of target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\btarget\b[^.]*\bcard\b/i.test(raw)) {
+    return false;
+  }
+  const targetMatches = raw.match(/\btarget\b/gi) ?? [];
+  return targetMatches.length === 1;
+}
+
+function activationTargetPrompt(
+  raw: string,
+  atom: EffectPrompt['atom'],
+  slotIndex: number,
+): EffectPrompt | null {
+  if (!isSingleActivationTargetClause(raw)) {
+    return null;
+  }
+  const targetKind = targetKindForRaw(raw);
+  return {
+    atom,
+    kind: 'target',
+    count: 1,
+    slotId: `target-${slotIndex}`,
+    targetKind,
+    filter: targetFilterForActivationRaw(raw, targetKind),
+    raw,
+  };
+}
+
+export function activationTargetPromptsForSource(
+  state: GameState,
+  sourceId: string,
+  abilityLineIndex?: number,
+): EffectPrompt[] {
+  const source = state.cards[sourceId];
+  if (!source) {
+    return [];
+  }
+  const def = state.defs[source.defId];
+  if (!def) {
+    return [];
+  }
+
+  const resolvedIndex = abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
+  if (resolvedIndex === undefined) {
+    return [];
+  }
+
+  const line = splitAbilityLines(def)[resolvedIndex];
+  if (!line || line.shape !== 'activated') {
+    return [];
+  }
+
+  const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
+  const ir = parseAbilityIR(line.text, typeLine);
+  const prompts: EffectPrompt[] = [];
+  for (const effect of ir.effects) {
+    const prompt = activationTargetPrompt(effect.raw, effect.atom, prompts.length);
+    if (prompt) {
+      prompts.push(prompt);
+    }
+  }
+  return prompts;
+}
+
+function targetSlotId(prompt: EffectPrompt, targetIndex: number): string {
+  return prompt.slotId ?? `target-${targetIndex}`;
+}
+
+function storedTargetSelectionFor(
+  card: CardInstance,
+  prompt: EffectPrompt,
+  targetIndex: number,
+): TargetSelection | undefined {
+  const selections = card.targetSelections ?? [];
+  return selections.find((selection) => selection.slotId === targetSlotId(prompt, targetIndex));
+}
+
 export function guidedPlanForStackTop(
   state: GameState,
 ): { sourceId: string; prompts: EffectPrompt[] } | null {
@@ -1918,6 +2158,7 @@ export function guidedPlanForStackTop(
 
   const prompts: EffectPrompt[] = [];
   let sourceId: string | null = null;
+  let targetIndex = 0;
   for (const effectLine of effectLinesForStackItemState(state, card)) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
@@ -1928,7 +2169,17 @@ export function guidedPlanForStackTop(
       continue;
     }
     sourceId = sourceId ?? effectLine.sourceId;
-    prompts.push(...compiled.prompts);
+    for (const prompt of compiled.prompts) {
+      if (prompt.kind === 'target') {
+        const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
+        if (!storedTargetSelectionFor(card, normalizedPrompt, targetIndex)) {
+          prompts.push(normalizedPrompt);
+        }
+        targetIndex += 1;
+      } else {
+        prompts.push(prompt);
+      }
+    }
   }
 
   return sourceId && prompts.length > 0 ? { sourceId, prompts } : null;
@@ -1938,35 +2189,55 @@ export function activationPlanForSource(
   state: GameState,
   sourceId: string,
   abilityLineIndex?: number,
-): { commands: GameCommand[]; decision: CostDecision; manaShortfall: number } | null {
+): {
+  commands: GameCommand[];
+  decision: CostDecision;
+  manaShortfall: number;
+  costComponents: ActivationCostComponent[];
+} | null {
   const source = state.cards[sourceId];
   if (state.effectsAuto === false || source?.effectsAuto === false) {
     return null;
   }
   if (!source) {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [] };
   }
 
   const def = state.defs[source.defId];
   if (!def) {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [] };
   }
 
   const resolvedIndex = abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
   if (resolvedIndex === undefined) {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [] };
   }
 
   const line = splitAbilityLines(def)[resolvedIndex];
   if (!line || line.shape !== 'activated') {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [] };
   }
 
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
   const ir = parseAbilityIR(line.text, typeLine);
   const compiledCost = compileAbilityCost(ir.cost, { sourceId, def });
+  const sourceSnapshot = objectSnapshotForCard(state, sourceId);
   if (compiledCost.decision === 'manual') {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: sourceSnapshot
+        ? activationCostComponents(
+            sourceId,
+            sourceSnapshot,
+            ir.cost?.raw ?? '',
+            compiledCost.manaCost,
+            compiledCost.commands,
+            'manual',
+          )
+        : [],
+    };
   }
 
   const commands: GameCommand[] = compiledCost.commands.slice();
@@ -1977,7 +2248,21 @@ export function activationPlanForSource(
     manaShortfall = plan.shortfall;
   }
 
-  return { commands, decision: 'auto', manaShortfall };
+  return {
+    commands,
+    decision: 'auto',
+    manaShortfall,
+    costComponents: sourceSnapshot
+      ? activationCostComponents(
+          sourceId,
+          sourceSnapshot,
+          ir.cost?.raw ?? '',
+          compiledCost.manaCost,
+          commands,
+          'auto',
+        )
+      : [],
+  };
 }
 
 export function activatedManaAbilityPlanForSource(
@@ -2082,6 +2367,47 @@ function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[
 
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
+    case 'moveCard': {
+      requireCard(draft, cmd.cardId);
+      moveCardInternal(draft, cmd.cardId, cmd.to, cmd.position, true, cmd.reason ?? 'move', {
+        ...(cmd.replacementApplied === undefined
+          ? {}
+          : { replacementApplied: cmd.replacementApplied }),
+        ...(cmd.sbaApplied === undefined ? {} : { sbaApplied: cmd.sbaApplied }),
+        ...(cmd.simultaneousGroupId === undefined
+          ? {}
+          : { simultaneousGroupId: cmd.simultaneousGroupId }),
+      });
+      break;
+    }
+    case 'setTapped': {
+      const target = requireCard(draft, cmd.cardId);
+      if (target.tapped !== cmd.tapped) {
+        setCard(draft, { ...target, tapped: cmd.tapped });
+        pushLog(
+          draft,
+          `${nameOf(draft, cmd.cardId)}を${cmd.tapped ? 'タップ' : 'アンタップ'}しました。`,
+        );
+      }
+      break;
+    }
+    case 'addCounters': {
+      const target = requireCard(draft, cmd.cardId);
+      const current = target.counters[cmd.counterType] ?? 0;
+      const next = Math.max(0, current + cmd.delta);
+      const counters = { ...target.counters };
+      if (next === 0) {
+        delete counters[cmd.counterType];
+      } else {
+        counters[cmd.counterType] = next;
+      }
+      setCard(draft, { ...target, counters });
+      pushLog(
+        draft,
+        `${nameOf(draft, cmd.cardId)}の${cmd.counterType}カウンターを${next}個にしました。`,
+      );
+      break;
+    }
     case 'draw': {
       const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
       draft.state.drawnThisTurn += drawn;
@@ -2141,6 +2467,58 @@ function applyAutoCommands(draft: Draft, commands: readonly GameCommand[]): void
   }
 }
 
+function cardIdForStoredObjectTarget(draft: Draft, selection: TargetSelection): string | null {
+  if (selection.selection.kind !== 'object') {
+    return null;
+  }
+  const card = draft.state.cards[selection.selection.physicalCardId];
+  if (!card || objectIdOf(card) !== selection.selection.objectId) {
+    return null;
+  }
+  return card.id;
+}
+
+function applyStoredTargetCommands(
+  draft: Draft,
+  card: CardInstance,
+  compiledPrompts: readonly EffectPrompt[],
+  sourceId: string,
+  def: CardDef,
+): boolean {
+  let applied = false;
+  let targetIndex = 0;
+  for (const prompt of compiledPrompts) {
+    if (prompt.kind !== 'target') {
+      continue;
+    }
+    const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
+    const selection = storedTargetSelectionFor(card, normalizedPrompt, targetIndex);
+    targetIndex += 1;
+    if (!selection) {
+      continue;
+    }
+
+    const targetCardId = cardIdForStoredObjectTarget(draft, selection);
+    if (!targetCardId) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象は現在のオブジェクトではありません。`,
+      );
+      continue;
+    }
+
+    applyAutoCommands(
+      draft,
+      buildGuidedCommands(
+        normalizedPrompt,
+        { kind: 'target', cardIds: [targetCardId] },
+        { sourceId, def },
+      ),
+    );
+    applied = true;
+  }
+  return applied;
+}
+
 function applyCompiledEffectsForStackItem(
   draft: Draft,
   card: CardInstance,
@@ -2153,6 +2531,18 @@ function applyCompiledEffectsForStackItem(
       def: effectLine.def,
     });
     if (compiled.decision !== 'auto') {
+      if (compiled.decision === 'guided') {
+        const applied = applyStoredTargetCommands(
+          draft,
+          card,
+          compiled.prompts,
+          effectLine.sourceId,
+          effectLine.def,
+        );
+        if (applied) {
+          pushLog(draft, `${stackNameOf(draft, card)}の保存済み対象への効果を実行した。`);
+        }
+      }
       continue;
     }
     applyAutoCommands(draft, compiled.commands);
@@ -2217,6 +2607,9 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
       source.abilityLineIndex,
       source.ownerId,
       source.controllerId,
+      source.sourceSnapshot,
+      source.targetSelections ?? [],
+      source.activationEnvelope,
     );
     draft.state.cards = cards;
     stack.push(abilityId);
@@ -2698,6 +3091,8 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.kind,
         cmd.abilityLineIndex,
         cmd.sourceSnapshot,
+        cmd.targetSelections,
+        cmd.activationEnvelope,
       );
       break;
     }

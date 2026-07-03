@@ -45,8 +45,11 @@ export interface CardInstance {
   attachedTo?: string; // 装備/オーラの付与先 instance id
   isAbility?: boolean;
   sourceId?: string;
+  sourceSnapshot?: ObjectSnapshot;
   abilityKind?: AbilityKind;
   abilityLineIndex?: number;
+  targetSelections?: TargetSelection[];
+  activationEnvelope?: ActivationEnvelope;
   isCopy?: boolean;
 }
 
@@ -111,6 +114,59 @@ export interface ObjectSnapshot {
   toughness?: string;
 }
 
+export type TargetSelectionKind = 'object' | 'player' | 'object-or-player';
+export type TargetSelectionLegalityMode = 'checked' | 'unchecked-warning' | 'forced';
+
+export type TargetSelectionRef =
+  | {
+      kind: 'object';
+      physicalCardId: PhysicalCardId;
+      objectId: ObjectId;
+      snapshot: ObjectSnapshot;
+    }
+  | {
+      kind: 'player';
+      playerId: PlayerId;
+    };
+
+export interface TargetSelection {
+  slotId: string;
+  raw: string;
+  kind: TargetSelectionKind;
+  selection: TargetSelectionRef;
+  legalityMode: TargetSelectionLegalityMode;
+}
+
+export type ActivationPaymentMode = 'rules-legal' | 'forced';
+export type ActivationStackPolicy = 'stack' | 'mana-transaction-no-stack';
+
+export interface ActivationSourceRef {
+  physicalCardId: PhysicalCardId;
+  objectId: ObjectId;
+  snapshot: ObjectSnapshot;
+}
+
+export type ActivationCostComponentKind = 'mana' | 'tap-self' | 'sacrifice-self';
+export type ActivationCostComponentStatus = 'auto' | 'manual' | 'unparsed';
+
+export interface ActivationCostComponent {
+  kind: ActivationCostComponentKind;
+  raw: string;
+  payerId: PlayerId;
+  status: ActivationCostComponentStatus;
+  subjectRef?: ActivationSourceRef;
+  manaCost?: string;
+}
+
+export interface ActivationEnvelope {
+  sourceRef: ActivationSourceRef;
+  abilityLineIndex?: number;
+  cost: ActivationCostComponent[];
+  targetSelections: TargetSelection[];
+  stackPolicy: ActivationStackPolicy;
+  paymentMode: ActivationPaymentMode;
+}
+
 export type ZoneChangeReason =
   | 'move'
   | 'cast'
@@ -169,14 +225,24 @@ export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeE
 }
 
 export type EventSourceRef =
-  | { kind: 'object'; physicalCardId: PhysicalCardId; objectId: ObjectId; snapshot?: ObjectSnapshot }
+  | {
+      kind: 'object';
+      physicalCardId: PhysicalCardId;
+      objectId: ObjectId;
+      snapshot?: ObjectSnapshot;
+    }
   | { kind: 'player'; playerId: PlayerId }
   | { kind: 'command'; commandType: string }
   | { kind: 'system'; ruleRef: string };
 
 export type EventTargetRef =
   | { kind: 'player'; playerId: PlayerId; lifeLabel?: string }
-  | { kind: 'object'; physicalCardId: PhysicalCardId; objectId: ObjectId; snapshot?: ObjectSnapshot }
+  | {
+      kind: 'object';
+      physicalCardId: PhysicalCardId;
+      objectId: ObjectId;
+      snapshot?: ObjectSnapshot;
+    }
   | { kind: 'zone'; zone: ZoneId; zoneOwnerId?: PlayerId };
 
 export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {

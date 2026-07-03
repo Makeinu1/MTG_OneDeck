@@ -11,8 +11,11 @@ import {
   applyCommand,
   activatedManaAbilityPlanForSource,
   activationPlanForSource,
+  activationTargetPromptsForSource,
   EngineError,
+  eligibleTargets,
   guidedPlanForStackTop,
+  objectSnapshotForCard,
   type ApplyResult,
   type GameCommand,
 } from '../engine/commands';
@@ -31,6 +34,8 @@ import {
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import type {
   CardInstance,
+  ActivationEnvelope,
+  ActivationPaymentMode,
   DefeatAdvisoryRecord,
   DefeatPlayerRef,
   DefeatReason,
@@ -41,6 +46,7 @@ import type {
   PendingTrigger,
   PlayerId,
   RuleChoiceSelection,
+  TargetSelection,
   TriggerStackPlacementBucket,
   ZoneChangeEvent,
   ZoneId,
@@ -103,11 +109,25 @@ const PRIORITY_RULE_CHOICE_PENDING_WARNING =
 
 export type { TriggerCandidate } from '../engine/triggers';
 
+export interface PendingActivation {
+  sourceId: string;
+  abilityLineIndex?: number;
+  commands: GameCommand[];
+  costComponents: ActivationEnvelope['cost'];
+  sourceSnapshot: NonNullable<ActivationEnvelope['sourceRef']['snapshot']>;
+  targetSelections: TargetSelection[];
+  paymentMode: ActivationPaymentMode;
+  manaShortfall: number;
+  costDecision: 'auto' | 'manual' | 'disabled';
+}
+
 export interface PendingGuidedResolution {
+  mode?: 'resolution' | 'activation';
   sourceId: string;
   prompts: EffectPrompt[];
   commands: GameCommand[];
   to?: ZoneId;
+  activation?: PendingActivation;
 }
 
 /**
@@ -553,12 +573,13 @@ export interface GameStore {
   putPendingTriggerOnStack(pendingTriggerId: string): void;
   putPendingTriggersOnStack(pendingTriggerIds: string[]): void;
   placePendingTriggersForPriority(pendingTriggerIds: string[]): void;
-  activateAbility(sourceId: string, abilityLineIndex?: number): void;
+  activateAbility(sourceId: string, abilityLineIndex?: number, opts?: { force?: boolean }): void;
   dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   confirmGuidedTarget(cardId: string): void;
+  confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   confirmGuidedModal(chosen: number[]): void;
   cancelGuidedPrompt(): void;
@@ -990,6 +1011,212 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
 
     return { commands, prompts };
+  }
+
+  function isActivationPending(
+    pending: PendingGuidedResolution | null,
+  ): pending is PendingGuidedResolution & { mode: 'activation'; activation: PendingActivation } {
+    return pending?.mode === 'activation' && pending.activation !== undefined;
+  }
+
+  function targetSlotId(prompt: EffectPrompt, fallbackIndex: number): string {
+    return prompt.slotId ?? `target-${fallbackIndex}`;
+  }
+
+  function activationEnvelopeFromPending(
+    pending: PendingActivation,
+    targetSelections: readonly TargetSelection[],
+  ): ActivationEnvelope {
+    return {
+      sourceRef: {
+        physicalCardId: pending.sourceSnapshot.physicalCardId,
+        objectId: pending.sourceSnapshot.objectId,
+        snapshot: pending.sourceSnapshot,
+      },
+      ...(pending.abilityLineIndex === undefined
+        ? {}
+        : { abilityLineIndex: pending.abilityLineIndex }),
+      cost: pending.costComponents,
+      targetSelections: targetSelections.map((selection) => ({ ...selection })),
+      stackPolicy: 'stack',
+      paymentMode: pending.paymentMode,
+    };
+  }
+
+  function activationCostWarnings(state: GameState, pending: PendingActivation): string[] {
+    const warnings: string[] = [];
+    if (pending.manaShortfall > 0) {
+      warnings.push(
+        `${cardLabel(state, pending.sourceId)}の起動コストのマナが${pending.manaShortfall}点不足しています。`,
+      );
+    }
+
+    const source = state.cards[pending.sourceId];
+    const paysTapSelf = pending.commands.some(
+      (cmd) => cmd.type === 'setTapped' && cmd.cardId === pending.sourceId && cmd.tapped,
+    );
+    if (paysTapSelf && source?.tapped) {
+      warnings.push(`${cardLabel(state, pending.sourceId)}はすでにタップされています。`);
+    }
+    return warnings;
+  }
+
+  function missingTargetWarnings(
+    state: GameState,
+    pending: PendingActivation,
+    prompts: readonly EffectPrompt[],
+    targetSelections: readonly TargetSelection[],
+  ): string[] {
+    const selectedSlots = new Set(targetSelections.map((selection) => selection.slotId));
+    const missing = prompts.filter(
+      (prompt, index) => !selectedSlots.has(targetSlotId(prompt, index)),
+    );
+    return missing.length === 0
+      ? []
+      : [`${cardLabel(state, pending.sourceId)}の対象が未選択です。`];
+  }
+
+  function uncheckedTargetWarnings(
+    state: GameState,
+    pending: PendingActivation,
+    targetSelections: readonly TargetSelection[],
+  ): string[] {
+    return targetSelections.some((selection) => selection.legalityMode !== 'checked')
+      ? [`${cardLabel(state, pending.sourceId)}の対象が現在の候補にありません。`]
+      : [];
+  }
+
+  function forcedActivationWarning(state: GameState, pending: PendingActivation): string {
+    return `${cardLabel(state, pending.sourceId)}の能力を強行起動しました。CR-legalとして扱いません。`;
+  }
+
+  function commitActivation(
+    pending: PendingActivation,
+    remainingPrompts: readonly EffectPrompt[],
+    targetSelections: readonly TargetSelection[],
+  ): void {
+    const cur = get().state;
+    if (!cur) return;
+
+    const warnings = [
+      ...activationCostWarnings(cur, pending),
+      ...missingTargetWarnings(cur, pending, remainingPrompts, targetSelections),
+      ...uncheckedTargetWarnings(cur, pending, targetSelections),
+    ];
+    const forced = pending.paymentMode === 'forced';
+    if (!forced && warnings.length > 0) {
+      set({ warnings: [...get().warnings, ...warnings], pendingGuided: null });
+      return;
+    }
+
+    const activationEnvelope = activationEnvelopeFromPending(pending, targetSelections);
+    const addCmd: GameCommand = {
+      type: 'addAbilityToStack',
+      sourceId: pending.sourceId,
+      kind: 'activated',
+      ...(pending.abilityLineIndex === undefined
+        ? {}
+        : { abilityLineIndex: pending.abilityLineIndex }),
+      sourceSnapshot: pending.sourceSnapshot,
+      targetSelections: targetSelections.map((selection) => ({ ...selection })),
+      activationEnvelope,
+    };
+
+    try {
+      const result = applyCommands(cur, [...pending.commands, addCmd]);
+      const next =
+        pending.costDecision === 'auto'
+          ? appendLog(
+              result.state,
+              forced
+                ? `${cardLabel(cur, pending.sourceId)}の能力を強行起動(コスト精算)。`
+                : `${cardLabel(cur, pending.sourceId)}の能力を起動(コスト精算)。`,
+            )
+          : result.state;
+      const manualWarning =
+        pending.costDecision === 'auto'
+          ? []
+          : [
+              `${cardLabel(cur, pending.sourceId)}の起動コストは手払いしてください。CR-legalとして扱いません。`,
+            ];
+      commit(next, [
+        ...result.warnings,
+        ...warnings,
+        ...manualWarning,
+        ...(forced ? [forcedActivationWarning(cur, pending)] : []),
+      ]);
+    } catch (err) {
+      const message = err instanceof EngineError ? err.message : String(err);
+      set({ warnings: [...get().warnings, message], pendingGuided: null });
+    }
+  }
+
+  function targetSelectionForCard(
+    state: GameState,
+    prompt: EffectPrompt,
+    cardId: string,
+    forced: boolean,
+    fallbackIndex: number,
+  ): TargetSelection | null {
+    const snapshot = objectSnapshotForCard(state, cardId);
+    if (!snapshot) {
+      return null;
+    }
+    const legal = eligibleTargets(state, prompt.filter ?? {}).includes(cardId);
+    return {
+      slotId: targetSlotId(prompt, fallbackIndex),
+      raw: prompt.raw,
+      kind: prompt.targetKind ?? 'object',
+      selection: {
+        kind: 'object',
+        physicalCardId: snapshot.physicalCardId,
+        objectId: snapshot.objectId,
+        snapshot,
+      },
+      legalityMode: legal ? 'checked' : forced ? 'forced' : 'unchecked-warning',
+    };
+  }
+
+  function targetSelectionForPlayer(
+    prompt: EffectPrompt,
+    playerId: PlayerId,
+    fallbackIndex: number,
+  ): TargetSelection {
+    return {
+      slotId: targetSlotId(prompt, fallbackIndex),
+      raw: prompt.raw,
+      kind: prompt.targetKind ?? 'player',
+      selection: {
+        kind: 'player',
+        playerId,
+      },
+      legalityMode: 'checked',
+    };
+  }
+
+  function advanceActivationTarget(selection: TargetSelection): void {
+    const pendingGuided = get().pendingGuided;
+    if (!isActivationPending(pendingGuided)) {
+      return;
+    }
+    const activation = pendingGuided.activation;
+    const targetSelections = [...activation.targetSelections, selection];
+    const prompts = pendingGuided.prompts.slice(1);
+    if (prompts.length === 0) {
+      commitActivation(activation, [], targetSelections);
+      return;
+    }
+
+    set({
+      pendingGuided: {
+        ...pendingGuided,
+        prompts,
+        activation: {
+          ...activation,
+          targetSelections,
+        },
+      },
+    });
   }
 
   return {
@@ -1759,7 +1986,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       commit(workingState, warnings, { collectPending: false });
     },
 
-    activateAbility(sourceId, abilityLineIndex) {
+    activateAbility(sourceId, abilityLineIndex, opts) {
       const cur = get().state;
       if (!cur) return;
 
@@ -1808,39 +2035,55 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex);
-      const addCmd: GameCommand = {
-        type: 'addAbilityToStack',
+      const sourceSnapshot = objectSnapshotForCard(cur, sourceId);
+      if (!sourceSnapshot) {
+        set({ warnings: [...get().warnings, `能力の発生源が存在しません: ${sourceId}`] });
+        return;
+      }
+
+      const paymentMode: ActivationPaymentMode = opts?.force === true ? 'forced' : 'rules-legal';
+      const pendingActivation: PendingActivation = {
         sourceId,
-        kind: 'activated',
         ...(resolvedAbilityLineIndex === undefined
           ? {}
           : { abilityLineIndex: resolvedAbilityLineIndex }),
+        commands: plan?.commands ?? [],
+        costComponents: plan?.costComponents ?? [],
+        sourceSnapshot,
+        targetSelections: [],
+        paymentMode,
+        manaShortfall: plan?.manaShortfall ?? 0,
+        costDecision: plan === null ? 'disabled' : plan.decision,
       };
-      const commands = plan ? [...plan.commands, addCmd] : [addCmd];
 
-      try {
-        const result = applyCommands(cur, commands);
-        const warnings = result.warnings.slice();
-        if (plan === null || plan.decision === 'manual') {
-          warnings.push(`${cardLabel(cur, sourceId)}の起動コストは手払いしてください。`);
-        }
-        if (plan?.manaShortfall && plan.manaShortfall > 0) {
-          warnings.push(
-            `${cardLabel(cur, sourceId)}の起動コストのマナが${plan.manaShortfall}点不足しています。`,
-          );
-        }
-        const next =
-          plan?.decision === 'auto'
-            ? appendLog(result.state, `${cardLabel(cur, sourceId)}の能力を起動(コスト精算)。`)
-            : result.state;
-        commit(next, warnings);
-      } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+      const targetPrompts = activationTargetPromptsForSource(
+        cur,
+        sourceId,
+        resolvedAbilityLineIndex,
+      );
+      const costWarnings = activationCostWarnings(cur, pendingActivation);
+      if (paymentMode === 'rules-legal' && costWarnings.length > 0) {
+        set({ warnings: [...get().warnings, ...costWarnings], pendingGuided: null });
+        return;
       }
+
+      // Targets are chosen as the ability is activated (CR 115.1c/602.2b), regardless of
+      // paymentMode: the `forced` sandbox escape bypasses unpayable COSTS, not target choice.
+      // So a targeted ability always routes through the target picker before commit.
+      if (targetPrompts.length > 0) {
+        set({
+          pendingGuided: {
+            mode: 'activation',
+            sourceId,
+            prompts: targetPrompts,
+            commands: [],
+            activation: pendingActivation,
+          },
+        });
+        return;
+      }
+
+      commitActivation(pendingActivation, [], []);
     },
 
     dismissTriggerCandidates() {
@@ -1884,6 +2127,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !pending || prompt?.kind !== 'target') {
         return;
       }
+      if (isActivationPending(pending)) {
+        const selection = targetSelectionForCard(
+          cur,
+          prompt,
+          cardId,
+          pending.activation.paymentMode === 'forced',
+          pending.activation.targetSelections.length,
+        );
+        if (!selection) {
+          set({ warnings: [...get().warnings, `対象が存在しません: ${cardId}`] });
+          return;
+        }
+        advanceActivationTarget(selection);
+        return;
+      }
       const def = sourceDefFor(cur, pending.sourceId);
       if (!def) {
         advanceGuidedResolution([]);
@@ -1895,6 +2153,17 @@ export const useGameStore = create<GameStore>((set, get) => {
         { sourceId: pending.sourceId, def },
       );
       advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedPlayerTarget(playerId) {
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!isActivationPending(pending) || prompt?.kind !== 'target') {
+        return;
+      }
+      advanceActivationTarget(
+        targetSelectionForPlayer(prompt, playerId, pending.activation.targetSelections.length),
+      );
     },
 
     confirmGuidedScrySurveil(topOrder, toBottom, toGraveyard) {
@@ -1939,6 +2208,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     cancelGuidedPrompt() {
+      if (isActivationPending(get().pendingGuided)) {
+        set({ pendingGuided: null });
+        return;
+      }
       advanceGuidedResolution([]);
     },
 

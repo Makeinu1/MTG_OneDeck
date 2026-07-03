@@ -1,5 +1,6 @@
 import type { CardDef, ManaColor } from '../../types/card';
 import type { GameCommand } from '../commands';
+import type { TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
 
@@ -28,6 +29,8 @@ export interface EffectPrompt {
   kind: PromptKind;
   count: number;
   minCount?: number;
+  slotId?: string;
+  targetKind?: TargetSelectionKind;
   filter?: TargetFilter;
   options?: ModalOption[];
   raw: string;
@@ -134,19 +137,9 @@ const GUIDED_TARGET_ATOMS = new Set([
   'effect.untap',
 ]);
 const GUIDED_CHOICE_ATOMS = new Set(['effect.scry', 'effect.surveil']);
-const TARGET_TYPES = [
-  'creature',
-  'artifact',
-  'enchantment',
-  'land',
-  'planeswalker',
-  'permanent',
-];
+const TARGET_TYPES = ['creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent'];
 
-export function compileAbilityCost(
-  cost: AbilityCost | null,
-  ctx: CompileContext,
-): CompiledCost {
+export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext): CompiledCost {
   if (cost === null) {
     return {
       commands: [],
@@ -256,9 +249,7 @@ export function compileAbilityIR(ir: AbilityIR, _ctx: CompileContext): CompiledE
   }
 
   const treasureRaws = new Set(
-    ir.effects
-      .filter((effect) => effect.atom === 'effect.treasure')
-      .map((effect) => effect.raw),
+    ir.effects.filter((effect) => effect.atom === 'effect.treasure').map((effect) => effect.raw),
   );
 
   for (const effect of ir.effects) {
@@ -586,7 +577,9 @@ function counterDelta(raw: string): number {
   if (fixedMatch) {
     return Math.max(1, Number.parseInt(fixedMatch[1], 10) || 1);
   }
-  const wordMatch = /\b(two|three|four|five|six|seven|eight|nine|ten)\s+\+1\/\+1 counters?\b/i.exec(raw);
+  const wordMatch = /\b(two|three|four|five|six|seven|eight|nine|ten)\s+\+1\/\+1 counters?\b/i.exec(
+    raw,
+  );
   if (wordMatch) {
     const value = new Map([
       ['two', 2],
@@ -609,7 +602,10 @@ function hasAbilityWordLabel(raw: string): boolean {
 }
 
 function isSelfSacrificeCostElement(element: string, cardName: string): boolean {
-  const normalized = element.replace(/\s+/g, ' ').replace(/[.。]\s*$/, '').trim();
+  const normalized = element
+    .replace(/\s+/g, ' ')
+    .replace(/[.。]\s*$/, '')
+    .trim();
   const match = /^Sacrifice\s+(.+)$/i.exec(normalized);
   if (!match) {
     return false;
@@ -637,10 +633,7 @@ function removeNamedSelfSacrificeElement(
   let next = raw;
   let found = false;
   for (const name of selfNameAlternatives(cardName)) {
-    const pattern = new RegExp(
-      `(^|,)\\s*Sacrifice\\s+${escapeRegExp(name)}\\s*(?=,|$)`,
-      'gi',
-    );
+    const pattern = new RegExp(`(^|,)\\s*Sacrifice\\s+${escapeRegExp(name)}\\s*(?=,|$)`, 'gi');
     next = next.replace(pattern, (match, separator: string) => {
       void match;
       found = true;

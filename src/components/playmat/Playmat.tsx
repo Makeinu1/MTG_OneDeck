@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
-import type { GameState, ZoneId } from '../../engine/types';
+import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { ContextMenu, type MenuItem } from '../ContextMenu';
@@ -57,7 +57,13 @@ import {
 } from './dialogs';
 import type { CardDef, ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
-import { cyclingCost, fetchAbility, normalizeKeywords, type FetchAbility, type Keyword } from '../../engine/status';
+import {
+  cyclingCost,
+  fetchAbility,
+  normalizeKeywords,
+  type FetchAbility,
+  type Keyword,
+} from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
@@ -1118,7 +1124,14 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
   const guidedTargetIds =
-    guidedPrompt?.kind === 'target' ? eligibleTargets(state, guidedPrompt.filter ?? {}) : [];
+    guidedPrompt?.kind === 'target' && guidedPrompt.targetKind !== 'player'
+      ? eligibleTargets(state, guidedPrompt.filter ?? {})
+      : [];
+  const guidedTargetPlayerIds: PlayerId[] =
+    guidedPrompt?.kind === 'target' &&
+    (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
+      ? ['P1', 'OPPONENT_A']
+      : [];
   const bloodDiscardIds = pendingBloodCrackCardId ? state.zones.hand : [];
   const peekIds =
     peekCount === null
@@ -1419,8 +1432,10 @@ export function Playmat({ keybindings }: PlaymatProps) {
           <TargetPickerDialog
             title="対象を選択"
             cardIds={guidedTargetIds}
+            playerIds={guidedTargetPlayerIds}
             state={state}
             onPick={(targetId) => store.confirmGuidedTarget(targetId)}
+            onPickPlayer={(playerId) => store.confirmGuidedPlayerTarget(playerId)}
             onCancel={() => store.cancelGuidedPrompt()}
           />
         )}
