@@ -7,12 +7,19 @@ import type { EffectAtomId } from './index';
 export interface CompileContext {
   sourceId: string;
   def: CardDef;
+  commanderColorIdentity?: readonly ManaColor[];
 }
 
 export type AutoDecision = 'auto' | 'guided' | 'manual';
 export type CostDecision = 'auto' | 'manual';
 export type RiskLevel = 'low' | 'medium' | 'high';
-export type PromptKind = 'target' | 'scry-surveil' | 'modal' | 'cost-discard' | 'cost-sacrifice';
+export type PromptKind =
+  | 'target'
+  | 'scry-surveil'
+  | 'modal'
+  | 'mana'
+  | 'cost-discard'
+  | 'cost-sacrifice';
 
 export interface TargetFilter {
   types?: string[];
@@ -33,13 +40,15 @@ export interface EffectPrompt {
   targetKind?: TargetSelectionKind;
   filter?: TargetFilter;
   options?: ModalOption[];
+  manaOptions?: ManaColor[];
   raw: string;
 }
 
 export type GuidedAnswer =
   | { kind: 'target'; cardIds: string[] }
   | { kind: 'scry-surveil'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
-  | { kind: 'modal'; chosen: number[] };
+  | { kind: 'modal'; chosen: number[] }
+  | { kind: 'mana'; color: ManaColor };
 
 export interface CompiledEffect {
   commands: GameCommand[];
@@ -126,7 +135,21 @@ const CHOICE_REQUIRED_ATOMS = new Set([
   'effect.surveil',
 ]);
 
-const MANA_COLORS: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
+const COLORED_MANA: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G'];
+const MANA_AMOUNT_WORDS = new Map<string, number>([
+  ['a', 1],
+  ['an', 1],
+  ['one', 1],
+  ['two', 2],
+  ['three', 3],
+  ['four', 4],
+  ['five', 5],
+  ['six', 6],
+  ['seven', 7],
+  ['eight', 8],
+  ['nine', 9],
+  ['ten', 10],
+]);
 const GUIDED_TARGET_ATOMS = new Set([
   'effect.counter-plus',
   'effect.destroy',
@@ -206,8 +229,7 @@ export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext
   };
 }
 
-export function compileAbilityIR(ir: AbilityIR, _ctx: CompileContext): CompiledEffect {
-  void _ctx;
+export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEffect {
   const commands: GameCommand[] = [];
   const prompts: EffectPrompt[] = [];
   const reasons = new Set<ManualReason>();
@@ -253,7 +275,7 @@ export function compileAbilityIR(ir: AbilityIR, _ctx: CompileContext): CompiledE
   );
 
   for (const effect of ir.effects) {
-    const compiled = compileEffect(effect, treasureRaws.has(effect.raw));
+    const compiled = compileEffect(effect, treasureRaws.has(effect.raw), ctx);
     commands.push(...compiled.commands);
     prompts.push(...compiled.prompts);
     for (const reason of compiled.reasons) {
@@ -277,8 +299,10 @@ export function compileAbilityIR(ir: AbilityIR, _ctx: CompileContext): CompiledE
 
 function reasonForManualConstruct(construct: string): ManualReason | null {
   switch (construct) {
+    case 'construct.condition':
     case 'construct.each-player':
     case 'construct.intervening-if':
+    case 'construct.mana-restriction':
     case 'construct.you-control':
       return 'needs-parse';
     case 'construct.for-each':
@@ -294,6 +318,7 @@ function reasonForManualConstruct(construct: string): ManualReason | null {
 function compileEffect(
   effect: EffectClause,
   clauseHasTreasure: boolean,
+  ctx: CompileContext,
 ): { commands: GameCommand[]; prompts: EffectPrompt[]; reasons: ManualReason[] } {
   const commands: GameCommand[] = [];
   const prompts: EffectPrompt[] = [];
@@ -319,11 +344,11 @@ function compileEffect(
   }
 
   if (effect.atom === 'effect.add-mana') {
-    const mana = resolveMana(effect.raw);
-    if (mana === null) {
-      reasons.add('ambiguous-mana');
-    } else {
-      commands.push({ type: 'addMana', color: mana.color, amount: mana.amount });
+    const mana = compileManaEffect(effect.raw, ctx);
+    commands.push(...mana.commands);
+    prompts.push(...mana.prompts);
+    for (const reason of mana.reasons) {
+      reasons.add(reason);
     }
     return { commands, prompts, reasons: [...reasons] };
   }
@@ -435,21 +460,114 @@ function resolveCount(count: CountSpec): number | null {
   return null;
 }
 
-function resolveMana(raw: string): { color: ManaColor; amount: number } | null {
-  const counts = new Map<ManaColor, number>();
-  for (const color of MANA_COLORS) {
-    const matches = raw.match(new RegExp(`\\{${color}\\}`, 'gi'));
-    if (matches && matches.length > 0) {
-      counts.set(color, matches.length);
-    }
+function compileManaEffect(
+  raw: string,
+  ctx: CompileContext,
+): { commands: GameCommand[]; prompts: EffectPrompt[]; reasons: ManualReason[] } {
+  if (hasManaUseRestriction(raw) || hasConditionalManaText(raw) || hasSpecialManaText(raw)) {
+    return { commands: [], prompts: [], reasons: ['needs-parse'] };
   }
 
-  if (counts.size !== 1) {
+  const literal = literalManaCommands(raw);
+  if (literal !== null) {
+    return { commands: literal, prompts: [], reasons: [] };
+  }
+
+  const guided = guidedManaPrompt(raw, ctx);
+  if (guided !== null) {
+    return { commands: [], prompts: [guided], reasons: [] };
+  }
+
+  if (/\bchosen color\b|\bchoose a color\b|\bin any combination of\b/i.test(raw)) {
+    return { commands: [], prompts: [], reasons: ['needs-choice'] };
+  }
+  if (/\bX\s+mana\b|\bfor each\b/i.test(raw)) {
+    return { commands: [], prompts: [], reasons: ['variable-count'] };
+  }
+  return { commands: [], prompts: [], reasons: ['ambiguous-mana'] };
+}
+
+function literalManaCommands(raw: string): GameCommand[] | null {
+  if (/\bor\b|\band\/or\b|\bchosen color\b/i.test(raw)) {
     return null;
   }
 
-  const [[color, amount]] = [...counts.entries()];
-  return { color, amount };
+  const symbols = [...raw.matchAll(/\{([WUBRGC])\}/gi)].map((match) =>
+    match[1].toUpperCase() as ManaColor,
+  );
+  if (symbols.length === 0) {
+    return null;
+  }
+
+  const ordered: ManaColor[] = [];
+  const counts = new Map<ManaColor, number>();
+  for (const symbol of symbols) {
+    if (!counts.has(symbol)) {
+      ordered.push(symbol);
+    }
+    counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+  }
+
+  return ordered.map((color) => ({
+    type: 'addMana',
+    color,
+    amount: counts.get(color) ?? 0,
+  }));
+}
+
+function guidedManaPrompt(raw: string, ctx: CompileContext): EffectPrompt | null {
+  const commanderIdentity = /\bany(?:\s+one)?\s+color\s+(?:in|within)\s+(?:your commander's color identity|the color identity of your commander)\b/i.test(
+    raw,
+  );
+  const anyColor = /\badd\s+([A-Za-z]+|\d+)\s+mana\s+of\s+any(?:\s+one)?\s+color\b/i.exec(raw);
+  if (!anyColor) {
+    return null;
+  }
+
+  const amount = parseManaAmountToken(anyColor[1]);
+  if (amount === null) {
+    return null;
+  }
+
+  return {
+    atom: 'effect.add-mana',
+    kind: 'mana',
+    count: amount,
+    manaOptions: commanderIdentity ? commanderColorOptions(ctx) : COLORED_MANA.slice(),
+    raw,
+  };
+}
+
+function parseManaAmountToken(token: string): number | null {
+  const normalized = token.toLowerCase();
+  if (MANA_AMOUNT_WORDS.has(normalized)) {
+    return MANA_AMOUNT_WORDS.get(normalized) ?? null;
+  }
+  if (/^\d+$/.test(normalized)) {
+    return Number.parseInt(normalized, 10);
+  }
+  return null;
+}
+
+function commanderColorOptions(ctx: CompileContext): ManaColor[] {
+  const identity = ctx.commanderColorIdentity ?? [];
+  return COLORED_MANA.filter((color) => identity.includes(color));
+}
+
+function hasManaUseRestriction(raw: string): boolean {
+  return /\b(?:spend|use) this mana only\b|\bthis mana (?:can't|cannot) be spent\b|\bspend (?:that|this) mana\b/i.test(
+    raw,
+  );
+}
+
+function hasConditionalManaText(raw: string): boolean {
+  return /\bif\b|\bactivate only\b|\bfor each\b|\bequal to\b/i.test(raw);
+}
+
+function hasSpecialManaText(raw: string): boolean {
+  return /\{S\}|\bsnow\b|\bany type\b|\btype that\b|\bthat .* produced\b|\bcolors? among\b/i.test(
+    raw,
+  );
 }
 
 function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
@@ -530,6 +648,14 @@ export function buildGuidedCommands(
 
   if (answer.kind === 'modal') {
     return [];
+  }
+
+  if (answer.kind === 'mana') {
+    const options = prompt.manaOptions ?? COLORED_MANA;
+    if (!options.includes(answer.color)) {
+      return [];
+    }
+    return [{ type: 'addMana', color: answer.color, amount: Math.max(1, prompt.count) }];
   }
 
   if (answer.kind === 'scry-surveil') {

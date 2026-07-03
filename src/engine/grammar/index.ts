@@ -120,12 +120,23 @@ export const CONSTRUCT_DEFINITIONS: readonly ConstructDefinition[] = [
     probe: /(?:^|\n)\s*•|\bchoose (?:one|two|three|four|one or more|up to)\b/i,
   },
   {
+    id: 'construct.condition',
+    label: '条件つき',
+    probe: /\bif\b|\bactivate only\b/i,
+  },
+  {
     id: 'construct.each-player',
     label: '各プレイヤー/対戦相手',
     probe: /\beach (?:player|opponent)\b|\beach of your opponents\b/i,
   },
   { id: 'construct.for-each', label: '数え上げ', probe: /\bfor each\b/i },
   { id: 'construct.intervening-if', label: 'if節つき誘発', probe: /,\s*if\b/i },
+  {
+    id: 'construct.mana-restriction',
+    label: 'マナ使用制限',
+    probe:
+      /\b(?:spend|use) this mana only\b|\bthis mana (?:can't|cannot) be spent\b|\bspend (?:that|this) mana\b/i,
+  },
   { id: 'construct.may', label: '任意', probe: /\byou may\b/i },
   { id: 'construct.target', label: '対象', probe: /\btarget\b/i },
   { id: 'construct.variable-x', label: 'X変数', probe: /\{X\}|\bX\b/ },

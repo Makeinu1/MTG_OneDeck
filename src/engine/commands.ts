@@ -5,6 +5,7 @@ import {
   buildGuidedCommands,
   compileAbilityCost,
   compileAbilityIR,
+  type AutoDecision,
   type CostDecision,
   type EffectPrompt,
   type TargetFilter,
@@ -177,6 +178,7 @@ const ABILITY_KIND_LABELS: Record<AbilityKind, string> = {
   triggered: '誘発',
 };
 const DEFAULT_OPPONENT_LIFE_LABEL = '対戦相手A';
+const COLORED_MANA: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G'];
 const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
   lifeZero: '704.5a',
   emptyLibraryDraw: '704.5b',
@@ -2431,11 +2433,13 @@ export function guidedPlanForStackTop(
   const prompts: EffectPrompt[] = [];
   let sourceId: string | null = null;
   let targetIndex = 0;
+  const commanderColorIdentity = commanderColorIdentityForState(state);
   for (const effectLine of effectLinesForStackItemState(state, card)) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
       def: effectLine.def,
+      commanderColorIdentity,
     });
     if (compiled.decision !== 'guided') {
       continue;
@@ -2493,13 +2497,14 @@ export function activationPlanForSource(
 
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
   const ir = parseAbilityIR(line.text, typeLine);
+  const commanderColorIdentity = commanderColorIdentityForState(state);
   const sourceSnapshot = objectSnapshotForCard(state, sourceId);
   const nonmanaCost =
     sourceSnapshot && ir.cost
       ? activationNonmanaCosts(state, ir.cost.raw, sourceSnapshot)
       : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
   const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
-  const compiledCost = compileAbilityCost(autoCost, { sourceId, def });
+  const compiledCost = compileAbilityCost(autoCost, { sourceId, def, commanderColorIdentity });
   if (compiledCost.decision === 'manual') {
     return {
       commands: [],
@@ -2553,7 +2558,12 @@ export function activatedManaAbilityPlanForSource(
   state: GameState,
   sourceId: string,
   abilityLineIndex?: number,
-): { commands: GameCommand[]; decision: CostDecision; manaShortfall: number } | null {
+): {
+  commands: GameCommand[];
+  decision: AutoDecision;
+  prompts: EffectPrompt[];
+  manaShortfall: number;
+} | null {
   const source = state.cards[sourceId];
   if (!source) {
     return null;
@@ -2584,14 +2594,21 @@ export function activatedManaAbilityPlanForSource(
     return null;
   }
 
-  const compiledCost = compileAbilityCost(ir.cost, { sourceId, def });
+  const commanderColorIdentity = commanderColorIdentityForState(state);
+  const compiledCost = compileAbilityCost(ir.cost, { sourceId, def, commanderColorIdentity });
   if (compiledCost.decision === 'manual') {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
   }
 
-  const compiledEffect = compileAbilityIR(ir, { sourceId, def });
-  if (compiledEffect.decision !== 'auto') {
-    return { commands: [], decision: 'manual', manaShortfall: 0 };
+  const compiledEffect = compileAbilityIR(ir, { sourceId, def, commanderColorIdentity });
+  if (compiledEffect.decision === 'manual') {
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
+  }
+  if (
+    compiledEffect.decision === 'guided' &&
+    compiledEffect.prompts.some((prompt) => prompt.kind !== 'mana')
+  ) {
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
   }
 
   const commands: GameCommand[] = compiledCost.commands.slice();
@@ -2603,7 +2620,30 @@ export function activatedManaAbilityPlanForSource(
   }
   commands.push(...compiledEffect.commands);
 
-  return { commands, decision: 'auto', manaShortfall };
+  return {
+    commands,
+    decision: compiledEffect.decision,
+    prompts: compiledEffect.prompts,
+    manaShortfall,
+  };
+}
+
+function commanderColorIdentityForState(state: GameState): ManaColor[] {
+  const colors = new Set<ManaColor>();
+  for (const commander of state.commanders) {
+    const card = state.cards[commander.cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    for (const color of def?.colorIdentity ?? []) {
+      if (isColoredMana(color)) {
+        colors.add(color);
+      }
+    }
+  }
+  return COLORED_MANA.filter((color) => colors.has(color));
+}
+
+function isColoredMana(value: string): value is ManaColor {
+  return COLORED_MANA.includes(value as ManaColor);
 }
 
 function isActivatedManaAbilityIR(ir: ReturnType<typeof parseAbilityIR>): boolean {
@@ -2808,11 +2848,13 @@ function applyCompiledEffectsForStackItem(
   card: CardInstance,
   effectLines: readonly ResolvableEffectLine[],
 ): void {
+  const commanderColorIdentity = commanderColorIdentityForState(draft.state);
   for (const effectLine of effectLines) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
       def: effectLine.def,
+      commanderColorIdentity,
     });
     if (compiled.decision !== 'auto') {
       if (compiled.decision === 'guided') {

@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-605-mana-abilities",
-      "note": "実デッキ需要 mana:write 150。activated mana ability(605.1a)を活性化能力 envelope に載せる(605.1b 誘発型は出荷済)。マナ生成節の catalog未写を閉じる。CR 605 正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-701-keyword-actions-frequent",
       "note": "実デッキ action 動詞 top(sacrifice 74/draw 65/search 36/exile 35/discard 34/token 32)。多くは既存 substrate(zone/draw event=§34.18・counter)上の catalog未写=leaf-compiler catalog で個別追加。draw event は S-EVENTS §34.18 に着地済。CR 701 正本。"
     },
@@ -301,14 +296,14 @@
     },
     {
       "id": "cr-605-mana-abilities",
-      "crRefs": ["605.1a", "605.1b", "605.3b", "605.4a", "405.6c"],
+      "crRefs": ["605.1a", "605.1b", "605.3b", "605.4a", "605.5a", "405.6c", "106.1b"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
-      "landingState": ["manaTransactions", "manaPool", "eventLog"],
-      "boundary": "CRG-4 PARTIAL。起動型マナ能力は合格、誘発型マナ能力はpendingTriggers/stackに混ぜない設計だが未実装。",
-      "evidence": ["cr-mana-ability-no-stack", "cr-triggered-mana-ability-no-stack", "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger", "cr-targeted-add-mana-trigger-is-normal-trigger"],
-      "nextGate": "605.1b/605.4aをmana transaction内部の即時解決として実装する",
+      "status": "shipped",
+      "landingState": ["manaTransactions", "manaPool", "eventLog", "guidedManaColorChoice"],
+      "boundary": "605.1b 誘発型は d9e3a63 で出荷済。**mana:write catalog slice 出荷**(2026-07-03・engine-spec §34.11 項6)= literal シンボル列 auto(106.1b 個数正確)・any-color/identity 色選択 guided(色選択≠target=605.1a 維持・no-stack)・or選択/chosen color/combination/snow/条件/restriction は manual(auto 詐称なし)。既 tap {T} 源の cost atomicity を no-stack 経路にも適用(Tier-1 赤旗修正・CR118.3/602.2)。605.1b 第1節実カード検出は C-GRAMMAR carry 継続。",
+      "evidence": ["src/store/__tests__/review.mana-write.test.ts", "docs/engine-spec.md §34.11 項6", "cr-mana-ability-no-stack", "cr-triggered-mana-ability-no-stack", "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger", "cr-targeted-add-mana-trigger-is-normal-trigger"],
+      "nextGate": "manual 分類(or 選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。605.1b 第1節検出は C-GRAMMAR。",
       "judge": "deterministic-cr"
     },
     {

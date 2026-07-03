@@ -124,13 +124,19 @@ export interface PendingActivation {
   costDecision: 'auto' | 'manual' | 'disabled';
 }
 
+export interface PendingManaAbility {
+  abilityLineIndex?: number;
+  manaShortfall: number;
+}
+
 export interface PendingGuidedResolution {
-  mode?: 'resolution' | 'activation';
+  mode?: 'resolution' | 'activation' | 'mana-ability';
   sourceId: string;
   prompts: EffectPrompt[];
   commands: GameCommand[];
   to?: ZoneId;
   activation?: PendingActivation;
+  manaAbility?: PendingManaAbility;
 }
 
 /**
@@ -586,6 +592,7 @@ export interface GameStore {
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   confirmGuidedModal(chosen: number[]): void;
+  confirmGuidedMana(color: ManaColor): void;
   cancelGuidedPrompt(): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
@@ -1021,6 +1028,63 @@ export const useGameStore = create<GameStore>((set, get) => {
     pending: PendingGuidedResolution | null,
   ): pending is PendingGuidedResolution & { mode: 'activation'; activation: PendingActivation } {
     return pending?.mode === 'activation' && pending.activation !== undefined;
+  }
+
+  function isManaAbilityPending(
+    pending: PendingGuidedResolution | null,
+  ): pending is PendingGuidedResolution & { mode: 'mana-ability'; manaAbility: PendingManaAbility } {
+    return pending?.mode === 'mana-ability' && pending.manaAbility !== undefined;
+  }
+
+  function finishGuidedManaAbility(
+    pending: PendingGuidedResolution & { mode: 'mana-ability'; manaAbility: PendingManaAbility },
+    commands: readonly GameCommand[],
+  ): void {
+    const cur = get().state;
+    if (!cur) return;
+
+    try {
+      const result = resolveManaAbilityTransaction(cur, {
+        sourceId: pending.sourceId,
+        ...(pending.manaAbility.abilityLineIndex === undefined
+          ? {}
+          : { abilityLineIndex: pending.manaAbility.abilityLineIndex }),
+        commands,
+      });
+      const warnings = result.warnings.slice();
+      if (pending.manaAbility.manaShortfall > 0) {
+        warnings.push(
+          `${cardLabel(cur, pending.sourceId)}のマナ能力の起動コストのマナが${pending.manaAbility.manaShortfall}点不足しています。`,
+        );
+      }
+      const next = appendLog(result.state, `${cardLabel(cur, pending.sourceId)}のマナ能力を起動。`);
+      commit(next, warnings);
+    } catch (err) {
+      const message = err instanceof EngineError ? err.message : String(err);
+      set({ warnings: [...get().warnings, message], pendingGuided: null });
+    }
+  }
+
+  function advanceGuidedManaAbility(extraCommands: readonly GameCommand[]): void {
+    const pending = get().pendingGuided;
+    if (!isManaAbilityPending(pending)) {
+      return;
+    }
+
+    const commands = [...pending.commands, ...extraCommands];
+    const prompts = pending.prompts.slice(1);
+    if (prompts.length === 0) {
+      finishGuidedManaAbility(pending, commands);
+      return;
+    }
+
+    set({
+      pendingGuided: {
+        ...pending,
+        prompts,
+        commands,
+      },
+    });
   }
 
   function targetSlotId(prompt: EffectPrompt, fallbackIndex: number): string {
@@ -2179,12 +2243,54 @@ export const useGameStore = create<GameStore>((set, get) => {
         resolvedAbilityLineIndex,
       );
       if (manaAbilityPlan) {
+        // CR 118.3/602.2: the no-stack mana path enforces the same cost atomicity as the
+        // normal activation path — an already-tapped {T} source cannot pay. Rules-legal
+        // blocks; forced may proceed but is marked non-CR-legal (sandbox escape).
+        const costTapsSelf = manaAbilityPlan.commands.some(
+          (command) =>
+            command.type === 'setTapped' && command.cardId === sourceId && command.tapped,
+        );
+        if (costTapsSelf && cur.cards[sourceId]?.tapped) {
+          if (!opts?.force) {
+            set({
+              warnings: [
+                ...get().warnings,
+                `${cardLabel(cur, sourceId)}はすでにタップされているため{T}コストを支払えません。`,
+              ],
+              pendingGuided: null,
+            });
+            return;
+          }
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}の{T}コストは支払えないため、この起動をCR-legalとして扱いません(強行)。`,
+            ],
+          });
+        }
         if (manaAbilityPlan.decision === 'manual') {
           set({
             warnings: [
               ...get().warnings,
               `${cardLabel(cur, sourceId)}のマナ能力はスタックに置かず、手動でコストとマナを反映してください。`,
             ],
+          });
+          return;
+        }
+        if (manaAbilityPlan.decision === 'guided') {
+          set({
+            pendingGuided: {
+              mode: 'mana-ability',
+              sourceId,
+              prompts: manaAbilityPlan.prompts,
+              commands: manaAbilityPlan.commands,
+              manaAbility: {
+                ...(resolvedAbilityLineIndex === undefined
+                  ? {}
+                  : { abilityLineIndex: resolvedAbilityLineIndex }),
+                manaShortfall: manaAbilityPlan.manaShortfall,
+              },
+            },
           });
           return;
         }
@@ -2448,8 +2554,43 @@ export const useGameStore = create<GameStore>((set, get) => {
       advanceGuidedResolution(compiled.commands, compiled.prompts);
     },
 
+    confirmGuidedMana(color) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'mana') {
+        return;
+      }
+      const manaOptions: ManaColor[] = prompt.manaOptions ?? ['W', 'U', 'B', 'R', 'G'];
+      if (!manaOptions.includes(color)) {
+        set({ warnings: [...get().warnings, `${color}マナは選択肢にありません。`] });
+        return;
+      }
+
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        if (isManaAbilityPending(pending)) {
+          advanceGuidedManaAbility([]);
+        } else {
+          advanceGuidedResolution([]);
+        }
+        return;
+      }
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'mana', color },
+        { sourceId: pending.sourceId, def },
+      );
+      if (isManaAbilityPending(pending)) {
+        advanceGuidedManaAbility(commands);
+        return;
+      }
+      advanceGuidedResolution(commands);
+    },
+
     cancelGuidedPrompt() {
-      if (isActivationPending(get().pendingGuided)) {
+      const pending = get().pendingGuided;
+      if (isActivationPending(pending) || isManaAbilityPending(pending)) {
         set({ pendingGuided: null });
         return;
       }

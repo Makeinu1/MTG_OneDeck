@@ -1371,6 +1371,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
           />
         )}
 
+        {guidedPrompt?.kind === 'mana' && (
+          <ManaChoiceDialog
+            options={guidedPrompt.manaOptions ?? []}
+            onChoose={(color) => {
+              store.confirmGuidedMana(color);
+            }}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
         {pendingXCast && (
           <XCostDialog
             cardName={cardNameFor(pendingXCast.cardId)}
