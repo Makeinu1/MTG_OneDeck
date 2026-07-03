@@ -2420,7 +2420,7 @@ function storedTargetSelectionFor(
 
 export function guidedPlanForStackTop(
   state: GameState,
-): { sourceId: string; prompts: EffectPrompt[] } | null {
+): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[] } | null {
   const topId = state.zones.stack[state.zones.stack.length - 1];
   if (!topId) {
     return null;
@@ -2431,6 +2431,11 @@ export function guidedPlanForStackTop(
   }
 
   const prompts: EffectPrompt[] = [];
+  // A guided line may mix deterministic effects with its choices (§32: mixed auto+guided is
+  // still guided overall). Those compiled commands must ride the guided plan — they are
+  // applied by finishGuidedResolution and NOT re-applied at resolveStackTop, which skips
+  // non-auto lines. Dropping them would silently half-execute the line (CR 608.2c).
+  const commands: GameCommand[] = [];
   let sourceId: string | null = null;
   let targetIndex = 0;
   const commanderColorIdentity = commanderColorIdentityForState(state);
@@ -2445,6 +2450,7 @@ export function guidedPlanForStackTop(
       continue;
     }
     sourceId = sourceId ?? effectLine.sourceId;
+    commands.push(...compiled.commands);
     for (const prompt of compiled.prompts) {
       if (prompt.kind === 'target') {
         const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
@@ -2458,7 +2464,7 @@ export function guidedPlanForStackTop(
     }
   }
 
-  return sourceId && prompts.length > 0 ? { sourceId, prompts } : null;
+  return sourceId && prompts.length > 0 ? { sourceId, prompts, commands } : null;
 }
 
 export function activationPlanForSource(

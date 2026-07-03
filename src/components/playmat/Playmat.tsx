@@ -1132,6 +1132,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
     (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
       ? ['P1', 'OPPONENT_A']
       : [];
+  const guidedDiscardIds = guidedPrompt?.kind === 'discard' ? state.zones.hand : [];
   const guidedCostSelectedIds = new Set(
     (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
       ...(component.subjectRef ? [component.subjectRef.physicalCardId] : []),
@@ -1460,6 +1461,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
             state={state}
             onPick={(targetId) => store.confirmGuidedTarget(targetId)}
             onPickPlayer={(playerId) => store.confirmGuidedPlayerTarget(playerId)}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'discard' && (
+          <TargetPickerDialog
+            title="捨てるカードを選択"
+            cardIds={guidedDiscardIds}
+            state={state}
+            onPick={(cardId) => store.confirmGuidedDiscard(cardId)}
             onCancel={() => store.cancelGuidedPrompt()}
           />
         )}

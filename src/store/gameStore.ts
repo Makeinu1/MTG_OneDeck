@@ -588,6 +588,7 @@ export interface GameStore {
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   confirmGuidedTarget(cardId: string): void;
+  confirmGuidedDiscard(cardId: string): void;
   confirmGuidedCostSubject(cardId: string): void;
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
@@ -2400,7 +2401,9 @@ export const useGameStore = create<GameStore>((set, get) => {
           pendingGuided: {
             sourceId: plan.sourceId,
             prompts: plan.prompts,
-            commands: [],
+            // Deterministic commands of the guided lines ride along so mixed auto+guided
+            // lines are not half-executed (§32 mixed→guided; CR 608.2c).
+            commands: plan.commands,
             ...(to === undefined ? {} : { to }),
           },
         });
@@ -2439,6 +2442,30 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'target', cardIds: [cardId] },
+        { sourceId: pending.sourceId, def },
+      );
+      advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedDiscard(cardId) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'discard') {
+        return;
+      }
+      if (!cur.zones.hand.includes(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`] });
+        return;
+      }
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        advanceGuidedResolution([]);
+        return;
+      }
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'discard', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
       advanceGuidedResolution(commands);

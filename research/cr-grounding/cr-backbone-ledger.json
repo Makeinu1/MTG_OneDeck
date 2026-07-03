@@ -116,14 +116,14 @@
     },
     {
       "id": "cr-111-tokens",
-      "crRefs": ["111.6", "111.7", "704.5d"],
+      "crRefs": ["111.6", "111.7", "111.10", "704.5d", "701.7a"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
-      "landingState": ["tokens", "eventLog", "pendingTriggers", "ObjectSnapshot"],
-      "boundary": "token death before cease は実行可能。Role/Map/Treasure等の全token subtype生成器はcompiler葉またはdeferred-by-demand。",
-      "evidence": ["cr-token-dies-before-ceases"],
-      "nextGate": "create token keyword actionをCR 701 compilerとして増やし、token subtype差分は必要分だけ追加する",
+      "status": "shipped",
+      "landingState": ["tokens", "eventLog", "pendingTriggers", "ObjectSnapshot", "createToken compiler"],
+      "boundary": "token death before cease 実行可能 + **predefined token leaf 出荷**(2026-07-04・engine-spec §32.8)= 固定数 Clue/Food/Blood(111.10f/b/g)を auto で createToken emit・Treasure は共有 helper 化。可変数/複数種混在は manual。Gold/Map/Role 等の他 subtype と Investigate alias は deferred-by-demand。",
+      "evidence": ["cr-token-dies-before-ceases", "src/store/__tests__/review.leaf-discard-token.test.ts", "docs/engine-spec.md §32.8"],
+      "nextGate": "他 predefined subtype は実デッキ需要が出た kind だけ個別追加。Role duplicate SBA は attachment/timestamp 後。",
       "judge": "deterministic-cr"
     },
     {
@@ -419,14 +419,14 @@
     },
     {
       "id": "cr-701-keyword-actions-frequent",
-      "crRefs": ["701", "701.13", "701.17", "701.21", "701.22", "701.23", "701.24", "701.25", "701.34", "701.69"],
+      "crRefs": ["701", "701.7a", "701.9", "701.13", "701.17", "701.21", "701.22", "701.23", "701.24", "701.25", "701.34", "701.69"],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "implemented-not-green",
       "landingState": ["compiledCommands", "guidedActions", "manualFallbacks"],
-      "boundary": "golden未定義。draw/create/sacrifice/destroy/exile/discard/search/shuffle/mill/scry/surveil/attach/proliferate等はsubstrate完成後にcompilerで増やす。Healは2026 vocabulary boundary。",
-      "evidence": ["cr-20260619-new-mechanics-boundary"],
-      "nextGate": "zone/counter/draw/token substrateがあるactionから個別にcommand compilerを追加する",
+      "boundary": "**discard leaf 出荷**(2026-07-04・engine-spec §32.8)= 単発 `Discard a card.` guided(701.9b 選択権)+ mixed auto+guided 行の carry 規則(silent drop 禁止・Tier-1 F-1 修正)。create token は cr-111 leaf で出荷。残 verb(sacrifice 74/draw 65/search 36/exile 35 等=MyDeck 需要順)は未着手。複数枚 discard/random/target-player は defer。Heal は 2026 vocabulary boundary。",
+      "evidence": ["cr-20260619-new-mechanics-boundary", "src/store/__tests__/review.leaf-discard-token.test.ts", "docs/engine-spec.md §32.8"],
+      "nextGate": "MyDeck 需要順に次 verb leaf を追加: sacrifice(74)→ draw(65)→ search/shuffle(36)→ exile(35)。各 verb で §32.8 と同型(CR 根拠 + guided/manual 正直分類 + reviewer pin)。",
       "judge": "deterministic-cr"
     },
     {

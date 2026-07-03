@@ -1664,6 +1664,12 @@ function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: Co
 - **変更対象**: `src/engine/grammar/compile.ts`(guided ティア・`EffectPrompt`/`buildGuidedCommands`・ゲート置換)/ `src/engine/grammar/ir.ts`(`AbilityIR.modal` + 解析)/ `src/engine/grammar/index.ts`(`splitAbilityLines` の modal 段落結合)/ `src/engine/commands.ts` or grammar(`guidedPlanForStackTop`・`eligibleTargets` 純ヘルパ。**新 GameCommand は不要**)/ `src/store/gameStore.ts`(pending guided キュー・確定/キャンセル action・modal 再帰)/ `src/components/playmat/Playmat.tsx`(解決フロー合流・ダイアログ配線・`data-testid`)/ `src/components/playmat/ModalChoiceDialog`(新規・`AttackDialog` 流用)/ `scripts/grammar-compile.ts`(guided 集計)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**(既存コマンドへ写すのが G3 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
 - reviewer 専有テスト `review.grammar-guided` / `review.g3-flow`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。既存 `review.grammar-coverage` / `review.grammar-ir` / `review.grammar-compile` / `review.g2-exec` / `review.properties`(I1〜I7)は再ベースラインで期待値が変わる分を **Fable が更新**(実装は触らない)。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §32.6 の guided frontier を出力すること。
 
+### 32.8 leaf catalog 追補(cr-701 discard / cr-111 predefined token・2026-07-04)— この項も契約である
+
+- **discard leaf(CR701.9)**: 単発 `Discard a card.`(one card 含む)は **guided**(CR701.9b=影響を受ける player が選ぶ→ auto でカードを勝手に選ばない)。選択カードは hand→owner graveyard(CR701.9a/404.1)、既存 `discard` command 経由。複数枚・`Discard your hand`・random・target-player discard は manual(auto 詐称なし)。受け入れ=`src/store/__tests__/review.leaf-discard-token.test.ts`(レビュー専有・7 pin)。
+- **predefined token leaf(CR111.10/701.7a)**: 固定数の `Create a/two <Kind> token(s).`(Kind ∈ Clue/Food/Blood・111.10f/b/g)は **auto** で `createToken` command を emit(個数忠実)。Treasure は既存 `effect.treasure` 経路のまま共有 helper 化。可変数(`Create X ...`)・複数種混在は manual。他 predefined subtype(Gold/Map/Role 等)と Investigate alias は deferred-by-demand。
+- **mixed auto+guided 行の carry 規則(Tier-1 F-1 修正・契約明確化)**: §32.2 の「auto+guided 混在(純 manual 無し)→ 全体 guided」を実行面で忠実化する: `guidedPlanForStackTop` は guided 行の**決定的 command 群も plan に載せ**、`finishGuidedResolution` が(答え command 群と共に)適用する。`resolveStackTop` は非 auto 行の command を適用しないため二重適用は起きない。**guided 判定の行の auto 半分を silent drop してはならない**(CR608.2c/§34.19 status 規律)。厳密な記述順 interleaving は将来の ordered-batch slice。
+
 ## 33. エンジン文法器トラック Phase G4: 起動型コスト精算(`compile.ts` cost コンパイラ + ストア `activateAbility`)— この節も契約である
 
 ### 33.0 目的と分界(重要)

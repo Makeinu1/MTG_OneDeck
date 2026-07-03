@@ -15,6 +15,7 @@ export type CostDecision = 'auto' | 'manual';
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type PromptKind =
   | 'target'
+  | 'discard'
   | 'scry-surveil'
   | 'modal'
   | 'mana'
@@ -46,6 +47,7 @@ export interface EffectPrompt {
 
 export type GuidedAnswer =
   | { kind: 'target'; cardIds: string[] }
+  | { kind: 'discard'; cardIds: string[] }
   | { kind: 'scry-surveil'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
   | { kind: 'modal'; chosen: number[] }
   | { kind: 'mana'; color: ManaColor };
@@ -88,6 +90,14 @@ const COUNT_DRIVEN_AUTO_ATOMS = new Set([
 ]);
 
 type CostManualReason = 'unmodeled-cost' | 'variable-x';
+type SupportedPredefinedTokenKind = NonNullable<CardDef['tokenKind']>;
+
+interface PredefinedTokenSpec {
+  name: string;
+  typeLine: string;
+  tokenKind: SupportedPredefinedTokenKind;
+  producedMana?: readonly ManaColor[];
+}
 
 const NON_SELF_SACRIFICE_PREFIXES = new Set([
   'a',
@@ -161,6 +171,29 @@ const GUIDED_TARGET_ATOMS = new Set([
 ]);
 const GUIDED_CHOICE_ATOMS = new Set(['effect.scry', 'effect.surveil']);
 const TARGET_TYPES = ['creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent'];
+const PREDEFINED_TOKEN_SPECS: Record<SupportedPredefinedTokenKind, PredefinedTokenSpec> = {
+  treasure: {
+    name: '宝物',
+    typeLine: 'Token Artifact — Treasure',
+    tokenKind: 'treasure',
+    producedMana: ['W', 'U', 'B', 'R', 'G'],
+  },
+  clue: {
+    name: '手掛かり',
+    typeLine: 'Token Artifact — Clue',
+    tokenKind: 'clue',
+  },
+  food: {
+    name: '食物',
+    typeLine: 'Token Artifact — Food',
+    tokenKind: 'food',
+  },
+  blood: {
+    name: '血',
+    typeLine: 'Token Artifact — Blood',
+    tokenKind: 'blood',
+  },
+};
 
 export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext): CompiledCost {
   if (cost === null) {
@@ -354,7 +387,14 @@ function compileEffect(
   }
 
   if (effect.atom === 'effect.create-token') {
-    if (!clauseHasTreasure) {
+    const count = resolveCount(effect.count);
+    const tokenKind = predefinedTokenKindForRaw(effect.raw);
+    const command = tokenKind && count !== null ? predefinedTokenCommand(tokenKind, count) : null;
+    if (command && !(tokenKind === 'treasure' && clauseHasTreasure)) {
+      commands.push(command);
+    } else if (tokenKind && count === null) {
+      reasons.add('variable-count');
+    } else if (!clauseHasTreasure) {
       reasons.add('needs-parse');
     }
     return { commands, prompts, reasons: [...reasons] };
@@ -362,6 +402,14 @@ function compileEffect(
 
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
     const prompt = guidedTargetPrompt(effect);
+    if (prompt) {
+      prompts.push(prompt);
+      return { commands, prompts, reasons: [] };
+    }
+  }
+
+  if (!effect.optional && effect.atom === 'effect.discard') {
+    const prompt = guidedDiscardPrompt(effect);
     if (prompt) {
       prompts.push(prompt);
       return { commands, prompts, reasons: [] };
@@ -413,17 +461,32 @@ function countDrivenCommand(atom: string, count: number): GameCommand | null {
     case 'effect.experience':
       return { type: 'adjustPlayerCounter', kind: 'experience', delta: count };
     case 'effect.treasure':
-      return {
-        type: 'createToken',
-        name: '宝物',
-        typeLine: 'Artifact — Treasure',
-        quantity: count,
-        producedMana: ['W', 'U', 'B', 'R', 'G'],
-        tokenKind: 'treasure',
-      };
+      return predefinedTokenCommand('treasure', count);
     default:
       return null;
   }
+}
+
+function predefinedTokenKindForRaw(raw: string): SupportedPredefinedTokenKind | null {
+  const matches = (Object.keys(PREDEFINED_TOKEN_SPECS) as SupportedPredefinedTokenKind[]).filter(
+    (kind) => new RegExp(`\\b${kind}\\s+tokens?\\b`, 'i').test(raw),
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function predefinedTokenCommand(
+  tokenKind: SupportedPredefinedTokenKind,
+  count: number,
+): GameCommand {
+  const spec = PREDEFINED_TOKEN_SPECS[tokenKind];
+  return {
+    type: 'createToken',
+    name: spec.name,
+    typeLine: spec.typeLine,
+    quantity: count,
+    ...(spec.producedMana ? { producedMana: spec.producedMana.slice() } : {}),
+    tokenKind: spec.tokenKind,
+  };
 }
 
 function hasSupportedPlayerSubject(effect: EffectClause): boolean {
@@ -448,6 +511,33 @@ function hasSupportedPlayerSubject(effect: EffectClause): boolean {
     default:
       return false;
   }
+}
+
+function guidedDiscardPrompt(effect: EffectClause): EffectPrompt | null {
+  const count = resolveCount(effect.count);
+  if (count !== 1 || !isSelfDiscardOneCardClause(effect.raw)) {
+    return null;
+  }
+  return {
+    atom: effect.atom,
+    kind: 'discard',
+    count: 1,
+    raw: effect.raw,
+  };
+}
+
+function isSelfDiscardOneCardClause(raw: string): boolean {
+  if (
+    /\brandom\b|\btarget\b|\beach\b|\bopponents?\b|\btheir\b|\bthat player\b|\bcontroller\b/i.test(
+      raw,
+    )
+  ) {
+    return false;
+  }
+  return (
+    /^\s*discard\s+(?:a|one)\s+card\b/i.test(raw) ||
+    /\byou discard\s+(?:a|one)\s+card\b/i.test(raw)
+  );
 }
 
 function resolveCount(count: CountSpec): number | null {
@@ -667,6 +757,12 @@ export function buildGuidedCommands(
         toGraveyard: answer.toGraveyard.slice(),
       },
     ];
+  }
+
+  if (answer.kind === 'discard') {
+    return prompt.atom === 'effect.discard' && answer.cardIds.length > 0
+      ? [{ type: 'discard', cardIds: answer.cardIds.slice(0, prompt.count) }]
+      : [];
   }
 
   if (prompt.atom === null) {
