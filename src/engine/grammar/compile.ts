@@ -8,6 +8,7 @@ export interface CompileContext {
   sourceId: string;
   def: CardDef;
   commanderColorIdentity?: readonly ManaColor[];
+  libraryShuffleOrder?: readonly string[];
 }
 
 export type AutoDecision = 'auto' | 'guided' | 'manual';
@@ -16,6 +17,7 @@ export type RiskLevel = 'low' | 'medium' | 'high';
 export type PromptKind =
   | 'target'
   | 'discard'
+  | 'sacrifice'
   | 'scry-surveil'
   | 'modal'
   | 'mana'
@@ -48,6 +50,7 @@ export interface EffectPrompt {
 export type GuidedAnswer =
   | { kind: 'target'; cardIds: string[] }
   | { kind: 'discard'; cardIds: string[] }
+  | { kind: 'sacrifice'; cardIds: string[] }
   | { kind: 'scry-surveil'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
   | { kind: 'modal'; chosen: number[] }
   | { kind: 'mana'; color: ManaColor };
@@ -400,6 +403,32 @@ function compileEffect(
     return { commands, prompts, reasons: [...reasons] };
   }
 
+  if (effect.atom === 'effect.sacrifice') {
+    if (effect.optional) {
+      return { commands, prompts, reasons: [...reasons] };
+    }
+    const compiled = compileSacrificeEffect(effect, ctx);
+    commands.push(...compiled.commands);
+    prompts.push(...compiled.prompts);
+    for (const reason of compiled.reasons) {
+      reasons.add(reason);
+    }
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
+  if (effect.atom === 'effect.shuffle') {
+    if (isSelfLibraryShuffleClause(effect.raw)) {
+      if (ctx.libraryShuffleOrder) {
+        commands.push({ type: 'shuffle', order: ctx.libraryShuffleOrder.slice() });
+      } else {
+        reasons.add('no-command');
+      }
+    } else {
+      reasons.add('needs-parse');
+    }
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
     const prompt = guidedTargetPrompt(effect);
     if (prompt) {
@@ -442,6 +471,14 @@ function compileEffect(
   }
 
   return { commands, prompts, reasons: [...reasons] };
+}
+
+function isSelfLibraryShuffleClause(raw: string): boolean {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^(?:then\s+)?(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?$/i.test(normalized);
 }
 
 function countDrivenCommand(atom: string, count: number): GameCommand | null {
@@ -538,6 +575,107 @@ function isSelfDiscardOneCardClause(raw: string): boolean {
     /^\s*discard\s+(?:a|one)\s+card\b/i.test(raw) ||
     /\byou discard\s+(?:a|one)\s+card\b/i.test(raw)
   );
+}
+
+function compileSacrificeEffect(
+  effect: EffectClause,
+  ctx: CompileContext,
+): { commands: GameCommand[]; prompts: EffectPrompt[]; reasons: ManualReason[] } {
+  if (hasUnsupportedSacrificeClause(effect.raw)) {
+    return { commands: [], prompts: [], reasons: ['needs-parse'] };
+  }
+
+  if (isSelfSacrificeEffectClause(effect.raw, ctx.def.name)) {
+    return {
+      commands: [{ type: 'moveCard', cardId: ctx.sourceId, to: 'graveyard', position: 'bottom' }],
+      prompts: [],
+      reasons: [],
+    };
+  }
+
+  const prompt = guidedSacrificePrompt(effect);
+  if (prompt) {
+    return { commands: [], prompts: [prompt], reasons: [] };
+  }
+
+  return {
+    commands: [],
+    prompts: [],
+    reasons: sacrificeManualReasons(effect),
+  };
+}
+
+function hasUnsupportedSacrificeClause(raw: string): boolean {
+  return /\b(?:unless|target|each|opponents?|that player|their|controller)\b/i.test(raw);
+}
+
+function isSelfSacrificeEffectClause(raw: string, cardName: string): boolean {
+  const object = sacrificeObjectPhrase(raw);
+  if (!object) {
+    return false;
+  }
+  if (isThisSelfReference(object)) {
+    return true;
+  }
+  return selfNameAlternatives(cardName).some((name) => sameCardNameReference(object, name));
+}
+
+function guidedSacrificePrompt(effect: EffectClause): EffectPrompt | null {
+  const object = sacrificeObjectPhrase(effect.raw);
+  if (!object) {
+    return null;
+  }
+  const match = /^(?:a|an|one)\s+(.+)$/i.exec(object);
+  if (!match) {
+    return null;
+  }
+  const filter = sacrificeEffectFilter(match[1]);
+  if (!filter) {
+    return null;
+  }
+  return {
+    atom: effect.atom,
+    kind: 'sacrifice',
+    count: 1,
+    filter,
+    raw: effect.raw,
+  };
+}
+
+function sacrificeObjectPhrase(raw: string): string | null {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const match = /^(?:you\s+)?sacrifice\s+(.+)$/i.exec(normalized);
+  return match?.[1].trim() ?? null;
+}
+
+function sacrificeEffectFilter(objectPhrase: string): TargetFilter | null {
+  const normalized = objectPhrase.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (
+    normalized === 'creature' ||
+    normalized === 'artifact' ||
+    normalized === 'enchantment' ||
+    normalized === 'land' ||
+    normalized === 'planeswalker' ||
+    normalized === 'permanent'
+  ) {
+    return { types: [normalized], controller: 'you' };
+  }
+  return null;
+}
+
+function sacrificeManualReasons(effect: EffectClause): ManualReason[] {
+  const object = sacrificeObjectPhrase(effect.raw);
+  if (object && /^(?:two|three|four|five|six|seven|eight|nine|ten|\d+)\b/i.test(object)) {
+    return ['needs-choice'];
+  }
+  const count = resolveCount(effect.count);
+  if (count !== null && count !== 1) {
+    return ['needs-choice'];
+  }
+  return ['needs-parse'];
 }
 
 function resolveCount(count: CountSpec): number | null {
@@ -762,6 +900,14 @@ export function buildGuidedCommands(
   if (answer.kind === 'discard') {
     return prompt.atom === 'effect.discard' && answer.cardIds.length > 0
       ? [{ type: 'discard', cardIds: answer.cardIds.slice(0, prompt.count) }]
+      : [];
+  }
+
+  if (answer.kind === 'sacrifice') {
+    return prompt.atom === 'effect.sacrifice' && answer.cardIds.length > 0
+      ? answer.cardIds
+          .slice(0, prompt.count)
+          .map((cardId) => ({ type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' }))
       : [];
   }
 

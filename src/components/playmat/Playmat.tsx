@@ -1133,6 +1133,10 @@ export function Playmat({ keybindings }: PlaymatProps) {
       ? ['P1', 'OPPONENT_A']
       : [];
   const guidedDiscardIds = guidedPrompt?.kind === 'discard' ? state.zones.hand : [];
+  const guidedSacrificeIds =
+    guidedPrompt?.kind === 'sacrifice'
+      ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' })
+      : [];
   const guidedCostSelectedIds = new Set(
     (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
       ...(component.subjectRef ? [component.subjectRef.physicalCardId] : []),
@@ -1471,6 +1475,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
             cardIds={guidedDiscardIds}
             state={state}
             onPick={(cardId) => store.confirmGuidedDiscard(cardId)}
+            onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'sacrifice' && (
+          <TargetPickerDialog
+            title="生け贄を選択"
+            cardIds={guidedSacrificeIds}
+            state={state}
+            onPick={(cardId) => store.confirmGuidedSacrifice(cardId)}
             onCancel={() => store.cancelGuidedPrompt()}
           />
         )}

@@ -113,7 +113,7 @@ export type GameCommand =
       targetSelections?: TargetSelection[];
       activationEnvelope?: ActivationEnvelope;
     }
-  | { type: 'resolveStackTop'; to?: ZoneId }
+  | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
   | { type: 'copyStackItem'; cardId: string }
   | { type: 'copyPermanent'; cardId: string; quantity: number }
@@ -2678,6 +2678,9 @@ export function eligibleTargets(state: GameState, filter: TargetFilter): string[
     if (!card || card.isAbility) {
       return false;
     }
+    if (filter.controller === 'you' && card.controllerId !== 'P1') {
+      return false;
+    }
     if (acceptsAnyPermanent) {
       return true;
     }
@@ -2749,6 +2752,10 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
     }
     case 'mill': {
       applyMill(draft, cmd.count);
+      break;
+    }
+    case 'shuffle': {
+      applyShuffle(draft, cmd.order);
       break;
     }
     case 'adjustLife': {
@@ -2853,6 +2860,7 @@ function applyCompiledEffectsForStackItem(
   draft: Draft,
   card: CardInstance,
   effectLines: readonly ResolvableEffectLine[],
+  libraryShuffleOrder?: readonly string[],
 ): void {
   const commanderColorIdentity = commanderColorIdentityForState(draft.state);
   for (const effectLine of effectLines) {
@@ -2861,6 +2869,9 @@ function applyCompiledEffectsForStackItem(
       sourceId: effectLine.sourceId,
       def: effectLine.def,
       commanderColorIdentity,
+      ...(isPureSelfLibraryShuffleLine(effectLine.line.text) && libraryShuffleOrder
+        ? { libraryShuffleOrder }
+        : {}),
     });
     if (compiled.decision !== 'auto') {
       if (compiled.decision === 'guided') {
@@ -2882,7 +2893,17 @@ function applyCompiledEffectsForStackItem(
   }
 }
 
-function applyResolveStackTop(draft: Draft, to?: ZoneId): void {
+function isPureSelfLibraryShuffleLine(raw: string): boolean {
+  return /^(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?[.。]?$/i.test(
+    raw.replace(/\s+/g, ' ').trim(),
+  );
+}
+
+function applyResolveStackTop(
+  draft: Draft,
+  to?: ZoneId,
+  libraryShuffleOrder?: readonly string[],
+): void {
   const stack = draft.state.zones.stack;
   if (stack.length === 0) return;
 
@@ -2893,14 +2914,14 @@ function applyResolveStackTop(draft: Draft, to?: ZoneId): void {
   if (card.isAbility) {
     deleteCardFromState(draft, topId);
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
-    applyCompiledEffectsForStackItem(draft, card, effectLines);
+    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
     return;
   }
 
   const destination = to ?? defaultStackResolveDestination(draft, card);
   moveCardInternal(draft, topId, destination, 'bottom', false, 'resolve');
   pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
-  applyCompiledEffectsForStackItem(draft, card, effectLines);
+  applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
 }
 
 function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
@@ -3429,7 +3450,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'resolveStackTop': {
-      applyResolveStackTop(draft, cmd.to);
+      applyResolveStackTop(draft, cmd.to, cmd.libraryShuffleOrder);
       break;
     }
     case 'removeStackItem': {

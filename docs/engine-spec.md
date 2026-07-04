@@ -1670,6 +1670,14 @@ function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: Co
 - **predefined token leaf(CR111.10/701.7a)**: 固定数の `Create a/two <Kind> token(s).`(Kind ∈ Clue/Food/Blood・111.10f/b/g)は **auto** で `createToken` command を emit(個数忠実)。Treasure は既存 `effect.treasure` 経路のまま共有 helper 化。可変数(`Create X ...`)・複数種混在は manual。他 predefined subtype(Gold/Map/Role 等)と Investigate alias は deferred-by-demand。
 - **mixed auto+guided 行の carry 規則(Tier-1 F-1 修正・契約明確化)**: §32.2 の「auto+guided 混在(純 manual 無し)→ 全体 guided」を実行面で忠実化する: `guidedPlanForStackTop` は guided 行の**決定的 command 群も plan に載せ**、`finishGuidedResolution` が(答え command 群と共に)適用する。`resolveStackTop` は非 auto 行の command を適用しないため二重適用は起きない。**guided 判定の行の auto 半分を silent drop してはならない**(CR608.2c/§34.19 status 規律)。厳密な記述順 interleaving は将来の ordered-batch slice。
 
+### 32.9 leaf catalog 追補(cr-701 sacrifice / draw / exile / search / shuffle・2026-07-04)— この項も契約である
+
+- **sacrifice leaf(CR701.21a)**: self 形(`Sacrifice this <type>.` / `Sacrifice CARDNAME.`=source 名一致)は **auto**(`ctx.sourceId` のみ動かす)。単体 `Sacrifice a <type>.`(`You sacrifice ...` 含む・type ∈ creature/permanent/artifact/enchantment/land/planeswalker)は **guided**(CR701.21a=controller が選ぶ→ auto で勝手に選ばない。`controllerId !== 'you'` の permanent と type filter 不一致は確定時に拒否)。移動は既存 `moveCard`(battlefield→owner graveyard)であり **destruction ではない**(CR701.21a=regeneration・破壊置換は適用外。destroy 経路を通さない)。複数 count・each player/opponent・target-player・unless/may・qualified(another/nontoken/色/P-T 等)は manual(auto 詐称なし)。受け入れ=`src/store/__tests__/review.leaf-sacrifice.test.ts`(レビュー専有・4 pin)。
+- **draw leaf(CR121.1/121.2)**: 固定数 draw(`Draw a card.` / `Draw two cards.` 等)は **auto**。CR121.2=複数枚は個別 draw の連続として既存 draw event(§34.18)を N 回 emit する(一括移動しない)。空 library への draw は advisory 記録(CR121.4 の敗北は SBA=cr-703-704 スライスで substrate 化・サンドボックス哲学で強制しない)。`Draw X cards` 等の可変数は manual。
+- **exile leaf(CR701.13a)**: 単体 target-to-exile は **guided**(battlefield の合法 target のみ・filter 外は確定時に拒否)。multi-target・非戦場 zone からの exile は manual。
+- **search leaf(CR701.23a/23d)**: 単発 library search は **guided**(CR701.23d=数量 search は可能な限り find)。条件付き search・複数回 search・found card への追加処理連鎖は manual。
+- **shuffle leaf(CR701.24a)**: 純粋 self-library shuffle 行は **auto**。順列は**コマンド生成時に確定**し `resolveStackTop.libraryShuffleOrder` payload に保存(`applyCommand` 決定性の既存原則を維持)。search+shuffle 複合行・他プレイヤー library は manual。
+
 ## 33. エンジン文法器トラック Phase G4: 起動型コスト精算(`compile.ts` cost コンパイラ + ストア `activateAbility`)— この節も契約である
 
 ### 33.0 目的と分界(重要)

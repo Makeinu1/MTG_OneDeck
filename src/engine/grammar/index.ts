@@ -106,6 +106,7 @@ export const EFFECT_ATOM_DEFINITIONS: readonly EffectAtomDefinition[] = [
   { id: 'effect.sacrifice', label: '生け贄に捧げる', ruleRef: '701.21', probe: /\bsacrifice(?:s|d|ing)?\b/i },
   { id: 'effect.scry', label: '占術を行う', ruleRef: '701.22', probe: /\bscry(?:s|ed|ing)?\b/i },
   { id: 'effect.search', label: '探す', ruleRef: '701.23', probe: /\bsearch(?:es|ed|ing)?\b/i },
+  { id: 'effect.shuffle', label: '切り直す', ruleRef: '701.24', probe: /\bshuffle(?:s|d|ing)?\b/i },
   { id: 'effect.surveil', label: '諜報を行う', ruleRef: '701.25', probe: /\bsurveil(?:s|ed|ing)?\b/i },
   { id: 'effect.tap', label: 'タップする', ruleRef: '701.26', probe: /\btap(?:s|ped|ping)?\b/i },
   { id: 'effect.transform', label: '変身する', ruleRef: '701.27', probe: /\btransform(?:s|ed|ing)?\b/i },

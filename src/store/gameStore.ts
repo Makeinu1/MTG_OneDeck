@@ -25,6 +25,7 @@ import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { orderPendingTriggersApnap, triggerStackPlacementBucketOf } from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
+import { splitAbilityLines } from '../engine/grammar';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
   buildGuidedCommands,
@@ -589,6 +590,7 @@ export interface GameStore {
   resolveTop(to?: ZoneId): void;
   confirmGuidedTarget(cardId: string): void;
   confirmGuidedDiscard(cardId: string): void;
+  confirmGuidedSacrifice(cardId: string): void;
   confirmGuidedCostSubject(cardId: string): void;
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
@@ -773,6 +775,38 @@ function sourceTypeLineFor(state: GameState, sourceId: string): string {
   return face?.typeLine ?? def?.typeLine ?? '';
 }
 
+function isPureSelfLibraryShuffleLine(raw: string): boolean {
+  return /^(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?[.。]?$/i.test(
+    raw.replace(/\s+/g, ' ').trim(),
+  );
+}
+
+function stackTopHasPureSelfLibraryShuffle(state: GameState): boolean {
+  if (state.effectsAuto !== true) {
+    return false;
+  }
+  const topId = state.zones.stack[state.zones.stack.length - 1];
+  const card = topId ? state.cards[topId] : undefined;
+  if (!card) {
+    return false;
+  }
+  const sourceId = card.isAbility ? card.sourceId : card.id;
+  if (!sourceId || state.cards[sourceId]?.effectsAuto === false) {
+    return false;
+  }
+  const def = state.defs[card.defId];
+  if (!def) {
+    return false;
+  }
+  const lines = splitAbilityLines(def);
+  if (card.isAbility) {
+    const line =
+      card.abilityLineIndex === undefined ? undefined : lines[card.abilityLineIndex];
+    return line ? isPureSelfLibraryShuffleLine(line.text) : false;
+  }
+  return lines.some((line) => line.shape === 'spell' && isPureSelfLibraryShuffleLine(line.text));
+}
+
 function cardTexts(def: CardDef | undefined): string[] {
   if (!def?.faces) return [];
   return def.faces.flatMap((face) => (face.oracleText ? [face.oracleText] : []));
@@ -917,6 +951,19 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
+  function resolveStackTopCommandForState(cur: GameState, to?: ZoneId): GameCommand {
+    const base: GameCommand =
+      to === undefined ? { type: 'resolveStackTop' } : { type: 'resolveStackTop', to };
+    if (!stackTopHasPureSelfLibraryShuffle(cur)) {
+      return base;
+    }
+    const rng = createRng(randomSeed());
+    return {
+      ...base,
+      libraryShuffleOrder: shuffledOrder(cur.zones.library, rng),
+    };
+  }
+
   function warningForSummoningSickness(state: GameState, cardId: string): string[] {
     if (!isSummoningSick(state, cardId)) return [];
     return [`${cardLabel(state, cardId)}は召喚酔い中です。`];
@@ -949,10 +996,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const cur = get().state;
     if (!cur) return;
 
-    const resolveCommand: GameCommand =
-      pending.to === undefined
-        ? { type: 'resolveStackTop' }
-        : { type: 'resolveStackTop', to: pending.to };
+    const resolveCommand = resolveStackTopCommandForState(cur, pending.to);
     try {
       const result = applyCommands(cur, [...commands, resolveCommand]);
       const logged = appendLog(
@@ -2409,7 +2453,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
-      dispatch({ type: 'resolveStackTop', to });
+      dispatch(resolveStackTopCommandForState(cur, to));
     },
 
     confirmGuidedTarget(cardId) {
@@ -2432,6 +2476,11 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
         advanceActivationTarget(selection);
+        return;
+      }
+      const legalIds = new Set(eligibleTargets(cur, prompt.filter ?? {}));
+      if (!legalIds.has(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は対象候補にありません。`] });
         return;
       }
       const def = sourceDefFor(cur, pending.sourceId);
@@ -2466,6 +2515,33 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'discard', cardIds: [cardId] },
+        { sourceId: pending.sourceId, def },
+      );
+      advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedSacrifice(cardId) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'sacrifice') {
+        return;
+      }
+      const legalIds = new Set(
+        eligibleTargets(cur, prompt.filter ?? { types: ['permanent'], controller: 'you' }),
+      );
+      if (!legalIds.has(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は生け贄の候補にありません。`] });
+        return;
+      }
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        advanceGuidedResolution([]);
+        return;
+      }
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'sacrifice', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
       advanceGuidedResolution(commands);
