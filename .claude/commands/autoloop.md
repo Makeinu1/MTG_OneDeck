@@ -9,7 +9,7 @@ description: 自律マイルストーン・ループ(無人で clear→milestone
 ## 1周の手順(判定者がやるのは判断4点だけ)
 
 ### 0. Bootstrap(判定者・薄)
-Claude project memory index(`.../memory/MEMORY.md`) + **`research/cr-grounding/cr-backbone-ledger.json`(正本)** を読み、**次スライスを台帳から一意に選ぶ**(台帳の `selectionRule` に従う)。優先=**`plannedSequence` を先に消費**(判定者の standing 裁定)。空なら `lane ∈ {backbone, late-backbone}` かつ `status < shipped`(drafted/implemented-not-green/review-green・`deferred` 除外)かつ `nextGate` 明確 の**最高 `edhValue`** へフォールバック。同点・`nextGate` 不明・価値トレードオフなら **STOP→`AskUserQuestion`**(下記 STOP 条件1=plannedSequence の次バッチ裁定)。要件化は「起案」でなく「台帳 lookup」。
+Claude project memory index(`.../memory/MEMORY.md`) + **`research/cr-grounding/cr-backbone-ledger.json`(正本)** + **`docs/judge-protocol.md`(判定準則)** を読み、**次スライスを台帳から一意に選ぶ**(台帳の `selectionRule` に従う)。優先=**`plannedSequence` を先に消費**(判定者の standing 裁定)。枯渇時は `selectionRule` の**補充手順**(Codex 草稿→判定者照合・judge-protocol §2。J3 で可)で充填して続行。**STOP→`AskUserQuestion` は judge-protocol §2 の4類のみ**(優先度式で真の同点/Phase S/C 境界の「V4 前進 vs V1 磨き込み」/北極星・契約原則の変更/judge=user-stop domain)。要件化は「起案」でなく「台帳 lookup」。
 
 ### 1. 契約起案(Codex 草稿 → 判定者承認)
 Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクション草稿 + golden/敵対テスト草稿**を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。判定者は **CR 照合して承認**し、`review.<key>` の最終 author だけ担い(=要石。実装者に書かせない)、契約を `docs/` へ昇格。Codex は `docs/`・`review.*`・`CLAUDE.md`・`AGENTS.md`・git 不可侵(共通則は `AGENTS.md` が常設で伝える=ブリーフはタスク固有のみ)。
@@ -21,7 +21,7 @@ Codex を背景起動し、既存 R-FREEZE 設計から **engine-spec セクシ�
 完了通知で起動。**実装の文脈を持たない別の冷たいセッション**へ**自己批判的・敵対的プロンプト**で出す(詳細=`/audit` Tier-1)。findings を `research/cr-grounding/<key>-tier1-findings.md` へ。**契約は変えない(findings only)**。判定者はここで raw diff を読まない。
 
 ### 4. 監査 Tier-2(判定者・薄)
-findings の**赤旗だけ**読み `{substrate誤り/compiler誤訳/物差し誤り/曖昧/誤検出}` を裁定。草稿 docs を独立に CR へ当てて**再オーナー化**(commit 前必須1回=judge-absent 条件の充足)。全緑なら次へ。差し戻しは Codex へ(理由明示)。
+findings の**赤旗だけ**読み `{substrate誤り/compiler誤訳/物差し誤り/曖昧/誤検出}` を裁定(`docs/judge-protocol.md` §6 のフローチャートに従う)。草稿 docs を独立に CR へ当てて**再オーナー化**(commit 前必須1回=judge-absent 条件の充足)。全緑なら次へ。差し戻しは Codex へ(理由明示)。
 
 ### 5. リリース準備 + ship(最大1回だけ委譲)
 `/ship` 前に、出荷スライスの台帳 `status`/`evidence`/`plannedSequence` 更新と `research/cr-grounding/archive/<key>/` への packet 集約を同じ ship diff に含める。判定者は**ステージ明示リスト+コミットメッセージ+除外ファイル**を確定し、除外前に `git grep -n "<name>" -- docs/ research/` で契約参照を確認する。
@@ -38,7 +38,7 @@ ship 報告を鵜呑みにせず、判定者が実状態で `HEAD == origin/main
 
 ## STOP 条件(止まってユーザーに聞く=これだけ)
 CI ゲート + git revert 可逆性が安全網。以下のみ停止:
-1. **ロードマップ分岐の価値判断**(substrate-first 順で一意に決まらない・価値トレードオフ)。
+1. **ロードマップ分岐の真の価値判断**(`docs/judge-protocol.md` §2 の優先度式=plannedSequence→demand 降順→edhValue→S-phase 依存順で一意に決まらない同点分岐・Phase S/C 境界の「V4 前進 vs V1 磨き込み」。**式で決まる選定は STOP せず自走**)。
 2. **CR 解釈の真の曖昧**(CR で決定論的に解けない=人間 ruling。決定論的なら CR を引いて自走)。
 3. **不可逆・外部書込**(通常 Pages push を超える=依存追加/更新・データ削除・外部 API 書込・秘密情報・北極星/契約原則の変更)。
 4. **Codex 2連敗**かつ判定者が有界な外科修正で仕上げられない / CI が有界変更で直らない。

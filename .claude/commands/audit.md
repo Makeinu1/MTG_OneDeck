@@ -17,7 +17,7 @@ description: Codexの成果を独立監査(review採点+機械チェック4点+�
 出力 = `research/cr-grounding/<key>-tier1-findings.md`(各項目 PASS/赤旗 + 根拠)。**契約・コードは変更しない(findings only)**。
 
 ## Tier-2(判定者・薄)
-1. findings の**赤旗だけ**読み、`{substrate誤り/compiler誤訳/物差し誤り/曖昧/誤検出}` に帰属裁定。**raw diff を行読みしない**。赤旗ゼロなら設計健全性のみ薄く確認。
+1. **まず `docs/judge-protocol.md` を引く**(§1 弁別3問テスト→§6 帰属フローチャート)。findings の**赤旗だけ**読み、`{substrate誤り/compiler誤訳/物差し誤り/曖昧/誤検出}` に帰属裁定。**raw diff を行読みしない**。赤旗ゼロなら設計健全性のみ薄く確認。
 2. **再オーナー化**: 草稿 docs(`*.draft`)を独立に CR へ当てて承認し `docs/` へ昇格(commit 前の必須1回)。
 3. **実機は要所だけ**: UI に見える変化がある時のみ Claude Preview(`.claude/launch.json` の mtg-onedeck・**コンソールエラー0件**)。ロジックのみは省き `review.*`+CI に委ねる。
 4. 分類精度に関わる変更なら `npm run accuracy` の before/after と `review.classifier-corpus` 緑を確認(委譲先に測らせ判定者は数値だけ判定)。

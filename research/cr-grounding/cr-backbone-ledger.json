@@ -8,8 +8,18 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-102-players",
-      "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装(§34.17 design-lock 済)。solo では P1 flat zones で足りるため demand-first の後(multiplayer/V4 寄り)。旧 snapshot backfill(前方互換 I16)必須。CR 400.1 正本。"
+      "domainId": "cr-118-costs",
+      "note": "batch2-1(J1裁定 2026-07-04)。MyDeck 最大 demand=cost:activation 232/cost:tap 201/mana:write 150。§34.19 activation envelope・§34.11 mana catalog は出荷済ゆえ本スライスは catalog未写の転写=実デッキの起動コストイディオム({T}/{cost},Sacrifice 等)を §33 cost compiler カタログへ CR 根拠付きで写し、effect consumer まで end-to-end 接続。envelope 再オープンはしない。CR 602.2/605/118 正本。golden 候補: Mother of Runes/Sol Ring/Priest of Fell Rites。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-110-permanents",
+      "note": "batch2-2。tap-state:write 108(+隣接 cost:tap 201)= ETB tapped / put-onto-battlefield tapped / tap another permanent。§34.19 は cost tap・§34.13/14 は combat tap まで。permanent status write の leaf/substrate 境界を切る。CR 110.5/701.26a 正本。golden 候補: Bojuka Bog/Evolving Wilds/Relic of Legends。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-115-targets",
+      "note": "batch2-3。target:object-or-player 97。§34.19 activation-time target 保存を spell/trigger へ拡張し guided target filter/legality を CR 115 正本で leaf 化。golden 候補: Mother of Runes/Path to Exile/Skyclave Apparition。"
     },
     {
       "type": "domain-slice",
@@ -20,9 +30,39 @@
       "type": "domain-slice",
       "domainId": "cr-703-704-sba-turn-based",
       "note": "S-TURN 後半。SBA スイートを event/turn substrate 上へ載せ替え。legend/attachment 系 SBA は choice/attachment 設計後という既存 boundary を維持(スコープ拡張しない)。CR 703/704 正本。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-701-keyword-actions-frequent",
+      "note": "batch2-4。fetch composite=search(36)+shuffle(36)+put onto battlefield tapped の連鎖行(fetch land/ramp/tutor)。§32.9 の単発 search/shuffle leaf を合成し、tapped 着地は cr-110(batch2-2)の後。CR 701.23h/701.24b 正本。golden 候補: Evolving Wilds/Fabled Passage/Nature's Lore。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-400-408-zones-lki",
+      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。simple exile は §32.9 出荷済。Skyclave/Thassa/blink 系の exiled-with 参照を LKI core(review-green)上に leaf 化。CR 701.13/400.7 正本。golden 候補: Path to Exile/Skyclave Apparition/Thassa, Deep-Dwelling。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-120-damage",
+      "note": "batch2-6。damage:write 33/event:damage 7=combat 外の source-backed damage。§34.18 damage は type-only ゆえ DamageEvent emission + damage-result link(lifeChange/marked damage)を追加。replacement/prevention は §34.5 carry。CR 120.1 正本。golden 候補: Blasphemous Act/Niv-Mizzet, Parun。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-111-tokens",
+      "note": "batch2-7。token:create 32 の残=tapped token/custom creature token/copy token。predefined leaf(§32.8)出荷済。既存 token substrate 上で auto/guided/manual に正直分類。CR 111.10/701.7 正本。golden 候補: Liliana, Dreadhorde General/Ragavan。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-400-408-zones-lki",
+      "note": "batch2-8。action:return 31=reanimation/blink/fetch result(graveyard→battlefield/hand)。owner routing と tapped/attacking modifiers は §34.17/cr-110 依存ゆえ単純形から。Muldrotha デッキの主需要。CR 400.6/400.7 正本。golden 候補: Karmic Guide/Sun Titan/Priest of Fell Rites。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-102-players",
+      "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装(§34.17 design-lock 済)。solo では P1 flat zones で足りるため demand-first の後(multiplayer/V4 寄り)。旧 snapshot backfill(前方互換 I16)必須。CR 400.1 正本。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費)。**plannedSequence が枯渇したら、フォールバックへ進む前に STOP①=AskUserQuestion で次バッチをユーザーと裁定する**(Phase S/C 完了境界では「V4 オンライン前進 vs V1 磨き込み」のロードマップ分岐も同時に問う=予約済み価値判断)。フォールバック(lane∈{backbone,late-backbone} かつ status<shipped(deferred除外)かつ nextGate 明確の最高 edhValue)は、ユーザーが自走続行を明示した場合のみ使う。同点/価値トレードオフは常に STOP①。judge=user-stop の domain はティアに関わらず単独裁定しない(judgePolicy 参照)。",
+  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",

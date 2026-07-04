@@ -15,7 +15,8 @@
 - **`CLAUDE.md`・`AGENTS.md`(本ファイル)・`eslint.config.js` の変更禁止**
 - **`CACHE_SCHEMA_VERSION` の変更禁止**
 - **判定者在席時は `docs/` の直接変更も禁止**。契約草稿・決定論的判断の草稿は自分のレーン `research/cr-grounding/*.draft` へ出力し、**必ず根拠 CR 条番号を併記**する(判定者の照合が安くなる)
-- 台帳 `research/cr-grounding/cr-backbone-ledger.json` は**読み参照は推奨・編集は判定者専有**
+  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+MyDeck demand 実測値必須・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)
+- 台帳 `research/cr-grounding/cr-backbone-ledger.json` は**読み参照は推奨・編集は判定者専有**(`docs/judge-protocol.md` も同様に判定者専有)
 
 ### J0(判定者不在)モード
 ユーザーが「判定者不在・あなたが批評+実装を両担してよい」と明示した時のみ、`review.*`/`docs/` の直接変更が許される(git・`CLAUDE.md`・本ファイルは不可のまま)。条件=復帰した判定者が CR 等の外部権威に当てて独立再検証・再オーナー化するまで、あなたの緑は「未監査」扱い。**fake-green は絶対禁止**——通らない条件を通ったことにするより、FROZEN 撤回を維持して正直に報告する方が正しい(M-CR-RECONCILE の precedent)。
