@@ -135,6 +135,7 @@ export interface PendingGuidedResolution {
   sourceId: string;
   prompts: EffectPrompt[];
   commands: GameCommand[];
+  warnings?: string[];
   to?: ZoneId;
   activation?: PendingActivation;
   manaAbility?: PendingManaAbility;
@@ -654,6 +655,30 @@ function cardLabel(state: GameState, cardId: string): string {
   return `《${name}》`;
 }
 
+function guidedTapStatusWarnings(
+  state: GameState,
+  prompt: EffectPrompt,
+  cardIds: readonly string[],
+): string[] {
+  if (prompt.atom !== 'effect.tap' && prompt.atom !== 'effect.untap') {
+    return [];
+  }
+
+  return cardIds.flatMap((cardId) => {
+    const card = state.cards[cardId];
+    if (!card) {
+      return [];
+    }
+    if (prompt.atom === 'effect.tap' && card.tapped) {
+      return [`${cardLabel(state, cardId)}はすでにタップされています(CR 701.26a)。`];
+    }
+    if (prompt.atom === 'effect.untap' && !card.tapped) {
+      return [`${cardLabel(state, cardId)}はアンタップ状態です(CR 701.26b)。`];
+    }
+    return [];
+  });
+}
+
 function appendLog(state: GameState, message: string): GameState {
   const maxSeq = state.log.reduce((max, entry) => Math.max(max, entry.seq), -1);
   return {
@@ -1003,7 +1028,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         result.state,
         `${cardLabel(cur, pending.sourceId)}の効果を誘導実行した。`,
       );
-      commit(logged, result.warnings);
+      commit(logged, [...(pending.warnings ?? []), ...result.warnings]);
     } catch (err) {
       console.error(err);
       set({ pendingGuided: null });
@@ -1013,23 +1038,27 @@ export const useGameStore = create<GameStore>((set, get) => {
   function advanceGuidedResolution(
     extraCommands: readonly GameCommand[],
     prependPrompts: readonly EffectPrompt[] = [],
+    extraWarnings: readonly string[] = [],
   ): void {
     const pending = get().pendingGuided;
     if (!pending) return;
 
     const commands = [...pending.commands, ...extraCommands];
     const prompts = [...prependPrompts, ...pending.prompts.slice(1)];
+    const warnings = [...(pending.warnings ?? []), ...extraWarnings];
+    const nextPending: PendingGuidedResolution = {
+      ...pending,
+      prompts,
+      commands,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    };
     if (prompts.length === 0) {
-      finishGuidedResolution(pending, commands);
+      finishGuidedResolution(nextPending, commands);
       return;
     }
 
     set({
-      pendingGuided: {
-        ...pending,
-        prompts,
-        commands,
-      },
+      pendingGuided: nextPending,
     });
   }
 
@@ -1419,12 +1448,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     cardId: string,
     forced: boolean,
     fallbackIndex: number,
+    sourceId: string,
   ): TargetSelection | null {
     const snapshot = objectSnapshotForCard(state, cardId);
     if (!snapshot) {
       return null;
     }
-    const legal = eligibleTargets(state, prompt.filter ?? {}).includes(cardId);
+    const legal = eligibleTargets(state, prompt.filter ?? {}, { sourceId }).includes(cardId);
     return {
       slotId: targetSlotId(prompt, fallbackIndex),
       raw: prompt.raw,
@@ -2289,8 +2319,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
       if (manaAbilityPlan) {
         // CR 118.3/602.2: the no-stack mana path enforces the same cost atomicity as the
-        // normal activation path — an already-tapped {T} source cannot pay. Rules-legal
-        // blocks; forced may proceed but is marked non-CR-legal (sandbox escape).
+        // normal activation path for modeled costs. Rules-legal blocks; forced may proceed
+        // but is marked non-CR-legal (sandbox escape).
         const costTapsSelf = manaAbilityPlan.commands.some(
           (command) =>
             command.type === 'setTapped' && command.cardId === sourceId && command.tapped,
@@ -2310,6 +2340,24 @@ export const useGameStore = create<GameStore>((set, get) => {
             warnings: [
               ...get().warnings,
               `${cardLabel(cur, sourceId)}の{T}コストは支払えないため、この起動をCR-legalとして扱いません(強行)。`,
+            ],
+          });
+        }
+        if (manaAbilityPlan.lifeCost > cur.life) {
+          if (!opts?.force) {
+            set({
+              warnings: [
+                ...get().warnings,
+                `${cardLabel(cur, sourceId)}のマナ能力のライフコストが${manaAbilityPlan.lifeCost - cur.life}点不足しています。`,
+              ],
+              pendingGuided: null,
+            });
+            return;
+          }
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}のライフコストは支払えないため、この起動をCR-legalとして扱いません(強行)。`,
             ],
           });
         }
@@ -2470,6 +2518,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           cardId,
           pending.activation.paymentMode === 'forced',
           pending.activation.targetSelections.length,
+          pending.sourceId,
         );
         if (!selection) {
           set({ warnings: [...get().warnings, `対象が存在しません: ${cardId}`] });
@@ -2478,7 +2527,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         advanceActivationTarget(selection);
         return;
       }
-      const legalIds = new Set(eligibleTargets(cur, prompt.filter ?? {}));
+      const legalIds = new Set(
+        eligibleTargets(cur, prompt.filter ?? {}, { sourceId: pending.sourceId }),
+      );
       if (!legalIds.has(cardId)) {
         set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は対象候補にありません。`] });
         return;
@@ -2493,7 +2544,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         { kind: 'target', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
-      advanceGuidedResolution(commands);
+      advanceGuidedResolution(commands, [], guidedTapStatusWarnings(cur, prompt, [cardId]));
     },
 
     confirmGuidedDiscard(cardId) {

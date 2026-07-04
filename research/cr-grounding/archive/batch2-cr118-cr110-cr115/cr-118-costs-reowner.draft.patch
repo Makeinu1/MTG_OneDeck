@@ -1,0 +1,97 @@
+--- a/src/engine/__tests__/review.grammar-cost.test.ts
++++ b/src/engine/__tests__/review.grammar-cost.test.ts
+@@ -37,13 +37,18 @@
+ 
+ const tapSelf: GameCommand = { type: 'setTapped', cardId: 'c1', tapped: true };
+ const sacSelf: GameCommand = { type: 'moveCard', cardId: 'c1', to: 'graveyard', position: 'top' };
++const payLifeThree: GameCommand = { type: 'adjustLife', delta: -3 };
++const exileSelf: GameCommand = { type: 'moveCard', cardId: 'c1', to: 'exile', position: 'top' };
+ 
+-// すべての commands が自己言及の既知コスト型(setTapped/moveCard→graveyard)であること(新コマンド型なし)。
++// すべての commands が自己言及の既知コスト型(setTapped/adjustLife/moveCard→graveyard|exile)であること(新コマンド型なし)。
+ function assertKnownCostCommands(commands: GameCommand[]): void {
+   for (const cmd of commands) {
+     const ok =
+       (cmd.type === 'setTapped' && cmd.cardId === 'c1') ||
+-      (cmd.type === 'moveCard' && cmd.cardId === 'c1' && cmd.to === 'graveyard');
++      (cmd.type === 'adjustLife' && cmd.delta < 0) ||
++      (cmd.type === 'moveCard' &&
++        cmd.cardId === 'c1' &&
++        (cmd.to === 'graveyard' || cmd.to === 'exile'));
+     expect(ok, `unexpected cost command: ${JSON.stringify(cmd)}`).toBe(true);
+   }
+ }
+@@ -99,6 +104,24 @@
+   });
+ });
+ 
++describe('§33.1 auto: 固定ライフ支払い・自己追放(cr-118-costs)', () => {
++  it('「{T}, Pay 3 life: Draw a card.」→ auto / tap + fixed life payment', () => {
++    const r = compileCost('{T}, Pay 3 life: Draw a card.');
++    expect(r.decision).toBe('auto');
++    expect(r.commands).toEqual([tapSelf, payLifeThree]);
++    expect(r.manaCost).toBeNull();
++    assertKnownCostCommands(r.commands);
++  });
++
++  it('「{3}, {T}, Exile this land: ...」→ auto / tap + self exile + manaCost {3}', () => {
++    const r = compileCost('{3}, {T}, Exile this land: Draw a card.', 'Land');
++    expect(r.decision).toBe('auto');
++    expect(r.commands).toEqual([tapSelf, exileSelf]);
++    expect(r.manaCost).toBe('{3}');
++    assertKnownCostCommands(r.commands);
++  });
++});
++
+ describe('§33.1 manual: 未モデルコスト据え置き(honest)', () => {
+   it('「{X}, {T}: Deal X damage.」→ manual / variable-x', () => {
+     const r = compileCost('{X}, {T}: Deal X damage to any target.');
+@@ -107,12 +130,20 @@
+     expect(r.reasons).toContain('variable-x');
+   });
+ 
+-  it('「{T}, Pay 3 life: Draw a card.」→ manual(ライフ支払いは未対応)', () => {
+-    const r = compileCost('{T}, Pay 3 life: Draw a card.');
++  it('「Pay X life: Draw a card.」→ manual / variable-x', () => {
++    const r = compileCost('Pay X life: Draw a card.');
+     expect(r.decision).toBe('manual');
+     expect(r.commands).toEqual([]);
++    expect(r.reasons).toContain('variable-x');
+   });
+ 
++  it('「{T}, Exile seven cards from your graveyard: ...」→ manual(選択を伴う追放)', () => {
++    const r = compileCost('{T}, Exile seven cards from your graveyard: Add {U}.', 'Land');
++    expect(r.decision).toBe('manual');
++    expect(r.commands).toEqual([]);
++    expect(r.reasons).toContain('unmodeled-cost');
++  });
++
+   it('「{T}, Sacrifice another creature: Draw a card.」→ manual(他パーマネント生け贄)', () => {
+     const r = compileCost('{T}, Sacrifice another creature: Draw a card.');
+     expect(r.decision).toBe('manual');
+--- a/docs/acceptance.md
++++ b/docs/acceptance.md
+@@ -499,8 +499,9 @@
+ | G4-3 | 「{1}, {T}, Sacrifice this creature: Draw a card.」相当を起動 | 自己タップ+自己生け贄(墓地へ)+マナ支払いが精算され、能力スタックへ。解決でカード1枚(G2)。単一undo |
+ | G4-4 | マナ源が不足する状態で G4-2 を起動 | サンドボックス哲学に従い警告ログを出しつつ強行(部分支払い)で能力はスタックへ。盤面はクラッシュしない |
+ | G4-5 | `effects-auto-toggle` OFF / または当該カード `card-effects-auto-off` で G4-1 を起動 | 自動補助OFFでも「マナ能力はスタックを使わない」不変条件は破らない。実装が即解決できない場合は能力スタック化ではなく manual/warning とし、CR 605 に反する自動スタック追加をしない |
+-| G4-6 | 「{X}, {T}: ...」「{T}, Pay 3 life: ...」「{T}, Sacrifice another creature: ...」「Coven — {1}{W}: ...」を起動(自動 ON) | コスト自動精算されず能力スタックのみ(manual)。warning でコスト手払いを促す。誤発火なし |
++| G4-6 | 「{X}, {T}: ...」「Pay X life: ...」「{T}, Sacrifice another creature: ...」「{T}, Exile seven cards from your graveyard: ...」「Coven — {1}{W}: ...」を起動(自動 ON) | 選択・変数・未モデル要素を含むコストは自動精算されず能力スタックのみ(manual)。warning でコスト手払いを促す。誤発火なし |
+ | G4-7 | 全工程 | コスト精算は1スナップショット(単一 undo)。エンジン純粋性維持(新コマンド型なし)。コンソールエラー0件 |
++| G4-8 | 「{T}, Pay 3 life: ...」「{3}, {T}, Exile this land: ...」を起動(自動 ON) | 固定ライフ支払い/strict self-exile は既存コマンド(`adjustLife`/`moveCard -> exile`)で精算され、能力がスタックへ。`Pay X life` や選択を伴う exile は G4-6 の manual 境界に残る |
+ 
+ ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
+ S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。
+--- a/docs/engine-spec.md
++++ b/docs/engine-spec.md
+@@ -1765,7 +1765,9 @@
+ コーパス(17,491枚・起動コスト行 5,103)で Fable 確認済(2026-06-22):
+ - **`AbilityCost.sacrificesSelf` は複合コストを取りこぼす**(`^Sacrifice...this` 先頭限定)→ `compileAbilityCost` は `ctx.def.name` 込みで自前再判定(ir.ts 不変=G1 再ベースライン回避)。
+ - マナ抽出は `{T}` 除外・generic/colored/hybrid/Phyrexian 取得可。`parseManaCost`/`planAutoTap`/`solvePayment` がそれらを精算可能。`{X}` のみ manual。
+-- 残余判定で `Pay N life`/`Pay {E}`/`Discard a card`/`Sacrifice another …`/`Tap X untapped … you control`/`Remove a … counter`/`Exile <他カード>`/先頭ラベル `<Word> —` が正しく manual に落ちる。
++- 固定 `Pay N life` は CR118.1/118.3b/119.4 により決定的コストとして `adjustLife -N` へ写す。`Pay X life` は CR107.3a/118.4 の値選択が必要なため manual。
++- strict self-exile(`Exile it`/`Exile ~`/`Exile this ...`/exact card name)は CR701.13a/400.7j により `moveCard(source,'exile')` へ写す。数・対象・他オブジェクトの選択を伴う exile は manual。
++- 残余判定で `Pay X life`/`Pay {E}`/`Discard a card`/`Sacrifice another …`/`Tap X untapped … you control`/`Remove a … counter`/`Exile <他カード>`/先頭ラベル `<Word> —` が正しく manual に落ちる。
+ 
+ ### 33.7 不変・非干渉(エンジン不変)
+ - `compileAbilityCost` は決定的・入力非破壊・GameState 非依存(`ctx.def`/`ctx.sourceId` 読み取りのみ)。

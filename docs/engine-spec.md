@@ -1574,6 +1574,8 @@ G2(§31)は「プレイヤー選択が不要な行」だけを `decision:'auto'`
 
 - **単一対象のみ**: クローズ raw が `\btarget\b` を含み、かつ **複数対象/up-to 印**(`up to`、`two|three|… target`、`each target`、`any number of target`、`target ... or ...`(対象同士の or は別。型の or は可))を含まないこと。複数/up-to/`for each` は **manual 据え置き**(reason `needs-target` 維持)。
 - **target フィルタ**: `target` 直後の名詞句から型を抽出して `TargetFilter.types` に格納(`creature`/`artifact`/`enchantment`/`land`/`planeswalker`/`permanent`。`artifact or enchantment`・`creature or planeswalker` 等の `X or Y` は両型)。修飾語(`with flying`/`tapped`/`nonblack`/`with power 3 or greater` 等)は best-effort で無視し型のみで列挙(サンドボックス哲学=合法性はユーザー裁定)。`target player`/`target opponent`(プレイヤー対象)は **manual 据え置き**(盤面パーマネント以外は今回非対応)。
+- **cr-115 対象候補フィルタ拡張(CR 115.2 / 601.2c)**: 単一 battlefield object 対象について合法候補を絞る。`non<type>`(nonland/noncreature 等)は正型に足さず `excludedTypes` に保存・`nontoken` は `excludeTokens`・`another/other target` は `excludeSource`・`you control`/`you don't control`/`an opponent controls` は `controller`。`eligibleTargets`(spell 解決・起動時両方)がこれらを適用し、非合法候補の選択は **警告して確定させない**(起動型はコスト未精算・スタック非搭載=atomicity 維持)。値/複数/非戦場/`any target`/player 対象は manual 据え置き。
+- **cr-110 tap/untap 状態書き込み(CR 110.5 / 701.26a/b)**: guided 単一対象 `Tap/Untap target ...` は既存 `effect.tap`/`effect.untap`→`setTapped` で解決(新コマンド型なし)。CR 701.26a(untapped のみ tap 可)/701.26b(tapped のみ untap 可)違反は **hard-block せず warning のみ**(サンドボックス哲学=ユーザー強行可)。ETB tapped(`landEntersTapped`+`playLand`)は既存出荷。条件付き ETB・mass untap・put/return onto battlefield tapped・tapped token 生成・tap-as-cost は manual/defer。
 - **effect.return のゾーンゲート**: raw が `to (?:its owner's|their|your|the owner's) hand` を含む時のみ guided(→hand)。`return ... to the battlefield`(リアニメイト)等は **manual 据え置き**(ゾーンが異なる)。
 
 **B. 誘導選択アトム**: effect.scry / effect.surveil → `EffectPrompt{kind:'scry-surveil', count}`(count は `effect.count` の one→1/fixed)。既存 `ArrangeTopDialog`(`arrangeTop` コマンド)を解決フローから開く。
@@ -1592,7 +1594,10 @@ type AutoDecision = 'auto' | 'guided' | 'manual';   // 'guided' 追加。ゲー�
 type PromptKind = 'target' | 'scry-surveil' | 'modal';
 interface TargetFilter {
   types?: string[];                  // 'creature'|'artifact'|'enchantment'|'land'|'planeswalker'|'permanent'
-  controller?: 'any' | 'you' | 'opponent';  // sacrifice/「you control」は 'you'、既定 'any'
+  controller?: 'any' | 'you' | 'opponent';  // sacrifice/「you control」は 'you'、「you don't control」/「an opponent controls」は 'opponent'、既定 'any'
+  excludedTypes?: string[];          // cr-115: `non<type>`(nonland/noncreature 等)を正型に足さず除外型として保存
+  excludeTokens?: boolean;           // cr-115: `nontoken`(既存 CardInstance.isToken を参照)
+  excludeSource?: boolean;           // cr-115: `another target`/`other target`(CR 601.2c: source 自身を候補外)
 }
 interface ModalOption { index: number; raw: string; }   // raw = bullet 本文(先頭 '•' 除去・trim)
 interface EffectPrompt {
@@ -1765,7 +1770,9 @@ function activatedManaAbilityPlanForSource(
 コーパス(17,491枚・起動コスト行 5,103)で Fable 確認済(2026-06-22):
 - **`AbilityCost.sacrificesSelf` は複合コストを取りこぼす**(`^Sacrifice...this` 先頭限定)→ `compileAbilityCost` は `ctx.def.name` 込みで自前再判定(ir.ts 不変=G1 再ベースライン回避)。
 - マナ抽出は `{T}` 除外・generic/colored/hybrid/Phyrexian 取得可。`parseManaCost`/`planAutoTap`/`solvePayment` がそれらを精算可能。`{X}` のみ manual。
-- 残余判定で `Pay N life`/`Pay {E}`/`Discard a card`/`Sacrifice another …`/`Tap X untapped … you control`/`Remove a … counter`/`Exile <他カード>`/先頭ラベル `<Word> —` が正しく manual に落ちる。
+- 固定 `Pay N life` は CR118.1/118.3b/119.4 により決定的コストとして `adjustLife -N` へ写す(新コマンド型なし)。`Pay X life` は CR107.3a の値選択が必要なため manual。
+- strict self-exile(`Exile it`/`Exile this ...`/exact card name)は CR701.13a/400.7j により `moveCard(source,'exile')` へ写す。数・対象・他オブジェクト選択を伴う exile、および self-sac と self-exile が競合するコストは manual。
+- 残余判定で `Pay X life`/`Pay {E}`/`Discard a card`/`Sacrifice another …`/`Tap X untapped … you control`/`Remove a … counter`/`Exile <他カード>`/先頭ラベル `<Word> —` が正しく manual に落ちる。
 
 ### 33.7 不変・非干渉(エンジン不変)
 - `compileAbilityCost` は決定的・入力非破壊・GameState 非依存(`ctx.def`/`ctx.sourceId` 読み取りのみ)。

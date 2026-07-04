@@ -37,13 +37,18 @@ function compileCost(line: string, typeLine = 'Creature', name = 'src-card') {
 
 const tapSelf: GameCommand = { type: 'setTapped', cardId: 'c1', tapped: true };
 const sacSelf: GameCommand = { type: 'moveCard', cardId: 'c1', to: 'graveyard', position: 'top' };
+const payLifeThree: GameCommand = { type: 'adjustLife', delta: -3 };
+const exileSelf: GameCommand = { type: 'moveCard', cardId: 'c1', to: 'exile', position: 'top' };
 
-// すべての commands が自己言及の既知コスト型(setTapped/moveCard→graveyard)であること(新コマンド型なし)。
+// すべての commands が自己言及の既知コスト型(setTapped/adjustLife/moveCard→graveyard|exile)であること(新コマンド型なし)。
 function assertKnownCostCommands(commands: GameCommand[]): void {
   for (const cmd of commands) {
     const ok =
       (cmd.type === 'setTapped' && cmd.cardId === 'c1') ||
-      (cmd.type === 'moveCard' && cmd.cardId === 'c1' && cmd.to === 'graveyard');
+      (cmd.type === 'adjustLife' && cmd.delta < 0) ||
+      (cmd.type === 'moveCard' &&
+        cmd.cardId === 'c1' &&
+        (cmd.to === 'graveyard' || cmd.to === 'exile'));
     expect(ok, `unexpected cost command: ${JSON.stringify(cmd)}`).toBe(true);
   }
 }
@@ -99,6 +104,24 @@ describe('§33.1 auto: 自己生け贄(裏取り = 複合コストの取りこ�
   });
 });
 
+describe('§33.1 auto: 固定ライフ支払い・自己追放(cr-118-costs / CR 118.1・118.3b・119.4・701.13a)', () => {
+  it('「{T}, Pay 3 life: Draw a card.」→ auto / tap + fixed life payment', () => {
+    const r = compileCost('{T}, Pay 3 life: Draw a card.');
+    expect(r.decision).toBe('auto');
+    expect(r.commands).toEqual([tapSelf, payLifeThree]);
+    expect(r.manaCost).toBeNull();
+    assertKnownCostCommands(r.commands);
+  });
+
+  it('「{3}, {T}, Exile this land: ...」→ auto / tap + self exile + manaCost {3}', () => {
+    const r = compileCost('{3}, {T}, Exile this land: Draw a card.', 'Land');
+    expect(r.decision).toBe('auto');
+    expect(r.commands).toEqual([tapSelf, exileSelf]);
+    expect(r.manaCost).toBe('{3}');
+    assertKnownCostCommands(r.commands);
+  });
+});
+
 describe('§33.1 manual: 未モデルコスト据え置き(honest)', () => {
   it('「{X}, {T}: Deal X damage.」→ manual / variable-x', () => {
     const r = compileCost('{X}, {T}: Deal X damage to any target.');
@@ -107,10 +130,18 @@ describe('§33.1 manual: 未モデルコスト据え置き(honest)', () => {
     expect(r.reasons).toContain('variable-x');
   });
 
-  it('「{T}, Pay 3 life: Draw a card.」→ manual(ライフ支払いは未対応)', () => {
-    const r = compileCost('{T}, Pay 3 life: Draw a card.');
+  it('「Pay X life: Draw a card.」→ manual / variable-x(値選択が必要 CR107.3a)', () => {
+    const r = compileCost('Pay X life: Draw a card.');
     expect(r.decision).toBe('manual');
     expect(r.commands).toEqual([]);
+    expect(r.reasons).toContain('variable-x');
+  });
+
+  it('「{T}, Exile seven cards from your graveyard: ...」→ manual(選択を伴う追放)', () => {
+    const r = compileCost('{T}, Exile seven cards from your graveyard: Add {U}.', 'Land');
+    expect(r.decision).toBe('manual');
+    expect(r.commands).toEqual([]);
+    expect(r.reasons).toContain('unmodeled-cost');
   });
 
   it('「{T}, Sacrifice another creature: Draw a card.」→ manual(他パーマネント生け贄)', () => {

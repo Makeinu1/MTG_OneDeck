@@ -64,6 +64,63 @@ describe('mana:write activated mana ability catalog', () => {
     expect(store().state!.manaPool.U).toBe(1);
   });
 
+  it('pays fixed life costs before resolving no-stack mana abilities', () => {
+    const source = makeDef({
+      scryfallId: 'mana-write-pay-life',
+      typeLine: 'Land',
+      faces: [
+        {
+          name: 'mana-write-pay-life',
+          typeLine: 'Land',
+          oracleText: 'Pay 1 life, {T}: Add {R}.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 1);
+    const sourceId = findInstanceId('mana-write-pay-life');
+    moveToBattlefield(sourceId);
+    const beforeLife = store().state!.life;
+    store().clearWarnings();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().state!.cards[sourceId].tapped).toBe(true);
+    expect(store().state!.life).toBe(beforeLife - 1);
+    expect(store().state!.manaPool.R).toBe(1);
+  });
+
+  it('blocks unpayable fixed life costs on mana abilities in rules-legal mode', () => {
+    const source = makeDef({
+      scryfallId: 'mana-write-pay-life-blocked',
+      typeLine: 'Land',
+      faces: [
+        {
+          name: 'mana-write-pay-life-blocked',
+          typeLine: 'Land',
+          oracleText: 'Pay 1 life, {T}: Add {R}.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 1);
+    const sourceId = findInstanceId('mana-write-pay-life-blocked');
+    moveToBattlefield(sourceId);
+    useGameStore.setState({ state: { ...store().state!, life: 0 } });
+    store().clearWarnings();
+
+    store().activateAbility(sourceId, 0);
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().state!.cards[sourceId].tapped).toBe(false);
+    expect(store().state!.life).toBe(0);
+    expect(store().state!.manaPool.R).toBe(0);
+    expect(store().warnings.some((warning) => warning.includes('ライフコスト'))).toBe(true);
+  });
+
   it('guides any-color mana choice, then resolves through the mana transaction with stack 0', () => {
     const source = makeDef({
       scryfallId: 'mana-write-any-color',

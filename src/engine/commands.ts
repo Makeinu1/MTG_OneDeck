@@ -2296,7 +2296,7 @@ function targetKindForRaw(raw: string): TargetSelectionKind {
   const match = /\btarget\b([\s\S]*)/i.exec(raw);
   const afterTarget = match?.[1] ?? '';
   const nounPhrase = afterTarget
-    .split(/\b(?:adds?|to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.,;]/i)[0]
+    .split(/\b(?:adds?|to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.;]/i)[0]
     .toLowerCase();
   return /\bplayers?\b/i.test(nounPhrase) ? 'player' : 'object';
 }
@@ -2308,7 +2308,7 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
   const match = /\btarget\b([\s\S]*)/i.exec(raw);
   const afterTarget = match?.[1] ?? '';
   const nounPhrase = afterTarget
-    .split(/\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.,;]/i)[0]
+    .split(/\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.;]/i)[0]
     .toLowerCase();
   const supportedTypes = [
     'creature',
@@ -2319,9 +2319,19 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
     'permanent',
   ];
   const types = supportedTypes.filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(nounPhrase));
-  const filter: TargetFilter = { types: types.length > 0 ? types : ['permanent'] };
+  const excludedTypes = supportedTypes.filter((type) =>
+    new RegExp(`\\bnon[-\\s]?${type}\\b`, 'i').test(nounPhrase),
+  );
+  const filter: TargetFilter = {
+    types: types.length > 0 ? types : ['permanent'],
+    ...(excludedTypes.length > 0 ? { excludedTypes } : {}),
+    ...(/\bnontoken\b/i.test(nounPhrase) ? { excludeTokens: true } : {}),
+    ...(/\banother\s+target\b|\bother\s+target\b/i.test(raw) ? { excludeSource: true } : {}),
+  };
   if (/\byou control\b/i.test(raw)) {
     filter.controller = 'you';
+  } else if (/\byou (?:don['’]t|do not) control\b|\bopponents? controls?\b/i.test(raw)) {
+    filter.controller = 'opponent';
   }
   return filter;
 }
@@ -2569,6 +2579,7 @@ export function activatedManaAbilityPlanForSource(
   decision: AutoDecision;
   prompts: EffectPrompt[];
   manaShortfall: number;
+  lifeCost: number;
 } | null {
   const source = state.cards[sourceId];
   if (!source) {
@@ -2603,21 +2614,25 @@ export function activatedManaAbilityPlanForSource(
   const commanderColorIdentity = commanderColorIdentityForState(state);
   const compiledCost = compileAbilityCost(ir.cost, { sourceId, def, commanderColorIdentity });
   if (compiledCost.decision === 'manual') {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
 
   const compiledEffect = compileAbilityIR(ir, { sourceId, def, commanderColorIdentity });
   if (compiledEffect.decision === 'manual') {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
   if (
     compiledEffect.decision === 'guided' &&
     compiledEffect.prompts.some((prompt) => prompt.kind !== 'mana')
   ) {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0 };
+    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
 
   const commands: GameCommand[] = compiledCost.commands.slice();
+  const lifeCost = compiledCost.commands.reduce(
+    (total, command) => total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
+    0,
+  );
   let manaShortfall = 0;
   if (compiledCost.manaCost !== null) {
     const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
@@ -2631,6 +2646,7 @@ export function activatedManaAbilityPlanForSource(
     decision: compiledEffect.decision,
     prompts: compiledEffect.prompts,
     manaShortfall,
+    lifeCost,
   };
 }
 
@@ -2666,11 +2682,13 @@ function isLoyaltyAbilityLine(text: string, typeLine: string): boolean {
   return /\bPlaneswalker\b/i.test(typeLine) && /^\s*[+−-]\d+\s*:/.test(text);
 }
 
-export function eligibleTargets(state: GameState, filter: TargetFilter): string[] {
-  if (filter.controller === 'opponent') {
-    return [];
-  }
+export function eligibleTargets(
+  state: GameState,
+  filter: TargetFilter,
+  context: { sourceId?: string } = {},
+): string[] {
   const types = filter.types ?? ['permanent'];
+  const excludedTypes = filter.excludedTypes ?? [];
   const acceptsAnyPermanent = types.length === 0 || types.includes('permanent');
 
   return state.zones.battlefield.filter((cardId) => {
@@ -2678,15 +2696,27 @@ export function eligibleTargets(state: GameState, filter: TargetFilter): string[
     if (!card || card.isAbility) {
       return false;
     }
+    if (filter.excludeSource && context.sourceId === cardId) {
+      return false;
+    }
     if (filter.controller === 'you' && card.controllerId !== 'P1') {
+      return false;
+    }
+    if (filter.controller === 'opponent' && card.controllerId === 'P1') {
+      return false;
+    }
+    const def = state.defs[card.defId];
+    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
+    if (filter.excludeTokens && card.isToken) {
+      return false;
+    }
+    if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
       return false;
     }
     if (acceptsAnyPermanent) {
       return true;
     }
-    const def = state.defs[card.defId];
-    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
-    const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
     return types.some((type) => typeLine.includes(type.toLowerCase()));
   });
 }

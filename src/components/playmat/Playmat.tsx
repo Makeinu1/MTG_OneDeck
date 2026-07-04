@@ -1125,7 +1125,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
   const guidedTargetIds =
     guidedPrompt?.kind === 'target' && guidedPrompt.targetKind !== 'player'
-      ? eligibleTargets(state, guidedPrompt.filter ?? {})
+      ? eligibleTargets(state, guidedPrompt.filter ?? {}, {
+          sourceId: store.pendingGuided?.sourceId,
+        })
       : [];
   const guidedTargetPlayerIds: PlayerId[] =
     guidedPrompt?.kind === 'target' &&

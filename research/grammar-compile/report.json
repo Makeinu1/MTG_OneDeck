@@ -1,55 +1,55 @@
 {
   "note": "この数値は未調整(候補分布であり絶対正解でない)。G4 では起動型コスト精算の候補分布を追加する。",
-  "generatedAt": "2026-06-21T22:54:25.171Z",
+  "generatedAt": "2026-07-04T05:34:52.831Z",
   "inputPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "totals": {
     "rawCards": 17491,
     "mappedCards": 17491,
     "mappingFailures": 0,
     "abilityLineCount": 34821,
-    "effectLineCount": 21855,
-    "fullLineCount": 13081,
-    "autoLineCount": 2013,
-    "guidedLineCount": 1566,
-    "autoFullLineCount": 1854,
-    "atomOccurrenceCount": 31831
+    "effectLineCount": 21896,
+    "fullLineCount": 13591,
+    "autoLineCount": 2024,
+    "guidedLineCount": 1891,
+    "autoFullLineCount": 1940,
+    "atomOccurrenceCount": 32574
   },
   "frontierSummary": [
     {
       "shape": "overall",
       "label": "全体",
       "abilityLineCount": 34821,
-      "effectLineCount": 21855,
-      "fullLineCount": 13081,
-      "autoLineCount": 2013,
-      "guidedLineCount": 1566,
-      "manualLineCount": 18276,
-      "executableRate": 0.09210706932052162,
-      "guidedFrontierRate": 0.163761153054221
+      "effectLineCount": 21896,
+      "fullLineCount": 13591,
+      "autoLineCount": 2024,
+      "guidedLineCount": 1891,
+      "manualLineCount": 17981,
+      "executableRate": 0.09243697478991597,
+      "guidedFrontierRate": 0.17879978078187797
     },
     {
       "shape": "activated",
       "label": "起動型",
       "abilityLineCount": 5103,
-      "effectLineCount": 4521,
-      "fullLineCount": 2674,
-      "autoLineCount": 980,
-      "guidedLineCount": 279,
-      "manualLineCount": 3262,
-      "executableRate": 0.21676620216766201,
-      "guidedFrontierRate": 0.27847821278478213
+      "effectLineCount": 4532,
+      "fullLineCount": 2796,
+      "autoLineCount": 937,
+      "guidedLineCount": 499,
+      "manualLineCount": 3096,
+      "executableRate": 0.20675198587819946,
+      "guidedFrontierRate": 0.31685789938217124
     },
     {
       "shape": "triggered",
       "label": "誘発型",
       "abilityLineCount": 8969,
-      "effectLineCount": 8033,
-      "fullLineCount": 4890,
-      "autoLineCount": 728,
-      "guidedLineCount": 572,
-      "manualLineCount": 6733,
-      "executableRate": 0.0906261670608739,
-      "guidedFrontierRate": 0.16183244118013196
+      "effectLineCount": 8048,
+      "fullLineCount": 5085,
+      "autoLineCount": 786,
+      "guidedLineCount": 668,
+      "manualLineCount": 6594,
+      "executableRate": 0.09766401590457256,
+      "guidedFrontierRate": 0.18066600397614313
     },
     {
       "shape": "delayed-triggered",
@@ -69,35 +69,35 @@
       "abilityLineCount": 824,
       "effectLineCount": 592,
       "fullLineCount": 471,
-      "autoLineCount": 14,
-      "guidedLineCount": 6,
-      "manualLineCount": 572,
-      "executableRate": 0.02364864864864865,
-      "guidedFrontierRate": 0.033783783783783786
+      "autoLineCount": 0,
+      "guidedLineCount": 5,
+      "manualLineCount": 587,
+      "executableRate": 0,
+      "guidedFrontierRate": 0.008445945945945946
     },
     {
       "shape": "static",
       "label": "常在型",
       "abilityLineCount": 7032,
-      "effectLineCount": 4440,
-      "fullLineCount": 3549,
-      "autoLineCount": 56,
-      "guidedLineCount": 97,
-      "manualLineCount": 4287,
-      "executableRate": 0.012612612612612612,
-      "guidedFrontierRate": 0.03445945945945946
+      "effectLineCount": 4444,
+      "fullLineCount": 3600,
+      "autoLineCount": 63,
+      "guidedLineCount": 115,
+      "manualLineCount": 4266,
+      "executableRate": 0.014176417641764177,
+      "guidedFrontierRate": 0.040054005400540056
     },
     {
       "shape": "spell",
       "label": "呪文本体",
       "abilityLineCount": 4619,
-      "effectLineCount": 4072,
-      "fullLineCount": 1355,
-      "autoLineCount": 233,
-      "guidedLineCount": 609,
-      "manualLineCount": 3230,
-      "executableRate": 0.05722003929273085,
-      "guidedFrontierRate": 0.20677799607072692
+      "effectLineCount": 4083,
+      "fullLineCount": 1497,
+      "autoLineCount": 236,
+      "guidedLineCount": 601,
+      "manualLineCount": 3246,
+      "executableRate": 0.05780063678667646,
+      "guidedFrontierRate": 0.2049963262307127
     },
     {
       "shape": "keyword",
@@ -114,21 +114,21 @@
   ],
   "costSummary": {
     "activatedLineCount": 5103,
-    "activationAutoCount": 3718,
-    "activationManualCount": 1385,
-    "fullyPlayableCount": 992,
-    "activationFrontierRate": 0.7285910248873212,
-    "fullyPlayableRate": 0.19439545365471292,
+    "activationAutoCount": 3885,
+    "activationManualCount": 1218,
+    "fullyPlayableCount": 1190,
+    "activationFrontierRate": 0.7613168724279835,
+    "fullyPlayableRate": 0.23319615912208505,
     "elementDistribution": [
       {
         "bucket": "tap-only",
-        "lineCount": 1562,
-        "lineRate": 0.3060944542426024
+        "lineCount": 1602,
+        "lineRate": 0.31393298059964725
       },
       {
         "bucket": "mana",
-        "lineCount": 994,
-        "lineRate": 0.19478737997256515
+        "lineCount": 1057,
+        "lineRate": 0.20713305898491083
       },
       {
         "bucket": "sac-self",
@@ -137,13 +137,13 @@
       },
       {
         "bucket": "compound",
-        "lineCount": 1104,
-        "lineRate": 0.21634332745443857
+        "lineCount": 1168,
+        "lineRate": 0.22888496962571037
       },
       {
         "bucket": "manual",
-        "lineCount": 1385,
-        "lineRate": 0.2714089751126788
+        "lineCount": 1218,
+        "lineRate": 0.23868312757201646
       }
     ]
   },
@@ -151,9 +151,9 @@
     {
       "atom": "effect.create-token",
       "occurrenceCount": 2802,
-      "autoLineCount": 160,
-      "guidedLineCount": 114,
-      "manualLineCount": 2463
+      "autoLineCount": 244,
+      "guidedLineCount": 122,
+      "manualLineCount": 2371
     },
     {
       "atom": "effect.pump",
@@ -165,23 +165,23 @@
     {
       "atom": "effect.draw",
       "occurrenceCount": 2499,
-      "autoLineCount": 809,
-      "guidedLineCount": 127,
-      "manualLineCount": 1517
+      "autoLineCount": 772,
+      "guidedLineCount": 210,
+      "manualLineCount": 1471
     },
     {
       "atom": "effect.exile",
       "occurrenceCount": 2209,
       "autoLineCount": 0,
-      "guidedLineCount": 217,
-      "manualLineCount": 1681
+      "guidedLineCount": 211,
+      "manualLineCount": 1687
     },
     {
       "atom": "effect.counter-plus",
       "occurrenceCount": 2086,
       "autoLineCount": 0,
-      "guidedLineCount": 187,
-      "manualLineCount": 1856
+      "guidedLineCount": 264,
+      "manualLineCount": 1779
     },
     {
       "atom": "effect.damage",
@@ -194,22 +194,22 @@
       "atom": "effect.tap",
       "occurrenceCount": 1758,
       "autoLineCount": 0,
-      "guidedLineCount": 178,
-      "manualLineCount": 1549
+      "guidedLineCount": 172,
+      "manualLineCount": 1555
     },
     {
       "atom": "effect.add-mana",
       "occurrenceCount": 1676,
-      "autoLineCount": 742,
-      "guidedLineCount": 4,
-      "manualLineCount": 916
+      "autoLineCount": 713,
+      "guidedLineCount": 206,
+      "manualLineCount": 743
     },
     {
       "atom": "effect.return",
       "occurrenceCount": 1541,
       "autoLineCount": 0,
-      "guidedLineCount": 156,
-      "manualLineCount": 1338
+      "guidedLineCount": 152,
+      "manualLineCount": 1342
     },
     {
       "atom": "effect.grant-keyword",
@@ -221,16 +221,16 @@
     {
       "atom": "effect.gain-life",
       "occurrenceCount": 990,
-      "autoLineCount": 231,
-      "guidedLineCount": 80,
-      "manualLineCount": 674
+      "autoLineCount": 210,
+      "guidedLineCount": 74,
+      "manualLineCount": 701
     },
     {
       "atom": "effect.destroy",
       "occurrenceCount": 956,
       "autoLineCount": 0,
-      "guidedLineCount": 419,
-      "manualLineCount": 463
+      "guidedLineCount": 402,
+      "manualLineCount": 480
     },
     {
       "atom": "effect.restriction",
@@ -242,16 +242,16 @@
     {
       "atom": "effect.sacrifice",
       "occurrenceCount": 883,
-      "autoLineCount": 0,
-      "guidedLineCount": 43,
-      "manualLineCount": 786
+      "autoLineCount": 14,
+      "guidedLineCount": 37,
+      "manualLineCount": 778
     },
     {
       "atom": "effect.discard",
       "occurrenceCount": 782,
       "autoLineCount": 0,
-      "guidedLineCount": 39,
-      "manualLineCount": 685
+      "guidedLineCount": 130,
+      "manualLineCount": 594
     },
     {
       "atom": "effect.reveal",
@@ -268,6 +268,13 @@
       "manualLineCount": 554
     },
     {
+      "atom": "effect.shuffle",
+      "occurrenceCount": 743,
+      "autoLineCount": 0,
+      "guidedLineCount": 22,
+      "manualLineCount": 710
+    },
+    {
       "atom": "effect.put-onto-battlefield",
       "occurrenceCount": 724,
       "autoLineCount": 0,
@@ -277,9 +284,9 @@
     {
       "atom": "effect.lose-life",
       "occurrenceCount": 721,
-      "autoLineCount": 77,
-      "guidedLineCount": 47,
-      "manualLineCount": 589
+      "autoLineCount": 74,
+      "guidedLineCount": 46,
+      "manualLineCount": 593
     },
     {
       "atom": "effect.search",
@@ -292,29 +299,29 @@
       "atom": "effect.untap",
       "occurrenceCount": 601,
       "autoLineCount": 0,
-      "guidedLineCount": 56,
-      "manualLineCount": 539
+      "guidedLineCount": 64,
+      "manualLineCount": 531
     },
     {
       "atom": "effect.mill",
       "occurrenceCount": 454,
-      "autoLineCount": 57,
+      "autoLineCount": 56,
       "guidedLineCount": 8,
-      "manualLineCount": 327
+      "manualLineCount": 328
     },
     {
       "atom": "effect.treasure",
       "occurrenceCount": 346,
-      "autoLineCount": 166,
-      "guidedLineCount": 29,
-      "manualLineCount": 147
+      "autoLineCount": 144,
+      "guidedLineCount": 31,
+      "manualLineCount": 167
     },
     {
       "atom": "effect.scry",
       "occurrenceCount": 295,
       "autoLineCount": 0,
-      "guidedLineCount": 195,
-      "manualLineCount": 99
+      "guidedLineCount": 183,
+      "manualLineCount": 111
     },
     {
       "atom": "effect.attach",
@@ -341,8 +348,8 @@
       "atom": "effect.surveil",
       "occurrenceCount": 190,
       "autoLineCount": 0,
-      "guidedLineCount": 149,
-      "manualLineCount": 41
+      "guidedLineCount": 139,
+      "manualLineCount": 51
     },
     {
       "atom": "effect.gain-control",
@@ -354,9 +361,9 @@
     {
       "atom": "effect.energy",
       "occurrenceCount": 147,
-      "autoLineCount": 6,
+      "autoLineCount": 5,
       "guidedLineCount": 2,
-      "manualLineCount": 116
+      "manualLineCount": 117
     },
     {
       "atom": "effect.loyalty",
@@ -382,53 +389,53 @@
     {
       "atom": "effect.experience",
       "occurrenceCount": 29,
-      "autoLineCount": 10,
+      "autoLineCount": 9,
       "guidedLineCount": 0,
-      "manualLineCount": 18
+      "manualLineCount": 19
     }
   ],
   "reasonSummary": [
     {
       "reason": "needs-target",
-      "lineCount": 13310,
-      "lineRate": 0.6090139556165637
+      "lineCount": 12839,
+      "lineRate": 0.586362805991962
     },
     {
       "reason": "needs-parse",
-      "lineCount": 7369,
-      "lineRate": 0.3371768474033402
+      "lineCount": 9101,
+      "lineRate": 0.41564669345999267
     },
     {
       "reason": "optional",
-      "lineCount": 2469,
-      "lineRate": 0.11297185998627317
+      "lineCount": 2475,
+      "lineRate": 0.11303434417245159
     },
     {
       "reason": "variable-count",
-      "lineCount": 2431,
-      "lineRate": 0.11123312743079387
+      "lineCount": 2434,
+      "lineRate": 0.11116185604676654
     },
     {
       "reason": "needs-choice",
-      "lineCount": 1776,
-      "lineRate": 0.08126286890871653
-    },
-    {
-      "reason": "ambiguous-mana",
-      "lineCount": 794,
-      "lineRate": 0.03633035918554107
+      "lineCount": 1747,
+      "lineRate": 0.07978626233101936
     },
     {
       "reason": "no-command",
-      "lineCount": 38,
-      "lineRate": 0.0017387325554792954
+      "lineCount": 552,
+      "lineRate": 0.025210084033613446
+    },
+    {
+      "reason": "ambiguous-mana",
+      "lineCount": 343,
+      "lineRate": 0.015664961636828643
     }
   ],
   "promptKindSummary": [
     {
       "kind": "target",
-      "promptCount": 800,
-      "lineCount": 772
+      "promptCount": 834,
+      "lineCount": 814
     },
     {
       "kind": "modal",
@@ -437,11 +444,134 @@
     },
     {
       "kind": "scry-surveil",
-      "promptCount": 329,
-      "lineCount": 329
+      "promptCount": 307,
+      "lineCount": 307
+    },
+    {
+      "kind": "mana",
+      "promptCount": 203,
+      "lineCount": 203
+    },
+    {
+      "kind": "discard",
+      "promptCount": 91,
+      "lineCount": 91
+    },
+    {
+      "kind": "sacrifice",
+      "promptCount": 6,
+      "lineCount": 6
     }
   ],
   "autoCandidatesTop": [
+    {
+      "cardName": "Crystal Quarry",
+      "oracleId": "ca68648f-fe3a-4770-9842-a3dc2310f099",
+      "scryfallId": "55999d8e-50f8-4c8b-a0c3-f3256af62491",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 5,
+      "text": "{5}, {T}: Add {W}{U}{B}{R}{G}."
+    },
+    {
+      "cardName": "Jenson Carthalion, Druid Exile",
+      "oracleId": "68cefb44-afad-4638-8fdc-65a099b51d55",
+      "scryfallId": "6a67f32c-4c9a-4bda-92f4-037b99999777",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Human Druid",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 5,
+      "text": "{5}, {T}: Add {W}{U}{B}{R}{G}."
+    },
+    {
+      "cardName": "Timeless Lotus",
+      "oracleId": "fec77e0a-433e-4d32-9260-e26a37f6ad23",
+      "scryfallId": "0fbbab5f-657a-4e6a-8bdd-69f11547fe25",
+      "faceIndex": 0,
+      "typeLine": "Legendary Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 5,
+      "text": "{T}: Add {W}{U}{B}{R}{G}."
+    },
+    {
+      "cardName": "Arixmethes, Slumbering Isle",
+      "oracleId": "caeb39ee-f0bb-4305-9e8b-b30ba0a74c78",
+      "scryfallId": "bf561379-4e5f-486a-bcdf-6e08e105316e",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Kraken",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {G}{U}."
+    },
+    {
+      "cardName": "Azorius Chancery",
+      "oracleId": "189fc8f4-17ac-4f1d-82c8-8401445bdaf4",
+      "scryfallId": "50ef0ac3-e911-4d67-a751-8d86160ae843",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {W}{U}."
+    },
+    {
+      "cardName": "Azorius Signet",
+      "oracleId": "e018773f-95b3-49a3-9674-6f04ddef2092",
+      "scryfallId": "41c50b99-4a29-4bef-8d41-c548c8a61dac",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {W}{U}."
+    },
+    {
+      "cardName": "Boros Garrison",
+      "oracleId": "8fa3ac81-3dfe-4565-be99-5554f7597b4b",
+      "scryfallId": "76ec3366-98f3-4903-8f7b-cfcdd60e3be1",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {R}{W}."
+    },
+    {
+      "cardName": "Boros Signet",
+      "oracleId": "41c84665-1f99-40ab-aaca-1188649eb263",
+      "scryfallId": "49c37c0e-d363-4033-a069-710241cd9923",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {R}{W}."
+    },
+    {
+      "cardName": "Cirith Ungol Patrol",
+      "oracleId": "c9610d33-4cef-4171-bbf4-48d720492d55",
+      "scryfallId": "7cd03837-37cc-4f6c-8e22-e3b0ff635462",
+      "faceIndex": 0,
+      "typeLine": "Creature — Orc Soldier",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}, Sacrifice another creature: Draw a card, then create a Food token."
+    },
     {
       "cardName": "Cryptbreaker",
       "oracleId": "16f75a65-d067-4f79-81b9-833c373cf4d2",
@@ -455,6 +585,54 @@
       "text": "Tap three untapped Zombies you control: You draw a card and you lose 1 life."
     },
     {
+      "cardName": "Darkwater Catacombs",
+      "oracleId": "4869a530-757f-4364-8d8e-4dc8001f433c",
+      "scryfallId": "03fbf51d-f622-4629-a228-a03ce7caf500",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {U}{B}."
+    },
+    {
+      "cardName": "Desolate Mire",
+      "oracleId": "3edf9201-265f-4cd9-b27b-8073bf1a4cf2",
+      "scryfallId": "6a261c7d-38a4-4000-97b2-76e7ab9989c5",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {W}{B}."
+    },
+    {
+      "cardName": "Dimir Aqueduct",
+      "oracleId": "378a1d57-e2f1-4b84-9692-1564602e9e99",
+      "scryfallId": "84bf9d60-64b8-4209-acfe-e07eefc6bf1f",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {U}{B}."
+    },
+    {
+      "cardName": "Dimir Signet",
+      "oracleId": "7d881c57-0bd9-4c57-aa4a-b10808b86143",
+      "scryfallId": "c3af24ce-b1ab-4137-9222-a4080acae928",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {U}{B}."
+    },
+    {
       "cardName": "Faerie Dreamthief",
       "oracleId": "d6e68414-80cb-4e08-ae84-b084a3f4b6de",
       "scryfallId": "57ca2ec5-442d-4909-be28-93c50fbc5f7a",
@@ -465,6 +643,42 @@
       "reasons": [],
       "commandsCount": 2,
       "text": "{2}{B}, Exile this card from your graveyard: You draw a card and you lose 1 life."
+    },
+    {
+      "cardName": "Ferrous Lake",
+      "oracleId": "62c15af0-40e1-407d-b056-7a3d909e3fdb",
+      "scryfallId": "92fa559c-a99b-4bc1-86c4-0c5eeeac9f4f",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {U}{R}."
+    },
+    {
+      "cardName": "Golgari Rot Farm",
+      "oracleId": "1b301478-b14f-4ef8-94e6-9647d582eabe",
+      "scryfallId": "42486edd-24b7-4299-84fa-50559917b2a8",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{T}: Add {B}{G}."
+    },
+    {
+      "cardName": "Golgari Signet",
+      "oracleId": "1cf51f50-24e4-48d0-95b3-1dad3ffa4bf5",
+      "scryfallId": "95103b4c-d0c0-40fa-9ddd-c7416455ca0c",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "auto",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{1}, {T}: Add {B}{G}."
     },
     {
       "cardName": "Grasping Shadows // Shadows' Lair",
@@ -489,201 +703,33 @@
       "reasons": [],
       "commandsCount": 2,
       "text": "{1}{B}, Sacrifice a Food: You draw a card and you lose 1 life."
-    },
-    {
-      "cardName": "Infernal Idol",
-      "oracleId": "a0802918-e18a-4716-befb-96ae6667f2f3",
-      "scryfallId": "9d986229-c8d5-462c-bf74-ae94326a5aa0",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{1}{B}{B}, {T}, Sacrifice this artifact: You draw two cards and you lose 2 life."
-    },
-    {
-      "cardName": "Izzet Generatorium",
-      "oracleId": "6a618c4a-e604-4dce-a078-755fd35ac5d9",
-      "scryfallId": "c6d9537d-c6b9-46ef-834b-87750d79f1ae",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Draw a card. Activate only if you've paid or lost four or more {E} this turn."
-    },
-    {
-      "cardName": "Metalspinner's Puzzleknot",
-      "oracleId": "c19d2f54-2c3a-4cbe-8328-061d4b51f574",
-      "scryfallId": "56628644-df26-4cbc-b67c-d1b2f69ebe08",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{2}{B}, Sacrifice this artifact: You draw a card and you lose 1 life."
-    },
-    {
-      "cardName": "Pristine Talisman",
-      "oracleId": "1b3d7fce-e9fe-4176-9d9a-472415826cdd",
-      "scryfallId": "92a0093b-ef5d-4697-b85d-d890fcddc66d",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {C}. You gain 1 life."
-    },
-    {
-      "cardName": "Reckless Lackey",
-      "oracleId": "73733fa5-d292-40ec-8f17-05ba5feb40ab",
-      "scryfallId": "912fcd14-5e81-418c-997b-771f2f38f63d",
-      "faceIndex": 0,
-      "typeLine": "Creature — Goblin Pirate",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{2}{R}, Sacrifice this creature: Draw a card and create a Treasure token."
-    },
-    {
-      "cardName": "Reckoner Bankbuster",
-      "oracleId": "b6be94dc-7162-4887-b959-3bda709724eb",
-      "scryfallId": "279acd17-6c17-427b-a69d-fc02442ff4a3",
-      "faceIndex": 0,
-      "typeLine": "Artifact — Vehicle",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{2}, {T}, Remove a charge counter from this Vehicle: Draw a card. Then if there are no charge counters on this Vehicle, create a Treasure token and a 1/1 colorless Pilot creature token with"
-    },
-    {
-      "cardName": "Redrock Sentinel",
-      "oracleId": "51a6819d-c8fb-4f52-ab0c-4ae845728ed2",
-      "scryfallId": "8eb98381-8418-4dfd-b7d1-4353570e611b",
-      "faceIndex": 0,
-      "typeLine": "Artifact Creature — Golem",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{2}, {T}, Sacrifice a land: Draw a card and create a Treasure token."
-    },
-    {
-      "cardName": "River of Tears",
-      "oracleId": "8a83d284-75a0-4901-b7d9-c4b7586ee327",
-      "scryfallId": "67b626cc-1c12-4059-afa5-e5a1221ea1ba",
-      "faceIndex": 0,
-      "typeLine": "Land",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {U}. If you played a land this turn, add {B} instead."
-    },
-    {
-      "cardName": "Sarevok's Tome",
-      "oracleId": "6ec54d84-7026-45a3-a7d7-37cd5c9a8463",
-      "scryfallId": "5a470690-a05d-4311-963c-50cbf779846d",
-      "faceIndex": 0,
-      "typeLine": "Artifact — Book",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {C}. If you have the initiative, add {C}{C} instead."
-    },
-    {
-      "cardName": "Scaled Nurturer",
-      "oracleId": "13b96709-0e88-476b-9485-956e682bb818",
-      "scryfallId": "84ae5a76-b8b9-431d-8060-a6a96f5d1e0b",
-      "faceIndex": 0,
-      "typeLine": "Creature — Dragon Druid",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {G}. When you spend this mana to cast a Dragon creature spell, you gain 2 life."
-    },
-    {
-      "cardName": "The Great Henge",
-      "oracleId": "78427103-9543-41fb-b6d4-72963fe87275",
-      "scryfallId": "6340e0f3-7f9c-4d71-8daf-e1be5505eb5b",
-      "faceIndex": 0,
-      "typeLine": "Legendary Artifact",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {G}{G}. You gain 2 life."
-    },
-    {
-      "cardName": "Undermountain Adventurer",
-      "oracleId": "2e5e0abd-38a6-46ca-b922-556db52f1332",
-      "scryfallId": "541f53a3-521f-4463-a0b6-758a45d8f661",
-      "faceIndex": 0,
-      "typeLine": "Creature — Giant Warrior",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 2,
-      "text": "{T}: Add {G}{G}. If you've completed a dungeon, add six {G} instead."
-    },
-    {
-      "cardName": "Abandoned Air Temple",
-      "oracleId": "9575d7ce-f26d-4b90-87a3-6329e9799572",
-      "scryfallId": "9c0433f9-8f1e-4a19-a83f-a41925f1b1a9",
-      "faceIndex": 0,
-      "typeLine": "Land",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}: Add {W}."
-    },
-    {
-      "cardName": "Abstergo Entertainment",
-      "oracleId": "d06a8026-1657-4404-8dff-64e44f1a14f8",
-      "scryfallId": "4d197866-7633-493c-80dd-ec3a09165934",
-      "faceIndex": 0,
-      "typeLine": "Legendary Land",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}: Add {C}."
-    },
-    {
-      "cardName": "Abundant Countryside",
-      "oracleId": "e3eb6f90-ccfc-41e7-bff6-0b378226bc7e",
-      "scryfallId": "37478625-dd07-476d-bd9b-b2e0d71ac0d1",
-      "faceIndex": 0,
-      "typeLine": "Land",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}: Add {C}."
-    },
-    {
-      "cardName": "Academy Ruins",
-      "oracleId": "a3da7d5b-2c2b-45fe-b9c5-413b8c8fc0a2",
-      "scryfallId": "128deed2-b9bc-4065-95c9-ccd7b08f1230",
-      "faceIndex": 0,
-      "typeLine": "Legendary Land",
-      "shape": "activated",
-      "decision": "auto",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}: Add {C}."
     }
   ],
   "guidedCandidatesTop": [
+    {
+      "cardName": "Collector's Vault",
+      "oracleId": "f460ff80-8175-43f7-9810-540cf3817085",
+      "scryfallId": "967a4f27-8cd6-437d-8c05-8aedbc7ddc4b",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}, {T}: Draw a card, then discard a card. Create a Treasure token."
+    },
+    {
+      "cardName": "Daily Bugle Newspaper",
+      "oracleId": "d2a3f735-9523-4ddd-96a9-b0a5ecd39284",
+      "scryfallId": "46155477-758e-47a0-9fb9-dec7869978d9",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 2,
+      "text": "{2}, {T}: Draw a card, then discard a card. Create a Treasure token."
+    },
     {
       "cardName": "Izoni, Center of the Web",
       "oracleId": "8074afbf-190b-4a24-b939-cc559bdffe38",
@@ -697,16 +743,112 @@
       "text": "Sacrifice four tokens: Surveil 2, then draw two cards. You gain 2 life."
     },
     {
-      "cardName": "Cryptex",
-      "oracleId": "8186a992-9065-4a7f-bb00-1c20e01e8fb6",
-      "scryfallId": "f92a2563-6cfb-4d12-9513-b44d1a7a20ab",
+      "cardName": "Agna Qel'a",
+      "oracleId": "22d0a848-2126-48f0-9050-38daaf93b1d0",
+      "scryfallId": "6b885829-a323-4f7d-87c9-aa4615dcbe5c",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{2}{U}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Arcade Gannon",
+      "oracleId": "e001d7e6-71c9-42fa-9d5c-9455da66e4ec",
+      "scryfallId": "36356522-15fc-41e2-bf14-a745e5a96a50",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Human Doctor",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Draw a card, then discard a card. Put a quest counter on Arcade Gannon."
+    },
+    {
+      "cardName": "Bag of Holding",
+      "oracleId": "63c04040-e109-494e-baa6-c639a6c9a996",
+      "scryfallId": "290f4b4f-4f48-4031-b62a-91a0d6716ddd",
       "faceIndex": 0,
       "typeLine": "Artifact",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
       "commandsCount": 1,
-      "text": "Sacrifice this artifact: Surveil 3, then draw three cards. Activate only if this artifact has five or more unlock counters on it."
+      "text": "{2}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Captain of Umbar",
+      "oracleId": "1941f993-41d7-49e3-8891-41b3cecd5a9d",
+      "scryfallId": "c222577d-a3c7-41d9-b11b-62065bdb98ef",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Pirate",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{1}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Chromatic Sphere",
+      "oracleId": "2e03e44a-9fff-4490-859f-b42e89e8563a",
+      "scryfallId": "405ebb86-b1d8-45f3-ab64-65b8fe70f23f",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{1}, {T}, Sacrifice this artifact: Add one mana of any color. Draw a card."
+    },
+    {
+      "cardName": "Currency Converter",
+      "oracleId": "981298e6-ddee-49c0-9377-f47f019b4138",
+      "scryfallId": "4eab054c-93f8-4da4-afb9-8f4c73c19213",
+      "faceIndex": 0,
+      "typeLine": "Artifact",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{2}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Desolate Lighthouse",
+      "oracleId": "aa6dbdf2-2379-4ff5-8a6c-70258784dc35",
+      "scryfallId": "c155cc10-09f4-424b-b366-142adf9c1712",
+      "faceIndex": 0,
+      "typeLine": "Land",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{1}{U}{R}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Dragonborn Looter",
+      "oracleId": "f74e53e1-e575-4386-a128-5c87124987d4",
+      "scryfallId": "570e8aaa-5273-42f4-b151-51976ab7730c",
+      "faceIndex": 0,
+      "typeLine": "Creature — Dragon Rogue",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{1}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Erratic Visionary",
+      "oracleId": "334c0913-0ce0-4934-979d-64dbc1ec4aa2",
+      "scryfallId": "3e8a25fd-985f-49e5-b5b9-388571dfaec3",
+      "faceIndex": 0,
+      "typeLine": "Creature — Human Wizard",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{1}{U}, {T}: Draw a card, then discard a card."
     },
     {
       "cardName": "Found Footage",
@@ -721,208 +863,88 @@
       "text": "{2}, Sacrifice this artifact: Surveil 2, then draw a card."
     },
     {
-      "cardName": "Lapis Orb of Dragonkind",
-      "oracleId": "c61ab8e1-ef23-465d-bcd3-f771434988b2",
-      "scryfallId": "26ed684b-e3a1-421d-8cfd-c5eee673a3a1",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}: Add {U}. When you spend this mana to cast a Dragon creature spell, scry 2."
-    },
-    {
-      "cardName": "Senu, Keen-Eyed Protector",
-      "oracleId": "bf2dc318-7b51-451e-ac4d-0f1b756dc860",
-      "scryfallId": "5671a03d-0858-41e7-976c-60825c29af04",
-      "faceIndex": 0,
-      "typeLine": "Legendary Creature — Bird Scout",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{T}, Exile Senu: You gain 2 life and scry 2."
-    },
-    {
-      "cardName": "Serum Sovereign",
-      "oracleId": "d52ecb32-26ed-484b-b1a7-ee47b66f0f94",
-      "scryfallId": "70d562aa-8b49-40a3-a5c1-3af8afa98edc",
-      "faceIndex": 0,
-      "typeLine": "Creature — Phyrexian Sphinx",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{U}, Remove an oil counter from this creature: Draw a card, then scry 2."
-    },
-    {
-      "cardName": "Stone Docent",
-      "oracleId": "dbb1690a-f6f5-459c-9d7f-cb6541fb6688",
-      "scryfallId": "c2abfffb-bf36-44af-9a27-6e109e4d77dd",
-      "faceIndex": 0,
-      "typeLine": "Creature — Spirit Chimera",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{W}, Exile this card from your graveyard: You gain 2 life. Surveil 1. Activate only as a sorcery."
-    },
-    {
-      "cardName": "Surgical Skullbomb",
-      "oracleId": "6d364283-617a-4661-865d-abd9c304b2f9",
-      "scryfallId": "98c2b2af-739f-413c-8c36-da6f78df0acb",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 1,
-      "text": "{2}{U}, Sacrifice this artifact: Return target creature to its owner's hand. Draw a card. Activate only as a sorcery."
-    },
-    {
-      "cardName": "Aboshan, Cephalid Emperor",
-      "oracleId": "d4d44264-b276-4bd7-8fbe-6af292b08773",
-      "scryfallId": "bebb51d4-5fc8-4aa2-8464-1674f8afd3f5",
-      "faceIndex": 0,
-      "typeLine": "Legendary Creature — Octopus Noble",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "Tap an untapped Octopus you control: Tap target permanent."
-    },
-    {
-      "cardName": "Adorned Crocodile",
-      "oracleId": "fb49c7d2-d750-4676-b90e-76e7fae70a25",
-      "scryfallId": "bb13a34b-6ac8-47cb-9e91-47106a585fc1",
-      "faceIndex": 0,
-      "typeLine": "Creature — Crocodile",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "Renew — {B}, Exile this card from your graveyard: Put a +1/+1 counter on target creature. Activate only as a sorcery."
-    },
-    {
-      "cardName": "Aether Spellbomb",
-      "oracleId": "4b033a0a-c1ae-44d7-9662-72cbbfda024b",
-      "scryfallId": "ee539bda-62b4-40fb-95d3-c7d1fc0a7e09",
-      "faceIndex": 0,
-      "typeLine": "Artifact",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "{U}, Sacrifice this artifact: Return target creature to its owner's hand."
-    },
-    {
-      "cardName": "Aetherjacket",
-      "oracleId": "062c8e40-dea7-4df7-bcaa-f1d696fe61c3",
-      "scryfallId": "0a29c8a5-fd98-422c-9518-2db0993495e5",
-      "faceIndex": 0,
-      "typeLine": "Artifact Creature — Thopter",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "{2}, {T}, Sacrifice this creature: Destroy another target artifact. Activate only as a sorcery."
-    },
-    {
-      "cardName": "Agent of Kotis",
-      "oracleId": "584fe1e4-029d-43fe-8c9e-6995dd392d65",
-      "scryfallId": "812d0462-0158-467f-951d-a7a121188a10",
-      "faceIndex": 0,
-      "typeLine": "Creature — Human Rogue",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "Renew — {3}{U}, Exile this card from your graveyard: Put two +1/+1 counters on target creature. Activate only as a sorcery."
-    },
-    {
-      "cardName": "Alpha Guard",
-      "oracleId": "5337b747-dc69-4fe4-9899-c1374e22aa79",
-      "scryfallId": "e782e572-0cea-47a3-9ce9-3c431fbd44f8",
-      "faceIndex": 0,
-      "typeLine": "Creature — Elf Employee",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "{T}: Untap another target permanent whose name starts with the chosen letter."
-    },
-    {
-      "cardName": "Angelic Shield",
-      "oracleId": "05b020fd-21be-495d-ae45-7de3b1224e6d",
-      "scryfallId": "840ff1b8-9b02-4bfb-b75f-f7bcf5da20fa",
-      "faceIndex": 0,
-      "typeLine": "Enchantment",
-      "shape": "activated",
-      "decision": "guided",
-      "reasons": [],
-      "commandsCount": 0,
-      "text": "Sacrifice this enchantment: Return target creature to its owner's hand."
-    },
-    {
-      "cardName": "Aphetto Alchemist",
-      "oracleId": "867aa0b7-b814-4d33-a677-f6368c8e93c0",
-      "scryfallId": "7f0338fc-853b-41e4-a8d4-325fcccc84dc",
+      "cardName": "Furtive Analyst",
+      "oracleId": "e5c6bbee-5e6c-4a59-bc5d-285c5f5cf228",
+      "scryfallId": "98c55aff-baed-4fb5-a490-abd59b8df5e7",
       "faceIndex": 0,
       "typeLine": "Creature — Human Wizard",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
-      "commandsCount": 0,
-      "text": "{T}: Untap target artifact or creature."
+      "commandsCount": 1,
+      "text": "{2}, {T}: Draw a card, then discard a card."
     },
     {
-      "cardName": "Arashin Sunshield",
-      "oracleId": "1175d482-d8a2-467f-bc50-2f4b241966bb",
-      "scryfallId": "dd7102d8-90b3-45a1-b66d-dcca469b1fb6",
+      "cardName": "Geyser Leaper",
+      "oracleId": "dfdcb451-a597-46fe-893c-49e6dbda5f71",
+      "scryfallId": "4d25428d-e5a5-43c4-8544-43120ed1c4d5",
       "faceIndex": 0,
-      "typeLine": "Creature — Human Warrior",
+      "typeLine": "Creature — Human Warrior Ally",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
-      "commandsCount": 0,
-      "text": "{W}, {T}: Tap target creature."
+      "commandsCount": 1,
+      "text": "Waterbend {4}: Draw a card, then discard a card."
     },
     {
-      "cardName": "Arwen Undómiel",
-      "oracleId": "5ffbbce1-fe38-40dc-a7c3-2055ae86c6c5",
-      "scryfallId": "c544e301-13b4-4dec-b65c-d54809bb7736",
+      "cardName": "Harrier Strix",
+      "oracleId": "eb154ebb-d02f-405a-a557-3d5ec7648c42",
+      "scryfallId": "70ca61a9-8938-41bf-bd14-5759f4de6521",
       "faceIndex": 0,
-      "typeLine": "Legendary Creature — Elf Noble",
+      "typeLine": "Creature — Bird",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
-      "commandsCount": 0,
-      "text": "{4}{G}{U}: Scry 2."
+      "commandsCount": 1,
+      "text": "{2}{U}: Draw a card, then discard a card."
     },
     {
-      "cardName": "Avacynian Priest",
-      "oracleId": "df7e296d-96de-4280-a4d8-49189544b9e3",
-      "scryfallId": "c119b314-c563-4b6b-8bac-a680e69c6b37",
+      "cardName": "Improbable Alliance",
+      "oracleId": "b4ca6a20-b1ba-4dee-ae8a-83f8edf360c4",
+      "scryfallId": "29ab3610-342d-4a67-9be8-a7efb89a4b46",
       "faceIndex": 0,
-      "typeLine": "Creature — Human Cleric",
+      "typeLine": "Enchantment",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
-      "commandsCount": 0,
-      "text": "{1}, {T}: Tap target non-Human creature."
+      "commandsCount": 1,
+      "text": "{4}{U}{R}: Draw a card, then discard a card."
     },
     {
-      "cardName": "Ayli, Eternal Pilgrim",
-      "oracleId": "e6a35729-edee-4a8c-9aa1-041114d66c69",
-      "scryfallId": "06969031-2c13-4b5a-bb4e-86eed025e614",
+      "cardName": "Jalum Tome",
+      "oracleId": "32d9fd98-142b-41d2-b8f0-40ae1d4cb991",
+      "scryfallId": "3d2db45f-4cdb-4b7f-a270-44b2b1482f69",
       "faceIndex": 0,
-      "typeLine": "Legendary Creature — Kor Cleric",
+      "typeLine": "Artifact — Book",
       "shape": "activated",
       "decision": "guided",
       "reasons": [],
-      "commandsCount": 0,
-      "text": "{1}{W}{B}, Sacrifice another creature: Exile target nonland permanent. Activate only if you have at least 10 life more than your starting life total."
+      "commandsCount": 1,
+      "text": "{2}, {T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Kitsa, Otterball Elite",
+      "oracleId": "16414460-11ce-481d-ab54-6f0e0ea7d83d",
+      "scryfallId": "c8ff751a-ec64-41d5-b22c-2a483ad9a9b2",
+      "faceIndex": 0,
+      "typeLine": "Legendary Creature — Otter Wizard",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Draw a card, then discard a card."
+    },
+    {
+      "cardName": "Likeness Looter",
+      "oracleId": "e04560ea-f2bd-4cb7-8f65-3aa0dd58fbdf",
+      "scryfallId": "2957472a-825e-4904-b7e8-62bef1cb432d",
+      "faceIndex": 0,
+      "typeLine": "Creature — Faerie Shapeshifter",
+      "shape": "activated",
+      "decision": "guided",
+      "reasons": [],
+      "commandsCount": 1,
+      "text": "{T}: Draw a card, then discard a card."
     }
   ],
   "mappingFailuresTop": []

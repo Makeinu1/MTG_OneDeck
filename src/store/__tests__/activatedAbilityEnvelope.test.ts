@@ -353,6 +353,38 @@ describe('activated ability activation envelope', () => {
     });
   });
 
+  it('pays strict self-exile costs before putting the activated ability on the stack', () => {
+    const source = makeDef({
+      scryfallId: 'env-self-exile',
+      typeLine: 'Artifact',
+      faces: [
+        {
+          name: 'env-self-exile',
+          typeLine: 'Artifact',
+          oracleText: 'Exile this artifact: Draw a card.',
+        },
+      ],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 4);
+    const sourceId = findInstanceId('env-self-exile');
+    moveToBattlefield(sourceId);
+    store().clearWarnings();
+    const beforeObjectId = objectIdOf(store().state!.cards[sourceId]);
+
+    store().activateAbility(sourceId, 0);
+
+    const state = store().state!;
+    const ability = state.cards[state.zones.stack[0]];
+    expect(state.cards[sourceId].zone).toBe('exile');
+    expect(state.zones.exile).toContain(sourceId);
+    expect(state.zones.stack).toHaveLength(1);
+    expect(ability.activationEnvelope?.sourceRef).toMatchObject({
+      physicalCardId: sourceId,
+      objectId: beforeObjectId,
+    });
+  });
+
   it('keeps multiple nonmana costs atomic when one modeled component cannot be paid', () => {
     const source = makeDef({
       scryfallId: 'env-atomic-nonmana',

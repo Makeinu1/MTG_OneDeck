@@ -8,21 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-118-costs",
-      "note": "batch2-1(J1裁定 2026-07-04)。MyDeck 最大 demand=cost:activation 232/cost:tap 201/mana:write 150。§34.19 activation envelope・§34.11 mana catalog は出荷済ゆえ本スライスは catalog未写の転写=実デッキの起動コストイディオム({T}/{cost},Sacrifice 等)を §33 cost compiler カタログへ CR 根拠付きで写し、effect consumer まで end-to-end 接続。envelope 再オープンはしない。CR 602.2/605/118 正本。golden 候補: Mother of Runes/Sol Ring/Priest of Fell Rites。"
-    },
-    {
-      "type": "domain-slice",
-      "domainId": "cr-110-permanents",
-      "note": "batch2-2。tap-state:write 108(+隣接 cost:tap 201)= ETB tapped / put-onto-battlefield tapped / tap another permanent。§34.19 は cost tap・§34.13/14 は combat tap まで。permanent status write の leaf/substrate 境界を切る。CR 110.5/701.26a 正本。golden 候補: Bojuka Bog/Evolving Wilds/Relic of Legends。"
-    },
-    {
-      "type": "domain-slice",
-      "domainId": "cr-115-targets",
-      "note": "batch2-3。target:object-or-player 97。§34.19 activation-time target 保存を spell/trigger へ拡張し guided target filter/legality を CR 115 正本で leaf 化。golden 候補: Mother of Runes/Path to Exile/Skyclave Apparition。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-500-514-turn-structure",
       "note": "S-TURN 前半。stack 未解決時の turn 進行禁止(サンドボックス哲学の唯一の強制例外)+ cleanup surrogate を既存 UI 契約へ接続。CR 500/514 正本。"
     },
@@ -204,7 +189,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "shipped",
       "landingState": [
         "battlefield",
         "CardInstance",
@@ -212,9 +197,13 @@
         "counters",
         "attachedTo"
       ],
-      "boundary": "golden未定義。battlefield上のpermanent操作はあるが、CR 110 のpermanent分類と非permanent境界は未契約。",
-      "evidence": [],
-      "nextGate": "permanent type/subtype と attachment legality をCR 110/303/301/704へ接続する",
+      "boundary": "**tap/untap status write leaf 出荷**(batch2-2・2026-07-04・engine-spec §32.2/§33.6)= guided 単一対象 `Tap/Untap target ...` を既存 `effect.tap`/`effect.untap`→`setTapped` で解決(新コマンド型/新 state なし)。CR 701.26a(untapped のみ tap 可)/701.26b(tapped のみ untap 可)違反は hard-block せず warning のみ(サンドボックス哲学=強行可)。ETB tapped(`landEntersTapped`+`playLand`)は既存出荷。条件付き ETB・mass untap・put/return onto battlefield tapped・tapped token 生成・tap-as-cost は manual/defer。permanent 分類/非permanent 境界・attachment legality は未契約(別スライス)。",
+      "evidence": [
+        "src/store/__tests__/review.cr110-tap-status.test.ts",
+        "src/store/__tests__/cr110TapStatus.test.ts",
+        "docs/engine-spec.md §32.2"
+      ],
+      "nextGate": "put/return onto battlefield tapped は target/zone effect envelope 後。tapped token は token identity plumbing 後。permanent type/subtype と attachment legality を CR 110/303/301/704 へ接続するのは別スライス。",
       "judge": "deterministic-cr"
     },
     {
@@ -308,15 +297,20 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "shipped",
       "landingState": [
         "targetSelections",
         "targetFilters",
         "stack"
       ],
-      "boundary": "golden未定義。対象選択はcompiler/guided UIの主要入力だが、CR 115 legality と resolution時illegal target処理は未契約。",
-      "evidence": [],
-      "nextGate": "modal/target/optional compiler domain と同時に target envelope を凍結する",
+      "boundary": "**target candidate legality filter leaf 出荷**(batch2-3・2026-07-04・engine-spec §32.2 TargetFilter)= 単一 battlefield object 対象の合法候補を CR115.2/601.2c で絞る。`non<type>`→`excludedTypes`(正型に足さない)・`nontoken`→`excludeTokens`・`another/other target`→`excludeSource`・`you control`/`you don't control`/`an opponent controls`→`controller`。`eligibleTargets` を spell 解決・起動時両方に適用し、非合法候補選択は warning して確定させない(起動型は cost 未精算・stack 非搭載=atomicity 維持。Tier-1 独立監査でトレース確認)。値/複数/非戦場/`any target`/player 対象は honest manual。`controller:'opponent'`==`!=='P1'` は現行 2-entity PlayerId で完全(N-player 化は cr-player-specific-zones)。",
+      "evidence": [
+        "src/engine/__tests__/review.cr115-target-filter.test.ts",
+        "src/store/__tests__/review.cr115-target-legality.test.ts",
+        "src/store/__tests__/cr115TargetFilters.test.ts",
+        "docs/engine-spec.md §32.2"
+      ],
+      "nextGate": "spell cast-time target 保存・CR608.2b resolution 時 illegal target 完全処理・player/any target・非戦場 target・数値/値フィルタは modal/target/optional compiler domain と同時に凍結する。",
       "judge": "deterministic-cr"
     },
     {
@@ -355,19 +349,22 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "costPlan",
         "manaPayments",
         "commanderCastCount",
         "warnings"
       ],
-      "boundary": "commander tax は実行可能。追加コスト/代替コスト/可変コスト/支払いUIは一括自動化せず、sandbox warning + guided paymentで段階化。",
+      "boundary": "commander tax は実行可能。**§33 cost catalog slice 出荷**(batch2-1・2026-07-04・engine-spec §33.6)= 固定 `Pay N life` を CR118.1/118.3b/119.4 の決定的コストとして `adjustLife -N` へ auto 転写(新コマンド型なし)・strict self-exile(`Exile it`/`Exile this ...`/exact card name)を CR701.13a/400.7j で `moveCard(source,'exile')` へ auto。`Pay X life`(CR107.3a 値選択)・数/対象/他オブジェクト選択の exile・self-sac↔self-exile 競合は honest manual(auto 詐称なし)。§34.19 envelope は再オープンせず。Tier-1 独立監査(Sonnet)= auto over-claim 0・contract weakening 0。追加/代替/可変コストの支払いUIは sandbox warning + guided で段階化継続。",
       "evidence": [
         "cr-commander-tax-cast-not-return",
-        "src/engine/__tests__/review.grammar-cost.test.ts"
+        "src/engine/__tests__/review.grammar-cost.test.ts",
+        "src/engine/__tests__/cr118CostsCompiler.test.ts",
+        "docs/engine-spec.md §33.6",
+        "docs/acceptance.md G4-8"
       ],
-      "nextGate": "full CR601前に cost envelope と強行可能なpayment UIを契約化する",
+      "nextGate": "残る起動コストイディオム(counter 除去・可変X・複数種)は実デッキ需要が立った形だけ同型 leaf で追加。full CR601 の cost envelope と強行 payment UI は後続。",
       "judge": "deterministic-cr"
     },
     {

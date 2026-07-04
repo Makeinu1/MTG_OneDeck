@@ -26,6 +26,9 @@ export type PromptKind =
 
 export interface TargetFilter {
   types?: string[];
+  excludedTypes?: string[];
+  excludeTokens?: boolean;
+  excludeSource?: boolean;
   controller?: 'any' | 'you' | 'opponent';
 }
 
@@ -116,6 +119,7 @@ const NON_SELF_SACRIFICE_PREFIXES = new Set([
   'seven',
   'six',
   'ten',
+  'target',
   'three',
   'two',
 ]);
@@ -212,13 +216,18 @@ export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext
   if (cost.mana !== null && /\{X\}/i.test(cost.mana)) {
     reasons.add('variable-x');
   }
+  if (/\{X\}|\bX\b/.test(cost.raw)) {
+    reasons.add('variable-x');
+  }
   if (hasAbilityWordLabel(cost.raw)) {
     reasons.add('unmodeled-cost');
   }
 
-  const namedSacrifice = removeNamedSelfSacrificeElement(cost.raw, ctx.def.name);
-  let sacrificesSelf = namedSacrifice.found;
-  const residual = namedSacrifice.raw
+  const namedSelfCosts = removeNamedSelfZoneMoveElements(cost.raw, ctx.def.name);
+  let sacrificesSelf = namedSelfCosts.sacrificesSelf;
+  let exilesSelf = namedSelfCosts.exilesSelf;
+  const payLifeAmounts: number[] = [];
+  const residual = namedSelfCosts.raw
     .split(',')
     .map((part) => {
       const element = part.trim();
@@ -226,11 +235,23 @@ export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext
         sacrificesSelf = true;
         return '';
       }
+      if (isSelfExileCostElement(element, ctx.def.name)) {
+        exilesSelf = true;
+        return '';
+      }
+      const payLifeAmount = fixedPayLifeCostAmount(element);
+      if (payLifeAmount !== null) {
+        payLifeAmounts.push(payLifeAmount);
+        return '';
+      }
       return element.replace(/\{[^}]+\}/g, ' ');
     })
     .join(' ');
 
   if (/[A-Za-z]/.test(residual)) {
+    reasons.add('unmodeled-cost');
+  }
+  if (sacrificesSelf && exilesSelf) {
     reasons.add('unmodeled-cost');
   }
 
@@ -248,11 +269,22 @@ export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext
   if (cost.tap) {
     commands.push({ type: 'setTapped', cardId: ctx.sourceId, tapped: true });
   }
+  for (const amount of payLifeAmounts) {
+    commands.push({ type: 'adjustLife', delta: -amount });
+  }
   if (sacrificesSelf) {
     commands.push({
       type: 'moveCard',
       cardId: ctx.sourceId,
       to: 'graveyard',
+      position: 'top',
+    });
+  }
+  if (exilesSelf) {
+    commands.push({
+      type: 'moveCard',
+      cardId: ctx.sourceId,
+      to: 'exile',
       position: 'top',
     });
   }
@@ -300,6 +332,9 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     if (construct === 'construct.target' || construct === 'construct.choose-modal') {
       continue;
     }
+    if (construct === 'construct.you-control' && constructCapturedByGuidedTarget(construct, ir)) {
+      continue;
+    }
     const reason = reasonForManualConstruct(construct);
     if (reason) {
       reasons.add(reason);
@@ -331,6 +366,13 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     risk: decision === 'auto' ? 'low' : 'medium',
     reasons: sortedReasons,
   };
+}
+
+function constructCapturedByGuidedTarget(construct: string, ir: AbilityIR): boolean {
+  if (construct !== 'construct.you-control') {
+    return false;
+  }
+  return ir.effects.some((effect) => guidedTargetPrompt(effect)?.filter?.controller === 'you');
 }
 
 function reasonForManualConstruct(construct: string): ManualReason | null {
@@ -851,12 +893,22 @@ function targetFilterForRaw(raw: string): TargetFilter {
   const match = /\btarget\b([\s\S]*)/i.exec(raw);
   const afterTarget = match?.[1] ?? '';
   const nounPhrase = afterTarget
-    .split(/\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.,;]/i)[0]
+    .split(/\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.;]/i)[0]
     .toLowerCase();
   const types = TARGET_TYPES.filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(nounPhrase));
-  const filter: TargetFilter = { types };
+  const excludedTypes = TARGET_TYPES.filter((type) =>
+    new RegExp(`\\bnon[-\\s]?${type}\\b`, 'i').test(nounPhrase),
+  );
+  const filter: TargetFilter = {
+    types,
+    ...(excludedTypes.length > 0 ? { excludedTypes } : {}),
+    ...(/\bnontoken\b/i.test(nounPhrase) ? { excludeTokens: true } : {}),
+    ...(/\banother\s+target\b|\bother\s+target\b/i.test(raw) ? { excludeSource: true } : {}),
+  };
   if (/\byou control\b/i.test(raw)) {
     filter.controller = 'you';
+  } else if (/\byou (?:don['’]t|do not) control\b|\bopponents? controls?\b/i.test(raw)) {
+    filter.controller = 'opponent';
   }
   return filter;
 }
@@ -997,21 +1049,62 @@ function isSelfSacrificeCostElement(element: string, cardName: string): boolean 
   return selfNameAlternatives(cardName).some((name) => sameCardNameReference(object, name));
 }
 
-function removeNamedSelfSacrificeElement(
+function isSelfExileCostElement(element: string, cardName: string): boolean {
+  const normalized = element
+    .replace(/\s+/g, ' ')
+    .replace(/[.。]\s*$/, '')
+    .trim();
+  const match = /^Exile\s+(.+)$/i.exec(normalized);
+  if (!match) {
+    return false;
+  }
+
+  const object = match[1].trim();
+  const firstWord = object.split(/\s+/)[0]?.toLowerCase() ?? '';
+  if (/^\d+$/.test(firstWord) || NON_SELF_SACRIFICE_PREFIXES.has(firstWord)) {
+    return false;
+  }
+
+  if (/^(?:it|~)$/i.test(object)) {
+    return true;
+  }
+  if (isThisSelfReference(object)) {
+    return true;
+  }
+  return selfNameAlternatives(cardName).some((name) => sameCardNameReference(object, name));
+}
+
+function fixedPayLifeCostAmount(element: string): number | null {
+  const match = /^Pay\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+life$/i.exec(
+    element.replace(/\s+/g, ' ').replace(/[.。]\s*$/, '').trim(),
+  );
+  if (!match) {
+    return null;
+  }
+  return parseManaAmountToken(match[1]);
+}
+
+function removeNamedSelfZoneMoveElements(
   raw: string,
   cardName: string,
-): { raw: string; found: boolean } {
+): { raw: string; sacrificesSelf: boolean; exilesSelf: boolean } {
   let next = raw;
-  let found = false;
+  let sacrificesSelf = false;
+  let exilesSelf = false;
   for (const name of selfNameAlternatives(cardName)) {
-    const pattern = new RegExp(`(^|,)\\s*Sacrifice\\s+${escapeRegExp(name)}\\s*(?=,|$)`, 'gi');
-    next = next.replace(pattern, (match, separator: string) => {
-      void match;
-      found = true;
-      return separator;
-    });
+    for (const { verb, mark } of [
+      { verb: 'Sacrifice', mark: () => (sacrificesSelf = true) },
+      { verb: 'Exile', mark: () => (exilesSelf = true) },
+    ]) {
+      const pattern = new RegExp(`(^|,)\\s*${verb}\\s+${escapeRegExp(name)}\\s*(?=,|$)`, 'gi');
+      next = next.replace(pattern, (match, separator: string) => {
+        void match;
+        mark();
+        return separator;
+      });
+    }
   }
-  return { raw: next, found };
+  return { raw: next, sacrificesSelf, exilesSelf };
 }
 
 function isThisSelfReference(object: string): boolean {

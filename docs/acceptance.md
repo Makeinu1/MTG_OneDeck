@@ -499,8 +499,9 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G4-3 | 「{1}, {T}, Sacrifice this creature: Draw a card.」相当を起動 | 自己タップ+自己生け贄(墓地へ)+マナ支払いが精算され、能力スタックへ。解決でカード1枚(G2)。単一undo |
 | G4-4 | マナ源が不足する状態で G4-2 を起動 | サンドボックス哲学に従い警告ログを出しつつ強行(部分支払い)で能力はスタックへ。盤面はクラッシュしない |
 | G4-5 | `effects-auto-toggle` OFF / または当該カード `card-effects-auto-off` で G4-1 を起動 | 自動補助OFFでも「マナ能力はスタックを使わない」不変条件は破らない。実装が即解決できない場合は能力スタック化ではなく manual/warning とし、CR 605 に反する自動スタック追加をしない |
-| G4-6 | 「{X}, {T}: ...」「{T}, Pay 3 life: ...」「{T}, Sacrifice another creature: ...」「Coven — {1}{W}: ...」を起動(自動 ON) | コスト自動精算されず能力スタックのみ(manual)。warning でコスト手払いを促す。誤発火なし |
+| G4-6 | 「{X}, {T}: ...」「Pay X life: ...」「{T}, Sacrifice another creature: ...」「{T}, Exile seven cards from your graveyard: ...」「Coven — {1}{W}: ...」を起動(自動 ON) | 選択・変数・未モデル要素を含むコストは自動精算されず能力スタックのみ(manual)。warning でコスト手払いを促す。誤発火なし |
 | G4-7 | 全工程 | コスト精算は1スナップショット(単一 undo)。エンジン純粋性維持(新コマンド型なし)。コンソールエラー0件 |
+| G4-8 | 「{T}, Pay 3 life: ...」「{3}, {T}, Exile this land: ...」を起動(自動 ON) | 固定ライフ支払い/strict self-exile は既存コマンド(`adjustLife`/`moveCard -> exile`)で精算され、能力がスタックへ。`Pay X life` や選択を伴う exile は G4-6 の manual 境界に残る |
 
 ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
 S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。
