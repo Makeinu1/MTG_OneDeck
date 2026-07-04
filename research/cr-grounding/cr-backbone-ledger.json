@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-703-704-sba-turn-based",
-      "note": "S-TURN 後半。SBA スイートを event/turn substrate 上へ載せ替え。legend/attachment 系 SBA は choice/attachment 設計後という既存 boundary を維持(スコープ拡張しない)。CR 703/704 正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-701-keyword-actions-frequent",
       "note": "batch2-4。fetch composite=search(36)+shuffle(36)+put onto battlefield tapped の連鎖行(fetch land/ramp/tutor)。§32.9 の単発 search/shuffle leaf を合成し、tapped 着地は cr-110(batch2-2)の後。CR 701.23h/701.24b 正本。golden 候補: Evolving Wilds/Fabled Passage/Nature's Lore。"
     },
@@ -548,7 +543,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stabilizeBeforePriority",
         "pendingSbaChoices",
@@ -556,16 +551,19 @@
         "defeat",
         "eventLog"
       ],
-      "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はあるが、full SBA suite未実装。commander damage 903.10a は advisory-level 出荷済み(§34.16)、per-opponent-exact は defer。既知境界(LOW・Tier-1所見)= pendingRuleChoices 未解決中は defeat SBA 検出を次passへ deferする(advisory model では等価だが CR704.3 simultaneous とは非一致・golden未整備)。",
+      "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はある。**現況訂正**: legend rule(704.5j)は Q5 Phase 1(commit c6dcb7c・2026-06-30)で `pendingRuleChoices`(kind:'legend-rule')として既に実装済み(旧 nextGate の「legend系はchoice設計後」は陳腐化していた)。commander-zone(903.9a)と同じ substrate 上。**golden未整備gapを閉じた**(2026-07-05・engine-spec §34.20)= `review.cr703-704-sba-turn-based.test.ts` が「legend-rule choice pending 中は無関係な他SBA(704.5a等)も次passへdeferされ、選択解決後の次passで正しく検出される」を end-to-end pin(state消失/crashなし)。既知境界(LOW・実デッキ需要0)= この defer は CR704.3 の literal simultaneity とは非一致だが、pendingRuleChoices の複数同時グループ一般化は再設計しない(cr-903-9-commander-zone-choice 自身の future nextGate)。commander damage 903.10a は advisory-level 出荷済み(§34.16)、per-opponent-exact は defer。attachment 系 SBA(legend 以外・704.5m/n 等)は attachment 設計後。",
       "evidence": [
         "cr-token-dies-before-ceases",
         "cr-sba-copy-ceases-outside-stack",
         "cr-sba-zero-loyalty-planeswalker",
         "cr-sba-plus-minus-counter-annihilation",
         "cr-sba-defeat-life-zero-p1",
-        "cr-sba-defeat-commander-damage-threshold"
+        "cr-sba-defeat-commander-damage-threshold",
+        "src/store/__tests__/ruleChoices.test.ts cr-legend-rule-choice",
+        "src/store/__tests__/review.cr703-704-sba-turn-based.test.ts",
+        "docs/engine-spec.md §34.20"
       ],
-      "nextGate": "legend/attachment系 SBA はchoice/attachment設計後に回す。commander damage の per-opponent-exact は cr-player-specific-zones 後。",
+      "nextGate": "full SBA suite の未実装項(attachment系704.5m/n等)は attachment 設計後。pendingRuleChoices の複数同時SBAグループ一般化と commander damage の per-opponent-exact は cr-903-9-commander-zone-choice / cr-player-specific-zones 後。legend rule を未実装扱いに戻さない。",
       "judge": "deterministic-cr"
     },
     {
