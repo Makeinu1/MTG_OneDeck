@@ -2,6 +2,7 @@ import { classifyCardRules } from '../../src/data/ruleClassifier.ts';
 import type { CardDef } from '../../src/types/card';
 import {
   classifyCardEvents,
+  hasTriggerText,
   type EventFamily,
   type ObserverScope,
 } from './eventClassify.ts';
@@ -140,9 +141,15 @@ export interface ClassifierParityReport {
 }
 
 export function compareCardClassifiers(def: CardDef): CardClassifierParity {
-  const eventSummary = classifyCardEvents(def);
+  const hasTrigger = hasTriggerText(def);
+  const eventSummary = hasTrigger
+    ? classifyCardEvents(def)
+    : {
+        families: [],
+        observers: [],
+      };
   const eventFamilies = new Set(eventSummary.families);
-  const runtimeTagIds = classifyCardRules(def).map((tag) => tag.id);
+  const runtimeTagIds = hasTrigger ? classifyCardRules(def).map((tag) => tag.id) : [];
   const runtimeTags = new Set(runtimeTagIds);
   const comparisons = CLASSIFIER_PARITY_MAPPINGS.map((mapping) => {
     const eventPresent = eventFamilies.has(mapping.eventFamily);

@@ -1,4 +1,5 @@
-import { splitAbilityLines, type AbilityLine } from '../../src/engine/grammar/index.ts';
+import type { AbilityLine } from '../../src/engine/grammar/index.ts';
+import { cardOracleTexts, splitParagraphs } from '../../src/engine/keywordGrammar.ts';
 import type { CardDef } from '../../src/types/card';
 
 export type TriggerShape = 'at' | 'when' | 'whenever';
@@ -57,18 +58,35 @@ export const EVENT_FAMILIES: readonly EventFamily[] = [
   'other',
 ];
 
+const TRIGGER_TEXT_PROBE = /\b(?:Whenever|When|At the beginning of)\b/i;
+
+export function hasTriggerText(def: CardDef): boolean {
+  return cardOracleTexts(def).some((text) => TRIGGER_TEXT_PROBE.test(text));
+}
+
 export function classifyCardEvents(def: CardDef): CardEventSummary {
+  if (!hasTriggerText(def)) {
+    return {
+      families: [],
+      observers: [],
+      triggerShapes: [],
+      hasInterveningIf: false,
+    };
+  }
+
   const families = new Set<EventFamily>();
   const observers = new Set<ObserverScope>();
   const triggerShapes = new Set<TriggerShape>();
   let hasInterveningIf = false;
 
-  for (const line of splitAbilityLines(def)) {
-    for (const tag of classifyEventsForLine(line, def)) {
-      families.add(tag.family);
-      observers.add(tag.observer);
-      triggerShapes.add(tag.shape);
-      hasInterveningIf ||= tag.interveningIf;
+  for (const text of cardOracleTexts(def)) {
+    for (const paragraph of splitParagraphs(text)) {
+      for (const tag of classifyEventsForText(paragraph, def)) {
+        families.add(tag.family);
+        observers.add(tag.observer);
+        triggerShapes.add(tag.shape);
+        hasInterveningIf ||= tag.interveningIf;
+      }
     }
   }
 
@@ -81,7 +99,11 @@ export function classifyCardEvents(def: CardDef): CardEventSummary {
 }
 
 export function classifyEventsForLine(line: AbilityLine, def?: CardDef): EventTag[] {
-  return parseTriggerLines(line.text, def).flatMap((trigger) => {
+  return classifyEventsForText(line.text, def);
+}
+
+function classifyEventsForText(text: string, def?: CardDef): EventTag[] {
+  return parseTriggerLines(text, def).flatMap((trigger) => {
     const families = classifyFamilies(trigger.conditionText, trigger.shape);
     const observers = classifyObservers(trigger.conditionText, trigger.shape, def);
     return families.flatMap((family) =>
