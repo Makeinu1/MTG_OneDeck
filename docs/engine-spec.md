@@ -847,6 +847,9 @@ export function summarizeDeckRuleTags(entries: RuleDeckEntry[]): RuleDeckSummary
 - Enter キー(`onNextTurn`、`Playmat.tsx` `useShortcuts`)はスタック非空時 no-op。
 - **ArrowUp(M4.29)は不変**: スタック非空ならフェイズ進行ではなくトップ解決(`requestResolveTop`)にリダイレクトされる(従来挙動を維持)。
 
+### 17.3 cr-500-514-turn-structure(CR 500.2/500.3・S-TURN 前半)との関係
+本節のスタックブロックは CR 500.2/500.3(優先権のあるフェイズ/ステップはスタックが空かつ全員パスするまで終わらない)の UI 層モデル化そのもの。cleanup surrogate(CR 514.2・`clearMarkedDamage` を `end→untap`/`nextTurn` へ配線・§34.5 参照)がこのブロック下で部分実行されないことを含め、`src/store/__tests__/review.cr500-514-turn-structure.test.ts` が本節と§34.5 双方をまたいで end-to-end で reviewer-pin(2026-07-04)。
+
 ---
 
 ## 18. R下地/R1 バッチ適用ヘルパー(`src/engine/batch.ts`)— この節も契約である
@@ -2287,7 +2290,7 @@ interface CardInstance {
 
 **3. SBA(`performStateBasedActionsOnce`・既存 704.5f/i/d/e と同枠)**: 704.5g(effective toughness>0 かつ `damageMarked>=toughness` → owner's graveyard・`sbaApplied:'704.5g'`)・704.5h(effective toughness>0 かつ `hasDeathtouchDamage` かつ `damageMarked>=1` → owner's graveyard・`sbaApplied:'704.5h'`)。effective toughness は 704.5f と同一ヘルパ(counter 込み)=分岐なし。704.5f が toughness≤0 を専有するので 0-toughness は g/h 非該当=二重破壊なし。
 
-**4. cleanup 配線判断(§34.5)**: 現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。将来 standalone cleanup step は contract 不変のまま `clearMarkedDamage` を呼べばよい。
+**4. cleanup 配線判断(§34.5)**: 現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。将来 standalone cleanup step は contract 不変のまま `clearMarkedDamage` を呼べばよい。**2026-07-04: end-to-end reviewer-pin 追加**(`review.cr500-514-turn-structure.test.ts`)= 単発 `clearMarkedDamage` コマンドの pin(`review.damage-marked.test.ts`)に加え、実際の `nextPhase()`/`nextTurn()` store 呼び出しでダメージが消えること・中間フェイズ移行では消えないこと・スタック非空時は部分実行されないことを確認(cr-500-514-turn-structure ドメイン=§17.3 参照)。
 
 **5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-sba-lethal-damage-destroys-creature`(704.5g/120.6)・`cr-sba-sublethal-damage-survives`・`cr-sba-deathtouch-any-damage-destroys`(704.5h)・`cr-cleanup-clears-marked-damage`(514.2)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.damage-marked.test.ts`(**レビュー担当専有**=exactly-lethal/sublethal/deathtouch-by-flag/cleanup/負 clamp/0-toughness 単発破壊 の敵対 pin)。I3 不変条件に `damageMarked>=0` を追加(`review.properties`)。
 

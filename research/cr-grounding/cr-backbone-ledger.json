@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-500-514-turn-structure",
-      "note": "S-TURN 前半。stack 未解決時の turn 進行禁止(サンドボックス哲学の唯一の強制例外)+ cleanup surrogate を既存 UI 契約へ接続。CR 500/514 正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-703-704-sba-turn-based",
       "note": "S-TURN 後半。SBA スイートを event/turn substrate 上へ載せ替え。legend/attachment 系 SBA は choice/attachment 設計後という既存 boundary を維持(スコープ拡張しない)。CR 703/704 正本。"
     },
@@ -521,7 +516,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "turn",
         "phase",
@@ -530,13 +525,17 @@
         "damageMarked",
         "priorityBoundary"
       ],
-      "boundary": "combat slice と cleanup damage clear はあるが、全phase/step automation、cleanup extra loop、turn-based actions全体は未閉鎖。",
+      "boundary": "combat slice と cleanup damage clear はある。**S-TURN 前半 出荷**(2026-07-04・engine-spec §17.3/§34.5)= 両半分とも実装済で既存 §17(M6.2a)/§34.5 に契約化済だったが、cleanup surrogate(CR514.2)は単発 `clearMarkedDamage` コマンドの pin(review.damage-marked.test.ts)しかなく、実際の `nextPhase()`/`nextTurn()` store 呼び出しを end-to-end で確認する reviewer pin が欠けていた。`review.cr500-514-turn-structure.test.ts` を新規 authoring(4 tests)= end→untap 遷移でのクリア・中間フェイズでは非クリア・nextTurn() 経由のクリア・スタック非空時は部分実行されない(atomicity)、を確認。独立 adversarial review(Sonnet 別セッション)で CR500.2/500.3/514.1/514.2/514.3/514.3a 原文照合 + false-positive 検証 = 0 BLOCKER/HIGH。実装変更ゼロ(既存コードが正しく動作)。全phase/step automation・514.3a extra cleanup loop・turn-based actions全体・hand-size discard(514.1)は引き続き未閉鎖(スコープ外・§34.5 boundary (d) 明記済み)。",
       "evidence": [
         "cr-cleanup-clears-marked-damage",
         "cr-combat-unblocked-attacker-damages-defending-player",
-        "cr-combat-blocked-attacker-does-not-damage-player"
+        "cr-combat-blocked-attacker-does-not-damage-player",
+        "src/store/__tests__/review.m62stack.test.ts",
+        "src/store/__tests__/review.cr500-514-turn-structure.test.ts",
+        "docs/engine-spec.md §17.3 §34.5",
+        "docs/acceptance.md STG7"
       ],
-      "nextGate": "stack未解決時のturn進行禁止とcleanup surrogateを既存UI契約へ接続する",
+      "nextGate": "全phase/step automation・514.3a extra cleanup loop(pending SBA/trigger時の追加cleanupステップ)・hand-size discard(514.1)は実デッキ需要または cr-703-704-sba-turn-based(SBA後半)との統合時に再評価する。",
       "judge": "deterministic-cr"
     },
     {
