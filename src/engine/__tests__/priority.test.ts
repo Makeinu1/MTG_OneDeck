@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { advanceToPriority, apnapPlayerOrder, orderPendingTriggersApnap } from '../priority';
-import type {
-  CardInstance,
-  GameState,
-  PendingRuleChoice,
-  PendingTrigger,
-  PlayerId,
-  TriggerStackPlacementBucket,
-  ZoneId,
+import {
+  emptyPlayerPrivateZones,
+  playerPrivateZonesFromFlatZones,
+  type CardInstance,
+  type GameState,
+  type PendingRuleChoice,
+  type PendingTrigger,
+  type PlayerId,
+  type TriggerStackPlacementBucket,
+  type ZoneId,
 } from '../types';
 import { makeDef } from './helpers';
 
@@ -97,6 +99,10 @@ function stateWithPendingTriggers(
     defs,
     cards,
     zones,
+    zonesByPlayer: {
+      P1: playerPrivateZonesFromFlatZones(zones),
+      OPPONENT_A: emptyPlayerPrivateZones(),
+    },
     commanders: [],
     effectsAuto: true,
     activePlayerId: 'P1',

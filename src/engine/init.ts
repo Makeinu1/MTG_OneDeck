@@ -1,6 +1,15 @@
 import type { CardDef } from '../types/card';
 import { createRng, shuffledOrder } from './random';
-import type { CardInstance, CommanderInfo, GameState, LogEntry, ManaPool, ZoneId } from './types';
+import {
+  emptyPlayerPrivateZones,
+  playerPrivateZonesFromFlatZones,
+  type CardInstance,
+  type CommanderInfo,
+  type GameState,
+  type LogEntry,
+  type ManaPool,
+  type ZoneId,
+} from './types';
 
 export interface InitDeckCard {
   def: CardDef;
@@ -70,6 +79,10 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
 
   const rng = createRng(seed);
   zones.library = shuffledOrder(libraryIds, rng);
+  const zonesByPlayer = {
+    P1: playerPrivateZonesFromFlatZones(zones),
+    OPPONENT_A: emptyPlayerPrivateZones(),
+  };
 
   const log: LogEntry[] = [
     {
@@ -86,6 +99,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     defs,
     cards,
     zones,
+    zonesByPlayer,
     commanders,
     effectsAuto: true,
     activePlayerId: 'P1',

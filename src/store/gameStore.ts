@@ -36,27 +36,31 @@ import {
   type LibrarySearchFilter,
 } from '../engine/grammar/compile';
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
-import type {
-  CardInstance,
-  ActivationCostComponent,
-  ActivationEnvelope,
-  ActivationPaymentMode,
-  ActivationSourceRef,
-  DefeatAdvisoryRecord,
-  DefeatPlayerRef,
-  DefeatReason,
-  DefeatRuleRef,
-  GameState,
-  LinkedExileRecord,
-  PendingRuleChoice,
-  PendingSbaChoice,
-  PendingTrigger,
-  PlayerId,
-  RuleChoiceSelection,
-  TargetSelection,
-  TriggerStackPlacementBucket,
-  ZoneChangeEvent,
-  ZoneId,
+import {
+  emptyPlayerPrivateZones,
+  playerPrivateZonesFromFlatZones,
+  syncP1ZonesByPlayerFromFlatZones,
+  type CardInstance,
+  type ActivationCostComponent,
+  type ActivationEnvelope,
+  type ActivationPaymentMode,
+  type ActivationSourceRef,
+  type DefeatAdvisoryRecord,
+  type DefeatPlayerRef,
+  type DefeatReason,
+  type DefeatRuleRef,
+  type GameState,
+  type LinkedExileRecord,
+  type PendingRuleChoice,
+  type PendingSbaChoice,
+  type PendingTrigger,
+  type PlayerPrivateZones,
+  type PlayerId,
+  type RuleChoiceSelection,
+  type TargetSelection,
+  type TriggerStackPlacementBucket,
+  type ZoneChangeEvent,
+  type ZoneId,
 } from '../engine/types';
 import {
   abilityLineIndexForKind,
@@ -156,6 +160,36 @@ function normalizeSnapshotZones(
   const out = {} as Record<ZoneId, string[]>;
   for (const zone of ALL_ZONES) out[zone] = zones[zone] ?? [];
   return out;
+}
+
+function normalizePlayerPrivateZones(value: unknown): PlayerPrivateZones {
+  const rawZones = unknownRecord(value);
+  const library = rawZones?.library;
+  const hand = rawZones?.hand;
+  const graveyard = rawZones?.graveyard;
+  return {
+    library: isStringArray(library) ? library.slice() : [],
+    hand: isStringArray(hand) ? hand.slice() : [],
+    graveyard: isStringArray(graveyard) ? graveyard.slice() : [],
+  };
+}
+
+function normalizeZonesByPlayer(
+  value: unknown,
+  flatZones: Record<ZoneId, string[]>,
+): GameState['zonesByPlayer'] {
+  const rawZonesByPlayer = unknownRecord(value);
+  if (!rawZonesByPlayer) {
+    return {
+      P1: playerPrivateZonesFromFlatZones(flatZones),
+      OPPONENT_A: emptyPlayerPrivateZones(),
+    };
+  }
+
+  return {
+    P1: normalizePlayerPrivateZones(rawZonesByPlayer.P1),
+    OPPONENT_A: normalizePlayerPrivateZones(rawZonesByPlayer.OPPONENT_A),
+  };
 }
 
 function normalizePerTurnCounter(value: unknown): number {
@@ -380,6 +414,8 @@ function normalizeLinkedExiles(value: unknown): GameState['linkedExiles'] {
 
 function normalizeSnapshotState(state: GameState): GameState {
   const snapshot = state as Partial<GameState>;
+  const zones = normalizeSnapshotZones(snapshot.zones ?? {});
+  const zonesByPlayer = normalizeZonesByPlayer(snapshot.zonesByPlayer, zones);
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
         const controllerId =
@@ -399,13 +435,14 @@ function normalizeSnapshotState(state: GameState): GameState {
       })
     : [];
 
-  return {
+  return syncP1ZonesByPlayerFromFlatZones({
     ...state,
     effectsAuto: typeof state.effectsAuto === 'boolean' ? state.effectsAuto : true,
     activePlayerId: state.activePlayerId ?? 'P1',
     combat: normalizeSnapshotCombat(state),
     cards: normalizeSnapshotCards(state.cards),
-    zones: normalizeSnapshotZones(state.zones),
+    zones,
+    zonesByPlayer,
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
     eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
@@ -417,7 +454,7 @@ function normalizeSnapshotState(state: GameState): GameState {
     pendingRuleChoices: normalizePendingRuleChoices(state),
     pendingSbaChoices: [],
     linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
-  };
+  });
 }
 
 function appendPendingTriggers(

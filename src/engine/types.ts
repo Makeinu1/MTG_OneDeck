@@ -9,6 +9,8 @@ export type ZoneId =
   | 'command'
   | 'stack';
 
+export type PrivateZoneId = 'library' | 'hand' | 'graveyard';
+
 export type AbilityKind = 'activated' | 'triggered';
 
 export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end';
@@ -58,6 +60,16 @@ export function objectIdOf(card: Pick<CardInstance, 'id' | 'zoneChangeCounter'>)
 }
 
 export type PlayerId = 'P1' | 'OPPONENT_A';
+export const PLAYER_IDS: readonly PlayerId[] = ['P1', 'OPPONENT_A'];
+export const PRIVATE_ZONE_IDS: readonly PrivateZoneId[] = ['library', 'hand', 'graveyard'];
+
+export interface PlayerPrivateZones {
+  library: string[];
+  hand: string[];
+  graveyard: string[];
+}
+
+export type ZonesByPlayer = Record<PlayerId, PlayerPrivateZones>;
 export type PhysicalCardId = string;
 export type ObjectId = string;
 
@@ -465,6 +477,7 @@ export interface GameState {
   defs: Record<string, CardDef>; // defId -> CardDef(ゲーム中不変、トークンdef追加のみ)
   cards: Record<string, CardInstance>;
   zones: Record<ZoneId, string[]>; // 順序付き。library[0] = ライブラリの一番上
+  zonesByPlayer: ZonesByPlayer;
   commanders: CommanderInfo[]; // 1〜2体(共闘)
   effectsAuto: boolean;
   activePlayerId: PlayerId;
@@ -490,4 +503,57 @@ export interface GameState {
   pendingSbaChoices: PendingSbaChoice[];
   linkedExiles: Record<string, LinkedExileRecord>;
   log: LogEntry[];
+}
+
+export function emptyPlayerPrivateZones(): PlayerPrivateZones {
+  return { library: [], hand: [], graveyard: [] };
+}
+
+export function clonePlayerPrivateZones(
+  zones: Partial<PlayerPrivateZones> | undefined,
+): PlayerPrivateZones {
+  return {
+    library: zones?.library?.slice() ?? [],
+    hand: zones?.hand?.slice() ?? [],
+    graveyard: zones?.graveyard?.slice() ?? [],
+  };
+}
+
+export function cloneZonesByPlayer(
+  zonesByPlayer: Partial<Record<PlayerId, Partial<PlayerPrivateZones>>> | undefined,
+): ZonesByPlayer {
+  return {
+    P1: clonePlayerPrivateZones(zonesByPlayer?.P1),
+    OPPONENT_A: clonePlayerPrivateZones(zonesByPlayer?.OPPONENT_A),
+  };
+}
+
+export function playerPrivateZonesFromFlatZones(
+  zones: Pick<Record<ZoneId, string[]>, PrivateZoneId>,
+): PlayerPrivateZones {
+  return {
+    library: zones.library.slice(),
+    hand: zones.hand.slice(),
+    graveyard: zones.graveyard.slice(),
+  };
+}
+
+export function zonesByPlayerWithP1Mirror(
+  zonesByPlayer: Partial<Record<PlayerId, Partial<PlayerPrivateZones>>> | undefined,
+  zones: Pick<Record<ZoneId, string[]>, PrivateZoneId>,
+): ZonesByPlayer {
+  return {
+    ...cloneZonesByPlayer(zonesByPlayer),
+    P1: playerPrivateZonesFromFlatZones(zones),
+  };
+}
+
+export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {
+  return {
+    ...state,
+    zonesByPlayer: zonesByPlayerWithP1Mirror(
+      (state as Partial<GameState>).zonesByPlayer,
+      state.zones,
+    ),
+  };
 }

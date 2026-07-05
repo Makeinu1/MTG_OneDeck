@@ -50,7 +50,12 @@ import type {
   ZoneChangeReason,
   ZoneId,
 } from './types';
-import { objectIdOf, PHASE_ORDER } from './types';
+import {
+  cloneZonesByPlayer,
+  objectIdOf,
+  PHASE_ORDER,
+  syncP1ZonesByPlayerFromFlatZones,
+} from './types';
 
 export type GameCommand =
   | {
@@ -277,6 +282,7 @@ function makeDraft(state: GameState): Draft {
       combat: cloneCombatState(state.combat),
       cards: { ...state.cards },
       zones: { ...state.zones },
+      zonesByPlayer: cloneZonesByPlayer((state as Partial<GameState>).zonesByPlayer),
       manaPool: { ...state.manaPool },
       commanders: state.commanders,
       commanderDamage: { ...state.commanderDamage },
@@ -1743,7 +1749,7 @@ function stabilizeBeforePriority(draft: Draft): void {
 export function performStateBasedActions(state: GameState): ApplyResult {
   const draft = makeDraft(state);
   stabilizeBeforePriority(draft);
-  return { state: draft.state, warnings: draft.warnings };
+  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
 }
 
 function clearPool(draft: Draft, reason: string | null): void {
@@ -3676,7 +3682,7 @@ export function returnLinkedExileToBattlefield(state: GameState, linkId: string)
   const draft = makeDraft(state);
   returnTemporaryLinkedExileInDraft(draft, linkId);
   stabilizeBeforePriority(draft);
-  return { state: draft.state, warnings: draft.warnings };
+  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
 }
 
 export function consumeLinkedExileForSource(
@@ -3688,13 +3694,13 @@ export function consumeLinkedExileForSource(
   const record = draft.state.linkedExiles[linkId];
   if (!record) {
     draft.warnings.push(`linked exile record が存在しません: ${linkId}`);
-    return { state: draft.state, warnings: draft.warnings };
+    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
   }
   if (record.purpose !== 'exiled-with-source') {
     draft.warnings.push(
       `exiled-with-source ではない linked exile record は消費できません: ${linkId}`,
     );
-    return { state: draft.state, warnings: draft.warnings };
+    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
   }
 
   const source = draft.state.cards[sourcePhysicalId];
@@ -3705,11 +3711,11 @@ export function consumeLinkedExileForSource(
     objectIdOf(source) === record.sourceObjectId;
   if (!sourceMatches) {
     draft.warnings.push(`linked exile の source object が一致しません: ${linkId}`);
-    return { state: draft.state, warnings: draft.warnings };
+    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
   }
 
   deleteLinkedExileRecord(draft, linkId);
-  return { state: draft.state, warnings: draft.warnings };
+  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -4013,5 +4019,5 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
   }
 
   stabilizeBeforePriority(draft);
-  return { state: draft.state, warnings: draft.warnings };
+  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
 }
