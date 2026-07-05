@@ -9,7 +9,7 @@
     {
       "type": "domain-slice",
       "domainId": "cr-400-408-zones-lki",
-      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。**design-lock 済**(2026-07-05・J2 Opus・engine-spec §34.21・設計正本 research/cr-grounding/cr-400-408-linked-exile.draft.md)。**本エントリは以後 IMPLEMENT を指す**: linkedExiles:Record substrate を moveCard optional payload 拡張 + store orchestration で実装(新 GameCommand 型なし=J2 裁定)。実装着手前に判定点B(delayed-trigger の end-step スケジュール可否)を Explore で裏取りし、不可なら same-resolution blink のみに絞る。snapshot fwd-compat 必須。CR 400.7/607.2a/603.10a/608.2h。golden 候補: Path to Exile(no-record)/Skyclave Apparition(exiled-with-source)/Thassa Deep-Dwelling(temporary-return)。"
+      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。**design-lock 済**(2026-07-05・J2 Opus・engine-spec §34.21・設計正本 research/cr-grounding/cr-400-408-linked-exile.draft.md)。**判定点B 解決済**(2026-07-05・J3・Explore裏取り=`'delayed-triggered'`は文法分類labelのみ・真のturn/phaseスケジューリングprimitiveは現状ゼロ)= 本スライスの temporary-return は **same-resolution のみ**(Thassa型=自身のend-step triggerの単一解決内でexile→returnが完結するため対象に含む。真に defer するのは別解決が新規に未来turn/phaseへdelayed returnを生成するパターンのみ=turn-phase scheduler導入スライスへ)。**本エントリは以後 IMPLEMENT を指す**: linkedExiles:Record substrate を moveCard optional payload 拡張 + store orchestration で実装(新 GameCommand 型なし=J2 裁定)。snapshot fwd-compat 必須。CR 400.7/607.2a/603.10a/608.2h。golden 候補: Path to Exile(no-record)/Skyclave Apparition(exiled-with-source)/Thassa Deep-Dwelling(temporary-return・same-resolution)。"
     },
     {
       "type": "domain-slice",
@@ -491,7 +491,7 @@
         "docs/engine-spec.md §34.21",
         "research/cr-grounding/cr-400-408-linked-exile.draft.md"
       ],
-      "nextGate": "linked-exile 実装スライス(batch2-5)= §34.21 の凍結設計を moveCard payload 拡張 + store orchestration で実装し I-linked-exile-* を review.* で pin。判定点B(delayed-trigger end-step)を Explore 裏取り後に着手。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。",
+      "nextGate": "linked-exile 実装スライス(batch2-5)= §34.21 の凍結設計(判定点B解決済=same-resolution temporary-return のみ)を moveCard payload 拡張 + store orchestration で実装し I-linked-exile-* を review.* で pin。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。",
       "judge": "deterministic-cr"
     },
     {
