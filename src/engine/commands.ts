@@ -150,6 +150,17 @@ export type GameCommand =
       producedMana?: ManaColor[];
       tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
     }
+  | {
+      type: 'createDefinedToken';
+      name: string;
+      typeLine: string;
+      power?: string;
+      toughness?: string;
+      quantity: number;
+      createdBy?: PlayerId;
+      initialTapped?: boolean;
+      tokenKind?: CardDef['tokenKind'];
+    }
   | { type: 'nextPhase'; drawnHandled?: boolean }
   | { type: 'nextTurn' }
   | { type: 'mulligan'; order: string[] };
@@ -3163,6 +3174,10 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       );
       break;
     }
+    case 'createDefinedToken': {
+      applyCreateDefinedToken(draft, cmd);
+      break;
+    }
     default:
       break;
   }
@@ -3463,6 +3478,30 @@ function nextTokenDefId(state: GameState): string {
   return `token:${max + 1}`;
 }
 
+type CreateDefinedTokenCommand = Extract<GameCommand, { type: 'createDefinedToken' }>;
+
+interface CreateTokenOptions {
+  createdBy?: PlayerId;
+  initialTapped?: boolean;
+}
+
+function applyCreateDefinedToken(draft: Draft, cmd: CreateDefinedTokenCommand): void {
+  applyCreateToken(
+    draft,
+    cmd.name,
+    cmd.typeLine,
+    cmd.power,
+    cmd.toughness,
+    cmd.quantity,
+    undefined,
+    cmd.tokenKind,
+    {
+      createdBy: cmd.createdBy,
+      initialTapped: cmd.initialTapped,
+    },
+  );
+}
+
 function applyCreateToken(
   draft: Draft,
   name: string,
@@ -3472,9 +3511,12 @@ function applyCreateToken(
   quantity: number,
   producedMana: ManaColor[] | undefined,
   tokenKind: CardDef['tokenKind'],
+  options: CreateTokenOptions = {},
 ): void {
   const qty = Math.max(0, Math.floor(quantity));
   if (qty === 0) return;
+  const ownerController = options.createdBy ?? 'P1';
+  const initialTapped = options.initialTapped ?? false;
 
   const defId = nextTokenDefId(draft.state);
   const def: CardDef = {
@@ -3508,10 +3550,10 @@ function applyCreateToken(
       id,
       defId,
       zone: 'battlefield',
-      ownerId: 'P1',
-      controllerId: 'P1',
+      ownerId: ownerController,
+      controllerId: ownerController,
       zoneChangeCounter: 0,
-      tapped: false,
+      tapped: initialTapped,
       faceIndex: 0,
       faceDown: false,
       counters: {},
@@ -3897,6 +3939,10 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.producedMana,
         cmd.tokenKind,
       );
+      break;
+    }
+    case 'createDefinedToken': {
+      applyCreateDefinedToken(draft, cmd);
       break;
     }
     case 'nextPhase': {

@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-111-tokens",
-      "note": "batch2-7。token:create 32 の残=tapped token/custom creature token/copy token。predefined leaf(§32.8)出荷済。既存 token substrate 上で auto/guided/manual に正直分類。CR 111.10/701.7 正本。golden 候補: Liliana, Dreadhorde General/Ragavan。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-400-408-zones-lki",
       "note": "batch2-8。action:return 31=reanimation/blink/fetch result(graveyard→battlefield/hand)。owner routing と tapped/attacking modifiers は §34.17/cr-110 依存ゆえ単純形から。Muldrotha デッキの主需要。CR 400.6/400.7 正本。golden 候補: Karmic Guide/Sun Titan/Priest of Fell Rites。"
     },
@@ -200,13 +195,16 @@
         "ObjectSnapshot",
         "createToken compiler"
       ],
-      "boundary": "token death before cease 実行可能 + **predefined token leaf 出荷**(2026-07-04・engine-spec §32.8)= 固定数 Clue/Food/Blood(111.10f/b/g)を auto で createToken emit・Treasure は共有 helper 化。可変数/複数種混在は manual。Gold/Map/Role 等の他 subtype と Investigate alias は deferred-by-demand。",
+      "boundary": "token death before cease 実行可能 + **predefined token leaf 出荷**(2026-07-04・engine-spec §32.8)= 固定数 Clue/Food/Blood(111.10f/b/g)を auto で createToken emit・Treasure は共有 helper 化。可変数/複数種混在は manual。Gold/Map/Role 等の他 subtype と Investigate alias は deferred-by-demand。**custom creature token leaf 出荷**(batch2-7・2026-07-05・engine-spec §34.23)= 新コマンド `createDefinedToken`(既存 createToken は無変更)。fixed-count/fixed-P-T/単色/no-ability-text の custom creature token を auto(golden=Liliana/Tormod・tapped/untapped両方)。owner/controller は `createdBy` から同時設定(CR111.2)。ability-text/variable-count/modal/複数種類混在/**copy token(CR707・完全K0 defer)**は honest manual。Tier-1独立監査でHIGH(複数色token文が破損typeLineでauto詐称)発見→判定者が数行の外科修正でfail-closed化。",
       "evidence": [
         "cr-token-dies-before-ceases",
         "src/store/__tests__/review.leaf-discard-token.test.ts",
-        "docs/engine-spec.md §32.8"
+        "docs/engine-spec.md §32.8",
+        "src/engine/__tests__/review.cr111-tokens.test.ts",
+        "src/engine/__tests__/cr111DefinedToken.test.ts",
+        "docs/engine-spec.md §34.23"
       ],
-      "nextGate": "他 predefined subtype は実デッキ需要が出た kind だけ個別追加。Role duplicate SBA は attachment/timestamp 後。",
+      "nextGate": "他 predefined subtype は実デッキ需要が出た kind だけ個別追加。Role duplicate SBA は attachment/timestamp 後。copy token(CR707)は copiable-values/layers 設計スライスが立った時に再評価。",
       "judge": "deterministic-cr"
     },
     {

@@ -124,6 +124,15 @@ interface PredefinedTokenSpec {
   producedMana?: readonly ManaColor[];
 }
 
+interface DefinedCreatureTokenSpec {
+  name: string;
+  typeLine: string;
+  power: string;
+  toughness: string;
+  quantity: number;
+  initialTapped: boolean;
+}
+
 const NON_SELF_SACRIFICE_PREFIXES = new Set([
   'a',
   'all',
@@ -522,6 +531,10 @@ function compileEffect(
     reasons.add('optional');
   }
 
+  if (effect.atom === 'effect.tap' && isDefinedTappedTokenCreation(effect.raw)) {
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
   if (COUNT_DRIVEN_AUTO_ATOMS.has(effect.atom)) {
     const count = resolveCount(effect.count);
     if (count === null) {
@@ -556,7 +569,14 @@ function compileEffect(
     } else if (tokenKind && count === null) {
       reasons.add('variable-count');
     } else if (!clauseHasTreasure) {
-      reasons.add('needs-parse');
+      const definedCommand = definedCreatureTokenCommand(effect.raw);
+      if (definedCommand) {
+        commands.push(definedCommand);
+      } else if (count === null) {
+        reasons.add('variable-count');
+      } else {
+        reasons.add('needs-parse');
+      }
     }
     return { commands, prompts, reasons: [...reasons] };
   }
@@ -763,6 +783,86 @@ function predefinedTokenCommand(
     ...(spec.producedMana ? { producedMana: spec.producedMana.slice() } : {}),
     tokenKind: spec.tokenKind,
   };
+}
+
+function definedCreatureTokenCommand(raw: string): GameCommand | null {
+  const spec = parseDefinedCreatureTokenSpec(raw);
+  if (!spec) {
+    return null;
+  }
+  return {
+    type: 'createDefinedToken',
+    name: spec.name,
+    typeLine: spec.typeLine,
+    power: spec.power,
+    toughness: spec.toughness,
+    quantity: spec.quantity,
+    initialTapped: spec.initialTapped,
+  };
+}
+
+function parseDefinedCreatureTokenSpec(raw: string): DefinedCreatureTokenSpec | null {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '.')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const match =
+    /^create\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(tapped\s+)?(\d+)\/(\d+)\s+(?:white|blue|black|red|green|colorless)\s+([A-Za-z][A-Za-z' -]*(?:\s+[A-Za-z][A-Za-z' -]*)*)\s+creature\s+tokens?(?:\s+named\s+([^".]+))?\.?$/i.exec(
+      normalized,
+    );
+  if (!match) {
+    return null;
+  }
+
+  const quantity = parseFixedTokenQuantity(match[1]);
+  if (quantity === null) {
+    return null;
+  }
+
+  const subtypes = normalizeDefinedTokenText(match[5]);
+  if (subtypes === '' || subtypeCapturesLeakedColorWord(subtypes)) {
+    // A second (or "and"-joined) color word leaking into the subtype capture means the
+    // clause has more than one color (e.g. "black and green Zombie"), which this fixed
+    // single-color grammar does not model. Fail closed to manual rather than emit a
+    // corrupted typeLine/name at `auto` confidence.
+    return null;
+  }
+
+  const explicitName = match[6]?.trim();
+  const name = explicitName ? normalizeDefinedTokenText(explicitName) : `${subtypes} Token`;
+  return {
+    name,
+    typeLine: `Token Creature — ${subtypes}`,
+    power: match[3],
+    toughness: match[4],
+    quantity,
+    initialTapped: match[2] !== undefined,
+  };
+}
+
+const DEFINED_TOKEN_COLOR_WORDS = new Set(['white', 'blue', 'black', 'red', 'green', 'colorless']);
+
+function subtypeCapturesLeakedColorWord(subtypes: string): boolean {
+  return subtypes
+    .toLowerCase()
+    .split(/\s+/)
+    .some((word) => DEFINED_TOKEN_COLOR_WORDS.has(word));
+}
+
+function isDefinedTappedTokenCreation(raw: string): boolean {
+  return parseDefinedCreatureTokenSpec(raw)?.initialTapped === true;
+}
+
+function parseFixedTokenQuantity(raw: string): number | null {
+  const normalized = raw.toLowerCase();
+  const quantity = /^\d+$/.test(normalized)
+    ? Number.parseInt(normalized, 10)
+    : MANA_AMOUNT_WORDS.get(normalized);
+  return quantity !== undefined && quantity > 0 ? quantity : null;
+}
+
+function normalizeDefinedTokenText(raw: string): string {
+  return raw.replace(/\s+/g, ' ').trim();
 }
 
 function hasSupportedPlayerSubject(effect: EffectClause): boolean {

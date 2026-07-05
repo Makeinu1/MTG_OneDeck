@@ -2516,3 +2516,19 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で発見・修正した MEDIUM + 残余note**: `targetCardId`/`targetPlayerId` の相互排他は当初 TypeScript の `?: never` のみで保証され、ランタイムでは `targetCardId` 優先の分岐が無条件実行されるため、両方が同時に設定された不正な command は `targetPlayerId` を無言で無視していた(エラーなし)。同種の問題として、planeswalker 対象も明示的な拒否が無く creature と同じ marked-damage 経路に暗黙で落ちていた(CR120.3c 対象外のはずが誤ってマークされる)。判定者が数行の外科的修正(両方設定時の明示 `EngineError`・planeswalker target の明示 `EngineError`)を適用し、review.* で両ケースを pin。他の全adversarial項目(CR120.8 zero/negative・player/creature 経路・`markDamage`/combat 非regression・purity/determinism・event ref 正確性)は独立監査で無欠陥確認。受け入れ=`review.cr120-damage.test.ts`(レビュー専有・7 pin)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: prevention/replacement/redirection(CR120.4a/b・614/615)・infect/wither/toxic/lifelink の数値効果・planeswalker/battle damage(忠誠除去の実装自体)・each-player/multi-target damage・variable/X damage・commander damage 自動帰属(既存 advisory-level のまま)。
+
+### 34.23 cr-111-tokens: custom creature token leaf(`createDefinedToken`)(CR 110.5/111.2/111.3/111.4)— この節も契約である
+
+**位置づけ**: cr-111-tokens batch2-7。既存 §32.8(predefined token leaf。固定数 Clue/Food/Blood/Treasure を既存 pinned `createToken` で auto emit)は出荷済み。本節はその残り=token:create 残32件のうち tapped token/custom creature token を埋める。**copy token(CR707)は完全 defer**(Option K0・判定者裁定)——MyDeck 実測の copy token 行は全件が最小 guided subset でも manual 落ちするため(target/exception/delayed cleanup/LKI 等)、実装しても実デッキ demand を1件も拾わない。設計正本=`research/cr-grounding/archive/cr-111-tokens/cr-111-tokens-batch2-7.draft.md`(Codex 起草・J3 Sonnet が CR 照合しT1+C1統合・K0 defer を裁定)。
+
+**CR 根拠**: 110.5/110.5a/110.5b(tapped/untapped は status であり characteristic でない。効果が明示すれば既定 untapped を上書きできる)・111.2(token を作ったプレイヤーが owner・その支配下で戦場に入る)・111.3(生成する spell/ability が特性を定義でき、定義された値のみが copiable values=**定義されなかった特性〈ability text 含む〉を token は持たない**=ability text 付き token をability無しで生成することは許されない)・111.4(名前未指定なら subtype(s)+"Token")・701.7a(token生成=指定特性で指定数を戦場に置く)。
+
+**凍結挙動**:
+- 新コマンド `createDefinedToken`(既存 pinned `createToken` は無変更・拡張なし=§32.9/§34.19/§34.21/§34.22 と同じ command-surface discipline): `name`・`typeLine`・`power?`・`toughness?`・`quantity`・`createdBy?: PlayerId`(既定 P1)・`initialTapped?: boolean`(既定 false)・`tokenKind?`。owner/controller は `createdBy` から同時に設定(CR111.2、独立に設定しない)。
+- compiler leaf: **fixed-count・fixed-P/T・単色・no-ability-text・no-target・no-modal** の custom creature token 生成文のみ `auto`。golden= Liliana, Dreadhorde General(「Create a 2/2 black Zombie creature token.」→ auto・untapped)・Tormod, the Desecrator(「Create a tapped 2/2 black Zombie creature token.」→ auto・tapped、CR110.5b の既定上書き)。
+- **manual に残すもの(honest)**: ability text/keyword 付き token(CR111.3=定義されない特性の欠落を防ぐ)・variable count(X/for-each/die roll)・modal choice・複数種類 token 混在・copy token 全般・tapped-and-attacking。
+- 既存 predefined token leaf(§32.8・Treasure/Clue/Food/Blood)は本スライスの対象外・無変更。Ragavan の Treasure 生成部分は既存 `createToken` 経路のまま。
+
+**Tier-1 監査で発見・修正した HIGH**: 単色前提の正規表現が「black **and** green Zombie」のような複数色 token 文で、2色目の色語と接続詞 "and" が汎用 subtype capture group に飲み込まれ、`typeLine: 'Token Creature — and green Zombie'` という**破損した結果を `auto`・confidence 0.95 で返していた**(スコープ外構文が fail-open=最高信頼度バケットで誤った結果を騙る)。判定者が数行の外科的修正(subtype capture 内に既知の色語が残っていたら parse 失敗として `null` を返し manual へ fail closed)を適用し、review.* で pin。他の全adversarial項目(ability-text/variable-count/copy-token/複数種類混在の非leak・"tapped"語 suppression の leaf-local性・owner/controller同時設定・`createToken`/`copyPermanent` 非regression・purity/determinism・snapshot forward-compat 不要)は独立監査で無欠陥確認。token color(CR文脈での色 characteristic)は state に保持されないが、現行 engine に色依存ロジックが無いため無害と確認(protection/color-filter targeting 実装時に再検討)。受け入れ=`review.cr111-tokens.test.ts`(レビュー専有・8 pin)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: copy token(CR707・完全defer=Option K0)・ability text/keyword付きtoken・variable/X count・modal token生成・複数種類token混在・他プレイヤー作成token(`createdBy` 明示未対応の推論)・tapped-and-attacking・token color characteristic の保持。
