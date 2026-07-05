@@ -109,6 +109,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     pendingTriggers: [],
     pendingRuleChoices: [],
     pendingSbaChoices: [],
+    linkedExiles: {},
     log,
   };
 }

@@ -1,12 +1,14 @@
 import type { CardDef, ManaColor } from '../../types/card';
 import type { GameCommand } from '../commands';
-import type { TargetSelectionKind } from '../types';
+import type { LinkedExilePurpose, TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
 
 export interface CompileContext {
   sourceId: string;
   def: CardDef;
+  sourceObjectId?: string;
+  abilityLineIndex?: number;
   commanderColorIdentity?: readonly ManaColor[];
   libraryShuffleOrder?: readonly string[];
   allowLibrarySearchComposite?: boolean;
@@ -61,6 +63,7 @@ export interface EffectPrompt {
   librarySearch?: LibrarySearchSpec;
   options?: ModalOption[];
   manaOptions?: ManaColor[];
+  linkedExile?: { purpose: LinkedExilePurpose };
   raw: string;
 }
 
@@ -363,6 +366,18 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     }
   }
 
+  const temporaryReturnPrompt = guidedTemporaryReturnPrompt(ir);
+  if (temporaryReturnPrompt) {
+    return {
+      commands: [],
+      decision: 'guided',
+      prompts: [temporaryReturnPrompt],
+      confidence: 0.75,
+      risk: 'medium',
+      reasons: [],
+    };
+  }
+
   if (ir.constructs.includes('construct.choose-modal')) {
     reasons.add('needs-choice');
   }
@@ -411,6 +426,69 @@ function constructCapturedByGuidedTarget(construct: string, ir: AbilityIR): bool
     return false;
   }
   return ir.effects.some((effect) => guidedTargetPrompt(effect)?.filter?.controller === 'you');
+}
+
+function guidedTemporaryReturnPrompt(ir: AbilityIR): EffectPrompt | null {
+  const exileIndex = ir.effects.findIndex((effect) => effect.atom === 'effect.exile');
+  if (exileIndex < 0) {
+    return null;
+  }
+  const exile = ir.effects[exileIndex];
+  const returnEffect = ir.effects
+    .slice(exileIndex + 1)
+    .find((effect) => effect.atom === 'effect.return');
+  if (!returnEffect) {
+    return null;
+  }
+  if (
+    !isTemporaryReturnExileClause(exile.raw) ||
+    !isSameResolutionBattlefieldReturn(returnEffect.raw)
+  ) {
+    return null;
+  }
+
+  const filter = targetFilterForRaw(exile.raw);
+  if (!filter.types || filter.types.length === 0) {
+    return null;
+  }
+  return {
+    atom: 'effect.exile',
+    kind: 'target',
+    count: 1,
+    minCount: /\bup to one\b/i.test(exile.raw) ? 0 : 1,
+    filter,
+    linkedExile: { purpose: 'temporary-return' },
+    raw: `${exile.raw} then ${returnEffect.raw}`,
+  };
+}
+
+function isTemporaryReturnExileClause(raw: string): boolean {
+  if (!/\bexile\b/i.test(raw) || !/\btarget\b/i.test(raw)) {
+    return false;
+  }
+  if (!/\bexile\s+(?:up to one\s+)?target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\b(?:two|three|four|five|six|seven|eight|nine|ten|\d+)\s+target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\beach target\b|\bany number of target\b/i.test(raw)) {
+    return false;
+  }
+  if (/\btarget\b[^.]*\bcard\b/i.test(raw)) {
+    return false;
+  }
+  const targetMatches = raw.match(/\btarget\b/gi) ?? [];
+  return targetMatches.length === 1;
+}
+
+function isSameResolutionBattlefieldReturn(raw: string): boolean {
+  // Anchored at both ends (CR603.10a/608.2h + engine-spec §34.21 point 4): a trailing
+  // delay clause ("... at the beginning of the next end step/turn/upkeep") means this is
+  // NOT same-resolution and must stay manual (no delayed-return scheduler exists yet).
+  return /^return\s+that\s+card\s+to\s+the\s+battlefield(?:\s+under\s+its\s+owner['’]s\s+control)?\.?$/i.test(
+    raw.trim(),
+  );
 }
 
 function reasonForManualConstruct(construct: string): ManualReason | null {
@@ -614,9 +692,10 @@ function parseSingleCardRampSearch(
     .replace(/[.。]\s*$/, '')
     .replace(/\s+/g, ' ')
     .trim();
-  const match = /^search your library for (?:a|an|one) ([^,]+?) card,\s*put (?:it|that card) onto the battlefield( tapped)?[,]?$/i.exec(
-    normalized,
-  );
+  const match =
+    /^search your library for (?:a|an|one) ([^,]+?) card,\s*put (?:it|that card) onto the battlefield( tapped)?[,]?$/i.exec(
+      normalized,
+    );
   if (!match) {
     return null;
   }
@@ -732,8 +811,7 @@ function isSelfDiscardOneCardClause(raw: string): boolean {
     return false;
   }
   return (
-    /^\s*discard\s+(?:a|one)\s+card\b/i.test(raw) ||
-    /\byou discard\s+(?:a|one)\s+card\b/i.test(raw)
+    /^\s*discard\s+(?:a|one)\s+card\b/i.test(raw) || /\byou discard\s+(?:a|one)\s+card\b/i.test(raw)
   );
 }
 
@@ -880,8 +958,8 @@ function literalManaCommands(raw: string): GameCommand[] | null {
     return null;
   }
 
-  const symbols = [...raw.matchAll(/\{([WUBRGC])\}/gi)].map((match) =>
-    match[1].toUpperCase() as ManaColor,
+  const symbols = [...raw.matchAll(/\{([WUBRGC])\}/gi)].map(
+    (match) => match[1].toUpperCase() as ManaColor,
   );
   if (symbols.length === 0) {
     return null;
@@ -904,9 +982,10 @@ function literalManaCommands(raw: string): GameCommand[] | null {
 }
 
 function guidedManaPrompt(raw: string, ctx: CompileContext): EffectPrompt | null {
-  const commanderIdentity = /\bany(?:\s+one)?\s+color\s+(?:in|within)\s+(?:your commander's color identity|the color identity of your commander)\b/i.test(
-    raw,
-  );
+  const commanderIdentity =
+    /\bany(?:\s+one)?\s+color\s+(?:in|within)\s+(?:your commander's color identity|the color identity of your commander)\b/i.test(
+      raw,
+    );
   const anyColor = /\badd\s+([A-Za-z]+|\d+)\s+mana\s+of\s+any(?:\s+one)?\s+color\b/i.exec(raw);
   if (!anyColor) {
     return null;
@@ -1031,6 +1110,21 @@ function targetFilterForRaw(raw: string): TargetFilter {
   return filter;
 }
 
+function stableTextHash(text: string): string {
+  let hash = 0;
+  for (const char of text) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function linkedExileLinkId(prompt: EffectPrompt, cardId: string, ctx: CompileContext): string {
+  const sourceObjectId = ctx.sourceObjectId ?? ctx.sourceId;
+  const slotId = prompt.slotId ?? 'target';
+  const line = ctx.abilityLineIndex === undefined ? 'line' : `line${ctx.abilityLineIndex}`;
+  return `${sourceObjectId}:${line}:${slotId}:linked-exile:${cardId}:${stableTextHash(prompt.raw)}`;
+}
+
 export function buildGuidedCommands(
   prompt: EffectPrompt,
   answer: GuidedAnswer,
@@ -1107,6 +1201,26 @@ export function buildGuidedCommands(
       case 'effect.sacrifice':
         return [{ type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' }];
       case 'effect.exile':
+        if (prompt.linkedExile?.purpose === 'temporary-return') {
+          if (!ctx.sourceObjectId) {
+            return [];
+          }
+          return [
+            {
+              type: 'moveCard',
+              cardId,
+              to: 'exile',
+              position: 'bottom',
+              reason: 'resolve',
+              linkedExileWrite: {
+                linkId: linkedExileLinkId(prompt, cardId, ctx),
+                purpose: 'temporary-return',
+                sourceObjectId: ctx.sourceObjectId,
+                sourcePhysicalId: ctx.sourceId,
+              },
+            },
+          ];
+        }
         return [{ type: 'moveCard', cardId, to: 'exile', position: 'bottom' }];
       case 'effect.return':
         return [{ type: 'moveCard', cardId, to: 'hand', position: 'bottom' }];
@@ -1210,7 +1324,10 @@ function isSelfExileCostElement(element: string, cardName: string): boolean {
 
 function fixedPayLifeCostAmount(element: string): number | null {
   const match = /^Pay\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+life$/i.exec(
-    element.replace(/\s+/g, ' ').replace(/[.。]\s*$/, '').trim(),
+    element
+      .replace(/\s+/g, ' ')
+      .replace(/[.。]\s*$/, '')
+      .trim(),
   );
   if (!match) {
     return null;

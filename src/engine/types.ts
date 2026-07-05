@@ -114,6 +114,26 @@ export interface ObjectSnapshot {
   toughness?: string;
 }
 
+export type LinkedExilePurpose = 'exiled-with-source' | 'temporary-return';
+
+export interface LinkedExileRecord {
+  linkId: string;
+  purpose: LinkedExilePurpose;
+  sourceObjectId: ObjectId;
+  sourcePhysicalId: PhysicalCardId;
+  exiledPhysicalIds: PhysicalCardId[];
+  exiledObjectIds: ObjectId[];
+  snapshot: ObjectSnapshot;
+  createdSequence: number;
+}
+
+export interface LinkedExileWrite {
+  linkId: string;
+  purpose: LinkedExilePurpose;
+  sourceObjectId: ObjectId;
+  sourcePhysicalId: PhysicalCardId;
+}
+
 export type TargetSelectionKind = 'object' | 'player' | 'object-or-player';
 export type TargetSelectionLegalityMode = 'checked' | 'unchecked-warning' | 'forced';
 
@@ -468,5 +488,6 @@ export interface GameState {
   pendingTriggers: PendingTrigger[];
   pendingRuleChoices: PendingRuleChoice[];
   pendingSbaChoices: PendingSbaChoice[];
+  linkedExiles: Record<string, LinkedExileRecord>;
   log: LogEntry[];
 }

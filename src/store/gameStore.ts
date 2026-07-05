@@ -12,10 +12,12 @@ import {
   activatedManaAbilityPlanForSource,
   activationPlanForSource,
   activationTargetPromptsForSource,
+  consumeLinkedExileForSource as consumeLinkedExileForSourceInState,
   EngineError,
   eligibleTargets,
   guidedPlanForStackTop,
   objectSnapshotForCard,
+  returnLinkedExileToBattlefield,
   type ApplyResult,
   type GameCommand,
 } from '../engine/commands';
@@ -45,6 +47,7 @@ import type {
   DefeatReason,
   DefeatRuleRef,
   GameState,
+  LinkedExileRecord,
   PendingRuleChoice,
   PendingSbaChoice,
   PendingTrigger,
@@ -313,6 +316,68 @@ function normalizeEmptyLibraryDrawFlags(
   return flags;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isLinkedExilePurpose(value: unknown): value is LinkedExileRecord['purpose'] {
+  return value === 'exiled-with-source' || value === 'temporary-return';
+}
+
+function isSnapshotLike(value: unknown): value is LinkedExileRecord['snapshot'] {
+  const snapshot = unknownRecord(value);
+  return (
+    snapshot !== null &&
+    typeof snapshot.physicalCardId === 'string' &&
+    typeof snapshot.objectId === 'string' &&
+    typeof snapshot.defId === 'string' &&
+    typeof snapshot.zone === 'string' &&
+    typeof snapshot.ownerId === 'string' &&
+    typeof snapshot.isToken === 'boolean' &&
+    typeof snapshot.isCommander === 'boolean' &&
+    typeof snapshot.faceIndex === 'number' &&
+    typeof snapshot.tapped === 'boolean' &&
+    unknownRecord(snapshot.counters) !== null &&
+    typeof snapshot.typeLine === 'string'
+  );
+}
+
+function normalizeLinkedExiles(value: unknown): GameState['linkedExiles'] {
+  const rawLinkedExiles = unknownRecord(value);
+  if (!rawLinkedExiles) return {};
+
+  const linkedExiles: GameState['linkedExiles'] = {};
+  for (const [linkId, rawRecord] of Object.entries(rawLinkedExiles)) {
+    const record = unknownRecord(rawRecord);
+    if (!record) continue;
+    if (
+      record.linkId !== linkId ||
+      !isLinkedExilePurpose(record.purpose) ||
+      typeof record.sourceObjectId !== 'string' ||
+      typeof record.sourcePhysicalId !== 'string' ||
+      !isStringArray(record.exiledPhysicalIds) ||
+      !isStringArray(record.exiledObjectIds) ||
+      !isSnapshotLike(record.snapshot) ||
+      typeof record.createdSequence !== 'number' ||
+      !Number.isFinite(record.createdSequence)
+    ) {
+      continue;
+    }
+
+    linkedExiles[linkId] = {
+      linkId,
+      purpose: record.purpose,
+      sourceObjectId: record.sourceObjectId,
+      sourcePhysicalId: record.sourcePhysicalId,
+      exiledPhysicalIds: record.exiledPhysicalIds.slice(),
+      exiledObjectIds: record.exiledObjectIds.slice(),
+      snapshot: record.snapshot,
+      createdSequence: record.createdSequence,
+    };
+  }
+  return linkedExiles;
+}
+
 function normalizeSnapshotState(state: GameState): GameState {
   const snapshot = state as Partial<GameState>;
   const pendingTriggers = Array.isArray(state.pendingTriggers)
@@ -351,6 +416,7 @@ function normalizeSnapshotState(state: GameState): GameState {
     pendingTriggers,
     pendingRuleChoices: normalizePendingRuleChoices(state),
     pendingSbaChoices: [],
+    linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
   };
 }
 
@@ -548,6 +614,8 @@ export interface GameStore {
   shuffleLibrary(): void;
   moveCard(cardId: string, to: ZoneId, position?: 'top' | 'bottom' | number): void;
   moveCommanderWithZoneChoice(cardId: string, to: ZoneId, toCommandZone: boolean): void;
+  returnLinkedExile(linkId: string): void;
+  consumeLinkedExileForSource(linkId: string, sourcePhysicalId: string): void;
   setManualKeywords(cardId: string, keywords: string[]): void;
   tapAllPermanents(): void;
   untapAllPermanents(): void;
@@ -857,8 +925,7 @@ function stackTopHasPureSelfLibraryShuffle(state: GameState): boolean {
   }
   const lines = splitAbilityLines(def);
   if (card.isAbility) {
-    const line =
-      card.abilityLineIndex === undefined ? undefined : lines[card.abilityLineIndex];
+    const line = card.abilityLineIndex === undefined ? undefined : lines[card.abilityLineIndex];
     return line ? isPureSelfLibraryShuffleLine(line.text) : false;
   }
   return lines.some((line) => line.shape === 'spell' && isPureSelfLibraryShuffleLine(line.text));
@@ -1142,7 +1209,10 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   function isManaAbilityPending(
     pending: PendingGuidedResolution | null,
-  ): pending is PendingGuidedResolution & { mode: 'mana-ability'; manaAbility: PendingManaAbility } {
+  ): pending is PendingGuidedResolution & {
+    mode: 'mana-ability';
+    manaAbility: PendingManaAbility;
+  } {
     return pending?.mode === 'mana-ability' && pending.manaAbility !== undefined;
   }
 
@@ -1210,7 +1280,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     return match?.[1] ?? slotId;
   }
 
-  function activationSubjectRefFromSnapshot(snapshot: NonNullable<ActivationSourceRef['snapshot']>): ActivationSourceRef {
+  function activationSubjectRefFromSnapshot(
+    snapshot: NonNullable<ActivationSourceRef['snapshot']>,
+  ): ActivationSourceRef {
     return {
       physicalCardId: snapshot.physicalCardId,
       objectId: snapshot.objectId,
@@ -1237,14 +1309,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     prompt: EffectPrompt,
     options: { excludeSelected?: boolean } = {},
   ): string[] {
-    const selected = options.excludeSelected === false ? new Set<string>() : selectedCostSubjectIds(pending);
+    const selected =
+      options.excludeSelected === false ? new Set<string>() : selectedCostSubjectIds(pending);
     if (prompt.kind === 'cost-discard') {
       return state.zones.hand.filter((cardId) => !selected.has(cardId));
     }
     if (prompt.kind === 'cost-sacrifice') {
-      return eligibleTargets(state, prompt.filter ?? { types: ['permanent'], controller: 'you' }).filter(
-        (cardId) => cardId !== pending.sourceId && !selected.has(cardId),
-      );
+      return eligibleTargets(
+        state,
+        prompt.filter ?? { types: ['permanent'], controller: 'you' },
+      ).filter((cardId) => cardId !== pending.sourceId && !selected.has(cardId));
     }
     return [];
   }
@@ -1271,7 +1345,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       return components.map((component) => ({ ...component }));
     }
     return components.map((component) =>
-      component.slotId === componentSlotId ? appendSubjectRef(component, subjectRef) : { ...component },
+      component.slotId === componentSlotId
+        ? appendSubjectRef(component, subjectRef)
+        : { ...component },
     );
   }
 
@@ -1373,7 +1449,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         continue;
       }
       const amount = component.amount ?? 0;
-      const subjectRefs = component.subjectRefs ?? (component.subjectRef ? [component.subjectRef] : []);
+      const subjectRefs =
+        component.subjectRefs ?? (component.subjectRef ? [component.subjectRef] : []);
       if (subjectRefs.length < amount) {
         warnings.push(`${cardLabel(state, pending.sourceId)}の起動コストの選択が未完了です。`);
         continue;
@@ -1383,14 +1460,17 @@ export const useGameStore = create<GameStore>((set, get) => {
           (subjectRef) => !state.zones.hand.includes(subjectRef.physicalCardId),
         );
         if (invalid) {
-          warnings.push(`${cardLabel(state, pending.sourceId)}の捨てるカードが現在の手札にありません。`);
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}の捨てるカードが現在の手札にありません。`,
+          );
         }
         continue;
       }
 
       const prompt = pending.costPrompts.find(
         (entry) =>
-          entry.kind === 'cost-sacrifice' && costComponentSlotIdForPrompt(entry) === component.slotId,
+          entry.kind === 'cost-sacrifice' &&
+          costComponentSlotIdForPrompt(entry) === component.slotId,
       );
       const eligible = new Set(
         prompt ? eligibleCostSubjectIds(state, pending, prompt, { excludeSelected: false }) : [],
@@ -1826,6 +1906,36 @@ export const useGameStore = create<GameStore>((set, get) => {
         to: 'command',
         position: 'top',
       });
+    },
+
+    returnLinkedExile(linkId) {
+      const cur = get().state;
+      if (!cur) return;
+      try {
+        const result = returnLinkedExileToBattlefield(cur, linkId);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
+    },
+
+    consumeLinkedExileForSource(linkId, sourcePhysicalId) {
+      const cur = get().state;
+      if (!cur) return;
+      try {
+        const result = consumeLinkedExileForSourceInState(cur, linkId, sourcePhysicalId);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        if (err instanceof EngineError) {
+          console.error(err.message);
+        } else {
+          console.error(err);
+        }
+      }
     },
 
     setManualKeywords(cardId, keywords) {
@@ -2575,10 +2685,15 @@ export const useGameStore = create<GameStore>((set, get) => {
         advanceGuidedResolution([]);
         return;
       }
+      const sourceSnapshot = objectSnapshotForCard(cur, pending.sourceId);
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'target', cardIds: [cardId] },
-        { sourceId: pending.sourceId, def },
+        {
+          sourceId: pending.sourceId,
+          def,
+          ...(sourceSnapshot ? { sourceObjectId: sourceSnapshot.objectId } : {}),
+        },
       );
       advanceGuidedResolution(commands, [], guidedTapStatusWarnings(cur, prompt, [cardId]));
     },
@@ -2591,7 +2706,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
       if (!cur.zones.hand.includes(cardId)) {
-        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`] });
+        set({
+          warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
+        });
         return;
       }
       const def = sourceDefFor(cur, pending.sourceId);
@@ -2618,7 +2735,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (cardId !== undefined) {
         if (!cur.zones.library.includes(cardId)) {
           set({
-            warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在のライブラリにありません。`],
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, cardId)}は現在のライブラリにありません。`,
+            ],
           });
           return;
         }
@@ -2647,7 +2767,12 @@ export const useGameStore = create<GameStore>((set, get) => {
         { sourceId: pending.sourceId, def, libraryShuffleOrder: order },
       );
       if (commands.length === 0) {
-        set({ warnings: [...get().warnings, `${cardLabel(cur, pending.sourceId)}のサーチを実行できません。`] });
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, pending.sourceId)}のサーチを実行できません。`,
+          ],
+        });
         return;
       }
       advanceGuidedResolution(commands);
@@ -2664,7 +2789,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         eligibleTargets(cur, prompt.filter ?? { types: ['permanent'], controller: 'you' }),
       );
       if (!legalIds.has(cardId)) {
-        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は生け贄の候補にありません。`] });
+        set({
+          warnings: [...get().warnings, `${cardLabel(cur, cardId)}は生け贄の候補にありません。`],
+        });
         return;
       }
       const def = sourceDefFor(cur, pending.sourceId);
@@ -2705,11 +2832,18 @@ export const useGameStore = create<GameStore>((set, get) => {
       const forced = pending.activation.paymentMode === 'forced';
       const legalIds = new Set(eligibleCostSubjectIds(cur, pending.activation, prompt));
       if (!legalIds.has(cardId) && !forced) {
-        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は起動コストの候補にありません。`] });
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, cardId)}は起動コストの候補にありません。`,
+          ],
+        });
         return;
       }
       if (prompt.kind === 'cost-discard' && !cur.zones.hand.includes(cardId)) {
-        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`] });
+        set({
+          warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
+        });
         return;
       }
       if (

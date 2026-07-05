@@ -120,6 +120,7 @@ function stateWithPendingTriggers(
     pendingTriggers,
     pendingRuleChoices,
     pendingSbaChoices: [],
+    linkedExiles: {},
     log: [],
   };
 }

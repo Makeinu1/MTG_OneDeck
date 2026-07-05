@@ -34,6 +34,8 @@ import type {
   GameEvent,
   GameState,
   LegendRuleChoice,
+  LinkedExileRecord,
+  LinkedExileWrite,
   LifeChangeEvent,
   LogEntry,
   ManaPool,
@@ -58,6 +60,7 @@ export type GameCommand =
       replacementApplied?: string;
       sbaApplied?: string;
       simultaneousGroupId?: string;
+      linkedExileWrite?: LinkedExileWrite;
     }
   | { type: 'setTapped'; cardId: string; tapped: boolean }
   | { type: 'setFace'; cardId: string; faceIndex: number }
@@ -259,6 +262,7 @@ function makeDraft(state: GameState): Draft {
       pendingSbaChoices: Array.isArray(state.pendingSbaChoices)
         ? state.pendingSbaChoices.slice()
         : [],
+      linkedExiles: { ...(state.linkedExiles ?? {}) },
       log: state.log.slice(),
     },
     warnings: [],
@@ -819,6 +823,135 @@ function moveCardInternal(
     );
   }
   return zoneChangeEvent;
+}
+
+type MoveCardCommand = Extract<GameCommand, { type: 'moveCard' }>;
+
+function zoneChangeEventOptionsForMove(
+  cmd: MoveCardCommand,
+): Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'> {
+  return {
+    ...(cmd.replacementApplied === undefined ? {} : { replacementApplied: cmd.replacementApplied }),
+    ...(cmd.sbaApplied === undefined ? {} : { sbaApplied: cmd.sbaApplied }),
+    ...(cmd.simultaneousGroupId === undefined
+      ? {}
+      : { simultaneousGroupId: cmd.simultaneousGroupId }),
+  };
+}
+
+function currentCardMatchesObject(
+  draft: Draft,
+  physicalCardId: string,
+  zone: ZoneId,
+  objectId: string,
+): boolean {
+  const current = draft.state.cards[physicalCardId];
+  return current !== undefined && current.zone === zone && objectIdOf(current) === objectId;
+}
+
+function deleteLinkedExileRecord(draft: Draft, linkId: string): void {
+  if (!draft.state.linkedExiles[linkId]) {
+    return;
+  }
+  const linkedExiles = { ...draft.state.linkedExiles };
+  delete linkedExiles[linkId];
+  draft.state.linkedExiles = linkedExiles;
+}
+
+function writeLinkedExileRecordFromEvent(
+  draft: Draft,
+  event: ZoneChangeEvent | undefined,
+  write: LinkedExileWrite,
+): LinkedExileRecord | null {
+  if (
+    !event ||
+    event.toZone !== 'exile' ||
+    !event.after ||
+    !event.newObjectId ||
+    !currentCardMatchesObject(draft, event.physicalCardId, 'exile', event.newObjectId)
+  ) {
+    draft.warnings.push(
+      'linked exile record は、実際に追放された現在のオブジェクトからだけ作成できます。',
+    );
+    return null;
+  }
+
+  const record: LinkedExileRecord = {
+    linkId: write.linkId,
+    purpose: write.purpose,
+    sourceObjectId: write.sourceObjectId,
+    sourcePhysicalId: write.sourcePhysicalId,
+    exiledPhysicalIds: [event.physicalCardId],
+    exiledObjectIds: [event.newObjectId],
+    snapshot: event.before,
+    createdSequence: event.sequence,
+  };
+  draft.state.linkedExiles = {
+    ...draft.state.linkedExiles,
+    [write.linkId]: record,
+  };
+  return record;
+}
+
+function returnTemporaryLinkedExileInDraft(draft: Draft, linkId: string): void {
+  const record = draft.state.linkedExiles[linkId];
+  if (!record) {
+    draft.warnings.push(`linked exile record が存在しません: ${linkId}`);
+    return;
+  }
+  if (record.purpose !== 'temporary-return') {
+    draft.warnings.push(`temporary-return ではない linked exile record は戻せません: ${linkId}`);
+    return;
+  }
+
+  const physicalCardId = record.exiledPhysicalIds[0];
+  const exiledObjectId = record.exiledObjectIds[0];
+  if (!physicalCardId || !exiledObjectId) {
+    draft.warnings.push(`linked exile record に戻す対象がありません: ${linkId}`);
+    deleteLinkedExileRecord(draft, linkId);
+    return;
+  }
+
+  if (!currentCardMatchesObject(draft, physicalCardId, 'exile', exiledObjectId)) {
+    draft.warnings.push(`linked exile の対象は現在の追放オブジェクトではありません: ${linkId}`);
+    deleteLinkedExileRecord(draft, linkId);
+    return;
+  }
+
+  const zoneChangeEvent = moveCardInternal(
+    draft,
+    physicalCardId,
+    'battlefield',
+    'bottom',
+    true,
+    'resolve',
+  );
+  const returned = draft.state.cards[physicalCardId];
+  if (zoneChangeEvent?.toZone === 'battlefield' && returned) {
+    setCard(draft, { ...returned, controllerId: returned.ownerId });
+  }
+  deleteLinkedExileRecord(draft, linkId);
+}
+
+function applyMoveCardCommand(draft: Draft, cmd: MoveCardCommand): void {
+  requireCard(draft, cmd.cardId);
+  const zoneChangeEvent = moveCardInternal(
+    draft,
+    cmd.cardId,
+    cmd.to,
+    cmd.position,
+    true,
+    cmd.reason ?? 'move',
+    zoneChangeEventOptionsForMove(cmd),
+  );
+  if (!cmd.linkedExileWrite) {
+    return;
+  }
+
+  const record = writeLinkedExileRecordFromEvent(draft, zoneChangeEvent, cmd.linkedExileWrite);
+  if (record?.purpose === 'temporary-return') {
+    returnTemporaryLinkedExileInDraft(draft, record.linkId);
+  }
 }
 
 function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouch?: boolean): void {
@@ -1975,7 +2108,14 @@ const COST_NUMBER_WORDS = new Map<string, number>([
   ['ten', 10],
 ]);
 
-const COST_OBJECT_TYPES = ['creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent'];
+const COST_OBJECT_TYPES = [
+  'creature',
+  'artifact',
+  'enchantment',
+  'land',
+  'planeswalker',
+  'permanent',
+];
 
 interface ParsedActivationNonmanaCost {
   components: ActivationCostComponent[];
@@ -2102,7 +2242,8 @@ function parseDiscardCostElement(
         subjectRefs,
         ...(subjectRefs[0] ? { subjectRef: subjectRefs[0] } : {}),
       },
-      commands: state.zones.hand.length > 0 ? [{ type: 'discard', cardIds: state.zones.hand.slice() }] : [],
+      commands:
+        state.zones.hand.length > 0 ? [{ type: 'discard', cardIds: state.zones.hand.slice() }] : [],
       prompts: [],
     };
   }
@@ -2153,11 +2294,16 @@ function parseSacrificeObjectCostElement(
     return null;
   }
 
-  const countMatch =
-    /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(.+)$/i.exec(subject);
+  const countMatch = /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(.+)$/i.exec(
+    subject,
+  );
   const anotherMatch = /^another\s+(.+)$/i.exec(subject);
   const amount = countMatch ? parseCostAmountToken(countMatch[1]) : anotherMatch ? 1 : null;
-  const objectPhrase = countMatch ? countMatch[2].trim() : anotherMatch ? anotherMatch[1].trim() : subject;
+  const objectPhrase = countMatch
+    ? countMatch[2].trim()
+    : anotherMatch
+      ? anotherMatch[1].trim()
+      : subject;
   if (amount === null) {
     return null;
   }
@@ -2493,22 +2639,46 @@ export function activationPlanForSource(
     return null;
   }
   if (!source) {
-    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [], costPrompts: [] };
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: [],
+      costPrompts: [],
+    };
   }
 
   const def = state.defs[source.defId];
   if (!def) {
-    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [], costPrompts: [] };
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: [],
+      costPrompts: [],
+    };
   }
 
   const resolvedIndex = abilityLineIndex ?? abilityLineIndexForKind(state, sourceId, 'activated');
   if (resolvedIndex === undefined) {
-    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [], costPrompts: [] };
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: [],
+      costPrompts: [],
+    };
   }
 
   const line = splitAbilityLines(def)[resolvedIndex];
   if (!line || line.shape !== 'activated') {
-    return { commands: [], decision: 'manual', manaShortfall: 0, costComponents: [], costPrompts: [] };
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: [],
+      costPrompts: [],
+    };
   }
 
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
@@ -2630,7 +2800,8 @@ export function activatedManaAbilityPlanForSource(
 
   const commands: GameCommand[] = compiledCost.commands.slice();
   const lifeCost = compiledCost.commands.reduce(
-    (total, command) => total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
+    (total, command) =>
+      total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
     0,
   );
   let manaShortfall = 0;
@@ -2731,16 +2902,7 @@ function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
     case 'moveCard': {
-      requireCard(draft, cmd.cardId);
-      moveCardInternal(draft, cmd.cardId, cmd.to, cmd.position, true, cmd.reason ?? 'move', {
-        ...(cmd.replacementApplied === undefined
-          ? {}
-          : { replacementApplied: cmd.replacementApplied }),
-        ...(cmd.sbaApplied === undefined ? {} : { sbaApplied: cmd.sbaApplied }),
-        ...(cmd.simultaneousGroupId === undefined
-          ? {}
-          : { simultaneousGroupId: cmd.simultaneousGroupId }),
-      });
+      applyMoveCardCommand(draft, cmd);
       break;
     }
     case 'setTapped': {
@@ -2845,6 +3007,15 @@ function cardIdForStoredObjectTarget(draft: Draft, selection: TargetSelection): 
   return card.id;
 }
 
+function sourceObjectIdForGuidedContext(
+  draft: Draft,
+  stackItem: CardInstance,
+  sourceId: string,
+): string | undefined {
+  const source = draft.state.cards[sourceId];
+  return source ? objectIdOf(source) : stackItem.sourceSnapshot?.objectId;
+}
+
 function applyStoredTargetCommands(
   draft: Draft,
   card: CardInstance,
@@ -2878,7 +3049,14 @@ function applyStoredTargetCommands(
       buildGuidedCommands(
         normalizedPrompt,
         { kind: 'target', cardIds: [targetCardId] },
-        { sourceId, def },
+        {
+          sourceId,
+          def,
+          sourceObjectId: sourceObjectIdForGuidedContext(draft, card, sourceId),
+          ...(card.abilityLineIndex === undefined
+            ? {}
+            : { abilityLineIndex: card.abilityLineIndex }),
+        },
       ),
     );
     applied = true;
@@ -3221,6 +3399,46 @@ function applyPutOnBottom(draft: Draft, cardIds: string[]): void {
   }
 }
 
+export function returnLinkedExileToBattlefield(state: GameState, linkId: string): ApplyResult {
+  const draft = makeDraft(state);
+  returnTemporaryLinkedExileInDraft(draft, linkId);
+  stabilizeBeforePriority(draft);
+  return { state: draft.state, warnings: draft.warnings };
+}
+
+export function consumeLinkedExileForSource(
+  state: GameState,
+  linkId: string,
+  sourcePhysicalId: string,
+): ApplyResult {
+  const draft = makeDraft(state);
+  const record = draft.state.linkedExiles[linkId];
+  if (!record) {
+    draft.warnings.push(`linked exile record が存在しません: ${linkId}`);
+    return { state: draft.state, warnings: draft.warnings };
+  }
+  if (record.purpose !== 'exiled-with-source') {
+    draft.warnings.push(
+      `exiled-with-source ではない linked exile record は消費できません: ${linkId}`,
+    );
+    return { state: draft.state, warnings: draft.warnings };
+  }
+
+  const source = draft.state.cards[sourcePhysicalId];
+  const sourceMatches =
+    sourcePhysicalId === record.sourcePhysicalId &&
+    source !== undefined &&
+    source.id === record.sourcePhysicalId &&
+    objectIdOf(source) === record.sourceObjectId;
+  if (!sourceMatches) {
+    draft.warnings.push(`linked exile の source object が一致しません: ${linkId}`);
+    return { state: draft.state, warnings: draft.warnings };
+  }
+
+  deleteLinkedExileRecord(draft, linkId);
+  return { state: draft.state, warnings: draft.warnings };
+}
+
 // ---------------------------------------------------------------------------
 // applyCommand
 // ---------------------------------------------------------------------------
@@ -3230,16 +3448,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
 
   switch (cmd.type) {
     case 'moveCard': {
-      requireCard(draft, cmd.cardId);
-      moveCardInternal(draft, cmd.cardId, cmd.to, cmd.position, true, cmd.reason ?? 'move', {
-        ...(cmd.replacementApplied === undefined
-          ? {}
-          : { replacementApplied: cmd.replacementApplied }),
-        ...(cmd.sbaApplied === undefined ? {} : { sbaApplied: cmd.sbaApplied }),
-        ...(cmd.simultaneousGroupId === undefined
-          ? {}
-          : { simultaneousGroupId: cmd.simultaneousGroupId }),
-      });
+      applyMoveCardCommand(draft, cmd);
       break;
     }
     case 'setTapped': {

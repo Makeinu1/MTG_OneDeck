@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-400-408-zones-lki",
-      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。**design-lock 済**(2026-07-05・J2 Opus・engine-spec §34.21・設計正本 research/cr-grounding/cr-400-408-linked-exile.draft.md)。**判定点B 解決済**(2026-07-05・J3・Explore裏取り=`'delayed-triggered'`は文法分類labelのみ・真のturn/phaseスケジューリングprimitiveは現状ゼロ)= 本スライスの temporary-return は **same-resolution のみ**(Thassa型=自身のend-step triggerの単一解決内でexile→returnが完結するため対象に含む。真に defer するのは別解決が新規に未来turn/phaseへdelayed returnを生成するパターンのみ=turn-phase scheduler導入スライスへ)。**本エントリは以後 IMPLEMENT を指す**: linkedExiles:Record substrate を moveCard optional payload 拡張 + store orchestration で実装(新 GameCommand 型なし=J2 裁定)。snapshot fwd-compat 必須。CR 400.7/607.2a/603.10a/608.2h。golden 候補: Path to Exile(no-record)/Skyclave Apparition(exiled-with-source)/Thassa Deep-Dwelling(temporary-return・same-resolution)。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-120-damage",
       "note": "batch2-6。damage:write 33/event:damage 7=combat 外の source-backed damage。§34.18 damage は type-only ゆえ DamageEvent emission + damage-result link(lifeChange/marked damage)を追加。replacement/prevention は §34.5 carry。CR 120.1 正本。golden 候補: Blasphemous Act/Niv-Mizzet, Parun。"
     },
@@ -477,21 +472,24 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": [
         "zones",
         "zoneChangeCounter",
         "ObjectSnapshot",
         "sourceSnapshot",
-        "eventLog"
+        "eventLog",
+        "linkedExiles"
       ],
-      "boundary": "zone move creates new object と LKI core は review-green(実行可能)。simple target exile は §32.9 guided 出荷済。**linked-exile substrate は design-lock 済**(2026-07-05・engine-spec §34.21・設計正本 cr-400-408-linked-exile.draft.md)= linkedExiles:Record state 形・exiled-with-source(607.2a・sourceObjectId 紐付け)/temporary-return(blink・608.2h return guard)の意味論・command surface(新 GameCommand 型なし=moveCard payload 拡張 + store orchestration・J2 裁定)・snapshot fwd-compat を凍結。**実装は未着手(design-lock のみ・§34.17 前例に倣い status は review-green 据え置き)**。CR 400.7例外群、face-down exile piles、multi-card link、player-specific zones、replacement 由来 linked exile(607.2b)は未実装/defer。",
+      "boundary": "zone move creates new object と LKI core は review-green(実行可能)。simple target exile は §32.9 guided 出荷済。**linked-exile substrate 出荷**(2026-07-05・design-lock=J2 Opus §34.21 → 実装=Codex → J3 Tier-1独立監査(冷Sonnet)→ BLOCKER 1件発見・J3 外科修正 → reviewer pin)= `GameState.linkedExiles:Record<string,LinkedExileRecord>` additive・`moveCard.linkedExileWrite?` 経由の record 書込(**新 GameCommand 型なし**)・`exiled-with-source`(607.2a・sourceObjectId+physicalId 両一致必須の consume guard)・`temporary-return`(same-resolution のみ・608.2h return guard=現在 exile object 検証後のみ battlefield 移動)・snapshot fwd-compat(linkedExiles:{} backfill)。Thassa, Deep-Dwelling 型 compiler leaf 出荷。**Tier-1 で発見・修正した BLOCKER**: `isSameResolutionBattlefieldReturn` の `$` anchor 欠如により delayed-return 文言(\"at the beginning of the next end step\" 等)が same-resolution として誤guided化される可能性=修正済み・reviewer pin で固定。Skyclave Apparition 型 oracle-text 認識(exiled card mana value → token生成)・真の delayed(未来turn/phase)return・multi-card link・face-down exile piles・player-specific zones・replacement 由来 linked exile(607.2b)は未実装/defer。",
       "evidence": [
         "cr-zone-change-new-object-lki",
         "docs/engine-spec.md §34.21",
-        "research/cr-grounding/cr-400-408-linked-exile.draft.md"
+        "research/cr-grounding/cr-400-408-linked-exile.draft.md",
+        "src/engine/__tests__/review.cr400-linked-exile.test.ts",
+        "src/store/__tests__/review.cr400-linked-exile.test.ts"
       ],
-      "nextGate": "linked-exile 実装スライス(batch2-5)= §34.21 の凍結設計(判定点B解決済=same-resolution temporary-return のみ)を moveCard payload 拡張 + store orchestration で実装し I-linked-exile-* を review.* で pin。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。",
+      "nextGate": "Skyclave Apparition 型 exiled-with-source oracle-text 認識(exiled card の mana value から token 生成)は次スライス。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。",
       "judge": "deterministic-cr"
     },
     {
