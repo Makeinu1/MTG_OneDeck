@@ -9,7 +9,7 @@
     {
       "type": "domain-slice",
       "domainId": "cr-400-408-zones-lki",
-      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。simple exile は §32.9 出荷済。Skyclave/Thassa/blink 系の exiled-with 参照を LKI core(review-green)上に leaf 化。CR 701.13/400.7 正本。golden 候補: Path to Exile/Skyclave Apparition/Thassa, Deep-Dwelling。"
+      "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。**design-lock 済**(2026-07-05・J2 Opus・engine-spec §34.21・設計正本 research/cr-grounding/cr-400-408-linked-exile.draft.md)。**本エントリは以後 IMPLEMENT を指す**: linkedExiles:Record substrate を moveCard optional payload 拡張 + store orchestration で実装(新 GameCommand 型なし=J2 裁定)。実装着手前に判定点B(delayed-trigger の end-step スケジュール可否)を Explore で裏取りし、不可なら same-resolution blink のみに絞る。snapshot fwd-compat 必須。CR 400.7/607.2a/603.10a/608.2h。golden 候補: Path to Exile(no-record)/Skyclave Apparition(exiled-with-source)/Thassa Deep-Dwelling(temporary-return)。"
     },
     {
       "type": "domain-slice",
@@ -485,11 +485,13 @@
         "sourceSnapshot",
         "eventLog"
       ],
-      "boundary": "zone move creates new object と LKI core は実行可能。CR 400.7例外群、face-down exile piles、player-specific library/hand/graveyard は未実装。",
+      "boundary": "zone move creates new object と LKI core は review-green(実行可能)。simple target exile は §32.9 guided 出荷済。**linked-exile substrate は design-lock 済**(2026-07-05・engine-spec §34.21・設計正本 cr-400-408-linked-exile.draft.md)= linkedExiles:Record state 形・exiled-with-source(607.2a・sourceObjectId 紐付け)/temporary-return(blink・608.2h return guard)の意味論・command surface(新 GameCommand 型なし=moveCard payload 拡張 + store orchestration・J2 裁定)・snapshot fwd-compat を凍結。**実装は未着手(design-lock のみ・§34.17 前例に倣い status は review-green 据え置き)**。CR 400.7例外群、face-down exile piles、multi-card link、player-specific zones、replacement 由来 linked exile(607.2b)は未実装/defer。",
       "evidence": [
-        "cr-zone-change-new-object-lki"
+        "cr-zone-change-new-object-lki",
+        "docs/engine-spec.md §34.21",
+        "research/cr-grounding/cr-400-408-linked-exile.draft.md"
       ],
-      "nextGate": "400.7a-d/e/j の高頻度例外だけをS-ZONES/S-LAYERSへ段階追加する",
+      "nextGate": "linked-exile 実装スライス(batch2-5)= §34.21 の凍結設計を moveCard payload 拡張 + store orchestration で実装し I-linked-exile-* を review.* で pin。判定点B(delayed-trigger end-step)を Explore 裏取り後に着手。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。",
       "judge": "deterministic-cr"
     },
     {
