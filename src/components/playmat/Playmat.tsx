@@ -54,6 +54,7 @@ import {
   MulliganDecisionDialog,
   ConfirmDialog,
   FetchSearchDialog,
+  GuidedLibrarySearchDialog,
 } from './dialogs';
 import type { CardDef, ManaColor } from '../../types/card';
 import { parseManaCost } from '../../engine/mana';
@@ -1478,6 +1479,17 @@ export function Playmat({ keybindings }: PlaymatProps) {
             state={state}
             onPick={(cardId) => store.confirmGuidedDiscard(cardId)}
             onCancel={() => store.cancelGuidedPrompt()}
+          />
+        )}
+
+        {guidedPrompt?.kind === 'library-search' && (
+          <GuidedLibrarySearchDialog
+            state={state}
+            sourceId={store.pendingGuided?.sourceId ?? ''}
+            prompt={guidedPrompt}
+            onConfirm={(cardId) => store.confirmGuidedLibrarySearch(cardId)}
+            onMiss={() => store.confirmGuidedLibrarySearch()}
+            onClose={() => store.cancelGuidedPrompt()}
           />
         )}
 

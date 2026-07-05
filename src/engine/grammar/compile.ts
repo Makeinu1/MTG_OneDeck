@@ -9,6 +9,7 @@ export interface CompileContext {
   def: CardDef;
   commanderColorIdentity?: readonly ManaColor[];
   libraryShuffleOrder?: readonly string[];
+  allowLibrarySearchComposite?: boolean;
 }
 
 export type AutoDecision = 'auto' | 'guided' | 'manual';
@@ -16,6 +17,7 @@ export type CostDecision = 'auto' | 'manual';
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type PromptKind =
   | 'target'
+  | 'library-search'
   | 'discard'
   | 'sacrifice'
   | 'scry-surveil'
@@ -32,6 +34,17 @@ export interface TargetFilter {
   controller?: 'any' | 'you' | 'opponent';
 }
 
+export type LibrarySearchFilter =
+  | { kind: 'basic-land' }
+  | { kind: 'land-subtype'; subtype: LandSubtype };
+
+export interface LibrarySearchSpec {
+  filter: LibrarySearchFilter;
+  destination: 'battlefield';
+  entersTapped: boolean;
+  shuffle: true;
+}
+
 export interface ModalOption {
   index: number;
   raw: string;
@@ -45,6 +58,7 @@ export interface EffectPrompt {
   slotId?: string;
   targetKind?: TargetSelectionKind;
   filter?: TargetFilter;
+  librarySearch?: LibrarySearchSpec;
   options?: ModalOption[];
   manaOptions?: ManaColor[];
   raw: string;
@@ -52,6 +66,7 @@ export interface EffectPrompt {
 
 export type GuidedAnswer =
   | { kind: 'target'; cardIds: string[] }
+  | { kind: 'library-search'; cardIds: string[] }
   | { kind: 'discard'; cardIds: string[] }
   | { kind: 'sacrifice'; cardIds: string[] }
   | { kind: 'scry-surveil'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
@@ -97,6 +112,7 @@ const COUNT_DRIVEN_AUTO_ATOMS = new Set([
 
 type CostManualReason = 'unmodeled-cost' | 'variable-x';
 type SupportedPredefinedTokenKind = NonNullable<CardDef['tokenKind']>;
+type LandSubtype = 'Plains' | 'Island' | 'Swamp' | 'Mountain' | 'Forest';
 
 interface PredefinedTokenSpec {
   name: string;
@@ -177,6 +193,13 @@ const GUIDED_TARGET_ATOMS = new Set([
   'effect.untap',
 ]);
 const GUIDED_CHOICE_ATOMS = new Set(['effect.scry', 'effect.surveil']);
+const BASIC_LAND_SUBTYPES: readonly LandSubtype[] = [
+  'Plains',
+  'Island',
+  'Swamp',
+  'Mountain',
+  'Forest',
+];
 const TARGET_TYPES = ['creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent'];
 const PREDEFINED_TOKEN_SPECS: Record<SupportedPredefinedTokenKind, PredefinedTokenSpec> = {
   treasure: {
@@ -325,6 +348,21 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
   if (ir.effects.length === 0) {
     reasons.add('no-effect');
   }
+
+  if (ctx.allowLibrarySearchComposite !== false) {
+    const librarySearchPrompt = guidedLibrarySearchPrompt(ir);
+    if (librarySearchPrompt) {
+      return {
+        commands: [],
+        decision: 'guided',
+        prompts: [librarySearchPrompt],
+        confidence: 0.75,
+        risk: 'medium',
+        reasons: [],
+      };
+    }
+  }
+
   if (ir.constructs.includes('construct.choose-modal')) {
     reasons.add('needs-choice');
   }
@@ -521,6 +559,86 @@ function isSelfLibraryShuffleClause(raw: string): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   return /^(?:then\s+)?(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?$/i.test(normalized);
+}
+
+function guidedLibrarySearchPrompt(ir: AbilityIR): EffectPrompt | null {
+  if (ir.effects.length === 0 || ir.effects.some((effect) => effect.optional)) {
+    return null;
+  }
+  if (ir.constructs.length > 0) {
+    return null;
+  }
+
+  const searchRaws = uniqueEffectRaws(ir.effects, 'effect.search');
+  const putRaws = uniqueEffectRaws(ir.effects, 'effect.put-onto-battlefield');
+  const shuffleRaws = uniqueEffectRaws(ir.effects, 'effect.shuffle');
+  if (searchRaws.length !== 1 || putRaws.length !== 1 || shuffleRaws.length !== 1) {
+    return null;
+  }
+  if (searchRaws[0] !== putRaws[0] || !isSelfLibraryShuffleClause(shuffleRaws[0])) {
+    return null;
+  }
+
+  const parsed = parseSingleCardRampSearch(searchRaws[0]);
+  if (!parsed) {
+    return null;
+  }
+
+  const allowedRaws = new Set([searchRaws[0], shuffleRaws[0]]);
+  if (ir.effects.some((effect) => !allowedRaws.has(effect.raw))) {
+    return null;
+  }
+
+  return {
+    atom: 'effect.search',
+    kind: 'library-search',
+    count: 1,
+    librarySearch: {
+      filter: parsed.filter,
+      destination: 'battlefield',
+      entersTapped: parsed.entersTapped,
+      shuffle: true,
+    },
+    raw: searchRaws[0],
+  };
+}
+
+function uniqueEffectRaws(effects: readonly EffectClause[], atom: EffectAtomId): string[] {
+  return [...new Set(effects.filter((effect) => effect.atom === atom).map((effect) => effect.raw))];
+}
+
+function parseSingleCardRampSearch(
+  raw: string,
+): { filter: LibrarySearchFilter; entersTapped: boolean } | null {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const match = /^search your library for (?:a|an|one) ([^,]+?) card,\s*put (?:it|that card) onto the battlefield( tapped)?[,]?$/i.exec(
+    normalized,
+  );
+  if (!match) {
+    return null;
+  }
+
+  const filter = simpleRampSearchFilter(match[1]);
+  if (!filter) {
+    return null;
+  }
+  return {
+    filter,
+    entersTapped: match[2] !== undefined,
+  };
+}
+
+function simpleRampSearchFilter(description: string): LibrarySearchFilter | null {
+  const normalized = description.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (normalized === 'basic land') {
+    return { kind: 'basic-land' };
+  }
+
+  const subtype = BASIC_LAND_SUBTYPES.find((candidate) => candidate.toLowerCase() === normalized);
+  return subtype ? { kind: 'land-subtype', subtype } : null;
 }
 
 function countDrivenCommand(atom: string, count: number): GameCommand | null {
@@ -916,9 +1034,8 @@ function targetFilterForRaw(raw: string): TargetFilter {
 export function buildGuidedCommands(
   prompt: EffectPrompt,
   answer: GuidedAnswer,
-  _ctx: CompileContext,
+  ctx: CompileContext,
 ): GameCommand[] {
-  void _ctx;
   if (prompt.kind === 'cost-discard' || prompt.kind === 'cost-sacrifice') {
     return [];
   }
@@ -928,6 +1045,23 @@ export function buildGuidedCommands(
 
   if (answer.kind === 'modal') {
     return [];
+  }
+
+  if (answer.kind === 'library-search') {
+    const spec = prompt.librarySearch;
+    const order = ctx.libraryShuffleOrder?.slice();
+    if (prompt.atom !== 'effect.search' || !spec || (spec.shuffle && !order)) {
+      return [];
+    }
+    const cardId = answer.cardIds[0];
+    const commands: GameCommand[] = cardId
+      ? [{ type: 'moveCard', cardId, to: spec.destination, position: 'top' }]
+      : [];
+    if (cardId && spec.entersTapped) {
+      commands.push({ type: 'setTapped', cardId, tapped: true });
+    }
+    commands.push({ type: 'shuffle', order: order ?? [] });
+    return commands;
   }
 
   if (answer.kind === 'mana') {

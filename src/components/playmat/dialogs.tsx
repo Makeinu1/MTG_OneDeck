@@ -3,7 +3,7 @@ import { Modal } from '../Modal';
 import type { ManaColor } from '../../types/card';
 import type { CardDef } from '../../types/card';
 import type { CardInstance, GameState, ZoneId } from '../../engine/types';
-import type { EffectPrompt } from '../../engine/grammar/compile';
+import type { EffectPrompt, LibrarySearchFilter } from '../../engine/grammar/compile';
 import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
 import { effectivePower, isSummoningSick, type FetchAbility } from '../../engine/status';
@@ -1014,6 +1014,38 @@ function fetchFilterLabel(ability: FetchAbility): string {
   return ability.filter.subtypes.join(' / ');
 }
 
+const LAND_SUBTYPE_LABELS: Record<string, string> = {
+  Plains: '平地',
+  Island: '島',
+  Swamp: '沼',
+  Mountain: '山',
+  Forest: '森',
+};
+
+function matchesLibrarySearchFilter(
+  def: CardDef | undefined,
+  filter: LibrarySearchFilter,
+): boolean {
+  const typeLines = cardTypeLines(def);
+  const isLand = typeLines.some((line) => isLandTypeLine(line));
+  if (!isLand) {
+    return false;
+  }
+  if (filter.kind === 'basic-land') {
+    return typeLines.some((line) => isLandTypeLine(line) && /\bBasic\b/i.test(line));
+  }
+  return typeLines.some(
+    (line) => isLandTypeLine(line) && new RegExp(`\\b${filter.subtype}\\b`, 'i').test(line),
+  );
+}
+
+function librarySearchFilterLabel(filter: LibrarySearchFilter): string {
+  if (filter.kind === 'basic-land') {
+    return '基本土地';
+  }
+  return `${LAND_SUBTYPE_LABELS[filter.subtype] ?? filter.subtype}タイプの土地`;
+}
+
 export function FetchSearchDialog({
   state,
   sourceId,
@@ -1131,6 +1163,135 @@ export function FetchSearchDialog({
         </ul>
       )}
       <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onClose}>
+          閉じる
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function GuidedLibrarySearchDialog({
+  state,
+  sourceId,
+  prompt,
+  onConfirm,
+  onMiss,
+  onClose,
+}: {
+  state: GameState;
+  sourceId: string;
+  prompt: EffectPrompt;
+  onConfirm: (targetId: string) => void;
+  onMiss: () => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const spec = prompt.librarySearch;
+  if (!spec) {
+    return null;
+  }
+
+  const libraryIds = state.zones.library;
+  const eligibleIds = libraryIds.filter((cardId) => {
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    return matchesLibrarySearchFilter(def, spec.filter);
+  });
+
+  const query = search.trim().toLowerCase();
+  const filteredIds = query
+    ? eligibleIds.filter((cardId) => {
+        const card = state.cards[cardId];
+        const def = card ? state.defs[card.defId] : undefined;
+        return searchableNames(def).some((name) => name.toLowerCase().includes(query));
+      })
+    : eligibleIds;
+
+  const sourceName = cardDisplayName(state, sourceId);
+  const filterLabel = librarySearchFilterLabel(spec.filter);
+  const destinationLabel = spec.entersTapped ? 'タップ状態で戦場に出します。' : '戦場に出します。';
+  const emptyMessage =
+    libraryIds.length === 0
+      ? 'ライブラリが空です。'
+      : filteredIds.length === 0
+        ? '該当するカードはありません。'
+        : '';
+
+  return (
+    <Modal
+      title="ライブラリから探す"
+      onClose={onClose}
+      width="lg"
+      testId="guided-library-search-dialog"
+    >
+      <p>
+        《{sourceName}》の効果で{filterLabel}を探し、{destinationLabel}
+        その後ライブラリを切り直します。
+      </p>
+      <label className="dialog__field">
+        カード名で検索
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="カード名で検索…"
+          data-testid="guided-library-search-input"
+          autoFocus
+        />
+      </label>
+      <div className="zone-viewer__search">
+        <span className="zone-viewer__search-count">
+          {filteredIds.length} / {eligibleIds.length} 枚
+        </span>
+      </div>
+      {filteredIds.length === 0 ? (
+        <p className="zone-viewer__empty">{emptyMessage}</p>
+      ) : (
+        <ul className="zone-viewer__list">
+          {filteredIds.map((cardId) => {
+            const card = state.cards[cardId];
+            const def = card ? state.defs[card.defId] : undefined;
+            if (!card || !def) return null;
+
+            return (
+              <li key={cardId} className="zone-viewer__item">
+                <div className="zone-viewer__thumb">
+                  <CardView instance={card} def={def} size="small" />
+                </div>
+                <div className="zone-viewer__info">
+                  <span className="zone-viewer__name">{cardDisplayName(state, cardId)}</span>
+                  <div className="zone-viewer__targets">
+                    <button
+                      type="button"
+                      className="btn btn--accent btn--sm"
+                      onClick={() => {
+                        onConfirm(cardId);
+                        onClose();
+                      }}
+                      data-testid={`guided-library-search-target-${cardId}`}
+                    >
+                      選択
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="dialog__actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            onMiss();
+            onClose();
+          }}
+          data-testid="guided-library-search-miss"
+        >
+          見つけずに切り直す
+        </button>
         <button type="button" className="btn" onClick={onClose}>
           閉じる
         </button>

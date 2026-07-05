@@ -31,6 +31,7 @@ import {
   buildGuidedCommands,
   compileAbilityIR,
   type EffectPrompt,
+  type LibrarySearchFilter,
 } from '../engine/grammar/compile';
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import type {
@@ -591,6 +592,7 @@ export interface GameStore {
   resolveTop(to?: ZoneId): void;
   confirmGuidedTarget(cardId: string): void;
   confirmGuidedDiscard(cardId: string): void;
+  confirmGuidedLibrarySearch(cardId?: string): void;
   confirmGuidedSacrifice(cardId: string): void;
   confirmGuidedCostSubject(cardId: string): void;
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
@@ -798,6 +800,36 @@ function sourceTypeLineFor(state: GameState, sourceId: string): string {
   const def = state.defs[source.defId];
   const face = def?.faces[source.faceIndex] ?? def?.faces[0];
   return face?.typeLine ?? def?.typeLine ?? '';
+}
+
+function cardTypeLinesForState(state: GameState, cardId: string): string[] {
+  const card = state.cards[cardId];
+  const def = card ? state.defs[card.defId] : undefined;
+  if (!def) {
+    return [];
+  }
+  return [def.typeLine, ...def.faces.map((face) => face.typeLine)].filter((line) => line !== '');
+}
+
+function isLandTypeLine(line: string): boolean {
+  return /\bLand\b/i.test(line);
+}
+
+function matchesLibrarySearchFilter(
+  state: GameState,
+  cardId: string,
+  filter: LibrarySearchFilter,
+): boolean {
+  const typeLines = cardTypeLinesForState(state, cardId);
+  if (!typeLines.some((line) => isLandTypeLine(line))) {
+    return false;
+  }
+  if (filter.kind === 'basic-land') {
+    return typeLines.some((line) => isLandTypeLine(line) && /\bBasic\b/i.test(line));
+  }
+  return typeLines.some(
+    (line) => isLandTypeLine(line) && new RegExp(`\\b${filter.subtype}\\b`, 'i').test(line),
+  );
 }
 
 function isPureSelfLibraryShuffleLine(raw: string): boolean {
@@ -1086,7 +1118,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         continue;
       }
       const ir = parseAbilityIR(option.raw, typeLine);
-      const compiled = compileAbilityIR(ir, { sourceId: pending.sourceId, def });
+      const compiled = compileAbilityIR(ir, {
+        sourceId: pending.sourceId,
+        def,
+        allowLibrarySearchComposite: false,
+      });
       if (compiled.decision === 'auto') {
         commands.push(...compiled.commands);
       } else if (compiled.decision === 'guided') {
@@ -2568,6 +2604,52 @@ export const useGameStore = create<GameStore>((set, get) => {
         { kind: 'discard', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
+      advanceGuidedResolution(commands);
+    },
+
+    confirmGuidedLibrarySearch(cardId) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      const spec = prompt?.librarySearch;
+      if (!cur || !pending || prompt?.kind !== 'library-search' || !spec) {
+        return;
+      }
+      if (cardId !== undefined) {
+        if (!cur.zones.library.includes(cardId)) {
+          set({
+            warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在のライブラリにありません。`],
+          });
+          return;
+        }
+        if (!matchesLibrarySearchFilter(cur, cardId, spec.filter)) {
+          set({
+            warnings: [...get().warnings, `${cardLabel(cur, cardId)}はサーチ条件に合いません。`],
+          });
+          return;
+        }
+      }
+
+      const def = sourceDefFor(cur, pending.sourceId);
+      if (!def) {
+        advanceGuidedResolution([]);
+        return;
+      }
+
+      const rng = createRng(randomSeed());
+      const order = shuffledOrder(
+        cardId === undefined ? cur.zones.library : cur.zones.library.filter((id) => id !== cardId),
+        rng,
+      );
+      const commands = buildGuidedCommands(
+        prompt,
+        { kind: 'library-search', cardIds: cardId === undefined ? [] : [cardId] },
+        { sourceId: pending.sourceId, def, libraryShuffleOrder: order },
+      );
+      if (commands.length === 0) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, pending.sourceId)}のサーチを実行できません。`] });
+        return;
+      }
       advanceGuidedResolution(commands);
     },
 

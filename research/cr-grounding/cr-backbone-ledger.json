@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-701-keyword-actions-frequent",
-      "note": "batch2-4。fetch composite=search(36)+shuffle(36)+put onto battlefield tapped の連鎖行(fetch land/ramp/tutor)。§32.9 の単発 search/shuffle leaf を合成し、tapped 着地は cr-110(batch2-2)の後。CR 701.23h/701.24b 正本。golden 候補: Evolving Wilds/Fabled Passage/Nature's Lore。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-400-408-zones-lki",
       "note": "batch2-5。linked exile/LKI=action:exile 35/object-identity:lki 28。simple exile は §32.9 出荷済。Skyclave/Thassa/blink 系の exiled-with 参照を LKI core(review-green)上に leaf 化。CR 701.13/400.7 正本。golden 候補: Path to Exile/Skyclave Apparition/Thassa, Deep-Dwelling。"
     },
@@ -918,7 +913,7 @@
         "guidedActions",
         "manualFallbacks"
       ],
-      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。複数count・each-player/opponent・target-player・unless/may・qualified 選択・可変X はすべて manual(auto 詐称なし)。Heal は 2026 vocabulary boundary。owner別 graveyard routing は S-ZONES 後。",
+      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。複数count・each-player/opponent・target-player・unless/may・qualified 選択・可変X はすべて manual(auto 詐称なし)。Heal は 2026 vocabulary boundary。owner別 graveyard routing は S-ZONES 後。 **generic ramp search composite 出荷**(batch2-4・2026-07-05・engine-spec §32.9)= `Search your library for a <basic land|単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle`(Nature's Lore/Rampant Growth 型)を guided 化(既存 moveCard+setTapped+shuffle 列・新 GameCommand 型なし)。CR701.24b=found を shuffle 対象外(confirm 時 library−found から順列確定)・0枚 miss 合法。broad tutor/複数/Farseek 複合/subtype OR/target-player/非library/非battlefield destination/optional/basic+subtype 連言は honest manual。fetch-land(Evolving Wilds 型)は M4.15/M4.28 既済で対象外。Tier-1 独立監査(Sonnet)= over-claim 0・CR701.24b/決定論/filter弁別 全緑。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
         "src/store/__tests__/review.leaf-discard-token.test.ts",
@@ -928,7 +923,9 @@
         "src/engine/__tests__/cr701SearchShuffleCompiler.test.ts",
         "src/engine/__tests__/cr121DrawCompiler.test.ts",
         "docs/engine-spec.md §32.8 §32.9",
-        "research/cr-grounding/archive/leaf-sacrifice/cr-701-sacrifice-tier1-findings.md"
+        "research/cr-grounding/archive/leaf-sacrifice/cr-701-sacrifice-tier1-findings.md",
+        "src/engine/__tests__/review.cr701-library-search.test.ts",
+        "src/store/__tests__/review.cr701-library-search.test.ts"
       ],
       "nextGate": "MyDeck demand 上位の残ギャップは cr-701 動詞ではなく cost:activation(232)/cost:tap(201)/mana:write(150) 系=S-ACTIVATED-ABILITY/§33 側。cr-701 内の残 verb(tap/untap 701.25 等)は demand 実測が立った時に同型 leaf(CR根拠+guided/manual 正直分類+reviewer pin)で追加。",
       "judge": "deterministic-cr"
