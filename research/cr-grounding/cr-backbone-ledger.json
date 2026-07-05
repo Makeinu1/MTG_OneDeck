@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-120-damage",
-      "note": "batch2-6。damage:write 33/event:damage 7=combat 外の source-backed damage。§34.18 damage は type-only ゆえ DamageEvent emission + damage-result link(lifeChange/marked damage)を追加。replacement/prevention は §34.5 carry。CR 120.1 正本。golden 候補: Blasphemous Act/Niv-Mizzet, Parun。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-111-tokens",
       "note": "batch2-7。token:create 32 の残=tapped token/custom creature token/copy token。predefined leaf(§32.8)出荷済。既存 token substrate 上で auto/guided/manual に正直分類。CR 111.10/701.7 正本。golden 候補: Liliana, Dreadhorde General/Ragavan。"
     },
@@ -391,21 +386,24 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "damageMarked",
         "damageEvents",
         "life",
         "defeat"
       ],
-      "boundary": "marked damage/combat damage/lethal/deathtouch coreはあるが、prevention, replacement, infect, wither, lifelink, trample, commander damage は未閉鎖。",
+      "boundary": "marked damage/combat damage/lethal/deathtouch coreはあるが、prevention, replacement, infect, wither, lifelink, trample, commander damage は未閉鎖。**source-backed noncombat damage 出荷**(batch2-6・2026-07-05・engine-spec §34.22)= 新コマンド `dealDamage`(既存 source-less `markDamage` は不変)。player→life減算+`LifeChangeEvent`リンク(CR120.3a)・creature→既存 `applyMarkDamage` 経由 marked damage(CR120.3e/704.5h)・`amount<=0` は非event(CR120.8)。Tier-1独立監査で MEDIUM(dual-target同時指定のsilent fallback)+残余note(planeswalker対象のsilent誤マーク)を発見→判定者が数行の外科修正で明示 `EngineError` throw化(silent fallback 根絶)。combat経路/grammar compilerは本スライス対象外・無変更。",
       "evidence": [
         "cr-sba-lethal-damage-destroys-creature",
         "cr-sba-sublethal-damage-survives",
         "cr-sba-deathtouch-any-damage-destroys",
-        "cr-combat-single-block-lethal-mutual-damage"
+        "cr-combat-single-block-lethal-mutual-damage",
+        "src/engine/__tests__/review.cr120-damage.test.ts",
+        "src/engine/__tests__/cr120DealDamage.test.ts",
+        "docs/engine-spec.md §34.22"
       ],
-      "nextGate": "commander damage loss と prevention/replacement hook の順に追加する",
+      "nextGate": "prevention/replacement hook(CR120.4a/b・614/615)・infect/wither/lifelink数値効果・planeswalker忠誠除去実装・commander damage自動帰属は実デッキ需要が立った形だけ個別追加。",
       "judge": "deterministic-cr"
     },
     {

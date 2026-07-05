@@ -31,6 +31,8 @@ import type {
   DefeatRuleRef,
   DrawEvent,
   EventCause,
+  EventSourceRef,
+  EventTargetRef,
   GameEvent,
   GameState,
   LegendRuleChoice,
@@ -70,6 +72,24 @@ export type GameCommand =
   | { type: 'setCardEffectsAuto'; cardId: string; value: boolean }
   | { type: 'addCounters'; cardId: string; counterType: string; delta: number }
   | { type: 'markDamage'; cardId: string; amount: number; deathtouch?: boolean }
+  | {
+      type: 'dealDamage';
+      sourceId: string;
+      amount: number;
+      combatDamage: boolean;
+      deathtouch?: boolean;
+      targetCardId: string;
+      targetPlayerId?: never;
+    }
+  | {
+      type: 'dealDamage';
+      sourceId: string;
+      amount: number;
+      combatDamage: boolean;
+      deathtouch?: boolean;
+      targetPlayerId: PlayerId;
+      targetCardId?: never;
+    }
   | { type: 'clearMarkedDamage'; cardId?: string }
   | {
       type: 'enterCombat';
@@ -560,13 +580,13 @@ function pushLifeChangeEvent(
   nextLife: number,
   cause: EventCause,
   options?: Pick<LifeChangeEvent, 'lifeLabel' | 'source' | 'sourceEventId' | 'causeEventId'>,
-): void {
+): LifeChangeEvent | null {
   const delta = nextLife - previousLife;
   if (delta === 0) {
-    return;
+    return null;
   }
 
-  pushEvent(draft, {
+  return pushEvent(draft, {
     type: 'lifeChange',
     playerId,
     delta,
@@ -575,7 +595,7 @@ function pushLifeChangeEvent(
     direction: delta > 0 ? 'gain' : 'loss',
     cause,
     ...options,
-  } satisfies Omit<LifeChangeEvent, 'eventId' | 'sequence'>);
+  } satisfies Omit<LifeChangeEvent, 'eventId' | 'sequence'>) as LifeChangeEvent;
 }
 
 function pushDrawEvent(
@@ -602,6 +622,75 @@ function pushDrawEvent(
         }
       : {}),
   } satisfies Omit<DrawEvent, 'eventId' | 'sequence'>);
+}
+
+function objectSourceRefForCard(draft: Draft, card: CardInstance): EventSourceRef {
+  const snapshot = objectSnapshotOf(draft, card);
+  return {
+    kind: 'object',
+    physicalCardId: snapshot.physicalCardId,
+    objectId: snapshot.objectId,
+    snapshot,
+  };
+}
+
+function objectTargetRefForCard(draft: Draft, card: CardInstance): EventTargetRef {
+  const snapshot = objectSnapshotOf(draft, card);
+  return {
+    kind: 'object',
+    physicalCardId: snapshot.physicalCardId,
+    objectId: snapshot.objectId,
+    snapshot,
+  };
+}
+
+function playerTargetRef(playerId: PlayerId): EventTargetRef {
+  if (playerId === 'OPPONENT_A') {
+    return { kind: 'player', playerId, lifeLabel: DEFAULT_OPPONENT_LIFE_LABEL };
+  }
+  return { kind: 'player', playerId };
+}
+
+function pushDamageEvent(
+  draft: Draft,
+  source: EventSourceRef,
+  target: EventTargetRef,
+  amount: number,
+  combatDamage: boolean,
+  cause: EventCause,
+): DamageEvent {
+  return pushEvent(draft, {
+    type: 'damage',
+    source,
+    target,
+    amount,
+    combatDamage,
+    cause,
+  } satisfies Omit<DamageEvent, 'eventId' | 'sequence'>) as DamageEvent;
+}
+
+function setDamageResultEventIds(
+  draft: Draft,
+  damageEventId: string,
+  damageResultEventIds: string[],
+): void {
+  const index = draft.state.eventLog.findIndex(
+    (event) => event.type === 'damage' && event.eventId === damageEventId,
+  );
+  if (index < 0) {
+    return;
+  }
+
+  const event = draft.state.eventLog[index];
+  if (event.type !== 'damage') {
+    return;
+  }
+
+  draft.state.eventLog = [
+    ...draft.state.eventLog.slice(0, index),
+    { ...event, damageResultEventIds },
+    ...draft.state.eventLog.slice(index + 1),
+  ];
 }
 
 function playerDefeatLabel(playerRef: DefeatPlayerRef): string {
@@ -826,6 +915,7 @@ function moveCardInternal(
 }
 
 type MoveCardCommand = Extract<GameCommand, { type: 'moveCard' }>;
+type DealDamageCommand = Extract<GameCommand, { type: 'dealDamage' }>;
 
 function zoneChangeEventOptionsForMove(
   cmd: MoveCardCommand,
@@ -980,6 +1070,79 @@ function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouc
   }
 }
 
+function normalizedDamageAmount(amount: number): number {
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
+  const amount = normalizedDamageAmount(cmd.amount);
+  if (amount <= 0) {
+    return;
+  }
+
+  if (cmd.targetCardId !== undefined && cmd.targetPlayerId !== undefined) {
+    throw new EngineError('ダメージの対象がカードとプレイヤーの両方に指定されています。');
+  }
+
+  const sourceCard = requireCard(draft, cmd.sourceId);
+  const source = objectSourceRefForCard(draft, sourceCard);
+  const cause = commandCause(cmd.type);
+
+  if (cmd.targetCardId !== undefined) {
+    const targetCard = requireCard(draft, cmd.targetCardId);
+    if (typeLineOf(draft, targetCard).includes('Planeswalker')) {
+      // CR 120.3c: planeswalker への忠誠カウンター除去はこのスライスの対象外(サイレント誤マークを防ぐ)。
+      throw new EngineError('プレースウォーカーへのダメージはこのスライスでは未対応です。');
+    }
+    pushDamageEvent(
+      draft,
+      source,
+      objectTargetRefForCard(draft, targetCard),
+      amount,
+      cmd.combatDamage,
+      cause,
+    );
+    applyMarkDamage(draft, targetCard.id, amount, cmd.deathtouch);
+    return;
+  }
+
+  if (cmd.targetPlayerId === undefined) {
+    throw new EngineError('ダメージの対象が指定されていません。');
+  }
+
+  const damageEvent = pushDamageEvent(
+    draft,
+    source,
+    playerTargetRef(cmd.targetPlayerId),
+    amount,
+    cmd.combatDamage,
+    cause,
+  );
+  const resultCause = {
+    type: 'event',
+    eventId: damageEvent.eventId,
+    eventType: 'damage',
+  } satisfies EventCause;
+  const resultOptions = {
+    source,
+    causeEventId: damageEvent.eventId,
+  } satisfies Pick<LifeChangeEvent, 'source' | 'causeEventId'>;
+  const resultEvent =
+    cmd.targetPlayerId === 'P1'
+      ? applyPlayerLifeDelta(draft, -amount, resultCause, resultOptions)
+      : applyOpponentLifeDelta(
+          draft,
+          DEFAULT_OPPONENT_LIFE_LABEL,
+          -amount,
+          resultCause,
+          resultOptions,
+        );
+
+  if (resultEvent) {
+    setDamageResultEventIds(draft, damageEvent.eventId, [resultEvent.eventId]);
+  }
+}
+
 function clearMarkedDamageInternal(draft: Draft, cardId?: string): boolean {
   const cardIds =
     cardId === undefined
@@ -1011,13 +1174,19 @@ function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
   }
 }
 
-function applyPlayerLifeDelta(draft: Draft, delta: number, cause: EventCause): void {
+function applyPlayerLifeDelta(
+  draft: Draft,
+  delta: number,
+  cause: EventCause,
+  options?: Pick<LifeChangeEvent, 'lifeLabel' | 'source' | 'sourceEventId' | 'causeEventId'>,
+): LifeChangeEvent | null {
   const previousLife = draft.state.life;
   const nextLife = previousLife + delta;
   draft.state.life = nextLife;
-  pushLifeChangeEvent(draft, 'P1', previousLife, nextLife, cause);
+  const event = pushLifeChangeEvent(draft, 'P1', previousLife, nextLife, cause, options);
   const sign = delta >= 0 ? '+' : '';
   pushLog(draft, `ライフが${sign}${delta}(現在${draft.state.life})。`);
+  return event;
 }
 
 function applyOpponentLifeDelta(
@@ -1025,15 +1194,20 @@ function applyOpponentLifeDelta(
   label: string,
   delta: number,
   cause: EventCause,
-): void {
+  options?: Pick<LifeChangeEvent, 'source' | 'sourceEventId' | 'causeEventId'>,
+): LifeChangeEvent | null {
   const current = draft.state.opponentLife[label] ?? 40;
   const next = current + delta;
   draft.state.opponentLife = {
     ...draft.state.opponentLife,
     [label]: next,
   };
-  pushLifeChangeEvent(draft, 'OPPONENT_A', current, next, cause, { lifeLabel: label });
+  const event = pushLifeChangeEvent(draft, 'OPPONENT_A', current, next, cause, {
+    ...options,
+    lifeLabel: label,
+  });
   pushLog(draft, `対戦相手ライフ(${label})を${next}にしました。`);
+  return event;
 }
 
 // ---------------------------------------------------------------------------
@@ -2933,6 +3107,10 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       );
       break;
     }
+    case 'dealDamage': {
+      applyDealDamage(draft, cmd);
+      break;
+    }
     case 'draw': {
       const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
       draft.state.drawnThisTurn += drawn;
@@ -3528,6 +3706,10 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'markDamage': {
       applyMarkDamage(draft, cmd.cardId, cmd.amount, cmd.deathtouch);
+      break;
+    }
+    case 'dealDamage': {
+      applyDealDamage(draft, cmd);
       break;
     }
     case 'clearMarkedDamage': {

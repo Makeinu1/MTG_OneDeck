@@ -2497,3 +2497,22 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **実装出荷(2026-07-05・Codex実装 → J3 Tier-1独立監査 → J3 外科修正 → reviewer pin)**: `GameState.linkedExiles: Record<string, LinkedExileRecord>` を凍結設計どおり additive で実装(`src/engine/types.ts`)。record 書込は既存 `moveCard` の optional `linkedExileWrite?` payload 経由(**新 GameCommand 型は追加せず**=確定済み command surface 裁定を遵守)。`exiled-with-source` 消費は `consumeLinkedExileForSource`(physical id + object id 両一致必須)、`temporary-return` の same-resolution return/no-op guard は `returnLinkedExileToBattlefield`(store 側 `returnLinkedExile`)。`initGame`/`restoreGame`/`makeDraft` は snapshot fwd-compat(`linkedExiles:{}` backfill・shallow-clone)を実装。
 
 **Tier-1 監査で発見・修正した BLOCKER**: `compile.ts` の `isSameResolutionBattlefieldReturn` が `$` anchor 欠如により delayed-return 文言("at the beginning of the next end step" 等)を trailing で許してしまい、真に manual であるべきパターンを same-resolution として誤って guided 化していた(印字された遅延を silently 無視=CR違反かつ判定点B の境界そのもの)。判定者が数行の外科的修正(`$` anchor + 任意の末尾ピリオド追加)を適用し、audit の adversarial input で再現・修正確認済み。他6項目(command-surface discipline・record書込正確性・identity guard・same-resolution atomicity・no-blind-move・snapshot fwd-compat)は独立監査で無欠陥確認。受け入れ=`review.cr400-linked-exile.test.ts`(engine 6 pin + store 5 pin・レビュー専有)。
+
+### 34.22 S-DAMAGE: source-backed noncombat damage(`dealDamage`)(CR 120.1/120.3a/120.3e/120.8)— この節も契約である
+
+**位置づけ**: cr-120-damage batch2-6。§34.18(S-EVENTS)が `DamageEvent`/`EventSourceRef`/`EventTargetRef` を type-only で予約し、「source-backed emission は combat/damage slice へ defer」と明記していた分を本節で埋める。既存の source-less `markDamage`(reviewer-pinned・`review.damage-marked.test.ts`)は不変のまま維持し、**別のコマンドとして** source-backed 経路を追加する(既存 pinned コマンドの拡張はしない=§32.9/§34.19/§34.21 と同じ command-surface discipline)。設計正本=`research/cr-grounding/archive/cr-120-damage/cr-120-damage-batch2-6.draft.md`(Codex 起草・J3 Sonnet が CR 照合し承認)。
+
+**CR 根拠**: 120.1(damage を与える主体=source)・120.2b(spell/ability が source を指定)・120.3a(infect 無き source→player ダメージ=life loss)・120.3c(→planeswalker=忠誠カウンター除去。**本スライス対象外**)・120.3e/704.5h(infect/wither 無き source→creature ダメージ=marked damage のみ・直接破壊せず SBA が処理)・120.4b-d(replacement/prevention→results。**本スライス対象外**=§34.18 の metadata hook のみ carry)・120.8(0 以下のダメージ=非事象・状態変更なし)。
+
+**凍結挙動**:
+- 新コマンド `dealDamage`: `sourceId`・`amount`・`combatDamage`(既定 false・combat 経路からは呼ばれない)・`deathtouch?`・`targetCardId`(creature)と `targetPlayerId`(player)は**相互排他**(型上は `?: never` で表現。ランタイムでも両方指定は `EngineError` で明示 reject=silent fallback 禁止)。
+- **player target**(CR120.3a): 既存 life 減算経路(`adjustLife`/`applyPlayerLifeDelta` 系)で life を減らし、emit した `LifeChangeEvent` の id を同時 emit `DamageEvent.damageResultEventIds` にリンク(§34.18 の draw result-link パターンに倣う)。
+- **creature target**(CR120.3e/704.5h): 既存 `applyMarkDamage`(source-less 版と同一関数)を呼び `damageMarked`/`hasDeathtouchDamage` を更新。致死判定は既存 SBA 704.5g/h がそのまま処理(本スライスは触らない)。
+- **planeswalker target**(CR120.3c): 本スライス対象外。`typeLineOf` で判定し `EngineError` を明示 throw(loyalty 除去も creature 同様の誤マークもしない=silent fallback 禁止)。
+- **CR120.8**: `amount <= 0`(0 および負数)は `DamageEvent` を emit せず、状態も一切変更しない。
+- combat 経路(`resolveCombatDamage`/`applyResolveCombatDamage`)は本スライスで migrate しない。既存 combat テストは無変更のまま green。
+- grammar compiler(`effect.damage` の auto/guided 昇格)は本スライス対象外。
+
+**Tier-1 監査で発見・修正した MEDIUM + 残余note**: `targetCardId`/`targetPlayerId` の相互排他は当初 TypeScript の `?: never` のみで保証され、ランタイムでは `targetCardId` 優先の分岐が無条件実行されるため、両方が同時に設定された不正な command は `targetPlayerId` を無言で無視していた(エラーなし)。同種の問題として、planeswalker 対象も明示的な拒否が無く creature と同じ marked-damage 経路に暗黙で落ちていた(CR120.3c 対象外のはずが誤ってマークされる)。判定者が数行の外科的修正(両方設定時の明示 `EngineError`・planeswalker target の明示 `EngineError`)を適用し、review.* で両ケースを pin。他の全adversarial項目(CR120.8 zero/negative・player/creature 経路・`markDamage`/combat 非regression・purity/determinism・event ref 正確性)は独立監査で無欠陥確認。受け入れ=`review.cr120-damage.test.ts`(レビュー専有・7 pin)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: prevention/replacement/redirection(CR120.4a/b・614/615)・infect/wither/toxic/lifelink の数値効果・planeswalker/battle damage(忠誠除去の実装自体)・each-player/multi-target damage・variable/X damage・commander damage 自動帰属(既存 advisory-level のまま)。
