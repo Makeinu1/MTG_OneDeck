@@ -4,8 +4,49 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "checkpoint-mydeck-design-scoring 実行(2026-07-02)= MyDeck 4デッキ採点(demand coverage 49.3%・catalog未写331≫substrate不足179)。実デッキ最大需要=活性化能力イディオム(cost:activation 232/cost:tap 201/mana:write 150/target 97/action verbs)。ユーザーが『最終ゴール(V1 solo playability)を見据えて選べ』と reprioritize を委譲。判定=solo で実カードが機能するか=活性化能力+cost+target+action が支配的ゲート(per-player zones は multiplayer/V4 寄りゆえ後ろへ)。demand-first へ再優先(採点レポートは private deck 内容ゆえ research/mydeck-scoring/ は local 非commit)。",
-  "plannedSequence": [],
+  "plannedSequenceProvenance": "batch3充填(2026-07-06・J3 Sonnet)= Codex起草(research/cr-grounding/planned-sequence-batch3.draft.md・demand実測+CR条番号+golden候補)を判定者がCR原文照合+demand数値検証し、優先度式(demand降順>edhValue>S-phase依存順)で充填。8エントリ全edhValue=high・cr-601/cr-modalのdemand同値tie(共に10)はlane(backbone>leaf-compiler)でbreak。STOP-flagged(cr-714-sagas/cr-716-719-720-721-722、judge:user-stop)はCodex草稿が候補外として明示フラグ済み=judge単独裁定せず据え置き。前回batch2(cr-118〜cr-102-players・10スライス)は全出荷完了(HEAD 5ea83da)。",
+  "plannedSequence": [
+    {
+      "type": "domain-slice",
+      "domainId": "cr-603-triggers-apnap",
+      "note": "batch3-1。demand=100(event:* 87+delayed-trigger 10+cast-timing:once-per-turn 3・research/mydeck-scoring/gaps.json実測)。既存pending trigger/APNAP coreの上に、既発火イベント(draw/discard/sacrifice/counter/damage/life-change/zone-move等)への購読substrate+delayed trigger record(\"at the beginning of the next end step\"等)を追加。真のdelayed(未来turn/phase)scheduling primitiveは§34.21判定点Bで不在と確認済み=本スライスの中核課題。CR 603.1/603.2/603.3/603.3b/603.3c/603.6/603.10a/117.5/101.4正本。golden候補: Baleful Strix/Banon, the Returners' Leader/Arcane Denial。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-608-resolution",
+      "note": "batch3-2。demand=37(object-identity:lki 28+action:counter-spell 9)。解決時LKI読み取り経路+単純\"counter target spell\"(stack→owner graveyard、コスト払戻/効果解決なし)。cr-109-objects/cr-112-spellsと関連。CR 608.2b/608.2d/608.2h/113.7a/400.7/400.7e/400.7j正本。golden候補: Feed the Swarm/Mana Drain/Arcane Denial。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-701-keyword-actions-frequent",
+      "note": "batch3-3。demand=23(action:mill 10+action:surveil 6+action:reveal 6+action:scry 1)。既存出荷済みdomain(§32.8/§32.9)の残leaf=固定数self-library mill/surveil/scry+reveal metadata。judge判断=新leaf domainか既存cr-701再オープンかは実装ブリーフ確定時に決める。CR 701.17a-d/701.20a-e/701.22a-d/701.25a-d/121.5正本。golden候補: Aftermath Analyst/Cultivate/Path of Ancestry。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-122-counters",
+      "note": "batch3-4。demand=22(counter:write 14+event:counter 8)。既存+1/+1相殺の上に、固定countergを対象へ書き込むguided leaf+counter-placement event emission(event:counter trigger predicateの基盤)。shield/stun/finality/battle defense/Saga lore countersはmanual/defer継続。CR 122.1/122.1a-c/122.1h/122.2-4/122.6-7/704.5c/704.5q正本。golden候補: Alesha, Who Laughs at Fate/Celes, Rune Knight/Emperor of Bones。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-604-611-612-613-layers-continuous",
+      "note": "batch3-5。demand=13(layer:L4 10+layer:L6 2+layer:L1b 1)。late-backbone。最小computeEffectiveCharacteristics入口(L4型/subtype判定+L6付与keyword)。dependency graph/timestamp完全形/copy layer/text-changingはmanual/defer継続。CR 604.1/604.3/611.2/611.2a/611.2c/611.2e/612.1/613.1/613.1a/613.1d/613.1f/613.10-11正本。golden候補: Devastating Onslaught/Fable of the Mirror-Breaker。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-614-615-616-replacement-prevention",
+      "note": "batch3-6。demand=12(replacement 11+prevention 1)。late-backbone。境界付きETB replacement(shockland型\"pay 2 life or enters tapped\")+graveyard→exile置換hook(単一controller/source)+単一ターン戦闘ダメージ防止shield(advisory)。複数競合replacement/regeneration/damage倍化はmanual/defer継続。CR 614.1/614.1a-d/614.10-12/614.15/614.17/615.1/615.1a/615.10/615.12/616.1正本。golden候補: Blood Crypt/Spore Frog。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-601-casting-stack",
+      "note": "batch3-7。demand=10(cast-permission:from-zone 10)。\"you may play/cast [bounded object class] from your graveyard this turn/once this turn\"のguided permission record。full CR601 casting procedure化はしない。free-cast/alt-cost重畳/multi-type-per-turn/copied spellsはmanual/defer継続。CR 601.2a/601.2b/601.2f/601.2i/113.6e-f/400.7g-h/701.18a-b正本。golden候補: Muldrotha, the Gravetide/Lurrus of the Dream-Den。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-modal-target-optional-variable",
+      "note": "batch3-8。demand=10(choice:mode-or-value 10)。tie-break=edhValue同値(high)のためS-phase依存順(backbone優先)でcr-601の後。guided mode/value choice envelope(選択をcommand生成/stack配置前に確定)。\"choose both\"条件分岐・repeated modes・variable target countはmanual/defer継続。CR 700.2/700.2a-i/601.2b/601.2c/603.3c/608.2d/107.3a正本。golden候補: Akroma's Will/Sheoldred's Edict。"
+    }
+  ],
   "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
