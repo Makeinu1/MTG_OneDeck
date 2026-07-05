@@ -2555,3 +2555,21 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。Priest 自己ターゲット不可の atomicity は構造的除外+解決時再チェックの二重防御で健全と確認(強制不正選択を用いた実地検証込み)。CR608.2b の一般ケース(自己犠牲以外の要因で対象が graveyard を離れる場合)は実装済みだが実装側テストで pin されていなかったため、判定者が `review.cr400-408-return.test.ts` へ明示的に追加。他の全adversarial項目(修飾語拒否11パターン・owner境界・bounce非regression・purity/determinism・snapshot forward-compat不要)は無欠陥確認。残余note(LOW・非ブロッキング)= 厳密一致判定関数が compile.ts/commands.ts に重複定義(将来の拡張時に共有モジュール化を検討)。受け入れ=`review.cr400-408-return.test.ts`(レビュー専有・5 pin)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: 他プレイヤー graveyard 参照・`under your control` 等の所有権移転変種・複数対象/up to/each/any number・mana value 等の数値フィルタ(Sun Titan型)・permanent card 全般拡張・tapped/attacking/haste付与等の修飾語・attachment/counter復元・代替処理("exile it instead"・delayed exile・Unearth)・自己(ターゲットなし)の墓地帰還・mass return・library search/fetch(既存 cr-701 が別担当)。
+
+### 34.25 cr-603-triggers-apnap Slice A: event-driven trigger subscription leaf + once-per-turn gate(CR 603.1/603.2/603.2h/603.3b)— この節も契約である
+
+**位置づけ**: cr-603-triggers-apnap batch3-1a。既存 `stackPlacementBucket`(CR603.3b two-bucket APNAP配置)は既に実装済み。本節はその上に、既存 §34.18 event envelope(`DrawEvent`/`LifeChangeEvent`/`DamageEvent`/`ZoneChangeEvent`)へのtrigger購読leafを追加する(event:* 87件中52件をカバー)。判定者が3スライス分割(Slice A=本節・Slice B=delayed-trigger scheduling primitive・Slice C=discard/sacrifice/counter新規semantic event)を裁定し、本節はSlice Aのみ。設計正本=`research/cr-grounding/archive/cr-603-triggers-sliceA/cr-603-triggers-batch3-1.draft.md`(Codex起草・J3 Sonnetが CR照合し3分割+Slice A優先を裁定)。
+
+**CR根拠**: 603.1(triggered ability=条件+効果)・603.2(マッチする event/game state が自動的に誘発。まだ解決しない)・603.2h(「Do this only once each turn」=そのターン未実行なら誘発)・603.3/603.3b(誘発後、次に優先権が回る時にstackへ。two-bucket APNAP=既存実装済み・本スライスで無変更)・603.6/603.6a(zone-change/ETB誘発は移動先で検出)・603.10a(leaves-graveyard等のlook-back=LKI依存)・400.7(zone移動=新object=旧objectの記憶を持たない。once-per-turn ledgerのkeyがobject単位である根拠)。
+
+**凍結挙動**:
+- 既存emitted event(DrawEvent/LifeChangeEvent/DamageEvent/ZoneChangeEvent)への trigger購読leafを追加(**新規GameEvent union memberは追加しない**)。ETB(battlefieldへの移動)・leaves-graveyard(graveyardからの移動)は既存ZoneChangeEventで検出。
+- ETB「another creature」判定は自己参照text検出+`physicalCardId`一致の二重guardで自己トリガーを防止。無修飾「whenever a creature enters」は他クリーチャーのETBに正しく反応し続ける(power/control filterは条件文言に一致した時のみ適用=false-negative regressionなし)。
+- **once-per-turn gate(CR603.2h)**: 新state `GameState.oncePerTurnTriggerLedger: {turn:number; consumedKeys:string[]}`。key=`${turn}|${sourceObjectId}|line-${abilityLineIndex}|${controllerId}`(abilityLineIndex不明時はtriggerId fallback)。`applyNextPhase`(end→untap)/`applyNextTurn`でリセット。snapshot backfill=欠落/不正形/turn不一致は`{turn:state.turn, consumedKeys:[]}`へ正規化。
+- **CR400.7設計判断(意図的・要石)**: oncePerTurn keyは`sourceObjectId`(object identity)基準であり、`physicalCardId`(permanent概念)基準ではない。同一ターン内でsourceがblink(exile→battlefield)されると新objectIdとなり、once-per-turn消費履歴を引き継がない=そのターン内で再度誘発しうる。これはCR400.7の正しい帰結(新objectは旧objectの記憶を持たない)であり**バグではない**。逆に`physicalCardId`基準へ変更する方がCR違反になる。
+- 既存two-bucket APNAP配置(`stackPlacementBucket`)は無変更(`priority.ts`は`collectPendingTriggers`→`collectPendingTriggerUpdate`のリネームのみ、bucket/APNAPロジック自体は無変更)。
+- `'delayed-triggered'`文法分類・grammar/配下は本スライスで一切触れない(Slice B対象)。`triggeredAbilityEntries`は`shape==='triggered'`のみを対象とし`'delayed-triggered'`行を意図的に除外(コメントで明示)。
+
+**Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。once-per-turn turn-reset(ターンN消費→ターンN+1リセット→再誘発)・CR400.7 blink挙動(新objectで再誘発=意図通り)・ETB self-exclusion/無修飾other-ETB非regression・two-bucket APNAP非regression・source-less markDamageがDamageEvent購読を誤発火しないこと、を実地検証済み。残余note(MEDIUM・非ブロッキング、判定者が対応)= (1)blink時のonce-per-turn resetは意図的だが将来の誤"修正"を防ぐためコメント追記(commands.ts該当関数)。(2)`triggeredAbilityEntries`の`'delayed-triggered'`除外を明示コメント化。受け入れ=`review.cr603-triggers-sliceA.test.ts`(レビュー専有・5 pin。turn-reset・blink・ETB self-exclusion・無修飾other-ETB・markDamage非発火)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: delayed-trigger scheduling(Slice B)・discard/sacrifice/counter新規semantic event(Slice C)・modal triggered abilities(CR603.3c)・intervening-if/"this turn"集計状態・state triggers(CR603.8)・attack/block declaration event(既存non-envelope helperのまま)・"this way" provenance追跡・replacement/prevention相互作用・他プレイヤー(opponent)のdraw/life等P1-centricな event。

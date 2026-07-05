@@ -121,6 +121,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     drawnThisTurn: 0,
     eventLog: [],
     pendingTriggers: [],
+    oncePerTurnTriggerLedger: { turn: 1, consumedKeys: [] },
     pendingRuleChoices: [],
     pendingSbaChoices: [],
     linkedExiles: {},

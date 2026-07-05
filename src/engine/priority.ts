@@ -4,7 +4,7 @@ import {
   type ApplyResult,
   type GameCommand,
 } from './commands';
-import { collectPendingTriggers } from './triggers';
+import { collectPendingTriggerUpdate } from './triggers';
 import type {
   GameState,
   PendingTrigger,
@@ -301,11 +301,9 @@ function removePendingTriggersById(
 
 function applySbaAndCollectTriggers(state: GameState): ApplyResult {
   const result = performStateBasedActions(state);
+  const triggerUpdate = collectPendingTriggerUpdate(state, result.state);
   return {
-    state: appendPendingTriggers(
-      result.state,
-      collectPendingTriggers(state, result.state)
-    ),
+    state: appendPendingTriggers(triggerUpdate.state, triggerUpdate.pendingTriggers),
     warnings: result.warnings,
   };
 }
@@ -320,10 +318,8 @@ export function placePendingTriggersOnStackAsBatch(
   }
 
   const result = applyCommands(state, pendingInOrder.map(commandForPendingTrigger));
-  const withNewPending = appendPendingTriggers(
-    result.state,
-    collectPendingTriggers(state, result.state)
-  );
+  const triggerUpdate = collectPendingTriggerUpdate(state, result.state);
+  const withNewPending = appendPendingTriggers(triggerUpdate.state, triggerUpdate.pendingTriggers);
   return {
     state: removePendingTriggersById(
       withNewPending,

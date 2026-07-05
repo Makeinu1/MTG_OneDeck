@@ -271,6 +271,30 @@ function cloneDefeat(defeat: GameState['defeat'] | undefined): GameState['defeat
   );
 }
 
+function cloneOncePerTurnTriggerLedger(
+  state: GameState,
+): GameState['oncePerTurnTriggerLedger'] {
+  const ledger = (state as Partial<GameState>).oncePerTurnTriggerLedger;
+  if (
+    !ledger ||
+    ledger.turn !== state.turn ||
+    !Array.isArray(ledger.consumedKeys)
+  ) {
+    return { turn: state.turn, consumedKeys: [] };
+  }
+  return {
+    turn: state.turn,
+    consumedKeys: ledger.consumedKeys.slice(),
+  };
+}
+
+function resetOncePerTurnTriggerLedger(draft: Draft): void {
+  draft.state.oncePerTurnTriggerLedger = {
+    turn: draft.state.turn,
+    consumedKeys: [],
+  };
+}
+
 /** Shallow clone of state for editing. Sub-collections cloned lazily. */
 function makeDraft(state: GameState): Draft {
   const maxSeq = state.log.reduce((m, e) => Math.max(m, e.seq), -1);
@@ -293,6 +317,7 @@ function makeDraft(state: GameState): Draft {
       },
       eventLog: eventLog.slice(),
       pendingTriggers: Array.isArray(state.pendingTriggers) ? state.pendingTriggers.slice() : [],
+      oncePerTurnTriggerLedger: cloneOncePerTurnTriggerLedger(state),
       pendingRuleChoices: Array.isArray(state.pendingRuleChoices)
         ? state.pendingRuleChoices.slice()
         : [],
@@ -1929,6 +1954,7 @@ function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
     // end -> next turn untap
     clearMarkedDamageInternal(draft);
     draft.state.turn += 1;
+    resetOncePerTurnTriggerLedger(draft);
     enterPhase(draft, 'untap', drawnHandled);
     pushLog(draft, `ターン${draft.state.turn}に移行しました。`);
   } else {
@@ -1942,6 +1968,7 @@ function applyNextTurn(draft: Draft): void {
   clearPool(draft, 'ターン移行によりマナプールが空になりました。');
   clearMarkedDamageInternal(draft);
   draft.state.turn += 1;
+  resetOncePerTurnTriggerLedger(draft);
   enterPhase(draft, 'untap', false);
   pushLog(draft, `ターン${draft.state.turn}(アンタップ)に移行しました。`);
 }

@@ -420,6 +420,11 @@ export interface PendingTrigger {
   triggeredByAbilityEventId?: string;
 }
 
+export interface OncePerTurnTriggerLedger {
+  turn: number;
+  consumedKeys: string[];
+}
+
 export interface PendingManaTrigger {
   kind: 'triggered-mana-ability';
   ruleRef: '605.1b';
@@ -499,6 +504,7 @@ export interface GameState {
   drawnThisTurn: number;
   eventLog: GameEvent[];
   pendingTriggers: PendingTrigger[];
+  oncePerTurnTriggerLedger: OncePerTurnTriggerLedger;
   pendingRuleChoices: PendingRuleChoice[];
   pendingSbaChoices: PendingSbaChoice[];
   linkedExiles: Record<string, LinkedExileRecord>;

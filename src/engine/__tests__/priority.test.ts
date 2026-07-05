@@ -124,6 +124,7 @@ function stateWithPendingTriggers(
     drawnThisTurn: 0,
     eventLog: [],
     pendingTriggers,
+    oncePerTurnTriggerLedger: { turn: 1, consumedKeys: [] },
     pendingRuleChoices,
     pendingSbaChoices: [],
     linkedExiles: {},

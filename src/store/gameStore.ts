@@ -65,7 +65,7 @@ import {
 import {
   abilityLineIndexForKind,
   collectAttackPendingTriggers,
-  collectPendingTriggers,
+  collectPendingTriggerUpdate,
   triggerCandidatesFromPendingTriggers,
   type TriggerCandidate,
 } from '../engine/triggers';
@@ -350,6 +350,24 @@ function normalizeEmptyLibraryDrawFlags(
   return flags;
 }
 
+function normalizeOncePerTurnTriggerLedger(
+  value: unknown,
+  turn: number,
+): GameState['oncePerTurnTriggerLedger'] {
+  const rawLedger = unknownRecord(value);
+  if (!rawLedger) {
+    return { turn, consumedKeys: [] };
+  }
+  const rawTurn = rawLedger.turn;
+  if (typeof rawTurn !== 'number' || !Number.isFinite(rawTurn) || rawTurn !== turn) {
+    return { turn, consumedKeys: [] };
+  }
+  const consumedKeys = isStringArray(rawLedger.consumedKeys)
+    ? [...new Set(rawLedger.consumedKeys)]
+    : [];
+  return { turn, consumedKeys };
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
@@ -451,6 +469,10 @@ function normalizeSnapshotState(state: GameState): GameState {
       snapshot.emptyLibraryDrawAttemptedSinceLastSba,
     ),
     pendingTriggers,
+    oncePerTurnTriggerLedger: normalizeOncePerTurnTriggerLedger(
+      snapshot.oncePerTurnTriggerLedger,
+      state.turn,
+    ),
     pendingRuleChoices: normalizePendingRuleChoices(state),
     pendingSbaChoices: [],
     linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
@@ -473,6 +495,11 @@ function appendPendingTriggers(
     ...state,
     pendingTriggers: [...state.pendingTriggers, ...additions],
   };
+}
+
+function appendCollectedPendingTriggers(prev: GameState, next: GameState): GameState {
+  const triggerUpdate = collectPendingTriggerUpdate(prev, next);
+  return appendPendingTriggers(triggerUpdate.state, triggerUpdate.pendingTriggers);
 }
 
 function clearPendingTriggers(state: GameState): GameState {
@@ -589,10 +616,7 @@ function applyPendingTriggerStackPlacement(
   pendingInOrder: readonly PendingTrigger[],
 ): ApplyResult {
   const result = applyCommands(state, pendingInOrder.map(commandForPendingTrigger));
-  const withNewPending = appendPendingTriggers(
-    result.state,
-    collectPendingTriggers(state, result.state),
-  );
+  const withNewPending = appendCollectedPendingTriggers(state, result.state);
   return {
     state: removePendingTriggersById(
       withNewPending,
@@ -1077,7 +1101,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const shouldCollectPending = options.collectPending ?? true;
     const nextWithPending =
       cur && shouldCollectPending
-        ? appendPendingTriggers(next, collectPendingTriggers(cur, next))
+        ? appendCollectedPendingTriggers(cur, next)
         : next;
     if (cur) {
       internal.past.push(cur);
