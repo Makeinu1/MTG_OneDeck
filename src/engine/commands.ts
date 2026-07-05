@@ -2636,6 +2636,9 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
   if (kind === 'player') {
     return {};
   }
+  if (isExactGraveyardCreatureReturn(raw)) {
+    return { types: ['creature'], zone: 'graveyard', owner: 'you' };
+  }
   const match = /\btarget\b([\s\S]*)/i.exec(raw);
   const afterTarget = match?.[1] ?? '';
   const nounPhrase = afterTarget
@@ -2668,6 +2671,9 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
 }
 
 function isSingleActivationTargetClause(raw: string): boolean {
+  if (isExactGraveyardCreatureReturn(raw)) {
+    return true;
+  }
   if (!/\btarget\b/i.test(raw)) {
     return false;
   }
@@ -2688,6 +2694,14 @@ function isSingleActivationTargetClause(raw: string): boolean {
   }
   const targetMatches = raw.match(/\btarget\b/gi) ?? [];
   return targetMatches.length === 1;
+}
+
+function isExactGraveyardCreatureReturn(raw: string): boolean {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^return target creature card from your graveyard to the battlefield$/i.test(normalized);
 }
 
 function activationTargetPrompt(
@@ -3045,6 +3059,38 @@ export function eligibleTargets(
 ): string[] {
   const types = filter.types ?? ['permanent'];
   const excludedTypes = filter.excludedTypes ?? [];
+  const zone = filter.zone ?? 'battlefield';
+  if (zone === 'graveyard') {
+    const supportsCreatureCard = types.includes('creature');
+    return state.zones.graveyard.filter((cardId) => {
+      const card = state.cards[cardId];
+      if (!card || card.isAbility || card.zone !== 'graveyard') {
+        return false;
+      }
+      if (filter.excludeSource && context.sourceId === cardId) {
+        return false;
+      }
+      if (filter.owner === 'you' && card.ownerId !== 'P1') {
+        return false;
+      }
+      if (filter.owner === 'opponent' && card.ownerId === 'P1') {
+        return false;
+      }
+      if (filter.excludeTokens && card.isToken) {
+        return false;
+      }
+      if (!supportsCreatureCard) {
+        return false;
+      }
+      const def = state.defs[card.defId];
+      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
+      if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
+        return false;
+      }
+      return typeLine.includes('creature');
+    });
+  }
   const acceptsAnyPermanent = types.length === 0 || types.includes('permanent');
 
   return state.zones.battlefield.filter((cardId) => {
@@ -3233,6 +3279,13 @@ function applyStoredTargetCommands(
     if (!targetCardId) {
       draft.warnings.push(
         `${stackNameOf(draft, card)}の保存済み対象は現在のオブジェクトではありません。`,
+      );
+      continue;
+    }
+    const expectedZone = normalizedPrompt.filter?.zone;
+    if (expectedZone && draft.state.cards[targetCardId]?.zone !== expectedZone) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象は期待した領域にありません。`,
       );
       continue;
     }

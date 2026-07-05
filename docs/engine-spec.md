@@ -2532,3 +2532,22 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で発見・修正した HIGH**: 単色前提の正規表現が「black **and** green Zombie」のような複数色 token 文で、2色目の色語と接続詞 "and" が汎用 subtype capture group に飲み込まれ、`typeLine: 'Token Creature — and green Zombie'` という**破損した結果を `auto`・confidence 0.95 で返していた**(スコープ外構文が fail-open=最高信頼度バケットで誤った結果を騙る)。判定者が数行の外科的修正(subtype capture 内に既知の色語が残っていたら parse 失敗として `null` を返し manual へ fail closed)を適用し、review.* で pin。他の全adversarial項目(ability-text/variable-count/copy-token/複数種類混在の非leak・"tapped"語 suppression の leaf-local性・owner/controller同時設定・`createToken`/`copyPermanent` 非regression・purity/determinism・snapshot forward-compat 不要)は独立監査で無欠陥確認。token color(CR文脈での色 characteristic)は state に保持されないが、現行 engine に色依存ロジックが無いため無害と確認(protection/color-filter targeting 実装時に再検討)。受け入れ=`review.cr111-tokens.test.ts`(レビュー専有・8 pin)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: copy token(CR707・完全defer=Option K0)・ability text/keyword付きtoken・variable/X count・modal token生成・複数種類token混在・他プレイヤー作成token(`createdBy` 明示未対応の推論)・tapped-and-attacking・token color characteristic の保持。
+
+### 34.24 cr-400-408-zones-lki: reanimation leaf(graveyard→battlefield return)(CR 109.2a/404.1/601.2c/602.2b/608.2b)— この節も契約である
+
+**位置づけ**: cr-400-408-zones-lki batch2-8。既存 §34.21(S-LINKED-EXILE・blink サブスコープ)とは**別のサブスコープ**。既存 `effect.return` leaf は常に `moveCard(...,'hand')` のみ emit し、「return ... to the battlefield」(reanimation)は一切 auto/guided 化されていなかった(全 manual)。本節はその欠落を、**厳密な単一パターンのみ**埋める。設計正本=`research/cr-grounding/archive/cr-400-408-return/cr-400-408-return-batch2-8.draft.md`(Codex 起草・J3 Sonnet が CR 照合し承認)。
+
+**CR 根拠**: 109.2a(「card」+ゾーン名の記述=そのゾーン内のカードを指す=「creature card ... from your graveyard」の根拠)・404.1/404.2(graveyard はプレイヤーの捨て札置き場・owner 紐付き・examinable)・601.2c/602.2b/603.3d(対象は cast/activate/trigger配置時に選ぶ)・608.2b(解決時に対象を再チェック。元のゾーンから外れていれば非合法)・400.7(zone移動=新オブジェクト=自己の生け贄コストで移動した直後の自分自身を同じactivationの対象として遡って選べない根拠)。
+
+**凍結挙動**:
+- `TargetFilter` 型拡張(既存 `moveCard` コマンドは無変更): `zone?: 'battlefield'|'graveyard'`(既定 battlefield=既存動作非破壊)・`owner?: 'any'|'you'|'opponent'`(graveyard card 用。`controller` とは別軸=graveyard card に controller 概念はない)。
+- **厳密一致のみ guided/auto**: 「Return target creature card from your graveyard to the battlefield.」(修飾語なし)。`under your control`・tapped・attacking・`you may`・mana value cap・`permanent card` 一般化・他プレイヤー graveyard 等、いかなる変種も honest manual のまま(fail closed。正規表現は `^...$` 完全アンカー=部分一致の抜け道なし)。
+- golden: Karmic Guide(nonoptional trigger)・Priest of Fell Rites(通常起動型能力のみ。Unearth 行は別途 manual)。Sun Titan は本スライスでは **boundary(manual)**=`permanent card`/mana value cap/optional target 全て対象外。
+- **atomicity(要石・CR400.7/602.2b)**: 起動型(Priest型)の対象選択はコスト精算前(source がまだ battlefield にいる時点)の state に対して行うため、生け贄コストで移動する source 自身は**構造的に候補から除外**される(候補列挙の時点でまだ graveyard にいないため)。さらに解決時、`objectId`(=`zoneChangeCounter` 込み)の不一致により、たとえ強制的に自己を対象として構築しても独立して reject される(二重防御・Tier-1 監査で実地検証済み)。
+- **CR608.2b 一般再チェック**: 選択後・解決前に対象が graveyard から離れた場合(自己犠牲によるものだけでなく、無関係な効果による場合も含め)、保存された expected zone と現在の zone が不一致なら解決を拒否する(battlefield へ移動しない)。
+- owner boundary: `owner: 'you'` は P1 所有の graveyard card のみを候補にする(既存 `controller: 'you'` の battlefield 版と同型の 2-entity PlayerId 前提。cr-player-specific-zones 後に再検討)。
+- 既存の return-to-hand(bounce)経路・linked-exile(blink)サブスコープは本スライスと無関係のまま無変更(共有する解決ブランチは `filter.zone === 'graveyard'` の場合のみ battlefield へ分岐する構造上、他の呼び出し元に影響しない)。
+
+**Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。Priest 自己ターゲット不可の atomicity は構造的除外+解決時再チェックの二重防御で健全と確認(強制不正選択を用いた実地検証込み)。CR608.2b の一般ケース(自己犠牲以外の要因で対象が graveyard を離れる場合)は実装済みだが実装側テストで pin されていなかったため、判定者が `review.cr400-408-return.test.ts` へ明示的に追加。他の全adversarial項目(修飾語拒否11パターン・owner境界・bounce非regression・purity/determinism・snapshot forward-compat不要)は無欠陥確認。残余note(LOW・非ブロッキング)= 厳密一致判定関数が compile.ts/commands.ts に重複定義(将来の拡張時に共有モジュール化を検討)。受け入れ=`review.cr400-408-return.test.ts`(レビュー専有・5 pin)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: 他プレイヤー graveyard 参照・`under your control` 等の所有権移転変種・複数対象/up to/each/any number・mana value 等の数値フィルタ(Sun Titan型)・permanent card 全般拡張・tapped/attacking/haste付与等の修飾語・attachment/counter復元・代替処理("exile it instead"・delayed exile・Unearth)・自己(ターゲットなし)の墓地帰還・mass return・library search/fetch(既存 cr-701 が別担当)。

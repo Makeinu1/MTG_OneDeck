@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-400-408-zones-lki",
-      "note": "batch2-8。action:return 31=reanimation/blink/fetch result(graveyard→battlefield/hand)。owner routing と tapped/attacking modifiers は §34.17/cr-110 依存ゆえ単純形から。Muldrotha デッキの主需要。CR 400.6/400.7 正本。golden 候補: Karmic Guide/Sun Titan/Priest of Fell Rites。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-102-players",
       "note": "S-ZONES 本体。player-specific library/hand/graveyard を playerId keyed に実装(§34.17 design-lock 済)。solo では P1 flat zones で足りるため demand-first の後(multiplayer/V4 寄り)。旧 snapshot backfill(前方互換 I16)必須。CR 400.1 正本。"
     }
@@ -483,9 +478,12 @@
         "docs/engine-spec.md §34.21",
         "research/cr-grounding/cr-400-408-linked-exile.draft.md",
         "src/engine/__tests__/review.cr400-linked-exile.test.ts",
-        "src/store/__tests__/review.cr400-linked-exile.test.ts"
+        "src/store/__tests__/review.cr400-linked-exile.test.ts",
+        "src/engine/__tests__/review.cr400-408-return.test.ts",
+        "src/engine/__tests__/cr400ReanimationGuided.test.ts",
+        "docs/engine-spec.md §34.24"
       ],
-      "nextGate": "Skyclave Apparition 型 exiled-with-source oracle-text 認識(exiled card の mana value から token 生成)は次スライス。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。",
+      "nextGate": "Skyclave Apparition 型 exiled-with-source oracle-text 認識(exiled card の mana value から token 生成)は次スライス。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。**reanimation leaf 出荷**(batch2-8・2026-07-05・engine-spec §34.24)= 厳密一致「Return target creature card from your graveyard to the battlefield.」(修飾語なし)のみ guided/auto。TargetFilter に `zone`/`owner` 追加(型のみ・既存moveCard無変更)。golden=Karmic Guide(trigger)/Priest of Fell Rites(通常起動・自己ターゲット不可のatomicity二重防御=構造的除外+解決時objectId再チェック)。Sun Titan はboundary(manual)のまま。CR608.2b一般再チェック(自己犠牲以外の要因での対象消失)も判定者がreview.*へ明示pin。Tier-1独立監査=0 BLOCKER/0 HIGH。他プレイヤーgraveyard・修飾語変種・mana value cap・複数対象・library search・linked-exile blinkは全部manual/defer(既存サブスコープ無関係のまま無変更)。",
       "judge": "deterministic-cr"
     },
     {

@@ -34,6 +34,8 @@ export interface TargetFilter {
   excludeTokens?: boolean;
   excludeSource?: boolean;
   controller?: 'any' | 'you' | 'opponent';
+  zone?: 'battlefield' | 'graveyard';
+  owner?: 'any' | 'you' | 'opponent';
 }
 
 export type LibrarySearchFilter =
@@ -1138,6 +1140,15 @@ function hasSpecialManaText(raw: string): boolean {
 }
 
 function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
+  if (effect.atom === 'effect.return' && isExactGraveyardCreatureReturn(effect.raw)) {
+    return {
+      atom: effect.atom,
+      kind: 'target',
+      count: 1,
+      filter: { types: ['creature'], zone: 'graveyard', owner: 'you' },
+      raw: effect.raw,
+    };
+  }
   if (!isSingleTargetClause(effect.raw)) {
     return null;
   }
@@ -1184,6 +1195,14 @@ function isSingleTargetClause(raw: string): boolean {
     return false;
   }
   return true;
+}
+
+function isExactGraveyardCreatureReturn(raw: string): boolean {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^return target creature card from your graveyard to the battlefield$/i.test(normalized);
 }
 
 function targetFilterForRaw(raw: string): TargetFilter {
@@ -1323,7 +1342,14 @@ export function buildGuidedCommands(
         }
         return [{ type: 'moveCard', cardId, to: 'exile', position: 'bottom' }];
       case 'effect.return':
-        return [{ type: 'moveCard', cardId, to: 'hand', position: 'bottom' }];
+        return [
+          {
+            type: 'moveCard',
+            cardId,
+            to: prompt.filter?.zone === 'graveyard' ? 'battlefield' : 'hand',
+            position: 'bottom',
+          },
+        ];
       case 'effect.tap':
         return [{ type: 'setTapped', cardId, tapped: true }];
       case 'effect.untap':
