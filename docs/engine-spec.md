@@ -2573,3 +2573,21 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。once-per-turn turn-reset(ターンN消費→ターンN+1リセット→再誘発)・CR400.7 blink挙動(新objectで再誘発=意図通り)・ETB self-exclusion/無修飾other-ETB非regression・two-bucket APNAP非regression・source-less markDamageがDamageEvent購読を誤発火しないこと、を実地検証済み。残余note(MEDIUM・非ブロッキング、判定者が対応)= (1)blink時のonce-per-turn resetは意図的だが将来の誤"修正"を防ぐためコメント追記(commands.ts該当関数)。(2)`triggeredAbilityEntries`の`'delayed-triggered'`除外を明示コメント化。受け入れ=`review.cr603-triggers-sliceA.test.ts`(レビュー専有・5 pin。turn-reset・blink・ETB self-exclusion・無修飾other-ETB・markDamage非発火)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: delayed-trigger scheduling(Slice B)・discard/sacrifice/counter新規semantic event(Slice C)・modal triggered abilities(CR603.3c)・intervening-if/"this turn"集計状態・state triggers(CR603.8)・attack/block declaration event(既存non-envelope helperのまま)・"this way" provenance追跡・replacement/prevention相互作用・他プレイヤー(opponent)のdraw/life等P1-centricな event。
+
+### 34.26 cr-603-triggers-apnap Slice B: delayed-trigger scheduling primitive(CR 603.7/603.7b/513.2)— この節も契約である
+
+**位置づけ**: cr-603-triggers-apnap batch3-1b(Slice A・engine-spec §34.25 の後続)。Slice Aまでは`'delayed-triggered'`文法ラベルが実スケジューリング機構を持たず通常triggeredと同一経路で扱われていた欠落を埋める。真の「at the beginning of the next end step/turn's upkeep」型 delayed trigger を初めてサポートする。設計正本=`research/cr-grounding/archive/cr-603-triggers-sliceA/cr-603-triggers-batch3-1.draft.md`の"Option A"(Codex起草・J3 Sonnetが CR照合し承認)。
+
+**CR根拠**: 603.7/603.7a(delayed triggered abilityは解決中のspell/abilityにより**作成時点**で生成され、後で誘発)・603.7b(stated durationがない限り1回のみ発火)・513.2(「the step doesn't back up」=end step中に作成された「next end step」delayed triggerは**次のturn**のend stepまで待つ。同一end stepでは発火しない)・603.3b(two-bucket APNAP配置は既存のまま無変更)。
+
+**凍結挙動**:
+- `PendingTrigger`型拡張(additive・既存フィールド無変更): `schedule?: {kind:'phase-begin'; turn:number; phase:'upkeep'|'end'; consumeOnTrigger:true; createdAtTurn:number; createdAtPhase:Phase}`。
+- delayed trigger作成時(未来のstep到達時ではない)にscheduleを確定: 「next end step」はend step中の作成なら`turn+1`(CR513.2)・end step以外での作成なら同一turnの直近end stepへ。「next turn's upkeep」は常に`turn+1`。
+- scheduled(未到達)PendingTriggerは既存APNAP配置・candidate表示から**完全に不可視**(除外されるだけでなくbucket/controllerカウントロジックにも影響しない。Tier-1監査で実地検証=scheduled triggerの有無でAPNAP順序結果が完全一致)。
+- 到達時(`applyNextPhase`/`applyNextTurn`経由)にscheduleフィールドを削除し通常のready pending triggerへ昇格、既存two-bucket APNAP配置ロジックへそのまま流す(stackへ直接置かない)。昇格は1回のみ(CR603.7b・scheduleフィールド削除により再昇格不可)。
+- 既存Slice A(event-driven trigger subscription・once-per-turn gate)・既存two-bucket APNAP(`stackPlacementBucket`)は無変更のまま動作継続(`review.cr603-triggers-sliceA.test.ts`・`crGroundingGoldenCases`の両golden、Tier-1監査でbyte-unmodified確認)。
+- snapshot前方互換: schedule fieldを持たない旧PendingTriggerはそのままvalid(optionalフィールドにつき無変更で読める)。
+
+**Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。`readyPendingTriggers`フィルタ(APNAP共有配管全箇所に導入)がscheduled triggerをbucket/controllerカウントも含め完全に不可視化すること・CR513.2 back-up算術の両方向(end step中作成→次turn/end step外作成→同turn)・1回限り昇格・既存two-bucket APNAP非regression・Slice A非regressionを実地検証済み。残余note(MEDIUM・非ブロッキング、判定者が対応)= `applyEnterCombat`が`enterPhase`/`promoteDueScheduledTriggers`をバイパスする別のphase-entry経路だが、`schedule.phase`型が`'upkeep'|'end'`のみのため現状無害(将来combat開始delayed triggerを追加する時に要対応。コメント追記済み)。LOW= activated-ability行に埋め込まれたdelayed節は`abilityLineIndex`が`undefined`になる(現行コーパスに支障なし。コメント追記済み)。受け入れ=`review.cr603-triggers-sliceB.test.ts`(レビュー専有・6 pin。CR513.2両方向・one-shot・APNAP非干渉・snapshot forward-compat・two-bucket非regression)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: discard/sacrifice/counter新規semantic event(Slice C)・duration付き複数回delayed trigger("this turn"等)・modal delayed trigger・phase-begin以外の複雑な未来timing文言・combat開始delayed trigger。

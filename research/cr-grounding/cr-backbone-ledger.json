@@ -9,11 +9,6 @@
     {
       "type": "domain-slice",
       "domainId": "cr-603-triggers-apnap",
-      "note": "batch3-1b(Slice B・判定者裁定=3分割の第2。Slice A出荷後)。真のdelayed-trigger scheduling primitive(demand10件)。Option A採用=既存PendingTriggerへschedule field追加(既存stackPlacementBucket/APNAP/UIを再利用・snapshot backfill必須=I16)。applyNextPhase/applyNextTurnがphase到達時にscheduled triggerをpendingへ昇格。CR603.7/603.7a-d/500.6/503.1a/513.2正本。golden候補: Mishra's Bauble/Arcane Denial/Hide on the Ceiling。"
-    },
-    {
-      "type": "domain-slice",
-      "domainId": "cr-603-triggers-apnap",
       "note": "batch3-1c(Slice C・判定者裁定=3分割の第3。Slice A/B出荷後)。discard/sacrifice/counter向け新semantic event(event:* 残35件中discard10+sacrifice9+counter8)。新GameEvent union member追加 or ZoneChangeEvent reason拡充のいずれかを設計判定要(design-lock相当)。CR603.10a/603.2正本。golden候補: Fear of Missing Out/Accursed Marauder/Alesha, Who Laughs at Fate。"
     },
     {
@@ -730,7 +725,7 @@
         "sourceSnapshot",
         "activePlayerId"
       ],
-      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。**Slice A(event-driven trigger subscription leaf)出荷**(batch3-1a・2026-07-06・engine-spec §34.25)= 既存§34.18 event envelope(DrawEvent/LifeChangeEvent/DamageEvent/ZoneChangeEvent)へのtrigger購読leaf(event:* 52/87件)+once-per-turn gate(CR603.2h・新state`oncePerTurnTriggerLedger`)。ETB self-exclusion/無修飾other-ETBは二重guardで非regression確認。Tier-1独立監査=0 BLOCKER/0 HIGH(once-per-turn turn-reset・CR400.7 blink挙動〈新objectで再誘発=意図通り〉・two-bucket APNAP非regressionを実地検証)。判定者がMEDIUM2件(blink時reset・delayed-triggered除外)へ説明コメント追記。**Slice B(delayed-trigger scheduling primitive・Option A=PendingTrigger拡張)・Slice C(discard/sacrifice/counter新規semantic event)は未実装**=plannedSequenceに残存。",
+      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。Slice A(event-driven trigger subscription leaf)出荷済み(engine-spec §34.25)。**Slice B(delayed-trigger scheduling primitive)出荷**(batch3-1b・2026-07-06・engine-spec §34.26)= `PendingTrigger.schedule`(additive)による真のdelayed trigger(「next end step」「next turn's upkeep」)。CR513.2 back-up算術(end step中作成→次turn/それ以外→同turn)・CR603.7b 1回限り昇格・scheduled triggerはAPNAP順序/カウントに完全不可視。Tier-1独立監査=0 BLOCKER/0 HIGH(`readyPendingTriggers`フィルタが既存APNAP非regression・CR513.2両方向・one-shot・Slice A非regressionを実地検証)。判定者がMEDIUM1件(`applyEnterCombat`のpromotion bypass・現状無害)+LOW1件(activated行埋め込みdelayed節のabilityLineIndex欠落)へ説明コメント追記。**Slice C(discard/sacrifice/counter新規semantic event)は未実装**=plannedSequenceに残存。",
       "evidence": [
         "cr-trigger-sba-priority-loop",
         "cr-trigger-6033b-two-bucket-order",
@@ -738,9 +733,12 @@
         "cr-zone-change-new-object-lki",
         "src/store/__tests__/review.cr603-triggers-sliceA.test.ts",
         "src/store/__tests__/triggerEventSubscriptions.test.ts",
-        "docs/engine-spec.md §34.25"
+        "src/store/__tests__/review.cr603-triggers-sliceB.test.ts",
+        "src/store/__tests__/delayedTriggers.test.ts",
+        "docs/engine-spec.md §34.25",
+        "docs/engine-spec.md §34.26"
       ],
-      "nextGate": "Slice B=delayed-trigger scheduling primitive(demand10・Mishra's Bauble/Arcane Denial/Hide on the Ceiling golden)。Slice C=discard/sacrifice/counter新規semantic event(demand27)。plannedSequence参照。",
+      "nextGate": "Slice C=discard/sacrifice/counter新規semantic event(demand27・新GameEvent union member or ZoneChangeEvent reason拡充の設計判断要)。plannedSequence参照。",
       "judge": "deterministic-cr"
     },
     {

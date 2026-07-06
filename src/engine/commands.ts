@@ -14,6 +14,11 @@ import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR, type AbilityCost } from './grammar/ir';
 import { parseManaCost } from './mana';
 import { effectiveKeywords, effectivePower, hasVigilance, normalizeKeywords } from './status';
+import {
+  hasDelayedPhaseBeginTiming,
+  makeScheduledDelayedTrigger,
+  promoteDueScheduledTriggers,
+} from './triggers';
 import type {
   AbilityKind,
   ActivationCostComponent,
@@ -42,6 +47,7 @@ import type {
   LogEntry,
   ManaPool,
   ObjectSnapshot,
+  PendingTrigger,
   Phase,
   PlayerId,
   TargetSelection,
@@ -271,15 +277,9 @@ function cloneDefeat(defeat: GameState['defeat'] | undefined): GameState['defeat
   );
 }
 
-function cloneOncePerTurnTriggerLedger(
-  state: GameState,
-): GameState['oncePerTurnTriggerLedger'] {
+function cloneOncePerTurnTriggerLedger(state: GameState): GameState['oncePerTurnTriggerLedger'] {
   const ledger = (state as Partial<GameState>).oncePerTurnTriggerLedger;
-  if (
-    !ledger ||
-    ledger.turn !== state.turn ||
-    !Array.isArray(ledger.consumedKeys)
-  ) {
+  if (!ledger || ledger.turn !== state.turn || !Array.isArray(ledger.consumedKeys)) {
     return { turn: state.turn, consumedKeys: [] };
   }
   return {
@@ -363,6 +363,17 @@ function pushLog(draft: Draft, message: string): void {
     message,
   };
   draft.state.log = [...draft.state.log, entry];
+}
+
+function appendPendingTrigger(draft: Draft, trigger: PendingTrigger): void {
+  if (
+    draft.state.pendingTriggers.some(
+      (existing) => existing.pendingTriggerId === trigger.pendingTriggerId,
+    )
+  ) {
+    return;
+  }
+  draft.state.pendingTriggers = [...draft.state.pendingTriggers, trigger];
 }
 
 function pushEvent(draft: Draft, event: GameEventPayload): GameEvent {
@@ -1367,6 +1378,9 @@ function applyEnterCombat(
 
   const attacking = attackingPlayerId ?? draft.state.activePlayerId;
   const defending = defendingPlayerId ?? defaultDefendingPlayer(attacking);
+  // Sets phase directly (bypasses enterPhase/promoteDueScheduledTriggers). Harmless today
+  // because PendingTriggerSchedule.phase only accepts 'upkeep'|'end', but if a future slice
+  // adds 'combat' as a schedule target, this call site will also need promotion wiring.
   draft.state.phase = 'combat';
   draft.state.combat = {
     combatId: combatId ?? nextCombatId(draft),
@@ -1945,6 +1959,7 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
       draft.warnings.push('ライブラリが空のためドローできません。');
     }
   }
+  draft.state = promoteDueScheduledTriggers(draft.state);
 }
 
 function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
@@ -3317,9 +3332,7 @@ function applyStoredTargetCommands(
     }
     const expectedZone = normalizedPrompt.filter?.zone;
     if (expectedZone && draft.state.cards[targetCardId]?.zone !== expectedZone) {
-      draft.warnings.push(
-        `${stackNameOf(draft, card)}の保存済み対象は期待した領域にありません。`,
-      );
+      draft.warnings.push(`${stackNameOf(draft, card)}の保存済み対象は期待した領域にありません。`);
       continue;
     }
 
@@ -3343,6 +3356,66 @@ function applyStoredTargetCommands(
   return applied;
 }
 
+function sourceSnapshotForResolvedEffectLine(
+  draft: Draft,
+  stackItem: CardInstance,
+  sourceId: string,
+): ObjectSnapshot | null {
+  if (stackItem.isAbility && stackItem.sourceSnapshot) {
+    return stackItem.sourceSnapshot;
+  }
+  const source = draft.state.cards[sourceId];
+  if (source) {
+    return objectSnapshotOf(draft, source);
+  }
+  if (!stackItem.isAbility) {
+    return objectSnapshotOf(draft, stackItem);
+  }
+  return null;
+}
+
+function scheduleDelayedTriggerForEffectLine(
+  draft: Draft,
+  stackItem: CardInstance,
+  effectLine: ResolvableEffectLine,
+  lineIndex: number,
+): boolean {
+  if (!hasDelayedPhaseBeginTiming(effectLine.line.text)) {
+    return false;
+  }
+
+  const sourceSnapshot = sourceSnapshotForResolvedEffectLine(draft, stackItem, effectLine.sourceId);
+  if (!sourceSnapshot) {
+    draft.warnings.push(`${stackNameOf(draft, stackItem)}の遅延誘発の発生源を特定できません。`);
+    return true;
+  }
+
+  const eventId = [
+    'delayed',
+    draft.state.turn,
+    draft.state.phase,
+    draft.nextSeq,
+    sourceSnapshot.objectId,
+    lineIndex,
+  ].join(':');
+  const pending = makeScheduledDelayedTrigger(
+    draft.state,
+    sourceSnapshot,
+    effectLine.line.text,
+    eventId,
+  );
+  if (!pending) {
+    return false;
+  }
+
+  appendPendingTrigger(draft, pending);
+  pushLog(
+    draft,
+    `《${cardName(draft.state.defs[sourceSnapshot.defId])}》の遅延誘発を予約しました。`,
+  );
+  return true;
+}
+
 function applyCompiledEffectsForStackItem(
   draft: Draft,
   card: CardInstance,
@@ -3350,7 +3423,10 @@ function applyCompiledEffectsForStackItem(
   libraryShuffleOrder?: readonly string[],
 ): void {
   const commanderColorIdentity = commanderColorIdentityForState(draft.state);
-  for (const effectLine of effectLines) {
+  for (const [lineIndex, effectLine] of effectLines.entries()) {
+    if (scheduleDelayedTriggerForEffectLine(draft, card, effectLine, lineIndex)) {
+      continue;
+    }
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,

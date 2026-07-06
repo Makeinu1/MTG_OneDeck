@@ -1,16 +1,7 @@
 import { applyCommands } from './batch';
-import {
-  performStateBasedActions,
-  type ApplyResult,
-  type GameCommand,
-} from './commands';
-import { collectPendingTriggerUpdate } from './triggers';
-import type {
-  GameState,
-  PendingTrigger,
-  PlayerId,
-  TriggerStackPlacementBucket,
-} from './types';
+import { performStateBasedActions, type ApplyResult, type GameCommand } from './commands';
+import { collectPendingTriggerUpdate, readyPendingTriggers } from './triggers';
+import type { GameState, PendingTrigger, PlayerId, TriggerStackPlacementBucket } from './types';
 
 export const DEFAULT_TURN_ORDER: readonly PlayerId[] = ['P1', 'OPPONENT_A'];
 export const TRIGGER_STACK_PLACEMENT_BUCKETS: readonly TriggerStackPlacementBucket[] = [
@@ -30,9 +21,7 @@ export interface IncompletePendingTriggerOrder {
   duplicateIds: string[];
 }
 
-export type PendingTriggerOrderResult =
-  | OrderedPendingTriggers
-  | IncompletePendingTriggerOrder;
+export type PendingTriggerOrderResult = OrderedPendingTriggers | IncompletePendingTriggerOrder;
 
 export interface ManualPendingTriggerOrderRequired {
   status: 'manual-order-required';
@@ -75,7 +64,7 @@ export interface AdvanceToPriorityOptions {
 
 export function apnapPlayerOrder(
   activePlayerId: PlayerId,
-  turnOrder: readonly PlayerId[] = DEFAULT_TURN_ORDER
+  turnOrder: readonly PlayerId[] = DEFAULT_TURN_ORDER,
 ): PlayerId[] {
   const activeIndex = turnOrder.indexOf(activePlayerId);
   if (activeIndex < 0) {
@@ -85,11 +74,9 @@ export function apnapPlayerOrder(
 }
 
 export function triggerStackPlacementBucketOf(
-  trigger: Pick<PendingTrigger, 'stackPlacementBucket'>
+  trigger: Pick<PendingTrigger, 'stackPlacementBucket'>,
 ): TriggerStackPlacementBucket {
-  return trigger.stackPlacementBucket === 'ability-triggered'
-    ? 'ability-triggered'
-    : 'ordinary';
+  return trigger.stackPlacementBucket === 'ability-triggered' ? 'ability-triggered' : 'ordinary';
 }
 
 /**
@@ -104,11 +91,10 @@ export function orderPendingTriggersApnap(
   pendingTriggers: readonly PendingTrigger[],
   explicitOrderIds: readonly string[],
   activePlayerId: PlayerId,
-  turnOrder: readonly PlayerId[] = DEFAULT_TURN_ORDER
+  turnOrder: readonly PlayerId[] = DEFAULT_TURN_ORDER,
 ): PendingTriggerOrderResult {
-  const pendingById = new Map(
-    pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
-  );
+  const readyTriggers = readyPendingTriggers(pendingTriggers);
+  const pendingById = new Map(readyTriggers.map((trigger) => [trigger.pendingTriggerId, trigger]));
   const seenIds = new Set<string>();
   const duplicateIds: string[] = [];
   const unknownIds: string[] = [];
@@ -129,7 +115,7 @@ export function orderPendingTriggersApnap(
     explicitUniquePendingIds.push(id);
   }
 
-  const missingIds = pendingTriggers
+  const missingIds = readyTriggers
     .map((trigger) => trigger.pendingTriggerId)
     .filter((id) => !seenIds.has(id));
 
@@ -137,7 +123,7 @@ export function orderPendingTriggersApnap(
     missingIds.length > 0 ||
     unknownIds.length > 0 ||
     duplicateIds.length > 0 ||
-    explicitUniquePendingIds.length !== pendingTriggers.length
+    explicitUniquePendingIds.length !== readyTriggers.length
   ) {
     return {
       status: 'incomplete',
@@ -152,11 +138,10 @@ export function orderPendingTriggersApnap(
       explicitUniquePendingIds.filter((id) => {
         const pending = pendingById.get(id);
         return (
-          pending?.controllerId === playerId &&
-          triggerStackPlacementBucketOf(pending) === bucket
+          pending?.controllerId === playerId && triggerStackPlacementBucketOf(pending) === bucket
         );
-      })
-    )
+      }),
+    ),
   );
 
   return {
@@ -167,14 +152,15 @@ export function orderPendingTriggersApnap(
 
 function triggerOrderGroupKey(
   controllerId: PlayerId,
-  stackPlacementBucket: TriggerStackPlacementBucket
+  stackPlacementBucket: TriggerStackPlacementBucket,
 ): string {
   return `${stackPlacementBucket}:${controllerId}`;
 }
 
 export function deterministicPendingTriggerOrderForPriority(
-  state: Pick<GameState, 'pendingTriggers' | 'activePlayerId'>
+  state: Pick<GameState, 'pendingTriggers' | 'activePlayerId'>,
 ): string[] | null {
+  const pendingTriggers = readyPendingTriggers(state.pendingTriggers);
   const groups = new Map<
     string,
     {
@@ -184,7 +170,7 @@ export function deterministicPendingTriggerOrderForPriority(
     }
   >();
 
-  for (const trigger of state.pendingTriggers) {
+  for (const trigger of pendingTriggers) {
     const stackPlacementBucket = triggerStackPlacementBucketOf(trigger);
     const key = triggerOrderGroupKey(trigger.controllerId, stackPlacementBucket);
     const group = groups.get(key) ?? {
@@ -201,14 +187,15 @@ export function deterministicPendingTriggerOrderForPriority(
   }
 
   const orderResult = orderPendingTriggersApnap(
-    state.pendingTriggers,
-    state.pendingTriggers.map((trigger) => trigger.pendingTriggerId),
-    state.activePlayerId
+    pendingTriggers,
+    pendingTriggers.map((trigger) => trigger.pendingTriggerId),
+    state.activePlayerId,
   );
   return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
 }
 
 function manualOrderRequired(state: GameState): ManualPendingTriggerOrderRequired {
+  const pendingTriggers = readyPendingTriggers(state.pendingTriggers);
   const groups = new Map<
     string,
     {
@@ -218,7 +205,7 @@ function manualOrderRequired(state: GameState): ManualPendingTriggerOrderRequire
     }
   >();
 
-  for (const trigger of state.pendingTriggers) {
+  for (const trigger of pendingTriggers) {
     const stackPlacementBucket = triggerStackPlacementBucketOf(trigger);
     const key = triggerOrderGroupKey(trigger.controllerId, stackPlacementBucket);
     const group = groups.get(key) ?? {
@@ -232,10 +219,8 @@ function manualOrderRequired(state: GameState): ManualPendingTriggerOrderRequire
 
   return {
     status: 'manual-order-required',
-    pendingTriggerIds: state.pendingTriggers.map((trigger) => trigger.pendingTriggerId),
-    ambiguousGroups: [...groups.values()].filter(
-      (group) => group.pendingTriggerIds.length > 1
-    ),
+    pendingTriggerIds: pendingTriggers.map((trigger) => trigger.pendingTriggerId),
+    ambiguousGroups: [...groups.values()].filter((group) => group.pendingTriggerIds.length > 1),
   };
 }
 
@@ -253,10 +238,13 @@ function commandForPendingTrigger(pending: PendingTrigger): GameCommand {
 
 function pendingTriggersForIds(
   state: GameState,
-  pendingTriggerIds: readonly string[]
+  pendingTriggerIds: readonly string[],
 ): PendingTrigger[] {
   const pendingById = new Map(
-    state.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger])
+    readyPendingTriggers(state.pendingTriggers).map((trigger) => [
+      trigger.pendingTriggerId,
+      trigger,
+    ]),
   );
   return pendingTriggerIds
     .map((id) => pendingById.get(id))
@@ -265,17 +253,13 @@ function pendingTriggersForIds(
 
 function appendPendingTriggers(
   state: GameState,
-  pendingTriggers: readonly PendingTrigger[]
+  pendingTriggers: readonly PendingTrigger[],
 ): GameState {
   if (pendingTriggers.length === 0) {
     return state;
   }
-  const existingIds = new Set(
-    state.pendingTriggers.map((trigger) => trigger.pendingTriggerId)
-  );
-  const additions = pendingTriggers.filter(
-    (trigger) => !existingIds.has(trigger.pendingTriggerId)
-  );
+  const existingIds = new Set(state.pendingTriggers.map((trigger) => trigger.pendingTriggerId));
+  const additions = pendingTriggers.filter((trigger) => !existingIds.has(trigger.pendingTriggerId));
   if (additions.length === 0) {
     return state;
   }
@@ -287,12 +271,12 @@ function appendPendingTriggers(
 
 function removePendingTriggersById(
   state: GameState,
-  pendingTriggerIds: readonly string[]
+  pendingTriggerIds: readonly string[],
 ): GameState {
   if (pendingTriggerIds.length === 0) return state;
   const idSet = new Set(pendingTriggerIds);
   const pendingTriggers = state.pendingTriggers.filter(
-    (trigger) => !idSet.has(trigger.pendingTriggerId)
+    (trigger) => !idSet.has(trigger.pendingTriggerId),
   );
   return pendingTriggers.length === state.pendingTriggers.length
     ? state
@@ -310,7 +294,7 @@ function applySbaAndCollectTriggers(state: GameState): ApplyResult {
 
 export function placePendingTriggersOnStackAsBatch(
   state: GameState,
-  orderedIds: readonly string[]
+  orderedIds: readonly string[],
 ): ApplyResult {
   const pendingInOrder = pendingTriggersForIds(state, orderedIds);
   if (pendingInOrder.length === 0) {
@@ -323,7 +307,7 @@ export function placePendingTriggersOnStackAsBatch(
   return {
     state: removePendingTriggersById(
       withNewPending,
-      pendingInOrder.map((trigger) => trigger.pendingTriggerId)
+      pendingInOrder.map((trigger) => trigger.pendingTriggerId),
     ),
     warnings: result.warnings,
   };
@@ -331,7 +315,7 @@ export function placePendingTriggersOnStackAsBatch(
 
 export function advanceToPriority(
   state: GameState,
-  options: AdvanceToPriorityOptions = {}
+  options: AdvanceToPriorityOptions = {},
 ): PriorityBoundaryResult {
   let workingState = state;
   const warnings: string[] = [];
@@ -351,7 +335,8 @@ export function advanceToPriority(
       };
     }
 
-    if (workingState.pendingTriggers.length === 0) {
+    const readyTriggers = readyPendingTriggers(workingState.pendingTriggers);
+    if (readyTriggers.length === 0) {
       return {
         status: 'priority-ready',
         state: workingState,
@@ -361,9 +346,9 @@ export function advanceToPriority(
 
     const orderedIds = explicitTriggerOrderIds
       ? orderPendingTriggersApnap(
-          workingState.pendingTriggers,
+          readyTriggers,
           explicitTriggerOrderIds,
-          workingState.activePlayerId
+          workingState.activePlayerId,
         )
       : null;
     explicitTriggerOrderIds = undefined;
@@ -391,10 +376,7 @@ export function advanceToPriority(
       };
     }
 
-    const placement = placePendingTriggersOnStackAsBatch(
-      workingState,
-      deterministicOrder
-    );
+    const placement = placePendingTriggersOnStackAsBatch(workingState, deterministicOrder);
     workingState = placement.state;
     warnings.push(...placement.warnings);
   }

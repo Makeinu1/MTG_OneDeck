@@ -54,6 +54,8 @@ import {
   type PendingRuleChoice,
   type PendingSbaChoice,
   type PendingTrigger,
+  type PendingTriggerSchedule,
+  type Phase,
   type PlayerPrivateZones,
   type PlayerId,
   type RuleChoiceSelection,
@@ -66,6 +68,7 @@ import {
   abilityLineIndexForKind,
   collectAttackPendingTriggers,
   collectPendingTriggerUpdate,
+  readyPendingTriggers,
   triggerCandidatesFromPendingTriggers,
   type TriggerCandidate,
 } from '../engine/triggers';
@@ -273,6 +276,48 @@ function normalizeTriggerStackPlacementBucket(
   return stackPlacementBucket === 'ability-triggered' ? 'ability-triggered' : 'ordinary';
 }
 
+function isPhase(value: unknown): value is Phase {
+  return (
+    value === 'untap' ||
+    value === 'upkeep' ||
+    value === 'draw' ||
+    value === 'main1' ||
+    value === 'combat' ||
+    value === 'main2' ||
+    value === 'end'
+  );
+}
+
+function isScheduledPhase(value: unknown): value is PendingTriggerSchedule['phase'] {
+  return value === 'upkeep' || value === 'end';
+}
+
+function normalizePendingTriggerSchedule(value: unknown): PendingTriggerSchedule | undefined {
+  const rawSchedule = unknownRecord(value);
+  if (!rawSchedule) {
+    return undefined;
+  }
+  if (
+    rawSchedule.kind !== 'phase-begin' ||
+    typeof rawSchedule.turn !== 'number' ||
+    !Number.isFinite(rawSchedule.turn) ||
+    !isScheduledPhase(rawSchedule.phase) ||
+    typeof rawSchedule.createdAtTurn !== 'number' ||
+    !Number.isFinite(rawSchedule.createdAtTurn) ||
+    !isPhase(rawSchedule.createdAtPhase)
+  ) {
+    return undefined;
+  }
+  return {
+    kind: 'phase-begin',
+    turn: rawSchedule.turn,
+    phase: rawSchedule.phase,
+    consumeOnTrigger: true,
+    createdAtTurn: rawSchedule.createdAtTurn,
+    createdAtPhase: rawSchedule.createdAtPhase,
+  };
+}
+
 function normalizeSnapshotCombat(state: GameState): GameState['combat'] {
   const snapshot = state as Partial<GameState>;
   const combat = snapshot.combat;
@@ -445,11 +490,22 @@ function normalizeSnapshotState(state: GameState): GameState {
         const stackPlacementBucket = normalizeTriggerStackPlacementBucket(
           trigger.stackPlacementBucket,
         );
-        return controllerId === trigger.controllerId &&
+        const schedule = normalizePendingTriggerSchedule(trigger.schedule);
+        const normalized =
+          controllerId === trigger.controllerId &&
           simultaneousGroupId === trigger.simultaneousGroupId &&
           stackPlacementBucket === trigger.stackPlacementBucket
-          ? trigger
-          : { ...trigger, controllerId, simultaneousGroupId, stackPlacementBucket };
+            ? trigger
+            : { ...trigger, controllerId, simultaneousGroupId, stackPlacementBucket };
+        if (schedule === undefined) {
+          if (normalized.schedule === undefined) {
+            return normalized;
+          }
+          const withoutSchedule = { ...normalized };
+          delete withoutSchedule.schedule;
+          return withoutSchedule;
+        }
+        return schedule === normalized.schedule ? normalized : { ...normalized, schedule };
       })
     : [];
 
@@ -503,11 +559,16 @@ function appendCollectedPendingTriggers(prev: GameState, next: GameState): GameS
 }
 
 function clearPendingTriggers(state: GameState): GameState {
-  return state.pendingTriggers.length === 0 ? state : { ...state, pendingTriggers: [] };
+  const pendingTriggers = state.pendingTriggers.filter((trigger) => trigger.schedule !== undefined);
+  return pendingTriggers.length === state.pendingTriggers.length
+    ? state
+    : { ...state, pendingTriggers };
 }
 
 function removePendingTriggersForSource(state: GameState, sourceId: string): GameState {
-  const pendingTriggers = state.pendingTriggers.filter((trigger) => trigger.sourceId !== sourceId);
+  const pendingTriggers = state.pendingTriggers.filter(
+    (trigger) => trigger.schedule !== undefined || trigger.sourceId !== sourceId,
+  );
   return pendingTriggers.length === state.pendingTriggers.length
     ? state
     : { ...state, pendingTriggers };
@@ -604,7 +665,10 @@ function pendingTriggersForIds(
   pendingTriggerIds: readonly string[],
 ): PendingTrigger[] {
   const pendingById = new Map(
-    state.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger]),
+    readyPendingTriggers(state.pendingTriggers).map((trigger) => [
+      trigger.pendingTriggerId,
+      trigger,
+    ]),
   );
   return pendingTriggerIds
     .map((id) => pendingById.get(id))
@@ -628,7 +692,8 @@ function applyPendingTriggerStackPlacement(
 
 function deterministicPendingTriggerOrderForPriority(state: GameState): string[] | null {
   const countsByControllerBucket = new Map<string, number>();
-  for (const trigger of state.pendingTriggers) {
+  const pendingTriggers = readyPendingTriggers(state.pendingTriggers);
+  for (const trigger of pendingTriggers) {
     const key = `${triggerStackPlacementBucketOf(trigger)}:${trigger.controllerId}`;
     countsByControllerBucket.set(key, (countsByControllerBucket.get(key) ?? 0) + 1);
   }
@@ -637,8 +702,8 @@ function deterministicPendingTriggerOrderForPriority(state: GameState): string[]
   }
 
   const orderResult = orderPendingTriggersApnap(
-    state.pendingTriggers,
-    state.pendingTriggers.map((trigger) => trigger.pendingTriggerId),
+    pendingTriggers,
+    pendingTriggers.map((trigger) => trigger.pendingTriggerId),
     state.activePlayerId,
   );
   return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
@@ -1100,9 +1165,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const cur = get().state;
     const shouldCollectPending = options.collectPending ?? true;
     const nextWithPending =
-      cur && shouldCollectPending
-        ? appendCollectedPendingTriggers(cur, next)
-        : next;
+      cur && shouldCollectPending ? appendCollectedPendingTriggers(cur, next) : next;
     if (cur) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
@@ -2422,7 +2485,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         return true;
       });
       const pendingById = new Map(
-        before.pendingTriggers.map((trigger) => [trigger.pendingTriggerId, trigger]),
+        readyPendingTriggers(before.pendingTriggers).map((trigger) => [
+          trigger.pendingTriggerId,
+          trigger,
+        ]),
       );
       const pendingInOrder = orderedIds
         .map((id) => pendingById.get(id))
@@ -2465,10 +2531,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
-      if (cur.pendingTriggers.length === 0) return;
+      const readyTriggers = readyPendingTriggers(cur.pendingTriggers);
+      if (readyTriggers.length === 0) return;
 
       const orderResult = orderPendingTriggersApnap(
-        cur.pendingTriggers,
+        readyTriggers,
         pendingTriggerIds,
         cur.activePlayerId,
       );
@@ -2485,7 +2552,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       let iterations = 0;
       const maxIterations = 10;
 
-      while (workingState.pendingTriggers.length > 0) {
+      while (readyPendingTriggers(workingState.pendingTriggers).length > 0) {
         if (!orderedIds) {
           warnings.push(PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING);
           break;
@@ -2499,13 +2566,16 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings.push(...placement.warnings);
         iterations += 1;
 
-        if (iterations >= maxIterations && workingState.pendingTriggers.length > 0) {
+        if (
+          iterations >= maxIterations &&
+          readyPendingTriggers(workingState.pendingTriggers).length > 0
+        ) {
           warnings.push(PRIORITY_TRIGGER_FIXED_POINT_LIMIT_WARNING);
           break;
         }
 
         orderedIds =
-          workingState.pendingTriggers.length === 0
+          readyPendingTriggers(workingState.pendingTriggers).length === 0
             ? []
             : deterministicPendingTriggerOrderForPriority(workingState);
       }

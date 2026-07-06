@@ -404,6 +404,15 @@ export type GameEvent =
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 
+export interface PendingTriggerSchedule {
+  kind: 'phase-begin';
+  turn: number;
+  phase: 'upkeep' | 'end';
+  consumeOnTrigger: true;
+  createdAtTurn: number;
+  createdAtPhase: Phase;
+}
+
 export interface PendingTrigger {
   pendingTriggerId: string;
   eventId: string;
@@ -418,6 +427,7 @@ export interface PendingTrigger {
   stackPlacementBucket: TriggerStackPlacementBucket;
   triggeredByPendingTriggerId?: string;
   triggeredByAbilityEventId?: string;
+  schedule?: PendingTriggerSchedule;
 }
 
 export interface OncePerTurnTriggerLedger {
