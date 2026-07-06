@@ -1,6 +1,6 @@
 import type { CardDef, ManaColor } from '../../types/card';
 import type { GameCommand } from '../commands';
-import type { LinkedExilePurpose, TargetSelectionKind } from '../types';
+import type { LinkedExilePurpose, ObjectSnapshot, TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
 
@@ -70,7 +70,7 @@ export interface EffectPrompt {
 }
 
 export type GuidedAnswer =
-  | { kind: 'target'; cardIds: string[] }
+  | { kind: 'target'; cardIds: string[]; targetSnapshots?: readonly ObjectSnapshot[] }
   | { kind: 'library-search'; cardIds: string[] }
   | { kind: 'discard'; cardIds: string[] }
   | { kind: 'sacrifice'; cardIds: string[] }
@@ -390,6 +390,18 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     };
   }
 
+  const destroyThenLoseLifePrompt = guidedDestroyThenLoseLifeManaValuePrompt(ir);
+  if (destroyThenLoseLifePrompt) {
+    return {
+      commands: [],
+      decision: 'guided',
+      prompts: [destroyThenLoseLifePrompt],
+      confidence: 0.75,
+      risk: 'medium',
+      reasons: [],
+    };
+  }
+
   if (ir.constructs.includes('construct.choose-modal')) {
     reasons.add('needs-choice');
   }
@@ -506,6 +518,53 @@ function isSameResolutionBattlefieldReturn(raw: string): boolean {
   // NOT same-resolution and must stay manual (no delayed-return scheduler exists yet).
   return /^return\s+that\s+card\s+to\s+the\s+battlefield(?:\s+under\s+its\s+owner['’]s\s+control)?\.?$/i.test(
     raw.trim(),
+  );
+}
+
+function guidedDestroyThenLoseLifeManaValuePrompt(ir: AbilityIR): EffectPrompt | null {
+  if (ir.effects.length !== 2) {
+    return null;
+  }
+  const [destroyEffect, lifeEffect] = ir.effects;
+  if (destroyEffect.atom !== 'effect.destroy' || lifeEffect.atom !== 'effect.lose-life') {
+    return null;
+  }
+  if (destroyEffect.optional || lifeEffect.optional) {
+    return null;
+  }
+  if (
+    !isFeedTheSwarmDestroyClause(destroyEffect.raw) ||
+    !isLoseLifeEqualToTargetManaValueClause(lifeEffect.raw)
+  ) {
+    return null;
+  }
+
+  const prompt = guidedTargetPrompt(destroyEffect);
+  if (!prompt || prompt.atom !== 'effect.destroy') {
+    return null;
+  }
+  return {
+    ...prompt,
+    raw: `${normalizedEffectText(destroyEffect.raw)}. ${normalizedEffectText(lifeEffect.raw)}.`,
+  };
+}
+
+function normalizedEffectText(raw: string): string {
+  return raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isFeedTheSwarmDestroyClause(raw: string): boolean {
+  const normalized = normalizedEffectText(raw);
+  return /^destroy\s+target\b/i.test(normalized) && isSingleTargetClause(normalized);
+}
+
+function isLoseLifeEqualToTargetManaValueClause(raw: string): boolean {
+  const normalized = normalizedEffectText(raw);
+  return /^you\s+lose\s+life\s+equal\s+to\s+(?:its|that\s+(?:artifact|card|creature|enchantment|land|object|permanent|planeswalker|spell)['’]s)\s+mana\s+value$/i.test(
+    normalized,
   );
 }
 
@@ -1359,9 +1418,19 @@ export function buildGuidedCommands(
     return [];
   }
 
-  return answer.cardIds.flatMap((cardId): GameCommand[] => {
+  return answer.cardIds.flatMap((cardId, index): GameCommand[] => {
+    const targetSnapshot = answer.targetSnapshots?.[index];
     switch (prompt.atom) {
-      case 'effect.destroy':
+      case 'effect.destroy': {
+        const commands: GameCommand[] = [
+          { type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' },
+        ];
+        const manaValue = manaValueForDestroyThenLoseLifePrompt(prompt, targetSnapshot);
+        if (manaValue !== null) {
+          commands.push({ type: 'adjustLife', delta: -manaValue });
+        }
+        return commands;
+      }
       case 'effect.sacrifice':
         return [{ type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' }];
       case 'effect.exile':
@@ -1414,6 +1483,23 @@ export function buildGuidedCommands(
         return [];
     }
   });
+}
+
+function manaValueForDestroyThenLoseLifePrompt(
+  prompt: EffectPrompt,
+  targetSnapshot: ObjectSnapshot | undefined,
+): number | null {
+  if (!isDestroyThenLoseLifeManaValuePromptRaw(prompt.raw)) {
+    return null;
+  }
+  return targetSnapshot?.manaValue ?? null;
+}
+
+function isDestroyThenLoseLifeManaValuePromptRaw(raw: string): boolean {
+  const normalized = raw.replace(/[.。]/g, ' ').replace(/\s+/g, ' ').trim();
+  return /^destroy\s+target\b[\s\S]*\byou\s+lose\s+life\s+equal\s+to\s+(?:its|that\s+(?:artifact|card|creature|enchantment|land|object|permanent|planeswalker|spell)['’]s)\s+mana\s+value$/i.test(
+    normalized,
+  );
 }
 
 function counterDelta(raw: string): number {

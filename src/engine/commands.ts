@@ -534,7 +534,8 @@ function typeLineOf(draft: Draft, card: CardInstance): string {
 }
 
 function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
-  const face = currentFaceOf(draft, card);
+  const def = draft.state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
   const ownerId = card.ownerId ?? 'P1';
   const controllerId = card.controllerId ?? ownerId;
   return {
@@ -550,6 +551,7 @@ function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
     tapped: card.tapped,
     counters: { ...card.counters },
     typeLine: typeLineOf(draft, card),
+    manaValue: def?.cmc,
     power: face?.power,
     toughness: face?.toughness,
   };
@@ -577,6 +579,7 @@ export function objectSnapshotForCard(state: GameState, cardId: string): ObjectS
     tapped: card.tapped,
     counters: { ...card.counters },
     typeLine: (face?.typeLine ?? def?.typeLine ?? '').toString(),
+    manaValue: def?.cmc,
     power: face?.power,
     toughness: face?.toughness,
   };
@@ -3510,7 +3513,12 @@ function applyStoredTargetCommands(
 
     const commands = buildGuidedCommands(
       normalizedPrompt,
-      { kind: 'target', cardIds: [targetCardId] },
+      {
+        kind: 'target',
+        cardIds: [targetCardId],
+        targetSnapshots:
+          selection.selection.kind === 'object' ? [selection.selection.snapshot] : [],
+      },
       {
         sourceId,
         def,

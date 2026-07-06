@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-608-resolution",
-      "note": "batch3-2b(Slice B・判定者裁定=2分割の第2。Slice A出荷後)。解決時LKI読み取り経路(demand28のうち narrow candidate)。ObjectSnapshotへmanaValue追加(additive)+ephemeral resolver context(persistent GameState.resolutionContextは導入しない)。CR608.2h/400.7/400.7j正本。golden候補: Feed the Swarm/Rapid Hybridization/Mana Drain。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-701-keyword-actions-frequent",
       "note": "batch3-3。demand=23(action:mill 10+action:surveil 6+action:reveal 6+action:scry 1)。既存出荷済みdomain(§32.8/§32.9)の残leaf=固定数self-library mill/surveil/scry+reveal metadata。judge判断=新leaf domainか既存cr-701再オープンかは実装ブリーフ確定時に決める。CR 701.17a-d/701.20a-e/701.22a-d/701.25a-d/121.5正本。golden候補: Aftermath Analyst/Cultivate/Path of Ancestry。"
     },
@@ -689,19 +684,22 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "resolutionContext",
         "eventLog"
       ],
-      "boundary": "**Slice A(stack-target filtering + 単純counter-spell)出荷**(batch3-2a・2026-07-06・engine-spec §34.28)= `TargetFilter.zone`に`'stack'`追加(additive)。厳密5パターンのみguided(修飾語・follow-up節付きはhonest manual・needs-parseでfail closed)。既存`removeStackItem`をそのまま再利用(新規GameCommand追加なし)。自己ターゲット排除・ability排除・型フィルタ精度をTier-1独立監査で実地検証(0 BLOCKER/0 HIGH)。**Slice B(解決時LKI読み取り。Feed the Swarm/Rapid Hybridization/Mana Drain型。ObjectSnapshotへmanaValue追加+ephemeral resolver context)は未実装**=plannedSequenceに残存。",
+      "boundary": "Slice A(stack-target filtering + 単純counter-spell・batch3-2a・2026-07-06・engine-spec §34.28)+ Slice B(解決時LKI読み取り。Feed the Swarm型 mana value・batch3-2b・2026-07-06・engine-spec §34.29)両方出荷完了。Slice A=TargetFilter.zoneに'stack'追加+既存removeStackItem再利用。Slice B=ObjectSnapshotへmanaValue追加(additive・def.cmc由来)+TargetSelection.snapshotからの解決時読み取り(persistent GameState.resolutionContext不使用・新規GameCommand追加なし)。両スライスともTier-1独立監査で0 BLOCKER/0 HIGH。",
       "evidence": [
         "src/engine/__tests__/review.cr608-resolution-sliceA.test.ts",
         "src/engine/__tests__/cr608CounterSpellGuided.test.ts",
-        "docs/engine-spec.md §34.28"
+        "src/engine/__tests__/review.cr608-resolution-sliceB.test.ts",
+        "src/engine/__tests__/cr608ResolutionLkiManaValue.test.ts",
+        "docs/engine-spec.md §34.28",
+        "docs/engine-spec.md §34.29"
       ],
-      "nextGate": "Slice B=解決時LKI読み取り(demand28のうちnarrow candidate。ObjectSnapshot拡張 or ephemeral resolver context)。persistent GameState.resolutionContextは導入しない方針(判定者裁定)。plannedSequence参照。",
+      "nextGate": "domain完了。追加demandが観測されたら別スライス(power/toughness等mana value以外の特性へのLKI拡張、Mana Drain型のdelayed mana等)としてplannedSequenceへ新規投入。",
       "judge": "deterministic-cr"
     },
     {

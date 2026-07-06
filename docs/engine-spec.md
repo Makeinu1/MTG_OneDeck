@@ -2626,3 +2626,22 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。自己ターゲット排除(解決中のcounter-spell自身が自分の候補に出ない)・ability排除・型フィルタがstack item自身の型を正しく読むこと(battlefield等の無関係objectを誤って読まない)・厳密5パターン以外(Flusterstorm型「unless」修飾・An Offer You Can't Refuse型follow-up・exile-instead代替処理・未承認型組合せ)が正しくmanualのままであること・既存`removeStackItem`(他の呼び出し箇所=ability除去等)が無変更のまま・既存cr-603 Slice A/B/C review.*が無変更のまま、を実地検証済み。残余note(LOW・非ブロッキング)= stack分岐の自己除外が`filter.excludeSource`ゲートでなく無条件(この5パターンでは常に正しいが、将来「counter target spell, including this one」のような仮想的パターンが必要になれば要調整。現行スコープでは対応不要)。受け入れ=`review.cr608-resolution-sliceA.test.ts`(レビュー専有・6 pin。厳密5パターン境界・自己除外・ability除外・型フィルタ精度・解決非regression)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: 解決時LKI読み取り(Slice B)・「unless its controller pays {1}」等の解決時payment選択(CR608.2d)・gift/instead分岐・controller token/draw follow-up・delayed mana/draw(Mana Drain/Arcane Denial型)。
+
+### 34.29 cr-608-resolution Slice B: 解決時LKI読み取り(Feed the Swarm型 mana value)(CR 608.2h/400.7)— この節も契約である
+
+**位置づけ**: cr-608-resolution batch3-2b(domain最終スライス。本節出荷でdomain全体がshipped化)。Slice A(§34.28)の`removeStackItem`再利用とは独立に、「destroy target X. You lose life equal to its mana value.」型(Feed the Swarm)の解決時LKI読み取りを実装する。判定者裁定=persistent `GameState.resolutionContext`は導入しない・`ObjectSnapshot`へ`manaValue?:number`をadditiveで追加し、既存`TargetSelection.selection.snapshot`(対象選択時点で確定済み)から後続コマンド構築時に値を読む方式(command-payload expansion)。新規`GameCommand`型は追加しない(既存`moveCard`+`adjustLife`の組み合わせ)。
+
+**CR根拠**: 608.2h(効果が対象の特性を解決時に参照する場合、対象が変化・消滅していても効果が具体的に指定した基準に従う。本パターンは「its mana value」を対象選択時点の特性として読む)・400.7(オブジェクトが移動すると別オブジェクトになる。destroy後にmana valueを再読すれば墓地の別オブジェクトの特性を誤って読むことになる)。
+
+**凍結挙動**:
+- `ObjectSnapshot.manaValue?: number`をadditiveで追加(`objectSnapshotOf`/`objectSnapshotForCard`双方が`def?.cmc`から設定。静的/印刷特性であり layer 由来ではない)。
+- 新規leaf: `isDestroyThenLoseLifeManaValuePromptRaw`(正規表現で`"destroy target ... you lose life equal to (its|that <type-noun>'s) mana value"`の完全一致のみ捕捉。type-noun列挙=`artifact|card|creature|enchantment|land|object|permanent|planeswalker|spell`)。一致しない場合(誤characteristic・誤life-loser・follow-up節なし等)は`manualValueForDestroyThenLoseLifePrompt`が`null`を返し、`effect.destroy`は単純destroyのまま(既存共有経路に影響なし)。
+- 値の読み取り経路: `buildGuidedCommands`の`effect.destroy`ケースが`answer.targetSnapshots?.[index]`(=選択時点の`ObjectSnapshot`)から`manaValue`を読む。対象選択後のいかなる状態変化(mana value変更・破壊自体)よりも前に確定した値であり、解決時に`state.cards`を再読することは一切ない。`manaValue !== null`ガード(falsy-guardの罠を回避=mana value 0のlandも正しく`adjustLife delta:-0`を発行)。
+- 共有経路(`src/store/gameStore.ts`の`confirmGuidedTarget`)は全guided-target確定で無条件に`targetSnapshot`を計算し`targetSnapshots`として渡すよう補強されたが、新leaf以外のeffect atom(sacrifice/exile/return/tap/untap/counter-plus/counter-spell/plain destroy)は`buildGuidedCommands`内でこの値を一切参照せず、真のno-op(既存挙動とbyte-identical)。
+- snapshotが欠落する場合(理論上のみ。legalityゲート通過後の同tick消失等)は`manualValueForDestroyThenLoseLifePrompt`が`null`を返し、destroyのみ実行(例外を投げない)。
+
+**Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。共有経路(`confirmGuidedTarget`)が新leaf以外の全guided-target効果に対してbyte-identicalであることを6件の実地adversarialプローブで検証(plain destroy no follow-up・別type filter destroy・誤characteristic・誤life-loser・0除算的境界なし・bogus card-idでの非throw)。CR608.2h LKI-timing本質claim=対象選択後にmana valueを変異させても解決時計算は選択時点の値を使うこと、を実装者自身の敵対的テスト(選択後にcmcを4→9へ変異させ解決後life dropが4であることを確認)で実証済み。残余note(LOW×2/MEDIUM×1・非ブロッキング): ①leaf関数名がFeed the Swarm由来だが実際は一般的phrasing検出器(命名がやや狭いが誤解を招くほどではない)②type-noun列挙が固定リストのため未収載type noun(将来カードで"battle's mana value"等)はfail-safeにmanualへ落ちる(過認識でなく低認識=プロジェクト設計原則に合致・許容)③共有経路が新leafの有無に関わらず毎回snapshotを計算するため、将来`buildGuidedCommands`switchに新atomを追加する実装者はsnapshotが「無料で」利用可能なことをドキュメントで把握できると良い(本節が該当ドキュメント)。受け入れ=`review.cr608-resolution-sliceB.test.ts`(レビュー専有・7 pin。exact-phrase境界2件・共有経路non-regression・CR608.2h LKI-timing本質テスト・zero-mana-value land・missing-snapshot防御的縮退・compile shape)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: 「unless its controller pays {1}」等の解決時payment選択(CR608.2d)・gift/instead分岐・controller-side follow-up(Rapid Hybridization型の置換トークン生成等)・delayed mana/draw(Mana Drain/Arcane Denial型)・mana value以外の特性(power/toughness/loyalty等)を参照するLKI読み取り(将来別リーフで拡張可能・本節のパターンを流用)。
+
+**domain完了**: cr-608-resolution はSlice A(§34.28)+Slice B(本節)でplannedSequence消化完了。status=`shipped`。

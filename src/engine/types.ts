@@ -122,6 +122,7 @@ export interface ObjectSnapshot {
   tapped: boolean;
   counters: Record<string, number>;
   typeLine: string;
+  manaValue?: number;
   power?: string;
   toughness?: string;
 }

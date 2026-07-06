@@ -2834,9 +2834,14 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
       const sourceSnapshot = objectSnapshotForCard(cur, pending.sourceId);
+      const targetSnapshot = objectSnapshotForCard(cur, cardId);
       const commands = buildGuidedCommands(
         prompt,
-        { kind: 'target', cardIds: [cardId] },
+        {
+          kind: 'target',
+          cardIds: [cardId],
+          targetSnapshots: targetSnapshot ? [targetSnapshot] : [],
+        },
         {
           sourceId: pending.sourceId,
           def,
