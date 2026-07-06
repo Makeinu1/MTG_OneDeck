@@ -2731,8 +2731,24 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 **スコープ境界(§34.5・PASS に混ぜない)**: Slice A(§34.31)と同一(anthem・611.2解決由来効果・CDA全ゾーン・timestamp/dependency)に加え、ability除去・keyword counterブリッジ・non-keyword ability付与。
 
-**実装出荷(2026-07-06・Codex quota長期枯渇=2026-07-11まで復帰予定なし。ユーザー裁定によりJ3判定者が実装者を代行→独立Sonnet Tier-1監査→ship)**: `effectiveKeywords`を拡張し、`parseLayer6AdditiveKeywordLine`(self/attached双方の"has <keyword-list>"構文を解析。keyword語彙は既存`STATUS_KEYWORDS`14種のみ・`KEYWORD_NAME_TO_ID`(`src/engine/keywordGrammar.ts`の`KEYWORD_DEFINITIONS`由来)でoracle文言→内部idへ変換・未知語が1つでも混じればクリスタルclause全体をfail closed=部分付与なし)を実装。Slice Aの`staticAbilityLinesForCurrentFace`(文単位分割・Tier-1 HIGH修正込み)をそのまま再利用するため、`effectiveTypeLine`と`effectiveKeywords`の共通反復ロジックを`forEachAdditiveStaticSourceLine`へ抽出(Slice Aの既存挙動を変えない純粋なリファクタ)。新規GameState/GameCommandなし。
+**実装出荷(2026-07-06・Codex quota長期枯渇=2026-07-11まで復帰予定なし。ユーザー裁定によりJ3判定者が実装者を代行→独立Sonnet Tier-1監査→ship)**: `effectiveKeywords`を拡張し、`parseLayer6AdditiveKeywordLine`(self/attached双方の"has <keyword-list>"構文を解析。keyword語彙は既存`STATUS_KEYWORDS`14種のみ・`KEYWORD_NAME_TO_ID`(`src/engine/keywordGrammar.ts`の`KEYWORD_DEFINITIONS`由来)でoracle文言→内部idへ変換・未知語が1つでも混じればclause全体をfail closed=部分付与なし)を実装。Slice Aの`staticAbilityLinesForCurrentFace`(文単位分割・Tier-1 HIGH修正込み)をそのまま再利用するため、`effectiveTypeLine`と`effectiveKeywords`の共通反復ロジックを`forEachAdditiveStaticSourceLine`へ抽出(Slice Aの既存挙動を変えない純粋なリファクタ)。新規GameState/GameCommandなし。
 
 **Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。Slice Aのreview.*(15 pin)が無変更(byte-unmodified)のまま独立再実行で全緑=リファクタが非regressionであることを確認。7種の敵対的構成(2語keyword名のname→id変換・大文字小文字非依存・list先頭の未知語によるfail-closed・複数Aura同時付与・同一段落内のSlice A/B混在節・無関係隣接文による汚染なし・**誤った付与を意図的に誘発する試み**)全てclean。`KEYWORD_DEFINITIONS`には`banding`/`landwalk`/`phasing`等の`STATUS_KEYWORDS`外keywordも含まれるが、`isKeyword`ガードが正しく14種のみへ絞り込むことを実地確認。
 
 **受け入れ**: `review.cr604-layers-sliceB.test.ts`(レビュー専有・13 pin。self/attached keyword付与・複数keyword/Oxfordコンマ・ability除去/未知語/anthem false-positive・off-battlefield・detached aura・manualKeywords合成・Slice A/B共存非regression・vanilla非regression)。
+
+### 34.33 cr-614-615-616-replacement-prevention: shockland ETB 実装ギャップなし確認(CR 614.1c/614.1d)— この節も契約である
+
+**位置づけ**: cr-614-615-616-replacement-prevention batch3-6(domain初の着手。demand=12=replacement 11+prevention 1)。判定者がMyDeck実測gap data(`research/mydeck-scoring/gaps.json`)を精査した結果、**replacement demand 11件のうち7件(Blood Crypt×2/Godless Shrine/Sacred Foundry/Watery Grave/Breeding Pool)がshockland型("As this land enters, you may pay 2 life. If you don't, it enters tapped.")** であり、既存`landEntersTapped`(`src/engine/status.ts`。'always'/'never'/'conditional'を分類済み)+`playLand`(`src/store/gameStore.ts`。'conditional'時は`'needs-tap-choice'`を返しUIがplayerへ選択を促す)のフローが**既に正しく機能していた**ことを実地確認した(新規実装不要)。
+
+**CR根拠**: 614.1c/614.1d("As [this permanent] enters..."/"[this permanent] enters..."はreplacement effect)。本プロジェクトのサンドボックス哲学(ルールを強制しない。CLAUDE.md設計原則)により、「2ライフ払うか」の実際の支払いは強制せず、tapped/untappedの選択をplayerの誠実な判断に委ねる——これはCR上のreplacement effectの「効果」を honest choice UIとして表現したものであり、gap-classifierの`missingReadWrite: replacement`判定は既存のこのhonest-choice機構を計上していなかった(cr-701 mill/scry/surveil・cr-122 event:counterに続く3件目の「実装ギャップなし」実例)。
+
+**確認内容**:
+- `landEntersTapped(def)`が`'conditional'`(unless/if節を含む"enters...tapped"文)を正しく分類。
+- `playLand(cardId, opts)`が`'conditional'`時に`opts.entersTapped`未指定なら`'needs-tap-choice'`を返し、battlefieldへ移動しない(選択待ちで停止)。
+- `entersTapped: true/false`を指定して再呼び出しすると、指定通りの状態(tapped/untapped)でbattlefieldへ入る。
+- 既存の`'always'`(単純tapland)・`'never'`(basic land)は無変更でchoice不要のまま(非regression)。
+
+**残るdemand(未着手・genuine gap)**: graveyard→exile置換hook(Emet-Selch型「If a card or token would be put into your graveyard from anywhere, exile it instead.」・単一controller/source)・damage-doubling replacement(Kuja型。damage substrateとの相互作用が複雑=defer)・kicker依存ETB counter(Everflowing Chalice型。kicker cost追跡が前提=defer)・単一ターン戦闘ダメージ防止shield(Spore Frog型。prevention demand=1件)。
+
+**受け入れ**: `review.cr614-shockland-etb.test.ts`(レビュー専有・5 pin。shockland golden・pay-life選択両方向・unconditional tapland/basic landの非regression)。
