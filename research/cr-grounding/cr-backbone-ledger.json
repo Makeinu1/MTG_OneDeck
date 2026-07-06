@@ -9,7 +9,7 @@
     {
       "type": "domain-slice",
       "domainId": "cr-122-counters",
-      "note": "batch3-4。demand=22(counter:write 14+event:counter 8)。既存+1/+1相殺の上に、固定countergを対象へ書き込むguided leaf+counter-placement event emission(event:counter trigger predicateの基盤)。shield/stun/finality/battle defense/Saga lore countersはmanual/defer継続。CR 122.1/122.1a-c/122.1h/122.2-4/122.6-7/704.5c/704.5q正本。golden候補: Alesha, Who Laughs at Fate/Celes, Rune Knight/Emperor of Bones。"
+      "note": "batch3-4残置(counter-placement event emission)。既存counter-plus符号バグ修正(engine-spec §34.30・2026-07-06)でguided -1/-1 placementはカバー済み。残る demand=event:counter 8= 新規counter配置(+1/+1・-1/-1双方)からCounterChangeEventを発行するplumbing追加(既存recordCounterChangeIntent/flushCounterChangeEventsパターンを再利用できるか要調査。既にSBA annihilation経路はevent発行済み=cr-603 Slice C)。event:counter trigger predicateの基盤。CR122.6/122.7(Nth counter trigger規則)正本。"
     },
     {
       "type": "domain-slice",
@@ -463,13 +463,15 @@
         "poisonCounters",
         "lossAdvisories"
       ],
-      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryはあるが、counter cap, Saga lore counters, rad counters, defense counters は未閉鎖。",
+      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryに加え、**guided counter-plus leafの符号バグ修正**(batch3-4・2026-07-06・engine-spec §34.30)= 既存effect.counter-plus guided leafがoracle文の符号を無視し常にcounterType:'+1/+1'をハードコードしていた実バグ(「Put a -1/-1 counter on target creature.」型カードが逆符号のカウンターを置く)を判定者が発見・修正。counterDescriptorForRawで符号+magnitude解析、解析不能な記述はguidedを提示せずfail closed to manual。counter cap, Saga lore counters, rad counters, defense counters, counter-placement event emission, loyalty/charge/age等の他counter種別は未着手。",
       "evidence": [
         "cr-sba-plus-minus-counter-annihilation",
         "cr-sba-defeat-poison-threshold",
-        "cr-sba-defeat-poison-nine-boundary"
+        "cr-sba-defeat-poison-nine-boundary",
+        "src/engine/__tests__/review.cr122-counter-plus-sign.test.ts",
+        "docs/engine-spec.md §34.30"
       ],
-      "nextGate": "counter種類ごとの state ownership を決め、Saga/battle/rad はdeferred-by-demandへ残す",
+      "nextGate": "counter-placement event emission(event:counter demand=8)・他counter種別(charge/age/ice等)のguided placement・counter cap(122.4)・Saga/battle/rad counters は次回demand実測時に別スライス。",
       "judge": "deterministic-cr"
     },
     {

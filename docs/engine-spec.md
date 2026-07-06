@@ -2661,3 +2661,23 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **スコープ境界(§34.5・PASS に混ぜない)**: 「unless its controller pays {1}」等の解決時payment選択(CR608.2d)・gift/instead分岐・controller-side follow-up(Rapid Hybridization型の置換トークン生成等)・delayed mana/draw(Mana Drain/Arcane Denial型)・mana value以外の特性(power/toughness/loyalty等)を参照するLKI読み取り(将来別リーフで拡張可能・本節のパターンを流用)。
 
 **domain完了**: cr-608-resolution はSlice A(§34.28)+Slice B(本節)でplannedSequence消化完了。status=`shipped`。
+
+### 34.30 cr-122-counters batch3-4: counter-plus 符号バグ修正(CR 122.1a/122.3/704.5q)— この節も契約である
+
+**位置づけ**: cr-122-counters batch3-4(plannedSequence先頭。demand=22)。当初スコープは「固定countergを対象へ書き込むguided leaf+counter-placement event emission」(新規機能追加)だったが、判定者がscoping調査中(Codex quota到達により判定者自身が代行)に**既存出荷済みコードの実バグ**を発見し、新規機能追加より優先してこれを修正した。
+
+**発見経緯**: `effect.counter-plus`のatom probe(`src/engine/grammar/index.ts`)は正規表現`/[+-](?:\d+|X)\/[+-]?(?:\d+|X)\s+counters?\b/i`で「+1/+1 counter」「-1/-1 counter」の両方にマッチする(atom名は`counter-plus`だが符号非依存)。しかし`guidedTargetPrompt`は符号を見ずに単体target構文であれば無条件でguidedプロンプトを提示し、`buildGuidedCommands`の解決時処理(旧`counterDelta(raw): number`)は常に`counterType:'+1/+1'`をハードコードしていた。結果、「Put a -1/-1 counter on target creature.」のような実カード(Grim Affliction・Corpse Cur等)がguidedとして提示された上で、確定時に**逆符号の+1/+1カウンターを置く**というサイレントな誤動作が既に本番へ出荷されていた(honest manualへのfail-safeでなく、fake-greenより悪い「常に間違った動作を自信満々に実行する」バグ)。
+
+**CR根拠**: 122.1a(+X/+Yカウンターと-X/-Yカウンターは符号込みで別種。deltaでなく識別子そのもの)・122.3/704.5c/704.5q(同一permanentに+1/+1と-1/-1が同居する時、少ない方の数だけ両方から除去。既存annihilation SBAが担当=無変更)。
+
+**修正内容**:
+- 旧`counterDelta(raw): number`を`counterDescriptorForRaw(raw): {counterType:'+1/+1'|'-1/-1'; delta:number} | null`へ置換。符号ごと(+1/+1・-1/-1)に digit 形("3 -1/-1 counters")と word 形(a/an/one/two〜ten)を個別にマッチし、どちらの符号にも一致しない記述(可変X・非unit記述子である"+2/+2 counter"を独自種として等)は`null`を返す(**過認識でなく低認識に倒す**=プロジェクトの exact-phrase gate 規律)。
+- `guidedTargetPrompt`に事前ゲートを追加: `effect.atom==='effect.counter-plus'`かつ`counterDescriptorForRaw(effect.raw)`が`null`の場合はguidedを提示せず`null`を返す(既存`TARGET_REQUIRED_ATOMS`経由で`needs-target`→manualへ fail closed)。**解析不能な記述を最初からguidedとして出さない**ことが本質的な修正であり、確定時のみの修正では不十分(旧実装は「常に何かを返す」ことでこの穴を隠していた)。
+- `buildGuidedCommands`の`case 'effect.counter-plus':`のハードコードを撤去し、`counterDescriptorForRaw(prompt.raw)`の結果(`counterType`/`delta`)をそのまま使用。フォールバック`?? {counterType:'+1/+1', delta:1}`は上記ゲートにより実質到達不能(belt-and-suspenders・Tier-1がreachability を確認済み)。
+- **新規GameCommand・新規GameState一切なし**(純粋コンパイラ層の修正。`applyAddCounters`は元々`counterType: string`ジェネリックで、既にバグの影響を受けていなかった)。
+
+**Tier-1 監査(独立Sonnetサブエージェント。判定者=実装者代行のため必須)**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。4チェック全green(160 files/1397 tests)。`git stash`でバグ再現を実施=修正前コードで該当5 pinのうち3件が実際に失敗し、annihilation pinは特に「-1/-1配置のはずが3個目の+1/+1が積まれ、annihilationが一切起きない」という実害を確認(修正の実在性を確証)。敵対的追加プローブ(大文字小文字非依存・非unit記述子"+2/+2"がmanualのまま・非creature target・複合節での符号別々resolve・可変X両符号)すべて green。既存テストで`counterDelta`旧名を参照するものはゼロ(=「バグに合わせてテストを書き換えた」ものではない、独立発見・独立修正)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: 新規-1/-1 guided placement leafは既に本修正でカバー済み(旧leafが符号対応した形)。counter-placement event emission(`event:counter`demand=8向けの新規CounterChangeEvent発行元追加)・loyalty/charge/age等の他counter種別・可変count・distribute複数target・proliferateは本スライス未着手(次回demand実測時に別スライス)。
+
+**受け入れ**: `review.cr122-counter-plus-sign.test.ts`(レビュー専有・5 pin。符号バグ修正pin・+1/+1非regression・digit/word magnitude・可変X両符号のexact-phrase gate・annihilation SBA相互作用)。

@@ -1229,6 +1229,11 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
       raw: effect.raw,
     };
   }
+  if (effect.atom === 'effect.counter-plus' && !counterDescriptorForRaw(effect.raw)) {
+    // Sign/magnitude not recognized (e.g. variable X, non-unit descriptor): fail closed
+    // to manual rather than offer a guided prompt whose resolution would have to guess.
+    return null;
+  }
   if (!isSingleTargetClause(effect.raw)) {
     return null;
   }
@@ -1473,15 +1478,22 @@ export function buildGuidedCommands(
         return [{ type: 'setTapped', cardId, tapped: true }];
       case 'effect.untap':
         return [{ type: 'setTapped', cardId, tapped: false }];
-      case 'effect.counter-plus':
+      case 'effect.counter-plus': {
+        // CR 122.1a: a signed P/T counter's own sign/magnitude determines the effect
+        // (a -1/-1 counter is not a +1/+1 counter). The prompt is only ever offered
+        // (see guidedTargetPrompt) when this descriptor parses, so this should not be
+        // null here; the '+1/+1'/1 fallback mirrors this file's other defensive-read
+        // patterns rather than throwing.
+        const descriptor = counterDescriptorForRaw(prompt.raw) ?? { counterType: '+1/+1', delta: 1 };
         return [
           {
             type: 'addCounters',
             cardId,
-            counterType: '+1/+1',
-            delta: counterDelta(prompt.raw),
+            counterType: descriptor.counterType,
+            delta: descriptor.delta,
           },
         ];
+      }
       case 'effect.counter-spell':
         return [{ type: 'removeStackItem', id: cardId }];
       default:
@@ -1507,29 +1519,53 @@ function isDestroyThenLoseLifeManaValuePromptRaw(raw: string): boolean {
   );
 }
 
-function counterDelta(raw: string): number {
-  const fixedMatch = /\b(\d+)\s+\+1\/\+1 counters?\b/i.exec(raw);
-  if (fixedMatch) {
-    return Math.max(1, Number.parseInt(fixedMatch[1], 10) || 1);
+const COUNTER_COUNT_WORDS = new Map<string, number>([
+  ['a', 1],
+  ['an', 1],
+  ['one', 1],
+  ['two', 2],
+  ['three', 3],
+  ['four', 4],
+  ['five', 5],
+  ['six', 6],
+  ['seven', 7],
+  ['eight', 8],
+  ['nine', 9],
+  ['ten', 10],
+]);
+
+interface CounterDescriptor {
+  counterType: '+1/+1' | '-1/-1';
+  delta: number;
+}
+
+// CR 122.1a: a +X/+Y counter and a -X/-Y counter are distinct kinds — the sign is part of
+// the counter's identity, not just a delta. Only the two standard unit P/T counter kinds
+// used by real card templating are recognized here; anything else (variable X, non-unit
+// descriptors like "+2/+2 counter" as its own kind, etc.) is intentionally unrecognized so
+// the caller can fail closed to manual rather than guess.
+function counterDescriptorForRaw(raw: string): CounterDescriptor | null {
+  for (const [sign, counterType] of [
+    ['+1/+1', '+1/+1'],
+    ['-1/-1', '-1/-1'],
+  ] as const) {
+    const escaped = sign.replace(/[/+.]/g, '\\$&');
+    const digitMatch = new RegExp(`\\b(\\d+)\\s+${escaped}\\s+counters?\\b`, 'i').exec(raw);
+    if (digitMatch) {
+      return { counterType, delta: Math.max(1, Number.parseInt(digitMatch[1], 10) || 1) };
+    }
+    const wordMatch = new RegExp(
+      `\\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\\s+${escaped}\\s+counters?\\b`,
+      'i',
+    ).exec(raw);
+    if (wordMatch) {
+      const delta = COUNTER_COUNT_WORDS.get(wordMatch[1].toLowerCase());
+      if (delta !== undefined) {
+        return { counterType, delta };
+      }
+    }
   }
-  const wordMatch = /\b(two|three|four|five|six|seven|eight|nine|ten)\s+\+1\/\+1 counters?\b/i.exec(
-    raw,
-  );
-  if (wordMatch) {
-    const value = new Map([
-      ['two', 2],
-      ['three', 3],
-      ['four', 4],
-      ['five', 5],
-      ['six', 6],
-      ['seven', 7],
-      ['eight', 8],
-      ['nine', 9],
-      ['ten', 10],
-    ]).get(wordMatch[1].toLowerCase());
-    return value ?? 1;
-  }
-  return 1;
+  return null;
 }
 
 function hasAbilityWordLabel(raw: string): boolean {
