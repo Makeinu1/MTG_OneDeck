@@ -25,6 +25,11 @@ research/timing-coverage/report.json
 research/timing-oracle/report.json
 # classifier parity: keep report.md summary; exclude large per-card dump (regenerable via npm run classifier-parity)
 research/classifier-parity/report.json
+# mydeck scoring: keep summary.md + gaps.json (cited as evidence in docs/); exclude large per-card dump (regenerable via npx tsx scripts/mydeck-scoring/score.ts)
+research/mydeck-scoring/report.json
+
+# autoloop in-flight state (session scratch; the ledger is the committed source of truth)
+.claude/loop-state.md
 
 # Editor directories and files
 .vscode/*
