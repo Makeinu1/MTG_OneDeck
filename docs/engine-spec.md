@@ -2828,3 +2828,21 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **実装出荷(2026-07-07・Codex quota長期枯渇のため判定者が代行→ブラウザ実機確認→独立Sonnet Tier-1監査→ship)**: `applyPlayLand`のzone制限を`'hand' | 'graveyard'`へ1行緩和(exileは対象外のまま)。`Playmat.tsx`へ`card.zone==='graveyard' && typeLine.includes('Land')`条件で「土地としてプレイ(墓地から)」メニュー項目を追加(既存`requestPlayLand`ハンドラを再利用)。UI変更を伴うため、ブラウザ実機(Claude Preview)で実際にForestを墓地へ移動→右クリック→新メニュー項目クリック→battlefieldへの移動をpreview_evalで直接確認(コンソールエラー0件)。4チェック全green(168 files/1464 tests)。
 
 **Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。ターン内土地枚数上限の警告・`entersTapped`(既存`landEntersTapped`はcard定義textのみを見てzone非依存)・artifact landでの`cast-from-zone`分岐との非衝突(既存除外条件`!typeLine.includes('Land')`により相互排他)・exile/非land/library/battlefieldでの非適用・Scryfall独立再検証(4golden全て生テキストでbyte-exact確認)・手札からの既存挙動非regression、全てclean。UIのscope creepなし(exile/library等への誤爆なし)。
+
+### 34.37 cr-modal-target-optional-variable: modal選択肢commandコンパイルは実装ギャップなし(CR 700.2)— この節も契約である
+
+**位置づけ**: cr-modal-target-optional-variable batch3-8(plannedSequence最終エントリ。demand=10=choice:mode-or-value。golden候補=Teval's Judgment/Sheoldred's Edict)。**判定者が当初、`buildGuidedCommands`(`compile.ts`)の`answer.kind==='modal'`分岐が常に`return []`であることを実装gapと誤認し、compile.ts側に再帰sub-compileロジックを実装しかけた**。しかし既存の`review.grammar-guided.test.ts`(既存judge-owned pin=「modal の buildGuidedCommands は \[\](再帰コンパイルはストア)」)がこれを明示的に契約として凍結しており、実装を追加した瞬間にこの既存pinが赤くなって発覚した。engine-spec本体(§32系G3設計)にも「モード内アトムはトップレベルでは実行しない=ストアが選択後に再帰コンパイル」と既に明記されていた。
+
+**調査の結果、`src/store/gameStore.ts`の`compileSelectedModalOptions`(`confirmGuidedModal`から呼ばれる)が、まさにこの「選択された各モードのraw textを`parseAbilityIR`+`compileAbilityIR`で再帰コンパイルし、`auto`/`guided`両方の結果を`commands`/`prompts`として蓄積する」機能を既に実装済みであることを確認した**(判定者が意図した設計より完成度が高い=modeごとにguided段階=target選択等も個別にchain可能)。**ただし一度もend-to-endでテストされていなかった**(`grep -rn "confirmGuidedModal" src/store/__tests__/`が0件)。
+
+**確認内容(store層・実地確認)**: `newGame`→spellをstackへ→`resolveTop()`(→`pendingGuided`にmodal promptが載る)→`confirmGuidedModal([0])`の一連を実行——
+- Teval's Judgment型("Choose one — • Draw a card. • Create a Treasure token. • Create a 2/2 black Zombie Druid creature token.")の"Draw a card."モード選択で、実際に手札が1枚増える(既存`effect.draw`leafが再帰コンパイルされ`commands`へ正しく載る)ことを確認。
+- Sheoldred's Edict型(3モード全て"Each opponent sacrifices..."=既存sacrifice leafは自己/単一target限定で非対応)のモード選択でも**クラッシュせず**、当該モードの効果は実行されないがspell自体は正しくstackから解決される(CR700.2=各モードは独立した効果であり、1モードが引数非対応でも呪文解決そのものは進む、というCR上正しい挙動と一致)。
+
+**CR根拠**: 700.2(モーダル効果=選択した各モードを個別の効果として実行。各モードの独立性ゆえ、1モードがengineの限界で実行不能でも呪文解決自体は妨げられない)。
+
+**結論**: **本ドメインの主要demand(choice:mode-or-value)は実装ギャップなし**(cr-701 mill/scry/surveil・cr-122 event:counter・cr-614 shockland ETBに続く、本セッション5件目の同パターン)。新規実装は不要。判定者が誤って追加しかけたcompile.ts側のロジックは撤回済み(既存`review.grammar-guided.test.ts`のpinは無変更のまま)。`src/store/__tests__/review.cr700-modal-choice-compile.test.ts`(レビュー専有・新規)でstore層の実際の動作を初めて恒久的にpin留めした。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: variable count("choose X modes")・repeated modes・"choose both"時の混在(1モードのみauto/guided・他が非対応の場合の部分実行=既存実装のまま=各モード独立実行なので問題なし)・target選択を伴うモードの2段階guided chain(既存`prompts`蓄積機構で理論上サポートされているが実地未検証=次回demand時に確認)。
+
+**受け入れ**: `review.cr700-modal-choice-compile.test.ts`(レビュー専有・store層end-to-end pin。golden=Teval's Judgment型のdraw mode実行確認・Sheoldred's Edict型の非対応モードでも非クラッシュ+呪文解決確認・compile.ts側`buildGuidedCommands`が引き続き`[]`を返すという既存契約の再確認)。
