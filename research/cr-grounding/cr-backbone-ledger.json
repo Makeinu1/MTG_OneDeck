@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-122-counters",
-      "note": "batch3-4残置(counter-placement event emission)。既存counter-plus符号バグ修正(engine-spec §34.30・2026-07-06)でguided -1/-1 placementはカバー済み。残る demand=event:counter 8= 新規counter配置(+1/+1・-1/-1双方)からCounterChangeEventを発行するplumbing追加(既存recordCounterChangeIntent/flushCounterChangeEventsパターンを再利用できるか要調査。既にSBA annihilation経路はevent発行済み=cr-603 Slice C)。event:counter trigger predicateの基盤。CR122.6/122.7(Nth counter trigger規則)正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-604-611-612-613-layers-continuous",
       "note": "batch3-5。demand=13(layer:L4 10+layer:L6 2+layer:L1b 1)。late-backbone。最小computeEffectiveCharacteristics入口(L4型/subtype判定+L6付与keyword)。dependency graph/timestamp完全形/copy layer/text-changingはmanual/defer継続。CR 604.1/604.3/611.2/611.2a/611.2c/611.2e/612.1/613.1/613.1a/613.1d/613.1f/613.10-11正本。golden候補: Devastating Onslaught/Fable of the Mirror-Breaker。"
     },
@@ -463,15 +458,16 @@
         "poisonCounters",
         "lossAdvisories"
       ],
-      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryに加え、**guided counter-plus leafの符号バグ修正**(batch3-4・2026-07-06・engine-spec §34.30)= 既存effect.counter-plus guided leafがoracle文の符号を無視し常にcounterType:'+1/+1'をハードコードしていた実バグ(「Put a -1/-1 counter on target creature.」型カードが逆符号のカウンターを置く)を判定者が発見・修正。counterDescriptorForRawで符号+magnitude解析、解析不能な記述はguidedを提示せずfail closed to manual。counter cap, Saga lore counters, rad counters, defense counters, counter-placement event emission, loyalty/charge/age等の他counter種別は未着手。",
+      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryに加え、**guided counter-plus leafの符号バグ修正**(batch3-4・2026-07-06・engine-spec §34.30)= 既存effect.counter-plus guided leafがoracle文の符号を無視し常にcounterType:'+1/+1'をハードコードしていた実バグ(「Put a -1/-1 counter on target creature.」型カードが逆符号のカウンターを置く)を判定者が発見・修正。counterDescriptorForRawで符号+magnitude解析、解析不能な記述はguidedを提示せずfail closed to manual。counter cap, Saga lore counters, rad counters, defense counters, counter-placement event emission, loyalty/charge/age等の他counter種別は未着手。 **追加確認(実装ギャップなし)**: event:counter demand=8は既存cr-603 Slice C配線(trigger.counter-put)が符号非依存で既に正しく機能していたことをreview.cr122-counter-put-trigger-sign.test.ts(3 pin)で確認・恒久ガード化。新規実装不要。",
       "evidence": [
         "cr-sba-plus-minus-counter-annihilation",
         "cr-sba-defeat-poison-threshold",
         "cr-sba-defeat-poison-nine-boundary",
         "src/engine/__tests__/review.cr122-counter-plus-sign.test.ts",
-        "docs/engine-spec.md §34.30"
+        "docs/engine-spec.md §34.30",
+        "src/store/__tests__/review.cr122-counter-put-trigger-sign.test.ts"
       ],
-      "nextGate": "counter-placement event emission(event:counter demand=8)・他counter種別(charge/age/ice等)のguided placement・counter cap(122.4)・Saga/battle/rad counters は次回demand実測時に別スライス。",
+      "nextGate": "counter:write(14)・event:counter(8)双方のdemandは充足。残る需要=loyalty/charge/age等の他counter種別・counter cap(122.4)・Saga/battle/rad countersは次回demand実測時に別スライス。",
       "judge": "deterministic-cr"
     },
     {

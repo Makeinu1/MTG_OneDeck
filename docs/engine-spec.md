@@ -2678,6 +2678,8 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 **Tier-1 監査(独立Sonnetサブエージェント。判定者=実装者代行のため必須)**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。4チェック全green(160 files/1397 tests)。`git stash`でバグ再現を実施=修正前コードで該当5 pinのうち3件が実際に失敗し、annihilation pinは特に「-1/-1配置のはずが3個目の+1/+1が積まれ、annihilationが一切起きない」という実害を確認(修正の実在性を確証)。敵対的追加プローブ(大文字小文字非依存・非unit記述子"+2/+2"がmanualのまま・非creature target・複合節での符号別々resolve・可変X両符号)すべて green。既存テストで`counterDelta`旧名を参照するものはゼロ(=「バグに合わせてテストを書き換えた」ものではない、独立発見・独立修正)。
 
-**スコープ境界(§34.5・PASS に混ぜない)**: 新規-1/-1 guided placement leafは既に本修正でカバー済み(旧leafが符号対応した形)。counter-placement event emission(`event:counter`demand=8向けの新規CounterChangeEvent発行元追加)・loyalty/charge/age等の他counter種別・可変count・distribute複数target・proliferateは本スライス未着手(次回demand実測時に別スライス)。
+**追加確認(実装ギャップなし)**: 当初`event:counter`demand=8向けに「counter-placement event emission」を新規実装課題と想定していたが、調査の結果**既存cr-603-triggers-apnap Slice C(engine-spec §34.27)の汎用`CounterChangeEvent`+`trigger.counter-put`配線(`src/engine/triggers.ts`の`counterPutLineMatchesEvent`)が既にcounterType非依存で正しく機能していた**(新規実装不要)。本修正(符号バグ修正)により-1/-1側のcounterTypeが正しく解決されるようになったことで、この既存配線が-1/-1側でも意味を持つようになった、という接続を`review.cr122-counter-put-trigger-sign.test.ts`(store層・3 pin)で実地確認・恒久リグレッションガード化した(Alesha, Who Laughs at Fate型の+1/+1トリガーは`src/store/__tests__/cr603SemanticEvents.test.ts`で既存確認済み。本ファイルは-1/-1側+符号別クロス汚染なしを追加確認)。この部分はsrc変更ゼロにつき独立Tier-1監査省略(CLAUDE.mdの実装ギャップなし精査と同基準。cr-701-keyword-actions-frequent batch3-3 §32.10の先例に同じ)。
 
-**受け入れ**: `review.cr122-counter-plus-sign.test.ts`(レビュー専有・5 pin。符号バグ修正pin・+1/+1非regression・digit/word magnitude・可変X両符号のexact-phrase gate・annihilation SBA相互作用)。
+**スコープ境界(§34.5・PASS に混ぜない)**: loyalty/charge/age/ice等の他counter種別・可変count・distribute複数target・proliferate・counter cap(122.4)・Saga/battle/rad countersは本スライス未着手(次回demand実測時に別スライス)。
+
+**受け入れ**: `review.cr122-counter-plus-sign.test.ts`(レビュー専有・5 pin。符号バグ修正pin・+1/+1非regression・digit/word magnitude・可変X両符号のexact-phrase gate・annihilation SBA相互作用)+ `review.cr122-counter-put-trigger-sign.test.ts`(レビュー専有・3 pin。-1/-1 counter-put trigger発火・符号別クロス汚染なし双方向)。
