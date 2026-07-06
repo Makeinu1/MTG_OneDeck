@@ -9,7 +9,7 @@
     {
       "type": "domain-slice",
       "domainId": "cr-608-resolution",
-      "note": "batch3-2。demand=37(object-identity:lki 28+action:counter-spell 9)。解決時LKI読み取り経路+単純\"counter target spell\"(stack→owner graveyard、コスト払戻/効果解決なし)。cr-109-objects/cr-112-spellsと関連。CR 608.2b/608.2d/608.2h/113.7a/400.7/400.7e/400.7j正本。golden候補: Feed the Swarm/Mana Drain/Arcane Denial。"
+      "note": "batch3-2b(Slice B・判定者裁定=2分割の第2。Slice A出荷後)。解決時LKI読み取り経路(demand28のうち narrow candidate)。ObjectSnapshotへmanaValue追加(additive)+ephemeral resolver context(persistent GameState.resolutionContextは導入しない)。CR608.2h/400.7/400.7j正本。golden候補: Feed the Swarm/Rapid Hybridization/Mana Drain。"
     },
     {
       "type": "domain-slice",
@@ -689,15 +689,19 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "implemented-not-green",
       "landingState": [
         "stack",
         "resolutionContext",
         "eventLog"
       ],
-      "boundary": "golden未定義。個別command resolveはあるが、CR 608の対象不適正・一部解決・情報参照は未契約。",
-      "evidence": [],
-      "nextGate": "compiler出力command列を resolutionContext 経由にして、manual fallback と illegal target処理を分ける",
+      "boundary": "**Slice A(stack-target filtering + 単純counter-spell)出荷**(batch3-2a・2026-07-06・engine-spec §34.28)= `TargetFilter.zone`に`'stack'`追加(additive)。厳密5パターンのみguided(修飾語・follow-up節付きはhonest manual・needs-parseでfail closed)。既存`removeStackItem`をそのまま再利用(新規GameCommand追加なし)。自己ターゲット排除・ability排除・型フィルタ精度をTier-1独立監査で実地検証(0 BLOCKER/0 HIGH)。**Slice B(解決時LKI読み取り。Feed the Swarm/Rapid Hybridization/Mana Drain型。ObjectSnapshotへmanaValue追加+ephemeral resolver context)は未実装**=plannedSequenceに残存。",
+      "evidence": [
+        "src/engine/__tests__/review.cr608-resolution-sliceA.test.ts",
+        "src/engine/__tests__/cr608CounterSpellGuided.test.ts",
+        "docs/engine-spec.md §34.28"
+      ],
+      "nextGate": "Slice B=解決時LKI読み取り(demand28のうちnarrow candidate。ObjectSnapshot拡張 or ephemeral resolver context)。persistent GameState.resolutionContextは導入しない方針(判定者裁定)。plannedSequence参照。",
       "judge": "deterministic-cr"
     },
     {

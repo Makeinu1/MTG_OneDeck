@@ -2608,3 +2608,21 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **残余note(MEDIUM・非ブロッキング)**: `withMoveReason`ヘルパーが`commands.ts`/`gameStore.ts`両モジュールに重複定義されている(DRY違反だが個別には正しい動作)。将来の変更時に片方だけ更新して乖離するリスクあり=次回このコードに触れる時に共有モジュール化を検討。他のadversarial項目(discard/sacrifice reason誤タグなし・SBA死亡は`'sba'`のまま・Slice A/B非regression・two-bucket APNAP goldens無変更・purity/determinism)は独立監査で無欠陥確認。受け入れ=`review.cr603-triggers-sliceC.test.ts`(レビュー専有・6 pin。HIGH修正の直接pin・discard/sacrifice/counter golden・SBA死亡非regression・誤タグなし・cross-player false-positive非発火)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: state triggers(CR603.8)・intervening-if/"this turn"集計状態・modal triggered abilities・attack/block declaration event・"this way" provenance追跡・他プレイヤー(opponent)由来のdiscard/sacrifice/counter・counter除去(remove)のtrigger検出。cr-603-triggers-apnap は本節でSlice A/B/C全て完了=domain全体がshipped。
+
+### 34.28 cr-608-resolution Slice A: stack-target filtering + 単純counter-spell(CR 608.2b/701.6a/701.6b)— この節も契約である
+
+**位置づけ**: cr-608-resolution batch3-2a(domain初のスライス。status=drafted→本節で着手)。stack上のspellを対象にできるguided leafを初めて追加し、「counter target spell」型の最小コアを実装する。判定者が2スライス分割(Slice A=本節・Slice B=解決時LKI読み取り=Feed the Swarm/Rapid Hybridization/Mana Drain型)を裁定。設計正本=`research/cr-grounding/cr-608-resolution-batch3-2.draft.md`(Codex起草・J3 Sonnetが CR照合し2分割+既存removeStackItem再利用を裁定)。
+
+**CR根拠**: 608.2b(解決時に対象を再チェック。期待ゾーンを離れていれば非合法)・701.6a(counter=stackからcancel・除去。解決せず、countered spellはowner's graveyardへ)・701.6b(counterされたコストの払戻はない)。
+
+**凍結挙動**:
+- `TargetFilter.zone`拡張(additive・既存値`'battlefield'|'graveyard'`はそのまま): `'stack'`を追加。
+- 厳密5パターンのみguided(`^...$`完全アンカー。修飾語・follow-up節付きはhonest manual。`effect.counter-spell`が他effect atomと同一ability内で共存する場合は無条件で`needs-parse`が付きmanualへfail closed=部分guided/follow-up節脱落を防ぐ):
+  「Counter target spell.」→`{zone:'stack'}`・「Counter target noncreature spell.」→`{zone:'stack',excludedTypes:['creature']}`・「Counter target creature spell.」→`{zone:'stack',types:['creature']}`・「Counter target instant or sorcery spell.」→`{zone:'stack',types:['instant','sorcery']}`・「Counter target enchantment, instant, or sorcery spell.」(Oxford comma有無両対応)→`{zone:'stack',types:['enchantment','instant','sorcery']}`。
+- 候補集合: `state.zones.stack`のうち`isAbility`でないitemのみ(activated/triggered abilityは除外)。解決中のcounter-spell自身も無条件除外(`context.sourceId===cardId`. 既存battlefield/graveyard分岐の`filter.excludeSource`ゲート方式とは異なりstack分岐は常時除外=このスライスの5パターンでは常に正しい)。
+- 解決アクション: 既存`removeStackItem`をそのまま再利用(**新規GameCommand追加なし**)。コスト払戻ロジックは元々存在しない=CR701.6bに自動的に合致。
+- 「countered」を観測する新規trigger/ZoneChangeReasonは追加しない(現行MyDeck実測にそのdemandが無いため。将来需要が出たら別スライスで追加)。
+
+**Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。自己ターゲット排除(解決中のcounter-spell自身が自分の候補に出ない)・ability排除・型フィルタがstack item自身の型を正しく読むこと(battlefield等の無関係objectを誤って読まない)・厳密5パターン以外(Flusterstorm型「unless」修飾・An Offer You Can't Refuse型follow-up・exile-instead代替処理・未承認型組合せ)が正しくmanualのままであること・既存`removeStackItem`(他の呼び出し箇所=ability除去等)が無変更のまま・既存cr-603 Slice A/B/C review.*が無変更のまま、を実地検証済み。残余note(LOW・非ブロッキング)= stack分岐の自己除外が`filter.excludeSource`ゲートでなく無条件(この5パターンでは常に正しいが、将来「counter target spell, including this one」のような仮想的パターンが必要になれば要調整。現行スコープでは対応不要)。受け入れ=`review.cr608-resolution-sliceA.test.ts`(レビュー専有・6 pin。厳密5パターン境界・自己除外・ability除外・型フィルタ精度・解決非regression)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: 解決時LKI読み取り(Slice B)・「unless its controller pays {1}」等の解決時payment選択(CR608.2d)・gift/instead分岐・controller token/draw follow-up・delayed mana/draw(Mana Drain/Arcane Denial型)。

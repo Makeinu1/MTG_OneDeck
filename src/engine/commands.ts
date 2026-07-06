@@ -3218,9 +3218,42 @@ export function eligibleTargets(
   filter: TargetFilter,
   context: { sourceId?: string } = {},
 ): string[] {
-  const types = filter.types ?? ['permanent'];
-  const excludedTypes = filter.excludedTypes ?? [];
   const zone = filter.zone ?? 'battlefield';
+  const types = filter.types ?? (zone === 'stack' ? [] : ['permanent']);
+  const excludedTypes = filter.excludedTypes ?? [];
+  if (zone === 'stack') {
+    const acceptsAnySpell = types.length === 0;
+    return state.zones.stack.filter((cardId) => {
+      const card = state.cards[cardId];
+      if (!card || card.isAbility || card.zone !== 'stack') {
+        return false;
+      }
+      if (context.sourceId === cardId) {
+        return false;
+      }
+      if (filter.controller === 'you' && card.controllerId !== 'P1') {
+        return false;
+      }
+      if (filter.controller === 'opponent' && card.controllerId === 'P1') {
+        return false;
+      }
+      if (filter.owner === 'you' && card.ownerId !== 'P1') {
+        return false;
+      }
+      if (filter.owner === 'opponent' && card.ownerId === 'P1') {
+        return false;
+      }
+      if (filter.excludeTokens && card.isToken) {
+        return false;
+      }
+
+      const typeLine = typeLineForStateCard(state, card);
+      if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {
+        return false;
+      }
+      return acceptsAnySpell || types.some((type) => typeLineHasType(typeLine, type));
+    });
+  }
   if (zone === 'graveyard') {
     const supportsCreatureCard = types.includes('creature');
     return state.zones.graveyard.filter((cardId) => {
@@ -3282,6 +3315,16 @@ export function eligibleTargets(
     }
     return types.some((type) => typeLine.includes(type.toLowerCase()));
   });
+}
+
+function typeLineForStateCard(state: GameState, card: CardInstance): string {
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  return (face?.typeLine ?? def?.typeLine ?? '').toString();
+}
+
+function typeLineHasType(typeLine: string, type: string): boolean {
+  return new RegExp(`\\b${type}\\b`, 'i').test(typeLine);
 }
 
 function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[] {

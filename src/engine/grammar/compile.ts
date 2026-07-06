@@ -34,7 +34,7 @@ export interface TargetFilter {
   excludeTokens?: boolean;
   excludeSource?: boolean;
   controller?: 'any' | 'you' | 'opponent';
-  zone?: 'battlefield' | 'graveyard';
+  zone?: 'battlefield' | 'graveyard' | 'stack';
   owner?: 'any' | 'you' | 'opponent';
 }
 
@@ -199,6 +199,7 @@ const MANA_AMOUNT_WORDS = new Map<string, number>([
 ]);
 const GUIDED_TARGET_ATOMS = new Set([
   'effect.counter-plus',
+  'effect.counter-spell',
   'effect.destroy',
   'effect.exile',
   'effect.return',
@@ -408,6 +409,12 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
   const treasureRaws = new Set(
     ir.effects.filter((effect) => effect.atom === 'effect.treasure').map((effect) => effect.raw),
   );
+  if (
+    ir.effects.some((effect) => effect.atom === 'effect.counter-spell') &&
+    ir.effects.some((effect) => effect.atom !== 'effect.counter-spell')
+  ) {
+    reasons.add('needs-parse');
+  }
 
   for (const effect of ir.effects) {
     const compiled = compileEffect(effect, treasureRaws.has(effect.raw), ctx);
@@ -1140,6 +1147,20 @@ function hasSpecialManaText(raw: string): boolean {
 }
 
 function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
+  if (effect.atom === 'effect.counter-spell') {
+    const filter = stackSpellTargetFilterForRaw(effect.raw);
+    if (!filter) {
+      return null;
+    }
+    return {
+      atom: effect.atom,
+      kind: 'target',
+      count: 1,
+      targetKind: 'object',
+      filter,
+      raw: effect.raw,
+    };
+  }
   if (effect.atom === 'effect.return' && isExactGraveyardCreatureReturn(effect.raw)) {
     return {
       atom: effect.atom,
@@ -1169,6 +1190,30 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
     filter,
     raw: effect.raw,
   };
+}
+
+function stackSpellTargetFilterForRaw(raw: string): TargetFilter | null {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  switch (normalized) {
+    case 'counter target spell':
+      return { zone: 'stack' };
+    case 'counter target noncreature spell':
+      return { zone: 'stack', excludedTypes: ['creature'] };
+    case 'counter target creature spell':
+      return { zone: 'stack', types: ['creature'] };
+    case 'counter target instant or sorcery spell':
+      return { zone: 'stack', types: ['instant', 'sorcery'] };
+    case 'counter target enchantment, instant, or sorcery spell':
+    case 'counter target enchantment, instant or sorcery spell':
+      return { zone: 'stack', types: ['enchantment', 'instant', 'sorcery'] };
+    default:
+      return null;
+  }
 }
 
 function isSingleTargetClause(raw: string): boolean {
@@ -1363,6 +1408,8 @@ export function buildGuidedCommands(
             delta: counterDelta(prompt.raw),
           },
         ];
+      case 'effect.counter-spell':
+        return [{ type: 'removeStackItem', id: cardId }];
       default:
         return [];
     }
