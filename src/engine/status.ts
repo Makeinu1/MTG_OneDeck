@@ -1,7 +1,7 @@
 import type { CardDef } from '../types/card';
 import type { CardInstance, GameState } from './types';
 import { classifyAbilityShape, splitAbilityLines } from './grammar';
-import { possessedKeywords } from './keywordGrammar';
+import { KEYWORD_DEFINITIONS, possessedKeywords } from './keywordGrammar';
 
 export type Keyword =
   | 'flying'
@@ -155,6 +155,58 @@ function parseLayer4AdditiveStaticLine(line: string): AdditiveTypeEffect | null 
   return null;
 }
 
+type AdditiveKeywordEffect =
+  | { kind: 'self'; keywords: Keyword[] }
+  | { kind: 'attached'; keywords: Keyword[] };
+
+const KEYWORD_NAME_TO_ID = new Map<string, string>(
+  KEYWORD_DEFINITIONS.map((definition) => [definition.name.toLowerCase(), definition.id]),
+);
+
+// CR 613.1f Layer 6, ability-adding half only (keyword counters / ability-removal / "can't
+// have" are out of scope — see design-lock §34.32). Only the 14 STATUS_KEYWORDS are
+// recognized; an unrecognized keyword word anywhere in the list fails the whole clause
+// closed (no partial grant), matching parseTypeWordList's all-or-nothing discipline above.
+function parseKeywordWordList(raw: string): Keyword[] | null {
+  const words = raw
+    .replace(/,?\s+and\s+/gi, ', ')
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+  if (words.length === 0) {
+    return null;
+  }
+  const keywords: Keyword[] = [];
+  for (const word of words) {
+    const id = KEYWORD_NAME_TO_ID.get(word.toLowerCase());
+    if (!id || !isKeyword(id)) {
+      return null;
+    }
+    keywords.push(id);
+  }
+  return keywords;
+}
+
+function parseLayer6AdditiveKeywordLine(line: string): AdditiveKeywordEffect | null {
+  const normalized = normalizeLayer4StaticLine(line);
+
+  const selfNamed = normalized.match(/^this\s+[a-z][a-z' -]*?\s+has\s+(.+)$/i);
+  if (selfNamed?.[1]) {
+    const keywords = parseKeywordWordList(selfNamed[1]);
+    return keywords ? { kind: 'self', keywords } : null;
+  }
+
+  const attachedNamed = normalized.match(
+    /^(?:enchanted|equipped|fortified)\s+[a-z][a-z' -]*?\s+has\s+(.+)$/i,
+  );
+  if (attachedNamed?.[1]) {
+    const keywords = parseKeywordWordList(attachedNamed[1]);
+    return keywords ? { kind: 'attached', keywords } : null;
+  }
+
+  return null;
+}
+
 function staticAbilityLinesForCurrentFace(def: CardDef | undefined, card: CardInstance): string[] {
   if (!def) return [];
   const faceIndex = currentFaceIndex(def, card);
@@ -267,28 +319,22 @@ export function keywords(def: CardDef | undefined): Keyword[] {
   return possessedKeywords(def).filter((id): id is Keyword => isKeyword(id));
 }
 
-export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
+// Shared by effectiveTypeLine (Layer 4) and effectiveKeywords (Layer 6 additive half):
+// yields each battlefield-only candidate static-ability sentence for cardId itself
+// ('self') and for any Aura/Equipment/Fortification currently attachedTo cardId
+// ('attached'). Pure iteration only — callers decide what to parse out of each line.
+function forEachAdditiveStaticSourceLine(
+  state: GameState,
+  cardId: string,
+  visit: (line: string, kind: 'self' | 'attached') => void,
+): void {
   const card = state.cards[cardId];
-  if (!card) return [];
-  return normalizeKeywords([...keywords(state.defs[card.defId]), ...(card.manualKeywords ?? [])]);
-}
-
-export function effectiveTypeLine(state: GameState, cardId: string): string {
-  const card = state.cards[cardId];
-  if (!card) return '';
-  const def = state.defs[card.defId];
-  const printedTypeLine = currentTypeLine(def, card).toString();
-  if (card.zone !== 'battlefield') {
-    return printedTypeLine;
+  if (!card || card.zone !== 'battlefield') {
+    return;
   }
-
-  const additions: string[] = [];
-
+  const def = state.defs[card.defId];
   for (const line of staticAbilityLinesForCurrentFace(def, card)) {
-    const effect = parseLayer4AdditiveStaticLine(line);
-    if (effect?.kind === 'self') {
-      additions.push(...effect.additions);
-    }
+    visit(line, 'self');
   }
 
   for (const sourceId of state.zones.battlefield) {
@@ -304,12 +350,44 @@ export function effectiveTypeLine(state: GameState, cardId: string): string {
       continue;
     }
     for (const line of staticAbilityLinesForCurrentFace(sourceDef, source)) {
-      const effect = parseLayer4AdditiveStaticLine(line);
-      if (effect?.kind === 'attached') {
-        additions.push(...effect.additions);
-      }
+      visit(line, 'attached');
     }
   }
+}
+
+export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
+  const card = state.cards[cardId];
+  if (!card) return [];
+  const granted: Keyword[] = [];
+  forEachAdditiveStaticSourceLine(state, cardId, (line, kind) => {
+    const effect = parseLayer6AdditiveKeywordLine(line);
+    if (effect?.kind === kind) {
+      granted.push(...effect.keywords);
+    }
+  });
+  return normalizeKeywords([
+    ...keywords(state.defs[card.defId]),
+    ...(card.manualKeywords ?? []),
+    ...granted,
+  ]);
+}
+
+export function effectiveTypeLine(state: GameState, cardId: string): string {
+  const card = state.cards[cardId];
+  if (!card) return '';
+  const def = state.defs[card.defId];
+  const printedTypeLine = currentTypeLine(def, card).toString();
+  if (card.zone !== 'battlefield') {
+    return printedTypeLine;
+  }
+
+  const additions: string[] = [];
+  forEachAdditiveStaticSourceLine(state, cardId, (line, kind) => {
+    const effect = parseLayer4AdditiveStaticLine(line);
+    if (effect?.kind === kind) {
+      additions.push(...effect.additions);
+    }
+  });
 
   return appendTypeWords(printedTypeLine, additions);
 }

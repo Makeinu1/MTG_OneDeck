@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-604-611-612-613-layers-continuous",
-      "note": "Slice A(read-time additive Layer4 type accessor)出荷済み(engine-spec §34.31)。残置=Slice B(keyword-only Layer6 additions。Angelic Gift型\"Enchanted creature has flying.\"。既存effectiveKeywordsへの同型拡張)、Slice C(stored continuous-effect ledger。611.2解決由来のduration/timestamp/dependency。真に必要になった時のみ着手)。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-614-615-616-replacement-prevention",
       "note": "batch3-6。demand=12(replacement 11+prevention 1)。late-backbone。境界付きETB replacement(shockland型\"pay 2 life or enters tapped\")+graveyard→exile置換hook(単一controller/source)+単一ターン戦闘ダメージ防止shield(advisory)。複数競合replacement/regeneration/damage倍化はmanual/defer継続。CR 614.1/614.1a-d/614.10-12/614.15/614.17/615.1/615.1a/615.10/615.12/616.1正本。golden候補: Blood Crypt/Spore Frog。"
     },
@@ -862,13 +857,15 @@
         "timestamps",
         "dependencyGraph"
       ],
-      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。effectiveTypeLine(state,cardId)をstatus.tsへ追加(read-time・新GameState/GameCommandなし)。typeLineOf/typeLineForStateCard/eligibleTargets/isSummoningSickを移行。ObjectSnapshotは意図的に非migration(printedTypeLineOf)。Tier-1監査でHIGH発見=staticAbilityLinesForCurrentFaceが段落単位分割のみで複数文static textの文境界を跨ぐ実バグ→判定者が文単位分割へ外科修正。Layer6(keyword付与)・stored continuous-effect ledger(611.2解決由来・timestamp/dependency)は次スライスへ。",
+      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。effectiveTypeLine(state,cardId)をstatus.tsへ追加(read-time・新GameState/GameCommandなし)。typeLineOf/typeLineForStateCard/eligibleTargets/isSummoningSickを移行。ObjectSnapshotは意図的に非migration(printedTypeLineOf)。Tier-1監査でHIGH発見=staticAbilityLinesForCurrentFaceが段落単位分割のみで複数文static textの文境界を跨ぐ実バグ→判定者が文単位分割へ外科修正。Layer6(keyword付与)・stored continuous-effect ledger(611.2解決由来・timestamp/dependency)は次スライスへ。 **Slice B出荷完了**(keyword-only Layer6 additions・engine-spec §34.32)= effectiveKeywordsをLayer6 ability-adding(keywordのみ)まで拡張。Slice Aと共通反復ロジックをforEachAdditiveStaticSourceLineへ抽出(Slice A非regression確認済み)。独立Tier-1監査0件。ability除去・keyword counter・non-keyword ability付与は引き続き対象外。",
       "evidence": [
         "docs/engine-spec.md §34.31",
         "research/cr-grounding/cr604-layers-batch3-5.draft.md",
-        "src/engine/__tests__/review.cr604-layers-sliceA.test.ts"
+        "src/engine/__tests__/review.cr604-layers-sliceA.test.ts",
+        "docs/engine-spec.md §34.32",
+        "src/engine/__tests__/review.cr604-layers-sliceB.test.ts"
       ],
-      "nextGate": "Slice B(keyword-only Layer6 additions。Angelic Gift型)、Slice C(stored continuous-effect ledger。611.2 duration/timestamp/dependency)。demand実測に応じて優先度再評価。",
+      "nextGate": "Slice C(stored continuous-effect ledger。611.2解決由来のduration/timestamp/dependency)。真に必要になった時のみ着手。demand実測に応じて優先度再評価。",
       "judge": "deterministic-cr",
       "judgeNote": "層の適用順自体は CR 613 で決定論。ただし置換効果との相互作用はスコープ境界(engine-spec §34.5)=境界内のみ実装し、境界拡張は STOP①。"
     },

@@ -2714,3 +2714,25 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **残余note(LOW・非ブロッキング)**: `eligibleTargets`/`typeLineForStateCard`は新設`typeLineHasType`(word-boundary正規表現)へ移行したが、`commands.ts`内の他の`typeLineOf(...).includes(...)`呼び出し箇所は旧来の部分文字列一致のままであり、型マッチ戦略が2方式混在している。現行の型ボキャブラリ(creature/land/artifact等の単語のみ)では複合語の衝突が無く実害は確認されなかった(Tier-1が対象review file 5件・28 pinを再実行し無regression確認済み)。将来の統一は次スライスの整理課題とする。
 
 **受け入れ**: `review.cr604-layers-sliceA.test.ts`(レビュー専有・15 pin。self/attached additive・dedup・every-basic-land-type・anthem/becomes-without-addition/removal false-positive・off-battlefield・detached aura・multi-source stacking・golden×2パターン・vanilla非regression・HIGH修正回帰pin×2)。
+
+### 34.32 S-LAYERS Slice B: keyword-only Layer 6 additions(design-lock・CR 613.1f)— この節も契約である
+
+**位置づけ**: cr-604-611-612-613-layers-continuous Slice B。Slice A(§34.31)のstatic ability検出+文単位分割infrastructureを再利用し、keyword付与のみのLayer6 additive効果を`effectiveKeywords`へ拡張する。設計正本(living)=`research/cr-grounding/cr604-layers-batch3-5.draft.md` §"Slice B: Keyword-Only Layer 6 Additions"(Codex起草・Slice A設計時に既に判定者が承認済み範囲)。
+
+**CR根拠**: 613.1f(Layer6=ability-adding/keyword counter/ability-removing/can't-have effectsを適用)。本スライスはability-adding(keyword付与)のみを対象とし、keyword counter(122.1b)・ability-removing・can't-haveは対象外。
+
+**凍結した設計**:
+1. `effectiveKeywords(state, cardId)`(既存関数)を拡張し、self/attached-objectの static ability由来keyword付与を合成する。新規GameState/GameCommandは追加しない。
+2. 対応構文=**厳密にkeywordのみ**: "Enchanted/Equipped/Fortified <noun> has <keyword>[, <keyword>]* [and <keyword>]." および self版 "This <noun> has <keyword>..."。keyword語彙は既存`STATUS_KEYWORDS`(`src/engine/status.ts`)に列挙済みの14種のみ認識(それ以外の未知語はhonest fallback=非マッチ)。
+3. Slice Aの`staticAbilityLinesForCurrentFace`(文単位分割済み・Tier-1 HIGH修正適用済み)をそのまま再利用する。新規のability検出経路を作らない。
+4. **対象外(honest manual/defer)**: ability除去("can't have [keyword]"等)・quoted granted non-keyword ability(例: 起動型/誘発型能力の付与)・keyword counter(122.1b。カウンター経由の別ブリッジは別スライス)・複数object(anthem)効果・613.9のoverride/optional条件。
+
+**Golden候補**: `Angelic Gift`(Aura): "Enchanted creature has flying."(attached・単一keyword)。self版はSlice A同様の合成pattern("This creature has deathtouch." 等)を想定。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: Slice A(§34.31)と同一(anthem・611.2解決由来効果・CDA全ゾーン・timestamp/dependency)に加え、ability除去・keyword counterブリッジ・non-keyword ability付与。
+
+**実装出荷(2026-07-06・Codex quota長期枯渇=2026-07-11まで復帰予定なし。ユーザー裁定によりJ3判定者が実装者を代行→独立Sonnet Tier-1監査→ship)**: `effectiveKeywords`を拡張し、`parseLayer6AdditiveKeywordLine`(self/attached双方の"has <keyword-list>"構文を解析。keyword語彙は既存`STATUS_KEYWORDS`14種のみ・`KEYWORD_NAME_TO_ID`(`src/engine/keywordGrammar.ts`の`KEYWORD_DEFINITIONS`由来)でoracle文言→内部idへ変換・未知語が1つでも混じればクリスタルclause全体をfail closed=部分付与なし)を実装。Slice Aの`staticAbilityLinesForCurrentFace`(文単位分割・Tier-1 HIGH修正込み)をそのまま再利用するため、`effectiveTypeLine`と`effectiveKeywords`の共通反復ロジックを`forEachAdditiveStaticSourceLine`へ抽出(Slice Aの既存挙動を変えない純粋なリファクタ)。新規GameState/GameCommandなし。
+
+**Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。Slice Aのreview.*(15 pin)が無変更(byte-unmodified)のまま独立再実行で全緑=リファクタが非regressionであることを確認。7種の敵対的構成(2語keyword名のname→id変換・大文字小文字非依存・list先頭の未知語によるfail-closed・複数Aura同時付与・同一段落内のSlice A/B混在節・無関係隣接文による汚染なし・**誤った付与を意図的に誘発する試み**)全てclean。`KEYWORD_DEFINITIONS`には`banding`/`landwalk`/`phasing`等の`STATUS_KEYWORDS`外keywordも含まれるが、`isKeyword`ガードが正しく14種のみへ絞り込むことを実地確認。
+
+**受け入れ**: `review.cr604-layers-sliceB.test.ts`(レビュー専有・13 pin。self/attached keyword付与・複数keyword/Oxfordコンマ・ability除去/未知語/anthem false-positive・off-battlefield・detached aura・manualKeywords合成・Slice A/B共存非regression・vanilla非regression)。
