@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-701-keyword-actions-frequent",
-      "note": "batch3-3。demand=23(action:mill 10+action:surveil 6+action:reveal 6+action:scry 1)。既存出荷済みdomain(§32.8/§32.9)の残leaf=固定数self-library mill/surveil/scry+reveal metadata。judge判断=新leaf domainか既存cr-701再オープンかは実装ブリーフ確定時に決める。CR 701.17a-d/701.20a-e/701.22a-d/701.25a-d/121.5正本。golden候補: Aftermath Analyst/Cultivate/Path of Ancestry。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-122-counters",
       "note": "batch3-4。demand=22(counter:write 14+event:counter 8)。既存+1/+1相殺の上に、固定countergを対象へ書き込むguided leaf+counter-placement event emission(event:counter trigger predicateの基盤)。shield/stun/finality/battle defense/Saga lore countersはmanual/defer継続。CR 122.1/122.1a-c/122.1h/122.2-4/122.6-7/704.5c/704.5q正本。golden候補: Alesha, Who Laughs at Fate/Celes, Rune Knight/Emperor of Bones。"
     },
@@ -952,7 +947,7 @@
         "guidedActions",
         "manualFallbacks"
       ],
-      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。複数count・each-player/opponent・target-player・unless/may・qualified 選択・可変X はすべて manual(auto 詐称なし)。Heal は 2026 vocabulary boundary。owner別 graveyard routing は S-ZONES 後。 **generic ramp search composite 出荷**(batch2-4・2026-07-05・engine-spec §32.9)= `Search your library for a <basic land|単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle`(Nature's Lore/Rampant Growth 型)を guided 化(既存 moveCard+setTapped+shuffle 列・新 GameCommand 型なし)。CR701.24b=found を shuffle 対象外(confirm 時 library−found から順列確定)・0枚 miss 合法。broad tutor/複数/Farseek 複合/subtype OR/target-player/非library/非battlefield destination/optional/basic+subtype 連言は honest manual。fetch-land(Evolving Wilds 型)は M4.15/M4.28 既済で対象外。Tier-1 独立監査(Sonnet)= over-claim 0・CR701.24b/決定論/filter弁別 全緑。",
+      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。複数count・each-player/opponent・target-player・unless/may・qualified 選択・可変X はすべて manual(auto 詐称なし)。Heal は 2026 vocabulary boundary。owner別 graveyard routing は S-ZONES 後。 **generic ramp search composite 出荷**(batch2-4・2026-07-05・engine-spec §32.9)= `Search your library for a <basic land|単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle`(Nature's Lore/Rampant Growth 型)を guided 化(既存 moveCard+setTapped+shuffle 列・新 GameCommand 型なし)。CR701.24b=found を shuffle 対象外(confirm 時 library−found から順列確定)・0枚 miss 合法。broad tutor/複数/Farseek 複合/subtype OR/target-player/非library/非battlefield destination/optional/basic+subtype 連言は honest manual。fetch-land(Evolving Wilds 型)は M4.15/M4.28 既済で対象外。Tier-1 独立監査(Sonnet)= over-claim 0・CR701.24b/決定論/filter弁別 全緑。 **batch3-3残leaf(mill/scry/surveil)出荷**(2026-07-06・engine-spec §32.10)= 実装ギャップなし(既存GameCommand.mill/arrangeTop/EffectPrompt.scry-surveilが既に正しく稼働)。判定者が発見した1件のみ外科修正=buildGuidedCommandsのscry-surveil分岐にatom別destination強制ガード追加(scry→toGraveyard強制空・surveil→toBottom強制空。CR701.22a/701.25a)。target-player/opponent mill・word「one」・scry/surveil 0特別処理・standalone reveal leafは引き続きhonest manual/対象外。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
         "src/store/__tests__/review.leaf-discard-token.test.ts",
@@ -964,9 +959,11 @@
         "docs/engine-spec.md §32.8 §32.9",
         "research/cr-grounding/archive/leaf-sacrifice/cr-701-sacrifice-tier1-findings.md",
         "src/engine/__tests__/review.cr701-library-search.test.ts",
-        "src/store/__tests__/review.cr701-library-search.test.ts"
+        "src/store/__tests__/review.cr701-library-search.test.ts",
+        "src/engine/__tests__/review.cr701-mill-scry-surveil.test.ts",
+        "docs/engine-spec.md §32.10"
       ],
-      "nextGate": "MyDeck demand 上位の残ギャップは cr-701 動詞ではなく cost:activation(232)/cost:tap(201)/mana:write(150) 系=S-ACTIVATED-ABILITY/§33 側。cr-701 内の残 verb(tap/untap 701.25 等)は demand 実測が立った時に同型 leaf(CR根拠+guided/manual 正直分類+reviewer pin)で追加。",
+      "nextGate": "mill/scry/surveil/reveal完了。残る需要(fateseal CR701.29等)は将来demand実測次第で別スライス。",
       "judge": "deterministic-cr"
     },
     {

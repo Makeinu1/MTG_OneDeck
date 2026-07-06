@@ -1390,12 +1390,17 @@ export function buildGuidedCommands(
   }
 
   if (answer.kind === 'scry-surveil') {
+    // CR 701.22a: scry never sends cards to graveyard. CR 701.25a: surveil never
+    // bottoms cards. Enforce at the builder so a malformed answer can't smuggle the
+    // other atom's destination through (UI locking alone is not a contract).
+    const toBottom = prompt.atom === 'effect.surveil' ? [] : answer.toBottom.slice();
+    const toGraveyard = prompt.atom === 'effect.scry' ? [] : answer.toGraveyard.slice();
     return [
       {
         type: 'arrangeTop',
         topOrder: answer.topOrder.slice(),
-        toBottom: answer.toBottom.slice(),
-        toGraveyard: answer.toGraveyard.slice(),
+        toBottom,
+        toGraveyard,
       },
     ];
   }

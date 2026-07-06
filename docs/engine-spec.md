@@ -1687,6 +1687,22 @@ function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: Co
 - **shuffle leaf(CR701.24a)**: 純粋 self-library shuffle 行は **auto**。順列は**コマンド生成時に確定**し `resolveStackTop.libraryShuffleOrder` payload に保存(`applyCommand` 決定性の既存原則を維持)。純粋 shuffle 以外の search+shuffle 複合行・他プレイヤー library は下記 generic ramp composite を除き manual。
 - **generic ramp search composite(CR701.23a/23d/24b・2026-07-05)**: `Search your library for a <basic land | 単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle.`(Nature's Lore / Rampant Growth 型)を **guided** 化。解決=既存コマンド列 `moveCard(library→battlefield)` +(tapped 指示時のみ)`setTapped` + `shuffle`(**新 GameCommand 型なし**)。**CR701.24b**=shuffle 順列は confirm 時に `library − foundCard` から確定し、found を shuffle 対象へ含めない(0枚=見つけない選択も合法=CR701.23d、shuffle のみ実行)。filter は `basic land`(basic のみ)/ 単一 land subtype(`Forest card`= 非basic dual も合致)を弁別。**honest manual 境界**(auto/guided を騙らない): broad tutor(`any card`/`a card`)・複数(`up to two` 等)・Farseek 複合subtype・subtype OR・target-player・非library zone・非battlefield destination(to hand 等)・optional(`You may`)・`basic <subtype> card` 連言(保守的に manual)。fetch-land(Evolving Wilds 型)は既存 M4.15/M4.28 が担い本 composite の対象外。受け入れ=`review.cr701-library-search.test.ts`(engine 12 pin + store 4 pin・レビュー専有)。
 
+### 32.10 leaf catalog 追補(cr-701 mill / scry / surveil・batch3-3・2026-07-06)— この項も契約である
+
+**位置づけ**: cr-701-keyword-actions-frequent の再オープン(新規domain化ではなく既存domain・同CRファミリー・同leaf-compiler laneの継続。plannedSequence batch3-3。demand=23=action:mill 10+action:surveil 6+action:reveal 6+action:scry 1)。判定者裁定=Codexのscoping draft(`research/cr-grounding/archive/cr-701-keyword-actions-batch3-3/`)を精査した結果、**mill/scry/surveilは既存substrateが既に正しく実装済み**(実装ギャップなし。`GameCommand.mill`・`GameCommand.arrangeTop`・`EffectPrompt{kind:'scry-surveil'}`・`COUNT_DRIVEN_AUTO_ATOMS`/`GUIDED_CHOICE_ATOMS`が既に稼働)。判定者が発見した1件のみ外科修正(下記)。
+
+**CR根拠**: 701.17a/b(mill=固定数を自分library先頭からgraveyardへ。不足時は可能な限り)・701.22a(scry N=先頭N枚を見てbottomへ任意枚数+残りtop。graveyardへは絶対に送らない)・701.25a(surveil N=先頭N枚を見てgraveyardへ任意枚数+残りtop。bottomへは絶対に送らない)・701.20a-e(reveal=ゾーン移動を伴わない公開情報操作)。
+
+**凍結挙動**:
+- **mill**: `Mill <fixed-N> cards.`(self/P1のみ・digit/two-ten/a-anのみ。word「one」は現行`countSpec`未対応=fail-safeにmanual継続・本スライスで対応しない)は**auto**(`{type:'mill', count:N}`。`applyMill`がCR701.17bのshortfallを処理済み)。target player/each opponent/each player mill は honest manual(auto詐称なし)。
+- **scry/surveil**: `Scry N.`/`Surveil N.`(固定N)は**guided**(`EffectPrompt{kind:'scry-surveil', atom, count}`→既存`arrangeTop`コマンドで解決。**新GameState・新GameCommand型は追加しない**)。`Scry N. Draw a card.`型(Opt/Preordain)の混合guided+auto carryは既に正しく動作(scry promptはguided・draw commandはauto側で共存)。
+- **judge外科修正(1件)**: `buildGuidedCommands`の`scry-surveil`分岐(`compile.ts`)が`prompt.atom`を見ずに`answer.toBottom`/`answer.toGraveyard`を無条件転送していた=scry答えがgraveyard destinationを、surveil答えがbottom destinationを smuggleできる理論上の隙間(UI側は正しくフィールドを絞り込んでいたが、コマンドビルダー自体には強制がなかった)。判定者が2行のガードを追加(`prompt.atom==='effect.surveil'`ならtoBottomを強制空・`'effect.scry'`ならtoGraveyardを強制空)。既存の正しいUI経路にはbyte-identical(元々空だった配列を空のまま渡すだけ)。
+- **reveal**: standalone reveal leafは追加しない(`GameState`に公開情報state・reveal commandが存在しないため、追加すれば「何もしないreveal command」という fake-green になる)。既存`needs-choice`→manual のfail-safeを維持。reveal-then-search複合(Cultivate/Kodama's Reach型)も全体manualのまま(部分guided化しない)。
+
+**Tier-1監査**: 実装ギャップなし(既存コードの正しさをjudge自身がprobeで実地確認)につき本スライスは独立Tier-1監査を省略——**判定者が発見・修正した唯一の変更(scry-surveilのatom別ガード2行)は、CLAUDE.md「監査中に見つけた数行規模の外科的修正のみ判定者が直接行ってよい」の例外条項の範囲内**であり、かつ新設した`review.cr701-mill-scry-surveil.test.ts`の該当pin(scry答えがgraveyardを、surveil答えがbottomを smuggleできないことを両方向とも実地検証)がその修正を直接・網羅的に立証している。受け入れ=`review.cr701-mill-scry-surveil.test.ts`(レビュー専有・11 pin。mill auto/shortfall/target-player-manual/word-count-manual・scry/surveil atom別destination強制・混合scry+draw carry・arrangeTop不変条件・reveal honest manual)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: target-player/opponent/each-player mill・可変count(X等)・word「one」・scry/surveil 0の特別no-op処理(CR701.22b/701.25c。現行guidedのまま空confirmで足りるため未対応)・複数プレイヤー同時scry/surveil(CR701.22c/APNAP)・standalone reveal leaf・reveal-then-X複合の部分guided化・fateseal(CR701.29・別keyword)。
+
 ## 33. エンジン文法器トラック Phase G4: 起動型コスト精算(`compile.ts` cost コンパイラ + ストア `activateAbility`)— この節も契約である
 
 ### 33.0 目的と分界(重要)
