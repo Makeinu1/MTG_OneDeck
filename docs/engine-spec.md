@@ -2846,3 +2846,34 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **スコープ境界(§34.5・PASS に混ぜない)**: variable count("choose X modes")・repeated modes・"choose both"時の混在(1モードのみauto/guided・他が非対応の場合の部分実行=既存実装のまま=各モード独立実行なので問題なし)・target選択を伴うモードの2段階guided chain(既存`prompts`蓄積機構で理論上サポートされているが実地未検証=次回demand時に確認)。
 
 **受け入れ**: `review.cr700-modal-choice-compile.test.ts`(レビュー専有・store層end-to-end pin。golden=Teval's Judgment型のdraw mode実行確認・Sheoldred's Edict型の非対応モードでも非クラッシュ+呪文解決確認・compile.ts側`buildGuidedCommands`が引き続き`[]`を返すという既存契約の再確認)。
+
+### 34.38 cr-702-keyword-abilities-frequent Slice A: lifelink + trample(単一blocker限定・CR 702.15/702.19)— この節も契約である
+
+**位置づけ**: plannedSequence batch4-1(判定者=J3 Sonnet。Codex quota長期枯渇[2026-07-11まで]のため判定者が代行実装)。台帳の本domainは`drafted`だったが、その`nextGate`(「combat/damage/layers/cast-from-zone substrateが閉じた能力からcompiler対象へ昇格する」)が要求する前提条件——`cr-506-510-combat`(single blocker/damage core)・`cr-120-damage`(damage substrate)・`cr-604-...-layers` Slice A/B(Layer4/Layer6)・`cr-601-casting-stack`——は全て`shipped`/凍結済みと確認し、着手した。
+
+**実装前の現状確認(重要)**: `Keyword`型(`src/engine/status.ts`)には`flying`/`vigilance`/`trample`/`deathtouch`/`lifelink`/`menace`/`first-strike`/`double-strike`/`reach`/`haste`/`hexproof`/`indestructible`/`defender`/`ward`が既に定義され、`effectiveKeywords`(Layer 6・S-LAYERS Slice B出荷済み)が印刷キーワード+付与キーワードの両方を解決する。`deathtouch`は既にCR 704.5hの1点致死ダメージSBAへ接続済み(`hasDeathtouchDamage`/`applyMarkDamage`)。`vigilance`(untap不要)と`haste`(召喚酔い免除)も既に接続済み(`status.ts`内の既存関数)。**未接続だったのは`lifelink`(ライフ獲得)と`trample`(超過ダメージのプレイヤーへの割当)の2つのみ**——「キーワード認識」自体は既に完了しており、本Slice Aは純粋にこの2キーワードの戦闘ダメージ効果を配線する作業だった。
+
+**CR根拠**:
+- 702.15b「Damage dealt by a source with lifelink causes that source's controller ... to gain that much life (in addition to any other results that damage causes).」
+- 702.19a「Trample ... has no effect when a creature with trample is blocking」(攻撃側のみ)
+- 702.19b「The controller of an attacking creature with trample first assigns damage to the creature(s) blocking it. Once all those blocking creatures are assigned lethal damage, any excess damage is assigned ... to ... the player[.] ... take into account damage already marked on the creature ... but not any abilities or effects that might change the amount of damage that's actually dealt.」
+- 704.5h(deathtouch lethal = 1点。既存実装を再利用、trampleのlethal計算にもそのまま適用)。
+
+**凍結した設計**:
+1. `applyPositiveCombatDamage`(`src/engine/commands.ts`)にsourceの`controllerId`を追加引数化し、`effectiveKeywords`が`lifelink`を含む場合は`gainLifeForController`(新規純粋ヘルパー)でその分の生命を獲得させる。P1所有なら`applyPlayerLifeDelta`、それ以外は`applyOpponentLifeDelta`(既定ラベル)を再利用——**新規GameStateフィールドなし**、既存のライフ変動経路を再利用するのみ。
+2. 新規`trampleLethalAssignment`(純粋関数)= 攻撃側がtrample保持かつ単一blockerの場合のみ、`effectiveToughnessForSba`(既存)と`markedDamageOf`(既存・戦闘前の値)から必要致死量を計算し、`{toBlocker, overflow}`を返す。deathtouch保持なら1点に固定(704.5h)。**blockerの実効toughnessが`null`(可変P/T等で解決不能)の場合は honest defer= 通常通り全量をblockerへ(overflow 0)**——推測しない。
+3. `applyResolveCombatDamage`の単一blockerパスに`trampleLethalAssignment`を組み込み、overflow分は既存の`addCombatPlayerDamage`(unblocked attacker既存パスと共有)経由でdefending playerへ加算。
+4. **新規GameCommandなし**(既存`resolveCombatDamage`の内部ロジックのみ変更)。
+
+**明示的スコープ境界(§34.5・PASS に混ぜない)**:
+- **multiple blockers**は`cr-506-510-combat`が既に`deferred`と宣言済み(手動割当警告)——trampleとの組み合わせも同様に対象外のまま(既存の複数blocker警告パスは無変更)。
+- **first strike/double strike**(702.4/702.7・追加の戦闘ダメージステップが必要な構造変更)は本Sliceの対象外(Slice B候補として台帳へ残す)。
+- **ward**(702.21・対象化時の追加コスト課すtrigger)・**flying/reach/menaceのブロック合法性**(現エンジンはブロック宣言時の合法性を強制検証しない=サンドボックス哲学と自然に整合するため、警告のみの実装が必要なら別Slice)は対象外。
+- **trample over planeswalkers**(702.19c/e/f)はplaneswalkerへの戦闘ダメージ自体が既存`applyDealDamage`で明示的に未対応(`プレースウォーカーへのダメージはこのスライスでは未対応です`)なため、当然に対象外。
+- 既存の「戦闘ダメージ防止フラグ(`combatDamagePreventedUntilEndOfTurn`)が`resolveCombatDamage`経由の自動戦闘解決では一切参照されない」という既存の未接続(`applyDealDamage`の明示コマンド経路のみ参照)は、本Sliceが発見した別種の既知境界であり、修正は本Sliceの範囲外(スコープ外の別課題として記録のみ)。
+
+**Golden候補**: lifelink単体(Vampire Nighthawk等の標準的な飛行+接死+絆魂クリーチャー相当のvanilla構成)・trample単体(Ghalta等の高power trampleクリーチャー相当)・trample+deathtouch複合(Rot Wolf等)。
+
+**受け入れ(判定者先行authoring)**: `review.cr702-lifelink-trample.test.ts`(レビュー専有・新規)——unblocked attacker のlifelinkが攻撃側controllerのライフを damage 分獲得すること・単一block交換で双方lifelink保持時に各々独立して獲得すること・trampleが単一blockerに致死量のみ割当て残りをdefending playerへ回すこと・trample+deathtouch複合で致死閾値が1に下がること・**非trample攻撃者は単一block交換で全量をblockerへ割り当てる回帰確認**・blocker toughness不明(`*`)時はtrampleでも全量をblockerへ割り当てoverflowしない回帰確認。4チェック全green(170 files/1474 tests)。
+
+**Tier-1監査(独立Sonnetサブエージェント・冷たいセッション)**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。多attacker下でのblocker二重処理懸念(`blockersById`はcardId一意キー+`blocking.length===1`ガードにより構造的に不可能と確認)・lifelink帰属先(P1/OPPONENT_A分岐は既存の単一opponent前提と整合・現エンジンで多opponent到達不能ゆえ非issue)・trampleのplayer-targetガード・`trampleLethalAssignment`の符号/off-by-one(overflowは常に非負)・honest-defer経路(`*`toughness)・戦闘ダメージ防止フラグ非参照(既存の別課題・本sliceが悪化させていないことを確認)・lifelinkとSBAの順序(同一関数内で同期的に処理されるため中間状態リスクなし)・非trample/非lifelinkクリーチャーでの既存挙動非regression、全てclean。

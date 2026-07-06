@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-702-keyword-abilities-frequent",
-      "note": "batch4-1。demandは本ドメインの性質上gaps.jsonのaction/cost軸では測れない(静的keyword付与は動詞clauseでないためclassifier対象外)。真の優先根拠=台帳自身のnextGate『combat/damage/layers/cast-from-zone substrateが閉じた能力からcompiler対象へ昇格する』が、S-LAYERS Slice A/B(fa8871b)・cr-601casting-stack(2913309)・cr-506-510-combat/cr-120-damage(shipped)の完了で全て解放済みであることを確認済み(S-phase依存順で次に上がる一意の候補)。スコープ=flying(702.9)/first strike・double strike(702.7/702.4・単一blocker前提、multi-blocker配分には触れない)/deathtouch(702.2)/trample(702.19e相当・単一blocker superfluous damage計算)/lifelink(702.16e)/vigilance(702.21e相当untap不要)/haste(702.10e相当summoning sickness免除)。ward(702.21・cost付与トリガー)とreach/menace(ブロック可否判定のみ)は複雑度次第でSlice分割可。CR 604.3a CDA境界の混入(subtype-defining lineとの区別)に注意。golden候補: 標準的なvanilla flying/deathtouch/trample持ちEDHクリーチャー(4デッキ内で複数該当あり)。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-121-drawing",
       "note": "batch4-2。demand=event:draw 25・zone:library 15(scripts/mydeck-scoring/score.tsのclassifyEventsForLine/classifyZonesForLineが実際にタグ付けする、計測器欠陥の対象外の実信号)。台帳nextGate『player-specific zones と draw event envelope を同時に凍結する』のうちplayer-specific zones(cr-102-players zonesByPlayer)は2026-07-05に出荷済み(shipped)のため、残る作業はdraw-N guided leaf catalog化のみに縮小している可能性が高い(実装前にスコープ精査必須)。CR 121.1-121.4(draw action本体)・104.3c/703.4d(empty library draw advisoryは既存流用・再実装しない)。スコープ=固定数N draw(ETB/attack/upkeep trigger起点)。variable-count draw・opponent強制draw の複雑variantはmanual/defer継続。golden候補: Tataru Taru; Fear of Missing Out; Banon, the Returners' Leader; Blue Sun's Zenith(variable枝はdefer扱いを個別golden化)。"
     }
@@ -990,19 +985,21 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "review-green",
       "landingState": [
         "keywordAbilityIndex",
         "compiledCommands",
         "effectiveCharacteristics",
         "manualFallbacks"
       ],
-      "boundary": "golden未定義。flying/vigilance/haste/deathtouch/lifelink/trample/equip/enchant/ward/flashback/cycling/kicker/convoke等はsubstrate依存。Power-up/Teamworkは2026 vocabulary boundary。",
+      "boundary": "golden未定義部分残置。flying/vigilance/haste/deathtouch/first-strike/double-strikeのキーワード認識自体とvigilance/haste/deathtouchの戦闘・SBA接続は既存(S-LAYERS Slice B以前から)完了済みと判明。**Slice A出荷**(batch4-1・engine-spec §34.38)= 未接続だった`lifelink`(702.15b・ダメージ量分のライフ獲得)と`trample`(702.19b・単一blocker限定の超過ダメージ割当)の2キーワードを`applyPositiveCombatDamage`/`applyResolveCombatDamage`(`src/engine/commands.ts`)へ配線。新規GameState/GameCommandなし(既存ライフ変動・戦闘解決経路を再利用)。deathtouchとの複合(致死閾値1)も既存`sourceHasDeathtouch`を再利用して対応。独立Sonnet Tier-1監査0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW(engine-spec §34.38)。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
-        "src/engine/__tests__/review.grammar-compile.test.ts"
+        "src/engine/__tests__/review.grammar-compile.test.ts",
+        "docs/engine-spec.md §34.38",
+        "src/store/__tests__/review.cr702-lifelink-trample.test.ts"
       ],
-      "nextGate": "combat/damage/layers/cast-from-zone substrateが閉じた能力からcompiler対象へ昇格する",
+      "nextGate": "Slice B候補=first strike/double strike(追加の戦闘ダメージステップという構造変更が必要)。Slice C候補=ward(対象化コストtrigger)・flying/reach/menaceのブロック合法性警告。multiple blockersとの組み合わせ・trample over planeswalkersは既存の別domain境界(cr-506-510-combatのdeferred multi-blocker/未対応planeswalkerダメージ)にブロックされたまま=当該domainが動くまで再訪しない。",
       "judge": "deterministic-cr"
     },
     {

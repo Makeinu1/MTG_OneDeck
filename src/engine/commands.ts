@@ -1630,15 +1630,55 @@ function applyDeclareBlockers(
   pushLog(draft, `${declared.length}体のブロック・クリーチャーを宣言しました。`);
 }
 
+function gainLifeForController(draft: Draft, controllerId: PlayerId, amount: number): void {
+  if (amount <= 0) return;
+  const cause = commandCause('resolveCombatDamage');
+  if (controllerId === 'P1') {
+    applyPlayerLifeDelta(draft, amount, cause);
+  } else {
+    applyOpponentLifeDelta(draft, DEFAULT_OPPONENT_LIFE_LABEL, amount, cause);
+  }
+}
+
+// CR 702.15b: lifelink causes the source's controller to gain life equal to the damage
+// actually dealt, in addition to that damage's other results.
 function applyPositiveCombatDamage(
   draft: Draft,
   recipientId: string,
   sourceId: string,
+  sourceControllerId: PlayerId,
   amount: number,
 ): void {
   const positiveAmount = Math.max(0, amount);
   if (positiveAmount <= 0) return;
   applyMarkDamage(draft, recipientId, positiveAmount, sourceHasDeathtouch(draft, sourceId));
+  if (effectiveKeywords(draft.state, sourceId).includes('lifelink')) {
+    gainLifeForController(draft, sourceControllerId, positiveAmount);
+  }
+}
+
+// CR 702.19b: with a single blocker, trample lets the attacker assign only the amount of
+// damage needed to be lethal to that blocker, sending the rest to the player/planeswalker
+// it's attacking. Lethality accounts for damage already marked and deathtouch (CR 702.19b,
+// 704.5h). If the blocker's toughness can't be determined, fall back to no overflow (honest
+// defer) rather than guess.
+function trampleLethalAssignment(
+  draft: Draft,
+  blockerCard: CardInstance,
+  attackerHasDeathtouch: boolean,
+  attackerPower: number,
+): { toBlocker: number; overflow: number } {
+  const toughness = effectiveToughnessForSba(draft, blockerCard);
+  if (toughness === null) {
+    return { toBlocker: attackerPower, overflow: 0 };
+  }
+  const alreadyMarked = markedDamageOf(blockerCard);
+  const lethalNeeded = attackerHasDeathtouch
+    ? 1
+    : Math.max(0, toughness - alreadyMarked);
+  const toBlocker = Math.min(attackerPower, lethalNeeded);
+  const overflow = Math.max(0, attackerPower - toBlocker);
+  return { toBlocker, overflow };
 }
 
 function applyResolveCombatDamage(draft: Draft): void {
@@ -1655,11 +1695,11 @@ function applyResolveCombatDamage(draft: Draft): void {
     if (attacker.blockedBy.length === 0) {
       const attackerCard = liveCombatCreature(draft, attacker.cardId, attacker.objectId);
       if (attackerCard && attacker.target.type === 'player') {
-        addCombatPlayerDamage(
-          playerDamageTotals,
-          attacker.target,
-          Math.max(0, effectivePower(draft.state, attackerCard.id)),
-        );
+        const power = Math.max(0, effectivePower(draft.state, attackerCard.id));
+        addCombatPlayerDamage(playerDamageTotals, attacker.target, power);
+        if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
+          gainLifeForController(draft, attacker.controllerId, power);
+        }
       }
       continue;
     }
@@ -1685,16 +1725,39 @@ function applyResolveCombatDamage(draft: Draft): void {
       continue;
     }
 
+    const attackerPower = Math.max(0, effectivePower(draft.state, attackerCard.id));
+    const attackerHasTrample = effectiveKeywords(draft.state, attackerCard.id).includes('trample');
+    const attackerHasDeathtouch = sourceHasDeathtouch(draft, attackerCard.id);
+
+    let toBlocker = attackerPower;
+    let overflow = 0;
+    if (attackerHasTrample && attacker.target.type === 'player') {
+      ({ toBlocker, overflow } = trampleLethalAssignment(
+        draft,
+        blockerCard,
+        attackerHasDeathtouch,
+        attackerPower,
+      ));
+    }
+
     applyPositiveCombatDamage(
       draft,
       blockerCard.id,
       attackerCard.id,
-      effectivePower(draft.state, attackerCard.id),
+      attacker.controllerId,
+      toBlocker,
     );
+    if (overflow > 0) {
+      addCombatPlayerDamage(playerDamageTotals, attacker.target, overflow);
+      if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
+        gainLifeForController(draft, attacker.controllerId, overflow);
+      }
+    }
     applyPositiveCombatDamage(
       draft,
       attackerCard.id,
       blockerCard.id,
+      blocker.controllerId,
       effectivePower(draft.state, blockerCard.id),
     );
   }
