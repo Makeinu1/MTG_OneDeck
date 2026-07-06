@@ -2163,8 +2163,14 @@ function castDestination(typeLine: string): ZoneId {
 
 function applyPlayLand(draft: Draft, cardId: string, entersTapped?: boolean): void {
   const card = requireCard(draft, cardId);
-  if (card.zone !== 'hand') {
-    throw new EngineError(`土地は手札からのみプレイできます: ${cardId}`);
+  // CR 601.2a-style play permission (design-lock §34.36): Muldrotha/Icetill Explorer/
+  // Crucible of Worlds/Serra Paragon grant "play a land from your graveyard". Per this
+  // project's sandbox philosophy (no per-card condition enforcement — see cast-from-
+  // graveyard, which already has no zone check at all), the origin zone is widened
+  // rather than gated behind a specific granting permanent. Exile is not included:
+  // no golden card in current demand needs it (honest defer).
+  if (card.zone !== 'hand' && card.zone !== 'graveyard') {
+    throw new EngineError(`土地は手札か墓地からのみプレイできます: ${cardId}`);
   }
   if (!typeLineOf(draft, card).includes('Land')) {
     throw new EngineError(`土地ではないカードです: ${cardId}`);

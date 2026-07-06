@@ -2806,3 +2806,25 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1監査(本セッション最広scope)**: 0 BLOCKER/0 HIGH。pass-through証明(discard/mill/surveil/plain move/SBA死亡+dies誘発正常発火)全経路clean・active-case(SBA収束・token cleanup[704.5d cessationはzone非依存で正常]・annihilation SBA非干渉・undo/snapshot round-trip・owner不一致の非置換)全clean・gate robustness(多文paragraph・大文字・reminder text内外とも`sanitizeLine`→`removeReminderAndQuotes`経由で正しく処理)clean。**発見2件をTier-2裁定**:
 1. **commander 903.9a zone-choice抑止(実発見・要対処)**: storeの`moveCommanderWithZoneChoice`は`toZone==='graveyard'`のeventをevent logから検索して903.9aの「統率領域へ戻すか」プロンプトを生成するため、本フックが先に行き先をexileへ書き換えるとeventが存在せず**プロンプトが無言でスキップされる**(commanderが選択なしにexile行き)。CR616.1上は複数replacementの適用順はownerが選ぶべきだが、完全な二段階選択は本domainの宣言済み境界。**Fable裁定=commanderをフックから除外**(`isCommander`チェック追加)——既出荷のuser-facing挙動(903.9aプロンプト)を無言で壊すのはregressionであり、regressionは不完全性に優先する。fail toward pre-existing behavior=least surprise。**明示的deferral追加**: commander が903.9aの選択で「戻さない」を選んだ場合の行き先はgraveyardのまま(Hades型置換は適用されない)——完全な616.1順序選択の実装時に再訪。回帰pin追加済み(11本目)。
 2. **ability-word同一行gap(MEDIUM・fail-closed)**: 「Echo of the Lost — If a card...」のようにability wordと置換節が同一文に印刷された仮想ケースでは、`splitRulesText`がem-dashで分割しないためanchored regexが不一致=**置換されない(見逃し方向・誤発動ではない)**。実在する4カード全てでability wordは別段落のため実害ゼロ。将来そのような印刷が現れたら再訪(既知の境界として記録)。
+
+### 34.36 cr-601-casting-stack Slice A: graveyardからの土地プレイ許可(design-lock・CR 601.2a/113.6e-f/400.7g-h)— この節も契約である
+
+**位置づけ**: cr-601-casting-stack batch3-7(plannedSequence先頭。demand=10=cast-permission:from-zone。golden候補=Muldrotha, the Gravetide/Serra Paragon/Icetill Explorer/Crucible of Worlds。全てローカルScryfallスナップショットでbyte-exact確認済み)。**判定者が実装前に既存挙動を調査した結果、demandの過半は既に実装ギャップなし**と判明(4件目の同パターン。cr-701 mill/scry/surveil・cr-122 event:counter・cr-614 shockland ETBに続く)。
+
+**確認内容**: `applyCastToStack`(engine)は`card.zone`を一切検証していない=**graveyard/exileからのspell castは既に無条件で動作する**(サンドボックス哲学=コスト・条件の強制検証をしない設計と自然に整合)。UI(`Playmat.tsx`)もgraveyard/exile上のカードに対し`cast-from-zone`メニュー項目を既に無条件で表示している。これでLurrus/Serra Paragon(spell側)/Chainer/Timeline Culler等、demand 10件中「spellを唱える」型はすべて充足済み。
+
+**残る実gap**: `applyPlayLand`(`src/engine/commands.ts`)が`card.zone !== 'hand'`を例外送出でハード制限しており、**土地をgraveyardからプレイする経路が存在しない**(Muldrotha/Icetill Explorer/Crucible of Worlds/Serra Paragon土地側が対象)。
+
+**凍結した設計**:
+1. `applyPlayLand`のzone制限を`'hand' | 'graveyard'`へ緩和(exileは実在goldenに需要なし=対象外・honest defer)。
+2. UI(`Playmat.tsx`)へ、`card.zone === 'graveyard' && typeLine.includes('Land')`時の「土地としてプレイ」メニュー項目を追加(既存hand側の項目と同一ハンドラ`requestPlayLand`を再利用)。
+3. **新規GameState・GameCommandなし**(既存`playLand` commandのzone検証を緩和するのみ)。コスト系(「once per turn」「permanent type毎に1回」等のMuldrotha/Serra Paragon個別条件)は**強制しない**(既存サンドボックス哲学=土地1枚/ターン制限は既存`landsPlayedThisTurn`カウンタで警告のみ・強行可能)。
+4. **honest manual/defer**: exileからの土地プレイ・「spell of each permanent type」のtype-once-per-turn強制・「using its warp ability」等のalt-cost付きcast・"you may play this card from your graveyard until end of turn"型の一時許可(通常許可と区別しない=常時許可のまま。既存サンドボックス哲学と整合するため実害なし)。
+
+**Golden候補(Scryfallローカルスナップショット検証済み)**: Muldrotha, the Gravetide「During each of your turns, you may play a land and cast a permanent spell of each permanent type from your graveyard.」・Serra Paragon「Once during each of your turns, you may play a land from your graveyard or cast a permanent spell with mana value 3 or less from your graveyard.」・Icetill Explorer「You may play lands from your graveyard.」・Crucible of Worlds「You may play lands from your graveyard.」。
+
+**受け入れ(判定者先行authoring)**: `review.*`にて——graveyard上の土地に対し`playLand`が成功しbattlefieldへ移動すること・手札からの既存挙動が無変更(non-regression)・graveyard上の非land cardには適用されないこと(型エラーのまま)・既存landsPlayedThisTurnカウンタ/警告がgraveyard由来でも同様に働くこと・spell casting from graveyard(既存機能)の非regression確認。
+
+**実装出荷(2026-07-07・Codex quota長期枯渇のため判定者が代行→ブラウザ実機確認→独立Sonnet Tier-1監査→ship)**: `applyPlayLand`のzone制限を`'hand' | 'graveyard'`へ1行緩和(exileは対象外のまま)。`Playmat.tsx`へ`card.zone==='graveyard' && typeLine.includes('Land')`条件で「土地としてプレイ(墓地から)」メニュー項目を追加(既存`requestPlayLand`ハンドラを再利用)。UI変更を伴うため、ブラウザ実機(Claude Preview)で実際にForestを墓地へ移動→右クリック→新メニュー項目クリック→battlefieldへの移動をpreview_evalで直接確認(コンソールエラー0件)。4チェック全green(168 files/1464 tests)。
+
+**Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。ターン内土地枚数上限の警告・`entersTapped`(既存`landEntersTapped`はcard定義textのみを見てzone非依存)・artifact landでの`cast-from-zone`分岐との非衝突(既存除外条件`!typeLine.includes('Land')`により相互排他)・exile/非land/library/battlefieldでの非適用・Scryfall独立再検証(4golden全て生テキストでbyte-exact確認)・手札からの既存挙動非regression、全てclean。UIのscope creepなし(exile/library等への誤爆なし)。

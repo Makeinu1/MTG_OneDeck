@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-601-casting-stack",
-      "note": "batch3-7。demand=10(cast-permission:from-zone 10)。\"you may play/cast [bounded object class] from your graveyard this turn/once this turn\"のguided permission record。full CR601 casting procedure化はしない。free-cast/alt-cost重畳/multi-type-per-turn/copied spellsはmanual/defer継続。CR 601.2a/601.2b/601.2f/601.2i/113.6e-f/400.7g-h/701.18a-b正本。golden候補: Muldrotha, the Gravetide/Lurrus of the Dream-Den。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-modal-target-optional-variable",
       "note": "batch3-8。demand=10(choice:mode-or-value 10)。tie-break=edhValue同値(high)のためS-phase依存順(backbone優先)でcr-601の後。guided mode/value choice envelope(選択をcommand生成/stack配置前に確定)。\"choose both\"条件分岐・repeated modes・variable target countはmanual/defer継続。CR 700.2/700.2a-i/601.2b/601.2c/603.3c/608.2d/107.3a正本。golden候補: Akroma's Will/Sheoldred's Edict。"
     }
@@ -585,12 +580,14 @@
         "commanderCastCount",
         "costPlan"
       ],
-      "boundary": "commander taxを含むcast完了時の一部は実行可能。full CR601 casting procedure、modes/targets/cost locks、cast-from-zone permission は後期化。",
+      "boundary": "commander taxを含むcast完了時の一部は実行可能。full CR601 casting procedure、modes/targets/cost locks、cast-from-zone permission は後期化。 **Slice A出荷完了**(graveyardからの土地プレイ許可・engine-spec §34.36)= 実装ギャップ精査の結果、cast spell from graveyard/exileは既存engine/UIとも無条件で動作済み(demand10件中spell側は充足済み)。残gap=applyPlayLandのzone制限緩和(hand|graveyard)+UIメニュー項目のみで解消。独立Tier-1監査0件・ブラウザ実機で右クリック→battlefield移動をend-to-end確認。exileは対象外(defer)。",
       "evidence": [
         "cr-commander-tax-cast-not-return",
-        "src/engine/__tests__/m431.test.ts"
+        "src/engine/__tests__/m431.test.ts",
+        "docs/engine-spec.md §34.36",
+        "src/engine/__tests__/review.cr601-play-land-from-graveyard.test.ts"
       ],
-      "nextGate": "target/mode/cost envelope を先に凍結し、full casting procedureを分割実装する",
+      "nextGate": "demand実測ぶんは充足。残るfull CR601 casting procedure(modes/targets/cost locks全般)は複雑度が高くdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。",
       "judge": "deterministic-cr"
     },
     {

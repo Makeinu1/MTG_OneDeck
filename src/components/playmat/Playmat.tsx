@@ -1004,6 +1004,16 @@ export function Playmat({ keybindings }: PlaymatProps) {
       }
     }
 
+    if (card.zone === 'graveyard' && typeLine.includes('Land')) {
+      items.push({
+        key: 'play-land-from-graveyard',
+        label: '土地としてプレイ(墓地から)',
+        testId: 'play-land-from-graveyard',
+        onSelect: () => requestPlayLand(cardId),
+        separator: true,
+      });
+    }
+
     if (card.zone === 'battlefield' || card.zone === 'hand' || card.zone === 'command') {
       items.push(...buildRuleCandidateMenuItems(cardId, def));
     }
