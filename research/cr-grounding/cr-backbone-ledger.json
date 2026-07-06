@@ -894,7 +894,7 @@
         "docs/engine-spec.md §34.34",
         "src/engine/__tests__/review.cr614-615-prevent-combat-damage.test.ts"
       ],
-      "nextGate": "残genuine gap=graveyard→exile置換hook(Emet-Selch型・単一controller/source)。damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)はdefer継続。",
+      "nextGate": "残genuine gap=graveyard→exile置換hook(Emet-Selch型)。**実装方針はFable(または将来の判定者セッション)が決定するまで保留**——moveCardInternal(エンジン最大の共有chokepoint)自体への変更が必要でリスクが高いため、J3判定者単独では着手しない(ユーザー裁定2026-07-06)。damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)は引き続きdefer。",
       "judge": "deterministic-cr",
       "judgeNote": "個別 replacement の適用は CR 決定論。複数 replacement の相互作用(616.1 の適用順選択を除く)はスコープ境界(engine-spec §34.5)=境界拡張は STOP①。"
     },
