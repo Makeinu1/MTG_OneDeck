@@ -2683,3 +2683,28 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **スコープ境界(§34.5・PASS に混ぜない)**: loyalty/charge/age/ice等の他counter種別・可変count・distribute複数target・proliferate・counter cap(122.4)・Saga/battle/rad countersは本スライス未着手(次回demand実測時に別スライス)。
 
 **受け入れ**: `review.cr122-counter-plus-sign.test.ts`(レビュー専有・5 pin。符号バグ修正pin・+1/+1非regression・digit/word magnitude・可変X両符号のexact-phrase gate・annihilation SBA相互作用)+ `review.cr122-counter-put-trigger-sign.test.ts`(レビュー専有・3 pin。-1/-1 counter-put trigger発火・符号別クロス汚染なし双方向)。
+
+### 34.31 S-LAYERS Slice A: read-time additive Layer 4 type accessor(design-lock・CR 604/611/613)— この節も契約である
+
+**位置づけ**: cr-604-611-612-613-layers-continuous batch3-5(domain初のスライス。本番engineに初めてCR613層計算を導入)。**design-lock(spec-first)**=§34.21 S-LINKED-EXILEと同方式=実装より先に設計を凍結し、実装は後続の同一/別セッションで行う。設計正本(living)=`research/cr-grounding/cr604-layers-batch3-5.draft.md`(Codex起草・J3 Sonnetが CR照合しread-time方式+scope境界を裁定・2026-07-06)。既存production engineには`computeEffectiveCharacteristics`等のlayer機構が一切存在しない(`scripts/lib/layerClassify.ts`/`oracleHarness.ts`はM0計測用の研究ツールでGameStateに未接続)ことを確認済み。
+
+**CR根拠**: 604.1/604.2(static ability=常時真。permanentがbattlefieldに在る間continuous effectを生成)・611.3/611.3a/611.3b(static abilityのcontinuous effectはlocked-inでなく常時再評価)・613.1/613.1d(layer順序。Layer4=type-changing)・613.5(layer適用は連続的・自動・瞬時)・604.4(Aura/Equipment/Fortificationの装着先修正はtargetしない。移動すれば新objectを修正)。
+
+**凍結した設計(判定者裁定・8点のJudge Decision Pointsに対する回答)**:
+1. **read-time計算・stored ledgerではない**: `GameState`に新フィールドを追加しない。`src/engine/status.ts`の既存`effectivePower`/`effectiveKeywords`と同じ並びで、`GameState`+`cardId`から都度導出する純粋関数を追加する。理由=CR611.3a(locked-inでない)・613.5(継続的・自動的に導出)に合致し、`zonesByPlayer`型のrestore/backfillスキーマ拡張を避けられる(既存の「GameStateは可能な限りderivable」原則と整合)。
+2. **layer抽象は導入しない(Option A)**: 依存グラフ/timestampソート等の汎用layer機構は本スライスで作らない。additiveなLayer4効果だけを扱う限り、複数効果は可換(順序が結果に影響しない)ため、613.7/613.8のtimestamp/dependencyは観測不能=構築不要。将来の拡張点として関数内部に「Layer4」であることをコメントで明示するに留める。
+3. **Layer6は対象外(Slice Bへ)**: 本スライスはLayer4(additive type-changing)のみ。demand=L4:10 > L6:2でもあり、ability付与はkeyword-onlyでも別の意味論的広がり(除去・"can't have"・613.9 override等)を持つため、Layer4のread-site移行を先に安定させてから再利用する。
+4. **attached-object効果を含める**: `attachedTo`は既存の単一id fieldであり、Aura/Equipment/FortificationはCR604.4により単一object修正(target化しない)ゆえ有界。Nylea's Presence型("Enchanted land is every basic land type in addition to its other types.")をカバーする価値が実装コストに見合う。
+5. **CDA(characteristic-defining ability)は対象外**: CR604.3aのCDAは全ゾーンで機能する必要があるが、本スライスはbattlefield限定の読み取りのみ。CDA固有の全ゾーン対応は将来スライスへ。
+6. **移行するread site**: `src/engine/commands.ts`の`typeLineOf`・`typeLineForStateCard`/`eligibleTargets`のtarget legality分岐・`src/engine/status.ts`の`isSummoningSick`・battlefield groupingやcontext menuのcreature/land/planeswalker判定。**UI card-view/preview全体やObjectSnapshot/trigger snapshot生成は本スライスで移行しない**(printed/intrinsicのまま=明示的deferral。snapshotは元来時点凍結でよい)。
+7. **static ability検出**: 既存`classifyAbilityShape`(`src/engine/grammar/index.ts`)の`'static'`分類をそのまま再利用する。`scripts/lib/layerClassify.ts`等の研究ツールをproductionへそのまま輸入しない(再実装する場合は`src/engine`側で独自にテストを持つ)。
+8. **厳密な追加条件(exact-phrase gate・auto詐称なし)**: 対応する構文は「in addition to its other types」を含む**additiveのみ**(型追加。除去・"isn't"・"in addition"を伴わない"becomes [type]"・複数object対象のanthem型は非対応)。ソースは(a)printed static abilityを持つ自身のbattlefield permanent、または(b)`attachedTo`で自身を指す唯一のAura/Equipment/Fortification。それ以外は既存の printed type line のまま(honest fallback。誤った型を返さない)。
+
+**Golden候補(ローカルScryfallスナップショットで検証済み。`Devastating Onslaught`/`Fable of the Mirror-Breaker`は台帳のnote記載の初期候補だったが検証の結果不適合と判明し却下)**:
+- `Invasion of Zendikar // Awakened Skyclave`: "As long as this creature is on the battlefield, it's a land in addition to its other types."(self・additive card type)
+- `Nylea's Presence`(Aura): "Enchanted land is every basic land type in addition to its other types."(attached-object・additive subtype)
+- Slice B候補として`Angelic Gift`(Aura): "Enchanted creature has flying."(keyword付与・本スライス対象外)
+
+**スコープ境界(§34.5・PASS に混ぜない)**: anthem/複数object static効果("Creatures you control ...")・611.2(spell/ability解決由来のcontinuous effect。duration・object-set locking・variable capture・"becomes"/"gains"含む)・CDA全ゾーン対応・613.7/613.8のtimestamp/dependency・Layer1(copy/face-down)/2(control)/3(text-changing)/5(color)/6(ability-add/remove)/7(P/T)・keyword counter(CR122.1b)のLayer6ブリッジ・basic land typeが暗黙に持つmana ability(型wordのみ検証し、mana ability自体は別領域)・ObjectSnapshot/trigger snapshotの effective 化。
+
+**次アクション**: 本design-lockを実装ブリーフの正本とし、Codexへハーネス追跡背景実装を発注する。受け入れ=判定者が本節凍結後に先行authoringする`review.*`(Layer4 additive self/attached両ケース・anthem/CDA/becomes-without-addition等の非対応境界・既存read site非regression)。

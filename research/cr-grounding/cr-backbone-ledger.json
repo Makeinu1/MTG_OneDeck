@@ -855,16 +855,19 @@
       ],
       "lane": "late-backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "implemented-not-green",
       "landingState": [
         "effectiveCharacteristics",
         "continuousEffects",
         "timestamps",
         "dependencyGraph"
       ],
-      "boundary": "golden未定義。ObjectSnapshotはfull effective-characteristics snapshotではない。L6 keywords / L7 power-toughness から始め、dependency/timestamp完全形は後回し。",
-      "evidence": [],
-      "nextGate": "computeEffectiveCharacteristics の最小APIを設計凍結し、SBA/combat/legalityから読む単一入口にする",
+      "boundary": "Slice A design-lock凍結(batch3-5・2026-07-06・engine-spec §34.31)= read-time additive Layer4 type accessor(computeEffectiveCharacteristics系ではなくeffectiveTypeLine単発)。stored continuous-effect ledgerは導入せず、GameState/GameCommand追加なし。self+attached-object(Aura/Equipment/Fortification)のadditive type-changingのみ。Layer6・CDA全ゾーン・611.2解決由来効果・timestamp/dependency・anthem型は全てdefer。実装はCodexへ発注済み(harness-tracked background)。",
+      "evidence": [
+        "docs/engine-spec.md §34.31",
+        "research/cr-grounding/cr604-layers-batch3-5.draft.md"
+      ],
+      "nextGate": "実装完了後: Tier-1独立監査(既存read site非regression・anthem/CDA/becomes-without-addition境界の誤ガード検出重点)→judge-owned review.*→ship。その後Slice B(keyword-only Layer6)・Slice C(stored continuous-effect ledger)へ。",
       "judge": "deterministic-cr",
       "judgeNote": "層の適用順自体は CR 613 で決定論。ただし置換効果との相互作用はスコープ境界(engine-spec §34.5)=境界内のみ実装し、境界拡張は STOP①。"
     },
