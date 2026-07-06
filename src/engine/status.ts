@@ -1,5 +1,6 @@
 import type { CardDef } from '../types/card';
 import type { CardInstance, GameState } from './types';
+import { classifyAbilityShape, splitAbilityLines } from './grammar';
 import { possessedKeywords } from './keywordGrammar';
 
 export type Keyword =
@@ -36,6 +37,9 @@ export const STATUS_KEYWORDS: readonly Keyword[] = [
 ];
 
 const STATUS_KEYWORD_IDS = new Set<string>(STATUS_KEYWORDS);
+const BASIC_LAND_TYPES = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest'] as const;
+const ATTACHMENT_TYPE_LINE_PATTERN = /\b(?:Aura|Equipment|Fortification)\b/i;
+const TYPE_WORD_PATTERN = /^[A-Za-z][A-Za-z'-]*$/;
 
 export function isKeyword(value: string): value is Keyword {
   return STATUS_KEYWORD_IDS.has(value);
@@ -65,6 +69,10 @@ function currentTypeLine(def: CardDef | undefined, card: CardInstance): string {
   return face?.typeLine ?? def?.typeLine ?? '';
 }
 
+function currentFaceIndex(def: CardDef | undefined, card: CardInstance): number {
+  return def?.faces[card.faceIndex] ? card.faceIndex : 0;
+}
+
 function cardTexts(def: CardDef | undefined): string[] {
   if (!def?.faces) return [];
   return def.faces.flatMap((face) => (face.oracleText ? [face.oracleText] : []));
@@ -75,6 +83,117 @@ function splitRulesText(text: string): string[] {
     .split(/[.\n。]/)
     .map((part) => part.trim())
     .filter((part) => part !== '');
+}
+
+type AdditiveTypeEffect =
+  | { kind: 'self'; additions: string[] }
+  | { kind: 'attached'; additions: string[] };
+
+function normalizeLayer4StaticLine(line: string): string {
+  return line.replace(/[.。]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function canonicalTypeWord(word: string): string {
+  return word
+    .split('-')
+    .map((part) =>
+      part === '' ? part : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`,
+    )
+    .join('-');
+}
+
+function parseTypeWordList(raw: string): string[] | null {
+  const words = raw.split(',').map((part) => part.trim());
+  if (words.length === 0 || words.some((word) => !TYPE_WORD_PATTERN.test(word))) {
+    return null;
+  }
+  return words.map(canonicalTypeWord);
+}
+
+function parseLayer4AdditiveStaticLine(line: string): AdditiveTypeEffect | null {
+  const normalized = normalizeLayer4StaticLine(line);
+  if (
+    /^this\s+[a-z][a-z' -]*?\s+is\s+every\s+basic\s+land\s+type\s+in\s+addition\s+to\s+its\s+other\s+types$/i.test(
+      normalized,
+    )
+  ) {
+    return { kind: 'self', additions: [...BASIC_LAND_TYPES] };
+  }
+
+  const selfNamed = normalized.match(
+    /^this\s+[a-z][a-z' -]*?\s+is\s+(?:a|an)\s+(.+?)\s+in\s+addition\s+to\s+its\s+other\s+types$/i,
+  );
+  if (selfNamed?.[1]) {
+    const additions = parseTypeWordList(selfNamed[1]);
+    return additions ? { kind: 'self', additions } : null;
+  }
+
+  const selfBattlefieldNamed = normalized.match(
+    /^as\s+long\s+as\s+this\s+[a-z][a-z' -]*?\s+is\s+on\s+the\s+battlefield,\s+it['’]s\s+(?:a|an)\s+(.+?)\s+in\s+addition\s+to\s+its\s+other\s+types$/i,
+  );
+  if (selfBattlefieldNamed?.[1]) {
+    const additions = parseTypeWordList(selfBattlefieldNamed[1]);
+    return additions ? { kind: 'self', additions } : null;
+  }
+
+  if (
+    /^(?:enchanted|equipped|fortified)\s+[a-z][a-z' -]*?\s+is\s+every\s+basic\s+land\s+type\s+in\s+addition\s+to\s+its\s+other\s+types$/i.test(
+      normalized,
+    )
+  ) {
+    return { kind: 'attached', additions: [...BASIC_LAND_TYPES] };
+  }
+
+  const attachedNamed = normalized.match(
+    /^(?:enchanted|equipped|fortified)\s+[a-z][a-z' -]*?\s+is\s+(?:a|an)\s+(.+?)\s+in\s+addition\s+to\s+its\s+other\s+types$/i,
+  );
+  if (attachedNamed?.[1]) {
+    const additions = parseTypeWordList(attachedNamed[1]);
+    return additions ? { kind: 'attached', additions } : null;
+  }
+
+  return null;
+}
+
+function staticAbilityLinesForCurrentFace(def: CardDef | undefined, card: CardInstance): string[] {
+  if (!def) return [];
+  const faceIndex = currentFaceIndex(def, card);
+  const typeLine = currentTypeLine(def, card);
+  // Tier-1 audit finding (HIGH): a static-ability paragraph can hold more than one
+  // sentence (e.g. "This land is tapped. This land is a Mountain in addition to its
+  // other types."). parseLayer4AdditiveStaticLine's ^...$ anchors are only meaningful
+  // per-sentence — splitting here (not just at the paragraph level) keeps each
+  // additive clause isolated so a neighboring sentence can't be swallowed into or
+  // silently defeat its capture group.
+  return splitAbilityLines(def)
+    .filter((line) => line.faceIndex === faceIndex)
+    .flatMap((line) => (classifyAbilityShape(line.text, typeLine) === 'static' ? splitRulesText(line.text) : []));
+}
+
+function typeLineHasWord(typeLine: string, word: string): boolean {
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`, 'i').test(typeLine);
+}
+
+function appendTypeWords(typeLine: string, additions: readonly string[]): string {
+  const appended: string[] = [];
+  const seen = new Set<string>();
+  for (const addition of additions) {
+    const key = addition.toLowerCase();
+    if (seen.has(key) || typeLineHasWord(typeLine, addition)) {
+      continue;
+    }
+    seen.add(key);
+    appended.push(addition);
+  }
+  if (appended.length === 0) {
+    return typeLine;
+  }
+  return [typeLine, ...appended].filter((part) => part !== '').join(' ');
+}
+
+function isAttachmentTypeLine(typeLine: string): boolean {
+  return ATTACHMENT_TYPE_LINE_PATTERN.test(typeLine);
 }
 
 export interface FetchAbility {
@@ -154,6 +273,47 @@ export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
   return normalizeKeywords([...keywords(state.defs[card.defId]), ...(card.manualKeywords ?? [])]);
 }
 
+export function effectiveTypeLine(state: GameState, cardId: string): string {
+  const card = state.cards[cardId];
+  if (!card) return '';
+  const def = state.defs[card.defId];
+  const printedTypeLine = currentTypeLine(def, card).toString();
+  if (card.zone !== 'battlefield') {
+    return printedTypeLine;
+  }
+
+  const additions: string[] = [];
+
+  for (const line of staticAbilityLinesForCurrentFace(def, card)) {
+    const effect = parseLayer4AdditiveStaticLine(line);
+    if (effect?.kind === 'self') {
+      additions.push(...effect.additions);
+    }
+  }
+
+  for (const sourceId of state.zones.battlefield) {
+    if (sourceId === cardId) {
+      continue;
+    }
+    const source = state.cards[sourceId];
+    if (!source || source.zone !== 'battlefield' || source.attachedTo !== cardId) {
+      continue;
+    }
+    const sourceDef = state.defs[source.defId];
+    if (!isAttachmentTypeLine(currentTypeLine(sourceDef, source))) {
+      continue;
+    }
+    for (const line of staticAbilityLinesForCurrentFace(sourceDef, source)) {
+      const effect = parseLayer4AdditiveStaticLine(line);
+      if (effect?.kind === 'attached') {
+        additions.push(...effect.additions);
+      }
+    }
+  }
+
+  return appendTypeWords(printedTypeLine, additions);
+}
+
 export function hasVigilance(state: GameState, cardId: string): boolean {
   const card = state.cards[cardId];
   if (!card) return false;
@@ -208,8 +368,7 @@ export function effectivePower(state: GameState, cardId: string): number {
 export function isSummoningSick(state: GameState, cardId: string): boolean {
   const card = state.cards[cardId];
   if (!card || card.zone !== 'battlefield') return false;
-  const def = state.defs[card.defId];
-  if (!currentTypeLine(def, card).includes('Creature')) return false;
+  if (!effectiveTypeLine(state, cardId).includes('Creature')) return false;
   if (card.enteredTurn !== state.turn) return false;
   return !effectiveKeywords(state, cardId).includes('haste');
 }

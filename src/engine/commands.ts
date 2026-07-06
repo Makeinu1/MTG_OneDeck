@@ -13,7 +13,13 @@ import {
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR, type AbilityCost } from './grammar/ir';
 import { parseManaCost } from './mana';
-import { effectiveKeywords, effectivePower, hasVigilance, normalizeKeywords } from './status';
+import {
+  effectiveKeywords,
+  effectivePower,
+  effectiveTypeLine,
+  hasVigilance,
+  normalizeKeywords,
+} from './status';
 import {
   hasDelayedPhaseBeginTiming,
   makeScheduledDelayedTrigger,
@@ -527,10 +533,21 @@ function currentFaceOf(draft: Draft, card: CardInstance) {
   return def?.faces[card.faceIndex] ?? def?.faces[0];
 }
 
-function typeLineOf(draft: Draft, card: CardInstance): string {
+function printedTypeLineOf(draft: Draft, card: CardInstance): string {
   const def = draft.state.defs[card.defId];
   const face = currentFaceOf(draft, card);
   return (face?.typeLine ?? def?.typeLine ?? '').toString();
+}
+
+function stateWithCardForTypeRead(state: GameState, card: CardInstance): GameState {
+  if (state.cards[card.id] === card) {
+    return state;
+  }
+  return { ...state, cards: { ...state.cards, [card.id]: card } };
+}
+
+function typeLineOf(draft: Draft, card: CardInstance): string {
+  return effectiveTypeLine(stateWithCardForTypeRead(draft.state, card), card.id);
 }
 
 function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
@@ -550,7 +567,7 @@ function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
     faceIndex: card.faceIndex,
     tapped: card.tapped,
     counters: { ...card.counters },
-    typeLine: typeLineOf(draft, card),
+    typeLine: printedTypeLineOf(draft, card),
     manaValue: def?.cmc,
     power: face?.power,
     toughness: face?.toughness,
@@ -3304,26 +3321,22 @@ export function eligibleTargets(
     if (filter.controller === 'opponent' && card.controllerId === 'P1') {
       return false;
     }
-    const def = state.defs[card.defId];
-    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
-    const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
+    const typeLine = typeLineForStateCard(state, card);
     if (filter.excludeTokens && card.isToken) {
       return false;
     }
-    if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
+    if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {
       return false;
     }
     if (acceptsAnyPermanent) {
       return true;
     }
-    return types.some((type) => typeLine.includes(type.toLowerCase()));
+    return types.some((type) => typeLineHasType(typeLine, type));
   });
 }
 
 function typeLineForStateCard(state: GameState, card: CardInstance): string {
-  const def = state.defs[card.defId];
-  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
-  return (face?.typeLine ?? def?.typeLine ?? '').toString();
+  return effectiveTypeLine(stateWithCardForTypeRead(state, card), card.id);
 }
 
 function typeLineHasType(typeLine: string, type: string): boolean {

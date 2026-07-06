@@ -9,7 +9,7 @@
     {
       "type": "domain-slice",
       "domainId": "cr-604-611-612-613-layers-continuous",
-      "note": "batch3-5。demand=13(layer:L4 10+layer:L6 2+layer:L1b 1)。late-backbone。最小computeEffectiveCharacteristics入口(L4型/subtype判定+L6付与keyword)。dependency graph/timestamp完全形/copy layer/text-changingはmanual/defer継続。CR 604.1/604.3/611.2/611.2a/611.2c/611.2e/612.1/613.1/613.1a/613.1d/613.1f/613.10-11正本。golden候補: Devastating Onslaught/Fable of the Mirror-Breaker。"
+      "note": "Slice A(read-time additive Layer4 type accessor)出荷済み(engine-spec §34.31)。残置=Slice B(keyword-only Layer6 additions。Angelic Gift型\"Enchanted creature has flying.\"。既存effectiveKeywordsへの同型拡張)、Slice C(stored continuous-effect ledger。611.2解決由来のduration/timestamp/dependency。真に必要になった時のみ着手)。"
     },
     {
       "type": "domain-slice",
@@ -862,12 +862,13 @@
         "timestamps",
         "dependencyGraph"
       ],
-      "boundary": "Slice A design-lock凍結(batch3-5・2026-07-06・engine-spec §34.31)= read-time additive Layer4 type accessor(computeEffectiveCharacteristics系ではなくeffectiveTypeLine単発)。stored continuous-effect ledgerは導入せず、GameState/GameCommand追加なし。self+attached-object(Aura/Equipment/Fortification)のadditive type-changingのみ。Layer6・CDA全ゾーン・611.2解決由来効果・timestamp/dependency・anthem型は全てdefer。実装はCodexへ発注済み(harness-tracked background)。",
+      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。effectiveTypeLine(state,cardId)をstatus.tsへ追加(read-time・新GameState/GameCommandなし)。typeLineOf/typeLineForStateCard/eligibleTargets/isSummoningSickを移行。ObjectSnapshotは意図的に非migration(printedTypeLineOf)。Tier-1監査でHIGH発見=staticAbilityLinesForCurrentFaceが段落単位分割のみで複数文static textの文境界を跨ぐ実バグ→判定者が文単位分割へ外科修正。Layer6(keyword付与)・stored continuous-effect ledger(611.2解決由来・timestamp/dependency)は次スライスへ。",
       "evidence": [
         "docs/engine-spec.md §34.31",
-        "research/cr-grounding/cr604-layers-batch3-5.draft.md"
+        "research/cr-grounding/cr604-layers-batch3-5.draft.md",
+        "src/engine/__tests__/review.cr604-layers-sliceA.test.ts"
       ],
-      "nextGate": "実装完了後: Tier-1独立監査(既存read site非regression・anthem/CDA/becomes-without-addition境界の誤ガード検出重点)→judge-owned review.*→ship。その後Slice B(keyword-only Layer6)・Slice C(stored continuous-effect ledger)へ。",
+      "nextGate": "Slice B(keyword-only Layer6 additions。Angelic Gift型)、Slice C(stored continuous-effect ledger。611.2 duration/timestamp/dependency)。demand実測に応じて優先度再評価。",
       "judge": "deterministic-cr",
       "judgeNote": "層の適用順自体は CR 613 で決定論。ただし置換効果との相互作用はスコープ境界(engine-spec §34.5)=境界内のみ実装し、境界拡張は STOP①。"
     },
