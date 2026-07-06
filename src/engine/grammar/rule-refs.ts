@@ -77,6 +77,7 @@ const VALID_RULE_REFS = new Set<string>([
   '121',
   '122',
   '123',
+  '615',
   '702',
   '707',
   'standard',

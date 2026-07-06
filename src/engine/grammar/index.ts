@@ -88,6 +88,7 @@ export const EFFECT_ATOM_DEFINITIONS: readonly EffectAtomDefinition[] = [
   { id: 'effect.loyalty', label: '忠誠度', ruleRef: '122', probe: /\bloyalty\b/i },
   { id: 'effect.mill', label: '切削する', ruleRef: '701.17', probe: /\bmill(?:s|ed|ing)?\b/i },
   { id: 'effect.poison', label: '毒カウンター', ruleRef: '122', probe: /\bpoison counters?\b/i },
+  { id: 'effect.prevent', label: 'ダメージを防ぐ', ruleRef: '615', probe: /\bprevent(?:s|ed|ing)?\b/i },
   {
     id: 'effect.pump',
     label: '修整する',

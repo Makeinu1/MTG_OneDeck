@@ -2752,3 +2752,29 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **残るdemand(未着手・genuine gap)**: graveyard→exile置換hook(Emet-Selch型「If a card or token would be put into your graveyard from anywhere, exile it instead.」・単一controller/source)・damage-doubling replacement(Kuja型。damage substrateとの相互作用が複雑=defer)・kicker依存ETB counter(Everflowing Chalice型。kicker cost追跡が前提=defer)・単一ターン戦闘ダメージ防止shield(Spore Frog型。prevention demand=1件)。
 
 **受け入れ**: `review.cr614-shockland-etb.test.ts`(レビュー専有・5 pin。shockland golden・pay-life選択両方向・unconditional tapland/basic landの非regression)。
+
+### 34.34 cr-614-615-616-replacement-prevention Slice A: 単一ターン戦闘ダメージ防止shield(design-lock・CR 615.1/615.1a)— この節も契約である
+
+**位置づけ**: cr-614-615-616-replacement-prevention batch3-6続き(genuine gap第1弾。prevention demand=1件=Spore Frog型)。既存のCR613 layers系(§34.31/34.32)と同様、本ドメインでも damage substrateには**prevention機構が一切存在しない**ことを確認済み(`grep -n "regenerat\|preventDamage\|damagePrevent" src/engine/commands.ts`=0件)。既存`GameCommand.dealDamage`は`combatDamage: boolean`フィールドを既に持つ(§34.22系のsource-backed damage substrate)ため、これをprevention判定のフックポイントとして再利用する。
+
+**CR根拠**: 615.1(prevention effectはreplacement同様continuously・not locked-in。damage eventを部分/完全に防ぐ"shield")・615.1a("prevent"という語を使う効果=prevention effect)・615.6(防がれたdamageは発生しない。advisory的にeventとしては記録してよい)。
+
+**凍結した設計(ローカルScryfallスナップショットで裏取り済み。当初想定した「dealt to you this turn」というcontroller限定variantは実在しないことを確認=Spore Frog/Fog/Darkness/Constant Mistsは全て同一のグローバル文言)**:
+1. **厳密な対応構文(exact-phrase gate)**: `"Prevent all combat damage that would be dealt this turn."`の**完全一致1パターンのみ**認識(Fog/Darkness/Constant Mists/Spore Frogが実際にこの文言で一致)。player-scope付き("...dealt to players this turn"等)・count付き("prevent the next N damage")・source/creature限定("by non-Spider creatures"/"to and dealt by this creature"等)・条件付き("if {W} was spent")は本スライス対象外(honest manual)。
+2. **新規state(additive)**: `GameState.combatDamagePreventedUntilEndOfTurn: boolean`(このターンのみ有効なシールド。既存`landsPlayedThisTurn`等ターン単位カウンタと同じ「`handleUntapEntry`でリセット」パターンを踏襲)。
+3. **新規command(1個のみ)**: `{ type: 'preventCombatDamageThisTurn' }`(引数なし。グローバル1パターンのみのためplayer-scope引数は不要=YAGNI)。効果コンパイラは`effect.prevent`という新規atomを追加し、上記1パターンのみをauto判定として本commandへコンパイルする(それ以外は`needs-parse`でmanualへfail closed)。
+4. **damage適用側のフック**: `applyDealDamage`(既存)が`cmd.combatDamage===true`かつ`state.combatDamagePreventedUntilEndOfTurn`が真なら、実際の`applyPlayerLifeDelta`/`applyOpponentLifeDelta`呼び出しをスキップする(damage eventは引き続きpushし、advisory的に「防がれた」ことをログへ記録=CR615.6の「防がれたdamageは発生しないが、eventとしては観測可能であってよい」との整合)。**creature/card対象(`targetCardId`)への戦闘ダメージも本パターンは対象に含む**(実カードの文言はplayer/creature区別なく「all combat damage」であるため、targetCardIdへのcombat damageも同様にスキップする)。
+5. **snapshot前方互換**: 新field追加ゆえ`restoreGame`で`combatDamagePreventedUntilEndOfTurn:false`をbackfill(既存`linkedExiles`等と同型のnormalize規律)。
+6. **サンドボックス哲学との整合**: このshieldは「防ぐ」判定のみ行い、コスト(sacrifice/tap)の支払いは既存G4コストコンパイラ(`compileAbilityCost`。self-sacrifice/tap costは既に自動精算対象)に委ねる。本スライスは効果半分のみを担当する。
+
+**Golden候補(ローカルScryfallスナップショット`research/scryfall-rules/2026-06-19/raw/`で検証済み)**: `Spore Frog`: "Sacrifice this creature: Prevent all combat damage that would be dealt this turn."・`Fog`: "Prevent all combat damage that would be dealt this turn."・`Darkness`/`Constant Mists`も同一文言。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: count付きshield(615.7"prevent the next N damage")・source/creature限定variant(Arachnogenesis/Fog Bank/Deftblade Elite等の"by non-X creatures"/"to and dealt by this creature"型)・player-scope付きvariant(Commencement of Festivities型"dealt to players this turn")・条件付き(Batwing Brume型"if {W} was spent")・"can't be prevented"effectとの相互作用(615.12)・prevention triggerability(615.13)・combat以外のdamage prevention(通常damage・noncombat)。
+
+**実装出荷(2026-07-06・Codex quota長期枯渇のため判定者が代行→独立Sonnet Tier-1監査→ship)**: `GameState.combatDamagePreventedUntilEndOfTurn: boolean`(additive)・`{type:'preventCombatDamageThisTurn'}`(引数なし)・`effect.prevent`atom・`isPreventAllCombatDamageThisTurnClause`(完全一致gate)を実装。`applyDealDamage`が`cmd.combatDamage===true`かつshield活性時に、damage eventは引き続きpushしつつ`applyMarkDamage`/`applyPlayerLifeDelta`等の実効果適用のみをスキップ(CR615.6)。`handleUntapEntry`(既存ターン単位カウンタと同型)でリセット。`restoreGame`でbackfill。
+
+**実装中に自ら発見・修正したバグ2件**: ①`detectEffectAtoms`は1行に複数atomがマッチしうる設計であり、既存の汎用`effect.damage`probe(`/\bdamage\b/i`)が"damage"を含む本prevention文にも誤マッチし、`effect.damage`側の未対応clauseが全体decisionをmanualへ引きずる衝突が発生。既存の`effect.tap`/token-creation衝突ガードと同型の対処(該当raw textが完全一致prevention文の時のみ`effect.damage`clauseをno-op化)で解消。②`VALID_RULE_REFS`(grammar/rule-refs.ts)に新atomの`ruleRef:'615'`が未登録で既存invariant test(`review.grammar-ir.test.ts`)が破損→追加。さらに`tsc --noEmit`単体では検出されず`tsc -b`(build script実体・project references経由)でのみ検出される型エラー(`priority.test.ts`の生GameStateリテラルに新規必須fieldが欠落)を発見・修正(ルート`tsconfig.json`が`files:[]`+`references`のみのため、bare`tsc --noEmit`は実質何もチェックしない=このリポジトリ共通の落とし穴。Tier-1が独立再現・原因解説も実施)。
+
+**Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。ローカルScryfallスナップショットからFog/Darkness/Spore Frog/Constant Mistsのoracle textを独立に再パースし、design-lockの文言主張(controller限定variantは実在しない)をbyte-exactに再確認。7種の敵対的プローブ(shieldは1回限りでなくターン中無制限・damage発生後のshield有効化はretroactiveに取り消さない・deathtouch flagの漏れなし・amount<=0との相互作用・damage-dealing効果への誤爆なし・exact-phrase gateの前後文脈耐性・snapshot forward-compat)全てclean。
+
+**受け入れ**: `review.cr614-615-prevent-combat-damage.test.ts`(レビュー専有・10 pin。golden・player対象/creature対象双方のshield・noncombat非regression・ターン境界でのリセット・player-scope/creature-scope/条件付き/source限定variantのhonest manual・effect.damage衝突ガードの非過剰suppress確認)。

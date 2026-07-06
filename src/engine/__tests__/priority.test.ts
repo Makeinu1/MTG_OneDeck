@@ -122,6 +122,7 @@ function stateWithPendingTriggers(
     landsPlayedThisTurn: 0,
     spellsCastThisTurn: 0,
     drawnThisTurn: 0,
+    combatDamagePreventedUntilEndOfTurn: false,
     eventLog: [],
     pendingTriggers,
     oncePerTurnTriggerLedger: { turn: 1, consumedKeys: [] },

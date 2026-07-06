@@ -519,6 +519,7 @@ function normalizeSnapshotState(state: GameState): GameState {
     zonesByPlayer,
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
+    combatDamagePreventedUntilEndOfTurn: state.combatDamagePreventedUntilEndOfTurn === true,
     eventLog: Array.isArray(state.eventLog) ? state.eventLog : [],
     defeat: normalizeSnapshotDefeat(snapshot.defeat),
     emptyLibraryDrawAttemptedSinceLastSba: normalizeEmptyLibraryDrawFlags(

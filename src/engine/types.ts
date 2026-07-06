@@ -537,6 +537,7 @@ export interface GameState {
   landsPlayedThisTurn: number;
   spellsCastThisTurn: number;
   drawnThisTurn: number;
+  combatDamagePreventedUntilEndOfTurn: boolean;
   eventLog: GameEvent[];
   pendingTriggers: PendingTrigger[];
   oncePerTurnTriggerLedger: OncePerTurnTriggerLedger;

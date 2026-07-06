@@ -109,6 +109,7 @@ export type GameCommand =
       targetCardId?: never;
     }
   | { type: 'clearMarkedDamage'; cardId?: string }
+  | { type: 'preventCombatDamageThisTurn' }
   | {
       type: 'enterCombat';
       attackingPlayerId?: PlayerId;
@@ -1230,6 +1231,11 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
   const sourceCard = requireCard(draft, cmd.sourceId);
   const source = objectSourceRefForCard(draft, sourceCard);
   const cause = commandCause(cmd.type);
+  // CR 615.1/615.1a/615.6: a prevention shield stops the damage event from having its
+  // effect, but the event itself may still be observed (advisory). Only combat damage is
+  // ever gated here — see docs/engine-spec.md §34.34 (exact-phrase gate covers only the
+  // global "prevent all combat damage this turn" shape).
+  const prevented = cmd.combatDamage && draft.state.combatDamagePreventedUntilEndOfTurn;
 
   if (cmd.targetCardId !== undefined) {
     const targetCard = requireCard(draft, cmd.targetCardId);
@@ -1245,6 +1251,10 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
       cmd.combatDamage,
       cause,
     );
+    if (prevented) {
+      pushLog(draft, `${nameOf(draft, targetCard.id)}への戦闘ダメージ${amount}点を防いだ。`);
+      return;
+    }
     applyMarkDamage(draft, targetCard.id, amount, cmd.deathtouch);
     return;
   }
@@ -1261,6 +1271,10 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
     cmd.combatDamage,
     cause,
   );
+  if (prevented) {
+    pushLog(draft, `${cmd.targetPlayerId}への戦闘ダメージ${amount}点を防いだ。`);
+    return;
+  }
   const resultCause = {
     type: 'event',
     eventId: damageEvent.eventId,
@@ -1975,6 +1989,7 @@ function handleUntapEntry(draft: Draft): void {
   draft.state.landsPlayedThisTurn = 0;
   draft.state.spellsCastThisTurn = 0;
   draft.state.drawnThisTurn = 0;
+  draft.state.combatDamagePreventedUntilEndOfTurn = false;
 
   const cards = { ...draft.state.cards };
   let changed = false;
@@ -4106,6 +4121,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'clearMarkedDamage': {
       applyClearMarkedDamage(draft, cmd.cardId);
+      break;
+    }
+    case 'preventCombatDamageThisTurn': {
+      if (!draft.state.combatDamagePreventedUntilEndOfTurn) {
+        draft.state.combatDamagePreventedUntilEndOfTurn = true;
+        pushLog(draft, 'このターンの戦闘ダメージをすべて防ぐ。');
+      }
       break;
     }
     case 'enterCombat': {

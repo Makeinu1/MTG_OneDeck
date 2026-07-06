@@ -603,6 +603,16 @@ function compileEffect(
     return { commands, prompts, reasons: [...reasons] };
   }
 
+  // The generic 'effect.damage' probe (/\bdamage\b/i) also fires on prevention clauses
+  // like "Prevent all combat damage that would be dealt this turn." (the word "damage"
+  // appears as the object of "prevent", not a separate damage-dealing action). The
+  // sibling 'effect.prevent' clause (same raw text) already handles this; without this
+  // guard the spurious 'effect.damage' clause would drag the whole ability to manual via
+  // 'needs-target' even though the prevention leaf compiled cleanly.
+  if (effect.atom === 'effect.damage' && isPreventAllCombatDamageThisTurnClause(effect.raw)) {
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
   if (COUNT_DRIVEN_AUTO_ATOMS.has(effect.atom)) {
     const count = resolveCount(effect.count);
     if (count === null) {
@@ -675,6 +685,19 @@ function compileEffect(
     return { commands, prompts, reasons: [...reasons] };
   }
 
+  if (effect.atom === 'effect.prevent') {
+    // CR 615.1a: "prevent" clauses are prevention effects. Only the exact global
+    // "prevent all combat damage this turn" shape (Fog/Darkness/Constant Mists/Spore
+    // Frog — verified against the local Scryfall snapshot) is recognized; count-based,
+    // source/creature-limited, player-scoped, and conditional variants stay manual.
+    if (isPreventAllCombatDamageThisTurnClause(effect.raw)) {
+      commands.push({ type: 'preventCombatDamageThisTurn' });
+    } else {
+      reasons.add('needs-parse');
+    }
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
     const prompt = guidedTargetPrompt(effect);
     if (prompt) {
@@ -725,6 +748,14 @@ function isSelfLibraryShuffleClause(raw: string): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   return /^(?:then\s+)?(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?$/i.test(normalized);
+}
+
+function isPreventAllCombatDamageThisTurnClause(raw: string): boolean {
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /^prevent all combat damage that would be dealt this turn$/i.test(normalized);
 }
 
 function guidedLibrarySearchPrompt(ir: AbilityIR): EffectPrompt | null {
