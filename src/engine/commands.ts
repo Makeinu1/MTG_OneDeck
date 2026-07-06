@@ -17,6 +17,7 @@ import {
   effectiveKeywords,
   effectivePower,
   effectiveTypeLine,
+  graveyardToExileReplacementActive,
   hasVigilance,
   normalizeKeywords,
 } from './status';
@@ -970,6 +971,29 @@ function moveCardInternal(
   eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
 ): ZoneChangeEvent | undefined {
   const card = requireCard(draft, cardId);
+  // CR 614.1a/614.5/614.6 (design-lock §34.35): the Emet-Selch-family static
+  // replacement rewrites a graveyard-bound destination to exile ONCE, up front —
+  // every graveyard path in the engine funnels through this function (mill, discard,
+  // surveil, sacrifice, destroy, SBA death all verified), so this single gate is
+  // complete. Rewriting `to` before anything below runs means dies-triggers
+  // (battlefield→graveyard) correctly never see the replaced event, and no code
+  // after this line needs to know a replacement happened beyond the event marker.
+  // Commanders are exempt (Tier-1 finding): the store's CR 903.9a zone-choice flow
+  // detects the graveyard-bound event AFTER this function runs, and rewriting here
+  // would silently suppress that already-shipped prompt. Full CR 616.1 ordering
+  // (owner chooses which replacement applies first) is the domain's declared
+  // boundary; failing toward the pre-existing commander behavior is least-surprise.
+  if (
+    to === 'graveyard' &&
+    !isCommander(draft.state, cardId) &&
+    graveyardToExileReplacementActive(draft.state, card.ownerId ?? 'P1')
+  ) {
+    to = 'exile';
+    eventOptions = {
+      ...eventOptions,
+      replacementApplied: eventOptions?.replacementApplied ?? '614.6:grave-to-exile',
+    };
+  }
   const from = card.zone;
   const sameZone = from === to;
 

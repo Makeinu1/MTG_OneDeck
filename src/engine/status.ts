@@ -1,5 +1,5 @@
 import type { CardDef } from '../types/card';
-import type { CardInstance, GameState } from './types';
+import type { CardInstance, GameState, PlayerId } from './types';
 import { classifyAbilityShape, splitAbilityLines } from './grammar';
 import { KEYWORD_DEFINITIONS, possessedKeywords } from './keywordGrammar';
 
@@ -390,6 +390,40 @@ export function effectiveTypeLine(state: GameState, cardId: string): string {
   });
 
   return appendTypeWords(printedTypeLine, additions);
+}
+
+// CR 614.1a ("instead" = replacement effect) / design-lock §34.35. Exact-phrase gate,
+// verified byte-exact against the local Scryfall snapshot: Hades, Sorcerer of Eld
+// (Emet-Selch back face) / Necrodominance / Festival of Embers use the "or token"
+// form; Yawgmoth's Agenda uses the "a card" form. Matched per-sentence with full
+// anchors (the Slice A multi-sentence lesson): no ability-shape gate is needed —
+// the anchored sentence IS the gate, and shape classification of a multi-sentence
+// paragraph could misroute an otherwise-exact match.
+const GRAVEYARD_TO_EXILE_REPLACEMENT_PATTERN =
+  /^if a card (?:or token )?would be put into your graveyard from anywhere, exile it instead$/i;
+
+// "your graveyard" = the ability controller's graveyard; a card always goes to its
+// OWNER's graveyard (CR 404.1), so the replacement applies when the moving card's
+// owner is the source's controller. Battlefield-only, current face only (Hades is
+// faceIndex 1 — the untransformed front face must not activate the replacement).
+export function graveyardToExileReplacementActive(state: GameState, ownerId: PlayerId): boolean {
+  for (const sourceId of state.zones.battlefield) {
+    const source = state.cards[sourceId];
+    if (!source || source.zone !== 'battlefield') continue;
+    if ((source.controllerId ?? 'P1') !== ownerId) continue;
+    const def = state.defs[source.defId];
+    if (!def) continue;
+    const faceIndex = currentFaceIndex(def, source);
+    for (const line of splitAbilityLines(def)) {
+      if (line.faceIndex !== faceIndex) continue;
+      for (const sentence of splitRulesText(line.text)) {
+        if (GRAVEYARD_TO_EXILE_REPLACEMENT_PATTERN.test(normalizeLayer4StaticLine(sentence))) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 export function hasVigilance(state: GameState, cardId: string): boolean {

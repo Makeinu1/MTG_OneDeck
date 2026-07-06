@@ -2778,3 +2778,31 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1監査**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。ローカルScryfallスナップショットからFog/Darkness/Spore Frog/Constant Mistsのoracle textを独立に再パースし、design-lockの文言主張(controller限定variantは実在しない)をbyte-exactに再確認。7種の敵対的プローブ(shieldは1回限りでなくターン中無制限・damage発生後のshield有効化はretroactiveに取り消さない・deathtouch flagの漏れなし・amount<=0との相互作用・damage-dealing効果への誤爆なし・exact-phrase gateの前後文脈耐性・snapshot forward-compat)全てclean。
 
 **受け入れ**: `review.cr614-615-prevent-combat-damage.test.ts`(レビュー専有・10 pin。golden・player対象/creature対象双方のshield・noncombat非regression・ターン境界でのリセット・player-scope/creature-scope/条件付き/source限定variantのhonest manual・effect.damage衝突ガードの非過剰suppress確認)。
+
+### 34.35 cr-614-615-616 Slice B: graveyard→exile置換hook(design-lock・CR 614.1a/614.5/614.6・**Fable裁定**)— この節も契約である
+
+**位置づけ**: cr-614-615-616-replacement-prevention Slice B(Emet-Selch型静的置換。J3が高blast-radiusと判定しFable判断待ちに保留していたタスク=commit 8a11a6f)。**Fable(J1)が判定者席に着いた本セッションでアーキ裁定を実施**: `moveCardInternal`(エンジン最大の共有chokepoint)の**冒頭に単一の純粋な行き先書き換えフックを1点挿入する方式を採用**。
+
+**なぜchokepoint直接変更が正しいか(Fable裁定の根拠)**: ①mill(`applyMill`)・surveil(`applyArrangeTop`のtoGraveyard)・discard(`applyDiscard`)・sacrifice・destroy・SBA死亡を含む**全てのgraveyard行きパスが`moveCardInternal`を経由することをgrepで確認済み**(直接`zones.graveyard`へpushする箇所はゼロ)——chokepointの普遍性こそが置換の完全性(取りこぼしゼロ)を保証する。store層orchestrationではエンジン内部moves(SBA死亡・annihilation・mill)を捕捉できず、呼び出し側の個別パッチは取りこぼしが構造的に不可避。②フックは`to === 'graveyard'`でゲートされ、置換ソース不在時(圧倒的多数ケース)は**入力をそのまま返す純粋なpass-through**——他の全destinationはbyte-identical。③既存1447テストがgraveyard移動を広範に踏むため、漏れは大きな音で落ちる。
+
+**CR根拠**: 614.1a("instead"を使う効果=replacement effect)・614.5(replacement effectは同一eventへ1回しか適用されない=行き先を移動前に1回計算する本方式は再帰リスクなし)・614.6(置換されたeventは発生しない。修正後のeventが代わりに起きる=dies誘発[CR700.4=battlefield→graveyard]は行き先がexileになった時点で正しく発火しなくなる——**行き先書き換え方式の自動的正しさ**)・404.1(カードは常にownerの墓地へ行く=「your graveyard」の判定は移動カードのowner==ソースのcontroller)。
+
+**凍結した設計**:
+1. **厳密な対応構文(exact-phrase gate・ローカルScryfallスナップショットでbyte-exact検証済み)**: `"If a card (or token )?would be put into your graveyard from anywhere, exile it instead."`——「or token」あり(Hades, Sorcerer of Eld[Emet-Selch裏面]/Necrodominance/Festival of Embers)と無し(Yawgmoth's Agenda)の両variantを1つの正規表現で受ける。それ以外(単発spell自己置換の"If that spell would be put into your graveyard"型・opponent対象・条件付き)は非対応(pass-through=通常通りgraveyardへ)。
+2. **新規純粋関数** `graveyardReplacementForMove(draft, card, to): { to: ZoneId; replacementApplied?: string }`(commands.ts内)。`to !== 'graveyard'`なら即座に入力を返す。battlefield上のpermanent(現在のface=`staticAbilityLinesForCurrentFace`を再利用。Hadesは裏面faceIndex 1のため現face尊重が必須)にゲート一致staticがあり、かつ`source.controllerId === movingCard.ownerId`の時のみ`{to:'exile', replacementApplied:'614.6:grave-to-exile'}`を返す。
+3. **挿入点は`moveCardInternal`冒頭の1箇所のみ**。`replacementApplied`は既存のZoneChangeEvent envelope field(§34.16系で既設)へそのまま流す。**新規GameState・新規GameCommandなし**。
+4. **自己適用あり**(self-exclusionしない): Hades自身が破壊された場合もexileへ(CR上正しい)。
+5. **reasonは保存**: discard由来ならreason='discard'のままtoZone='exile'のeventになる(eventは原因に正直)。
+6. **複数ソース併存時**: 全ソースが同一の書き換え(exile)を行うため616.1の適用順選択は観測不能=どれか1つのsourceを適用したとみなしてよい(idempotent)。
+
+**明示的deferral(境界)**: ①discard誘発の置換下挙動——CR701.9上は置換されても「捨てた」事実は残りdiscard誘発は発火すべきだが、既存`discardLineMatchesEvent`は`toZone==='graveyard'`を要求するため、**置換が効いている間はdiscard誘発が発火しない**(CR不完全・既知の境界として明記。Madness系実装時に再訪)。②"If that spell would be put into your graveyard"型(Emet-Selch of the Third Seat表面等・単発spell自己置換)。③opponent側graveyard置換(現エンジンはP1中心)。④Leyline of the Void型(opponent対象)・Rest in Peace型(全プレイヤー・"cards and tokens"の別文言)は別ゲートが必要=demandが立ったら追加。
+
+**Golden候補(検証済み)**: Hades, Sorcerer of Eld(Emet-Selch裏面・Kefkaデッキ実需要)・Necrodominance・Festival of Embers・Yawgmoth's Agenda("a card"variant)。
+
+**受け入れ(判定者先行authoring)**: `review.*`にて——置換ソース在時: destroy/sacrifice/discard/mill/SBA死亡の各経路でexileへ行きreplacementAppliedが記録されること・dies誘発が発火**しない**こと・自己適用。置換ソース不在時(pass-through): 上記全経路が従来通りgraveyardへ(byte-identical)。owner不一致時は置換されないこと。off-battlefield/表面(未変身Emet-Selch)では発火しないこと。
+
+**実装出荷(2026-07-06・Fable=J1が裁定・実装を実施→独立Sonnet Tier-1監査→Tier-2裁定→外科修正→ship)**: 設計どおり`graveyardToExileReplacementActive`(status.ts・純粋predicate)+`moveCardInternal`冒頭1点フックで実装。4チェック全green(167 files/1457 tests・full suiteゼロregression=pass-throughのbyte-identical性を全既存テストが実証)。
+
+**Tier-1監査(本セッション最広scope)**: 0 BLOCKER/0 HIGH。pass-through証明(discard/mill/surveil/plain move/SBA死亡+dies誘発正常発火)全経路clean・active-case(SBA収束・token cleanup[704.5d cessationはzone非依存で正常]・annihilation SBA非干渉・undo/snapshot round-trip・owner不一致の非置換)全clean・gate robustness(多文paragraph・大文字・reminder text内外とも`sanitizeLine`→`removeReminderAndQuotes`経由で正しく処理)clean。**発見2件をTier-2裁定**:
+1. **commander 903.9a zone-choice抑止(実発見・要対処)**: storeの`moveCommanderWithZoneChoice`は`toZone==='graveyard'`のeventをevent logから検索して903.9aの「統率領域へ戻すか」プロンプトを生成するため、本フックが先に行き先をexileへ書き換えるとeventが存在せず**プロンプトが無言でスキップされる**(commanderが選択なしにexile行き)。CR616.1上は複数replacementの適用順はownerが選ぶべきだが、完全な二段階選択は本domainの宣言済み境界。**Fable裁定=commanderをフックから除外**(`isCommander`チェック追加)——既出荷のuser-facing挙動(903.9aプロンプト)を無言で壊すのはregressionであり、regressionは不完全性に優先する。fail toward pre-existing behavior=least surprise。**明示的deferral追加**: commander が903.9aの選択で「戻さない」を選んだ場合の行き先はgraveyardのまま(Hades型置換は適用されない)——完全な616.1順序選択の実装時に再訪。回帰pin追加済み(11本目)。
+2. **ability-word同一行gap(MEDIUM・fail-closed)**: 「Echo of the Lost — If a card...」のようにability wordと置換節が同一文に印刷された仮想ケースでは、`splitRulesText`がem-dashで分割しないためanchored regexが不一致=**置換されない(見逃し方向・誤発動ではない)**。実在する4カード全てでability wordは別段落のため実害ゼロ。将来そのような印刷が現れたら再訪(既知の境界として記録)。

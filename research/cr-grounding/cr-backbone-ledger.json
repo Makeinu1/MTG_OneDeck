@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-614-615-616-replacement-prevention",
-      "note": "shockland型ETB(engine-spec §34.33)+単一ターン戦闘ダメージ防止shield(§34.34・Fog/Spore Frog型)は出荷完了。残置=graveyard→exile置換hook(Emet-Selch型「If a card or token would be put into your graveyard from anywhere, exile it instead.」・単一controller/source限定)。damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)は複雑度が高くdefer継続。CR614.1/614.6/616.1正本。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-601-casting-stack",
       "note": "batch3-7。demand=10(cast-permission:from-zone 10)。\"you may play/cast [bounded object class] from your graveyard this turn/once this turn\"のguided permission record。full CR601 casting procedure化はしない。free-cast/alt-cost重畳/multi-type-per-turn/copied spellsはmanual/defer継続。CR 601.2a/601.2b/601.2f/601.2i/113.6e-f/400.7g-h/701.18a-b正本。golden候補: Muldrotha, the Gravetide/Lurrus of the Dream-Den。"
     },
@@ -879,22 +874,24 @@
       ],
       "lane": "late-backbone",
       "edhValue": "high",
-      "status": "drafted",
+      "status": "implemented-not-green",
       "landingState": [
         "replacementEffects",
         "preventionEffects",
         "eventRewriteChoices",
         "regenerationShields"
       ],
-      "boundary": "shockland型ETB(demand replacement 11件中7件)は既存landEntersTapped+playLandのhonest-choiceフローで実装ギャップなし確認済み(engine-spec §34.33)。残るgenuine gap=graveyard→exile置換hook(Emet-Selch型)・damage-doubling replacement(Kuja型・defer)・kicker依存ETB counter(Everflowing Chalice型・defer)・単一ターン戦闘ダメージ防止shield(Spore Frog型。prevention demand=1件)。commander 903.9b hand/library replacementのgoldenは既存(cr-commander-hand-library-replacement)。 **Slice A出荷完了**(単一ターン戦闘ダメージ防止shield・engine-spec §34.34)= combatDamagePreventedUntilEndOfTurn(additive)+preventCombatDamageThisTurn command。Fog/Darkness/Spore Frog/Constant Mists型のprevention demand(1件)を充足。独立Tier-1監査0件。",
+      "boundary": "shockland型ETB(demand replacement 11件中7件)は既存landEntersTapped+playLandのhonest-choiceフローで実装ギャップなし確認済み(engine-spec §34.33)。残るgenuine gap=graveyard→exile置換hook(Emet-Selch型)・damage-doubling replacement(Kuja型・defer)・kicker依存ETB counter(Everflowing Chalice型・defer)・単一ターン戦闘ダメージ防止shield(Spore Frog型。prevention demand=1件)。commander 903.9b hand/library replacementのgoldenは既存(cr-commander-hand-library-replacement)。 **Slice A出荷完了**(単一ターン戦闘ダメージ防止shield・engine-spec §34.34)= combatDamagePreventedUntilEndOfTurn(additive)+preventCombatDamageThisTurn command。Fog/Darkness/Spore Frog/Constant Mists型のprevention demand(1件)を充足。独立Tier-1監査0件。 **Slice B出荷完了**(graveyard→exile置換hook・engine-spec §34.35・Fable裁定)= moveCardInternal冒頭1点フック(全graveyard経路の完全捕捉をgrep検証)。Hades/Necrodominance/Festival of Embers/Yawgmoth's Agendaの2 variant対応。Tier-1が発見したcommander 903.9a抑止はcommander除外で解消(regressionは不完全性に優先)。完全な616.1適用順選択・discard誘発の置換下発火(CR701.9)・ability-word同一行gapは明示的deferral。",
       "evidence": [
         "cr-commander-hand-library-replacement",
         "docs/engine-spec.md §34.33",
         "src/store/__tests__/review.cr614-shockland-etb.test.ts",
         "docs/engine-spec.md §34.34",
-        "src/engine/__tests__/review.cr614-615-prevent-combat-damage.test.ts"
+        "src/engine/__tests__/review.cr614-615-prevent-combat-damage.test.ts",
+        "docs/engine-spec.md §34.35",
+        "src/engine/__tests__/review.cr614-grave-to-exile.test.ts"
       ],
-      "nextGate": "残genuine gap=graveyard→exile置換hook(Emet-Selch型)。**実装方針はFable(または将来の判定者セッション)が決定するまで保留**——moveCardInternal(エンジン最大の共有chokepoint)自体への変更が必要でリスクが高いため、J3判定者単独では着手しない(ユーザー裁定2026-07-06)。damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)は引き続きdefer。",
+      "nextGate": "replacement demand実測ぶんは充足(shockland 7件=§34.33・Emet-Selch型=§34.35・prevention 1件=§34.34)。残deferral=damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)・完全616.1順序選択。demandが立ったら再訪。",
       "judge": "deterministic-cr",
       "judgeNote": "個別 replacement の適用は CR 決定論。複数 replacement の相互作用(616.1 の適用順選択を除く)はスコープ境界(engine-spec §34.5)=境界拡張は STOP①。"
     },
