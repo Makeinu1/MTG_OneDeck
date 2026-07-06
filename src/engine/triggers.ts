@@ -4,6 +4,7 @@ import { effectivePower } from './status';
 import {
   objectIdOf,
   type AbilityKind,
+  type CounterChangeEvent,
   type DamageEvent,
   type DrawEvent,
   type GameEvent,
@@ -102,7 +103,7 @@ function selfNamesForDef(state: GameState, defId: string): string[] {
 }
 
 function textReferencesSelf(state: GameState, defId: string, text: string): boolean {
-  if (/\b(?:this|it|itself)\b/i.test(text)) {
+  if (/\b(?:this|it|itself)\b|~/i.test(text)) {
     return true;
   }
   return selfNamesForDef(state, defId).some((name) =>
@@ -239,6 +240,14 @@ function abilityLineIndexForTriggerDef(
         case 'trigger.leaves-graveyard':
           return (
             LEAVES_GRAVEYARD_PATTERN.test(text) || GRAVEYARD_FROM_NONBATTLEFIELD_PATTERN.test(text)
+          );
+        case 'trigger.discard':
+          return /\bdiscard(?:s|ed)?\b/i.test(text);
+        case 'trigger.sacrifice':
+          return /\bsacrific(?:e|es|ed|ing)?\b/i.test(text);
+        case 'trigger.counter-put':
+          return /\bput(?:s|ting)?\b[^.;]*\bcounters?\b|\bcounters?\b[^.;]*\bput\b/i.test(
+            text,
           );
         case 'trigger.attack':
         case 'trigger.attack-watcher':
@@ -1032,6 +1041,113 @@ function matchingLeavesGraveyardAbilityLineIndex(
   )?.abilityLineIndex;
 }
 
+function discardLineMatchesEvent(
+  sourceSnapshot: ObjectSnapshot,
+  lineText: string,
+  event: ZoneChangeEvent,
+): boolean {
+  if (event.reason !== 'discard' || event.fromZone !== 'hand' || event.toZone !== 'graveyard') {
+    return false;
+  }
+  const condition = triggerConditionText(lineText);
+  if (!/\bdiscard(?:s|ed)?\b/i.test(condition)) {
+    return false;
+  }
+  if (/\bopponents?\b|\ban opponent\b/i.test(condition)) {
+    return false;
+  }
+  if (/\byou\b/i.test(condition) && event.before.ownerId !== controllerOf(sourceSnapshot)) {
+    return false;
+  }
+  return true;
+}
+
+function sacrificeLineMatchesEvent(
+  sourceSnapshot: ObjectSnapshot,
+  lineText: string,
+  event: ZoneChangeEvent,
+): boolean {
+  if (
+    event.reason !== 'sacrifice' ||
+    event.fromZone !== 'battlefield' ||
+    event.toZone !== 'graveyard'
+  ) {
+    return false;
+  }
+  const condition = triggerConditionText(lineText);
+  if (!/\bsacrific(?:e|es|ed|ing)?\b/i.test(condition)) {
+    return false;
+  }
+  if (/\bopponents?\b|\ban opponent\b/i.test(condition)) {
+    return false;
+  }
+  if (/\byou\b/i.test(condition) && controllerOf(event.before) !== controllerOf(sourceSnapshot)) {
+    return false;
+  }
+  if (/\bcreatures?\b/i.test(condition) && !typeLineHas(event.before, 'Creature')) {
+    return false;
+  }
+  if (/\bartifacts?\b/i.test(condition) && !typeLineHas(event.before, 'Artifact')) {
+    return false;
+  }
+  if (/\benchantments?\b/i.test(condition) && !typeLineHas(event.before, 'Enchantment')) {
+    return false;
+  }
+  if (/\blands?\b/i.test(condition) && !typeLineHas(event.before, 'Land')) {
+    return false;
+  }
+  if (/\bnontoken\b/i.test(condition) && event.before.isToken) {
+    return false;
+  }
+  if (/\btokens?\b/i.test(condition) && !event.before.isToken) {
+    return false;
+  }
+  return true;
+}
+
+function counterPutLineMatchesEvent(
+  state: GameState,
+  sourceSnapshot: ObjectSnapshot,
+  lineText: string,
+  event: CounterChangeEvent,
+): boolean {
+  if (event.delta <= 0 || event.target.kind !== 'object') {
+    return false;
+  }
+  const condition = triggerConditionText(lineText);
+  if (!/\bput(?:s|ting)?\b[^.;]*\bcounters?\b|\bcounters?\b[^.;]*\bput\b/i.test(condition)) {
+    return false;
+  }
+  if (!new RegExp(`${escapeRegExp(event.counterType)}\\s+counters?`, 'i').test(condition)) {
+    return false;
+  }
+  const onMatch = /\bon\s+([^,.;]+)/i.exec(condition);
+  const onSubject = normalizeWhitespace(onMatch?.[1] ?? '');
+  if (
+    onSubject !== '' &&
+    textReferencesSelf(state, sourceSnapshot.defId, onSubject) &&
+    event.target.objectId !== sourceSnapshot.objectId
+  ) {
+    return false;
+  }
+  if (
+    onSubject !== '' &&
+    !textReferencesSelf(state, sourceSnapshot.defId, onSubject) &&
+    /\byou control\b/i.test(onSubject) &&
+    event.target.snapshot?.controllerId !== controllerOf(sourceSnapshot)
+  ) {
+    return false;
+  }
+  if (
+    onSubject !== '' &&
+    !textReferencesSelf(state, sourceSnapshot.defId, onSubject) &&
+    !/\byou control\b/i.test(onSubject)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function collectZoneChangePendingTriggers(
   prev: GameState,
   next: GameState,
@@ -1216,6 +1332,41 @@ function collectZoneChangePendingTriggers(
         abilityLineIndex,
       );
     }
+
+    for (const cardId of next.zones.battlefield) {
+      const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
+      if (!sourceSnapshot) continue;
+      const discardAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
+        (entry) => discardLineMatchesEvent(sourceSnapshot, entry.text, event),
+      )?.abilityLineIndex;
+      if (discardAbilityLineIndex !== undefined) {
+        addCurrentPermanentPendingTrigger(
+          next,
+          context,
+          cardId,
+          'trigger.discard',
+          'カードを捨てたとき',
+          eventId,
+          simultaneousGroupId,
+          discardAbilityLineIndex,
+        );
+      }
+
+      const sacrificeAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
+        (entry) => sacrificeLineMatchesEvent(sourceSnapshot, entry.text, event),
+      )?.abilityLineIndex;
+      if (sacrificeAbilityLineIndex === undefined) continue;
+      addCurrentPermanentPendingTrigger(
+        next,
+        context,
+        cardId,
+        'trigger.sacrifice',
+        '生け贄に捧げたとき',
+        eventId,
+        simultaneousGroupId,
+        sacrificeAbilityLineIndex,
+      );
+    }
   }
 }
 
@@ -1308,6 +1459,35 @@ function collectDamagePendingTriggers(
   }
 }
 
+function collectCounterChangePendingTriggers(
+  prev: GameState,
+  next: GameState,
+  context: TriggerCollectionContext,
+): void {
+  for (const event of newEventsOfType(prev, next, 'counterChange')) {
+    const eventId = event.eventId;
+    const simultaneousGroupId = event.simultaneousGroupId ?? eventId;
+    for (const cardId of next.zones.battlefield) {
+      const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
+      if (!sourceSnapshot) continue;
+      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
+        counterPutLineMatchesEvent(next, sourceSnapshot, entry.text, event),
+      )?.abilityLineIndex;
+      if (abilityLineIndex === undefined) continue;
+      addCurrentPermanentPendingTrigger(
+        next,
+        context,
+        cardId,
+        'trigger.counter-put',
+        'カウンターが置かれたとき',
+        eventId,
+        simultaneousGroupId,
+        abilityLineIndex,
+      );
+    }
+  }
+}
+
 function collectImplicitPendingTriggers(
   prev: GameState,
   next: GameState,
@@ -1375,6 +1555,7 @@ export function collectPendingTriggerUpdate(
   collectDrawPendingTriggers(prev, next, context);
   collectLifeChangePendingTriggers(prev, next, context);
   collectDamagePendingTriggers(prev, next, context);
+  collectCounterChangePendingTriggers(prev, next, context);
   collectImplicitPendingTriggers(prev, next, context);
   return {
     state: stateWithOncePerTurnLedger(next, context),

@@ -216,7 +216,9 @@ export type ZoneChangeReason =
   | 'sba'
   | 'replacement'
   | 'token-cease'
-  | 'copy-cease';
+  | 'copy-cease'
+  | 'discard'
+  | 'sacrifice';
 
 export interface ZoneChangeEvent {
   type: 'zoneChange';
@@ -332,6 +334,27 @@ export interface DrawEvent extends EventEnvelopeBase<'draw'> {
   after?: ObjectSnapshot;
 }
 
+export interface CounterChangeEvent {
+  type: 'counterChange';
+  eventId: string;
+  sequence: number;
+  simultaneousGroupId?: string;
+  causeCommandId?: string;
+  target: EventTargetRef;
+  counterType: string;
+  delta: number;
+  before: number;
+  after: number;
+  reason?: never;
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  fromZone?: never;
+  toZone?: never;
+  replacementApplied?: never;
+  sbaApplied?: never;
+}
+
 export interface AbilityTriggeredEvent {
   type: 'abilityTriggered';
   eventId: string;
@@ -400,7 +423,8 @@ export type GameEvent =
   | DefeatAdvisoryEvent
   | DamageEvent
   | LifeChangeEvent
-  | DrawEvent;
+  | DrawEvent
+  | CounterChangeEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 

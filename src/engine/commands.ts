@@ -29,6 +29,7 @@ import type {
   CombatBlocker,
   CombatState,
   CombatTarget,
+  CounterChangeEvent,
   DamageEvent,
   DefeatAdvisoryEvent,
   DefeatPlayerRef,
@@ -199,6 +200,14 @@ interface Draft {
   warnings: string[];
   nextSeq: number;
   nextEventSeq: number;
+  pendingCounterChanges: CounterChangeIntent[];
+}
+
+interface CounterChangeIntent {
+  cardId: string;
+  objectId: string;
+  counterType: string;
+  before: number;
 }
 
 type GameEventPayload =
@@ -206,7 +215,8 @@ type GameEventPayload =
   | Omit<DefeatAdvisoryEvent, 'eventId' | 'sequence'>
   | Omit<LifeChangeEvent, 'eventId' | 'sequence'>
   | Omit<DamageEvent, 'eventId' | 'sequence'>
-  | Omit<DrawEvent, 'eventId' | 'sequence'>;
+  | Omit<DrawEvent, 'eventId' | 'sequence'>
+  | Omit<CounterChangeEvent, 'eventId' | 'sequence'>;
 
 const ZONE_LABELS: Record<ZoneId, string> = {
   library: 'ライブラリ',
@@ -330,6 +340,7 @@ function makeDraft(state: GameState): Draft {
     warnings: [],
     nextSeq: maxSeq + 1,
     nextEventSeq: maxEventSeq + 1,
+    pendingCounterChanges: [],
   };
 }
 
@@ -418,6 +429,15 @@ function pushEvent(draft: Draft, event: GameEventPayload): GameEvent {
     }
     case 'draw': {
       const fullEvent: DrawEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'counterChange': {
+      const fullEvent: CounterChangeEvent = {
         ...event,
         eventId,
         sequence,
@@ -695,6 +715,56 @@ function objectTargetRefForCard(draft: Draft, card: CardInstance): EventTargetRe
     objectId: snapshot.objectId,
     snapshot,
   };
+}
+
+function recordCounterChangeIntent(
+  draft: Draft,
+  card: CardInstance,
+  counterType: string,
+  before: number,
+): void {
+  draft.pendingCounterChanges.push({
+    cardId: card.id,
+    objectId: objectIdOf(card),
+    counterType,
+    before,
+  });
+}
+
+function finalCounterValueForIntent(draft: Draft, intent: CounterChangeIntent): number {
+  const card = draft.state.cards[intent.cardId];
+  if (!card || objectIdOf(card) !== intent.objectId) {
+    return 0;
+  }
+  return card.counters[intent.counterType] ?? 0;
+}
+
+function flushCounterChangeEvents(draft: Draft): void {
+  if (draft.pendingCounterChanges.length === 0) {
+    return;
+  }
+  const intents = draft.pendingCounterChanges;
+  draft.pendingCounterChanges = [];
+
+  for (const intent of intents) {
+    const after = finalCounterValueForIntent(draft, intent);
+    const delta = after - intent.before;
+    if (delta === 0) {
+      continue;
+    }
+    const target = draft.state.cards[intent.cardId];
+    if (!target || objectIdOf(target) !== intent.objectId) {
+      continue;
+    }
+    pushEvent(draft, {
+      type: 'counterChange',
+      target: objectTargetRefForCard(draft, target),
+      counterType: intent.counterType,
+      delta,
+      before: intent.before,
+      after,
+    } satisfies Omit<CounterChangeEvent, 'eventId' | 'sequence'>);
+  }
 }
 
 function playerTargetRef(playerId: PlayerId): EventTargetRef {
@@ -1194,6 +1264,26 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
   if (resultEvent) {
     setDamageResultEventIds(draft, damageEvent.eventId, [resultEvent.eventId]);
   }
+}
+
+function applyAddCounters(
+  draft: Draft,
+  cardId: string,
+  counterType: string,
+  delta: number,
+): void {
+  const target = requireCard(draft, cardId);
+  const current = target.counters[counterType] ?? 0;
+  const next = Math.max(0, current + delta);
+  const counters = { ...target.counters };
+  if (next === 0) {
+    delete counters[counterType];
+  } else {
+    counters[counterType] = next;
+  }
+  setCard(draft, { ...target, counters });
+  recordCounterChangeIntent(draft, target, counterType, current);
+  pushLog(draft, `${nameOf(draft, cardId)}の${counterType}カウンターを${next}個にしました。`);
 }
 
 function clearMarkedDamageInternal(draft: Draft, cardId?: string): boolean {
@@ -1756,6 +1846,13 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     const removeCount = Math.min(plus, minus);
     if (removeCount <= 0) continue;
 
+    // CR 704.5q mutates both counter types directly. Record intents (matching
+    // applyAddCounters's pattern) before mutating, so flushCounterChangeEvents emits
+    // an accurate CounterChangeEvent for this SBA-driven removal instead of leaving a
+    // stale/incorrect prior event uncorrected (Tier-1 audit finding, batch3-1c).
+    recordCounterChangeIntent(draft, card, '+1/+1', plus);
+    recordCounterChangeIntent(draft, card, '-1/-1', minus);
+
     const counters = { ...card.counters };
     const nextPlus = plus - removeCount;
     const nextMinus = minus - removeCount;
@@ -1933,8 +2030,16 @@ function applyDiscard(draft: Draft, cardIds: string[]): void {
   let discarded = 0;
 
   for (const cardId of cardIds) {
-    if (!draft.state.cards[cardId]) continue;
-    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
+    const card = draft.state.cards[cardId];
+    if (!card) continue;
+    moveCardInternal(
+      draft,
+      cardId,
+      'graveyard',
+      'bottom',
+      false,
+      card.zone === 'hand' ? 'discard' : 'move',
+    );
     discarded += 1;
   }
 
@@ -2853,7 +2958,11 @@ export function guidedPlanForStackTop(
       continue;
     }
     sourceId = sourceId ?? effectLine.sourceId;
-    commands.push(...compiled.commands);
+    commands.push(
+      ...(lineHasSelfSacrifice(effectLine.line.text)
+        ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
+        : compiled.commands),
+    );
     for (const prompt of compiled.prompts) {
       if (prompt.kind === 'target') {
         const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
@@ -2957,7 +3066,9 @@ export function activationPlanForSource(
     };
   }
 
-  const commands: GameCommand[] = compiledCost.commands.slice();
+  const commands: GameCommand[] = autoCost?.sacrificesSelf
+    ? withSelfSacrificeReason(compiledCost.commands, sourceId)
+    : compiledCost.commands.slice();
   let manaShortfall = 0;
   if (compiledCost.manaCost !== null) {
     const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
@@ -3045,7 +3156,9 @@ export function activatedManaAbilityPlanForSource(
     return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
 
-  const commands: GameCommand[] = compiledCost.commands.slice();
+  const commands: GameCommand[] = ir.cost?.sacrificesSelf
+    ? withSelfSacrificeReason(compiledCost.commands, sourceId)
+    : compiledCost.commands.slice();
   const lifeCost = compiledCost.commands.reduce(
     (total, command) =>
       total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
@@ -3178,6 +3291,35 @@ function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[
   ]);
 }
 
+function withMoveReason(
+  commands: readonly GameCommand[],
+  reason: ZoneChangeReason,
+): GameCommand[] {
+  return commands.map((cmd) =>
+    cmd.type === 'moveCard' && cmd.to === 'graveyard' && cmd.reason === undefined
+      ? { ...cmd, reason }
+      : cmd,
+  );
+}
+
+function withSelfSacrificeReason(
+  commands: readonly GameCommand[],
+  sourceId: string,
+): GameCommand[] {
+  return commands.map((cmd) =>
+    cmd.type === 'moveCard' &&
+    cmd.cardId === sourceId &&
+    cmd.to === 'graveyard' &&
+    cmd.reason === undefined
+      ? { ...cmd, reason: 'sacrifice' }
+      : cmd,
+  );
+}
+
+function lineHasSelfSacrifice(raw: string): boolean {
+  return /\bsacrifice\b[^.。]*(?:\b(?:this|it|itself|self)\b|~)/i.test(raw);
+}
+
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
     case 'moveCard': {
@@ -3196,20 +3338,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       break;
     }
     case 'addCounters': {
-      const target = requireCard(draft, cmd.cardId);
-      const current = target.counters[cmd.counterType] ?? 0;
-      const next = Math.max(0, current + cmd.delta);
-      const counters = { ...target.counters };
-      if (next === 0) {
-        delete counters[cmd.counterType];
-      } else {
-        counters[cmd.counterType] = next;
-      }
-      setCard(draft, { ...target, counters });
-      pushLog(
-        draft,
-        `${nameOf(draft, cmd.cardId)}の${cmd.counterType}カウンターを${next}個にしました。`,
-      );
+      applyAddCounters(draft, cmd.cardId, cmd.counterType, cmd.delta);
       break;
     }
     case 'dealDamage': {
@@ -3336,20 +3465,23 @@ function applyStoredTargetCommands(
       continue;
     }
 
+    const commands = buildGuidedCommands(
+      normalizedPrompt,
+      { kind: 'target', cardIds: [targetCardId] },
+      {
+        sourceId,
+        def,
+        sourceObjectId: sourceObjectIdForGuidedContext(draft, card, sourceId),
+        ...(card.abilityLineIndex === undefined
+          ? {}
+          : { abilityLineIndex: card.abilityLineIndex }),
+      },
+    );
     applyAutoCommands(
       draft,
-      buildGuidedCommands(
-        normalizedPrompt,
-        { kind: 'target', cardIds: [targetCardId] },
-        {
-          sourceId,
-          def,
-          sourceObjectId: sourceObjectIdForGuidedContext(draft, card, sourceId),
-          ...(card.abilityLineIndex === undefined
-            ? {}
-            : { abilityLineIndex: card.abilityLineIndex }),
-        },
-      ),
+      normalizedPrompt.atom === 'effect.sacrifice'
+        ? withMoveReason(commands, 'sacrifice')
+        : commands,
     );
     applied = true;
   }
@@ -3451,7 +3583,12 @@ function applyCompiledEffectsForStackItem(
       }
       continue;
     }
-    applyAutoCommands(draft, compiled.commands);
+    applyAutoCommands(
+      draft,
+      lineHasSelfSacrifice(effectLine.line.text)
+        ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
+        : compiled.commands,
+    );
     pushLog(draft, `${stackNameOf(draft, card)}の効果を自動実行した。`);
   }
 }
@@ -3892,20 +4029,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'addCounters': {
-      const card = requireCard(draft, cmd.cardId);
-      const current = card.counters[cmd.counterType] ?? 0;
-      const next = Math.max(0, current + cmd.delta);
-      const counters = { ...card.counters };
-      if (next === 0) {
-        delete counters[cmd.counterType];
-      } else {
-        counters[cmd.counterType] = next;
-      }
-      setCard(draft, { ...card, counters });
-      pushLog(
-        draft,
-        `${nameOf(draft, cmd.cardId)}の${cmd.counterType}カウンターを${next}個にしました。`,
-      );
+      applyAddCounters(draft, cmd.cardId, cmd.counterType, cmd.delta);
       break;
     }
     case 'markDamage': {
@@ -4122,5 +4246,6 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
   }
 
   stabilizeBeforePriority(draft);
+  flushCounterChangeEvents(draft);
   return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
 }

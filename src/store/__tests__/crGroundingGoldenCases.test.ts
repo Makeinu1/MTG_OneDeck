@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
 import { objectIdOf } from '../../engine/types';
-import type { DefeatAdvisoryEvent, DefeatPlayerRef, ZoneChangeEvent } from '../../engine/types';
+import type {
+  CounterChangeEvent,
+  DefeatAdvisoryEvent,
+  DefeatPlayerRef,
+  ZoneChangeEvent,
+} from '../../engine/types';
 import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import { useGameStore } from '../gameStore';
 
@@ -1421,7 +1426,18 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     const state = store().state;
     expect(state?.cards[creatureId]?.zone).toBe('battlefield');
     expect(state?.cards[creatureId]?.counters).toEqual({ '+1/+1': 1 });
-    expect(state?.eventLog).toHaveLength(eventCountBeforeCounters);
+    // Three genuine counter-count changes occur: the initial +2, then CR 704.5q pairing
+    // removes one of each counter type, correctly reducing +1/+1 from 2 to 1 (matching the
+    // true final state asserted above) rather than leaving a stale after:2 event uncorrected.
+    const counterEvents = (state?.eventLog.slice(eventCountBeforeCounters) ?? []).filter(
+      (event): event is CounterChangeEvent => event.type === 'counterChange',
+    );
+    expect(counterEvents).toMatchObject([
+      { target: { kind: 'object', physicalCardId: creatureId }, counterType: '+1/+1', delta: 2, before: 0, after: 2 },
+      { target: { kind: 'object', physicalCardId: creatureId }, counterType: '+1/+1', delta: -1, before: 2, after: 1 },
+      { target: { kind: 'object', physicalCardId: creatureId }, counterType: '-1/-1', delta: -1, before: 1, after: 0 },
+    ]);
+    expect(state?.eventLog).toHaveLength(eventCountBeforeCounters + counterEvents.length);
   });
 
   it('cr-zone-change-new-object-lki: LTB pending trigger uses before snapshot and old object id', () => {

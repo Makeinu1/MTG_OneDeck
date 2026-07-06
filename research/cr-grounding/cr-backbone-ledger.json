@@ -8,11 +8,6 @@
   "plannedSequence": [
     {
       "type": "domain-slice",
-      "domainId": "cr-603-triggers-apnap",
-      "note": "batch3-1c(Slice C・判定者裁定=3分割の第3。Slice A/B出荷後)。discard/sacrifice/counter向け新semantic event(event:* 残35件中discard10+sacrifice9+counter8)。新GameEvent union member追加 or ZoneChangeEvent reason拡充のいずれかを設計判定要(design-lock相当)。CR603.10a/603.2正本。golden候補: Fear of Missing Out/Accursed Marauder/Alesha, Who Laughs at Fate。"
-    },
-    {
-      "type": "domain-slice",
       "domainId": "cr-608-resolution",
       "note": "batch3-2。demand=37(object-identity:lki 28+action:counter-spell 9)。解決時LKI読み取り経路+単純\"counter target spell\"(stack→owner graveyard、コスト払戻/効果解決なし)。cr-109-objects/cr-112-spellsと関連。CR 608.2b/608.2d/608.2h/113.7a/400.7/400.7e/400.7j正本。golden候補: Feed the Swarm/Mana Drain/Arcane Denial。"
     },
@@ -717,7 +712,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "eventLog",
         "pendingTriggers",
@@ -725,7 +720,7 @@
         "sourceSnapshot",
         "activePlayerId"
       ],
-      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。Slice A(event-driven trigger subscription leaf)出荷済み(engine-spec §34.25)。**Slice B(delayed-trigger scheduling primitive)出荷**(batch3-1b・2026-07-06・engine-spec §34.26)= `PendingTrigger.schedule`(additive)による真のdelayed trigger(「next end step」「next turn's upkeep」)。CR513.2 back-up算術(end step中作成→次turn/それ以外→同turn)・CR603.7b 1回限り昇格・scheduled triggerはAPNAP順序/カウントに完全不可視。Tier-1独立監査=0 BLOCKER/0 HIGH(`readyPendingTriggers`フィルタが既存APNAP非regression・CR513.2両方向・one-shot・Slice A非regressionを実地検証)。判定者がMEDIUM1件(`applyEnterCombat`のpromotion bypass・現状無害)+LOW1件(activated行埋め込みdelayed節のabilityLineIndex欠落)へ説明コメント追記。**Slice C(discard/sacrifice/counter新規semantic event)は未実装**=plannedSequenceに残存。",
+      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。Slice A(event-driven trigger subscription leaf・engine-spec §34.25)+Slice B(delayed-trigger scheduling primitive・engine-spec §34.26)出荷済み。**Slice C(discard/sacrifice/counter semantic event)出荷**(batch3-1c・2026-07-06・engine-spec §34.27)= `ZoneChangeReason`拡張(discard/sacrifice追加・additive)+新規`CounterChangeEvent`(GameEvent union additive追加)。discard(CR701.9)/sacrifice(CR701.21a)/counter-put(CR122.1)へのtrigger購読leaf。**Tier-1監査でHIGH発見**: CR704.5q annihilation SBAが+1/+1・-1/-1両カウンターをintent記録なしで直接変異させ、annihilation経由の+1/+1減少が一切CounterChangeEventとして観測されず、かつ古いstale eventがログに訂正されず残存(既存golden`cr-sba-plus-minus-counter-annihilation`がこの誤挙動をそのまま期待値化)。判定者がannihilationループへ`recordCounterChangeIntent`呼出を追加する外科修正+該当golden修正。これでcr-603-triggers-apnap全体(Slice A/B/C)が完了。",
       "evidence": [
         "cr-trigger-sba-priority-loop",
         "cr-trigger-6033b-two-bucket-order",
@@ -735,10 +730,13 @@
         "src/store/__tests__/triggerEventSubscriptions.test.ts",
         "src/store/__tests__/review.cr603-triggers-sliceB.test.ts",
         "src/store/__tests__/delayedTriggers.test.ts",
+        "src/store/__tests__/review.cr603-triggers-sliceC.test.ts",
+        "src/store/__tests__/cr603SemanticEvents.test.ts",
         "docs/engine-spec.md §34.25",
-        "docs/engine-spec.md §34.26"
+        "docs/engine-spec.md §34.26",
+        "docs/engine-spec.md §34.27"
       ],
-      "nextGate": "Slice C=discard/sacrifice/counter新規semantic event(demand27・新GameEvent union member or ZoneChangeEvent reason拡充の設計判断要)。plannedSequence参照。",
+      "nextGate": "state triggers(CR603.8)・intervening-if/\"this turn\"集計状態・modal triggered abilities・attack/block declaration event・counter除去(remove)trigger・他プレイヤー由来eventは実デッキ需要が立った将来スライスへ。",
       "judge": "deterministic-cr"
     },
     {

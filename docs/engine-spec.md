@@ -2591,3 +2591,20 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **Tier-1 監査で確認**: 0 BLOCKER/0 HIGH。`readyPendingTriggers`フィルタ(APNAP共有配管全箇所に導入)がscheduled triggerをbucket/controllerカウントも含め完全に不可視化すること・CR513.2 back-up算術の両方向(end step中作成→次turn/end step外作成→同turn)・1回限り昇格・既存two-bucket APNAP非regression・Slice A非regressionを実地検証済み。残余note(MEDIUM・非ブロッキング、判定者が対応)= `applyEnterCombat`が`enterPhase`/`promoteDueScheduledTriggers`をバイパスする別のphase-entry経路だが、`schedule.phase`型が`'upkeep'|'end'`のみのため現状無害(将来combat開始delayed triggerを追加する時に要対応。コメント追記済み)。LOW= activated-ability行に埋め込まれたdelayed節は`abilityLineIndex`が`undefined`になる(現行コーパスに支障なし。コメント追記済み)。受け入れ=`review.cr603-triggers-sliceB.test.ts`(レビュー専有・6 pin。CR513.2両方向・one-shot・APNAP非干渉・snapshot forward-compat・two-bucket非regression)。
 
 **スコープ境界(§34.5・PASS に混ぜない)**: discard/sacrifice/counter新規semantic event(Slice C)・duration付き複数回delayed trigger("this turn"等)・modal delayed trigger・phase-begin以外の複雑な未来timing文言・combat開始delayed trigger。
+
+### 34.27 cr-603-triggers-apnap Slice C: discard/sacrifice/counter semantic event(CR 701.9/701.21a/122.1/704.5q)— この節も契約である
+
+**位置づけ**: cr-603-triggers-apnap batch3-1c(Slice A・B の後続・cr-603 の最終サブスライス)。event:* 残34件中discard10・sacrifice9・counter8=27件をカバーする。設計正本=`research/cr-grounding/archive/cr-603-triggers-sliceA/cr-603-triggers-batch3-1.draft.md`"4.2 New or enriched emit path required"(Codex起草)+判定者追加裁定(discard/sacrificeは既存`ZoneChangeReason`拡張・counterは新規`CounterChangeEvent`)。
+
+**CR根拠**: 701.9(discard=hand→graveyardの自発的移動)・701.21a(sacrifice=controller自身がbattlefield→owner's graveyardへ移動。destroyでない=regeneration等が介入しない)・122.1(counterはobject/playerに置かれるマーカーであり、zone移動ではない)・704.5q(+1/+1と-1/-1が同一permanentに同居する時、少ない方の数だけ両方から除去)。
+
+**凍結挙動**:
+- `ZoneChangeReason`拡張(additive・既存値無変更): `'discard'`(CR701.9)・`'sacrifice'`(CR701.21a)を追加。既存discard/sacrifice実行経路(既存guided leaf。§32.9系)がこれらのreasonを正しくtagする。SBA駆動の致死ダメージ死亡等は引き続き既存`'sba'`のまま(誤relabelしない)。
+- 新規`CounterChangeEvent`(GameEvent union additive追加): `{type:'counterChange'; target:EventTargetRef; counterType:string; delta:number; before:number; after:number; ...}`。`addCounters`実行時にintent(`recordCounterChangeIntent`)を記録し、コマンド末尾の`flushCounterChangeEvents`で実際に変化した(`delta!==0`)ケースのみemitする。
+- trigger購読leaf: discard(`reason==='discard'`のZoneChangeEvent検出)・sacrifice(`reason==='sacrifice'`のZoneChangeEvent検出。`you`条件はcontroller一致チェックで他プレイヤーのsacrificeに誤発火しない)・counter-put(CounterChangeEventの`delta>0`検出。counter除去〈remove〉側のtriggerは対象外)。既存Slice Aのonce-per-turn gate機構をそのまま再利用(新規state追加なし)。
+
+**Tier-1 監査で発見・判定者が外科修正した HIGH**: CR704.5q annihilation SBA(`counterPairIds`ループ)が`+1/+1`・`-1/-1`両カウンターを`setCard`で直接変異させるが、どちらについても`recordCounterChangeIntent`を呼んでいなかった。結果、`addCounters`(-1/-1側)のdispatchがannihilationを誘発した時、`+1/+1`側の実質的な減少(例: 2→1)が一切CounterChangeEventとして観測されず、かつ直前のdispatchが emit した古い`{after:2}`イベントが訂正されずログに残存する(stale/misleading data)。「+1/+1カウンターが除去された時」型のtriggerがannihilation経由の除去では静かに発火しないという実害あるgapであり、crGroundingGoldenCasesの既存golden(`cr-sba-plus-minus-counter-annihilation`)がこの誤った挙動をそのまま期待値として固定してしまっていた。判定者が annihilationループ内で`recordCounterChangeIntent`を両カウンタータイプについて呼ぶよう追加(既存`applyAddCounters`と同型のパターン)。修正後は該当golden含む全shot scenarioが正しく3件の event(初期+2・annihilation由来の+1/+1側-1・-1/-1側-1)を emit し、最終状態と一致する。
+
+**残余note(MEDIUM・非ブロッキング)**: `withMoveReason`ヘルパーが`commands.ts`/`gameStore.ts`両モジュールに重複定義されている(DRY違反だが個別には正しい動作)。将来の変更時に片方だけ更新して乖離するリスクあり=次回このコードに触れる時に共有モジュール化を検討。他のadversarial項目(discard/sacrifice reason誤タグなし・SBA死亡は`'sba'`のまま・Slice A/B非regression・two-bucket APNAP goldens無変更・purity/determinism)は独立監査で無欠陥確認。受け入れ=`review.cr603-triggers-sliceC.test.ts`(レビュー専有・6 pin。HIGH修正の直接pin・discard/sacrifice/counter golden・SBA死亡非regression・誤タグなし・cross-player false-positive非発火)。
+
+**スコープ境界(§34.5・PASS に混ぜない)**: state triggers(CR603.8)・intervening-if/"this turn"集計状態・modal triggered abilities・attack/block declaration event・"this way" provenance追跡・他プレイヤー(opponent)由来のdiscard/sacrifice/counter・counter除去(remove)のtrigger検出。cr-603-triggers-apnap は本節でSlice A/B/C全て完了=domain全体がshipped。

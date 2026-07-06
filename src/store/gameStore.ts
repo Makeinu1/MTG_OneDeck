@@ -1143,6 +1143,23 @@ function untapToMainCommands(): GameCommand[] {
   return [{ type: 'nextPhase' }, { type: 'nextPhase' }, { type: 'nextPhase' }];
 }
 
+function withMoveReason(commands: readonly GameCommand[], reason: 'sacrifice'): GameCommand[] {
+  return commands.map((cmd) =>
+    cmd.type === 'moveCard' && cmd.to === 'graveyard' && cmd.reason === undefined
+      ? { ...cmd, reason }
+      : cmd,
+  );
+}
+
+function guidedCommandsWithSemanticReasons(
+  prompt: EffectPrompt,
+  commands: readonly GameCommand[],
+): GameCommand[] {
+  return prompt.kind === 'sacrifice' || prompt.atom === 'effect.sacrifice'
+    ? withMoveReason(commands, 'sacrifice')
+    : commands.slice();
+}
+
 export function freeMulliganBottomCount(mulliganCount: number): number {
   return Math.max(0, mulliganCount - 1);
 }
@@ -2826,7 +2843,11 @@ export const useGameStore = create<GameStore>((set, get) => {
           ...(sourceSnapshot ? { sourceObjectId: sourceSnapshot.objectId } : {}),
         },
       );
-      advanceGuidedResolution(commands, [], guidedTapStatusWarnings(cur, prompt, [cardId]));
+      advanceGuidedResolution(
+        guidedCommandsWithSemanticReasons(prompt, commands),
+        [],
+        guidedTapStatusWarnings(cur, prompt, [cardId]),
+      );
     },
 
     confirmGuidedDiscard(cardId) {
@@ -2852,7 +2873,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         { kind: 'discard', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
-      advanceGuidedResolution(commands);
+      advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
     },
 
     confirmGuidedLibrarySearch(cardId) {
@@ -2935,7 +2956,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         { kind: 'sacrifice', cardIds: [cardId] },
         { sourceId: pending.sourceId, def },
       );
-      advanceGuidedResolution(commands);
+      advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
     },
 
     confirmGuidedCostSubject(cardId) {
@@ -2999,7 +3020,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const command: GameCommand =
         prompt.kind === 'cost-discard'
           ? { type: 'discard', cardIds: [cardId] }
-          : { type: 'moveCard', cardId, to: 'graveyard', position: 'top' };
+          : { type: 'moveCard', cardId, to: 'graveyard', position: 'top', reason: 'sacrifice' };
       advanceActivationCostSubject(command, costComponents);
     },
 
