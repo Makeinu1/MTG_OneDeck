@@ -4,7 +4,7 @@
 
 ## 0. 判断が来たら最初にやること(コールドスタート手順)
 
-新しい判定者セッションの読込順: `CLAUDE.md` → 本文書 → 台帳 `research/cr-grounding/cr-backbone-ledger.json`(plannedSequence / selectionRule / judgePolicy)→ 直近 memory。その上で:
+新しい判定者セッションの読込順: `CLAUDE.md` → 本文書 → 台帳 `research/cr-grounding/cr-backbone-ledger.json`(plannedSequence / selectionRule / judgePolicy)→ 直近 memory。**圧縮(auto-compact)後の復旧にも同じ読込順を適用**し、`.claude/loop-state.md` が存在すればループ内位置(autoloop の現 step・背景作業)の正とする(圧縮要約の next step は仮説として扱う)。その上で:
 
 1. その判断は**決定論的か**? → §1 の3問テスト
 2. 決定論的 → **CR を引いて終了**(条番号を成果物に併記)。prompt 再走・再考・多数決をしない
@@ -28,6 +28,8 @@
 standing 裁定(ユーザー委譲済み: 2026-06-30 北極星=CR完全性・2026-07-02 demand-first 再優先):
 
 **優先度式** = ① `plannedSequence` 先頭を消費 → ② 枯渇時: MyDeck demand 実測値(`research/mydeck-scoring/` の read/write カウント)降順 → ③ 同値なら `edhValue` → ④ 同値なら S-phase 依存順(substrate が下のものから)。
+
+> **⚠ 計器故障の暫定則(2026-07-07 J2 Opus・`score-ts-demand-catalog-repair` 出荷まで有効)**: 式②の demand 実測値は、`scripts/mydeck-scoring/score.ts` が実コンパイラ(`compile.ts`)を参照せず並行テキスト分類器のみで coverage 判定する構造欠陥により、`cost:*`/`mana:*`/`action:*`/`tap-state:*`/`damage:*`/`life:*`/`counter:*`/`target:*`/`token:*` の9 family で**実装済みでも常に「未対応」と誤計上される**(例: Sol Ring `{T}: Add {C}` すら gap)。この修復が出荷されるまで、**式②の demand 信号は classifier-backed family(`event:*`/`zone:*`/`layer:*`/`timing:*`)のみ信頼**する。9 family の大きな数値は優先度信号にせず「unknown=要 `compile.ts` 手動 spot-check」として扱う。修復仕様=`research/cr-grounding/score-ts-demand-catalog-repair.draft.md`。
 
 - この式で一意に決まる限り**自走してよい**(STOP しない)。
 - STOP① に該当するのは次の4つだけ: (a) 式で真の同点かつ性質の異なる分岐 (b) Phase S/C 完了境界の「V4 前進 vs V1 磨き込み」(予約済み価値判断) (c) 北極星・契約原則そのものの変更 (d) `judge: user-stop` マークの domain。
