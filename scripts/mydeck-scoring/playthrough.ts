@@ -19,20 +19,7 @@
 // exposes the same "would this need a prompt" information the store would
 // surface via pendingGuided.
 //
-// Run: npx tsx --loader ./scripts/mydeck-scoring/dir-import-loader.mjs scripts/mydeck-scoring/playthrough.ts
-//
-// NOTE on the extra --loader flag: plain `npx tsx scripts/mydeck-scoring/playthrough.ts`
-// crashes with ERR_UNSUPPORTED_DIR_IMPORT because this script imports
-// src/engine/commands.ts, which imports src/engine/status.ts, which contains
-// a directory import (`from './grammar'`, resolving to grammar/index.ts) that
-// the project's own node_modules/tsx-local-loader.mjs does not retry with an
-// "/index.ts" suffix (it only retries file extensions). This is a
-// pre-existing environment gap, not something introduced here — the repo's
-// own `npm run golden-replay` (scripts/golden-replay.ts) hits the identical
-// crash on this Node version for the same transitive-import reason. See
-// scripts/mydeck-scoring/dir-import-loader.mjs for the full explanation and
-// the final report's "blockers" section. census.ts does not need this flag
-// because it never imports src/engine/commands.ts / status.ts.
+// Run: npx tsx scripts/mydeck-scoring/playthrough.ts
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
@@ -873,15 +860,7 @@ function renderSummaryMarkdown(rows: readonly PlaythroughSummaryRow[]): string {
   lines.push('');
   lines.push('## Re-run');
   lines.push('');
-  lines.push(
-    '`npx tsx --loader ./scripts/mydeck-scoring/dir-import-loader.mjs scripts/mydeck-scoring/playthrough.ts`',
-  );
-  lines.push('');
-  lines.push(
-    '(the extra `--loader` flag works around a pre-existing tsx/Node directory-import gap — ' +
-      'see scripts/mydeck-scoring/dir-import-loader.mjs header and the final report\'s "blockers" section; ' +
-      '`npm run golden-replay` hits the same crash today for the same reason)',
-  );
+  lines.push('`npx tsx scripts/mydeck-scoring/playthrough.ts`');
   lines.push('');
   lines.push('## Method');
   lines.push('');

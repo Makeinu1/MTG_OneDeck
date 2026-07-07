@@ -6,7 +6,7 @@
 // 期待値は engine-spec §30.1〜§30.7 の契約と §30.6 の snapshot 裏取りに準拠する。
 import { describe, expect, it } from 'vitest';
 
-import { EFFECT_ATOM_DEFINITIONS } from '../grammar';
+import { EFFECT_ATOM_DEFINITIONS } from '../grammar/index';
 import { parseAbilityIR } from '../grammar/ir';
 import { CR_KEYWORD_ACTIONS, isValidRuleRef } from '../grammar/rule-refs';
 

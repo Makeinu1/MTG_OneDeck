@@ -1,6 +1,6 @@
 import type { CardDef } from '../types/card';
 import type { CardInstance, GameState, PlayerId } from './types';
-import { classifyAbilityShape, splitAbilityLines } from './grammar';
+import { classifyAbilityShape, splitAbilityLines } from './grammar/index';
 import { KEYWORD_DEFINITIONS, possessedKeywords } from './keywordGrammar';
 
 export type Keyword =

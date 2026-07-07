@@ -11,7 +11,7 @@ import {
   detectEffectAtoms,
   splitAbilityLines,
   type AbilityShape,
-} from '../grammar';
+} from '../grammar/index';
 import { makeDef } from './helpers';
 
 describe('§29.2 classifyAbilityShape: 能力タイプ分類(先勝ち)', () => {

@@ -4,9 +4,7 @@ Generated: 2026-07-07T12:09:24.283Z
 
 ## Re-run
 
-`npx tsx --loader ./scripts/mydeck-scoring/dir-import-loader.mjs scripts/mydeck-scoring/playthrough.ts`
-
-(the extra `--loader` flag works around a pre-existing tsx/Node directory-import gap — see scripts/mydeck-scoring/dir-import-loader.mjs header and the final report's "blockers" section; `npm run golden-replay` hits the same crash today for the same reason)
+`npx tsx scripts/mydeck-scoring/playthrough.ts`
 
 ## Method
 
