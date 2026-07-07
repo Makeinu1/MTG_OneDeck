@@ -1,0 +1,1864 @@
+{
+  "deck": "Gogo",
+  "generatedAt": "2026-07-07T12:09:18.945Z",
+  "seed": 1,
+  "turnsRequested": 10,
+  "turnsCompleted": 10,
+  "resolvedEntries": 76,
+  "unresolvedEntries": 7,
+  "crashed": false,
+  "totalCardsDrawn": 10,
+  "totalSpellsCast": 11,
+  "totalInterventions": 0,
+  "totalWarnings": 0,
+  "turns": [
+    {
+      "turn": 1,
+      "cardsDrawn": [
+        "Mana Vault"
+      ],
+      "landPlayed": "Flooded Strand",
+      "spellsCast": [
+        {
+          "cardId": "c35",
+          "cardName": "Lotus Petal",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c40",
+          "cardName": "Mana Vault",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c1",
+          "cardName": "Gogo, Master of Mimicry",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c11",
+          "cardName": "Liberator, Urza's Battlethopter",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c53",
+          "cardName": "The One Ring",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 1,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 84,
+          "hand": 5,
+          "battlefield": 3,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "The One Ring",
+          "Tezzeret the Seeker",
+          "Island",
+          "Island",
+          "Liberator, Urza's Battlethopter"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 2,
+      "cardsDrawn": [
+        "Scalding Tarn"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [
+        {
+          "cardId": "c1",
+          "cardName": "Gogo, Master of Mimicry",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c11",
+          "cardName": "Liberator, Urza's Battlethopter",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c53",
+          "cardName": "The One Ring",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        },
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 2,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 83,
+          "hand": 5,
+          "battlefield": 5,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "The One Ring",
+          "Tezzeret the Seeker",
+          "Island",
+          "Liberator, Urza's Battlethopter",
+          "Scalding Tarn"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 3,
+      "cardsDrawn": [
+        "Gilded Lotus"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [
+        {
+          "cardId": "c11",
+          "cardName": "Liberator, Urza's Battlethopter",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c53",
+          "cardName": "The One Ring",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c56",
+          "cardName": "Gilded Lotus",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        },
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 3,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 82,
+          "hand": 4,
+          "battlefield": 7,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "The One Ring",
+          "Tezzeret the Seeker",
+          "Scalding Tarn",
+          "Gilded Lotus"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 4,
+      "cardsDrawn": [
+        "Island"
+      ],
+      "landPlayed": "Scalding Tarn",
+      "spellsCast": [
+        {
+          "cardId": "c53",
+          "cardName": "The One Ring",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c56",
+          "cardName": "Gilded Lotus",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        },
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 4,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 81,
+          "hand": 3,
+          "battlefield": 9,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Tezzeret the Seeker",
+          "Gilded Lotus",
+          "Island"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 5,
+      "cardsDrawn": [
+        "Island"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [
+        {
+          "cardId": "c56",
+          "cardName": "Gilded Lotus",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 5,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 80,
+          "hand": 2,
+          "battlefield": 11,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Tezzeret the Seeker",
+          "Island"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 6,
+      "cardsDrawn": [
+        "Forensic Gadgeteer"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [
+        {
+          "cardId": "c6",
+          "cardName": "Forensic Gadgeteer",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 6,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 79,
+          "hand": 1,
+          "battlefield": 13,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c6",
+            "name": "Forensic Gadgeteer",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Tezzeret the Seeker"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 7,
+      "cardsDrawn": [
+        "Sapphire Medallion"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c48",
+          "cardName": "Sapphire Medallion",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c61",
+          "cardName": "Tezzeret the Seeker",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 7,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 78,
+          "hand": 0,
+          "battlefield": 15,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c6",
+            "name": "Forensic Gadgeteer",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c48",
+            "name": "Sapphire Medallion",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c61",
+            "name": "Tezzeret the Seeker",
+            "tapped": false,
+            "counters": {
+              "loyalty": 4
+            },
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 8,
+      "cardsDrawn": [
+        "Basalt Monolith"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c50",
+          "cardName": "Basalt Monolith",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 8,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 77,
+          "hand": 0,
+          "battlefield": 16,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c6",
+            "name": "Forensic Gadgeteer",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c48",
+            "name": "Sapphire Medallion",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c61",
+            "name": "Tezzeret the Seeker",
+            "tapped": false,
+            "counters": {
+              "loyalty": 4
+            },
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c50",
+            "name": "Basalt Monolith",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 9,
+      "cardsDrawn": [
+        "Ioreth of the Healing House"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c8",
+          "cardName": "Ioreth of the Healing House",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 9,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 76,
+          "hand": 0,
+          "battlefield": 17,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c6",
+            "name": "Forensic Gadgeteer",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c48",
+            "name": "Sapphire Medallion",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c61",
+            "name": "Tezzeret the Seeker",
+            "tapped": false,
+            "counters": {
+              "loyalty": 4
+            },
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c50",
+            "name": "Basalt Monolith",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c8",
+            "name": "Ioreth of the Healing House",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    },
+    {
+      "turn": 10,
+      "cardsDrawn": [
+        "Island"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 10,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 75,
+          "hand": 0,
+          "battlefield": 18,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c65",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c35",
+            "name": "Lotus Petal",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c40",
+            "name": "Mana Vault",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Gogo, Master of Mimicry",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Liberator, Urza's Battlethopter",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Scalding Tarn",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c53",
+            "name": "The One Ring",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c74",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c56",
+            "name": "Gilded Lotus",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c6",
+            "name": "Forensic Gadgeteer",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c48",
+            "name": "Sapphire Medallion",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c61",
+            "name": "Tezzeret the Seeker",
+            "tapped": false,
+            "counters": {
+              "loyalty": 4
+            },
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c50",
+            "name": "Basalt Monolith",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c8",
+            "name": "Ioreth of the Healing House",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Gogo, Master of Mimicry"
+        ]
+      }
+    }
+  ],
+  "finalBoardState": {
+    "turn": 10,
+    "phase": "end",
+    "life": 40,
+    "poison": 0,
+    "energy": 0,
+    "experience": 0,
+    "manaPool": {
+      "W": 0,
+      "U": 0,
+      "B": 0,
+      "R": 0,
+      "G": 0,
+      "C": 0
+    },
+    "zoneCounts": {
+      "library": 75,
+      "hand": 0,
+      "battlefield": 18,
+      "graveyard": 0,
+      "exile": 0,
+      "command": 0,
+      "stack": 0
+    },
+    "battlefield": [
+      {
+        "id": "c65",
+        "name": "Flooded Strand",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c35",
+        "name": "Lotus Petal",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c40",
+        "name": "Mana Vault",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c68",
+        "name": "Island",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c1",
+        "name": "Gogo, Master of Mimicry",
+        "tapped": false,
+        "counters": {},
+        "isCommander": true,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c73",
+        "name": "Island",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c11",
+        "name": "Liberator, Urza's Battlethopter",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c92",
+        "name": "Scalding Tarn",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c53",
+        "name": "The One Ring",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c74",
+        "name": "Island",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c56",
+        "name": "Gilded Lotus",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c80",
+        "name": "Island",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c6",
+        "name": "Forensic Gadgeteer",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c48",
+        "name": "Sapphire Medallion",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c61",
+        "name": "Tezzeret the Seeker",
+        "tapped": false,
+        "counters": {
+          "loyalty": 4
+        },
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c50",
+        "name": "Basalt Monolith",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c8",
+        "name": "Ioreth of the Healing House",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c67",
+        "name": "Island",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      }
+    ],
+    "hand": [],
+    "stackSize": 0,
+    "commandersInPlay": [
+      "Gogo, Master of Mimicry"
+    ]
+  }
+}

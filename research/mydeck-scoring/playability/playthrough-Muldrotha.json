@@ -1,0 +1,1518 @@
+{
+  "deck": "Muldrotha",
+  "generatedAt": "2026-07-07T12:09:23.312Z",
+  "seed": 1,
+  "turnsRequested": 10,
+  "turnsCompleted": 10,
+  "resolvedEntries": 93,
+  "unresolvedEntries": 3,
+  "crashed": false,
+  "totalCardsDrawn": 10,
+  "totalSpellsCast": 7,
+  "totalInterventions": 1,
+  "totalWarnings": 0,
+  "turns": [
+    {
+      "turn": 1,
+      "cardsDrawn": [
+        "Tireless Provisioner"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [
+        {
+          "cardId": "c55",
+          "cardName": "Aether Spellbomb",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 6)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 1,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 88,
+          "hand": 6,
+          "battlefield": 2,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Verdant Catacombs",
+          "Dark Ritual",
+          "Wooded Foothills",
+          "Sunken Palace",
+          "Flooded Strand",
+          "Tireless Provisioner"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 2,
+      "cardsDrawn": [
+        "Three Visits"
+      ],
+      "landPlayed": "Verdant Catacombs",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 2,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 87,
+          "hand": 6,
+          "battlefield": 3,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Dark Ritual",
+          "Wooded Foothills",
+          "Sunken Palace",
+          "Flooded Strand",
+          "Tireless Provisioner",
+          "Three Visits"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 3,
+      "cardsDrawn": [
+        "Island"
+      ],
+      "landPlayed": "Wooded Foothills",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 3,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 86,
+          "hand": 6,
+          "battlefield": 4,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Dark Ritual",
+          "Sunken Palace",
+          "Flooded Strand",
+          "Tireless Provisioner",
+          "Three Visits",
+          "Island"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 4,
+      "cardsDrawn": [
+        "Snow-Covered Swamp"
+      ],
+      "landPlayed": "Sunken Palace",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 4,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 85,
+          "hand": 6,
+          "battlefield": 5,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Dark Ritual",
+          "Flooded Strand",
+          "Tireless Provisioner",
+          "Three Visits",
+          "Island",
+          "Snow-Covered Swamp"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 5,
+      "cardsDrawn": [
+        "Toxic Deluge"
+      ],
+      "landPlayed": "Flooded Strand",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c37",
+          "cardName": "Toxic Deluge",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 5,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 84,
+          "hand": 6,
+          "battlefield": 6,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Dark Ritual",
+          "Tireless Provisioner",
+          "Three Visits",
+          "Island",
+          "Snow-Covered Swamp",
+          "Toxic Deluge"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 6,
+      "cardsDrawn": [
+        "Woodland Chasm"
+      ],
+      "landPlayed": "Island",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c37",
+          "cardName": "Toxic Deluge",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 6,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 83,
+          "hand": 6,
+          "battlefield": 7,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c72",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Dark Ritual",
+          "Tireless Provisioner",
+          "Three Visits",
+          "Snow-Covered Swamp",
+          "Toxic Deluge",
+          "Woodland Chasm"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 7,
+      "cardsDrawn": [
+        "Command Tower"
+      ],
+      "landPlayed": "Snow-Covered Swamp",
+      "spellsCast": [
+        {
+          "cardId": "c26",
+          "cardName": "Dark Ritual",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c37",
+          "cardName": "Toxic Deluge",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 7,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 82,
+          "hand": 4,
+          "battlefield": 8,
+          "graveyard": 2,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c72",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c85",
+            "name": "Snow-Covered Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Tireless Provisioner",
+          "Three Visits",
+          "Woodland Chasm",
+          "Command Tower"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 8,
+      "cardsDrawn": [
+        "Misty Rainforest"
+      ],
+      "landPlayed": "Woodland Chasm",
+      "spellsCast": [
+        {
+          "cardId": "c36",
+          "cardName": "Three Visits",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        }
+      ],
+      "pendingGuidedPrompts": 1,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 8,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 81,
+          "hand": 3,
+          "battlefield": 9,
+          "graveyard": 3,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c72",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c85",
+            "name": "Snow-Covered Swamp",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c96",
+            "name": "Woodland Chasm",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Tireless Provisioner",
+          "Command Tower",
+          "Misty Rainforest"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 9,
+      "cardsDrawn": [
+        "Kaya's Ghostform"
+      ],
+      "landPlayed": "Command Tower",
+      "spellsCast": [
+        {
+          "cardId": "c47",
+          "cardName": "Kaya's Ghostform",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Tireless Provisioner",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 9,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 80,
+          "hand": 1,
+          "battlefield": 12,
+          "graveyard": 3,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c72",
+            "name": "Island",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c85",
+            "name": "Snow-Covered Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c96",
+            "name": "Woodland Chasm",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Command Tower",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c47",
+            "name": "Kaya's Ghostform",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Tireless Provisioner",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Misty Rainforest"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 10,
+      "cardsDrawn": [
+        "Shifting Woodland"
+      ],
+      "landPlayed": "Misty Rainforest",
+      "spellsCast": [
+        {
+          "cardId": "c1",
+          "cardName": "Muldrotha, the Gravetide",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 10,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 79,
+          "hand": 1,
+          "battlefield": 14,
+          "graveyard": 3,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c71",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Aether Spellbomb",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c92",
+            "name": "Verdant Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Wooded Foothills",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c86",
+            "name": "Sunken Palace",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c67",
+            "name": "Flooded Strand",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c72",
+            "name": "Island",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c85",
+            "name": "Snow-Covered Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c96",
+            "name": "Woodland Chasm",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Command Tower",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c47",
+            "name": "Kaya's Ghostform",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Tireless Provisioner",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c73",
+            "name": "Misty Rainforest",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Muldrotha, the Gravetide",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Shifting Woodland"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Muldrotha, the Gravetide"
+        ]
+      }
+    }
+  ],
+  "finalBoardState": {
+    "turn": 10,
+    "phase": "end",
+    "life": 40,
+    "poison": 0,
+    "energy": 0,
+    "experience": 0,
+    "manaPool": {
+      "W": 0,
+      "U": 0,
+      "B": 0,
+      "R": 0,
+      "G": 0,
+      "C": 0
+    },
+    "zoneCounts": {
+      "library": 79,
+      "hand": 1,
+      "battlefield": 14,
+      "graveyard": 3,
+      "exile": 0,
+      "command": 0,
+      "stack": 0
+    },
+    "battlefield": [
+      {
+        "id": "c71",
+        "name": "Island",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c55",
+        "name": "Aether Spellbomb",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c92",
+        "name": "Verdant Catacombs",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c95",
+        "name": "Wooded Foothills",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c86",
+        "name": "Sunken Palace",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c67",
+        "name": "Flooded Strand",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c72",
+        "name": "Island",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c85",
+        "name": "Snow-Covered Swamp",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c96",
+        "name": "Woodland Chasm",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c64",
+        "name": "Command Tower",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c47",
+        "name": "Kaya's Ghostform",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c17",
+        "name": "Tireless Provisioner",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c73",
+        "name": "Misty Rainforest",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c1",
+        "name": "Muldrotha, the Gravetide",
+        "tapped": false,
+        "counters": {},
+        "isCommander": true,
+        "isToken": false,
+        "damageMarked": 0
+      }
+    ],
+    "hand": [
+      "Shifting Woodland"
+    ],
+    "stackSize": 0,
+    "commandersInPlay": [
+      "Muldrotha, the Gravetide"
+    ]
+  }
+}

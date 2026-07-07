@@ -1,0 +1,1750 @@
+{
+  "deck": "Celes",
+  "generatedAt": "2026-07-07T12:09:16.916Z",
+  "seed": 1,
+  "turnsRequested": 10,
+  "turnsCompleted": 10,
+  "resolvedEntries": 95,
+  "unresolvedEntries": 4,
+  "crashed": false,
+  "totalCardsDrawn": 10,
+  "totalSpellsCast": 11,
+  "totalInterventions": 1,
+  "totalWarnings": 0,
+  "turns": [
+    {
+      "turn": 1,
+      "cardsDrawn": [
+        "Mountain"
+      ],
+      "landPlayed": "Plains",
+      "spellsCast": [],
+      "spellsSkipped": [
+        {
+          "cardId": "c55",
+          "cardName": "Talisman of Conviction",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c21",
+          "cardName": "Naktamun Lorespinner // Wheel of Fortune",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Terra, Herald of Hope",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 6)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 1,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 87,
+          "hand": 7,
+          "battlefield": 1,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Naktamun Lorespinner // Wheel of Fortune",
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Talisman of Conviction",
+          "Terra, Herald of Hope",
+          "Bojuka Bog",
+          "Mountain"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 2,
+      "cardsDrawn": [
+        "Alesha, Who Smiles at Death"
+      ],
+      "landPlayed": "Bojuka Bog",
+      "spellsCast": [
+        {
+          "cardId": "c55",
+          "cardName": "Talisman of Conviction",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c19",
+          "cardName": "Alesha, Who Smiles at Death",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c21",
+          "cardName": "Naktamun Lorespinner // Wheel of Fortune",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Terra, Herald of Hope",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 6)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 2,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 86,
+          "hand": 6,
+          "battlefield": 3,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Naktamun Lorespinner // Wheel of Fortune",
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Terra, Herald of Hope",
+          "Mountain",
+          "Alesha, Who Smiles at Death"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 3,
+      "cardsDrawn": [
+        "Command Tower"
+      ],
+      "landPlayed": "Mountain",
+      "spellsCast": [
+        {
+          "cardId": "c19",
+          "cardName": "Alesha, Who Smiles at Death",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c21",
+          "cardName": "Naktamun Lorespinner // Wheel of Fortune",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c17",
+          "cardName": "Terra, Herald of Hope",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 6)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 3,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 85,
+          "hand": 5,
+          "battlefield": 5,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Naktamun Lorespinner // Wheel of Fortune",
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Terra, Herald of Hope",
+          "Command Tower"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 4,
+      "cardsDrawn": [
+        "Akroma's Will"
+      ],
+      "landPlayed": "Command Tower",
+      "spellsCast": [
+        {
+          "cardId": "c21",
+          "cardName": "Naktamun Lorespinner // Wheel of Fortune",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c17",
+          "cardName": "Terra, Herald of Hope",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c36",
+          "cardName": "Akroma's Will",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 4,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 84,
+          "hand": 4,
+          "battlefield": 7,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Terra, Herald of Hope",
+          "Akroma's Will"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 5,
+      "cardsDrawn": [
+        "Swamp"
+      ],
+      "landPlayed": "Swamp",
+      "spellsCast": [
+        {
+          "cardId": "c17",
+          "cardName": "Terra, Herald of Hope",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c36",
+          "cardName": "Akroma's Will",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 5,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 83,
+          "hand": 3,
+          "battlefield": 9,
+          "graveyard": 0,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Akroma's Will"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 6,
+      "cardsDrawn": [
+        "Carnage, Crimson Chaos"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c36",
+          "cardName": "Akroma's Will",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c25",
+          "cardName": "Carnage, Crimson Chaos",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 2)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
+        }
+      ],
+      "pendingGuidedPrompts": 1,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 6,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 82,
+          "hand": 3,
+          "battlefield": 9,
+          "graveyard": 1,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept",
+          "Carnage, Crimson Chaos"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 7,
+      "cardsDrawn": [
+        "Chthonian Nightmare"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c44",
+          "cardName": "Chthonian Nightmare",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c25",
+          "cardName": "Carnage, Crimson Chaos",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        },
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 7)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 7,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 81,
+          "hand": 2,
+          "battlefield": 11,
+          "graveyard": 1,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c44",
+            "name": "Chthonian Nightmare",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c25",
+            "name": "Carnage, Crimson Chaos",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 8,
+      "cardsDrawn": [
+        "Gau, Feral Youth"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c11",
+          "cardName": "Gau, Feral Youth",
+          "outcome": "cast"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Celes, Rune Knight",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        },
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 7)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 8,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 80,
+          "hand": 2,
+          "battlefield": 13,
+          "graveyard": 1,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c44",
+            "name": "Chthonian Nightmare",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c25",
+            "name": "Carnage, Crimson Chaos",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Gau, Feral Youth",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Celes, Rune Knight",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum",
+          "Chainer, Nightmare Adept"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Celes, Rune Knight"
+        ]
+      }
+    },
+    {
+      "turn": 9,
+      "cardsDrawn": [
+        "Luxury Suite"
+      ],
+      "landPlayed": "Luxury Suite",
+      "spellsCast": [
+        {
+          "cardId": "c26",
+          "cardName": "Chainer, Nightmare Adept",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 4)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 9,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 79,
+          "hand": 1,
+          "battlefield": 15,
+          "graveyard": 1,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c44",
+            "name": "Chthonian Nightmare",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c25",
+            "name": "Carnage, Crimson Chaos",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Gau, Feral Youth",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Celes, Rune Knight",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c79",
+            "name": "Luxury Suite",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c26",
+            "name": "Chainer, Nightmare Adept",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Ruinous Ultimatum"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Celes, Rune Knight"
+        ]
+      }
+    },
+    {
+      "turn": 10,
+      "cardsDrawn": [
+        "Caves of Koilos"
+      ],
+      "landPlayed": "Caves of Koilos",
+      "spellsCast": [
+        {
+          "cardId": "c42",
+          "cardName": "Ruinous Ultimatum",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 10,
+        "phase": "end",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 78,
+          "hand": 0,
+          "battlefield": 16,
+          "graveyard": 2,
+          "exile": 0,
+          "command": 0,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c84",
+            "name": "Plains",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c64",
+            "name": "Bojuka Bog",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c55",
+            "name": "Talisman of Conviction",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c80",
+            "name": "Mountain",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c19",
+            "name": "Alesha, Who Smiles at Death",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c68",
+            "name": "Command Tower",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c21",
+            "name": "Naktamun Lorespinner // Wheel of Fortune",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c95",
+            "name": "Swamp",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c17",
+            "name": "Terra, Herald of Hope",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c44",
+            "name": "Chthonian Nightmare",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c25",
+            "name": "Carnage, Crimson Chaos",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c11",
+            "name": "Gau, Feral Youth",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Celes, Rune Knight",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c79",
+            "name": "Luxury Suite",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c26",
+            "name": "Chainer, Nightmare Adept",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c66",
+            "name": "Caves of Koilos",
+            "tapped": true,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [],
+        "stackSize": 0,
+        "commandersInPlay": [
+          "Celes, Rune Knight"
+        ]
+      }
+    }
+  ],
+  "finalBoardState": {
+    "turn": 10,
+    "phase": "end",
+    "life": 40,
+    "poison": 0,
+    "energy": 0,
+    "experience": 0,
+    "manaPool": {
+      "W": 0,
+      "U": 0,
+      "B": 0,
+      "R": 0,
+      "G": 0,
+      "C": 0
+    },
+    "zoneCounts": {
+      "library": 78,
+      "hand": 0,
+      "battlefield": 16,
+      "graveyard": 2,
+      "exile": 0,
+      "command": 0,
+      "stack": 0
+    },
+    "battlefield": [
+      {
+        "id": "c84",
+        "name": "Plains",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c64",
+        "name": "Bojuka Bog",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c55",
+        "name": "Talisman of Conviction",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c80",
+        "name": "Mountain",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c19",
+        "name": "Alesha, Who Smiles at Death",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c68",
+        "name": "Command Tower",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c21",
+        "name": "Naktamun Lorespinner // Wheel of Fortune",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c95",
+        "name": "Swamp",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c17",
+        "name": "Terra, Herald of Hope",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c44",
+        "name": "Chthonian Nightmare",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c25",
+        "name": "Carnage, Crimson Chaos",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c11",
+        "name": "Gau, Feral Youth",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c1",
+        "name": "Celes, Rune Knight",
+        "tapped": false,
+        "counters": {},
+        "isCommander": true,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c79",
+        "name": "Luxury Suite",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c26",
+        "name": "Chainer, Nightmare Adept",
+        "tapped": false,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      },
+      {
+        "id": "c66",
+        "name": "Caves of Koilos",
+        "tapped": true,
+        "counters": {},
+        "isCommander": false,
+        "isToken": false,
+        "damageMarked": 0
+      }
+    ],
+    "hand": [],
+    "stackSize": 0,
+    "commandersInPlay": [
+      "Celes, Rune Knight"
+    ]
+  }
+}
