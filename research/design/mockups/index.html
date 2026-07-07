@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MTG OneDeck — デザイン刷新モックアップ</title>
-<!-- 視覚正本: docs/design-vision.md §3 IA / docs/design-system.md 全節 -->
-<!-- Google Fonts はローカル/dev閲覧用。CSP環境(Artifact)では iOS/macOS 内蔵の Palatino / Avenir Next / Courier New へフォールバック -->
+<title>MTG OneDeck — デザイン刷新モックアップ v2</title>
+<!-- 視覚正本: docs/design-vision.md §3 IA(v2) / docs/design-system.md 全節
+     v2(Round 2): カード主役化(クローム予算25%)・土地=物理スタック1行・
+     A/Bテーマ切替(夜のテーブル/ミッドナイト・グラス)・モーションデモ3種 -->
+<!-- Google Fonts はローカル/dev閲覧用。CSP環境(Artifact)では内蔵書体へフォールバック -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   トークン層 — docs/design-system.md §2-§7 の実体化
+   トークン層 — docs/design-system.md §2-§7(テーマA: 夜のテーブル)
    ============================================================ */
 :root {
-  /* felt / surface(§2) */
   --felt-1: #0d1410; --felt-2: #121b16; --felt-3: #182420;
   --surface-0: var(--felt-1);
   --surface-1: #161f1b;
@@ -35,15 +36,19 @@
   --action-primary-text: #17130a;
   --playable-glow: 0 0 0 1.5px var(--gold-bright), 0 0 14px rgba(240, 207, 140, 0.4);
 
-  --auto: #7fb8d8;      /* エンジン自動実行 */
-  --trigger: #d8a95f;   /* 誘発候補 */
+  --auto: #7fb8d8;
+  --trigger: #d8a95f;
 
   --gold-surface: linear-gradient(160deg, #e8c883 0%, #d8b06a 45%, #b8904e 100%);
   --gold-edge: inset 0 1px 0 rgba(255,235,190,.5), inset 0 -1px 0 rgba(0,0,0,.3);
 
-  --shadow-card: 0 2px 6px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.35);
+  --shadow-card: 0 3px 10px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
   --shadow-pop: 0 12px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
   --shadow-sheet: 0 -8px 40px rgba(0,0,0,.6);
+
+  /* 光と深度(v2・design-system §2) */
+  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(240, 225, 180, .06), transparent 60%);
+  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 0, .45) 100%);
 
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
   --sheet-radius: 20px;
@@ -64,7 +69,42 @@
   --dur-fast: 120ms; --dur-move: 240ms; --dur-hero: 420ms;
 
   --card-ratio: 488 / 680;
+  --card-frame: #101512;          /* カード枠(黒縁) */
+  --card-title: rgba(255,255,255,.07);
 }
+
+/* ============================================================
+   テーマB: ミッドナイト・グラス(対案・A/B比較用)
+   青バイアス近黒+ガラス質+マナ色ネオン。金はプライマリのみ
+   ============================================================ */
+:root[data-theme="glass"] {
+  --felt-1: #0a0e14; --felt-2: #0d1320; --felt-3: #111a2a;
+  --surface-0: #0a0e14;
+  --surface-1: rgba(22, 31, 47, .78);
+  --surface-2: rgba(31, 43, 64, .92);
+  --line: rgba(150, 185, 235, .10);
+  --line-strong: rgba(150, 185, 235, .24);
+  --text: #c9d6e8; --text-dim: #7f94b0; --text-h: #f0f5fd;
+  --playable-glow: 0 0 0 1.5px #9fd4ff, 0 0 18px rgba(110, 180, 255, .5);
+  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(160, 200, 255, .07), transparent 60%);
+  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, .5) 100%);
+  --shadow-card: 0 3px 12px rgba(0,0,0,.65), 0 1px 2px rgba(0,0,0,.5);
+  --card-frame: #0d1118;
+  --card-title: rgba(180, 210, 255, .09);
+}
+:root[data-theme="glass"] body {
+  background:
+    radial-gradient(ellipse at 25% -5%, rgba(110, 160, 230, .06), transparent 50%),
+    radial-gradient(ellipse at 80% 110%, rgba(140, 110, 220, .05), transparent 55%),
+    linear-gradient(180deg, #0b1018, #080b12 55%, #0a0f1a);
+}
+:root[data-theme="glass"] .sheet,
+:root[data-theme="glass"] .feed,
+:root[data-theme="glass"] .turn-chip,
+:root[data-theme="glass"] .thumb-zone > button:not(.primary-action) {
+  backdrop-filter: blur(14px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0ms !important; transition-duration: 0ms !important; }
 }
@@ -86,14 +126,14 @@ body {
 button { font-family: var(--sans); color: inherit; background: none; border: none; cursor: pointer; }
 
 /* ============================================================
-   モックアップ・クローム(製品UIではない): 画面切替タブ
+   モックアップ・クローム(製品UIではない): 画面切替+テーマ+デモ
    ============================================================ */
 .chrome {
   position: fixed; top: max(6px, env(safe-area-inset-top)); left: 50%;
   transform: translateX(-50%);
   z-index: 90;
-  display: flex; gap: 2px;
-  background: rgba(13, 20, 16, .85);
+  display: flex; gap: 2px; align-items: center;
+  background: rgba(10, 14, 11, .88);
   border: 1px solid var(--line-strong);
   border-radius: 99px;
   padding: 3px;
@@ -103,21 +143,21 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .chrome button {
   font-size: var(--fs-xs); font-weight: 600;
   color: var(--text-dim);
-  padding: 5px 10px; border-radius: 99px;
+  padding: 5px 9px; border-radius: 99px;
   transition: all var(--dur-fast) var(--ease-out);
   white-space: nowrap;
 }
 .chrome button.on { background: var(--gold-dim); color: var(--gold-bright); }
-/* 狭幅: 番号のみのコンパクト表示にし、コンテンツ側に退避余白を作る */
+.chrome .sep { width: 1px; height: 16px; background: var(--line-strong); margin: 0 2px; }
+.chrome .theme-toggle, .chrome .demo-btn { color: var(--text); }
 @media (max-width: 559px) {
   .chrome button span { display: none; }
-  .status-band { padding-top: calc(max(10px, env(safe-area-inset-top)) + 34px); }
+  .status-band { padding-top: calc(max(8px, env(safe-area-inset-top)) + 34px); }
   .screen--desktop.on { display: block; height: 100dvh; overflow: auto; padding-top: 44px; }
 }
 
 /* ============================================================
-   画面コンテナ: スマホ実寸(<560px)ではフルスクリーン、
-   デスクトップでは電話フレーム内に表示
+   画面コンテナ
    ============================================================ */
 .screen { display: none; }
 .screen.on { display: block; }
@@ -127,6 +167,14 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   width: 100%; height: 100dvh;
   display: flex; flex-direction: column;
   overflow: hidden;
+}
+/* 光と深度: テーブルの光溜まり+ヴィネット(v2) */
+.phone::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--table-light), var(--table-vignette);
 }
 @media (min-width: 560px) {
   .screen.on { display: flex; align-items: center; justify-content: center; height: 100dvh; }
@@ -142,19 +190,91 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 
 /* ============================================================
-   StatusBand — 常設の薄い帯(vision §3)
+   カード(v2: 実カード風フレーム。黒帯オーバーレイ廃止)
+   実装では Scryfall 画像がここに入る
+   ============================================================ */
+.mcard {
+  position: relative;
+  aspect-ratio: var(--card-ratio);
+  border-radius: 7px;
+  background: var(--card-frame);
+  border: 1px solid rgba(0,0,0,.85);
+  box-shadow: var(--shadow-card);
+  padding: 4px;
+  display: flex; flex-direction: column; gap: 2px;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast);
+}
+.mcard:active { transform: scale(.97); }
+.mcard .t {
+  flex: none;
+  font-size: 10px; font-weight: 700; line-height: 1.35;
+  color: #ece8da;
+  padding: 1px 4px;
+  background: var(--card-title);
+  border-radius: 3px 3px 1px 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mcard .a {
+  flex: 1;
+  position: relative;
+  border-radius: 1px 1px 3px 3px;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+.mcard .pt {
+  position: absolute; right: 2px; bottom: 2px;
+  padding: 0 6px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: #ece8da;
+  background: rgba(8, 10, 8, .88);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 5px;
+}
+.mcard .cost { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 2; }
+.mcard .sym { font-size: clamp(20px, 55%, 34px); opacity: .8; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.mcard--commander { outline: 2px solid var(--gold); outline-offset: 1px; }
+.mcard--commander::after {
+  content: '統率者';
+  position: absolute; top: -1px; right: -1px;
+  padding: 1px 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: .08em;
+  color: #17130a; background: var(--gold-surface);
+  border-radius: 0 5px 0 7px;
+  z-index: 3;
+}
+.mcard--sick::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(255,255,255,.05) 10px 12px);
+  border-radius: 6px;
+  pointer-events: none; z-index: 2;
+}
+.mcard.playable { box-shadow: var(--playable-glow), var(--shadow-card); }
+
+/* アート(色アイデンティティ) */
+.a--g { background: linear-gradient(150deg, #27452f, #12241a 70%); }
+.a--u { background: linear-gradient(150deg, #1c3a52, #101f30 70%); }
+.a--b { background: linear-gradient(150deg, #33254a, #191225 70%); }
+.a--gu { background: linear-gradient(150deg, #1e4034, #16324a 70%); }
+.a--bug { background: linear-gradient(150deg, #1e3c30, #1c2c4a 55%, #2b2040 100%); }
+.a--c { background: linear-gradient(150deg, #3a3f45, #1c2024 70%); }
+.a--gold { background: linear-gradient(150deg, #4a3d22, #241d10 70%); }
+
+/* ============================================================
+   StatusBand v2 — 1行36px。数値のみ・タップでシート
    ============================================================ */
 .status-band {
   flex: none;
-  padding: max(10px, env(safe-area-inset-top)) var(--space-3) var(--space-2);
-  display: flex; flex-direction: column; gap: var(--space-2);
-  background: linear-gradient(rgba(13,20,16,.92), rgba(13,20,16,.75) 80%, transparent);
+  position: relative; z-index: 10;
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: max(8px, env(safe-area-inset-top)) var(--space-3) 6px;
 }
-.status-band__row { display: flex; align-items: center; gap: var(--space-2); }
 .turn-chip {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 7px;
+  flex: none;
+  white-space: nowrap;
   min-height: 36px;
-  padding: 4px 14px 4px 10px;
+  padding: 4px 12px 4px 10px;
   background: var(--surface-1);
   border: 1px solid var(--line-strong);
   border-radius: 99px;
@@ -162,235 +282,187 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .turn-chip .t { font-family: var(--mono); font-weight: 700; font-size: var(--fs-sm); color: var(--gold-bright); }
 .turn-chip .p { font-size: var(--fs-sm); font-weight: 600; color: var(--text-h); }
 .phase-dots { display: flex; gap: 4px; align-items: center; }
-.phase-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
-.phase-dots i.now { background: var(--gold-bright); width: 7px; height: 7px; box-shadow: 0 0 6px rgba(240,207,140,.6); }
+.phase-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--line-strong); }
+.phase-dots i.now { background: var(--gold-bright); width: 6px; height: 6px; box-shadow: 0 0 6px rgba(240,207,140,.6); }
+
+.zone-mini, .life-mini {
+  display: flex; align-items: center; gap: 5px;
+  min-height: 36px;
+  padding: 4px 10px;
+  font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700;
+  color: var(--text-dim);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+.zone-mini b, .life-mini b { color: var(--text); font-weight: 700; }
+.zone-mini .k, .life-mini .k { font-family: var(--sans); font-weight: 600; font-size: 10px; }
+.life-mini b { font-size: var(--fs-md); color: var(--text-h); }
 
 .bell {
   margin-left: auto;
   position: relative;
-  width: var(--touch-target); height: 40px;
+  width: 40px; height: 36px;
   display: grid; place-items: center;
   border-radius: 99px;
   color: var(--text-dim);
-  transition: color var(--dur-fast);
 }
 .bell:active { color: var(--gold-bright); }
 .bell .badge {
-  position: absolute; top: 2px; right: 4px;
-  min-width: 17px; height: 17px;
+  position: absolute; top: 0; right: 0;
+  min-width: 16px; height: 16px;
   padding: 0 4px;
   display: grid; place-items: center;
-  font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
   color: #1a1108;
   background: var(--trigger);
   border-radius: 99px;
 }
 
-.opp-row { display: flex; gap: var(--space-2); }
-.opp {
-  flex: 1;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 32px;
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-xs); color: var(--text-dim);
-}
-.opp b { font-family: var(--mono); font-size: var(--fs-sm); color: var(--text); }
-
 /* ============================================================
-   スタック帯(タップで展開) — vision 原則4
+   スタック帯(画面3で使用)
    ============================================================ */
 .stack-band {
   margin: 0 var(--space-3);
   display: flex; align-items: center; gap: var(--space-2);
   min-height: var(--touch-target);
   padding: 6px 12px;
+  position: relative; z-index: 10;
   background: linear-gradient(90deg, rgba(216,169,95,.14), rgba(216,169,95,.04));
   border: 1px solid rgba(216,169,95,.4);
   border-radius: var(--radius-md);
 }
-.stack-band .n {
-  font-family: var(--mono); font-weight: 700; font-size: var(--fs-sm);
-  color: var(--trigger);
-}
+.stack-band .n { font-family: var(--mono); font-weight: 700; font-size: var(--fs-sm); color: var(--trigger); }
 .stack-band .label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-h); flex: 1; }
 .stack-band .hint { font-size: var(--fs-xs); color: var(--text-dim); }
+.stack-open { margin: var(--space-2) var(--space-3) 0; display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 10; }
+.stack-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid rgba(216,169,95,.35);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+}
+.stack-item .no { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700; color: var(--trigger); }
+.stack-item .what { flex: 1; }
+.stack-item .what b { color: var(--text-h); }
+.stack-item .what span { color: var(--text-dim); font-size: var(--fs-xs); display: block; }
+.stack-item--top { border-color: rgba(216,169,95,.7); background: linear-gradient(90deg, rgba(216,169,95,.12), var(--surface-2)); }
 
 /* ============================================================
-   Board — スクロール領域(クリーチャー/その他/土地圧縮)
+   Board v2 — ラベルなし・カード主役・hairline区切りのみ
    ============================================================ */
 .board {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-2) var(--space-3) var(--space-4);
-  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  display: flex; flex-direction: column; gap: var(--space-2);
 }
-.zone-label {
-  display: flex; align-items: baseline; gap: 8px;
-  font-family: var(--mono); font-size: var(--fs-xs);
-  letter-spacing: .14em; color: var(--text-dim);
+.rule { border: none; border-top: 1px solid var(--line); margin: 2px 10%; }
+.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-2); }
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: var(--space-2); }
+.slot { position: relative; aspect-ratio: var(--card-ratio); }
+.slot .mcard { position: absolute; inset: 0; }
+.slot--tap .mcard {
+  transform: rotate(90deg) scale(.92);
+  filter: brightness(.75) saturate(.85);
 }
-.zone-label b { color: var(--text-dim); font-weight: 400; }
+.slot--tap .mcard:active { transform: rotate(90deg) scale(.9); }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: var(--space-2); }
-
-/* --- カード(CSS描画。実装では Scryfall 画像) --- */
-.card {
-  position: relative;
-  aspect-ratio: var(--card-ratio);
-  border-radius: 8px;
+/* ============================================================
+   土地行 v2 — 物理スタック(ずらし重ね)の1行横スクロール
+   統率者(統率領域にいる間)は左端に常駐
+   ============================================================ */
+.land-row {
+  flex: none;
+  position: relative; z-index: 6;
+  display: flex; gap: 10px; align-items: flex-end;
+  padding: 10px var(--space-3) 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.land-row::-webkit-scrollbar { display: none; }
+.pile { position: relative; flex: none; width: 60px; }
+/* ずらし重ね: 背後のカード縁を上に数pxずつ見せる */
+.pile--stacked .mcard { box-shadow: var(--shadow-card); }
+.pile--stacked::before, .pile--stacked::after {
+  content: '';
+  position: absolute; left: 1px; right: 1px;
+  height: 10px;
+  background: var(--card-frame);
+  border: 1px solid rgba(0,0,0,.85);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+.pile--stacked::before { top: -5px; opacity: .85; }
+.pile--stacked::after { top: -10px; opacity: .6; }
+.pile--x2::after { display: none; }
+.pile .cnt {
+  position: absolute; right: -4px; bottom: -4px; z-index: 3;
+  min-width: 20px; height: 20px;
+  display: grid; place-items: center;
+  padding: 0 4px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--text-h);
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
+  border-radius: 99px;
   box-shadow: var(--shadow-card);
-  overflow: hidden;
-  transition: transform var(--dur-fast) var(--ease-out);
-  min-height: 44px; /* §4 タッチターゲット */
 }
-.card:active { transform: scale(.97); }
-.card .art { position: absolute; inset: 0; }
-.card .name {
-  position: absolute; left: 0; right: 0; top: 0;
-  padding: 4px 6px 10px;
-  font-size: var(--fs-xs); font-weight: 700; line-height: 1.2;
-  color: #f5f2e8;
-  background: linear-gradient(rgba(5,8,6,.85), rgba(5,8,6,.55) 65%, transparent);
-}
-.card .pt {
-  position: absolute; right: 4px; bottom: 4px;
-  padding: 1px 7px;
-  font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700;
-  color: var(--text-h);
-  background: rgba(5,8,6,.85);
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
-}
-.card .badge-l {
-  position: absolute; left: 4px; bottom: 4px;
-  padding: 1px 6px;
-  font-size: var(--fs-xs); font-weight: 700;
-  border-radius: 6px;
-  background: rgba(5,8,6,.85);
-}
-.card--tapped { transform: rotate(90deg) scale(.82); }
-.card--tapped:active { transform: rotate(90deg) scale(.80); }
-.card--commander { outline: 2px solid var(--gold); outline-offset: 1px; }
-.card--commander::after {
-  content: '統率者';
-  position: absolute; top: -1px; right: -1px;
-  padding: 2px 6px;
-  font-size: 10px; font-weight: 700; letter-spacing: .08em;
-  color: #17130a; background: var(--gold-surface);
-  border-radius: 0 0 0 8px;
-}
-.card--sick::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(255,255,255,.045) 10px 12px);
-  pointer-events: none;
-}
-
-/* 色アイデンティティ縁光(§2 マナ色の昇格) */
-.ci-g .art { background: linear-gradient(150deg, #1c3325, #0f1d14 70%); }
-.ci-u .art { background: linear-gradient(150deg, #17293a, #0e1a24 70%); }
-.ci-b .art { background: linear-gradient(150deg, #241a30, #140f1c 70%); }
-.ci-gu .art { background: linear-gradient(150deg, #163028, #14273a 70%); }
-.ci-bug .art { background: linear-gradient(150deg, #182e26, #1b2338 55%, #221a2e 100%); }
-.ci-c .art { background: linear-gradient(150deg, #2a2d31, #17191c 70%); }
-
-/* --- 土地の色別圧縮スタック(vision §3 の鍵) --- */
-.land-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.land-stack {
-  position: relative;
-  width: 64px; height: 88px;
-  border-radius: 8px;
-  border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-card), 3px 3px 0 -1px var(--surface-2), 3px 3px 0 0 var(--line);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-}
-.land-stack .sym { font-size: 22px; line-height: 1; }
-.land-stack .cnt { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 700; color: var(--text-h); }
-.land-stack .tapped {
-  position: absolute; top: 3px; right: 3px;
-  padding: 0 5px;
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
+.pile .tapn {
+  position: absolute; left: -4px; top: -12px; z-index: 3;
+  padding: 0 5px; height: 18px;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   color: var(--text-dim);
-  background: rgba(5,8,6,.8);
-  border-radius: 5px;
-}
-.land-stack--g { background: linear-gradient(160deg, rgba(143,217,154,.16), var(--surface-1) 60%); }
-.land-stack--u { background: linear-gradient(160deg, rgba(108,195,232,.16), var(--surface-1) 60%); }
-.land-stack--b { background: linear-gradient(160deg, rgba(180,139,224,.16), var(--surface-1) 60%); }
-.land-stack--multi { background: linear-gradient(160deg, rgba(216,176,106,.18), var(--surface-1) 60%); }
-.land-stack--single { box-shadow: var(--shadow-card); }
-.land-stack .nm { font-size: 10px; font-weight: 600; color: var(--text-dim); text-align: center; padding: 0 4px; line-height: 1.2; }
-
-/* ============================================================
-   ゾーンチップ列
-   ============================================================ */
-.zone-chips {
-  flex: none;
-  display: flex; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-}
-.zone-chip {
-  flex: 1;
-  min-height: var(--touch-target);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: var(--surface-1);
+  background: rgba(8, 10, 8, .9);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  transition: border-color var(--dur-fast);
+  border-radius: 99px;
 }
-.zone-chip:active { border-color: var(--gold); }
-.zone-chip .k { font-size: 10px; letter-spacing: .1em; color: var(--text-dim); }
-.zone-chip .v { font-family: var(--mono); font-size: var(--fs-sm); font-weight: 700; color: var(--text); }
-.zone-chip--cmd .v { color: var(--gold-bright); }
+/* 束にタップ済みが混じる: わずかな傾きで「崩れ」を出す */
+.pile--part-tapped .mcard { transform: rotate(-4deg); }
+/* 単体タップ済み土地: その場で横倒し */
+.pile--tapped { width: 74px; display: flex; align-items: flex-end; justify-content: center; }
+.pile--tapped .mcard { width: 54px; transform: rotate(90deg); filter: brightness(.72) saturate(.85); transform-origin: center; }
+.land-row .mcard .t { font-size: 8.5px; padding: 1px 3px; }
 
 /* ============================================================
-   Hand — 横スクロール+プレイ可能発光(vision 原則2)
+   Hand v2(黒帯なしのカード然フレーム+プレイ可能発光)
    ============================================================ */
 .hand {
   flex: none;
-  display: flex; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3) var(--space-2);
+  position: relative; z-index: 6;
+  display: flex; gap: var(--space-2); align-items: flex-end;
+  padding: 10px var(--space-3) 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
 .hand::-webkit-scrollbar { display: none; }
-.hand .card {
-  flex: none;
-  width: clamp(96px, 26vw, 120px);
-}
-.hand .card.playable {
-  box-shadow: var(--playable-glow), var(--shadow-card);
-  transform: translateY(-4px);
-}
-.hand .card.playable:active { transform: translateY(-4px) scale(.97); }
-.hand .card .cost {
-  position: absolute; top: 3px; right: 3px;
-  display: flex; gap: 2px;
-}
+.hand .mcard { flex: none; width: clamp(92px, 25vw, 116px); }
+.hand .mcard.playable { transform: translateY(-5px); }
+.hand .mcard.playable:active { transform: translateY(-5px) scale(.97); }
 .pip {
   width: 15px; height: 15px;
   display: grid; place-items: center;
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   border-radius: 50%;
   background: #0a0d0b; color: var(--text);
-  border: 1px solid var(--line-strong);
+  border: 1px solid rgba(255,255,255,.2);
+  box-shadow: 0 1px 2px rgba(0,0,0,.6);
 }
 .pip--g { background: var(--mana-g); color: #10240f; border: none; }
 .pip--u { background: var(--mana-u); color: #0a2030; border: none; }
 .pip--b { background: var(--mana-b); color: #1d1030; border: none; }
 
 /* ============================================================
-   ThumbZone — プライマリアクション+ライフ+メニュー(§8)
+   ThumbZone v2 — [undo][プライマリ][≡](ライフはステータス帯へ)
    ============================================================ */
 .thumb-zone {
   flex: none;
+  position: relative; z-index: 10;
   display: flex; gap: var(--space-2); align-items: stretch;
-  padding: var(--space-2) var(--space-3) max(12px, env(safe-area-inset-bottom));
-  background: linear-gradient(transparent, rgba(13,20,16,.9) 30%);
+  padding: 4px var(--space-3) max(10px, env(safe-area-inset-bottom));
 }
 .primary-action {
   flex: 1;
@@ -404,25 +476,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   transition: transform var(--dur-fast) var(--ease-snap);
 }
 .primary-action:active { transform: scale(.97); }
-.primary-action--resolve { /* スタック未解決時: ボタン自体が「解決」になる(原則2) */ }
-.life-chip {
-  min-width: 76px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: var(--surface-1);
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-}
-.life-chip .v { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--text-h); line-height: 1.1; }
-.life-chip .k { font-size: 10px; letter-spacing: .14em; color: var(--text-dim); }
-.menu-btn {
-  width: 52px;
-  display: grid; place-items: center;
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--text-dim);
-}
-.undo-btn {
+.undo-btn, .menu-btn {
   width: 52px;
   display: grid; place-items: center;
   background: var(--surface-1);
@@ -432,7 +486,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 
 /* ============================================================
-   CardActionSheet(§8) — bottom sheet
+   CardActionSheet(§8)
    ============================================================ */
 .sheet-backdrop {
   position: absolute; inset: 0; z-index: 40;
@@ -451,22 +505,11 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 @keyframes sheetup { from { transform: translateY(40px); opacity: 0; } }
 @keyframes fadein { from { opacity: 0; } }
-.sheet .grip {
-  width: 36px; height: 4px;
-  margin: 0 auto 12px;
-  background: var(--line-strong);
-  border-radius: 99px;
-}
+.sheet .grip { width: 36px; height: 4px; margin: 0 auto 12px; background: var(--line-strong); border-radius: 99px; }
 .sheet__head { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); }
 .sheet__card {
-  flex: none; width: 108px;
-  aspect-ratio: var(--card-ratio);
-  border-radius: 8px;
-  border: 1px solid var(--line-strong);
-  /* マナ色の縁光(§8): 緑単色例 */
+  flex: none; width: 132px;
   box-shadow: 0 0 0 1.5px rgba(143,217,154,.55), 0 0 18px rgba(143,217,154,.25), var(--shadow-card);
-  background: linear-gradient(150deg, #1c3325, #0f1d14 70%);
-  position: relative; overflow: hidden;
 }
 .sheet__info h2 { font-family: var(--display); font-size: var(--fs-lg); color: var(--text-h); font-weight: 600; }
 .sheet__info .type { font-size: var(--fs-sm); color: var(--text-dim); margin-top: 2px; }
@@ -513,7 +556,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .sheet__folded button.danger { color: var(--danger); }
 
 /* ============================================================
-   Feed(§8) — 右スライドパネル
+   Feed(§8)
    ============================================================ */
 .feed-backdrop { position: absolute; inset: 0; z-index: 40; background: rgba(5,8,6,.5); animation: fadein var(--dur-move) var(--ease-out); }
 .feed {
@@ -578,27 +621,36 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .feed-item__acts .go { background: var(--gold-surface); color: var(--action-primary-text); box-shadow: var(--gold-edge); }
 .feed-item__acts .skip { background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text-dim); }
 
-/* スタック展開(フィード画面のスタック帯の下に) */
-.stack-open {
-  margin: var(--space-2) var(--space-3) 0;
-  display: flex; flex-direction: column; gap: 6px;
+/* ============================================================
+   デモモーション(design-system §7 の祝祭語彙の実演)
+   ============================================================ */
+.fx-draw { animation: fly-draw var(--dur-hero) var(--ease-out); }
+@keyframes fly-draw {
+  0%   { transform: translate(var(--fx, -200px), var(--fy, -400px)) rotate(-16deg) scale(.35); opacity: 0; }
+  45%  { opacity: 1; }
+  72%  { transform: translate(calc(var(--fx, -200px) * .12), calc(var(--fy, -400px) * .22 - 16px)) rotate(5deg) scale(1.05); }
+  100% { transform: none; }
 }
-.stack-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 12px;
-  background: var(--surface-2);
-  border: 1px solid rgba(216,169,95,.35);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-sm);
+.fx-etb { animation: etb-land var(--dur-hero) var(--ease-snap); }
+@keyframes etb-land {
+  0%   { transform: translateY(-42px) scale(.6); opacity: 0; }
+  62%  { transform: translateY(0) scale(1.07); opacity: 1; }
+  100% { transform: none; }
 }
-.stack-item .no { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700; color: var(--trigger); }
-.stack-item .what { flex: 1; }
-.stack-item .what b { color: var(--text-h); }
-.stack-item .what span { color: var(--text-dim); font-size: var(--fs-xs); display: block; }
-.stack-item--top { border-color: rgba(216,169,95,.7); background: linear-gradient(90deg, rgba(216,169,95,.12), var(--surface-2)); }
+.fx-etb .mcard, .mcard.fx-etb { animation: etb-flash 700ms var(--ease-out); }
+@keyframes etb-flash {
+  0%, 20% { box-shadow: var(--shadow-card); }
+  55% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 26px rgba(240,207,140,.55), var(--shadow-card); }
+  100% { box-shadow: var(--shadow-card); }
+}
+.flash-dmg b { animation: dmg-flash 700ms var(--ease-out); display: inline-block; }
+@keyframes dmg-flash {
+  25% { color: var(--danger); text-shadow: 0 0 12px rgba(239,111,111,.8); transform: scale(1.25); }
+  100% { transform: none; }
+}
 
 /* ============================================================
-   デスクトップ 3カラム(vision §3)
+   デスクトップ 3カラム(D4スコープ・据え置き。v2カード部品で描画)
    ============================================================ */
 .desktop {
   min-width: 1180px;
@@ -608,10 +660,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   gap: var(--space-3);
   padding: var(--space-3);
 }
-.desk-col {
-  display: flex; flex-direction: column; gap: var(--space-3);
-  min-height: 0;
-}
+.desk-col { display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; }
 .desk-panel {
   background: var(--surface-1);
   border: 1px solid var(--line);
@@ -623,10 +672,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   letter-spacing: .14em; color: var(--text-dim);
   margin-bottom: var(--space-2);
 }
-.desk-center {
-  display: flex; flex-direction: column; gap: var(--space-2);
-  min-height: 0;
-}
+.desk-center { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; }
 .desk-board {
   flex: 1;
   background: var(--surface-1);
@@ -636,11 +682,9 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
-.desk-board .grid { grid-template-columns: repeat(6, 1fr); }
-.desk-handrow {
-  flex: none;
-  display: flex; gap: var(--space-3); align-items: stretch;
-}
+.desk-board .cgrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.desk-board .pgrid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+.desk-handrow { flex: none; display: flex; gap: var(--space-3); align-items: stretch; }
 .desk-hand {
   flex: 1;
   display: flex; gap: var(--space-2);
@@ -650,25 +694,37 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   border-radius: var(--radius-lg);
   overflow-x: auto;
 }
-.desk-hand .card { flex: none; width: 104px; }
+.desk-hand .mcard { flex: none; width: 104px; }
 .desk-actions { display: flex; flex-direction: column; gap: var(--space-2); width: 220px; }
 .feed--inline {
   position: static; width: auto; flex: 1;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  border-left: 1px solid var(--line);
   animation: none;
   min-height: 0;
 }
 .cmd-slot { display: flex; justify-content: center; }
-.cmd-slot .card { width: 132px; }
-.empty-seat {
-  aspect-ratio: var(--card-ratio);
-  border: 1px dashed var(--line-strong);
-  border-radius: 8px;
-  display: grid; place-items: center;
+.cmd-slot .mcard { width: 132px; }
+.opp {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   font-size: var(--fs-xs); color: var(--text-dim);
 }
+.opp b { font-family: var(--mono); font-size: var(--fs-sm); color: var(--text); }
+.zrow {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: var(--touch-target);
+  padding: 0 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs); color: var(--text-dim);
+  width: 100%;
+}
+.zrow b { font-family: var(--mono); font-size: var(--fs-sm); color: var(--text); }
 
 /* 注釈(モック専用) */
 .note {
@@ -693,101 +749,90 @@ body.hide-notes .note { display: none; }
 <!-- モックアップ・クローム(製品UIではない) -->
 <nav class="chrome" role="tablist">
   <button class="on" data-go="s1">1<span> 縦持ち</span></button>
-  <button data-go="s2">2<span> カードシート</span></button>
-  <button data-go="s3">3<span> フィード/スタック</span></button>
-  <button data-go="s4">4<span> デスクトップ</span></button>
+  <button data-go="s2">2<span> シート</span></button>
+  <button data-go="s3">3<span> フィード</span></button>
+  <button data-go="s4">4<span> PC</span></button>
+  <i class="sep"></i>
+  <button class="theme-toggle" id="themeToggle">B<span> グラス案</span></button>
+  <button class="demo-btn" id="demoBtn">▶<span> ドロー</span></button>
 </nav>
 <button class="notes-toggle" onclick="document.body.classList.toggle('hide-notes')">注釈 ON/OFF</button>
 
 <!-- ============================================================
-     画面1: 縦持ちゲーム画面(design-vision.md §3 の実体化)
+     画面1: 縦持ちゲーム画面 v2(カード主役・design-vision §3)
+     デモ状態: T5・統率者は統率領域(土地行左端に常駐)
      ============================================================ -->
 <section class="screen on" id="s1">
   <div class="phone">
+    <!-- StatusBand v2: 1行36px。数値のみ・タップでシート -->
     <header class="status-band">
-      <div class="status-band__row">
-        <div class="turn-chip">
-          <span class="t">T5</span><span class="p">メイン1</span>
-          <span class="phase-dots"><i></i><i></i><i></i><i class="now"></i><i></i><i></i><i></i></span>
-        </div>
-        <button class="bell" data-go="s3" aria-label="フィード">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-          <span class="badge">2</span>
-        </button>
-      </div>
-      <div class="opp-row">
-        <div class="opp">相手A <b>38</b></div>
-        <div class="opp">相手B <b>40</b></div>
-        <div class="opp">相手C <b>33</b></div>
-      </div>
+      <button class="turn-chip">
+        <span class="t">T5</span><span class="p">メイン1</span>
+        <span class="phase-dots"><i></i><i></i><i></i><i class="now"></i><i></i><i></i><i></i></span>
+      </button>
+      <button class="zone-mini" id="libChip"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b><span class="k">追</span><b>1</b></button>
+      <button class="life-mini" id="lifeChip">♥<b>40</b></button>
+      <button class="bell" data-go="s3" aria-label="フィード">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="badge">2</span>
+      </button>
     </header>
 
-    <div class="note" style="top: 108px; right: 8px;">誘発2件でベルにバッジ。タップでフィード(画面3)</div>
+    <div class="note" style="top: 96px; right: 8px;">相手ライフ・ゾーン一覧は常設をやめ、♥/山札チップのタップでシート表示(情報は必要最低限+タップで出す)</div>
 
+    <!-- Board v2: ラベルなし・カード主役 -->
     <main class="board">
-      <div>
-        <div class="zone-label">クリーチャー <b>3</b></div>
-        <div class="grid" style="margin-top: 6px;">
-          <div class="card card--commander ci-bug" data-go="s2"><div class="art"></div><div class="name">ムルドローサ</div><div class="pt">6/6</div></div>
-          <div class="card ci-g card--tapped" data-go="s2"><div class="art"></div><div class="name">桜族の長老</div><div class="pt">1/1</div></div>
-          <div class="card ci-g card--sick" data-go="s2"><div class="art"></div><div class="name">永遠の証人</div><div class="pt">2/1</div><div class="badge-l" style="color: var(--text-dim);">酔</div></div>
-        </div>
+      <div class="cgrid" id="cgrid">
+        <div class="slot slot--tap" data-go="s2"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
+        <div class="slot" data-go="s2"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
-      <div>
-        <div class="zone-label">その他のパーマネント <b>3</b></div>
-        <div class="grid" style="margin-top: 6px;">
-          <div class="card ci-c card--tapped" data-go="s2"><div class="art"></div><div class="name">太陽の指輪</div></div>
-          <div class="card ci-c" data-go="s2"><div class="art"></div><div class="name">秘儀の印鑑</div></div>
-          <div class="card ci-b" data-go="s2"><div class="art"></div><div class="name">破滅的な行為</div></div>
-        </div>
-      </div>
-      <div>
-        <div class="zone-label">土地 <b>8</b> <b style="margin-left:auto">未タップ 5</b></div>
-        <div class="land-row" style="margin-top: 6px;">
-          <div class="land-stack land-stack--g" data-go="s2">
-            <span class="sym" style="color: var(--mana-g);">◆</span>
-            <span class="cnt">×3</span>
-            <span class="tapped">1⤵</span>
-          </div>
-          <div class="land-stack land-stack--u" data-go="s2">
-            <span class="sym" style="color: var(--mana-u);">◆</span>
-            <span class="cnt">×2</span>
-          </div>
-          <div class="land-stack land-stack--b" data-go="s2">
-            <span class="sym" style="color: var(--mana-b);">◆</span>
-            <span class="cnt">×1</span>
-          </div>
-          <div class="land-stack land-stack--multi" data-go="s2">
-            <span class="nm">繁殖池</span>
-            <span class="sym" style="font-size:14px;"><span style="color:var(--mana-g)">◆</span><span style="color:var(--mana-u)">◆</span></span>
-          </div>
-          <div class="land-stack land-stack--multi" data-go="s2">
-            <span class="nm">統率の塔</span>
-            <span class="tapped">⤵</span>
-            <span class="sym" style="color: var(--gold);">◆</span>
-          </div>
-        </div>
+      <hr class="rule">
+      <div class="pgrid">
+        <div class="slot slot--tap" data-go="s2"><div class="mcard"><div class="t">太陽の指輪</div><div class="a a--c"></div></div></div>
+        <div class="slot" data-go="s2"><div class="mcard"><div class="t">秘儀の印鑑</div><div class="a a--c"></div></div></div>
+        <div class="slot" data-go="s2"><div class="mcard"><div class="t">破滅的な行為</div><div class="a a--b"></div></div></div>
       </div>
     </main>
-    <div class="note" style="bottom: 218px; left: 12px;">基本地形は色別に束ねて面積1/3(タップで束シート=一括タップ)。特殊地形は個別。</div>
 
-    <div class="zone-chips">
-      <button class="zone-chip"><span class="k">墓地</span><span class="v">4</span></button>
-      <button class="zone-chip"><span class="k">追放</span><span class="v">1</span></button>
-      <button class="zone-chip"><span class="k">山札</span><span class="v">87</span></button>
-      <button class="zone-chip zone-chip--cmd"><span class="k">統率</span><span class="v">—</span></button>
+    <!-- 土地行 v2: 物理スタック(ずらし重ね)+統率者常駐 -->
+    <div class="land-row" id="landRow">
+      <div class="pile" data-go="s2">
+        <div class="mcard mcard--commander"><div class="t">ムルドローサ</div><div class="a a--bug"></div></div>
+      </div>
+      <div class="pile pile--stacked pile--part-tapped" data-go="s2">
+        <div class="mcard"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div></div>
+        <span class="cnt">×3</span><span class="tapn">1⤵</span>
+      </div>
+      <div class="pile pile--stacked pile--x2" data-go="s2">
+        <div class="mcard"><div class="t">島</div><div class="a a--u"><span class="sym" style="color: var(--mana-u);">◆</span></div></div>
+        <span class="cnt">×2</span>
+      </div>
+      <div class="pile" data-go="s2">
+        <div class="mcard"><div class="t">沼</div><div class="a a--b"><span class="sym" style="color: var(--mana-b);">◆</span></div></div>
+      </div>
+      <div class="pile pile--tapped" data-go="s2">
+        <div class="mcard"><div class="t">繁殖池</div><div class="a a--gu"></div></div>
+      </div>
+      <div class="pile" data-go="s2">
+        <div class="mcard"><div class="t">統率の塔</div><div class="a a--gold"><span class="sym" style="color: var(--gold);">◆</span></div></div>
+      </div>
+      <div class="pile" data-go="s2">
+        <div class="mcard"><div class="t">湿った墓</div><div class="a a--gu"></div></div>
+      </div>
     </div>
 
-    <div class="hand" aria-label="手札">
-      <div class="card ci-gu playable" data-go="s2"><div class="art"></div><div class="name">成長のらせん</div><div class="cost"><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div></div>
-      <div class="card ci-b playable" data-go="s2"><div class="art"></div><div class="name">暗黒の儀式</div><div class="cost"><span class="pip pip--b">B</span></div></div>
-      <div class="card ci-u" data-go="s2"><div class="art"></div><div class="name">白鳥の歌</div><div class="cost"><span class="pip pip--u">U</span></div></div>
-      <div class="card ci-c" data-go="s2"><div class="art"></div><div class="name">一つの指輪</div><div class="cost"><span class="pip">4</span></div></div>
-      <div class="card ci-g playable" data-go="s2"><div class="art"></div><div class="name">森</div></div>
+    <div class="note" style="bottom: 330px; left: 12px;">土地=紙EDHの机上再現: 同名はずらし重ね(×3)・タップ済みは横倒し/傾き+「1⤵」。行ごと横スクロール。統率者は統率領域にいる間ここに常駐</div>
+
+    <!-- 手札 -->
+    <div class="hand" id="hand">
+      <div class="mcard playable" data-go="s2"><div class="t">成長のらせん</div><div class="a a--gu"></div><div class="cost"><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div></div>
+      <div class="mcard playable" data-go="s2"><div class="t">暗黒の儀式</div><div class="a a--b"></div><div class="cost"><span class="pip pip--b">B</span></div></div>
+      <div class="mcard" data-go="s2"><div class="t">白鳥の歌</div><div class="a a--u"></div><div class="cost"><span class="pip pip--u">U</span></div></div>
+      <div class="mcard" data-go="s2"><div class="t">一つの指輪</div><div class="a a--c"></div><div class="cost"><span class="pip">4</span></div></div>
+      <div class="mcard playable" data-go="s2"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div></div>
     </div>
 
-    <div class="note" style="bottom: 148px; left: 12px;">金の発光=今のマナでプレイ可能(エンジンが計算)</div>
-
+    <!-- ThumbZone v2 -->
     <footer class="thumb-zone">
       <button class="undo-btn" aria-label="元に戻す">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
@@ -795,7 +840,6 @@ body.hide-notes .note { display: none; }
       <button class="primary-action">次のフェイズ
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
       </button>
-      <button class="life-chip"><span class="v">40</span><span class="k">ライフ</span></button>
       <button class="menu-btn" aria-label="メニュー">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
@@ -804,27 +848,19 @@ body.hide-notes .note { display: none; }
 </section>
 
 <!-- ============================================================
-     画面2: カードアクションシート(design-system.md §8)
-     《森》の例 — 診断で挙げた「15項目フラット」の解答
+     画面2: カードアクションシート(《森》の例)
      ============================================================ -->
 <section class="screen" id="s2">
   <div class="phone">
-    <!-- 下敷き(画面1の簡略・暗転) -->
     <header class="status-band" style="opacity:.45; pointer-events:none;">
-      <div class="status-band__row">
-        <div class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></div>
-        <span class="bell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge">2</span></span>
-      </div>
-      <div class="opp-row"><div class="opp">相手A <b>38</b></div><div class="opp">相手B <b>40</b></div><div class="opp">相手C <b>33</b></div></div>
+      <button class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></button>
+      <button class="zone-mini"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b></button>
+      <button class="life-mini">♥<b>40</b></button>
     </header>
-    <main class="board" style="opacity:.45; pointer-events:none;">
-      <div>
-        <div class="zone-label">クリーチャー <b>3</b></div>
-        <div class="grid" style="margin-top:6px;">
-          <div class="card card--commander ci-bug"><div class="art"></div><div class="name">ムルドローサ</div><div class="pt">6/6</div></div>
-          <div class="card ci-u"><div class="art"></div><div class="name">面晶体のカニ</div><div class="pt">0/2</div></div>
-          <div class="card ci-g card--tapped"><div class="art"></div><div class="name">桜族の長老</div><div class="pt">1/1</div></div>
-        </div>
+    <main class="board" style="opacity:.4; pointer-events:none;">
+      <div class="cgrid">
+        <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
+        <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
     </main>
 
@@ -832,9 +868,7 @@ body.hide-notes .note { display: none; }
     <div class="sheet" role="dialog" aria-label="森 の操作">
       <div class="grip"></div>
       <div class="sheet__head">
-        <div class="sheet__card">
-          <div class="name" style="position:absolute; left:0; right:0; top:0; padding:4px 6px 10px; font-size:11px; font-weight:700; color:#f5f2e8; background:linear-gradient(rgba(5,8,6,.85), transparent);">森</div>
-        </div>
+        <div class="mcard sheet__card"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g); font-size: 40px;">◆</span></div></div>
         <div class="sheet__info">
           <h2>森</h2>
           <div class="type">基本土地 — 森</div>
@@ -846,7 +880,6 @@ body.hide-notes .note { display: none; }
         </div>
       </div>
       <div class="sheet__actions">
-        <!-- エンジン文脈ランク上位: 土地なら「マナを生成してタップ」が一等地 -->
         <button class="sheet-act sheet-act--hero" data-go="s1">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="m17 8 4-4v5h-5"/></svg>
           マナを生成してタップ <span style="margin-left:auto;" class="pip pip--g">G</span>
@@ -870,24 +903,22 @@ body.hide-notes .note { display: none; }
         </div>
       </div>
     </div>
-    <div class="note" style="bottom: 235px; right: 10px;">旧: 森にも15項目フラット表示 → 新: 文脈上位1-2件+「その他」に畳む(サンドボックス全操作は残す)</div>
+    <div class="note" style="bottom: 268px; right: 10px;">旧: 森にも15項目フラット表示 → 新: 文脈上位1-2件+「その他」に畳む(サンドボックス全操作は残す)</div>
   </div>
 </section>
 
 <!-- ============================================================
-     画面3: フィード+スタック展開(design-vision.md 原則4)
+     画面3: フィード+スタック展開
      ============================================================ -->
 <section class="screen" id="s3">
   <div class="phone">
     <header class="status-band">
-      <div class="status-band__row">
-        <div class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></div>
-        <button class="bell" style="color: var(--gold-bright);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
-      </div>
-      <div class="opp-row"><div class="opp">相手A <b>38</b></div><div class="opp">相手B <b>40</b></div><div class="opp">相手C <b>33</b></div></div>
+      <button class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></button>
+      <button class="zone-mini"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b></button>
+      <button class="life-mini">♥<b>40</b></button>
+      <button class="bell" style="color: var(--gold-bright);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
     </header>
 
-    <!-- スタック帯: 浮動ウィジェット廃止 → 上部の帯+展開(原則4) -->
     <button class="stack-band">
       <span class="n">2</span><span class="label">スタック</span><span class="hint">タップで畳む ▴</span>
     </button>
@@ -902,22 +933,16 @@ body.hide-notes .note { display: none; }
       </div>
     </div>
 
-    <main class="board" style="opacity:.4; pointer-events:none;">
-      <div>
-        <div class="zone-label">クリーチャー <b>3</b></div>
-        <div class="grid" style="margin-top:6px;">
-          <div class="card card--commander ci-bug"><div class="art"></div><div class="name">ムルドローサ</div><div class="pt">6/6</div></div>
-          <div class="card ci-u"><div class="art"></div><div class="name">面晶体のカニ</div><div class="pt">0/2</div></div>
-          <div class="card ci-g card--tapped"><div class="art"></div><div class="name">桜族の長老</div><div class="pt">1/1</div></div>
-        </div>
+    <main class="board" style="opacity:.35; pointer-events:none;">
+      <div class="cgrid">
+        <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
+        <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
     </main>
 
     <footer class="thumb-zone">
       <button class="undo-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
-      <!-- スタック未解決 → プライマリが「解決」に切替(フェイズ送り禁止をボタンで表現) -->
-      <button class="primary-action primary-action--resolve">スタックを解決(1/2)</button>
-      <button class="life-chip"><span class="v">40</span><span class="k">ライフ</span></button>
+      <button class="primary-action">スタックを解決(1/2)</button>
       <button class="menu-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     </footer>
 
@@ -961,85 +986,73 @@ body.hide-notes .note { display: none; }
 </section>
 
 <!-- ============================================================
-     画面4: デスクトップ3カラム(同一部品の展開・vision §3)
+     画面4: デスクトップ3カラム(D4スコープ・v2カード部品で描画)
      ============================================================ -->
 <section class="screen screen--desktop" id="s4">
   <div class="desktop">
-    <!-- 左: 統率領域+ゾーン(縦積み) -->
     <div class="desk-col">
       <div class="desk-panel">
         <h3>統率領域</h3>
         <div class="cmd-slot">
-          <div class="card card--commander ci-bug"><div class="art"></div><div class="name">ムルドローサ</div><div class="pt">6/6</div></div>
+          <div class="mcard mcard--commander"><div class="t">ムルドローサ</div><div class="a a--bug"></div><div class="pt">6/6</div></div>
         </div>
         <div style="text-align:center; margin-top: 8px; font-size: var(--fs-xs); color: var(--text-dim);">統率者税 <b style="font-family: var(--mono); color: var(--text);">+0</b></div>
       </div>
       <div class="desk-panel" style="flex:1;">
         <h3>ゾーン</h3>
         <div style="display:flex; flex-direction:column; gap:8px;">
-          <button class="zone-chip" style="flex-direction:row; gap:8px; justify-content:space-between; padding: 0 14px;"><span class="k">山札</span><span class="v">87</span></button>
-          <button class="zone-chip" style="flex-direction:row; gap:8px; justify-content:space-between; padding: 0 14px;"><span class="k">墓地</span><span class="v">4</span></button>
-          <button class="zone-chip" style="flex-direction:row; gap:8px; justify-content:space-between; padding: 0 14px;"><span class="k">追放</span><span class="v">1</span></button>
+          <button class="zrow"><span>山札</span><b>87</b></button>
+          <button class="zrow"><span>墓地</span><b>4</b></button>
+          <button class="zrow"><span>追放</span><b>1</b></button>
         </div>
       </div>
       <div class="desk-panel">
         <h3>対戦相手</h3>
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <div class="opp" style="min-height:36px;">相手A <b>38</b></div>
-          <div class="opp" style="min-height:36px;">相手B <b>40</b></div>
-          <div class="opp" style="min-height:36px;">相手C <b>33</b></div>
+          <div class="opp">相手A <b>38</b></div>
+          <div class="opp">相手B <b>40</b></div>
+          <div class="opp">相手C <b>33</b></div>
         </div>
       </div>
     </div>
 
-    <!-- 中央: ステータス帯+盤面+手札行 -->
     <div class="desk-center">
       <div style="display:flex; gap: var(--space-2); align-items:center;">
-        <div class="turn-chip">
+        <button class="turn-chip">
           <span class="t">T5</span><span class="p">メイン1</span>
           <span class="phase-dots"><i></i><i></i><i></i><i class="now"></i><i></i><i></i><i></i></span>
-        </div>
+        </button>
         <button class="stack-band" style="flex:1; margin:0;">
           <span class="n">0</span><span class="label" style="color:var(--text-dim); font-weight:400;">スタックは空</span>
         </button>
       </div>
       <div class="desk-board">
-        <div>
-          <div class="zone-label">クリーチャー <b>3</b></div>
-          <div class="grid" style="margin-top:6px;">
-            <div class="card card--commander ci-bug"><div class="art"></div><div class="name">ムルドローサ</div><div class="pt">6/6</div></div>
-            <div class="card ci-g card--tapped"><div class="art"></div><div class="name">桜族の長老</div><div class="pt">1/1</div></div>
-            <div class="card ci-g card--sick"><div class="art"></div><div class="name">永遠の証人</div><div class="pt">2/1</div><div class="badge-l" style="color:var(--text-dim);">酔</div></div>
-            <div class="empty-seat">空き</div>
-            <div class="empty-seat">空き</div>
-          </div>
+        <div class="cgrid">
+          <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
+          <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
         </div>
-        <div>
-          <div class="zone-label">その他のパーマネント <b>3</b></div>
-          <div class="grid" style="margin-top:6px;">
-            <div class="card ci-c card--tapped"><div class="art"></div><div class="name">太陽の指輪</div></div>
-            <div class="card ci-c"><div class="art"></div><div class="name">秘儀の印鑑</div></div>
-            <div class="card ci-b"><div class="art"></div><div class="name">破滅的な行為</div></div>
-          </div>
+        <hr class="rule">
+        <div class="pgrid">
+          <div class="slot slot--tap"><div class="mcard"><div class="t">太陽の指輪</div><div class="a a--c"></div></div></div>
+          <div class="slot"><div class="mcard"><div class="t">秘儀の印鑑</div><div class="a a--c"></div></div></div>
+          <div class="slot"><div class="mcard"><div class="t">破滅的な行為</div><div class="a a--b"></div></div></div>
         </div>
-        <div>
-          <div class="zone-label">土地 <b>8</b> <b style="margin-left:auto;">未タップ 5</b></div>
-          <div class="land-row" style="margin-top:6px;">
-            <div class="land-stack land-stack--g"><span class="sym" style="color:var(--mana-g);">◆</span><span class="cnt">×3</span><span class="tapped">1⤵</span></div>
-            <div class="land-stack land-stack--u"><span class="sym" style="color:var(--mana-u);">◆</span><span class="cnt">×2</span></div>
-            <div class="land-stack land-stack--b"><span class="sym" style="color:var(--mana-b);">◆</span><span class="cnt">×1</span></div>
-            <div class="land-stack land-stack--multi"><span class="nm">繁殖池</span><span class="sym" style="font-size:14px;"><span style="color:var(--mana-g)">◆</span><span style="color:var(--mana-u)">◆</span></span></div>
-            <div class="land-stack land-stack--multi"><span class="nm">統率の塔</span><span class="tapped">⤵</span><span class="sym" style="color:var(--gold);">◆</span></div>
-          </div>
+        <hr class="rule">
+        <div class="land-row" style="padding: 6px 0 0;">
+          <div class="pile pile--stacked pile--part-tapped"><div class="mcard"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div></div><span class="cnt">×3</span><span class="tapn">1⤵</span></div>
+          <div class="pile pile--stacked pile--x2"><div class="mcard"><div class="t">島</div><div class="a a--u"><span class="sym" style="color: var(--mana-u);">◆</span></div></div><span class="cnt">×2</span></div>
+          <div class="pile"><div class="mcard"><div class="t">沼</div><div class="a a--b"><span class="sym" style="color: var(--mana-b);">◆</span></div></div></div>
+          <div class="pile pile--tapped"><div class="mcard"><div class="t">繁殖池</div><div class="a a--gu"></div></div></div>
+          <div class="pile"><div class="mcard"><div class="t">統率の塔</div><div class="a a--gold"><span class="sym" style="color: var(--gold);">◆</span></div></div></div>
         </div>
       </div>
       <div class="desk-handrow">
         <div class="desk-hand">
-          <div class="card ci-gu playable"><div class="art"></div><div class="name">成長のらせん</div><div class="cost"><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div></div>
-          <div class="card ci-b playable"><div class="art"></div><div class="name">暗黒の儀式</div><div class="cost"><span class="pip pip--b">B</span></div></div>
-          <div class="card ci-u"><div class="art"></div><div class="name">白鳥の歌</div><div class="cost"><span class="pip pip--u">U</span></div></div>
-          <div class="card ci-c"><div class="art"></div><div class="name">一つの指輪</div><div class="cost"><span class="pip">4</span></div></div>
-          <div class="card ci-g playable"><div class="art"></div><div class="name">森</div></div>
+          <div class="mcard playable"><div class="t">成長のらせん</div><div class="a a--gu"></div><div class="cost"><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div></div>
+          <div class="mcard playable"><div class="t">暗黒の儀式</div><div class="a a--b"></div><div class="cost"><span class="pip pip--b">B</span></div></div>
+          <div class="mcard"><div class="t">白鳥の歌</div><div class="a a--u"></div><div class="cost"><span class="pip pip--u">U</span></div></div>
+          <div class="mcard"><div class="t">一つの指輪</div><div class="a a--c"></div><div class="cost"><span class="pip">4</span></div></div>
+          <div class="mcard playable"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div></div>
         </div>
         <div class="desk-actions">
           <button class="primary-action">次のフェイズ
@@ -1047,14 +1060,13 @@ body.hide-notes .note { display: none; }
           </button>
           <div style="display:flex; gap:8px;">
             <button class="undo-btn" style="flex:1;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
-            <button class="life-chip" style="flex:2; flex-direction:row; gap:8px;"><span class="k">ライフ</span><span class="v" style="font-size:20px;">40</span></button>
+            <button class="life-mini" style="flex:2; justify-content:center;">♥<b>40</b></button>
             <button class="menu-btn" style="flex:1;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 右: フィード常時表示 -->
     <div class="desk-col">
       <aside class="feed feed--inline">
         <div class="feed__head" style="padding-top: var(--space-3);"><h2>フィード</h2></div>
@@ -1082,14 +1094,86 @@ body.hide-notes .note { display: none; }
 </section>
 
 <script>
-// モック用の画面遷移のみ(製品コードではない)
+// ===== モック専用スクリプト(製品コードではない) =====
+
+// 画面遷移
 document.addEventListener('click', (e) => {
   const go = e.target.closest('[data-go]');
   if (!go) return;
   const id = go.dataset.go;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
-  document.querySelectorAll('.chrome button').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+  document.querySelectorAll('.chrome [data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === id));
 });
+
+// A/Bテーマ切替(A: 夜のテーブル深化 / B: ミッドナイト・グラス)
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const root = document.documentElement;
+  const toGlass = root.dataset.theme !== 'glass';
+  root.dataset.theme = toGlass ? 'glass' : '';
+  themeToggle.innerHTML = toGlass ? 'A<span> 夜のテーブル案</span>' : 'B<span> グラス案</span>';
+});
+
+// モーションデモ(design-system §7 の祝祭語彙: ドロー/ETB/ライフ)
+const demoBtn = document.getElementById('demoBtn');
+const demos = [
+  { kind: 'draw', label: 'ドロー' },
+  { kind: 'etb', label: 'ETB' },
+  { kind: 'life', label: 'ライフ' },
+];
+let demoIdx = 0;
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+demoBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  // 画面1でのみ再生
+  if (!document.getElementById('s1').classList.contains('on')) {
+    document.querySelector('.chrome [data-go="s1"]').click();
+  }
+  runDemo(demos[demoIdx].kind);
+  demoIdx = (demoIdx + 1) % demos.length;
+  demoBtn.innerHTML = '▶<span> ' + demos[demoIdx].label + '</span>';
+});
+
+function runDemo(kind) {
+  navigator.vibrate?.(10);
+  if (kind === 'draw') {
+    const hand = document.getElementById('hand');
+    const card = document.createElement('div');
+    card.className = 'mcard';
+    card.innerHTML = '<div class="t">タトヨヴァ</div><div class="a a--gu"></div><div class="cost"><span class="pip">3</span><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div>';
+    hand.appendChild(card);
+    const src = document.getElementById('libChip').getBoundingClientRect();
+    const dst = card.getBoundingClientRect();
+    card.style.setProperty('--fx', (src.left + src.width / 2 - dst.left - dst.width / 2) + 'px');
+    card.style.setProperty('--fy', (src.top - dst.top) + 'px');
+    card.classList.add('fx-draw');
+    hand.scrollTo({ left: hand.scrollWidth, behavior: reduced() ? 'auto' : 'smooth' });
+    setTimeout(() => { card.style.opacity = '0'; card.style.transition = 'opacity 300ms'; setTimeout(() => card.remove(), 320); }, 2600);
+  }
+  if (kind === 'etb') {
+    const grid = document.getElementById('cgrid');
+    const slot = document.createElement('div');
+    slot.className = 'slot fx-etb';
+    slot.innerHTML = '<div class="mcard mcard--sick fx-etb"><div class="t">タトヨヴァ</div><div class="a a--gu"></div><div class="pt">2/3</div></div>';
+    grid.appendChild(slot);
+    setTimeout(() => { slot.style.opacity = '0'; slot.style.transition = 'opacity 300ms'; setTimeout(() => slot.remove(), 320); }, 2600);
+  }
+  if (kind === 'life') {
+    const chip = document.getElementById('lifeChip');
+    const b = chip.querySelector('b');
+    chip.classList.remove('flash-dmg');
+    void chip.offsetWidth; // reflow で再発火可能に
+    chip.classList.add('flash-dmg');
+    if (reduced()) { b.textContent = '37'; setTimeout(() => { b.textContent = '40'; }, 1400); return; }
+    let v = 40;
+    const iv = setInterval(() => {
+      v--; b.textContent = v;
+      if (v <= 37) { clearInterval(iv); setTimeout(() => { b.textContent = '40'; chip.classList.remove('flash-dmg'); }, 1600); }
+    }, 110);
+  }
+}
 </script>
 </body>
 </html>

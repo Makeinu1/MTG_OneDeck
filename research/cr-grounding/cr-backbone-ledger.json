@@ -39,7 +39,7 @@
         "d0-groundwork"
       ],
       "userGate": "同上(design-vision §4)",
-      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2-§7のトークン実装(視覚正本research/design/mockups/index.htmlの<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
+      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2-§7のトークン実装(視覚正本research/design/mockups/index.html v2の<style>冒頭トークン層を移植。**テーマA/Bのユーザー裁定が先行条件**=design-system §2の保留を参照) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
     },
     {
       "type": "design-slice",
@@ -49,7 +49,7 @@
         "d1-design-system-card-sheet"
       ],
       "userGate": "同上(design-vision §4)",
-      "note": "D2 縦持ちレイアウト(刷新の本丸)。src/components/game/一式新設(GameScreen/StatusBand/StackBand/Board/LandStacks/ZoneChips/HandRibbon/ThumbZone=ui-architecture-v2 §2)。RotateNotice撤去=縦持ちの壁を壊す。単一adaptive tree(JSXでのisPhone分岐禁止・CSS grid-template-areasのみで3形態)。土地の色別圧縮束(同名基本地形のみ束ね・束シートで個別操作可)。MobileControlsDrawer/MobileZoneSwap/useIsPhoneLandscape退役。視覚正本=research/design/mockups/index.html画面1-2。受け入れ=375pxで1ゲーム完走(実機ヒューリスティック)+3形態スクショ+機械4点+review.*。"
+      "note": "D2 縦持ちレイアウト(刷新の本丸。Round 2 v2で確定)。src/components/game/一式新設(GameScreen/StatusBand/StackBand/Board/LandRow/HandRibbon/ThumbZone=ui-architecture-v2 §2)。RotateNotice撤去=縦持ちの壁を壊す。単一adaptive tree(JSXでのisPhone分岐禁止・CSS grid-template-areasのみで3形態)。**カードが主役(vision 原則7)**=ラベル/相手ライフ常設行/ゾーンチップ列は廃止しステータス帯1行36px+タップシートへ。土地=同名基本地形の物理スタック(ずらし重ね・design-system §8 LandRow)+統率者常駐。MobileControlsDrawer/MobileZoneSwap/useIsPhoneLandscape退役。視覚正本=research/design/mockups/index.html(v2)画面1-2。受け入れ=375pxで1ゲーム完走(実機ヒューリスティック)+クローム予算実測(非カードUI≤25%/盤面カード≥55%)+3形態スクショ+機械4点+review.*。"
     },
     {
       "type": "design-slice",

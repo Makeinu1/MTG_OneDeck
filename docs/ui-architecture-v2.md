@@ -22,13 +22,12 @@ src/
   components/
     game/                    ← 新レイアウト(D2で新設、旧 playmat/ と当面併存)
       GameScreen.tsx         ← 唯一のレイアウトルート(縦/横/デスクトップを CSS で適応。JSX分岐しない)
-      StatusBand.tsx         ← ターン/フェーズ/相手ライフ/ベル(バッジ)
+      StatusBand.tsx         ← 1行36px: ターン/フェーズ+ゾーン枚数チップ+自ライフ+ベル(全てタップ=シート。Round 2 で相手ライフ行・ゾーンチップ列を廃止しここへ集約)
       StackBand.tsx          ← スタック帯+展開リスト(浮動 Stack.tsx の後継)
-      Board.tsx              ← クリーチャー/その他/土地圧縮の3セクション(スクロール領域)
-      LandStacks.tsx         ← 基本地形の色別束+特殊地形個別(一括タップ導線)
-      ZoneChips.tsx          ← 墓地/追放/山札/統率チップ(タップ=ZoneSheet)
+      Board.tsx              ← クリーチャー(大)/その他(小)の2セクション(ラベルなし・hairline区切り・スクロール領域)
+      LandRow.tsx            ← 土地行: 同名基本地形の物理スタック(ずらし重ね)+特殊地形個別+統率者常駐(design-system §8 LandRow)
       HandRibbon.tsx         ← 横スクロール手札+プレイ可能ハイライト
-      ThumbZone.tsx          ← PrimaryAction+ライフ+undo+メニュー
+      ThumbZone.tsx          ← undo+PrimaryAction+メニュー(ライフは StatusBand へ移動)
       PrimaryAction.tsx      ← 文脈ボタン(状態機械は selector で導出)
       CardActionSheet.tsx    ← カード操作シート(ContextMenu 後継)
       Feed.tsx               ← ログ/誘発/警告/自動実行の統合タイムライン
@@ -96,5 +95,5 @@ interface ViewStore {
 
 - **性能**: フィード合成は memo 化した selector で(毎レンダ全ログ走査をしない)。カードグリッドは既存同様 CSS transform のみで tap 回転。
 - **`data-testid` は維持**(`zone-*`/`card-*`/`next-phase` 等)。review.* とブラウザ自動操作の互換を守る。新設要素にも同規約で付与(`primary-action`/`card-sheet`/`feed` 等)。
-- **土地圧縮の同名束ね**は「同名の基本地形のみ」(Snow-Covered は別束。特殊地形は個別)。束の中の個別操作(1枚だけ生け贄等)は束シート内の一覧から可能にする=情報の非破壊。
+- **土地の物理スタック束ね**は「同名の基本地形のみ」(Snow-Covered は別束。特殊地形は個別)。表現は抽象チップでなく実カードのずらし重ね(design-system §8 LandRow)。束の中の個別操作(1枚だけ生け贄等)は束シート内の一覧から可能にする=情報の非破壊。
 - **undo 文言**: フィードは投影ゆえ undo 後の履歴表示が巻き戻る。「操作の記録が消える」ことへの違和感は、undo 実行時にフィードへ「◀ 直前の操作を取り消した」項目を挿入して緩和(gameStore は触らず view 層で)。
