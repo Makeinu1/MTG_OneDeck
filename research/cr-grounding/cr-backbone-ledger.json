@@ -39,7 +39,7 @@
         "d0-groundwork"
       ],
       "userGate": "同上(design-vision §4)",
-      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2-§7のトークン実装(視覚正本research/design/mockups/index.html v2の<style>冒頭トークン層を移植。**テーマA/Bのユーザー裁定が先行条件**=design-system §2の保留を参照) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
+      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
     },
     {
       "type": "design-slice",
@@ -79,7 +79,7 @@
         "d2-portrait-layout"
       ],
       "userGate": "同上(design-vision §4)",
-      "note": "D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。"
+      "note": "D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
     },
     {
       "type": "design-slice",
@@ -90,7 +90,7 @@
       ],
       "userGate": "D-トラックの着手優先度(CRトラックとの順序)はユーザー裁定。autoloopはユーザーの明示指示なしにdesign-sliceを消費しない(docs/design-vision.md §4)",
       "specStatus": "vision-only",
-      "note": "D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。"
+      "note": "D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。"
     },
     {
       "type": "design-slice",
@@ -101,7 +101,7 @@
       ],
       "userGate": "D-トラックの着手優先度(CRトラックとの順序)はユーザー裁定。autoloopはユーザーの明示指示なしにdesign-sliceを消費しない(docs/design-vision.md §4)",
       "specStatus": "vision-only",
-      "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。"
+      "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。"
     }
   ],
   "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**暫定則(2026-07-07 J2 Opus・score-ts-demand-catalog-repair 出荷まで有効)**: demand 軸は classifier-backed family(event:*/zone:*/layer:*/timing:*)のみ信頼する。cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:* の9 family は計器故障中ゆえ『unknown=要 compile.ts 手動 spot-check』扱いで、数値の大きさを優先度信号にしない。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。",

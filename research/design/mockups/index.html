@@ -3,26 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MTG OneDeck — デザイン刷新モックアップ v2</title>
-<!-- 視覚正本: docs/design-vision.md §3 IA(v2) / docs/design-system.md 全節
-     v2(Round 2): カード主役化(クローム予算25%)・土地=物理スタック1行・
-     A/Bテーマ切替(夜のテーブル/ミッドナイト・グラス)・モーションデモ3種 -->
+<title>MTG OneDeck — デザイン刷新モックアップ v3</title>
+<!-- 視覚正本: docs/design-vision.md §2「狙う感情」+ §3 IA / docs/design-system.md 全節
+     v3(Round 3): テーマ「アルケイン戦術卓」正式採用(ユーザー裁定 2026-07-08・フェルト廃止)・
+     反応する舞台(楕円主舞台/手札レスト/スタック緊張帯・80/20則)・
+     5場面体験デモ(初手の儀式/キャスト→スタック/解決→着地/統率者の登場/連鎖)・扇状手札。
+     出典 = research/design/vision-sources/game-feel-dialogue-2026-07.txt -->
 <!-- Google Fonts はローカル/dev閲覧用。CSP環境(Artifact)では内蔵書体へフォールバック -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   トークン層 — docs/design-system.md §2-§7(テーマA: 夜のテーブル)
+   トークン層 — テーマ「アルケイン戦術卓」(docs/design-system.md §2)
+   黒〜チャコール〜深ネイビー+低彩度紫青。カードとマナ色が主役。
+   意味色: 金=行動(プライマリ/プレイ可能)・青白=スタックの緊張・
+           白金=統率者・マナ5色=アイデンティティ
    ============================================================ */
 :root {
-  --felt-1: #0d1410; --felt-2: #121b16; --felt-3: #182420;
-  --surface-0: var(--felt-1);
-  --surface-1: #161f1b;
-  --surface-2: #1d2a24;
-  --line: rgba(212, 226, 214, 0.08);
-  --line-strong: rgba(212, 226, 214, 0.16);
+  --ink-0: #0a0e14;
+  --ink-1: #0d1320;
+  --ink-2: #111a2a;
+  --surface-0: var(--ink-0);
+  --surface-1: #141d2e;
+  --surface-2: #1c2a42;
+  --line: rgba(150, 185, 235, 0.10);
+  --line-strong: rgba(150, 185, 235, 0.24);
 
-  --text: #cfd9d2; --text-dim: #8aa097; --text-h: #f3efe3;
+  --text: #c9d6e8; --text-dim: #7f94b0; --text-h: #f0f5fd;
 
   --mana-w: #f8e7b9; --mana-u: #6cc3e8; --mana-b: #b48be0;
   --mana-r: #ff8c6b; --mana-g: #8fd99a; --mana-c: #c7cdd6;
@@ -34,7 +41,13 @@
 
   --action-primary: var(--gold);
   --action-primary-text: #17130a;
-  --playable-glow: 0 0 0 1.5px var(--gold-bright), 0 0 14px rgba(240, 207, 140, 0.4);
+  --playable-glow: 0 0 0 1.5px var(--gold-bright), 0 0 14px rgba(240, 207, 140, 0.38);
+
+  /* スタックの緊張(青白光)・統率者の白金 */
+  --stack-glow-c: #9fd4ff;
+  --stack-glow: 0 0 0 1px rgba(159, 212, 255, .55), 0 0 20px rgba(140, 190, 255, .35);
+  --commander-platinum: #e9eef6;
+  --platinum-glow: 0 0 0 1.5px rgba(233, 238, 246, .7), 0 0 22px rgba(210, 225, 250, .4);
 
   --auto: #7fb8d8;
   --trigger: #d8a95f;
@@ -42,13 +55,13 @@
   --gold-surface: linear-gradient(160deg, #e8c883 0%, #d8b06a 45%, #b8904e 100%);
   --gold-edge: inset 0 1px 0 rgba(255,235,190,.5), inset 0 -1px 0 rgba(0,0,0,.3);
 
-  --shadow-card: 0 3px 10px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
-  --shadow-pop: 0 12px 32px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
-  --shadow-sheet: 0 -8px 40px rgba(0,0,0,.6);
+  --shadow-card: 0 3px 12px rgba(0,0,0,.6), 0 1px 2px rgba(0,0,0,.5);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.45);
+  --shadow-sheet: 0 -8px 40px rgba(0,0,0,.65);
 
-  /* 光と深度(v2・design-system §2) */
-  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(240, 225, 180, .06), transparent 60%);
-  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 0, .45) 100%);
+  /* 光と深度: 冷たい光溜まり+ヴィネット(常時=静の80%) */
+  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(160, 200, 255, .07), transparent 60%);
+  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, .5) 100%);
 
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
   --sheet-radius: 20px;
@@ -66,43 +79,12 @@
 
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-snap: cubic-bezier(.34, 1.3, .64, 1);
-  --dur-fast: 120ms; --dur-move: 240ms; --dur-hero: 420ms;
+  /* 演出レベル時間予算(design-system §7): L1 80-160 / L2 180-320 / L3 350-700 / L4 700-1200ms */
+  --dur-fast: 120ms; --dur-move: 240ms; --dur-hero: 420ms; --dur-ritual: 650ms;
 
   --card-ratio: 488 / 680;
-  --card-frame: #101512;          /* カード枠(黒縁) */
-  --card-title: rgba(255,255,255,.07);
-}
-
-/* ============================================================
-   テーマB: ミッドナイト・グラス(対案・A/B比較用)
-   青バイアス近黒+ガラス質+マナ色ネオン。金はプライマリのみ
-   ============================================================ */
-:root[data-theme="glass"] {
-  --felt-1: #0a0e14; --felt-2: #0d1320; --felt-3: #111a2a;
-  --surface-0: #0a0e14;
-  --surface-1: rgba(22, 31, 47, .78);
-  --surface-2: rgba(31, 43, 64, .92);
-  --line: rgba(150, 185, 235, .10);
-  --line-strong: rgba(150, 185, 235, .24);
-  --text: #c9d6e8; --text-dim: #7f94b0; --text-h: #f0f5fd;
-  --playable-glow: 0 0 0 1.5px #9fd4ff, 0 0 18px rgba(110, 180, 255, .5);
-  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(160, 200, 255, .07), transparent 60%);
-  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, .5) 100%);
-  --shadow-card: 0 3px 12px rgba(0,0,0,.65), 0 1px 2px rgba(0,0,0,.5);
   --card-frame: #0d1118;
   --card-title: rgba(180, 210, 255, .09);
-}
-:root[data-theme="glass"] body {
-  background:
-    radial-gradient(ellipse at 25% -5%, rgba(110, 160, 230, .06), transparent 50%),
-    radial-gradient(ellipse at 80% 110%, rgba(140, 110, 220, .05), transparent 55%),
-    linear-gradient(180deg, #0b1018, #080b12 55%, #0a0f1a);
-}
-:root[data-theme="glass"] .sheet,
-:root[data-theme="glass"] .feed,
-:root[data-theme="glass"] .turn-chip,
-:root[data-theme="glass"] .thumb-zone > button:not(.primary-action) {
-  backdrop-filter: blur(14px);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -115,10 +97,9 @@ body {
   font: var(--fs-md)/1.5 var(--sans);
   color: var(--text);
   background:
-    radial-gradient(ellipse at 20% -10%, rgba(143,217,154,.05), transparent 50%),
-    radial-gradient(ellipse at 85% 110%, rgba(216,176,106,.06), transparent 55%),
-    repeating-linear-gradient(135deg, var(--felt-1) 0 2px, var(--felt-2) 2px 4px),
-    var(--felt-1);
+    radial-gradient(ellipse at 25% -5%, rgba(110, 160, 230, .06), transparent 50%),
+    radial-gradient(ellipse at 80% 110%, rgba(140, 110, 220, .05), transparent 55%),
+    linear-gradient(180deg, #0b1018, #080b12 55%, #0a0f1a);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
@@ -126,14 +107,14 @@ body {
 button { font-family: var(--sans); color: inherit; background: none; border: none; cursor: pointer; }
 
 /* ============================================================
-   モックアップ・クローム(製品UIではない): 画面切替+テーマ+デモ
+   モックアップ・クローム(製品UIではない): 画面切替+場面デモ再生
    ============================================================ */
 .chrome {
   position: fixed; top: max(6px, env(safe-area-inset-top)); left: 50%;
   transform: translateX(-50%);
   z-index: 90;
   display: flex; gap: 2px; align-items: center;
-  background: rgba(10, 14, 11, .88);
+  background: rgba(8, 11, 18, .9);
   border: 1px solid var(--line-strong);
   border-radius: 99px;
   padding: 3px;
@@ -149,9 +130,10 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 .chrome button.on { background: var(--gold-dim); color: var(--gold-bright); }
 .chrome .sep { width: 1px; height: 16px; background: var(--line-strong); margin: 0 2px; }
-.chrome .theme-toggle, .chrome .demo-btn { color: var(--text); }
+.chrome .demo-btn { color: var(--stack-glow-c); }
+.chrome .demo-btn[disabled] { opacity: .45; }
 @media (max-width: 559px) {
-  .chrome button span { display: none; }
+  .chrome .tab span { display: none; }
   .status-band { padding-top: calc(max(8px, env(safe-area-inset-top)) + 34px); }
   .screen--desktop.on { display: block; height: 100dvh; overflow: auto; padding-top: 44px; }
 }
@@ -167,13 +149,14 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   width: 100%; height: 100dvh;
   display: flex; flex-direction: column;
   overflow: hidden;
+  background: var(--surface-0);
 }
-/* 光と深度: テーブルの光溜まり+ヴィネット(v2) */
+/* 光溜まり+ヴィネット(最前面・非干渉) */
 .phone::after {
   content: '';
   position: absolute; inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 30;
   background: var(--table-light), var(--table-vignette);
 }
 @media (min-width: 560px) {
@@ -182,16 +165,62 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   .phone {
     width: 390px; height: 844px; max-height: 92dvh;
     border-radius: 44px;
-    border: 6px solid #060907;
+    border: 6px solid #05070c;
     outline: 1px solid var(--line-strong);
     box-shadow: 0 24px 80px rgba(0,0,0,.7);
-    background: var(--surface-0);
   }
 }
 
 /* ============================================================
-   カード(v2: 実カード風フレーム。黒帯オーバーレイ廃止)
-   実装では Scryfall 画像がここに入る
+   反応する舞台(StageBackdrop・design-system §8)
+   通常時は80%静か。イベント時だけ20%反応する。
+   ============================================================ */
+.stage { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+/* 戦場=主舞台: 中央の楕円+外周の細い戦術ライン */
+.stage__ring {
+  position: absolute; left: 50%; top: 31%;
+  width: 128%; aspect-ratio: 1.9;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(150, 185, 235, .09);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(120, 165, 235, .045), transparent 75%);
+}
+.stage__ring::before {
+  content: '';
+  position: absolute; inset: 7%;
+  border: 1px solid rgba(150, 185, 235, .05);
+  border-radius: 50%;
+}
+/* 戦術ライン(連鎖時に一段活性する) */
+.stage__lines {
+  position: absolute; inset: 0;
+  opacity: .5;
+  transition: opacity 600ms var(--ease-out);
+  background:
+    linear-gradient(90deg, transparent 49.7%, rgba(150,185,235,.05) 50%, transparent 50.3%) 0 0 / 100% 46%,
+    linear-gradient(0deg, transparent calc(46% - 1px), rgba(150,185,235,.05) 46%, transparent calc(46% + 1px));
+  background-repeat: no-repeat;
+}
+.phone.chain-on .stage__lines {
+  opacity: 1;
+  background:
+    linear-gradient(90deg, transparent 49.6%, rgba(159,212,255,.22) 50%, transparent 50.4%) 0 0 / 100% 46%,
+    linear-gradient(0deg, transparent calc(46% - 1px), rgba(159,212,255,.22) 46%, transparent calc(46% + 1px));
+  background-repeat: no-repeat;
+}
+/* 手札レスト: 手前の緩い温光(カードを持っている感) */
+.stage__rest {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+  background: radial-gradient(70% 55% at 50% 104%, rgba(240, 220, 180, .06), transparent 70%);
+}
+/* 盤面同期の一拍(統率者着地時) */
+.phone.board-sync .stage__ring { animation: ring-sync 500ms var(--ease-out); }
+@keyframes ring-sync {
+  30% { border-color: rgba(233, 238, 246, .35); background: radial-gradient(closest-side, rgba(210, 225, 250, .1), transparent 75%); }
+}
+
+/* ============================================================
+   カード(実カード風フレーム。実装では Scryfall 画像)
    ============================================================ */
 .mcard {
   position: relative;
@@ -208,7 +237,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .mcard .t {
   flex: none;
   font-size: 10px; font-weight: 700; line-height: 1.35;
-  color: #ece8da;
+  color: #e9edf5;
   padding: 1px 4px;
   background: var(--card-title);
   border-radius: 3px 3px 1px 1px;
@@ -225,20 +254,20 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   position: absolute; right: 2px; bottom: 2px;
   padding: 0 6px;
   font-family: var(--mono); font-size: 10px; font-weight: 700;
-  color: #ece8da;
-  background: rgba(8, 10, 8, .88);
+  color: #e9edf5;
+  background: rgba(6, 9, 14, .9);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 5px;
 }
 .mcard .cost { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; z-index: 2; }
 .mcard .sym { font-size: clamp(20px, 55%, 34px); opacity: .8; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.mcard--commander { outline: 2px solid var(--gold); outline-offset: 1px; }
+.mcard--commander { outline: 2px solid var(--commander-platinum); outline-offset: 1px; }
 .mcard--commander::after {
   content: '統率者';
   position: absolute; top: -1px; right: -1px;
   padding: 1px 5px;
   font-size: 9px; font-weight: 700; letter-spacing: .08em;
-  color: #17130a; background: var(--gold-surface);
+  color: #10141c; background: linear-gradient(160deg, #f4f7fc, #d6dfec 60%, #b9c6da);
   border-radius: 0 5px 0 7px;
   z-index: 3;
 }
@@ -251,7 +280,6 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 .mcard.playable { box-shadow: var(--playable-glow), var(--shadow-card); }
 
-/* アート(色アイデンティティ) */
 .a--g { background: linear-gradient(150deg, #27452f, #12241a 70%); }
 .a--u { background: linear-gradient(150deg, #1c3a52, #101f30 70%); }
 .a--b { background: linear-gradient(150deg, #33254a, #191225 70%); }
@@ -261,7 +289,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .a--gold { background: linear-gradient(150deg, #4a3d22, #241d10 70%); }
 
 /* ============================================================
-   StatusBand v2 — 1行36px。数値のみ・タップでシート
+   StatusBand — 1行36px
    ============================================================ */
 .status-band {
   flex: none;
@@ -318,21 +346,46 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   background: var(--trigger);
   border-radius: 99px;
 }
+.bell .badge.pulse { animation: badge-pulse 600ms var(--ease-out) 2; }
+@keyframes badge-pulse { 40% { transform: scale(1.35); box-shadow: 0 0 10px rgba(216,169,95,.7); } }
+
+/* 連鎖中チップ(L4・操作は止めない) */
+.chain-chip {
+  position: absolute; top: 54px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: none;
+  align-items: center; gap: 6px;
+  padding: 4px 14px;
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em;
+  color: var(--stack-glow-c);
+  background: rgba(12, 20, 34, .92);
+  border: 1px solid rgba(159, 212, 255, .45);
+  border-radius: 99px;
+  box-shadow: var(--stack-glow);
+}
+.phone.chain-on .chain-chip { display: flex; animation: chain-in 700ms var(--ease-out); }
+@keyframes chain-in { 0% { opacity: 0; transform: translateX(-50%) translateY(-8px); } }
 
 /* ============================================================
-   スタック帯(画面3で使用)
+   スタック帯 — 「処理待ちの緊張空間」。空の時はほぼ見えない
    ============================================================ */
 .stack-band {
   margin: 0 var(--space-3);
-  display: flex; align-items: center; gap: var(--space-2);
+  display: none;
+  align-items: center; gap: var(--space-2);
   min-height: var(--touch-target);
   padding: 6px 12px;
   position: relative; z-index: 10;
-  background: linear-gradient(90deg, rgba(216,169,95,.14), rgba(216,169,95,.04));
-  border: 1px solid rgba(216,169,95,.4);
+  background: linear-gradient(90deg, rgba(140, 190, 255, .12), rgba(140, 190, 255, .03));
+  border: 1px solid rgba(159, 212, 255, .38);
   border-radius: var(--radius-md);
+  transition: box-shadow 300ms var(--ease-out);
 }
-.stack-band .n { font-family: var(--mono); font-weight: 700; font-size: var(--fs-sm); color: var(--trigger); }
+.stack-band.show { display: flex; animation: stack-rise 350ms var(--ease-out); }
+@keyframes stack-rise { 0% { opacity: 0; transform: translateY(-10px); } }
+.stack-band--hot { box-shadow: var(--stack-glow); }
+.stack-band .n { font-family: var(--mono); font-weight: 700; font-size: var(--fs-sm); color: var(--stack-glow-c); }
 .stack-band .label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-h); flex: 1; }
 .stack-band .hint { font-size: var(--fs-xs); color: var(--text-dim); }
 .stack-open { margin: var(--space-2) var(--space-3) 0; display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 10; }
@@ -340,21 +393,22 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   display: flex; align-items: center; gap: 10px;
   padding: 8px 12px;
   background: var(--surface-2);
-  border: 1px solid rgba(216,169,95,.35);
+  border: 1px solid rgba(159, 212, 255, .3);
   border-radius: var(--radius-md);
   font-size: var(--fs-sm);
 }
-.stack-item .no { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700; color: var(--trigger); }
+.stack-item .no { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700; color: var(--stack-glow-c); }
 .stack-item .what { flex: 1; }
 .stack-item .what b { color: var(--text-h); }
 .stack-item .what span { color: var(--text-dim); font-size: var(--fs-xs); display: block; }
-.stack-item--top { border-color: rgba(216,169,95,.7); background: linear-gradient(90deg, rgba(216,169,95,.12), var(--surface-2)); }
+.stack-item--top { border-color: rgba(159, 212, 255, .65); background: linear-gradient(90deg, rgba(140, 190, 255, .12), var(--surface-2)); }
 
 /* ============================================================
-   Board v2 — ラベルなし・カード主役・hairline区切りのみ
+   Board — ラベルなし・カード主役
    ============================================================ */
 .board {
   flex: 1;
+  position: relative; z-index: 6;
   overflow-y: auto;
   padding: var(--space-1) var(--space-3) var(--space-2);
   display: flex; flex-direction: column; gap: var(--space-2);
@@ -371,8 +425,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .slot--tap .mcard:active { transform: rotate(90deg) scale(.9); }
 
 /* ============================================================
-   土地行 v2 — 物理スタック(ずらし重ね)の1行横スクロール
-   統率者(統率領域にいる間)は左端に常駐
+   土地行 — 物理スタック+統率者の祭壇
    ============================================================ */
 .land-row {
   flex: none;
@@ -384,8 +437,6 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 .land-row::-webkit-scrollbar { display: none; }
 .pile { position: relative; flex: none; width: 60px; }
-/* ずらし重ね: 背後のカード縁を上に数pxずつ見せる */
-.pile--stacked .mcard { box-shadow: var(--shadow-card); }
 .pile--stacked::before, .pile--stacked::after {
   content: '';
   position: absolute; left: 1px; right: 1px;
@@ -416,38 +467,58 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   display: grid; place-items: center;
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   color: var(--text-dim);
-  background: rgba(8, 10, 8, .9);
+  background: rgba(6, 9, 14, .92);
   border: 1px solid var(--line);
   border-radius: 99px;
 }
-/* 束にタップ済みが混じる: わずかな傾きで「崩れ」を出す */
 .pile--part-tapped .mcard { transform: rotate(-4deg); }
-/* 単体タップ済み土地: その場で横倒し */
 .pile--tapped { width: 74px; display: flex; align-items: flex-end; justify-content: center; }
 .pile--tapped .mcard { width: 54px; transform: rotate(90deg); filter: brightness(.72) saturate(.85); transform-origin: center; }
 .land-row .mcard .t { font-size: 8.5px; padding: 1px 3px; }
+/* 統率者の祭壇: 登場デモで起動する */
+.altar.altar--active .mcard {
+  box-shadow: var(--platinum-glow), var(--shadow-card);
+  animation: altar-hum 900ms var(--ease-out);
+}
+@keyframes altar-hum { 40% { transform: translateY(-4px); } }
+.altar.altar--away .mcard { opacity: .35; filter: grayscale(.4); }
 
 /* ============================================================
-   Hand v2(黒帯なしのカード然フレーム+プレイ可能発光)
+   Hand — 扇状(持っている感)+レスト
    ============================================================ */
 .hand {
   flex: none;
   position: relative; z-index: 6;
-  display: flex; gap: var(--space-2); align-items: flex-end;
-  padding: 10px var(--space-3) 8px;
+  display: flex; align-items: flex-end;
+  padding: 16px var(--space-4) 10px;
   overflow-x: auto;
   scrollbar-width: none;
 }
 .hand::-webkit-scrollbar { display: none; }
-.hand .mcard { flex: none; width: clamp(92px, 25vw, 116px); }
-.hand .mcard.playable { transform: translateY(-5px); }
-.hand .mcard.playable:active { transform: translateY(-5px) scale(.97); }
+.hand .mcard {
+  flex: none;
+  width: clamp(92px, 25vw, 116px);
+  margin-left: -14px;
+  transform: rotate(var(--fan-r, 0deg)) translateY(var(--fan-y, 0px));
+  transform-origin: 50% 120%;
+}
+.hand .mcard:first-child { margin-left: 0; }
+.hand .mcard:nth-child(1) { --fan-r: -5deg; --fan-y: 7px; }
+.hand .mcard:nth-child(2) { --fan-r: -3deg; --fan-y: 3px; }
+.hand .mcard:nth-child(3) { --fan-r: -1deg; --fan-y: 1px; }
+.hand .mcard:nth-child(4) { --fan-r: 1deg;  --fan-y: 1px; }
+.hand .mcard:nth-child(5) { --fan-r: 3deg;  --fan-y: 3px; }
+.hand .mcard:nth-child(6) { --fan-r: 5deg;  --fan-y: 5px; }
+.hand .mcard:nth-child(7) { --fan-r: 7deg;  --fan-y: 8px; }
+.hand .mcard:nth-child(8) { --fan-r: 9deg;  --fan-y: 11px; }
+.hand .mcard.playable { transform: rotate(var(--fan-r, 0deg)) translateY(calc(var(--fan-y, 0px) - 9px)); }
+.hand .mcard:active { transform: rotate(var(--fan-r, 0deg)) translateY(calc(var(--fan-y, 0px) - 2px)) scale(.98); }
 .pip {
   width: 15px; height: 15px;
   display: grid; place-items: center;
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   border-radius: 50%;
-  background: #0a0d0b; color: var(--text);
+  background: #0a0d12; color: var(--text);
   border: 1px solid rgba(255,255,255,.2);
   box-shadow: 0 1px 2px rgba(0,0,0,.6);
 }
@@ -455,8 +526,29 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .pip--u { background: var(--mana-u); color: #0a2030; border: none; }
 .pip--b { background: var(--mana-b); color: #1d1030; border: none; }
 
+/* キープ確定の小演出(初手の儀式) */
+.keep-chip {
+  position: absolute; left: 50%; bottom: 210px;
+  transform: translateX(-50%);
+  z-index: 22;
+  display: none;
+  padding: 8px 22px;
+  font-family: var(--display); font-size: var(--fs-lg); font-weight: 600; letter-spacing: .14em;
+  color: var(--action-primary-text);
+  background: var(--gold-surface);
+  border-radius: 99px;
+  box-shadow: var(--gold-edge), 0 6px 24px rgba(216,176,106,.4);
+}
+.keep-chip.show { display: block; animation: keep-pop 900ms var(--ease-snap); }
+@keyframes keep-pop {
+  0% { opacity: 0; transform: translateX(-50%) scale(.6); }
+  35% { opacity: 1; transform: translateX(-50%) scale(1.08); }
+  60% { transform: translateX(-50%) scale(1); }
+  100% { opacity: 1; }
+}
+
 /* ============================================================
-   ThumbZone v2 — [undo][プライマリ][≡](ライフはステータス帯へ)
+   ThumbZone
    ============================================================ */
 .thumb-zone {
   flex: none;
@@ -471,7 +563,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   font-size: var(--fs-lg); font-weight: 700;
   color: var(--action-primary-text);
   background: var(--gold-surface);
-  box-shadow: var(--gold-edge), 0 4px 16px rgba(216,176,106,.25);
+  box-shadow: var(--gold-edge), 0 4px 16px rgba(216,176,106,.22);
   border-radius: 14px;
   transition: transform var(--dur-fast) var(--ease-snap);
 }
@@ -486,11 +578,11 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 
 /* ============================================================
-   CardActionSheet(§8)
+   CardActionSheet
    ============================================================ */
 .sheet-backdrop {
   position: absolute; inset: 0; z-index: 40;
-  background: rgba(5, 8, 6, .6);
+  background: rgba(4, 6, 10, .62);
   backdrop-filter: blur(2px);
   animation: fadein var(--dur-move) var(--ease-out);
 }
@@ -556,9 +648,9 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .sheet__folded button.danger { color: var(--danger); }
 
 /* ============================================================
-   Feed(§8)
+   Feed
    ============================================================ */
-.feed-backdrop { position: absolute; inset: 0; z-index: 40; background: rgba(5,8,6,.5); animation: fadein var(--dur-move) var(--ease-out); }
+.feed-backdrop { position: absolute; inset: 0; z-index: 40; background: rgba(4,6,10,.5); animation: fadein var(--dur-move) var(--ease-out); }
 .feed {
   position: absolute; top: 0; right: 0; bottom: 0; z-index: 41;
   width: min(320px, 88%);
@@ -622,27 +714,46 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 .feed-item__acts .skip { background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text-dim); }
 
 /* ============================================================
-   デモモーション(design-system §7 の祝祭語彙の実演)
+   デモモーション(演出レベルの実演・design-system §7)
    ============================================================ */
-.fx-draw { animation: fly-draw var(--dur-hero) var(--ease-out); }
-@keyframes fly-draw {
-  0%   { transform: translate(var(--fx, -200px), var(--fy, -400px)) rotate(-16deg) scale(.35); opacity: 0; }
-  45%  { opacity: 1; }
-  72%  { transform: translate(calc(var(--fx, -200px) * .12), calc(var(--fy, -400px) * .22 - 16px)) rotate(5deg) scale(1.05); }
-  100% { transform: none; }
+/* 飛行カード(出発点→到着点の因果を見せる) */
+.fly {
+  position: fixed; z-index: 80;
+  pointer-events: none;
+  transition: transform var(--fly-dur, 420ms) var(--ease-out), opacity 280ms var(--ease-out);
+  will-change: transform;
 }
-.fx-etb { animation: etb-land var(--dur-hero) var(--ease-snap); }
+.fly--stackglow { box-shadow: var(--stack-glow), var(--shadow-card); }
+.fly--platinum { box-shadow: var(--platinum-glow), var(--shadow-card); }
+
+/* 配布(初手の儀式・L3) */
+.fx-deal { animation: deal-in 380ms var(--ease-out) backwards; }
+@keyframes deal-in {
+  0% { opacity: 0; transform: translate(40vw, -30vh) rotate(14deg) scale(.5); }
+  70% { opacity: 1; }
+  100% { transform: rotate(var(--fan-r, 0deg)) translateY(var(--fan-y, 0px)); }
+}
+/* 着地(解決→戦場・L3) */
+.fx-land { animation: etb-land var(--dur-hero) var(--ease-snap); }
 @keyframes etb-land {
-  0%   { transform: translateY(-42px) scale(.6); opacity: 0; }
-  62%  { transform: translateY(0) scale(1.07); opacity: 1; }
+  0% { transform: translateY(-42px) scale(.6); opacity: 0; }
+  62% { transform: translateY(0) scale(1.07); opacity: 1; }
   100% { transform: none; }
 }
-.fx-etb .mcard, .mcard.fx-etb { animation: etb-flash 700ms var(--ease-out); }
-@keyframes etb-flash {
-  0%, 20% { box-shadow: var(--shadow-card); }
-  55% { box-shadow: 0 0 0 2px var(--gold-bright), 0 0 26px rgba(240,207,140,.55), var(--shadow-card); }
+.fx-flash .mcard, .mcard.fx-flash { animation: land-flash 700ms var(--ease-out); }
+@keyframes land-flash {
+  0%, 15% { box-shadow: var(--shadow-card); }
+  50% { box-shadow: 0 0 0 2px rgba(233, 238, 246, .8), 0 0 26px rgba(210, 225, 250, .55), var(--shadow-card); }
   100% { box-shadow: var(--shadow-card); }
 }
+/* 手札のドロー(連鎖場面の圧縮ドロー・L2) */
+.fx-draw { animation: fly-draw 300ms var(--ease-out); }
+@keyframes fly-draw {
+  0% { opacity: 0; transform: translate(var(--fx, -120px), var(--fy, -300px)) rotate(-14deg) scale(.4); }
+  55% { opacity: 1; }
+  100% { transform: rotate(var(--fan-r, 0deg)) translateY(var(--fan-y, 0px)); }
+}
+/* ライフ変動 */
 .flash-dmg b { animation: dmg-flash 700ms var(--ease-out); display: inline-block; }
 @keyframes dmg-flash {
   25% { color: var(--danger); text-shadow: 0 0 12px rgba(239,111,111,.8); transform: scale(1.25); }
@@ -650,7 +761,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 
 /* ============================================================
-   デスクトップ 3カラム(D4スコープ・据え置き。v2カード部品で描画)
+   デスクトップ 3カラム(D4スコープ・据え置き)
    ============================================================ */
 .desktop {
   min-width: 1180px;
@@ -684,17 +795,19 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 .desk-board .cgrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 .desk-board .pgrid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+.desk-board .land-row { overflow-x: visible; }
 .desk-handrow { flex: none; display: flex; gap: var(--space-3); align-items: stretch; }
 .desk-hand {
   flex: 1;
-  display: flex; gap: var(--space-2);
-  padding: var(--space-2);
+  display: flex; align-items: flex-end;
+  padding: var(--space-2) var(--space-3);
   background: var(--surface-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow-x: auto;
 }
-.desk-hand .mcard { flex: none; width: 104px; }
+.desk-hand .mcard { flex: none; width: 104px; margin-left: -12px; }
+.desk-hand .mcard:first-child { margin-left: 0; }
 .desk-actions { display: flex; flex-direction: column; gap: var(--space-2); width: 220px; }
 .feed--inline {
   position: static; width: auto; flex: 1;
@@ -741,46 +854,57 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
 }
 .note::before { content: '※ '; font-weight: 700; }
 body.hide-notes .note { display: none; }
-.notes-toggle { position: fixed; bottom: 8px; right: 10px; z-index: 91; font-size: var(--fs-xs); color: var(--text-dim); background: rgba(13,20,16,.85); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; }
+.notes-toggle { position: fixed; bottom: 8px; right: 10px; z-index: 91; font-size: var(--fs-xs); color: var(--text-dim); background: rgba(8,11,18,.88); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; }
 </style>
 </head>
 <body>
 
-<!-- モックアップ・クローム(製品UIではない) -->
+<!-- モックアップ・クローム(製品UIではない): 画面切替+5場面デモ -->
 <nav class="chrome" role="tablist">
-  <button class="on" data-go="s1">1<span> 縦持ち</span></button>
-  <button data-go="s2">2<span> シート</span></button>
-  <button data-go="s3">3<span> フィード</span></button>
-  <button data-go="s4">4<span> PC</span></button>
+  <button class="tab on" data-go="s1">1<span> 縦持ち</span></button>
+  <button class="tab" data-go="s2">2<span> シート</span></button>
+  <button class="tab" data-go="s3">3<span> フィード</span></button>
+  <button class="tab" data-go="s4">4<span> PC</span></button>
   <i class="sep"></i>
-  <button class="theme-toggle" id="themeToggle">B<span> グラス案</span></button>
-  <button class="demo-btn" id="demoBtn">▶<span> ドロー</span></button>
+  <button class="demo-btn" id="demoBtn">▶ 初手</button>
 </nav>
 <button class="notes-toggle" onclick="document.body.classList.toggle('hide-notes')">注釈 ON/OFF</button>
 
 <!-- ============================================================
-     画面1: 縦持ちゲーム画面 v2(カード主役・design-vision §3)
-     デモ状態: T5・統率者は統率領域(土地行左端に常駐)
+     画面1: 縦持ちゲーム画面(反応する舞台+5場面デモの舞台)
      ============================================================ -->
 <section class="screen on" id="s1">
-  <div class="phone">
-    <!-- StatusBand v2: 1行36px。数値のみ・タップでシート -->
+  <div class="phone" id="phone1">
+    <!-- 反応する舞台(z-index 0・通常は静か) -->
+    <div class="stage" aria-hidden="true">
+      <div class="stage__lines"></div>
+      <div class="stage__ring"></div>
+      <div class="stage__rest"></div>
+    </div>
+
     <header class="status-band">
       <button class="turn-chip">
         <span class="t">T5</span><span class="p">メイン1</span>
         <span class="phase-dots"><i></i><i></i><i></i><i class="now"></i><i></i><i></i><i></i></span>
       </button>
-      <button class="zone-mini" id="libChip"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b><span class="k">追</span><b>1</b></button>
+      <button class="zone-mini" id="libChip"><span class="k">山</span><b id="libN">87</b><span class="k">墓</span><b>4</b><span class="k">追</span><b>1</b></button>
       <button class="life-mini" id="lifeChip">♥<b>40</b></button>
       <button class="bell" data-go="s3" aria-label="フィード">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        <span class="badge">2</span>
+        <span class="badge" id="bellBadge">2</span>
       </button>
     </header>
 
-    <div class="note" style="top: 96px; right: 8px;">相手ライフ・ゾーン一覧は常設をやめ、♥/山札チップのタップでシート表示(情報は必要最低限+タップで出す)</div>
+    <!-- 連鎖中チップ(L4) -->
+    <div class="chain-chip">⛓ 連鎖中 — デッキが回り始めた</div>
 
-    <!-- Board v2: ラベルなし・カード主役 -->
+    <!-- スタック帯: 空の時は見えない。デモで浮上する -->
+    <button class="stack-band" id="stackBand">
+      <span class="n" id="stackN">1</span><span class="label" id="stackLabel">スタック</span><span class="hint">タップで展開</span>
+    </button>
+
+    <div class="note" style="top: 96px; right: 8px;">舞台=楕円の主舞台+戦術ライン+手札レスト。通常時は静か、イベント時だけ反応(80/20則)</div>
+
     <main class="board">
       <div class="cgrid" id="cgrid">
         <div class="slot slot--tap" data-go="s2"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
@@ -794,9 +918,8 @@ body.hide-notes .note { display: none; }
       </div>
     </main>
 
-    <!-- 土地行 v2: 物理スタック(ずらし重ね)+統率者常駐 -->
     <div class="land-row" id="landRow">
-      <div class="pile" data-go="s2">
+      <div class="pile altar" id="altar" data-go="s2">
         <div class="mcard mcard--commander"><div class="t">ムルドローサ</div><div class="a a--bug"></div></div>
       </div>
       <div class="pile pile--stacked pile--part-tapped" data-go="s2">
@@ -821,9 +944,8 @@ body.hide-notes .note { display: none; }
       </div>
     </div>
 
-    <div class="note" style="bottom: 330px; left: 12px;">土地=紙EDHの机上再現: 同名はずらし重ね(×3)・タップ済みは横倒し/傾き+「1⤵」。行ごと横スクロール。統率者は統率領域にいる間ここに常駐</div>
+    <div class="note" style="bottom: 330px; left: 12px;">▶で5場面デモ: 初手の儀式→キャスト→解決→統率者の登場→連鎖。祝祭の優先順位(vision §2)の実演</div>
 
-    <!-- 手札 -->
     <div class="hand" id="hand">
       <div class="mcard playable" data-go="s2"><div class="t">成長のらせん</div><div class="a a--gu"></div><div class="cost"><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div></div>
       <div class="mcard playable" data-go="s2"><div class="t">暗黒の儀式</div><div class="a a--b"></div><div class="cost"><span class="pip pip--b">B</span></div></div>
@@ -832,12 +954,13 @@ body.hide-notes .note { display: none; }
       <div class="mcard playable" data-go="s2"><div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div></div>
     </div>
 
-    <!-- ThumbZone v2 -->
+    <div class="keep-chip" id="keepChip">キープ</div>
+
     <footer class="thumb-zone">
       <button class="undo-btn" aria-label="元に戻す">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
       </button>
-      <button class="primary-action">次のフェイズ
+      <button class="primary-action" id="primaryBtn">次のフェイズ
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" aria-label="メニュー">
@@ -852,6 +975,7 @@ body.hide-notes .note { display: none; }
      ============================================================ -->
 <section class="screen" id="s2">
   <div class="phone">
+    <div class="stage" aria-hidden="true"><div class="stage__ring"></div><div class="stage__rest"></div></div>
     <header class="status-band" style="opacity:.45; pointer-events:none;">
       <button class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></button>
       <button class="zone-mini"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b></button>
@@ -912,6 +1036,7 @@ body.hide-notes .note { display: none; }
      ============================================================ -->
 <section class="screen" id="s3">
   <div class="phone">
+    <div class="stage" aria-hidden="true"><div class="stage__ring"></div><div class="stage__rest"></div></div>
     <header class="status-band">
       <button class="turn-chip"><span class="t">T5</span><span class="p">メイン1</span></button>
       <button class="zone-mini"><span class="k">山</span><b>87</b><span class="k">墓</span><b>4</b></button>
@@ -919,7 +1044,7 @@ body.hide-notes .note { display: none; }
       <button class="bell" style="color: var(--gold-bright);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
     </header>
 
-    <button class="stack-band">
+    <button class="stack-band show stack-band--hot">
       <span class="n">2</span><span class="label">スタック</span><span class="hint">タップで畳む ▴</span>
     </button>
     <div class="stack-open">
@@ -981,12 +1106,12 @@ body.hide-notes .note { display: none; }
         </div>
       </div>
     </aside>
-    <div class="note" style="top: 150px; left: 10px;">ログ・誘発・警告・自動実行を単一タイムラインに統合。エンジンの仕事(青)が見える</div>
+    <div class="note" style="top: 150px; left: 10px;">スタック=青白光の緊張帯(乗った時だけ現れる)。ログ・誘発・警告・自動実行は単一フィードに統合</div>
   </div>
 </section>
 
 <!-- ============================================================
-     画面4: デスクトップ3カラム(D4スコープ・v2カード部品で描画)
+     画面4: デスクトップ3カラム(D4スコープ)
      ============================================================ -->
 <section class="screen screen--desktop" id="s4">
   <div class="desktop">
@@ -1022,7 +1147,7 @@ body.hide-notes .note { display: none; }
           <span class="t">T5</span><span class="p">メイン1</span>
           <span class="phase-dots"><i></i><i></i><i></i><i class="now"></i><i></i><i></i><i></i></span>
         </button>
-        <button class="stack-band" style="flex:1; margin:0;">
+        <button class="stack-band show" style="flex:1; margin:0;">
           <span class="n">0</span><span class="label" style="color:var(--text-dim); font-weight:400;">スタックは空</span>
         </button>
       </div>
@@ -1102,78 +1227,219 @@ document.addEventListener('click', (e) => {
   if (!go) return;
   const id = go.dataset.go;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
-  document.querySelectorAll('.chrome [data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+  document.querySelectorAll('.chrome .tab').forEach(b => b.classList.toggle('on', b.dataset.go === id));
 });
 
-// A/Bテーマ切替(A: 夜のテーブル深化 / B: ミッドナイト・グラス)
-const themeToggle = document.getElementById('themeToggle');
-themeToggle.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const root = document.documentElement;
-  const toGlass = root.dataset.theme !== 'glass';
-  root.dataset.theme = toGlass ? 'glass' : '';
-  themeToggle.innerHTML = toGlass ? 'A<span> 夜のテーブル案</span>' : 'B<span> グラス案</span>';
-});
-
-// モーションデモ(design-system §7 の祝祭語彙: ドロー/ETB/ライフ)
+/* ============================================================
+   5場面体験デモ(vision §2 祝祭の優先順位の実演)
+   1 初手の儀式 / 2 キャスト→スタック / 3 解決→着地 /
+   4 統率者の登場 / 5 連鎖=回り始めた
+   ============================================================ */
 const demoBtn = document.getElementById('demoBtn');
-const demos = [
-  { kind: 'draw', label: 'ドロー' },
-  { kind: 'etb', label: 'ETB' },
-  { kind: 'life', label: 'ライフ' },
+const scenes = [
+  { key: 'opening', label: '初手' },
+  { key: 'cast', label: 'キャスト' },
+  { key: 'resolve', label: '解決' },
+  { key: 'commander', label: '統率者' },
+  { key: 'chain', label: '連鎖' },
 ];
-let demoIdx = 0;
+let sceneIdx = 0;
+let playing = false;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = (ms) => new Promise(r => setTimeout(r, reduced() ? 0 : ms));
+const $ = (sel) => document.querySelector(sel);
 
-demoBtn.addEventListener('click', (e) => {
+const HAND_HTML = document.getElementById('hand').innerHTML;
+
+demoBtn.addEventListener('click', async (e) => {
   e.stopPropagation();
-  // 画面1でのみ再生
+  if (playing) return;
   if (!document.getElementById('s1').classList.contains('on')) {
     document.querySelector('.chrome [data-go="s1"]').click();
   }
-  runDemo(demos[demoIdx].kind);
-  demoIdx = (demoIdx + 1) % demos.length;
-  demoBtn.innerHTML = '▶<span> ' + demos[demoIdx].label + '</span>';
+  playing = true;
+  demoBtn.disabled = true;
+  navigator.vibrate?.(10);
+  const scene = scenes[sceneIdx];
+  sceneIdx = (sceneIdx + 1) % scenes.length;
+  try { await SCENES[scene.key](); } finally {
+    demoBtn.textContent = '▶ ' + scenes[sceneIdx].label;
+    demoBtn.disabled = false;
+    playing = false;
+  }
 });
 
-function runDemo(kind) {
-  navigator.vibrate?.(10);
-  if (kind === 'draw') {
-    const hand = document.getElementById('hand');
-    const card = document.createElement('div');
-    card.className = 'mcard';
-    card.innerHTML = '<div class="t">タトヨヴァ</div><div class="a a--gu"></div><div class="cost"><span class="pip">3</span><span class="pip pip--g">G</span><span class="pip pip--u">U</span></div>';
-    hand.appendChild(card);
-    const src = document.getElementById('libChip').getBoundingClientRect();
-    const dst = card.getBoundingClientRect();
-    card.style.setProperty('--fx', (src.left + src.width / 2 - dst.left - dst.width / 2) + 'px');
-    card.style.setProperty('--fy', (src.top - dst.top) + 'px');
-    card.classList.add('fx-draw');
-    hand.scrollTo({ left: hand.scrollWidth, behavior: reduced() ? 'auto' : 'smooth' });
-    setTimeout(() => { card.style.opacity = '0'; card.style.transition = 'opacity 300ms'; setTimeout(() => card.remove(), 320); }, 2600);
-  }
-  if (kind === 'etb') {
-    const grid = document.getElementById('cgrid');
-    const slot = document.createElement('div');
-    slot.className = 'slot fx-etb';
-    slot.innerHTML = '<div class="mcard mcard--sick fx-etb"><div class="t">タトヨヴァ</div><div class="a a--gu"></div><div class="pt">2/3</div></div>';
-    grid.appendChild(slot);
-    setTimeout(() => { slot.style.opacity = '0'; slot.style.transition = 'opacity 300ms'; setTimeout(() => slot.remove(), 320); }, 2600);
-  }
-  if (kind === 'life') {
-    const chip = document.getElementById('lifeChip');
-    const b = chip.querySelector('b');
-    chip.classList.remove('flash-dmg');
-    void chip.offsetWidth; // reflow で再発火可能に
-    chip.classList.add('flash-dmg');
-    if (reduced()) { b.textContent = '37'; setTimeout(() => { b.textContent = '40'; }, 1400); return; }
-    let v = 40;
-    const iv = setInterval(() => {
-      v--; b.textContent = v;
-      if (v <= 37) { clearInterval(iv); setTimeout(() => { b.textContent = '40'; chip.classList.remove('flash-dmg'); }, 1600); }
-    }, 110);
-  }
+/* 出発点→到着点を見せる飛行カード */
+function fly(fromRect, toRect, html, { dur = 420, cls = '' } = {}) {
+  const el = document.createElement('div');
+  el.className = 'mcard fly ' + cls;
+  el.innerHTML = html;
+  el.style.width = fromRect.width + 'px';
+  el.style.left = fromRect.left + 'px';
+  el.style.top = fromRect.top + 'px';
+  el.style.setProperty('--fly-dur', dur + 'ms');
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    const sx = toRect.width / fromRect.width;
+    el.style.transform = `translate(${toRect.left - fromRect.left + (toRect.width - fromRect.width) / 2}px, ${toRect.top - fromRect.top + (toRect.height - fromRect.height) / 2}px) scale(${sx})`;
+  });
+  return el;
 }
+const rect = (sel) => $(sel).getBoundingClientRect();
+
+const stackBand = document.getElementById('stackBand');
+const phone1 = document.getElementById('phone1');
+function setStack(n, label, hot) {
+  stackBand.classList.toggle('show', n > 0);
+  stackBand.classList.toggle('stack-band--hot', !!hot);
+  document.getElementById('stackN').textContent = n;
+  document.getElementById('stackLabel').textContent = label || 'スタック';
+}
+
+const SCENES = {
+
+  /* 場面1: 初手の儀式(L3) — 7枚が1枚ずつ配られ扇に整い、キープで確定 */
+  async opening() {
+    const hand = document.getElementById('hand');
+    const cards = [
+      '<div class="t">森</div><div class="a a--g"><span class="sym" style="color: var(--mana-g);">◆</span></div>',
+      '<div class="t">島</div><div class="a a--u"><span class="sym" style="color: var(--mana-u);">◆</span></div>',
+      '<div class="t">太陽の指輪</div><div class="a a--c"></div>',
+      '<div class="t">成長のらせん</div><div class="a a--gu"></div>',
+      '<div class="t">面晶体のカニ</div><div class="a a--u"></div>',
+      '<div class="t">沼</div><div class="a a--b"><span class="sym" style="color: var(--mana-b);">◆</span></div>',
+      '<div class="t">耕作</div><div class="a a--g"></div>',
+    ];
+    hand.innerHTML = '';
+    for (let i = 0; i < cards.length; i++) {
+      const c = document.createElement('div');
+      c.className = 'mcard fx-deal';
+      c.style.animationDelay = (i * 95) + 'ms';
+      c.innerHTML = cards[i];
+      hand.appendChild(c);
+    }
+    await sleep(95 * 7 + 420);
+    const keep = document.getElementById('keepChip');
+    keep.classList.add('show');
+    navigator.vibrate?.(10);
+    await sleep(1300);
+    keep.classList.remove('show');
+    await sleep(300);
+    hand.innerHTML = HAND_HTML;
+  },
+
+  /* 場面2: キャスト→スタック(L2→L3) — 手札から浮き、緊張帯が現れる */
+  async cast() {
+    const card = $('#hand .mcard');           // 成長のらせん
+    const from = card.getBoundingClientRect();
+    card.style.opacity = '0';
+    setStack(1, 'スタック — 成長のらせん', true);
+    await sleep(30);
+    const f = fly(from, rect('#stackBand'), card.innerHTML, { dur: 380, cls: 'fly--stackglow' });
+    await sleep(420);
+    f.style.opacity = '0';
+    await sleep(1600);
+    f.remove();
+    setStack(0, '', false);
+    card.style.opacity = '';
+  },
+
+  /* 場面3: 解決→着地(L3) — 最上段が抜け、行き先(戦場)へ流れて着地 */
+  async resolve() {
+    setStack(1, 'スタック — タトヨヴァ', true);
+    await sleep(700);
+    document.getElementById('stackLabel').textContent = '解決中…';
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerHTML = '<div class="mcard mcard--sick"><div class="t">タトヨヴァ</div><div class="a a--gu"></div><div class="pt">2/3</div></div>';
+    slot.style.opacity = '0';
+    document.getElementById('cgrid').appendChild(slot);
+    const f = fly(rect('#stackBand'), slot.getBoundingClientRect(), slot.firstElementChild.innerHTML, { dur: 420, cls: 'fly--stackglow' });
+    await sleep(430);
+    f.remove();
+    slot.style.opacity = '';
+    slot.firstElementChild.classList.add('fx-land', 'fx-flash');
+    navigator.vibrate?.(10);
+    setStack(0, '', false);
+    await sleep(2100);
+    slot.style.opacity = '0';
+    slot.style.transition = 'opacity 300ms';
+    await sleep(320);
+    slot.remove();
+  },
+
+  /* 場面4: 統率者の登場(L3+) — 祭壇起動→ゆっくり浮上→着地→盤面同期 */
+  async commander() {
+    const altar = document.getElementById('altar');
+    altar.classList.add('altar--active');
+    await sleep(850);
+    const cardHtml = '<div class="t">ムルドローサ</div><div class="a a--bug"></div><div class="pt">6/6</div>';
+    setStack(1, 'スタック — ムルドローサ(統率者)', true);
+    const f1 = fly(rect('#altar .mcard'), rect('#stackBand'), cardHtml, { dur: 650, cls: 'fly--platinum' });
+    altar.classList.remove('altar--active');
+    altar.classList.add('altar--away');
+    await sleep(700);
+    f1.remove();
+    await sleep(500);
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.innerHTML = '<div class="mcard mcard--commander mcard--sick">' + cardHtml + '</div>';
+    slot.style.opacity = '0';
+    document.getElementById('cgrid').appendChild(slot);
+    const f2 = fly(rect('#stackBand'), slot.getBoundingClientRect(), cardHtml, { dur: 500, cls: 'fly--platinum' });
+    await sleep(510);
+    f2.remove();
+    slot.style.opacity = '';
+    slot.firstElementChild.classList.add('fx-land', 'fx-flash');
+    setStack(0, '', false);
+    phone1.classList.add('board-sync');
+    navigator.vibrate?.(15);
+    await sleep(520);
+    phone1.classList.remove('board-sync');
+    await sleep(1800);
+    slot.style.opacity = '0';
+    slot.style.transition = 'opacity 300ms';
+    await sleep(320);
+    slot.remove();
+    altar.classList.remove('altar--away');
+  },
+
+  /* 場面5: 連鎖=回り始めた(L4) — 誘発×2+圧縮ドロー×2、戦術ラインが一段活性。操作は止めない */
+  async chain() {
+    const badge = document.getElementById('bellBadge');
+    badge.classList.add('pulse');
+    setStack(2, 'スタック — 上陸誘発 ×2', true);
+    await sleep(600);
+    phone1.classList.add('chain-on');
+    setStack(1, '解決 — 面晶体のカニ(切削3)', true);
+    await sleep(500);
+    setStack(0, '', false);
+    // 圧縮ドロー×2(連続処理は演出を自動圧縮=120ms級)
+    const hand = document.getElementById('hand');
+    const lib = rect('#libChip');
+    const drawCards = [
+      '<div class="t">タトヨヴァ</div><div class="a a--gu"></div>',
+      '<div class="t">耕作</div><div class="a a--g"></div>',
+    ];
+    for (const html of drawCards) {
+      const c = document.createElement('div');
+      c.className = 'mcard';
+      c.innerHTML = html;
+      hand.appendChild(c);
+      const dst = c.getBoundingClientRect();
+      c.style.setProperty('--fx', (lib.left + lib.width / 2 - dst.left - dst.width / 2) + 'px');
+      c.style.setProperty('--fy', (lib.top - dst.top) + 'px');
+      c.classList.add('fx-draw');
+      hand.scrollTo({ left: hand.scrollWidth, behavior: reduced() ? 'auto' : 'smooth' });
+      navigator.vibrate?.(8);
+      await sleep(180);
+    }
+    await sleep(1900);
+    phone1.classList.remove('chain-on');
+    badge.classList.remove('pulse');
+    hand.innerHTML = HAND_HTML;
+  },
+};
 </script>
 </body>
 </html>
