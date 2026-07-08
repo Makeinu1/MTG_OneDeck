@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MTG OneDeck — デザイン刷新モックアップ v3</title>
+<title>MTG OneDeck — デザイン刷新モックアップ v4</title>
 <!-- 視覚正本: docs/design-vision.md §2「狙う感情」+ §3 IA / docs/design-system.md 全節
      v3(Round 3): テーマ「アルケイン戦術卓」正式採用(ユーザー裁定 2026-07-08・フェルト廃止)・
      反応する舞台(楕円主舞台/手札レスト/スタック緊張帯・80/20則)・
      5場面体験デモ(初手の儀式/キャスト→スタック/解決→着地/統率者の登場/連鎖)・扇状手札。
+     v4(Round 4): BoardShelf=盤面カードを統一サイズの棚へ(旧cgrid/pgrid廃止。密度で96/84/72px
+     縮小・14枚〜は重ね。design-system §8 BoardShelf)。連鎖デモに苗木トークン波=密度遷移の実演。
      出典 = research/design/vision-sources/game-feel-dialogue-2026-07.txt -->
 <!-- Google Fonts はローカル/dev閲覧用。CSP環境(Artifact)では内蔵書体へフォールバック -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -414,9 +416,27 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   display: flex; flex-direction: column; gap: var(--space-2);
 }
 .rule { border: none; border-top: 1px solid var(--line); margin: 2px 10%; }
-.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-2); }
-.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: var(--space-2); }
-.slot { position: relative; aspect-ratio: var(--card-ratio); }
+/* 盤面カードは統一サイズの棚(横スクロール)。クリーチャーもその他も同じ規則。
+   密度が上がるほど基準幅を縮小し、限界で重ねる(design-system §8 BoardShelf) */
+.shelf {
+  display: flex; gap: var(--space-2);
+  align-items: flex-start;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 2px;
+  --board-card-w: 96px;                 /* 疎(〜5枚)。太陽の指輪と同基準 */
+}
+.shelf::-webkit-scrollbar { display: none; }
+.shelf--mid  { --board-card-w: 84px; }  /* 中(〜9枚) */
+.shelf--high { --board-card-w: 72px; }  /* 密(10枚〜) */
+.shelf .slot {
+  position: relative; flex: none;
+  width: var(--board-card-w);
+  aspect-ratio: var(--card-ratio);
+  transition: width var(--dur-move) var(--ease-out), margin var(--dur-move) var(--ease-out);
+}
+/* 超過密は少しずつ重ねる(前面ほど見える。製品ではタップで前面化) */
+.shelf--overlap .slot { margin-left: calc(var(--board-card-w) * -0.36); }
+.shelf--overlap .slot:first-child { margin-left: 0; }
 .slot .mcard { position: absolute; inset: 0; }
 .slot--tap .mcard {
   transform: rotate(90deg) scale(.92);
@@ -793,8 +813,7 @@ button { font-family: var(--sans); color: inherit; background: none; border: non
   overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
-.desk-board .cgrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-.desk-board .pgrid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+.desk-board .shelf { flex-wrap: wrap; --board-card-w: 104px; overflow-x: visible; }
 .desk-board .land-row { overflow-x: visible; }
 .desk-handrow { flex: none; display: flex; gap: var(--space-3); align-items: stretch; }
 .desk-hand {
@@ -906,12 +925,12 @@ body.hide-notes .note { display: none; }
     <div class="note" style="top: 96px; right: 8px;">舞台=楕円の主舞台+戦術ライン+手札レスト。通常時は静か、イベント時だけ反応(80/20則)</div>
 
     <main class="board">
-      <div class="cgrid" id="cgrid">
+      <div class="shelf" id="cgrid">
         <div class="slot slot--tap" data-go="s2"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
         <div class="slot" data-go="s2"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
       <hr class="rule">
-      <div class="pgrid">
+      <div class="shelf">
         <div class="slot slot--tap" data-go="s2"><div class="mcard"><div class="t">太陽の指輪</div><div class="a a--c"></div></div></div>
         <div class="slot" data-go="s2"><div class="mcard"><div class="t">秘儀の印鑑</div><div class="a a--c"></div></div></div>
         <div class="slot" data-go="s2"><div class="mcard"><div class="t">破滅的な行為</div><div class="a a--b"></div></div></div>
@@ -982,7 +1001,7 @@ body.hide-notes .note { display: none; }
       <button class="life-mini">♥<b>40</b></button>
     </header>
     <main class="board" style="opacity:.4; pointer-events:none;">
-      <div class="cgrid">
+      <div class="shelf">
         <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
         <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
@@ -1059,7 +1078,7 @@ body.hide-notes .note { display: none; }
     </div>
 
     <main class="board" style="opacity:.35; pointer-events:none;">
-      <div class="cgrid">
+      <div class="shelf">
         <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
         <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
       </div>
@@ -1152,12 +1171,12 @@ body.hide-notes .note { display: none; }
         </button>
       </div>
       <div class="desk-board">
-        <div class="cgrid">
+        <div class="shelf">
           <div class="slot slot--tap"><div class="mcard"><div class="t">桜族の長老</div><div class="a a--g"></div><div class="pt">1/1</div></div></div>
           <div class="slot"><div class="mcard mcard--sick"><div class="t">永遠の証人</div><div class="a a--g"></div><div class="pt">2/1</div></div></div>
         </div>
         <hr class="rule">
-        <div class="pgrid">
+        <div class="shelf">
           <div class="slot slot--tap"><div class="mcard"><div class="t">太陽の指輪</div><div class="a a--c"></div></div></div>
           <div class="slot"><div class="mcard"><div class="t">秘儀の印鑑</div><div class="a a--c"></div></div></div>
           <div class="slot"><div class="mcard"><div class="t">破滅的な行為</div><div class="a a--b"></div></div></div>
@@ -1228,6 +1247,19 @@ document.addEventListener('click', (e) => {
   const id = go.dataset.go;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   document.querySelectorAll('.chrome .tab').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+});
+
+/* BoardShelf密度: 枚数で基準幅を縮小し、限界で重ねる(design-system §8 BoardShelf)
+   〜5枚=96px / 6〜9枚=84px / 10枚〜=72px / 14枚〜=重ね(-36%) */
+function applyShelfDensity(shelf) {
+  const n = shelf.querySelectorAll('.slot').length;
+  shelf.classList.toggle('shelf--mid', n > 5 && n <= 9);
+  shelf.classList.toggle('shelf--high', n > 9);
+  shelf.classList.toggle('shelf--overlap', n >= 14);
+}
+document.querySelectorAll('.shelf').forEach((sh) => {
+  applyShelfDensity(sh);
+  new MutationObserver(() => applyShelfDensity(sh)).observe(sh, { childList: true });
 });
 
 /* ============================================================
@@ -1404,7 +1436,7 @@ const SCENES = {
     altar.classList.remove('altar--away');
   },
 
-  /* 場面5: 連鎖=回り始めた(L4) — 誘発×2+圧縮ドロー×2、戦術ラインが一段活性。操作は止めない */
+  /* 場面5: 連鎖=回り始めた(L4) — 誘発×2+圧縮ドロー×2+苗木トークン波、戦術ラインが一段活性。操作は止めない */
   async chain() {
     const badge = document.getElementById('bellBadge');
     badge.classList.add('pulse');
@@ -1434,10 +1466,24 @@ const SCENES = {
       navigator.vibrate?.(8);
       await sleep(180);
     }
-    await sleep(1900);
+    // 苗木トークン×4を波状生成 — 盤面が増殖し BoardShelf が密度遷移(96→84px)する実演
+    const cg = document.getElementById('cgrid');
+    const tokens = [];
+    for (let i = 0; i < 4; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.innerHTML = '<div class="mcard mcard--sick fx-land"><div class="t">苗木</div><div class="a a--g"></div><div class="pt">1/1</div></div>';
+      cg.appendChild(slot);
+      tokens.push(slot);
+      cg.scrollTo({ left: cg.scrollWidth, behavior: reduced() ? 'auto' : 'smooth' });
+      await sleep(140);
+    }
+    await sleep(1700);
     phone1.classList.remove('chain-on');
     badge.classList.remove('pulse');
     hand.innerHTML = HAND_HTML;
+    tokens.forEach(t => t.remove());
+    cg.scrollTo({ left: 0, behavior: 'auto' });
   },
 };
 </script>

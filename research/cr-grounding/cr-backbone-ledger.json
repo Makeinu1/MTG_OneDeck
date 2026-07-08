@@ -7,6 +7,85 @@
   "plannedSequenceProvenance": "batch3充填(2026-07-06・J3 Sonnet)= Codex起草(research/cr-grounding/planned-sequence-batch3.draft.md・demand実測+CR条番号+golden候補)を判定者がCR原文照合+demand数値検証し、優先度式(demand降順>edhValue>S-phase依存順)で充填。8エントリ全edhValue=high・cr-601/cr-modalのdemand同値tie(共に10)はlane(backbone>leaf-compiler)でbreak。STOP-flagged(cr-714-sagas/cr-716-719-720-721-722、judge:user-stop)はCodex草稿が候補外として明示フラグ済み=judge単独裁定せず据え置き。前回batch2(cr-118〜cr-102-players・10スライス)は全出荷完了(HEAD 5ea83da)。 batch4充填(2026-07-07・J3 Sonnet、Codex quota枯渇のためドラフトも判定者代行= research/cr-grounding/planned-sequence-batch4.draft.md)= 補充手順実行中にCodex quotaブロック(2026-07-11まで)判明、判定者が直接research/mydeck-scoring/gaps.jsonとscripts/mydeck-scoring/score.tsのソースを読み重要な計測器欠陥を発見: score.tsのcategoryForDemand/compareDemandsはevent:*/zone:*/layer:*/timing:*系タグを産むclassifierとのみ突合しており、cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*系demandは実装状況に関係なく常にmissing判定になる構造的欠陥(compile.tsの実装カタログを一切参照しない)。実例でsrc/engine/grammar/compile.tsのliteralManaCommands/guidedManaPromptを確認しSol Ring/Signet等の`{T}: Add {C}`は既存実装済み(cr-605-mana-abilities shipped)なのにgaps.jsonはsubstrate不足と誤判定していることをbyte-levelで確認。この軸のdemand数値(cost:activation 232等トップ7件)は今回は信頼せず不採用。真に計測器で裏取りされたdemand(event:draw 25/zone:library 15)とledger nextGateが実際に解放済みと確認できたcr-702(combat/layers/cast-from-zone前提が全てshipped済みと確認)の2件のみ、CR原文照合の上でplannedSequenceへ充填。demand軸の欠陥修正自体はresearch/cr-grounding/planned-sequence-batch4.draft.md item3に記録し、accuracy-programトラックの将来課題としてmemoryへ残す(ledger domainではないためplannedSequence対象外)。 D-トラック追加(2026-07-08・J1 Fable・ユーザー依頼のデザイン刷新設計セッション)= UI/UX診断(55/100の5主因)→契約3本(docs/design-vision.md・docs/design-system.md・docs/ui-architecture-v2.md)+視覚正本(research/design/mockups/)を新設し、D0-D5をdesign-sliceとして追記。CRトラック(S-*/C-*)は不変更・並走。D-トラックとCRトラックの着手順はユーザー裁定(userGate付き=autoloopは明示指示まで消費しない)。",
   "plannedSequence": [
     {
+      "type": "design-slice",
+      "domainId": "d0-groundwork",
+      "track": "design",
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。①死CSS削除(src/App.css:838-960と:2793-2872の旧レイアウト系統=現JSX未使用) ②viewStore.ts新設(空殻+テスト。ui-architecture-v2 §3のinterface) ③src/ui/icons.tsx=インラインSVGスプライト新設しUnicode偽装アイコン(App.css:4293-4345のti ti-*)を全廃 ④カード画像フォールバック修正=日本語版画像欠落時にScryfall EN画像へ(『Localized Image Not Available』プレースホルダ根絶)。機械的・低リスク・見た目回帰なし(3形態スクショ比較)。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d1-design-system-card-sheet",
+      "track": "design",
+      "dependsOn": [
+        "d0-groundwork"
+      ],
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d2-portrait-layout",
+      "track": "design",
+      "dependsOn": [
+        "d1-design-system-card-sheet"
+      ],
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D2 縦持ちレイアウト(刷新の本丸。Round 2 v2で確定)。src/components/game/一式新設(GameScreen/StatusBand/StackBand/Board/LandRow/HandRibbon/ThumbZone=ui-architecture-v2 §2)。RotateNotice撤去=縦持ちの壁を壊す。単一adaptive tree(JSXでのisPhone分岐禁止・CSS grid-template-areasのみで3形態)。**カードが主役(vision 原則7)**=ラベル/相手ライフ常設行/ゾーンチップ列は廃止しステータス帯1行36px+タップシートへ。土地=同名基本地形の物理スタック(ずらし重ね・design-system §8 LandRow)+統率者常駐。MobileControlsDrawer/MobileZoneSwap/useIsPhoneLandscape退役。視覚正本=research/design/mockups/index.html(v2)画面1-2。受け入れ=375pxで1ゲーム完走(実機ヒューリスティック)+クローム予算実測(非カードUI≤25%/盤面カード≥55%)+3形態スクショ+機械4点+review.*。 盤面=BoardShelf(統一サイズ棚・密度96/84/72px・14枚〜重ね。design-system §8 BoardShelf・視覚正本=モックv4 2026-07-09)。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d3-primary-action-feed",
+      "track": "design",
+      "dependsOn": [
+        "d2-portrait-layout"
+      ],
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D3 プライマリアクション+フィード(エンジンの見える化=design-vision 原則2/4)。①PrimaryAction状態機械(スタック非空→解決/未処理誘発→誘発を処理(n)/戦闘→攻撃確定/他→次のフェイズ。スタック未解決中のフェイズ禁止をボタン状態で表現=CLAUDE.md唯一の強制ルール) ②プレイ可能ハイライト(マナ計算selector・手札金縁発光) ③Feed=warnings/triggerCandidates/ログの投影合成(独自真実なし・undoで巻き戻る。ui-architecture-v2 §3)。Toasts/TriggerCandidatePanel浮動版退役。視覚正本=mockups画面3。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d4-desktop-recompose",
+      "track": "design",
+      "dependsOn": [
+        "d3-primary-action-feed"
+      ],
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D4 デスクトップ再構成+旧実装削除。モバイル部品の3カラムgrid-area展開(統率/ゾーン縦積み|盤面+手札|フィード常設=mockups画面4)。導入画面に保存デッキ一覧カード。旧playmat/Playmat.tsx(1735行)・旧サイドバー・浮動Stack.tsx・ContextMenu(シート完全移行確認後)・関連App.css区画を削除。受け入れ=1440pxで1ゲーム完走・DnD併存(全DnD操作にシート代替)・旧機能の全操作が新経路で可能なことをreview.*で確認してから削除。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d5-celebration",
+      "track": "design",
+      "dependsOn": [
+        "d2-portrait-layout"
+      ],
+      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
+      "note": "D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d6-chain-feel",
+      "track": "design",
+      "dependsOn": [
+        "d5-celebration"
+      ],
+      "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
+      "specStatus": "vision-only",
+      "note": "D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d7-sound-session",
+      "track": "design",
+      "dependsOn": [
+        "d6-chain-feel"
+      ],
+      "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
+      "specStatus": "vision-only",
+      "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。"
+    },
+    {
       "type": "domain-slice",
       "domainId": "cr-701-fetchland-search",
       "note": "batch5-1(V1 Playability Assessment 最上位・2026-07-07 J2 Opus)。実プレイ査定(research/mydeck-scoring/playability/top-10-v1-gaps.md)で判明した「1ゲームあたり最頻・最も手動が退屈」なギャップ=fetchland fetch(『{T},[Pay 1 life,]Sacrifice this land: Search your library for a [basic/dual] land card, put it onto the battlefield [tapped], then shuffle.』)。4デッキ全てに存在(Fabled Passage/Flooded Strand/Misty Rainforest/Polluted Delta等・census占有24)。**demand計器には一切現れなかった**=査定が独自に発見。既存`parseSingleCardRampSearch`(compile.ts・『search your library for a X card, put onto battlefield [tapped]』を既にパース)を土台に、sacrifice-cost+pay-life+shuffleを束ねたfetch leafへ拡張。判定者外科修正の余地大(既存パーサ再利用)。CR 701.19(search)/103.2(shuffle)/701.16(sacrifice-as-cost)。golden候補: Fabled Passage/Flooded Strand。"
@@ -23,85 +102,6 @@
       "domainId": "cr-121-drawing",
       "heldPending": "score-ts-demand-catalog-repair",
       "note": "batch4-2。demand=event:draw 25・zone:library 15(scripts/mydeck-scoring/score.tsのclassifyEventsForLine/classifyZonesForLineが実際にタグ付けする、計測器欠陥の対象外の実信号)。台帳nextGate『player-specific zones と draw event envelope を同時に凍結する』のうちplayer-specific zones(cr-102-players zonesByPlayer)は2026-07-05に出荷済み(shipped)のため、残る作業はdraw-N guided leaf catalog化のみに縮小している可能性が高い(実装前にスコープ精査必須)。CR 121.1-121.4(draw action本体)・104.3c/703.4d(empty library draw advisoryは既存流用・再実装しない)。スコープ=固定数N draw(ETB/attack/upkeep trigger起点)。variable-count draw・opponent強制draw の複雑variantはmanual/defer継続。golden候補: Tataru Taru; Fear of Missing Out; Banon, the Returners' Leader; Blue Sun's Zenith(variable枝はdefer扱いを個別golden化)。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d0-groundwork",
-      "track": "design",
-      "userGate": "D-トラックの着手優先度(CRトラックとの順序)はユーザー裁定。autoloopはユーザーの明示指示なしにdesign-sliceを消費しない(docs/design-vision.md §4)",
-      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。①死CSS削除(src/App.css:838-960と:2793-2872の旧レイアウト系統=現JSX未使用) ②viewStore.ts新設(空殻+テスト。ui-architecture-v2 §3のinterface) ③src/ui/icons.tsx=インラインSVGスプライト新設しUnicode偽装アイコン(App.css:4293-4345のti ti-*)を全廃 ④カード画像フォールバック修正=日本語版画像欠落時にScryfall EN画像へ(『Localized Image Not Available』プレースホルダ根絶)。機械的・低リスク・見た目回帰なし(3形態スクショ比較)。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d1-design-system-card-sheet",
-      "track": "design",
-      "dependsOn": [
-        "d0-groundwork"
-      ],
-      "userGate": "同上(design-vision §4)",
-      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d2-portrait-layout",
-      "track": "design",
-      "dependsOn": [
-        "d1-design-system-card-sheet"
-      ],
-      "userGate": "同上(design-vision §4)",
-      "note": "D2 縦持ちレイアウト(刷新の本丸。Round 2 v2で確定)。src/components/game/一式新設(GameScreen/StatusBand/StackBand/Board/LandRow/HandRibbon/ThumbZone=ui-architecture-v2 §2)。RotateNotice撤去=縦持ちの壁を壊す。単一adaptive tree(JSXでのisPhone分岐禁止・CSS grid-template-areasのみで3形態)。**カードが主役(vision 原則7)**=ラベル/相手ライフ常設行/ゾーンチップ列は廃止しステータス帯1行36px+タップシートへ。土地=同名基本地形の物理スタック(ずらし重ね・design-system §8 LandRow)+統率者常駐。MobileControlsDrawer/MobileZoneSwap/useIsPhoneLandscape退役。視覚正本=research/design/mockups/index.html(v2)画面1-2。受け入れ=375pxで1ゲーム完走(実機ヒューリスティック)+クローム予算実測(非カードUI≤25%/盤面カード≥55%)+3形態スクショ+機械4点+review.*。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d3-primary-action-feed",
-      "track": "design",
-      "dependsOn": [
-        "d2-portrait-layout"
-      ],
-      "userGate": "同上(design-vision §4)",
-      "note": "D3 プライマリアクション+フィード(エンジンの見える化=design-vision 原則2/4)。①PrimaryAction状態機械(スタック非空→解決/未処理誘発→誘発を処理(n)/戦闘→攻撃確定/他→次のフェイズ。スタック未解決中のフェイズ禁止をボタン状態で表現=CLAUDE.md唯一の強制ルール) ②プレイ可能ハイライト(マナ計算selector・手札金縁発光) ③Feed=warnings/triggerCandidates/ログの投影合成(独自真実なし・undoで巻き戻る。ui-architecture-v2 §3)。Toasts/TriggerCandidatePanel浮動版退役。視覚正本=mockups画面3。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d4-desktop-recompose",
-      "track": "design",
-      "dependsOn": [
-        "d3-primary-action-feed"
-      ],
-      "userGate": "同上(design-vision §4)",
-      "note": "D4 デスクトップ再構成+旧実装削除。モバイル部品の3カラムgrid-area展開(統率/ゾーン縦積み|盤面+手札|フィード常設=mockups画面4)。導入画面に保存デッキ一覧カード。旧playmat/Playmat.tsx(1735行)・旧サイドバー・浮動Stack.tsx・ContextMenu(シート完全移行確認後)・関連App.css区画を削除。受け入れ=1440pxで1ゲーム完走・DnD併存(全DnD操作にシート代替)・旧機能の全操作が新経路で可能なことをreview.*で確認してから削除。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d5-celebration",
-      "track": "design",
-      "dependsOn": [
-        "d2-portrait-layout"
-      ],
-      "userGate": "同上(design-vision §4)",
-      "note": "D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d6-chain-feel",
-      "track": "design",
-      "dependsOn": [
-        "d5-celebration"
-      ],
-      "userGate": "D-トラックの着手優先度(CRトラックとの順序)はユーザー裁定。autoloopはユーザーの明示指示なしにdesign-sliceを消費しない(docs/design-vision.md §4)",
-      "specStatus": "vision-only",
-      "note": "D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。"
-    },
-    {
-      "type": "design-slice",
-      "domainId": "d7-sound-session",
-      "track": "design",
-      "dependsOn": [
-        "d6-chain-feel"
-      ],
-      "userGate": "D-トラックの着手優先度(CRトラックとの順序)はユーザー裁定。autoloopはユーザーの明示指示なしにdesign-sliceを消費しない(docs/design-vision.md §4)",
-      "specStatus": "vision-only",
-      "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。"
     }
   ],
   "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**暫定則(2026-07-07 J2 Opus・score-ts-demand-catalog-repair 出荷まで有効)**: demand 軸は classifier-backed family(event:*/zone:*/layer:*/timing:*)のみ信頼する。cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:* の9 family は計器故障中ゆえ『unknown=要 compile.ts 手動 spot-check』扱いで、数値の大きさを優先度信号にしない。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。",

@@ -32,6 +32,7 @@ standing 裁定(ユーザー委譲済み: 2026-06-30 北極星=CR完全性・202
 > **⚠ 計器故障の暫定則(2026-07-07 J2 Opus・`score-ts-demand-catalog-repair` 出荷まで有効)**: 式②の demand 実測値は、`scripts/mydeck-scoring/score.ts` が実コンパイラ(`compile.ts`)を参照せず並行テキスト分類器のみで coverage 判定する構造欠陥により、`cost:*`/`mana:*`/`action:*`/`tap-state:*`/`damage:*`/`life:*`/`counter:*`/`target:*`/`token:*` の9 family で**実装済みでも常に「未対応」と誤計上される**(例: Sol Ring `{T}: Add {C}` すら gap)。この修復が出荷されるまで、**式②の demand 信号は classifier-backed family(`event:*`/`zone:*`/`layer:*`/`timing:*`)のみ信頼**する。9 family の大きな数値は優先度信号にせず「unknown=要 `compile.ts` 手動 spot-check」として扱う。修復仕様=`research/cr-grounding/score-ts-demand-catalog-repair.draft.md`。
 
 - この式で一意に決まる限り**自走してよい**(STOP しない)。
+- **design-slice(D0〜D7)の裁定は、まず `docs/design-playbook.md` を引く**(実行カード§3・裁量境界§4・検証レシピ§2。デザインの価値判断はFableが先払い済み=後継は照合と検証のみ。2026-07-09 ユーザー裁定でD-トラック先行)。
 - STOP① に該当するのは次の4つだけ: (a) 式で真の同点かつ性質の異なる分岐 (b) Phase S/C 完了境界の「V4 前進 vs V1 磨き込み」(予約済み価値判断) (c) 北極星・契約原則そのものの変更 (d) `judge: user-stop` マークの domain。
 - **plannedSequence 補充手順**(J3 で可): Codex が demand データから候補草稿(`research/cr-grounding/planned-sequence-batch*.draft.md`・CR 条番号+demand 数値必須)→ 在席判定者が CR 原文と demand 数値へ照合して台帳へ充填。真の価値分岐のみ STOP①。
 
