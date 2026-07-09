@@ -3,6 +3,7 @@ import './App.css';
 import { ImportScreen } from './components/ImportScreen';
 import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
+import { GameScreen } from './components/game/GameScreen';
 import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
 import { loadKeybindings, type KeybindingsMap } from './data/keybindings';
 import { useGameStore } from './store/gameStore';
@@ -11,6 +12,15 @@ import type { CardDef } from './types/card';
 
 const DECK_TEXT_KEY = 'mtg-onedeck:deck-text';
 const DECK_CARDS_KEY = 'mtg-onedeck:deck-cards';
+
+/**
+ * ゲーム画面の描画先。既定=新レイアウト GameScreen(D2・縦持ち第一級)。
+ * VITE_UI_V2_LAYOUT=false で旧 Playmat+RotateNotice へ即時ロールバック
+ * (docs/ui-architecture-v2.md §4 strangler)。関数化して描画時に env を読む(テスト両値可)。
+ */
+function isV2LayoutEnabled(): boolean {
+  return import.meta.env.VITE_UI_V2_LAYOUT !== 'false';
+}
 
 interface StoredDeckCard {
   def: CardDef;
@@ -61,6 +71,11 @@ function App() {
   };
 
   if (state) {
+    if (isV2LayoutEnabled()) {
+      // D2: 縦持ち第一級の新レイアウト(RotateNotice なし=縦持ちの壁を撤去)。
+      return <GameScreen keybindings={keybindings} />;
+    }
+    // ロールバック経路: 旧 Playmat(横/デスクトップ既存挙動)+ RotateNotice。
     return (
       <div className="playmat-shell">
         <div className="playmat-shell__game">

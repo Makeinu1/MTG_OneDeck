@@ -1,0 +1,152 @@
+/**
+ * ThumbZone — 画面下の親指ゾーン(undo + プライマリアクション + メニュー)。
+ * docs/design-system.md §8 PrimaryAction・docs/ui-architecture-v2.md §2。
+ *
+ * D2 の PrimaryAction は簡易版(スタック非空→解決 / 他→次のフェイズ)。完全な状態機械
+ * (誘発を処理/攻撃を確定)は D3。スタック未解決中のフェイズ移動禁止(CLAUDE.md 唯一の強制)は
+ * 「ボタンが自動で『解決』になる」ことで構造表現する(無効化グレーにしない)。
+ */
+
+import { useState } from 'react';
+import type { GameController } from './gameController';
+
+export interface ThumbZoneProps {
+  controller: GameController;
+}
+
+function GameMenuSheet({ controller, onClose }: { controller: GameController; onClose: () => void }) {
+  const { store } = controller;
+  const act = (fn: () => void) => () => {
+    fn();
+    onClose();
+  };
+  return (
+    <div className="game-sheet-overlay" data-testid="game-menu-overlay" onClick={onClose}>
+      <div className="game-sheet" data-testid="game-menu-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="game-sheet__header">
+          <span className="game-sheet__title">メニュー</span>
+          <button type="button" className="game-sheet__close" onClick={onClose}>
+            閉じる
+          </button>
+        </div>
+        <div className="game-menu__actions">
+          <button type="button" className="game-menu__action" data-testid="menu-token" onClick={act(controller.openTokenDialog)}>
+            トークン生成
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-attack" onClick={act(controller.openAttackDialog)}>
+            攻撃
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-scry" onClick={act(controller.openArrangeTop)}>
+            占術 / 諜報
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-graveyard" onClick={act(() => controller.openZoneViewer('graveyard'))}>
+            墓地を見る
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-exile" onClick={act(() => controller.openZoneViewer('exile'))}>
+            追放を見る
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-search" onClick={act(() => controller.openZoneViewer('library'))}>
+            ライブラリを見る
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-tap-all" onClick={act(() => store.tapAllPermanents())}>
+            全てタップ
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-untap-all" onClick={act(() => store.untapAllPermanents())}>
+            全てアンタップ
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-proliferate" onClick={act(() => store.proliferateAll())}>
+            増殖
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-die" onClick={act(() => store.rollDie(20))}>
+            ダイス(d20)
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-coin" onClick={act(() => store.flipCoin())}>
+            コイン
+          </button>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-auto-advance"
+            onClick={act(() => store.setAutoAdvance(!store.autoAdvanceToMain))}
+          >
+            自動メイン移行: {store.autoAdvanceToMain ? 'ON' : 'OFF'}
+          </button>
+          <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-restart" onClick={act(() => controller.requestConfirm('restart'))}>
+            最初からやり直す
+          </button>
+          <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-back" onClick={act(() => controller.requestConfirm('back-to-import'))}>
+            デッキ選択に戻る
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ThumbZone({ controller }: ThumbZoneProps) {
+  const { state, store } = controller;
+  const [menuOpen, setMenuOpen] = useState(false);
+  if (!state) return null;
+  const stackActive = state.zones.stack.length > 0;
+
+  return (
+    <div className="thumb-zone" data-testid="thumb-zone">
+      <button
+        type="button"
+        className="thumb-zone__icon-btn"
+        data-testid="undo"
+        disabled={!store.canUndo}
+        onClick={() => store.undo()}
+        title="元に戻す"
+      >
+        ↩
+      </button>
+
+      <button
+        type="button"
+        className="thumb-zone__icon-btn"
+        data-testid="redo"
+        disabled={!store.canRedo}
+        onClick={() => store.redo()}
+        title="やり直す"
+      >
+        ↪
+      </button>
+
+      <button
+        type="button"
+        className={`thumb-zone__primary ${stackActive ? 'thumb-zone__primary--stack' : ''}`}
+        data-testid="primary-action"
+        onClick={() => {
+          if (stackActive) controller.requestResolveTop();
+          else store.nextPhase();
+        }}
+      >
+        {stackActive ? `スタックを解決 (${state.zones.stack.length})` : '次のフェイズ →'}
+      </button>
+
+      <button
+        type="button"
+        className="thumb-zone__icon-btn"
+        data-testid="next-turn"
+        disabled={stackActive}
+        onClick={() => store.nextTurn()}
+        title="次のターン"
+      >
+        ≫
+      </button>
+
+      <button
+        type="button"
+        className="thumb-zone__icon-btn"
+        data-testid="game-menu"
+        onClick={() => setMenuOpen(true)}
+        title="メニュー"
+      >
+        ≡
+      </button>
+
+      {menuOpen && <GameMenuSheet controller={controller} onClose={() => setMenuOpen(false)} />}
+    </div>
+  );
+}
