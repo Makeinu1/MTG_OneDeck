@@ -97,3 +97,4 @@ interface ViewStore {
 - **`data-testid` は維持**(`zone-*`/`card-*`/`next-phase` 等)。review.* とブラウザ自動操作の互換を守る。新設要素にも同規約で付与(`primary-action`/`card-sheet`/`feed` 等)。
 - **土地の物理スタック束ね**は「同名の基本地形のみ」(Snow-Covered は別束。特殊地形は個別)。表現は抽象チップでなく実カードのずらし重ね(design-system §8 LandRow)。束の中の個別操作(1枚だけ生け贄等)は束シート内の一覧から可能にする=情報の非破壊。
 - **undo 文言**: フィードは投影ゆえ undo 後の履歴表示が巻き戻る。「操作の記録が消える」ことへの違和感は、undo 実行時にフィードへ「◀ 直前の操作を取り消した」項目を挿入して緩和(gameStore は触らず view 層で)。
+- **D1 実装の負債(D4 で回収する監査項目・Tier-1 findings #5/#7 由来)**: (1) `actionCatalog.ts` は当面 `buildMenuItems` の「抽出+re-export」でなく**独立重複実装**(id/label/separator を手で再現)になっている。golden id テスト(review.d1)は手書き期待値ゆえ機械的ドリフト検出はできない——旧 Playmat が消える D4 で `buildMenuItems` を退役させ actionCatalog を唯一の正本にする(その時点でハンドラ束ね `bindAction` を `game/` へ移す)。(2) `game/actionCatalog.ts` が `playmat/ruleActionCandidates` を import しており、D4 で `playmat/` を削除すると `game/` がビルド不能になる隠れ依存。**D4 実行時に `ruleActionCandidates.ts` を `game/`(or 共有レーン)へ移設**する。両者を D4 の Tier-1 に明示監査項目として渡す。

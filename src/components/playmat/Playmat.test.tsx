@@ -66,6 +66,18 @@ function dispatchContextMenu(element: Element): void {
   });
 }
 
+/**
+ * D1 以降、カード操作の既定開き先は CardActionSheet(上位アクションを昇格し残りを
+ * 「その他」に畳む)。旧 ContextMenu ではフラットだった項目(ルール候補・移動先等)は
+ * 昇格されなかった場合「その他」の中にある。開閉トグルがあれば展開して全項目を DOM に出す。
+ */
+function expandSheetOther(container: Element): void {
+  const toggle = container.querySelector('[data-testid="card-sheet-other-toggle"]');
+  if (toggle && toggle.getAttribute('aria-expanded') === 'false') {
+    dispatchClick(toggle);
+  }
+}
+
 function resetStore(): void {
   useGameStore.setState({
     state: null,
@@ -143,6 +155,7 @@ describe('Playmat', () => {
       cleanupRender(activeRender.root, activeRender.container);
     }
     document.body.innerHTML = '';
+    vi.unstubAllEnvs();
   });
 
   it('renders the mulligan decision as a panel without a blocking modal backdrop', () => {
@@ -668,6 +681,7 @@ describe('Playmat', () => {
     }
 
     dispatchContextMenu(card);
+    expandSheetOther(container);
 
     expect(useGameStore.getState().state).toBe(beforeMenu);
     expect(container.querySelector('[data-testid="candidate-draw"]')?.textContent).toBe('ドロー');
@@ -733,6 +747,7 @@ describe('Playmat', () => {
       }
 
       dispatchContextMenu(source);
+      expandSheetOther(container);
       expect(useGameStore.getState().state).toBe(beforeMenu);
 
       const candidate = container.querySelector(`[data-testid="${candidateTestId}"]`);
@@ -787,6 +802,7 @@ describe('Playmat', () => {
     }
 
     dispatchContextMenu(source);
+    expandSheetOther(container);
     const candidate = container.querySelector('[data-testid="candidate-destroy-target"]');
     if (!candidate) {
       throw new Error('destroy target candidate was not rendered');
@@ -830,6 +846,7 @@ describe('Playmat', () => {
     }
 
     dispatchContextMenu(source);
+    expandSheetOther(container);
     const candidate = container.querySelector('[data-testid="candidate-counters-target"]');
     if (!candidate) {
       throw new Error('counters target candidate was not rendered');
@@ -911,6 +928,77 @@ describe('Playmat', () => {
       to: creatureId,
     });
     expect(useGameStore.getState().state?.cards[sourceId]?.attachedTo).toBe(creatureId);
+
+    cleanupRender(root, container);
+  });
+
+  // --- D1 統合ギャップの回帰ピン(Tier-1 監査 findings #1/#2 由来) ---
+
+  it('統率領域の統率者シートは actionCatalog の税ラベルを実描画する(id-join で捨てない)', () => {
+    const commander = makeDef({
+      scryfallId: 'playmat-commander-tax-label',
+      printedName: '税統率者',
+      typeLine: 'Legendary Creature',
+      faces: [{ name: 'Tax Commander', printedName: '税統率者', typeLine: 'Legendary Creature' }],
+    });
+    act(() => {
+      useGameStore.getState().newGame(makeDeck(12, [commander]), 1);
+    });
+    const commanderId = useGameStore.getState().state?.zones.command[0];
+    if (!commanderId) {
+      throw new Error('commander card was not created');
+    }
+    // 統率者税を発生させる(castCount=1 → tax 2)。commanderTax = 2 * castCount。
+    act(() => {
+      const s = useGameStore.getState().state!;
+      useGameStore.setState({
+        state: {
+          ...s,
+          commanders: s.commanders.map((c) =>
+            c.cardId === commanderId ? { ...c, castCount: 1 } : c,
+          ),
+        },
+      });
+    });
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${commanderId}"]`);
+    if (!card) {
+      throw new Error('commander card element was not rendered');
+    }
+    dispatchContextMenu(card);
+
+    const ranked = container.querySelector('[data-testid="card-sheet-ranked"]');
+    // 昇格先頭(優先1)が統率者税表示付きの「唱える」であること。
+    expect(ranked?.textContent).toContain('統率者税 +2');
+    expect(ranked?.querySelector('button')?.textContent).toContain('統率者税 +2');
+
+    cleanupRender(root, container);
+  });
+
+  it('VITE_UI_V2_SHEET=false で旧 ContextMenu 経路を通る(フラグ両値を検証)', () => {
+    vi.stubEnv('VITE_UI_V2_SHEET', 'false');
+    act(() => {
+      useGameStore.getState().newGame(makeDeck(12), 1);
+    });
+    const handCardId = useGameStore.getState().state?.zones.hand[0];
+    if (!handCardId) {
+      throw new Error('hand card was not created');
+    }
+
+    const { container, root } = renderPlaymat();
+    const card = container.querySelector(`[data-testid="card-${handCardId}"]`);
+    if (!card) {
+      throw new Error('hand card element was not rendered');
+    }
+    dispatchContextMenu(card);
+
+    // フラグ OFF ではカードシートは出ず、旧 ContextMenu(フラット)が開く。
+    expect(container.querySelector('[data-testid="card-sheet"]')).toBeNull();
+    expect(container.querySelector('[data-testid="card-sheet-other-toggle"]')).toBeNull();
+    // ContextMenu はフラットゆえ「その他」展開なしで全項目が直接 DOM にある
+    // (card-effects-auto はゾーン非依存で常在)。
+    expect(container.querySelector('[data-testid="card-effects-auto-off"]')).not.toBeNull();
 
     cleanupRender(root, container);
   });

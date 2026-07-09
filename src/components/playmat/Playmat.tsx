@@ -71,6 +71,18 @@ import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
 import type { KeybindingsMap } from '../../data/keybindings';
 import { classifyCardRules } from '../../data/ruleClassifier';
 import { ruleActionCandidatesFromTags, type RuleActionCandidateKind } from './ruleActionCandidates';
+import { commanderTax } from '../../engine/commander';
+import { CardActionSheet } from '../game/CardActionSheet';
+import { buildCardActionCatalog, rankActions } from '../game/actionCatalog';
+
+/**
+ * カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で
+ * 旧 ContextMenu へ即時ロールバック(docs/ui-architecture-v2.md §4)。
+ * 関数にして描画時に env を読む=テストが両値(vi.stubEnv)で回せる。
+ */
+function isV2SheetEnabled(): boolean {
+  return import.meta.env.VITE_UI_V2_SHEET !== 'false';
+}
 
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
@@ -1108,6 +1120,59 @@ export function Playmat({ keybindings }: PlaymatProps) {
     return { title: displayName, items };
   }
 
+  /**
+   * カードシート表示モデル(D1)。既存 buildMenuItems の生 MenuItem(onSelect 付き)を
+   * 再利用しつつ、純関数 actionCatalog の priority で上位1〜3件へ昇格し残りを「その他」へ畳む。
+   * ハンドラは buildMenuItems から借りるため重複が無い(旧 ContextMenu と同一挙動)。
+   */
+  function buildSheetModel(cardId: string): {
+    title: string;
+    typeLine: string;
+    colorIdentity: string[];
+    rankedItems: MenuItem[];
+    otherItems: MenuItem[];
+  } {
+    const { title, items } = buildMenuItems(cardId);
+    const card = cards[cardId];
+    const def = card ? state!.defs[card.defId] : undefined;
+    const isCommanderCard = card ? isCommander(state!, cardId) : false;
+    const specs = buildCardActionCatalog({
+      card,
+      def,
+      typeLine: typeLineFor(cardId),
+      displayName: title,
+      isCommanderCard,
+      // 精密なマナ支払判定は D3(プレイ可能ハイライト selector)へ委譲。D1 は昇格既定 true。
+      canAffordCast: true,
+      landDropAvailable: state!.landsPlayedThisTurn < 1,
+      commanderTax: isCommanderCard ? commanderTax(state!, cardId) : 0,
+    }).specs;
+
+    const itemByKey = new Map(items.map((item) => [item.key, item]));
+    const specByKey = new Map(specs.map((spec) => [spec.id, spec]));
+    // シートの表示ラベルは actionCatalog(spec)を正本にする。ハンドラ・testId・danger 等の
+    // 挙動は旧 buildMenuItems(item)を再利用するが、label だけは spec を優先する
+    // ——統率者税など文脈依存の文言は actionCatalog にしか無いため(id-join だけだと死ぬ)。
+    const withSpecLabel = (item: MenuItem): MenuItem => {
+      const spec = specByKey.get(item.key);
+      return spec ? { ...item, label: spec.label } : item;
+    };
+    const rankedItems = rankActions(specs)
+      .map((spec) => itemByKey.get(spec.id))
+      .filter((item): item is MenuItem => item !== undefined)
+      .map(withSpecLabel);
+    const rankedKeys = new Set(rankedItems.map((item) => item.key));
+    const otherItems = items.filter((item) => !rankedKeys.has(item.key)).map(withSpecLabel);
+
+    return {
+      title,
+      typeLine: typeLineFor(cardId),
+      colorIdentity: def?.colorIdentity ?? [],
+      rankedItems,
+      otherItems,
+    };
+  }
+
   // --- Drag & drop ---
   function handleDragStart(e: DragStartEvent): void {
     hoverPreview.suppress();
@@ -1323,15 +1388,32 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
         {infoOpen && <InfoPanel state={state} onClose={() => setInfoOpen(false)} />}
 
-        {menu && (
-          <ContextMenu
-            x={menu.x}
-            y={menu.y}
-            title={buildMenuItems(menu.cardId).title}
-            items={buildMenuItems(menu.cardId).items}
-            onClose={closeMenu}
-          />
-        )}
+        {menu &&
+          (isV2SheetEnabled() ? (
+            (() => {
+              const model = buildSheetModel(menu.cardId);
+              return (
+                <CardActionSheet
+                  title={model.title}
+                  typeLine={model.typeLine}
+                  colorIdentity={model.colorIdentity}
+                  rankedItems={model.rankedItems}
+                  otherItems={model.otherItems}
+                  variant={isPhone ? 'sheet' : 'popover'}
+                  anchor={{ x: menu.x, y: menu.y }}
+                  onClose={closeMenu}
+                />
+              );
+            })()
+          ) : (
+            <ContextMenu
+              x={menu.x}
+              y={menu.y}
+              title={buildMenuItems(menu.cardId).title}
+              items={buildMenuItems(menu.cardId).items}
+              onClose={closeMenu}
+            />
+          ))}
 
         {libraryMenu && (
           <ContextMenu

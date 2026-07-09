@@ -1,0 +1,104 @@
+/**
+ * tokens.css — デザインシステム「アルケイン戦術卓」トークン正本の実装。
+ * 契約: docs/design-system.md §2〜§7。視覚正本: research/design/mockups/index.html v4。
+ * D1(2026-07-10・J2 Opus 承認)で新設。index.css から色系トークンを分離し、
+ * 旧 felt-* 系は index.css 側で ink/surface へのエイリアスに置換する(strangler)。
+ * 新規CSSに生hex/px直書き禁止=すべて本ファイルのトークンを参照する。
+ */
+
+:root {
+  /* --- §2 卓面(黒〜チャコール〜深ネイビー) --- */
+  --ink-0: #0a0e14;
+  --ink-1: #0d1320;
+  --ink-2: #111a2a;
+  --surface-0: var(--ink-0); /* 背景(卓) */
+  --surface-1: #141d2e; /* 盤面ゾーン・チップ */
+  --surface-2: #1c2a42; /* 浮遊要素(シート・ポップオーバー・フィード) */
+  --line: rgba(150, 185, 235, 0.1);
+  --line-strong: rgba(150, 185, 235, 0.24);
+
+  --text: #c9d6e8;
+  --text-dim: #7f94b0;
+  --text-h: #f0f5fd;
+
+  /* --- §2 マナ5色(卓上で意味を持って光る唯一の彩度源) --- */
+  --mana-w: #f8e7b9;
+  --mana-u: #6cc3e8;
+  --mana-b: #b48be0;
+  --mana-r: #ff8c6b;
+  --mana-g: #8fd99a;
+  --mana-c: #c7cdd6;
+
+  /* --- §2 意味色: 金=行動 / 青白=スタックの緊張 / 白金=統率者 --- */
+  --gold: #d8b06a;
+  --gold-bright: #f0cf8c;
+  --gold-dim: rgba(216, 176, 106, 0.18);
+  --action-primary: var(--gold);
+  --action-primary-text: #17130a; /* 金ボタン上の文字(コントラスト比 ≥ 7:1) */
+  --playable-glow: 0 0 0 1.5px var(--gold-bright), 0 0 14px rgba(240, 207, 140, 0.38);
+
+  --stack-glow-c: #9fd4ff; /* スタックの緊張(青白光) */
+  --stack-glow: 0 0 0 1px rgba(159, 212, 255, 0.55), 0 0 20px rgba(140, 190, 255, 0.35);
+  --commander-platinum: #e9eef6; /* 統率者の白金 */
+  --platinum-glow: 0 0 0 1.5px rgba(233, 238, 246, 0.7), 0 0 22px rgba(210, 225, 250, 0.4);
+
+  /* --- §2 エンジン由来イベントの意味色(フィード/バッジ) --- */
+  --auto: #7fb8d8; /* エンジン自動実行(青=機械) */
+  --trigger: #d8a95f; /* 誘発候補(琥珀=要判断) */
+  --warn: #ef6f6f; /* 警告・強行 */
+
+  /* --- §2 光と深度(卓上の冷たい光溜まり+ヴィネット) --- */
+  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(160, 200, 255, 0.07), transparent 60%);
+  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, 0.5) 100%);
+
+  /* --- §3 タイポグラフィ(役割固定) --- */
+  --display: 'Cinzel', 'Hiragino Mincho ProN', serif;
+  --sans: 'Manrope', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --mono: 'Space Mono', ui-monospace, Consolas, monospace;
+
+  --font-size-xs: 11px; /* バッジ・注釈(最小。これ未満禁止) */
+  --font-size-sm: 13px; /* 補助・フィード本文 */
+  --font-size-md: 15px; /* 基準 */
+  --font-size-lg: 18px; /* シート見出し・プライマリボタン */
+  --font-size-xl: 28px; /* ライフ等の主数値 */
+
+  /* --- §4 スペーシング・寸法 --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --touch-target: 44px; /* 全インタラクティブ要素の最小ヒット領域(iOS HIG) */
+  --thumb-zone: 88px; /* 画面下の親指ゾーン高 */
+
+  --card-ratio: 488 / 680; /* MTGカード実比率 */
+  --card-hand-w: clamp(96px, 26vw, 140px); /* 縦持ち手札 */
+  --board-card-w: 96px; /* 盤面棚の基準カード幅(§8) */
+  --sheet-radius: 20px 20px 0 0; /* bottom sheet 上角 */
+  --popover-w-min: 232px; /* デスクトップ popover 最小幅(CardActionSheet) */
+  --popover-w-max: 300px; /* デスクトップ popover 最大幅 */
+
+  /* --- §5 形状・影・材質 --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6); /* bottom sheet 用 */
+  --scrim: rgba(0, 0, 0, 0.4); /* シート背後の暗転(bottom sheet overlay) */
+
+  /* 金の材質(ボタン・統率者縁に。ベタ塗り禁止) */
+  --gold-surface: linear-gradient(160deg, #e8c883 0%, #d8b06a 45%, #b8904e 100%);
+  --gold-edge: inset 0 1px 0 rgba(255, 235, 190, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+
+  /* --- §7 モーション — 演出レベル体系 (L0〜L4) --- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.34, 1.3, 0.64, 1); /* 手応え(軽いオーバーシュート) */
+  --dur-fast: 120ms; /* L1: ホバー・押下・タップ・ハイライト */
+  --dur-move: 240ms; /* L2: シート開閉・カード移動・ドロー */
+  --dur-hero: 420ms; /* L3: 着地・キャスト・解決 */
+  --dur-ritual: 650ms; /* L3+/L4: 統率者登場・連鎖 */
+}

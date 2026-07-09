@@ -1,52 +1,31 @@
+/* 色・タイポ・寸法トークンの正本は ui/tokens.css(design-system §2-§7)。 */
+@import './ui/tokens.css';
+
 :root {
-  /* Felt playmat surface */
-  --felt-1: #0d1410;
-  --felt-2: #121b16;
-  --felt-3: #182420;
-  --panel: #161f1b;
-  --panel-raised: #1d2a24;
-  --line: rgba(212, 226, 214, 0.08);
-  --line-strong: rgba(212, 226, 214, 0.16);
+  /* strangler 互換エイリアス(D1・2026-07-10・J2 承認)。
+   * 旧「緑金フェルト」テーマの felt-x・panel トークン名を維持しつつ、値だけ
+   * 新「アルケイン戦術卓」の ink・surface へ差し替える。これで旧 Playmat 系統
+   * (App.css の 29 参照)を無編集で新色へ移行できる。旧 Playmat の退役(D4)で
+   * これらのエイリアスも削除する。乖離記録=docs/design-system.md §2。 */
+  --felt-1: var(--surface-0);
+  --felt-2: var(--ink-1);
+  --felt-3: var(--ink-2);
+  --panel: var(--surface-1);
+  --panel-raised: var(--surface-2);
 
-  --text: #cfd9d2;
-  --text-dim: #8aa097;
-  --text-h: #f3efe3;
-
-  /* Mana colors */
-  --mana-w: #f8e7b9;
-  --mana-u: #6cc3e8;
-  --mana-b: #b48be0;
-  --mana-r: #ff8c6b;
-  --mana-g: #8fd99a;
-  --mana-c: #c7cdd6;
-
-  --gold: #d8b06a;
-  --gold-bright: #f0cf8c;
-  --gold-dim: rgba(216, 176, 106, 0.18);
-
-  --danger: #ef6f6f;
+  /* tokens.css に無い旧テーマ由来の意味色(App.css 互換)。 */
+  --danger: var(--warn);
   --danger-bg: rgba(239, 111, 111, 0.14);
-  --ok: #8fd99a;
+  --ok: var(--mana-g);
 
   --accent: var(--gold);
   --accent-bg: var(--gold-dim);
   --accent-border: rgba(216, 176, 106, 0.45);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-
-  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
-
-  --display: 'Cinzel', 'Hiragino Mincho ProN', serif;
-  --sans: 'Manrope', 'Hiragino Sans', 'Yu Gothic', sans-serif;
-  --mono: 'Space Mono', ui-monospace, Consolas, monospace;
-
-  font: 15px/1.5 var(--sans);
+  font: var(--font-size-md) / 1.5 var(--sans);
   color-scheme: dark;
   color: var(--text);
-  background: var(--felt-1);
+  background: var(--surface-0);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -61,17 +40,12 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
+  /* 卓面: 冷たい光溜まり(--table-light)+ ヴィネット(--table-vignette)を
+   * ink 基調の上に重ねる(design-system §2/§8 StageBackdrop)。 */
   background:
-    radial-gradient(ellipse at 20% -10%, rgba(143, 217, 154, 0.05), transparent 50%),
-    radial-gradient(ellipse at 85% 110%, rgba(216, 176, 106, 0.06), transparent 55%),
-    repeating-linear-gradient(
-      135deg,
-      var(--felt-1) 0px,
-      var(--felt-1) 2px,
-      var(--felt-2) 2px,
-      var(--felt-2) 4px
-    ),
-    var(--felt-1);
+    var(--table-vignette),
+    var(--table-light),
+    var(--surface-0);
   background-attachment: fixed;
 }
 

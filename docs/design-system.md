@@ -56,6 +56,8 @@
 
 *参考: 旧テーマ(廃止)* = 緑金フェルト `--felt-1:#0d1410 / --felt-2:#121b16` 系。移行時 `src/index.css` の felt トークンは上記 ink/surface へ置換する。
 
+**実装乖離記録(D1・2026-07-10・J2 承認)**: felt トークンの「置換」は、旧 Playmat が D4 まで現役レンダラである間の回帰を避けるため、**index.css で felt-*/panel トークン名を維持しつつ値だけ ink/surface へ差し替えるエイリアス方式**で行った(`--felt-1: var(--surface-0)` 等)。これにより App.css の 29 参照を無編集で新色へ移行できる。旧 Playmat の退役(D4)時にエイリアス定義も削除する。トークン正本は `src/ui/tokens.css`(index.css から `@import`)。
+
 **規約**:
 - 金(`--action-primary`)は**画面に同時に1箇所**(プライマリアクション)+プレイ可能ハイライトのみ。青白は**スタックにいる間だけ**、白金は**統率者だけ**。意味色の乱用禁止(全部同格に戻る)。
 - 破壊的操作は `--warn` 文字色+確認シートで、面積は最小。
@@ -180,6 +182,9 @@
 - モバイル: 画面下から `--surface-2`・`--sheet-radius`・`--shadow-sheet` で出現(`--dur-move`)。上部にカード拡大(幅60%)+名前/タイプ行。**マナ色の縁光**をカードの色アイデンティティで。
 - アクション領域: 上位1〜3件(エンジン文脈ランク)を `--touch-target` 高の大ボタンで。先頭がそのカードの「一番自然な操作」(土地=マナ生成タップ、手札の呪文=唱える)。「その他」開閉で全操作(ゾーン移動・カウンター・強行・自動化トグル)を既存 ContextMenu 相当の粒度で。
 - デスクトップ: 同一コンポーネントをカーソル近傍ポップオーバー(`--shadow-pop`)で。
+- **実装(D1・2026-07-10・J2 承認。Tier-1 監査で findings 反映済み)**: アクションモデルは純関数 `src/components/game/actionCatalog.ts`(`buildCardActionCatalog`/`rankActions`)。旧 `Playmat.buildMenuItems` の生 MenuItem(onSelect 付き)を id で priority に join して上位1〜3件を昇格し残りを「その他」へ畳む。**label はシートでは actionCatalog(spec)を正本にする**(`buildSheetModel` の `withSpecLabel`)——統率者税など文脈依存の文言は actionCatalog にしか無いため。挙動(onSelect/testId/danger)は item を再利用ゆえ ContextMenu と同一。上位変種の判定=`isPhoneLandscape` で bottom sheet / popover を出し分け。金はシート内で使わず(PrimaryAction 専有)、先頭アクションは border 強調で示す。新トークン(J2 追加): `--scrim`(overlay 暗転)・`--popover-w-min/max`(popover 幅)。
+  - **乖離記録1(affordability・D3 へ延期)**: マナ支払可否(手札呪文の昇格判定)は D1 では既定 `true` 固定——実ゲーム状態に基づくマナ計算関数がまだ無いため。**「マナ不足の唱えるは昇格しない」受け入れ基準(playbook §3 D1(a)(3)・(b))は D3(プレイ可能ハイライト selector)へ明示的に繰り越す**(D1 では純関数 `rankActions` が `canAffordCast:false` を注入された時に正しく振る舞うことを review.d1 でピン留めのみ)。強行キャストは元々サンドボックス許容ゆえ実害なし。統率者の唱えるはマナ可否によらず昇格(規則表 優先1)。
+  - **乖離記録2(優先5の代替・J2 追認)**: playbook §3 D1(a)(3) の「優先5: 戦場の起動型能力持ち→先頭の能力起動」は、substrate が「意味のある起動型能力を持つか」を安価に判定できず、汎用 `ability-activate`(全戦場パーマネントに無条件で存在)を昇格すると全カードで雑音化するため、**検出可能な具体的起動型能力である「フェッチ起動」(`fetchActivate`)を優先5相当(priority 60)に割り当て、汎用 `ability-activate` は昇格しない**方針へ J2 が変更・追認した。将来「起動型能力保有」分類器ができた時点で本来ルールへ精密化可能。
 
 ### PrimaryAction(プライマリアクションボタン)
 - 親指ゾーン左側の幅優先ボタン。`--gold-surface` + `--gold-edge`、文字 `--action-primary-text`・`--font-size-lg`。

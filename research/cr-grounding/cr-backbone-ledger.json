@@ -21,8 +21,9 @@
       "dependsOn": [
         "d0-groundwork"
       ],
+      "status": "shipped",
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。"
+      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。 **出荷完了(2026-07-10・J2 Opus召喚下でJ2実装代行=Codex quota枯渇7/11まで・design-playbook §6)**: tokens.css新設(アルケイン戦術卓トークン正本)・index.css felt→inkエイリアス移行・actionCatalog.ts(純関数buildCardActionCatalog+rankActions・onSelectはbuildMenuItems再利用しlabelはspec正本)・CardActionSheet.tsx/.css(bottom sheet/popover)・Playmat配線(isV2SheetEnabledフラグ)。独立Tier-1監査(冷Sonnet)完了=赤旗3件(統率者税ラベルのid-join死コード→withSpecLabelで修正・フラグOFF経路未検証→vi.stubEnvで両値テスト追加・優先5のfetch代替→J2追認しdesign-system §8記録)+黄4件を判定者が裁定・修正。乖離記録=design-system §2(feltエイリアス)/§8(affordability D3延期・優先5代替・新トークンscrim/popover-w)・ui-architecture-v2 §6(D4で重複実装抽出+playmat依存解消)。機械4点全green(174 files/1506 tests)・実機3形態確認済み(1440=popover/812×375=bottom sheet/375portrait=RotateNotice[D2前想定]・森→マナ生成一等地・44px・コンソール0)。evidence=review.d1-action-catalog.test.ts(10ケース)+Playmat.test.tsx統合ピン2件(税ラベル/フラグOFF)+archive/d1-design-system-card-sheet/tier1-findings.md。"
     },
     {
       "type": "design-slice",

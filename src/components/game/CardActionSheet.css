@@ -1,0 +1,172 @@
+/**
+ * CardActionSheet 視覚仕様。docs/design-system.md §8 CardActionSheet。
+ * 色・寸法・モーションは ui/tokens.css のトークンのみ参照(生hex/px直書き禁止)。
+ */
+
+.card-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+/* モバイル: 画面下 bottom sheet。背後を薄く暗転。 */
+.card-sheet-overlay--sheet {
+  display: flex;
+  align-items: flex-end;
+  background: var(--scrim);
+}
+
+/* デスクトップ: 暗転せず、カーソル近傍 popover。 */
+.card-sheet-overlay--popover {
+  background: transparent;
+}
+
+.card-sheet {
+  background: var(--surface-2);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.card-sheet--sheet {
+  width: 100%;
+  max-height: 76vh;
+  border-radius: var(--sheet-radius);
+  box-shadow: var(--shadow-sheet);
+  padding: var(--space-3) var(--space-3) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  animation: card-sheet-rise var(--dur-move) var(--ease-out);
+}
+
+.card-sheet--popover {
+  position: absolute;
+  min-width: var(--popover-w-min);
+  max-width: var(--popover-w-max);
+  max-height: 70vh;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  padding: var(--space-2);
+  overflow-y: auto;
+}
+
+@keyframes card-sheet-rise {
+  from {
+    transform: translateY(12%);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-sheet--sheet {
+    animation: none;
+  }
+}
+
+/* --- 見出し(カード名+タイプ。縁光は inline style で色アイデンティティ由来) --- */
+.card-sheet__header {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--surface-1);
+}
+
+.card-sheet__title {
+  font-family: var(--sans);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.25;
+}
+
+.card-sheet__type {
+  font-size: var(--font-size-xs);
+  color: var(--text-dim);
+  margin-top: var(--space-1);
+}
+
+/* --- 昇格した上位アクション(大ボタン) --- */
+.card-sheet__ranked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.card-sheet__action {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.card-sheet__action:hover {
+  background: var(--ink-2);
+  border-color: var(--line-strong);
+}
+
+/* 先頭=そのカードの一番自然な操作。金は PrimaryAction 専有ゆえ使わず、border を強調。 */
+.card-sheet__action--primary {
+  border-color: var(--line-strong);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.card-sheet__action--danger {
+  color: var(--warn);
+}
+
+.card-sheet__action--disabled {
+  color: var(--text-dim);
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* --- 「その他」開閉 --- */
+.card-sheet__other-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--sans);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.card-sheet__other-toggle:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.card-sheet__other-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+/* popover は密度を上げる(デスクトップは大ボタンでなく従来メニュー相当の高さでも可)。 */
+.card-sheet--popover .card-sheet__action {
+  min-height: var(--touch-target);
+  font-size: var(--font-size-sm);
+}
