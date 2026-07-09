@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon } from '../../ui/icons';
 
 export interface MobileControlsDrawerProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function MobileControlsDrawer({
           onToggle();
         }}
       >
-        <span className="ti ti-menu-2" aria-hidden="true" />
+        <Icon name="menu" />
         <span>操作</span>
       </button>
 

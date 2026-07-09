@@ -10,8 +10,9 @@
       "type": "design-slice",
       "domainId": "d0-groundwork",
       "track": "design",
+      "status": "shipped",
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。①死CSS削除(src/App.css:838-960と:2793-2872の旧レイアウト系統=現JSX未使用) ②viewStore.ts新設(空殻+テスト。ui-architecture-v2 §3のinterface) ③src/ui/icons.tsx=インラインSVGスプライト新設しUnicode偽装アイコン(App.css:4293-4345のti ti-*)を全廃 ④カード画像フォールバック修正=日本語版画像欠落時にScryfall EN画像へ(『Localized Image Not Available』プレースホルダ根絶)。機械的・低リスク・見た目回帰なし(3形態スクショ比較)。"
+      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。①死CSS削除(src/App.css:838-960と:2793-2872の旧レイアウト系統=現JSX未使用) ②viewStore.ts新設(空殻+テスト。ui-architecture-v2 §3のinterface) ③src/ui/icons.tsx=インラインSVGスプライト新設しUnicode偽装アイコン(App.css:4293-4345のti ti-*)を全廃 ④カード画像フォールバック修正=日本語版画像欠落時にScryfall EN画像へ(『Localized Image Not Available』プレースホルダ根絶)。機械的・低リスク・見た目回帰なし(3形態スクショ比較)。 **出荷完了(2026-07-10・J3代行実装。Codex quota枯渇7/11までのためdesign-playbook §6の代行規則を適用)**: 死CSS削除(旧3カラム.playmat__sidebar/__main/__stage/__zones/__hand/__log一式+.ti/.ti-*::before全廃)・src/ui/icons.tsx新設(22アイコン。design-system.md §6に実装乖離記録追記済み)・src/store/viewStore.ts新設(空殻)・src/data/scryfall.tsにusableImageUrl新設(image_status:placeholder/missing判定。実API裏取り済み)。独立Tier-1監査(冷Sonnet)完了=HIGH相当1件(cache staleness。CACHE_SCHEMA_VERSION 3→4で解消)+process gap2件(icon数/実装パス乖離。design-system.md §6へ記録)を判定者が裁定・修正済み。機械4点全green(173 files/1494 tests)・実機3形態確認済み(縦=既存RotateNotice仕様どおり)。evidence=review.d0-viewstore.test.ts/review.d0-image-fallback.test.ts/review.d0-dead-css-scan.test.ts。"
     },
     {
       "type": "design-slice",

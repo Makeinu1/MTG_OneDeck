@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PHASE_ORDER, type GameState } from '../../engine/types';
 import type { useGameStore } from '../../store/gameStore';
+import { Icon, type IconName } from '../../ui/icons';
 
 type Store = ReturnType<typeof useGameStore.getState>;
 type PlayerCounterKind = 'poison' | 'energy' | 'experience';
@@ -63,21 +64,6 @@ function useDismissibleLayer<T extends HTMLElement>(
   return ref;
 }
 
-function Icon({
-  icon,
-  label,
-}: {
-  icon: string;
-  label: string;
-}) {
-  return (
-    <>
-      <span className={`ti ${icon}`} aria-hidden="true" />
-      <span className="sr-only">{label}</span>
-    </>
-  );
-}
-
 function CounterRow({
   label,
   value,
@@ -131,7 +117,7 @@ function ControlButton({
   disabled,
   active,
 }: {
-  icon: string;
+  icon: IconName;
   label: string;
   title?: string;
   testId?: string;
@@ -152,7 +138,7 @@ function ControlButton({
         onClick();
       }}
     >
-      <Icon icon={icon} label={label} />
+      <Icon name={icon} label={label} />
     </button>
   );
 }
@@ -163,12 +149,14 @@ function MenuButton({
   testId,
   onClick,
   className,
+  mirrored,
 }: {
-  icon: string;
+  icon: IconName;
   label: string;
   testId?: string;
   onClick: () => void;
   className?: string;
+  mirrored?: boolean;
 }) {
   return (
     <button
@@ -180,7 +168,7 @@ function MenuButton({
         onClick();
       }}
     >
-      <span className={`ti ${icon}`} aria-hidden="true" />
+      <Icon name={icon} mirrored={mirrored} />
       <span>{label}</span>
     </button>
   );
@@ -448,7 +436,7 @@ export function ControlRail({ store }: ControlRailProps) {
     <div className="control-rail" onClick={(event) => event.stopPropagation()}>
       <div className="control-rail__primary">
         <ControlButton
-          icon="ti-player-play-filled"
+          icon="phase-next"
           label="次のフェイズ"
           title={stackBlocked ? stackBlockedTitle : undefined}
           testId="next-phase"
@@ -456,7 +444,7 @@ export function ControlRail({ store }: ControlRailProps) {
           onClick={() => store.nextPhase()}
         />
         <ControlButton
-          icon="ti-player-track-next-filled"
+          icon="turn-next"
           label="次のターン"
           title={stackBlocked ? stackBlockedTitle : undefined}
           testId="next-turn"
@@ -464,14 +452,14 @@ export function ControlRail({ store }: ControlRailProps) {
           onClick={() => store.nextTurn()}
         />
         <ControlButton
-          icon="ti-arrow-back-up"
+          icon="undo"
           label="元に戻す"
           testId="undo"
           disabled={!store.canUndo}
           onClick={() => store.undo()}
         />
         <ControlButton
-          icon="ti-arrow-forward-up"
+          icon="redo"
           label="やり直す"
           testId="redo"
           disabled={!store.canRedo}
@@ -515,7 +503,7 @@ export function OtherActions({
         onClick={() => setOpen((current) => !current)}
       >
         <span className="other-actions__toggle-label">
-          <span className="ti ti-dots" aria-hidden="true" />
+          <Icon name="menu" />
           <span>その他の操作</span>
         </span>
         <span className="other-actions__chevron" aria-hidden="true">
@@ -526,70 +514,71 @@ export function OtherActions({
       {open && (
         <div className="other-actions__menu">
           <MenuButton
-            icon="ti-swords"
+            icon="attack"
             label="攻撃"
             testId="attack-button"
             className="other-actions__button"
             onClick={() => run(onAttack)}
           />
           <MenuButton
-            icon="ti-cards"
+            icon="library"
             label="トークン生成"
             testId="create-token"
             className="other-actions__button"
             onClick={() => run(onCreateToken)}
           />
           <MenuButton
-            icon="ti-rotate-clockwise"
+            icon="tap"
             label="全タップ"
             testId="tap-all"
             className="other-actions__button"
             onClick={() => run(() => store.tapAllPermanents())}
           />
           <MenuButton
-            icon="ti-tilt-shift"
+            icon="tap"
+            mirrored
             label="全アンタップ"
             testId="untap-all"
             className="other-actions__button"
             onClick={() => run(() => store.untapAllPermanents())}
           />
           <MenuButton
-            icon="ti-circle-plus"
+            icon="life-up"
             label="全カウンター増殖"
             testId="proliferate-all"
             className="other-actions__button"
             onClick={() => run(() => store.proliferateAll())}
           />
           <MenuButton
-            icon="ti-arrow-back-up-double"
+            icon="graveyard"
             label="ランダムに捨てる"
             testId="discard-random"
             className="other-actions__button"
             onClick={() => run(onDiscardRandom)}
           />
           <MenuButton
-            icon="ti-info-circle"
+            icon="info"
             label="情報"
             testId="game-info-open"
             className="other-actions__button"
             onClick={() => run(onOpenInfo)}
           />
           <MenuButton
-            icon="ti-dice-5"
+            icon="dice"
             label="6面ダイス"
             testId="roll-d6"
             className="other-actions__button"
             onClick={() => run(() => store.rollDie(6))}
           />
           <MenuButton
-            icon="ti-dice-5"
+            icon="dice"
             label="20面ダイス"
             testId="roll-d20"
             className="other-actions__button"
             onClick={() => run(() => store.rollDie(20))}
           />
           <MenuButton
-            icon="ti-coin"
+            icon="coin"
             label="コイン投げ"
             testId="coin-flip"
             className="other-actions__button"

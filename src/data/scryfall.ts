@@ -60,7 +60,23 @@ export interface ScryfallCard {
   keywords?: string[];
   produced_mana?: string[];
   image_uris?: ScryfallImageUris;
+  image_status?: 'missing' | 'placeholder' | 'lowres' | 'highres_scan';
   card_faces?: ScryfallCardFace[];
+}
+
+/**
+ * Scryfall serves a generic substitute image (still a valid, resolvable URL)
+ * when a print's real scan isn't uploaded yet — most commonly for very recent
+ * Japanese prints of basic lands. `image_status` (already present on every
+ * fetched card object, no extra request needed) is the only reliable signal;
+ * a present `image_uris.normal` URL is not sufficient on its own. Verified
+ * live against the Scryfall API 2026-07-10 (e.g. lang:ja set:mid basics
+ * report image_status:"placeholder" while still returning image_uris).
+ */
+export function usableImageUrl(status: ScryfallCard['image_status'], url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (status === 'placeholder' || status === 'missing') return undefined;
+  return url;
 }
 
 interface ScryfallList<T> {
@@ -147,7 +163,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
       printedTypeLine: face.printed_type_line,
       oracleText: face.oracle_text,
       printedText: face.printed_text,
-      imageUrl: face.image_uris?.normal ?? card.image_uris?.normal,
+      imageUrl: usableImageUrl(card.image_status, face.image_uris?.normal ?? card.image_uris?.normal),
       power: face.power,
       toughness: face.toughness,
       loyalty: face.loyalty,
@@ -162,7 +178,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
         printedTypeLine: card.printed_type_line,
         oracleText: card.oracle_text,
         printedText: card.printed_text,
-        imageUrl: card.image_uris?.normal,
+        imageUrl: usableImageUrl(card.image_status, card.image_uris?.normal),
         power: card.power,
         toughness: card.toughness,
         loyalty: card.loyalty,
@@ -191,7 +207,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
  * Apply a Japanese print's display fields (printed names, ja images/text) onto
  * an existing CardDef that was resolved via its English print.
  */
-function applyJapanesePrint(base: CardDef, jaCard: ScryfallCard): CardDef {
+export function applyJapanesePrint(base: CardDef, jaCard: ScryfallCard): CardDef {
   const jaDef = mapScryfallCardToCardDef(jaCard);
   const faces: CardFace[] = base.faces.map((face, index) => {
     const jaFace = jaDef.faces[index];

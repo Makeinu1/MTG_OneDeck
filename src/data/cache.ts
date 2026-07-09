@@ -6,7 +6,9 @@ import type { CardDef } from '../types/card';
 // lack them and must be discarded.
 // v3: English-only cached cards must be dropped so batched Japanese re-resolution
 // can repopulate display data.
-export const CACHE_SCHEMA_VERSION = 3;
+// v4: imageUrl derivation now filters Scryfall image_status:"placeholder"/"missing"
+// (D0); v1-v3 entries may carry a stale placeholder imageUrl and must be discarded.
+export const CACHE_SCHEMA_VERSION = 4;
 
 const DB_NAME = 'mtg-onedeck-cache';
 const NAME_STORE = 'cardsByName';

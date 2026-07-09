@@ -909,55 +909,6 @@
   color: var(--text-dim);
 }
 
-.playmat__sidebar,
-.playmat__main {
-  min-width: 0;
-  min-height: 0;
-}
-
-.playmat__sidebar {
-  display: flex;
-  overflow: hidden;
-}
-
-.playmat__main {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) var(--playmat-bottom-row);
-  gap: 12px;
-}
-
-.playmat__stage {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-}
-
-.playmat__zones {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-}
-
-.playmat__hand {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-}
-
-.playmat__log {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-}
-
-.playmat__log .game-log {
-  width: 100%;
-  min-height: 0;
-}
-
 /* =========================================================================
    Side panel
    ========================================================================= */
@@ -2811,21 +2762,6 @@
     --playmat-bottom-row: auto;
   }
 
-  .playmat__sidebar,
-  .playmat__main,
-  .playmat__zones,
-  .playmat__log {
-    overflow: visible;
-  }
-
-  .playmat__sidebar {
-    display: block;
-  }
-
-  .playmat__main {
-    grid-template-rows: minmax(320px, 44vh) auto;
-  }
-
   .battlefield {
     min-height: 320px;
   }
@@ -2869,10 +2805,6 @@
     padding-right: max(6px, env(safe-area-inset-right));
     padding-bottom: max(6px, env(safe-area-inset-bottom));
     padding-left: max(6px, env(safe-area-inset-left));
-  }
-
-  .playmat__main {
-    gap: 8px;
   }
 
   .phase-track {
@@ -3510,7 +3442,7 @@
   cursor: pointer;
 }
 
-.mobile-controls-drawer__toggle .ti {
+.mobile-controls-drawer__toggle .icon {
   writing-mode: horizontal-tb;
   transform: rotate(90deg);
 }
@@ -4290,85 +4222,19 @@
   height: 18px;
 }
 
-.ti {
+.icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1em;
   height: 1em;
-  font-style: normal;
   font-size: 18px;
   line-height: 1;
 }
 
-.ti::before {
-  display: block;
-}
-
-.ti-player-play-filled::before {
-  content: '▶';
-  font-size: 14px;
-  transform: translateX(1px);
-}
-
-.ti-player-track-next-filled::before {
-  content: '⏭';
-  font-size: 15px;
-}
-
-.ti-arrow-back-up::before {
-  content: '↶';
-}
-
-.ti-arrow-forward-up::before {
-  content: '↷';
-}
-
-.ti-dots::before {
-  content: '⋯';
-}
-
-.ti-menu-2::before {
-  content: '≡';
-}
-
-.ti-swords::before {
-  content: '⚔';
-  font-size: 15px;
-}
-
-.ti-cards::before {
-  content: '▣';
-}
-
-.ti-tilt-shift::before {
-  content: '↺';
-}
-
-.ti-dice-5::before {
-  content: '⌘';
-  font-size: 14px;
-}
-
-.ti-coin::before {
-  content: '◐';
-  font-size: 15px;
-}
-
-.ti-rotate-clockwise::before {
-  content: '↻';
-}
-
-.ti-arrow-back-up-double::before {
-  content: '⤺';
-}
-
-.ti-refresh::before {
-  content: '⟲';
-}
-
-.ti-route-alt-left::before {
-  content: '↬';
+.icon svg {
+  width: 1em;
+  height: 1em;
 }
 
 .zones {
