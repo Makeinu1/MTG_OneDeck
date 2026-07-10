@@ -4,7 +4,9 @@
  * プレイ可能ハイライト(金縁発光)は D3(マナ計算 selector)で付与。
  */
 
+import { useMemo } from 'react';
 import { GameCard } from './GameCard';
+import { playableHandCardIds } from './affordability';
 import type { GameController } from './gameController';
 
 export interface HandRibbonProps {
@@ -13,6 +15,11 @@ export interface HandRibbonProps {
 
 export function HandRibbon({ controller }: HandRibbonProps) {
   const { state, store } = controller;
+  // マナ計算は毎レンダ全走査を避けるため memo 化(ui-architecture-v2 §6)。
+  const playable = useMemo(
+    () => (state ? playableHandCardIds(state) : new Set<string>()),
+    [state],
+  );
   if (!state) return null;
 
   return (
@@ -36,7 +43,7 @@ export function HandRibbon({ controller }: HandRibbonProps) {
 
       <div className="hand-ribbon__cards">
         {state.zones.hand.map((cardId) => (
-          <GameCard key={cardId} controller={controller} cardId={cardId} size="hand" />
+          <GameCard key={cardId} controller={controller} cardId={cardId} size="hand" playable={playable.has(cardId)} />
         ))}
       </div>
     </div>

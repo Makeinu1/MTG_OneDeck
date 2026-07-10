@@ -116,6 +116,12 @@ export interface GameController {
   openArrangeTop: () => void;
   openCountDialog: (kind: CountDialogState['kind'], defaultValue: number) => void;
   requestConfirm: (action: 'restart' | 'back-to-import') => void;
+  /** 誘発候補の件数(PrimaryAction 状態機械・ベルバッジ用)。 */
+  triggerCandidateCount: number;
+  /** フィード(誘発/警告/ログ)の開閉。GameScreen が feedOpen で <Feed> を描画。 */
+  feedOpen: boolean;
+  openFeed: () => void;
+  closeFeed: () => void;
   /** 全ダイアログ+メニューの描画ノード(GameScreen が末尾に置く)。 */
   overlays: ReactNode;
   /** ショートカット無効化フラグ(ダイアログ表示中)。 */
@@ -149,6 +155,7 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
   const [attackDialogOpen, setAttackDialogOpen] = useState(false);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
+  const [feedOpen, setFeedOpen] = useState(false);
 
   const isDialogOpen =
     store.pendingGuided !== null ||
@@ -1003,6 +1010,10 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     openArrangeTop: () => setArrangeTopOpen(true),
     openCountDialog: (kind, defaultValue) => setCountDialog({ kind, defaultValue }),
     requestConfirm: (action) => setConfirmAction(action),
+    triggerCandidateCount: store.triggerCandidates.length,
+    feedOpen,
+    openFeed: () => setFeedOpen(true),
+    closeFeed: () => setFeedOpen(false),
     overlays,
     shortcutsBlocked,
   };

@@ -40,11 +40,12 @@
       "type": "design-slice",
       "domainId": "d3-primary-action-feed",
       "track": "design",
+      "status": "shipped",
       "dependsOn": [
         "d2-portrait-layout"
       ],
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D3 プライマリアクション+フィード(エンジンの見える化=design-vision 原則2/4)。①PrimaryAction状態機械(スタック非空→解決/未処理誘発→誘発を処理(n)/戦闘→攻撃確定/他→次のフェイズ。スタック未解決中のフェイズ禁止をボタン状態で表現=CLAUDE.md唯一の強制ルール) ②プレイ可能ハイライト(マナ計算selector・手札金縁発光) ③Feed=warnings/triggerCandidates/ログの投影合成(独自真実なし・undoで巻き戻る。ui-architecture-v2 §3)。Toasts/TriggerCandidatePanel浮動版退役。視覚正本=mockups画面3。"
+      "note": "**出荷完了(2026-07-10・J2 Opus実装代行=ユーザー『Codexの代わりにOpusが』継続指示・D2直後にユーザー裁定でOpus続行)**: primaryAction.ts(状態機械=スタック非空→解決/誘発候補n>0→誘発を処理/戦闘フェイズ攻撃宣言前[phase==='combat'&&combat未生成=engine実到達状態]→攻撃を確定/他→次のフェイズ。スタック優先=CLAUDE.md唯一の強制ルールの構造表現)・affordability.ts(マナ計算selector=未タップ源をユニット化しKuhn二部マッチング+monoHybridバックトラック。playableHandCardIds)・feedProjection.ts(warnings/triggerCandidates/ログの純投影・新しい順)・Feed.tsx(誘発スタックへ/全無視・浮動Toasts/TriggerCandidatePanelは新treeで非採用)。配線=ThumbZone(PrimaryAction)/StatusBand(ベル+バッジ)/HandRibbon(memo化glow)/GameCard(playable縁光)/gameController(feedOpen)。review.d3-primary-feed(22ケース)。機械4点全緑(176 files/1543 tests)・実機3形態+コンソール0(fresh server再起動で確認)。**独立Tier-1(冷Sonnet)**=HIGH2(①combat分岐がdeclareAttackers[到達不能]→phase==='combat'&&combat未生成へ修正・実機engineで攻撃を確定表示確認 ②monoHybrid {2/W}が色固定で過小評価→色OR不特定2のバックトラック修正)+MED3(feed 44px化・無視をper-itemから単一グローバル化しtestid重複解消・viewStore/markSeen未配線)を裁定=①②修正・feed修正・viewStore乖離をui-architecture-v2 §6へ記録。MED(Sol Ring等複数マナ源の過小評価)はハイライト助言ゆえ許容+ファイル注記、LOW(APNAP順序UI・next-turn disabled)は将来スライスへ。evidence=research/cr-grounding/d3-primary-feed-tier1-findings.md・review.d3-primary-feed.test.ts。 --- 契約(参考): D3 プライマリアクション+フィード(エンジンの見える化=design-vision 原則2/4)。①PrimaryAction状態機械(スタック非空→解決/未処理誘発→誘発を処理(n)/戦闘→攻撃確定/他→次のフェイズ。スタック未解決中のフェイズ禁止をボタン状態で表現=CLAUDE.md唯一の強制ルール) ②プレイ可能ハイライト(マナ計算selector・手札金縁発光) ③Feed=warnings/triggerCandidates/ログの投影合成(独自真実なし・undoで巻き戻る。ui-architecture-v2 §3)。Toasts/TriggerCandidatePanel浮動版退役。視覚正本=mockups画面3。"
     },
     {
       "type": "design-slice",

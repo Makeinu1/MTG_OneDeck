@@ -84,6 +84,53 @@
 
 .status-band__alert { color: var(--warn); font-size: var(--font-size-xs); font-family: var(--mono); }
 
+/* ベル(フィード入口・D3) */
+.status-band__bell {
+  position: relative; flex: 0 0 auto;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  background: transparent; border: none; cursor: pointer; font-size: var(--font-size-md);
+}
+.status-band__bell::after { content: ''; position: absolute; inset: -8px; }
+.status-band__bell-badge {
+  position: absolute; top: -2px; right: -4px; z-index: 2;
+  min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center;
+  background: var(--warn); color: var(--ink-0);
+  border-radius: 8px; font-family: var(--mono); font-size: 10px; font-weight: 700;
+}
+
+/* プレイ可能ハイライト(金縁発光・D3) */
+.game-card--playable .card-view__face { box-shadow: var(--playable-glow), var(--shadow-card); }
+
+/* フィード(誘発/警告/ログ・D3) */
+.game-sheet-overlay--feed { align-items: flex-end; }
+.feed {
+  width: 100%; max-width: 520px;
+  background: var(--surface-2); border-top-left-radius: 20px; border-top-right-radius: 20px;
+  box-shadow: var(--shadow-sheet);
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0));
+  max-height: 72vh; overflow-y: auto;
+}
+.feed__head-actions { display: flex; gap: var(--space-2); align-items: center; }
+.feed__empty { color: var(--text-dim); padding: var(--space-4) 0; text-align: center; }
+.feed__list { list-style: none; display: flex; flex-direction: column; gap: var(--space-1); }
+.feed__item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-1); border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius-sm); font-size: var(--font-size-sm);
+}
+.feed__item--trigger { border-left-color: var(--trigger); }
+.feed__item--warn { border-left-color: var(--warn); color: var(--warn); }
+.feed__item--log { border-left-color: var(--line); color: var(--text-dim); }
+.feed__text { flex: 1; }
+.feed__actions { display: flex; gap: var(--space-2); flex: 0 0 auto; }
+.feed__act {
+  min-height: var(--touch-target); padding: 0 var(--space-3);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  color: var(--text); cursor: pointer; font-size: var(--font-size-xs);
+}
+.feed__act--primary { background: var(--gold-surface); box-shadow: var(--gold-edge); color: var(--action-primary-text); border: none; }
+
 .status-band__life {
   position: relative;
   min-width: 44px; height: 28px; padding: 0 var(--space-2);

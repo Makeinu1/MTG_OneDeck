@@ -13,9 +13,11 @@ export interface GameCardProps {
   cardId: string;
   /** 手札=大きめ / 盤面=棚幅。CSS class 側で幅を割り当てる。 */
   size?: 'board' | 'hand';
+  /** プレイ可能ハイライト(金縁発光・D3)。 */
+  playable?: boolean;
 }
 
-export function GameCard({ controller, cardId, size = 'board' }: GameCardProps) {
+export function GameCard({ controller, cardId, size = 'board', playable = false }: GameCardProps) {
   const { state } = controller;
   if (!state) return null;
   const instance = state.cards[cardId];
@@ -24,7 +26,7 @@ export function GameCard({ controller, cardId, size = 'board' }: GameCardProps) 
   const commander = isCommander(state, cardId);
 
   return (
-    <div className={`game-card game-card--${size}`}>
+    <div className={`game-card game-card--${size}${playable ? ' game-card--playable' : ''}`}>
       <CardView
         instance={instance}
         def={def}

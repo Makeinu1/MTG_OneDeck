@@ -13,6 +13,7 @@ import { Board } from './Board';
 import { LandRow } from './LandRow';
 import { HandRibbon } from './HandRibbon';
 import { ThumbZone } from './ThumbZone';
+import { Feed } from './Feed';
 import type { KeybindingsMap } from '../../data/keybindings';
 import './game.css';
 
@@ -45,6 +46,7 @@ export function GameScreen({ keybindings }: GameScreenProps) {
         <ThumbZone controller={controller} />
       </div>
 
+      {controller.feedOpen && <Feed controller={controller} onClose={controller.closeFeed} />}
       {controller.overlays}
     </div>
   );

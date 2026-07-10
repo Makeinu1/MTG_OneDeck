@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { PHASE_ORDER } from '../../engine/types';
 import { statusBandModel, PHASE_META } from './statusBandModel';
+import { feedUnseenCount } from './feedProjection';
 import { LifeSheet } from './LifeSheet';
 import type { GameController } from './gameController';
 
@@ -22,7 +23,7 @@ export function StatusBand({ controller }: StatusBandProps) {
   const [lifeOpen, setLifeOpen] = useState(false);
   if (!state) return null;
   const model = statusBandModel(state);
-  const warningCount = store.warnings.length + state.pendingTriggers.length;
+  const unseen = feedUnseenCount(store.warnings, store.triggerCandidates);
 
   return (
     <div className="status-band" data-testid="status-band" data-stack-active={model.stackActive}>
@@ -66,11 +67,20 @@ export function StatusBand({ controller }: StatusBandProps) {
         })}
       </div>
 
-      {warningCount > 0 && (
-        <span className="status-band__alert" data-testid="status-alert" title="要処理の警告/誘発">
-          ⚠{warningCount}
-        </span>
-      )}
+      <button
+        type="button"
+        className="status-band__bell"
+        data-testid="feed-bell"
+        onClick={() => controller.openFeed()}
+        title="フィード(誘発/警告/ログ)"
+      >
+        🔔
+        {unseen > 0 && (
+          <span className="status-band__bell-badge" data-testid="feed-badge">
+            {unseen}
+          </span>
+        )}
+      </button>
 
       <button
         type="button"

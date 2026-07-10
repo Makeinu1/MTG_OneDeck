@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { primaryActionModel } from './primaryAction';
 import type { GameController } from './gameController';
 
 export interface ThumbZoneProps {
@@ -88,6 +89,24 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   if (!state) return null;
   const stackActive = state.zones.stack.length > 0;
+  const primary = primaryActionModel(state, controller.triggerCandidateCount);
+
+  function runPrimary(): void {
+    switch (primary.kind) {
+      case 'resolve':
+        controller.requestResolveTop();
+        break;
+      case 'triggers':
+        controller.openFeed();
+        break;
+      case 'attack':
+        controller.openAttackDialog();
+        break;
+      case 'next-phase':
+        store.nextPhase();
+        break;
+    }
+  }
 
   return (
     <div className="thumb-zone" data-testid="thumb-zone">
@@ -115,14 +134,12 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
 
       <button
         type="button"
-        className={`thumb-zone__primary ${stackActive ? 'thumb-zone__primary--stack' : ''}`}
+        className={`thumb-zone__primary ${primary.glow ? 'thumb-zone__primary--stack' : ''}`}
         data-testid="primary-action"
-        onClick={() => {
-          if (stackActive) controller.requestResolveTop();
-          else store.nextPhase();
-        }}
+        data-kind={primary.kind}
+        onClick={runPrimary}
       >
-        {stackActive ? `スタックを解決 (${state.zones.stack.length})` : '次のフェイズ →'}
+        {primary.label}
       </button>
 
       <button
