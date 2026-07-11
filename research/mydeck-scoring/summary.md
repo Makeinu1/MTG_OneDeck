@@ -1,6 +1,6 @@
 # MyDeck 設計採点サマリ
 
-Generated: 2026-07-04T04:12:24.344Z
+Generated: 2026-07-11T23:26:56.466Z
 
 ## 再実行
 
@@ -17,48 +17,48 @@ Generated: 2026-07-04T04:12:24.344Z
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| ALL | 381 | 363 | 18 | 654 | 133 (20.3%) | 386 (59.0%) | 135 (20.6%) | 49.3% |
-| Celes | 99 | 95 | 4 | 178 | 33 (18.5%) | 103 (57.9%) | 42 (23.6%) | 49.6% |
-| Gogo | 83 | 76 | 7 | 141 | 35 (24.8%) | 70 (49.6%) | 36 (25.5%) | 45.0% |
-| Kefka | 103 | 99 | 4 | 189 | 36 (19.0%) | 109 (57.7%) | 44 (23.3%) | 47.8% |
-| Muldrotha | 96 | 93 | 3 | 146 | 29 (19.9%) | 104 (71.2%) | 13 (8.9%) | 54.2% |
+| ALL | 381 | 363 | 18 | 654 | 256 (39.1%) | 390 (59.6%) | 8 (1.2%) | 72.7% |
+| Celes | 99 | 95 | 4 | 178 | 68 (38.2%) | 109 (61.2%) | 1 (0.6%) | 73.1% |
+| Gogo | 83 | 76 | 7 | 141 | 65 (46.1%) | 72 (51.1%) | 4 (2.8%) | 76.6% |
+| Kefka | 103 | 99 | 4 | 189 | 74 (39.2%) | 113 (59.8%) | 2 (1.1%) | 68.7% |
+| Muldrotha | 96 | 93 | 3 | 146 | 49 (33.6%) | 96 (65.8%) | 1 (0.7%) | 73.8% |
 
-Overall demand coverage: **49.3%** (1493/3028)
+Overall demand coverage: **72.7%** (2200/3028)
 Unresolved entries: **18**
 
 ## ギャップ候補カテゴリ
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 331 |
-| `substrate不足` | 179 |
-| `scope境界(既知defer)` | 10 |
-| `曖昧` | 1 |
+| `catalog未写` | 295 |
+| `substrate不足` | 87 |
+| `scope境界(既知defer)` | 13 |
+| `曖昧` | 3 |
 
 ## Missing read/write top
 
 | missing demand | occurrences |
 |---|---:|
-| `cost:activation` | 232 |
-| `cost:tap` | 201 |
-| `mana:write` | 150 |
-| `tap-state:write` | 108 |
-| `target:object-or-player` | 97 |
-| `action:sacrifice` | 74 |
-| `action:draw` | 65 |
-| `cost:nonmana` | 58 |
-| `action:search` | 36 |
-| `action:shuffle` | 36 |
-| `action:exile` | 35 |
-| `action:discard` | 34 |
+| `tap-state:write` | 85 |
+| `target:object-or-player` | 63 |
+| `mana:write` | 56 |
+| `action:draw` | 39 |
+| `action:sacrifice` | 33 |
 | `damage:write` | 33 |
-| `token:create` | 32 |
-| `action:return` | 31 |
+| `action:discard` | 31 |
+| `action:search` | 31 |
+| `action:shuffle` | 31 |
+| `action:return` | 29 |
+| `action:exile` | 28 |
 | `object-identity:lki` | 28 |
 | `event:draw` | 25 |
-| `life:write` | 17 |
+| `token:create` | 24 |
+| `cost:activation` | 19 |
+| `life:write` | 15 |
 | `zone:library` | 15 |
 | `counter:write` | 14 |
+| `cost:nonmana` | 12 |
+| `cost:tap` | 11 |
 
 ## Unresolved
 
@@ -85,16 +85,16 @@ Unresolved entries: **18**
 
 - Celes / Celes, Rune Knight: partial / catalog未写 / missing `action:discard`, `action:draw`, `event:discard`, `event:draw` — "When Celes enters, discard any number of cards, then draw that many cards plus one."
 - Celes / Celes, Rune Knight: partial / catalog未写 / missing `cast-permission:from-zone`, `counter:write`, `event:counter` — "Whenever one or more other creatures you control enter, if one or more of them entered from a graveyard or was cast from a graveyard, put a +1/+1 counter on each creature you control."
-- Celes / Mother of Runes: partial / substrate不足 / missing `cost:activation`, `cost:tap`, `target:object-or-player` — "{T}: Target creature you control gains protection from the color of your choice until end of turn."
+- Celes / Mother of Runes: partial / substrate不足 / missing `target:object-or-player` — "{T}: Target creature you control gains protection from the color of your choice until end of turn."
 - Celes / Banon, the Returners' Leader: partial / catalog未写 / missing `action:discard`, `action:draw`, `event:discard`, `event:draw` — "Whenever you attack, you may pay {1} and discard a card. If you do, draw a card."
-- Celes / Cathar Commando: partial / catalog未写 / missing `action:destroy`, `action:sacrifice`, `cost:activation`, `cost:nonmana`, `target:object-or-player` — "{1}, Sacrifice this creature: Destroy target artifact or enchantment."
-- Celes / Priest of Fell Rites: partial / catalog未写 / missing `action:return`, `action:sacrifice`, `cost:activation`, `cost:nonmana`, `cost:tap`, `target:object-or-player` — "{T}, Pay 3 life, Sacrifice this creature: Return target creature card from your graveyard to the battlefield. Activate only as a sorcery."
-- Celes / Selfless Spirit: partial / catalog未写 / missing `action:sacrifice`, `cost:activation`, `cost:nonmana` — "Sacrifice this creature: Creatures you control gain indestructible until end of turn."
-- Celes / Tataru Taru: partial / catalog未写 / missing `action:draw`, `event:draw`, `player-scope:each-opponent`, `target:object-or-player` — "When Tataru Taru enters, you draw a card and target opponent may draw a card."
+- Celes / Priest of Fell Rites: partial / catalog未写 / missing `action:return`, `target:object-or-player` — "{T}, Pay 3 life, Sacrifice this creature: Return target creature card from your graveyard to the battlefield. Activate only as a sorcery."
+- Celes / Tataru Taru: partial / catalog未写 / missing `event:draw`, `player-scope:each-opponent`, `target:object-or-player` — "When Tataru Taru enters, you draw a card and target opponent may draw a card."
 - Celes / Tataru Taru: partial / catalog未写 / missing `action:draw`, `cast-timing:once-per-turn`, `layer:L4`, `tap-state:write`, `token:create` — "Scions' Secretary — Whenever an opponent draws a card, if it isn't that player's turn, create a tapped Treasure token. This ability triggers only once each turn."
 - Celes / Accursed Marauder: partial / catalog未写 / missing `action:sacrifice`, `event:sacrifice` — "When this creature enters, each player sacrifices a nontoken creature of their choice."
 - Celes / Timeline Culler: partial / scope境界(既知defer) / missing `cast-permission:from-zone` — "You may cast this card from your graveyard using its warp ability."
-- Celes / Fear of Missing Out: partial / catalog未写 / missing `action:discard`, `action:draw`, `event:discard`, `event:draw` — "When this creature enters, discard a card, then draw a card."
+- Celes / Fear of Missing Out: partial / catalog未写 / missing `event:discard`, `event:draw` — "When this creature enters, discard a card, then draw a card."
+- Celes / Fear of Missing Out: partial / catalog未写 / missing `layer:L4`, `tap-state:write`, `target:object-or-player` — "Delirium — Whenever this creature attacks for the first time each turn, if there are four or more card types among cards in your graveyard, untap target creature. After this phase, there is an additional combat phase."
+- Celes / Gau, Feral Youth: partial / catalog未写 / missing `counter:write` — "Rage — Whenever Gau attacks, put a +1/+1 counter on it."
 
 ## 注意
 

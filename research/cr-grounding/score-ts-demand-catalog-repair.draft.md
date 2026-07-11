@@ -89,6 +89,36 @@ sets as a shortcut, but they document intent:
 | `tap-state:write` | `effect.tap`/`effect.untap` → `setTapped` command |
 | `target:object-or-player` | a `prompt` of target kind, or an atom in `TARGET_REQUIRED_ATOMS` that produced a guided target prompt |
 
+### 3b. Corrections (2026-07-12, from Tier-1 audit — these are part of the contract)
+
+The first implementation under-corrected (351 vs target 150–220) AND introduced a live
+over-correction. Five defects to fix:
+
+1. **Cost-form sacrifice / exile** — a `Sacrifice this …` / `Exile this …` paid *as an
+   activation cost* (fetchlands, Lotus Petal, Sakura-Tribe Elder, mana rocks) compiles
+   with `cost.decision !== 'manual'` but currently earns no `action:sacrifice` /
+   `action:exile` credit (only `cost:nonmana`). Credit `action:sacrifice` when
+   `ir.cost.sacrificesSelf && cost.decision !== 'manual'`, and `action:exile` when
+   `ir.cost.exilesSelf && cost.decision !== 'manual'`. (The demand side tags these as
+   `action:sacrifice`/`action:exile`, so the compiler handling them = covered.)
+2. **`action:shuffle`** — a search-then-shuffle clause compiles to a guided search prompt
+   that performs the shuffle; credit `action:shuffle` whenever the search guided prompt /
+   `effect.search` (or `effect.shuffle`) is produced (i.e. alongside `action:search` for
+   the ramp/fetch composite). Add `action:shuffle` to the family list.
+3. **Honor `compiled.decision`** — `compileAbilityIR` returns non-empty `commands` even
+   when the effect's aggregate `decision === 'manual'`. Only credit effect tags (commands
+   AND prompts) when that sub-compile's `decision !== 'manual'` (`auto`/`guided`). A
+   manual effect must not leak a `token:create` / etc. credit.
+4. **Modal abilities** — recompile each mode from the SAME clean per-mode text the runtime
+   resolver (`gameStore.ts`) re-parses, not garbled raw text. A modal "Draw a card" mode
+   must earn `action:draw`.
+5. **Per-line application (over-correction — highest priority)** — `score.ts` must use the
+   **per-line** `engineCoverageTagsForLine(card, line)` for each demand line, NOT the
+   card-scoped `engineCoverageTags(def)` (which unions ALL of a card's abilities and leaks
+   coverage across unrelated lines). Confirmed live: Plaza of Heroes' unmodeled
+   legendary-spell mana-restriction line is wrongly `status:"complete"` because a sibling
+   ability earns `mana:write`. This directly violates §4.
+
 **Keep the four text classifiers unchanged for the families they genuinely own**
 (`event:*`, `zone:*`, `layer:*`, `timing:*`, `cast-timing:*`, `ownership:*`,
 `player-scope:*`, `cda`, `zone-cross`). Those are not broken. The repair *adds*

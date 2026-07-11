@@ -1908,6 +1908,7 @@ M-CONTRACT は枠を予約するのみ。導入する状態に対応する具体
 - **churn の意味(契約)**: 下面抽出*単独*の低 churn は収束ではない(構造的 FN は毎反復同一に取りこぼし churn が立たない)。**収束シグナルは『新しい独立物差しを当てても崩れない低 churn』のみ**。precedent: Slice2 で自己 churn 0.05% が独立盲予測で真 churn 13.55% に崩壊。詳細は `engine-design-method.md` §4。
 - **実行計測(契約)**: 正しさは分類一致だけで測らない。**ゴールデン再生ハーネス**が『初期盤面 + コマンド列 → 発行イベント → 誘発 → スタック解決 → SBA → 期待盤面』の**盤面遷移**を測る(分類器の一致ではない)。
 - **分類器 parity(契約)**: 研究計測器(`scripts/lib/*Classify.ts`)と runtime 分類器(`src/data/ruleClassifier.ts`・`gameStore.ts` の誘発検出)は黙って乖離してはならない。parity テストで乖離を検出し、**乖離 = 0** を凍結条件とする(粒度差は許容差テーブルで明示)。
+- **demand 計器の coverage anchoring(契約・2026-07-12)**: MyDeck 設計採点(`scripts/mydeck-scoring/`)の coverage 判定は、cost/mana/action/tap-state/damage/life/counter/target/token の9 family について**実 runtime compiler**(`parseAbilityIR`→`compileAbilityIR`/`compileAbilityCost`)の出力(`engineCoverageTagsForLine`・per-line)に anchor する。これらの family には並行テキスト分類器が**残っていない**ため、parity 乖離は構造的に 0(乖離する対象が無い)。covered = compiler が command **または** guided prompt を出す(`decision !== 'manual'`)。**既知の残境界**(follow-up): 計器は ability-compiler 経路のみを credit し、fetch(`fetchAbility`)・`playLand`・keyword(`effectiveKeywords`)・mana-ability 等の**別 engine 経路**で app が解決するカードは依然 gap 誤計上しうる(例: 寓話の小道の search は fetch 経路で解決するが ability compiler は manual を返す)。ゆえに絶対 count は真の app 能力の**上限**であり、計器修復後の値(382)は ability-compiler scope の honest floor。真の genuine-gap へ近づけるには別経路の credit が別スライスで必要。
 
 ### 34.7.1 M-CONTRACT 凍結ゲート(契約・7条件)
 state モデルを §34 へ凍結し S-* 実装へ移るのは、**下記7条件を全て満たしたときのみ**。

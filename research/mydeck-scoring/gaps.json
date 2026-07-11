@@ -102,14 +102,16 @@
       "target:object-or-player: read/write target binding"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "layer:L6",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "target:object-or-player"
     ],
     "candidateCategories": [
@@ -160,43 +162,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Cathar Commando",
-    "inputName": "Cathar Commando",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 7,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, Sacrifice this creature: Destroy target artifact or enchantment.",
-    "requiredReadWrite": [
-      "action:destroy: move permanent from battlefield to owner graveyard",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:destroy",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
     "card": "Priest of Fell Rites",
     "inputName": "Priest of Fell Rites",
     "quantity": 1,
@@ -218,58 +183,21 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:sacrifice",
       "cast-timing:sorcery-speed",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:return",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Selfless Spirit",
-    "inputName": "Selfless Spirit",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 11,
-    "shape": "activated",
-    "clauseExcerpt": "Sacrifice this creature: Creatures you control gain indestructible until end of turn.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "layer:L6: read/write ability and keyword set",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "layer:L6",
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana"
     ],
     "candidateCategories": [
       "catalog未写",
@@ -300,6 +228,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:enters",
       "player-scope:target-player",
@@ -311,7 +240,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw",
       "player-scope:each-opponent",
       "target:object-or-player"
@@ -450,6 +378,8 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:discard",
+      "action:draw",
       "event-observer:self",
       "event:enters",
       "zone:battlefield",
@@ -459,8 +389,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:discard",
-      "action:draw",
       "event:discard",
       "event:draw"
     ],
@@ -596,6 +524,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:controlled-set",
       "event:enters",
       "ownership:controller",
@@ -606,7 +535,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "cast-timing:once-per-turn",
       "event:draw"
     ],
@@ -1072,7 +1000,12 @@
       "zone:hand: read/write hand zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:each-player",
+      "tap-state:write",
       "zone-cross",
       "zone:battlefield",
       "zone:graveyard",
@@ -1082,15 +1015,10 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:discard",
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:draw"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -1374,19 +1302,18 @@
       "event-observer:self",
       "event:zone",
       "player-scope:you",
+      "token:create",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "event:other",
-      "token:create"
+      "event:other"
     ],
     "candidateCategories": [
-      "substrate不足",
       "曖昧"
     ],
-    "primaryCandidateCategory": "substrate不足"
+    "primaryCandidateCategory": "曖昧"
   },
   {
     "deck": "Celes",
@@ -1407,6 +1334,7 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "cost:activation",
       "player-scope:you",
       "zone:battlefield",
       "zone:graveyard"
@@ -1414,12 +1342,10 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:return",
-      "cost:activation",
       "tap-state:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -1445,18 +1371,17 @@
       "event-observer:self",
       "event:zone",
       "player-scope:you",
+      "token:create",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "event:other",
-      "tap-state:write",
-      "token:create"
+      "tap-state:write"
     ],
     "candidateCategories": [
       "catalog未写",
-      "substrate不足",
       "曖昧"
     ],
     "primaryCandidateCategory": "catalog未写"
@@ -1497,42 +1422,6 @@
       "action:return",
       "counter:write",
       "event:counter",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Karmic Guide",
-    "inputName": "Karmic Guide",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 62,
-    "shape": "triggered",
-    "clauseExcerpt": "When this creature enters, return target creature card from your graveyard to the battlefield.",
-    "requiredReadWrite": [
-      "action:return: move object to referenced zone",
-      "event:enters: read battlefield entry event; write trigger subscription",
-      "player-scope:you: read/write self player scope",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "event-observer:self",
-      "event:enters",
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:return",
       "target:object-or-player"
     ],
     "candidateCategories": [
@@ -1695,8 +1584,10 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:exile",
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone-cross",
       "zone:battlefield",
       "zone:exile",
@@ -1704,17 +1595,14 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:exile",
       "action:search",
       "action:shuffle",
       "object-identity:lki",
-      "tap-state:write",
-      "target:object-or-player"
+      "tap-state:write"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -1776,20 +1664,19 @@
       "zone:exile: read/write exile zone"
     ],
     "modelTags": [
+      "action:exile",
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:exile"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:exile",
-      "life:write",
-      "target:object-or-player"
+      "life:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -1848,67 +1735,6 @@
     ],
     "candidateCategories": [
       "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Rite of Oblivion",
-    "inputName": "Rite of Oblivion",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 75,
-    "shape": "spell",
-    "clauseExcerpt": "Exile target nonland permanent.",
-    "requiredReadWrite": [
-      "action:exile: move object to exile",
-      "target:object-or-player: read/write target binding",
-      "zone:exile: read/write exile zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:exile"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:exile",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Damn",
-    "inputName": "Damn",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 77,
-    "shape": "spell",
-    "clauseExcerpt": "Destroy target creature. A creature destroyed this way can't be regenerated.",
-    "requiredReadWrite": [
-      "action:destroy: move permanent from battlefield to owner graveyard",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:destroy",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -2148,9 +1974,11 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:zone",
       "player-scope:you",
+      "token:create",
       "zone:battlefield",
       "zone:graveyard",
       "zone:hand",
@@ -2158,10 +1986,8 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "choice:mode-or-value",
-      "event:draw",
-      "token:create"
+      "event:draw"
     ],
     "candidateCategories": [
       "catalog未写",
@@ -2292,8 +2118,12 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard"
     ],
@@ -2301,8 +2131,6 @@
     "missingReadWrite": [
       "action:sacrifice",
       "copy:one-shot",
-      "cost:activation",
-      "cost:tap",
       "delayed-trigger",
       "layer:L6",
       "target:object-or-player",
@@ -2337,19 +2165,18 @@
       "event-observer:self",
       "event:zone",
       "player-scope:you",
+      "token:create",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "event:other",
-      "token:create"
+      "event:other"
     ],
     "candidateCategories": [
-      "substrate不足",
       "曖昧"
     ],
-    "primaryCandidateCategory": "substrate不足"
+    "primaryCandidateCategory": "曖昧"
   },
   {
     "deck": "Celes",
@@ -2403,29 +2230,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 96,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{R}: Level 2",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Advanced Reconstruction",
-    "inputName": "Advanced Reconstruction",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 97,
     "shape": "triggered",
     "clauseExcerpt": "Whenever one or more cards leave your graveyard, this Class deals 2 damage to each opponent.",
@@ -2456,29 +2260,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Advanced Reconstruction",
-    "inputName": "Advanced Reconstruction",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 98,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{R}: Level 3",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
     "card": "Defiled Crypt // Cadaver Lab",
     "inputName": "Defiled Crypt // Cadaver Lab",
     "quantity": 1,
@@ -2499,18 +2280,17 @@
       "event-observer:self",
       "event:zone",
       "player-scope:you",
+      "token:create",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "cast-timing:once-per-turn",
-      "event:other",
-      "token:create"
+      "event:other"
     ],
     "candidateCategories": [
       "catalog未写",
-      "substrate不足",
       "曖昧"
     ],
     "primaryCandidateCategory": "catalog未写"
@@ -2555,171 +2335,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Sol Ring",
-    "inputName": "Sol Ring",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 102,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Arcane Signet",
-    "inputName": "Arcane Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 103,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "player-scope:you"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Boros Signet",
-    "inputName": "Boros Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 104,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {R}{W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Orzhov Signet",
-    "inputName": "Orzhov Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 105,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {W}{B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Rakdos Signet",
-    "inputName": "Rakdos Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 106,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {B}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Talisman of Conviction",
-    "inputName": "Talisman of Conviction",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 107,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
     "card": "Talisman of Conviction",
     "inputName": "Talisman of Conviction",
     "quantity": 1,
@@ -2736,40 +2351,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Talisman of Hierarchy",
-    "inputName": "Talisman of Hierarchy",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 109,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -2795,40 +2385,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Talisman of Indulgence",
-    "inputName": "Talisman of Indulgence",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 111,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -2854,40 +2419,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Relic of Legends",
-    "inputName": "Relic of Legends",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 113,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -2914,6 +2454,7 @@
       "tap-state:write: read/write tapped state"
     ],
     "modelTags": [
+      "mana:write",
       "ownership:controller",
       "player-scope:you"
     ],
@@ -2921,7 +2462,6 @@
     "missingReadWrite": [
       "cost:activation",
       "cost:tap",
-      "mana:write",
       "tap-state:write"
     ],
     "candidateCategories": [
@@ -2951,6 +2491,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:controlled-set",
       "event:dies",
       "ownership:controller",
@@ -2962,7 +2503,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
@@ -3056,60 +2596,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Ash Barrens",
-    "inputName": "Ash Barrens",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 119,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Battlefield Forge",
-    "inputName": "Battlefield Forge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 121,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
     "card": "Battlefield Forge",
     "inputName": "Battlefield Forge",
     "quantity": 1,
@@ -3126,67 +2612,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Blightstep Pathway // Searstep Pathway",
-    "inputName": "Blightstep Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 123,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Blightstep Pathway // Searstep Pathway",
-    "inputName": "Blightstep Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 1,
-    "clauseIndex": 124,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -3292,114 +2726,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Bojuka Bog",
-    "inputName": "Bojuka Bog",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 128,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Brightclimb Pathway // Grimclimb Pathway",
-    "inputName": "Brightclimb Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 129,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Brightclimb Pathway // Grimclimb Pathway",
-    "inputName": "Brightclimb Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 1,
-    "clauseIndex": 130,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Caves of Koilos",
-    "inputName": "Caves of Koilos",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 131,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
     "card": "Caves of Koilos",
     "inputName": "Caves of Koilos",
     "quantity": 1,
@@ -3416,12 +2742,14 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
       "mana:write"
     ],
@@ -3475,41 +2803,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Command Tower",
-    "inputName": "Command Tower",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 135,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -3562,88 +2863,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Evolving Wilds",
-    "inputName": "Evolving Wilds",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 138,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
     "modelTags": [
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:sacrifice",
-      "action:search",
-      "action:shuffle",
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
       "tap-state:write"
     ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Exotic Orchard",
-    "inputName": "Exotic Orchard",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 139,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color that a land an opponent controls could produce.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:each-opponent: read/write opponent player scope"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:each-opponent"
-    ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -3676,54 +2903,26 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Fetid Heath",
-    "inputName": "Fetid Heath",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 141,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Celes",
@@ -3740,11 +2939,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -3816,33 +3018,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 145,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Graven Cairns",
-    "inputName": "Graven Cairns",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 146,
     "shape": "activated",
     "clauseExcerpt": "{B/R}, {T}: Add {B}{B}, {B}{R}, or {R}{R}.",
@@ -3851,11 +3026,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -3908,11 +3086,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -3965,11 +3146,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4022,65 +3206,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "mana:write"
+      "tap-state:write"
     ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Needleverge Pathway // Pillarverge Pathway",
-    "inputName": "Needleverge Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 153,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Needleverge Pathway // Pillarverge Pathway",
-    "inputName": "Needleverge Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 1,
-    "clauseIndex": 154,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -4129,11 +3262,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4187,51 +3323,25 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "event-observer:unknown",
       "event:cast",
-      "player-scope:you"
+      "mana:write",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:scry",
-      "cost:activation",
-      "cost:tap",
       "layer:L4",
-      "mana:write",
       "zone:library"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Plaza of Heroes",
-    "inputName": "Plaza of Heroes",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 159,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Celes",
@@ -4248,11 +3358,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4278,13 +3391,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -4312,45 +3427,18 @@
       "zone:exile: read/write exile zone"
     ],
     "modelTags": [
+      "action:exile",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "layer:L6",
+      "tap-state:write",
       "zone:battlefield",
       "zone:exile"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:exile",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Rogue's Passage",
-    "inputName": "Rogue's Passage",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 163,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -4372,39 +3460,15 @@
       "cost:tap: read/write tapped state as a cost",
       "target:object-or-player: read/write target binding"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Rugged Prairie",
-    "inputName": "Rugged Prairie",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 165,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -4426,11 +3490,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4514,11 +3581,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4571,38 +3641,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "mana:write"
+      "tap-state:write"
     ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Sulfurous Springs",
-    "inputName": "Sulfurous Springs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 172,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -4628,12 +3674,14 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
       "mana:write"
     ],
@@ -4687,11 +3735,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4770,11 +3821,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -4829,47 +3883,20 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Aphetto Alchemist",
-    "inputName": "Aphetto Alchemist",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 181,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Untap target artifact or creature.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Gogo",
@@ -4891,20 +3918,20 @@
       "zone:battlefield: read/write battlefield zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write",
+      "target:object-or-player"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player",
       "zone:battlefield"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -4928,20 +3955,19 @@
     ],
     "modelTags": [
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write",
+      "target:object-or-player"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
+      "cost:tap"
     ],
     "candidateCategories": [
-      "catalog未写",
       "substrate不足"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -4960,18 +3986,19 @@
       "target:object-or-player: read/write target binding",
       "zone:battlefield: read/write battlefield zone"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
       "tap-state:write",
-      "target:object-or-player",
+      "target:object-or-player"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "zone:battlefield"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -4991,19 +4018,20 @@
       "tap-state:write: read/write tapped state",
       "target:object-or-player: read/write target binding"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "tap-state:write",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "target:object-or-player"
     ],
     "candidateCategories": [
-      "catalog未写",
       "substrate不足"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -5025,20 +4053,20 @@
       "zone:battlefield: read/write battlefield zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write",
+      "target:object-or-player"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player",
       "zone:battlefield"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5062,14 +4090,15 @@
       "zone:battlefield: read/write battlefield zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
       "target:object-or-player",
       "zone:battlefield"
     ],
@@ -5096,18 +4125,19 @@
       "target:object-or-player: read/write target binding",
       "zone:battlefield: read/write battlefield zone"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
       "tap-state:write",
-      "target:object-or-player",
+      "target:object-or-player"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "zone:battlefield"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5131,18 +4161,17 @@
     "modelTags": [
       "event-observer:self",
       "event:other",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write",
+      "target:object-or-player"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "event:other",
-      "tap-state:write",
-      "target:object-or-player",
       "zone:battlefield"
     ],
     "candidateCategories": [
       "catalog未写",
-      "substrate不足",
       "曖昧"
     ],
     "primaryCandidateCategory": "catalog未写"
@@ -5208,26 +4237,25 @@
       "zone:exile: read/write exile zone"
     ],
     "modelTags": [
+      "action:exile",
       "event-observer:self",
       "event:cast",
       "ownership:controller",
       "ownership:owner",
       "player-scope:owner",
       "player-scope:you",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:exile"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:exile",
       "action:return",
-      "object-identity:lki",
-      "target:object-or-player"
+      "object-identity:lki"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5250,13 +4278,14 @@
       "zone:battlefield: read/write battlefield zone"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
       "target:object-or-player",
       "zone:battlefield"
     ],
@@ -5284,13 +4313,15 @@
       "zone:hand: read/write hand zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:you",
+      "tap-state:write",
       "zone:hand"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -5337,16 +4368,15 @@
       "zone:stack: read/write stack zone"
     ],
     "modelTags": [
+      "target:object-or-player",
       "zone:stack"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:counter-spell",
-      "target:object-or-player"
+      "action:counter-spell"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5403,18 +4433,17 @@
     "modelTags": [
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
+      "token:create",
       "zone:battlefield",
       "zone:stack"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:counter-spell",
-      "target:object-or-player",
-      "token:create"
+      "action:counter-spell"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5469,16 +4498,15 @@
     "modelTags": [
       "event-observer:any",
       "event:other",
+      "mana:write",
       "player-scope:each-player"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "mana:write",
       "tap-state:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5502,22 +4530,21 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:destroy",
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:destroy",
-      "target:object-or-player",
       "token:create"
     ],
     "candidateCategories": [
-      "catalog未写",
       "substrate不足"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -5540,24 +4567,23 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:destroy",
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:destroy",
       "object-identity:lki",
-      "target:object-or-player",
       "token:create"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)",
       "substrate不足"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Gogo",
@@ -5580,13 +4606,13 @@
     "modelTags": [
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:stack"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:counter-spell",
-      "target:object-or-player",
       "token:create"
     ],
     "candidateCategories": [
@@ -5617,6 +4643,7 @@
       "event-observer:self",
       "event:phase",
       "player-scope:you",
+      "target:object-or-player",
       "timing-scope:self",
       "timing:other",
       "zone:stack"
@@ -5625,8 +4652,7 @@
     "missingReadWrite": [
       "action:counter-spell",
       "mana:write",
-      "object-identity:lki",
-      "target:object-or-player"
+      "object-identity:lki"
     ],
     "candidateCategories": [
       "catalog未写",
@@ -5651,16 +4677,15 @@
       "zone:stack: read/write stack zone"
     ],
     "modelTags": [
+      "target:object-or-player",
       "zone:stack"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:counter-spell",
-      "target:object-or-player"
+      "action:counter-spell"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -5777,36 +4802,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Gitaxian Probe",
-    "inputName": "Gitaxian Probe",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 227,
-    "shape": "spell",
-    "clauseExcerpt": "Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "player-scope:you: read/write self player scope",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "player-scope:you",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Gogo",
@@ -6047,54 +5042,20 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Lotus Petal",
-    "inputName": "Lotus Petal",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 237,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this artifact: Add one mana of any color.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Gogo",
@@ -6122,7 +5083,13 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:target-player",
+      "tap-state:write",
       "zone-cross",
       "zone:battlefield",
       "zone:graveyard",
@@ -6131,11 +5098,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
       "delayed-trigger",
       "target:object-or-player",
       "timing:upkeep"
@@ -6165,13 +5127,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -6208,45 +5172,6 @@
     "missingReadWrite": [
       "tap-state:write",
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Sewer-veillance Cam",
-    "inputName": "Sewer-veillance Cam",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 242,
-    "shape": "activated",
-    "clauseExcerpt": "{3}{U}, Sacrifice this artifact: Draw two cards.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana"
     ],
     "candidateCategories": [
       "catalog未写",
@@ -6295,11 +5220,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -6472,63 +5400,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Mana Vault",
-    "inputName": "Mana Vault",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 251,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Manifold Key",
-    "inputName": "Manifold Key",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 252,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Untap another target artifact.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
     "card": "Manifold Key",
     "inputName": "Manifold Key",
     "quantity": 1,
@@ -6542,39 +5413,15 @@
       "cost:tap: read/write tapped state as a cost",
       "target:object-or-player: read/write target binding"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Sol Ring",
-    "inputName": "Sol Ring",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 254,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -6623,31 +5470,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 256,
-    "shape": "activated",
-    "clauseExcerpt": "{2}, {T}: Double the number of time counters on The Millennium Calendar.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "The Millennium Calendar",
-    "inputName": "The Millennium Calendar",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 257,
     "shape": "triggered",
     "clauseExcerpt": "When there are 1,000 or more time counters on The Millennium Calendar, sacrifice it and each opponent loses 1,000 life.",
@@ -6678,193 +5500,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Voltaic Key",
-    "inputName": "Voltaic Key",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 258,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Untap target artifact.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Arcane Signet",
-    "inputName": "Arcane Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 259,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "player-scope:you"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Fellwar Stone",
-    "inputName": "Fellwar Stone",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 260,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color that a land an opponent controls could produce.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:each-opponent: read/write opponent player scope"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:each-opponent"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Mind Stone",
-    "inputName": "Mind Stone",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 261,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Mind Stone",
-    "inputName": "Mind Stone",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 262,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}, Sacrifice this artifact: Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Thought Vessel",
-    "inputName": "Thought Vessel",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 265,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -6901,33 +5536,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 267,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Basalt Monolith",
-    "inputName": "Basalt Monolith",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 268,
     "shape": "activated",
     "clauseExcerpt": "{3}: Untap this artifact.",
@@ -6935,45 +5543,15 @@
       "cost:activation: read activation cost and write stack/ability payment",
       "tap-state:write: read/write tapped state"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "modelTags": [
+      "cost:activation"
+    ],
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
       "tap-state:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Thousand-Year Elixir",
-    "inputName": "Thousand-Year Elixir",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 271,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Untap target creature.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -7030,48 +5608,22 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write",
       "zone:hand",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:draw",
-      "cost:activation",
-      "cost:tap",
       "counter:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Thran Dynamo",
-    "inputName": "Thran Dynamo",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 276,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -7108,60 +5660,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Gilded Lotus",
-    "inputName": "Gilded Lotus",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 278,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add three mana of any one color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "The Eternity Elevator",
-    "inputName": "The Eternity Elevator",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 279,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "The Eternity Elevator",
     "inputName": "The Eternity Elevator",
     "quantity": 1,
@@ -7175,11 +5673,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -7206,6 +5707,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:enters",
       "zone:battlefield",
@@ -7214,40 +5716,12 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Coveted Jewel",
-    "inputName": "Coveted Jewel",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 283,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add three mana of any one color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -7289,74 +5763,6 @@
     ],
     "candidateCategories": [
       "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Dreamstone Hedron",
-    "inputName": "Dreamstone Hedron",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 285,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Dreamstone Hedron",
-    "inputName": "Dreamstone Hedron",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 286,
-    "shape": "activated",
-    "clauseExcerpt": "{3}, {T}, Sacrifice this artifact: Draw three cards.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -7489,63 +5895,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Deserted Temple",
-    "inputName": "Deserted Temple",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 295,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Deserted Temple",
-    "inputName": "Deserted Temple",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 296,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Untap target land.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
     "card": "Fabled Passage",
     "inputName": "Fabled Passage",
     "quantity": 1,
@@ -7569,25 +5918,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -7614,81 +5962,26 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Ipnu Rivulet",
-    "inputName": "Ipnu Rivulet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 299,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Ipnu Rivulet",
-    "inputName": "Ipnu Rivulet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 300,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -7759,33 +6052,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Lonely Sandbar",
-    "inputName": "Lonely Sandbar",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 303,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "Lotus Field",
     "inputName": "Lotus Field",
     "quantity": 1,
@@ -7845,33 +6111,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Lotus Field",
-    "inputName": "Lotus Field",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 308,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add three mana of any one color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "Misty Rainforest",
     "inputName": "Misty Rainforest",
     "quantity": 1,
@@ -7893,23 +6132,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -7988,33 +6228,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 312,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Otawara, Soaring City",
-    "inputName": "Otawara, Soaring City",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 313,
     "shape": "activated",
     "clauseExcerpt": "Channel — {3}{U}, Discard this card: Return target artifact, creature, enchantment, or planeswalker to its owner's hand. This ability costs {1} less to activate for each legendary creature you control.",
@@ -8077,23 +6290,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -8125,33 +6339,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Remote Isle",
-    "inputName": "Remote Isle",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 316,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "Scalding Tarn",
     "inputName": "Scalding Tarn",
     "quantity": 1,
@@ -8173,23 +6360,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -8292,6 +6480,7 @@
     ],
     "modelTags": [
       "cast-timing:sorcery-speed",
+      "cost:activation",
       "player-scope:each-opponent",
       "zone:battlefield",
       "zone:graveyard"
@@ -8299,7 +6488,6 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:sacrifice",
-      "cost:activation",
       "transform:write"
     ],
     "candidateCategories": [
@@ -8440,11 +6628,11 @@
       "transform:write: write face/transformed state"
     ],
     "modelTags": [
-      "cast-timing:sorcery-speed"
+      "cast-timing:sorcery-speed",
+      "cost:activation"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
       "transform:write"
     ],
     "candidateCategories": [
@@ -8526,29 +6714,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 332,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{B}: Adapt 2.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Emperor of Bones",
-    "inputName": "Emperor of Bones",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 333,
     "shape": "delayed-triggered",
     "clauseExcerpt": "Whenever one or more +1/+1 counters are put on this creature, put a creature card exiled with this creature onto the battlefield under your control with a finality counter on it. It gains haste. Sacrifice it at the be...",
@@ -8604,29 +6769,6 @@
   },
   {
     "deck": "Kefka",
-    "card": "Nightscape Familiar",
-    "inputName": "Nightscape Familiar",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 335,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{B}: Regenerate this creature.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
     "card": "Emet-Selch, Unsundered // Hades, Sorcerer of Eld",
     "inputName": "Emet-Selch, Unsundered",
     "quantity": 1,
@@ -8648,6 +6790,8 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:discard",
+      "action:draw",
       "event-observer:self",
       "event:attacks",
       "event:enters",
@@ -8658,8 +6802,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:discard",
-      "action:draw",
       "event:discard",
       "event:draw"
     ],
@@ -8786,7 +6928,11 @@
       "zone:hand: read/write hand zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:each-player",
+      "tap-state:write",
       "zone-cross",
       "zone:graveyard",
       "zone:hand",
@@ -8795,13 +6941,10 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:discard",
-      "action:draw",
-      "cost:activation",
-      "cost:tap"
+      "action:draw"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -8864,11 +7007,11 @@
     "modelTags": [
       "cast-timing:once-per-turn",
       "cast-timing:your-turn-only",
+      "cost:activation",
       "player-scope:you"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
       "mana:write"
     ],
     "candidateCategories": [
@@ -8941,12 +7084,12 @@
       "ownership:controller",
       "player-scope:each-player",
       "player-scope:you",
+      "token:create",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "token:create"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -9161,34 +7304,6 @@
   },
   {
     "deck": "Kefka",
-    "card": "Thassa, Deep-Dwelling",
-    "inputName": "Thassa, Deep-Dwelling",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 359,
-    "shape": "activated",
-    "clauseExcerpt": "{3}{U}: Tap another target creature.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "tap-state:write: read/write tapped state",
-      "target:object-or-player: read/write target binding"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "tap-state:write",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
     "card": "Kuja, Genome Sorcerer // Trance Kuja, Fate Defied",
     "inputName": "Kuja, Genome Sorcerer",
     "quantity": 1,
@@ -9367,6 +7482,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:any",
       "event:cast",
       "player-scope:each-player",
@@ -9376,7 +7492,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
@@ -9608,29 +7723,6 @@
   },
   {
     "deck": "Kefka",
-    "card": "Dark Ritual",
-    "inputName": "Dark Ritual",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 376,
-    "shape": "spell",
-    "clauseExcerpt": "Add {B}{B}{B}.",
-    "requiredReadWrite": [
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
     "card": "Arcane Denial",
     "inputName": "Arcane Denial",
     "quantity": 1,
@@ -9654,6 +7746,7 @@
     "modelTags": [
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:hand",
       "zone:library",
       "zone:stack"
@@ -9663,13 +7756,11 @@
       "action:counter-spell",
       "action:draw",
       "delayed-trigger",
-      "target:object-or-player",
       "timing:upkeep"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -9692,13 +7783,13 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "player-scope:you",
       "zone:hand",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "delayed-trigger",
       "timing:upkeep"
     ],
@@ -9728,6 +7819,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "player-scope:you",
       "zone:graveyard",
       "zone:hand",
@@ -9736,7 +7828,6 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:discard",
-      "action:draw",
       "tap-state:write"
     ],
     "candidateCategories": [
@@ -9971,6 +8062,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "player-scope:you",
       "zone:graveyard",
       "zone:hand",
@@ -9978,46 +8070,10 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:discard",
-      "action:draw"
+      "action:discard"
     ],
     "candidateCategories": [
       "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Vandalblast",
-    "inputName": "Vandalblast",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 390,
-    "shape": "spell",
-    "clauseExcerpt": "Destroy target artifact you don't control.",
-    "requiredReadWrite": [
-      "action:destroy: move permanent from battlefield to owner graveyard",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:destroy",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -10072,23 +8128,22 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:destroy",
       "ownership:controller",
       "player-scope:each-opponent",
       "player-scope:you",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:destroy",
       "life:write",
-      "object-identity:lki",
-      "target:object-or-player"
+      "object-identity:lki"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -10479,6 +8534,7 @@
       "event:discard",
       "player-scope:each-opponent",
       "player-scope:you",
+      "token:create",
       "zone-cross",
       "zone:battlefield",
       "zone:graveyard",
@@ -10486,12 +8542,10 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:discard",
-      "token:create"
+      "action:discard"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -10515,6 +8569,7 @@
     "modelTags": [
       "event-observer:opponent",
       "event:discard",
+      "mana:write",
       "player-scope:each-opponent",
       "zone-cross",
       "zone:graveyard",
@@ -10522,12 +8577,10 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:discard",
-      "mana:write"
+      "action:discard"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -10619,29 +8672,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 415,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{R}: Level 2",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Cool but Rude",
-    "inputName": "Cool but Rude",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 416,
     "shape": "triggered",
     "clauseExcerpt": "Whenever you discard a card, this Class deals 2 damage to each opponent.",
@@ -10674,29 +8704,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Cool but Rude",
-    "inputName": "Cool but Rude",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 417,
-    "shape": "activated",
-    "clauseExcerpt": "{1}{R}: Level 3",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -10950,8 +8957,12 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard"
     ],
@@ -10959,8 +8970,6 @@
     "missingReadWrite": [
       "action:sacrifice",
       "copy:one-shot",
-      "cost:activation",
-      "cost:tap",
       "delayed-trigger",
       "layer:L6",
       "target:object-or-player",
@@ -11059,6 +9068,7 @@
       "zone:hand: read/write hand zone"
     ],
     "modelTags": [
+      "cost:activation",
       "layer:L6",
       "player-scope:you",
       "zone:battlefield",
@@ -11068,15 +9078,13 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:sacrifice",
-      "cost:activation",
       "delayed-trigger",
       "object-identity:lki",
       "timing:end-step"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -11100,149 +9108,6 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "attachment:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Sol Ring",
-    "inputName": "Sol Ring",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 431,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Arcane Signet",
-    "inputName": "Arcane Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 432,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "player-scope:you"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Dimir Signet",
-    "inputName": "Dimir Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 433,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {U}{B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Fellwar Stone",
-    "inputName": "Fellwar Stone",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 434,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color that a land an opponent controls could produce.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:each-opponent: read/write opponent player scope"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:each-opponent"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Izzet Signet",
-    "inputName": "Izzet Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 435,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {U}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -11277,60 +9142,6 @@
   },
   {
     "deck": "Kefka",
-    "card": "Rakdos Signet",
-    "inputName": "Rakdos Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 438,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {B}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Talisman of Creativity",
-    "inputName": "Talisman of Creativity",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 439,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
     "card": "Talisman of Creativity",
     "inputName": "Talisman of Creativity",
     "quantity": 1,
@@ -11347,40 +9158,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Talisman of Dominance",
-    "inputName": "Talisman of Dominance",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 441,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -11406,40 +9192,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Talisman of Indulgence",
-    "inputName": "Talisman of Indulgence",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 443,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -11465,12 +9226,14 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
       "mana:write"
     ],
@@ -11494,54 +9257,20 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Relic of Sauron",
-    "inputName": "Relic of Sauron",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 446,
-    "shape": "activated",
-    "clauseExcerpt": "{3}, {T}: Draw two cards, then discard a card.",
-    "requiredReadWrite": [
-      "action:discard: move card from hand to graveyard and emit discard event",
-      "action:draw: move card from library to hand and emit draw event",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:discard",
-      "action:draw",
-      "cost:activation",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Kefka",
@@ -11572,33 +9301,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Arena of Glory",
-    "inputName": "Arena of Glory",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 448,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -11678,11 +9380,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -11728,33 +9433,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 453,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Cascade Bluffs",
-    "inputName": "Cascade Bluffs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 454,
     "shape": "activated",
     "clauseExcerpt": "{U/R}, {T}: Add {U}{U}, {U}{R}, or {R}{R}.",
@@ -11763,149 +9441,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Clearwater Pathway // Murkwater Pathway",
-    "inputName": "Clearwater Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 455,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Clearwater Pathway // Murkwater Pathway",
-    "inputName": "Clearwater Pathway",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 1,
-    "clauseIndex": 456,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Command Tower",
-    "inputName": "Command Tower",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 457,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Daily Bugle Building",
-    "inputName": "Daily Bugle Building",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 458,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Daily Bugle Building",
-    "inputName": "Daily Bugle Building",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 459,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add one mana of any color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -11990,70 +9533,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Darkwater Catacombs",
-    "inputName": "Darkwater Catacombs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 463,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {U}{B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Exotic Orchard",
-    "inputName": "Exotic Orchard",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 464,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color that a land an opponent controls could produce.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:each-opponent: read/write opponent player scope"
-    ],
     "modelTags": [
-      "ownership:controller",
-      "player-scope:each-opponent"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -12086,54 +9573,26 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Ferrous Lake",
-    "inputName": "Ferrous Lake",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 466,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {U}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -12151,80 +9610,15 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Fiery Islet",
-    "inputName": "Fiery Islet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 468,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}, Sacrifice this land: Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
+      "life:write",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Forbidden Orchard",
-    "inputName": "Forbidden Orchard",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 469,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -12280,33 +9674,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 471,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Geier Reach Sanitarium",
-    "inputName": "Geier Reach Sanitarium",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 472,
     "shape": "activated",
     "clauseExcerpt": "{2}, {T}: Each player draws a card, then discards a card.",
@@ -12319,7 +9686,11 @@
       "zone-cross: read/write non-you player zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:each-player",
+      "tap-state:write",
       "zone-cross",
       "zone:graveyard",
       "zone:hand",
@@ -12328,42 +9699,12 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:discard",
-      "action:draw",
-      "cost:activation",
-      "cost:tap"
+      "action:draw"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Graven Cairns",
-    "inputName": "Graven Cairns",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 473,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -12380,38 +9721,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "mana:write"
+      "tap-state:write"
     ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Grixis Panorama",
-    "inputName": "Grixis Panorama",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 475,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -12443,24 +9760,23 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -12509,11 +9825,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -12566,11 +9885,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -12594,12 +9916,15 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "life:write",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -12624,12 +9949,14 @@
       "player-scope:each-opponent: read/write opponent player scope"
     ],
     "modelTags": [
-      "player-scope:each-opponent"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:each-opponent",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write"
     ],
     "candidateCategories": [
@@ -12742,33 +10069,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 486,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Seething Landscape",
-    "inputName": "Seething Landscape",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 487,
     "shape": "activated",
     "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.",
@@ -12786,80 +10086,25 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Shadowblood Ridge",
-    "inputName": "Shadowblood Ridge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 489,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}: Add {B}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Shivan Reef",
-    "inputName": "Shivan Reef",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 490,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -12879,12 +10124,14 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
       "mana:write"
     ],
@@ -12938,38 +10185,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "mana:write"
+      "tap-state:write"
     ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Sulfurous Springs",
-    "inputName": "Sulfurous Springs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 494,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -12995,40 +10218,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Tainted Isle",
-    "inputName": "Tainted Isle",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 496,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -13054,13 +10252,15 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
-      "player-scope:you"
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -13113,38 +10313,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
-      "mana:write"
+      "tap-state:write"
     ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Underground River",
-    "inputName": "Underground River",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 500,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "mana:write"
     ],
     "candidateCategories": [
@@ -13170,12 +10346,14 @@
       "player-scope:you: read/write self player scope"
     ],
     "modelTags": [
-      "player-scope:you"
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "player-scope:you",
+      "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
       "damage:write",
       "mana:write"
     ],
@@ -13299,7 +10477,12 @@
       "zone:hand: read/write hand zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:each-player",
+      "tap-state:write",
       "zone-cross",
       "zone:battlefield",
       "zone:graveyard",
@@ -13309,15 +10492,10 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:discard",
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:draw"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13521,22 +10699,20 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
       "prevention"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Muldrotha",
@@ -13598,56 +10774,17 @@
     "modelTags": [
       "event-observer:self",
       "event:dies",
+      "life:write",
       "player-scope:you",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "event:life",
-      "life:write"
+      "event:life"
     ],
     "candidateCategories": [
       "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Haywire Mite",
-    "inputName": "Haywire Mite",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 515,
-    "shape": "activated",
-    "clauseExcerpt": "{G}, Sacrifice this creature: Exile target noncreature artifact or noncreature enchantment.",
-    "requiredReadWrite": [
-      "action:exile: move object to exile",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:exile: read/write exile zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:exile",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:exile",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13670,6 +10807,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:enters",
       "zone:battlefield",
@@ -13678,7 +10816,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
@@ -13705,6 +10842,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:enters",
       "zone:battlefield",
@@ -13713,7 +10851,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
@@ -13774,13 +10911,13 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:mill",
       "event-observer:self",
       "event:enters",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:mill",
       "event:zone",
       "zone:graveyard",
       "zone:library"
@@ -13811,6 +10948,9 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
       "player-scope:you",
       "zone:battlefield",
       "zone:graveyard"
@@ -13818,14 +10958,10 @@
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:return",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
       "tap-state:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13885,6 +11021,11 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "action:search",
+      "action:shuffle",
+      "cost:activation",
+      "cost:nonmana",
       "player-scope:you",
       "zone:battlefield",
       "zone:graveyard",
@@ -13892,18 +11033,12 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
-      "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
       "object-identity:lki",
       "tap-state:write"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13965,17 +11100,19 @@
       "cost:tap: read/write tapped state as a cost",
       "zone:library: read/write library zone"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
+    "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:surveil",
-      "cost:activation",
-      "cost:tap",
       "zone:library"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -14178,26 +11315,25 @@
       "zone:exile: read/write exile zone"
     ],
     "modelTags": [
+      "action:exile",
       "event-observer:self",
       "event:cast",
       "ownership:controller",
       "ownership:owner",
       "player-scope:owner",
       "player-scope:you",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:exile"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:exile",
       "action:return",
-      "object-identity:lki",
-      "target:object-or-player"
+      "object-identity:lki"
     ],
     "candidateCategories": [
       "catalog未写",
-      "scope境界(既知defer)",
-      "substrate不足"
+      "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -14401,6 +11537,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
       "event-observer:self",
       "event:phase",
       "player-scope:you",
@@ -14411,7 +11548,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
       "event:draw"
     ],
     "candidateCategories": [
@@ -14470,13 +11606,13 @@
     "modelTags": [
       "ownership:controller",
       "player-scope:controller",
+      "target:object-or-player",
       "zone:battlefield",
       "zone:stack"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:counter-spell",
-      "target:object-or-player",
       "token:create"
     ],
     "candidateCategories": [
@@ -14484,29 +11620,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Dark Ritual",
-    "inputName": "Dark Ritual",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 556,
-    "shape": "spell",
-    "clauseExcerpt": "Add {B}{B}{B}.",
-    "requiredReadWrite": [
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -14634,36 +11747,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Explore",
-    "inputName": "Explore",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 564,
-    "shape": "spell",
-    "clauseExcerpt": "Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "player-scope:you: read/write self player scope",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "player-scope:you",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Farseek",
     "inputName": "Farseek",
     "quantity": 1,
@@ -14715,21 +11798,20 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:search",
+      "action:shuffle",
       "player-scope:you",
       "zone:battlefield",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:search",
-      "action:shuffle",
       "object-identity:lki"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Muldrotha",
@@ -14751,52 +11833,20 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:search",
+      "action:shuffle",
       "player-scope:you",
       "zone:battlefield",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:search",
-      "action:shuffle",
       "object-identity:lki",
       "tap-state:write"
     ],
     "candidateCategories": [
       "catalog未写",
       "scope境界(既知defer)"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Three Visits",
-    "inputName": "Three Visits",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 568,
-    "shape": "spell",
-    "clauseExcerpt": "Search your library for a Forest card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -15331,20 +12381,19 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
       "player-scope:you",
       "zone:battlefield",
       "zone:graveyard"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
       "life:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -15461,41 +12510,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 591,
-    "shape": "static",
-    "clauseExcerpt": "I — Destroy target nonland permanent an opponent controls.",
-    "requiredReadWrite": [
-      "action:destroy: move permanent from battlefield to owner graveyard",
-      "ownership:controller: read/write controller identity",
-      "player-scope:each-opponent: read/write opponent player scope",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:each-opponent",
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:destroy",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Binding the Old Gods",
-    "inputName": "Binding the Old Gods",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 592,
     "shape": "static",
     "clauseExcerpt": "II — Search your library for a Forest card, put it onto the battlefield tapped, then shuffle.",
@@ -15525,43 +12539,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Lotus Petal",
-    "inputName": "Lotus Petal",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 594,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this artifact: Add one mana of any color.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Mishra's Bauble",
     "inputName": "Mishra's Bauble",
     "quantity": 1,
@@ -15586,7 +12563,13 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:draw",
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:target-player",
+      "tap-state:write",
       "zone-cross",
       "zone:battlefield",
       "zone:graveyard",
@@ -15595,11 +12578,6 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
       "delayed-trigger",
       "target:object-or-player",
       "timing:upkeep"
@@ -15607,88 +12585,6 @@
     "candidateCategories": [
       "catalog未写",
       "scope境界(既知defer)",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Aether Spellbomb",
-    "inputName": "Aether Spellbomb",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 596,
-    "shape": "activated",
-    "clauseExcerpt": "{U}, Sacrifice this artifact: Return target creature to its owner's hand.",
-    "requiredReadWrite": [
-      "action:return: move object to referenced zone",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "ownership:owner: read owner identity",
-      "player-scope:owner: read owner player scope",
-      "target:object-or-player: read/write target binding",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone"
-    ],
-    "modelTags": [
-      "ownership:owner",
-      "player-scope:owner",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:return",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Aether Spellbomb",
-    "inputName": "Aether Spellbomb",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 597,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, Sacrifice this artifact: Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana"
-    ],
-    "candidateCategories": [
-      "catalog未写",
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
@@ -15798,60 +12694,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Mana Vault",
-    "inputName": "Mana Vault",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 601,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Sol Ring",
-    "inputName": "Sol Ring",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 602,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Vexing Bauble",
     "inputName": "Vexing Bauble",
     "quantity": 1,
@@ -15880,77 +12722,6 @@
       "scope境界(既知defer)"
     ],
     "primaryCandidateCategory": "scope境界(既知defer)"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Vexing Bauble",
-    "inputName": "Vexing Bauble",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 604,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}, Sacrifice this artifact: Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Arcane Signet",
-    "inputName": "Arcane Signet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 605,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "player-scope:you"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -16005,19 +12776,20 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "tap-state:write",
       "zone:hand",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "action:draw",
-      "cost:activation",
-      "cost:tap",
       "counter:write"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16091,6 +12863,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "life:write",
       "player-scope:you",
       "zone:battlefield",
       "zone:hand",
@@ -16098,8 +12871,7 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:draw",
-      "life:write"
+      "action:draw"
     ],
     "candidateCategories": [
       "catalog未写"
@@ -16129,23 +12901,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16182,36 +12955,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Command Tower",
-    "inputName": "Command Tower",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 615,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color in your commander's color identity.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "player-scope:you"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Fabled Passage",
     "inputName": "Fabled Passage",
     "quantity": 1,
@@ -16235,25 +12978,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "ownership:controller",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16282,33 +13024,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Field of the Dead",
-    "inputName": "Field of the Dead",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 618,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -16369,52 +13084,26 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Foreboding Landscape",
-    "inputName": "Foreboding Landscape",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 621,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -16440,24 +13129,23 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16484,23 +13172,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16588,59 +13277,21 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "life:write",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Nurturing Peatland",
-    "inputName": "Nurturing Peatland",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 628,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}, Sacrifice this land: Draw a card.",
-    "requiredReadWrite": [
-      "action:draw: move card from library to hand and emit draw event",
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:hand: read/write hand zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:hand",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:draw",
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
-    ],
-    "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Muldrotha",
@@ -16680,33 +13331,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 630,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Phyrexian Tower",
-    "inputName": "Phyrexian Tower",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 631,
     "shape": "activated",
     "clauseExcerpt": "{T}, Sacrifice a creature: Add {B}{B}.",
@@ -16720,6 +13344,7 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "mana:write",
       "zone:battlefield",
       "zone:graveyard"
     ],
@@ -16728,8 +13353,7 @@
       "action:sacrifice",
       "cost:activation",
       "cost:nonmana",
-      "cost:tap",
-      "mana:write"
+      "cost:tap"
     ],
     "candidateCategories": [
       "catalog未写",
@@ -16760,23 +13384,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -16835,33 +13460,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Shifting Woodland",
-    "inputName": "Shifting Woodland",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 635,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {G}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -16965,33 +13563,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Simic Growth Chamber",
-    "inputName": "Simic Growth Chamber",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 639,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {G}{U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Sunken Palace",
     "inputName": "Sunken Palace",
     "quantity": 1,
@@ -17015,33 +13586,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Sunken Palace",
-    "inputName": "Sunken Palace",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 641,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
-      "cost:activation",
-      "cost:tap",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Muldrotha",
@@ -17246,11 +13790,14 @@
       "cost:tap: read/write tapped state as a cost",
       "mana:write: write mana pool"
     ],
-    "modelTags": [],
-    "catalogJudgement": "gap",
-    "missingReadWrite": [
+    "modelTags": [
       "cost:activation",
+      "cost:nonmana",
       "cost:tap",
+      "tap-state:write"
+    ],
+    "catalogJudgement": "partial",
+    "missingReadWrite": [
       "mana:write"
     ],
     "candidateCategories": [
@@ -17281,23 +13828,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -17355,23 +13903,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -17398,23 +13947,24 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "action:sacrifice",
+      "cost:activation",
+      "cost:nonmana",
+      "cost:tap",
+      "life:write",
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield",
       "zone:graveyard",
       "zone:library"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "action:sacrifice",
       "action:search",
-      "action:shuffle",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap"
+      "action:shuffle"
     ],
     "candidateCategories": [
-      "catalog未写",
-      "substrate不足"
+      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },

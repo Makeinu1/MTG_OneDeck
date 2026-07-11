@@ -36,7 +36,7 @@
   - **`/ship` の実行は最大1回だけ委譲してよい**: リリースの*是非*判定は判定者だが、監査合格後の `/ship`(git add 明示→commit→push→CI監視→Pages確認)は**機械的**ゆえ、**判定者本体のトークン節約のため Haiku または Sonnet のサブエージェント(`Agent` の `model: haiku`/`sonnet`)へ1回だけ委譲して実行してよい**。判定者は「ステージ対象ファイルの明示リスト + コミットメッセージ + 除外すべきファイル」を渡す。ship サブエージェントは実行者でありオーケストレータではないため、`Agent` で再委譲したり「さらに委譲したので待つ」と返したりしてはならない。再委譲・待機報告・commit SHA/`HEAD == origin/main`/対象 SHA の CI/Pages 200/worktree clean の欠落は no-op 失敗とみなし、判定者が即 inline 実行へ切り替える。**ファイルを「無関係」として除外する前に、契約(`docs/`・`acceptance`・`golden-cases`)がそれを正本参照していないか `git grep -n "<name>" -- docs/ research/` で確認する**(参照ありなら除外禁止=commit 必須。サイズや見た目でなく*契約参照の有無*が基準)。
 - **実装担当 Codex CLI = 手(潤沢)**: 実装 + テスト記述 + 4チェック + **契約(spec)の初稿ドラフト**まで担う。
   - **委譲拡張=CR が裁定できる決定論的判断の*草稿*も任せてよい**(`review.*` アサーション・`docs/` 記述・gold ケースを、**必ず根拠 CR 条番号を併記**して `research/cr-grounding/*.draft` 等の自分のレーンへ出力)。判定者の仕事は「引用が CR 原文に合うか」の照合に縮む=安い(ボトルネックは実装でなく CR 照合)。**原則=「CR を検査器にする」**(全文を読ませるのでなく、CR から抽出した不変条件で成果物を叩く)。`docs/`/`review.*` への*反映と commit* は判定者(独立監査後の再オーナー化)。
-  - 起動: `/Applications/Codex.app/Contents/Resources/codex exec --cd /Users/shumpeiabe/Desktop/MTG_OneDeck --sandbox workspace-write "<指示>"`(バックグラウンド実行)
+  - 起動: `/Applications/ChatGPT.app/Contents/Resources/codex exec --cd /Users/shumpeiabe/Desktop/MTG_OneDeck --sandbox workspace-write "<指示>"`(バックグラウンド実行。2026-07-12〜 Codex CLI は ChatGPT.app 同梱へ移行=旧 `/Applications/Codex.app/...` は不在)
   - **常設の実装者規約=`AGENTS.md`**(Codex が毎回自動読込。判定者専有=Codex は従うが編集不可)。共通則(不可侵・エンジン規律・機械4点・報告様式)はそこに一元化済みゆえ、**ブリーフは共通則を再掲せずタスク固有のみ**(4行ヘッダ・目的・スコープDEFER・対象ファイル・golden・固有受け入れ条件)。中断時は「実装済み/残作業」を明示し再実行(最大2回、それでも未完なら判定者が仕上げる)。
 - **例外**: 監査中に見つけた数行規模の外科的修正のみ、判定者が直接行ってよい。
 - **実装エージェント(Codex 含む)の git 操作は禁止**。コミットはレビュー合格後に判定者が行う。

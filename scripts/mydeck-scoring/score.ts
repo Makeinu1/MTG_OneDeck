@@ -9,6 +9,7 @@ import { classifyEventsForLine } from '../lib/eventClassify.ts';
 import { classifyContinuousLayers } from '../lib/layerClassify.ts';
 import { classifyTimingForLine } from '../lib/timingClassify.ts';
 import { classifyZonesForLine, type OwnershipKind } from '../lib/zoneClassify.ts';
+import { engineCoverageTagsForLine } from './engineCoverage.ts';
 
 const INPUT_SNAPSHOT_PATH = resolve(
   process.cwd(),
@@ -690,6 +691,9 @@ function modelTagsForLine(line: AbilityLine, def: CardDef): string[] {
       tags.add(`cast-timing:${timing}`);
     }
   }
+  for (const tag of engineCoverageTagsForLine(def, line)) {
+    tags.add(tag);
+  }
   return [...tags].sort();
 }
 
@@ -702,12 +706,6 @@ function addOwnershipTags(tags: Set<string>, ownership: OwnershipKind): void {
   }
 }
 
-// KNOWN GAP (see research/cr-grounding/planned-sequence-batch4.draft.md item 3):
-// modelTags only comes from event/zone/layer/timing classifiers, so cost:*/action:*/
-// mana:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:* demands are always
-// reported missing regardless of whether src/engine/grammar/compile.ts already
-// implements them (e.g. Sol Ring/Signets flagged as gaps despite full support).
-// Do not treat those categories' "missing" counts as accurate until fixed.
 function compareDemands(
   demands: readonly Demand[],
   modelTags: readonly string[],
