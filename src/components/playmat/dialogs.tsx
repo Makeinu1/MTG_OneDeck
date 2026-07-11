@@ -6,7 +6,7 @@ import type { CardInstance, GameState, ZoneId } from '../../engine/types';
 import type { EffectPrompt, LibrarySearchFilter } from '../../engine/grammar/compile';
 import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
-import { effectivePower, isSummoningSick, type FetchAbility } from '../../engine/status';
+import { effectivePower, fetchEntersTapped, isSummoningSick, type FetchAbility } from '../../engine/status';
 import { CardView } from '../CardView';
 
 const MANA_LABELS: Record<ManaColor, string> = {
@@ -1061,7 +1061,11 @@ export function FetchSearchDialog({
 }) {
   const [search, setSearch] = useState('');
   const [showAllCards, setShowAllCards] = useState(false);
-  const [entersTapped, setEntersTapped] = useState(ability.entersTapped);
+  // 既定値は盤面依存(寓話の小道: 支配土地 4 枚以上でアンタップ)。サンドボックスゆえ上書き可。
+  // controller はフェッチ元(既にサクリファイ済みだが controllerId は保持)から読む。
+  const [entersTapped, setEntersTapped] = useState(() =>
+    fetchEntersTapped(state, ability, state.cards[sourceId]?.controllerId ?? state.activePlayerId),
+  );
   const libraryIds = state.zones.library;
 
   const eligibleIds = libraryIds.filter((cardId) => {

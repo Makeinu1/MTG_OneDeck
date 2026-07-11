@@ -91,11 +91,6 @@
       "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。"
     },
     {
-      "type": "domain-slice",
-      "domainId": "cr-701-fetchland-search",
-      "note": "batch5-1(V1 Playability Assessment 最上位・2026-07-07 J2 Opus)。実プレイ査定(research/mydeck-scoring/playability/top-10-v1-gaps.md)で判明した「1ゲームあたり最頻・最も手動が退屈」なギャップ=fetchland fetch(『{T},[Pay 1 life,]Sacrifice this land: Search your library for a [basic/dual] land card, put it onto the battlefield [tapped], then shuffle.』)。4デッキ全てに存在(Fabled Passage/Flooded Strand/Misty Rainforest/Polluted Delta等・census占有24)。**demand計器には一切現れなかった**=査定が独自に発見。既存`parseSingleCardRampSearch`(compile.ts・『search your library for a X card, put onto battlefield [tapped]』を既にパース)を土台に、sacrifice-cost+pay-life+shuffleを束ねたfetch leafへ拡張。判定者外科修正の余地大(既存パーサ再利用)。CR 701.19(search)/103.2(shuffle)/701.16(sacrifice-as-cost)。golden候補: Fabled Passage/Flooded Strand。"
-    },
-    {
       "type": "tooling-fix",
       "domainId": "score-ts-demand-catalog-repair",
       "codexBlockedUntil": "2026-07-11",
@@ -124,6 +119,28 @@
     "deferred": "明示的に後回し(境界として可視)"
   },
   "domains": [
+    {
+      "id": "cr-701-fetchland-search",
+      "crRefs": [
+        "701.19",
+        "103.2",
+        "118"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "shipped",
+      "landingState": [],
+      "boundary": "**fetchland fetch は既に実装+両UI配線済**(2026-07-12 判定者[Opus 4.8]検証で確定)。activateFetch(pay life + sacrifice + ability-to-stack)→FetchSearchDialog(matchesFetchFilterでlibraryをbasic/subtype/any-landに絞込+show-all escape・stack top到達で自動オープン)→resolveFetch(move + tapped + shuffle[found除外])。MyDeck 4 fetchland(Fabled Passage/Flooded Strand/Misty Rainforest/Polluted Delta)全て正しく認識・絞込。既存test=review.m415(fetchAbility parse + fetchLand合成)/m428(activate/resolve stack choreography)/cr701LibrarySearchGuided。**batch5-1台帳前提『gap=認識拡張』はstale**=playability census(ability compiler経路のみ計上・専用fetch経路を未クレジット=同doc自身が3経路で警告する盲点の4番目)由来。実機検証(冷Sonnet)=pay life/sacrifice/自動絞込dialog/tapped・untapped/shuffle 全て動作・console 0。 **本スライスの誠実な残渣のみ実装(2026-07-12・engine-spec §11.1)**= 寓話の小道型の条件付きアンタップ(『then if you control four or more lands, untap that land』)。FetchAbility に additive optional `untapIfControlLandsAtLeast?: number` + 純関数 `fetchEntersTapped(state, ability, controllerId)`(entersTapped=false→false・閾値欠落→entersTappedそのまま・有り時は解決後支配土地数[現支配土地+フェッチ土地自身の+1]が閾値以上でfalse=untap)。UIはFetchSearchDialogの『タップ状態で出す』既定をfetchEntersTappedで盤面依存化(サンドボックス=上書き可)。CR: 条件はフェッチ土地が戦場に出た後評価・その土地自身も数える。source sacrificeは活性化時ゆえ二重計上なし(冷Sonnet監査で+1のoff-by-oneなしを確認)。新GameCommand型なし・GameState新フィールドなし(engine-spec §11の設計指針維持)。読み取りは英語oracleText正本(日本語のみ文面はundefined=常にtapped安全側)。",
+      "evidence": [
+        "src/store/__tests__/review.m415.test.ts",
+        "src/store/__tests__/review.cr701-fabled-passage-untap.test.ts",
+        "src/engine/status.ts (fetchAbility/fetchEntersTapped/fetchConditionalUntap/countControlledLands)",
+        "docs/engine-spec.md §11.1",
+        "research/mydeck-scoring/playability/top-10-v1-gaps.md (#1 gap・premise stale判定の出所)"
+      ],
+      "nextGate": "fetchland自動化は本スライスで完結(V1最頻gap #1充足)。将来のfetchland variant(条件付ETB置換のより一般化・非基本fetch等)はdemand実測次第で別スライス。Fabled Passageのconditional untapは本スライスで着地。",
+      "note": "2026-07-12 判定者(Opus 4.8=J2 tier)裁定: batch5-1は『新規実装スライス』でなく『既存実装の検証 + 誠実残渣の外科着地』だった。plannedSequenceから消費・本domainへ畳込み。stale premiseの教訓=census計器はauto/guided/manualをability compiler経路で分類するため、専用engine経路(playLand/effectiveKeywords/mana-ability/fetch)を常にmanual誤計上する。demand/census数値を優先度信号に使う前にcompile.ts実装済み経路をspot-checkする(暫定則と同根)。"
+    },
     {
       "id": "cr-102-players",
       "crRefs": [

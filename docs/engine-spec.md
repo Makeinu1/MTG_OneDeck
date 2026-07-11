@@ -515,8 +515,12 @@ export interface FetchAbility {
   lifeCost: number;                                       // 既定 0
   entersTapped: boolean;                                  // put 句が tapped/タップ状態 を含むか
   filter: 'basic' | { subtypes: string[] } | 'any-land';  // subtypes は英語サブタイプ名(Island/Swamp/…)
+  untapIfControlLandsAtLeast?: number;                    // 寓話の小道型: tapped で出た後、支配土地が N 枚以上なら untap(CR 条件付きアンタップ)
 }
 export function fetchAbility(def: CardDef | undefined): FetchAbility | null;
+// tapped で出すべきかの最終判定(盤面依存)。entersTapped=false は常に false。
+// untapIfControlLandsAtLeast 有り時は「解決後の支配土地数(=フェッチ土地自身を +1 で数える)」が閾値以上なら false(=untap)。
+export function fetchEntersTapped(state: GameState, ability: FetchAbility, controllerId: PlayerId): boolean;
 ```
 - 全 face の `oracleText`/`printedText` を `cardTexts`/`splitRulesText` で走査(`cyclingCost`/`landEntersTapped` と同方式)。
 - **検出条件**(下記いずれかを満たす起動型能力の存在):
@@ -524,7 +528,9 @@ export function fetchAbility(def: CardDef | undefined): FetchAbility | null;
   - 日: `あなたのライブラリー` を含み `.*探[しす].*` かつ `戦場に出` かつ `切り直す`。
   - いずれも満たさなければ `null`。
 - **entersTapped**: put 句に 英 `onto the battlefield tapped` / 日 `タップ状態で(戦場に)出` を含めば `true`、無ければ `false`。
-  (寓話の小道の「…なら、その土地をアンタップする」等の**条件付きアンタップ句は無視**=`true` のまま。)
+- **untapIfControlLandsAtLeast**(2026-07-12 追加・寓話の小道型): 英 `/if you control (\w+) or more lands,\s*untap (?:that land|it)/i` を検出したら、その閾値 N を格納(数詞→整数化・最小 one〜ten + 直接数字)。**これは entersTapped=true と共起する条件付きアンタップ**を意味する(`entersTapped=false` のときは付与しない)。検出できなければ `undefined`(欠落)。**読み取りは英語 oracleText を正本**とする(CLAUDE.md 規約。日本語 printedText は表示専用ゆえ本句は英語のみ解析)。日本語のみの文面は `undefined` にフォールバック=常に tapped(誤自動化しない安全側)。
+  - `fetchEntersTapped(state, ability, controllerId)`: `entersTapped=false`→常に `false`。`untapIfControlLandsAtLeast` 欠落→`entersTapped` をそのまま。有り時→**解決後の支配土地数**(現在 controller が支配する battlefield の土地数 + フェッチ土地自身の 1)が閾値 N 以上なら `false`(=アンタップして出す)、未満なら `true`。CR: 条件はフェッチ土地が戦場に出た後に評価され、その土地自身も数える。
+  - UI(`FetchSearchDialog`)の「タップ状態で出す」チェックボックス既定値は `fetchEntersTapped` で算出する(**サンドボックス**: プレイヤーは常に上書き可)。
 - **lifeCost**: 英 `/Pay (\d+) life/i` / 日 `/([0-9０-９]+)\s*点のライフを支払/`。全角数字は半角化して整数化。無ければ 0。
 - **filter**(優先順): ①英 `basic land` / 日 `基本土地` を含めば `'basic'`。②①でなく、文面に既知の土地サブタイプ語が現れれば `{ subtypes: [...] }`(英語名へ正規化)。③それ以外は `'any-land'`。
   - 土地サブタイプ ja→en マップ(最低限・基本5種): `平地→Plains, 島→Island, 沼→Swamp, 山→Mountain, 森→Forest`。英文は `Plains/Island/Swamp/Mountain/Forest` をそのまま採用。

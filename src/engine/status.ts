@@ -252,7 +252,22 @@ export interface FetchAbility {
   lifeCost: number;
   entersTapped: boolean;
   filter: 'basic' | { subtypes: string[] } | 'any-land';
+  // 寓話の小道型: tapped で出た後、支配土地が N 枚以上なら untap する条件付きアンタップ句の閾値。
+  untapIfControlLandsAtLeast?: number;
 }
+
+const FETCH_NUMBER_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
 
 const FETCH_SUBTYPE_SPECS = [
   { english: 'Plains', pattern: /\bPlains\b/i },
@@ -302,17 +317,59 @@ function fetchFilter(clause: string): FetchAbility['filter'] {
   return 'any-land';
 }
 
+function fetchConditionalUntap(clause: string): number | undefined {
+  // 寓話の小道: "…onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land."
+  const match = clause.match(/if you control (\w+) or more lands,\s*untap (?:that land|it)\b/i);
+  if (!match?.[1]) {
+    return undefined;
+  }
+  const word = match[1].toLowerCase();
+  const value = /^\d+$/.test(word) ? Number.parseInt(word, 10) : FETCH_NUMBER_WORDS[word];
+  return typeof value === 'number' && value > 0 ? value : undefined;
+}
+
 export function fetchAbility(def: CardDef | undefined): FetchAbility | null {
   const clause = detectFetchClause(def);
   if (!clause) {
     return null;
   }
 
+  const entersTapped = /onto the battlefield tapped/i.test(clause);
+  const untapIfControlLandsAtLeast = entersTapped ? fetchConditionalUntap(clause) : undefined;
+
   return {
     lifeCost: fetchLifeCost(clause),
-    entersTapped: /onto the battlefield tapped/i.test(clause),
+    entersTapped,
     filter: fetchFilter(clause),
+    ...(untapIfControlLandsAtLeast === undefined ? {} : { untapIfControlLandsAtLeast }),
   };
+}
+
+function countControlledLands(state: GameState, controllerId: PlayerId): number {
+  return state.zones.battlefield.reduce((count, cardId) => {
+    const card = state.cards[cardId];
+    if (!card || (card.controllerId ?? 'P1') !== controllerId) {
+      return count;
+    }
+    return effectiveTypeLine(state, cardId).includes('Land') ? count + 1 : count;
+  }, 0);
+}
+
+// tapped で出すべきかの最終判定(盤面依存)。entersTapped=false は常に false。
+// untapIfControlLandsAtLeast 有り時は「解決後の支配土地数(フェッチ土地自身を +1)」が閾値以上なら false(=untap)。
+export function fetchEntersTapped(
+  state: GameState,
+  ability: FetchAbility,
+  controllerId: PlayerId,
+): boolean {
+  if (!ability.entersTapped) {
+    return false;
+  }
+  if (ability.untapIfControlLandsAtLeast === undefined) {
+    return true;
+  }
+  const controlledAfterFetch = countControlledLands(state, controllerId) + 1;
+  return controlledAfterFetch < ability.untapIfControlLandsAtLeast;
 }
 
 export function keywords(def: CardDef | undefined): Keyword[] {

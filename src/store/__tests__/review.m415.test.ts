@@ -51,12 +51,14 @@ beforeEach(() => {
 });
 
 describe('fetchAbility parsing (§11.1)', () => {
-  it('Fabled Passage (en): tapped despite the conditional untap clause; basic', () => {
+  it('Fabled Passage (en): tapped, basic, conditional untap at 4 lands captured', () => {
     const a = fetchAbility(landDef('fp', { en: EN_FABLED_PASSAGE }));
     expect(a).not.toBeNull();
-    expect(a!.entersTapped).toBe(true); // conditional "untap" clause ignored
+    expect(a!.entersTapped).toBe(true); // enters tapped, then conditionally untaps
     expect(a!.lifeCost).toBe(0);
     expect(a!.filter).toBe('basic');
+    // 2026-07-12: conditional untap clause is now captured (was previously ignored)
+    expect(a!.untapIfControlLandsAtLeast).toBe(4);
   });
 
   it('Prismatic Vista (en): untapped, 1 life, basic', () => {
@@ -81,6 +83,7 @@ describe('fetchAbility parsing (§11.1)', () => {
     expect(a!.entersTapped).toBe(true);
     expect(a!.lifeCost).toBe(0);
     expect(a!.filter).toBe('basic');
+    expect(a!.untapIfControlLandsAtLeast).toBeUndefined(); // no conditional untap clause
   });
 
   it('unparseable land filter falls back to any-land', () => {
