@@ -7,10 +7,11 @@
  * 「警告件数インジケータ」(非ボタン)に留める。D3 でフィード入口へ昇格。
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PHASE_ORDER } from '../../engine/types';
 import { statusBandModel, PHASE_META } from './statusBandModel';
 import { feedUnseenCount } from './feedProjection';
+import { lifeFlashDirection } from './motion';
 import { LifeSheet } from './LifeSheet';
 import type { GameController } from './gameController';
 
@@ -21,6 +22,22 @@ export interface StatusBandProps {
 export function StatusBand({ controller }: StatusBandProps) {
   const { state, store } = controller;
   const [lifeOpen, setLifeOpen] = useState(false);
+  // ライフ変化の色フラッシュ(D5④)。hooks は早期 return より前。
+  const life = controller.state?.life ?? null;
+  const prevLife = useRef(life);
+  const [lifeFlash, setLifeFlash] = useState<'gain' | 'loss' | null>(null);
+  useEffect(() => {
+    if (life !== null && prevLife.current !== null && life !== prevLife.current) {
+      const dir = lifeFlashDirection(life - prevLife.current);
+      if (dir !== 'none') {
+        setLifeFlash(dir);
+        const timer = setTimeout(() => setLifeFlash(null), 400);
+        prevLife.current = life;
+        return () => clearTimeout(timer);
+      }
+    }
+    prevLife.current = life;
+  }, [life]);
   if (!state) return null;
   const model = statusBandModel(state);
   const unseen = feedUnseenCount(store.warnings, store.triggerCandidates);
@@ -84,7 +101,7 @@ export function StatusBand({ controller }: StatusBandProps) {
 
       <button
         type="button"
-        className="status-band__life"
+        className={`status-band__life${lifeFlash ? ` status-band__life--${lifeFlash}` : ''}`}
         data-testid="life-value"
         onClick={() => setLifeOpen(true)}
       >

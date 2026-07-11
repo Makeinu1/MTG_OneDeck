@@ -61,11 +61,12 @@
       "type": "design-slice",
       "domainId": "d5-celebration",
       "track": "design",
+      "status": "shipped",
       "dependsOn": [
         "d2-portrait-layout"
       ],
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
+      "note": "**出荷完了(2026-07-11・J2 Opus実装代行=ユーザー『あなたの推奨を進めよ』→判定者推奨でD5選定[D4は高blast-radius=新セッション])**: motion.ts(純関数=motionLevelFor[kind→L値]/motionDuration[reduced分岐]/shouldCompress[連続圧縮]/lifeFlashDirection/sound opt-in localStorage既定OFF)・sound.ts(WebAudio合成=OscillatorNode+エンベロープ・外部依存なし・遅延生成AudioContext・celebrate()=vibrate(10)+音・reduced-motionでvibrate抑制)・game.css(@keyframes 4種=celebrate-draw[手札slide-in L2]/etb[盤面bounce+金縁 L3]/stack-flash[青白 L3]/life-gain・loss[色フラッシュ L1]・prefers-reduced-motionで全停止)。配線=StackBand(解決flash・length減少検知)/StatusBand(life flash方向)/ThumbZone(primary haptics+音トグル)/HandRibbon(draw haptics)/gameController(motionArmed gate+resolve celebrate)/GameCard(--celebrate)。review.d5-motion(11)。機械4点全緑(177 files/1555 tests)・実機375+1440コンソール0(motionArmed=初期0/draw後1を実測確認)。**独立Tier-1(冷Sonnet)**=HIGH2(①再開時に既存カード全体が演出誤発火→motionArmed gate[初回描画後setTimeoutでarm・GameCardがマウント時捕捉]で抑止・実機検証 ②resolve celebrateがフェッチダイアログ前に先撃ち→実解決パスへ移動)+MED1(motion純関数未配線→shouldCompressをdraw haptic圧縮へ配線・motionLevelFor/Durationは§7方針層としてheader明記)+LOW2(生rgba→transparent/token化・空ライブラリdraw guard)を全裁定・修正。evidence=research/cr-grounding/d5-celebration-tier1-findings.md・review.d5-motion.test.ts。 --- 契約(参考): D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
     },
     {
       "type": "design-slice",

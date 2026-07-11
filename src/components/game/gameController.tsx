@@ -13,7 +13,7 @@
  * handlerFor(id→store 呼び出しの switch)で組む=旧 374 行のクロージャを畳んだ。
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { freeMulliganBottomCount, useGameStore, type GameStore } from '../../store/gameStore';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander, commanderTax } from '../../engine/commander';
@@ -28,6 +28,7 @@ import { ContextMenu, type MenuItem } from '../ContextMenu';
 import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
+import { celebrate } from './sound';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
 import { TargetPickerDialog } from '../playmat/TargetPickerDialog';
 import {
@@ -118,6 +119,8 @@ export interface GameController {
   requestConfirm: (action: 'restart' | 'back-to-import') => void;
   /** 誘発候補の件数(PrimaryAction 状態機械・ベルバッジ用)。 */
   triggerCandidateCount: number;
+  /** 祝祭アニメを許可するか(初期マウント/再開の一斉再生を抑止・D5)。 */
+  motionArmed: boolean;
   /** フィード(誘発/警告/ログ)の開閉。GameScreen が feedOpen で <Feed> を描画。 */
   feedOpen: boolean;
   openFeed: () => void;
@@ -156,6 +159,14 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
+  // 祝祭アニメの初期マウント抑止(D5 Tier-1 #1)。ゲーム開始/再開の一斉再生を防ぐため、
+  // 最初のフレーム後に arm=true。以降に入るカードだけドロー/ETB演出する(初手の儀式は D7)。
+  const [motionArmed, setMotionArmed] = useState(false);
+  useEffect(() => {
+    // setTimeout(非表示タブでも発火。rAF は背景タブで発火しないため不採用)。初回描画後に arm。
+    const id = setTimeout(() => setMotionArmed(true), 0);
+    return () => clearTimeout(id);
+  }, []);
 
   const isDialogOpen =
     store.pendingGuided !== null ||
@@ -274,9 +285,10 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     const s = useGameStore.getState().state;
     const dialog = fetchDialogForTop(s);
     if (dialog) {
-      setFetchDialog(dialog);
+      setFetchDialog(dialog); // フェッチはダイアログ経由=まだ解決していないので祝祭しない(Tier-1 #2)。
       return;
     }
+    celebrate('resolve'); // 実際に解決する時だけ祝祭(ハプティクス+音・装飾層)。
     store.resolveTop();
   }
   function requestResolveAll(): void {
@@ -1011,6 +1023,7 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     openCountDialog: (kind, defaultValue) => setCountDialog({ kind, defaultValue }),
     requestConfirm: (action) => setConfirmAction(action),
     triggerCandidateCount: store.triggerCandidates.length,
+    motionArmed,
     feedOpen,
     openFeed: () => setFeedOpen(true),
     closeFeed: () => setFeedOpen(false),

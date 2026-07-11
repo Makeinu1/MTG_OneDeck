@@ -3,6 +3,7 @@
  * タップ/右クリック→カードシート、ダブルクリック→クイックアクション。幅は親(棚/手札)が制御。
  */
 
+import { useState } from 'react';
 import { CardView } from '../CardView';
 import { isCommander } from '../../engine/commander';
 import { isSummoningSick } from '../../engine/status';
@@ -19,14 +20,21 @@ export interface GameCardProps {
 
 export function GameCard({ controller, cardId, size = 'board', playable = false }: GameCardProps) {
   const { state } = controller;
+  // マウント時点の motionArmed を捕捉(以降 arm が変わっても再演出しない・D5 Tier-1 #1)。
+  // 初期マウント/再開のカードは armed=false → 演出せず。以降に入るカードだけ celebrate クラス付与。
+  const [celebrateOnMount] = useState(() => controller.motionArmed);
   if (!state) return null;
   const instance = state.cards[cardId];
   if (!instance) return null;
   const def = state.defs[instance.defId];
   const commander = isCommander(state, cardId);
 
+  const cls = `game-card game-card--${size}${playable ? ' game-card--playable' : ''}${
+    celebrateOnMount ? ' game-card--celebrate' : ''
+  }`;
+
   return (
-    <div className={`game-card game-card--${size}${playable ? ' game-card--playable' : ''}`}>
+    <div className={cls}>
       <CardView
         instance={instance}
         def={def}

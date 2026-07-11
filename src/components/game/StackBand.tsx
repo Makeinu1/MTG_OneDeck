@@ -4,6 +4,7 @@
  * 先頭(スタック最上段=次に解決)が最も手前。タップで各アイテムのシート。
  */
 
+import { useEffect, useRef, useState } from 'react';
 import { GameCard } from './GameCard';
 import type { GameController } from './gameController';
 
@@ -12,6 +13,21 @@ export interface StackBandProps {
 }
 
 export function StackBand({ controller }: StackBandProps) {
+  // hooks は早期 return より前(条件付きフック禁止)。
+  const stackLen = controller.state?.zones.stack.length ?? 0;
+  const prevLen = useRef(stackLen);
+  const [flash, setFlash] = useState(false);
+  useEffect(() => {
+    // 解決(length 減少)かつ帯が残る(>0)時に青白閃き(D5②)。最後の1件は着地ETBが祝う。
+    if (stackLen < prevLen.current && stackLen > 0) {
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 500);
+      prevLen.current = stackLen;
+      return () => clearTimeout(timer);
+    }
+    prevLen.current = stackLen;
+  }, [stackLen]);
+
   const { state } = controller;
   if (!state) return null;
   const stack = state.zones.stack;
@@ -23,7 +39,7 @@ export function StackBand({ controller }: StackBandProps) {
   const ordered = [...stack].reverse();
 
   return (
-    <div className="stack-band stack-band--active" data-testid="stack-band">
+    <div className={`stack-band stack-band--active${flash ? ' stack-band--flash' : ''}`} data-testid="stack-band">
       <div className="stack-band__label">
         スタック <span className="stack-band__count">{stack.length}</span>
       </div>

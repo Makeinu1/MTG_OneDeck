@@ -9,6 +9,8 @@
 
 import { useState } from 'react';
 import { primaryActionModel } from './primaryAction';
+import { celebrate } from './sound';
+import { isSoundEnabled, setSoundEnabled } from './motion';
 import type { GameController } from './gameController';
 
 export interface ThumbZoneProps {
@@ -17,6 +19,7 @@ export interface ThumbZoneProps {
 
 function GameMenuSheet({ controller, onClose }: { controller: GameController; onClose: () => void }) {
   const { store } = controller;
+  const [sound, setSound] = useState(isSoundEnabled());
   const act = (fn: () => void) => () => {
     fn();
     onClose();
@@ -72,6 +75,18 @@ function GameMenuSheet({ controller, onClose }: { controller: GameController; on
           >
             自動メイン移行: {store.autoAdvanceToMain ? 'ON' : 'OFF'}
           </button>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-sound"
+            onClick={() => {
+              const next = !sound;
+              setSoundEnabled(next);
+              setSound(next);
+            }}
+          >
+            音(演出): {sound ? 'ON' : 'OFF'}
+          </button>
           <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-restart" onClick={act(() => controller.requestConfirm('restart'))}>
             最初からやり直す
           </button>
@@ -94,15 +109,18 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
   function runPrimary(): void {
     switch (primary.kind) {
       case 'resolve':
-        controller.requestResolveTop();
+        controller.requestResolveTop(); // celebrate('resolve') はコントローラ内。
         break;
       case 'triggers':
+        celebrate('primary');
         controller.openFeed();
         break;
       case 'attack':
+        celebrate('primary');
         controller.openAttackDialog();
         break;
       case 'next-phase':
+        celebrate('primary');
         store.nextPhase();
         break;
     }

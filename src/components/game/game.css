@@ -293,6 +293,54 @@
 }
 .game-menu__action--warn { color: var(--warn); }
 
+/* ---------- 祝祭感モーション(D5・中核4種のみ。design-system §7/§9) ---------- */
+/* ①ドロー: 山札→手札の滑り込み(L2)。手札に入るカードのマウント時に1回(--celebrate 付与時のみ)。 */
+@keyframes celebrate-draw {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.hand-ribbon__cards .game-card--celebrate { animation: celebrate-draw var(--dur-move) var(--ease-out); }
+
+/* ③ETB: 着地バウンス+一瞬の金縁(L3・--ease-snap)。盤面に入るカードのマウント時に1回。 */
+@keyframes celebrate-etb {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 transparent; }
+  55% { transform: scale(1.05); box-shadow: var(--playable-glow); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+.board-shelf .game-card--celebrate { animation: celebrate-etb var(--dur-hero) var(--ease-snap); }
+
+/* ②解決: スタック帯の青白閃き(L3)。StackBand が length 減少時に --flash を一時付与。 */
+@keyframes celebrate-stack-flash {
+  0% { box-shadow: var(--stack-glow); }
+  40% { box-shadow: 0 0 0 2px var(--stack-glow-c), 0 0 34px var(--stack-glow-c); }
+  100% { box-shadow: var(--stack-glow); }
+}
+.stack-band--flash { animation: celebrate-stack-flash var(--dur-hero) var(--ease-out); }
+
+/* ④ライフ/ダメージ: 増減方向の色フラッシュ(L1-L2)。StatusBand が life 変化時に一時付与。 */
+@keyframes celebrate-life-gain {
+  0%, 100% { color: var(--text-h); }
+  40% { color: var(--mana-g); transform: scale(1.12); }
+}
+@keyframes celebrate-life-loss {
+  0%, 100% { color: var(--text-h); }
+  40% { color: var(--warn); transform: scale(1.12); }
+}
+.status-band__life--gain { animation: celebrate-life-gain var(--dur-move) var(--ease-out); }
+.status-band__life--loss { animation: celebrate-life-loss var(--dur-move) var(--ease-out); }
+
+/* reduced-motion: 全モーション停止(§7・0ms=フェード/瞬時)。 */
+@media (prefers-reduced-motion: reduce) {
+  .hand-ribbon__cards .game-card--celebrate,
+  .board-shelf .game-card--celebrate,
+  .stack-band--flash,
+  .status-band__life--gain,
+  .status-band__life--loss {
+    animation: none !important;
+  }
+  .game-card { transition: none !important; }
+}
+
 /* ---------- 低い版面(横持ちスマホ 812×375 等): 帯を詰めて盤面の高さを確保 ---------- */
 @media (max-height: 520px) {
   .game-screen {
