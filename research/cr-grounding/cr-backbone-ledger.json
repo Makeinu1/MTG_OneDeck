@@ -4,7 +4,7 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "batch3充填(2026-07-06・J3 Sonnet)= Codex起草(research/cr-grounding/planned-sequence-batch3.draft.md・demand実測+CR条番号+golden候補)を判定者がCR原文照合+demand数値検証し、優先度式(demand降順>edhValue>S-phase依存順)で充填。8エントリ全edhValue=high・cr-601/cr-modalのdemand同値tie(共に10)はlane(backbone>leaf-compiler)でbreak。STOP-flagged(cr-714-sagas/cr-716-719-720-721-722、judge:user-stop)はCodex草稿が候補外として明示フラグ済み=judge単独裁定せず据え置き。前回batch2(cr-118〜cr-102-players・10スライス)は全出荷完了(HEAD 5ea83da)。 batch4充填(2026-07-07・J3 Sonnet、Codex quota枯渇のためドラフトも判定者代行= research/cr-grounding/planned-sequence-batch4.draft.md)= 補充手順実行中にCodex quotaブロック(2026-07-11まで)判明、判定者が直接research/mydeck-scoring/gaps.jsonとscripts/mydeck-scoring/score.tsのソースを読み重要な計測器欠陥を発見: score.tsのcategoryForDemand/compareDemandsはevent:*/zone:*/layer:*/timing:*系タグを産むclassifierとのみ突合しており、cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*系demandは実装状況に関係なく常にmissing判定になる構造的欠陥(compile.tsの実装カタログを一切参照しない)。実例でsrc/engine/grammar/compile.tsのliteralManaCommands/guidedManaPromptを確認しSol Ring/Signet等の`{T}: Add {C}`は既存実装済み(cr-605-mana-abilities shipped)なのにgaps.jsonはsubstrate不足と誤判定していることをbyte-levelで確認。この軸のdemand数値(cost:activation 232等トップ7件)は今回は信頼せず不採用。真に計測器で裏取りされたdemand(event:draw 25/zone:library 15)とledger nextGateが実際に解放済みと確認できたcr-702(combat/layers/cast-from-zone前提が全てshipped済みと確認)の2件のみ、CR原文照合の上でplannedSequenceへ充填。demand軸の欠陥修正自体はresearch/cr-grounding/planned-sequence-batch4.draft.md item3に記録し、accuracy-programトラックの将来課題としてmemoryへ残す(ledger domainではないためplannedSequence対象外)。 D-トラック追加(2026-07-08・J1 Fable・ユーザー依頼のデザイン刷新設計セッション)= UI/UX診断(55/100の5主因)→契約3本(docs/design-vision.md・docs/design-system.md・docs/ui-architecture-v2.md)+視覚正本(research/design/mockups/)を新設し、D0-D5をdesign-sliceとして追記。CRトラック(S-*/C-*)は不変更・並走。D-トラックとCRトラックの着手順はユーザー裁定(userGate付き=autoloopは明示指示まで消費しない)。",
+  "plannedSequenceProvenance": "batch3充填(2026-07-06・J3 Sonnet)= Codex起草(research/cr-grounding/planned-sequence-batch3.draft.md・demand実測+CR条番号+golden候補)を判定者がCR原文照合+demand数値検証し、優先度式(demand降順>edhValue>S-phase依存順)で充填。8エントリ全edhValue=high・cr-601/cr-modalのdemand同値tie(共に10)はlane(backbone>leaf-compiler)でbreak。STOP-flagged(cr-714-sagas/cr-716-719-720-721-722、judge:user-stop)はCodex草稿が候補外として明示フラグ済み=judge単独裁定せず据え置き。前回batch2(cr-118〜cr-102-players・10スライス)は全出荷完了(HEAD 5ea83da)。 batch4充填(2026-07-07・J3 Sonnet、Codex quota枯渇のためドラフトも判定者代行= research/cr-grounding/planned-sequence-batch4.draft.md)= 補充手順実行中にCodex quotaブロック(2026-07-11まで)判明、判定者が直接research/mydeck-scoring/gaps.jsonとscripts/mydeck-scoring/score.tsのソースを読み重要な計測器欠陥を発見: score.tsのcategoryForDemand/compareDemandsはevent:*/zone:*/layer:*/timing:*系タグを産むclassifierとのみ突合しており、cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*系demandは実装状況に関係なく常にmissing判定になる構造的欠陥(compile.tsの実装カタログを一切参照しない)。実例でsrc/engine/grammar/compile.tsのliteralManaCommands/guidedManaPromptを確認しSol Ring/Signet等の`{T}: Add {C}`は既存実装済み(cr-605-mana-abilities shipped)なのにgaps.jsonはsubstrate不足と誤判定していることをbyte-levelで確認。この軸のdemand数値(cost:activation 232等トップ7件)は今回は信頼せず不採用。真に計測器で裏取りされたdemand(event:draw 25/zone:library 15)とledger nextGateが実際に解放済みと確認できたcr-702(combat/layers/cast-from-zone前提が全てshipped済みと確認)の2件のみ、CR原文照合の上でplannedSequenceへ充填。demand軸の欠陥修正自体はresearch/cr-grounding/planned-sequence-batch4.draft.md item3に記録し、accuracy-programトラックの将来課題としてmemoryへ残す(ledger domainではないためplannedSequence対象外)。 D-トラック追加(2026-07-08・J1 Fable・ユーザー依頼のデザイン刷新設計セッション)= UI/UX診断(55/100の5主因)→契約3本(docs/design-vision.md・docs/design-system.md・docs/ui-architecture-v2.md)+視覚正本(research/design/mockups/)を新設し、D0-D5をdesign-sliceとして追記。CRトラック(S-*/C-*)は不変更・並走。D-トラックとCRトラックの着手順はユーザー裁定(userGate付き=autoloopは明示指示まで消費しない)。 **運用オーバーライド(2026-07-12・ユーザー裁定)**: (1) design-track(D4/D6/D7)は ChatGPT 5.6 の並行UIトラックへ全面移管=autoloop step0 消費対象外・status=deferred で可視境界化。(2) 当面Codex/ChatGPTリソースは使わず、autoloopの実装者ロール=Sonnetサブエージェント(Agent model:sonnet・別transcript)。Codex=実装者の既定を Sonnet で置換(役割は能力で定義=CLAUDE.md)。監査Tier-1も冷Sonnet。判定者席=在席最上位Claude。詳細=memory chatgpt-ui-ux-track。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -56,7 +56,8 @@
       ],
       "userGate": "2026-07-12 ユーザー明示指示で解除=PC版退行の回復を現最優先(cr-121より上位)。旧D4を判定者(J2 Opus)がd4a/d4b/d4cへ分割承認。consumable(design-slice だがユーザーが D-トラックのPC回復を明示指示済)。",
       "specStatus": "judge-endorsed",
-      "note": "D4a PC affordance回復。旧Playmatの全面復帰/削除はせず、同じGameScreen tree へ desktop affordance を戻す。**受け入れ契約(判定者endorse)=research/design/d4a-pc-affordance-recovery.draft.md A-I**: 全幅/舞台(1280≥95%幅・1920中央≥72%)・8枚手札(scroll無・9枚+はgap→bounded overlap→scroll段階圧縮)・readable turn model(7phase常時可視・現在/次を日本語名・色依存しない)・入力parity(hover 250ms preview・通常click=inspect・right-click全action代替・DnD復元・keyboard)・ゾーン常設(墓地/追放/山を完全名+枚数・1click 44px+)・space-aware土地(container overflow起点)・マリガン central化+**restoreGame(gameStore.ts:1845)のpending保存/導出バグ修正+review.m424再オーナー化**・feed/stack常設。実測根拠=research/design/r1-pc-ui-baseline.draft.md。検証=visual fixture(src/dev/visualFixtures)6場面×5 viewport+機械4点+console 0。別JSX tree禁止(media/container query)。段階出荷可。独立Tier-1必須。"
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4a PC affordance回復。旧Playmatの全面復帰/削除はせず、同じGameScreen tree へ desktop affordance を戻す。**受け入れ契約(判定者endorse)=research/design/d4a-pc-affordance-recovery.draft.md A-I**: 全幅/舞台(1280≥95%幅・1920中央≥72%)・8枚手札(scroll無・9枚+はgap→bounded overlap→scroll段階圧縮)・readable turn model(7phase常時可視・現在/次を日本語名・色依存しない)・入力parity(hover 250ms preview・通常click=inspect・right-click全action代替・DnD復元・keyboard)・ゾーン常設(墓地/追放/山を完全名+枚数・1click 44px+)・space-aware土地(container overflow起点)・マリガン central化+**restoreGame(gameStore.ts:1845)のpending保存/導出バグ修正+review.m424再オーナー化**・feed/stack常設。実測根拠=research/design/r1-pc-ui-baseline.draft.md。検証=visual fixture(src/dev/visualFixtures)6場面×5 viewport+機械4点+console 0。別JSX tree禁止(media/container query)。段階出荷可。独立Tier-1必須。",
+      "status": "deferred"
     },
     {
       "type": "design-slice",
@@ -67,7 +68,8 @@
       ],
       "userGate": "D4a出荷+実測後にレイアウト(2/3カラム/可変レール)を判定者が裁定。**3カラム自体を目的化しない**(固定レールで中央盤面が狭まり手札問題再発の罠=r1実測根拠)。着手はD4a完了確認後。",
       "specStatus": "vision-only",
-      "note": "D4b デスクトップ構成。D4aで affordance を戻した上で、余剰幅の配分(中央盤面拡張 vs 左右レール)を実測で決める。design-vision §3 の3カラムIAは候補であって前提ではない。"
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4b デスクトップ構成。D4aで affordance を戻した上で、余剰幅の配分(中央盤面拡張 vs 左右レール)を実測で決める。design-vision §3 の3カラムIAは候補であって前提ではない。",
+      "status": "deferred"
     },
     {
       "type": "design-slice",
@@ -78,7 +80,8 @@
       ],
       "userGate": "**J2召喚ゲート**。全操作の新旧同等性を review.*+実機で実証してから、旧playmat/Playmat.tsx(1735行)・浮動Stack.tsx・ContextMenu・死CSS・保存デッキ一覧を削除。隠れ依存(actionCatalog.ts→playmat/ruleActionCandidates 等)の解消を Tier-1 の明示項目に。1コミットで git revert 可能に。",
       "specStatus": "vision-only",
-      "note": "D4c 旧実装削除(strangler完了)。同等性未実証まで凍結。VITE_UI_V2_LAYOUT=false の rollback を壊さない。"
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4c 旧実装削除(strangler完了)。同等性未実証まで凍結。VITE_UI_V2_LAYOUT=false の rollback を壊さない。",
+      "status": "deferred"
     },
     {
       "type": "design-slice",
@@ -100,7 +103,8 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。"
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。",
+      "status": "deferred"
     },
     {
       "type": "design-slice",
@@ -111,7 +115,8 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。"
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。",
+      "status": "deferred"
     },
     {
       "type": "domain-slice",
