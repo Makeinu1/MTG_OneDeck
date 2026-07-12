@@ -116,7 +116,8 @@
     {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
-      "note": "batch4-2(2026-07-12 score-ts修復出荷で heldPending 解除)。**スコーピング完了(2026-07-12・Codex草稿=research/cr-grounding/cr-121-drawing-scope.draft.md・判定者がCR照合+実compiler probeで独立検証)**: 台帳仮説『draw-N guided catalog化』は誤り=固定数self draw(ETB/attack/upkeep trigger起点含む)は既にauto出荷済(engine-spec §32.8・cr121DrawCompiler/cr121DrawAuto test)。**真の残ギャップ=CR 121.2c honesty guard**: 現状 `hasSupportedPlayerSubject`(compile.ts:967-972)は『supported self-subjectが出現するか』のみ判定し『それが唯一の受益者か』を見ないため、**Tataru Taru ETB『you draw a card and target opponent may draw a card』が [auto] で P1 分の{draw,count:1}を誤発火(=誤自動化。V1査定の誤自動化≈0不変条件違反)**を判定者が実probeで確認(2026-07-12)。修正=draw clause が P1 単独のときのみ auto emit・target/opponent/each/optional/mixed-recipient は manual かつ draw command を残さない(scope draft §41-43)。新GameCommand/state無し=既存draw leaf の eligibility guard。**contract-ready**(engine-spec §32.8 clarification + adversarial pins)。CR 121.1-121.2(draw本体)・121.2c(multi-player順序)・104.3c/121.4/**704.5b**(empty-library loss SBA・既存commands.ts:247/gameStore.ts:110で正しく704.5b実装済=旧note『703.4d』は誤記訂正)。golden: Tataru Taru(誤自動化本体)・Fear of Missing Out(既にguided=gap無)・Banon(optional条件manual)・Blue Sun's Zenith(variable+target=defer負golden・実Scryfall裏取り要)。variable-count/opponent強制draw執行はdefer継続。**実装は新セッション推奨**(判定者トークン枯渇回避=本セッション5マイルストーン出荷済)。"
+      "note": "**出荷完了(2026-07-12・J2 Opus 判定者席・実装=Sonnet サブエージェント[ユーザー指示『Codex/ChatGPT リソースでなく Sonnet を使う』])**: CR121.2c 誠実性ガード。`hasSupportedPlayerSubject`(compile.ts effect.draw)に cross-player/optional recipient ブロッカー + 先頭 embedded 遅延誘発条件 strip を追加。Tataru Taru 型の部分 P1-only 誤自動 draw を manual 化(V1『誤自動化≈0』の穴)。新 GameCommand/state なし=既存 draw leaf eligibility ガードのみ。engine-spec §32.9 draw leaf 明確化ピンへ再オーナー化。独立 Tier-1(冷 Sonnet)が HIGH 赤旗1件(Maeve, Insidious Singer false-manual 回帰=embedded 遅延誘発の 'opponents' 誤マッチ)を検出→判定者裁定で差し戻し→strip 修正→再実測で false-manual 0・反転は正当2件(Tataru/Sphinx)のみ。機械4点緑(vitest 1587)。受け入れ=cr121DrawCrossPlayerGuard.test.ts。 旧スコープ note: batch4-2(2026-07-12 score-ts修復出荷で heldPending 解除)。**スコーピング完了(2026-07-12・Codex草稿=research/cr-grounding/cr-121-drawing-scope.draft.md・判定者がCR照合+実compiler probeで独立検証)**: 台帳仮説『draw-N guided catalog化』は誤り=固定数self draw(ETB/attack/upkeep trigger起点含む)は既にauto出荷済(engine-spec §32.8・cr121DrawCompiler/cr121DrawAuto test)。**真の残ギャップ=CR 121.2c honesty guard**: 現状 `hasSupportedPlayerSubject`(compile.ts:967-972)は『supported self-subjectが出現するか』のみ判定し『それが唯一の受益者か』を見ないため、**Tataru Taru ETB『you draw a card and target opponent may draw a card』が [auto] で P1 分の{draw,count:1}を誤発火(=誤自動化。V1査定の誤自動化≈0不変条件違反)**を判定者が実probeで確認(2026-07-12)。修正=draw clause が P1 単独のときのみ auto emit・target/opponent/each/optional/mixed-recipient は manual かつ draw command を残さない(scope draft §41-43)。新GameCommand/state無し=既存draw leaf の eligibility guard。**contract-ready**(engine-spec §32.8 clarification + adversarial pins)。CR 121.1-121.2(draw本体)・121.2c(multi-player順序)・104.3c/121.4/**704.5b**(empty-library loss SBA・既存commands.ts:247/gameStore.ts:110で正しく704.5b実装済=旧note『703.4d』は誤記訂正)。golden: Tataru Taru(誤自動化本体)・Fear of Missing Out(既にguided=gap無)・Banon(optional条件manual)・Blue Sun's Zenith(variable+target=defer負golden・実Scryfall裏取り要)。variable-count/opponent強制draw執行はdefer継続。**実装は新セッション推奨**(判定者トークン枯渇回避=本セッション5マイルストーン出荷済)。",
+      "status": "shipped"
     },
     {
       "type": "tooling-fix",
@@ -572,11 +573,13 @@
         "emptyLibraryDrawFlags",
         "lossAdvisories"
       ],
-      "boundary": "empty library draw advisoryはあるが、player-specific library と multi-draw完全形は未凍結。",
+      "boundary": "empty library draw advisoryはあるが、player-specific library と multi-draw完全形は未凍結。 **CR121.2c 誠実性ガード出荷**(2026-07-12・engine-spec §32.9 draw leaf 明確化ピン): mixed self+cross-player / optional draw 節は manual・partial P1 emit 禁止(誤自動化≈0 不変条件の穴を塞ぐ)。先頭 embedded 遅延誘発条件は受益者でない(Maeve 型は P1 単独 self draw ゆえ auto 維持)。独立 Tier-1(冷 Sonnet)がコーパス17,491枚で auto→manual 反転を実測=正当2件(Tataru/Sphinx)・false-manual 0・under-block 0。判定者が独立 probe + 機械4点再実行で再検証。domain 全体凍結(player-specific zones + draw event envelope 同時凍結)は未達継続。",
       "evidence": [
         "cr-sba-defeat-empty-library-draw",
         "cr-sba-defeat-empty-library-draw-partial-multidraw",
-        "cr-sba-defeat-nondraw-empty-library-does-not-trigger"
+        "cr-sba-defeat-nondraw-empty-library-does-not-trigger",
+        "src/engine/__tests__/cr121DrawCrossPlayerGuard.test.ts",
+        "docs/engine-spec.md §32.9 draw leaf 誠実性境界"
       ],
       "nextGate": "player-specific zones と draw event envelope を同時に凍結する",
       "judge": "deterministic-cr"

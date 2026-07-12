@@ -964,11 +964,42 @@ function normalizeDefinedTokenText(raw: string): string {
   return raw.replace(/\s+/g, ' ').trim();
 }
 
+// CR 121.2c honesty guard: a draw clause may auto-emit the P1-only `draw` command only when
+// the *entire* clause is an unconditional, fixed-count, self-only draw. Any cross-player
+// recipient (target player/opponent, each player/opponent, that player) or optional/
+// conditional wording ("may") means the clause instructs more than a lone P1 draw, and the
+// existing draw command cannot faithfully encode the unsupported remainder. Silently emitting
+// only the supported self subset (e.g. Tataru Taru's "you draw a card and target opponent may
+// draw a card") would half-execute the ability, so such clauses must fall through to manual
+// with no partial command (CR 121.1, 121.2, 121.2c).
+const DRAW_UNSUPPORTED_RECIPIENT_OR_CONDITION =
+  /\bopponents?\b|\btarget\s+players?\b|\beach\s+players?\b|\bthat\s+players?\b|\bany\s+players?\b|\bmay\b/i;
+
+// A leading trigger/condition prefix describes WHEN a draw happens, not who draws. `ir.ts`'s
+// `effectSpanForShape` strips a *top-level* trigger before clause splitting, but `splitEffectClauses`
+// only breaks on sentence/`then` boundaries, so an *embedded* delayed trigger stays glued to its
+// draw clause. E.g. Maeve, Insidious Singer's activated ability compiles the effect.draw raw as
+// "Whenever that creature attacks one of your opponents this turn, you draw a card." — the
+// "opponents" there is the goad target's attack destination, not a draw recipient. We must ignore
+// that condition when deciding whether the draw itself is P1-only.
+const DRAW_LEADING_TRIGGER_CONDITION = /^\s*(?:when(?:ever)?|at)\b[^,]*,\s*/i;
+
+function drawClauseIsExclusiveSelfFixed(raw: string): boolean {
+  // Strip a single leading embedded trigger condition (recipient words live in the draw
+  // instruction that follows the comma, so this cannot turn a genuine cross-player draw into an
+  // auto). CR 121.2c governs multi-player draw *ordering*, not trigger timing conditions.
+  const drawInstruction = raw.replace(DRAW_LEADING_TRIGGER_CONDITION, '');
+  return !DRAW_UNSUPPORTED_RECIPIENT_OR_CONDITION.test(drawInstruction);
+}
+
 function hasSupportedPlayerSubject(effect: EffectClause): boolean {
   const raw = effect.raw.trim();
   switch (effect.atom) {
     case 'effect.draw':
-      return /^\s*draw\b/i.test(raw) || /\byou draw\b/i.test(raw);
+      return (
+        (/^\s*draw\b/i.test(raw) || /\byou draw\b/i.test(raw)) &&
+        drawClauseIsExclusiveSelfFixed(raw)
+      );
     case 'effect.gain-life':
       return /^\s*gain\b/i.test(raw) || /\byou gain\b/i.test(raw);
     case 'effect.lose-life':
