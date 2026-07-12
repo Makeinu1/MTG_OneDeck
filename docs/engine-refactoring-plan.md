@@ -1,5 +1,9 @@
 # 既存ゲームエンジン リファクタリング提案
 
+> **lifecycle: historical proposal** — 現行アーキテクチャ判断は
+> `docs/architecture-substrate-compiler.md`、実装契約は`docs/engine-spec.md`、状態と順序は
+> `research/cr-grounding/cr-backbone-ledger.json`を優先する。本書を新規実装ブリーフの正本にしない。
+
 目的: M6のルール本文分類・候補提示・半自動操作を入れても、`src/engine/` が完全ルールエンジン化せず、既存のサンドボックス哲学と純粋関数契約を維持できる構造にする。
 
 参照:

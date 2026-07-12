@@ -2,7 +2,12 @@
 
 **status**: 契約(判定者専有)。`docs/design-vision.md` の視覚言語を実装可能な仕様に落としたもの。
 **適用**: D1 スライスでトークンを実装し、以降の全 D-スライスが従う。実装時は本節のトークンを `src/index.css`(または `src/ui/tokens.css`)へ移植する。
-**視覚正本**: `research/design/mockups/index.html`(v3)が本仕様の適用例。
+**視覚参照**: `research/design/mockups/index.html`(v4)。実機で退行が確認されたため、現在は正本ではなく比較材料として扱う。
+
+> **現行性メモ(2026-07-12・J0草稿)**: モックの現行版はv4。カラー／タイポ／motion tokenは現役だが、
+> §8のdesktop配置・圧縮規則は現行実装とユーザー期待が不一致のため再照合中。desktop部品仕様を
+> そのまま実装ブリーフへ転記せず、`research/design/design-recovery-plan.draft.md` のR1実測を先に行う。
+> 判定者再オーナー化要。
 
 **テーマ裁定(2026-07-08 Round 3・ユーザー確定)**: 旧「夜のカードテーブル」(緑金フェルト)を**廃止**し、**「アルケイン戦術卓 (Arcane Tactical Table)」を正式採用**。黒〜チャコール〜深ネイビーの卓上に、カード画像とマナ5色だけが意味を持って光る「魔法的な戦術テーブル」。背景は一枚絵でなく、盤面各ゾーンに空間的意味を与える舞台(§8 StageBackdrop)。出典 = `research/design/vision-sources/game-feel-dialogue-2026-07.txt`。
 

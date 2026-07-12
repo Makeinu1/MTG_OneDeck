@@ -49,13 +49,36 @@
     },
     {
       "type": "design-slice",
-      "domainId": "d4-desktop-recompose",
+      "domainId": "d4a-pc-affordance-recovery",
       "track": "design",
       "dependsOn": [
         "d3-primary-action-feed"
       ],
-      "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D4 デスクトップ再構成+旧実装削除。モバイル部品の3カラムgrid-area展開(統率/ゾーン縦積み|盤面+手札|フィード常設=mockups画面4)。導入画面に保存デッキ一覧カード。旧playmat/Playmat.tsx(1735行)・旧サイドバー・浮動Stack.tsx・ContextMenu(シート完全移行確認後)・関連App.css区画を削除。受け入れ=1440pxで1ゲーム完走・DnD併存(全DnD操作にシート代替)・旧機能の全操作が新経路で可能なことをreview.*で確認してから削除。"
+      "userGate": "2026-07-12 ユーザー明示指示で解除=PC版退行の回復を現最優先(cr-121より上位)。旧D4を判定者(J2 Opus)がd4a/d4b/d4cへ分割承認。consumable(design-slice だがユーザーが D-トラックのPC回復を明示指示済)。",
+      "specStatus": "judge-endorsed",
+      "note": "D4a PC affordance回復。旧Playmatの全面復帰/削除はせず、同じGameScreen tree へ desktop affordance を戻す。**受け入れ契約(判定者endorse)=research/design/d4a-pc-affordance-recovery.draft.md A-I**: 全幅/舞台(1280≥95%幅・1920中央≥72%)・8枚手札(scroll無・9枚+はgap→bounded overlap→scroll段階圧縮)・readable turn model(7phase常時可視・現在/次を日本語名・色依存しない)・入力parity(hover 250ms preview・通常click=inspect・right-click全action代替・DnD復元・keyboard)・ゾーン常設(墓地/追放/山を完全名+枚数・1click 44px+)・space-aware土地(container overflow起点)・マリガン central化+**restoreGame(gameStore.ts:1845)のpending保存/導出バグ修正+review.m424再オーナー化**・feed/stack常設。実測根拠=research/design/r1-pc-ui-baseline.draft.md。検証=visual fixture(src/dev/visualFixtures)6場面×5 viewport+機械4点+console 0。別JSX tree禁止(media/container query)。段階出荷可。独立Tier-1必須。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d4b-desktop-composition",
+      "track": "design",
+      "dependsOn": [
+        "d4a-pc-affordance-recovery"
+      ],
+      "userGate": "D4a出荷+実測後にレイアウト(2/3カラム/可変レール)を判定者が裁定。**3カラム自体を目的化しない**(固定レールで中央盤面が狭まり手札問題再発の罠=r1実測根拠)。着手はD4a完了確認後。",
+      "specStatus": "vision-only",
+      "note": "D4b デスクトップ構成。D4aで affordance を戻した上で、余剰幅の配分(中央盤面拡張 vs 左右レール)を実測で決める。design-vision §3 の3カラムIAは候補であって前提ではない。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "d4c-legacy-removal",
+      "track": "design",
+      "dependsOn": [
+        "d4b-desktop-composition"
+      ],
+      "userGate": "**J2召喚ゲート**。全操作の新旧同等性を review.*+実機で実証してから、旧playmat/Playmat.tsx(1735行)・浮動Stack.tsx・ContextMenu・死CSS・保存デッキ一覧を削除。隠れ依存(actionCatalog.ts→playmat/ruleActionCandidates 等)の解消を Tier-1 の明示項目に。1コミットで git revert 可能に。",
+      "specStatus": "vision-only",
+      "note": "D4c 旧実装削除(strangler完了)。同等性未実証まで凍結。VITE_UI_V2_LAYOUT=false の rollback を壊さない。"
     },
     {
       "type": "design-slice",

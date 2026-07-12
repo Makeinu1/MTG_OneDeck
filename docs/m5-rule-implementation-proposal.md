@@ -1,5 +1,8 @@
 # M6 ルール補助実装提言
 
+> **lifecycle: historical proposal** — M5/M6初期の分割案。現在の実装境界・優先順位・証跡は
+> `docs/engine-spec.md` §34と`research/cr-grounding/cr-backbone-ledger.json`を優先する。
+
 目的: EDHでよく使われるカード本文を、完全ルールエンジンではなく「分類、候補提示、警告、ユーザー確定の一括操作」として段階的に実装する。
 
 参照:

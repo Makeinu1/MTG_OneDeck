@@ -1,5 +1,8 @@
 # M6 ルール自動化計画
 
+> **lifecycle: historical proposal** — substrate/compiler移行前の計画。現行の自動化境界は
+> `docs/architecture-substrate-compiler.md`、`docs/engine-spec.md` §34、背骨台帳を正本とする。
+
 目的: EDH 一人回しで頻出するカード本文を、完全ルールエンジンではなく「安全な手動補助・警告・候補提示」として段階的に組み込む。
 
 関連:

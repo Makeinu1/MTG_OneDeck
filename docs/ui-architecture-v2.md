@@ -3,6 +3,10 @@
 **status**: 契約(判定者専有)。`docs/design-vision.md` のIAを実装可能な構造に落としたもの。D0〜D5 スライスの実装分解の正本。
 **前提**: エンジン(`src/engine/`)と store の公開 API(`GameStore` interface, `src/store/gameStore.ts:713-812`)は**変更しない**。UI刷新はエンジン契約に触れない(必要が生じたら spec 変更承認フロー)。
 
+> **実装状態(2026-07-12・J0草稿)**: D2/D3の新treeは稼働中だがD4は未完。現行コードの完全な
+> 説明書ではなくtarget architectureである。特にDnD、hover、viewStore、desktop grid、旧Playmat退役は
+> 未達または乖離。旧Playmat削除はPC機能同等性の実証まで凍結し、D4分割案をJ2が再裁定する。
+
 ---
 
 ## 1. 現状の構造問題(なぜ解体が必要か)
