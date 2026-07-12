@@ -2635,7 +2635,7 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 ### 34.28 cr-608-resolution Slice A: stack-target filtering + 単純counter-spell(CR 608.2b/701.6a/701.6b)— この節も契約である
 
-**位置づけ**: cr-608-resolution batch3-2a(domain初のスライス。status=drafted→本節で着手)。stack上のspellを対象にできるguided leafを初めて追加し、「counter target spell」型の最小コアを実装する。判定者が2スライス分割(Slice A=本節・Slice B=解決時LKI読み取り=Feed the Swarm/Rapid Hybridization/Mana Drain型)を裁定。設計正本=`research/cr-grounding/cr-608-resolution-batch3-2.draft.md`(Codex起草・J3 Sonnetが CR照合し2分割+既存removeStackItem再利用を裁定)。
+**位置づけ**: cr-608-resolution batch3-2a(domain初のスライス。status=drafted→本節で着手)。stack上のspellを対象にできるguided leafを初めて追加し、「counter target spell」型の最小コアを実装する。判定者が2スライス分割(Slice A=本節・Slice B=解決時LKI読み取り=Feed the Swarm/Rapid Hybridization/Mana Drain型)を裁定。設計正本=`research/cr-grounding/archive/cr-608-resolution/cr-608-resolution-batch3-2.draft.md`(出荷時にarchiveへ集約済・Codex起草・J3 Sonnetが CR照合し2分割+既存removeStackItem再利用を裁定)。
 
 **CR根拠**: 608.2b(解決時に対象を再チェック。期待ゾーンを離れていれば非合法)・701.6a(counter=stackからcancel・除去。解決せず、countered spellはowner's graveyardへ)・701.6b(counterされたコストの払戻はない)。
 
