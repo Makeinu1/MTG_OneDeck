@@ -5,6 +5,7 @@ import {
   buildGuidedCommands,
   compileAbilityCost,
   compileAbilityIR,
+  graveyardReturnFilterForRaw,
   type AutoDecision,
   type CostDecision,
   type EffectPrompt,
@@ -2998,8 +2999,12 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
   if (kind === 'player') {
     return {};
   }
-  if (isExactGraveyardCreatureReturn(raw)) {
-    return { types: ['creature'], zone: 'graveyard', owner: 'you' };
+  // Reuse the single graveyard-return recognizer shared with the compile-time guided path
+  // (compile.ts). This keeps the activation-time target prompt in lockstep with the compiled
+  // decision — a desync here silently drops the activation-time target selection (CR 602.2b).
+  const graveyardReturnFilter = graveyardReturnFilterForRaw(raw);
+  if (graveyardReturnFilter) {
+    return graveyardReturnFilter;
   }
   const match = /\btarget\b([\s\S]*)/i.exec(raw);
   const afterTarget = match?.[1] ?? '';
@@ -3033,7 +3038,10 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
 }
 
 function isSingleActivationTargetClause(raw: string): boolean {
-  if (isExactGraveyardCreatureReturn(raw)) {
+  // The recognized graveyard-return shapes (exact-match + fixed-integer MV ceiling) are
+  // single-target by construction; admit them before the generic guards below, whose
+  // `target ... card` rejection would otherwise exclude the zone-scoped "card" noun phrase.
+  if (graveyardReturnFilterForRaw(raw)) {
     return true;
   }
   if (!/\btarget\b/i.test(raw)) {
@@ -3056,14 +3064,6 @@ function isSingleActivationTargetClause(raw: string): boolean {
   }
   const targetMatches = raw.match(/\btarget\b/gi) ?? [];
   return targetMatches.length === 1;
-}
-
-function isExactGraveyardCreatureReturn(raw: string): boolean {
-  const normalized = raw
-    .replace(/[.。]\s*$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return /^return target creature card from your graveyard to the battlefield$/i.test(normalized);
 }
 
 function activationTargetPrompt(
@@ -3422,6 +3422,12 @@ function isLoyaltyAbilityLine(text: string, typeLine: string): boolean {
   return /\bPlaneswalker\b/i.test(typeLine) && /^\s*[+−-]\d+\s*:/.test(text);
 }
 
+// CR 108.2: card types that could exist as a permanent if put onto the battlefield. Used only
+// to evaluate the "permanent" pseudo-type for graveyard-zone target filters (e.g. "Return
+// target permanent card ... from your graveyard to the battlefield"); instant/sorcery cards
+// are excluded, matching the "permanent card" wording.
+const GRAVEYARD_PERMANENT_CARD_TYPES = ['artifact', 'creature', 'enchantment', 'land', 'planeswalker'];
+
 export function eligibleTargets(
   state: GameState,
   filter: TargetFilter,
@@ -3465,6 +3471,12 @@ export function eligibleTargets(
   }
   if (zone === 'graveyard') {
     const supportsCreatureCard = types.includes('creature');
+    // CR 108.2: "permanent card" = a card whose card type could enter the battlefield
+    // (excludes instant/sorcery). Only reached when the filter's noun is "permanent"
+    // (e.g. the "Return target permanent card with mana value N or less ..." leaf);
+    // additive alongside the pre-existing creature-only path so unfiltered/creature
+    // filters are unaffected.
+    const supportsPermanentCard = types.includes('permanent');
     return state.zones.graveyard.filter((cardId) => {
       const card = state.cards[cardId];
       if (!card || card.isAbility || card.zone !== 'graveyard') {
@@ -3482,7 +3494,7 @@ export function eligibleTargets(
       if (filter.excludeTokens && card.isToken) {
         return false;
       }
-      if (!supportsCreatureCard) {
+      if (!supportsCreatureCard && !supportsPermanentCard) {
         return false;
       }
       const def = state.defs[card.defId];
@@ -3491,7 +3503,19 @@ export function eligibleTargets(
       if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
         return false;
       }
-      return typeLine.includes('creature');
+      const matchesRequestedCard = supportsCreatureCard
+        ? typeLine.includes('creature')
+        : GRAVEYARD_PERMANENT_CARD_TYPES.some((type) => typeLine.includes(type));
+      if (!matchesRequestedCard) {
+        return false;
+      }
+      if (filter.maxManaValue !== undefined) {
+        const manaValue = manaValueOfStackObject(card, face?.manaCost, def?.cmc);
+        if (manaValue === undefined || manaValue > filter.maxManaValue) {
+          return false;
+        }
+      }
+      return true;
     });
   }
   const acceptsAnyPermanent = types.length === 0 || types.includes('permanent');

@@ -255,4 +255,139 @@ describe('CR 400/404 reanimation guided return', () => {
     );
     expect(opponentGraveyard.decision).toBe('manual');
   });
+
+  it('generalizes the graveyard-return leaf to a fixed mana-value ceiling (batch6)', () => {
+    const creatureCeiling = compile(
+      'Return target creature card with mana value 2 or less from your graveyard to the battlefield.',
+    );
+    expect(creatureCeiling.decision).toBe('guided');
+    expect(creatureCeiling.prompts[0]).toMatchObject({
+      filter: { types: ['creature'], zone: 'graveyard', owner: 'you', maxManaValue: 2 },
+    });
+
+    const permanentCeiling = compile(
+      'Return target permanent card with mana value 3 or less from your graveyard to the battlefield.',
+    );
+    expect(permanentCeiling.decision).toBe('guided');
+    expect(permanentCeiling.prompts[0]).toMatchObject({
+      filter: { types: ['permanent'], zone: 'graveyard', owner: 'you', maxManaValue: 3 },
+    });
+  });
+
+  it('resolves a permanent-card mana-value-ceiling return, honoring both the type and the ceiling', () => {
+    const text =
+      'When this creature enters, return target permanent card with mana value 2 or less from your graveyard to the battlefield.';
+    const source = makeDef({
+      scryfallId: 'r-mv-permanent-source',
+      name: 'r-mv-permanent-source',
+      typeLine: 'Creature',
+      faces: [{ name: 'r-mv-permanent-source', typeLine: 'Creature', oracleText: text }],
+    });
+    const cheapArtifact = makeDef({
+      scryfallId: 'r-mv-cheap-artifact',
+      name: 'r-mv-cheap-artifact',
+      typeLine: 'Artifact',
+      cmc: 2,
+      faces: [{ name: 'r-mv-cheap-artifact', typeLine: 'Artifact' }],
+    });
+    const expensiveArtifact = makeDef({
+      scryfallId: 'r-mv-expensive-artifact',
+      name: 'r-mv-expensive-artifact',
+      typeLine: 'Artifact',
+      cmc: 3,
+      faces: [{ name: 'r-mv-expensive-artifact', typeLine: 'Artifact' }],
+    });
+    const cheapInstant = makeDef({
+      scryfallId: 'r-mv-cheap-instant',
+      name: 'r-mv-cheap-instant',
+      typeLine: 'Instant',
+      cmc: 1,
+      faces: [{ name: 'r-mv-cheap-instant', typeLine: 'Instant' }],
+    });
+
+    let state = initGame(
+      [
+        { def: source, isCommander: false },
+        { def: cheapArtifact, isCommander: false },
+        { def: expensiveArtifact, isCommander: false },
+        { def: cheapInstant, isCommander: false },
+      ],
+      1,
+    );
+    state = move(state, 'c1', 'battlefield');
+    state = move(state, 'c2', 'graveyard');
+    state = move(state, 'c3', 'graveyard');
+    state = move(state, 'c4', 'graveyard');
+    state = applyCommand(state, {
+      type: 'addAbilityToStack',
+      sourceId: 'c1',
+      kind: 'triggered',
+      abilityLineIndex: 0,
+    }).state;
+
+    const plan = guidedPlanForStackTop(state);
+    expect(plan?.prompts[0]).toMatchObject({
+      filter: { types: ['permanent'], zone: 'graveyard', owner: 'you', maxManaValue: 2 },
+    });
+    // The MV=3 artifact is excluded by the ceiling; the instant is excluded because
+    // instant/sorcery cards are not "permanent cards" (CR 108.2), even under the ceiling.
+    expect(eligibleTargets(state, plan!.prompts[0].filter ?? {}, { sourceId: 'c1' })).toEqual([
+      'c2',
+    ]);
+
+    const commands = buildGuidedCommands(
+      plan!.prompts[0],
+      { kind: 'target', cardIds: ['c2'] },
+      { sourceId: 'c1', def: source, sourceObjectId: objectIdOf(state.cards.c1) },
+    );
+    const resolved = applyCommands(state, [...commands, { type: 'resolveStackTop' }]);
+    expect(resolved.state.cards.c2.zone).toBe('battlefield');
+    expect(resolved.state.cards.c3.zone).toBe('graveyard');
+    expect(resolved.state.cards.c4.zone).toBe('graveyard');
+  });
+
+  it('offers an MV-ceiling target at activation time for an activated reanimation (Order of Whiteclay style)', () => {
+    // The activation-time recognizer (commands.ts) must stay in lockstep with the compile-time
+    // guided recognizer (compile.ts): both share graveyardReturnFilterForRaw. A desync would
+    // silently drop the activation-time target pick (CR 602.2b).
+    const activated = cardDef(
+      'r-order-of-whiteclay',
+      'Creature',
+      '{1}, {T}: Return target creature card with mana value 2 or less from your graveyard to the battlefield.',
+    );
+    const cheap = makeDef({
+      scryfallId: 'r-owc-cmc2',
+      name: 'r-owc-cmc2',
+      typeLine: 'Creature',
+      cmc: 2,
+      faces: [{ name: 'r-owc-cmc2', typeLine: 'Creature' }],
+    });
+    const expensive = makeDef({
+      scryfallId: 'r-owc-cmc3',
+      name: 'r-owc-cmc3',
+      typeLine: 'Creature',
+      cmc: 3,
+      faces: [{ name: 'r-owc-cmc3', typeLine: 'Creature' }],
+    });
+
+    let state = initGame(
+      [
+        { def: activated, isCommander: false },
+        { def: cheap, isCommander: false },
+        { def: expensive, isCommander: false },
+      ],
+      1,
+    );
+    state = move(state, 'c1', 'battlefield');
+    state = move(state, 'c2', 'graveyard');
+    state = move(state, 'c3', 'graveyard');
+
+    const prompts = activationTargetPromptsForSource(state, 'c1', 0);
+    expect(prompts.length).toBeGreaterThan(0);
+    expect(prompts[0]).toMatchObject({
+      atom: 'effect.return',
+      filter: { types: ['creature'], zone: 'graveyard', owner: 'you', maxManaValue: 2 },
+    });
+    expect(eligibleTargets(state, prompts[0].filter ?? {}, { sourceId: 'c1' })).toEqual(['c2']);
+  });
 });

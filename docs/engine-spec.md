@@ -2930,3 +2930,22 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **判定者裁定**: 抽象昇格(北極星③)=既存プリミティブに「スタック項目へ手動対象を書く」操作は無く、既存 `targetSelections` state を再利用する最小の新コマンドゆえ**承認**。ゾーン遷移の全クリア範囲(draft が判定者へ委ねた open question)=CR400.7 準拠で**全 targetSelections クリアを承認**。
 
 **受け入れ(判定者先行 authoring)**: `review.cr-manual-stack-targets.test.ts`(レビュー専有・8 pin)= unchecked-warning 記録・非stack source 拒否・不正ゾーン target 拒否(no partial write)・自己注記拒否・manual名前空間のみ置換・checked 選択保持・**CR400.7 ゾーン遷移全クリア**・決定性(入力state不変)。UI(注記ダイアログ・stack-to-stack 矢印)は並行 ChatGPT トラックが別途担うため本エンジンスライスに含めない。
+
+### 34.41 cr-400-408 reanimation の mana value 上限フィルタ拡張(§34 exact-match reanimation leaf の additive 拡張)— この節も契約である
+
+**位置づけ**: batch6 replenishment(judge=在席 Opus 判定者席・実装=Sonnet サブエージェント)。信頼 demand 計器(`score-ts-credit-nonability-paths` 出荷後)のトップから Haiku probe が起こした候補を判定者が §4 census 実測(`gaps.json` reanimation 16行=Celes reanimator 集中)で検証して選定。judge-gated だった cr-400-408 の **re-scope option A** を un-gate。新 substrate でなく既存の exact-match graveyard-return leaf(「Return target creature card from your graveyard to the battlefield.」)への **additive 拡張**。
+
+**契約**: graveyard-return の compile leaf を単一 recognizer `graveyardReturnFilterForRaw`(`compile.ts`)に統合し、次の2形を guided(filter 補助つき target 選択・完全自動ではない)にする。いずれも **single `target`・末尾 `from your graveyard to the battlefield` で終わる(後続修飾なし)**:
+1. `Return target creature card from your graveyard to the battlefield.`(本スライス前から不変・`maxManaValue` なし)。
+2. `Return target <creature|permanent> card with mana value N or less from your graveyard to the battlefield.`(N=固定非負整数リテラルのみ)→ filter `{ types:[creature|permanent], zone:'graveyard', owner:'you', maxManaValue:N }`。
+trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成可(leaf は return 節本体 `effect.raw` のみ照合=既存 Karmic Guide と同型)。
+
+**substrate 追加(最小・additive)**: `TargetFilter` に `maxManaValue?: number` を1つ追加(既存フィールドの意味変更なし)。`eligibleTargets`(`commands.ts`)の graveyard 分岐を (a)`types.includes('permanent')`(**CR 110.4a** permanent card=artifact/battle/creature/enchantment/land/planeswalker のうち **battle を除く5型**=`battle` は本コードベースが未モデル化ゆえ意図的除外・battle 導入スライス時に追加)と (b)`maxManaValue` 上限除外(未指定時は一切除外せず=既存挙動不変)へ拡張。mana value は既存 `manaValueOfStackObject(card, face?.manaCost, def?.cmc)` 再利用(非stack ゾーン=`def.cmc` そのまま=`ObjectSnapshot.manaValue` と同源・新導出ロジックなし)。**新 GameCommand/GameState なし**・resolution(`buildGuidedCommands`→`moveCard(→battlefield)`)不変(上限は選択時 filter のみ)。
+
+**要石=recognizer 単一化(activation-time 一貫性・CR 602.2b)**: compile 経路(`graveyardReturnFilterForRaw`)と起動時 target-prompt 経路(`commands.ts` の `targetFilterForActivationRaw`/`isSingleActivationTargetClause`)が **同一 recognizer を共有**(`compile.ts` から export し `commands.ts` が import・型 import のみゆえ循環なし)。旧 `commands.ts` の複製 `isExactGraveyardCreatureReturn` は **削除**=desync クラスを構造的に根絶。これにより起動型 reanimation(Order of Whiteclay `{1}{W}{W}, {Q}: Return target creature card with mana value 3 or less...`)も **起動時に**上限 filter つき target を提示(CR 602.2b=起動型能力の対象はスタックに乗せる際に選ぶ)。**独立 Tier-1 がこの HIGH desync を実測で検出**(初版は起動型経路が exact-match のまま=起動時プロンプト空・無警告 commit→resolve 時暗黙 guided 化の半端実行)→ 判定者裁定(compiler誤訳/scope-desync)で差し戻し→単一化で解消。
+
+**スコープ境界(manual 維持)**: `up to one/X target`(可変/optional count)・`Return all ... cards`(mass)・`mana value X or less`(可変 X)・`Return this card`(自己参照・no target)・`from an opponent's graveyard`(owner 境界)・`you may return`(optionality wrapper=`EffectClause.optional` が leaf 一段上で既に gate)・`tapped`/`under your control` 等の後続修飾(regex `$` アンカー)。activated ability の完全自動化はしない(target は依然ユーザー選択)。
+
+**CR 根拠**: CR 109.2a(「card」+ゾーン名=そのゾーンのカード集合)・CR 202.3/202.3b(mana value=非負整数特性・非stack カードは cmc 由来)・CR 701.14a(return=指定ゾーンへ移動)・CR 608.2b(解決時 target legality 再チェック=既存 leaf と同じ)・**CR 110.4a**(permanent card 定義)・CR 602.2b/601.2c(起動/唱える際に対象確定)。
+
+**受け入れ(判定者先行 authoring)**: `review.cr400-408-return.test.ts`(レビュー専有)batch6 describe = creature/permanent の MV上限 guided + filter shape・MV境界 eligibility(MV=N 可・N+1 除外)+ 解決・6 DEFER 形全 manual・無フィルタ exact-match 非回帰(`maxManaValue` 漏れなし)・**起動型 MV reanimation の activation-time target 提示 pin**(Order of Whiteclay 型=`activationTargetPromptsForSource` 非空+上限 filter)。**コーパス flip 実測(408 reanimation 行)= false-auto 0・IN形13カード正しく guided**(独立 Tier-1)。機械4点全緑。

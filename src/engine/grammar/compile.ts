@@ -36,6 +36,12 @@ export interface TargetFilter {
   controller?: 'any' | 'you' | 'opponent';
   zone?: 'battlefield' | 'graveyard' | 'stack';
   owner?: 'any' | 'you' | 'opponent';
+  /**
+   * CR 202.3/202.3b mana-value ceiling ("... with mana value N or less ..."). Additive-only
+   * (engine-spec §34): when present, eligibleTargets (commands.ts) excludes candidates whose
+   * mana value exceeds N. Undefined = no ceiling (existing behavior unchanged).
+   */
+  maxManaValue?: number;
 }
 
 export type LibrarySearchFilter =
@@ -1329,14 +1335,17 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
       raw: effect.raw,
     };
   }
-  if (effect.atom === 'effect.return' && isExactGraveyardCreatureReturn(effect.raw)) {
-    return {
-      atom: effect.atom,
-      kind: 'target',
-      count: 1,
-      filter: { types: ['creature'], zone: 'graveyard', owner: 'you' },
-      raw: effect.raw,
-    };
+  if (effect.atom === 'effect.return') {
+    const graveyardReturnFilter = graveyardReturnFilterForRaw(effect.raw);
+    if (graveyardReturnFilter) {
+      return {
+        atom: effect.atom,
+        kind: 'target',
+        count: 1,
+        filter: graveyardReturnFilter,
+        raw: effect.raw,
+      };
+    }
   }
   if (effect.atom === 'effect.counter-plus' && !counterDescriptorForRaw(effect.raw)) {
     // Sign/magnitude not recognized (e.g. variable X, non-unit descriptor): fail closed
@@ -1415,12 +1424,38 @@ function isSingleTargetClause(raw: string): boolean {
   return true;
 }
 
-function isExactGraveyardCreatureReturn(raw: string): boolean {
+// CR 109.2a: "creature/permanent card" + "from your graveyard" denotes a card in that zone.
+// CR 202.3/202.3b: mana value is a non-negative integer; "with mana value N or less" is a
+// fixed-integer ceiling filter. CR 701.14a: "return" moves the card to the named zone (here:
+// battlefield); the surrounding target regulation (601/608.2b) is identical to the exact-match
+// leaf below. Scope is intentionally narrow (engine-spec §34 draft:
+// research/cr-grounding/reanim-mv-filter.draft.md): only a single `target <creature|permanent>
+// card [with mana value N or less]` clause ending in "from your graveyard to the battlefield"
+// is recognized. Anything with "up to"/count words/"all"/variable X/"this card"/"an opponent's
+// graveyard" falls through to null (manual) by simply not matching the anchored regexes below.
+// "you may" optionality is already gated upstream via effect.optional (construct.may), so no
+// special-case is needed here for the Sun Titan wrapper.
+export function graveyardReturnFilterForRaw(raw: string): TargetFilter | null {
   const normalized = raw
     .replace(/[.。]\s*$/, '')
     .replace(/\s+/g, ' ')
     .trim();
-  return /^return target creature card from your graveyard to the battlefield$/i.test(normalized);
+  if (/^return target creature card from your graveyard to the battlefield$/i.test(normalized)) {
+    return { types: ['creature'], zone: 'graveyard', owner: 'you' };
+  }
+  const ceilingMatch = /^return target (creature|permanent) card with mana value (\d+) or less from your graveyard to the battlefield$/i.exec(
+    normalized,
+  );
+  if (ceilingMatch) {
+    const [, noun, mv] = ceilingMatch;
+    return {
+      types: [noun.toLowerCase()],
+      zone: 'graveyard',
+      owner: 'you',
+      maxManaValue: Number.parseInt(mv, 10),
+    };
+  }
+  return null;
 }
 
 function targetFilterForRaw(raw: string): TargetFilter {
