@@ -428,13 +428,30 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     reasons.add('needs-parse');
   }
 
-  for (const effect of ir.effects) {
-    const compiled = compileEffect(effect, treasureRaws.has(effect.raw), ctx);
-    commands.push(...compiled.commands);
-    prompts.push(...compiled.prompts);
-    for (const reason of compiled.reasons) {
-      reasons.add(reason);
+  // Antecedent context for the self-referential counter-plus guard (see
+  // selfReferentialCounterPlusDescriptor / clauseSuggestsNonSelfCounterReferent below):
+  // "it" in a later clause can refer back to an object introduced by an earlier clause
+  // rather than to the ability's own source. That earlier clause may match zero effect
+  // atoms itself (e.g. "Target land you control becomes a 0/0 creature..." — "becomes"
+  // fires no atom probe) and so would be invisible if we only tracked ir.effects raws;
+  // ir.effectClauses is the full split-clause list independent of atom matching, so we
+  // walk that instead and look up each clause's (possibly empty) matched effects.
+  const precedingRaws: string[] = ir.trigger ? [ir.trigger.raw] : [];
+  for (const clauseRaw of ir.effectClauses) {
+    for (const effect of ir.effects.filter((candidate) => candidate.raw === clauseRaw)) {
+      const compiled = compileEffect(
+        effect,
+        treasureRaws.has(effect.raw),
+        ctx,
+        precedingRaws.slice(),
+      );
+      commands.push(...compiled.commands);
+      prompts.push(...compiled.prompts);
+      for (const reason of compiled.reasons) {
+        reasons.add(reason);
+      }
     }
+    precedingRaws.push(clauseRaw);
   }
 
   const sortedReasons = [...reasons].sort((a, b) => a.localeCompare(b));
@@ -590,6 +607,7 @@ function compileEffect(
   effect: EffectClause,
   clauseHasTreasure: boolean,
   ctx: CompileContext,
+  precedingRaws: readonly string[] = [],
 ): { commands: GameCommand[]; prompts: EffectPrompt[]; reasons: ManualReason[] } {
   const commands: GameCommand[] = [];
   const prompts: EffectPrompt[] = [];
@@ -696,6 +714,35 @@ function compileEffect(
       reasons.add('needs-parse');
     }
     return { commands, prompts, reasons: [...reasons] };
+  }
+
+  if (!effect.optional && effect.atom === 'effect.counter-plus') {
+    // CR 122.1 / CR 608.2: "put a/an <N> +1/+1 counter(s) on it" needs no target selection
+    // when "it" is the ability's own source — the referent is fixed by the ability's own
+    // grammar, so this is decision='auto' (like a fixed self-draw), not a guided prompt.
+    // But "it" (CR 608.2) binds to the subject of the clause/trigger that introduces it,
+    // which is NOT always the source: "Whenever a creature you control attacks alone, put
+    // a +1/+1 counter on it." binds "it" to that indefinite creature, not the source. So
+    // this is fail-CLOSED via an allow-list: auto only when the binding subject is
+    // affirmatively the source (a "this <permanent-type>" demonstrative, or the card's own
+    // name at the trigger/clause subject head). Everything else — indefinite subjects
+    // ("a/an/another <X> you control", "a permanent"), other referents, unrecognized
+    // shapes — stays manual. The clauseSuggestsNonSelfCounterReferent deny-list is retained
+    // as a secondary safety net (target/create/onto-battlefield/equipped/enchanted).
+    const selfDescriptor = selfReferentialCounterPlusDescriptor(effect.raw);
+    if (
+      selfDescriptor &&
+      counterItAntecedentIsSource(precedingRaws, ctx.def) &&
+      !precedingRaws.some(clauseSuggestsNonSelfCounterReferent)
+    ) {
+      commands.push({
+        type: 'addCounters',
+        cardId: ctx.sourceId,
+        counterType: selfDescriptor.counterType,
+        delta: selfDescriptor.delta,
+      });
+      return { commands, prompts, reasons: [...reasons] };
+    }
   }
 
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
@@ -1628,6 +1675,112 @@ function counterDescriptorForRaw(raw: string): CounterDescriptor | null {
     }
   }
   return null;
+}
+
+// CR 122.1: matches only the exact, non-target shape "put a/an/<N> +1/+1 counter(s) on
+// it" with nothing else in the clause. Any surrounding text ("for each ...", "on it and
+// ...", "on it. It also ...") falls outside this exact form and is intentionally left
+// unrecognized so the caller fails closed to manual rather than guessing what "it" binds
+// to. -1/-1 (or any other non-"+1/+1") counters are excluded by the literal sign in the
+// pattern; equipped/enchanted-relative phrasing lives in the trigger text, not this
+// clause, and is handled separately by clauseSuggestsNonSelfCounterReferent against the
+// preceding (trigger + earlier-clause) context.
+const SELF_REFERENTIAL_COUNTER_PLUS_RE =
+  /^put\s+(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+\+1\/\+1\s+counters?\s+on\s+it$/i;
+
+function selfReferentialCounterPlusDescriptor(raw: string): CounterDescriptor | null {
+  if (/\btarget\b/i.test(raw)) {
+    return null;
+  }
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!SELF_REFERENTIAL_COUNTER_PLUS_RE.test(normalized)) {
+    return null;
+  }
+  const descriptor = counterDescriptorForRaw(normalized);
+  if (!descriptor || descriptor.counterType !== '+1/+1') {
+    return null;
+  }
+  return descriptor;
+}
+
+// CR 608.2 pronoun antecedent (allow-list, fail-closed): a bare "it" in the counter-plus
+// clause binds to the subject of the clause/trigger that most recently introduced it. This
+// returns true ONLY when that binding subject is affirmatively the ability's own source, so
+// the caller can auto; every other subject (indefinite "a/an/another <X> you control", "a
+// permanent", "you", another named object, or no antecedent at all) falls through to
+// manual. Recognized source subjects:
+//   1. a "this <permanent-type>" demonstrative ("this creature", "This Vehicle becomes ...")
+//   2. the card's own name at the subject head ("Whenever Alesha attacks ...", "Whenever
+//      Skullbriar deals ...") — MTG oracle text uses the short (pre-comma) name here.
+// The binding clause is the one immediately preceding the counter clause (the most recent
+// antecedent); if an intervening non-subject clause sits between the source-naming clause
+// and the counter, we conservatively stay manual (missing a legitimate auto is acceptable;
+// a wrong auto is not — 誤自動化≈0).
+const SELF_DEMONSTRATIVE_SUBJECT_RE =
+  /^this\s+(?:creature|permanent|vehicle|artifact|enchantment|land|planeswalker|token|equipment|aura|saga|battle|card)\b/i;
+
+function counterItAntecedentIsSource(precedingRaws: readonly string[], def: CardDef): boolean {
+  if (precedingRaws.length === 0) {
+    return false;
+  }
+  const binding = precedingRaws[precedingRaws.length - 1]
+    .replace(/\s+/g, ' ')
+    // Strip a leading activated-cost / keyword-cost prefix so the subject that "it" binds to
+    // sits at the head: "Exhaust — Waterbend {3}: This Vehicle becomes ..." → "This Vehicle
+    // becomes ...". Only a leading cost segment ends in a colon here; trigger clauses carry
+    // no colon, so this is a no-op for them.
+    .replace(/^[^:]*:\s*/, '')
+    .replace(/^\s*(?:whenever|when|at)\b\s*/i, '')
+    .trim();
+  if (binding === '') {
+    return false;
+  }
+  if (SELF_DEMONSTRATIVE_SUBJECT_RE.test(binding)) {
+    return true;
+  }
+  return selfNameSubjectForms(def.name).some((name) => bindingStartsWithName(binding, name));
+}
+
+// Candidate subject strings that denote the card itself: each face's full name plus its
+// short (pre-comma) form, since oracle self-references use the short name (CR 201.3-style
+// templating), e.g. "Alesha, Who Laughs at Fate" → also "Alesha".
+function selfNameSubjectForms(cardName: string): string[] {
+  const forms = new Set<string>();
+  for (const face of cardName.split(/\s+\/\/\s+/)) {
+    const trimmed = face.trim();
+    if (trimmed === '') {
+      continue;
+    }
+    forms.add(trimmed);
+    const short = trimmed.split(',')[0].trim();
+    if (short !== '') {
+      forms.add(short);
+    }
+  }
+  return [...forms];
+}
+
+function bindingStartsWithName(binding: string, name: string): boolean {
+  return new RegExp(`^${escapeRegExp(name)}\\b`, 'i').test(binding);
+}
+
+// Fail-closed antecedent deny-list (secondary safety net behind counterItAntecedentIsSource):
+// even if a binding subject reads as the source, if any preceding clause introduces or refers
+// to a distinct object — a target, a newly created/put object, or an equipped/enchanted
+// permanent — a bare "it" plausibly binds to that object instead, so stay manual. Catches
+// "Target land you control becomes ... Put two +1/+1 counters on it." (target antecedent) and
+// "Create a 1/1 ... token, then put three +1/+1 counters on it." (creation antecedent).
+function clauseSuggestsNonSelfCounterReferent(raw: string): boolean {
+  return (
+    /\btarget\b/i.test(raw) ||
+    /\bcreates?\b/i.test(raw) ||
+    /\bput\b[\s\S]*\bonto the battlefield\b/i.test(raw) ||
+    /\bequipped\b/i.test(raw) ||
+    /\benchanted\b/i.test(raw)
+  );
 }
 
 function hasAbilityWordLabel(raw: string): boolean {

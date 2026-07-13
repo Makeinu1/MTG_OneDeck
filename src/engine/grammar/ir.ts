@@ -44,6 +44,16 @@ export interface AbilityIR {
   cost: AbilityCost | null;
   trigger: TriggerCondition | null;
   effects: EffectClause[];
+  /**
+   * The full ordered list of split effect-span clauses, independent of whether any clause
+   * matched a known effect atom. `effects` only contains clauses that matched at least one
+   * atom, so a clause like "Target land you control becomes a 0/0 creature..." (no atom
+   * probe fires on "becomes") is otherwise invisible even though later clauses in the same
+   * ability may refer back to it (e.g. a bare "it"). Callers that need "did an earlier
+   * clause in this ability introduce some other referent" (compile.ts's self-referential
+   * counter-plus guard) must scan this list, not `effects`.
+   */
+  effectClauses: string[];
   constructs: ConstructId[];
   status: ParseStatus;
   blockers: string[];
@@ -86,6 +96,7 @@ export function parseAbilityIR(line: string, typeLine: string): AbilityIR {
     cost,
     trigger,
     effects,
+    effectClauses: clauses,
     constructs,
     status,
     blockers,

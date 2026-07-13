@@ -2885,3 +2885,17 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **受け入れ(判定者先行authoring)**: `review.cr702-lifelink-trample.test.ts`(レビュー専有・新規)——unblocked attacker のlifelinkが攻撃側controllerのライフを damage 分獲得すること・単一block交換で双方lifelink保持時に各々独立して獲得すること・trampleが単一blockerに致死量のみ割当て残りをdefending playerへ回すこと・trample+deathtouch複合で致死閾値が1に下がること・**非trample攻撃者は単一block交換で全量をblockerへ割り当てる回帰確認**・blocker toughness不明(`*`)時はtrampleでも全量をblockerへ割り当てoverflowしない回帰確認。4チェック全green(170 files/1474 tests)。
 
 **Tier-1監査(独立Sonnetサブエージェント・冷たいセッション)**: 0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW。多attacker下でのblocker二重処理懸念(`blockersById`はcardId一意キー+`blocking.length===1`ガードにより構造的に不可能と確認)・lifelink帰属先(P1/OPPONENT_A分岐は既存の単一opponent前提と整合・現エンジンで多opponent到達不能ゆえ非issue)・trampleのplayer-targetガード・`trampleLethalAssignment`の符号/off-by-one(overflowは常に非負)・honest-defer経路(`*`toughness)・戦闘ダメージ防止フラグ非参照(既存の別課題・本sliceが悪化させていないことを確認)・lifelinkとSBAの順序(同一関数内で同期的に処理されるため中間状態リスクなし)・非trample/非lifelinkクリーチャーでの既存挙動非regression、全てclean。
+
+### 34.39 cr-122-counters candidate-4: 自己参照 +1/+1 counter leaf(CR 122.1/608.2 代名詞先行詞)— この節も契約である
+
+**位置づけ**: plannedSequence batch5・candidate-4(判定者=在席 Opus 判定者席・実装=Sonnet サブエージェント)。§4「実装前カバレッジ検証」で実カバレッジ25-30件(census 非依存の compiler-confirmed gap)を確認して着手。
+
+**契約**: `effect.counter-plus` の **「put a/an/<固定N> +1/+1 counter(s) on it」**(target 無し・`it` の後に残余テキスト無し)を **`decision:'auto'`** 化し、既存 `{type:'addCounters', cardId: ctx.sourceId, counterType:'+1/+1', delta:n}`(§32 の counter command 表と同一)を emit する。プレイヤー選択なし・target prompt なし・**新 GameCommand/GameState なし**(固定 self-draw と同型)。符号は既存 `counterDescriptorForRaw` が解析(+1/+1 のみ・-1/-1 等は対象外)。
+
+**要石=CR 608.2 代名詞先行詞の allow-list(fail-closed)判定**: `it` が **source 自身だと積極的に確定できるときのみ** auto。判定は直近の先行クローズ(最も近い antecedent)の主語を、①先頭コスト接頭辞(`^[^:]*:`)②トリガー語(whenever/when/at)を剥がして取り、**(a)「this <permanent-type>」指示語**(例「This Vehicle becomes...」)または **(b)カード自身の固有名**(`ctx.def` 各面フルネーム+カンマ前短縮形。oracle は短縮名を使う=「Whenever Alesha attacks」)のときのみ true。それ以外(**不定主語**「a/an/another <X> you control」・「a permanent」・別名オブジェクト・antecedent 無し)は **manual に fail-closed**。追加安全網として先行クローズの target/create/onto the battlefield/equipped/enchanted も block。
+
+**なぜ deny-list では不十分だったか(独立 Tier-1 の実測)**: 初版は deny-list(危険パターンに不一致→自己適用=**fail-open**)で、17,491枚コーパス実測で **false-auto 11件**(「Whenever **a creature you control** attacks, put a +1/+1 counter on it」型で `it`=不定主語≠source。Case of the Pilfered Proof/Rite of Passage/Stensia Masquerade など **source が非生物 Enchantment** の例まで含む=誤自動化≈0 違反)を検出。allow-list 転換で false-auto 11→**0**・正当 auto **19件維持**(this creature 型11+自名型4+This Vehicle becomes 型4)を判定者がコーパス flip 再実測で確認。
+
+**スコープ境界(defer)**: -1/-1 や charge/loyalty 等 +1/+1 以外・可変数(for each/X)・each/mass・複数 counter 種混在・equipped/enchanted 相対・「on it」の後に残余修飾を持つ複合節。ループ変更(`AbilityIR.effectClauses: string[]` 追加で全 split-clause を antecedent 文脈に供給)の blast radius=counter 以外の atom 反転 **0件**(Tier-1 実測)。
+
+**受け入れ(判定者先行 authoring)**: `review.cr122-self-referential-counter.test.ts`(レビュー専有)= 正例(this creature/自名/This Vehicle becomes 型→auto・source counter)+ **不定主語 HIGH pin**(a/another <X> you control・非生物 source→manual・self counter 無し)+ Aang型先行 target/Additive Evolution型先行生成→manual。機械4点全緑。
