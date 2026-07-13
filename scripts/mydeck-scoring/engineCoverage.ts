@@ -6,7 +6,7 @@ import {
 } from '../../src/engine/grammar/compile.ts';
 import { parseAbilityIR, type AbilityIR } from '../../src/engine/grammar/ir.ts';
 import { splitAbilityLines, type AbilityLine } from '../../src/engine/grammar/index.ts';
-import { fetchAbility, landEntersTapped } from '../../src/engine/status.ts';
+import { cyclingCost, fetchAbility, landEntersTapped } from '../../src/engine/status.ts';
 import type { CardDef, ManaColor } from '../../src/types/card';
 
 const EFFECT_FAMILY_BY_ATOM = new Map<string, string>([
@@ -245,6 +245,64 @@ function addManaAbilityEngineCoverage(
   tags.add('mana:write');
 }
 
+// Line-local textual gate for the PLAIN "Cycling {cost}" keyword line (CR
+// 702.29a). Deliberately requires "cycling" as its own word (\b on both
+// sides) so it does NOT match compound keyword-cycling variants printed as a
+// single unbroken word — "Basic landcycling {1}" (CR 702.29c) or a
+// creature-typecycling line such as "Slivercycling {2}" (CR 702.29d/e).
+// Those variants search the library for a specific card and put it into
+// hand; they do NOT discard-then-draw. gameStore.ts cycle() (see below)
+// unconditionally runs discard+draw for ANY line cyclingCost() matches
+// (including landcycling/typecycling — a separate, out-of-scope substrate
+// bug this task does not touch), so crediting those variants here would be
+// false engine-coverage credit for a family (action:search, not
+// action:draw) the line never demands and the app does not correctly
+// resolve. Restricting the textual gate to the bare word "Cycling"
+// (optionally "Basic Cycling"? — not a real keyword; excluded) keeps credit
+// scoped to exactly the lines where discard+draw is the correct resolution.
+const PLAIN_CYCLING_LINE_PATTERN = /\bcycling\b\s*(?:\{[^}]+\})+/i;
+
+// Exported so score.ts's demand-generation side can gate the action:draw /
+// action:discard demand it adds for a plain cycling line on the EXACT same
+// textual test used to gate the engine-coverage credit below — a single
+// source of truth prevents the demand side and the coverage side from
+// silently drifting apart on which lines qualify (the failure mode this
+// repair exists to fix in the first place).
+export function isPlainCyclingKeywordLine(line: AbilityLine): boolean {
+  return line.shape === 'keyword' && PLAIN_CYCLING_LINE_PATTERN.test(line.text);
+}
+
+// Non-ability-compiler engine path: "Cycling {cost}" keyword lines are never
+// parsed by compileAbilityIR (a 'keyword'-shape line's raw text — e.g.
+// "Cycling {2}" — matches none of ir.ts's effect-atom probes, so the
+// ability-compiler path always yields 'manual'/no commands for it, per
+// research/cr-grounding/score-ts-demand-catalog-repair.draft.md §8 cluster
+// framing). Instead src/components/game/actionCatalog.ts exposes a dedicated
+// "cycle" UI action gated purely on status.ts cyclingCost(def) !== null (the
+// SAME real detection used here), and src/store/gameStore.ts cycle()
+// resolves it unconditionally with payMana + { type: 'discard' } +
+// { type: 'draw', count: 1 } (CR 702.29a: "Discard this card: Draw a
+// card."). Credit is gated on cyclingCost(card) (card-level, matching
+// runtime exactly) AND the line-local plain-"Cycling" textual match above,
+// so credit attaches only to the ability line that is actually the plain
+// cycling clause and never leaks to a sibling line on the same card
+// (per-line separation, §3b-5) or to a landcycling/typecycling line on the
+// same or another card. Only action:draw/action:discard are added — the
+// mana cost of cycling is an ordinary mana payment, not a family this
+// instrument's cost:*/mana:* demands model (those demands only fire for
+// 'activated'-shape lines; a 'keyword'-shape cycling line never generates
+// them), so no cost:*/mana:* tag is added here.
+function addCyclingEngineCoverage(tags: Set<string>, card: CardDef, line: AbilityLine): void {
+  if (!isPlainCyclingKeywordLine(line)) {
+    return;
+  }
+  if (cyclingCost(card) === null) {
+    return;
+  }
+  tags.add('action:draw');
+  tags.add('action:discard');
+}
+
 export function engineCoverageTagsForLine(card: CardDef, line: AbilityLine): Set<string> {
   const tags = new Set<string>();
   const typeLine = card.faces[line.faceIndex]?.typeLine ?? card.typeLine;
@@ -254,12 +312,19 @@ export function engineCoverageTagsForLine(card: CardDef, line: AbilityLine): Set
   const cost = compileAbilityCost(ir.cost ?? null, ctx);
 
   addEffectCoverage(tags, ir, compiled);
-  for (const command of cost.commands) {
-    const tag = COVERAGE_COMMAND_TYPES.get(command.type);
-    if (tag) {
-      tags.add(tag);
-    }
-  }
+  // Cost commands are NOT mapped through COVERAGE_COMMAND_TYPES (the effect-family
+  // map). A cost that taps the source (`{T}` → setTapped) or pays life
+  // (adjustLife) is a COST, not an effect that taps/untaps a permanent or
+  // gains/loses life — crediting it as `tap-state:write` / `life:write` is the
+  // symmetric twin of the demand-side `{T}`→tap-state:write mis-tag fixed in
+  // score.ts (addEffectDemands scopes those families to effectText). Leaving the
+  // coverage side crediting them from the cost would make the two sides
+  // asymmetric and could falsely cover a genuine effect-side tap/untap gap on a
+  // line that also happens to carry a `{T}` cost (over-credit — the instrument's
+  // worst failure). Every LEGITIMATE cost credit is issued explicitly below:
+  // cost:activation, cost:tap, cost:nonmana, and cost-form action:sacrifice /
+  // action:exile. Effect-family tags come only from the effect side
+  // (addEffectCoverage) and the dedicated engine-path functions.
   // A line can contain independently supported and unsupported effects (the
   // colored Talisman ability is the common example). Compile each parsed atom
   // through the same runtime compiler so one manual sibling cannot hide the
@@ -309,6 +374,7 @@ export function engineCoverageTagsForLine(card: CardDef, line: AbilityLine): Set
   addFetchEngineCoverage(tags, card, typeLine, line);
   addLandEntersTappedCoverage(tags, card, typeLine, line);
   addManaAbilityEngineCoverage(tags, card, line, ir);
+  addCyclingEngineCoverage(tags, card, line);
 
   return tags;
 }

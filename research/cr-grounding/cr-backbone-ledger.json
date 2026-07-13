@@ -155,18 +155,13 @@
       "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。CR609。demand=5(最小)。Ruinous Ultimatum/Culling Ritual/Pernicious Deed等。compiler直読: TARGET_REQUIRED_ATOMSにeffect.destroy含みall/each文言が単一target経路を通れずmanual。スコープ見込=filter一致集合を盤面から求めN個の既存単体コマンドを生成時展開(新コマンド型不要=分解可能性PASS見込)だが設計コスト高。ledgerに直接対応domainId無し=**新規domain新設 or 既存吸収を判定者裁定**(軽微な価値判断含みうる)。demand最小ゆえ他候補の後。"
     },
     {
-      "type": "tooling-fix",
-      "domainId": "score-ts-credit-nonability-paths",
-      "note": "follow-up(2026-07-12 score-ts-demand-catalog-repair 出荷時に判定者が特定)。修復後の demand 計器は ability-compiler 経路(compileAbilityIR/compileAbilityCost)のみを credit するため、fetch(fetchAbility)・playLand・keyword(effectiveKeywords)・mana-ability 等の**別 engine 経路**で app が解決するカードを依然 gap 誤計上する(例: 寓話の小道の search は fetch 経路で解決するが ability compiler は manual)。ゆえに修復後 count 382 は真の app 能力の上限。真の genuine-gap(draft §4 概算 150-220)へ近づけるには engineCoverageTagsForLine に別経路の coverage source を追加する必要。加えて demand-probe 側の {T}-cost を tap-state:write と誤タグする件(engineCoverageでなくdemandProbe側)も要精査。低優先(計器の精度向上=北極星③メタゆえ製品価値スライスに劣後)。着手前に実 demand 実測で over-report 規模を確認。"
-    },
-    {
       "type": "domain-slice",
       "domainId": "cr-115-targets",
       "status": "shipped",
       "note": "**出荷(2026-07-13・手動スタック対象注記 setManualTargets・engine-spec §34.40再オーナー化)**。由来=並行ChatGPT UIトラックがUI作業中に書いたエンジン変更を、判定者が抽象昇格を審査(承認=既存プリミティブに『スタック項目へ手動対象を書く』操作が無く既存targetSelections state再利用の最小新コマンド)し独立監査を通してスライス化。新GameCommand setManualTargets(source stack必須・他非abilityスタック呪文/非ability戦場permanentのみ・manual-target-*/unchecked-warning記録・checked選択保持・manual名前空間のみ置換)。CR400.7=resetCardForZoneChangeで全targetSelectionsクリア(judge open question裁定=全クリア承認)。CR707.10=copyでtargetSelectionsコピー。既存state再利用ゆえ新state型なし。設計draft=research/cr-grounding/manual-stack-target-annotation.draft.md(judge review required提出)。UI(注記ダイアログ・矢印)はChatGPTトラックが別途。受け入れ=review.cr-manual-stack-targets.test.ts(8pin)。独立Tier-1(CR400.7共有関数変更のblast radius検証)。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい——**ただし絶対 count は真の app 能力の上限**(fetch/playLand/keyword/mana-ability 等の別 engine 経路が未 credit=follow-up `score-ts-credit-nonability-paths`)。優先度式に使う際は「gap 数=上限」と理解し、fetch/keyword 経路で解決する既知カードは gap でも実は covered の可能性を spot-check する。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。",
+  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",
@@ -199,6 +194,24 @@
       ],
       "nextGate": "計器の絶対 count は真の app 能力の上限(ability-compiler経路のみcredit)。精度向上=follow-up score-ts-credit-nonability-paths(低優先=メタゆえ製品スライスに劣後)。demand 軸の運用則は selectionRule 参照。",
       "note": "2026-07-12 判定者(Opus 4.8)。Codex CLI 復帰(ChatGPT.app同梱・memory codex-cli-path-chatgpt-bundle)後の初スライス。tooling(scripts/)ゆえ src/engine 不変(読取importのみ)。judge hygiene=Codexはprotected file不変を確認。"
+    },
+    {
+      "id": "score-ts-credit-nonability-paths",
+      "crRefs": [],
+      "lane": "pruned",
+      "edhValue": "meta",
+      "status": "shipped",
+      "landingState": [],
+      "boundary": "**計器の別 engine 経路 credit 完遂**(2026-07-14・判定者=在席 Claude 判定者席・実装=Sonnet サブエージェント・独立 Tier-1=冷 Sonnet 2 パス)。本体修復(score-ts-demand-catalog-repair・8476488)後の計器は ability-compiler 経路のみ credit だったため、app が専用経路で解決するカードを gap 誤計上していた。本スライスで4経路を credit: fetch(fetchAbility)/land-enters-tapped(landEntersTapped)/mana-ability(tapForMana・producedMana)/cycling(cyclingCost+gameStore.cycle)。各 credit は『app が実 emit するコマンド経路』に line-local + card-level gate で厳密一致(over-credit=最悪故障を要石として排除)。 **由来の特殊性(独立監査で再オーナー化)**: fetch/land/mana の3経路は ChatGPT UI/UX トラックの巨大コミット 76c52d9 に混載して着地し判定者監査を通っていなかった=本スライスで独立 Tier-1(冷 Sonnet・engine source アンカー・敵対的 over-credit ハント)により再オーナー化(RED 0)。keyword 経路は cycling のみが専用 UI 経路を持つと実測確定(§4 coverage-verify)し実装。demand-probe 側の {T}→tap-state:write 誤タグも修正(effectText スコープ化)。 **判定者 review.* pin が炙り出した over-credit(要石の実証)**: judge 専有 pin が、実装者・1回目 Tier-1 の双方が見逃した coverage 側 cost-leak(compileAbilityCost の setTapped[{T}コスト]を effect family tap-state:write に、adjustLife[pay-life]を life:write に誤 credit する generic-map ループ)を検出。実装者非review テストが自らこの leak を正しい挙動として pin していた(循環ゴールポスト)。判定者外科修正=engineCoverageTagsForLine の cost generic-map ループ撤去(cost の正当 credit は下部専用ブロックが個別発行・fetch life:write は addFetchEngineCoverage 直発行=全存続)。追跡 Tier-1 が credit 減少方向のみ・露出した +3 tap-state:write gap(Ioreth/Kelpie Guide/Fatestitcher=effect 側 manual な {T}-cost 行)が全て genuine・under-credit 回帰0 を独立確認。 **calibration**: catalog未写+substrate不足 = 382 → 283(draft §4 目標 150-220 へ前進。残差は §8 の genuine capability cluster=cross-player/variable-count/mass 等で真のバックログ)。機械4点全 green(vitest 1734)。",
+      "evidence": [
+        "scripts/mydeck-scoring/engineCoverage.ts (addFetchEngineCoverage/addLandEntersTappedCoverage/addManaAbilityEngineCoverage/addCyclingEngineCoverage・cost generic-map ループ撤去)",
+        "scripts/mydeck-scoring/score.ts (cycling demand 追加・tap-state:write を effectText へスコープ化)",
+        "scripts/mydeck-scoring/__tests__/review.score-engine-coverage.test.ts (別経路 pin + over-credit 負 pin=Sol Ring tap-state:write false/landcycling 除外)",
+        "scripts/mydeck-scoring/__tests__/engineCoverage.nonAbilityPaths.test.ts (実装者テスト・L58 判定者訂正=cost-leak pin を honest 化)",
+        "research/mydeck-scoring/{summary,report,gaps}.md/.json (再生成)"
+      ],
+      "nextGate": "計器は fetch/land/mana/cycling の別経路を credit 済み=絶対 count はこれら経路について真値に接近(『上限』caveat は当該経路で解消)。既知残境界: (1)cycling 以外の keyword は 9-family に実質寄与せず(実測) (2)mana ability の『Activate only if…』制限に対応する demand が無い(pre-existing blind spot・本スライス非導入) (3)engine 側 cycle() が landcycling を discard+draw 誤処理(別タスク化・スコープ外 substrate バグ)。demand 軸の運用則は selectionRule 参照。",
+      "note": "2026-07-14 判定者。ユーザー裁定=フルスコープ(監査+整合+残り実装)。要石の実証例=判定者独立 review.* pin が、実装者の自己 pin と 1 回目 Tier-1 監査の双方をすり抜けた循環 over-credit を単独で捕捉→外科修正→追跡 Tier-1 で再確認。out-of-band 混載(76c52d9)の再オーナー化パターン=memory codex-out-of-band-fixes と同根。"
     },
     {
       "id": "cr-701-fetchland-search",

@@ -1,6 +1,6 @@
 # MyDeck 設計採点サマリ
 
-Generated: 2026-07-13T10:59:47.042Z
+Generated: 2026-07-13T16:04:56.540Z
 
 ## 再実行
 
@@ -18,12 +18,12 @@ Generated: 2026-07-13T10:59:47.042Z
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | ALL | 381 | 363 | 18 | 654 | 347 (53.1%) | 299 (45.7%) | 8 (1.2%) | 77.1% |
-| Celes | 99 | 95 | 4 | 178 | 98 (55.1%) | 79 (44.4%) | 1 (0.6%) | 78.1% |
-| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.5% |
-| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.8% |
+| Celes | 99 | 95 | 4 | 178 | 98 (55.1%) | 79 (44.4%) | 1 (0.6%) | 78.2% |
+| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.2% |
+| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.9% |
 | Muldrotha | 96 | 93 | 3 | 146 | 70 (47.9%) | 75 (51.4%) | 1 (0.7%) | 78.5% |
 
-Overall demand coverage: **77.1%** (2334/3028)
+Overall demand coverage: **77.1%** (2345/3041)
 Unresolved entries: **18**
 
 ## ギャップ候補カテゴリ
@@ -40,8 +40,8 @@ Unresolved entries: **18**
 | missing demand | occurrences |
 |---|---:|
 | `target:object-or-player` | 63 |
+| `tap-state:write` | 42 |
 | `action:draw` | 40 |
-| `tap-state:write` | 40 |
 | `action:sacrifice` | 33 |
 | `damage:write` | 33 |
 | `action:discard` | 31 |

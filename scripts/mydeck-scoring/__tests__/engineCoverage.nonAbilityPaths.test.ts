@@ -52,10 +52,14 @@ describe('engineCoverageTags — 非ability-compiler経路のcredit(score-ts-cre
       expect(tags.has('action:search')).toBe(true);
       expect(tags.has('action:shuffle')).toBe(true);
       expect(tags.has('life:write')).toBe(true);
-      // tap-state:write はcovered(ただしfetchAbility経路からではなく、cost側の
-      // {T} を compileAbilityCost がそのまま解決するため — entersTapped=false
-      // のこのカードで fetchAbility 経路自身はこのtagを足さない)。
-      expect(tags.has('tap-state:write')).toBe(true);
+      // tap-state:write は covered でない。{T} は起動コスト(cost:tap)であって、盤面の
+      // permanent をタップ/アンタップする「効果」ではない。このカードは entersTapped=false
+      // ゆえ fetchAbility 経路も tap-state:write を足さず、effect 側にも tap/untap は無い。
+      // (旧版はコスト側 setTapped を effect family tap-state:write に誤 credit していた=
+      // judge review.* pin が検出→engineCoverageTagsForLine のコスト generic-map を撤去。
+      // demand 側の {T}→cost:tap 修正と対称の coverage 側修正。)
+      expect(tags.has('cost:tap')).toBe(true);
+      expect(tags.has('tap-state:write')).toBe(false);
     });
 
     it('過補正防止: 非Landの検索効果(Whir of Invention型)はfetchAbility経路の対象外=依然gap', () => {

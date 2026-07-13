@@ -4,9 +4,9 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.8% |
+| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.9% |
 
-Demand coverage: **72.8%** (653/897)
+Demand coverage: **72.9%** (657/901)
 
 ## ギャップ候補カテゴリ top
 

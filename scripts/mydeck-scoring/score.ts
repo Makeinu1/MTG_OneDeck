@@ -9,7 +9,7 @@ import { classifyEventsForLine } from '../lib/eventClassify.ts';
 import { classifyContinuousLayers } from '../lib/layerClassify.ts';
 import { classifyTimingForLine } from '../lib/timingClassify.ts';
 import { classifyZonesForLine, type OwnershipKind } from '../lib/zoneClassify.ts';
-import { engineCoverageTagsForLine } from './engineCoverage.ts';
+import { engineCoverageTagsForLine, isPlainCyclingKeywordLine } from './engineCoverage.ts';
 
 const INPUT_SNAPSHOT_PATH = resolve(
   process.cwd(),
@@ -317,6 +317,20 @@ function blindDemandsForLine(line: AbilityLine): Demand[] {
 
   if (line.shape === 'keyword') {
     addDemand(demands, 'printed:ability', 'read/write printed ability keyword', text);
+    // A plain "Cycling {cost}" keyword line (CR 702.29a) mechanically means
+    // "{cost}, Discard this card: Draw a card." — but that operative text
+    // lives only inside the reminder-text parenthetical, which rulesText
+    // deliberately strips (see withoutReminder above) before the effect
+    // regexes below ever run, so addEffectDemands never sees a literal
+    // "draw"/"discard" word for this line and would otherwise silently
+    // under-count. Detected on the SAME textual gate
+    // engineCoverage.ts uses to credit it (isPlainCyclingKeywordLine),
+    // so a landcycling/typecycling line (which searches the library
+    // instead of drawing) does not get this demand.
+    if (isPlainCyclingKeywordLine(line)) {
+      addDemand(demands, 'action:draw', 'move card from library to hand and emit draw event', text);
+      addDemand(demands, 'action:discard', 'move card from hand to graveyard and emit discard event', text);
+    }
   }
   if (line.shape === 'activated') {
     addDemand(demands, 'cost:activation', 'read activation cost and write stack/ability payment', text);
@@ -549,6 +563,21 @@ function addEffectDemands(
   beforeColon: string,
   lower: string,
 ): void {
+  // The activation-cost half of a line ("{T}:", "Tap an untapped creature
+  // you control:", etc.) is read/write-tapped-state-AS-A-COST — already
+  // covered by the cost:tap demand below (gated on beforeColon). It is a
+  // DIFFERENT app capability than tap-state:write, which is specifically
+  // "effect.tap/effect.untap change some OTHER permanent's tapped state"
+  // (see score-ts-demand-catalog-repair.draft.md §3 table). Scanning the
+  // whole clause (cost + effect) for the bare word tap/untap conflated the
+  // two: an ability whose cost reads "Tap an untapped legendary creature you
+  // control" but whose effect never tap/untaps anything (e.g. Relic of
+  // Legends: "... : Add one mana of any color.") wrongly demanded
+  // tap-state:write. Scope the tap-state:write checks to effectText (the
+  // text after the line's own first colon; the whole line when there is no
+  // colon — e.g. a static/triggered line with no cost structure to strip).
+  const effectColonIndex = text.indexOf(':');
+  const effectText = effectColonIndex === -1 ? text : text.slice(effectColonIndex + 1);
   if (/\btarget\b/iu.test(text)) {
     addDemand(demands, 'target:object-or-player', 'read/write target binding', text);
   }
@@ -618,10 +647,10 @@ function addEffectDemands(
   if (/\bloyalty counter\b/iu.test(text)) {
     addDemand(demands, 'counter:loyalty', 'read/write loyalty counters', text);
   }
-  if (/\b(?:tap|taps|tapped|tapping)\b/iu.test(text) && !lower.includes('becomes tapped')) {
+  if (/\b(?:tap|taps|tapped|tapping)\b/iu.test(effectText) && !lower.includes('becomes tapped')) {
     addDemand(demands, 'tap-state:write', 'read/write tapped state', text);
   }
-  if (/\buntap(?:s|ped|ping)?\b/iu.test(text) && !lower.includes('becomes untapped')) {
+  if (/\buntap(?:s|ped|ping)?\b/iu.test(effectText) && !lower.includes('becomes untapped')) {
     addDemand(demands, 'tap-state:write', 'read/write tapped state', text);
   }
   if (/\battach(?:es|ed|ing)?\b|\bequip\b|\benchant\b/iu.test(text)) {

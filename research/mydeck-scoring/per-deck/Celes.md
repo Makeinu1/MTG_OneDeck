@@ -4,16 +4,16 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Celes | 99 | 95 | 4 | 178 | 98 (55.1%) | 79 (44.4%) | 1 (0.6%) | 78.1% |
+| Celes | 99 | 95 | 4 | 178 | 98 (55.1%) | 79 (44.4%) | 1 (0.6%) | 78.2% |
 
-Demand coverage: **78.1%** (628/804)
+Demand coverage: **78.2%** (628/803)
 
 ## ギャップ候補カテゴリ top
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 56 |
-| `substrate不足` | 16 |
+| `catalog未写` | 55 |
+| `substrate不足` | 17 |
 | `scope境界(既知defer)` | 6 |
 | `曖昧` | 2 |
 
@@ -28,8 +28,8 @@ Demand coverage: **78.1%** (628/804)
 | `token:create` | 9 |
 | `action:discard` | 8 |
 | `event:draw` | 8 |
-| `tap-state:write` | 8 |
 | `action:exile` | 7 |
+| `tap-state:write` | 7 |
 | `action:sacrifice` | 6 |
 | `cast-permission:from-zone` | 6 |
 | `event:other` | 6 |

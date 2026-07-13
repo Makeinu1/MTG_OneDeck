@@ -4,16 +4,16 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.5% |
+| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.2% |
 
-Demand coverage: **80.5%** (474/589)
+Demand coverage: **80.2%** (479/597)
 
 ## ギャップ候補カテゴリ top
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 48 |
-| `substrate不足` | 9 |
+| `catalog未写` | 49 |
+| `substrate不足` | 8 |
 | `scope境界(既知defer)` | 2 |
 | `曖昧` | 1 |
 
@@ -21,8 +21,8 @@ Demand coverage: **80.5%** (474/589)
 
 | missing demand | occurrences |
 |---|---:|
+| `tap-state:write` | 18 |
 | `target:object-or-player` | 16 |
-| `tap-state:write` | 15 |
 | `zone:battlefield` | 7 |
 | `action:counter-spell` | 6 |
 | `action:sacrifice` | 5 |
@@ -48,14 +48,14 @@ Demand coverage: **80.5%** (474/589)
 - Gogo / Forensic Researcher: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent you control."
 - Gogo / Forensic Researcher: partial / substrate不足 / missing `cost:activation`, `cost:tap` — "{T}, Collect evidence 3: Tap target creature you don't control."
 - Gogo / Ioreth of the Healing House: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent."
-- Gogo / Ioreth of the Healing House: partial / substrate不足 / missing `target:object-or-player` — "{T}: Untap two other target legendary creatures."
+- Gogo / Ioreth of the Healing House: partial / catalog未写 / missing `tap-state:write`, `target:object-or-player` — "{T}: Untap two other target legendary creatures."
 - Gogo / Kelpie Guide: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent you control."
-- Gogo / Kelpie Guide: partial / catalog未写 / missing `target:object-or-player`, `zone:battlefield` — "{T}: Tap target permanent. Activate only if you control eight or more lands."
+- Gogo / Kelpie Guide: partial / catalog未写 / missing `tap-state:write`, `target:object-or-player`, `zone:battlefield` — "{T}: Tap target permanent. Activate only if you control eight or more lands."
 - Gogo / Vizier of Tumbling Sands: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent."
 - Gogo / Vizier of Tumbling Sands: partial / catalog未写 / missing `event:other`, `zone:battlefield` — "When you cycle this card, untap target permanent."
 - Gogo / Liberator, Urza's Battlethopter: partial / catalog未写 / missing `counter:write`, `event:counter`, `object-identity:lki` — "Whenever you cast a spell, if the amount of mana spent to cast that spell is greater than Liberator's power, put a +1/+1 counter on Liberator."
 - Gogo / Displacer Kitten: partial / catalog未写 / missing `action:return`, `object-identity:lki` — "Avoidance — Whenever you cast a noncreature spell, exile up to one target nonland permanent you control, then return that card to the battlefield under its owner's control."
-- Gogo / Fatestitcher: partial / catalog未写 / missing `target:object-or-player`, `zone:battlefield` — "{T}: You may tap or untap another target permanent."
+- Gogo / Fatestitcher: partial / catalog未写 / missing `tap-state:write`, `target:object-or-player`, `zone:battlefield` — "{T}: You may tap or untap another target permanent."
 
 ## Unresolved
 
