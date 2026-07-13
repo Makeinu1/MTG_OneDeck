@@ -82,6 +82,7 @@ import {
 
 const HISTORY_LIMIT = 200;
 const SNAPSHOT_SAVE_DELAY_MS = 400;
+let snapshotPersistenceDisabledForDevelopment = false;
 const PLAYER_COUNTER_KINDS: Array<'poison' | 'energy' | 'experience'> = [
   'poison',
   'energy',
@@ -797,6 +798,7 @@ export interface GameStore {
   cancelGuidedPrompt(): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
+  setManualTargets(stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]): void;
   declareAttack(attackerIds: string[], targetLabel: string): void;
   adjustOpponentLife(label: string, delta: number): void;
   adjustMana(color: ManaColor, delta: number): void;
@@ -2420,6 +2422,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           cardId,
           payment: directPayment.payment,
           forced: false,
+          xValue: cost.x > 0 ? xValue : undefined,
         });
         return 'ok';
       }
@@ -2437,6 +2440,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             cardId,
             payment: plan.payment,
             forced: !plan.ok,
+            xValue: cost.x > 0 ? xValue : undefined,
           },
         ]);
         commit(result.state, result.warnings);
@@ -3155,6 +3159,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'removeStackItem', id, to });
     },
 
+    setManualTargets(stackItemId, targetIds, targetPlayerIds = []) {
+      dispatch({ type: 'setManualTargets', stackItemId, targetIds, targetPlayerIds });
+    },
+
     declareAttack(attackerIds, targetLabel) {
       const cur = get().state;
       if (!cur) return;
@@ -3386,6 +3394,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 });
 
 useGameStore.subscribe((state, prevState) => {
+  if (snapshotPersistenceDisabledForDevelopment) return;
   if (state.state === prevState.state && state.autoAdvanceToMain === prevState.autoAdvanceToMain) {
     return;
   }
@@ -3395,6 +3404,7 @@ useGameStore.subscribe((state, prevState) => {
   }
 
   snapshotSaveTimer = setTimeout(() => {
+    if (snapshotPersistenceDisabledForDevelopment) return;
     const s = useGameStore.getState();
     if (s.state === null) {
       void clearSnapshot();
@@ -3409,3 +3419,13 @@ useGameStore.subscribe((state, prevState) => {
     });
   }, SNAPSHOT_SAVE_DELAY_MS);
 });
+
+/** Prevent isolated development fixtures from overwriting the user's normal save. */
+export function disableSnapshotPersistenceForDevelopment(): void {
+  if (!import.meta.env.DEV) return;
+  snapshotPersistenceDisabledForDevelopment = true;
+  if (snapshotSaveTimer) {
+    clearTimeout(snapshotSaveTimer);
+    snapshotSaveTimer = undefined;
+  }
+}

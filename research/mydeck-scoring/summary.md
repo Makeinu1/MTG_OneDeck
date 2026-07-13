@@ -1,6 +1,6 @@
 # MyDeck 設計採点サマリ
 
-Generated: 2026-07-11T23:26:56.466Z
+Generated: 2026-07-13T10:59:47.042Z
 
 ## 再実行
 
@@ -17,37 +17,34 @@ Generated: 2026-07-11T23:26:56.466Z
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| ALL | 381 | 363 | 18 | 654 | 256 (39.1%) | 390 (59.6%) | 8 (1.2%) | 72.7% |
-| Celes | 99 | 95 | 4 | 178 | 68 (38.2%) | 109 (61.2%) | 1 (0.6%) | 73.1% |
-| Gogo | 83 | 76 | 7 | 141 | 65 (46.1%) | 72 (51.1%) | 4 (2.8%) | 76.6% |
-| Kefka | 103 | 99 | 4 | 189 | 74 (39.2%) | 113 (59.8%) | 2 (1.1%) | 68.7% |
-| Muldrotha | 96 | 93 | 3 | 146 | 49 (33.6%) | 96 (65.8%) | 1 (0.7%) | 73.8% |
+| ALL | 381 | 363 | 18 | 654 | 347 (53.1%) | 299 (45.7%) | 8 (1.2%) | 77.1% |
+| Celes | 99 | 95 | 4 | 178 | 98 (55.1%) | 79 (44.4%) | 1 (0.6%) | 78.1% |
+| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.5% |
+| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.8% |
+| Muldrotha | 96 | 93 | 3 | 146 | 70 (47.9%) | 75 (51.4%) | 1 (0.7%) | 78.5% |
 
-Overall demand coverage: **72.7%** (2200/3028)
+Overall demand coverage: **77.1%** (2334/3028)
 Unresolved entries: **18**
 
 ## ギャップ候補カテゴリ
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 295 |
-| `substrate不足` | 87 |
-| `scope境界(既知defer)` | 13 |
+| `catalog未写` | 231 |
+| `substrate不足` | 52 |
+| `scope境界(既知defer)` | 21 |
 | `曖昧` | 3 |
 
 ## Missing read/write top
 
 | missing demand | occurrences |
 |---|---:|
-| `tap-state:write` | 85 |
 | `target:object-or-player` | 63 |
-| `mana:write` | 56 |
-| `action:draw` | 39 |
+| `action:draw` | 40 |
+| `tap-state:write` | 40 |
 | `action:sacrifice` | 33 |
 | `damage:write` | 33 |
 | `action:discard` | 31 |
-| `action:search` | 31 |
-| `action:shuffle` | 31 |
 | `action:return` | 29 |
 | `action:exile` | 28 |
 | `object-identity:lki` | 28 |
@@ -56,9 +53,12 @@ Unresolved entries: **18**
 | `cost:activation` | 19 |
 | `life:write` | 15 |
 | `zone:library` | 15 |
-| `counter:write` | 14 |
+| `counter:write` | 13 |
+| `action:search` | 12 |
+| `action:shuffle` | 12 |
 | `cost:nonmana` | 12 |
 | `cost:tap` | 11 |
+| `replacement` | 11 |
 
 ## Unresolved
 
@@ -88,7 +88,7 @@ Unresolved entries: **18**
 - Celes / Mother of Runes: partial / substrate不足 / missing `target:object-or-player` — "{T}: Target creature you control gains protection from the color of your choice until end of turn."
 - Celes / Banon, the Returners' Leader: partial / catalog未写 / missing `action:discard`, `action:draw`, `event:discard`, `event:draw` — "Whenever you attack, you may pay {1} and discard a card. If you do, draw a card."
 - Celes / Priest of Fell Rites: partial / catalog未写 / missing `action:return`, `target:object-or-player` — "{T}, Pay 3 life, Sacrifice this creature: Return target creature card from your graveyard to the battlefield. Activate only as a sorcery."
-- Celes / Tataru Taru: partial / catalog未写 / missing `event:draw`, `player-scope:each-opponent`, `target:object-or-player` — "When Tataru Taru enters, you draw a card and target opponent may draw a card."
+- Celes / Tataru Taru: partial / catalog未写 / missing `action:draw`, `event:draw`, `player-scope:each-opponent`, `target:object-or-player` — "When Tataru Taru enters, you draw a card and target opponent may draw a card."
 - Celes / Tataru Taru: partial / catalog未写 / missing `action:draw`, `cast-timing:once-per-turn`, `layer:L4`, `tap-state:write`, `token:create` — "Scions' Secretary — Whenever an opponent draws a card, if it isn't that player's turn, create a tapped Treasure token. This ability triggers only once each turn."
 - Celes / Accursed Marauder: partial / catalog未写 / missing `action:sacrifice`, `event:sacrifice` — "When this creature enters, each player sacrifices a nontoken creature of their choice."
 - Celes / Timeline Culler: partial / scope境界(既知defer) / missing `cast-permission:from-zone` — "You may cast this card from your graveyard using its warp ability."

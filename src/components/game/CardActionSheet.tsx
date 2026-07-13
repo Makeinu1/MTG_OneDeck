@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { MenuItem } from '../ContextMenu';
 import './CardActionSheet.css';
 
@@ -85,18 +85,74 @@ export function CardActionSheet({
 }: CardActionSheetProps) {
   const [showOther, setShowOther] = useState(rankedItems.length === 0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  const [popoverPosition, setPopoverPosition] = useState(() => ({
+    left: anchor?.x ?? 0,
+    top: anchor?.y ?? 0,
+  }));
 
   useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusable = (): HTMLElement[] => Array.from(panelRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+    ) ?? []);
+    focusable()[0]?.focus();
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
     }
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (restoreFocusRef.current?.isConnected) restoreFocusRef.current.focus();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (variant !== 'popover' || !anchor) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const place = (): void => {
+      const bounds = panel.getBoundingClientRect();
+      const margin = 8;
+      const left = Math.max(margin, Math.min(anchor.x, window.innerWidth - bounds.width - margin));
+      const preferredTop = anchor.y + bounds.height <= window.innerHeight - margin
+        ? anchor.y
+        : anchor.y - bounds.height;
+      const top = Math.max(margin, Math.min(preferredTop, window.innerHeight - bounds.height - margin));
+      setPopoverPosition({ left, top });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [anchor, otherItems.length, rankedItems.length, showOther, variant]);
 
   const style =
     variant === 'popover' && anchor
-      ? ({ left: anchor.x, top: anchor.y } as const)
+      ? popoverPosition
       : undefined;
 
   return (
@@ -109,11 +165,14 @@ export function CardActionSheet({
         ref={panelRef}
         className={`card-sheet card-sheet--${variant}`}
         data-testid="card-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={style}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="card-sheet__header" style={{ boxShadow: edgeGlow(colorIdentity) }}>
-          <div className="card-sheet__title" data-testid="card-sheet-title">
+          <div className="card-sheet__title" data-testid="card-sheet-title" id={titleId}>
             {title}
           </div>
           {typeLine && <div className="card-sheet__type">{typeLine}</div>}

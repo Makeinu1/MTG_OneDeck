@@ -4,16 +4,16 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Gogo | 83 | 76 | 7 | 141 | 65 (46.1%) | 72 (51.1%) | 4 (2.8%) | 76.6% |
+| Gogo | 83 | 76 | 7 | 141 | 81 (57.4%) | 56 (39.7%) | 4 (2.8%) | 80.5% |
 
-Demand coverage: **76.6%** (451/589)
+Demand coverage: **80.5%** (474/589)
 
 ## ギャップ候補カテゴリ top
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 58 |
-| `substrate不足` | 15 |
+| `catalog未写` | 48 |
+| `substrate不足` | 9 |
 | `scope境界(既知defer)` | 2 |
 | `曖昧` | 1 |
 
@@ -21,11 +21,8 @@ Demand coverage: **76.6%** (451/589)
 
 | missing demand | occurrences |
 |---|---:|
-| `tap-state:write` | 19 |
 | `target:object-or-player` | 16 |
-| `action:search` | 9 |
-| `action:shuffle` | 9 |
-| `mana:write` | 8 |
+| `tap-state:write` | 15 |
 | `zone:battlefield` | 7 |
 | `action:counter-spell` | 6 |
 | `action:sacrifice` | 5 |
@@ -34,6 +31,8 @@ Demand coverage: **76.6%** (451/589)
 | `cost:tap` | 4 |
 | `event:draw` | 4 |
 | `object-identity:lki` | 4 |
+| `action:search` | 3 |
+| `action:shuffle` | 3 |
 | `cost:nonmana` | 3 |
 | `counter:write` | 3 |
 | `token:create` | 3 |
@@ -41,11 +40,11 @@ Demand coverage: **76.6%** (451/589)
 | `action:return` | 2 |
 | `choice:mode-or-value` | 2 |
 | `event:counter` | 2 |
+| `event:life` | 2 |
 
 ## 代表ギャップ
 
 - Gogo / Gogo, Master of Mimicry: partial / substrate不足 / missing `cost:activation`, `cost:tap`, `target:object-or-player` — "{X}{X}, {T}: Copy target activated or triggered ability you control X times. You may choose new targets for the copies. This ability can't be copied and X can't be 0."
-- Gogo / Omen Hawker: partial / substrate不足 / missing `mana:write` — "{T}: Add {C}{U}. Spend this mana only to activate abilities."
 - Gogo / Forensic Researcher: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent you control."
 - Gogo / Forensic Researcher: partial / substrate不足 / missing `cost:activation`, `cost:tap` — "{T}, Collect evidence 3: Tap target creature you don't control."
 - Gogo / Ioreth of the Healing House: partial / catalog未写 / missing `zone:battlefield` — "{T}: Untap another target permanent."
@@ -56,6 +55,7 @@ Demand coverage: **76.6%** (451/589)
 - Gogo / Vizier of Tumbling Sands: partial / catalog未写 / missing `event:other`, `zone:battlefield` — "When you cycle this card, untap target permanent."
 - Gogo / Liberator, Urza's Battlethopter: partial / catalog未写 / missing `counter:write`, `event:counter`, `object-identity:lki` — "Whenever you cast a spell, if the amount of mana spent to cast that spell is greater than Liberator's power, put a +1/+1 counter on Liberator."
 - Gogo / Displacer Kitten: partial / catalog未写 / missing `action:return`, `object-identity:lki` — "Avoidance — Whenever you cast a noncreature spell, exile up to one target nonland permanent you control, then return that card to the battlefield under its owner's control."
+- Gogo / Fatestitcher: partial / catalog未写 / missing `target:object-or-player`, `zone:battlefield` — "{T}: You may tap or untap another target permanent."
 
 ## Unresolved
 

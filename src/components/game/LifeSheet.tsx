@@ -7,6 +7,7 @@
  * 残るHUD操作(ダイス/コイン/増殖/全タップ/自動メイン/情報パネル)は ThumbZone のメニューへ。
  */
 
+import { useEffect, useId, useRef } from 'react';
 import type { ManaColor } from '../../types/card';
 import type { GameController } from './gameController';
 
@@ -26,6 +27,48 @@ export interface LifeSheetProps {
 
 export function LifeSheet({ controller, onClose }: LifeSheetProps) {
   const { state, store } = controller;
+  const titleId = useId();
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const restoreFocusTo = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    closeButtonRef.current?.focus();
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !sheetRef.current) return;
+      const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (restoreFocusTo?.isConnected) restoreFocusTo.focus();
+    };
+  }, []);
+
   if (!state) return null;
 
   const opponentLabels = Array.from(
@@ -35,10 +78,18 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
 
   return (
     <div className="game-sheet-overlay" data-testid="life-sheet-overlay" onClick={onClose}>
-      <div className="game-sheet" data-testid="life-sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="game-sheet"
+        data-testid="life-sheet"
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="game-sheet__header">
-          <span className="game-sheet__title">ライフ・マナ・カウンター</span>
-          <button type="button" className="game-sheet__close" onClick={onClose} data-testid="life-sheet-close">
+          <span className="game-sheet__title" id={titleId}>ライフ・マナ・カウンター</span>
+          <button ref={closeButtonRef} type="button" className="game-sheet__close" onClick={onClose} data-testid="life-sheet-close">
             閉じる
           </button>
         </div>

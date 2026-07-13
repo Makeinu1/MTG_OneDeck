@@ -1,16 +1,38 @@
 import { applyCommand } from '../../engine/commands';
 import { initGame, type InitDeckCard } from '../../engine/init';
-import type { GameState, ZoneId } from '../../engine/types';
+import { objectIdOf, type GameState, type ObjectSnapshot, type ZoneId } from '../../engine/types';
 import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import type { CardDef } from '../../types/card';
 
 export const VISUAL_FIXTURE_SCENARIOS = [
   'mulligan',
   'hand',
+  'hand7',
+  'hand10',
+  'hand15',
+  'hand60',
+  'hand100',
   'lands',
+  'mana-multicolor',
   'battlefield',
+  'commander-battlefield',
   'stack',
   'graveyard',
+  'partner',
+  'partner-away',
+  'board-dense',
+  'board-sparse',
+  'board-overflow',
+  'lands-overflow',
+  'stack-deep',
+  'graveyard-deep',
+  'token-showcase',
+  'token-image-missing',
+  'card-facedown',
+  'card-dfc-front',
+  'card-dfc-back',
+  'theme-light',
+  'theme-dark',
 ] as const;
 
 export type VisualFixtureScenario = (typeof VISUAL_FIXTURE_SCENARIOS)[number];
@@ -23,8 +45,34 @@ export interface VisualFixture {
 }
 
 const SEED = 240712;
+const CARD_IMAGE_CACHE = new Map<string, string>();
+const FIXTURE_DECK_CACHE = new Map<string, InitDeckCard[]>();
+const FIXTURE_INITIAL_STATE_CACHE = new Map<string, GameState>();
+const VISUAL_FIXTURE_CACHE = new Map<VisualFixtureScenario, VisualFixture>();
+
+function isCompactCardScenario(scenario: VisualFixtureScenario | undefined): boolean {
+  return scenario === 'token-showcase'
+    || scenario === 'token-image-missing'
+    || scenario === 'card-facedown'
+    || scenario === 'card-dfc-front'
+    || scenario === 'card-dfc-back';
+}
+
+function fixtureFamily(scenario: VisualFixtureScenario): string {
+  if (scenario === 'partner' || scenario === 'partner-away') return 'partner';
+  if (scenario === 'board-dense') return 'board-dense';
+  if (scenario === 'lands-overflow') return 'lands-overflow';
+  if (scenario === 'stack-deep') return 'stack-deep';
+  if (scenario === 'card-facedown') return 'card-facedown';
+  if (scenario === 'card-dfc-front' || scenario === 'card-dfc-back') return 'card-dfc';
+  if (scenario === 'token-showcase' || scenario === 'token-image-missing') return 'token';
+  return 'default';
+}
 
 function cardImage(name: string, tone: string): string {
+  const cacheKey = `${name}\u0000${tone}`;
+  const cached = CARD_IMAGE_CACHE.get(cacheKey);
+  if (cached) return cached;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="488" height="680" viewBox="0 0 488 680">
     <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${tone}"/><stop offset="1" stop-color="#0d131c"/></linearGradient></defs>
     <rect width="488" height="680" rx="30" fill="#090d13"/><rect x="18" y="18" width="452" height="644" rx="24" fill="url(#g)" stroke="#d8b06a" stroke-width="5"/>
@@ -33,7 +81,9 @@ function cardImage(name: string, tone: string): string {
     <circle cx="244" cy="320" r="120" fill="#fff" fill-opacity=".12"/><path d="M132 470h224v116H132z" fill="#f7f2e8" fill-opacity=".86"/>
     <text x="154" y="520" font-family="sans-serif" font-size="22" fill="#17202e">D4a visual fixture</text>
   </svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  CARD_IMAGE_CACHE.set(cacheKey, url);
+  return url;
 }
 
 function makeCard(
@@ -73,14 +123,47 @@ function entry(def: CardDef, isCommander = false): InitDeckCard {
   return { def, isCommander };
 }
 
-function fixtureDeck(): InitDeckCard[] {
+function fixtureDeck(scenario?: VisualFixtureScenario): InitDeckCard[] {
   const deck: InitDeckCard[] = [
     entry(makeCard('fixture-commander', '検証統率者', 'Legendary Creature — Wizard', '#6d4f8c'), true),
   ];
 
-  for (let index = 1; index <= 8; index += 1) {
+  if (scenario === 'card-facedown') {
+    deck.push(entry(makeCard('fixture-facedown', '秘密のカード', 'Creature — Shapeshifter', '#2f516b')));
+  }
+  if (scenario === 'card-dfc-front' || scenario === 'card-dfc-back') {
+    deck.push(entry({
+      ...makeCard('fixture-dfc', '暁の研究者 // 夜の発明家', 'Creature — Human Artificer', '#416889'),
+      layout: 'transform',
+      faces: [
+        {
+          name: 'Dawn Researcher', printedName: '暁の研究者', typeLine: 'Creature — Human Artificer',
+          printedTypeLine: 'クリーチャー — 人間・工匠', oracleText: 'Transform Dawn Researcher.',
+          printedText: '暁の研究者を変身させる。', imageUrl: cardImage('暁の研究者', '#416889'), power: '2', toughness: '3',
+        },
+        {
+          name: 'Night Inventor', printedName: '夜の発明家', typeLine: 'Creature — Human Artificer',
+          printedTypeLine: 'クリーチャー — 人間・工匠', oracleText: 'Whenever an artifact enters, draw a card.',
+          printedText: 'アーティファクトが出るたびカードを1枚引く。', imageUrl: cardImage('夜の発明家', '#6c3f71'), power: '4', toughness: '4',
+        },
+      ],
+    }));
+  }
+
+  if (scenario === 'partner' || scenario === 'partner-away') {
+    deck.push(entry(makeCard(
+      'fixture-partner',
+      '検証の相棒',
+      'Legendary Creature — Artificer',
+      '#8b5d3d',
+    ), true));
+  }
+
+  const handCardCount = isCompactCardScenario(scenario) ? 8 : 100;
+  for (let index = 1; index <= handCardCount; index += 1) {
     deck.push(entry(makeCard(`fixture-hand-${index}`, `手札 ${index}`, index % 3 === 0 ? 'Instant' : 'Creature — Scout', '#315c7d')));
   }
+  if (isCompactCardScenario(scenario)) return deck;
   for (let index = 1; index <= 3; index += 1) {
     deck.push(entry(makeCard(`fixture-basic-${index}`, 'Forest', 'Basic Land — Forest', '#315f42', { producedMana: ['G'] })));
   }
@@ -110,6 +193,63 @@ function fixtureDeck(): InitDeckCard[] {
   for (let index = 1; index <= 12; index += 1) {
     deck.push(entry(makeCard(`fixture-library-${index}`, `山札 ${index}`, 'Sorcery', '#374151')));
   }
+  if (scenario === 'board-dense') {
+    for (let index = 1; index <= 6; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-dense-land-${index}`,
+        `追加土地 ${index}`,
+        'Land',
+        '#3f6549',
+        { producedMana: ['G'] },
+      )));
+    }
+    for (let index = 1; index <= 8; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-dense-creature-${index}`,
+        `追加クリーチャー ${index}`,
+        'Creature — Beast',
+        '#7b473f',
+      )));
+    }
+    for (let index = 1; index <= 6; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-dense-permanent-${index}`,
+        `追加置物 ${index}`,
+        index % 2 === 0 ? 'Enchantment' : 'Artifact',
+        '#5f5878',
+      )));
+    }
+  }
+  if (scenario === 'lands-overflow') {
+    for (let index = 1; index <= 60; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-limit-land-${index}`,
+        'Limit Forest',
+        'Basic Land — Forest',
+        '#315f42',
+        { producedMana: ['G'] },
+      )));
+    }
+    for (let index = 1; index <= 20; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-limit-special-${index}`,
+        `限界特殊土地 ${index}`,
+        'Land',
+        '#4f5f66',
+        { producedMana: ['C'] },
+      )));
+    }
+  }
+  if (scenario === 'stack-deep') {
+    for (let index = 1; index <= 20; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-limit-stack-${index}`,
+        `限界スタック ${index}`,
+        index % 2 === 0 ? 'Instant' : 'Sorcery',
+        '#334f88',
+      )));
+    }
+  }
   return deck;
 }
 
@@ -132,31 +272,231 @@ function setTapped(state: GameState, cardId: string): GameState {
   return applyCommand(state, { type: 'setTapped', cardId, tapped: true }).state;
 }
 
-function buildState(scenario: VisualFixtureScenario): GameState {
-  let state = initGame(fixtureDeck(), SEED);
-  const handIds = idsWithPrefix(state, 'fixture-hand-');
-  state = moveCards(state, handIds.slice(0, scenario === 'mulligan' ? 7 : 8), 'hand');
+function snapshotFor(state: GameState, cardId: string): ObjectSnapshot {
+  const card = state.cards[cardId];
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  return {
+    physicalCardId: card.id,
+    objectId: objectIdOf(card),
+    defId: card.defId,
+    zone: card.zone,
+    ownerId: card.ownerId,
+    controllerId: card.controllerId,
+    isToken: card.isToken,
+    isCommander: card.isCommander,
+    faceIndex: card.faceIndex,
+    tapped: card.tapped,
+    counters: { ...card.counters },
+    typeLine: face?.typeLine ?? def?.typeLine ?? '',
+    ...(typeof def?.cmc === 'number' ? { manaValue: def.cmc } : {}),
+    ...(face?.power ? { power: face.power } : {}),
+    ...(face?.toughness ? { toughness: face.toughness } : {}),
+  };
+}
 
-  if (scenario === 'mulligan' || scenario === 'hand') return state;
+function buildState(scenario: VisualFixtureScenario, initialState: GameState): GameState {
+  let state = initialState;
+  const handIds = idsWithPrefix(state, 'fixture-hand-');
+  const handCount = scenario === 'mulligan' || scenario === 'hand7'
+    ? 7
+    : scenario === 'hand10'
+      ? 10
+      : scenario === 'hand15'
+        ? 15
+        : scenario === 'hand60'
+          ? 60
+          : scenario === 'hand100'
+            ? 100
+            : scenario === 'board-dense'
+              ? 15
+            : 8;
+  state = moveCards(state, handIds.slice(0, handCount), 'hand');
+
+  if (scenario === 'token-showcase' || scenario === 'token-image-missing') {
+    const specs = scenario === 'token-showcase'
+      ? [
+          ['宝物', 'Token Artifact — Treasure', 'treasure'],
+          ['手掛かり', 'Token Artifact — Clue', 'clue'],
+          ['食物', 'Token Artifact — Food', 'food'],
+          ['血', 'Token Artifact — Blood', 'blood'],
+        ] as const
+      : [['カスタム・ビースト', 'Token Creature — Beast', undefined]] as const;
+    for (const [name, typeLine, tokenKind] of specs) {
+      state = applyCommand(state, {
+        type: 'createToken', name, typeLine, power: tokenKind ? undefined : '3',
+        toughness: tokenKind ? undefined : '3', quantity: scenario === 'token-image-missing' ? 8 : 2,
+        tokenKind,
+      }).state;
+    }
+    return { ...state, phase: 'main1', turn: 5 };
+  }
+
+  if (scenario === 'card-facedown') {
+    const cardId = idsWithPrefix(state, 'fixture-facedown')[0];
+    state = moveCards(state, [cardId], 'battlefield');
+    state = applyCommand(state, { type: 'setFaceDown', cardId, faceDown: true }).state;
+    return { ...state, phase: 'main1', turn: 5 };
+  }
+
+  if (scenario === 'card-dfc-front' || scenario === 'card-dfc-back') {
+    const cardId = idsWithPrefix(state, 'fixture-dfc')[0];
+    state = moveCards(state, [cardId], 'battlefield');
+    if (scenario === 'card-dfc-back') {
+      state = applyCommand(state, { type: 'setFace', cardId, faceIndex: 1 }).state;
+    }
+    return { ...state, phase: 'main1', turn: 5 };
+  }
+
+  if (scenario === 'partner-away') {
+    const partnerId = idsWithPrefix(state, 'fixture-partner')[0];
+    const payment = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    for (let cast = 0; cast < 2; cast += 1) {
+      state = applyCommand(state, {
+        type: 'castCommander',
+        cardId: partnerId,
+        payment,
+        forced: false,
+      }).state;
+      state = applyCommand(state, {
+        type: 'moveCard',
+        cardId: partnerId,
+        to: cast === 0 ? 'command' : 'graveyard',
+        position: 'top',
+      }).state;
+    }
+    return state;
+  }
+
+  if (
+    scenario === 'mulligan'
+    || scenario === 'hand'
+    || scenario === 'hand7'
+    || scenario === 'hand10'
+    || scenario === 'hand15'
+    || scenario === 'hand60'
+    || scenario === 'hand100'
+    || scenario === 'partner'
+  ) return state;
 
   const basicIds = idsWithPrefix(state, 'fixture-basic-');
   const specialIds = idsWithPrefix(state, 'fixture-special-');
-  state = moveCards(state, [...basicIds, ...specialIds], 'battlefield');
-  state = setTapped(state, basicIds[1]);
-  state = setTapped(state, specialIds[1]);
-  if (scenario === 'lands') return { ...state, phase: 'main1' };
+  const denseLandIds = idsWithPrefix(state, 'fixture-dense-land-');
+  const limitLandIds = idsWithPrefix(state, 'fixture-limit-land-');
+  const limitSpecialIds = idsWithPrefix(state, 'fixture-limit-special-');
+  const allLandIds = [...basicIds, ...specialIds, ...denseLandIds, ...limitLandIds, ...limitSpecialIds];
+  const landIds = scenario === 'board-sparse' ? allLandIds.slice(0, 4) : allLandIds;
+  state = moveCards(state, landIds, 'battlefield');
+  if (landIds.includes(basicIds[1])) state = setTapped(state, basicIds[1]);
+  if (landIds.includes(specialIds[1])) state = setTapped(state, specialIds[1]);
+  if (scenario === 'lands' || scenario === 'lands-overflow') return { ...state, phase: 'main1' };
+  if (scenario === 'mana-multicolor') {
+    return {
+      ...state,
+      phase: 'main1',
+      manaPool: { W: 1, U: 2, B: 3, R: 4, G: 5, C: 10 },
+    };
+  }
 
-  state = moveCards(state, idsWithPrefix(state, 'fixture-creature-'), 'battlefield');
-  state = moveCards(state, idsWithPrefix(state, 'fixture-permanent-'), 'battlefield');
+  const baseCreatureIds = idsWithPrefix(state, 'fixture-creature-');
+  const basePermanentIds = idsWithPrefix(state, 'fixture-permanent-');
+  const creatureIds = scenario === 'board-dense'
+    ? [...baseCreatureIds, ...idsWithPrefix(state, 'fixture-dense-creature-')]
+    : scenario === 'board-sparse'
+      ? baseCreatureIds.slice(0, 3)
+      : baseCreatureIds;
+  const permanentIds = scenario === 'board-dense'
+    ? [...basePermanentIds, ...idsWithPrefix(state, 'fixture-dense-permanent-')]
+    : scenario === 'board-sparse'
+      ? basePermanentIds.slice(0, 2)
+      : basePermanentIds;
+  state = moveCards(state, creatureIds, 'battlefield');
+  state = moveCards(state, permanentIds, 'battlefield');
+  if (scenario === 'commander-battlefield') {
+    state = moveCards(state, [state.commanders[0].cardId], 'battlefield');
+  }
   state = applyCommand(state, {
     type: 'addCounters',
-    cardId: idsWithPrefix(state, 'fixture-creature-')[0],
+    cardId: baseCreatureIds[0],
     counterType: '+1/+1',
     delta: 2,
   }).state;
-  if (scenario === 'battlefield') return { ...state, phase: 'main1', turn: 4 };
+  if (scenario === 'board-overflow') {
+    state = moveCards(state, handIds.slice(0, 60), 'battlefield');
+    return { ...state, phase: 'main1', turn: 9 };
+  }
+  if (
+    scenario === 'battlefield'
+    || scenario === 'commander-battlefield'
+    || scenario === 'board-dense'
+    || scenario === 'board-sparse'
+    || scenario === 'theme-light'
+    || scenario === 'theme-dark'
+  ) {
+    return { ...state, phase: 'main1', turn: 4 };
+  }
 
-  state = moveCards(state, idsWithPrefix(state, 'fixture-stack-'), 'stack');
+  if (scenario === 'stack-deep') {
+    state = moveCards(state, idsWithPrefix(state, 'fixture-limit-stack-'), 'stack');
+    return { ...state, phase: 'main2', turn: 12 };
+  }
+  if (scenario === 'graveyard-deep') {
+    state = moveCards(state, [...idsWithPrefix(state, 'fixture-grave-'), ...handIds.slice(0, 50)], 'graveyard');
+    state = moveCards(state, handIds.slice(50, 90), 'exile');
+    return { ...state, phase: 'main1', turn: 14 };
+  }
+
+  const stackIds = idsWithPrefix(state, 'fixture-stack-');
+  state = moveCards(state, stackIds, 'stack');
+  const targetId = idsWithPrefix(state, 'fixture-creature-')[1];
+  const sourceId = idsWithPrefix(state, 'fixture-permanent-')[0];
+  state = {
+    ...state,
+    cards: {
+      ...state.cards,
+      [stackIds[0]]: {
+        ...state.cards[stackIds[0]],
+        announcedX: 4,
+        targetSelections: [{
+          slotId: 'target-0',
+          raw: 'target creature',
+          kind: 'object',
+          selection: {
+            kind: 'object',
+            physicalCardId: targetId,
+            objectId: objectIdOf(state.cards[targetId]),
+            snapshot: snapshotFor(state, targetId),
+          },
+          legalityMode: 'checked',
+        }],
+      },
+      [stackIds[1]]: {
+        ...state.cards[stackIds[1]],
+        isAbility: true,
+        sourceId,
+        sourceSnapshot: snapshotFor(state, sourceId),
+        abilityKind: 'activated',
+        targetSelections: [{
+          slotId: 'target-player',
+          raw: 'target player',
+          kind: 'player',
+          selection: { kind: 'player', playerId: 'OPPONENT_A' },
+          legalityMode: 'checked',
+        }, {
+          slotId: 'target-spell',
+          raw: 'target spell',
+          kind: 'object',
+          selection: {
+            kind: 'object',
+            physicalCardId: stackIds[0],
+            objectId: objectIdOf(state.cards[stackIds[0]]),
+            snapshot: snapshotFor(state, stackIds[0]),
+          },
+          legalityMode: 'checked',
+        }],
+      },
+    },
+  };
   if (scenario === 'stack') return { ...state, phase: 'main2', turn: 4 };
 
   state = moveCards(state, idsWithPrefix(state, 'fixture-grave-'), 'graveyard');
@@ -169,13 +509,26 @@ export function isVisualFixtureScenario(value: string | null): value is VisualFi
 }
 
 export function buildVisualFixture(scenario: VisualFixtureScenario): VisualFixture {
-  const state = buildState(scenario);
-  return {
+  const cachedFixture = VISUAL_FIXTURE_CACHE.get(scenario);
+  if (cachedFixture) return cachedFixture;
+  const family = fixtureFamily(scenario);
+  let deck = FIXTURE_DECK_CACHE.get(family);
+  if (!deck) {
+    deck = fixtureDeck(scenario);
+    FIXTURE_DECK_CACHE.set(family, deck);
+  }
+  let initialState = FIXTURE_INITIAL_STATE_CACHE.get(family);
+  if (!initialState) {
+    initialState = initGame(deck, SEED);
+    FIXTURE_INITIAL_STATE_CACHE.set(family, initialState);
+  }
+  const state = buildState(scenario, initialState);
+  const fixture: VisualFixture = {
     scenario,
     snapshot: {
       version: SNAPSHOT_VERSION,
       state,
-      deck: fixtureDeck(),
+      deck,
       autoAdvanceToMain: false,
     },
     mulliganDecisionPending: scenario === 'mulligan',
@@ -184,4 +537,6 @@ export function buildVisualFixture(scenario: VisualFixtureScenario): VisualFixtu
         ? ['D4a fixture: 対象確認が必要です。', 'D4a fixture: 誘発候補があります。']
         : [],
   };
+  VISUAL_FIXTURE_CACHE.set(scenario, fixture);
+  return fixture;
 }

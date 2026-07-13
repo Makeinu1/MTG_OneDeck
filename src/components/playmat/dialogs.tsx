@@ -8,6 +8,7 @@ import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
 import { effectivePower, fetchEntersTapped, isSummoningSick, type FetchAbility } from '../../engine/status';
 import { CardView } from '../CardView';
+import { tokenVisualForKind } from '../../ui/tokenVisual';
 
 const MANA_LABELS: Record<ManaColor, string> = {
   W: '白',
@@ -255,7 +256,9 @@ export function AttackDialog({
   return (
     <Modal title="攻撃" onClose={onCancel} width="lg" testId="attack-dialog">
       {creatureIds.length === 0 ? (
-        <p className="zone-viewer__empty">攻撃できるクリーチャーがいません。</p>
+        <p className="zone-viewer__empty">
+          攻撃できるクリーチャーがいません。攻撃せず戦闘を進められます。
+        </p>
       ) : (
         <>
           <div className="attack-dialog__list">
@@ -323,10 +326,9 @@ export function AttackDialog({
           type="button"
           className="btn btn--accent"
           onClick={() => onConfirm(selected, targetLabel)}
-          disabled={selected.length === 0 || creatureIds.length === 0}
           data-testid="attack-confirm"
         >
-          確定
+          {selected.length === 0 ? '攻撃せず進む' : `${selected.length}体で攻撃`}
         </button>
       </div>
     </Modal>
@@ -611,6 +613,7 @@ export function TokenCreateDialog({
   ];
 
   const canCreate = name.trim() !== '' && typeLine.trim() !== '' && qty >= 1;
+  const tokenVisual = tokenVisualForKind(tokenKind);
 
   function applyPreset(preset: (typeof presets)[number]): void {
     setName(preset.name);
@@ -623,6 +626,14 @@ export function TokenCreateDialog({
 
   return (
     <Modal title="トークンを生成" onClose={onCancel} width="sm" testId="token-create-dialog">
+      <div className="token-art-preview" data-testid="token-art-preview" data-token-art={tokenVisual.key}>
+        <img src={tokenVisual.imageUrl} alt={tokenVisual.label} />
+        <div>
+          <strong>{name.trim() || 'カスタムトークン'}</strong>
+          <span>{typeLine.trim() || 'タイプ未入力'}</span>
+          {(power.trim() || toughness.trim()) && <b>{power.trim() || '—'}/{toughness.trim() || '—'}</b>}
+        </div>
+      </div>
       <div className="token-presets">
         {presets.map((preset) => (
           <button
@@ -1332,7 +1343,9 @@ export function ZoneViewerDialog({
   testId?: string;
 }) {
   const [search, setSearch] = useState('');
-  const shouldShowSearch = searchEnabled ?? (zone === 'library' && !readOnly);
+  const [visibleCount, setVisibleCount] = useState(24);
+  const shouldShowSearch = searchEnabled
+    ?? (!readOnly && (zone === 'library' || zone === 'graveyard' || zone === 'exile'));
 
   const allTargets: { zone: ZoneId; label: string }[] = [
     { zone: 'hand', label: '手札へ' },
@@ -1352,6 +1365,7 @@ export function ZoneViewerDialog({
         return searchableNames(def).some((n) => n.toLowerCase().includes(query));
       })
     : cardIds;
+  const visibleIds = filteredIds.slice(0, visibleCount);
 
   return (
     <Modal title={title ?? ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={testId ?? `${zone}-viewer-dialog`}>
@@ -1363,6 +1377,7 @@ export function ZoneViewerDialog({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="カード名で検索…"
             data-testid="zone-viewer-search"
+            data-autofocus="true"
           />
           <span className="zone-viewer__search-count">
             {filteredIds.length} / {cardIds.length} 枚
@@ -1375,7 +1390,7 @@ export function ZoneViewerDialog({
         <p className="zone-viewer__empty">該当するカードはありません。</p>
       ) : (
         <ul className="zone-viewer__list">
-          {filteredIds.map((id) => {
+          {visibleIds.map((id) => {
             const card: CardInstance | undefined = state.cards[id];
             const def: CardDef | undefined = card ? state.defs[card.defId] : undefined;
             const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
@@ -1423,6 +1438,16 @@ export function ZoneViewerDialog({
             );
           })}
         </ul>
+      )}
+      {visibleCount < filteredIds.length && (
+        <button
+          type="button"
+          className="btn btn--primary zone-viewer__more"
+          onClick={() => setVisibleCount((count) => count + 24)}
+          data-testid="zone-viewer-show-more"
+        >
+          さらに表示（残り {filteredIds.length - visibleCount} 枚）
+        </button>
       )}
     </Modal>
   );

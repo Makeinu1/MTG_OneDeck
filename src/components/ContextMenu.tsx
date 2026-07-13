@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
 export interface MenuItem {
   key: string;
@@ -17,32 +17,71 @@ export interface ContextMenuProps {
   title?: string;
   items: MenuItem[];
   onClose: () => void;
+  restoreFocusTo?: HTMLElement | null;
 }
 
 /**
  * A small floating action menu anchored at a screen position. Closes on
  * outside click, Escape, or item selection.
  */
-export function ContextMenu({ x, y, title, items, onClose }: ContextMenuProps) {
+export function ContextMenu({ x, y, title, items, onClose, restoreFocusTo }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
   const [pos, setPos] = useState({ left: x, top: y });
 
   useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    restoreFocusRef.current = restoreFocusTo ?? (
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    );
+    const enabledItems = (): HTMLButtonElement[] => (
+      Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
+    );
+    enabledItems()[0]?.focus();
+
     function handlePointer(e: MouseEvent): void {
       if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     }
     function handleKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === 'Tab') {
+        // A transient menu must not remain open after focus leaves it. Closing
+        // and restoring the invoking control avoids accidental board shortcuts.
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+      const buttons = enabledItems();
+      if (buttons.length === 0) return;
+      e.preventDefault();
+      const current = document.activeElement instanceof HTMLButtonElement
+        ? buttons.indexOf(document.activeElement)
+        : -1;
+      if (e.key === 'Home') buttons[0]?.focus();
+      else if (e.key === 'End') buttons.at(-1)?.focus();
+      else if (e.key === 'ArrowDown') buttons[(current + 1 + buttons.length) % buttons.length]?.focus();
+      else buttons[(current - 1 + buttons.length) % buttons.length]?.focus();
     }
     document.addEventListener('mousedown', handlePointer);
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('mousedown', handlePointer);
       document.removeEventListener('keydown', handleKey);
+      if (restoreFocusRef.current?.isConnected) restoreFocusRef.current.focus();
     };
-  }, [onClose]);
+  }, [restoreFocusTo]);
 
   // Clamp into viewport using the menu's actual rendered size, so menus
   // opened near the bottom/right edge (e.g. hand cards) stay fully visible.
@@ -59,8 +98,15 @@ export function ContextMenu({ x, y, title, items, onClose }: ContextMenuProps) {
   const style: React.CSSProperties = pos;
 
   return (
-    <div className="context-menu" style={style} ref={ref} role="menu">
-      {title && <div className="context-menu__title">{title}</div>}
+    <div
+      className="context-menu"
+      style={style}
+      ref={ref}
+      role="menu"
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={title ? undefined : '操作メニュー'}
+    >
+      {title && <div className="context-menu__title" id={titleId}>{title}</div>}
       <ul>
         {items.map((item) => (
           <li key={item.key}>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 680" role="img" aria-labelledby="title">
+  <title id="title">Generic OneDeck token art</title><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#34435b"/><stop offset="1" stop-color="#111723"/></linearGradient></defs>
+  <rect width="488" height="680" fill="url(#g)"/><path d="M244 118 371 245 244 372 117 245Z" fill="none" stroke="#c7cdd6" stroke-width="8" opacity=".55"/><circle cx="244" cy="245" r="69" fill="#141d2e" stroke="#d8b06a" stroke-width="6"/><path d="m244 194 16 33 37 5-27 26 7 36-33-17-33 17 7-36-27-26 37-5Z" fill="#d8b06a"/><path d="M100 465h288" stroke="#c7cdd6" stroke-width="4" opacity=".35"/>
+</svg>

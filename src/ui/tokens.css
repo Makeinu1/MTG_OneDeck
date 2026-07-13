@@ -14,6 +14,9 @@
   --surface-0: var(--ink-0); /* 背景(卓) */
   --surface-1: #141d2e; /* 盤面ゾーン・チップ */
   --surface-2: #1c2a42; /* 浮遊要素(シート・ポップオーバー・フィード) */
+  --surface-sunken: #0d1320;
+  --surface-translucent: rgba(20, 29, 46, 0.88);
+  --surface-subtle: rgba(255, 255, 255, 0.025);
   --line: rgba(150, 185, 235, 0.1);
   --line-strong: rgba(150, 185, 235, 0.24);
 
@@ -50,6 +53,7 @@
   /* --- §2 光と深度(卓上の冷たい光溜まり+ヴィネット) --- */
   --table-light: radial-gradient(120% 55% at 50% 26%, rgba(160, 200, 255, 0.07), transparent 60%);
   --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, 0.5) 100%);
+  --hero-wash: radial-gradient(80% 85% at 78% 18%, rgba(216, 176, 106, 0.11), transparent 68%);
 
   /* --- §3 タイポグラフィ(役割固定) --- */
   --display: 'Cinzel', 'Hiragino Mincho ProN', serif;
@@ -88,6 +92,7 @@
   --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6); /* bottom sheet 用 */
+  --shadow-soft: 0 8px 28px rgba(0, 0, 0, 0.28);
   --scrim: rgba(0, 0, 0, 0.4); /* シート背後の暗転(bottom sheet overlay) */
 
   /* 金の材質(ボタン・統率者縁に。ベタ塗り禁止) */
@@ -101,4 +106,39 @@
   --dur-move: 240ms; /* L2: シート開閉・カード移動・ドロー */
   --dur-hero: 420ms; /* L3: 着地・キャスト・解決 */
   --dur-ritual: 650ms; /* L3+/L4: 統率者登場・連鎖 */
+}
+
+:root[data-theme='light'] {
+  --ink-0: #f3efe5;
+  --ink-1: #ebe5d8;
+  --ink-2: #e2dacb;
+  --surface-0: #f3efe5;
+  --surface-1: #fbf8f1;
+  --surface-2: #ffffff;
+  --surface-sunken: #e9e2d5;
+  --surface-translucent: rgba(251, 248, 241, 0.92);
+  --surface-subtle: rgba(20, 31, 48, 0.035);
+  --line: rgba(36, 49, 68, 0.12);
+  --line-strong: rgba(36, 49, 68, 0.26);
+  --text: #27364a;
+  --text-dim: #657286;
+  --text-h: #111b2a;
+  --gold: #9a6d26;
+  --gold-bright: #704a12;
+  --gold-dim: rgba(154, 109, 38, 0.13);
+  --action-primary: #b48232;
+  --action-primary-text: #140d04;
+  --stack-glow-c: #256ea1;
+  --commander-platinum: #56657a;
+  --table-light: radial-gradient(120% 55% at 50% 26%, rgba(255, 255, 255, 0.78), transparent 62%);
+  --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 64%, rgba(89, 70, 41, 0.12) 100%);
+  --hero-wash: radial-gradient(80% 85% at 78% 18%, rgba(154, 109, 38, 0.12), transparent 68%);
+  --shadow-card: 0 3px 10px rgba(48, 38, 24, 0.2), 0 1px 2px rgba(48, 38, 24, 0.12);
+  --shadow-pop: 0 16px 38px rgba(48, 38, 24, 0.24), 0 3px 10px rgba(48, 38, 24, 0.14);
+  --shadow-sheet: 0 -8px 40px rgba(48, 38, 24, 0.22);
+  --shadow-soft: 0 8px 28px rgba(48, 38, 24, 0.15);
+  --scrim: rgba(22, 28, 38, 0.28);
+  --playable-glow: 0 0 0 2px #9a6d26, 0 0 12px rgba(154, 109, 38, 0.22);
+  --gold-surface: linear-gradient(160deg, #d9b46a 0%, #bd8b3c 52%, #9a6d26 100%);
+  --gold-edge: inset 0 1px 0 rgba(255, 246, 222, 0.64), inset 0 -1px 0 rgba(75, 45, 10, 0.2);
 }

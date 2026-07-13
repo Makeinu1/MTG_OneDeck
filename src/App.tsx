@@ -88,38 +88,42 @@ function App() {
 
   return (
     <div className="app">
+      {(snapshot?.state || (storedDeck && storedDeck.length > 0)) && (
+        <section className="app__resume-shelf" aria-label="前回の続き">
+          {snapshot?.state && (
+            <div className="app__resume">
+              <div><strong>中断したゲーム</strong><p>盤面を保存した地点から続けます。</p></div>
+              <button
+                type="button"
+                className="btn btn--primary"
+                data-testid="restore-game"
+                onClick={() => useGameStore.getState().restoreGame(snapshot)}
+              >
+                ゲームを再開
+              </button>
+            </div>
+          )}
+          {storedDeck && storedDeck.length > 0 && (
+            <div className="app__resume">
+              <div><strong>前回のデッキ</strong><p>再解析せず、新しい一人回しを始めます。</p></div>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                data-testid="resume-game"
+                onClick={() => useGameStore.getState().newGame(storedDeck)}
+              >
+                このデッキで開始
+              </button>
+            </div>
+          )}
+        </section>
+      )}
       <ImportScreen
         initialDeckText={deckText}
         onStart={handleStart}
         keybindings={keybindings}
         onKeybindingsChange={setKeybindings}
       />
-      {snapshot?.state && (
-        <div className="app__resume">
-          <p>中断したゲームが見つかりました。</p>
-          <button
-            type="button"
-            className="btn btn--accent"
-            data-testid="restore-game"
-            onClick={() => useGameStore.getState().restoreGame(snapshot)}
-          >
-            ゲームを再開
-          </button>
-        </div>
-      )}
-      {storedDeck && storedDeck.length > 0 && (
-        <div className="app__resume">
-          <p>前回インポートしたデッキが見つかりました。再インポートせずにゲームを開始できます。</p>
-          <button
-            type="button"
-            className="btn btn--accent"
-            data-testid="resume-game"
-            onClick={() => useGameStore.getState().newGame(storedDeck)}
-          >
-            前回のデッキでゲーム開始
-          </button>
-        </div>
-      )}
     </div>
   );
 }

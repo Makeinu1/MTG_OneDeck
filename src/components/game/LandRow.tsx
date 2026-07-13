@@ -6,8 +6,8 @@
  * 重ねたまま個別に右クリック/タップで操作可能(情報の非破壊は保つ)。一括タップの利便は D3/D4 へ。
  */
 
+import { useState, type CSSProperties } from 'react';
 import type { GameState } from '../../engine/types';
-import { isCommander } from '../../engine/commander';
 import { GameCard } from './GameCard';
 import { bundleLands, type LandRowCard, type LandBundle } from './landRowModel';
 import type { GameController } from './gameController';
@@ -33,21 +33,39 @@ function toLandRowCard(state: GameState, cardId: string): LandRowCard | null {
 
 function Bundle({ controller, bundle }: { controller: GameController; bundle: LandBundle }) {
   const multi = bundle.cardIds.length > 1;
+  const [expanded, setExpanded] = useState(false);
   return (
     <div
       className="land-bundle"
       data-testid={`land-bundle-${bundle.key}`}
       data-tapped={bundle.tappedCount > 0}
+      data-expanded={expanded}
     >
-      {bundle.cardIds.map((cardId, index) => (
-        <div className="land-bundle__slot" style={{ zIndex: bundle.cardIds.length - index }} key={cardId}>
-          <GameCard controller={controller} cardId={cardId} size="board" />
-        </div>
-      ))}
+      <div className="land-bundle__cards">
+        {bundle.cardIds.map((cardId, index) => (
+          <div
+            className="land-bundle__slot"
+            style={{
+              zIndex: bundle.cardIds.length - index,
+              '--land-peek': `${Math.min(index, 3) * 6}px`,
+            } as CSSProperties}
+            key={cardId}
+          >
+            <GameCard controller={controller} cardId={cardId} size="board" />
+          </div>
+        ))}
+      </div>
       {multi && (
-        <span className="land-bundle__count" data-testid={`land-bundle-count-${bundle.key}`}>
+        <button
+          type="button"
+          className="land-bundle__count"
+          data-testid={`land-bundle-count-${bundle.key}`}
+          aria-expanded={expanded}
+          aria-label={`${bundle.name} ${bundle.cardIds.length}枚を${expanded ? '重ねる' : '広げる'}`}
+          onClick={() => setExpanded((value) => !value)}
+        >
           ×{bundle.cardIds.length}
-        </span>
+        </button>
       )}
       {bundle.tappedCount > 0 && multi && (
         <span className="land-bundle__tapped" title="タップ済みを含む">
@@ -66,7 +84,6 @@ export function LandRow({ controller }: LandRowProps) {
   const { state } = controller;
   if (!state) return null;
 
-  const commanderIds = state.zones.command.filter((id) => isCommander(state, id));
   const landCards = state.zones.battlefield
     .map((id) => toLandRowCard(state, id))
     .filter((c): c is LandRowCard => c !== null);
@@ -74,13 +91,6 @@ export function LandRow({ controller }: LandRowProps) {
 
   return (
     <div className="land-row" data-testid="land-row">
-      {commanderIds.length > 0 && (
-        <div className="land-row__commander" data-testid="land-row-commander">
-          {commanderIds.map((cardId) => (
-            <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
-          ))}
-        </div>
-      )}
       <div className="land-row__lands">
         {bundles.map((bundle) => (
           <Bundle key={bundle.key} controller={controller} bundle={bundle} />

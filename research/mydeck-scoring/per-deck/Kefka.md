@@ -4,28 +4,26 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Kefka | 103 | 99 | 4 | 189 | 74 (39.2%) | 113 (59.8%) | 2 (1.1%) | 68.7% |
+| Kefka | 103 | 99 | 4 | 189 | 98 (51.9%) | 89 (47.1%) | 2 (1.1%) | 72.8% |
 
-Demand coverage: **68.7%** (616/897)
+Demand coverage: **72.8%** (653/897)
 
 ## ギャップ候補カテゴリ top
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 79 |
-| `substrate不足` | 33 |
-| `scope境界(既知defer)` | 3 |
+| `catalog未写` | 65 |
+| `substrate不足` | 21 |
+| `scope境界(既知defer)` | 5 |
 
 ## Missing read/write top
 
 | missing demand | occurrences |
 |---|---:|
-| `mana:write` | 22 |
 | `action:discard` | 21 |
 | `action:draw` | 20 |
 | `damage:write` | 19 |
 | `target:object-or-player` | 17 |
-| `tap-state:write` | 14 |
 | `action:exile` | 12 |
 | `action:sacrifice` | 12 |
 | `object-identity:lki` | 10 |
@@ -34,12 +32,14 @@ Demand coverage: **68.7%** (616/897)
 | `life:write` | 7 |
 | `token:create` | 7 |
 | `layer:L4` | 6 |
-| `action:search` | 5 |
-| `action:shuffle` | 5 |
 | `attachment:write` | 5 |
 | `cost:activation` | 5 |
 | `event:discard` | 5 |
 | `timing:end-step` | 5 |
+| `transform:write` | 5 |
+| `action:return` | 4 |
+| `cost:tap` | 4 |
+| `counter:write` | 4 |
 
 ## 代表ギャップ
 

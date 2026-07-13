@@ -68,7 +68,10 @@ export function TargetPickerDialog({
                   <CardView instance={card} def={def} size="small" />
                 </div>
                 <div className="zone-viewer__info">
-                  <span className="zone-viewer__name">《{displayNameFor(state, cardId)}》</span>
+                  <span className="zone-viewer__name">
+                    《{displayNameFor(state, cardId)}》
+                    {card.zone === 'stack' && <span className="zone-viewer__badge">スタック上</span>}
+                  </span>
                   <div className="zone-viewer__targets">
                     <button
                       type="button"

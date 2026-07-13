@@ -51,6 +51,8 @@ export interface CardInstance {
   abilityKind?: AbilityKind;
   abilityLineIndex?: number;
   targetSelections?: TargetSelection[];
+  /** CR 107.3a/601.2b: X announced while this object is a spell on the stack. */
+  announcedX?: number;
   activationEnvelope?: ActivationEnvelope;
   isCopy?: boolean;
 }

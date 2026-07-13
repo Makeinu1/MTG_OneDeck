@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 680" role="img" aria-labelledby="title">
+  <title id="title">OneDeck card back</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0" stop-color="#263d5c"/>
+      <stop offset=".55" stop-color="#111b2d"/>
+      <stop offset="1" stop-color="#080d16"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f0cf8c"/><stop offset=".5" stop-color="#b88b45"/><stop offset="1" stop-color="#6d4b1e"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="472" height="664" rx="34" fill="#070b12" stroke="#55657b" stroke-width="8"/>
+  <rect x="27" y="27" width="434" height="626" rx="23" fill="url(#bg)" stroke="url(#gold)" stroke-width="4"/>
+  <path d="M244 112 349 217 244 322 139 217Z" fill="none" stroke="url(#gold)" stroke-width="8" opacity=".7"/>
+  <circle cx="244" cy="217" r="62" fill="#0d1625" stroke="#d8b06a" stroke-width="5"/>
+  <path d="m244 165 18 34 38 5-28 26 7 38-35-18-35 18 7-38-28-26 38-5Z" fill="url(#gold)"/>
+  <path d="M87 383h314M87 513h314" stroke="#d8b06a" stroke-width="2" opacity=".45"/>
+  <text x="244" y="463" text-anchor="middle" fill="#f0cf8c" font-family="serif" font-size="49" letter-spacing="8">ONEDECK</text>
+  <text x="244" y="495" text-anchor="middle" fill="#94a7c2" font-family="sans-serif" font-size="15" letter-spacing="5">ARCANE TABLE</text>
+</svg>

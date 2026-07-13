@@ -23,10 +23,11 @@ export interface ShortcutHandlers {
   keybindings: KeybindingsMap;
 }
 
-function isTextInputTarget(target: EventTarget | null): boolean {
+function isShortcutOwnedByTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return true;
+  return target.closest('button, a[href], [role="button"], [role="menuitem"]') !== null;
 }
 
 /**
@@ -51,12 +52,13 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
-      if (isTextInputTarget(e.target) || e.repeat) return;
+      if (isShortcutOwnedByTarget(e.target) || e.repeat) return;
 
       const isMod = e.metaKey || e.ctrlKey;
 
       if (isMod && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
+        if (isDialogOpen) return;
         if (e.shiftKey) {
           onRedo();
         } else {
@@ -67,6 +69,7 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
       if (isMod && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
+        if (isDialogOpen) return;
         onRedo();
         return;
       }

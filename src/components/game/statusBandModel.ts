@@ -25,7 +25,7 @@ export const STATUS_ZONE_CHIPS: ReadonlyArray<{ zone: ZoneId; label: string; tes
   { zone: 'hand', label: '手', testId: 'status-zone-hand' },
   { zone: 'graveyard', label: '墓', testId: 'status-zone-graveyard' },
   { zone: 'exile', label: '追', testId: 'status-zone-exile' },
-  { zone: 'library', label: '山', testId: 'status-zone-library' },
+  { zone: 'library', label: 'ライブラリー', testId: 'status-zone-library' },
 ];
 
 export interface StatusZoneChip {

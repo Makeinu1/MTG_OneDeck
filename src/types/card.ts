@@ -9,9 +9,20 @@ export interface CardFace {
   oracleText?: string;
   printedText?: string;
   imageUrl?: string; // display image (ja preferred), Scryfall "normal" size
+  imageUrlSmall?: string; // Scryfall "small" size for dense board rendering
   power?: string;
   toughness?: string;
   loyalty?: string;
+}
+
+export interface TokenArtRef {
+  scryfallId: string;
+  name: string;
+  typeLine: string;
+  power?: string;
+  toughness?: string;
+  imageUrl?: string;
+  imageUrlSmall?: string;
 }
 
 export interface CardDef {

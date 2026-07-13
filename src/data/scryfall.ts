@@ -22,6 +22,7 @@ const VALID_MANA_COLORS: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 // --- Minimal Scryfall API response shapes (only fields we use) ---
 
 interface ScryfallImageUris {
+  small?: string;
   normal?: string;
 }
 
@@ -164,6 +165,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
       oracleText: face.oracle_text,
       printedText: face.printed_text,
       imageUrl: usableImageUrl(card.image_status, face.image_uris?.normal ?? card.image_uris?.normal),
+      imageUrlSmall: usableImageUrl(card.image_status, face.image_uris?.small ?? card.image_uris?.small),
       power: face.power,
       toughness: face.toughness,
       loyalty: face.loyalty,
@@ -179,6 +181,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
         oracleText: card.oracle_text,
         printedText: card.printed_text,
         imageUrl: usableImageUrl(card.image_status, card.image_uris?.normal),
+        imageUrlSmall: usableImageUrl(card.image_status, card.image_uris?.small),
         power: card.power,
         toughness: card.toughness,
         loyalty: card.loyalty,
@@ -220,6 +223,7 @@ export function applyJapanesePrint(base: CardDef, jaCard: ScryfallCard): CardDef
       printedTypeLine: jaFace.printedTypeLine ?? face.printedTypeLine,
       printedText: jaFace.printedText ?? face.printedText,
       imageUrl: jaFace.imageUrl ?? face.imageUrl,
+      imageUrlSmall: jaFace.imageUrlSmall ?? face.imageUrlSmall,
     };
   });
 

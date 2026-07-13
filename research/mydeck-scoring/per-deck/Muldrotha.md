@@ -4,42 +4,42 @@
 
 | deck | entries | resolved | unresolved | scored clauses | complete | partial | gap | demand coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Muldrotha | 96 | 93 | 3 | 146 | 49 (33.6%) | 96 (65.8%) | 1 (0.7%) | 73.8% |
+| Muldrotha | 96 | 93 | 3 | 146 | 70 (47.9%) | 75 (51.4%) | 1 (0.7%) | 78.5% |
 
-Demand coverage: **73.8%** (545/738)
+Demand coverage: **78.5%** (579/738)
 
 ## ギャップ候補カテゴリ top
 
 | candidate category | gap rows |
 |---|---:|
-| `catalog未写` | 84 |
-| `substrate不足` | 8 |
-| `scope境界(既知defer)` | 5 |
+| `catalog未写` | 62 |
+| `scope境界(既知defer)` | 8 |
+| `substrate不足` | 6 |
 
 ## Missing read/write top
 
 | missing demand | occurrences |
 |---|---:|
-| `tap-state:write` | 27 |
-| `action:search` | 15 |
-| `action:shuffle` | 15 |
+| `tap-state:write` | 14 |
 | `action:sacrifice` | 10 |
 | `object-identity:lki` | 9 |
 | `target:object-or-player` | 9 |
 | `action:draw` | 7 |
 | `action:exile` | 7 |
 | `action:return` | 6 |
+| `action:search` | 6 |
+| `action:shuffle` | 6 |
 | `cost:activation` | 6 |
 | `zone:library` | 6 |
 | `cost:nonmana` | 5 |
 | `event:draw` | 5 |
 | `life:write` | 5 |
-| `mana:write` | 5 |
 | `token:create` | 5 |
 | `action:mill` | 4 |
 | `action:reveal` | 4 |
 | `event:life` | 4 |
 | `action:surveil` | 3 |
+| `event:sacrifice` | 3 |
 
 ## 代表ギャップ
 

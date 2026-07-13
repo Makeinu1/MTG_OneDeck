@@ -1,10 +1,7 @@
 /**
- * StatusBand — 画面上端の1行(36px)。ターン/フェイズ + ゾーン枚数チップ + 自ライフ。
+ * StatusBand — 画面上端の1行。ターン/フェイズ + マナ + 自ライフ + ログ入口。
  * docs/design-system.md §8・docs/ui-architecture-v2.md §2。カードが主役(vision 原則7)ゆえ
- * 常設のゾーンラベル列・相手ライフ行は廃止し、数値チップ+タップシートへ集約する。
- *
- * 乖離記録(D2): ベル(フィード入口)は Feed が D3 スライスのため本スライスでは
- * 「警告件数インジケータ」(非ボタン)に留める。D3 でフィード入口へ昇格。
+ * 常設のゾーンラベル列・相手ライフ行は廃止し、高頻度の直接操作へ集約する。
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -14,6 +11,16 @@ import { feedUnseenCount } from './feedProjection';
 import { lifeFlashDirection } from './motion';
 import { LifeSheet } from './LifeSheet';
 import type { GameController } from './gameController';
+import { manaReadinessModel } from './manaReadiness';
+
+const MANA_LABELS = [
+  { color: 'W', kanji: '白', name: '白マナ' },
+  { color: 'U', kanji: '青', name: '青マナ' },
+  { color: 'B', kanji: '黒', name: '黒マナ' },
+  { color: 'R', kanji: '赤', name: '赤マナ' },
+  { color: 'G', kanji: '緑', name: '緑マナ' },
+  { color: 'C', kanji: '無', name: '無色マナ' },
+] as const;
 
 export interface StatusBandProps {
   controller: GameController;
@@ -40,6 +47,7 @@ export function StatusBand({ controller }: StatusBandProps) {
   }, [life]);
   if (!state) return null;
   const model = statusBandModel(state);
+  const mana = manaReadinessModel(state);
   const unseen = feedUnseenCount(store.warnings, store.triggerCandidates);
 
   return (
@@ -52,6 +60,9 @@ export function StatusBand({ controller }: StatusBandProps) {
       </div>
 
       <div className="status-band__phases" data-testid="phase-indicator" data-phase={model.phase}>
+        <strong className="status-band__phase-current" data-testid="current-phase-label">
+          現在：{model.phaseLabel}
+        </strong>
         {PHASE_ORDER.map((phase) => (
           <span
             key={phase}
@@ -63,50 +74,96 @@ export function StatusBand({ controller }: StatusBandProps) {
         ))}
       </div>
 
-      <div className="status-band__zones">
-        {model.zones.map((chip) => {
-          const openable = chip.zone === 'graveyard' || chip.zone === 'exile' || chip.zone === 'library';
-          return (
-            <button
-              key={chip.zone}
-              type="button"
-              className="status-band__chip"
-              data-testid={chip.testId}
-              disabled={!openable}
-              onClick={() => {
-                if (openable) controller.openZoneViewer(chip.zone as 'graveyard' | 'exile' | 'library');
-              }}
+      <div
+        className="status-band__mana"
+        data-testid="mana-readiness"
+        aria-label="マナプール色別調整"
+      >
+        <button
+          type="button"
+          className="status-band__mana-total"
+          data-testid="mana-details"
+          onClick={() => setLifeOpen(true)}
+          title="マナの詳細を開く"
+        >
+          計<strong>{mana.poolTotal}</strong>
+        </button>
+        <span className="status-band__mana-colors">
+          {MANA_LABELS.map(({ color, kanji, name }) => (
+            <span
+              key={color}
+              className="status-band__mana-stepper"
+              data-mana={color}
+              data-empty={mana.pool[color] === 0}
             >
-              <span className="status-band__chip-label">{chip.label}</span>
-              <span className="status-band__chip-count">{chip.count}</span>
-            </button>
-          );
-        })}
+              <button
+                type="button"
+                data-testid={`mana-minus-${color}`}
+                aria-label={`${name}を1点減らす`}
+                onClick={() => store.adjustMana(color, -1)}
+              >−</button>
+              <span title={`${name}${mana.pool[color]}点`} aria-label={`${name}${mana.pool[color]}点`}>
+                {kanji}<strong>{mana.pool[color]}</strong>
+              </span>
+              <button
+                type="button"
+                data-testid={`mana-plus-${color}`}
+                aria-label={`${name}を1点増やす`}
+                onClick={() => store.adjustMana(color, 1)}
+              >＋</button>
+            </span>
+          ))}
+        </span>
+        <span className="status-band__mana-sources" title="未タップのマナ源">源<strong>{mana.untappedSourceCount}</strong></span>
       </div>
 
-      <button
-        type="button"
-        className="status-band__bell"
-        data-testid="feed-bell"
-        onClick={() => controller.openFeed()}
-        title="フィード(誘発/警告/ログ)"
-      >
-        🔔
-        {unseen > 0 && (
-          <span className="status-band__bell-badge" data-testid="feed-badge">
-            {unseen}
-          </span>
-        )}
-      </button>
-
-      <button
-        type="button"
-        className={`status-band__life${lifeFlash ? ` status-band__life--${lifeFlash}` : ''}`}
-        data-testid="life-value"
-        onClick={() => setLifeOpen(true)}
-      >
-        {model.life}
-      </button>
+      <div className="status-band__right-actions">
+        <div className={`status-band__life-cluster${lifeFlash ? ` status-band__life--${lifeFlash}` : ''}`}>
+          <button
+            type="button"
+            className="status-band__life-adjust"
+            data-testid="life-minus"
+            aria-label="ライフを1減らす"
+            onClick={() => store.dispatch({ type: 'adjustLife', delta: -1 })}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="status-band__life"
+            data-testid="life-value"
+            aria-label={`ライフ${model.life}。詳細を開く`}
+            aria-live="polite"
+            onClick={() => setLifeOpen(true)}
+          >
+            {model.life}
+          </button>
+          <button
+            type="button"
+            className="status-band__life-adjust"
+            data-testid="life-plus"
+            aria-label="ライフを1増やす"
+            onClick={() => store.dispatch({ type: 'adjustLife', delta: 1 })}
+          >
+            ＋
+          </button>
+        </div>
+        <button
+          type="button"
+          className="status-band__bell"
+          data-testid="feed-bell"
+          onClick={() => controller.openFeed()}
+          title="フィード(誘発/警告/ログ)"
+          aria-label="ログを開く"
+        >
+          🔔
+          {unseen > 0 && (
+            <span className="status-band__bell-badge" data-testid="feed-badge">
+              {unseen}
+            </span>
+          )}
+        </button>
+      </div>
 
       {lifeOpen && <LifeSheet controller={controller} onClose={() => setLifeOpen(false)} />}
     </div>

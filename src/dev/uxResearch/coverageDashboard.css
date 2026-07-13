@@ -1,0 +1,266 @@
+.ux-dashboard {
+  min-height: 100vh;
+  padding: var(--space-5);
+  color: var(--text);
+  background: var(--surface-0);
+  font-family: var(--sans);
+}
+
+.ux-dashboard__header,
+.ux-dashboard__summary,
+.ux-dashboard__sessions li {
+  display: flex;
+  align-items: center;
+}
+
+.ux-dashboard__header {
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ux-dashboard h1,
+.ux-dashboard h2,
+.ux-dashboard p {
+  margin-top: 0;
+}
+
+.ux-dashboard h1,
+.ux-dashboard h2 {
+  color: var(--text-h);
+}
+
+.ux-dashboard__header p {
+  color: var(--text-dim);
+}
+
+.ux-dashboard__action {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  color: var(--action-primary-text);
+  background: var(--gold-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--gold-edge);
+  text-decoration: none;
+}
+
+.ux-dashboard__summary {
+  gap: var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+.ux-dashboard__summary p {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: 0;
+}
+
+.ux-dashboard__summary strong {
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: var(--font-size-xl);
+}
+
+.ux-dashboard__summary span {
+  color: var(--text-dim);
+}
+
+.ux-dashboard__table-wrap {
+  overflow-x: auto;
+}
+
+.ux-dashboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ux-dashboard th,
+.ux-dashboard td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.ux-dashboard th {
+  color: var(--text-h);
+}
+
+.ux-dashboard select,
+.ux-dashboard textarea,
+.ux-dashboard input {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.ux-dashboard__next,
+.ux-dashboard__routing {
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.ux-dashboard__task-card,
+.ux-dashboard__report,
+.ux-dashboard__routing li {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ux-dashboard__moments,
+.ux-dashboard__moment-checks {
+  padding: var(--space-3);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.ux-dashboard__moments ul {
+  margin-bottom: 0;
+}
+
+.ux-dashboard__moment-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-2);
+}
+
+.ux-dashboard__moment-checks legend {
+  padding: 0 var(--space-1);
+  color: var(--text-h);
+}
+
+.ux-dashboard__task-card .ux-dashboard__action,
+.ux-dashboard__report .ux-dashboard__action {
+  width: fit-content;
+}
+
+.ux-dashboard__eyebrow,
+.ux-dashboard__muted {
+  color: var(--text-dim);
+}
+
+.ux-dashboard__eyebrow {
+  font-family: var(--mono);
+}
+
+.ux-dashboard__report > label,
+.ux-dashboard__report-grid label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--text-dim);
+}
+
+.ux-dashboard__report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+}
+
+.ux-dashboard__report-grid .ux-dashboard__check {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.ux-dashboard__check input {
+  width: auto;
+  min-height: auto;
+}
+
+.ux-dashboard__gate {
+  padding: var(--space-3);
+  color: var(--warn);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+}
+
+.ux-dashboard__gate .ux-dashboard__action {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ux-dashboard__error {
+  color: var(--warn);
+}
+
+.ux-dashboard__routing ul {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.ux-dashboard__routing li {
+  grid-template-columns: minmax(9rem, auto) 1fr auto;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ux-dashboard__routing small {
+  color: var(--text-dim);
+}
+
+.ux-dashboard select[data-status='friction'] {
+  color: var(--warn);
+}
+
+.ux-dashboard select[data-status='delight'] {
+  color: var(--gold-bright);
+}
+
+.ux-dashboard__selected {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.ux-dashboard__selected label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--text-dim);
+}
+
+.ux-dashboard__sessions ul {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.ux-dashboard__sessions li {
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ux-dashboard__sessions a {
+  color: var(--stack-glow-c);
+}
+
+@media (max-width: 720px) {
+  .ux-dashboard {
+    padding: var(--space-3);
+  }
+
+  .ux-dashboard__header,
+  .ux-dashboard__summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

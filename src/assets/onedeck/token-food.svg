@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 680" role="img" aria-labelledby="title">
+  <title id="title">Food token art</title><defs><radialGradient id="g"><stop stop-color="#658155"/><stop offset="1" stop-color="#101a18"/></radialGradient></defs>
+  <rect width="488" height="680" fill="url(#g)"/><ellipse cx="244" cy="472" rx="171" ry="66" fill="#172521" stroke="#c3db9a" stroke-width="8"/><path d="M136 424c19-129 197-151 222-11-40 52-173 64-222 11Z" fill="#c78345" stroke="#f0d39b" stroke-width="7"/><path d="M170 372c40-63 111-78 164-26" fill="none" stroke="#f5e4bd" stroke-width="16" stroke-linecap="round"/><path d="M245 176c42 37 47 80 14 126-43-31-50-77-14-126Z" fill="#9bc36a"/>
+</svg>

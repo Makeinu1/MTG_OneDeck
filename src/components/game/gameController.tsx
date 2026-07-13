@@ -13,7 +13,7 @@
  * handlerFor(id→store 呼び出しの switch)で組む=旧 374 行のクロージャを畳んだ。
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { freeMulliganBottomCount, useGameStore, type GameStore } from '../../store/gameStore';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander, commanderTax } from '../../engine/commander';
@@ -49,6 +49,7 @@ import {
   FetchSearchDialog,
   GuidedLibrarySearchDialog,
 } from '../playmat/dialogs';
+import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -108,8 +109,14 @@ export interface GameController {
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
   requestResolveTop: () => void;
   requestResolveAll: () => void;
+  advancePhase: () => void;
+  advanceTurn: () => void;
+  undo: () => void;
+  redo: () => void;
+  setManualTargets: (stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]) => void;
   /** ライブラリ操作メニュー(引く/シャッフル/切削/占術…)。 */
   openLibraryActions: (e: MenuTriggerEvent) => void;
+  libraryActionsOpen: boolean;
   /** ゾーンビューア(墓地/追放/ライブラリ)を開く。 */
   openZoneViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
   openTokenDialog: () => void;
@@ -129,17 +136,29 @@ export interface GameController {
   overlays: ReactNode;
   /** ショートカット無効化フラグ(ダイアログ表示中)。 */
   shortcutsBlocked: boolean;
+  transitionCue: TransitionCueData | null;
+  dismissTransitionCue: (id: number) => void;
 }
 
 /**
  * 新レイアウト用のゲーム操作統括フック。GameScreen が唯一の呼び出し元。
  */
-export function useGameController({ keybindings }: { keybindings: KeybindingsMap }): GameController {
+export function useGameController({
+  keybindings,
+  externalShortcutsBlocked = false,
+}: {
+  keybindings: KeybindingsMap;
+  externalShortcutsBlocked?: boolean;
+}): GameController {
   const store = useGameStore();
   const { state, mulliganDecisionPending } = store;
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
-  const [libraryMenu, setLibraryMenu] = useState<{ x: number; y: number } | null>(null);
+  const [libraryMenu, setLibraryMenu] = useState<{
+    x: number;
+    y: number;
+    restoreFocusTo: HTMLElement | null;
+  } | null>(null);
   const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
   const [pendingPayment, setPendingPayment] = useState<PendingPaymentAction | null>(null);
   const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
@@ -159,6 +178,11 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
+  const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
+  const transitionCueIdRef = useRef(0);
+  const dismissTransitionCue = useCallback((id: number) => {
+    setTransitionCue((current) => current?.id === id ? null : current);
+  }, []);
   // 祝祭アニメの初期マウント抑止(D5 Tier-1 #1)。ゲーム開始/再開の一斉再生を防ぐため、
   // 最初のフレーム後に arm=true。以降に入るカードだけドロー/ETB演出する(初手の儀式は D7)。
   const [motionArmed, setMotionArmed] = useState(false);
@@ -188,7 +212,13 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
-  const shortcutsBlocked = mulliganDecisionPending || isDialogOpen;
+  const shortcutsBlocked =
+    mulliganDecisionPending ||
+    isDialogOpen ||
+    menu !== null ||
+    libraryMenu !== null ||
+    feedOpen ||
+    externalShortcutsBlocked;
 
   useShortcuts({
     onNextPhase: () => {
@@ -197,11 +227,11 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
         requestResolveTop();
         return;
       }
-      store.nextPhase();
+      advancePhase();
     },
-    onNextTurn: () => store.nextTurn(),
-    onUndo: () => store.undo(),
-    onRedo: () => store.redo(),
+    onNextTurn: () => advanceTurn(),
+    onUndo: () => undo(),
+    onRedo: () => redo(),
     onRestart: () => setConfirmAction('restart'),
     onDraw: () => store.draw(1),
     isDialogOpen: shortcutsBlocked,
@@ -209,6 +239,38 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
   });
 
   const cards = state?.cards ?? {};
+
+  function announceTransition(previous: GameState, next: GameState | null): void {
+    if (!next) return;
+    const cue = transitionCueFor(previous, next);
+    if (!cue) return;
+    transitionCueIdRef.current += 1;
+    setTransitionCue({ ...cue, id: transitionCueIdRef.current });
+  }
+
+  function advancePhase(): void {
+    const previous = useGameStore.getState().state;
+    if (!previous) return;
+    store.nextPhase();
+    announceTransition(previous, useGameStore.getState().state);
+  }
+
+  function advanceTurn(): void {
+    const previous = useGameStore.getState().state;
+    if (!previous) return;
+    store.nextTurn();
+    announceTransition(previous, useGameStore.getState().state);
+  }
+
+  function undo(): void {
+    setTransitionCue(null);
+    store.undo();
+  }
+
+  function redo(): void {
+    setTransitionCue(null);
+    store.redo();
+  }
 
   function typeLineFor(cardId: string): string {
     const card = cards[cardId];
@@ -551,13 +613,27 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
   // --- imperative openers ---
   function openCardMenu(cardId: string, e: MenuTriggerEvent): void {
     e.stopPropagation();
+    const bounds = e.currentTarget.getBoundingClientRect();
     setLibraryMenu(null);
-    setMenu({ cardId, x: e.clientX, y: e.clientY });
+    setMenu({
+      cardId,
+      x: e.clientX || bounds.left + bounds.width / 2,
+      y: e.clientY || bounds.top + bounds.height / 2,
+    });
   }
   function openLibraryActions(e: MenuTriggerEvent): void {
     e.stopPropagation();
     setMenu(null);
-    setLibraryMenu({ x: e.clientX, y: e.clientY });
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const restoreFocusTo = e.currentTarget instanceof HTMLButtonElement
+      ? e.currentTarget
+      : e.currentTarget.querySelector<HTMLButtonElement>('[data-testid="library-tile"]');
+    restoreFocusTo?.focus({ preventScroll: true });
+    setLibraryMenu({
+      x: e.clientX || bounds.left + bounds.width / 2,
+      y: e.clientY || bounds.top + bounds.height / 2,
+      restoreFocusTo,
+    });
   }
   function closeMenu(): void {
     setMenu(null);
@@ -676,7 +752,14 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
         ))}
 
       {libraryMenu && (
-        <ContextMenu x={libraryMenu.x} y={libraryMenu.y} title="ライブラリ" items={buildLibraryMenuItems()} onClose={closeMenu} />
+        <ContextMenu
+          x={libraryMenu.x}
+          y={libraryMenu.y}
+          title="ライブラリー"
+          items={buildLibraryMenuItems()}
+          onClose={closeMenu}
+          restoreFocusTo={libraryMenu.restoreFocusTo}
+        />
       )}
 
       {manualKeywordsCardId && manualKeywordCard && (
@@ -978,6 +1061,7 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
           message="このゲームを終了し、同じデッキで最初からやり直します。現在の進行状況は失われます。よろしいですか?"
           confirmLabel="やり直す"
           onConfirm={() => {
+            setTransitionCue(null);
             store.restart();
             setConfirmAction(null);
           }}
@@ -1015,7 +1099,13 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     handleCardDoubleClick,
     requestResolveTop,
     requestResolveAll,
+    advancePhase,
+    advanceTurn,
+    undo,
+    redo,
+    setManualTargets: (stackItemId, targetIds, targetPlayerIds) => store.setManualTargets(stackItemId, targetIds, targetPlayerIds),
     openLibraryActions,
+    libraryActionsOpen: libraryMenu !== null,
     openZoneViewer: (zone) => setZoneViewer(zone),
     openTokenDialog: () => setTokenDialogOpen(true),
     openAttackDialog: () => setAttackDialogOpen(true),
@@ -1029,5 +1119,7 @@ export function useGameController({ keybindings }: { keybindings: KeybindingsMap
     closeFeed: () => setFeedOpen(false),
     overlays,
     shortcutsBlocked,
+    transitionCue,
+    dismissTransitionCue,
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { parseDeckList, type ParseError } from '../data/deckParser';
 import {
   conflictsWith,
@@ -14,6 +14,8 @@ import type { CardDef } from '../types/card';
 import type { InitDeckCard } from '../engine/init';
 import { DeckStats } from './DeckStats';
 import { RuleAutomationReport } from './RuleAutomationReport';
+import { ThemeToggle } from './ThemeToggle';
+import cardBackUrl from '../assets/onedeck/card-back.svg';
 
 export interface ImportScreenProps {
   initialDeckText: string;
@@ -72,6 +74,7 @@ export function ImportScreen({
   const [hasImported, setHasImported] = useState(false);
   const [rebindingAction, setRebindingAction] = useState<KeybindingAction | null>(null);
   const [keybindingWarning, setKeybindingWarning] = useState<string | null>(null);
+  const importRunRef = useRef(0);
 
   useEffect(() => {
     if (!rebindingAction) return;
@@ -110,6 +113,8 @@ export function ImportScreen({
   }, [keybindings, onKeybindingsChange, rebindingAction]);
 
   const handleImport = async (): Promise<void> => {
+    const runId = importRunRef.current + 1;
+    importRunRef.current = runId;
     setIsImporting(true);
     setProgress(null);
     setResolvedEntries([]);
@@ -121,7 +126,10 @@ export function ImportScreen({
       const { entries, errors } = parseDeckList(deckText);
       setParseErrors(errors);
 
-      const result = await resolveDeck(entries, (p) => setProgress(p));
+      const result = await resolveDeck(entries, (p) => {
+        if (importRunRef.current === runId) setProgress(p);
+      });
+      if (importRunRef.current !== runId) return;
 
       const resolved: ResolvedEntry[] = [];
       for (const entry of entries) {
@@ -134,8 +142,14 @@ export function ImportScreen({
       setUnresolved(result.unresolved);
       setHasImported(true);
     } finally {
-      setIsImporting(false);
+      if (importRunRef.current === runId) setIsImporting(false);
     }
+  };
+
+  const handleCancelImport = (): void => {
+    importRunRef.current += 1;
+    setIsImporting(false);
+    setProgress(null);
   };
 
   const totalCount = resolvedEntries.reduce((sum, e) => sum + e.quantity, 0);
@@ -152,6 +166,14 @@ export function ImportScreen({
   };
 
   const progressPct = progress && progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
+  const workflowState = isImporting
+    ? 'resolving'
+    : hasImported
+      ? unresolved.length > 0 || parseErrors.length > 0
+        ? 'error'
+        : 'ready'
+      : 'empty';
+  const commanderEntry = resolvedEntries.find((entry) => entry.section === 'commander');
 
   const handleResetKeybindings = (): void => {
     const nextMap = { ...DEFAULT_KEYBINDINGS };
@@ -162,19 +184,45 @@ export function ImportScreen({
   };
 
   return (
-    <div className="import-screen">
+    <div className="import-screen" data-state={workflowState} data-testid="import-screen">
+      <header className="import-screen__topbar">
+        <span className="import-screen__brand">MTG OneDeck</span>
+        <ThemeToggle />
+      </header>
+
       <div className="import-screen__hero">
-        <p className="import-screen__kicker">MTG OneDeck</p>
-        <h1>統率者戦・一人回し</h1>
-        <p className="import-screen__lede">
-          デッキリストを貼り付けて、プレイマット上でゴールドフィッシュ(一人回し)を再現します。
-        </p>
+        <div className="import-screen__hero-copy">
+          <p className="import-screen__kicker">YOUR DECK · YOUR TABLE</p>
+          <h1>{workflowState === 'ready' ? '準備が整いました' : 'デッキを、ひとりで深く知る。'}</h1>
+          <p className="import-screen__lede">
+            {workflowState === 'ready'
+              ? '統率者とデッキ内容を確認して、そのまま一人回しを始められます。'
+              : '統率者戦のデッキリストを貼り付けて、カードが動き出す瞬間を確かめましょう。'}
+          </p>
+        </div>
+        <div className="import-screen__hero-art" aria-hidden="true">
+          {commanderEntry?.card.faces[0]?.imageUrl ? (
+            <img src={commanderEntry.card.faces[0].imageUrl} alt="" />
+          ) : (
+            <img src={cardBackUrl} alt="" />
+          )}
+        </div>
       </div>
 
       <div className="import-screen__panel">
-        <label className="import-screen__label" htmlFor="deck-input">
-          デッキリスト
-        </label>
+        <div className="import-screen__section-heading">
+          <div>
+            <span className="import-screen__step">01</span>
+            <h2>デッキリスト</h2>
+          </div>
+          <span className={`import-screen__state import-screen__state--${workflowState}`} aria-live="polite">
+            {workflowState === 'empty' && '入力待ち'}
+            {workflowState === 'resolving' && 'カードを解決中'}
+            {workflowState === 'ready' && 'プレイ可能'}
+            {workflowState === 'error' && '修正が必要'}
+          </span>
+        </div>
+        <label className="import-screen__label" htmlFor="deck-input">デッキリストを貼り付け</label>
         <textarea
           id="deck-input"
           data-testid="deck-input"
@@ -185,29 +233,31 @@ export function ImportScreen({
           spellCheck={false}
         />
 
-        <div className="import-screen__actions">
-          <button
-            type="button"
-            data-testid="import-button"
-            className="btn btn--primary"
-            onClick={() => void handleImport()}
-            disabled={isImporting || deckText.trim() === ''}
-          >
-            {isImporting ? 'インポート中…' : 'インポート'}
-          </button>
-
-          <button
-            type="button"
-            data-testid="start-game"
-            className="btn btn--accent"
-            onClick={handleStart}
-            disabled={!canStart}
-          >
-            ゲーム開始
-          </button>
+        <div className="import-screen__actions" data-testid="import-primary-actions">
+          {workflowState === 'ready' ? (
+            <button type="button" data-testid="start-game" className="btn btn--accent btn--hero" onClick={handleStart} disabled={!canStart}>
+              ゲーム開始
+            </button>
+          ) : workflowState === 'resolving' ? (
+            <button type="button" data-testid="cancel-import" className="btn btn--primary btn--hero" onClick={handleCancelImport}>
+              読み込みを中止
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="import-button"
+              className="btn btn--accent btn--hero"
+              onClick={() => void handleImport()}
+              disabled={deckText.trim() === ''}
+            >
+              {workflowState === 'error' ? '修正して再解析' : 'デッキを読み込む'}
+            </button>
+          )}
         </div>
 
-        <section className="import-screen__keybindings" data-testid="keybindings">
+        <details className="import-screen__details">
+          <summary>詳細・ショートカット設定</summary>
+          <section className="import-screen__keybindings" data-testid="keybindings">
           <div className="import-screen__keybindings-header">
             <h2>キーボードショートカット</h2>
             <button
@@ -250,7 +300,8 @@ export function ImportScreen({
               {keybindingWarning}
             </p>
           )}
-        </section>
+          </section>
+        </details>
 
         {progress && (
           <div className="import-screen__progress">
@@ -288,9 +339,12 @@ export function ImportScreen({
           </div>
         )}
 
-        {hasImported && resolvedEntries.length > 0 && <DeckStats entries={resolvedEntries} />}
         {hasImported && resolvedEntries.length > 0 && (
-          <RuleAutomationReport entries={resolvedEntries} />
+          <details className="import-screen__details import-screen__details--analysis">
+            <summary>デッキ分析とルール対応を見る</summary>
+            <DeckStats entries={resolvedEntries} />
+            <RuleAutomationReport entries={resolvedEntries} />
+          </details>
         )}
 
         {unresolved.length > 0 && (
@@ -334,6 +388,7 @@ export function ImportScreen({
               <figure
                 key={`${entry.section}-${entry.name}-${index}`}
                 className="import-screen__card"
+                data-commander={entry.section === 'commander' || undefined}
               >
                 {entry.card.faces[0]?.imageUrl ? (
                   <img

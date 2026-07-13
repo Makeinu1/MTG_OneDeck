@@ -163,3 +163,55 @@ describe('CardView keyword badges', () => {
     cleanupRender(root, container);
   });
 });
+
+describe('CardView visual states', () => {
+  it('uses a private OneDeck back without leaking face information', () => {
+    const secretDef: CardDef = {
+      ...TEST_CARD_DEF,
+      name: 'Secret Identity',
+      faces: [{ name: 'Secret Identity', printedName: '秘密の正体', typeLine: 'Creature', oracleText: 'Secret rules.' }],
+    };
+    const { container, card, root } = renderCard(undefined, { ...TEST_CARD_INSTANCE, faceDown: true }, secretDef);
+
+    expect(card.title).toBe('裏向きのカード');
+    expect(container.textContent).not.toContain('秘密の正体');
+    expect(container.innerHTML).not.toContain('Secret Identity');
+    expect(container.querySelector('img')?.alt).toBe('OneDeckのカード裏面');
+
+    cleanupRender(root, container);
+  });
+
+  it('renders known token art and retains token identity metadata', () => {
+    const tokenDef: CardDef = {
+      ...TEST_CARD_DEF,
+      name: 'Treasure',
+      typeLine: 'Token Artifact — Treasure',
+      tokenKind: 'treasure',
+      faces: [{ name: 'Treasure', printedName: '宝物', typeLine: 'Token Artifact — Treasure' }],
+    };
+    const { container, root } = renderCard(undefined, { ...TEST_CARD_INSTANCE, isToken: true }, tokenDef);
+
+    expect(container.querySelector('[data-token-art="treasure"] img')?.getAttribute('src')).toContain('Treasure');
+    expect(container.querySelector('.card-view__badge--token')?.textContent).toBe('T');
+
+    cleanupRender(root, container);
+  });
+
+  it('marks a DFC and exposes its currently selected face only', () => {
+    const dfcDef: CardDef = {
+      ...TEST_CARD_DEF,
+      layout: 'transform',
+      faces: [
+        { name: 'Front', printedName: '表面', typeLine: 'Creature' },
+        { name: 'Back', printedName: '裏面', typeLine: 'Creature' },
+      ],
+    };
+    const { container, card, root } = renderCard(undefined, { ...TEST_CARD_INSTANCE, faceIndex: 1 }, dfcDef);
+
+    expect(card.classList.contains('card-view--dfc')).toBe(true);
+    expect(card.title).toBe('裏面');
+    expect(container.textContent).toContain('両面カード');
+
+    cleanupRender(root, container);
+  });
+});

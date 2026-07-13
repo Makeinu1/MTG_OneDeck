@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 680" role="img" aria-labelledby="title">
+  <title id="title">Treasure token art</title><defs><radialGradient id="g"><stop stop-color="#ffe7a3"/><stop offset=".45" stop-color="#b77a23"/><stop offset="1" stop-color="#17131a"/></radialGradient></defs>
+  <rect width="488" height="680" fill="#101725"/><rect x="18" y="18" width="452" height="644" rx="30" fill="url(#g)" stroke="#e6c477" stroke-width="5"/>
+  <path d="M102 438c40-142 244-142 284 0l-47 92H149Z" fill="#5f3715" stroke="#f0cf8c" stroke-width="8"/>
+  <circle cx="198" cy="382" r="50" fill="#f2bd45"/><circle cx="283" cy="367" r="62" fill="#d89521"/><path d="m244 180 23 45 50 7-36 35 9 50-46-24-46 24 9-50-36-35 50-7Z" fill="#fff0a8"/>
+</svg>

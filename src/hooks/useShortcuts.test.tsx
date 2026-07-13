@@ -112,6 +112,9 @@ describe('useShortcuts', () => {
     dispatchKeyDown('r');
     dispatchKeyDown('a');
     dispatchKeyDown('s');
+    dispatchKeyDown('z', { ctrlKey: true });
+    dispatchKeyDown('Z', { metaKey: true, shiftKey: true });
+    dispatchKeyDown('y', { ctrlKey: true });
     dispatchKeyDown('q');
 
     expect(handlers.onNextPhase).not.toHaveBeenCalled();
@@ -120,5 +123,20 @@ describe('useShortcuts', () => {
     expect(handlers.onUndo).not.toHaveBeenCalled();
     expect(handlers.onRedo).not.toHaveBeenCalled();
     expect(handlers.onDraw).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Enter and Space activation to the focused button', () => {
+    const handlers = renderHarness();
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+
+    act(() => {
+      button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      button.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true }));
+    });
+
+    expect(handlers.onNextTurn).not.toHaveBeenCalled();
+    expect(handlers.onNextPhase).not.toHaveBeenCalled();
+    button.remove();
   });
 });

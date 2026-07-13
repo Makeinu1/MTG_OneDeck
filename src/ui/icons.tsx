@@ -26,6 +26,7 @@ export type IconName =
   | 'coin'
   | 'warning'
   | 'auto'
+  | 'transform'
   | 'info';
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -150,6 +151,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="12" cy="12" r="5" />
       <path d="M12 3a9 9 0 0 1 8.5 6" />
       <polyline points="21 5 20.5 9 16.5 8.5" />
+    </>
+  ),
+  transform: (
+    <>
+      <path d="M7 7h10v10H7z" />
+      <path d="M9 4 6 7l3 3M15 20l3-3-3-3" />
     </>
   ),
   info: (

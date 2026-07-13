@@ -11,7 +11,9 @@ import { useState } from 'react';
 import { primaryActionModel } from './primaryAction';
 import { celebrate } from './sound';
 import { isSoundEnabled, setSoundEnabled } from './motion';
+import { primaryActionDisplayLabel } from './primaryActionDisplay';
 import type { GameController } from './gameController';
+import { ThemeToggle } from '../ThemeToggle';
 
 export interface ThumbZoneProps {
   controller: GameController;
@@ -34,6 +36,10 @@ function GameMenuSheet({ controller, onClose }: { controller: GameController; on
           </button>
         </div>
         <div className="game-menu__actions">
+          <div className="game-menu__theme" data-testid="menu-theme">
+            <span>表示テーマ</span>
+            <ThemeToggle compact />
+          </div>
           <button type="button" className="game-menu__action" data-testid="menu-token" onClick={act(controller.openTokenDialog)}>
             トークン生成
           </button>
@@ -105,6 +111,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
   if (!state) return null;
   const stackActive = state.zones.stack.length > 0;
   const primary = primaryActionModel(state, controller.triggerCandidateCount);
+  const primaryLabel = primaryActionDisplayLabel(state, primary);
 
   function runPrimary(): void {
     switch (primary.kind) {
@@ -121,7 +128,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         break;
       case 'next-phase':
         celebrate('primary');
-        store.nextPhase();
+        controller.advancePhase();
         break;
     }
   }
@@ -133,7 +140,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         className="thumb-zone__icon-btn"
         data-testid="undo"
         disabled={!store.canUndo}
-        onClick={() => store.undo()}
+        onClick={controller.undo}
         title="元に戻す"
       >
         ↩
@@ -144,7 +151,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         className="thumb-zone__icon-btn"
         data-testid="redo"
         disabled={!store.canRedo}
-        onClick={() => store.redo()}
+        onClick={controller.redo}
         title="やり直す"
       >
         ↪
@@ -152,12 +159,12 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
 
       <button
         type="button"
-        className={`thumb-zone__primary ${primary.glow ? 'thumb-zone__primary--stack' : ''}`}
+        className={`thumb-zone__primary${primary.glow ? ' thumb-zone__primary--stack' : ''}${primary.kind === 'next-phase' ? ' thumb-zone__primary--advance' : ''}`}
         data-testid="primary-action"
         data-kind={primary.kind}
         onClick={runPrimary}
       >
-        {primary.label}
+        {primaryLabel}
       </button>
 
       <button
@@ -165,7 +172,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         className="thumb-zone__icon-btn"
         data-testid="next-turn"
         disabled={stackActive}
-        onClick={() => store.nextTurn()}
+        onClick={() => controller.advanceTurn()}
         title="次のターン"
       >
         ≫

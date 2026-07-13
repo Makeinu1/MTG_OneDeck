@@ -228,7 +228,6 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
-      "action:draw",
       "event-observer:self",
       "event:enters",
       "player-scope:target-player",
@@ -240,6 +239,7 @@
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
+      "action:draw",
       "event:draw",
       "player-scope:each-opponent",
       "target:object-or-player"
@@ -885,13 +885,13 @@
       "layer:L7c: read/write power/toughness modifiers or +1/+1 counters"
     ],
     "modelTags": [
+      "counter:write",
       "event-observer:self",
       "event:attacks",
       "layer:L7c"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "counter:write",
       "event:counter"
     ],
     "candidateCategories": [
@@ -2354,13 +2354,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -2388,13 +2388,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -2422,13 +2422,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -2615,13 +2615,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -2646,44 +2646,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Bojuka Bog",
-    "inputName": "Bojuka Bog",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 126,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Celes",
@@ -2745,240 +2718,18 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Clifftop Retreat",
-    "inputName": "Clifftop Retreat",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 133,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control a Mountain or a Plains.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Clifftop Retreat",
-    "inputName": "Clifftop Retreat",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 134,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R} or {W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Dragonskull Summit",
-    "inputName": "Dragonskull Summit",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 136,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control a Swamp or a Mountain.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Dragonskull Summit",
-    "inputName": "Dragonskull Summit",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 137,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Fabled Passage",
-    "inputName": "Fabled Passage",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 140,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Fetid Heath",
-    "inputName": "Fetid Heath",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 142,
-    "shape": "activated",
-    "clauseExcerpt": "{W/B}, {T}: Add {W}{W}, {W}{B}, or {B}{B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Geothermal Bog",
-    "inputName": "Geothermal Bog",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 143,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Celes",
@@ -2998,310 +2749,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Graven Cairns",
-    "inputName": "Graven Cairns",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 146,
-    "shape": "activated",
-    "clauseExcerpt": "{B/R}, {T}: Add {B}{B}, {B}{R}, or {R}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Haunted Ridge",
-    "inputName": "Haunted Ridge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 147,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or more other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Haunted Ridge",
-    "inputName": "Haunted Ridge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 148,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Isolated Chapel",
-    "inputName": "Isolated Chapel",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 149,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control a Plains or a Swamp.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Isolated Chapel",
-    "inputName": "Isolated Chapel",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 150,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {W} or {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Luxury Suite",
-    "inputName": "Luxury Suite",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 151,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Luxury Suite",
-    "inputName": "Luxury Suite",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 152,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Nomad Outpost",
-    "inputName": "Nomad Outpost",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 155,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Nomad Outpost",
-    "inputName": "Nomad Outpost",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 156,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R}, {W}, or {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Path of Ancestry",
-    "inputName": "Path of Ancestry",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 157,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Celes",
@@ -3342,70 +2800,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Plaza of Heroes",
-    "inputName": "Plaza of Heroes",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 160,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color. Spend this mana only to cast a legendary spell.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Plaza of Heroes",
-    "inputName": "Plaza of Heroes",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 161,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color among legendary permanents you control.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Celes",
@@ -3477,36 +2871,6 @@
   },
   {
     "deck": "Celes",
-    "card": "Rugged Prairie",
-    "inputName": "Rugged Prairie",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 166,
-    "shape": "activated",
-    "clauseExcerpt": "{R/W}, {T}: Add {R}{R}, {R}{W}, or {W}{W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
     "card": "Sacred Foundry",
     "inputName": "Sacred Foundry",
     "quantity": 1,
@@ -3523,138 +2887,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Shattered Sanctum",
-    "inputName": "Shattered Sanctum",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 168,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or more other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Shattered Sanctum",
-    "inputName": "Shattered Sanctum",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 169,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {W} or {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Spectator Seating",
-    "inputName": "Spectator Seating",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 170,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Spectator Seating",
-    "inputName": "Spectator Seating",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 171,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R} or {W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Celes",
@@ -3677,159 +2920,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Sundown Pass",
-    "inputName": "Sundown Pass",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 174,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or more other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Sundown Pass",
-    "inputName": "Sundown Pass",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 175,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {R} or {W}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Celes",
-    "card": "Sunlit Marsh",
-    "inputName": "Sunlit Marsh",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 176,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Vault of Champions",
-    "inputName": "Vault of Champions",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 177,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Celes",
-    "card": "Vault of Champions",
-    "inputName": "Vault of Champions",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 178,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {W} or {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -3862,36 +2959,6 @@
       "cost:activation",
       "cost:tap",
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Omen Hawker",
-    "inputName": "Omen Hawker",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 180,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{U}. Spend this mana only to activate abilities.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -4294,40 +3361,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Vhal, Candlekeep Researcher",
-    "inputName": "Vhal, Candlekeep Researcher",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 205,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add an amount of {C} equal to Vhal's toughness. This mana can't be spent to cast spells from your hand.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "player-scope:you: read/write self player scope",
-      "zone:hand: read/write hand zone"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:hand"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -5029,36 +4062,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Everflowing Chalice",
-    "inputName": "Everflowing Chalice",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 236,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C} for each charge counter on this artifact.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "Mishra's Bauble",
     "inputName": "Mishra's Bauble",
     "quantity": 1,
@@ -5108,40 +4111,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Mox Amber",
-    "inputName": "Mox Amber",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 239,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add one mana of any color among legendary creatures and planeswalkers you control.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -5204,36 +4173,6 @@
       "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "The Enigma Jewel // Locus of Enlightenment",
-    "inputName": "The Enigma Jewel",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 244,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {C}{C}. Spend this mana only to activate abilities.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Gogo",
@@ -5660,36 +4599,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "The Eternity Elevator",
-    "inputName": "The Eternity Elevator",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 281,
-    "shape": "activated",
-    "clauseExcerpt": "20+ | {T}: Add X mana of any one color, where X is the number of charge counters on The Eternity Elevator.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Gogo",
     "card": "Coveted Jewel",
     "inputName": "Coveted Jewel",
     "quantity": 1,
@@ -5789,6 +4698,7 @@
       "zone:graveyard: read/write graveyard zone"
     ],
     "modelTags": [
+      "mana:write",
       "player-scope:target-player",
       "zone:battlefield",
       "zone:graveyard"
@@ -5800,7 +4710,6 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
-      "mana:write",
       "target:object-or-player"
     ],
     "candidateCategories": [
@@ -5895,96 +4804,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Fabled Passage",
-    "inputName": "Fabled Passage",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 297,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Flooded Strand",
-    "inputName": "Flooded Strand",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 298,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
     "card": "Ipnu Rivulet",
     "inputName": "Ipnu Rivulet",
     "quantity": 1,
@@ -6026,58 +4845,6 @@
   },
   {
     "deck": "Gogo",
-    "card": "Lonely Sandbar",
-    "inputName": "Lonely Sandbar",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 302,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Lotus Field",
-    "inputName": "Lotus Field",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 306,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
     "card": "Lotus Field",
     "inputName": "Lotus Field",
     "quantity": 1,
@@ -6103,80 +4870,6 @@
     "missingReadWrite": [
       "action:sacrifice",
       "event:sacrifice"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Misty Rainforest",
-    "inputName": "Misty Rainforest",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 309,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Mystic Sanctuary",
-    "inputName": "Mystic Sanctuary",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 310,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control three or more other Islands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
     ],
     "candidateCategories": [
       "catalog未写"
@@ -6264,152 +4957,6 @@
     "candidateCategories": [
       "catalog未写",
       "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Polluted Delta",
-    "inputName": "Polluted Delta",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 314,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Remote Isle",
-    "inputName": "Remote Isle",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 315,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Scalding Tarn",
-    "inputName": "Scalding Tarn",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 318,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Gogo",
-    "card": "Urza's Saga",
-    "inputName": "Urza's Saga",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 319,
-    "shape": "static",
-    "clauseExcerpt": "III — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "player-scope:you",
-      "zone:battlefield",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -7238,6 +5785,7 @@
       "zone:library: read/write library zone"
     ],
     "modelTags": [
+      "mana:write",
       "player-scope:target-player"
     ],
     "catalogJudgement": "partial",
@@ -7245,7 +5793,6 @@
       "action:mill",
       "cost:activation",
       "cost:tap",
-      "mana:write",
       "target:object-or-player",
       "zone:graveyard",
       "zone:library"
@@ -9161,13 +7708,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -9195,13 +7742,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -9229,78 +7776,18 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Relic of Sauron",
-    "inputName": "Relic of Sauron",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 445,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add two mana in any combination of {U}, {B}, and/or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Arena of Glory",
-    "inputName": "Arena of Glory",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 447,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control a Mountain.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Kefka",
@@ -9320,80 +7807,20 @@
       "mana:write: write mana pool"
     ],
     "modelTags": [
-      "layer:L6"
+      "layer:L6",
+      "mana:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
       "cost:activation",
       "cost:tap",
-      "layer:L4",
-      "mana:write"
+      "layer:L4"
     ],
     "candidateCategories": [
       "catalog未写",
       "substrate不足"
     ],
     "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Blackcleave Cliffs",
-    "inputName": "Blackcleave Cliffs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 450,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or fewer other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Blackcleave Cliffs",
-    "inputName": "Blackcleave Cliffs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 451,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
   },
   {
     "deck": "Kefka",
@@ -9413,48 +7840,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Cascade Bluffs",
-    "inputName": "Cascade Bluffs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 454,
-    "shape": "activated",
-    "clauseExcerpt": "{U/R}, {T}: Add {U}{U}, {U}{R}, or {R}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Kefka",
@@ -9482,144 +7878,6 @@
       "cost:activation",
       "cost:tap",
       "target:object-or-player"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Darkslick Shores",
-    "inputName": "Darkslick Shores",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 461,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or fewer other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Darkslick Shores",
-    "inputName": "Darkslick Shores",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 462,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U} or {B}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Fabled Passage",
-    "inputName": "Fabled Passage",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 465,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Fiery Islet",
-    "inputName": "Fiery Islet",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 467,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life: Add {U} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -9708,232 +7966,6 @@
   },
   {
     "deck": "Kefka",
-    "card": "Graven Cairns",
-    "inputName": "Graven Cairns",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 474,
-    "shape": "activated",
-    "clauseExcerpt": "{B/R}, {T}: Add {B}{B}, {B}{R}, or {R}{R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Grixis Panorama",
-    "inputName": "Grixis Panorama",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 476,
-    "shape": "activated",
-    "clauseExcerpt": "{1}, {T}, Sacrifice this land: Search your library for a basic Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Haunted Ridge",
-    "inputName": "Haunted Ridge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 477,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or more other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Haunted Ridge",
-    "inputName": "Haunted Ridge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 478,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Luxury Suite",
-    "inputName": "Luxury Suite",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 479,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Luxury Suite",
-    "inputName": "Luxury Suite",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 480,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Mount Doom",
-    "inputName": "Mount Doom",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 481,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life: Add {B} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
     "card": "Mount Doom",
     "inputName": "Mount Doom",
     "quantity": 1,
@@ -10012,32 +8044,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 484,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Raucous Theater",
-    "inputName": "Raucous Theater",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 485,
     "shape": "triggered",
     "clauseExcerpt": "When this land enters, surveil 1.",
@@ -10056,50 +8062,6 @@
     "missingReadWrite": [
       "action:surveil",
       "zone:library"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Seething Landscape",
-    "inputName": "Seething Landscape",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 487,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic Island, Swamp, or Mountain card, put it onto the battlefield tapped, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
     ],
     "candidateCategories": [
       "catalog未写"
@@ -10127,73 +8089,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Stormcarved Coast",
-    "inputName": "Stormcarved Coast",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 492,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control two or more other lands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Stormcarved Coast",
-    "inputName": "Stormcarved Coast",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 493,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -10221,107 +8123,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Tainted Isle",
-    "inputName": "Tainted Isle",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 497,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U} or {B}. Activate only if you control a Swamp.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Training Center",
-    "inputName": "Training Center",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 498,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Training Center",
-    "inputName": "Training Center",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 499,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {U} or {R}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -10349,13 +8157,13 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
+      "mana:write",
       "player-scope:you",
       "tap-state:write"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "damage:write",
-      "mana:write"
+      "damage:write"
     ],
     "candidateCategories": [
       "substrate不足"
@@ -10380,44 +8188,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Kefka",
-    "card": "Xander's Lounge",
-    "inputName": "Xander's Lounge",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 503,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Kefka",
@@ -12880,50 +10661,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Bloodstained Mire",
-    "inputName": "Bloodstained Mire",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 613,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Breeding Pool",
     "inputName": "Breeding Pool",
     "quantity": 1,
@@ -12940,90 +10677,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Fabled Passage",
-    "inputName": "Fabled Passage",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 616,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "ownership:controller",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Field of the Dead",
-    "inputName": "Field of the Dead",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 617,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Muldrotha",
@@ -13060,168 +10724,6 @@
       "substrate不足"
     ],
     "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Flooded Strand",
-    "inputName": "Flooded Strand",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 620,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Foreboding Landscape",
-    "inputName": "Foreboding Landscape",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 622,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Sacrifice this land: Search your library for a basic Swamp, Forest, or Island card, put it onto the battlefield tapped, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Misty Rainforest",
-    "inputName": "Misty Rainforest",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 624,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Island card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Mystic Sanctuary",
-    "inputName": "Mystic Sanctuary",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 625,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control three or more other Islands.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
   },
   {
     "deck": "Muldrotha",
@@ -13263,38 +10765,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Nurturing Peatland",
-    "inputName": "Nurturing Peatland",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 627,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life: Add {B} or {G}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Overgrown Tomb",
     "inputName": "Overgrown Tomb",
     "quantity": 1,
@@ -13311,18 +10781,17 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   },
   {
     "deck": "Muldrotha",
@@ -13363,106 +10832,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Polluted Delta",
-    "inputName": "Polluted Delta",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 632,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for an Island or Swamp card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Rimewood Falls",
-    "inputName": "Rimewood Falls",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 633,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Shifting Woodland",
-    "inputName": "Shifting Woodland",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 634,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you control a Forest.",
-    "requiredReadWrite": [
-      "ownership:controller: read/write controller identity",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "ownership:controller",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Shifting Woodland",
     "inputName": "Shifting Woodland",
     "quantity": 1,
@@ -13493,32 +10862,6 @@
     "candidateCategories": [
       "catalog未写",
       "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Simic Growth Chamber",
-    "inputName": "Simic Growth Chamber",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 637,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13568,32 +10911,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 640,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Sunken Palace",
-    "inputName": "Sunken Palace",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 642,
     "shape": "activated",
     "clauseExcerpt": "{1}{U}, {T}, Exile seven cards from your graveyard: Add {U}. When you spend this mana to cast a spell or activate an ability, copy that spell or ability. You may choose new targets for the copy.",
@@ -13611,6 +10928,7 @@
     "modelTags": [
       "event-observer:self",
       "event:cast",
+      "mana:write",
       "player-scope:you",
       "zone:exile",
       "zone:graveyard"
@@ -13621,39 +10939,12 @@
       "cost:activation",
       "cost:nonmana",
       "cost:tap",
-      "mana:write",
       "object-identity:lki"
     ],
     "candidateCategories": [
       "catalog未写",
       "scope境界(既知defer)",
       "substrate不足"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Undercity Sewers",
-    "inputName": "Undercity Sewers",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 643,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
     ],
     "primaryCandidateCategory": "catalog未写"
   },
@@ -13695,32 +10986,6 @@
     "quantity": 1,
     "source": "local-snapshot",
     "faceIndex": 0,
-    "clauseIndex": 645,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Underground Mortuary",
-    "inputName": "Underground Mortuary",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
     "clauseIndex": 646,
     "shape": "triggered",
     "clauseExcerpt": "When this land enters, surveil 1.",
@@ -13747,110 +11012,6 @@
   },
   {
     "deck": "Muldrotha",
-    "card": "Undergrowth Stadium",
-    "inputName": "Undergrowth Stadium",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 647,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped unless you have two or more opponents.",
-    "requiredReadWrite": [
-      "player-scope:each-opponent: read/write opponent player scope",
-      "player-scope:you: read/write self player scope",
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "player-scope:each-opponent",
-      "player-scope:you",
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Undergrowth Stadium",
-    "inputName": "Undergrowth Stadium",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 648,
-    "shape": "activated",
-    "clauseExcerpt": "{T}: Add {B} or {G}.",
-    "requiredReadWrite": [
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:tap: read/write tapped state as a cost",
-      "mana:write: write mana pool"
-    ],
-    "modelTags": [
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "tap-state:write"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "mana:write"
-    ],
-    "candidateCategories": [
-      "substrate不足"
-    ],
-    "primaryCandidateCategory": "substrate不足"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Verdant Catacombs",
-    "inputName": "Verdant Catacombs",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 649,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
     "card": "Watery Grave",
     "inputName": "Watery Grave",
     "quantity": 1,
@@ -13867,131 +11028,16 @@
     ],
     "modelTags": [
       "player-scope:you",
+      "tap-state:write",
       "zone:battlefield"
     ],
     "catalogJudgement": "partial",
     "missingReadWrite": [
-      "replacement",
-      "tap-state:write"
+      "replacement"
     ],
     "candidateCategories": [
-      "catalog未写",
       "scope境界(既知defer)"
     ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Windswept Heath",
-    "inputName": "Windswept Heath",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 651,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Forest or Plains card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Wooded Foothills",
-    "inputName": "Wooded Foothills",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 652,
-    "shape": "activated",
-    "clauseExcerpt": "{T}, Pay 1 life, Sacrifice this land: Search your library for a Mountain or Forest card, put it onto the battlefield, then shuffle.",
-    "requiredReadWrite": [
-      "action:sacrifice: move sacrificed permanent to owner graveyard",
-      "action:search: read library search and write selected card movement",
-      "action:shuffle: write randomized library order",
-      "cost:activation: read activation cost and write stack/ability payment",
-      "cost:nonmana: read/write non-mana cost payment",
-      "cost:tap: read/write tapped state as a cost",
-      "player-scope:you: read/write self player scope",
-      "zone:battlefield: read/write battlefield zone",
-      "zone:graveyard: read/write graveyard zone",
-      "zone:library: read/write library zone"
-    ],
-    "modelTags": [
-      "action:sacrifice",
-      "cost:activation",
-      "cost:nonmana",
-      "cost:tap",
-      "life:write",
-      "player-scope:you",
-      "tap-state:write",
-      "zone:battlefield",
-      "zone:graveyard",
-      "zone:library"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "action:search",
-      "action:shuffle"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
-  },
-  {
-    "deck": "Muldrotha",
-    "card": "Woodland Chasm",
-    "inputName": "Woodland Chasm",
-    "quantity": 1,
-    "source": "local-snapshot",
-    "faceIndex": 0,
-    "clauseIndex": 653,
-    "shape": "static",
-    "clauseExcerpt": "This land enters tapped.",
-    "requiredReadWrite": [
-      "tap-state:write: read/write tapped state",
-      "zone:battlefield: read/write battlefield zone"
-    ],
-    "modelTags": [
-      "zone:battlefield"
-    ],
-    "catalogJudgement": "partial",
-    "missingReadWrite": [
-      "tap-state:write"
-    ],
-    "candidateCategories": [
-      "catalog未写"
-    ],
-    "primaryCandidateCategory": "catalog未写"
+    "primaryCandidateCategory": "scope境界(既知defer)"
   }
 ]

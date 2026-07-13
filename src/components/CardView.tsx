@@ -1,8 +1,11 @@
 import { useDraggable } from '@dnd-kit/core';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { CardDef } from '../types/card';
 import type { CardInstance } from '../engine/types';
 import { keywords, normalizeKeywords, type Keyword } from '../engine/status';
+import cardBackUrl from '../assets/onedeck/card-back.svg';
+import { tokenVisualFor } from '../ui/tokenVisual';
+import { Icon } from '../ui/icons';
 
 export interface CardViewProps {
   instance: CardInstance;
@@ -25,6 +28,10 @@ export interface CardViewProps {
   summoningSick?: boolean;
   /** Render dimmed/ghosted (e.g. while a drag overlay copy exists). */
   faded?: boolean;
+  /** Keyboard users can focus the card to show the same details as hover. */
+  focusable?: boolean;
+  /** Prefer the bandwidth-friendly Scryfall small image on dense surfaces. */
+  imageQuality?: 'small' | 'normal';
 }
 
 const COUNTER_LABELS: Record<string, string> = {
@@ -74,6 +81,8 @@ export function CardView({
   badge,
   summoningSick = false,
   faded = false,
+  focusable = false,
+  imageQuality = size === 'battlefield' || size === 'small' ? 'small' : 'normal',
 }: CardViewProps) {
   const touchStartRef = useRef<{
     pointerId: number;
@@ -82,6 +91,7 @@ export function CardView({
     startedAt: number;
   } | null>(null);
   const suppressClickRef = useRef(false);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: instance.id,
     disabled: !draggable,
@@ -93,7 +103,13 @@ export function CardView({
   const displayName = instance.faceDown
     ? '裏向きのカード'
     : (face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード');
-  const imageUrl = instance.faceDown ? undefined : face?.imageUrl;
+  const tokenVisual = instance.isToken ? tokenVisualFor(def) : undefined;
+  const requestedImageUrl = instance.faceDown
+    ? cardBackUrl
+    : imageQuality === 'small'
+      ? (face?.imageUrlSmall ?? face?.imageUrl ?? tokenVisual?.imageUrl)
+      : (face?.imageUrl ?? face?.imageUrlSmall ?? tokenVisual?.imageUrl);
+  const imageUrl = requestedImageUrl === failedImageUrl ? undefined : requestedImageUrl;
   const counters = Object.entries(instance.counters).filter(
     ([type, value]) => value !== 0 && type !== 'loyalty' && type !== 'lore'
   );
@@ -117,6 +133,7 @@ export function CardView({
   if (instance.isToken) classes.push('card-view--token');
   if (instance.isCommander) classes.push('card-view--commander');
   if (instance.faceDown) classes.push('card-view--facedown');
+  if (!instance.faceDown && (def?.faces.length ?? 0) > 1) classes.push('card-view--dfc');
   if (instance.attachedTo) classes.push('card-view--attached');
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>): void {
@@ -181,23 +198,37 @@ export function CardView({
         e.preventDefault();
         onContextMenu?.(e);
       }}
-      onDoubleClick={onDoubleClick}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        onDoubleClick?.(event);
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onPointerDown={handlePointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      {...attributes}
       data-testid={`card-${instance.id}`}
       title={displayName}
-      {...attributes}
+      tabIndex={focusable ? 0 : undefined}
       {...listeners}
     >
-      <div className="card-view__face">
+      <div
+        className="card-view__face"
+        key={instance.faceDown ? 'hidden' : instance.faceIndex}
+        data-token-art={tokenVisual?.key}
+      >
         {imageUrl ? (
-          <img src={imageUrl} alt={displayName} draggable={false} loading="lazy" />
+          <img
+            src={imageUrl}
+            alt={instance.faceDown ? 'OneDeckのカード裏面' : displayName}
+            draggable={false}
+            loading="lazy"
+            onError={() => setFailedImageUrl(imageUrl)}
+          />
         ) : (
-          <div className="card-view__fallback">
+          <div className="card-view__fallback" data-token-art={tokenVisual?.key}>
             <span className="card-view__fallback-name">{displayName}</span>
             {!instance.faceDown && face?.typeLine && (
               <span className="card-view__fallback-type">
@@ -207,6 +238,12 @@ export function CardView({
           </div>
         )}
       </div>
+
+      {!instance.faceDown && (def?.faces.length ?? 0) > 1 && (
+        <div className="card-view__dfc" title="両面カード">
+          <Icon name="transform" label="両面カード" />
+        </div>
+      )}
 
       {badge && <div className="card-view__badge">{badge}</div>}
       {instance.isToken && <div className="card-view__badge card-view__badge--token">T</div>}

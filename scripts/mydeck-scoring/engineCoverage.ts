@@ -6,6 +6,7 @@ import {
 } from '../../src/engine/grammar/compile.ts';
 import { parseAbilityIR, type AbilityIR } from '../../src/engine/grammar/ir.ts';
 import { splitAbilityLines, type AbilityLine } from '../../src/engine/grammar/index.ts';
+import { fetchAbility, landEntersTapped } from '../../src/engine/status.ts';
 import type { CardDef, ManaColor } from '../../src/types/card';
 
 const EFFECT_FAMILY_BY_ATOM = new Map<string, string>([
@@ -96,6 +97,154 @@ function addEffectCoverage(tags: Set<string>, ir: AbilityIR, compiled: CompiledE
   }
 }
 
+// Mirrors the "Search your library for ... onto the battlefield ... shuffle"
+// detection src/engine/status.ts detectFetchClause() uses (not exported, so
+// duplicated here as a line-local textual gate — see comment below for why a
+// duplicate check is needed instead of just calling fetchAbility(card)).
+function isFetchClauseLine(line: AbilityLine): boolean {
+  return (
+    /Search your library for/i.test(line.text) &&
+    /onto the battlefield/i.test(line.text) &&
+    /\bshuffle\b/i.test(line.text)
+  );
+}
+
+// Non-ability-compiler engine path: fetch lands (寓話の小道/Fabled Passage,
+// classic fetches, Panorama lands, etc.) resolve entirely through
+// src/engine/status.ts fetchAbility() + gameStore.ts
+// activateFetch/resolveFetch/fetchLand (fetchEntersTapped also implements the
+// "Then if you control N or more lands, untap that land" conditional-untap
+// clause), independent of compileAbilityIR/compileAbilityCost. The generic
+// grammar compiler cannot parse the dual/triple basic-type filter or the
+// trailing conditional-untap clause these cards use and falls back to
+// 'manual' for the effect body, but the app's dedicated "fetch-activate" UI
+// action (src/components/game/actionCatalog.ts, gated the same way:
+// typeLine.includes('Land') && fetchAbility(def) !== null) resolves them in
+// full regardless of what the ability compiler decided. Credit is gated on
+// the SAME real detection fetchAbility() uses (card-level, matching runtime
+// exactly — see isFetchAbilityStackItem in src/store/gameStore.ts) AND a
+// line-local textual match, so credit attaches only to the ability line that
+// is actually the fetch clause and never leaks to a sibling line on the same
+// card (per-line separation, §3b-5).
+//
+// Only tags backed by commands this path *actually* emits are added.
+// activateFetch/fetchLand always sacrifice the source (moveCard ->
+// graveyard) and resolveFetch/fetchLand always move the chosen library card
+// to the battlefield and shuffle — hence action:search/action:shuffle/
+// action:sacrifice are unconditional. life:write and tap-state:write are
+// gated on the ability actually having a life cost / entering tapped,
+// because that is exactly when these commands are emitted (adjustLife /
+// setTapped on the fetched card) — see resolveFetch and fetchLand in
+// src/store/gameStore.ts. cost:tap/cost:activation/cost:nonmana are
+// deliberately NOT added here: this dedicated path sacrifices the source
+// directly without ever issuing a setTapped command for it, so those
+// cost-side tags are not something *this* path models — they already come
+// correctly from compileAbilityCost's own cost-command parse (verified
+// covered for every real fetch land's simple cost text).
+function addFetchEngineCoverage(
+  tags: Set<string>,
+  card: CardDef,
+  typeLine: string,
+  line: AbilityLine,
+): void {
+  if (!typeLine.includes('Land') || !isFetchClauseLine(line)) {
+    return;
+  }
+  const ability = fetchAbility(card);
+  if (!ability) {
+    return;
+  }
+  tags.add('action:search');
+  tags.add('action:shuffle');
+  tags.add('action:sacrifice');
+  if (ability.lifeCost > 0) {
+    tags.add('life:write');
+  }
+  if (ability.entersTapped) {
+    tags.add('tap-state:write');
+  }
+}
+
+// Mirrors the per-sentence "enters ... tapped" detection
+// src/engine/status.ts landEntersTapped() uses internally (not exported, so
+// duplicated here as a line-local textual gate).
+function lineHasEntersTappedClause(line: AbilityLine): boolean {
+  return line.text
+    .split(/[.\n]/)
+    .some((sentence) => /enters\b[\s\S]*\btapped\b/i.test(sentence));
+}
+
+// Non-ability-compiler engine path: "this land enters tapped[, unless ...]"
+// static clauses (basic taplands, checklands, painless duals, shocklands'
+// pay-life-or-tapped framing, etc.) are resolved by src/engine/status.ts
+// landEntersTapped() + src/store/gameStore.ts playLand(), entirely
+// independent of compileAbilityIR (this line is typically classified as
+// 'static'/'replacement' shape, not something the effect compiler touches at
+// all). landEntersTapped() returns 'always' (auto-set tapped=true) or
+// 'conditional' (playLand() returns 'needs-tap-choice', and the app's
+// PendingLandTapChoice dialog lets the player resolve it directly — an
+// honest guided choice, not a gap, per the existing you-subject
+// draw/sacrifice precedent above). Only 'never' (no matching clause anywhere
+// on the card) is left uncredited. Gated on typeLine.includes('Land') and a
+// line-local textual match so credit attaches only to the ability line
+// that is actually the enters-tapped clause (no leak to a sibling line,
+// e.g. a land that also has a "{T}: Add ..." mana line).
+function addLandEntersTappedCoverage(
+  tags: Set<string>,
+  card: CardDef,
+  typeLine: string,
+  line: AbilityLine,
+): void {
+  if (!typeLine.includes('Land') || !lineHasEntersTappedClause(line)) {
+    return;
+  }
+  if (landEntersTapped(card) === 'never') {
+    return;
+  }
+  tags.add('tap-state:write');
+}
+
+// Non-ability-compiler engine path: mana abilities whose effect body is a
+// choice of explicit color symbols ("Add {W} or {B}.", "Add {W}{W}, {W}{B},
+// or {B}{B}.", "Add one mana of any color.", etc.) are not compiled by
+// compileManaEffect (src/engine/grammar/compile.ts:1206–1231) — it bails to
+// 'ambiguous-mana'/'needs-choice' whenever the raw text has an "or"/"any
+// combination of" between color symbols. The app never routes these
+// permanents through compileAbilityIR at all: src/store/gameStore.ts
+// tapForMana() resolves ANY permanent with a non-empty CardDef.producedMana
+// (Scryfall's produced_mana field, populated independent of oracle-text
+// parsing) through a generic tap+choose-color+addMana flow — the
+// 'tapForMana' UI action (src/components/game/actionCatalog.ts) is gated
+// purely on producedMana.length > 0. Credit requires producedMana to be
+// genuinely populated (so a card with no Scryfall produced-mana data does
+// NOT get false credit — tapForMana would tap without adding mana in that
+// case) AND the parsed IR to actually contain a mana-add effect on a
+// tap-cost activated line (so credit doesn't leak to an unrelated
+// activated ability on the same card, and a {0}-cost/non-tap variable-mana
+// ability like Vivi Ornitier — which tapForMana cannot resolve, since it
+// always taps the source — correctly stays a gap).
+function hasParsedManaAddEffect(ir: AbilityIR): boolean {
+  return ir.effects.some((effect) => effect.atom === 'effect.add-mana');
+}
+
+function addManaAbilityEngineCoverage(
+  tags: Set<string>,
+  card: CardDef,
+  line: AbilityLine,
+  ir: AbilityIR,
+): void {
+  if ((card.producedMana?.length ?? 0) === 0) {
+    return;
+  }
+  if (line.shape !== 'activated' || ir.cost?.tap !== true) {
+    return;
+  }
+  if (!hasParsedManaAddEffect(ir)) {
+    return;
+  }
+  tags.add('mana:write');
+}
+
 export function engineCoverageTagsForLine(card: CardDef, line: AbilityLine): Set<string> {
   const tags = new Set<string>();
   const typeLine = card.faces[line.faceIndex]?.typeLine ?? card.typeLine;
@@ -156,6 +305,10 @@ export function engineCoverageTagsForLine(card: CardDef, line: AbilityLine): Set
   ) {
     tags.add('cost:nonmana');
   }
+
+  addFetchEngineCoverage(tags, card, typeLine, line);
+  addLandEntersTappedCoverage(tags, card, typeLine, line);
+  addManaAbilityEngineCoverage(tags, card, line, ir);
 
   return tags;
 }

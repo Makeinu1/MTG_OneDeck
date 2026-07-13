@@ -68,6 +68,7 @@ import {
   cloneZonesByPlayer,
   objectIdOf,
   PHASE_ORDER,
+  PLAYER_IDS,
   syncP1ZonesByPlayerFromFlatZones,
 } from './types';
 
@@ -146,7 +147,7 @@ export type GameCommand =
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
   | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
-  | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean }
+  | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean; xValue?: number }
   | {
       type: 'addAbilityToStack';
       sourceId: string;
@@ -158,7 +159,7 @@ export type GameCommand =
     }
   | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
-  | { type: 'setManualTargets'; stackItemId: string; targetIds: string[] }
+  | { type: 'setManualTargets'; stackItemId: string; targetIds: string[]; targetPlayerIds?: PlayerId[] }
   | { type: 'copyStackItem'; cardId: string }
   | { type: 'copyPermanent'; cardId: string; quantity: number }
   | {
@@ -532,6 +533,7 @@ function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
     // targets chosen for the spell/object in its previous zone. In particular,
     // unchecked manual stack annotations must not reappear after resolve/recast.
     targetSelections: undefined,
+    announcedX: undefined,
   };
 }
 
@@ -557,6 +559,12 @@ function typeLineOf(draft: Draft, card: CardInstance): string {
   return effectiveTypeLine(stateWithCardForTypeRead(draft.state, card), card.id);
 }
 
+function manaValueOfStackObject(card: CardInstance, manaCost: string | undefined, baseManaValue: number | undefined) {
+  if (card.zone !== 'stack' || card.announcedX === undefined) return baseManaValue;
+  const xSymbols = parseManaCost(manaCost ?? '').x;
+  return (baseManaValue ?? 0) + xSymbols * card.announcedX;
+}
+
 function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
   const def = draft.state.defs[card.defId];
   const face = def?.faces[card.faceIndex] ?? def?.faces[0];
@@ -575,7 +583,7 @@ function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
     tapped: card.tapped,
     counters: { ...card.counters },
     typeLine: printedTypeLineOf(draft, card),
-    manaValue: def?.cmc,
+    manaValue: manaValueOfStackObject(card, face?.manaCost, def?.cmc),
     power: face?.power,
     toughness: face?.toughness,
   };
@@ -603,7 +611,7 @@ export function objectSnapshotForCard(state: GameState, cardId: string): ObjectS
     tapped: card.tapped,
     counters: { ...card.counters },
     typeLine: (face?.typeLine ?? def?.typeLine ?? '').toString(),
-    manaValue: def?.cmc,
+    manaValue: manaValueOfStackObject(card, face?.manaCost, def?.cmc),
     power: face?.power,
     toughness: face?.toughness,
   };
@@ -2406,7 +2414,13 @@ function createAbilityObject(
   };
 }
 
-function applyCastToStack(draft: Draft, cardId: string, payment: ManaPool, forced: boolean): void {
+function applyCastToStack(
+  draft: Draft,
+  cardId: string,
+  payment: ManaPool,
+  forced: boolean,
+  xValue?: number,
+): void {
   const card = requireCard(draft, cardId);
   const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
 
@@ -2421,6 +2435,10 @@ function applyCastToStack(draft: Draft, cardId: string, payment: ManaPool, force
   }
 
   moveCardInternal(draft, cardId, 'stack', 'bottom', false, 'cast');
+  if (xValue !== undefined) {
+    const stacked = requireCard(draft, cardId);
+    setCard(draft, { ...stacked, announcedX: Math.max(0, Math.floor(xValue)) });
+  }
   if (fromCommand) {
     incrementCommanderCastCount(draft, cardId);
   }
@@ -2428,7 +2446,12 @@ function applyCastToStack(draft: Draft, cardId: string, payment: ManaPool, force
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
 
-function applySetManualTargets(draft: Draft, stackItemId: string, targetIds: string[]): void {
+function applySetManualTargets(
+  draft: Draft,
+  stackItemId: string,
+  targetIds: string[],
+  targetPlayerIds: PlayerId[] = [],
+): void {
   const source = requireCard(draft, stackItemId);
   if (source.zone !== 'stack') {
     throw new EngineError('手動対象を設定できるのはスタック上の項目だけです。');
@@ -2439,7 +2462,7 @@ function applySetManualTargets(draft: Draft, stackItemId: string, targetIds: str
     throw new EngineError('手動対象を設定できるのは呪文だけです(能力は対象外)。');
   }
   const uniqueIds = [...new Set(targetIds)];
-  const manualSelections = uniqueIds.map((targetId, index): TargetSelection => {
+  const manualObjectSelections = uniqueIds.map((targetId, index): TargetSelection => {
     const target = requireCard(draft, targetId);
     const isPermanent = target.zone === 'battlefield' && !target.isAbility;
     const isSpell = target.zone === 'stack' && !target.isAbility && target.id !== stackItemId;
@@ -2460,6 +2483,20 @@ function applySetManualTargets(draft: Draft, stackItemId: string, targetIds: str
       legalityMode: 'unchecked-warning',
     };
   });
+  const uniquePlayerIds = [...new Set(targetPlayerIds)];
+  const manualPlayerSelections = uniquePlayerIds.map((playerId, index): TargetSelection => {
+    if (!PLAYER_IDS.includes(playerId)) {
+      throw new EngineError('手動対象には自分か対戦相手を選んでください。');
+    }
+    return {
+      slotId: `manual-target-player-${index}`,
+      raw: '手動で指定したプレイヤー対象',
+      kind: 'player',
+      selection: { kind: 'player', playerId },
+      legalityMode: 'unchecked-warning',
+    };
+  });
+  const manualSelections = [...manualObjectSelections, ...manualPlayerSelections];
   const retainedSelections = (source.targetSelections ?? []).filter(
     (selection) => !selection.slotId.startsWith('manual-target-'),
   );
@@ -3907,6 +3944,8 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
     // CR 707.10: copying a spell copies choices made for it, including
     // targets. A later "new targets" effect may replace them separately.
     targetSelections: source.targetSelections?.map((selection) => ({ ...selection })),
+    // CR 707.10: the announced value of X is one of the copied choices.
+    announcedX: source.announcedX,
   };
   draft.state.cards = cards;
   stack.push(copyId);
@@ -4409,7 +4448,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'castToStack': {
-      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced);
+      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.xValue);
       break;
     }
     case 'addAbilityToStack': {
@@ -4433,7 +4472,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'setManualTargets': {
-      applySetManualTargets(draft, cmd.stackItemId, cmd.targetIds);
+      applySetManualTargets(draft, cmd.stackItemId, cmd.targetIds, cmd.targetPlayerIds);
       break;
     }
     case 'copyStackItem': {

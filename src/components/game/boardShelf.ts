@@ -33,6 +33,11 @@ export function isBoardOverlap(count: number): boolean {
   return count >= BOARD_DENSITY_THRESHOLDS.overlap;
 }
 
+/** カード自身の幅を基準にした重なり量。棚幅基準の% marginを使わない。 */
+export function boardOverlapMargin(width: BoardCardWidth): number {
+  return -Math.round(width * 0.36);
+}
+
 /** 密度段階の識別子(CSS class / data 属性用)。 */
 export type BoardDensity = 'base' | 'mid' | 'high' | 'overlap';
 
