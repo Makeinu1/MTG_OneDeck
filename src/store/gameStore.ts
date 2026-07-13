@@ -76,7 +76,7 @@ import {
   fetchAbility,
   isSummoningSick,
   landEntersTapped,
-  cyclingCost,
+  cyclingInfo,
   normalizeKeywords,
 } from '../engine/status';
 
@@ -3256,19 +3256,31 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!card || card.zone !== 'hand') return 'ok';
 
       const def = cur.defs[card.defId];
-      const costLabel = cyclingCost(def);
-      if (!costLabel) return 'ok';
+      const info = cyclingInfo(def);
+      if (!info) return 'ok';
 
-      const cost = parseManaCost(costLabel);
+      // Plain cycling (CR 702.29a) draws a card. [Type]cycling (CR 702.29e) instead
+      // tutors a matching card to hand + shuffles — not automated yet (guided library
+      // search only supports destination:'battlefield'), so fail-closed: pay the cost
+      // and discard, but skip the (incorrect) draw and warn the user to search manually.
+      const effectCommands: GameCommand[] = info.isTypecycling
+        ? [{ type: 'discard', cardIds: [cardId] }]
+        : [{ type: 'discard', cardIds: [cardId] }, { type: 'draw', count: 1 }];
+      const typecyclingWarnings = info.isTypecycling
+        ? [
+            `${cardLabel(cur, cardId)}のタイプサイクリングは自動化未対応です。ライブラリから該当タイプのカードを1枚手札に加え、シャッフルしてください。`,
+          ]
+        : [];
+
+      const cost = parseManaCost(info.cost);
       const directPayment = solvePayment(cur.manaPool, cost, 0);
       if (directPayment.ok) {
         try {
           const result = applyCommands(cur, [
             { type: 'payMana', payment: directPayment.payment },
-            { type: 'discard', cardIds: [cardId] },
-            { type: 'draw', count: 1 },
+            ...effectCommands,
           ]);
-          commit(result.state, result.warnings);
+          commit(result.state, [...result.warnings, ...typecyclingWarnings]);
         } catch (err) {
           console.error(err);
         }
@@ -3284,10 +3296,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, [
           ...tapCommands(plan.taps),
           { type: 'payMana', payment: plan.payment },
-          { type: 'discard', cardIds: [cardId] },
-          { type: 'draw', count: 1 },
+          ...effectCommands,
         ]);
-        commit(result.state, result.warnings);
+        commit(result.state, [...result.warnings, ...typecyclingWarnings]);
       } catch (err) {
         console.error(err);
       }

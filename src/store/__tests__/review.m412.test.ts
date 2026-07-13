@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyCommand } from '../../engine/commands';
-import { cyclingCost } from '../../engine/status';
+import { cyclingCost, cyclingInfo } from '../../engine/status';
 import { initGame, type InitDeckCard } from '../../engine/init';
 import { useGameStore } from '../gameStore';
 import { makeDef } from '../../engine/__tests__/helpers';
@@ -56,6 +56,32 @@ describe('cyclingCost (§10.2)', () => {
     expect(cyclingCost(generic)).toBe('{2}');
     expect(cyclingCost(none)).toBeNull();
   });
+
+  it('classifies plain cycling vs [type]cycling variants (CR 702.29a vs 702.29e)', () => {
+    const plain = makeDef({
+      scryfallId: 'plain',
+      faces: [{ name: 'plain', typeLine: 'Creature', oracleText: 'Cycling {2}' }],
+    });
+    const landcycle = makeDef({
+      scryfallId: 'landcycle',
+      faces: [{ name: 'landcycle', typeLine: 'Land', oracleText: 'Basic landcycling {1}' }],
+    });
+    const typecycle = makeDef({
+      scryfallId: 'typecycle',
+      faces: [{ name: 'typecycle', typeLine: 'Creature', oracleText: 'Mountaincycling {1}{R}' }],
+    });
+    const noCycle = makeDef({
+      scryfallId: 'nc',
+      faces: [{ name: 'nc', typeLine: 'Creature' }],
+    });
+
+    expect(cyclingInfo(plain)).toEqual({ cost: '{2}', keyword: 'Cycling', isTypecycling: false });
+    expect(cyclingInfo(landcycle)?.isTypecycling).toBe(true);
+    expect(cyclingInfo(landcycle)?.cost).toBe('{1}');
+    expect(cyclingInfo(typecycle)?.isTypecycling).toBe(true);
+    expect(cyclingInfo(typecycle)?.cost).toBe('{1}{R}');
+    expect(cyclingInfo(noCycle)).toBeNull();
+  });
 });
 
 describe('store.cycle (§10.3)', () => {
@@ -101,6 +127,50 @@ describe('store.cycle (§10.3)', () => {
     expect(after.cards[id].zone).toBe('hand');
     expect(after.manaPool.C).toBe(2);
     expect(after.zones.graveyard.length).toBe(graveBefore);
+  });
+
+  it('fail-closed for [type]cycling: pays + discards but does NOT draw (CR 702.29e)', () => {
+    // Ash Barrens style: "Basic landcycling {1}". Correct effect tutors a basic land
+    // to hand; that is not automated, so cycle() must not perform the (wrong) draw.
+    const ashBarrens = makeDef({
+      scryfallId: 'ash',
+      typeLine: 'Land',
+      faces: [{ name: 'ash', typeLine: 'Land', oracleText: 'Basic landcycling {1}\n{T}: Add {C}.' }],
+    });
+    useGameStore.getState().newGame(deck(20, [ashBarrens]), 1);
+    let st = useGameStore.getState().state!;
+    let inst = Object.values(st.cards).find((c) => c.defId === 'ash' && c.zone === 'hand');
+    if (!inst) {
+      const inLib = Object.values(st.cards).find((c) => c.defId === 'ash')!;
+      useGameStore.getState().moveCard(inLib.id, 'hand', 'top');
+      inst = useGameStore.getState().state!.cards[inLib.id];
+    }
+    const id = inst.id;
+    useGameStore.getState().adjustMana('C', 1); // pay landcycling {1}
+    const handBefore = useGameStore.getState().state!.zones.hand.length;
+    const graveBefore = useGameStore.getState().state!.zones.graveyard.length;
+    const libBefore = useGameStore.getState().state!.zones.library.length;
+
+    const res = useGameStore.getState().cycle(id);
+    expect(res).toBe('ok');
+    st = useGameStore.getState().state!;
+    expect(st.cards[id].zone).toBe('graveyard');
+    // discard 1, NO draw -> hand shrinks by 1, library untouched (no wrongful draw)
+    expect(st.zones.hand.length).toBe(handBefore - 1);
+    expect(st.zones.graveyard.length).toBe(graveBefore + 1);
+    expect(st.zones.library.length).toBe(libBefore);
+    expect(st.manaPool.C).toBe(0); // cost still paid
+    // user is told to complete the tutor manually
+    expect(
+      useGameStore.getState().warnings.some((w) => w.includes('タイプサイクリング')),
+    ).toBe(true);
+
+    // single undo reverts the whole action
+    useGameStore.getState().undo();
+    st = useGameStore.getState().state!;
+    expect(st.cards[id].zone).toBe('hand');
+    expect(st.manaPool.C).toBe(1);
+    expect(st.zones.hand.length).toBe(handBefore);
   });
 
   it('returns a shortfall when mana is insufficient and not forced', () => {

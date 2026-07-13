@@ -511,17 +511,40 @@ export function landEntersTapped(def: CardDef | undefined): 'always' | 'never' |
   return sawTappedClause ? 'always' : 'never';
 }
 
-export function cyclingCost(def: CardDef | undefined): string | null {
+export interface CyclingInfo {
+  /** Cost string, e.g. "{2}" or "{1}{U}". */
+  cost: string;
+  /** The matched cycling keyword as printed, e.g. "cycling", "landcycling", "plainscycling". */
+  keyword: string;
+  /** True for [type]cycling variants (CR 702.29e); false for plain cycling (CR 702.29a). */
+  isTypecycling: boolean;
+}
+
+/**
+ * Detects the cycling ability's cost plus whether it is a [type]cycling variant.
+ * Kept intentionally loose (matches typecycling too) for the UI gate — the effect
+ * split (draw vs. tutor) is decided by callers via `isTypecycling`.
+ */
+export function cyclingInfo(def: CardDef | undefined): CyclingInfo | null {
   if (!def) return null;
 
   for (const text of cardTexts(def)) {
-    const english = text.match(/\b(?:[A-Za-z]+)?cycling\b\s*((?:\{[^}]+\})+)/i);
-    if (english?.[1]) {
-      return english[1];
+    const english = text.match(/\b([A-Za-z]*cycling)\b\s*((?:\{[^}]+\})+)/i);
+    if (english?.[2]) {
+      const keyword = english[1];
+      return {
+        cost: english[2],
+        keyword,
+        isTypecycling: keyword.toLowerCase() !== 'cycling',
+      };
     }
   }
 
   return null;
+}
+
+export function cyclingCost(def: CardDef | undefined): string | null {
+  return cyclingInfo(def)?.cost ?? null;
 }
 
 export function effectivePower(state: GameState, cardId: string): number {

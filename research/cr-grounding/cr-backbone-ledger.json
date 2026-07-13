@@ -210,7 +210,7 @@
         "scripts/mydeck-scoring/__tests__/engineCoverage.nonAbilityPaths.test.ts (実装者テスト・L58 判定者訂正=cost-leak pin を honest 化)",
         "research/mydeck-scoring/{summary,report,gaps}.md/.json (再生成)"
       ],
-      "nextGate": "計器は fetch/land/mana/cycling の別経路を credit 済み=絶対 count はこれら経路について真値に接近(『上限』caveat は当該経路で解消)。既知残境界: (1)cycling 以外の keyword は 9-family に実質寄与せず(実測) (2)mana ability の『Activate only if…』制限に対応する demand が無い(pre-existing blind spot・本スライス非導入) (3)engine 側 cycle() が landcycling を discard+draw 誤処理(別タスク化・スコープ外 substrate バグ)。demand 軸の運用則は selectionRule 参照。",
+      "nextGate": "計器は fetch/land/mana/cycling の別経路を credit 済み=絶対 count はこれら経路について真値に接近(『上限』caveat は当該経路で解消)。既知残境界: (1)cycling 以外の keyword は 9-family に実質寄与せず(実測) (2)mana ability の『Activate only if…』制限に対応する demand が無い(pre-existing blind spot・本スライス非導入) (3)engine 側 cycle() が landcycling を discard+draw 誤処理 = **修正済**(スライス score-ts-credit-nonability-paths から別タスク化した engine fix。cyclingInfo による [type]cycling 判別で fail-closed=支払い+discard のみ・draw 抑止・手動サーチ warning。CR 702.29a/e。独立 Tier-1=冷 Sonnet が regression proof[fix stash→新 review テスト RED]込みで clean 確認。ship 待ち)。完全自動化(destination:'hand' tutor)は DEFER=別スライス。demand 軸の運用則は selectionRule 参照。",
       "note": "2026-07-14 判定者。ユーザー裁定=フルスコープ(監査+整合+残り実装)。要石の実証例=判定者独立 review.* pin が、実装者の自己 pin と 1 回目 Tier-1 監査の双方をすり抜けた循環 over-credit を単独で捕捉→外科修正→追跡 Tier-1 で再確認。out-of-band 混載(76c52d9)の再オーナー化パターン=memory codex-out-of-band-fixes と同根。"
     },
     {

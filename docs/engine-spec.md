@@ -481,8 +481,15 @@ export function cyclingCost(def: CardDef | undefined): string | null;
 //   全 face の oracleText/printedText から「Cycling <cost>」/「サイクリング<コスト>」を検出し、
 //   コスト文字列(例 "{2}", "{1}{U}")を返す。複数あれば最初の1つ。
 //   {N}型・{色}型を拾えれば良い。typecycling/landcycling("Mountaincycling {1}" 等)も
-//   コスト部分を返してよい。該当なければ null。reminder文等の軽微な誤検出は許容(情報用)。
+//   コスト部分を返してよい(UI ゲート用に意図的に緩い)。該当なければ null。
+//   reminder文等の軽微な誤検出は許容(情報用)。
 //   日本語例: 「サイクリング{2}」。英語例: 「Cycling {2}」「Cycling {1}{U}」。
+
+export interface CyclingInfo { cost: string; keyword: string; isTypecycling: boolean; }
+export function cyclingInfo(def: CardDef | undefined): CyclingInfo | null;
+//   cyclingCost と同じ走査で、マッチした cycling キーワード語(例 "cycling"/"landcycling"/
+//   "plainscycling")と、それが [type]cycling 変種(CR 702.29e)か否かを併せて返す。
+//   isTypecycling := keyword.toLowerCase() !== 'cycling'。cyclingCost はこの cost を返す薄いラッパ。
 ```
 
 ### 10.3 ストア(`src/store/gameStore.ts`)で実装する操作
@@ -490,11 +497,19 @@ export function cyclingCost(def: CardDef | undefined): string | null;
 adjustMana(color: ManaColor, delta: number): void;   // dispatch({ type:'adjustMana', color, delta })
 
 cycle(cardId: string, opts?: { force?: boolean }): 'ok' | { shortfall: number };
-//   cyclingCost(def) を parseManaCost → planAutoTap で支払い計画。
+//   cyclingInfo(def) を parseManaCost → planAutoTap で支払い計画。
 //   ok でない かつ !force → { shortfall } を返し UI が確認(castFromHand と同パターン)。
-//   支払い可(または force): 自動タップ群 + そのカードを墓地へ(discard相当 moveCard hand→graveyard)
-//   + draw(1) を applySequence で【単一コミット】(undo 1回で全復元)。ログに記録。
-//   cyclingCost が null のカードに対しては no-op('ok')。
+//   支払い可(または force)後の効果は cycling 変種で分岐:
+//     - 素の cycling(CR 702.29a「Draw a card」): 自動タップ群 + discard(hand→graveyard) + draw(1)。
+//     - [type]cycling(CR 702.29e。landcycling / basic landcycling / mountaincycling 等):
+//       正しい効果は「ライブラリから該当タイプのカードを1枚**手札へ**加え、シャッフル」だが、
+//       既存 guided library-search は destination:'battlefield' 固定(hand tutor 未対応)ゆえ
+//       **fail-closed**=誤自動化(draw)を行わない。決定論的なコスト部分のみ実行=自動タップ群 +
+//       discard(hand→graveyard) を単一コミットし、warning でライブラリ手動サーチ+シャッフルを促す。
+//       (北極星「誤自動化≈0」/サンドボックス哲学=支援はするが非自動部分はユーザーに委ねる)
+//   いずれも applySequence で【単一コミット】(undo 1回で全復元)。ログ/warning に記録。
+//   cyclingInfo が null のカードに対しては no-op('ok')。
+//   DEFER: hand 宛て guided tutor(destination:'hand')は別スライス。実装後 [type]cycling を完全自動化する。
 ```
 
 ### 10.4 tapForMana の産出量改善(best-effort、`src/store/gameStore.ts`)
