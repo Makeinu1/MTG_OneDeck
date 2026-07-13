@@ -158,6 +158,7 @@ export type GameCommand =
     }
   | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
+  | { type: 'setManualTargets'; stackItemId: string; targetIds: string[] }
   | { type: 'copyStackItem'; cardId: string }
   | { type: 'copyPermanent'; cardId: string; quantity: number }
   | {
@@ -527,6 +528,10 @@ function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
     hasDeathtouchDamage: false,
     attachedTo: undefined,
     enteredTurn: 0,
+    // CR 400.7: a true zone change creates a new object with no memory of
+    // targets chosen for the spell/object in its previous zone. In particular,
+    // unchecked manual stack annotations must not reappear after resolve/recast.
+    targetSelections: undefined,
   };
 }
 
@@ -2423,6 +2428,45 @@ function applyCastToStack(draft: Draft, cardId: string, payment: ManaPool, force
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
 
+function applySetManualTargets(draft: Draft, stackItemId: string, targetIds: string[]): void {
+  const source = requireCard(draft, stackItemId);
+  if (source.zone !== 'stack') {
+    throw new EngineError('手動対象を設定できるのはスタック上の項目だけです。');
+  }
+  // 手動対象注記は「文法で解けない呪文」の可視化用。能力は guided compilation が対象を
+  // モデル化するため対象外(判定者裁定・Tier-1 LOW 指摘の scope 精密化)。
+  if (source.isAbility) {
+    throw new EngineError('手動対象を設定できるのは呪文だけです(能力は対象外)。');
+  }
+  const uniqueIds = [...new Set(targetIds)];
+  const manualSelections = uniqueIds.map((targetId, index): TargetSelection => {
+    const target = requireCard(draft, targetId);
+    const isPermanent = target.zone === 'battlefield' && !target.isAbility;
+    const isSpell = target.zone === 'stack' && !target.isAbility && target.id !== stackItemId;
+    if (!isPermanent && !isSpell) {
+      throw new EngineError('手動対象には戦場のパーマネントか、他のスタック上の呪文を選んでください。');
+    }
+    const snapshot = objectSnapshotOf(draft, target);
+    return {
+      slotId: `manual-target-${index}`,
+      raw: '手動で指定した対象',
+      kind: 'object',
+      selection: {
+        kind: 'object',
+        physicalCardId: snapshot.physicalCardId,
+        objectId: snapshot.objectId,
+        snapshot,
+      },
+      legalityMode: 'unchecked-warning',
+    };
+  });
+  const retainedSelections = (source.targetSelections ?? []).filter(
+    (selection) => !selection.slotId.startsWith('manual-target-'),
+  );
+  setCard(draft, { ...source, targetSelections: [...retainedSelections, ...manualSelections] });
+  pushLog(draft, `${nameOf(draft, stackItemId)}の対象を手動で${manualSelections.length}件記録した。`);
+}
+
 function applyAddAbilityToStack(
   draft: Draft,
   sourceId: string,
@@ -3860,6 +3904,9 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
     isCommander: false,
     enteredTurn: 0,
     isCopy: true,
+    // CR 707.10: copying a spell copies choices made for it, including
+    // targets. A later "new targets" effect may replace them separately.
+    targetSelections: source.targetSelections?.map((selection) => ({ ...selection })),
   };
   draft.state.cards = cards;
   stack.push(copyId);
@@ -4383,6 +4430,10 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
     case 'removeStackItem': {
       applyRemoveStackItem(draft, cmd.id, cmd.to);
+      break;
+    }
+    case 'setManualTargets': {
+      applySetManualTargets(draft, cmd.stackItemId, cmd.targetIds);
       break;
     }
     case 'copyStackItem': {

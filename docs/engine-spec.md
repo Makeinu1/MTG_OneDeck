@@ -2899,3 +2899,19 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 **スコープ境界(defer)**: -1/-1 や charge/loyalty 等 +1/+1 以外・可変数(for each/X)・each/mass・複数 counter 種混在・equipped/enchanted 相対・「on it」の後に残余修飾を持つ複合節。ループ変更(`AbilityIR.effectClauses: string[]` 追加で全 split-clause を antecedent 文脈に供給)の blast radius=counter 以外の atom 反転 **0件**(Tier-1 実測)。
 
 **受け入れ(判定者先行 authoring)**: `review.cr122-self-referential-counter.test.ts`(レビュー専有)= 正例(this creature/自名/This Vehicle becomes 型→auto・source counter)+ **不定主語 HIGH pin**(a/another <X> you control・非生物 source→manual・self counter 無し)+ Aang型先行 target/Additive Evolution型先行生成→manual。機械4点全緑。
+
+### 34.40 手動スタック対象注記 `setManualTargets`(サンドボックス可視化・CR 115/400.7/707.10)— この節も契約である
+
+**位置づけ**: cr-115-targets の拡張(1機能スライス)。文法がモデル化できないカードでも、ユーザーがスタック項目に**任意の他スタック呪文/戦場パーマネントを対象として注記**できるサンドボックス可視化機能。**由来=並行 ChatGPT UI トラックが UI 作業中に書いたエンジン変更を、判定者が抽象昇格を審査し独立監査を通してエンジンスライスとして再オーナー化**(設計 draft は `research/cr-grounding/manual-stack-target-annotation.draft.md`=「judge review required」で提出されていた)。
+
+**契約**: 新 `GameCommand` `{type:'setManualTargets'; stackItemId; targetIds}` を追加。既存 `targetSelections`/`TargetSelection` state を再利用(**新 state 型なし**)。
+- source は**スタック上の非ability(呪文)**必須(非stack・ability は EngineError=機能は文法で解けない呪文の可視化用・能力は guided compilation が対象をモデル化。判定者裁定)。候補は**他の非ability スタック呪文** or **非ability 戦場パーマネント**(hand/graveyard 等・ability・自己は拒否)。
+- 注記は `slotId:'manual-target-N'`・`raw:'手動で指定した対象'`・**`legalityMode:'unchecked-warning'`** で記録。
+- **parser 由来の checked 選択は保持し、`manual-target-*` 名前空間のみ置換/クリア**(再呼び出しは manual を入替・非manual不変)。
+- 1コマンド=1 undo/redo ステップ(決定的)。**注記は CR-legal の主張でも自動実行の指示でもない**=guided compilation・stored-target execution は `manual-target-*` を rules target として**絶対に消費しない**。
+
+**CR 根拠**: 115.1a/601.2c(実 target の権威=注記はこれを僭称しない・608.2b legality は注記から推論しない)。**CR 400.7**=ゾーン遷移は記憶なしの新オブジェクト化ゆえ `resetCardForZoneChange` で **targetSelections 全体をクリア**(checked/manual とも。resolve/recast 後に stale 注記が残らない。real target は毎 cast で選び直す)。**CR 707.10**=コピーは choices(targets 含む)をコピーするため `applyCopyStackItem` で `targetSelections` を複製。
+
+**判定者裁定**: 抽象昇格(北極星③)=既存プリミティブに「スタック項目へ手動対象を書く」操作は無く、既存 `targetSelections` state を再利用する最小の新コマンドゆえ**承認**。ゾーン遷移の全クリア範囲(draft が判定者へ委ねた open question)=CR400.7 準拠で**全 targetSelections クリアを承認**。
+
+**受け入れ(判定者先行 authoring)**: `review.cr-manual-stack-targets.test.ts`(レビュー専有・8 pin)= unchecked-warning 記録・非stack source 拒否・不正ゾーン target 拒否(no partial write)・自己注記拒否・manual名前空間のみ置換・checked 選択保持・**CR400.7 ゾーン遷移全クリア**・決定性(入力state不変)。UI(注記ダイアログ・stack-to-stack 矢印)は並行 ChatGPT トラックが別途担うため本エンジンスライスに含めない。
