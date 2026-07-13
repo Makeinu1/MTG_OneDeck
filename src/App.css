@@ -48,6 +48,230 @@
 }
 
 /* =========================================================================
+   Saved deck library
+   ========================================================================= */
+
+.saved-decks {
+  width: min(82.5rem, 100%);
+  margin-bottom: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-soft);
+}
+
+.saved-decks__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.saved-decks__heading h2 {
+  margin: 2px 0 4px;
+  color: var(--text-h);
+  font-family: var(--serif);
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.saved-decks__heading p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-xs);
+}
+
+.saved-decks__eyebrow {
+  color: var(--gold-bright) !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.saved-decks__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18.75rem), 1fr));
+  gap: var(--space-3);
+}
+
+.saved-decks__empty {
+  min-height: 6rem;
+  padding: var(--space-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.saved-deck {
+  min-width: 0;
+  min-height: 12.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  display: grid;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  overflow: hidden;
+  transition: border-color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+
+.saved-deck:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-0.0625rem);
+  box-shadow: var(--shadow-soft);
+}
+
+.saved-deck[data-selected='true'] {
+  border-color: var(--accent-border);
+  box-shadow: inset 0 0 0 1px var(--gold-dim);
+}
+
+.saved-deck__art {
+  position: relative;
+  min-height: 12.25rem;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.saved-deck__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 60%, var(--surface-2));
+  pointer-events: none;
+}
+
+.saved-deck__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.saved-deck__body {
+  min-width: 0;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+}
+
+.saved-deck__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.saved-deck__title-row h3 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-h);
+  font-size: var(--font-size-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-deck__commander {
+  margin: var(--space-2) 0 0;
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.saved-deck__meta {
+  margin: var(--space-2) 0 var(--space-3);
+  color: var(--text-dim);
+  font-size: var(--font-size-xs);
+}
+
+.saved-deck__colors {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.1875rem;
+}
+
+.saved-deck__mana {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--surface-0);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.saved-deck__mana--w { background: var(--mana-w); }
+.saved-deck__mana--u { background: var(--mana-u); }
+.saved-deck__mana--b { background: var(--mana-b); }
+.saved-deck__mana--r { background: var(--mana-r); }
+.saved-deck__mana--g { background: var(--mana-g); }
+.saved-deck__mana--c { background: var(--mana-c); }
+
+.saved-deck__actions {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.saved-deck__actions .btn {
+  min-height: var(--touch-target);
+}
+
+.saved-deck__delete {
+  color: var(--danger);
+}
+
+.saved-decks__error {
+  margin: var(--space-3) 0 0;
+  color: var(--danger);
+  font-size: var(--font-size-sm);
+}
+
+.import-screen__save-status {
+  margin: var(--space-2) 0 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.import-screen__save-status--saved { color: var(--mana-g); }
+.import-screen__save-status--error { color: var(--danger); }
+
+@media (max-width: 40rem) {
+  .saved-decks {
+    padding: var(--space-3);
+  }
+
+  .saved-decks__heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .saved-decks__heading .btn {
+    min-height: 44px;
+  }
+
+  .saved-deck {
+    grid-template-columns: 5.75rem minmax(0, 1fr);
+  }
+
+  .saved-deck__actions .btn--accent {
+    flex: 1 0 100%;
+  }
+}
+
+/* =========================================================================
    Buttons (shared)
    ========================================================================= */
 
@@ -817,11 +1041,9 @@
   gap: 14px;
   padding: 18px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(216, 176, 106, 0.14);
-  background:
-    radial-gradient(circle at top right, rgba(216, 176, 106, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(13, 20, 16, 0.88), rgba(10, 16, 13, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  background: var(--hero-wash), var(--surface-1);
+  box-shadow: var(--shadow-soft);
 }
 
 .deck-stats__header {
@@ -847,7 +1069,7 @@
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--accent-border);
-  background: rgba(216, 176, 106, 0.08);
+  background: var(--gold-dim);
   color: var(--gold-bright);
   font-family: var(--mono);
   font-size: 12px;
@@ -866,7 +1088,7 @@
   padding: 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  background: rgba(8, 13, 11, 0.34);
+  background: var(--surface-sunken);
 }
 
 .deck-stats__metric-label {
@@ -892,7 +1114,7 @@
   padding: 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  background: rgba(8, 13, 11, 0.28);
+  background: var(--surface-sunken);
 }
 
 .deck-stats__panel h3 {
@@ -928,8 +1150,8 @@
   align-items: flex-end;
   padding: 4px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 13, 11, 0.42);
+  border: 1px solid var(--line);
+  background: var(--surface-1);
 }
 
 .deck-stats__curve-bar {
@@ -959,7 +1181,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--line);
-  background: rgba(8, 13, 11, 0.34);
+  background: var(--surface-1);
 }
 
 .deck-stats__color-label {
@@ -1013,7 +1235,7 @@
   align-items: baseline;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-subtle);
 }
 
 .deck-stats__type-row span,
@@ -2985,10 +3207,10 @@
   width: min(440px, calc(100vw - 24px));
   padding: 18px 20px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--line-strong);
   background:
-    radial-gradient(circle at top right, rgba(216, 176, 106, 0.18), transparent 46%),
-    rgba(18, 27, 22, 0.94);
+    radial-gradient(circle at top right, color-mix(in srgb, var(--gold) 9%, transparent), transparent 46%),
+    color-mix(in srgb, var(--surface-2) 97%, transparent);
   box-shadow: var(--shadow-pop);
   display: flex;
   flex-direction: column;
@@ -3010,6 +3232,7 @@
 
 .mulligan-decision-panel__header h2 {
   font-size: 18px;
+  color: var(--text-h);
 }
 
 .mulligan-decision-panel__count {
@@ -3026,6 +3249,25 @@
 
 .mulligan-decision-panel__actions {
   margin-top: 4px;
+}
+
+.mulligan-decision-panel__keep,
+.mulligan-decision-panel__again {
+  min-height: var(--touch-target);
+  background: var(--surface-1);
+  border-color: var(--line-strong);
+  color: var(--text-h);
+  box-shadow: none;
+}
+
+.mulligan-decision-panel__keep {
+  border-color: var(--action-bar-border);
+}
+
+.mulligan-decision-panel__again:hover:not(:disabled),
+.mulligan-decision-panel__keep:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  border-color: var(--text-dim);
 }
 
 .mulligan-grid {

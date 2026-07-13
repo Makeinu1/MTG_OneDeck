@@ -145,9 +145,11 @@ describe('high-frequency HUD interactions', () => {
     const state = buildVisualFixture('lands').snapshot.state;
     const controller = controllerFor(state);
     const { container, root } = mount(<LandRow controller={controller} />);
+    const row = container.querySelector<HTMLElement>('[data-testid="land-row"]');
     const bundleButton = container.querySelector<HTMLButtonElement>('[data-testid^="land-bundle-count-"]');
     const bundle = bundleButton?.closest<HTMLElement>('.land-bundle');
 
+    expect(row?.dataset.density).toBe('spacious');
     expect(bundleButton?.getAttribute('aria-expanded')).toBe('false');
     act(() => bundleButton?.click());
     expect(bundleButton?.getAttribute('aria-expanded')).toBe('true');

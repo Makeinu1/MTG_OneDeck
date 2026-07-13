@@ -447,12 +447,12 @@ export function MulliganDecisionDialog({
             : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount - 1} 枚をライブラリの下に戻します。`}
         </p>
         <div className="dialog__actions mulligan-decision-panel__actions">
-          <button type="button" className="btn" onClick={onKeep} data-testid="mulligan-keep">
+          <button type="button" className="btn mulligan-decision-panel__keep" onClick={onKeep} data-testid="mulligan-keep">
             キープ
           </button>
           <button
             type="button"
-            className="btn btn--accent"
+            className="btn mulligan-decision-panel__again"
             onClick={onMulligan}
             data-testid="mulligan-again"
           >

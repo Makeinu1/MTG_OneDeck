@@ -10,6 +10,12 @@ import {
   type KeybindingsMap,
 } from '../data/keybindings';
 import { resolveDeck, type ResolveProgress } from '../data/scryfall';
+import {
+  requestPersistentStorageOnce,
+  saveResolvedDeck,
+  type SavedDeck,
+  type SavedDeckEntry,
+} from '../data/savedDecks';
 import type { CardDef } from '../types/card';
 import type { InitDeckCard } from '../engine/init';
 import { DeckStats } from './DeckStats';
@@ -19,7 +25,11 @@ import cardBackUrl from '../assets/onedeck/card-back.svg';
 
 export interface ImportScreenProps {
   initialDeckText: string;
+  initialSavedDeck?: SavedDeck | null;
   onStart: (deck: InitDeckCard[], deckText: string) => void;
+  onDeckSaved?: (deck: SavedDeck) => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onImportingChange?: (importing: boolean) => void;
   keybindings: KeybindingsMap;
   onKeybindingsChange: (map: KeybindingsMap) => void;
 }
@@ -59,22 +69,44 @@ function formatKeybindingLabel(key: string): string {
  */
 export function ImportScreen({
   initialDeckText,
+  initialSavedDeck = null,
   onStart,
+  onDeckSaved,
+  onDirtyChange,
+  onImportingChange,
   keybindings,
   onKeybindingsChange,
 }: ImportScreenProps) {
-  const [deckText, setDeckText] = useState(initialDeckText);
+  const initialEntries: ResolvedEntry[] = (initialSavedDeck?.entries ?? []).map((entry) => ({
+    name: entry.card.name,
+    ...entry,
+  }));
+  const [deckText, setDeckText] = useState(initialSavedDeck?.deckText ?? initialDeckText);
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState<ResolveProgress | null>(null);
-  const [resolvedEntries, setResolvedEntries] = useState<ResolvedEntry[]>([]);
+  const [resolvedEntries, setResolvedEntries] = useState<ResolvedEntry[]>(initialEntries);
   const [unresolved, setUnresolved] = useState<{ name: string; line: number; reason: string }[]>(
     [],
   );
   const [parseErrors, setParseErrors] = useState<ParseError[]>([]);
-  const [hasImported, setHasImported] = useState(false);
+  const [hasImported, setHasImported] = useState(initialEntries.length > 0);
+  const [savedDeckId, setSavedDeckId] = useState<string | undefined>(initialSavedDeck?.id);
+  const [savedBaselineText, setSavedBaselineText] = useState(initialSavedDeck?.deckText ?? '');
+  const [saveStatus, setSaveStatus] = useState<{
+    kind: 'saving' | 'saved' | 'error';
+    message: string;
+  } | null>(initialSavedDeck ? { kind: 'saved', message: 'マイデッキから開きました。' } : null);
   const [rebindingAction, setRebindingAction] = useState<KeybindingAction | null>(null);
   const [keybindingWarning, setKeybindingWarning] = useState<string | null>(null);
   const importRunRef = useRef(0);
+
+  useEffect(() => {
+    onDirtyChange?.(deckText !== savedBaselineText);
+  }, [deckText, onDirtyChange, savedBaselineText]);
+
+  useEffect(() => {
+    onImportingChange?.(isImporting);
+  }, [isImporting, onImportingChange]);
 
   useEffect(() => {
     if (!rebindingAction) return;
@@ -121,6 +153,7 @@ export function ImportScreen({
     setUnresolved([]);
     setParseErrors([]);
     setHasImported(false);
+    setSaveStatus(null);
 
     try {
       const { entries, errors } = parseDeckList(deckText);
@@ -141,6 +174,39 @@ export function ImportScreen({
       setResolvedEntries(resolved);
       setUnresolved(result.unresolved);
       setHasImported(true);
+
+      if (errors.length === 0 && result.unresolved.length === 0 && resolved.length > 0) {
+        setSaveStatus({ kind: 'saving', message: 'マイデッキに保存中…' });
+        const entriesToSave: SavedDeckEntry[] = resolved.map(({ card, quantity, section }) => ({
+          card,
+          quantity,
+          section,
+        }));
+        try {
+          const saved = await saveResolvedDeck({
+            deckText,
+            entries: entriesToSave,
+            existingDeckId: savedDeckId,
+          });
+          if (importRunRef.current !== runId) return;
+          setSavedDeckId(saved.deck.id);
+          setSavedBaselineText(deckText);
+          setSaveStatus({
+            kind: 'saved',
+            message: saved.operation === 'created'
+              ? 'マイデッキに保存しました。'
+              : 'マイデッキを更新しました。',
+          });
+          onDeckSaved?.(saved.deck);
+          void requestPersistentStorageOnce();
+        } catch {
+          if (importRunRef.current !== runId) return;
+          setSaveStatus({
+            kind: 'error',
+            message: 'このブラウザには保存できませんでした。ゲームは開始できます。',
+          });
+        }
+      }
     } finally {
       if (importRunRef.current === runId) setIsImporting(false);
     }
@@ -153,7 +219,10 @@ export function ImportScreen({
   };
 
   const totalCount = resolvedEntries.reduce((sum, e) => sum + e.quantity, 0);
-  const canStart = hasImported && unresolved.length === 0 && resolvedEntries.length > 0;
+  const canStart = hasImported
+    && unresolved.length === 0
+    && parseErrors.length === 0
+    && resolvedEntries.length > 0;
 
   const handleStart = (): void => {
     const deck: InitDeckCard[] = [];
@@ -228,7 +297,15 @@ export function ImportScreen({
           data-testid="deck-input"
           className="import-screen__textarea"
           value={deckText}
-          onChange={(e) => setDeckText(e.target.value)}
+          onChange={(e) => {
+            setDeckText(e.target.value);
+            setProgress(null);
+            setResolvedEntries([]);
+            setUnresolved([]);
+            setParseErrors([]);
+            setHasImported(false);
+            setSaveStatus(null);
+          }}
           placeholder={'例:\n統率者\n1 The Ur-Dragon\n\nデッキ\n1 Sol Ring\n4 稲妻'}
           spellCheck={false}
         />
@@ -254,6 +331,16 @@ export function ImportScreen({
             </button>
           )}
         </div>
+
+        {saveStatus && (
+          <p
+            className={`import-screen__save-status import-screen__save-status--${saveStatus.kind}`}
+            role={saveStatus.kind === 'error' ? 'alert' : 'status'}
+            data-testid="deck-save-status"
+          >
+            {saveStatus.message}
+          </p>
+        )}
 
         <details className="import-screen__details">
           <summary>詳細・ショートカット設定</summary>

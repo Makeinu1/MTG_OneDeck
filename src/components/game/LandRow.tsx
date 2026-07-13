@@ -88,9 +88,10 @@ export function LandRow({ controller }: LandRowProps) {
     .map((id) => toLandRowCard(state, id))
     .filter((c): c is LandRowCard => c !== null);
   const bundles = bundleLands(landCards);
+  const density = bundles.length <= 6 ? 'spacious' : bundles.length <= 10 ? 'balanced' : 'dense';
 
   return (
-    <div className="land-row" data-testid="land-row">
+    <div className="land-row" data-density={density} data-testid="land-row">
       <div className="land-row__lands">
         {bundles.map((bundle) => (
           <Bundle key={bundle.key} controller={controller} bundle={bundle} />

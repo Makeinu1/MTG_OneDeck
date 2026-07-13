@@ -1,11 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { ImportScreen } from './components/ImportScreen';
 import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
 import { GameScreen } from './components/game/GameScreen';
+import { Modal } from './components/Modal';
+import { SavedDeckLibrary } from './components/SavedDeckLibrary';
 import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
 import { loadKeybindings, type KeybindingsMap } from './data/keybindings';
+import {
+  deleteSavedDeck,
+  entriesFromExpandedDeck,
+  listSavedDecks,
+  renameSavedDeck,
+  saveResolvedDeck,
+  updateSavedDeckEntries,
+  type SavedDeck,
+} from './data/savedDecks';
+import { needsJapaneseDisplayRefresh, refreshJapaneseCardDefs } from './data/scryfall';
 import { useGameStore } from './store/gameStore';
 import type { InitDeckCard } from './engine/init';
 import type { CardDef } from './types/card';
@@ -43,9 +55,18 @@ function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null
 
 function App() {
   const state = useGameStore((s) => s.state);
-  const [{ deckText, storedDeck }] = useState(() => loadStoredDeck());
+  const [{ deckText: legacyDeckText, storedDeck: legacyDeck }] = useState(() => loadStoredDeck());
   const [keybindings, setKeybindings] = useState<KeybindingsMap>(() => loadKeybindings());
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
+  const [savedDecks, setSavedDecks] = useState<SavedDeck[]>([]);
+  const [selectedDeck, setSelectedDeck] = useState<SavedDeck | null>(null);
+  const [legacyFallback, setLegacyFallback] = useState(legacyDeck !== null);
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [pendingDeck, setPendingDeck] = useState<SavedDeck | 'new' | null>(null);
+  const [editorVersion, setEditorVersion] = useState(0);
+  const localizationRefreshKey = useRef('');
 
   useEffect(() => {
     let cancelled = false;
@@ -60,15 +81,129 @@ function App() {
     };
   }, []);
 
-  const handleStart = (deck: InitDeckCard[], text: string): void => {
-    try {
-      localStorage.setItem(DECK_TEXT_KEY, text);
-      localStorage.setItem(DECK_CARDS_KEY, JSON.stringify(deck));
-    } catch {
-      // localStorage unavailable (private mode, quota, etc.) - continue without persistence.
-    }
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      let decks: SavedDeck[] = [];
+      try {
+        decks = await listSavedDecks();
+        if (legacyDeck && legacyDeck.length > 0) {
+          const migrated = await saveResolvedDeck({
+            deckText: legacyDeckText,
+            entries: entriesFromExpandedDeck(legacyDeck),
+          });
+          try {
+            localStorage.removeItem(DECK_TEXT_KEY);
+            localStorage.removeItem(DECK_CARDS_KEY);
+          } catch {
+            // IndexedDB already owns the deck; stale legacy keys are harmless.
+          }
+          decks = await listSavedDecks();
+          if (!cancelled) {
+            setLegacyFallback(false);
+            setSelectedDeck(migrated.deck);
+          }
+        } else if (!cancelled && decks.length > 0) {
+          setSelectedDeck(decks[0]);
+        }
+      } catch {
+        // Preserve the legacy quick-start path when migration or IndexedDB fails.
+      } finally {
+        if (!cancelled) {
+          setSavedDecks(decks);
+          setLibraryReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [legacyDeck, legacyDeckText]);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    const incompleteCards = savedDecks.flatMap((deck) =>
+      deck.entries
+        .map((entry) => entry.card)
+        .filter(needsJapaneseDisplayRefresh),
+    );
+    if (incompleteCards.length === 0) return;
+    const refreshKey = [...new Set(incompleteCards.map((card) => card.oracleId))]
+      .sort((a, b) => a.localeCompare(b))
+      .join('|');
+    if (localizationRefreshKey.current === refreshKey) return;
+    localizationRefreshKey.current = refreshKey;
+
+    void refreshJapaneseCardDefs(incompleteCards)
+      .then(async (refreshed) => {
+        if (refreshed.size === 0) return;
+        const updatedDecks: SavedDeck[] = [];
+        for (const deck of savedDecks) {
+          let changed = false;
+          const entries = deck.entries.map((entry) => {
+            const localized = refreshed.get(entry.card.oracleId);
+            if (!localized) return entry;
+            changed = true;
+            return { ...entry, card: localized };
+          });
+          if (changed) updatedDecks.push(await updateSavedDeckEntries(deck.id, entries));
+        }
+        if (updatedDecks.length === 0) return;
+        const byId = new Map(updatedDecks.map((deck) => [deck.id, deck]));
+        setSavedDecks((current) => current.map((deck) => byId.get(deck.id) ?? deck));
+      })
+      .catch(() => {
+        // Offline use remains available with the stored display data.
+      });
+  }, [libraryReady, savedDecks]);
+
+  const handleStart = (deck: InitDeckCard[]): void => {
     useGameStore.getState().newGame(deck);
   };
+
+  const handleDeckSaved = useCallback((deck: SavedDeck): void => {
+    setSavedDecks((current) => [deck, ...current.filter((item) => item.id !== deck.id)]
+      .sort((a, b) => b.updatedAt - a.updatedAt));
+    setSelectedDeck(deck);
+    setLegacyFallback(false);
+    setEditorDirty(false);
+  }, []);
+
+  const performDeckSwitch = useCallback((next: SavedDeck | 'new'): void => {
+    setSelectedDeck(next === 'new' ? null : next);
+    setEditorDirty(false);
+    setEditorVersion((version) => version + 1);
+    setPendingDeck(null);
+  }, []);
+
+  const requestDeckSwitch = useCallback((next: SavedDeck | 'new'): void => {
+    if (next !== 'new' && next.id === selectedDeck?.id) return;
+    if (editorDirty) {
+      setPendingDeck(next);
+      return;
+    }
+    performDeckSwitch(next);
+  }, [editorDirty, performDeckSwitch, selectedDeck?.id]);
+
+  const handleRename = useCallback(async (deck: SavedDeck, name: string): Promise<void> => {
+    const renamed = await renameSavedDeck(deck.id, name);
+    setSavedDecks((current) => current
+      .map((item) => item.id === renamed.id ? renamed : item)
+      .sort((a, b) => b.updatedAt - a.updatedAt));
+    setSelectedDeck((current) => current?.id === renamed.id ? renamed : current);
+  }, []);
+
+  const handleDelete = useCallback(async (deck: SavedDeck): Promise<void> => {
+    await deleteSavedDeck(deck.id);
+    setSavedDecks((current) => current.filter((item) => item.id !== deck.id));
+    if (selectedDeck?.id === deck.id) {
+      setEditorDirty(false);
+      setEditorVersion((version) => version + 1);
+      setSelectedDeck(null);
+    }
+  }, [selectedDeck?.id]);
 
   if (state) {
     if (isV2LayoutEnabled()) {
@@ -88,7 +223,7 @@ function App() {
 
   return (
     <div className="app">
-      {(snapshot?.state || (storedDeck && storedDeck.length > 0)) && (
+      {(snapshot?.state || (legacyFallback && legacyDeck && legacyDeck.length > 0)) && (
         <section className="app__resume-shelf" aria-label="前回の続き">
           {snapshot?.state && (
             <div className="app__resume">
@@ -103,14 +238,14 @@ function App() {
               </button>
             </div>
           )}
-          {storedDeck && storedDeck.length > 0 && (
+          {legacyFallback && legacyDeck && legacyDeck.length > 0 && (
             <div className="app__resume">
               <div><strong>前回のデッキ</strong><p>再解析せず、新しい一人回しを始めます。</p></div>
               <button
                 type="button"
                 className="btn btn--ghost"
                 data-testid="resume-game"
-                onClick={() => useGameStore.getState().newGame(storedDeck)}
+                onClick={() => useGameStore.getState().newGame(legacyDeck)}
               >
                 このデッキで開始
               </button>
@@ -118,12 +253,53 @@ function App() {
           )}
         </section>
       )}
-      <ImportScreen
-        initialDeckText={deckText}
-        onStart={handleStart}
-        keybindings={keybindings}
-        onKeybindingsChange={setKeybindings}
-      />
+      {libraryReady && (
+        <>
+          <SavedDeckLibrary
+            decks={savedDecks}
+            selectedDeckId={selectedDeck?.id}
+            hasUnsavedChanges={editorDirty}
+            disabled={isImporting}
+            onOpen={(deck) => requestDeckSwitch(deck)}
+            onNew={() => requestDeckSwitch('new')}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
+          <ImportScreen
+            key={`${selectedDeck?.id ?? 'new'}:${editorVersion}`}
+            initialDeckText={legacyFallback ? legacyDeckText : ''}
+            initialSavedDeck={selectedDeck}
+            onStart={handleStart}
+            onDeckSaved={handleDeckSaved}
+            onDirtyChange={setEditorDirty}
+            onImportingChange={setIsImporting}
+            keybindings={keybindings}
+            onKeybindingsChange={setKeybindings}
+          />
+        </>
+      )}
+
+      {pendingDeck && (
+        <Modal
+          title="入力中の内容を破棄しますか？"
+          onClose={() => setPendingDeck(null)}
+          width="sm"
+          testId="discard-deck-edit-dialog"
+        >
+          <p>まだ解析していない変更があります。別のデッキを開くと、この入力内容は失われます。</p>
+          <div className="dialog__actions">
+            <button type="button" className="btn btn--ghost" onClick={() => setPendingDeck(null)}>入力を続ける</button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              data-testid="discard-deck-edit-confirm"
+              onClick={() => performDeckSwitch(pendingDeck)}
+            >
+              破棄して切り替える
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

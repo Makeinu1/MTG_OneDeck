@@ -419,6 +419,47 @@ async function fetchJapanesePrintsByOracleIds(
   return japanesePrints;
 }
 
+/**
+ * Older cached Japanese records can have a Japanese name/image but no
+ * `printed_text`, even after Scryfall later gains a complete localized scan.
+ * Do not silently mix that partial Japanese display with an English Oracle
+ * paragraph; revalidate only the incomplete records.
+ */
+export function needsJapaneseDisplayRefresh(card: CardDef): boolean {
+  return card.lang === 'ja' && card.faces.some((face) =>
+    Boolean(face.printedName && face.oracleText && !face.printedText),
+  );
+}
+
+/** Refresh incomplete Japanese display data by oracle id and repair the card cache. */
+export async function refreshJapaneseCardDefs(cards: CardDef[]): Promise<Map<string, CardDef>> {
+  const candidates = [...new Map(
+    cards
+      .filter(needsJapaneseDisplayRefresh)
+      .map((card) => [card.oracleId, card]),
+  ).values()];
+  if (candidates.length === 0) return new Map();
+
+  const japanesePrints = await fetchJapanesePrintsByOracleIds(
+    candidates.map((card) => card.oracleId),
+  );
+  const refreshed = new Map<string, CardDef>();
+  for (const base of candidates) {
+    const japanesePrint = japanesePrints.get(base.oracleId);
+    if (!japanesePrint) continue;
+    const next = applyJapanesePrint(base, japanesePrint);
+    if (needsJapaneseDisplayRefresh(next)) continue;
+    refreshed.set(base.oracleId, next);
+    try {
+      await putCardDef(base.name, next);
+      if (base.printedName) await putCardDef(base.printedName, next);
+    } catch {
+      // The fresh display data is still usable for this preview when storage is blocked.
+    }
+  }
+  return refreshed;
+}
+
 interface PendingEntry {
   entry: DeckEntry;
   lookupKey: string;
@@ -453,7 +494,7 @@ export async function resolveDeck(
   for (const { entry, lookupKey } of pending) {
     // Check cache first.
     const cached = await getCachedByName(lookupKey);
-    if (cached) {
+    if (cached && !needsJapaneseDisplayRefresh(cached)) {
       resolved.set(lookupKey, cached);
       done += 1;
       reportProgress();

@@ -158,7 +158,8 @@ export function HandRibbon({
               : 'ライブラリーから1枚引く'}
             onClick={drawOne}
           >
-            1枚引く
+            <span className="hand-ribbon__draw-glyph" aria-hidden="true">引</span>
+            <span className="sr-only">1枚引く</span>
           </button>
         </div>
         <button

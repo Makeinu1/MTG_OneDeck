@@ -136,4 +136,74 @@ describe('cache integration with resolveDeck', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(secondResult.resolved.get('Sol Ring')?.name).toBe('Sol Ring');
   });
+
+  it('self-heals a cached Japanese card whose printed rules text is missing', async () => {
+    await putCardDef('Everflowing Chalice', makeCardDef({
+      scryfallId: 'chalice-ja-old',
+      oracleId: 'chalice-oracle',
+      name: 'Everflowing Chalice',
+      printedName: '永遠溢れの杯',
+      lang: 'ja',
+      faces: [{
+        name: 'Everflowing Chalice',
+        printedName: '永遠溢れの杯',
+        typeLine: 'Artifact',
+        oracleText: 'Multikicker {2}',
+      }],
+    }));
+
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = urlOf(input);
+      if (url.includes('/cards/collection')) {
+        return jsonResponse({
+          object: 'list',
+          data: [{
+            id: 'chalice-en',
+            oracle_id: 'chalice-oracle',
+            name: 'Everflowing Chalice',
+            lang: 'en',
+            layout: 'normal',
+            cmc: 0,
+            color_identity: [],
+            type_line: 'Artifact',
+            oracle_text: 'Multikicker {2}',
+          }],
+          not_found: [],
+        });
+      }
+      if (url.includes('/cards/search')) {
+        return jsonResponse({
+          object: 'list',
+          has_more: false,
+          data: [{
+            id: 'chalice-ja-current',
+            oracle_id: 'chalice-oracle',
+            name: 'Everflowing Chalice',
+            printed_name: '永遠溢れの杯',
+            lang: 'ja',
+            layout: 'normal',
+            cmc: 0,
+            color_identity: [],
+            type_line: 'Artifact',
+            printed_type_line: 'アーティファクト',
+            oracle_text: 'Multikicker {2}',
+            printed_text: '多重キッカー{2}',
+          }],
+        });
+      }
+      throw new Error(`unexpected url: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const promise = resolveDeck([makeEntry({ name: 'Everflowing Chalice' })]);
+    await vi.runAllTimersAsync();
+    const result = await promise;
+
+    expect(fetchMock).toHaveBeenCalled();
+    expect(result.resolved.get('Everflowing Chalice')?.faces[0]).toMatchObject({
+      printedName: '永遠溢れの杯',
+      printedTypeLine: 'アーティファクト',
+      printedText: '多重キッカー{2}',
+    });
+  });
 });

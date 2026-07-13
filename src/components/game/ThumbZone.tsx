@@ -14,6 +14,7 @@ import { isSoundEnabled, setSoundEnabled } from './motion';
 import { primaryActionDisplayLabel } from './primaryActionDisplay';
 import type { GameController } from './gameController';
 import { ThemeToggle } from '../ThemeToggle';
+import { Icon } from '../../ui/icons';
 
 export interface ThumbZoneProps {
   controller: GameController;
@@ -143,7 +144,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         onClick={controller.undo}
         title="元に戻す"
       >
-        ↩
+        <Icon name="undo" />
       </button>
 
       <button
@@ -154,7 +155,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         onClick={controller.redo}
         title="やり直す"
       >
-        ↪
+        <Icon name="redo" />
       </button>
 
       <button
@@ -175,7 +176,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         onClick={() => controller.advanceTurn()}
         title="次のターン"
       >
-        ≫
+        <Icon name="turn-next" />
       </button>
 
       <button
@@ -185,7 +186,7 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         onClick={() => setMenuOpen(true)}
         title="メニュー"
       >
-        ≡
+        <Icon name="menu" />
       </button>
 
       {menuOpen && <GameMenuSheet controller={controller} onClose={() => setMenuOpen(false)} />}

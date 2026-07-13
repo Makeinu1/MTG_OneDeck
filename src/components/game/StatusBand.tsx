@@ -12,6 +12,7 @@ import { lifeFlashDirection } from './motion';
 import { LifeSheet } from './LifeSheet';
 import type { GameController } from './gameController';
 import { manaReadinessModel } from './manaReadiness';
+import { Icon } from '../../ui/icons';
 
 const MANA_LABELS = [
   { color: 'W', kanji: '白', name: '白マナ' },
@@ -156,7 +157,7 @@ export function StatusBand({ controller }: StatusBandProps) {
           title="フィード(誘発/警告/ログ)"
           aria-label="ログを開く"
         >
-          🔔
+          <Icon name="bell" />
           {unseen > 0 && (
             <span className="status-band__bell-badge" data-testid="feed-badge">
               {unseen}

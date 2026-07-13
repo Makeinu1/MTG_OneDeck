@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import type { CardInstance } from '../../engine/types';
 import type { CardDef } from '../../types/card';
+import { needsJapaneseDisplayRefresh, refreshJapaneseCardDefs } from '../../data/scryfall';
 import { CardView } from '../CardView';
 import { cardPreviewPosition, type CardPreviewAnchor } from './cardPreviewPosition';
 
@@ -13,17 +15,57 @@ export function CardPreview({
   def: CardDef | undefined;
   anchor: CardPreviewAnchor;
 }) {
+  const [localizedDef, setLocalizedDef] = useState<CardDef | undefined>();
+  const [failedOracleId, setFailedOracleId] = useState<string | undefined>();
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!def || instance.faceDown || !needsJapaneseDisplayRefresh(def)) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void refreshJapaneseCardDefs([def])
+      .then((refreshed) => {
+        if (cancelled) return;
+        const localized = refreshed.get(def.oracleId);
+        if (localized) {
+          setLocalizedDef(localized);
+        } else {
+          setFailedOracleId(def.oracleId);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFailedOracleId(def.oracleId);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [def, instance.faceDown]);
+
+  const displayDef = localizedDef?.oracleId === def?.oracleId ? localizedDef : def;
+  const localizationPending = Boolean(
+    def
+    && !instance.faceDown
+    && needsJapaneseDisplayRefresh(def)
+    && localizedDef?.oracleId !== def.oracleId
+    && failedOracleId !== def.oracleId,
+  );
+
   const face = instance.faceDown
     ? undefined
-    : (def?.faces[instance.faceIndex] ?? def?.faces[0]);
+    : (displayDef?.faces[instance.faceIndex] ?? displayDef?.faces[0]);
   const name = instance.faceDown
     ? '裏向きのカード'
-    : (face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード');
-  const typeLine = face?.printedTypeLine ?? face?.typeLine ?? def?.typeLine;
-  const rulesText = face?.printedText ?? face?.oracleText;
-  const oppositeFace = instance.faceDown || (def?.faces.length ?? 0) < 2
+    : (face?.printedName ?? face?.name ?? displayDef?.printedName ?? displayDef?.name ?? '不明なカード');
+  const typeLine = face?.printedTypeLine ?? face?.typeLine ?? displayDef?.typeLine;
+  const rulesText = localizationPending ? undefined : (face?.printedText ?? face?.oracleText);
+  const usesEnglishOracleFallback = displayDef?.lang === 'ja'
+    && Boolean(face?.printedName && !face?.printedText && face?.oracleText);
+  const oppositeFace = instance.faceDown || (displayDef?.faces.length ?? 0) < 2
     ? undefined
-    : def?.faces.find((_, index) => index !== instance.faceIndex);
+    : displayDef?.faces.find((_, index) => index !== instance.faceIndex);
   const position = cardPreviewPosition(anchor, {
     width: window.innerWidth,
     height: window.innerHeight,
@@ -37,13 +79,23 @@ export function CardPreview({
       aria-live="polite"
     >
       <div className="game-card-preview__image">
-        <CardView instance={instance} def={def} size="battlefield" draggable={false} imageQuality="normal" />
+        <CardView instance={instance} def={displayDef} size="battlefield" draggable={false} imageQuality="normal" />
       </div>
       <div className="game-card-preview__details">
         <strong>{name}</strong>
         {face?.manaCost && <span className="game-card-preview__mana">{face.manaCost}</span>}
         {typeLine && <span>{typeLine}</span>}
-        {rulesText && <p>{rulesText}</p>}
+        {localizationPending && (
+          <p className="game-card-preview__localization">日本語表示を更新中…</p>
+        )}
+        {rulesText && (
+          <p>
+            {usesEnglishOracleFallback && (
+              <span className="game-card-preview__language-label">Oracle（英語）</span>
+            )}
+            {rulesText}
+          </p>
+        )}
         {oppositeFace && (
           <div className="game-card-preview__reverse" data-testid={`card-preview-reverse-${instance.id}`}>
             {oppositeFace.imageUrl ? (

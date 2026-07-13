@@ -153,8 +153,12 @@
 .status-band__bell {
   position: relative; flex: 0 0 auto;
   width: 44px; height: 44px; padding: 0; display: grid; place-items: center;
-  background: transparent; border: none; cursor: pointer; font-size: var(--font-size-md);
+  background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: var(--font-size-md);
 }
+.status-band__bell:hover,
+.status-band__bell:focus-visible { color: var(--text-h); }
+.status-band__bell .icon,
+.status-band__bell svg { width: 20px; height: 20px; }
 .status-band__bell-badge {
   position: absolute; top: -2px; right: -4px; z-index: 2;
   min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center;
@@ -294,8 +298,8 @@
 .stack-workspace footer span { color: var(--text-dim); font-size: var(--font-size-xs); }
 .stack-band__resolve {
   padding: var(--space-2) var(--space-3); min-height: var(--touch-target);
-  background: var(--gold-surface); box-shadow: var(--gold-edge);
-  color: var(--action-primary-text); border: none; border-radius: var(--radius-sm);
+  background: var(--surface-2); box-shadow: var(--stack-glow);
+  color: var(--stack-glow-c); border: 1px solid var(--stack-glow-c); border-radius: var(--radius-sm);
   font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .stack-target-lines {
@@ -380,19 +384,23 @@
 .commander-altar__meta { display: flex; justify-content: space-between; gap: 2px; font-size: 9px; color: var(--text-dim); }
 .commander-altar__meta strong { color: var(--gold-bright); white-space: nowrap; }
 .land-row {
+  --land-card-w: 112px;
+  --land-bundle-w: 140px;
   height: var(--land-h);
   display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-2); overflow-x: auto;
   border-top: 1px solid var(--line);
 }
+.land-row[data-density='balanced'] { --land-card-w: 104px; --land-bundle-w: 132px; }
+.land-row[data-density='dense'] { --land-card-w: 96px; --land-bundle-w: 124px; }
 .land-row__lands { display: flex; align-items: center; gap: var(--space-3); flex: 1; }
 .land-bundle {
   position: relative; display: flex; flex: 0 0 auto;
-  width: 96px; height: 100%; overflow: visible;
+  width: var(--land-bundle-w); height: 100%; overflow: visible;
 }
 .land-bundle__cards { position: relative; width: 100%; height: 100%; display: flex; overflow: visible; }
-.land-bundle .land-bundle__slot { width: 72px; flex: 0 0 auto; }
-.land-bundle .land-bundle__slot .game-card { width: 72px; }
+.land-bundle .land-bundle__slot { width: var(--land-card-w); flex: 0 0 auto; }
+.land-bundle .land-bundle__slot .game-card { width: var(--land-card-w); }
 .land-bundle:not([data-expanded='true']) .land-bundle__slot {
   position: absolute; left: var(--land-peek); top: 0;
 }
@@ -432,10 +440,9 @@
   position: relative; z-index: 80; isolation: isolate;
 }
 .hand-ribbon__library-control {
-  width: var(--hand-zone-w); height: var(--hand-zone-h);
-  display: grid; grid-template-rows: minmax(0, 1fr) 44px; gap: 0; flex: 0 0 auto;
-  overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--radius-md);
-  background: var(--surface-1);
+  position: relative; width: calc(var(--hand-zone-w) + 28px); height: var(--hand-zone-h);
+  display: block; flex: 0 0 auto; overflow: visible;
+  border: 0; background: transparent;
 }
 .hand-ribbon__zone {
   width: var(--hand-zone-w); height: var(--hand-zone-h); padding: var(--space-1);
@@ -446,17 +453,24 @@
 }
 .hand-ribbon__zone strong { font-family: var(--mono); color: var(--text-h); font-size: var(--font-size-md); }
 .hand-ribbon__zone--library {
-  width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0;
+  width: var(--hand-zone-w); height: 100%; min-height: 0;
   background: linear-gradient(135deg, var(--surface-2), var(--surface-1));
-  box-shadow: none;
+  box-shadow: var(--shadow-card);
 }
 .hand-ribbon__zone--library small { color: var(--gold-bright); font-size: 9px; }
 .hand-ribbon__draw-one {
-  width: 100%; min-height: 44px; padding: 3px;
-  color: var(--action-primary-text); background: var(--gold-surface); box-shadow: none;
-  border: 0; border-top: 1px solid var(--accent-border); border-radius: 0;
-  font-size: 9px; font-weight: 700; cursor: pointer;
+  position: absolute; right: 0; bottom: 4px; z-index: 3;
+  width: 48px; height: 48px; min-height: 44px; padding: 0;
+  display: grid; place-items: center;
+  color: var(--text-h); background: var(--surface-2); box-shadow: var(--shadow-card);
+  border: 1px solid var(--accent-border); border-radius: 14px;
+  font-weight: 700; cursor: pointer;
+  transition: transform var(--dur-fast) ease, border-color var(--dur-fast) ease, background var(--dur-fast) ease;
 }
+.hand-ribbon__draw-one:hover,
+.hand-ribbon__draw-one:focus-visible { border-color: var(--gold-bright); background: var(--surface-1); }
+.hand-ribbon__draw-one:active { transform: scale(0.94); }
+.hand-ribbon__draw-glyph { font-family: var(--display); font-size: 21px; line-height: 1; }
 .hand-ribbon__draw-one[data-empty='true'] {
   color: var(--warn); background: var(--surface-1); box-shadow: none; border: 1px solid var(--warn);
 }
@@ -575,6 +589,11 @@
 .game-card-preview__details span { color: var(--text-dim); font-size: var(--font-size-xs); }
 .game-card-preview__details p { margin: 0; white-space: pre-line; font-size: var(--font-size-sm); line-height: 1.45; }
 .game-card-preview__mana { font-family: var(--mono); color: var(--gold-bright) !important; }
+.game-card-preview__localization { color: var(--text-dim); }
+.game-card-preview__language-label {
+  display: block; margin-bottom: var(--space-1); color: var(--text-dim) !important;
+  font-size: var(--font-size-xs) !important; font-weight: 700;
+}
 .game-card-preview__reverse {
   margin-top: var(--space-2); padding-top: var(--space-2);
   display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: var(--space-2);
@@ -600,14 +619,20 @@
   background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius-md);
   color: var(--text); font-size: var(--font-size-lg); cursor: pointer;
 }
+.thumb-zone__icon-btn .icon,
+.thumb-zone__icon-btn svg { width: 21px; height: 21px; }
 .thumb-zone__icon-btn:disabled { opacity: 0.4; cursor: default; }
 .thumb-zone__primary {
   flex: 1; height: var(--touch-target);
-  background: var(--gold-surface); box-shadow: var(--gold-edge);
-  color: var(--action-primary-text); border: none; border-radius: var(--radius-md);
+  background: var(--action-bar-bg); box-shadow: var(--action-bar-shadow);
+  color: var(--action-bar-text); border: 1px solid var(--action-bar-border); border-radius: var(--radius-md);
   font-size: var(--font-size-lg); font-weight: 700; cursor: pointer;
 }
-.thumb-zone__primary--stack { box-shadow: var(--gold-edge), var(--stack-glow); }
+.thumb-zone__primary--stack {
+  background: var(--surface-2);
+  color: var(--stack-glow-c); border-color: var(--stack-glow-c);
+  box-shadow: var(--stack-glow);
+}
 .thumb-zone__primary--advance {
   background: var(--surface-1); color: var(--text);
   border: 1px solid var(--line-strong); box-shadow: none;
@@ -727,9 +752,9 @@
   .game-screen__lands {
     grid-template-columns: clamp(124px, calc(21.5vh + 12px), 184px) minmax(0, 1fr);
   }
-  .land-bundle .land-bundle__slot,
-  .land-bundle .land-bundle__slot .game-card {
-    width: clamp(42px, calc(10.75vh - 14px), 72px);
+  .land-row[data-density] {
+    --land-card-w: clamp(42px, calc(10.75vh - 14px), 72px);
+    --land-bundle-w: calc(var(--land-card-w) + 28px);
   }
   .commander-altar { padding: var(--space-1); flex-direction: row; align-items: stretch; gap: 3px; }
   .commander-altar > header {
@@ -777,8 +802,7 @@
 
   .land-row { overflow-y: hidden; scrollbar-width: thin; }
   .land-row::-webkit-scrollbar { display: block; height: 6px; }
-  .land-bundle .land-bundle__slot { width: 42px; }
-  .land-bundle .land-bundle__slot .game-card { width: 42px; }
+  .land-row[data-density] { --land-card-w: 42px; --land-bundle-w: 70px; }
   .land-bundle__count { right: 0; bottom: 0; }
   .land-bundle__tapped { left: 0; top: 0; }
 
@@ -815,10 +839,9 @@
   .hand-ribbon__zone { font-size: 8px; }
   .hand-ribbon__library-control {
     width: calc(var(--hand-zone-w) * 2); height: var(--hand-zone-h);
-    grid-template-columns: 1fr 1fr; grid-template-rows: 1fr;
   }
   .hand-ribbon__draw-one {
-    min-height: 44px; font-size: 8px; border-top: 0; border-left: 1px solid var(--accent-border);
+    right: 0; bottom: 0; width: 44px; height: 44px;
   }
   .hand-ribbon__large-stack { display: none; }
   .hand-ribbon__open-workspace { min-width: 168px; min-height: 44px; padding: var(--space-1) var(--space-3); }
@@ -833,10 +856,24 @@
 @media (min-width: 900px) {
   .game-screen {
     grid-template-columns: minmax(0, 1fr);
-    max-width: 1100px;
+    width: 100%; max-width: 1680px;
     margin: 0 auto;
     inset: 0;
   }
   .game-card--hand { width: clamp(96px, 12vw, 132px); }
   .game-screen__lands { grid-template-columns: 224px minmax(0, 1fr); }
+}
+
+@media (min-width: 1400px) and (min-height: 800px) {
+  .game-screen {
+    --board-card-w: 112px;
+    --land-h: 210px;
+  }
+  .game-screen__lands { grid-template-columns: 260px minmax(0, 1fr); }
+  .commander-altar__slot { min-width: 112px; flex-basis: 112px; }
+  .commander-altar__away { width: 112px; }
+  .land-row[data-density='spacious'] { --land-card-w: 120px; --land-bundle-w: 152px; }
+  .land-row[data-density='balanced'] { --land-card-w: 112px; --land-bundle-w: 144px; }
+  .land-row[data-density='dense'] { --land-card-w: 100px; --land-bundle-w: 132px; }
+  .game-card--hand { width: 144px; }
 }

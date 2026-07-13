@@ -38,6 +38,10 @@
   --gold-dim: rgba(216, 176, 106, 0.18);
   --action-primary: var(--gold);
   --action-primary-text: #17130a; /* 金ボタン上の文字(コントラスト比 ≥ 7:1) */
+  --action-bar-bg: var(--surface-2);
+  --action-bar-text: var(--text-h);
+  --action-bar-border: var(--line-strong);
+  --action-bar-shadow: var(--shadow-soft);
   --playable-glow: 0 0 0 1.5px var(--gold-bright), 0 0 14px rgba(240, 207, 140, 0.38);
 
   --stack-glow-c: #9fd4ff; /* スタックの緊張(青白光) */
@@ -123,11 +127,21 @@
   --text: #27364a;
   --text-dim: #657286;
   --text-h: #111b2a;
+  --mana-w: #795817;
+  --mana-u: #006b96;
+  --mana-b: #683c8a;
+  --mana-r: #aa3d28;
+  --mana-g: #28713a;
+  --mana-c: #555f6c;
   --gold: #9a6d26;
   --gold-bright: #704a12;
   --gold-dim: rgba(154, 109, 38, 0.13);
   --action-primary: #b48232;
   --action-primary-text: #140d04;
+  --action-bar-bg: #27364a;
+  --action-bar-text: #fbf8f1;
+  --action-bar-border: #111b2a;
+  --action-bar-shadow: 0 4px 14px rgba(36, 49, 68, 0.18);
   --stack-glow-c: #256ea1;
   --commander-platinum: #56657a;
   --table-light: radial-gradient(120% 55% at 50% 26%, rgba(255, 255, 255, 0.78), transparent 62%);
