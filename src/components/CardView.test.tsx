@@ -215,3 +215,32 @@ describe('CardView visual states', () => {
     cleanupRender(root, container);
   });
 });
+
+describe('CardView drag registration', () => {
+  it('registers only the real card when a display copy shares its id', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <DndContext>
+          <div data-testid="real-card">
+            <CardView instance={TEST_CARD_INSTANCE} def={TEST_CARD_DEF} draggable />
+          </div>
+          <div data-testid="display-copy">
+            <CardView instance={TEST_CARD_INSTANCE} def={TEST_CARD_DEF} draggable={false} />
+          </div>
+        </DndContext>,
+      );
+    });
+
+    const realCard = container.querySelector('[data-testid="real-card"] .card-view');
+    const displayCopy = container.querySelector('[data-testid="display-copy"] .card-view');
+    expect(realCard?.getAttribute('aria-roledescription')).toBe('draggable');
+    expect(displayCopy?.hasAttribute('aria-roledescription')).toBe(false);
+    expect(container.querySelectorAll('[aria-roledescription="draggable"]')).toHaveLength(1);
+
+    cleanupRender(root, container);
+  });
+});

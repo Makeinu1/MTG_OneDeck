@@ -5,11 +5,13 @@
  * 土地は LandRow が担当(ここには出さない)。ability オブジェクトも除外。
  */
 
+import { useDroppable } from '@dnd-kit/core';
 import { useRef } from 'react';
 import type { GameState } from '../../engine/types';
 import { GameCard } from './GameCard';
 import { boardCardWidth, boardDensity, boardOverlapMargin, isBoardOverlap } from './boardShelf';
 import type { GameController } from './gameController';
+import { isLandCard, type DropTarget } from './dragIntent';
 
 function typeLineOf(state: GameState, cardId: string): string {
   const card = state.cards[cardId];
@@ -38,6 +40,11 @@ function Shelf({ controller, cardIds, testId }: ShelfProps) {
   }
   return (
     <div className="board-shelf-wrap">
+      {cardIds.length === 0 && (
+        <span className="board-shelf__empty" aria-hidden>
+          {testId === 'board-creatures' ? 'クリーチャー' : 'その他'}
+        </span>
+      )}
       <div
         ref={shelfRef}
         className="board-shelf"
@@ -79,10 +86,25 @@ function Shelf({ controller, cardIds, testId }: ShelfProps) {
 
 export interface BoardProps {
   controller: GameController;
+  activeDragId?: string | null;
 }
 
-export function Board({ controller }: BoardProps) {
+export function Board({ controller, activeDragId = null }: BoardProps) {
   const { state } = controller;
+  const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
+  let dropTarget: DropTarget | null = null;
+  if (state && activeCard && !isLandCard(state, activeCard.id)) {
+    dropTarget = activeCard.zone === 'hand' || activeCard.zone === 'command'
+      ? { kind: 'cast' }
+      : activeCard.zone === 'battlefield'
+        ? null
+        : { kind: 'move-zone', zone: 'battlefield' };
+  }
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'game-board-drop',
+    disabled: dropTarget === null,
+    data: { dropTarget },
+  });
   if (!state) return null;
 
   const permanents = state.zones.battlefield.filter((id) => {
@@ -99,10 +121,21 @@ export function Board({ controller }: BoardProps) {
   }
 
   return (
-    <div className="board" data-testid="board">
+    <div
+      ref={setNodeRef}
+      className="board"
+      data-testid="board"
+      data-drop-active={dropTarget !== null || undefined}
+      data-drop-over={isOver || undefined}
+    >
       <Shelf controller={controller} cardIds={creatures} testId="board-creatures" />
       <div className="board__divider" aria-hidden />
       <Shelf controller={controller} cardIds={others} testId="board-others" />
+      {dropTarget && (
+        <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden>
+          {dropTarget.kind === 'cast' ? '唱える → スタック' : '戦場へ移す'}
+        </div>
+      )}
     </div>
   );
 }

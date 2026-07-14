@@ -44,6 +44,8 @@ function controllerForAway(): { controller: GameController; openCardMenu: Return
       shortcutsBlocked: false,
       transitionCue: null,
       dismissTransitionCue: vi.fn(),
+      performDrop: vi.fn(),
+      closeTransientUi: vi.fn(),
     },
   };
 }
@@ -54,6 +56,29 @@ afterEach(() => {
 });
 
 describe('CommanderAltar', () => {
+  it('opens and closes the temporary commander panel without removing its trigger', () => {
+    const { controller } = controllerForAway();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<CommanderAltar controller={controller} />));
+    const altar = container.querySelector<HTMLElement>('[data-testid="commander-altar"]');
+    const trigger = container.querySelector<HTMLButtonElement>('[data-testid="commander-altar-toggle"]');
+
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    act(() => trigger?.click());
+    expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+    expect(altar?.dataset.open).toBe('true');
+
+    const panel = container.querySelector<HTMLElement>('#commander-altar-panel');
+    act(() => {
+      panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    expect(altar?.dataset.open).toBeUndefined();
+    act(() => root.unmount());
+  });
+
   it('keeps a commander outside the command zone keyboard- and pointer-operable', () => {
     const { controller, openCardMenu } = controllerForAway();
     const awayId = controller.state?.commanders.find(({ castCount }) => castCount === 2)?.cardId;

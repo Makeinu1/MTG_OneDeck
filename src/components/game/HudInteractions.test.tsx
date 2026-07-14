@@ -1,6 +1,7 @@
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { DndContext } from '@dnd-kit/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { useGameStore } from '../../store/gameStore';
@@ -9,7 +10,9 @@ import { StatusBand } from './StatusBand';
 import { GameCard } from './GameCard';
 import { LandRow } from './LandRow';
 import { Board } from './Board';
+import { StackBand } from './StackBand';
 import type { GameController } from './gameController';
+import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
 vi.mock('./sound', () => ({ celebrate: vi.fn() }));
 
@@ -56,6 +59,8 @@ function controllerFor(
     shortcutsBlocked: false,
     transitionCue: null,
     dismissTransitionCue: vi.fn(),
+    performDrop: vi.fn(),
+    closeTransientUi: vi.fn(),
     ...overrides,
   };
 }
@@ -92,6 +97,140 @@ describe('high-frequency HUD interactions', () => {
     expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
     act(() => { vi.advanceTimersByTime(200); });
     expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('keeps every card detail preview closed for the full drag gesture', () => {
+    vi.useFakeTimers();
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const cardId = state.zones.hand[0];
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    const card = container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)!;
+
+    act(() => card.focus());
+    act(() => { vi.advanceTimersByTime(150); });
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).not.toBeNull();
+
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
+    });
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
+
+    act(() => {
+      card.blur();
+      card.focus();
+      card.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      vi.advanceTimersByTime(300);
+    });
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
+
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
+      vi.advanceTimersByTime(0);
+      card.blur();
+      card.focus();
+      vi.advanceTimersByTime(150);
+    });
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('dismisses a pinned card detail preview on an outside press or Escape', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const cardId = state.zones.hand[0];
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    const card = container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)!;
+    const preview = () => document.querySelector(`[data-testid="card-preview-${cardId}"]`);
+
+    act(() => { card.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); });
+    expect(preview()).not.toBeNull();
+
+    // 固定はフォーカスが外れても残る(これが pin の意味)。
+    act(() => card.blur());
+    expect(preview()).not.toBeNull();
+
+    act(() => {
+      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    });
+    expect(preview()).toBeNull();
+
+    act(() => { card.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); });
+    expect(preview()).not.toBeNull();
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(preview()).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  it('keeps at most one pinned preview when a second card is clicked', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const [firstId, secondId] = state.zones.hand;
+    const { container, root } = mount(
+      <>
+        <GameCard controller={controller} cardId={firstId} size="hand" />
+        <GameCard controller={controller} cardId={secondId} size="hand" />
+      </>,
+    );
+    const cardOf = (id: string) => container.querySelector<HTMLElement>(`[data-testid="card-${id}"]`)!;
+
+    act(() => { cardOf(firstId).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); });
+    expect(document.querySelector(`[data-testid="card-preview-${firstId}"]`)).not.toBeNull();
+
+    // 2枚目を押す = 1枚目にとっては外側の pointerdown。積み上がってはならない。
+    act(() => {
+      cardOf(secondId).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      cardOf(secondId).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    });
+    expect(document.querySelector(`[data-testid="card-preview-${firstId}"]`)).toBeNull();
+    expect(document.querySelector(`[data-testid="card-preview-${secondId}"]`)).not.toBeNull();
+    expect(document.querySelectorAll('.game-card-preview')).toHaveLength(1);
+
+    act(() => root.unmount());
+  });
+
+  it('lets transient previews close again after a double click on a pinned card', () => {
+    vi.useFakeTimers();
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const cardId = state.zones.hand[0];
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    const card = container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)!;
+    const preview = () => document.querySelector(`[data-testid="card-preview-${cardId}"]`);
+
+    act(() => { card.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); });
+    act(() => { card.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    expect(preview()).toBeNull();
+
+    // pin が残っていると、この一時プレビューが二度と閉じなくなる。
+    act(() => card.focus());
+    act(() => { vi.advanceTimersByTime(150); });
+    expect(preview()).not.toBeNull();
+    act(() => card.blur());
+    expect(preview()).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  it('never registers a stack item as draggable', () => {
+    // 汎用 D&D の move-zone は resolveTop/removeStackItem を迂回して解決時効果(CR608)を
+    // 落とす。dragIntent 側のガードが意味論を守るが、誘い自体を出さない第一層もここで固定する。
+    const state = buildVisualFixture('stack').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(
+      <DndContext>
+        <StackBand controller={controller} />
+      </DndContext>,
+    );
+    const stackCards = container.querySelectorAll('.stack-workspace__card .card-view');
+    expect(stackCards.length).toBeGreaterThan(0);
+    stackCards.forEach((card) => {
+      expect(card.hasAttribute('aria-roledescription')).toBe(false);
+    });
     act(() => root.unmount());
   });
 

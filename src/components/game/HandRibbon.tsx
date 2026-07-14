@@ -12,6 +12,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { GameCard } from './GameCard';
 import { playableHandCardIds } from './affordability';
 import { celebrate } from './sound';
@@ -36,6 +37,18 @@ export function HandRibbon({
 }: HandRibbonProps) {
   const { state, store } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const { setNodeRef: setGraveyardDropRef, isOver: graveyardDropOver } = useDroppable({
+    id: 'game-graveyard-drop',
+    data: { dropTarget: { kind: 'move-zone', zone: 'graveyard' } },
+  });
+  const { setNodeRef: setExileDropRef, isOver: exileDropOver } = useDroppable({
+    id: 'game-exile-drop',
+    data: { dropTarget: { kind: 'move-zone', zone: 'exile' } },
+  });
+  const { setNodeRef: setHandDropRef, isOver: handDropOver } = useDroppable({
+    id: 'game-hand-drop',
+    data: { dropTarget: { kind: 'move-zone', zone: 'hand' } },
+  });
   // マナ計算は毎レンダ全走査を避けるため memo 化(ui-architecture-v2 §6)。
   const playable = useMemo(
     () => (state ? playableHandCardIds(state) : new Set<string>()),
@@ -163,18 +176,22 @@ export function HandRibbon({
           </button>
         </div>
         <button
+          ref={setGraveyardDropRef}
           type="button"
           className="hand-ribbon__zone hand-ribbon__zone--graveyard"
           data-testid="graveyard-tile"
+          data-drop-over={graveyardDropOver || undefined}
           onClick={() => controller.openZoneViewer('graveyard')}
         >
           <span>墓地</span>
           <strong>{state.zones.graveyard.length}</strong>
         </button>
         <button
+          ref={setExileDropRef}
           type="button"
           className="hand-ribbon__zone hand-ribbon__zone--exile"
           data-testid="exile-tile"
+          data-drop-over={exileDropOver || undefined}
           onClick={() => controller.openZoneViewer('exile')}
         >
           <span>追放</span>
@@ -183,7 +200,12 @@ export function HandRibbon({
       </div>
 
       {handLayout === 'large' ? (
-        <div className="hand-ribbon__large-summary" data-testid="large-hand-summary">
+        <div
+          ref={setHandDropRef}
+          className="hand-ribbon__large-summary"
+          data-testid="large-hand-summary"
+          data-drop-over={handDropOver || undefined}
+        >
           <div className="hand-ribbon__large-stack" aria-hidden="true">
             <span /><span /><span /><span /><span />
           </div>
@@ -201,7 +223,12 @@ export function HandRibbon({
           </button>
         </div>
       ) : (
-        <div className="hand-ribbon__cards" data-testid="hand-cards">
+        <div
+          ref={setHandDropRef}
+          className="hand-ribbon__cards"
+          data-testid="hand-cards"
+          data-drop-over={handDropOver || undefined}
+        >
           {state.zones.hand.map((cardId, index) => {
             const fan = handFanCardLayout(index, state.zones.hand.length);
             const style = handLayout === 'fan' ? {
@@ -209,6 +236,9 @@ export function HandRibbon({
               '--fan-y': `${fan.translateY}px`,
               '--fan-margin': `${fan.marginLeft}px`,
               '--fan-z': fan.zIndex,
+              '--fan-mobile-rotation': `${fan.rotationDeg * 0.38}deg`,
+              '--fan-mobile-y': `${fan.translateY * 0.25}px`,
+              '--fan-mobile-margin': `${Math.max(-24, fan.marginLeft * 0.42)}px`,
             } as CSSProperties : undefined;
             return (
               <div className="hand-ribbon__slot" style={style} key={cardId}>

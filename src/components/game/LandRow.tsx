@@ -6,11 +6,13 @@
  * 重ねたまま個別に右クリック/タップで操作可能(情報の非破壊は保つ)。一括タップの利便は D3/D4 へ。
  */
 
-import { useState, type CSSProperties } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { GameState } from '../../engine/types';
 import { GameCard } from './GameCard';
 import { bundleLands, type LandRowCard, type LandBundle } from './landRowModel';
 import type { GameController } from './gameController';
+import { isLandCard, type DropTarget } from './dragIntent';
 
 function faceOf(state: GameState, cardId: string) {
   const card = state.cards[cardId];
@@ -78,10 +80,48 @@ function Bundle({ controller, bundle }: { controller: GameController; bundle: La
 
 export interface LandRowProps {
   controller: GameController;
+  activeDragId?: string | null;
 }
 
-export function LandRow({ controller }: LandRowProps) {
+export function LandRow({ controller, activeDragId = null }: LandRowProps) {
   const { state } = controller;
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollState, setScrollState] = useState({ left: false, right: false });
+  const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
+  let dropTarget: DropTarget | null = null;
+  if (state && activeCard && isLandCard(state, activeCard.id)) {
+    dropTarget = activeCard.zone === 'hand' || activeCard.zone === 'graveyard'
+      ? { kind: 'play-land' }
+      : activeCard.zone === 'battlefield'
+        ? null
+        : { kind: 'move-zone', zone: 'battlefield' };
+  }
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'game-land-row-drop',
+    disabled: dropTarget === null,
+    data: { dropTarget },
+  });
+
+  const updateScrollState = useCallback(() => {
+    const row = scrollRef.current;
+    if (!row) return;
+    setScrollState({
+      left: row.scrollLeft > 2,
+      right: row.scrollLeft + row.clientWidth < row.scrollWidth - 2,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    const row = scrollRef.current;
+    if (!row) return;
+    row.scrollLeft = 0;
+    updateScrollState();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [state?.zones.battlefield.length, updateScrollState]);
+
   if (!state) return null;
 
   const landCards = state.zones.battlefield
@@ -90,13 +130,44 @@ export function LandRow({ controller }: LandRowProps) {
   const bundles = bundleLands(landCards);
   const density = bundles.length <= 6 ? 'spacious' : bundles.length <= 10 ? 'balanced' : 'dense';
 
+  function scroll(direction: -1 | 1): void {
+    scrollRef.current?.scrollBy({
+      left: direction * Math.max(220, (scrollRef.current?.clientWidth ?? 0) * 0.72),
+      behavior: 'smooth',
+    });
+  }
+
   return (
-    <div className="land-row" data-density={density} data-testid="land-row">
-      <div className="land-row__lands">
-        {bundles.map((bundle) => (
-          <Bundle key={bundle.key} controller={controller} bundle={bundle} />
-        ))}
+    <div
+      ref={setNodeRef}
+      className="land-row-wrap"
+      data-drop-active={dropTarget !== null || undefined}
+      data-drop-over={isOver || undefined}
+    >
+      <div
+        ref={scrollRef}
+        className="land-row"
+        data-density={density}
+        data-testid="land-row"
+        onScroll={updateScrollState}
+      >
+        <div className="land-row__lands">
+          {bundles.map((bundle) => (
+            <Bundle key={bundle.key} controller={controller} bundle={bundle} />
+          ))}
+        </div>
       </div>
+      {dropTarget && (
+        <div className="semantic-drop semantic-drop--lands" data-testid="drop-play-land" aria-hidden>
+          {dropTarget.kind === 'play-land' ? '土地をプレイ' : '土地を戦場へ移す'}
+        </div>
+      )}
+      {scrollState.left && (
+        <button type="button" className="land-row__nav land-row__nav--left" onClick={() => scroll(-1)} aria-label="土地を左へ移動">‹</button>
+      )}
+      {scrollState.right && (
+        <button type="button" className="land-row__nav land-row__nav--right" onClick={() => scroll(1)} aria-label="土地を右へ移動">›</button>
+      )}
     </div>
   );
 }

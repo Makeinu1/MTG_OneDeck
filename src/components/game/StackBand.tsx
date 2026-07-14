@@ -187,7 +187,10 @@ export function StackBand({ controller }: StackBandProps) {
           {items.map((item, index) => (
             <li key={item.cardId} data-stack-item-id={item.cardId} data-testid={`stack-workspace-item-${item.cardId}`}>
               <div className="stack-workspace__card">
-                <GameCard controller={controller} cardId={item.cardId} size="board" />
+                {/* スタックからの移動は resolveTop/removeStackItem が解決時効果(CR608)を
+                    適用する専用経路を通す必要がある。汎用の D&D move-zone はそれを迂回して
+                    効果を無言で落とすため、ここではドラッグ自体を無効化する。 */}
+                <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
               </div>
               <div className="stack-workspace__item-info">
                 <strong>{index === 0 ? '次に解決' : `${index + 1}番目`}</strong>

@@ -9,6 +9,7 @@
   /* 構造用の局所寸法(design-system にトークンが無い版面寸法のみ・一箇所集約)。 */
   --band-h: 36px;
   --land-h: 190px;
+  --hand-h: auto;
 
   position: fixed;
   inset: 0;
@@ -16,7 +17,7 @@
   /* 単一カラムを container 幅へ拘束(minmax(0,1fr))。これが無いと暗黙カラムが
      max-content 化し、盤面棚/土地行の総幅まで画面全体が横に膨張する。 */
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--band-h) 1fr var(--land-h) auto var(--thumb-zone);
+  grid-template-rows: var(--band-h) minmax(0, 1fr) var(--land-h) var(--hand-h) var(--thumb-zone);
   grid-template-areas:
     'status'
     'board'
@@ -74,6 +75,7 @@
   border-bottom: 1px solid var(--line);
   font-size: var(--font-size-sm);
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
 }
 .status-band::-webkit-scrollbar { display: none; }
@@ -312,6 +314,11 @@
 .board { display: flex; flex-direction: column; height: 100%; gap: var(--space-1); padding: var(--space-2); }
 .board__divider { height: 1px; background: var(--line); flex: 0 0 auto; }
 .board-shelf-wrap { position: relative; flex: 1; min-height: 0; }
+.board-shelf__empty {
+  position: absolute; inset: 50% auto auto var(--space-2); z-index: 1; transform: translateY(-50%);
+  color: color-mix(in srgb, var(--text-dim) 46%, transparent);
+  font-size: var(--font-size-xs); letter-spacing: 0.08em; pointer-events: none;
+}
 .board-shelf {
   display: flex; align-items: flex-start; gap: var(--space-2);
   overflow-x: auto; overflow-y: hidden; flex: 1; min-height: 0;
@@ -353,14 +360,38 @@
 }
 .game-card--hand { width: var(--card-hand-w); }
 
+.semantic-drop {
+  position: absolute; z-index: 48; display: grid; place-items: center;
+  color: var(--text-h); background: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  border: 1px dashed var(--gold-bright); border-radius: var(--radius-lg);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--gold) 18%, transparent);
+  font-weight: 800; letter-spacing: 0.04em; pointer-events: none;
+  opacity: 0.78; transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.semantic-drop--board { inset: 18% 16%; }
+.board[data-drop-over='true'] .semantic-drop,
+.land-row-wrap[data-drop-over='true'] .semantic-drop,
+.commander-altar[data-drop-over='true'] .semantic-drop {
+  opacity: 1; transform: scale(1.025); background: color-mix(in srgb, var(--gold-surface) 88%, transparent);
+}
+
 /* ---------- LandRow ---------- */
 .commander-altar {
-  min-width: 0; height: var(--land-h); padding: var(--space-2);
+  position: relative; min-width: 0; height: var(--land-h); overflow: hidden;
+}
+.commander-altar__trigger { display: none; }
+.commander-altar__backdrop { height: 100%; }
+.commander-altar__panel {
+  position: relative; height: 100%; padding: var(--space-2);
   display: flex; flex-direction: column; gap: var(--space-1); overflow: hidden;
   background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 12%, transparent), transparent);
   border-top: 1px solid var(--gold-dim); border-right: 1px solid var(--gold-dim);
 }
-.commander-altar > header { color: var(--gold-bright); font-size: var(--font-size-xs); letter-spacing: 0.08em; }
+.commander-altar__panel > header {
+  display: flex; align-items: center; justify-content: space-between;
+  color: var(--gold-bright); font-size: var(--font-size-xs); letter-spacing: 0.08em;
+}
+.commander-altar__panel > header button { display: none; }
 .commander-altar__cards {
   min-height: 0; display: flex; flex-wrap: nowrap; align-content: flex-start;
   gap: var(--space-2); overflow-x: auto; overflow-y: hidden;
@@ -383,17 +414,24 @@
 }
 .commander-altar__meta { display: flex; justify-content: space-between; gap: 2px; font-size: 9px; color: var(--text-dim); }
 .commander-altar__meta strong { color: var(--gold-bright); white-space: nowrap; }
+.land-row-wrap {
+  position: relative; min-width: 0; height: var(--land-h); overflow: hidden;
+  border-top: 1px solid var(--line);
+}
 .land-row {
   --land-card-w: 112px;
   --land-bundle-w: 140px;
-  height: var(--land-h);
+  box-sizing: border-box; height: 100%;
   display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-2); overflow-x: auto;
-  border-top: 1px solid var(--line);
+  padding: var(--space-2); overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-inline: contain;
 }
 .land-row[data-density='balanced'] { --land-card-w: 104px; --land-bundle-w: 132px; }
 .land-row[data-density='dense'] { --land-card-w: 96px; --land-bundle-w: 124px; }
-.land-row__lands { display: flex; align-items: center; gap: var(--space-3); flex: 1; }
+.land-row__lands {
+  height: 100%; min-height: 0; display: flex; align-items: flex-start;
+  gap: var(--space-3); flex: 1;
+}
 .land-bundle {
   position: relative; display: flex; flex: 0 0 auto;
   width: var(--land-bundle-w); height: 100%; overflow: visible;
@@ -401,6 +439,8 @@
 .land-bundle__cards { position: relative; width: 100%; height: 100%; display: flex; overflow: visible; }
 .land-bundle .land-bundle__slot { width: var(--land-card-w); flex: 0 0 auto; }
 .land-bundle .land-bundle__slot .game-card { width: var(--land-card-w); }
+.land-bundle .land-bundle__slot .game-card,
+.land-bundle .land-bundle__slot .card-view { max-height: 100%; }
 .land-bundle:not([data-expanded='true']) .land-bundle__slot {
   position: absolute; left: var(--land-peek); top: 0;
 }
@@ -425,6 +465,16 @@
   position: absolute; left: -4px; top: -4px; z-index: 20;
   font-size: var(--font-size-xs); color: var(--gold-bright); font-family: var(--mono);
 }
+.semantic-drop--lands { inset: var(--space-2) 12%; }
+.land-row__nav {
+  position: absolute; top: 50%; z-index: 52; transform: translateY(-50%);
+  width: 38px; height: 52px; padding: 0; display: grid; place-items: center;
+  color: var(--text-h); background: color-mix(in srgb, var(--surface-0) 90%, transparent);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card); cursor: pointer; font-size: 24px;
+}
+.land-row__nav--left { left: 2px; }
+.land-row__nav--right { right: 2px; }
 
 /* ---------- HandRibbon ---------- */
 .hand-ribbon {
@@ -477,6 +527,11 @@
 .hand-ribbon__zone--graveyard { border-color: color-mix(in srgb, var(--text-dim) 55%, transparent); }
 .hand-ribbon__zone--exile { border-style: dashed; opacity: 0.9; }
 .hand-ribbon__cards { min-width: 0; display: flex; align-items: flex-end; justify-content: center; flex: 1; }
+.hand-ribbon__cards[data-drop-over='true'],
+.hand-ribbon__zone[data-drop-over='true'] {
+  outline: 2px solid var(--gold-bright); outline-offset: -2px;
+  background: color-mix(in srgb, var(--gold-surface) 70%, transparent);
+}
 .hand-ribbon__slot { flex: 0 0 auto; transition: transform var(--dur-move) var(--ease-out); }
 .hand-ribbon[data-layout='flat'] .hand-ribbon__cards {
   justify-content: flex-start; gap: var(--space-2); overflow-x: auto; overflow-y: hidden;
@@ -584,6 +639,37 @@
   border: 1px solid var(--line-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
 }
 .game-card-preview__image .card-view--battlefield { width: 100%; max-height: none; }
+
+/* dnd-kit follows the transformed source bounds, whose rotated corners contain
+   empty space. The inner card is straightened and anchored by its local grip
+   coordinates so the painted card surface—not that empty frame—stays under the pointer. */
+.game-drag-overlay {
+  position: relative;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0.96;
+  filter: drop-shadow(0 12px 14px rgb(0 0 0 / 28%));
+}
+.game-drag-overlay__card {
+  position: absolute;
+  transform-origin: top left;
+  pointer-events: none;
+}
+.game-drag-overlay__visual,
+.game-drag-overlay__visual > .card-view,
+.game-drag-overlay__visual > .card-view > .card-view__face {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+}
+.game-drag-overlay__visual > .card-view > .card-view__face {
+  transform: var(--drag-face-transform, none);
+  transition: none;
+}
+.game-drag-overlay__visual > .card-view:hover > .card-view__face {
+  transform: var(--drag-face-transform, none);
+}
 .game-card-preview__details { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .game-card-preview__details strong { color: var(--text-h); font-size: var(--font-size-md); }
 .game-card-preview__details span { color: var(--text-dim); font-size: var(--font-size-xs); }
@@ -856,7 +942,7 @@
 @media (min-width: 900px) {
   .game-screen {
     grid-template-columns: minmax(0, 1fr);
-    width: 100%; max-width: 1680px;
+    width: 100%; max-width: 1920px;
     margin: 0 auto;
     inset: 0;
   }
@@ -876,4 +962,141 @@
   .land-row[data-density='balanced'] { --land-card-w: 112px; --land-bundle-w: 144px; }
   .land-row[data-density='dense'] { --land-card-w: 100px; --land-bundle-w: 132px; }
   .game-card--hand { width: 144px; }
+}
+
+/* ---------- モバイル共通: 統率者を一時表示へ畳み、手札は横ジェスチャーを優先 ---------- */
+@media (max-width: 899px) {
+  .game-screen__lands { grid-template-columns: 52px minmax(0, 1fr); }
+
+  .commander-altar {
+    box-sizing: border-box; width: 52px; min-width: 52px; height: var(--land-h);
+    padding: 0; display: block; overflow: visible;
+    border-top: 1px solid var(--gold-dim); border-right: 1px solid var(--gold-dim);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 12%, transparent), transparent);
+  }
+  .commander-altar__trigger {
+    width: 100%; height: 100%; min-height: var(--touch-target); padding: var(--space-1);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: var(--gold-bright); background: transparent; border: 0; cursor: pointer;
+    font-family: var(--display); font-size: var(--font-size-lg);
+  }
+  .commander-altar__trigger strong { min-height: 12px; font: 700 10px/1 var(--mono); }
+  .commander-altar[data-drop-over='true'] .commander-altar__trigger {
+    background: var(--gold-surface); box-shadow: inset 0 0 0 2px var(--gold-bright);
+  }
+  .commander-altar__backdrop {
+    position: fixed; inset: 0; z-index: 110; height: auto; padding: var(--space-3);
+    display: none; place-items: center;
+    background: color-mix(in srgb, var(--scrim) 72%, transparent);
+  }
+  .commander-altar[data-open='true'] .commander-altar__backdrop { display: grid; }
+  .commander-altar__panel {
+    width: min(320px, calc(100vw - 24px)); height: auto; max-height: 42vh;
+    padding: var(--space-3); overflow: hidden;
+    background: var(--surface-1); border: 1px solid var(--accent-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-pop);
+  }
+  .commander-altar__panel > header { flex: 0 0 auto; }
+  .commander-altar__panel > header button {
+    min-height: var(--touch-target); padding: var(--space-1) var(--space-3); display: block;
+    color: var(--text-h); background: var(--surface-2);
+    border: 1px solid var(--line-strong); border-radius: var(--radius-sm); cursor: pointer;
+  }
+  .commander-altar__cards {
+    min-height: 0; display: flex; flex: 1 1 auto; align-items: flex-start; gap: var(--space-3);
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .commander-altar__slot,
+  .commander-altar[data-count='2'] .commander-altar__slot {
+    position: relative; min-width: 112px; flex: 0 0 112px; height: auto; gap: 2px;
+  }
+  .commander-altar__slot .game-card,
+  .commander-altar__away { width: 112px; }
+  .commander-altar__meta {
+    position: static; display: flex; justify-content: space-between; font-size: 9px;
+  }
+  .commander-altar__meta span { display: inline; }
+  .semantic-drop--command { inset: 52px var(--space-3) var(--space-3); }
+
+  .hand-ribbon__cards {
+    justify-content: flex-start; overflow-x: auto; overflow-y: hidden;
+    overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch;
+    touch-action: pan-x; scrollbar-width: none;
+  }
+  .hand-ribbon__cards::-webkit-scrollbar { display: none; }
+  .hand-ribbon[data-layout='fan'] .hand-ribbon__slot {
+    margin-left: var(--fan-mobile-margin);
+    transform: translateY(var(--fan-mobile-y)) rotate(var(--fan-mobile-rotation));
+  }
+  .hand-ribbon[data-layout='fan'] .hand-ribbon__slot:first-child { margin-left: 0; }
+  .hand-ribbon__cards .card-view { touch-action: pan-x; }
+}
+
+/* ---------- 縦持ち: 2段HUD + 細いゾーンドック + 有界な土地/手札 ---------- */
+@media (max-width: 899px) and (orientation: portrait) {
+  .game-screen {
+    --band-h: calc(76px + env(safe-area-inset-top, 0px));
+    --land-h: clamp(144px, 20vh, 168px);
+    --hand-h: 184px;
+  }
+  .status-band {
+    box-sizing: border-box; height: var(--band-h);
+    padding: env(safe-area-inset-top, 0px) var(--space-2) 0;
+    display: grid; grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-rows: 40px 36px; gap: 0 var(--space-1);
+    align-items: center; overflow: hidden;
+  }
+  .status-band__turn { grid-column: 1; grid-row: 1; }
+  .status-band__phases { grid-column: 2; grid-row: 1; min-width: 0; }
+  .status-band__phase-current {
+    inline-size: min(100%, 150px); max-width: 150px; min-width: 0; margin: 0;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .status-band__right-actions {
+    grid-column: 3; grid-row: 1; position: static; min-width: 0; gap: 2px;
+    background: transparent; box-shadow: none;
+  }
+  .status-band__life-cluster { width: 126px; }
+  .status-band__bell { width: 40px; height: 40px; }
+  .status-band__mana {
+    grid-column: 1 / -1; grid-row: 2;
+    box-sizing: border-box; width: 100%; min-width: 0; height: 34px; min-height: 34px;
+    padding: 1px var(--space-1); flex: none; gap: var(--space-1);
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .status-band__mana::-webkit-scrollbar { display: none; }
+  .status-band__mana-total {
+    position: sticky; left: 0; z-index: 2; flex: 0 0 38px;
+    background: var(--surface-1);
+  }
+
+  .hand-ribbon {
+    box-sizing: border-box; grid-template-columns: 52px minmax(0, 1fr);
+    align-items: stretch; gap: var(--space-1); padding: var(--space-1); height: var(--hand-h);
+  }
+  .hand-ribbon__zones {
+    --hand-zone-w: 44px; --hand-zone-h: 44px;
+    box-sizing: border-box; width: 52px; height: 100%; padding: 3px;
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    overflow: hidden; border-radius: var(--radius-sm);
+  }
+  .hand-ribbon__library-control {
+    width: var(--hand-zone-w); height: calc(var(--hand-zone-h) * 2); flex: 0 0 calc(var(--hand-zone-h) * 2);
+  }
+  .hand-ribbon__zone { width: var(--hand-zone-w); height: var(--hand-zone-h); min-height: var(--hand-zone-h); border-radius: var(--radius-sm); }
+  .hand-ribbon__zone--library { height: var(--hand-zone-h); min-height: var(--hand-zone-h); }
+  .hand-ribbon__zone--library small { display: none; }
+  .hand-ribbon__draw-one { right: 0; bottom: 0; width: var(--hand-zone-w); height: var(--hand-zone-h); border-radius: var(--radius-sm); }
+  .hand-ribbon__draw-glyph { font-size: 18px; }
+  .game-card--hand { width: clamp(88px, 23vw, 104px); }
+  .hand-ribbon__cards {
+    height: 100%; align-items: center;
+    padding: var(--space-2) 18vw var(--space-2) 6vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .semantic-drop { transition: none !important; }
+  .land-row { scroll-behavior: auto; }
 }

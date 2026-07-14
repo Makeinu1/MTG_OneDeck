@@ -50,6 +50,7 @@ import {
   GuidedLibrarySearchDialog,
 } from '../playmat/dialogs';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
+import type { DropIntent } from './dragIntent';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -138,6 +139,10 @@ export interface GameController {
   shortcutsBlocked: boolean;
   transitionCue: TransitionCueData | null;
   dismissTransitionCue: (id: number) => void;
+  /** DnDの意味を既存のカード操作経路へ合流させる。 */
+  performDrop: (intent: DropIntent) => void;
+  /** ドラッグ開始時にhover以外の一時UIも閉じる。 */
+  closeTransientUi: () => void;
 }
 
 /**
@@ -398,6 +403,21 @@ export function useGameController({
       return;
     }
     store.moveCard(move.cardId, move.to);
+  }
+  function performDrop(intent: DropIntent): void {
+    switch (intent.kind) {
+      case 'cast':
+        requestCastToStack(intent.cardId);
+        break;
+      case 'play-land':
+        requestPlayLand(intent.cardId);
+        break;
+      case 'move-zone':
+        performMove({ cardId: intent.cardId, to: intent.zone });
+        break;
+      case 'none':
+        break;
+    }
   }
   function runRuleActionCandidate(kind: RuleActionCandidateKind, sourceCardId: string): void {
     switch (kind) {
@@ -1121,5 +1141,7 @@ export function useGameController({
     shortcutsBlocked,
     transitionCue,
     dismissTransitionCue,
+    performDrop,
+    closeTransientUi: closeMenu,
   };
 }

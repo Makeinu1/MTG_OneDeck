@@ -61,11 +61,33 @@ const KEYWORD_BADGES: Record<Keyword, string> = {
 const TOUCH_TAP_MAX_DISTANCE_PX = 8;
 const TOUCH_TAP_MAX_DURATION_MS = 220;
 
+type DraggableCardBinding = ReturnType<typeof useDraggable>;
+
+interface CardViewSurfaceProps extends CardViewProps {
+  dnd: DraggableCardBinding | null;
+}
+
 function counterLabel(type: string): string {
   return COUNTER_LABELS[type] ?? type;
 }
 
-export function CardView({
+function DraggableCardView(props: CardViewProps) {
+  const dnd = useDraggable({ id: props.instance.id });
+  return <CardViewSurface {...props} dnd={dnd} />;
+}
+
+/**
+ * Display-only copies must not call useDraggable. dnd-kit registers disabled
+ * draggables too, so a preview using the same card id can otherwise replace
+ * the real card node and become the source of the initial drag rectangle.
+ */
+export function CardView(props: CardViewProps) {
+  return props.draggable
+    ? <DraggableCardView {...props} />
+    : <CardViewSurface {...props} dnd={null} />;
+}
+
+function CardViewSurface({
   instance,
   def,
   size = 'battlefield',
@@ -77,13 +99,13 @@ export function CardView({
   onPointerMove,
   onPointerUp,
   onPointerCancel,
-  draggable = false,
   badge,
   summoningSick = false,
   faded = false,
   focusable = false,
   imageQuality = size === 'battlefield' || size === 'small' ? 'small' : 'normal',
-}: CardViewProps) {
+  dnd,
+}: CardViewSurfaceProps) {
   const touchStartRef = useRef<{
     pointerId: number;
     startX: number;
@@ -92,10 +114,8 @@ export function CardView({
   } | null>(null);
   const suppressClickRef = useRef(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: instance.id,
-    disabled: !draggable,
-  });
+  const transform = dnd?.transform;
+  const isDragging = dnd?.isDragging ?? false;
 
   const face = instance.faceDown
     ? undefined
@@ -125,7 +145,10 @@ export function CardView({
       : instance.tapped
         ? 'rotate(90deg)'
         : undefined,
-    opacity: isDragging || faded ? 0.35 : undefined,
+    // DragOverlay is the sole moving representation. Leaving the source at
+    // partial opacity creates a second, ancestor-transformed card that can
+    // appear one card away from the pointer in a rotated hand fan.
+    opacity: isDragging ? 0 : faded ? 0.35 : undefined,
   };
 
   const classes = ['card-view', `card-view--${size}`];
@@ -183,7 +206,7 @@ export function CardView({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={dnd?.setNodeRef}
       className={classes.join(' ')}
       style={style}
       onClick={(e) => {
@@ -208,11 +231,11 @@ export function CardView({
       onPointerMove={onPointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      {...attributes}
+      {...(dnd?.attributes ?? {})}
       data-testid={`card-${instance.id}`}
       title={displayName}
       tabIndex={focusable ? 0 : undefined}
-      {...listeners}
+      {...(dnd?.listeners ?? {})}
     >
       <div
         className="card-view__face"
