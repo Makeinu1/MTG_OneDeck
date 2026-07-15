@@ -30,6 +30,7 @@ import { CommanderAltar } from './CommanderAltar';
 import { TransitionCue } from './TransitionCue';
 import type { KeybindingsMap } from '../../data/keybindings';
 import { CardView } from '../CardView';
+import { TOUCH_DRAG_ACTIVATION } from '../touchDrag';
 import { resolveDropIntent, type DropTarget } from './dragIntent';
 import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
@@ -79,7 +80,7 @@ export function GameScreen({ keybindings }: GameScreenProps) {
   const restoreHandFocusRef = useRef(false);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_DRAG_ACTIVATION }),
     useSensor(KeyboardSensor),
   );
 

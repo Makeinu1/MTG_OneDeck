@@ -83,6 +83,7 @@ export function CardPreview({
       </div>
       <div className="game-card-preview__details">
         <strong>{name}</strong>
+        <span className="game-card-preview__touch-hint">もう一度タップで操作</span>
         {face?.manaCost && <span className="game-card-preview__mana">{face.manaCost}</span>}
         {typeLine && <span>{typeLine}</span>}
         {localizationPending && (

@@ -5,6 +5,7 @@ import { GameCard } from './GameCard';
 import type { GameController } from './gameController';
 import { commanderAltarItems } from './commanderAltarModel';
 import type { DropTarget } from './dragIntent';
+import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
 export function CommanderAltar({
   controller,
@@ -17,6 +18,7 @@ export function CommanderAltar({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const hiddenForDragRef = useRef(false);
   const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
   // 統率者以外を受けると commanderAltarItems が描画しない=カードが盤上から消える。
   // 誘い(ハイライト・ラベル)自体を出さない。
@@ -38,9 +40,26 @@ export function CommanderAltar({
 
   useEffect(() => {
     const closeAfterDrop = () => setOpen(false);
+    // On mobile the altar is a full-screen modal. Once its commander has been
+    // lifted, keeping that modal visible hides the real cast target and stack.
+    const hideWhileDragging = () => {
+      hiddenForDragRef.current = open;
+      setOpen(false);
+    };
+    const restoreTriggerAfterDrag = () => {
+      if (!hiddenForDragRef.current) return;
+      hiddenForDragRef.current = false;
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    };
     document.addEventListener('onedeck-drop-complete', closeAfterDrop);
-    return () => document.removeEventListener('onedeck-drop-complete', closeAfterDrop);
-  }, []);
+    document.addEventListener(DRAG_UI_START_EVENT, hideWhileDragging);
+    document.addEventListener(DRAG_UI_END_EVENT, restoreTriggerAfterDrag);
+    return () => {
+      document.removeEventListener('onedeck-drop-complete', closeAfterDrop);
+      document.removeEventListener(DRAG_UI_START_EVENT, hideWhileDragging);
+      document.removeEventListener(DRAG_UI_END_EVENT, restoreTriggerAfterDrag);
+    };
+  }, [open]);
 
   if (!state) return null;
   const items = commanderAltarItems(state);

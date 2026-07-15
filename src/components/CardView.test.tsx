@@ -2,7 +2,10 @@ import { DndContext } from '@dnd-kit/core';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { CardView } from './CardView';
+import { TOUCH_DRAG_DELAY_MS } from './touchDrag';
 import type { CardInstance } from '../engine/types';
 import type { CardDef } from '../types/card';
 
@@ -60,6 +63,7 @@ function renderCard(
   ) => void,
   instance: CardInstance = TEST_CARD_INSTANCE,
   def: CardDef = TEST_CARD_DEF,
+  onTouchTap?: (event: React.PointerEvent<HTMLDivElement>) => void,
 ) {
   const container = document.createElement('div');
   document.body.appendChild(container);
@@ -68,7 +72,12 @@ function renderCard(
   act(() => {
     root.render(
       <DndContext>
-        <CardView instance={instance} def={def} onContextMenu={onContextMenu} />
+        <CardView
+          instance={instance}
+          def={def}
+          onContextMenu={onContextMenu}
+          onTouchTap={onTouchTap}
+        />
       </DndContext>,
     );
   });
@@ -113,6 +122,74 @@ describe('CardView touch menu', () => {
     cleanupRender(root, container);
   });
 
+  it('leaves no gap between the tap ceiling and the drag threshold', () => {
+    // tap 上限と drag しきい値の間に隙間があると、その保持時間では tap も drag も
+    // 起きず、抑止されない合成 click がマウス用の経路へ落ちる(再タップでメニューが
+    // 開かず閉じるだけになる)。ドラッグに変わる直前まではタップとして扱うこと。
+    const onTouchTap = vi.fn();
+    const nowSpy = vi.spyOn(performance, 'now');
+    nowSpy.mockReturnValue(0);
+    const { card, container, root } = renderCard(
+      vi.fn(),
+      TEST_CARD_INSTANCE,
+      TEST_CARD_DEF,
+      onTouchTap,
+    );
+
+    dispatchPointerEvent(card, 'pointerdown', { pointerType: 'touch', clientX: 20, clientY: 20 });
+    // ドラッグ発火の直前(旧実装ではここが死角だった)。
+    nowSpy.mockReturnValue(TOUCH_DRAG_DELAY_MS - 1);
+    dispatchPointerEvent(card, 'pointerup', { pointerType: 'touch', clientX: 20, clientY: 20 });
+
+    expect(onTouchTap).toHaveBeenCalledTimes(1);
+
+    nowSpy.mockRestore();
+    cleanupRender(root, container);
+  });
+
+  it('keeps every TouchSensor on the shared activation constraint', () => {
+    // delay を各所でハードコードすると tap 上限との間に窓ができ、その保持時間では
+    // ドラッグとタップが同時に成立する(CardView の tap 判定は drag 進行中を見ず、
+    // ガードを持つのは GameCard だけ=Playmat 経路には無い)。宣言だけの不変条件は
+    // 実際に破られたので、機械で強制する。
+    const roots = [join(process.cwd(), 'src')];
+    const files: string[] = [];
+    while (roots.length) {
+      const dir = roots.pop()!;
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) roots.push(full);
+        // 本番の sensor 構築だけが対象(テスト自身は走査文字列を含むため除外)。
+        else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) files.push(full);
+      }
+    }
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      const text = readFileSync(file, 'utf8');
+      const where = file.replace(process.cwd(), '.');
+
+      // ① TouchSensor を import するファイルは共有定数も import していること。
+      //    改行を挟む整形にも `TouchSensor as TS` の別名にも効く(定数を一度も
+      //    import しない新規ファイルが独自 sensor を足す経路を塞ぐ)。
+      //    未使用 import は lint が落とすので、import されていれば使われている。
+      if (/import\s*\{[^}]*\bTouchSensor\b[^}]*\}\s*from\s*'@dnd-kit\/core'/s.test(text)
+        && !text.includes('TOUCH_DRAG_ACTIVATION')) {
+        offenders.push(`${where}: imports TouchSensor without TOUCH_DRAG_ACTIVATION`);
+      }
+
+      // ② 各 useSensor(TouchSensor, ...) が共有定数を参照していること(空白/改行を吸収)。
+      for (const match of text.matchAll(/useSensor\(\s*TouchSensor\b/g)) {
+        const call = text.slice(match.index, match.index + 200);
+        if (!call.includes('TOUCH_DRAG_ACTIVATION')) {
+          offenders.push(`${where}: ${call.split('\n')[0].trim()}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it('does not open the menu for mouse pointer events', () => {
     const onContextMenu = vi.fn();
     const { card, container, root } = renderCard(onContextMenu);
@@ -128,6 +205,33 @@ describe('CardView touch menu', () => {
       clientY: 20,
     });
 
+    expect(onContextMenu).not.toHaveBeenCalled();
+
+    cleanupRender(root, container);
+  });
+
+  it('routes a short touch tap to the dedicated preview action when provided', () => {
+    const onContextMenu = vi.fn();
+    const onTouchTap = vi.fn();
+    const { card, container, root } = renderCard(
+      onContextMenu,
+      TEST_CARD_INSTANCE,
+      TEST_CARD_DEF,
+      onTouchTap,
+    );
+
+    dispatchPointerEvent(card, 'pointerdown', {
+      pointerType: 'touch',
+      clientX: 20,
+      clientY: 20,
+    });
+    dispatchPointerEvent(card, 'pointerup', {
+      pointerType: 'touch',
+      clientX: 22,
+      clientY: 21,
+    });
+
+    expect(onTouchTap).toHaveBeenCalledTimes(1);
     expect(onContextMenu).not.toHaveBeenCalled();
 
     cleanupRender(root, container);

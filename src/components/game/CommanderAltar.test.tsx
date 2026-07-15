@@ -5,6 +5,7 @@ import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { useGameStore } from '../../store/gameStore';
 import { CommanderAltar } from './CommanderAltar';
 import type { GameController } from './gameController';
+import { DRAG_UI_START_EVENT } from './dragUiEvents';
 
 vi.mock('./sound', () => ({ celebrate: vi.fn() }));
 
@@ -76,6 +77,25 @@ describe('CommanderAltar', () => {
     });
     expect(trigger?.getAttribute('aria-expanded')).toBe('false');
     expect(altar?.dataset.open).toBeUndefined();
+    act(() => root.unmount());
+  });
+
+  it('hides the temporary panel as soon as a drag starts', () => {
+    const { controller } = controllerForAway();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<CommanderAltar controller={controller} />));
+    const altar = container.querySelector<HTMLElement>('[data-testid="commander-altar"]');
+    const trigger = container.querySelector<HTMLButtonElement>('[data-testid="commander-altar-toggle"]');
+
+    act(() => trigger?.click());
+    expect(altar?.dataset.open).toBe('true');
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
+    });
+    expect(altar?.dataset.open).toBeUndefined();
+    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
     act(() => root.unmount());
   });
 

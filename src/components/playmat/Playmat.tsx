@@ -18,6 +18,7 @@ import { ContextMenu, type MenuItem } from '../ContextMenu';
 import { Modal } from '../Modal';
 import type { MenuTarget } from '../types';
 import { CardView } from '../CardView';
+import { TOUCH_DRAG_ACTIVATION } from '../touchDrag';
 import { CardPreview } from '../CardPreview';
 import { Battlefield } from './Battlefield';
 import { Hand } from './Hand';
@@ -302,7 +303,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_DRAG_ACTIVATION }),
     useSensor(KeyboardSensor),
   );
 

@@ -132,6 +132,20 @@ export function GameCard({
     controller.handleCardDoubleClick(cardId, event);
   }
 
+  function handleTouchTap(event: React.PointerEvent<HTMLDivElement>): void {
+    if (dragActiveRef.current) return;
+    if (previewPinned) {
+      setPreviewPinned(false);
+      closePreview();
+      controller.openCardMenu(cardId, event);
+      return;
+    }
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setPreviewPinned(true);
+    setPreviewAnchor({ x: rect.right, y: rect.top + rect.height / 2 });
+  }
+
   return (
     <div
       ref={rootRef}
@@ -164,6 +178,7 @@ export function GameCard({
         summoningSick={isSummoningSick(state, cardId)}
         focusable
         onContextMenu={(e) => controller.openCardMenu(cardId, e)}
+        onTouchTap={handleTouchTap}
         onDoubleClick={handleDoubleClick}
       />
       {commander && showCommanderBadge && (

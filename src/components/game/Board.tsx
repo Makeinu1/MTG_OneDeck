@@ -133,7 +133,7 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
       <Shelf controller={controller} cardIds={others} testId="board-others" />
       {dropTarget && (
         <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden>
-          {dropTarget.kind === 'cast' ? '唱える → スタック' : '戦場へ移す'}
+          {dropTarget.kind === 'cast' ? '盤面へ移動して唱える → スタック' : '盤面へ移動して戦場へ'}
         </div>
       )}
     </div>

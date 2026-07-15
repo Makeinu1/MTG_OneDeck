@@ -73,6 +73,15 @@ function mount(node: ReactNode) {
   return { container, root };
 }
 
+function dispatchTouchTap(element: Element, x = 20, y = 20): void {
+  for (const type of ['pointerdown', 'pointerup']) {
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+    Object.defineProperty(event, 'pointerId', { value: 1 });
+    Object.defineProperty(event, 'pointerType', { value: 'touch' });
+    element.dispatchEvent(event);
+  }
+}
+
 afterEach(() => {
   vi.useRealTimers();
   useGameStore.setState({ state: null });
@@ -80,6 +89,24 @@ afterEach(() => {
 });
 
 describe('high-frequency HUD interactions', () => {
+  it('uses first touch tap for details and the second for card operations', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const openCardMenu = vi.fn();
+    const controller = controllerFor(state, { openCardMenu });
+    const cardId = state.zones.hand[0];
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    const card = container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)!;
+
+    act(() => dispatchTouchTap(card));
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).not.toBeNull();
+    expect(openCardMenu).not.toHaveBeenCalled();
+
+    act(() => dispatchTouchTap(card));
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
+    expect(openCardMenu).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
   it('cancels the focus preview when a double click starts a quick action', () => {
     vi.useFakeTimers();
     const state = buildVisualFixture('hand7').snapshot.state;

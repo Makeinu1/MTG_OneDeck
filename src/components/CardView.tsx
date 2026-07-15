@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
+import { TOUCH_DRAG_DELAY_MS } from './touchDrag';
 import { useRef, useState } from 'react';
 import type { CardDef } from '../types/card';
 import type { CardInstance } from '../engine/types';
@@ -14,6 +15,8 @@ export interface CardViewProps {
   size?: 'hand' | 'battlefield' | 'small';
   /** Right-click or touch tap: opens the action menu. */
   onContextMenu?: (e: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => void;
+  /** Optional touch-only short-tap action. When omitted, touch tap keeps opening the context menu. */
+  onTouchTap?: (e: React.PointerEvent<HTMLDivElement>) => void;
   /** Double-click: quick action (play land / cast / tap / etc.). */
   onDoubleClick?: (e: React.MouseEvent) => void;
   onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void;
@@ -59,7 +62,8 @@ const KEYWORD_BADGES: Record<Keyword, string> = {
 };
 
 const TOUCH_TAP_MAX_DISTANCE_PX = 8;
-const TOUCH_TAP_MAX_DURATION_MS = 220;
+/** 「ドラッグに変わる直前までは短押し」= tap 上限は drag しきい値と地続き(touchDrag.ts 参照)。 */
+const TOUCH_TAP_MAX_DURATION_MS = TOUCH_DRAG_DELAY_MS;
 
 type DraggableCardBinding = ReturnType<typeof useDraggable>;
 
@@ -92,6 +96,7 @@ function CardViewSurface({
   def,
   size = 'battlefield',
   onContextMenu,
+  onTouchTap,
   onDoubleClick,
   onMouseEnter,
   onMouseLeave,
@@ -172,6 +177,7 @@ function CardViewSurface({
       touchStartRef.current = null;
     }
     onPointerDown?.(e);
+    dnd?.listeners?.onPointerDown?.(e);
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>): void {
@@ -180,7 +186,7 @@ function CardViewSurface({
     touchStartRef.current = null;
     onPointerUp?.(e);
 
-    if (e.pointerType !== 'touch' || !onContextMenu || !touchStart) {
+    if (e.pointerType !== 'touch' || (!onTouchTap && !onContextMenu) || !touchStart) {
       return;
     }
 
@@ -193,7 +199,8 @@ function CardViewSurface({
     suppressClickRef.current = true;
     e.preventDefault();
     e.stopPropagation();
-    onContextMenu(e);
+    if (onTouchTap) onTouchTap(e);
+    else onContextMenu?.(e);
   }
 
   function handlePointerCancel(e: React.PointerEvent<HTMLDivElement>): void {
@@ -227,15 +234,15 @@ function CardViewSurface({
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      {...(dnd?.attributes ?? {})}
+      {...(dnd?.listeners ?? {})}
       onPointerDown={handlePointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
-      {...(dnd?.attributes ?? {})}
       data-testid={`card-${instance.id}`}
       title={displayName}
       tabIndex={focusable ? 0 : undefined}
-      {...(dnd?.listeners ?? {})}
     >
       <div
         className="card-view__face"
