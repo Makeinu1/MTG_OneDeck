@@ -4,6 +4,7 @@ import { ImportScreen } from './components/ImportScreen';
 import { RotateNotice } from './components/RotateNotice';
 import { Playmat } from './components/playmat/Playmat';
 import { GameScreen } from './components/game/GameScreen';
+import { OpponentSetupScreen } from './components/game/OpponentSetupScreen';
 import { Modal } from './components/Modal';
 import { SavedDeckLibrary } from './components/SavedDeckLibrary';
 import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
@@ -64,6 +65,7 @@ function App() {
   const [libraryReady, setLibraryReady] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [gameView, setGameView] = useState<'game' | 'opponent-setup'>('game');
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | 'new' | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   const localizationRefreshKey = useRef('');
@@ -206,13 +208,35 @@ function App() {
   }, [selectedDeck?.id]);
 
   if (state) {
+    if (gameView === 'opponent-setup') {
+      return (
+        <OpponentSetupScreen
+          state={state}
+          onCancel={() => setGameView('game')}
+          onApplied={() => setGameView('game')}
+        />
+      );
+    }
     if (isV2LayoutEnabled()) {
       // D2: 縦持ち第一級の新レイアウト(RotateNotice なし=縦持ちの壁を撤去)。
-      return <GameScreen keybindings={keybindings} />;
+      return (
+        <GameScreen
+          keybindings={keybindings}
+          onOpenOpponentSetup={() => setGameView('opponent-setup')}
+        />
+      );
     }
     // ロールバック経路: 旧 Playmat(横/デスクトップ既存挙動)+ RotateNotice。
     return (
       <div className="playmat-shell">
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setGameView('opponent-setup')}
+          data-testid="legacy-open-opponent-setup"
+        >
+          対戦相手セットアップ
+        </button>
         <div className="playmat-shell__game">
           <Playmat keybindings={keybindings} />
         </div>

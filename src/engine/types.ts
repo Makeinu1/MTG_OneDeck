@@ -40,6 +40,8 @@ export interface CardInstance {
   damageMarked: number; // CR 120.6 damage marked on a creature; always >= 0
   hasDeathtouchDamage: boolean; // CR 704.5h damage from a source with deathtouch
   isToken: boolean;
+  /** Synthetic permanent authored by the local opponent-setup tool. */
+  isScenarioDummy?: boolean;
   isCommander: boolean;
   enteredTurn: number; // battlefield に入ったターン番号。battlefield 外では 0
   manualKeywords?: string[]; // manually granted status Keyword ids
@@ -61,9 +63,19 @@ export function objectIdOf(card: Pick<CardInstance, 'id' | 'zoneChangeCounter'>)
   return `${card.id}:${card.zoneChangeCounter}`;
 }
 
-export type PlayerId = 'P1' | 'OPPONENT_A';
+export type PlayerId = string;
+export const LOCAL_PLAYER_ID = 'P1';
+export const DEFAULT_OPPONENT_ID = 'OPPONENT_A';
+export const DEFAULT_OPPONENT_LIFE_LABEL = '対戦相手A';
 export const PLAYER_IDS: readonly PlayerId[] = ['P1', 'OPPONENT_A'];
 export const PRIVATE_ZONE_IDS: readonly PrivateZoneId[] = ['library', 'hand', 'graveyard'];
+
+export class EngineError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EngineError';
+  }
+}
 
 export interface PlayerPrivateZones {
   library: string[];
@@ -119,6 +131,7 @@ export interface ObjectSnapshot {
   ownerId: PlayerId;
   controllerId?: PlayerId;
   isToken: boolean;
+  isScenarioDummy?: boolean;
   isCommander: boolean;
   faceIndex: number;
   tapped: boolean;
@@ -151,6 +164,7 @@ export interface LinkedExileWrite {
 
 export type TargetSelectionKind = 'object' | 'player' | 'object-or-player';
 export type TargetSelectionLegalityMode = 'checked' | 'unchecked-warning' | 'forced';
+export type ManualTargetPlayerId = PlayerId;
 
 export type TargetSelectionRef =
   | {
@@ -161,7 +175,7 @@ export type TargetSelectionRef =
     }
   | {
       kind: 'player';
-      playerId: PlayerId;
+      playerId: ManualTargetPlayerId;
     };
 
 export interface TargetSelection {
@@ -515,6 +529,20 @@ export interface LogEntry {
   message: string; // 日本語。カード名は printedName ?? name を《》で囲む
 }
 
+export interface PlayerState {
+  id: PlayerId;
+  label: string;
+  life: number;
+  poison: number;
+  energy: number;
+  experience: number;
+  manaPool: ManaPool;
+  landsPlayedThisTurn: number;
+  spellsCastThisTurn: number;
+  drawnThisTurn: number;
+  mulliganCount: number;
+}
+
 export interface GameState {
   defs: Record<string, CardDef>; // defId -> CardDef(ゲーム中不変、トークンdef追加のみ)
   cards: Record<string, CardInstance>;
@@ -523,6 +551,9 @@ export interface GameState {
   commanders: CommanderInfo[]; // 1〜2体(共闘)
   effectsAuto: boolean;
   activePlayerId: PlayerId;
+  players: Partial<Record<PlayerId, PlayerState>>;
+  turnOrder: PlayerId[];
+  localPlayerId: PlayerId;
   turn: number; // 1始まり
   phase: Phase;
   combat: CombatState | null;
@@ -566,10 +597,13 @@ export function clonePlayerPrivateZones(
 export function cloneZonesByPlayer(
   zonesByPlayer: Partial<Record<PlayerId, Partial<PlayerPrivateZones>>> | undefined,
 ): ZonesByPlayer {
-  return {
-    P1: clonePlayerPrivateZones(zonesByPlayer?.P1),
-    OPPONENT_A: clonePlayerPrivateZones(zonesByPlayer?.OPPONENT_A),
-  };
+  const cloned: ZonesByPlayer = {};
+  for (const [playerId, zones] of Object.entries(zonesByPlayer ?? {})) {
+    cloned[playerId] = clonePlayerPrivateZones(zones);
+  }
+  cloned[LOCAL_PLAYER_ID] ??= emptyPlayerPrivateZones();
+  cloned[DEFAULT_OPPONENT_ID] ??= emptyPlayerPrivateZones();
+  return cloned;
 }
 
 export function playerPrivateZonesFromFlatZones(
@@ -600,4 +634,129 @@ export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {
       state.zones,
     ),
   };
+}
+
+export function syncFlatPrivateZonesFromPlayers(state: GameState): GameState {
+  const localZones = clonePlayerPrivateZones(state.zonesByPlayer[state.localPlayerId]);
+  return {
+    ...state,
+    zones: {
+      ...state.zones,
+      library: localZones.library,
+      hand: localZones.hand,
+      graveyard: localZones.graveyard,
+    },
+  };
+}
+
+export function requirePlayer(state: GameState, id: PlayerId): PlayerState {
+  const player = state.players[id];
+  if (!player) {
+    throw new EngineError(`プレイヤーが存在しません: ${id}`);
+  }
+  return player;
+}
+
+export function playerIdForLifeLabel(label: string): PlayerId {
+  return label === DEFAULT_OPPONENT_LIFE_LABEL
+    ? DEFAULT_OPPONENT_ID
+    : `opponent:${label}`;
+}
+
+export function defeatPlayerRefForLifeLabel(label: string): DefeatPlayerRef {
+  return `opponent:${label}`;
+}
+
+function playerStateFromLegacyLife(
+  id: PlayerId,
+  label: string,
+  life: number,
+  prior?: PlayerState,
+): PlayerState {
+  return {
+    id,
+    label,
+    life,
+    poison: prior?.poison ?? 0,
+    energy: prior?.energy ?? 0,
+    experience: prior?.experience ?? 0,
+    manaPool: prior ? { ...prior.manaPool } : { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+    landsPlayedThisTurn: prior?.landsPlayedThisTurn ?? 0,
+    spellsCastThisTurn: prior?.spellsCastThisTurn ?? 0,
+    drawnThisTurn: prior?.drawnThisTurn ?? 0,
+    mulliganCount: prior?.mulliganCount ?? 0,
+  };
+}
+
+export function syncPlayersFromLegacyScalars(state: GameState): GameState {
+  const priorPlayers = (state as Partial<GameState>).players ?? {};
+  const localPlayerId = (state as Partial<GameState>).localPlayerId ?? LOCAL_PLAYER_ID;
+  const localPrior = priorPlayers[localPlayerId];
+  const players: Partial<Record<PlayerId, PlayerState>> = {
+    [localPlayerId]: {
+      id: localPlayerId,
+      label: localPrior?.label ?? 'あなた',
+      life: state.life,
+      poison: state.poison,
+      energy: state.energy,
+      experience: state.experience,
+      manaPool: { ...state.manaPool },
+      landsPlayedThisTurn: state.landsPlayedThisTurn,
+      spellsCastThisTurn: state.spellsCastThisTurn,
+      drawnThisTurn: state.drawnThisTurn,
+      mulliganCount: state.mulliganCount,
+    },
+  };
+
+  const opponents = new Map<string, { id: PlayerId; state: PlayerState }>();
+  for (const [label, life] of Object.entries(state.opponentLife)) {
+    const id = playerIdForLifeLabel(label);
+    opponents.set(label, {
+      id,
+      state: playerStateFromLegacyLife(id, label, life, priorPlayers[id]),
+    });
+  }
+  opponents.set(DEFAULT_OPPONENT_LIFE_LABEL, {
+    id: DEFAULT_OPPONENT_ID,
+    state: playerStateFromLegacyLife(
+      DEFAULT_OPPONENT_ID,
+      DEFAULT_OPPONENT_LIFE_LABEL,
+      state.opponentLife[DEFAULT_OPPONENT_LIFE_LABEL] ?? 40,
+      priorPlayers[DEFAULT_OPPONENT_ID],
+    ),
+  });
+
+  const defaultOpponent = opponents.get(DEFAULT_OPPONENT_LIFE_LABEL);
+  if (defaultOpponent) {
+    players[DEFAULT_OPPONENT_ID] = defaultOpponent.state;
+  }
+  const extras = [...opponents.entries()]
+    .filter(([label]) => label !== DEFAULT_OPPONENT_LIFE_LABEL)
+    .sort(([left], [right]) => left.localeCompare(right));
+  for (const [, opponent] of extras) {
+    players[opponent.id] = opponent.state;
+  }
+
+  return {
+    ...state,
+    players,
+    turnOrder: [localPlayerId, DEFAULT_OPPONENT_ID, ...extras.map(([, opponent]) => opponent.id)],
+    localPlayerId,
+  };
+}
+
+type DerivedViewsInput = Omit<GameState, 'players' | 'turnOrder'> &
+  Partial<Pick<GameState, 'players' | 'turnOrder'>>;
+
+export function syncDerivedViews(state: DerivedViewsInput): GameState {
+  const completeState = syncPlayersFromLegacyScalars({
+    ...state,
+    players: state.players ?? {},
+    turnOrder: state.turnOrder ?? [],
+  });
+  const zonesByPlayer = cloneZonesByPlayer(completeState.zonesByPlayer);
+  for (const playerId of completeState.turnOrder) {
+    zonesByPlayer[playerId] ??= emptyPlayerPrivateZones();
+  }
+  return syncFlatPrivateZonesFromPlayers({ ...completeState, zonesByPlayer });
 }

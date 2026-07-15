@@ -157,6 +157,19 @@ describe('CR 608.2h resolution-time LKI for target mana value', () => {
       { type: 'moveCard', cardId: 'c2', to: 'graveyard', position: 'bottom' },
       { type: 'adjustLife', delta: -0 },
     ]);
+    expect(buildGuidedCommands(
+      prompt,
+      {
+        kind: 'target',
+        cardIds: ['c2'],
+        targetSnapshots:
+          selection.selection.kind === 'object' ? [selection.selection.snapshot] : [],
+      },
+      { sourceId: 'c1', controllerId: 'OPPONENT_A', def: source },
+    )).toEqual([
+      { type: 'moveCard', cardId: 'c2', to: 'graveyard', position: 'bottom' },
+      { type: 'adjustLife', delta: -0, playerId: 'OPPONENT_A' },
+    ]);
 
     const sourceSnapshot = objectSnapshotForCard(state, 'c1');
     state = applyCommand(state, {

@@ -1,11 +1,11 @@
-import { objectIdOf, type GameState, type TargetSelection } from '../../engine/types';
+import { objectIdOf, type GameState, type PlayerId, type TargetSelection } from '../../engine/types';
 
 export interface StackItemPresentation {
   cardId: string;
   name: string;
   source: string | null;
   announcedX?: number;
-  targets: { label: string; cardId?: string; playerId?: 'P1' | 'OPPONENT_A' }[];
+  targets: { label: string; cardId?: string; playerId?: PlayerId }[];
 }
 
 function cardName(state: GameState, cardId: string): string {
@@ -18,7 +18,9 @@ function cardName(state: GameState, cardId: string): string {
 function targetPresentation(state: GameState, target: TargetSelection) {
   if (target.selection.kind === 'player') {
     return {
-      label: target.selection.playerId === 'P1' ? '自分（プレイヤー）' : '対戦相手',
+      label: target.selection.playerId === state.localPlayerId
+        ? '自分（プレイヤー）'
+        : state.players[target.selection.playerId]?.label ?? target.selection.playerId,
       playerId: target.selection.playerId,
     };
   }

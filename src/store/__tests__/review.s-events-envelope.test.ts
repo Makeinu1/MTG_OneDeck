@@ -127,8 +127,16 @@ describe('review.s-events-envelope: CR 119/120/121 life/damage/draw event envelo
   // 7. CR 121.4/704.5b: an empty-library draw is an attempt event with no card identity.
   it('121.4/704.5b: drawing from an empty library emits an empty-library-attempt with no card', () => {
     store().newGame(makeDeck(12), 1);
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
     const before = eventsOfType('draw').length;
     store().dispatch({ type: 'draw', count: 1 });
@@ -142,8 +150,16 @@ describe('review.s-events-envelope: CR 119/120/121 life/damage/draw event envelo
   // 8. CR 121.5: milling from an empty library is NOT a draw and emits no draw event.
   it('121.5: milling emits no draw event', () => {
     store().newGame(makeDeck(12), 1);
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
     const before = eventsOfType('draw').length;
     store().dispatch({ type: 'mill', count: 1 });

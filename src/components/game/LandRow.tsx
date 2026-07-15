@@ -125,6 +125,7 @@ export function LandRow({ controller, activeDragId = null }: LandRowProps) {
   if (!state) return null;
 
   const landCards = state.zones.battlefield
+    .filter((id) => state.cards[id]?.controllerId === state.localPlayerId)
     .map((id) => toLandRowCard(state, id))
     .filter((c): c is LandRowCard => c !== null);
   const bundles = bundleLands(landCards);

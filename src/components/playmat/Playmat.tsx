@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { freeMulliganBottomCount, useGameStore } from '../../store/gameStore';
+import { freeMulliganBottomCount, guidedControllerId, useGameStore } from '../../store/gameStore';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
@@ -251,13 +251,9 @@ function ManualKeywordsDialog({
 function opponentLabelsFromState(
   state: NonNullable<ReturnType<typeof useGameStore.getState>['state']>,
 ): string[] {
-  return Array.from(
-    new Set([
-      '対戦相手A',
-      ...Object.keys(state.opponentLife),
-      ...Object.keys(state.commanderDamage),
-    ]),
-  );
+  return state.turnOrder
+    .filter((playerId) => playerId !== state.localPlayerId)
+    .map((playerId) => state.players[playerId]?.label ?? playerId);
 }
 
 /** The main playmat screen: battlefield, hand, side panel, zones, log, and all dialogs. */
@@ -1200,6 +1196,9 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const zoneViewerIds = zoneViewer ? state.zones[zoneViewer] : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
+  const guidedPlayerId = store.pendingGuided
+    ? guidedControllerId(state, store.pendingGuided)
+    : state.localPlayerId;
   const guidedTargetIds =
     guidedPrompt?.kind === 'target' && guidedPrompt.targetKind !== 'player'
       ? eligibleTargets(state, guidedPrompt.filter ?? {}, {
@@ -1209,12 +1208,18 @@ export function Playmat({ keybindings }: PlaymatProps) {
   const guidedTargetPlayerIds: PlayerId[] =
     guidedPrompt?.kind === 'target' &&
     (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
-      ? ['P1', 'OPPONENT_A']
+      ? state.turnOrder.slice()
       : [];
-  const guidedDiscardIds = guidedPrompt?.kind === 'discard' ? state.zones.hand : [];
+  const guidedDiscardIds = guidedPrompt?.kind === 'discard'
+    ? state.zonesByPlayer[guidedPlayerId].hand
+    : [];
   const guidedSacrificeIds =
     guidedPrompt?.kind === 'sacrifice'
-      ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' })
+      ? eligibleTargets(
+          state,
+          guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+          { sourceId: store.pendingGuided?.sourceId },
+        )
       : [];
   const guidedCostSelectedIds = new Set(
     (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
@@ -1224,9 +1229,15 @@ export function Playmat({ keybindings }: PlaymatProps) {
   );
   const guidedCostSubjectIds =
     guidedPrompt?.kind === 'cost-discard'
-      ? state.zones.hand.filter((cardId) => !guidedCostSelectedIds.has(cardId))
+      ? state.zonesByPlayer[guidedPlayerId].hand.filter(
+          (cardId) => !guidedCostSelectedIds.has(cardId),
+        )
       : guidedPrompt?.kind === 'cost-sacrifice'
-        ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' }).filter(
+        ? eligibleTargets(
+            state,
+            guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+            { sourceId: store.pendingGuided?.sourceId },
+          ).filter(
             (cardId) => cardId !== store.pendingGuided?.sourceId && !guidedCostSelectedIds.has(cardId),
           )
         : [];
@@ -1578,6 +1589,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
         {guidedPrompt?.kind === 'library-search' && (
           <GuidedLibrarySearchDialog
             state={state}
+            playerId={guidedPlayerId}
             sourceId={store.pendingGuided?.sourceId ?? ''}
             prompt={guidedPrompt}
             onConfirm={(cardId) => store.confirmGuidedLibrarySearch(cardId)}
@@ -1610,6 +1622,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
           <ArrangeTopDialog
             key={`guided-arrange-${guidedPrompt.raw}`}
             state={state}
+            playerId={guidedPlayerId}
             initialCount={guidedPrompt.count}
             initialMode={guidedPrompt.atom === 'effect.surveil' ? 'surveil' : 'scry'}
             lockCount

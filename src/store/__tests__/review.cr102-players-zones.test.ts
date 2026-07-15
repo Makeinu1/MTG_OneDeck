@@ -8,10 +8,9 @@
 //   移動先は object の owner の対応ゾーン。
 // - CR 401.1: library の順序(top card)は意味を持つ=backfill は順序保存必須。
 // - CR 108.3/111.2: owner の定義。
-// 契約の要石(§34.17 fork決定): 保存形=zonesByPlayer 単一マップ、flat zones は
-// P1 mirror であり続ける(flat が正・zonesByPlayer.P1 は常に flat から導出)。
-// lossless P1 preservation-first backfill。progressive migration=個別command は
-// このスライスでplayer-aware化しない。
+// 契約の要石(§34.17 + §34.43 J0更新): 保存形=zonesByPlayer 単一マップ、flat zones は
+// P1 mirror。§34.43 で極性を反転し、zonesByPlayer が正・flat はそこから導出する。
+// legacy snapshot の zonesByPlayer 不在時だけ lossless P1 preservation-first backfill。
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
@@ -166,14 +165,10 @@ describe('cr-102-players: zonesByPlayer (I17-I21)', () => {
     expectOwnerPresence(restored);
   });
 
-  it('HIGH-2 documented boundary: flat private zones are owner-unaware, so a mixed-owner card is currently mirrored into zonesByPlayer.P1 (accepted §34.17 scope boundary, not a silent regression)', () => {
-    // §34.17's own backfill-regulation text accepts that mixed-owner legacy data is not
-    // repaired at backfill time ("次の zone-change command が強制"). This test documents
-    // the CURRENT, accepted behavior explicitly so it is a known boundary, not a silent gap:
-    // the flat zones array has no owner partition, so an opponent-owned card that a caller
-    // places directly into the flat graveyard array is mirrored into zonesByPlayer.P1
-    // rather than zonesByPlayer.OPPONENT_A. True owner-based private-zone routing is
-    // out of scope for this slice (carried forward to a future player-specific-zones slice).
+  it('HIGH-2 boundary repayment (§34.43): a mixed-owner card routes to its owner graveyard, never the P1 flat mirror', () => {
+    // CR 400.3: private-zone destination is the object's owner's corresponding zone.
+    // §34.17 intentionally deferred this; §34.43 repays that boundary and reverses the
+    // old assertion rather than silently keeping the known-wrong P1 placement green.
     const opponentCard = makeDef({
       scryfallId: 'r-cr102-opponent-owned',
       typeLine: 'Creature',
@@ -187,8 +182,8 @@ describe('cr-102-players: zonesByPlayer (I17-I21)', () => {
     };
     state = applyCommand(state, { type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' }).state;
 
-    // Documented current behavior: mirrored into P1 (flat-derived), not OPPONENT_A.
-    expect(state.zonesByPlayer.P1.graveyard).toContain(cardId);
-    expect(state.zonesByPlayer.OPPONENT_A.graveyard).not.toContain(cardId);
+    expect(state.zonesByPlayer.P1.graveyard).not.toContain(cardId);
+    expect(state.zones.graveyard).not.toContain(cardId);
+    expect(state.zonesByPlayer.OPPONENT_A.graveyard).toContain(cardId);
   });
 });

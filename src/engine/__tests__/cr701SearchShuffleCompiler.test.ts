@@ -18,15 +18,31 @@ function def(): CardDef {
   };
 }
 
-function compile(line: string, libraryShuffleOrder?: readonly string[]) {
+function compile(
+  line: string,
+  libraryShuffleOrder?: readonly string[],
+  controllerId?: string,
+) {
   return compileAbilityIR(parseAbilityIR(line, 'Sorcery'), {
     sourceId: 'source-1',
     def: def(),
     ...(libraryShuffleOrder ? { libraryShuffleOrder } : {}),
+    ...(controllerId ? { controllerId } : {}),
   });
 }
 
 describe('CR 701.23/701.24 search and shuffle compiler leaf', () => {
+  it('attaches the ability controller to an opponent self-library shuffle', () => {
+    expect(compile('Shuffle your library.', ['o3', 'o1', 'o2'], 'OPPONENT_A')).toMatchObject({
+      decision: 'auto',
+      commands: [{
+        type: 'shuffle',
+        order: ['o3', 'o1', 'o2'],
+        playerId: 'OPPONENT_A',
+      }],
+    });
+  });
+
   it('auto-compiles a pure self-library shuffle only when a deterministic order is supplied', () => {
     expect(compile('Shuffle your library.', ['c3', 'c1', 'c2'])).toMatchObject({
       decision: 'auto',

@@ -4,7 +4,10 @@ import { compileAbilityCost } from '../grammar/compile';
 import { parseAbilityIR } from '../grammar/ir';
 import { makeDef } from './helpers';
 
-function compileCost(line: string, overrides: { name?: string; typeLine?: string } = {}) {
+function compileCost(
+  line: string,
+  overrides: { name?: string; typeLine?: string; controllerId?: string } = {},
+) {
   const name = overrides.name ?? 'cost-source';
   const typeLine = overrides.typeLine ?? 'Artifact';
   const def = makeDef({
@@ -14,7 +17,11 @@ function compileCost(line: string, overrides: { name?: string; typeLine?: string
     faces: [{ name, typeLine, oracleText: line }],
   });
   const ir = parseAbilityIR(line, typeLine);
-  return compileAbilityCost(ir.cost, { sourceId: 'c1', def });
+  return compileAbilityCost(ir.cost, {
+    sourceId: 'c1',
+    def,
+    ...(overrides.controllerId ? { controllerId: overrides.controllerId } : {}),
+  });
 }
 
 describe('CR 118 activated cost compiler catalog', () => {
@@ -33,6 +40,11 @@ describe('CR 118 activated cost compiler catalog', () => {
       { type: 'adjustLife', delta: -3 },
       { type: 'moveCard', cardId: 'c1', to: 'graveyard', position: 'top' },
     ]);
+  });
+
+  it('charges a fixed life cost to a nonlocal ability controller', () => {
+    expect(compileCost('Pay 2 life: Draw a card.', { controllerId: 'OPPONENT_A' }).commands)
+      .toEqual([{ type: 'adjustLife', delta: -2, playerId: 'OPPONENT_A' }]);
   });
 
   it('auto-compiles strict self-exile costs and preserves the remaining mana cost', () => {

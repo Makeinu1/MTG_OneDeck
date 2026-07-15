@@ -106,8 +106,16 @@ describe('review.sba-defeat: CR 704.5a/b/c loss-condition SBA substrate (advisor
   // 4. CR 704.5b: draw attempt from empty library sets advisory; interval flag cleared.
   it('704.5b: drawing from an empty library sets emptyLibraryDraw and clears the interval flag', () => {
     store().newGame(makeDeck(12), 1);
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
     store().dispatch({ type: 'draw', count: 1 });
     expect(reasonsFor('P1')).toContain('emptyLibraryDraw');
@@ -121,8 +129,16 @@ describe('review.sba-defeat: CR 704.5a/b/c loss-condition SBA substrate (advisor
   // 5. CR 121.5: mill is not a draw -> no empty-library defeat advisory.
   it('704.5b/121.5: milling from an empty library does NOT set emptyLibraryDraw', () => {
     store().newGame(makeDeck(12), 1);
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
     store().dispatch({ type: 'mill', count: 1 });
     expect(reasonsFor('P1')).not.toContain('emptyLibraryDraw');

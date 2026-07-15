@@ -27,6 +27,10 @@ import { planAutoTap } from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { orderPendingTriggersApnap, triggerStackPlacementBucketOf } from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
+import {
+  compileOpponentSetupCommands,
+  type OpponentSetupDraft,
+} from '../engine/scenario';
 import { splitAbilityLines } from '../engine/grammar';
 import { parseAbilityIR } from '../engine/grammar/ir';
 import {
@@ -37,9 +41,13 @@ import {
 } from '../engine/grammar/compile';
 import { resolveManaAbilityTransaction } from '../engine/manaTransaction';
 import {
+  DEFAULT_OPPONENT_LIFE_LABEL,
+  DEFAULT_OPPONENT_ID,
   emptyPlayerPrivateZones,
+  LOCAL_PLAYER_ID,
+  playerIdForLifeLabel,
   playerPrivateZonesFromFlatZones,
-  syncP1ZonesByPlayerFromFlatZones,
+  syncDerivedViews,
   type CardInstance,
   type ActivationCostComponent,
   type ActivationEnvelope,
@@ -153,6 +161,15 @@ export interface PendingGuidedResolution {
   manaAbility?: PendingManaAbility;
 }
 
+export function guidedControllerId(
+  state: GameState,
+  pending: Pick<PendingGuidedResolution, 'sourceId' | 'activation'>,
+): PlayerId {
+  return pending.activation?.sourceSnapshot.controllerId
+    ?? state.cards[pending.sourceId]?.controllerId
+    ?? state.localPlayerId;
+}
+
 /**
  * Backfill any zone arrays missing from an older snapshot (forward compat).
  * Snapshots saved before a new zone existed (e.g. `stack`, added in M4.27)
@@ -190,14 +207,47 @@ function normalizeZonesByPlayer(
     };
   }
 
-  return {
-    P1: normalizePlayerPrivateZones(rawZonesByPlayer.P1),
-    OPPONENT_A: normalizePlayerPrivateZones(rawZonesByPlayer.OPPONENT_A),
-  };
+  const normalized: GameState['zonesByPlayer'] = {};
+  for (const [playerId, privateZones] of Object.entries(rawZonesByPlayer)) {
+    normalized[playerId] = normalizePlayerPrivateZones(privateZones);
+  }
+  normalized.P1 ??= emptyPlayerPrivateZones();
+  normalized.OPPONENT_A ??= emptyPlayerPrivateZones();
+  return normalized;
 }
 
 function normalizePerTurnCounter(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeOpponentLife(value: unknown): Record<string, number> {
+  const fallback = { [DEFAULT_OPPONENT_LIFE_LABEL]: 40 };
+  const rawOpponentLife = unknownRecord(value);
+  if (!rawOpponentLife) return fallback;
+
+  const opponentLife: Record<string, number> = {};
+  for (const [label, life] of Object.entries(rawOpponentLife)) {
+    if (typeof life !== 'number' || !Number.isFinite(life)) return fallback;
+    opponentLife[label] = life;
+  }
+  opponentLife[DEFAULT_OPPONENT_LIFE_LABEL] ??= 40;
+  return opponentLife;
+}
+
+function normalizeManaPool(value: unknown): GameState['manaPool'] {
+  const rawManaPool = unknownRecord(value);
+  const finiteMana = (color: keyof GameState['manaPool']): number => {
+    const amount = rawManaPool?.[color];
+    return typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
+  };
+  return {
+    W: finiteMana('W'),
+    U: finiteMana('U'),
+    B: finiteMana('B'),
+    R: finiteMana('R'),
+    G: finiteMana('G'),
+    C: finiteMana('C'),
+  };
 }
 
 function normalizeMarkedDamage(value: unknown): number {
@@ -378,10 +428,6 @@ function normalizeSnapshotDefeat(value: unknown): GameState['defeat'] {
   return defeat;
 }
 
-function isPlayerId(value: string): value is PlayerId {
-  return value === 'P1' || value === 'OPPONENT_A';
-}
-
 function normalizeEmptyLibraryDrawFlags(
   value: unknown,
 ): GameState['emptyLibraryDrawAttemptedSinceLastSba'] {
@@ -390,7 +436,7 @@ function normalizeEmptyLibraryDrawFlags(
 
   const flags: GameState['emptyLibraryDrawAttemptedSinceLastSba'] = {};
   for (const [playerId, flag] of Object.entries(rawFlags)) {
-    if (!isPlayerId(playerId) || typeof flag !== 'boolean') continue;
+    if (typeof flag !== 'boolean') continue;
     flags[playerId] = flag;
   }
   return flags;
@@ -480,6 +526,14 @@ function normalizeSnapshotState(state: GameState): GameState {
   const snapshot = state as Partial<GameState>;
   const zones = normalizeSnapshotZones(snapshot.zones ?? {});
   const zonesByPlayer = normalizeZonesByPlayer(snapshot.zonesByPlayer, zones);
+  const opponentLife = normalizeOpponentLife(snapshot.opponentLife);
+  const rawPlayers = unknownRecord(snapshot.players);
+  const requestedLocalPlayerId = snapshot.localPlayerId;
+  const localPlayerId =
+    typeof requestedLocalPlayerId === 'string' &&
+    (requestedLocalPlayerId === LOCAL_PLAYER_ID || rawPlayers?.[requestedLocalPlayerId] !== undefined)
+      ? requestedLocalPlayerId
+      : LOCAL_PLAYER_ID;
   const pendingTriggers = Array.isArray(state.pendingTriggers)
     ? state.pendingTriggers.map((trigger) => {
         const controllerId =
@@ -510,14 +564,23 @@ function normalizeSnapshotState(state: GameState): GameState {
       })
     : [];
 
-  return syncP1ZonesByPlayerFromFlatZones({
+  const normalized = syncDerivedViews({
     ...state,
     effectsAuto: typeof state.effectsAuto === 'boolean' ? state.effectsAuto : true,
     activePlayerId: state.activePlayerId ?? 'P1',
+    localPlayerId,
     combat: normalizeSnapshotCombat(state),
     cards: normalizeSnapshotCards(state.cards),
     zones,
     zonesByPlayer,
+    life: typeof snapshot.life === 'number' && Number.isFinite(snapshot.life) ? snapshot.life : 40,
+    poison: normalizePerTurnCounter(snapshot.poison),
+    energy: normalizePerTurnCounter(snapshot.energy),
+    experience: normalizePerTurnCounter(snapshot.experience),
+    opponentLife,
+    manaPool: normalizeManaPool(snapshot.manaPool),
+    mulliganCount: normalizePerTurnCounter(snapshot.mulliganCount),
+    landsPlayedThisTurn: normalizePerTurnCounter(snapshot.landsPlayedThisTurn),
     spellsCastThisTurn: normalizePerTurnCounter(state.spellsCastThisTurn),
     drawnThisTurn: normalizePerTurnCounter(state.drawnThisTurn),
     combatDamagePreventedUntilEndOfTurn: state.combatDamagePreventedUntilEndOfTurn === true,
@@ -535,6 +598,69 @@ function normalizeSnapshotState(state: GameState): GameState {
     pendingSbaChoices: [],
     linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
   });
+  const withValidActivePlayer = normalized.players[normalized.activePlayerId]
+    ? normalized
+    : { ...normalized, activePlayerId: normalized.localPlayerId };
+  assertPrivateZoneIntegrity(withValidActivePlayer);
+  assertPlayerReferenceIntegrity(withValidActivePlayer);
+  return withValidActivePlayer;
+}
+
+function assertPrivateZoneIntegrity(state: GameState): void {
+  const privateZones = ['library', 'hand', 'graveyard'] as const;
+  const seen = new Set<string>();
+  for (const [playerId, zones] of Object.entries(state.zonesByPlayer)) {
+    if (!state.players[playerId]) {
+      throw new EngineError(`保存データの非公開領域に未参加プレイヤーがいます: ${playerId}`);
+    }
+    for (const zone of privateZones) {
+      for (const cardId of zones[zone]) {
+        const card = state.cards[cardId];
+        if (!card || card.zone !== zone || card.ownerId !== playerId || seen.has(cardId)) {
+          throw new EngineError(`保存データの非公開領域が不整合です: ${cardId}`);
+        }
+        seen.add(cardId);
+      }
+    }
+  }
+  for (const card of Object.values(state.cards)) {
+    if (privateZones.includes(card.zone as (typeof privateZones)[number]) && !seen.has(card.id)) {
+      throw new EngineError(`保存データの非公開領域にカードがありません: ${card.id}`);
+    }
+  }
+}
+
+const SNAPSHOT_PLAYER_REFERENCE_KEYS = new Set([
+  'ownerId',
+  'controllerId',
+  'playerId',
+  'attackingPlayerId',
+  'defendingPlayerId',
+  'createdBy',
+]);
+
+function assertPlayerReferenceIntegrity(state: GameState): void {
+  const visited = new WeakSet<object>();
+  const inspect = (value: unknown, path: string): void => {
+    if (typeof value !== 'object' || value === null || visited.has(value)) return;
+    visited.add(value);
+    for (const [key, nested] of Object.entries(value)) {
+      if (
+        SNAPSHOT_PLAYER_REFERENCE_KEYS.has(key)
+        && typeof nested === 'string'
+        && !state.players[nested]
+      ) {
+        throw new EngineError(`保存データのPlayerId参照が不整合です: ${path}.${key}=${nested}`);
+      }
+      inspect(nested, `${path}.${key}`);
+    }
+  };
+  inspect(state.cards, 'cards');
+  inspect(state.pendingTriggers, 'pendingTriggers');
+  inspect(state.combat, 'combat');
+  inspect(state.eventLog, 'eventLog');
+  inspect(state.pendingRuleChoices, 'pendingRuleChoices');
+  inspect(state.linkedExiles, 'linkedExiles');
 }
 
 function appendPendingTriggers(
@@ -707,6 +833,7 @@ function deterministicPendingTriggerOrderForPriority(state: GameState): string[]
     pendingTriggers,
     pendingTriggers.map((trigger) => trigger.pendingTriggerId),
     state.activePlayerId,
+    state.turnOrder,
   );
   return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
 }
@@ -732,6 +859,8 @@ export interface GameStore {
   setEffectsAuto(on: boolean): void;
   setCardEffectsAuto(cardId: string, on: boolean): void;
   addOpponent(label: string): void;
+  applyOpponentSetup(draft: OpponentSetupDraft): boolean;
+  applyOpponentSetups(drafts: readonly OpponentSetupDraft[]): boolean;
 
   dispatch(cmd: GameCommand): void;
   undo(): void;
@@ -799,7 +928,11 @@ export interface GameStore {
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
   setManualTargets(stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]): void;
-  declareAttack(attackerIds: string[], targetLabel: string): void;
+  declareAttack(
+    attackerIds: string[],
+    targetLabel: string,
+    blockers?: Array<{ cardId: string; attackerId: string }>,
+  ): void;
   adjustOpponentLife(label: string, delta: number): void;
   adjustMana(color: ManaColor, delta: number): void;
   arrangeTop(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
@@ -1225,10 +1358,14 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (!stackTopHasPureSelfLibraryShuffle(cur)) {
       return base;
     }
+    const stackTopId = cur.zones.stack[cur.zones.stack.length - 1];
+    const controllerId = stackTopId
+      ? (cur.cards[stackTopId]?.controllerId ?? cur.localPlayerId)
+      : cur.localPlayerId;
     const rng = createRng(randomSeed());
     return {
       ...base,
-      libraryShuffleOrder: shuffledOrder(cur.zones.library, rng),
+      libraryShuffleOrder: shuffledOrder(cur.zonesByPlayer[controllerId].library, rng),
     };
   }
 
@@ -1332,6 +1469,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const compiled = compileAbilityIR(ir, {
         sourceId: pending.sourceId,
         def,
+        controllerId: cur.cards[pending.sourceId]?.controllerId,
         allowLibrarySearchComposite: false,
       });
       if (compiled.decision === 'auto') {
@@ -1456,12 +1594,14 @@ export const useGameStore = create<GameStore>((set, get) => {
     const selected =
       options.excludeSelected === false ? new Set<string>() : selectedCostSubjectIds(pending);
     if (prompt.kind === 'cost-discard') {
-      return state.zones.hand.filter((cardId) => !selected.has(cardId));
+      const controllerId = pending.sourceSnapshot.controllerId ?? state.localPlayerId;
+      return state.zonesByPlayer[controllerId].hand.filter((cardId) => !selected.has(cardId));
     }
     if (prompt.kind === 'cost-sacrifice') {
       return eligibleTargets(
         state,
         prompt.filter ?? { types: ['permanent'], controller: 'you' },
+        { sourceId: pending.sourceId },
       ).filter((cardId) => cardId !== pending.sourceId && !selected.has(cardId));
     }
     return [];
@@ -1532,14 +1672,21 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
     for (const component of pending.costComponents) {
       const amount = component.amount ?? 0;
-      if (component.kind === 'pay-life' && state.life < amount) {
+      const payerId = component.payerId
+        ?? pending.sourceSnapshot.controllerId
+        ?? state.localPlayerId;
+      const payerLife = payerId === state.localPlayerId
+        ? state.life
+        : (state.players[payerId]?.life ?? 0);
+      const payerHand = state.zonesByPlayer[payerId].hand;
+      if (component.kind === 'pay-life' && payerLife < amount) {
         warnings.push(
-          `${cardLabel(state, pending.sourceId)}の起動コストのライフが${amount - state.life}点不足しています。`,
+          `${cardLabel(state, pending.sourceId)}の起動コストのライフが${amount - payerLife}点不足しています。`,
         );
       }
-      if (component.kind === 'discard' && state.zones.hand.length < amount) {
+      if (component.kind === 'discard' && payerHand.length < amount) {
         warnings.push(
-          `${cardLabel(state, pending.sourceId)}の起動コストで捨てる手札が${amount - state.zones.hand.length}枚不足しています。`,
+          `${cardLabel(state, pending.sourceId)}の起動コストで捨てる手札が${amount - payerHand.length}枚不足しています。`,
         );
       }
       if (component.kind === 'sacrifice-object') {
@@ -1600,8 +1747,12 @@ export const useGameStore = create<GameStore>((set, get) => {
         continue;
       }
       if (component.kind === 'discard') {
+        const payerId = component.payerId
+          ?? pending.sourceSnapshot.controllerId
+          ?? state.localPlayerId;
+        const payerHand = state.zonesByPlayer[payerId].hand;
         const invalid = subjectRefs.some(
-          (subjectRef) => !state.zones.hand.includes(subjectRef.physicalCardId),
+          (subjectRef) => !payerHand.includes(subjectRef.physicalCardId),
         );
         if (invalid) {
           warnings.push(
@@ -1734,6 +1885,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     playerId: PlayerId,
     fallbackIndex: number,
   ): TargetSelection {
+    const state = get().state;
+    if (!state?.players[playerId]) {
+      throw new EngineError('対象プレイヤーが現在のゲームに存在しません。');
+    }
     return {
       slotId: targetSlotId(prompt, fallbackIndex),
       raw: prompt.raw,
@@ -1929,6 +2084,50 @@ export const useGameStore = create<GameStore>((set, get) => {
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
+      }
+    },
+
+    applyOpponentSetup(draft) {
+      return get().applyOpponentSetups([draft]);
+    },
+
+    applyOpponentSetups(drafts) {
+      const cur = get().state;
+      if (!cur) return false;
+      try {
+        const byPlayer = new Map<PlayerId, OpponentSetupDraft>();
+        for (const draft of drafts) {
+          if (byPlayer.has(draft.playerId)) {
+            throw new EngineError(`同じプレイヤーのセットアップが重複しています: ${draft.playerId}`);
+          }
+          byPlayer.set(draft.playerId, draft);
+        }
+        const orderedDrafts = cur.turnOrder.flatMap((playerId) => {
+          const draft = byPlayer.get(playerId);
+          return draft ? [draft] : [];
+        });
+        if (orderedDrafts.length !== drafts.length) {
+          throw new EngineError('参加していないプレイヤーのセットアップは反映できません。');
+        }
+
+        let working = cur;
+        const warnings: string[] = [];
+        let commandCount = 0;
+        for (const draft of orderedDrafts) {
+          const commands = compileOpponentSetupCommands(working, draft);
+          commandCount += commands.length;
+          if (commands.length === 0) continue;
+          const result = applyCommands(working, commands);
+          working = result.state;
+          warnings.push(...result.warnings);
+        }
+        if (commandCount === 0) return true;
+        commit(working, warnings);
+        return true;
+      } catch (err) {
+        const message = err instanceof EngineError ? err.message : String(err);
+        set({ warnings: [...get().warnings, message] });
+        return false;
       }
     },
 
@@ -2232,7 +2431,14 @@ export const useGameStore = create<GameStore>((set, get) => {
           sourceId: cardId,
           commands: [
             { type: 'setTapped', cardId, tapped: true },
-            { type: 'addMana', color: chosen, amount },
+            {
+              type: 'addMana',
+              color: chosen,
+              amount,
+              ...(card.controllerId !== cur.localPlayerId
+                ? { playerId: card.controllerId }
+                : {}),
+            },
           ],
         });
         commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
@@ -2642,12 +2848,16 @@ export const useGameStore = create<GameStore>((set, get) => {
             ],
           });
         }
-        if (manaAbilityPlan.lifeCost > cur.life) {
+        const manaAbilityControllerId = cur.cards[sourceId]?.controllerId ?? cur.localPlayerId;
+        const manaAbilityControllerLife = manaAbilityControllerId === cur.localPlayerId
+          ? cur.life
+          : (cur.players[manaAbilityControllerId]?.life ?? 0);
+        if (manaAbilityPlan.lifeCost > manaAbilityControllerLife) {
           if (!opts?.force) {
             set({
               warnings: [
                 ...get().warnings,
-                `${cardLabel(cur, sourceId)}のマナ能力のライフコストが${manaAbilityPlan.lifeCost - cur.life}点不足しています。`,
+                `${cardLabel(cur, sourceId)}のマナ能力のライフコストが${manaAbilityPlan.lifeCost - manaAbilityControllerLife}点不足しています。`,
               ],
               pendingGuided: null,
             });
@@ -2839,6 +3049,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
       const sourceSnapshot = objectSnapshotForCard(cur, pending.sourceId);
+      const controllerId = guidedControllerId(cur, pending);
       const targetSnapshot = objectSnapshotForCard(cur, cardId);
       const commands = buildGuidedCommands(
         prompt,
@@ -2849,6 +3060,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         },
         {
           sourceId: pending.sourceId,
+          controllerId,
           def,
           ...(sourceSnapshot ? { sourceObjectId: sourceSnapshot.objectId } : {}),
         },
@@ -2867,7 +3079,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !pending || prompt?.kind !== 'discard') {
         return;
       }
-      if (!cur.zones.hand.includes(cardId)) {
+      const controllerId = guidedControllerId(cur, pending);
+      if (!cur.zonesByPlayer[controllerId].hand.includes(cardId)) {
         set({
           warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
         });
@@ -2881,7 +3094,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'discard', cardIds: [cardId] },
-        { sourceId: pending.sourceId, def },
+        { sourceId: pending.sourceId, controllerId, def },
       );
       advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
     },
@@ -2894,8 +3107,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !pending || prompt?.kind !== 'library-search' || !spec) {
         return;
       }
+      const controllerId = guidedControllerId(cur, pending);
+      const library = cur.zonesByPlayer[controllerId].library;
       if (cardId !== undefined) {
-        if (!cur.zones.library.includes(cardId)) {
+        if (!library.includes(cardId)) {
           set({
             warnings: [
               ...get().warnings,
@@ -2920,13 +3135,13 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       const rng = createRng(randomSeed());
       const order = shuffledOrder(
-        cardId === undefined ? cur.zones.library : cur.zones.library.filter((id) => id !== cardId),
+        cardId === undefined ? library : library.filter((id) => id !== cardId),
         rng,
       );
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'library-search', cardIds: cardId === undefined ? [] : [cardId] },
-        { sourceId: pending.sourceId, def, libraryShuffleOrder: order },
+        { sourceId: pending.sourceId, controllerId, def, libraryShuffleOrder: order },
       );
       if (commands.length === 0) {
         set({
@@ -2948,7 +3163,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
       const legalIds = new Set(
-        eligibleTargets(cur, prompt.filter ?? { types: ['permanent'], controller: 'you' }),
+        eligibleTargets(
+          cur,
+          prompt.filter ?? { types: ['permanent'], controller: 'you' },
+          { sourceId: pending.sourceId },
+        ),
       );
       if (!legalIds.has(cardId)) {
         set({
@@ -2964,7 +3183,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'sacrifice', cardIds: [cardId] },
-        { sourceId: pending.sourceId, def },
+        { sourceId: pending.sourceId, controllerId: guidedControllerId(cur, pending), def },
       );
       advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
     },
@@ -3002,7 +3221,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
-      if (prompt.kind === 'cost-discard' && !cur.zones.hand.includes(cardId)) {
+      const controllerId = pending.activation.sourceSnapshot.controllerId ?? cur.localPlayerId;
+      if (
+        prompt.kind === 'cost-discard'
+        && !cur.zonesByPlayer[controllerId].hand.includes(cardId)
+      ) {
         set({
           warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
         });
@@ -3029,7 +3252,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
       const command: GameCommand =
         prompt.kind === 'cost-discard'
-          ? { type: 'discard', cardIds: [cardId] }
+          ? { type: 'discard', cardIds: [cardId], playerId: controllerId }
           : { type: 'moveCard', cardId, to: 'graveyard', position: 'top', reason: 'sacrifice' };
       advanceActivationCostSubject(command, costComponents);
     },
@@ -3060,7 +3283,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'scry-surveil', topOrder, toBottom, toGraveyard },
-        { sourceId: pending.sourceId, def },
+        {
+          sourceId: pending.sourceId,
+          controllerId: guidedControllerId(cur, pending),
+          def,
+        },
       );
       advanceGuidedResolution(commands);
     },
@@ -3111,7 +3338,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const commands = buildGuidedCommands(
         prompt,
         { kind: 'mana', color },
-        { sourceId: pending.sourceId, def },
+        {
+          sourceId: pending.sourceId,
+          controllerId: guidedControllerId(cur, pending),
+          def,
+        },
       );
       if (isManaAbilityPending(pending)) {
         advanceGuidedManaAbility(commands);
@@ -3163,21 +3394,35 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'setManualTargets', stackItemId, targetIds, targetPlayerIds });
     },
 
-    declareAttack(attackerIds, targetLabel) {
+    declareAttack(attackerIds, targetLabel, blockers = []) {
       const cur = get().state;
       if (!cur) return;
+      const requestedDefender = playerIdForLifeLabel(targetLabel);
+      const defendingPlayerId = cur.players[requestedDefender]
+        ? requestedDefender
+        : targetLabel === '対戦相手'
+          ? DEFAULT_OPPONENT_ID
+          : undefined;
+      if (!defendingPlayerId || defendingPlayerId === cur.localPlayerId) {
+        set({ warnings: [...get().warnings, `攻撃先プレイヤーが見つかりません: ${targetLabel}`] });
+        return;
+      }
 
       const warnings = attackerIds.flatMap((cardId) => warningForSummoningSickness(cur, cardId));
       const commands: GameCommand[] = [
-        { type: 'enterCombat', attackingPlayerId: 'P1', defendingPlayerId: 'OPPONENT_A' },
+        {
+          type: 'enterCombat',
+          attackingPlayerId: cur.localPlayerId,
+          defendingPlayerId,
+        },
         {
           type: 'declareAttackers',
           attackers: attackerIds.map((cardId) => ({
             cardId,
-            target: { type: 'player', playerId: 'OPPONENT_A', lifeLabel: targetLabel },
+            target: { type: 'player', playerId: defendingPlayerId, lifeLabel: targetLabel },
           })),
         },
-        { type: 'declareBlockers', blockers: [] },
+        { type: 'declareBlockers', blockers },
         { type: 'resolveCombatDamage' },
       ];
 

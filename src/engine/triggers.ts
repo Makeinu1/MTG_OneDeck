@@ -309,7 +309,12 @@ export function detectTriggerCandidates(
 
   const prevBattlefield = new Set(prev.zones.battlefield);
   const nextBattlefield = new Set(next.zones.battlefield);
-  const nextGraveyard = new Set(next.zones.graveyard);
+  // CR 400.3 owner routing: a dying permanent goes to its OWNER's graveyard, so
+  // detecting deaths from the flat local-player mirror alone would silently miss
+  // every opponent-owned death. Aggregate across all players' canonical graveyards.
+  const nextGraveyard = new Set(
+    Object.values(next.zonesByPlayer).flatMap((zones) => zones.graveyard),
+  );
   const isLandfallEvent = next.landsPlayedThisTurn > prev.landsPlayedThisTurn;
 
   const enteredBattlefield = next.zones.battlefield.filter(
@@ -502,6 +507,7 @@ function snapshotOfCurrentCard(state: GameState, cardId: string): ObjectSnapshot
     ownerId,
     controllerId,
     isToken: card.isToken,
+    isScenarioDummy: card.isScenarioDummy,
     isCommander: card.isCommander,
     faceIndex: card.faceIndex,
     tapped: card.tapped,
@@ -879,6 +885,70 @@ function matchingEtbOtherAbilityLineIndex(
   )?.abilityLineIndex;
 }
 
+function deathOtherLineMatchesEvent(
+  state: GameState,
+  sourceSnapshot: ObjectSnapshot,
+  lineText: string,
+  died: ObjectSnapshot,
+): boolean {
+  const condition = triggerConditionText(lineText);
+  // "Dies" is the creature-specific event (CR 700.4). Generic
+  // battlefield-to-graveyard wording is handled by leaves-other subscriptions.
+  if (!/\bdies\b/i.test(condition)) {
+    return false;
+  }
+  const diesIndex = condition.search(/\bdies\b/i);
+  const subject = diesIndex < 0 ? condition : condition.slice(0, diesIndex);
+  if (
+    textReferencesSelf(state, sourceSnapshot.defId, subject)
+    && !/\b(?:another|other)\b/i.test(subject)
+  ) {
+    return false;
+  }
+  if (sourceSnapshot.physicalCardId === died.physicalCardId) {
+    return false;
+  }
+  if (/\bcreatures?\b/i.test(condition) && !typeLineHas(died, 'Creature')) {
+    return false;
+  }
+  if (/\bartifacts?\b/i.test(condition) && !typeLineHas(died, 'Artifact')) {
+    return false;
+  }
+  if (/\benchantments?\b/i.test(condition) && !typeLineHas(died, 'Enchantment')) {
+    return false;
+  }
+  const sourceController = controllerOf(sourceSnapshot);
+  const diedController = controllerOf(died);
+  if (/\b(?:you control|under your control)\b/i.test(condition) && diedController !== sourceController) {
+    return false;
+  }
+  if (
+    /\b(?:an opponent controls|opponents? control|under an opponent's control)\b/i.test(condition)
+    && diedController === sourceController
+  ) {
+    return false;
+  }
+  if (/\bnontoken\b/i.test(condition) && died.isToken) {
+    return false;
+  }
+  if (/\btoken\b/i.test(condition) && !/\bnontoken\b/i.test(condition) && !died.isToken) {
+    return false;
+  }
+  return true;
+}
+
+function matchingDeathOtherAbilityLineIndex(
+  state: GameState,
+  sourceId: string,
+  died: ObjectSnapshot,
+): number | undefined {
+  const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
+  if (!sourceSnapshot) return undefined;
+  return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
+    deathOtherLineMatchesEvent(state, sourceSnapshot, entry.text, died),
+  )?.abilityLineIndex;
+}
+
 function drawLineMatchesEvent(
   sourceController: PlayerId,
   lineText: string,
@@ -1054,7 +1124,7 @@ function discardLineMatchesEvent(
     return false;
   }
   if (/\bopponents?\b|\ban opponent\b/i.test(condition)) {
-    return false;
+    return event.before.ownerId !== controllerOf(sourceSnapshot);
   }
   if (/\byou\b/i.test(condition) && event.before.ownerId !== controllerOf(sourceSnapshot)) {
     return false;
@@ -1079,7 +1149,7 @@ function sacrificeLineMatchesEvent(
     return false;
   }
   if (/\bopponents?\b|\ban opponent\b/i.test(condition)) {
-    return false;
+    return controllerOf(event.before) !== controllerOf(sourceSnapshot);
   }
   if (/\byou\b/i.test(condition) && controllerOf(event.before) !== controllerOf(sourceSnapshot)) {
     return false;
@@ -1230,7 +1300,8 @@ function collectZoneChangePendingTriggers(
         );
       }
       for (const cardId of next.zones.battlefield) {
-        if (cardHasRuleTag(next, cardId, 'trigger.death-other')) {
+        const abilityLineIndex = matchingDeathOtherAbilityLineIndex(next, cardId, event.before);
+        if (abilityLineIndex !== undefined) {
           addCurrentPermanentPendingTrigger(
             next,
             context,
@@ -1239,6 +1310,7 @@ function collectZoneChangePendingTriggers(
             '他の死亡時',
             eventId,
             simultaneousGroupId,
+            abilityLineIndex,
           );
         }
         if (cardHasRuleTag(next, cardId, 'trigger.leaves-other')) {
@@ -1368,6 +1440,7 @@ function collectZoneChangePendingTriggers(
       );
     }
   }
+
 }
 
 function collectDrawPendingTriggers(

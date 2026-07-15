@@ -38,14 +38,20 @@ describe('CR 121 draw compiler leaf', () => {
     });
   });
 
-  it('keeps non-self and variable draw clauses manual', () => {
+  it('keeps targeted/variable draw manual and compiles each-player through the MP command', () => {
     expect(compile('Target player draws a card.')).toMatchObject({
       decision: 'manual',
       reasons: ['needs-parse'],
     });
     expect(compile('Each player draws a card.')).toMatchObject({
-      decision: 'manual',
-      reasons: ['needs-parse'],
+      decision: 'auto',
+      commands: [{
+        type: 'applyPlayerEffect',
+        controllerId: 'P1',
+        recipients: 'eachPlayer',
+        effect: 'draw',
+        amount: 1,
+      }],
     });
     expect(compile('Draw X cards.')).toMatchObject({
       decision: 'manual',

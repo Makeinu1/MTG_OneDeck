@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { advanceToPriority, apnapPlayerOrder, orderPendingTriggersApnap } from '../priority';
 import {
+  DEFAULT_OPPONENT_LIFE_LABEL,
+  LOCAL_PLAYER_ID,
   emptyPlayerPrivateZones,
   playerPrivateZonesFromFlatZones,
+  syncDerivedViews,
   type CardInstance,
   type GameState,
   type PendingRuleChoice,
@@ -95,7 +98,7 @@ function stateWithPendingTriggers(
     zones.battlefield.push(trigger.sourceId);
   }
 
-  return {
+  return syncDerivedViews({
     defs,
     cards,
     zones,
@@ -106,6 +109,7 @@ function stateWithPendingTriggers(
     commanders: [],
     effectsAuto: true,
     activePlayerId: 'P1',
+    localPlayerId: LOCAL_PLAYER_ID,
     turn: 1,
     phase: 'main1',
     combat: null,
@@ -114,7 +118,7 @@ function stateWithPendingTriggers(
     energy: 0,
     experience: 0,
     commanderDamage: {},
-    opponentLife: {},
+    opponentLife: { [DEFAULT_OPPONENT_LIFE_LABEL]: 40 },
     defeat: {},
     emptyLibraryDrawAttemptedSinceLastSba: {},
     manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
@@ -130,7 +134,7 @@ function stateWithPendingTriggers(
     pendingSbaChoices: [],
     linkedExiles: {},
     log: [],
-  };
+  });
 }
 
 describe('APNAP pending trigger ordering', () => {

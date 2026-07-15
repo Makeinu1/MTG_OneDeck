@@ -2,7 +2,14 @@ import type { CardDef } from '../types/card';
 import { applyCommand, type GameCommand } from './commands';
 import { initGame, type InitDeckCard } from './init';
 import { detectTriggerCandidates } from './triggers';
-import type { CardInstance, GameState, ManaPool, Phase, ZoneId } from './types';
+import {
+  syncDerivedViews,
+  type CardInstance,
+  type GameState,
+  type ManaPool,
+  type Phase,
+  type ZoneId,
+} from './types';
 
 const ZONE_IDS: readonly ZoneId[] = [
   'library',
@@ -430,7 +437,7 @@ function buildInitialState(initial: GoldenInitialState): GameState {
     }
   }
 
-  return {
+  return syncDerivedViews({
     ...state,
     turn: initial.turn ?? state.turn,
     phase: initial.phase ?? state.phase,
@@ -444,7 +451,7 @@ function buildInitialState(initial: GoldenInitialState): GameState {
     spellsCastThisTurn: initial.spellsCastThisTurn ?? state.spellsCastThisTurn,
     drawnThisTurn: initial.drawnThisTurn ?? state.drawnThisTurn,
     effectsAuto: initial.effectsAuto ?? state.effectsAuto,
-  };
+  });
 }
 
 function applyMeasuredCommand(

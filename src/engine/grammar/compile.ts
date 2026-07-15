@@ -1,11 +1,12 @@
 import type { CardDef, ManaColor } from '../../types/card';
 import type { GameCommand } from '../commands';
-import type { LinkedExilePurpose, ObjectSnapshot, TargetSelectionKind } from '../types';
+import type { LinkedExilePurpose, ObjectSnapshot, PlayerId, TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
 
 export interface CompileContext {
   sourceId: string;
+  controllerId?: PlayerId;
   def: CardDef;
   sourceObjectId?: string;
   abilityLineIndex?: number;
@@ -314,7 +315,13 @@ export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext
     commands.push({ type: 'setTapped', cardId: ctx.sourceId, tapped: true });
   }
   for (const amount of payLifeAmounts) {
-    commands.push({ type: 'adjustLife', delta: -amount });
+    commands.push({
+      type: 'adjustLife',
+      delta: -amount,
+      ...(ctx.controllerId && ctx.controllerId !== 'P1'
+        ? { playerId: ctx.controllerId }
+        : {}),
+    });
   }
   if (sacrificesSelf) {
     commands.push({
@@ -416,6 +423,12 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
       continue;
     }
     if (construct === 'construct.you-control' && constructCapturedByGuidedTarget(construct, ir)) {
+      continue;
+    }
+    if (
+      construct === 'construct.each-player'
+      && ir.effects.some((effect) => playerRecipientForRaw(effect.raw) !== null)
+    ) {
       continue;
     }
     const reason = reasonForManualConstruct(construct);
@@ -644,7 +657,7 @@ function compileEffect(
     } else if (!hasSupportedPlayerSubject(effect)) {
       reasons.add('needs-parse');
     } else {
-      const command = countDrivenCommand(effect.atom, count);
+      const command = countDrivenCommand(effect.atom, count, effect.raw, ctx);
       if (command) {
         commands.push(command);
       }
@@ -665,13 +678,15 @@ function compileEffect(
   if (effect.atom === 'effect.create-token') {
     const count = resolveCount(effect.count);
     const tokenKind = predefinedTokenKindForRaw(effect.raw);
-    const command = tokenKind && count !== null ? predefinedTokenCommand(tokenKind, count) : null;
+    const command = tokenKind && count !== null
+      ? predefinedTokenCommand(tokenKind, count, ctx.controllerId)
+      : null;
     if (command && !(tokenKind === 'treasure' && clauseHasTreasure)) {
       commands.push(command);
     } else if (tokenKind && count === null) {
       reasons.add('variable-count');
     } else if (!clauseHasTreasure) {
-      const definedCommand = definedCreatureTokenCommand(effect.raw);
+      const definedCommand = definedCreatureTokenCommand(effect.raw, ctx.controllerId);
       if (definedCommand) {
         commands.push(definedCommand);
       } else if (count === null) {
@@ -699,7 +714,13 @@ function compileEffect(
   if (effect.atom === 'effect.shuffle') {
     if (isSelfLibraryShuffleClause(effect.raw)) {
       if (ctx.libraryShuffleOrder) {
-        commands.push({ type: 'shuffle', order: ctx.libraryShuffleOrder.slice() });
+        commands.push({
+          type: 'shuffle',
+          order: ctx.libraryShuffleOrder.slice(),
+          ...(ctx.controllerId && ctx.controllerId !== 'P1'
+            ? { playerId: ctx.controllerId }
+            : {}),
+        });
       } else {
         reasons.add('no-command');
       }
@@ -892,24 +913,86 @@ function simpleRampSearchFilter(description: string): LibrarySearchFilter | null
   return subtype ? { kind: 'land-subtype', subtype } : null;
 }
 
-function countDrivenCommand(atom: string, count: number): GameCommand | null {
+type PlayerRecipient = 'you' | 'eachOpponent' | 'eachPlayer';
+
+function playerRecipientForRaw(raw: string): PlayerRecipient | null {
+  if (/\beach (?:of your )?opponents?\b/i.test(raw)) return 'eachOpponent';
+  if (/\beach player\b/i.test(raw)) return 'eachPlayer';
+  return null;
+}
+
+function countDrivenCommand(
+  atom: string,
+  count: number,
+  raw: string,
+  ctx: CompileContext,
+): GameCommand | null {
+  const recipient = playerRecipientForRaw(raw);
+  const controllerId = ctx.controllerId ?? 'P1';
+  if (recipient && atom !== 'effect.treasure') {
+    switch (atom) {
+      case 'effect.draw':
+        return {
+          type: 'applyPlayerEffect',
+          controllerId,
+          recipients: recipient,
+          effect: 'draw',
+          amount: count,
+        };
+      case 'effect.gain-life':
+      case 'effect.lose-life':
+        return {
+          type: 'applyPlayerEffect',
+          controllerId,
+          recipients: recipient,
+          effect: 'life',
+          amount: atom === 'effect.gain-life' ? count : -count,
+        };
+      case 'effect.mill':
+        return {
+          type: 'applyPlayerEffect',
+          controllerId,
+          recipients: recipient,
+          effect: 'mill',
+          amount: count,
+        };
+      case 'effect.poison':
+      case 'effect.energy':
+      case 'effect.experience':
+        return {
+          type: 'applyPlayerEffect',
+          controllerId,
+          recipients: recipient,
+          effect: 'counter',
+          kind: atom === 'effect.poison'
+            ? 'poison'
+            : atom === 'effect.energy'
+              ? 'energy'
+              : 'experience',
+          amount: count,
+        };
+      default:
+        return null;
+    }
+  }
+  const subject = controllerId === 'P1' ? {} : { playerId: controllerId };
   switch (atom) {
     case 'effect.draw':
-      return { type: 'draw', count };
+      return { type: 'draw', count, ...subject };
     case 'effect.gain-life':
-      return { type: 'adjustLife', delta: count };
+      return { type: 'adjustLife', delta: count, ...subject };
     case 'effect.lose-life':
-      return { type: 'adjustLife', delta: -count };
+      return { type: 'adjustLife', delta: -count, ...subject };
     case 'effect.mill':
-      return { type: 'mill', count };
+      return { type: 'mill', count, ...subject };
     case 'effect.poison':
-      return { type: 'adjustPlayerCounter', kind: 'poison', delta: count };
+      return { type: 'adjustPlayerCounter', kind: 'poison', delta: count, ...subject };
     case 'effect.energy':
-      return { type: 'adjustPlayerCounter', kind: 'energy', delta: count };
+      return { type: 'adjustPlayerCounter', kind: 'energy', delta: count, ...subject };
     case 'effect.experience':
-      return { type: 'adjustPlayerCounter', kind: 'experience', delta: count };
+      return { type: 'adjustPlayerCounter', kind: 'experience', delta: count, ...subject };
     case 'effect.treasure':
-      return predefinedTokenCommand('treasure', count);
+      return predefinedTokenCommand('treasure', count, ctx.controllerId);
     default:
       return null;
   }
@@ -925,6 +1008,7 @@ function predefinedTokenKindForRaw(raw: string): SupportedPredefinedTokenKind | 
 function predefinedTokenCommand(
   tokenKind: SupportedPredefinedTokenKind,
   count: number,
+  controllerId?: PlayerId,
 ): GameCommand {
   const spec = PREDEFINED_TOKEN_SPECS[tokenKind];
   return {
@@ -934,10 +1018,11 @@ function predefinedTokenCommand(
     quantity: count,
     ...(spec.producedMana ? { producedMana: spec.producedMana.slice() } : {}),
     tokenKind: spec.tokenKind,
+    ...(controllerId && controllerId !== 'P1' ? { createdBy: controllerId } : {}),
   };
 }
 
-function definedCreatureTokenCommand(raw: string): GameCommand | null {
+function definedCreatureTokenCommand(raw: string, controllerId?: PlayerId): GameCommand | null {
   const spec = parseDefinedCreatureTokenSpec(raw);
   if (!spec) {
     return null;
@@ -950,6 +1035,7 @@ function definedCreatureTokenCommand(raw: string): GameCommand | null {
     toughness: spec.toughness,
     quantity: spec.quantity,
     initialTapped: spec.initialTapped,
+    ...(controllerId && controllerId !== 'P1' ? { createdBy: controllerId } : {}),
   };
 }
 
@@ -1047,6 +1133,9 @@ function drawClauseIsExclusiveSelfFixed(raw: string): boolean {
 
 function hasSupportedPlayerSubject(effect: EffectClause): boolean {
   const raw = effect.raw.trim();
+  if (playerRecipientForRaw(raw)) {
+    return /^(?:each (?:of your )?opponents?|each player)\b/i.test(raw);
+  }
   switch (effect.atom) {
     case 'effect.draw':
       return (
@@ -1219,7 +1308,14 @@ function compileManaEffect(
 
   const literal = literalManaCommands(raw);
   if (literal !== null) {
-    return { commands: literal, prompts: [], reasons: [] };
+    const playerId = ctx.controllerId;
+    return {
+      commands: playerId && playerId !== 'P1'
+        ? literal.map((command) => ({ ...command, playerId }))
+        : literal,
+      prompts: [],
+      reasons: [],
+    };
   }
 
   const guided = guidedManaPrompt(raw, ctx);
@@ -1236,7 +1332,9 @@ function compileManaEffect(
   return { commands: [], prompts: [], reasons: ['ambiguous-mana'] };
 }
 
-function literalManaCommands(raw: string): GameCommand[] | null {
+function literalManaCommands(
+  raw: string,
+): Array<Extract<GameCommand, { type: 'addMana' }>> | null {
   if (/\bor\b|\band\/or\b|\bchosen color\b/i.test(raw)) {
     return null;
   }
@@ -1526,7 +1624,11 @@ export function buildGuidedCommands(
     if (cardId && spec.entersTapped) {
       commands.push({ type: 'setTapped', cardId, tapped: true });
     }
-    commands.push({ type: 'shuffle', order: order ?? [] });
+    commands.push({
+      type: 'shuffle',
+      order: order ?? [],
+      ...(ctx.controllerId && ctx.controllerId !== 'P1' ? { playerId: ctx.controllerId } : {}),
+    });
     return commands;
   }
 
@@ -1535,7 +1637,12 @@ export function buildGuidedCommands(
     if (!options.includes(answer.color)) {
       return [];
     }
-    return [{ type: 'addMana', color: answer.color, amount: Math.max(1, prompt.count) }];
+    return [{
+      type: 'addMana',
+      color: answer.color,
+      amount: Math.max(1, prompt.count),
+      ...(ctx.controllerId && ctx.controllerId !== 'P1' ? { playerId: ctx.controllerId } : {}),
+    }];
   }
 
   if (answer.kind === 'scry-surveil') {
@@ -1550,13 +1657,20 @@ export function buildGuidedCommands(
         topOrder: answer.topOrder.slice(),
         toBottom,
         toGraveyard,
+        ...(ctx.controllerId && ctx.controllerId !== 'P1' ? { playerId: ctx.controllerId } : {}),
       },
     ];
   }
 
   if (answer.kind === 'discard') {
     return prompt.atom === 'effect.discard' && answer.cardIds.length > 0
-      ? [{ type: 'discard', cardIds: answer.cardIds.slice(0, prompt.count) }]
+      ? [{
+          type: 'discard',
+          cardIds: answer.cardIds.slice(0, prompt.count),
+          ...(ctx.controllerId && ctx.controllerId !== 'P1'
+            ? { playerId: ctx.controllerId }
+            : {}),
+        }]
       : [];
   }
 
@@ -1581,7 +1695,13 @@ export function buildGuidedCommands(
         ];
         const manaValue = manaValueForDestroyThenLoseLifePrompt(prompt, targetSnapshot);
         if (manaValue !== null) {
-          commands.push({ type: 'adjustLife', delta: -manaValue });
+          commands.push({
+            type: 'adjustLife',
+            delta: -manaValue,
+            ...(ctx.controllerId && ctx.controllerId !== 'P1'
+              ? { playerId: ctx.controllerId }
+              : {}),
+          });
         }
         return commands;
       }

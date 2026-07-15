@@ -1,6 +1,7 @@
 /**
- * Reviewer-owned property tests for engine invariants I1-I5 (docs/engine-spec.md §1).
+ * Reviewer-owned property tests for engine invariants (docs/engine-spec.md §1/§34.42-45).
  * Implementation agents must NOT modify this file.
+ * (J0拡張 2026-07-15 → 判定者が全hunk精読=強化のみと確認し再オーナー化 2026-07-16。)
  *
  * Strategy: a PRNG-driven random walk over valid-ish commands generated from the
  * current state. The input state is deep-frozen before every applyCommand call,
@@ -12,7 +13,7 @@ import type { CardDef } from '../../types/card';
 import { applyCommand, type GameCommand } from '../commands';
 import { initGame, type InitDeckCard } from '../init';
 import { createRng, shuffledOrder } from '../random';
-import type { GameState, ZoneId } from '../types';
+import { playerIdForLifeLabel, requirePlayer, type GameState, type ZoneId } from '../types';
 import { useGameStore } from '../../store/gameStore';
 
 const ZONES: ZoneId[] = ['library', 'hand', 'battlefield', 'graveyard', 'exile', 'command', 'stack'];
@@ -104,6 +105,7 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'mill',
     'untapAll',
     'discard',
+    'createScenarioDummy',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -124,11 +126,16 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
         delta: Math.floor(rng() * 7) - 3,
       };
     case 'adjustLife':
-      return { type: 'adjustLife', delta: Math.floor(rng() * 21) - 10 };
+      return {
+        type: 'adjustLife',
+        playerId: pick(state.turnOrder),
+        delta: Math.floor(rng() * 21) - 10,
+      };
     case 'adjustPlayerCounter':
       return {
         type: 'adjustPlayerCounter',
         kind: pick(['poison', 'energy', 'experience']),
+        playerId: pick(state.turnOrder),
         delta: Math.floor(rng() * 7) - 3,
       };
     case 'addMana':
@@ -136,6 +143,7 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
         type: 'addMana',
         color: pick(['W', 'U', 'B', 'R', 'G', 'C']),
         amount: Math.floor(rng() * 3) + 1,
+        playerId: pick(state.turnOrder),
       };
     case 'payMana':
       return {
@@ -152,12 +160,15 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     case 'clearManaPool':
       return { type: 'clearManaPool' };
     case 'draw':
-      return { type: 'draw', count: Math.floor(rng() * 3) };
-    case 'shuffle':
+      return { type: 'draw', count: Math.floor(rng() * 3), playerId: pick(state.turnOrder) };
+    case 'shuffle': {
+      const playerId = pick(state.turnOrder);
       return {
         type: 'shuffle',
-        order: shuffledOrder(state.zones.library, rng),
+        playerId,
+        order: shuffledOrder(state.zonesByPlayer[playerId].library, rng),
       };
+    }
     case 'nextPhase':
       return { type: 'nextPhase' };
     case 'nextTurn':
@@ -224,13 +235,35 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
       return { type: 'arrangeTop', topOrder, toBottom, toGraveyard };
     }
     case 'mill':
-      return { type: 'mill', count: Math.floor(rng() * 4) };
+      return { type: 'mill', count: Math.floor(rng() * 4), playerId: pick(state.turnOrder) };
     case 'untapAll':
       return { type: 'untapAll' };
     case 'discard': {
-      if (state.zones.hand.length === 0) return { type: 'nextPhase' };
-      const k = 1 + Math.floor(rng() * Math.min(2, state.zones.hand.length));
-      return { type: 'discard', cardIds: state.zones.hand.slice(0, k) };
+      const playerId = pick(state.turnOrder);
+      const hand = state.zonesByPlayer[playerId].hand;
+      if (hand.length === 0) return { type: 'nextPhase' };
+      const k = 1 + Math.floor(rng() * Math.min(2, hand.length));
+      return { type: 'discard', cardIds: hand.slice(0, k), playerId };
+    }
+    case 'createScenarioDummy': {
+      let next = 1;
+      while (state.cards[`property-dummy-${next}`] || state.defs[`property-dummy-def-${next}`]) {
+        next += 1;
+      }
+      return {
+        type: 'createScenarioDummy',
+        cardId: `property-dummy-${next}`,
+        defId: `property-dummy-def-${next}`,
+        playerId: pick(state.turnOrder),
+        name: `検証ダミー${next}`,
+        typeLine: rng() < 0.5 ? 'Creature' : 'Artifact',
+        power: '1',
+        toughness: '1',
+        tapped: rng() < 0.5,
+        counters: {},
+        keywords: [],
+        isToken: rng() < 0.5,
+      };
     }
     case 'castSpell': {
       if (state.zones.hand.length === 0) return { type: 'nextPhase' };
@@ -267,7 +300,7 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
 function checkInvariants(state: GameState, deckSize: number, label: string): void {
   // I1: each card id appears in exactly one zone, zones <-> cards consistent
   const seen = new Map<string, ZoneId>();
-  for (const zone of ZONES) {
+  for (const zone of ['battlefield', 'exile', 'command', 'stack'] as const) {
     for (const id of state.zones[zone]) {
       expect(seen.has(id), `${label}: ${id} appears in ${seen.get(id)} and ${zone}`).toBe(false);
       seen.set(id, zone);
@@ -275,12 +308,23 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
       expect(state.cards[id].zone, `${label}: ${id} zone field mismatch`).toBe(zone);
     }
   }
+  for (const [playerId, zones] of Object.entries(state.zonesByPlayer)) {
+    for (const zone of ['library', 'hand', 'graveyard'] as const) {
+      for (const id of zones[zone]) {
+        expect(seen.has(id), `${label}: ${id} duplicated in ${playerId}/${zone}`).toBe(false);
+        seen.set(id, zone);
+        expect(state.cards[id], `${label}: ${id} in private zone but missing`).toBeDefined();
+        expect(state.cards[id].zone).toBe(zone);
+        expect(state.cards[id].ownerId).toBe(playerId);
+      }
+    }
+  }
   expect(Object.keys(state.cards).length, `${label}: cards not all in zones`).toBe(seen.size);
 
   // I2: non-token AND non-ability AND non-copy count is constant
   // (M4.27: ability objects excluded; M4.28: copy objects excluded)
   const nonTokens = Object.values(state.cards).filter(
-    (c) => !c.isToken && !c.isAbility && !c.isCopy
+    (c) => !c.isToken && !c.isAbility && !c.isCopy && !c.isScenarioDummy
   ).length;
   expect(nonTokens, `${label}: non-token count drifted`).toBe(deckSize);
 
@@ -384,6 +428,71 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
   // I13b: empty-library-draw interval flags are booleans (CR 704.5b interval).
   for (const [pid, flag] of Object.entries(state.emptyLibraryDrawAttemptedSinceLastSba)) {
     expect(typeof flag, `${label}: emptyLibraryDraw flag for ${pid} not boolean`).toBe('boolean');
+  }
+
+  // I24-I26: roster/turn order, local projection, and opponent compatibility view.
+  const playerIds = Object.keys(state.players);
+  expect(new Set(state.turnOrder).size, `${label}: duplicate turnOrder`).toBe(state.turnOrder.length);
+  expect([...playerIds].sort()).toEqual([...state.turnOrder].sort());
+  for (const playerId of playerIds) {
+    expect(requirePlayer(state, playerId).id).toBe(playerId);
+    expect(state.zonesByPlayer[playerId], `${label}: missing private zones for ${playerId}`).toBeDefined();
+  }
+  const local = requirePlayer(state, state.localPlayerId);
+  expect(local.life).toBe(state.life);
+  expect(local.poison).toBe(state.poison);
+  expect(local.energy).toBe(state.energy);
+  expect(local.experience).toBe(state.experience);
+  expect(local.manaPool).toEqual(state.manaPool);
+  expect(local.landsPlayedThisTurn).toBe(state.landsPlayedThisTurn);
+  expect(local.spellsCastThisTurn).toBe(state.spellsCastThisTurn);
+  expect(local.drawnThisTurn).toBe(state.drawnThisTurn);
+  for (const [opponentLabel, life] of Object.entries(state.opponentLife)) {
+    const player = requirePlayer(state, playerIdForLifeLabel(opponentLabel));
+    expect(player.label).toBe(opponentLabel);
+    expect(player.life).toBe(life);
+  }
+
+  // I29/I31/I32/I33/I36/I37: private mirrors, player event subjects, retention,
+  // and typed synthetic-object shape.
+  expect(state.zones.library).toEqual(state.zonesByPlayer[state.localPlayerId].library);
+  expect(state.zones.hand).toEqual(state.zonesByPlayer[state.localPlayerId].hand);
+  expect(state.zones.graveyard).toEqual(state.zonesByPlayer[state.localPlayerId].graveyard);
+  for (const event of state.eventLog) {
+    if ('playerId' in event && event.playerId !== undefined) {
+      expect(state.players[event.playerId], `${label}: event subject is not a player`).toBeDefined();
+    }
+  }
+  for (const playerId of state.turnOrder) {
+    const player = requirePlayer(state, playerId);
+    expect(player.poison).toBeGreaterThanOrEqual(0);
+    for (const amount of Object.values(player.manaPool)) {
+      expect(amount).toBeGreaterThanOrEqual(0);
+    }
+  }
+  for (const card of Object.values(state.cards)) {
+    expect(state.players[card.ownerId], `${label}: unknown owner ${card.ownerId}`).toBeDefined();
+    expect(state.players[card.controllerId], `${label}: unknown controller ${card.controllerId}`).toBeDefined();
+    if (!card.isScenarioDummy) continue;
+    const scenarioDef = state.defs[card.defId];
+    expect(scenarioDef).toBeDefined();
+    expect(scenarioDef.faces[0]?.oracleText).toBeUndefined();
+    expect(scenarioDef.faces[0]?.imageUrl).toBeUndefined();
+  }
+  expect(state.players[state.activePlayerId], `${label}: unknown active player`).toBeDefined();
+  for (const trigger of state.pendingTriggers) {
+    expect(state.players[trigger.controllerId], `${label}: unknown trigger controller`).toBeDefined();
+  }
+  if (state.combat) {
+    expect(state.players[state.combat.attackingPlayerId]).toBeDefined();
+    expect(state.players[state.combat.defendingPlayerId]).toBeDefined();
+    for (const attacker of state.combat.attackers) {
+      expect(state.players[attacker.controllerId]).toBeDefined();
+      expect(state.players[attacker.target.playerId]).toBeDefined();
+    }
+    for (const blocker of state.combat.blockers) {
+      expect(state.players[blocker.controllerId]).toBeDefined();
+    }
   }
 }
 

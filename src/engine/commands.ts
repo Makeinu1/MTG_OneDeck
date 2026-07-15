@@ -59,6 +59,8 @@ import type {
   PendingTrigger,
   Phase,
   PlayerId,
+  PlayerPrivateZones,
+  PrivateZoneId,
   TargetSelection,
   TargetSelectionKind,
   ZoneChangeEvent,
@@ -66,12 +68,18 @@ import type {
   ZoneId,
 } from './types';
 import {
+  clonePlayerPrivateZones,
   cloneZonesByPlayer,
+  defeatPlayerRefForLifeLabel,
+  EngineError,
   objectIdOf,
   PHASE_ORDER,
-  PLAYER_IDS,
-  syncP1ZonesByPlayerFromFlatZones,
+  playerIdForLifeLabel,
+  requirePlayer,
+  syncDerivedViews,
 } from './types';
+
+export { EngineError } from './types';
 
 export type GameCommand =
   | {
@@ -129,26 +137,60 @@ export type GameCommand =
     }
   | { type: 'resolveCombatDamage' }
   | { type: 'attach'; cardId: string; to: string | undefined }
-  | { type: 'adjustLife'; delta: number }
-  | { type: 'adjustPlayerCounter'; kind: 'poison' | 'energy' | 'experience'; delta: number }
+  | { type: 'setController'; cardId: string; controllerId: PlayerId }
+  | { type: 'adjustLife'; delta: number; playerId?: PlayerId }
+  | {
+      type: 'adjustPlayerCounter';
+      kind: 'poison' | 'energy' | 'experience';
+      delta: number;
+      playerId?: PlayerId;
+    }
+  | {
+      type: 'applyPlayerEffect';
+      controllerId: PlayerId;
+      recipients: 'you' | 'eachOpponent' | 'eachPlayer';
+      effect: 'draw' | 'mill' | 'life';
+      amount: number;
+    }
+  | {
+      type: 'applyPlayerEffect';
+      controllerId: PlayerId;
+      recipients: 'you' | 'eachOpponent' | 'eachPlayer';
+      effect: 'counter';
+      kind: 'poison' | 'energy' | 'experience';
+      amount: number;
+    }
   | { type: 'adjustCommanderDamage'; label: string; delta: number }
   | { type: 'adjustOpponentLife'; label: string; delta: number }
-  | { type: 'addMana'; color: ManaColor; amount: number }
-  | { type: 'adjustMana'; color: ManaColor; delta: number }
-  | { type: 'payMana'; payment: ManaPool }
-  | { type: 'clearManaPool' }
-  | { type: 'draw'; count: number }
-  | { type: 'mill'; count: number }
-  | { type: 'shuffle'; order: string[] }
+  | { type: 'addMana'; color: ManaColor; amount: number; playerId?: PlayerId }
+  | { type: 'adjustMana'; color: ManaColor; delta: number; playerId?: PlayerId }
+  | { type: 'payMana'; payment: ManaPool; playerId?: PlayerId }
+  | { type: 'clearManaPool'; playerId?: PlayerId }
+  | { type: 'draw'; count: number; playerId?: PlayerId }
+  | { type: 'mill'; count: number; playerId?: PlayerId }
+  | { type: 'shuffle'; order: string[]; playerId?: PlayerId }
   | { type: 'untapAll' }
-  | { type: 'discard'; cardIds: string[] }
-  | { type: 'putOnBottom'; cardIds: string[] }
-  | { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean }
-  | { type: 'arrangeTop'; topOrder: string[]; toBottom: string[]; toGraveyard: string[] }
+  | { type: 'discard'; cardIds: string[]; playerId?: PlayerId }
+  | { type: 'putOnBottom'; cardIds: string[]; playerId?: PlayerId }
+  | { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean; playerId?: PlayerId }
+  | {
+      type: 'arrangeTop';
+      topOrder: string[];
+      toBottom: string[];
+      toGraveyard: string[];
+      playerId?: PlayerId;
+    }
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
-  | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean }
-  | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean }
-  | { type: 'castToStack'; cardId: string; payment: ManaPool; forced: boolean; xValue?: number }
+  | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean; playerId?: PlayerId }
+  | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean; playerId?: PlayerId }
+  | {
+      type: 'castToStack';
+      cardId: string;
+      payment: ManaPool;
+      forced: boolean;
+      xValue?: number;
+      playerId?: PlayerId;
+    }
   | {
       type: 'addAbilityToStack';
       sourceId: string;
@@ -172,6 +214,7 @@ export type GameCommand =
       quantity: number;
       producedMana?: ManaColor[];
       tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+      createdBy?: PlayerId;
     }
   | {
       type: 'createDefinedToken';
@@ -184,20 +227,27 @@ export type GameCommand =
       initialTapped?: boolean;
       tokenKind?: CardDef['tokenKind'];
     }
+  | {
+      type: 'createScenarioDummy';
+      cardId: string;
+      defId: string;
+      playerId: PlayerId;
+      name: string;
+      typeLine: string;
+      power?: string;
+      toughness?: string;
+      tapped: boolean;
+      counters: Record<string, number>;
+      keywords: string[];
+      isToken: boolean;
+    }
   | { type: 'nextPhase'; drawnHandled?: boolean }
-  | { type: 'nextTurn' }
-  | { type: 'mulligan'; order: string[] };
+  | { type: 'nextTurn'; advanceTurnOrder?: boolean }
+  | { type: 'mulligan'; order: string[]; playerId?: PlayerId };
 
 export interface ApplyResult {
   state: GameState;
   warnings: string[];
-}
-
-export class EngineError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'EngineError';
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -243,7 +293,6 @@ const ABILITY_KIND_LABELS: Record<AbilityKind, string> = {
   activated: '起動',
   triggered: '誘発',
 };
-const DEFAULT_OPPONENT_LIFE_LABEL = '対戦相手A';
 const COLORED_MANA: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G'];
 const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
   lifeZero: '704.5a',
@@ -472,17 +521,60 @@ function setCard(draft: Draft, card: CardInstance): void {
   draft.state.cards = { ...draft.state.cards, [card.id]: card };
 }
 
+function isPrivateZone(zone: ZoneId): zone is PrivateZoneId {
+  return zone === 'library' || zone === 'hand' || zone === 'graveyard';
+}
+
+function privateZonesFor(draft: Draft, playerId: PlayerId): PlayerPrivateZones {
+  requirePlayer(draft.state, playerId);
+  const zones = draft.state.zonesByPlayer[playerId];
+  if (!zones) {
+    throw new EngineError(`プレイヤーのprivate zoneが存在しません: ${playerId}`);
+  }
+  return zones;
+}
+
+function readZone(draft: Draft, zone: ZoneId, playerId = draft.state.localPlayerId): string[] {
+  return isPrivateZone(zone) ? privateZonesFor(draft, playerId)[zone] : draft.state.zones[zone];
+}
+
 /** Get a mutable clone of a zone array, installing it into the draft. */
-function editZone(draft: Draft, zone: ZoneId): string[] {
-  const arr = draft.state.zones[zone].slice();
-  draft.state.zones = { ...draft.state.zones, [zone]: arr };
+function editZone(draft: Draft, zone: ZoneId, playerId = draft.state.localPlayerId): string[] {
+  if (!isPrivateZone(zone)) {
+    const arr = draft.state.zones[zone].slice();
+    draft.state.zones = { ...draft.state.zones, [zone]: arr };
+    return arr;
+  }
+
+  const playerZones = clonePlayerPrivateZones(privateZonesFor(draft, playerId));
+  const arr = playerZones[zone];
+  draft.state.zonesByPlayer = {
+    ...draft.state.zonesByPlayer,
+    [playerId]: playerZones,
+  };
+  if (playerId === draft.state.localPlayerId) {
+    draft.state.zones = { ...draft.state.zones, [zone]: arr };
+  }
   return arr;
 }
 
 function removeFromCurrentZone(draft: Draft, cardId: string): ZoneId {
   const card = draft.state.cards[cardId];
   const from = card.zone;
-  const arr = editZone(draft, from);
+  let zonePlayerId = draft.state.localPlayerId;
+  if (isPrivateZone(from)) {
+    const ownerZones = privateZonesFor(draft, card.ownerId);
+    if (!ownerZones[from].includes(cardId)) {
+      const containingPlayer = Object.entries(draft.state.zonesByPlayer).find(([, zones]) =>
+        zones[from].includes(cardId),
+      );
+      if (containingPlayer) zonePlayerId = containingPlayer[0];
+      else zonePlayerId = card.ownerId;
+    } else {
+      zonePlayerId = card.ownerId;
+    }
+  }
+  const arr = editZone(draft, from, zonePlayerId);
   const idx = arr.indexOf(cardId);
   if (idx >= 0) arr.splice(idx, 1);
   return from;
@@ -579,6 +671,7 @@ function objectSnapshotOf(draft: Draft, card: CardInstance): ObjectSnapshot {
     ownerId,
     controllerId,
     isToken: card.isToken,
+    isScenarioDummy: card.isScenarioDummy,
     isCommander: card.isCommander,
     faceIndex: card.faceIndex,
     tapped: card.tapped,
@@ -607,6 +700,7 @@ export function objectSnapshotForCard(state: GameState, cardId: string): ObjectS
     ownerId,
     controllerId,
     isToken: card.isToken,
+    isScenarioDummy: card.isScenarioDummy,
     isCommander: card.isCommander,
     faceIndex: card.faceIndex,
     tapped: card.tapped,
@@ -709,6 +803,7 @@ function pushLifeChangeEvent(
 
 function pushDrawEvent(
   draft: Draft,
+  playerId: PlayerId,
   result: 'drawn' | 'empty-library-attempt',
   drawOrdinal: number,
   cause: EventCause,
@@ -716,7 +811,7 @@ function pushDrawEvent(
 ): void {
   pushEvent(draft, {
     type: 'draw',
-    playerId: 'P1',
+    playerId,
     result,
     drawOrdinal,
     cause,
@@ -803,11 +898,11 @@ function flushCounterChangeEvents(draft: Draft): void {
   }
 }
 
-function playerTargetRef(playerId: PlayerId): EventTargetRef {
-  if (playerId === 'OPPONENT_A') {
-    return { kind: 'player', playerId, lifeLabel: DEFAULT_OPPONENT_LIFE_LABEL };
-  }
-  return { kind: 'player', playerId };
+function playerTargetRef(draft: Draft, playerId: PlayerId): EventTargetRef {
+  const player = requirePlayer(draft.state, playerId);
+  return playerId === draft.state.localPlayerId
+    ? { kind: 'player', playerId }
+    : { kind: 'player', playerId, lifeLabel: player.label };
 }
 
 function pushDamageEvent(
@@ -1055,7 +1150,8 @@ function moveCardInternal(
   }
 
   removeFromCurrentZone(draft, cardId);
-  const dest = editZone(draft, to);
+  const destinationPlayerId = isPrivateZone(to) ? card.ownerId : draft.state.localPlayerId;
+  const dest = editZone(draft, to, destinationPlayerId);
 
   // battlefield destination always appended (UI manages order otherwise).
   const effectivePosition: 'top' | 'bottom' | number = to === 'battlefield' ? 'bottom' : position;
@@ -1304,7 +1400,7 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
   const damageEvent = pushDamageEvent(
     draft,
     source,
-    playerTargetRef(cmd.targetPlayerId),
+    playerTargetRef(draft, cmd.targetPlayerId),
     amount,
     cmd.combatDamage,
     cause,
@@ -1322,16 +1418,13 @@ function applyDealDamage(draft: Draft, cmd: DealDamageCommand): void {
     source,
     causeEventId: damageEvent.eventId,
   } satisfies Pick<LifeChangeEvent, 'source' | 'causeEventId'>;
-  const resultEvent =
-    cmd.targetPlayerId === 'P1'
-      ? applyPlayerLifeDelta(draft, -amount, resultCause, resultOptions)
-      : applyOpponentLifeDelta(
-          draft,
-          DEFAULT_OPPONENT_LIFE_LABEL,
-          -amount,
-          resultCause,
-          resultOptions,
-        );
+  const resultEvent = applyLifeDeltaForPlayer(
+    draft,
+    cmd.targetPlayerId,
+    -amount,
+    resultCause,
+    resultOptions,
+  );
 
   if (resultEvent) {
     setDamageResultEventIds(draft, damageEvent.eventId, [resultEvent.eventId]);
@@ -1389,18 +1482,36 @@ function applyClearMarkedDamage(draft: Draft, cardId?: string): void {
   }
 }
 
-function applyPlayerLifeDelta(
+function applyLifeDeltaForPlayer(
   draft: Draft,
+  playerId: PlayerId,
   delta: number,
   cause: EventCause,
   options?: Pick<LifeChangeEvent, 'lifeLabel' | 'source' | 'sourceEventId' | 'causeEventId'>,
 ): LifeChangeEvent | null {
-  const previousLife = draft.state.life;
+  const player = requirePlayer(draft.state, playerId);
+  const previousLife =
+    playerId === draft.state.localPlayerId ? draft.state.life : player.life;
   const nextLife = previousLife + delta;
-  draft.state.life = nextLife;
-  const event = pushLifeChangeEvent(draft, 'P1', previousLife, nextLife, cause, options);
+  if (playerId === draft.state.localPlayerId) {
+    draft.state.life = nextLife;
+  } else {
+    draft.state.players = {
+      ...draft.state.players,
+      [playerId]: { ...player, life: nextLife },
+    };
+    draft.state.opponentLife = {
+      ...draft.state.opponentLife,
+      [player.label]: nextLife,
+    };
+  }
+  const event = pushLifeChangeEvent(draft, playerId, previousLife, nextLife, cause, {
+    ...(playerId === draft.state.localPlayerId ? {} : { lifeLabel: player.label }),
+    ...options,
+  });
   const sign = delta >= 0 ? '+' : '';
-  pushLog(draft, `ライフが${sign}${delta}(現在${draft.state.life})。`);
+  const subject = playerId === draft.state.localPlayerId ? '' : `${player.label}の`;
+  pushLog(draft, `${subject}ライフが${sign}${delta}(現在${nextLife})。`);
   return event;
 }
 
@@ -1411,26 +1522,48 @@ function applyOpponentLifeDelta(
   cause: EventCause,
   options?: Pick<LifeChangeEvent, 'source' | 'sourceEventId' | 'causeEventId'>,
 ): LifeChangeEvent | null {
-  const current = draft.state.opponentLife[label] ?? 40;
-  const next = current + delta;
-  draft.state.opponentLife = {
-    ...draft.state.opponentLife,
-    [label]: next,
-  };
-  const event = pushLifeChangeEvent(draft, 'OPPONENT_A', current, next, cause, {
-    ...options,
-    lifeLabel: label,
-  });
-  pushLog(draft, `対戦相手ライフ(${label})を${next}にしました。`);
-  return event;
+  const playerId = playerIdForLifeLabel(label);
+  if (!draft.state.players[playerId]) {
+    draft.state.opponentLife = {
+      ...draft.state.opponentLife,
+      [label]: draft.state.opponentLife[label] ?? 40,
+    };
+    draft.state = syncDerivedViews(draft.state);
+  }
+  return applyLifeDeltaForPlayer(draft, playerId, delta, cause, { ...options, lifeLabel: label });
+}
+
+function applyPlayerCounterDelta(
+  draft: Draft,
+  playerId: PlayerId,
+  kind: 'poison' | 'energy' | 'experience',
+  delta: number,
+): void {
+  const player = requirePlayer(draft.state, playerId);
+  const next = Math.max(0, player[kind] + delta);
+  if (playerId === draft.state.localPlayerId) {
+    draft.state[kind] = next;
+  } else {
+    draft.state.players = {
+      ...draft.state.players,
+      [playerId]: { ...player, [kind]: next },
+    };
+  }
+  const label = kind === 'poison' ? '毒' : kind === 'energy' ? 'エネルギー' : '経験';
+  const subject = playerId === draft.state.localPlayerId ? '' : `${player.label}の`;
+  pushLog(draft, `${subject}${label}カウンターを${next}個にしました。`);
 }
 
 // ---------------------------------------------------------------------------
 // Combat handling (CR 506-510 first slice)
 // ---------------------------------------------------------------------------
 
-function defaultDefendingPlayer(attackingPlayerId: PlayerId): PlayerId {
-  return attackingPlayerId === 'P1' ? 'OPPONENT_A' : 'P1';
+function defaultDefendingPlayer(state: GameState, attackingPlayerId: PlayerId): PlayerId {
+  const attackingIndex = state.turnOrder.indexOf(attackingPlayerId);
+  if (attackingIndex < 0) {
+    throw new EngineError(`攻撃プレイヤーがturnOrderに存在しません: ${attackingPlayerId}`);
+  }
+  return state.turnOrder[(attackingIndex + 1) % state.turnOrder.length] ?? state.localPlayerId;
 }
 
 function defaultCombatTarget(defendingPlayerId: PlayerId): CombatTarget {
@@ -1479,33 +1612,16 @@ interface CombatPlayerDamageTotal {
   amount: number;
 }
 
-function combatPlayerDamageKey(target: CombatTarget): string {
-  if (target.playerId === 'P1') {
-    return 'P1';
-  }
-  return `${target.playerId}:${target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL}`;
-}
-
 function addCombatPlayerDamage(
   totals: Map<string, CombatPlayerDamageTotal>,
   target: CombatTarget,
   amount: number,
 ): void {
   if (amount <= 0) return;
-  const key = combatPlayerDamageKey(target);
-  const existing = totals.get(key);
-  if (existing) {
-    totals.set(key, { ...existing, amount: existing.amount + amount });
-    return;
-  }
-  totals.set(key, {
-    target: {
-      ...target,
-      ...(target.playerId === 'OPPONENT_A'
-        ? { lifeLabel: target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL }
-        : {}),
-    },
-    amount,
+  const existing = totals.get(target.playerId);
+  totals.set(target.playerId, {
+    target: { ...target },
+    amount: (existing?.amount ?? 0) + amount,
   });
 }
 
@@ -1515,16 +1631,12 @@ function applyCombatPlayerDamageTotals(
 ): void {
   for (const total of totals) {
     if (total.amount <= 0) continue;
-    if (total.target.playerId === 'P1') {
-      applyPlayerLifeDelta(draft, -total.amount, commandCause('resolveCombatDamage'));
-    } else {
-      applyOpponentLifeDelta(
-        draft,
-        total.target.lifeLabel ?? DEFAULT_OPPONENT_LIFE_LABEL,
-        -total.amount,
-        commandCause('resolveCombatDamage'),
-      );
-    }
+    applyLifeDeltaForPlayer(
+      draft,
+      total.target.playerId,
+      -total.amount,
+      commandCause('resolveCombatDamage'),
+    );
   }
 }
 
@@ -1539,7 +1651,9 @@ function applyEnterCombat(
   }
 
   const attacking = attackingPlayerId ?? draft.state.activePlayerId;
-  const defending = defendingPlayerId ?? defaultDefendingPlayer(attacking);
+  requirePlayer(draft.state, attacking);
+  const defending = defendingPlayerId ?? defaultDefendingPlayer(draft.state, attacking);
+  requirePlayer(draft.state, defending);
   // Sets phase directly (bypasses enterPhase/promoteDueScheduledTriggers). Harmless today
   // because PendingTriggerSchedule.phase only accepts 'upkeep'|'end', but if a future slice
   // adds 'combat' as a schedule target, this call site will also need promotion wiring.
@@ -1573,6 +1687,11 @@ function applyDeclareAttackers(
 
     const card = requireCard(draft, attacker.cardId);
     warnIfNotBattlefieldCreature(draft, card);
+    const target = attacker.target ?? defaultCombatTarget(combat.defendingPlayerId);
+    requirePlayer(draft.state, target.playerId);
+    if (target.playerId === card.controllerId) {
+      throw new EngineError('自分自身を攻撃先プレイヤーにはできません。');
+    }
     if (isBattlefieldCreature(draft, card) && !hasVigilance(draft.state, card.id) && !card.tapped) {
       setCard(draft, { ...card, tapped: true });
       pushLog(draft, `${nameOfCard(draft, card)}は攻撃のためタップされました。`);
@@ -1582,7 +1701,7 @@ function applyDeclareAttackers(
       cardId: card.id,
       objectId: objectIdOf(card),
       controllerId: card.controllerId,
-      target: attacker.target ?? defaultCombatTarget(combat.defendingPlayerId),
+      target,
       blockedBy: [],
       declaredOrder: declared.length,
     });
@@ -1647,11 +1766,7 @@ function applyDeclareBlockers(
 function gainLifeForController(draft: Draft, controllerId: PlayerId, amount: number): void {
   if (amount <= 0) return;
   const cause = commandCause('resolveCombatDamage');
-  if (controllerId === 'P1') {
-    applyPlayerLifeDelta(draft, amount, cause);
-  } else {
-    applyOpponentLifeDelta(draft, DEFAULT_OPPONENT_LIFE_LABEL, amount, cause);
-  }
+  applyLifeDeltaForPlayer(draft, controllerId, amount, cause);
 }
 
 // CR 702.15b: lifelink causes the source's controller to gain life equal to the damage
@@ -1790,6 +1905,11 @@ function applyResolveCombatDamage(draft: Draft): void {
 function applyDefeatStateBasedActions(draft: Draft, simultaneousGroupId: string): boolean {
   let added = false;
 
+  const defeatRefForPlayer = (playerId: PlayerId): DefeatPlayerRef =>
+    playerId === draft.state.localPlayerId
+      ? 'P1'
+      : defeatPlayerRefForLifeLabel(requirePlayer(draft.state, playerId).label);
+
   if (draft.state.life <= 0) {
     added = addDefeatAdvisory(draft, 'P1', 'lifeZero', simultaneousGroupId) || added;
   }
@@ -1798,20 +1918,36 @@ function applyDefeatStateBasedActions(draft: Draft, simultaneousGroupId: string)
     left.localeCompare(right),
   )) {
     if (life > 0) continue;
-    added = addDefeatAdvisory(draft, `opponent:${label}`, 'lifeZero', simultaneousGroupId) || added;
+    added =
+      addDefeatAdvisory(
+        draft,
+        defeatPlayerRefForLifeLabel(label),
+        'lifeZero',
+        simultaneousGroupId,
+      ) || added;
   }
 
   const emptyDrawFlags = draft.state.emptyLibraryDrawAttemptedSinceLastSba;
-  const emptyDrawAttemptedByP1 = emptyDrawFlags.P1 === true;
   if (Object.keys(emptyDrawFlags).length > 0) {
     draft.state.emptyLibraryDrawAttemptedSinceLastSba = {};
   }
-  if (emptyDrawAttemptedByP1) {
-    added = addDefeatAdvisory(draft, 'P1', 'emptyLibraryDraw', simultaneousGroupId) || added;
+  for (const playerId of Object.keys(emptyDrawFlags).sort()) {
+    if (emptyDrawFlags[playerId] !== true || !draft.state.players[playerId]) continue;
+    added =
+      addDefeatAdvisory(
+        draft,
+        defeatRefForPlayer(playerId),
+        'emptyLibraryDraw',
+        simultaneousGroupId,
+      ) || added;
   }
 
-  if (draft.state.poison >= 10) {
-    added = addDefeatAdvisory(draft, 'P1', 'poison', simultaneousGroupId) || added;
+  for (const playerId of draft.state.turnOrder) {
+    const player = requirePlayer(draft.state, playerId);
+    const poison = playerId === draft.state.localPlayerId ? draft.state.poison : player.poison;
+    if (poison < 10) continue;
+    added =
+      addDefeatAdvisory(draft, defeatRefForPlayer(playerId), 'poison', simultaneousGroupId) || added;
   }
 
   for (const value of Object.values(draft.state.commanderDamage)) {
@@ -2020,20 +2156,41 @@ function stabilizeBeforePriority(draft: Draft): void {
 export function performStateBasedActions(state: GameState): ApplyResult {
   const draft = makeDraft(state);
   stabilizeBeforePriority(draft);
-  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+  return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
 }
 
-function clearPool(draft: Draft, reason: string | null): void {
-  const pool = draft.state.manaPool;
+function manaPoolFor(draft: Draft, playerId: PlayerId): ManaPool {
+  const player = requirePlayer(draft.state, playerId);
+  return playerId === draft.state.localPlayerId ? draft.state.manaPool : player.manaPool;
+}
+
+function setManaPoolFor(draft: Draft, playerId: PlayerId, manaPool: ManaPool): void {
+  const player = requirePlayer(draft.state, playerId);
+  if (playerId === draft.state.localPlayerId) {
+    draft.state.manaPool = manaPool;
+    return;
+  }
+  draft.state.players = {
+    ...draft.state.players,
+    [playerId]: { ...player, manaPool },
+  };
+}
+
+function clearPool(draft: Draft, reason: string | null, playerId = draft.state.localPlayerId): void {
+  const pool = manaPoolFor(draft, playerId);
   const total = pool.W + pool.U + pool.B + pool.R + pool.G + pool.C;
-  draft.state.manaPool = emptyManaPool();
+  setManaPoolFor(draft, playerId, emptyManaPool());
   if (reason && total > 0) {
     pushLog(draft, reason);
   }
 }
 
-function subtractPayment(draft: Draft, payment: ManaPool): { shortfall: number } {
-  const pool = { ...draft.state.manaPool };
+function subtractPayment(
+  draft: Draft,
+  payment: ManaPool,
+  playerId = draft.state.localPlayerId,
+): { shortfall: number } {
+  const pool = { ...manaPoolFor(draft, playerId) };
   let shortfall = 0;
   for (const color of ['W', 'U', 'B', 'R', 'G', 'C'] as ManaColor[]) {
     const want = payment[color];
@@ -2043,8 +2200,28 @@ function subtractPayment(draft: Draft, payment: ManaPool): { shortfall: number }
     pool[color] = have - pay;
     shortfall += want - pay;
   }
-  draft.state.manaPool = pool;
+  setManaPoolFor(draft, playerId, pool);
   return { shortfall };
+}
+
+type TurnCounterKey = 'landsPlayedThisTurn' | 'spellsCastThisTurn' | 'mulliganCount';
+
+function incrementPlayerTurnCounter(
+  draft: Draft,
+  playerId: PlayerId,
+  key: TurnCounterKey,
+): number {
+  const player = requirePlayer(draft.state, playerId);
+  const next = player[key] + 1;
+  if (playerId === draft.state.localPlayerId) {
+    draft.state[key] = next;
+  } else {
+    draft.state.players = {
+      ...draft.state.players,
+      [playerId]: { ...player, [key]: next },
+    };
+  }
+  return next;
 }
 
 function describePayment(payment: ManaPool): string {
@@ -2085,11 +2262,45 @@ function untapAll(draft: Draft): void {
   }
 }
 
+function untapControlledPermanents(draft: Draft, playerId: PlayerId): void {
+  let changed = false;
+  const cards = { ...draft.state.cards };
+  for (const id of draft.state.zones.battlefield) {
+    const card = cards[id];
+    if (card?.controllerId === playerId && card.tapped) {
+      cards[id] = { ...card, tapped: false };
+      changed = true;
+    }
+  }
+  if (changed) {
+    draft.state.cards = cards;
+    pushLog(draft, `${requirePlayer(draft.state, playerId).label}のパーマネントをアンタップした。`);
+  }
+}
+
+function resetActivePlayerTurnCounters(draft: Draft): void {
+  const playerId = draft.state.activePlayerId;
+  const player = requirePlayer(draft.state, playerId);
+  if (playerId === draft.state.localPlayerId) {
+    draft.state.landsPlayedThisTurn = 0;
+    draft.state.spellsCastThisTurn = 0;
+    draft.state.drawnThisTurn = 0;
+  } else {
+    draft.state.players = {
+      ...draft.state.players,
+      [playerId]: {
+        ...player,
+        landsPlayedThisTurn: 0,
+        spellsCastThisTurn: 0,
+        drawnThisTurn: 0,
+      },
+    };
+  }
+}
+
 function handleUntapEntry(draft: Draft): void {
-  untapAll(draft);
-  draft.state.landsPlayedThisTurn = 0;
-  draft.state.spellsCastThisTurn = 0;
-  draft.state.drawnThisTurn = 0;
+  untapControlledPermanents(draft, draft.state.activePlayerId);
+  resetActivePlayerTurnCounters(draft);
   draft.state.combatDamagePreventedUntilEndOfTurn = false;
 
   const cards = { ...draft.state.cards };
@@ -2097,7 +2308,11 @@ function handleUntapEntry(draft: Draft): void {
 
   for (const id of draft.state.zones.battlefield) {
     const card = cards[id];
-    if (!card || !typeLineOf(draft, card).includes('Saga')) continue;
+    if (
+      !card ||
+      card.controllerId !== draft.state.activePlayerId ||
+      !typeLineOf(draft, card).includes('Saga')
+    ) continue;
     const nextLore = (card.counters.lore ?? 0) + 1;
     cards[id] = {
       ...card,
@@ -2125,32 +2340,48 @@ function markEmptyLibraryDrawAttempt(draft: Draft, playerId: PlayerId): void {
   };
 }
 
-function drawCards(draft: Draft, count: number, cause: EventCause): number {
+function incrementDrawnThisTurn(draft: Draft, playerId: PlayerId, drawn: number): void {
+  if (drawn === 0) return;
+  const player = requirePlayer(draft.state, playerId);
+  if (playerId === draft.state.localPlayerId) {
+    draft.state.drawnThisTurn += drawn;
+    return;
+  }
+  draft.state.players = {
+    ...draft.state.players,
+    [playerId]: { ...player, drawnThisTurn: player.drawnThisTurn + drawn },
+  };
+}
+
+function drawCards(draft: Draft, count: number, cause: EventCause, playerId: PlayerId): number {
+  requirePlayer(draft.state, playerId);
   let drawn = 0;
   for (let i = 0; i < count; i++) {
-    const lib = draft.state.zones.library;
+    const lib = readZone(draft, 'library', playerId);
     if (lib.length === 0) {
-      markEmptyLibraryDrawAttempt(draft, 'P1');
-      pushDrawEvent(draft, 'empty-library-attempt', i + 1, cause);
+      markEmptyLibraryDrawAttempt(draft, playerId);
+      pushDrawEvent(draft, playerId, 'empty-library-attempt', i + 1, cause);
       continue;
     }
     const topId = lib[0];
     const zoneChangeEvent = moveCardInternal(draft, topId, 'hand', 'bottom', false);
     if (zoneChangeEvent) {
-      pushDrawEvent(draft, 'drawn', i + 1, cause, zoneChangeEvent);
+      pushDrawEvent(draft, playerId, 'drawn', i + 1, cause, zoneChangeEvent);
     }
     drawn++;
   }
   return drawn;
 }
 
-function applyMill(draft: Draft, count: number): void {
+function applyMill(draft: Draft, count: number, playerId: PlayerId): void {
+  requirePlayer(draft.state, playerId);
   const requested = Math.max(0, Math.floor(count));
   if (requested <= 0) return;
 
-  const available = draft.state.zones.library.length;
+  const library = readZone(draft, 'library', playerId);
+  const available = library.length;
   const milled = Math.min(requested, available);
-  const topIds = draft.state.zones.library.slice(0, milled);
+  const topIds = library.slice(0, milled);
 
   for (const cardId of topIds) {
     moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
@@ -2162,12 +2393,14 @@ function applyMill(draft: Draft, count: number): void {
   }
 }
 
-function applyDiscard(draft: Draft, cardIds: string[]): void {
+function applyDiscard(draft: Draft, cardIds: string[], playerId?: PlayerId): void {
+  const subjectHand = playerId === undefined ? undefined : new Set(readZone(draft, 'hand', playerId));
   let discarded = 0;
 
   for (const cardId of cardIds) {
     const card = draft.state.cards[cardId];
     if (!card) continue;
+    if (subjectHand && (!subjectHand.has(cardId) || card.zone !== 'hand')) continue;
     moveCardInternal(
       draft,
       cardId,
@@ -2184,6 +2417,49 @@ function applyDiscard(draft: Draft, cardIds: string[]): void {
   }
 }
 
+type ApplyPlayerEffectCommand = Extract<GameCommand, { type: 'applyPlayerEffect' }>;
+
+function orderedRecipients(
+  draft: Draft,
+  controllerId: PlayerId,
+  recipients: ApplyPlayerEffectCommand['recipients'],
+): PlayerId[] {
+  requirePlayer(draft.state, controllerId);
+  const activeIndex = draft.state.turnOrder.indexOf(draft.state.activePlayerId);
+  const apnapOrder = activeIndex < 0
+    ? draft.state.turnOrder.slice()
+    : [
+        ...draft.state.turnOrder.slice(activeIndex),
+        ...draft.state.turnOrder.slice(0, activeIndex),
+      ];
+  if (recipients === 'you') return [controllerId];
+  return recipients === 'eachPlayer'
+    ? apnapOrder
+    : apnapOrder.filter((playerId) => playerId !== controllerId);
+}
+
+function applyPlayerEffect(draft: Draft, cmd: ApplyPlayerEffectCommand): void {
+  for (const playerId of orderedRecipients(draft, cmd.controllerId, cmd.recipients)) {
+    switch (cmd.effect) {
+      case 'draw': {
+        const requested = Math.max(0, Math.floor(cmd.amount));
+        const drawn = drawCards(draft, requested, commandCause(cmd.type), playerId);
+        incrementDrawnThisTurn(draft, playerId, drawn);
+        break;
+      }
+      case 'mill':
+        applyMill(draft, cmd.amount, playerId);
+        break;
+      case 'life':
+        applyLifeDeltaForPlayer(draft, playerId, cmd.amount, commandCause(cmd.type));
+        break;
+      case 'counter':
+        applyPlayerCounterDelta(draft, playerId, cmd.kind, cmd.amount);
+        break;
+    }
+  }
+}
+
 function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
   draft.state.phase = phase;
   if (phase !== 'combat' && draft.state.combat !== null) {
@@ -2193,7 +2469,8 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
     handleUntapEntry(draft);
   }
   if (phase === 'draw' && !drawnHandled) {
-    const drawn = drawCards(draft, 1, commandCause('nextPhase'));
+    const drawn = drawCards(draft, 1, commandCause('nextPhase'), draft.state.activePlayerId);
+    incrementDrawnThisTurn(draft, draft.state.activePlayerId, drawn);
     if (drawn > 0) {
       pushLog(draft, 'カードを1枚引きました。');
     } else {
@@ -2204,7 +2481,11 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
 }
 
 function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
-  clearPool(draft, 'フェイズ移行によりマナプールが空になりました。');
+  clearPool(
+    draft,
+    'フェイズ移行によりマナプールが空になりました。',
+    draft.state.activePlayerId,
+  );
   const idx = PHASE_ORDER.indexOf(draft.state.phase);
   if (idx === PHASE_ORDER.length - 1) {
     // end -> next turn untap
@@ -2220,10 +2501,26 @@ function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
   }
 }
 
-function applyNextTurn(draft: Draft): void {
-  clearPool(draft, 'ターン移行によりマナプールが空になりました。');
+function advanceActivePlayer(draft: Draft): void {
+  const currentIndex = draft.state.turnOrder.indexOf(draft.state.activePlayerId);
+  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % draft.state.turnOrder.length;
+  const nextPlayerId = draft.state.turnOrder[nextIndex];
+  if (!nextPlayerId) {
+    throw new EngineError('turnOrderに次のプレイヤーが存在しません。');
+  }
+  requirePlayer(draft.state, nextPlayerId);
+  draft.state.activePlayerId = nextPlayerId;
+}
+
+function applyNextTurn(draft: Draft, advanceTurnOrder: boolean): void {
+  clearPool(
+    draft,
+    'ターン移行によりマナプールが空になりました。',
+    draft.state.activePlayerId,
+  );
   clearMarkedDamageInternal(draft);
   draft.state.turn += 1;
+  if (advanceTurnOrder) advanceActivePlayer(draft);
   resetOncePerTurnTriggerLedger(draft);
   enterPhase(draft, 'untap', false);
   pushLog(draft, `ターン${draft.state.turn}(アンタップ)に移行しました。`);
@@ -2238,8 +2535,18 @@ function castDestination(typeLine: string): ZoneId {
   return 'battlefield';
 }
 
-function applyPlayLand(draft: Draft, cardId: string, entersTapped?: boolean): void {
+function applyPlayLand(
+  draft: Draft,
+  cardId: string,
+  entersTapped?: boolean,
+  requestedPlayerId?: PlayerId,
+): void {
   const card = requireCard(draft, cardId);
+  const playerId = requestedPlayerId ?? card.controllerId;
+  requirePlayer(draft.state, playerId);
+  if (card.controllerId !== playerId) {
+    throw new EngineError(`プレイヤー${playerId}は${cardId}をコントロールしていません。`);
+  }
   // CR 601.2a-style play permission (design-lock §34.36): Muldrotha/Icetill Explorer/
   // Crucible of Worlds/Serra Paragon grant "play a land from your graveyard". Per this
   // project's sandbox philosophy (no per-card condition enforcement — see cast-from-
@@ -2258,10 +2565,10 @@ function applyPlayLand(draft: Draft, cardId: string, entersTapped?: boolean): vo
     const entered = requireCard(draft, cardId);
     setCard(draft, { ...entered, tapped: true });
   }
-  draft.state.landsPlayedThisTurn += 1;
+  const landsPlayed = incrementPlayerTurnCounter(draft, playerId, 'landsPlayedThisTurn');
   pushLog(draft, `${nameOf(draft, cardId)}を土地としてプレイしました。`);
-  if (draft.state.landsPlayedThisTurn >= 2) {
-    draft.warnings.push(`このターン${draft.state.landsPlayedThisTurn}枚目の土地です。`);
+  if (landsPlayed >= 2) {
+    draft.warnings.push(`このターン${landsPlayed}枚目の土地です。`);
   }
 }
 
@@ -2270,8 +2577,9 @@ function applyArrangeTop(
   topOrder: string[],
   toBottom: string[],
   toGraveyard: string[],
+  playerId = draft.state.localPlayerId,
 ): void {
-  const originalLibrary = draft.state.zones.library.slice();
+  const originalLibrary = readZone(draft, 'library', playerId).slice();
   const count = topOrder.length + toBottom.length + toGraveyard.length;
   const originalTop = originalLibrary.slice(0, count);
   const provided = [...topOrder, ...toBottom, ...toGraveyard];
@@ -2293,10 +2601,8 @@ function applyArrangeTop(
     moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
   }
 
-  draft.state.zones = {
-    ...draft.state.zones,
-    library: [...topOrder, ...originalLibrary.slice(count), ...toBottom],
-  };
+  const library = editZone(draft, 'library', playerId);
+  library.splice(0, library.length, ...topOrder, ...originalLibrary.slice(count), ...toBottom);
   pushLog(draft, `ライブラリの上から${count}枚を並べ替えました。`);
 }
 
@@ -2306,8 +2612,14 @@ function applyCast(
   payment: ManaPool,
   forced: boolean,
   commander: boolean,
+  requestedPlayerId?: PlayerId,
 ): void {
   const card = requireCard(draft, cardId);
+  const playerId = requestedPlayerId ?? card.controllerId;
+  requirePlayer(draft.state, playerId);
+  if (card.controllerId !== playerId) {
+    throw new EngineError(`プレイヤー${playerId}は${cardId}をコントロールしていません。`);
+  }
 
   if (commander) {
     if (!isCommander(draft.state, cardId)) {
@@ -2318,7 +2630,7 @@ function applyCast(
     }
   }
 
-  const { shortfall } = subtractPayment(draft, payment);
+  const { shortfall } = subtractPayment(draft, payment, playerId);
   if (shortfall > 0) {
     const msg = forced
       ? `マナが${shortfall}点不足していますが強行しました。`
@@ -2342,11 +2654,11 @@ function applyCast(
       c.cardId === cardId ? { ...c, castCount: c.castCount + 1 } : c,
     );
     moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
-    draft.state.spellsCastThisTurn += 1;
+    incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
     pushLog(draft, `統率者${name}をキャストしました(支払い: ${payStr})。`);
   } else {
     moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
-    draft.state.spellsCastThisTurn += 1;
+    incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
     pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
   }
 }
@@ -2421,11 +2733,17 @@ function applyCastToStack(
   payment: ManaPool,
   forced: boolean,
   xValue?: number,
+  requestedPlayerId?: PlayerId,
 ): void {
   const card = requireCard(draft, cardId);
+  const playerId = requestedPlayerId ?? card.controllerId;
+  requirePlayer(draft.state, playerId);
+  if (card.controllerId !== playerId) {
+    throw new EngineError(`プレイヤー${playerId}は${cardId}をコントロールしていません。`);
+  }
   const fromCommand = card.zone === 'command' && isCommander(draft.state, cardId);
 
-  const { shortfall } = subtractPayment(draft, payment);
+  const { shortfall } = subtractPayment(draft, payment, playerId);
   if (shortfall > 0) {
     const msg = forced
       ? `マナが${shortfall}点不足していますが強行しました。`
@@ -2443,7 +2761,7 @@ function applyCastToStack(
   if (fromCommand) {
     incrementCommanderCastCount(draft, cardId);
   }
-  draft.state.spellsCastThisTurn += 1;
+  incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
   pushLog(draft, `${nameOf(draft, cardId)}を唱えた(スタックへ)。`);
 }
 
@@ -2486,7 +2804,7 @@ function applySetManualTargets(
   });
   const uniquePlayerIds = [...new Set(targetPlayerIds)];
   const manualPlayerSelections = uniquePlayerIds.map((playerId, index): TargetSelection => {
-    if (!PLAYER_IDS.includes(playerId)) {
+    if (!draft.state.players[playerId]) {
       throw new EngineError('手動対象には自分か対戦相手を選んでください。');
     }
     return {
@@ -2760,7 +3078,11 @@ function parsePayLifeCostElement(
       amount,
       slotId,
     },
-    commands: [{ type: 'adjustLife', delta: -amount }],
+    commands: [{
+      type: 'adjustLife',
+      delta: -amount,
+      ...(payerId !== 'P1' ? { playerId: payerId } : {}),
+    }],
   };
 }
 
@@ -2775,7 +3097,8 @@ function parseDiscardCostElement(
   }
 
   if (/^Discard\s+your\s+hand$/i.test(element)) {
-    const subjectRefs = state.zones.hand.flatMap((cardId) => {
+    const hand = state.zonesByPlayer[payerId].hand;
+    const subjectRefs = hand.flatMap((cardId) => {
       const snapshot = objectSnapshotForCard(state, cardId);
       return snapshot ? [activationSourceRefFromSnapshot(snapshot)] : [];
     });
@@ -2785,13 +3108,19 @@ function parseDiscardCostElement(
         raw: element,
         payerId,
         status: 'guided',
-        amount: state.zones.hand.length,
+        amount: hand.length,
         slotId,
         subjectRefs,
         ...(subjectRefs[0] ? { subjectRef: subjectRefs[0] } : {}),
       },
       commands:
-        state.zones.hand.length > 0 ? [{ type: 'discard', cardIds: state.zones.hand.slice() }] : [],
+        hand.length > 0
+          ? [{
+              type: 'discard',
+              cardIds: hand.slice(),
+              ...(payerId !== 'P1' ? { playerId: payerId } : {}),
+            }]
+          : [],
       prompts: [],
     };
   }
@@ -3161,6 +3490,7 @@ export function guidedPlanForStackTop(
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
       def: effectLine.def,
+      controllerId: card.controllerId,
       commanderColorIdentity,
     });
     if (compiled.decision !== 'guided') {
@@ -3255,7 +3585,12 @@ export function activationPlanForSource(
       ? activationNonmanaCosts(state, ir.cost.raw, sourceSnapshot)
       : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
   const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
-  const compiledCost = compileAbilityCost(autoCost, { sourceId, def, commanderColorIdentity });
+  const compiledCost = compileAbilityCost(autoCost, {
+    sourceId,
+    def,
+    controllerId: source.controllerId,
+    commanderColorIdentity,
+  });
   if (compiledCost.decision === 'manual') {
     return {
       commands: [],
@@ -3280,8 +3615,15 @@ export function activationPlanForSource(
     : compiledCost.commands.slice();
   let manaShortfall = 0;
   if (compiledCost.manaCost !== null) {
-    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
-    commands.push(...tapCommands(plan.taps), { type: 'payMana', payment: plan.payment });
+    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
+    commands.push(
+      ...tapCommands(plan.taps, source.controllerId),
+      {
+        type: 'payMana',
+        payment: plan.payment,
+        ...(source.controllerId !== 'P1' ? { playerId: source.controllerId } : {}),
+      },
+    );
     manaShortfall = plan.shortfall;
   }
   commands.push(...nonmanaCost.commands);
@@ -3349,12 +3691,22 @@ export function activatedManaAbilityPlanForSource(
   }
 
   const commanderColorIdentity = commanderColorIdentityForState(state);
-  const compiledCost = compileAbilityCost(ir.cost, { sourceId, def, commanderColorIdentity });
+  const compiledCost = compileAbilityCost(ir.cost, {
+    sourceId,
+    def,
+    controllerId: source.controllerId,
+    commanderColorIdentity,
+  });
   if (compiledCost.decision === 'manual') {
     return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
 
-  const compiledEffect = compileAbilityIR(ir, { sourceId, def, commanderColorIdentity });
+  const compiledEffect = compileAbilityIR(ir, {
+    sourceId,
+    def,
+    controllerId: source.controllerId,
+    commanderColorIdentity,
+  });
   if (compiledEffect.decision === 'manual') {
     return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
   }
@@ -3375,8 +3727,15 @@ export function activatedManaAbilityPlanForSource(
   );
   let manaShortfall = 0;
   if (compiledCost.manaCost !== null) {
-    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0);
-    commands.push(...tapCommands(plan.taps), { type: 'payMana', payment: plan.payment });
+    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
+    commands.push(
+      ...tapCommands(plan.taps, source.controllerId),
+      {
+        type: 'payMana',
+        payment: plan.payment,
+        ...(source.controllerId !== 'P1' ? { playerId: source.controllerId } : {}),
+      },
+    );
     manaShortfall = plan.shortfall;
   }
   commands.push(...compiledEffect.commands);
@@ -3433,6 +3792,9 @@ export function eligibleTargets(
   filter: TargetFilter,
   context: { sourceId?: string } = {},
 ): string[] {
+  const sourceControllerId = context.sourceId
+    ? state.cards[context.sourceId]?.controllerId ?? state.localPlayerId
+    : state.localPlayerId;
   const zone = filter.zone ?? 'battlefield';
   const types = filter.types ?? (zone === 'stack' ? [] : ['permanent']);
   const excludedTypes = filter.excludedTypes ?? [];
@@ -3446,16 +3808,16 @@ export function eligibleTargets(
       if (context.sourceId === cardId) {
         return false;
       }
-      if (filter.controller === 'you' && card.controllerId !== 'P1') {
+      if (filter.controller === 'you' && card.controllerId !== sourceControllerId) {
         return false;
       }
-      if (filter.controller === 'opponent' && card.controllerId === 'P1') {
+      if (filter.controller === 'opponent' && card.controllerId === sourceControllerId) {
         return false;
       }
-      if (filter.owner === 'you' && card.ownerId !== 'P1') {
+      if (filter.owner === 'you' && card.ownerId !== sourceControllerId) {
         return false;
       }
-      if (filter.owner === 'opponent' && card.ownerId === 'P1') {
+      if (filter.owner === 'opponent' && card.ownerId === sourceControllerId) {
         return false;
       }
       if (filter.excludeTokens && card.isToken) {
@@ -3477,7 +3839,10 @@ export function eligibleTargets(
     // additive alongside the pre-existing creature-only path so unfiltered/creature
     // filters are unaffected.
     const supportsPermanentCard = types.includes('permanent');
-    return state.zones.graveyard.filter((cardId) => {
+    const graveyardIds = state.turnOrder.flatMap(
+      (playerId) => state.zonesByPlayer[playerId]?.graveyard ?? [],
+    );
+    return graveyardIds.filter((cardId) => {
       const card = state.cards[cardId];
       if (!card || card.isAbility || card.zone !== 'graveyard') {
         return false;
@@ -3485,10 +3850,10 @@ export function eligibleTargets(
       if (filter.excludeSource && context.sourceId === cardId) {
         return false;
       }
-      if (filter.owner === 'you' && card.ownerId !== 'P1') {
+      if (filter.owner === 'you' && card.ownerId !== sourceControllerId) {
         return false;
       }
-      if (filter.owner === 'opponent' && card.ownerId === 'P1') {
+      if (filter.owner === 'opponent' && card.ownerId === sourceControllerId) {
         return false;
       }
       if (filter.excludeTokens && card.isToken) {
@@ -3528,10 +3893,16 @@ export function eligibleTargets(
     if (filter.excludeSource && context.sourceId === cardId) {
       return false;
     }
-    if (filter.controller === 'you' && card.controllerId !== 'P1') {
+    if (filter.controller === 'you' && card.controllerId !== sourceControllerId) {
       return false;
     }
-    if (filter.controller === 'opponent' && card.controllerId === 'P1') {
+    if (filter.controller === 'opponent' && card.controllerId === sourceControllerId) {
+      return false;
+    }
+    if (filter.owner === 'you' && card.ownerId !== sourceControllerId) {
+      return false;
+    }
+    if (filter.owner === 'opponent' && card.ownerId === sourceControllerId) {
       return false;
     }
     const typeLine = typeLineForStateCard(state, card);
@@ -3556,10 +3927,18 @@ function typeLineHasType(typeLine: string, type: string): boolean {
   return new RegExp(`\\b${type}\\b`, 'i').test(typeLine);
 }
 
-function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[] {
+function tapCommands(
+  taps: { cardId: string; color: ManaColor }[],
+  playerId?: PlayerId,
+): GameCommand[] {
   return taps.flatMap((tap) => [
     { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
-    { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
+    {
+      type: 'addMana',
+      color: tap.color,
+      amount: 1,
+      ...(playerId && playerId !== 'P1' ? { playerId } : {}),
+    } satisfies GameCommand,
   ]);
 }
 
@@ -3618,8 +3997,9 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       break;
     }
     case 'draw': {
-      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
-      draft.state.drawnThisTurn += drawn;
+      const playerId = cmd.playerId ?? draft.state.localPlayerId;
+      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type), playerId);
+      incrementDrawnThisTurn(draft, playerId, drawn);
       pushLog(draft, `カードを${drawn}枚引きました。`);
       if (drawn < cmd.count) {
         draft.warnings.push('ライブラリが足りずすべて引けませんでした。');
@@ -3627,31 +4007,42 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
       break;
     }
     case 'mill': {
-      applyMill(draft, cmd.count);
+      applyMill(draft, cmd.count, cmd.playerId ?? draft.state.localPlayerId);
       break;
     }
     case 'shuffle': {
-      applyShuffle(draft, cmd.order);
+      applyShuffle(draft, cmd.order, cmd.playerId ?? draft.state.localPlayerId);
       break;
     }
     case 'adjustLife': {
-      applyPlayerLifeDelta(draft, cmd.delta, commandCause(cmd.type));
+      applyLifeDeltaForPlayer(
+        draft,
+        cmd.playerId ?? draft.state.localPlayerId,
+        cmd.delta,
+        commandCause(cmd.type),
+      );
       break;
     }
     case 'adjustPlayerCounter': {
-      const current = draft.state[cmd.kind];
-      const next = Math.max(0, current + cmd.delta);
-      draft.state[cmd.kind] = next;
-      const label = cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
-      pushLog(draft, `${label}カウンターを${next}個にしました。`);
+      applyPlayerCounterDelta(
+        draft,
+        cmd.playerId ?? draft.state.localPlayerId,
+        cmd.kind,
+        cmd.delta,
+      );
+      break;
+    }
+    case 'applyPlayerEffect': {
+      applyPlayerEffect(draft, cmd);
       break;
     }
     case 'addMana': {
       const amount = Math.max(0, cmd.amount);
       if (amount > 0) {
-        const pool = { ...draft.state.manaPool };
+        const playerId = cmd.playerId ?? draft.state.localPlayerId;
+        const pool = { ...manaPoolFor(draft, playerId) };
         pool[cmd.color] += amount;
-        draft.state.manaPool = pool;
+        setManaPoolFor(draft, playerId, pool);
         pushLog(draft, `${cmd.color}マナを${amount}点加えました。`);
       }
       break;
@@ -3666,6 +4057,7 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
         cmd.quantity,
         cmd.producedMana,
         cmd.tokenKind,
+        { createdBy: cmd.createdBy },
       );
       break;
     }
@@ -3840,6 +4232,7 @@ function applyCompiledEffectsForStackItem(
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
       def: effectLine.def,
+      controllerId: card.controllerId,
       commanderColorIdentity,
       ...(isPureSelfLibraryShuffleLine(effectLine.line.text) && libraryShuffleOrder
         ? { libraryShuffleOrder }
@@ -4025,10 +4418,8 @@ function applyCrackTreasure(draft: Draft, cardId: string, color: ManaColor): voi
     throw new EngineError(`宝物は戦場でのみ割れます: ${cardId}`);
   }
 
-  draft.state.manaPool = {
-    ...draft.state.manaPool,
-    [color]: draft.state.manaPool[color] + 1,
-  };
+  const pool = manaPoolFor(draft, card.controllerId);
+  setManaPoolFor(draft, card.controllerId, { ...pool, [color]: pool[color] + 1 });
   moveCardInternal(draft, cardId, 'graveyard', 'top', false, 'cost');
   pushLog(draft, `${nameOfCard(draft, card)}を割って${color}マナを1点加えました。`);
 }
@@ -4083,6 +4474,81 @@ function applyCreateDefinedToken(draft: Draft, cmd: CreateDefinedTokenCommand): 
   );
 }
 
+type CreateScenarioDummyCommand = Extract<GameCommand, { type: 'createScenarioDummy' }>;
+
+function applyCreateScenarioDummy(draft: Draft, cmd: CreateScenarioDummyCommand): void {
+  requirePlayer(draft.state, cmd.playerId);
+  if (draft.state.cards[cmd.cardId]) {
+    throw new EngineError(`scenario dummyのcardIdが重複しています: ${cmd.cardId}`);
+  }
+  if (draft.state.defs[cmd.defId]) {
+    throw new EngineError(`scenario dummyのdefIdが重複しています: ${cmd.defId}`);
+  }
+  const name = cmd.name.trim();
+  const typeLine = cmd.typeLine.trim();
+  if (name === '' || typeLine === '') {
+    throw new EngineError('scenario dummyの名前とカードタイプは必須です。');
+  }
+  const scenarioTypes = new Set(['Creature', 'Artifact', 'Enchantment', 'Land', 'Planeswalker']);
+  if (typeLine.split(/\s+/).some((type) => !scenarioTypes.has(type))) {
+    throw new EngineError('scenario dummyに指定できないカードタイプが含まれています。');
+  }
+  if (
+    typeLine.includes('Creature')
+    && (!/^[+-]?\d+$/.test((cmd.power ?? '0').trim())
+      || !/^[+-]?\d+$/.test((cmd.toughness ?? '0').trim()))
+  ) {
+    throw new EngineError('scenario dummy creatureの基礎P/Tには整数が必要です。');
+  }
+  const counters = Object.fromEntries(
+    Object.entries(cmd.counters)
+      .filter(([counterType, amount]) => counterType.trim() !== '' && Number.isFinite(amount) && amount > 0)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([counterType, amount]) => [counterType.trim(), Math.floor(amount)]),
+  );
+  const def: CardDef = {
+    scryfallId: cmd.defId,
+    oracleId: cmd.defId,
+    name,
+    lang: 'en',
+    layout: 'scenario',
+    cmc: 0,
+    colorIdentity: [],
+    typeLine,
+    keywords: normalizeKeywords(cmd.keywords),
+    faces: [{
+      name,
+      typeLine,
+      ...(typeLine.includes('Creature')
+        ? { power: cmd.power ?? '0', toughness: cmd.toughness ?? '0' }
+        : {}),
+    }],
+  };
+  const permanent = applyBattlefieldEntryEffects(draft, {
+    id: cmd.cardId,
+    defId: cmd.defId,
+    zone: 'battlefield',
+    ownerId: cmd.playerId,
+    controllerId: cmd.playerId,
+    zoneChangeCounter: 0,
+    tapped: cmd.tapped,
+    faceIndex: 0,
+    faceDown: false,
+    counters,
+    damageMarked: 0,
+    hasDeathtouchDamage: false,
+    isToken: cmd.isToken,
+    isScenarioDummy: true,
+    isCommander: false,
+    enteredTurn: 0,
+    manualKeywords: normalizeKeywords(cmd.keywords),
+  });
+  draft.state.defs = { ...draft.state.defs, [cmd.defId]: def };
+  draft.state.cards = { ...draft.state.cards, [cmd.cardId]: permanent };
+  editZone(draft, 'battlefield').push(cmd.cardId);
+  pushLog(draft, `${requirePlayer(draft.state, cmd.playerId).label}のダミー《${name}》を作成した。`);
+}
+
 function applyCreateToken(
   draft: Draft,
   name: string,
@@ -4096,7 +4562,8 @@ function applyCreateToken(
 ): void {
   const qty = Math.max(0, Math.floor(quantity));
   if (qty === 0) return;
-  const ownerController = options.createdBy ?? 'P1';
+  const ownerController = options.createdBy ?? draft.state.localPlayerId;
+  requirePlayer(draft.state, ownerController);
   const initialTapped = options.initialTapped ?? false;
 
   const defId = nextTokenDefId(draft.state);
@@ -4155,30 +4622,35 @@ function applyCreateToken(
 // Mulligan
 // ---------------------------------------------------------------------------
 
-function applyMulligan(draft: Draft, order: string[]): void {
-  const hand = draft.state.zones.hand.slice();
+function applyMulligan(
+  draft: Draft,
+  order: string[],
+  playerId = draft.state.localPlayerId,
+): void {
+  const hand = readZone(draft, 'hand', playerId).slice();
   // Move all hand cards back into library (state reset), then reorder library
   // by the provided permutation (hand + library combined).
   for (const id of hand) {
     moveCardInternal(draft, id, 'library', 'bottom', false);
   }
   // Validate + apply order as the new library permutation.
-  const lib = draft.state.zones.library;
+  const lib = readZone(draft, 'library', playerId);
   const valid =
     order.length === lib.length &&
     new Set(order).size === order.length &&
     order.every((id) => lib.includes(id));
   if (valid) {
-    draft.state.zones = { ...draft.state.zones, library: order.slice() };
+    const library = editZone(draft, 'library', playerId);
+    library.splice(0, library.length, ...order);
   } else {
     throw new EngineError('mulligan の order がライブラリの順列ではありません。');
   }
-  draft.state.mulliganCount += 1;
-  pushLog(draft, `マリガンしました(${draft.state.mulliganCount}回目)。`);
+  const mulliganCount = incrementPlayerTurnCounter(draft, playerId, 'mulliganCount');
+  pushLog(draft, `マリガンしました(${mulliganCount}回目)。`);
 }
 
-function applyShuffle(draft: Draft, order: string[]): void {
-  const lib = draft.state.zones.library;
+function applyShuffle(draft: Draft, order: string[], playerId: PlayerId): void {
+  const lib = readZone(draft, 'library', playerId);
   const valid =
     order.length === lib.length &&
     new Set(order).size === order.length &&
@@ -4186,13 +4658,22 @@ function applyShuffle(draft: Draft, order: string[]): void {
   if (!valid) {
     throw new EngineError('shuffle の order がライブラリの順列ではありません。');
   }
-  draft.state.zones = { ...draft.state.zones, library: order.slice() };
+  const library = editZone(draft, 'library', playerId);
+  library.splice(0, library.length, ...order);
   pushLog(draft, 'ライブラリをシャッフルしました。');
 }
 
-function applyPutOnBottom(draft: Draft, cardIds: string[]): void {
+function applyPutOnBottom(
+  draft: Draft,
+  cardIds: string[],
+  playerId = draft.state.localPlayerId,
+): void {
+  requirePlayer(draft.state, playerId);
   for (const id of cardIds) {
-    requireCard(draft, id);
+    const card = requireCard(draft, id);
+    if (card.ownerId !== playerId) {
+      throw new EngineError('putOnBottom のカード所有者とplayerIdが一致しません。');
+    }
     moveCardInternal(draft, id, 'library', 'bottom', false);
   }
   if (cardIds.length > 0) {
@@ -4204,7 +4685,7 @@ export function returnLinkedExileToBattlefield(state: GameState, linkId: string)
   const draft = makeDraft(state);
   returnTemporaryLinkedExileInDraft(draft, linkId);
   stabilizeBeforePriority(draft);
-  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+  return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
 }
 
 export function consumeLinkedExileForSource(
@@ -4216,13 +4697,13 @@ export function consumeLinkedExileForSource(
   const record = draft.state.linkedExiles[linkId];
   if (!record) {
     draft.warnings.push(`linked exile record が存在しません: ${linkId}`);
-    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+    return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
   }
   if (record.purpose !== 'exiled-with-source') {
     draft.warnings.push(
       `exiled-with-source ではない linked exile record は消費できません: ${linkId}`,
     );
-    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+    return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
   }
 
   const source = draft.state.cards[sourcePhysicalId];
@@ -4233,11 +4714,11 @@ export function consumeLinkedExileForSource(
     objectIdOf(source) === record.sourceObjectId;
   if (!sourceMatches) {
     draft.warnings.push(`linked exile の source object が一致しません: ${linkId}`);
-    return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+    return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
   }
 
   deleteLinkedExileRecord(draft, linkId);
-  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+  return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -4362,16 +4843,33 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       }
       break;
     }
+    case 'setController': {
+      const card = requireCard(draft, cmd.cardId);
+      requirePlayer(draft.state, cmd.controllerId);
+      setCard(draft, { ...card, controllerId: cmd.controllerId });
+      pushLog(draft, `${nameOf(draft, cmd.cardId)}のコントローラーを${requirePlayer(draft.state, cmd.controllerId).label}に変更した。`);
+      break;
+    }
     case 'adjustLife': {
-      applyPlayerLifeDelta(draft, cmd.delta, commandCause(cmd.type));
+      applyLifeDeltaForPlayer(
+        draft,
+        cmd.playerId ?? draft.state.localPlayerId,
+        cmd.delta,
+        commandCause(cmd.type),
+      );
       break;
     }
     case 'adjustPlayerCounter': {
-      const current = draft.state[cmd.kind];
-      const next = Math.max(0, current + cmd.delta);
-      draft.state[cmd.kind] = next;
-      const label = cmd.kind === 'poison' ? '毒' : cmd.kind === 'energy' ? 'エネルギー' : '経験';
-      pushLog(draft, `${label}カウンターを${next}個にしました。`);
+      applyPlayerCounterDelta(
+        draft,
+        cmd.playerId ?? draft.state.localPlayerId,
+        cmd.kind,
+        cmd.delta,
+      );
+      break;
+    }
+    case 'applyPlayerEffect': {
+      applyPlayerEffect(draft, cmd);
       break;
     }
     case 'adjustCommanderDamage': {
@@ -4390,28 +4888,32 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     case 'addMana': {
       const amount = Math.max(0, cmd.amount);
       if (amount > 0) {
-        const pool = { ...draft.state.manaPool };
+        const playerId = cmd.playerId ?? draft.state.localPlayerId;
+        const pool = { ...manaPoolFor(draft, playerId) };
         pool[cmd.color] += amount;
-        draft.state.manaPool = pool;
+        setManaPoolFor(draft, playerId, pool);
         pushLog(draft, `${cmd.color}マナを${amount}点加えました。`);
       }
       break;
     }
     case 'adjustMana': {
       if (cmd.delta === 0) break;
-      const current = draft.state.manaPool[cmd.color];
+      const playerId = cmd.playerId ?? draft.state.localPlayerId;
+      const pool = manaPoolFor(draft, playerId);
+      const current = pool[cmd.color];
       const next = Math.max(0, current + cmd.delta);
       if (next === current) break;
-      draft.state.manaPool = {
-        ...draft.state.manaPool,
-        [cmd.color]: next,
-      };
+      setManaPoolFor(draft, playerId, { ...pool, [cmd.color]: next });
       const deltaLabel = cmd.delta > 0 ? `+${cmd.delta}` : `${cmd.delta}`;
       pushLog(draft, `${cmd.color}マナを${deltaLabel}した(現在${next})。`);
       break;
     }
     case 'payMana': {
-      const { shortfall } = subtractPayment(draft, cmd.payment);
+      const { shortfall } = subtractPayment(
+        draft,
+        cmd.payment,
+        cmd.playerId ?? draft.state.localPlayerId,
+      );
       if (shortfall > 0) {
         draft.warnings.push(`マナが${shortfall}点不足(強行)。`);
       }
@@ -4419,12 +4921,17 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'clearManaPool': {
-      clearPool(draft, 'マナプールを空にしました。');
+      clearPool(
+        draft,
+        'マナプールを空にしました。',
+        cmd.playerId ?? draft.state.localPlayerId,
+      );
       break;
     }
     case 'draw': {
-      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type));
-      draft.state.drawnThisTurn += drawn;
+      const playerId = cmd.playerId ?? draft.state.localPlayerId;
+      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type), playerId);
+      incrementDrawnThisTurn(draft, playerId, drawn);
       pushLog(draft, `カードを${drawn}枚引きました。`);
       if (drawn < cmd.count) {
         draft.warnings.push('ライブラリが足りずすべて引けませんでした。');
@@ -4432,11 +4939,11 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'mill': {
-      applyMill(draft, cmd.count);
+      applyMill(draft, cmd.count, cmd.playerId ?? draft.state.localPlayerId);
       break;
     }
     case 'shuffle': {
-      applyShuffle(draft, cmd.order);
+      applyShuffle(draft, cmd.order, cmd.playerId ?? draft.state.localPlayerId);
       break;
     }
     case 'untapAll': {
@@ -4444,19 +4951,19 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'discard': {
-      applyDiscard(draft, cmd.cardIds);
+      applyDiscard(draft, cmd.cardIds, cmd.playerId);
       break;
     }
     case 'putOnBottom': {
-      applyPutOnBottom(draft, cmd.cardIds);
+      applyPutOnBottom(draft, cmd.cardIds, cmd.playerId);
       break;
     }
     case 'playLand': {
-      applyPlayLand(draft, cmd.cardId, cmd.entersTapped);
+      applyPlayLand(draft, cmd.cardId, cmd.entersTapped, cmd.playerId);
       break;
     }
     case 'arrangeTop': {
-      applyArrangeTop(draft, cmd.topOrder, cmd.toBottom, cmd.toGraveyard);
+      applyArrangeTop(draft, cmd.topOrder, cmd.toBottom, cmd.toGraveyard, cmd.playerId);
       break;
     }
     case 'crackTreasure': {
@@ -4464,15 +4971,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'castSpell': {
-      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false);
+      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false, cmd.playerId);
       break;
     }
     case 'castCommander': {
-      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, true);
+      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, true, cmd.playerId);
       break;
     }
     case 'castToStack': {
-      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.xValue);
+      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.xValue, cmd.playerId);
       break;
     }
     case 'addAbilityToStack': {
@@ -4517,6 +5024,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.quantity,
         cmd.producedMana,
         cmd.tokenKind,
+        { createdBy: cmd.createdBy },
       );
       break;
     }
@@ -4524,21 +5032,25 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       applyCreateDefinedToken(draft, cmd);
       break;
     }
+    case 'createScenarioDummy': {
+      applyCreateScenarioDummy(draft, cmd);
+      break;
+    }
     case 'nextPhase': {
       applyNextPhase(draft, cmd.drawnHandled ?? false);
       break;
     }
     case 'nextTurn': {
-      applyNextTurn(draft);
+      applyNextTurn(draft, cmd.advanceTurnOrder ?? false);
       break;
     }
     case 'mulligan': {
-      applyMulligan(draft, cmd.order);
+      applyMulligan(draft, cmd.order, cmd.playerId);
       break;
     }
   }
 
   stabilizeBeforePriority(draft);
   flushCounterChangeEvents(draft);
-  return { state: syncP1ZonesByPlayerFromFlatZones(draft.state), warnings: draft.warnings };
+  return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
 }

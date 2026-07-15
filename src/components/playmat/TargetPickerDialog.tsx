@@ -20,8 +20,9 @@ function displayNameFor(state: GameState, cardId: string): string {
   return face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
 }
 
-function playerLabel(playerId: PlayerId): string {
-  return playerId === 'P1' ? 'あなた' : '対戦相手A';
+function playerLabel(state: GameState, playerId: PlayerId): string {
+  if (playerId === state.localPlayerId) return 'あなた';
+  return state.players[playerId]?.label ?? playerId;
 }
 
 export function TargetPickerDialog({
@@ -43,7 +44,7 @@ export function TargetPickerDialog({
           {playerIds.map((playerId) => (
             <li key={playerId} className="zone-viewer__item">
               <div className="zone-viewer__info">
-                <span className="zone-viewer__name">{playerLabel(playerId)}</span>
+                <span className="zone-viewer__name">{playerLabel(state, playerId)}</span>
                 <div className="zone-viewer__targets">
                   <button
                     type="button"

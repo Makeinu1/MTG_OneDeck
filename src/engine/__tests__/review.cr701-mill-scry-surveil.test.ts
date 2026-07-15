@@ -62,10 +62,28 @@ describe('cr-701-keyword-actions-frequent batch3-3: mill/scry/surveil (CR 701.17
     expect(state.zones.graveyard.length).toBeGreaterThanOrEqual(libSize);
   });
 
-  it('mill: target-player/opponent variants stay honest manual (no auto-claim beyond self)', () => {
+  it('mill: target-player stays manual; multiplayer recipient sets compile atomically', () => {
     expect(compile('Target player mills three cards.').decision).toBe('manual');
-    expect(compile('Each opponent mills three cards.').decision).toBe('manual');
-    expect(compile('Each player mills three cards.').decision).toBe('manual');
+    expect(compile('Each opponent mills three cards.')).toMatchObject({
+      decision: 'auto',
+      commands: [{
+        type: 'applyPlayerEffect',
+        controllerId: 'P1',
+        recipients: 'eachOpponent',
+        effect: 'mill',
+        amount: 3,
+      }],
+    });
+    expect(compile('Each player mills three cards.')).toMatchObject({
+      decision: 'auto',
+      commands: [{
+        type: 'applyPlayerEffect',
+        controllerId: 'P1',
+        recipients: 'eachPlayer',
+        effect: 'mill',
+        amount: 3,
+      }],
+    });
   });
 
   it('mill: variable/word-form counts outside the fixed digit/two-ten gate stay manual (fail-safe under-recognition)', () => {

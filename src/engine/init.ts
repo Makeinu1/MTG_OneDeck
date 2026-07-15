@@ -1,8 +1,11 @@
 import type { CardDef } from '../types/card';
 import { createRng, shuffledOrder } from './random';
 import {
+  DEFAULT_OPPONENT_LIFE_LABEL,
   emptyPlayerPrivateZones,
+  LOCAL_PLAYER_ID,
   playerPrivateZonesFromFlatZones,
+  syncDerivedViews,
   type CardInstance,
   type CommanderInfo,
   type GameState,
@@ -95,7 +98,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
 
   // EDH flow: the game opens at turn 1's untap step, so the player passes
   // through the draw step (turn-1 draw happens, unlike 1v1 play-first rules).
-  return {
+  const base: Omit<GameState, 'players' | 'turnOrder'> = {
     defs,
     cards,
     zones,
@@ -103,6 +106,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     commanders,
     effectsAuto: true,
     activePlayerId: 'P1',
+    localPlayerId: LOCAL_PLAYER_ID,
     turn: 1,
     phase: 'untap',
     combat: null,
@@ -111,7 +115,7 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     energy: 0,
     experience: 0,
     commanderDamage: {},
-    opponentLife: { 対戦相手A: 40 },
+    opponentLife: { [DEFAULT_OPPONENT_LIFE_LABEL]: 40 },
     defeat: {},
     emptyLibraryDrawAttemptedSinceLastSba: {},
     manaPool: emptyManaPool(),
@@ -128,4 +132,5 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     linkedExiles: {},
     log,
   };
+  return syncDerivedViews(base);
 }

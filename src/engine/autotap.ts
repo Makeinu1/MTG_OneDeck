@@ -1,7 +1,7 @@
 import type { ManaColor } from '../types/card';
 import { type ParsedCost, solvePayment } from './mana';
 import { isSummoningSick } from './status';
-import type { GameState, ManaPool } from './types';
+import type { GameState, ManaPool, PlayerId } from './types';
 
 export interface AutoTapPlan {
   ok: boolean;
@@ -88,7 +88,7 @@ function currentTypeLine(state: GameState, cardId: string): string {
   return face?.typeLine ?? def?.typeLine ?? '';
 }
 
-function buildSources(state: GameState): Source[] {
+function buildSources(state: GameState, playerId: PlayerId): Source[] {
   const battlefieldOrder = new Map<string, number>(
     state.zones.battlefield.map((cardId, index) => [cardId, index])
   );
@@ -96,7 +96,12 @@ function buildSources(state: GameState): Source[] {
   const sources = state.zones.battlefield
     .map((cardId) => {
       const card = state.cards[cardId];
-      if (!card || card.tapped || isSummoningSick(state, cardId)) return null;
+      if (
+        !card ||
+        card.controllerId !== playerId ||
+        card.tapped ||
+        isSummoningSick(state, cardId)
+      ) return null;
       const def = state.defs[card.defId];
       const colors = orderedUniqueColors(def?.producedMana);
       if (colors.length === 0 || def?.tokenKind === 'treasure') return null;
@@ -154,8 +159,15 @@ function betterPlan(candidate: RankedPlan, best: RankedPlan): boolean {
   return poolTotal(candidate.payment) < poolTotal(best.payment);
 }
 
-export function planAutoTap(state: GameState, cost: ParsedCost, xValue: number): AutoTapPlan {
-  const baseSolution = solvePayment(state.manaPool, cost, xValue);
+export function planAutoTap(
+  state: GameState,
+  cost: ParsedCost,
+  xValue: number,
+  playerId: PlayerId = state.localPlayerId,
+): AutoTapPlan {
+  const player = state.players[playerId];
+  const manaPool = playerId === state.localPlayerId ? state.manaPool : player?.manaPool ?? emptyPool();
+  const baseSolution = solvePayment(manaPool, cost, xValue);
   let best: RankedPlan = {
     ok: baseSolution.ok,
     taps: [],
@@ -168,7 +180,7 @@ export function planAutoTap(state: GameState, cost: ParsedCost, xValue: number):
     return best;
   }
 
-  const sources = buildSources(state);
+  const sources = buildSources(state, playerId);
   if (sources.length === 0) {
     return best;
   }
@@ -184,7 +196,7 @@ export function planAutoTap(state: GameState, cost: ParsedCost, xValue: number):
   let foundComplete = false;
 
   const search = (startIndex: number): void => {
-    const combinedPool = addPool(state.manaPool, addedMana);
+    const combinedPool = addPool(manaPool, addedMana);
     const solution = solvePayment(combinedPool, cost, xValue);
     const candidatePlan: RankedPlan = {
       ok: solution.ok,

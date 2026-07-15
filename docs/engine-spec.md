@@ -2949,3 +2949,106 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **CR 根拠**: CR 109.2a(「card」+ゾーン名=そのゾーンのカード集合)・CR 202.3/202.3b(mana value=非負整数特性・非stack カードは cmc 由来)・CR 701.14a(return=指定ゾーンへ移動)・CR 608.2b(解決時 target legality 再チェック=既存 leaf と同じ)・**CR 110.4a**(permanent card 定義)・CR 602.2b/601.2c(起動/唱える際に対象確定)。
 
 **受け入れ(判定者先行 authoring)**: `review.cr400-408-return.test.ts`(レビュー専有)batch6 describe = creature/permanent の MV上限 guided + filter shape・MV境界 eligibility(MV=N 可・N+1 除外)+ 解決・6 DEFER 形全 manual・無フィルタ exact-match 非回帰(`maxManaValue` 漏れなし)・**起動型 MV reanimation の activation-time target 提示 pin**(Order of Whiteclay 型=`activationTargetPromptsForSource` 非空+上限 filter)。**コーパス flip 実測(408 reanimation 行)= false-auto 0・IN形13カード正しく guided**(独立 Tier-1)。機械4点全緑。
+
+### 34.42 MP-STATE: N-player 正準 player state(design-lock・CR 102.1/103.1/103.4c/800.1)— この節も契約である
+
+**位置づけ**: `cr-player-specific-zones`(lane=late-backbone・status=drafted)の**実行スライス第1弾**。新トラックではない。ユーザーが 2026-07-15 に台帳 `selectionRule` STOP①(「V4 オンライン前進 vs V1 磨き込み」・予約済み価値判断)を **V4 前進**へ裁定したことによる。設計正本=`research/cr-grounding/multiplayer-foundation-opponent-setup.draft.md`(実装者レーン草稿)+ 本節(判定者裁定 8 点で改訂)。**本節はコード契約を規定し、MP-STATE の実装範囲は state 形 + backfill + 不変条件のみ**=挙動不変・UI なし・コマンドの player 対応は次スライス。
+
+**なぜ rule leaf より先か**: `docs/engine-design-method.md` §0.1「最も戻しにくいのは state 設計」「『今できる最小実装』ではなく『最終的に正しいエンジンへ接続できる最小一手』を選ぶ」。かつ台帳**最高需要**バックログ = `cr-121-drawing` candidate-2「cross-player effect execution」(demand=48・全ドメイン中最大)は多人数基盤なしに実装不能(§32.9 area「draw は P1 専用 `pushDrawEvent`・複数受け手を誠実に表現できず手動強制」)。**多人数基盤は CR トラックの中断ではなく最高需要 leaf の解錠**(北極星③整合)。
+
+**CR 根拠**: 102.1(active/nonactive player は一級参加者)・103.1(turn order は順序付き関係であって2値トグルではない)・103.4c(統率者戦の開始 life=40)・110.2(全 permanent に owner/controller)・400.1(library/hand/graveyard は player 私有・battlefield/stack/exile/command は共有)・800.1(3人以上=多人数)。CR 801(limited range of influence)は既定無効=free-for-all のみ・本スライス範囲外。
+
+**前提の現況(実測)**: `PlayerId = 'P1' | 'OPPONENT_A'`(閉じた union)。life/poison/energy/experience/manaPool と per-turn counter は**単一 scalar**。turn order は state になく `priority.ts` の module 定数 `DEFAULT_TURN_ORDER`。`activePlayerId` は存在するがどのコマンドも書かない(read only)。`CardInstance.ownerId`/`controllerId` は既に必須非 optional・battlefield は既に単一共有配列(=§34.17 の遺産により **board 側は既に N-player 形**)。
+
+**現況=3つの player identity scheme が並存する**(草稿の最大の欠落・本節で明示化):
+1. `PlayerId = 'P1' | 'OPPONENT_A'`(union)
+2. 自由文字列ラベル: `opponentLife: Record<string, number>` / `commanderDamage: Record<string, number>`
+3. `DefeatPlayerRef = 'P1' | \`opponent:${string}\``
+`LifeChangeEvent` が 1 と 2 を `playerId` + `lifeLabel?` で場当たり的に橋渡ししている。
+
+**凍結した fork 決定(判定者裁定・6点)**:
+1. **正準 = `players: Partial<Record<PlayerId, PlayerState>>` + `turnOrder: PlayerId[]` + `localPlayerId: PlayerId`**(CR102.1/103.1)。`PlayerState = { id; label; life; poison; energy; experience; manaPool; landsPlayedThisTurn; spellsCastThisTurn; drawnThisTurn; mulliganCount }`。state 形は 2〜4 人を受容し、初期ローカルゲームは `P1` + 既定対戦相手 1 人を作る。
+2. **`PlayerId` を validated opaque string へ開く。ただし `Partial<Record<>>` + `requirePlayer(state, id)` を代償制御として必須とする**。理由=`tsconfig.app.json` は `strict: true` だが **`noUncheckedIndexedAccess` は off** ゆえ、`PlayerId` が `string` になると `Record<PlayerId, X>` はインデックスシグネチャ化し `state.players[任意文字列]` が `PlayerState` 型として通り**実行時 undefined**=型検査が最も必要な瞬間に沈黙する。`noUncheckedIndexedAccess` のグローバル有効化はリポジトリ全体差分ゆえ本スライスでやらない。branded type も却下(`'P1'` リテラルが 182 箇所)。**`PLAYER_IDS` は意味を変えず据置**=現状 `commands.ts` で手動 player target を弾く**ホワイトリスト**であり列挙ではない(`state.players` へ繋ぐと3人目が対象に取れる=挙動変化)。
+3. **ミラーの極性は反転させない**(§34.17 fork決定1/4 と同型)。`manaPool` は単一コマンド内で読み書きが交錯し(engine 内 18 読者 + `mana.ts`/`manaTransaction.ts`/`autotap.ts` が `state.manaPool` を直読)、`players` を draft 内 write surface にすると全読者の同スライス書換=「コマンドの player 対応」= 次スライスの仕事になる。→ **正準は「観測境界における `players`」**。レガシー scalar は draft 内部の書き込み面のまま、チョークポイントで `players` を**丸ごと再構築**する。single-writer は構造的に保証される(writer は 1 つ・毎回全再構築ゆえ乖離が原理的に起きない)。極性反転は MP-ZONES/COMMANDS。
+4. **「3 scheme の統一」= 正準 identity と全単射の確立であって storage の再キーではない**。再キーは (a) `opponentLife` のキーがユーザー可視(`LifeSheet.tsx`・`docs/acceptance.md` step 20)、(b) `defeat` のキーが `DefeatAdvisoryEvent.playerRef` 経由で**イベントログに載る**ため I14(event 決定性)と golden replay baseline を壊す。→ `PlayerState.label` が表示文字列を持ち、`playerIdForLifeLabel` / `defeatPlayerRefForLifeLabel` が **3 spelling の唯一の橋渡し点**になる。storage 再キーは **MP-IDENTITY**(golden re-baseline と UI 変更を所有する別スライス)へ carry。§34.17 fork決定2「`opponentLife` は互換ビューとして残し同スライスで削除しない」と整合。
+5. **`commanderDamage` は本スライス範囲外**(`PlayerState` に載せない)。`commanderDamage` のキーは**対戦相手のラベルではなく相手統率者のラベル**であり、値 ≥21 は**常に P1 の敗北 advisory** を作る(`commands.ts` の SBA・reviewer pin が `reasonsFor('P1')` を固定し `reasonsFor('opponent:...')` の非包含を固定)。つまり「P1 が受けた統率者ダメージ」であって「対戦相手」ではなく、`PlayerId` への全域写像は存在しない。§34.16 が既に per-opponent-exact commander damage を carry 済み・§34.17 fork決定2 が誠実形を凍結済み → CR 903.10a マトリクス実装スライスで扱う。
+6. **snapshot は `SNAPSHOT_VERSION` を上げない**。`loadSnapshot` は `version !== SNAPSHOT_VERSION` の snapshot を**破棄して null を返し**、migration path は存在しない=version bump はユーザーのゲームを捨てる。→ version 1 のまま `normalizeSnapshotState` で backfill(既存 per-field defaulting パターン)。**incoming snapshot の `players`/`turnOrder` は信頼せず再導出**(§34.17 の「flat が正・既存値は使わない」規律と同型)。
+
+**導出規律(single-writer の構造的保証)**: `syncDerivedViews = syncPlayersFromLegacyScalars ∘ syncP1ZonesByPlayerFromFlatZones` を**合成**し、既存の `syncP1ZonesByPlayerFromFlatZones` 呼び出し 8 箇所(`commands.ts` 7 + `gameStore.ts` normalize 1)を**置換する(追加ではない)**。**合成が安全論証の核心** — §34.17 の HIGH-1 は「片方の sync を1経路だけ忘れた」バグだった。合成すれば 2 つのミラーが異なる site 集合で同期されることが今後も原理的に起こらない。直接呼び出しの残存は grep 検証可能(定義 + `syncDerivedViews` 内の 1 参照のみが正)。`turnOrder` も**導出**(独立に書けない)=`[localPlayerId, DEFAULT_OPPONENT_ID, ...extras を label.localeCompare 順]`。`localeCompare` は既存 opponent SBA 反復順(`commands.ts`)と同一ゆえ advisory emission 順が動かない(I14)。これにより `addOpponent`(store)と `LifeSheet.tsx` は**無改変で動く**(`opponentLife` にラベルが載ればチョークポイントが player を鋳造し `turnOrder` を伸ばす)。`init.ts` も `players`/`turnOrder` を手組みせず `syncDerivedViews(base)` を返す(構築経路の二重化=drift 源を作らない)。
+
+**チョークポイント外の writer(必ず塞ぐ)**: `goldenReplay.ts`(initial-state override が `{...state, life, opponentLife, manaPool}` を spread)と `fixtureBuilder.ts`(`{...state, manaPool}`)。前者は **golden baseline を汚染する**=受け入れ信号そのものが腐るため最優先。両方 `syncDerivedViews` で包む。
+
+**不変条件(I24 から採番。I1〜I21 は live・I22/I23 は §34.17 が予約済み)**:
+- **I24 整合性**(102.1/103.1): `localPlayerId ∈ keys(players)`・`players[id].id === id`・`turnOrder` 重複なし・`keys(players) === set(turnOrder)`。
+- **I25 局所投影**(= single-writer の pin): 全 `applyCommand`/`performStateBasedActions`/`initGame`/`restoreGame` 後、`players[localPlayerId].{life,poison,energy,experience,manaPool,per-turn counters}` がレガシー scalar と deep-equal。
+- **I26 対戦相手全単射**(400.1/103.1): `∀ label ∈ keys(opponentLife)` に対し `players[playerIdForLifeLabel(label)]` が存在し `.life === opponentLife[label]` かつ `.label === label`。孤児なし。写像は**単射**(`opponent:対戦相手A` は鋳造されない=既定ラベルは `OPPONENT_A` へ写るため衝突しない)。
+- **I27 APNAP 凍結**(= 挙動不変の pin・103.1): `orderPendingTriggersApnap(…, state.turnOrder)` が `DEFAULT_TURN_ORDER` 版と同一 `orderedIds` を返す。既定ゲームでは `turnOrder === DEFAULT_TURN_ORDER`。対戦相手追加時も `PendingTrigger.controllerId` は常に `'P1'|'OPPONENT_A'` ゆえ余分 id は 0 件寄与し、extras が `OPPONENT_A` の**後**に並ぶ導出規律がこれを保証する。
+- **I28 backfill/冪等**(前方互換・[[snapshot-forward-compat]]): `players`/`turnOrder`/`localPlayerId` を削除した legacy snapshot が throw せず復元し I24〜I26 を満たす。`normalize(normalize(s)) === normalize(s)`。**破損した `players`/`turnOrder` は信頼せず再導出**。
+
+**スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: `commanderDamage` の per-player 化(fork決定5)・`opponentLife`/`defeat`/`DefeatPlayerRef` の storage 再キー(fork決定4→MP-IDENTITY)・極性反転と `mana.ts`/`manaTransaction.ts`/`autotap.ts` の accessor 移行(fork決定3→MP-ZONES/COMMANDS)・コマンドへの player subject 追加・owner ルーティング private zone・`commands.ts` の `PLAYER_IDS.includes` 検証の `state.players` 化(3人目が対象になる=挙動変化)・branded `PlayerId`・UI の `'対戦相手A'` リテラル重複除去・`cloneZonesByPlayer` の 2 キー固定(3人目の zone を黙って落とすが本スライスでは誰も鋳造しない=documented boundary)・ラベル trim 衝突(`addOpponent` は trim するが `adjustOpponentLife` はしない=既存挙動ゆえ触らない)・`gameStore.ts` の APNAP 実装が `priority.ts` の手写しコピーである重複。**既定の対戦相手はディスク上 2 spelling を持つ**(`players` キー `OPPONENT_A` / `defeat` キー `opponent:対戦相手A`)= fork決定4 の帰結であり MP-IDENTITY が返済する documented boundary。
+
+**確定スライス列**(草稿 §6 を改訂): MP-CONTRACT(本節)→ **MP-STATE**(本節の実装・挙動不変)→ MP-ZONES/COMMANDS → MP-IDENTITY → MP-DUMMY → MP-SETUP(初の可視価値)→ MP-BOARD → MP-FOUR-PLAYER-GATE。草稿の「Resume rule leaves only after this gate is green」は**採らない** — MP-ZONES/COMMANDS 緑の時点で cross-player draw(demand=48)が解錠されるため、そこで rule leaf を挟む判断を判定者が留保する(北極星⑤メタレビュー checkpoint)。
+
+**ダミー相手の先取り裁定(MP-DUMMY へ carry・北極星③分解可能性テスト)**: 草稿の `updateScenarioDummy`/`removeScenarioDummy` を**第一級コマンドとして却下**。`createDefinedToken` が既に `createdBy?: PlayerId`/`initialTapped?` を持ち合成 `CardDef` を `state.defs` に登録するため、非トークンダミーは実質「`isToken: false` の createDefinedToken」=既存語彙の合成で表現できる(`docs/judge-protocol.md` §5.1)。→ **エンジンの新規コマンド面は `createScenarioDummy` の1つだけ**。編集/削除は draft 側の操作とし confirm 時に既存プリミティブ列へコンパイルする(編集 = remove + create = CR400.7 上も新オブジェクト)。`CardInstance.isScenarioDummy` マーカーは**承認**(`isToken` では非トークンダミーと実トークンを区別できない・id prefix 推論は禁止・legacy backfill は `false` 既定)。
+
+**実装出荷(2026-07-15 Codex実装 → 2026-07-16 判定者監査)**: 契約どおり実装・全pin緑。判定者作の25 pinは無改変で残存(6弁別アサーションのfixed-string検査で確認)。実際の受け入れファイルパスは `src/store/__tests__/review.mp-state.test.ts`(store層のrestore検証を含むため store 側へ配置)。
+
+**受け入れ(判定者先行 authoring)**: `src/store/__tests__/review.mp-state.test.ts`(レビュー専有・I24〜I28)。加えて既存 reviewer pin 群が**無改変で緑**であること — 特に `review.golden-replay`(イベントストリーム不変の証明)・`review.cr102-players-zones`(`zonesByPlayer` 意味論不変)・`review.sba-defeat`/`review.903-10a`(3 scheme を固定)・`review.properties`(I1〜)。**これらが改変を要したら挙動が変わった証拠=stop-the-line**。機械4点全緑(`npm run build` が真の型検査=bare `tsc --noEmit` は root tsconfig の `files:[]` ゆえ no-op)。`git diff --stat` に `src/components/**` が現れないこと(UI 不変の pin)。実機ブラウザ確認は**不要**(挙動不変・UI なしのスライスゆえ計器を無駄に回さない=北極星③)。
+
+### 34.43 MP-ZONES/COMMANDS Slice A: owner-routed private zones + cross-player core commands (CR 102.1/121/400.1/400.3/701.9/701.24/704.5b-c)
+
+> **J0起草 → 判定者監査済み**(起草 2026-07-15 J0=Codex両担・監査 2026-07-16 復帰判定者): 独立再検証=①判定者による全review diff精読とCR照合 ②実装と別主体の冷Tier-1敵対監査(HIGH 0)③機械4点の独立再実行 ④実機E2E。Tier-1が検出したMEDIUM 1件(`detectTriggerCandidates`がflat墓地のみを読み相手の死亡を計器上見逃す=実プレイ経路は無影響)は判定者が外科修正し、弁別実証済みregression pinを`review.mp-dummy.test.ts`へ追加。
+
+**位置づけ**: §34.42 MP-STATE の後続であり、`cr-player-specific-zones` の実行スライス第2弾。最大需要のcross-player clusterを解錠する最小範囲に限定し、private zone正本の極性反転と、draw/mill/shuffle/discard/life/player counterだけをPlayerId対応する。マナ・キャスト・ターン主体の一般化はSlice Bへdeferする。
+
+**fork決定**:
+1. **private zone正本を `zonesByPlayer` へ反転**する。flat `zones.library/hand/graveyard` はP1互換ビューであり、観測境界で `zonesByPlayer[localPlayerId]` から再構築する。legacy snapshotに`zonesByPlayer`が無い場合だけflat配列をP1へlossless backfillする。共有battlefield/stack/exile/commandは従来どおりflat共有配列(CR400.1)。
+2. **private destinationはowner routing**。`moveCard`がlibrary/hand/graveyardへ移す場合、command発行者やcontrollerでなく`CardInstance.ownerId`の対応zoneへ入る(CR400.3)。private sourceからの除去もowner zoneを正道とし、移行前のmixed-owner P1配置だけは全player zoneを探索して回収する。
+3. `cloneZonesByPlayer`はP1/OPPONENT_A固定再構築をやめ、存在する全PlayerIdをlossless cloneする。roster全員に空private zoneを補完する。
+4. `adjustLife` / `adjustPlayerCounter` / `draw` / `mill` / `shuffle` / `discard` に additive `playerId?: PlayerId` を加える。省略時は`localPlayerId`で既存挙動互換。未知PlayerIdは`EngineError`でatomic拒否する。
+5. cross-player drawは対象playerのlibrary→handを1枚ずつ移動し、`DrawEvent.playerId`と`emptyLibraryDrawAttemptedSinceLastSba[playerId]`を正しく記録する(CR121.1/121.2/121.4)。`drawnThisTurn`は対象PlayerStateへ加算し、P1互換scalarはlocal時だけ同期する。
+6. explicit player discardは指定playerのhandにあるcardだけをowner graveyardへ移す(CR701.9a)。playerId省略時は既存サンドボックス互換を維持する。shuffleのorderは指定player libraryの完全順列でなければatomic拒否(CR701.24a)。millは指定player libraryだけを処理し空library draw advisoryを立てない(CR121.5/701系既存境界)。
+7. `players`再導出は非local PlayerStateの既存fieldを保存し、lifeだけ`opponentLife`互換ビューと同期する。これによりcross-player `drawnThisTurn`/poison等が観測境界で消失しない。
+8. SBA 704.5b/cは全playerを走査し、empty-library draw attemptとpoison 10以上を該当playerのadvisoryへ記録する。既定P1の既存event/ref spellingは不変。
+
+**新不変条件**:
+- **I29 private-zone保存則**: 各private-zone card idは全player private zonesを通じてちょうど1回だけ現れ、card.ownerIdと格納playerIdが一致する。P1 flat mirrorは`zonesByPlayer[localPlayerId]`と順序込みdeep-equal。
+- **I30 cross-player isolation**: player-aware draw/mill/shuffle/discard/life/counterは指定playerだけを変更し、他playerの対応state/zone順序を不変に保つ。
+- **I31 event subject integrity**: cross-player draw/life eventの`playerId`はcommand subjectと一致し、zone-change snapshotのowner/controllerを改変しない。
+- **I32 N-player retention**: 3人目・4人目のPlayerState/private zonesは任意command、SBA、snapshot restore後も欠落しない。
+
+**スコープ境界**: mana command/autotap/manaTransaction・cast/playLand/turn progressionのactor一般化、search/arrangeTop/mulligan/putOnBottomのcross-player UI、compilerの`you/opponent/each-player` subject binding、`DefeatPlayerRef` storage再キー、commander damage matrix、manual target whitelist、UIは本Slice外。`PlayerState`全fieldの正本極性反転はこれらreader移行と同時にSlice Bで行う。
+
+**受け入れ**: `src/store/__tests__/review.mp-zones-commands.test.ts`がI29〜I32をpinする。§34.17の旧HIGH-2「mixed ownerをP1へ誤mirror」は本節で意図的に反転するため、既存`review.cr102-players-zones.test.ts`の該当1件だけをJ0でCR400.3期待へ更新する。他の既存review assertionは変更禁止。機械4点全緑、`SNAPSHOT_VERSION`/`CACHE_SCHEMA_VERSION`不変、UI差分なし。
+
+### 34.44 MP-IDENTITY / MP-DUMMY / MP-SETUP基盤(J0未監査・CR 102.1/110.2/111.1/400.1/400.3/400.7/704.5d)
+
+> **J0起草 → 判定者監査済み**(起草 2026-07-15・監査 2026-07-16): §34.43 と同一の4層独立再検証で合格。dummy 設計は判定者の事前裁定(§34.42「ダミー相手の先取り裁定」=新コマンドは `createScenarioDummy` 単独・編集は退避+再作成)と一致することを確認。setup 適用の単一undo原子性は実機E2Eでも実証(draft編集中 canonical 不変 → apply → undo 1回で life+dummy 同時復元 → redo 再現)。
+
+**identity境界**: manual player target、damage/lifelink/combat life、target filterの`you/opponent`は固定`P1|OPPONENT_A`でなく、現在の`state.players/turnOrder`と能力sourceのcontrollerから解決する。既存`opponentLife`/`DefeatPlayerRef`のdisk spelling再キーはgolden replay互換を壊すため、画面価値に不要な本段階では互換写像を維持する。
+
+**dummy形**: `CardInstance.isScenarioDummy`を型付き識別子とし、`createScenarioDummy`だけを新規creation primitiveとする。command payloadには決定済み`cardId/defId/playerId`、表示名、型組合せ、P/T、tap、counter、manual keyword、token指定を含める。合成`CardDef`はScryfall/oracle/imageを持たず、作成後は通常のCardInstanceとして共有battlefield、対象、戦闘、SBA、領域移動を通る。非tokenがprivate zoneへ移る場合はowner routing、tokenは領域移動後にCR704.5d経路で消滅する。
+
+**setup draft/差分**: `OpponentSetupDraft`はcanonical stateからdeep copyで作り、編集中にGameStateを書かない。確定時は`compileOpponentSetupCommands`がlife/poison差分とdummyだけのcreate/update/retire/reorder列を決定的に生成する。definition変更はCR400.7上の新objectとして旧objectを戦場外へ退避後createする。通常カード、およびP1 ownerで相手controllerのカードは変更禁止。storeは全commandを先に適用して`commit`を一度だけ呼び、undo一回で確定前へ戻す。
+
+**I33**: dummy markerはid prefixに依存せず、対象・SBA・zone eventで保持される。**I34**: setup draftの編集/cancelはcanonical不変、applyは単一undo。**I35**: reconciliationは対象playerのbattlefield上scenario dummyだけを変更する。**I36**: synthetic defはoracle/image非保持で、token/non-token意味論を混同しない。
+
+**受け入れ**: `review.mp-dummy.test.ts`と後続UI reviewでI33〜I36、再編集、通常カード保護、対象、owner墓地、token消滅をpinする。
+
+### 34.45 MP-COMMANDS Slice B / MP-BOARD / MP-FOUR-PLAYER-GATE(J0未監査・CR 101.4/102.1/103.1/110.2/121.2c/800.1)
+
+> **J0起草 → 判定者監査済み**(起草 2026-07-15・監査 2026-07-16): §34.43 と同一の4層独立再検証で合格。旧review pinの置換3箇所(`cr121DrawCompiler`/`cr121DrawCrossPlayerGuard`/`review.cr701-mill-scry-surveil` の each-player/each-opponent manual→auto)は、判定者が `applyPlayerEffect`/`orderedRecipients` のAPNAP・per-player zone routing・event subject を実装トレース+Tier-1実行検証の両輪でCR-honestと裁定して承認。target player・optional・mixed-recipient の manual guard は不変であることを確認済み。UI(セットアップ画面・相手盤面)は実機3操作系(desktop/mobile・追加/編集/反映/cancel/undo)でconsole error 0件。既知のUX負債=モバイルで相手ストリップが空レーン込みで縦幅過大(§D トラック向け追跡・機能は阻害しない)。
+
+**player-aware command**: manaのadd/adjust/pay/clear、playLand、cast、arrangeTop、putOnBottom、mulliganへadditiveな`playerId?: PlayerId`を持たせ、省略時は既存local挙動を維持する。mana source、cast card、Treasure、generated tokenはcontrollerをactorとする。`autotap`はactorのmana poolとactor controllerのmana sourceだけを候補にする。literal/guided mana、token生成、guided search/scryは`CompileContext.controllerId`をcommandへ伝搬する。local scalarは互換write surfaceのまま、非localの同fieldは`PlayerState`へ書き、観測境界でlosslessに保持する。
+
+**recipient集合/APNAP**: `applyPlayerEffect`は`controllerId`、`you|eachOpponent|eachPlayer`、draw/mill/life/counter効果を一つのatomic commandで表す。受け手順は`activePlayerId`を先頭に`turnOrder`を回転したAPNAP順とし、`eachOpponent`は能力controller以外の全参加者である。これにより旧manual境界だった固定数の`Each player/opponent draws/mills/gains/loses/gets counters`を部分実行せず一括処理できる(CR101.4/121.2c)。target playerやoptional/conditional/mixed-recipient文は引き続きmanualであり、対応部分だけを実行してはならない。
+
+**turn progression fork**: 現行UIは一人回しを継続するため、引数なし`nextTurn`のactive playerを変えない。エンジンの`nextTurn { advanceTurnOrder:true }`だけが`turnOrder`の次のplayerへ決定的に進め、次active playerのper-turn counterをresetし、そのcontrollerのpermanentだけをuntapし、そのplayerのdraw stepを処理する。これは将来の完成版多人数ターンUIへ接続する明示経路であり、対戦相手セットアップ初期版は自動で相手ターンへ遷移しない。
+
+**独立setup UI**: GameScreen内メニューから独立全画面へ遷移し、canonical stateから作ったdraftだけを編集する。対象は全nonlocal playerのlife/poisonとscenario dummy。追加・複製・編集・削除・並べ替えを提供し、cancelは無変更、apply成功時だけGameScreenへ戻る。invalid draftは画面内alertを出して留まる。シナリオ保存、実カード検索、相手deck、AIは初期scope外。
+
+**controller別board/combat**: 共有battlefieldをcontrollerごとに投影し、local Board/LandRowはlocal controllerだけ、OpponentBoardsは各nonlocal controllerをcreature/other/land laneへ表示する。相手カードは編集UIを持たず、通常のcard確認・target・blocker選択経路を使う。`setController`後も同じobject idのまま表示laneだけが移る。初期combat UIはdefending playerのcreatureをblocker候補として既存`declareBlockers`へ渡す。
+
+**不変条件**: **I37 actor isolation**=player-aware mana/cast/turn counterはactor以外の対応stateを変えない。**I38 recipient completeness**=`eachOpponent/eachPlayer`はAPNAP順で集合の全員を一度だけ処理し、event subjectも一致する。**I39 turn isolation**=明示turnOrder前進時、outgoing pool clearとincoming untap/drawが別playerへ漏れない。**I40 UI reconciliation**=apply失敗時はsetup画面とcanonical stateを維持し、成功時だけ単一undoとして反映する。
+
+**受け入れ**: `review.mp-four-player.test.ts`、`review.mp-dummy.test.ts`、`OpponentSetupScreen.review.test.tsx`で2〜4人APNAP、recipient、mana/token actor、明示turn前進、draft/cancel/apply/error/undo、controller別board、blocker接続をpinする。旧`cr121DrawCompiler`/`cr121DrawCrossPlayerGuard`/`review.cr701-mill-scry-surveil`のcross-player manual期待は本節に限りJ0でplayer-aware期待へ置換し、target/optional/mixed recipientのmanual guardは維持する。

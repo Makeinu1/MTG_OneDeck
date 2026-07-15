@@ -1,6 +1,12 @@
 import { applyCommand } from '../../engine/commands';
 import { initGame, type InitDeckCard } from '../../engine/init';
-import { objectIdOf, type GameState, type ObjectSnapshot, type ZoneId } from '../../engine/types';
+import {
+  objectIdOf,
+  syncDerivedViews,
+  type GameState,
+  type ObjectSnapshot,
+  type ZoneId,
+} from '../../engine/types';
 import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import type { CardDef } from '../../types/card';
 
@@ -391,11 +397,11 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
   if (landIds.includes(specialIds[1])) state = setTapped(state, specialIds[1]);
   if (scenario === 'lands' || scenario === 'lands-overflow') return { ...state, phase: 'main1' };
   if (scenario === 'mana-multicolor') {
-    return {
+    return syncDerivedViews({
       ...state,
       phase: 'main1',
       manaPool: { W: 1, U: 2, B: 3, R: 4, G: 5, C: 10 },
-    };
+    });
   }
 
   const baseCreatureIds = idsWithPrefix(state, 'fixture-creature-');

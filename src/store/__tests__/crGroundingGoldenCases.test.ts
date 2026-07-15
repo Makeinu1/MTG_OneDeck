@@ -1576,8 +1576,16 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
 
     store().newGame(makeDeck(12), 1);
     const drawnBefore = store().state!.drawnThisTurn;
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
 
     store().dispatch({ type: 'draw', count: 1 });
@@ -1602,10 +1610,15 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     store().newGame(makeDeck(12), 1);
     const drawnBefore = store().state!.drawnThisTurn;
     const onlyCard = store().state!.zones.library[0];
+    const current = store().state!;
     useGameStore.setState({
       state: {
-        ...store().state!,
-        zones: { ...store().state!.zones, library: [onlyCard] },
+        ...current,
+        zones: { ...current.zones, library: [onlyCard] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [onlyCard] },
+        },
       },
     });
 
@@ -1698,8 +1711,16 @@ describe('CR grounding golden cases executable subset (Z5)', () => {
     ]);
 
     store().newGame(makeDeck(12), 1);
+    const current = store().state!;
     useGameStore.setState({
-      state: { ...store().state!, zones: { ...store().state!.zones, library: [] } },
+      state: {
+        ...current,
+        zones: { ...current.zones, library: [] },
+        zonesByPlayer: {
+          ...current.zonesByPlayer,
+          P1: { ...current.zonesByPlayer.P1, library: [] },
+        },
+      },
     });
 
     store().dispatch({ type: 'mill', count: 1 });

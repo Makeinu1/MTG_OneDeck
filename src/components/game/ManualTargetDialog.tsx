@@ -3,11 +3,6 @@ import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import type { GameState, PlayerId } from '../../engine/types';
 
-const PLAYER_TARGETS: Array<{ playerId: PlayerId; label: string }> = [
-  { playerId: 'P1', label: '自分（プレイヤー）' },
-  { playerId: 'OPPONENT_A', label: '対戦相手' },
-];
-
 export function ManualTargetDialog({
   state,
   sourceId,
@@ -39,6 +34,12 @@ export function ManualTargetDialog({
         : []),
   );
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerId[]>([...currentPlayers]);
+  const playerTargets = state.turnOrder.flatMap((playerId) => {
+    const player = state.players[playerId];
+    return player
+      ? [{ playerId, label: playerId === state.localPlayerId ? '自分（プレイヤー）' : player.label }]
+      : [];
+  });
 
   function setChecked(cardId: string, checked: boolean): void {
     setSelected((ids) => checked
@@ -61,7 +62,7 @@ export function ManualTargetDialog({
       </p>
       <fieldset className="manual-target-dialog__players">
         <legend>プレイヤー</legend>
-        {PLAYER_TARGETS.map(({ playerId, label }) => {
+        {playerTargets.map(({ playerId, label }) => {
           const checked = selectedPlayers.includes(playerId);
           return (
             <label key={playerId} className={`manual-target-dialog__player${checked ? ' is-selected' : ''}`}>

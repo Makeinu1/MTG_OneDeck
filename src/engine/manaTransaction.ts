@@ -12,6 +12,7 @@ import type {
   ManaPool,
   ObjectSnapshot,
   PendingManaTrigger,
+  PlayerId,
 } from './types';
 import { objectIdOf } from './types';
 
@@ -280,6 +281,7 @@ export function triggeredManaAbilityPlan(
   const compiled = compileAbilityIR(ir, {
     sourceId: pending.sourceId,
     def,
+    controllerId: pending.sourceSnapshot.controllerId ?? pending.sourceSnapshot.ownerId,
   });
   const autoManaCommands = compiled.commands.filter(
     (command): command is Extract<GameCommand, { type: 'addMana' }> =>
@@ -289,7 +291,11 @@ export function triggeredManaAbilityPlan(
     return { decision: 'auto', commands: compiled.commands };
   }
 
-  const contextualCommands = contextualManaCommands(ir, triggerEvent);
+  const contextualCommands = contextualManaCommands(
+    ir,
+    triggerEvent,
+    pending.sourceSnapshot.controllerId ?? pending.sourceSnapshot.ownerId,
+  );
   if (contextualCommands.length > 0) {
     return { decision: 'auto', commands: contextualCommands };
   }
@@ -354,6 +360,7 @@ function isManaRelatedTriggerCondition(
 function contextualManaCommands(
   ir: ReturnType<typeof parseAbilityIR>,
   triggerEvent?: ManaAbilityTransactionEvent,
+  controllerId?: PlayerId,
 ): GameCommand[] {
   const manaEffect = ir.effects.find((effect) => effect.atom === 'effect.add-mana');
   if (!manaEffect || !triggerEvent || triggerEvent.type !== 'manaAdded') {
@@ -369,7 +376,12 @@ function contextualManaCommands(
   }
   const [color] = produced[0];
   const amount = manaAmountFromText(manaEffect.raw) ?? 1;
-  return [{ type: 'addMana', color, amount }];
+  return [{
+    type: 'addMana',
+    color,
+    amount,
+    ...(controllerId && controllerId !== 'P1' ? { playerId: controllerId } : {}),
+  }];
 }
 
 function collectManaAddedEventsFromCommands(
@@ -470,6 +482,7 @@ function snapshotOfCard(state: GameState, card: CardInstance): ObjectSnapshot {
     ownerId,
     controllerId,
     isToken: card.isToken,
+    isScenarioDummy: card.isScenarioDummy,
     isCommander: card.isCommander,
     faceIndex: card.faceIndex,
     tapped: card.tapped,

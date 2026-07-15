@@ -16,6 +16,7 @@ export interface OrderedPendingTriggers {
 
 export interface IncompletePendingTriggerOrder {
   status: 'incomplete';
+  orderedIds?: never;
   missingIds: string[];
   unknownIds: string[];
   duplicateIds: string[];
@@ -158,7 +159,7 @@ function triggerOrderGroupKey(
 }
 
 export function deterministicPendingTriggerOrderForPriority(
-  state: Pick<GameState, 'pendingTriggers' | 'activePlayerId'>,
+  state: Pick<GameState, 'pendingTriggers' | 'activePlayerId' | 'turnOrder'>,
 ): string[] | null {
   const pendingTriggers = readyPendingTriggers(state.pendingTriggers);
   const groups = new Map<
@@ -190,6 +191,7 @@ export function deterministicPendingTriggerOrderForPriority(
     pendingTriggers,
     pendingTriggers.map((trigger) => trigger.pendingTriggerId),
     state.activePlayerId,
+    state.turnOrder,
   );
   return orderResult.status === 'ordered' ? orderResult.orderedIds : null;
 }
@@ -349,6 +351,7 @@ export function advanceToPriority(
           readyTriggers,
           explicitTriggerOrderIds,
           workingState.activePlayerId,
+          workingState.turnOrder,
         )
       : null;
     explicitTriggerOrderIds = undefined;

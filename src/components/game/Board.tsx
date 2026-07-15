@@ -25,9 +25,10 @@ interface ShelfProps {
   controller: GameController;
   cardIds: string[];
   testId: string;
+  emptyLabel?: string;
 }
 
-function Shelf({ controller, cardIds, testId }: ShelfProps) {
+export function BattlefieldShelf({ controller, cardIds, testId, emptyLabel }: ShelfProps) {
   const shelfRef = useRef<HTMLDivElement>(null);
   const width = boardCardWidth(cardIds.length);
   const density = boardDensity(cardIds.length);
@@ -42,7 +43,7 @@ function Shelf({ controller, cardIds, testId }: ShelfProps) {
     <div className="board-shelf-wrap">
       {cardIds.length === 0 && (
         <span className="board-shelf__empty" aria-hidden>
-          {testId === 'board-creatures' ? 'クリーチャー' : 'その他'}
+          {emptyLabel ?? (testId === 'board-creatures' ? 'クリーチャー' : 'その他')}
         </span>
       )}
       <div
@@ -109,7 +110,10 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
 
   const permanents = state.zones.battlefield.filter((id) => {
     const card = state.cards[id];
-    return card && !card.isAbility && !card.attachedTo;
+    return card
+      && card.controllerId === state.localPlayerId
+      && !card.isAbility
+      && !card.attachedTo;
   });
   const creatures: string[] = [];
   const others: string[] = [];
@@ -128,9 +132,9 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
       data-drop-active={dropTarget !== null || undefined}
       data-drop-over={isOver || undefined}
     >
-      <Shelf controller={controller} cardIds={creatures} testId="board-creatures" />
+      <BattlefieldShelf controller={controller} cardIds={creatures} testId="board-creatures" />
       <div className="board__divider" aria-hidden />
-      <Shelf controller={controller} cardIds={others} testId="board-others" />
+      <BattlefieldShelf controller={controller} cardIds={others} testId="board-others" />
       {dropTarget && (
         <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden>
           {dropTarget.kind === 'cast' ? '盤面へ移動して唱える → スタック' : '盤面へ移動して戦場へ'}

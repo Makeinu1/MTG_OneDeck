@@ -36,7 +36,7 @@
 
 .game-screen__status { grid-area: status; }
 .game-screen__stack { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
-.game-screen__board { grid-area: board; min-height: 0; overflow: hidden; }
+.game-screen__board { grid-area: board; min-height: 0; overflow: auto; }
 .game-screen__lands {
   grid-area: lands; min-height: 0;
   display: grid; grid-template-columns: clamp(184px, 15vw, 224px) minmax(0, 1fr);
@@ -807,6 +807,136 @@
   color: var(--text); cursor: pointer;
 }
 .game-menu__action--warn { color: var(--warn); }
+
+/* ---------- opponent training setup (independent full screen) ---------- */
+.opponent-setup {
+  min-height: 100dvh;
+  padding: clamp(16px, 3vw, 40px);
+  color: var(--text, #f3efe5);
+  background:
+    radial-gradient(circle at 85% 0%, rgb(94 65 24 / 32%), transparent 35%),
+    linear-gradient(145deg, #151712, #090b09 58%, #16120d);
+}
+.opponent-setup__header,
+.opponent-setup__player,
+.opponent-setup__section-heading,
+.opponent-setup-card__heading,
+.opponent-setup-card__stats,
+.opponent-setup-card__flags {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.opponent-setup__header {
+  justify-content: space-between;
+  max-width: 1120px;
+  margin: 0 auto 24px;
+}
+.opponent-setup__header h1,
+.opponent-setup__section-heading h2 { margin: 0; }
+.opponent-setup__header p,
+.opponent-setup__section-heading p { margin: 4px 0 0; color: #aaa99f; }
+.opponent-setup__kicker { letter-spacing: .18em; color: #d6aa5d !important; font-size: 12px; }
+.opponent-setup__header-actions { display: flex; gap: 10px; }
+.opponent-setup__error {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #b8473f;
+  border-radius: 6px;
+  color: #ffd4cf;
+  background: rgb(112 28 25 / 45%);
+}
+.opponent-setup button,
+.opponent-setup input,
+.opponent-setup select {
+  border: 1px solid #55564e;
+  border-radius: 8px;
+  background: #20221d;
+  color: inherit;
+  padding: 9px 11px;
+}
+.opponent-setup button { cursor: pointer; }
+.opponent-setup button:disabled { opacity: .4; cursor: default; }
+.opponent-setup__header-actions button:last-child,
+.opponent-setup__section-heading > button { border-color: #b88a42; background: #6d4a1c; }
+.opponent-setup__player,
+.opponent-setup__permanents {
+  max-width: 1120px;
+  margin: 0 auto 20px;
+  padding: 18px;
+  border: 1px solid #35372f;
+  border-radius: 14px;
+  background: rgb(20 22 18 / 88%);
+}
+.opponent-setup__player { flex-wrap: wrap; }
+.opponent-setup label { display: grid; gap: 6px; font-size: 13px; color: #d1d0c7; }
+.opponent-setup__player label { min-width: 160px; }
+.opponent-setup__section-heading { justify-content: space-between; margin-bottom: 16px; }
+.opponent-setup__list { display: grid; gap: 14px; }
+.opponent-setup__empty { padding: 30px; text-align: center; color: #8e9087; }
+.opponent-setup-card {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #42443b;
+  border-radius: 12px;
+  background: #171914;
+}
+.opponent-setup-card__heading { justify-content: space-between; }
+.opponent-setup-card__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.opponent-setup-card fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #34362f;
+  border-radius: 8px;
+}
+.opponent-setup-card fieldset label,
+.opponent-setup-card__flags label,
+.opponent-setup-card__keywords label { display: flex; align-items: center; gap: 5px; }
+.opponent-setup-card input[type='checkbox'] { width: 17px; height: 17px; padding: 0; }
+.opponent-setup-card__stats > label { flex: 1; }
+.opponent-setup-card__keywords { display: flex; flex-wrap: wrap; gap: 9px 14px; }
+@media (max-width: 700px) {
+  .opponent-setup__header,
+  .opponent-setup__section-heading { align-items: stretch; flex-direction: column; }
+  .opponent-setup__header-actions > button { flex: 1; }
+  .opponent-setup-card__heading { align-items: flex-start; flex-direction: column; }
+}
+
+/* ---------- controller-projected opponent battlefield ---------- */
+.opponent-boards { display: grid; gap: 8px; margin-bottom: 8px; }
+.opponent-board {
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--warn, #c58d42) 45%, transparent);
+  border-radius: 10px;
+  background: rgb(35 25 17 / 72%);
+}
+.opponent-board__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 5px;
+  font-size: 12px;
+  color: #d9c6a5;
+}
+.opponent-board__rows { display: grid; grid-template-columns: 1fr 1fr minmax(96px, .7fr); gap: 6px; }
+.opponent-board .board-shelf-wrap { min-height: 82px; }
+.opponent-board__lands {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 82px;
+  overflow-x: auto;
+}
+.opponent-board__lands .game-card { flex: 0 0 72px; }
+@media (max-width: 700px) {
+  .opponent-board__rows { grid-template-columns: 1fr; }
+}
 
 /* ---------- 祝祭感モーション(D5・中核4種のみ。design-system §7/§9) ---------- */
 /* ①ドロー: 山札→手札の滑り込み(L2)。手札に入るカードのマウント時に1回(--celebrate 付与時のみ)。 */

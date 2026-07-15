@@ -8,13 +8,14 @@ import { parseAbilityIR } from '../grammar/ir';
 //
 // Background: `hasSupportedPlayerSubject`'s `effect.draw` case previously accepted any raw
 // clause containing "draw" or "you draw", even when the same clause also instructed an
-// unsupported recipient (target player/opponent, each player/opponent) or an optional/
+// unsupported recipient (target player/opponent) or an optional/
 // conditional draw for another player. Because the engine only has a P1-only `draw` command,
 // accepting such a clause silently executed *part* of the instruction (e.g. Tataru Taru's ETB
 // "you draw a card and target opponent may draw a card" auto-drew exactly one card for P1 and
 // dropped the opponent's optional draw with no prompt, warning, or manual fallback). This
-// suite pins the fix: such clauses must classify manual with zero emitted commands, while
-// pre-existing fixed self-draw and trigger-origin behavior remains unchanged.
+// suite pins the remaining guard: mixed/targeted clauses must classify manual with zero emitted
+// commands. The multiplayer foundation supersedes the former each-player manual boundary by
+// compiling it into one atomic player-aware command.
 
 function def(): CardDef {
   return {
@@ -62,10 +63,16 @@ describe('CR 121.2c draw cross-player/optional honesty guard', () => {
     });
   });
 
-  it('keeps each-player draw clauses manual with zero commands', () => {
+  it('compiles each-player atomically while keeping unresolved that-player references manual', () => {
     expect(compile('Each player draws a card.')).toMatchObject({
-      decision: 'manual',
-      commands: [],
+      decision: 'auto',
+      commands: [{
+        type: 'applyPlayerEffect',
+        controllerId: 'P1',
+        recipients: 'eachPlayer',
+        effect: 'draw',
+        amount: 1,
+      }],
     });
     expect(compile('That player draws a card.')).toMatchObject({
       decision: 'manual',

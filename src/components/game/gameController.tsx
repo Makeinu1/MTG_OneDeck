@@ -14,7 +14,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { freeMulliganBottomCount, useGameStore, type GameStore } from '../../store/gameStore';
+import {
+  freeMulliganBottomCount,
+  guidedControllerId,
+  useGameStore,
+  type GameStore,
+} from '../../store/gameStore';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
@@ -693,18 +698,25 @@ export function useGameController({
 
   // --- overlays (menu + all dialogs) ---
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
+  const guidedPlayerId = state && store.pendingGuided
+    ? guidedControllerId(state, store.pendingGuided)
+    : state?.localPlayerId;
   const guidedTargetIds =
     state && guidedPrompt?.kind === 'target' && guidedPrompt.targetKind !== 'player'
       ? eligibleTargets(state, guidedPrompt.filter ?? {}, { sourceId: store.pendingGuided?.sourceId })
       : [];
   const guidedTargetPlayerIds: PlayerId[] =
-    guidedPrompt?.kind === 'target' &&
+    state && guidedPrompt?.kind === 'target' &&
     (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
-      ? ['P1', 'OPPONENT_A']
+      ? state.turnOrder.slice()
       : [];
   const guidedSacrificeIds =
     state && guidedPrompt?.kind === 'sacrifice'
-      ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' })
+      ? eligibleTargets(
+          state,
+          guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+          { sourceId: store.pendingGuided?.sourceId },
+        )
       : [];
   const guidedCostSelectedIds = new Set(
     (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
@@ -716,9 +728,15 @@ export function useGameController({
     !state || !guidedPrompt
       ? []
       : guidedPrompt.kind === 'cost-discard'
-        ? state.zones.hand.filter((id) => !guidedCostSelectedIds.has(id))
+        ? state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand.filter(
+            (id) => !guidedCostSelectedIds.has(id),
+          )
         : guidedPrompt.kind === 'cost-sacrifice'
-          ? eligibleTargets(state, guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' }).filter(
+          ? eligibleTargets(
+              state,
+              guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+              { sourceId: store.pendingGuided?.sourceId },
+            ).filter(
               (id) => id !== store.pendingGuided?.sourceId && !guidedCostSelectedIds.has(id),
             )
           : [];
@@ -728,7 +746,9 @@ export function useGameController({
       ? []
       : state.zones.library.slice(0, Math.min(peekCount, state.zones.library.length));
   const opponentLabels = state
-    ? Array.from(new Set(['対戦相手A', ...Object.keys(state.opponentLife), ...Object.keys(state.commanderDamage)]))
+    ? state.turnOrder
+        .filter((playerId) => playerId !== state.localPlayerId)
+        .map((playerId) => state.players[playerId]?.label ?? playerId)
     : [];
   const manualKeywordCard = manualKeywordsCardId ? cards[manualKeywordsCardId] : undefined;
   const countDialogConfig =
@@ -918,7 +938,7 @@ export function useGameController({
       {guidedPrompt?.kind === 'discard' && (
         <TargetPickerDialog
           title="捨てるカードを選択"
-          cardIds={state.zones.hand}
+          cardIds={state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand}
           state={state}
           onPick={(id) => store.confirmGuidedDiscard(id)}
           onCancel={() => store.cancelGuidedPrompt()}
@@ -927,6 +947,7 @@ export function useGameController({
       {guidedPrompt?.kind === 'library-search' && (
         <GuidedLibrarySearchDialog
           state={state}
+          playerId={guidedPlayerId}
           sourceId={store.pendingGuided?.sourceId ?? ''}
           prompt={guidedPrompt}
           onConfirm={(id) => store.confirmGuidedLibrarySearch(id)}
@@ -956,6 +977,7 @@ export function useGameController({
         <ArrangeTopDialog
           key={`guided-arrange-${guidedPrompt.raw}`}
           state={state}
+          playerId={guidedPlayerId}
           initialCount={guidedPrompt.count}
           initialMode={guidedPrompt.atom === 'effect.surveil' ? 'surveil' : 'scry'}
           lockCount
@@ -1018,8 +1040,8 @@ export function useGameController({
         <AttackDialog
           state={state}
           opponentLabels={opponentLabels}
-          onConfirm={(attackerIds, targetLabel) => {
-            store.declareAttack(attackerIds, targetLabel);
+          onConfirm={(attackerIds, targetLabel, blockers) => {
+            store.declareAttack(attackerIds, targetLabel, blockers);
             setAttackDialogOpen(false);
           }}
           onCancel={() => setAttackDialogOpen(false)}

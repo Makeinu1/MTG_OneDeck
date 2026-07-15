@@ -22,6 +22,7 @@ import { useGameController } from './gameController';
 import { StatusBand } from './StatusBand';
 import { StackBand } from './StackBand';
 import { Board } from './Board';
+import { OpponentBoards } from './OpponentBoards';
 import { LandRow } from './LandRow';
 import { HandRibbon } from './HandRibbon';
 import { ThumbZone } from './ThumbZone';
@@ -51,6 +52,7 @@ function uxResearchModeEnabled(): boolean {
 
 export interface GameScreenProps {
   keybindings: KeybindingsMap;
+  onOpenOpponentSetup?: () => void;
 }
 
 function activatorClientPoint(event: Event): { x: number; y: number } | null {
@@ -63,7 +65,7 @@ function activatorClientPoint(event: Event): { x: number; y: number } | null {
   return touch ? { x: touch.clientX, y: touch.clientY } : null;
 }
 
-export function GameScreen({ keybindings }: GameScreenProps) {
+export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps) {
   const initialHandLayout = useMemo(
     () => new URLSearchParams(window.location.search).get('hand'),
     [],
@@ -170,6 +172,7 @@ export function GameScreen({ keybindings }: GameScreenProps) {
           <StackBand controller={controller} />
         </div>
         <div className="game-screen__board">
+          <OpponentBoards controller={controller} />
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <TransitionCue cue={controller.transitionCue} onDone={controller.dismissTransitionCue} />
@@ -190,7 +193,7 @@ export function GameScreen({ keybindings }: GameScreenProps) {
           />
         </div>
         <div className="game-screen__thumb">
-          <ThumbZone controller={controller} />
+          <ThumbZone controller={controller} onOpenOpponentSetup={onOpenOpponentSetup} />
         </div>
 
         {controller.feedOpen && <Feed controller={controller} onClose={controller.closeFeed} />}

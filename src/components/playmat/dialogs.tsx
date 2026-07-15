@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Modal } from '../Modal';
 import type { ManaColor } from '../../types/card';
 import type { CardDef } from '../../types/card';
-import type { CardInstance, GameState, ZoneId } from '../../engine/types';
+import type { CardInstance, GameState, PlayerId, ZoneId } from '../../engine/types';
 import type { EffectPrompt, LibrarySearchFilter } from '../../engine/grammar/compile';
 import { isCommander } from '../../engine/commander';
 import { parseManaCost } from '../../engine/mana';
@@ -231,7 +231,11 @@ export function AttackDialog({
 }: {
   state: GameState;
   opponentLabels: string[];
-  onConfirm: (attackerIds: string[], targetLabel: string) => void;
+  onConfirm: (
+    attackerIds: string[],
+    targetLabel: string,
+    blockers?: Array<{ cardId: string; attackerId: string }>,
+  ) => void;
   onCancel: () => void;
 }) {
   const creatureIds = state.zones.battlefield.filter((cardId) => {
@@ -239,10 +243,24 @@ export function AttackDialog({
     const def = card ? state.defs[card.defId] : undefined;
     const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
     const typeLine = face?.typeLine ?? def?.typeLine ?? '';
-    return typeLine.includes('Creature');
+    return typeLine.includes('Creature') && card?.controllerId === state.localPlayerId;
+  });
+  const blockerIds = state.zones.battlefield.filter((cardId) => {
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
+    const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+    return typeLine.includes('Creature') && card?.controllerId !== state.localPlayerId;
   });
   const [selected, setSelected] = useState<string[]>([]);
   const [targetLabel, setTargetLabel] = useState(opponentLabels[0] ?? '対戦相手A');
+  const [blockAssignments, setBlockAssignments] = useState<Record<string, string>>({});
+  const defendingPlayerId = state.turnOrder.find(
+    (playerId) => state.players[playerId]?.label === targetLabel,
+  );
+  const availableBlockerIds = blockerIds.filter(
+    (cardId) => state.cards[cardId]?.controllerId === defendingPlayerId,
+  );
 
   function toggle(cardId: string): void {
     setSelected((prev) =>
@@ -316,6 +334,40 @@ export function AttackDialog({
               ))}
             </select>
           </label>
+          {availableBlockerIds.length > 0 && selected.length > 0 && (
+            <fieldset className="attack-dialog__blockers" data-testid="blocker-assignment">
+              <legend>ブロッカーを割り当てる（任意）</legend>
+              {availableBlockerIds.map((blockerId) => {
+                const card = state.cards[blockerId];
+                const def = card ? state.defs[card.defId] : undefined;
+                const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
+                const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? blockerId;
+                return (
+                  <label key={blockerId}>
+                    《{name}》
+                    <select
+                      value={blockAssignments[blockerId] ?? ''}
+                      onChange={(event) => {
+                        const attackerId = event.currentTarget.value;
+                        setBlockAssignments((current) => ({
+                          ...current,
+                          [blockerId]: attackerId,
+                        }));
+                      }}
+                      data-testid={'blocker-select-' + blockerId}
+                    >
+                      <option value="">ブロックしない</option>
+                      {selected.map((attackerId) => (
+                        <option key={attackerId} value={attackerId}>
+                          {state.defs[state.cards[attackerId]?.defId]?.name ?? attackerId}をブロック
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                );
+              })}
+            </fieldset>
+          )}
         </>
       )}
       <div className="dialog__actions">
@@ -325,7 +377,14 @@ export function AttackDialog({
         <button
           type="button"
           className="btn btn--accent"
-          onClick={() => onConfirm(selected, targetLabel)}
+          onClick={() => {
+            const blockers = Object.entries(blockAssignments).flatMap(([cardId, attackerId]) =>
+              attackerId && selected.includes(attackerId) && availableBlockerIds.includes(cardId)
+                ? [{ cardId, attackerId }]
+                : []);
+            if (blockers.length > 0) onConfirm(selected, targetLabel, blockers);
+            else onConfirm(selected, targetLabel);
+          }}
           data-testid="attack-confirm"
         >
           {selected.length === 0 ? '攻撃せず進む' : `${selected.length}体で攻撃`}
@@ -750,6 +809,7 @@ function moveWithin(ids: string[], cardId: string, delta: -1 | 1): string[] {
 
 export function ArrangeTopDialog({
   state,
+  playerId,
   initialCount,
   initialMode = 'scry',
   lockCount = false,
@@ -758,6 +818,7 @@ export function ArrangeTopDialog({
   onCancel,
 }: {
   state: GameState;
+  playerId?: PlayerId;
   initialCount?: number;
   initialMode?: ArrangeMode;
   lockCount?: boolean;
@@ -765,17 +826,18 @@ export function ArrangeTopDialog({
   onConfirm: (topOrder: string[], toBottom: string[], toGraveyard: string[]) => void;
   onCancel: () => void;
 }) {
-  const libraryCount = state.zones.library.length;
+  const library = state.zonesByPlayer[playerId ?? state.localPlayerId].library;
+  const libraryCount = library.length;
   const initialVisibleCount = Math.min(Math.max(0, initialCount ?? 3), libraryCount);
   const [count, setCount] = useState(initialVisibleCount);
   const [mode, setMode] = useState<ArrangeMode>(initialMode);
-  const [topOrder, setTopOrder] = useState<string[]>(state.zones.library.slice(0, initialVisibleCount));
+  const [topOrder, setTopOrder] = useState<string[]>(library.slice(0, initialVisibleCount));
   const [toBottom, setToBottom] = useState<string[]>([]);
   const [toGraveyard, setToGraveyard] = useState<string[]>([]);
 
   function resetForCount(nextCount: number): void {
     const clamped = Math.max(0, Math.min(libraryCount, nextCount));
-    const nextIds = state.zones.library.slice(0, clamped);
+    const nextIds = library.slice(0, clamped);
     setCount(clamped);
     setTopOrder(nextIds);
     setToBottom([]);
@@ -1188,6 +1250,7 @@ export function FetchSearchDialog({
 
 export function GuidedLibrarySearchDialog({
   state,
+  playerId,
   sourceId,
   prompt,
   onConfirm,
@@ -1195,6 +1258,7 @@ export function GuidedLibrarySearchDialog({
   onClose,
 }: {
   state: GameState;
+  playerId?: PlayerId;
   sourceId: string;
   prompt: EffectPrompt;
   onConfirm: (targetId: string) => void;
@@ -1207,7 +1271,7 @@ export function GuidedLibrarySearchDialog({
     return null;
   }
 
-  const libraryIds = state.zones.library;
+  const libraryIds = state.zonesByPlayer[playerId ?? state.localPlayerId].library;
   const eligibleIds = libraryIds.filter((cardId) => {
     const card = state.cards[cardId];
     const def = card ? state.defs[card.defId] : undefined;

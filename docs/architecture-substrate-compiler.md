@@ -245,6 +245,16 @@ S1 のプレイヤー別ゾーンに最小ダミー相手を載せる。相手�
 ### その後(既存ロードマップを再配列)
 - **V4 オンライン4人EDH**: プレイヤー別ゾーン+ダミー相手基盤が土台になる。→ **V3 デザイン磨き**。
 
+**2026-07-15 改訂(ユーザー裁定・台帳 `selectionRule` STOP① の予約済み価値判断を消化)**: V4 を最後尾に
+据える上記配列を**改訂**し、`cr-player-specific-zones` の実行スライス列(**MP-STATE → MP-ZONES/COMMANDS
+→ MP-IDENTITY → MP-DUMMY → MP-SETUP → MP-BOARD → MP-FOUR-PLAYER-GATE**)を rule leaf より**先**に置く。
+契約正本=`docs/engine-spec.md` §34.42。根拠2点: ①§0.1「最も戻しにくいのは state 設計」= P1 前提の
+leaf を積むほど移行コストが増える ②台帳**最高需要**バックログ `cr-121-drawing` candidate-2
+「cross-player effect execution」(demand=48・全ドメイン中最大)は多人数基盤なしに実装不能ゆえ、
+**多人数基盤は CR トラックの中断ではなく最高需要 leaf の解錠**(北極星③整合)。ただし全 8 スライスを
+一気に通さない — MP-ZONES/COMMANDS 緑の時点で cross-player draw が解錠されるため、そこで判定者が
+北極星⑤(製品価値)メタレビューを行い rule leaf を挟む判断を留保する。
+
 **依存関係**: **M0(モデリング・サイクル)→ M-CONTRACT(凍結)→** S-EVENTS / S-LAYERS(並行可)
 → S-ZONES → S-ABILITY+DUMMY(events必須)→ S-CONTINUOUS。C-GRAMMAR/C-BIND は events+layers
 成立後に着手。C-COVERAGE は随時。A-LOOP は S-ABILITY 後。実装(S-*)は M0 が紙の上で state 設計を

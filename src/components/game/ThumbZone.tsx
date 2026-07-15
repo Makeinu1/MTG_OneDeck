@@ -18,9 +18,18 @@ import { Icon } from '../../ui/icons';
 
 export interface ThumbZoneProps {
   controller: GameController;
+  onOpenOpponentSetup?: () => void;
 }
 
-function GameMenuSheet({ controller, onClose }: { controller: GameController; onClose: () => void }) {
+function GameMenuSheet({
+  controller,
+  onClose,
+  onOpenOpponentSetup,
+}: {
+  controller: GameController;
+  onClose: () => void;
+  onOpenOpponentSetup?: () => void;
+}) {
   const { store } = controller;
   const [sound, setSound] = useState(isSoundEnabled());
   const act = (fn: () => void) => () => {
@@ -43,6 +52,9 @@ function GameMenuSheet({ controller, onClose }: { controller: GameController; on
           </div>
           <button type="button" className="game-menu__action" data-testid="menu-token" onClick={act(controller.openTokenDialog)}>
             トークン生成
+          </button>
+          <button type="button" className="game-menu__action" data-testid="menu-opponent-setup" onClick={act(() => onOpenOpponentSetup?.())}>
+            対戦相手セットアップ
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-attack" onClick={act(controller.openAttackDialog)}>
             攻撃
@@ -106,7 +118,7 @@ function GameMenuSheet({ controller, onClose }: { controller: GameController; on
   );
 }
 
-export function ThumbZone({ controller }: ThumbZoneProps) {
+export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
   const { state, store } = controller;
   const [menuOpen, setMenuOpen] = useState(false);
   if (!state) return null;
@@ -189,7 +201,13 @@ export function ThumbZone({ controller }: ThumbZoneProps) {
         <Icon name="menu" />
       </button>
 
-      {menuOpen && <GameMenuSheet controller={controller} onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <GameMenuSheet
+          controller={controller}
+          onClose={() => setMenuOpen(false)}
+          onOpenOpponentSetup={onOpenOpponentSetup}
+        />
+      )}
     </div>
   );
 }

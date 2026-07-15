@@ -457,6 +457,10 @@ describe('high-frequency HUD interactions', () => {
     const state = {
       ...fixtureState,
       zones: { ...fixtureState.zones, library: [] },
+      zonesByPlayer: {
+        ...fixtureState.zonesByPlayer,
+        P1: { ...fixtureState.zonesByPlayer.P1, library: [] },
+      },
     };
     const controller = controllerFor(state);
     const { container, root } = mount(
