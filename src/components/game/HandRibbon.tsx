@@ -5,9 +5,11 @@
  */
 
 import {
+  useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
@@ -37,6 +39,8 @@ export function HandRibbon({
 }: HandRibbonProps) {
   const { state, store } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const handCardsRef = useRef<HTMLDivElement | null>(null);
+  const [handScrollEdges, setHandScrollEdges] = useState({ left: false, right: false });
   const { setNodeRef: setGraveyardDropRef, isOver: graveyardDropOver } = useDroppable({
     id: 'game-graveyard-drop',
     data: { dropTarget: { kind: 'move-zone', zone: 'graveyard' } },
@@ -59,12 +63,8 @@ export function HandRibbon({
     () => new URLSearchParams(window.location.search).get('hand') === 'flat',
     [],
   );
-  useLayoutEffect(() => {
-    if (workspaceOpen) closeButtonRef.current?.focus();
-  }, [workspaceOpen]);
-
-  if (!state) return null;
-  const largeHandCollapsed = state.zones.hand.length > 15 && !workspaceOpen && !flatControl;
+  const handCount = state?.zones.hand.length ?? 0;
+  const largeHandCollapsed = handCount > 15 && !workspaceOpen && !flatControl;
   const handLayout = flatControl
     ? 'flat'
     : workspaceOpen
@@ -72,6 +72,45 @@ export function HandRibbon({
       : largeHandCollapsed
         ? 'large'
         : 'fan';
+
+  function updateHandScrollEdges(): void {
+    const node = handCardsRef.current;
+    const next = node ? {
+      left: node.scrollLeft > 1,
+      right: node.scrollLeft + node.clientWidth < node.scrollWidth - 1,
+    } : { left: false, right: false };
+    setHandScrollEdges((current) => (
+      current.left === next.left && current.right === next.right ? current : next
+    ));
+  }
+
+  // ref コールバックを安定させる。毎レンダー新しい関数を渡すと React が
+  // null→node で付け直し、dnd-kit が ResizeObserver を毎回 unobserve/observe する。
+  const setHandCardsNode = useCallback((node: HTMLDivElement | null) => {
+    handCardsRef.current = node;
+    setHandDropRef(node);
+  }, [setHandDropRef]);
+
+  useLayoutEffect(() => {
+    if (workspaceOpen) closeButtonRef.current?.focus();
+  }, [workspaceOpen]);
+
+  useLayoutEffect(() => {
+    const node = handCardsRef.current;
+    if (!node || handLayout === 'large') return;
+    updateHandScrollEdges();
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updateHandScrollEdges);
+    observer?.observe(node);
+    window.addEventListener('resize', updateHandScrollEdges);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateHandScrollEdges);
+    };
+  }, [handCount, handLayout]);
+
+  if (!state) return null;
 
   function handleWorkspaceKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
     if (event.key === 'Escape') {
@@ -224,10 +263,13 @@ export function HandRibbon({
         </div>
       ) : (
         <div
-          ref={setHandDropRef}
+          ref={setHandCardsNode}
           className="hand-ribbon__cards"
           data-testid="hand-cards"
           data-drop-over={handDropOver || undefined}
+          data-scroll-left={handScrollEdges.left || undefined}
+          data-scroll-right={handScrollEdges.right || undefined}
+          onScroll={updateHandScrollEdges}
         >
           {state.zones.hand.map((cardId, index) => {
             const fan = handFanCardLayout(index, state.zones.hand.length);

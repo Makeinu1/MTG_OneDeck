@@ -4,7 +4,7 @@
  * 常設のゾーンラベル列・相手ライフ行は廃止し、高頻度の直接操作へ集約する。
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PHASE_ORDER } from '../../engine/types';
 import { statusBandModel, PHASE_META } from './statusBandModel';
 import { feedUnseenCount } from './feedProjection';
@@ -33,7 +33,31 @@ export function StatusBand({ controller }: StatusBandProps) {
   // ライフ変化の色フラッシュ(D5④)。hooks は早期 return より前。
   const life = controller.state?.life ?? null;
   const prevLife = useRef(life);
+  const manaScrollRef = useRef<HTMLDivElement | null>(null);
+  const [manaCanScrollRight, setManaCanScrollRight] = useState(false);
   const [lifeFlash, setLifeFlash] = useState<'gain' | 'loss' | null>(null);
+
+  function updateManaScrollEdge(): void {
+    const node = manaScrollRef.current;
+    setManaCanScrollRight(Boolean(
+      node && node.scrollLeft + node.clientWidth < node.scrollWidth - 1,
+    ));
+  }
+
+  useLayoutEffect(() => {
+    const node = manaScrollRef.current;
+    if (!node) return;
+    updateManaScrollEdge();
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updateManaScrollEdge);
+    observer?.observe(node);
+    window.addEventListener('resize', updateManaScrollEdge);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateManaScrollEdge);
+    };
+  }, []);
   useEffect(() => {
     if (life !== null && prevLife.current !== null && life !== prevLife.current) {
       const dir = lifeFlashDirection(life - prevLife.current);
@@ -76,9 +100,12 @@ export function StatusBand({ controller }: StatusBandProps) {
       </div>
 
       <div
+        ref={manaScrollRef}
         className="status-band__mana"
         data-testid="mana-readiness"
+        data-scroll-right={manaCanScrollRight || undefined}
         aria-label="マナプール色別調整"
+        onScroll={updateManaScrollEdge}
       >
         <button
           type="button"

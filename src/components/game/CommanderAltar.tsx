@@ -68,6 +68,7 @@ export function CommanderAltar({
         ref={triggerRef}
         aria-expanded={open}
         aria-controls="commander-altar-panel"
+        aria-label="統率者領域を表示"
         onClick={() => setOpen(true)}
       >
         <span aria-hidden>統</span>

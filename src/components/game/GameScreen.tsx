@@ -33,6 +33,7 @@ import { CardView } from '../CardView';
 import { resolveDropIntent, type DropTarget } from './dragIntent';
 import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
+import { UpdateNotice } from './UpdateNotice';
 import './game.css';
 
 const ResearchRecorder = import.meta.env.DEV
@@ -171,6 +172,7 @@ export function GameScreen({ keybindings }: GameScreenProps) {
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <TransitionCue cue={controller.transitionCue} onDone={controller.dismissTransitionCue} />
+        <UpdateNotice />
         <div className="game-screen__lands">
           <CommanderAltar controller={controller} activeDragId={activeDragId} />
           <LandRow controller={controller} activeDragId={activeDragId} />

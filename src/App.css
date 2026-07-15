@@ -3270,6 +3270,29 @@
   border-color: var(--text-dim);
 }
 
+@media (max-width: 899px) and (orientation: portrait) {
+  .mulligan-decision-panel {
+    box-sizing: border-box;
+    place-items: center;
+    padding-top: calc(var(--band-h, 76px) + 8px);
+    padding-right: 12px;
+    padding-bottom: calc(
+      var(--land-h, 144px) + var(--hand-h, 184px) + var(--thumb-zone, 88px) + 8px
+    );
+    padding-left: 12px;
+  }
+
+  .mulligan-decision-panel__dialog {
+    width: 100%; max-height: 100%; padding: 11px 14px; gap: 7px;
+  }
+
+  .mulligan-decision-panel__header h2 { font-size: 16px; }
+  .mulligan-decision-panel__message { font-size: 12px; line-height: 1.4; }
+  .mulligan-decision-panel__actions { margin-top: 1px; gap: 8px; }
+  .mulligan-decision-panel__keep,
+  .mulligan-decision-panel__again { min-height: 44px; padding: 7px 10px; }
+}
+
 .mulligan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

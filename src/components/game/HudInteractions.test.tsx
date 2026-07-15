@@ -361,6 +361,62 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('exposes only the reachable hand-scroll directions', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<HandRibbon controller={controller} workspaceOpen={false} />);
+    const cards = container.querySelector<HTMLElement>('[data-testid="hand-cards"]')!;
+    Object.defineProperties(cards, {
+      clientWidth: { configurable: true, value: 300 },
+      scrollWidth: { configurable: true, value: 600 },
+      scrollLeft: { configurable: true, value: 0, writable: true },
+    });
+
+    act(() => {
+      cards.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    expect(cards.dataset.scrollLeft).toBeUndefined();
+    expect(cards.dataset.scrollRight).toBe('true');
+
+    cards.scrollLeft = 120;
+    act(() => {
+      cards.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    expect(cards.dataset.scrollLeft).toBe('true');
+    expect(cards.dataset.scrollRight).toBe('true');
+
+    cards.scrollLeft = 300;
+    act(() => {
+      cards.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    expect(cards.dataset.scrollLeft).toBe('true');
+    expect(cards.dataset.scrollRight).toBeUndefined();
+    act(() => root.unmount());
+  });
+
+  it('removes the mana continuation cue at the scroll end', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<StatusBand controller={controller} />);
+    const mana = container.querySelector<HTMLElement>('[data-testid="mana-readiness"]')!;
+    Object.defineProperties(mana, {
+      clientWidth: { configurable: true, value: 300 },
+      scrollWidth: { configurable: true, value: 600 },
+      scrollLeft: { configurable: true, value: 0, writable: true },
+    });
+
+    act(() => {
+      mana.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    expect(mana.dataset.scrollRight).toBe('true');
+    mana.scrollLeft = 300;
+    act(() => {
+      mana.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    expect(mana.dataset.scrollRight).toBeUndefined();
+    act(() => root.unmount());
+  });
+
   it('announces when the library action menu is open', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state, { libraryActionsOpen: true });

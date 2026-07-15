@@ -65,6 +65,20 @@
   100% { opacity: 0; transform: translateY(-5px) scale(1); }
 }
 
+.game-update-notice {
+  position: fixed; top: calc(var(--band-h) + var(--space-2)); left: 50%; z-index: 175;
+  min-height: var(--touch-target); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  display: flex; align-items: center; gap: var(--space-3); transform: translateX(-50%);
+  color: var(--text-h); background: color-mix(in srgb, var(--surface-2) 96%, transparent);
+  border: 1px solid var(--accent-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop);
+  font-size: var(--font-size-sm); white-space: nowrap;
+}
+.game-update-notice button {
+  min-height: 36px; padding: var(--space-1) var(--space-3); cursor: pointer;
+  color: var(--action-primary-text); background: var(--action-primary); border: 0;
+  border-radius: var(--radius-sm); font: inherit; font-weight: 700;
+}
+
 /* ---------- StatusBand ---------- */
 .status-band {
   height: var(--band-h);
@@ -1023,6 +1037,18 @@
     overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch;
     touch-action: pan-x; scrollbar-width: none;
   }
+  .hand-ribbon__cards[data-scroll-right='true']:not([data-scroll-left='true']) {
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+  }
+  .hand-ribbon__cards[data-scroll-left='true'][data-scroll-right='true'] {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+  }
+  .hand-ribbon__cards[data-scroll-left='true']:not([data-scroll-right='true']) {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 22px, #000 100%);
+  }
   .hand-ribbon__cards::-webkit-scrollbar { display: none; }
   .hand-ribbon[data-layout='fan'] .hand-ribbon__slot {
     margin-left: var(--fan-mobile-margin);
@@ -1066,6 +1092,10 @@
     scrollbar-width: none; -webkit-overflow-scrolling: touch;
   }
   .status-band__mana::-webkit-scrollbar { display: none; }
+  .status-band__mana[data-scroll-right='true'] {
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+  }
   .status-band__mana-total {
     position: sticky; left: 0; z-index: 2; flex: 0 0 38px;
     background: var(--surface-1);
