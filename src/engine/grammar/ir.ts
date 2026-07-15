@@ -15,7 +15,26 @@ export type CountSpec =
   | { kind: 'fixed'; value: number }
   | { kind: 'variable-x' }
   | { kind: 'for-each' }
-  | { kind: 'unknown' };
+  | { kind: 'unknown' }
+  /**
+   * CR608.2h: a player-chosen upper bound ("up to N cards" / "any number of cards", the
+   * latter modeled as `max: Infinity`) rather than a required count. This kind exists so
+   * downstream tools (e.g. demand instrumentation) can distinguish "player may choose fewer"
+   * from a true `fixed` count; the loot recognizer in compile.ts intentionally does NOT read
+   * this field to detect its pattern (see guidedVariableLootPrompt's comment in compile.ts for
+   * why: the shared `countSpec()` classifier below is deliberately left unmodified so this
+   * type addition carries zero classification-behavior change — `countSpec()` never
+   * constructs this variant).
+   */
+  | { kind: 'up-to'; max: number }
+  /**
+   * CR608.2h: a value defined by referring back to a sibling clause's resolved count ("draw
+   * that many cards", optionally adjusted by a signed "plus/minus K"). Like `up-to` above,
+   * `countSpec()` never constructs this variant — it exists only as a documented shape for
+   * future producers; `resolveCount` (compile.ts) already returns null for any kind it does
+   * not explicitly recognize, so no change there is required either.
+   */
+  | { kind: 'that-many'; delta: number };
 
 export interface EffectClause {
   atom: EffectAtomId;

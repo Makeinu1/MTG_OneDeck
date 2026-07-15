@@ -72,6 +72,16 @@ export interface EffectPrompt {
   options?: ModalOption[];
   manaOptions?: ManaColor[];
   linkedExile?: { purpose: LinkedExilePurpose };
+  /**
+   * CR608.2h variable loot ("discard up to N / any number of cards, then draw that many
+   * [plus/minus K] cards"): present only on the guided `discard` prompt emitted by
+   * guidedVariableLootPrompt. `max` is the declared upper bound (Infinity for "any number
+   * of"), `drawDelta` is the signed plus/minus adjustment (0 if none), and `discarded` is
+   * the running count of cards the player has actually discarded so far this resolution
+   * (gameStore.ts re-presents this same prompt with an incremented `discarded` after each
+   * confirmGuidedDiscard call, instead of consuming it, until max/hand-empty/cancel).
+   */
+  variableLoot?: { max: number; drawDelta: number; discarded: number };
   raw: string;
 }
 
@@ -408,6 +418,18 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     };
   }
 
+  const variableLootPrompt = guidedVariableLootPrompt(ir);
+  if (variableLootPrompt) {
+    return {
+      commands: [],
+      decision: 'guided',
+      prompts: [variableLootPrompt],
+      confidence: 0.75,
+      risk: 'medium',
+      reasons: [],
+    };
+  }
+
   if (ir.constructs.includes('construct.choose-modal')) {
     reasons.add('needs-choice');
   }
@@ -589,6 +611,128 @@ function isLoseLifeEqualToTargetManaValueClause(raw: string): boolean {
   return /^you\s+lose\s+life\s+equal\s+to\s+(?:its|that\s+(?:artifact|card|creature|enchantment|land|object|permanent|planeswalker|spell)['’]s)\s+mana\s+value$/i.test(
     normalized,
   );
+}
+
+// CR608.2h / CR701.9 / CR121.1-121.2 ("loot"): "discard up to N / any number of cards, then
+// draw that many cards [plus/minus K]" is a self-contained pattern whose actual draw count is
+// a *runtime* player choice (how many cards were actually discarded), not a compile-time
+// constant — unlike a fixed "discard two cards, then draw two cards" (which the pre-existing
+// COUNT_DRIVEN_AUTO_ATOMS/resolveCount path already auto-resolves independently for each
+// clause). This recognizer intentionally parses the raw clause text itself
+// (variableLootDiscardMax/thatManyDrawDelta below) instead of routing through the shared
+// `countSpec()` classifier in ir.ts. A prior attempt reclassified any clause containing
+// "up to N" from `fixed` to `up-to` *globally* in `countSpec()`, which corrupted unrelated
+// fixed-value clauses that merely happen to share a raw span with an unrelated "up to one"
+// substring — e.g. Absolving Lammasu / Tolsimir, Friend to Wolves: "you gain 3 life and
+// suspect up to one target creature ..." is a single `effect.gain-life` clause whose count
+// must resolve to fixed:3; a global "up to" pre-check on the whole clause text misfired on
+// the unrelated "up to one" *target* phrase and lost the correct fixed-value auto entirely.
+// Keeping this detection fully local to this recognizer (and never touching `countSpec()`)
+// makes that regression structurally impossible: this function can only ever change behavior
+// for an ability whose ir.effects is exactly the 2-clause [effect.discard, effect.draw] shape
+// matched below, so any card that doesn't already reduce to that exact shape is untouched.
+function guidedVariableLootPrompt(ir: AbilityIR): EffectPrompt | null {
+  if (ir.effects.length !== 2) {
+    return null;
+  }
+  const [discardEffect, drawEffect] = ir.effects;
+  if (
+    discardEffect.atom !== 'effect.discard' ||
+    drawEffect.atom !== 'effect.draw' ||
+    discardEffect.optional ||
+    drawEffect.optional
+  ) {
+    return null;
+  }
+  const max = variableLootDiscardMax(discardEffect.raw);
+  if (max === null) {
+    return null;
+  }
+  const drawDelta = thatManyDrawDelta(drawEffect.raw);
+  if (drawDelta === null) {
+    return null;
+  }
+  return {
+    atom: 'effect.discard',
+    kind: 'discard',
+    count: 1,
+    variableLoot: { max, drawDelta, discarded: 0 },
+    raw: `${stripTrailingClausePunctuation(discardEffect.raw)}, then ${stripTrailingClausePunctuation(drawEffect.raw)}.`,
+  };
+}
+
+function stripTrailingClausePunctuation(raw: string): string {
+  return raw
+    .replace(/[.,;:。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// CR701.9 self-only discard subject guard (fail-closed allow-list, mirrors
+// isSelfDiscardOneCardClause above): a cross-player recipient ("target player discards",
+// "each opponent discards", "that player discards") or a controller-relative subject must
+// stay manual — only an unqualified self discard ("discard up to N cards" / "you discard up
+// to N cards" / "discard any number of cards") is modeled by this recognizer.
+const VARIABLE_DISCARD_EXCLUSION_RE =
+  /\btarget\b|\beach\b|\bopponents?\b|\btheir\b|\bthat player\b|\bcontroller\b/i;
+
+const VARIABLE_LOOT_COUNT_WORDS = new Map<string, number>([
+  ['one', 1],
+  ['two', 2],
+  ['three', 3],
+  ['four', 4],
+  ['five', 5],
+  ['six', 6],
+  ['seven', 7],
+  ['eight', 8],
+  ['nine', 9],
+  ['ten', 10],
+]);
+
+function parseVariableLootCountToken(token: string): number | null {
+  const normalized = token.toLowerCase();
+  if (/^\d+$/.test(normalized)) {
+    const value = Number.parseInt(normalized, 10);
+    return value > 0 ? value : null;
+  }
+  return VARIABLE_LOOT_COUNT_WORDS.get(normalized) ?? null;
+}
+
+// CR608.2h: "up to N" / "any number of" declares a player-chosen upper bound, not a required
+// count. Returns that bound (Infinity for "any number of cards"); the actual discard total is
+// only known at resolution time via gameStore.ts's confirmGuidedDiscard/cancelGuidedPrompt.
+function variableLootDiscardMax(raw: string): number | null {
+  if (VARIABLE_DISCARD_EXCLUSION_RE.test(raw)) {
+    return null;
+  }
+  const normalized = stripTrailingClausePunctuation(raw);
+  if (/^(?:you\s+)?discard\s+any\s+number\s+of\s+cards$/i.test(normalized)) {
+    return Infinity;
+  }
+  const upToMatch = /^(?:you\s+)?discard\s+up\s+to\s+(\w+|\d+)\s+cards?$/i.exec(normalized);
+  if (!upToMatch) {
+    return null;
+  }
+  return parseVariableLootCountToken(upToMatch[1]);
+}
+
+// CR608.2h: "draw that many cards" resolves to the actual discard total from the sibling
+// clause; an optional trailing "plus/minus K" is a signed adjustment applied to that runtime
+// value (floored at 0 by the caller — a negative resolved draw count is not meaningful).
+function thatManyDrawDelta(raw: string): number | null {
+  const normalized = stripTrailingClausePunctuation(raw);
+  const match = /^draw\s+that\s+many\s+cards(?:\s+(plus|minus)\s+(\w+|\d+))?$/i.exec(normalized);
+  if (!match) {
+    return null;
+  }
+  if (match[1] === undefined) {
+    return 0;
+  }
+  const magnitude = parseVariableLootCountToken(match[2]);
+  if (magnitude === null) {
+    return null;
+  }
+  return match[1].toLowerCase() === 'plus' ? magnitude : -magnitude;
 }
 
 function reasonForManualConstruct(construct: string): ManualReason | null {
