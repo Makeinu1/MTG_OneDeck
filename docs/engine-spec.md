@@ -1344,7 +1344,9 @@ type CountSpec =
   | { kind: 'fixed'; value: number } // "draw two cards" / 数字
   | { kind: 'variable-x' }           // {X} / X
   | { kind: 'for-each' }             // "for each ..."
-  | { kind: 'unknown' };
+  | { kind: 'unknown' }
+  | { kind: 'up-to'; max: number }      // §34.42: "up to N cards"/"any number of cards"(=max:Infinity)。CR608.2h プレイヤー上限
+  | { kind: 'that-many'; delta: number }; // §34.42: "that many cards [plus/minus K]"(delta=±K)。姉妹節の実数値参照
 interface EffectClause {
   atom: EffectAtomId;      // §29.3 の安定 id
   ruleRef: string;         // 対応 CR id(§30.3・rule-refs.ts で妥当性検証)
@@ -2949,3 +2951,24 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **CR 根拠**: CR 109.2a(「card」+ゾーン名=そのゾーンのカード集合)・CR 202.3/202.3b(mana value=非負整数特性・非stack カードは cmc 由来)・CR 701.14a(return=指定ゾーンへ移動)・CR 608.2b(解決時 target legality 再チェック=既存 leaf と同じ)・**CR 110.4a**(permanent card 定義)・CR 602.2b/601.2c(起動/唱える際に対象確定)。
 
 **受け入れ(判定者先行 authoring)**: `review.cr400-408-return.test.ts`(レビュー専有)batch6 describe = creature/permanent の MV上限 guided + filter shape・MV境界 eligibility(MV=N 可・N+1 除外)+ 解決・6 DEFER 形全 manual・無フィルタ exact-match 非回帰(`maxManaValue` 漏れなし)・**起動型 MV reanimation の activation-time target 提示 pin**(Order of Whiteclay 型=`activationTargetPromptsForSource` 非空+上限 filter)。**コーパス flip 実測(408 reanimation 行)= false-auto 0・IN形13カード正しく guided**(独立 Tier-1)。機械4点全緑。
+
+### 34.42 cr-121 可変数 loot: 「discard up to N / any number, then draw that many」の guided 誠実実行(CR121.1/121.2・CR701.9・CR608.2h)— この節も契約である
+
+**位置づけ**: plannedSequence idx 11(judge=在席 Opus 判定者席・実装=Sonnet サブエージェント・独立 Tier-1=冷 Sonnet)。破棄された candidate-1(固定N loot)の後継=**実 demand の実体である up-to/any-number 型**を guided 化する。UI 無改修(既存 discard prompt を再利用)・engine+store の3ファイルのみ。
+
+**契約**: `ir.effects` がちょうど2節 `[effect.discard, effect.draw]`・両節 `optional===false`・discard 節が自己 loot(下記除外語なし)・discard count が `up to N`/`any number of`・draw count が `that many [plus/minus K]` の形を、ability レベル recognizer `guidedVariableLootPrompt(ir)`(`compile.ts`・既存 `guidedDestroyThenLoseLifeManaValuePrompt` と同型の per-clause compile 前短絡)が検出し、**単一の可変 discard guided prompt** を emit する。プレイヤーは 0..N 枚を1枚ずつ捨て、**実際に捨てた枚数だけ draw** する(CR608.2h=可変値は解決時のプレイヤー選択で確定)。
+
+**substrate 追加(最小・additive)**:
+- `CountSpec`(§ 型定義)に `{kind:'up-to'; max:number}`(`any number of` は `max:Infinity`)と `{kind:'that-many'; delta:number}` を追加。**ただし現状これらは `countSpec()` によって構築されない**(recognizer は節 raw テキストをローカル正規表現で解析=`countSpec()` グローバル分類を経由しない)。=**回帰中立の要石**: `countSpec()` 関数本体は byte 単位で不変ゆえ、既存 "up to N" を含む無関係カード(Absolving Lammasu「gain 3 life and suspect **up to one** target...」/ Tolsimir「gain 3 life and that creature fights **up to one** target...」)の `fixed:3`→auto `adjustLife` 判定は一切変わらない。新 union member は当面 demand 計器等の将来利用のための型的区別であり、runtime 挙動には無影響(独立 Tier-1 が「新 variant は未構築=inert」を静的に実証)。
+- `EffectPrompt` に `variableLoot?: { max:number; drawDelta:number; discarded:number }` を追加。`discarded` は解決中に累積(再提示ごとに +1)。
+- **新 GameCommand/GameState なし**(既存 `discard`/`draw` を合成)=北極星③分解可能性 PASS。
+
+**解決フロー(`gameStore.ts`・store 内部型のみ)**: `confirmGuidedDiscard` は variableLoot prompt の時、prompt を消費せず `discarded+1` の複製を `advanceGuidedResolution` の `prependPrompts` で再提示。`reachedMax = Number.isFinite(max) && discardedCount >= max` または手札尽き(`remainingHand <= 0`)で確定=`{type:'draw', count: Math.max(0, discardedCount + drawDelta)}` を注入して次へ。`cancelGuidedPrompt` は variableLoot prompt では「もう捨てない/完了」を意味し、同じ floor 式で draw を注入して確定(非 loot prompt では従来どおり skip)。分岐は `prompt.variableLoot` の有無でのみ発火=既存単発 discard 経路に一切漏れない。
+
+**誠実性(CR608.2h・要石)**: draw 枚数は常に `discarded`(実捨て枚数)由来であり `max`(宣言上限)ではない。宣言上限を機械 draw する fake-auto は禁止。`any number of`(max=Infinity)は手札尽きで確定。負 delta は `Math.max(0, …)` で 0 に floor。
+
+**スコープ境界(fail-closed=manual 維持)**: `VARIABLE_DISCARD_EXCLUSION_RE = /\btarget\b|\beach\b|\bopponents?\b|\btheir\b|\bthat player\b|\bcontroller\b/i` に該当する discard 主語(cross-player=idx 14 の別領域)・`optional`(「you may discard … if you do, draw …」=Fable of the Mirror-Breaker 第II章型。`optional` は ability 全体で一律計算ゆえ両節 optional→不発火)・2節以外/順序違い(Faithless Looting「Draw two, then discard two」=逆順)・discard 節の完全一致アンカー(`^…$`)を満たさない残余語つき(「discard up to two **nonland** cards」等は安全な false-negative)。over-fire 反例は独立 Tier-1 で発見されず。
+
+**CR 根拠**: CR121.1/121.2(draw=ライブラリ上から手札へ)・CR701.9(discard=手札→墓地)・CR608.2h(プレイヤー選択に依存する値は解決時に確定)。
+
+**受け入れ(判定者先行 authoring・要石)**: `review.cr121-loot-variable-count.test.ts`(レビュー専有・5 pin=挙動ベース public store API + zone/library 枚数)= (1)up-to 2 で2枚捨て→draw 2、(2)**誠実性 pin=1枚捨て→cancel→draw 1(上限2を引かない)**、(3)0枚(即 cancel)→draw 0、(4)cross-player「Target player discards…」は self-discard guided を開かない(fail-closed)、(5)plain「Draw two cards.」は無誘導 auto 継続(回帰中立)。実 oracle golden(Tersa Lightshatter=up-to 2 / Celes, Rune Knight=any-number +1 / Fable 第II章=optional 不発火)。機械4点全緑(214 files/1781 tests・独立判定者再検証済)。実装 commit=`0fbceef`・review pin=`4ee804b`。
