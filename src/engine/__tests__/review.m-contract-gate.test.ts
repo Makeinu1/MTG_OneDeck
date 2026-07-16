@@ -112,7 +112,7 @@ describe('judgeCondition — ゲート判定ロジック(§34.7.2・method §3 �
     higherIsBetter: true,
     unverifiable: 0,
     unverifiableIsMetric: false,
-    source: 'research/m-contract-gate/scorecard.json',
+    source: 'research/archive/m-contract-gate/scorecard.json',
     note: '',
   };
 

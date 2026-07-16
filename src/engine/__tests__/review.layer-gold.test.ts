@@ -1,5 +1,5 @@
 // Reviewer-owned adversarial gold — M0 改善ループ iter4。
-// 出自: research/llm-oracle/adjudication.json(Fable 裁定・2026-06-23)。LLM-oracle 物差しが暴いた
+// 出自: research/archive/llm-oracle/adjudication.json(Fable 裁定・2026-06-23)。LLM-oracle 物差しが暴いた
 // 35 不一致のうち、Fable が「分類器(scripts/lib/layerClassify.ts)を直すべき=compiler 誤訳」と裁定した
 // カードの確定層、および「物差し誤り(oracle)で分類器は既に正しい」カードの回帰ガードを固定する。
 // 契約 = docs/engine-state-ontology.md / docs/oracle-grammar-catalog.md。

@@ -2137,7 +2137,7 @@ export interface CrGoldEntry {
 }
 ```
 - 17,491 snapshot から **4決定論軸で層化サンプル**した代表集合(**≥150枚**目安・各軸を被覆)。deck 加重でなくコーパス代表性で採る
-  (deck 加重は条件5 の役割)。既存 `research/cr-conformance-audit.md` の所見(destroy/sacrifice=701.8a/701.21a・dies=700.4・
+  (deck 加重は条件5 の役割)。既存 `research/archive/cr-conformance-audit.md` の所見(destroy/sacrifice=701.8a/701.21a・dies=700.4・
   leaves=603.6c・landfall・layer=613)を CR 引用の出発点に使う。`expected` は **CR 条文が一意に決める決定論ラベルのみ**(解釈的・曖昧は
   gold に入れない=LLM を当てない=相関遮断)。
 
@@ -2214,7 +2214,7 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
 - **M0-Z iter3-b(CR 基盤化・2026-06-24・監査合格)**: 上記手法を適用。**🔴 iter3-a 分類器の CR 違反を是正** = destroy(701.8a)/sacrifice(701.21a)は `battlefield→owner's graveyard` ゆえ
   `graveyard` を欠落していた FN(churn 11.86%・graveyard +1,945)。CR 真理テーブル(ESO「iter3 CR ゾーン遷移真理テーブル」)を正本に分類器修正 + gold CR-truth 化(Doom Blade/Fling)+ prompt v4(CR 写像明示)。
   オラクル v4 差分: zone 6.95%(CR 誤り初稿 25.67% から解消)/crossPlayer 2.67%/ownership 2.67%/playerScope 8.02%/unverifiable 5.29%。帰属 substrate0/compiler18/oracle5/ambiguous9(残差=解釈的・小粒)。
-  **CR 準拠監査**(`research/cr-conformance-audit.md`)= runtime `triggers.ts` `trigger.death` が CR700.4 違反(`put into a graveyard` が「from the battlefield」非限定で mill/discard を死亡誤検出・parity 計測済・別タスク化)+ `trigger.landfall` 緩い。SBA/owner・controller/ゾーン分割の不在は設計(サンドボックス+substrate 未実装)。**Slice3 は CR 接地で実質収束方向。次 = Slice4 前進可**。
+  **CR 準拠監査**(`research/archive/cr-conformance-audit.md`)= runtime `triggers.ts` `trigger.death` が CR700.4 違反(`put into a graveyard` が「from the battlefield」非限定で mill/discard を死亡誤検出・parity 計測済・別タスク化)+ `trigger.landfall` 緩い。SBA/owner・controller/ゾーン分割の不在は設計(サンドボックス+substrate 未実装)。**Slice3 は CR 接地で実質収束方向。次 = Slice4 前進可**。
 - **M-GATE-4(条件4+条件3 緑化 → 凍結到達・2026-06-25・監査合格)= 手法 §34.7.5**: 条件4(非LLM独立物差し)を散文監査から**機械可読 CR 真理テーブル**へ昇格。
   Codex が代表160枚(4軸×40・各エントリ CR 条番号付き)gold を草稿し `crConformance.ts`/`cr-conformance.ts` harness を構築 → conformance 98.75%・divergent 2 を Fable へ提出。
   **Fable 裁定**: 2件(`Acrobatic Cheerleader`/`Cautious Survivor` の "Survival — At the beginning of your second main phase")は CR 505.1a で main-postcombat が一意=**classifier-FN**(gold 正)。
