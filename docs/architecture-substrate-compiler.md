@@ -23,7 +23,7 @@ MTGを一人回しできる状態にする主役は**4部構成**。中心名詞
 | 状態 | 意味 | 旧語彙との対応 |
 |---|---|---|
 | `drafted` | 契約草稿のみ(CR接地・golden定義)| ≒ Not started 直前 / DRAFT |
-| `implemented-not-green` | 実装したが機械チェック4点 or review 未緑 | (旧語彙に無かった正直さ)|
+| `implemented-not-green` | 実装したが機械チェック(`npm run check`) or review 未緑 | (旧語彙に無かった正直さ)|
 | `review-green` | `review.*` 緑・golden 実行可能 | ≒ Active 完了直前 |
 | `shipped` | commit + CI 緑 +(該当時)Pages | ≒ Done |
 | `deferred` | 明示的に後回し・境界として可視 | ≒ scope-boundary / PARTIAL の残境界 |
@@ -199,7 +199,7 @@ S1 のプレイヤー別ゾーンに最小ダミー相手を載せる。相手�
 ## 8. マイルストーン・ロードマップ(このアーキを背骨に一新)
 
 `1セッション=1マイルストーン` で着手できる粒度へ分解。各マイルストーンは独立して出荷可能
-(機械チェック4点通過・回帰なし・不変条件維持・スナップショット前方互換)。
+(機械チェック(`npm run check`)通過・回帰なし・不変条件維持・スナップショット前方互換)。
 既存の G0〜G5 文法器トラックは**コンパイラ半に吸収**、精度向上プログラム(Phase B/C)は
 **C-COVERAGE に畳む**。V4オンライン/V3デザインは背骨の後ろへ再配列する。
 
@@ -268,8 +268,7 @@ leaf を積むほど移行コストが増える ②台帳**最高需要**バッ�
 - **統合**: 真面目な身代わりが ETB/死亡を別々に正しく自動解決。ダミー相手ドローでタタル監視型が
   条件・頻度評価のうえ発火。
 - **回帰+不変条件**: 既存 `triggerCandidates`/`review.*` テスト、I1〜のプロパティ
-  (プレイヤー別へ一般化)、機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/
-  `npm run build`)、`npm run accuracy` で誤謬率を可視化。
+  (プレイヤー別へ一般化)、機械チェック(`npm run check`)、`npm run accuracy` で誤謬率を可視化。
 
 ## 10. 主な対象ファイル
 

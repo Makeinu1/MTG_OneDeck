@@ -1,8 +1,8 @@
 ---
-description: 欲しいものを1マイルストーンとして起こす(判定者契約→Codexブリーフ→背景実装)
+description: 欲しいものを1マイルストーンとして起こす(判定者契約→実装者ブリーフ→背景実装)
 ---
 
-ユーザーの要望「$ARGUMENTS」を1マイルストーンとして立ち上げる。CLAUDE.md のトークン経済(Claudeは判断・Codexは作業)を厳守。
+ユーザーの要望「$ARGUMENTS」を1マイルストーンとして立ち上げる。CLAUDE.md のトークン経済(判定者は判断・実装者は作業。割当 = CLAUDE.md「役割 = 資源状態 → 割当」)を厳守。
 
 **要件化=ロードマップ参照(自律モード)**: 次フェーズは substrate-first 順で `research/cr-grounding/project-goal-milestones.md` が既に決め、設計も R-FREEZE 文書が既存のことが多い。その場合判定者の仕事は「起案」でなく「**承認**」。一意に決まらない/価値判断が要る時だけ STOP→ユーザーへ質問。
 
@@ -16,9 +16,9 @@ description: 欲しいものを1マイルストーンとして起こす(判定�
 1. **現状調査(最小・委譲可)**: 再利用できる既存関数・契約の特定は Explore/Codex に結論だけ出させてよい(判定者は raw ファイルを精読しない)。新規作成より再利用を優先。
 2. **契約は Codex 草稿 → 判定者承認**: Codex に既存 R-FREEZE 設計から `docs/engine-spec.md` 新セクション草稿 + golden/敵対テスト草稿を `research/cr-grounding/*.draft`(**CR 条番号併記**)へ出させる。判定者は **CR 照合して承認**し docs へ昇格(型名・関数名・挙動・不変条件・「エンジン不変か」)。UI挙動なら `docs/acceptance.md` も。
 3. **正規表現/データ系はsnapshotで事前裏取り**: 分類器タグ等は `research/scryfall-rules/2026-06-19/raw/...cards.json` の実カード文言で誤発火/取りこぼしを Codex に確認させ、判定者は誤りの承認だけ。
-4. **Codexブリーフ作成**: `/tmp/<key>_brief.md`。**共通則(不可侵リスト・エンジン規律・機械4点・報告様式)は `AGENTS.md` が常設で伝えるため再掲しない**。含めるのは**タスク固有のみ**: 4行ヘッダ・目的1行・契約参照・スコープ境界(defer/隔離の明示)・対象ファイル・golden ケース・タスク固有の受け入れ条件・(あれば)AGENTS.md からの逸脱指示。
+4. **Codexブリーフ作成**: `/tmp/<key>_brief.md`。**共通則(不可侵リスト・エンジン規律・機械チェック `npm run check`・報告様式)は `AGENTS.md` が常設で伝えるため再掲しない**。含めるのは**タスク固有のみ**: 4行ヘッダ・目的1行・契約参照・スコープ境界(defer/隔離の明示)・対象ファイル・golden ケース・タスク固有の受け入れ条件・(あれば)AGENTS.md からの逸脱指示。
 5. **レビュー専有テスト `review.<key>` の最終 author は判定者**(=要石。実装者≠受け入れ基準作者)。Codex に敵対アサーション草稿は出させてよいが、CR 照合して判定者が確定し所有する。Codex は `review.*` を触らない。
-6. **Codex を背景起動**(CLAUDE.md のコマンド・`< /dev/null`)。タスクは TaskCreate で「契約/実装/監査」を起こし in_progress 管理。
+6. **実装者を背景起動**(起動コマンドの正本 = `.claude/commands/autoloop.md` step 2・`< /dev/null`)。タスクは TaskCreate で「契約/実装/監査」を起こし in_progress 管理。
 7. Codex 完了通知を待って `/audit` へ(Tier-1 は委譲)。
 
 Mydeck デッキ(`Mydeck/`)はローカル保持。**ただし `docs/`・`research/` の契約が参照しているソースデッキ(`Mydeck/*.txt`)は版管理下に置く**(除外前に `git grep` で契約参照を確認)。

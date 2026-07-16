@@ -4,7 +4,7 @@
 
 ## あなたの役割 = 実装者(implementer)
 
-このプロジェクトは「判定者(judge)」と「実装者(implementer)」の二役で回る。判定者=在席最上位の Claude(`CLAUDE.md`「判定者ラダー」)で、契約の承認・独立監査・git commit/push を担う。**あなたは実装者**: 実装・テスト記述・機械チェック・契約や決定論的判断の*草稿*までを担う。
+このプロジェクトは「判定者(judge)」と「実装者(implementer)」の二役で回る。両席の割当は資源状態で切り替わる(正本 = `CLAUDE.md`「役割 = 資源状態 → 割当」)。判定者は契約の承認・独立監査・git commit/push を担う。**あなたは実装者**: 実装・テスト記述・機械チェック・契約や決定論的判断の*草稿*までを担う。
 
 **優先順位(矛盾時)**: `CLAUDE.md`(統治・あなたは編集不可だが従う)> ブリーフ(タスク固有・判定者発行)> 本ファイル(常設運用)。ブリーフは本ファイルの共通則を再掲しない前提で書かれる——ここに書いてあることは、ブリーフに無くても常に有効。
 
@@ -15,10 +15,10 @@
 - **`CLAUDE.md`・`AGENTS.md`(本ファイル)・`eslint.config.js` の変更禁止**
 - **`CACHE_SCHEMA_VERSION` の変更禁止**
 - **判定者在席時は `docs/` の直接変更も禁止**。契約草稿・決定論的判断の草稿は自分のレーン `research/cr-grounding/*.draft` へ出力し、**必ず根拠 CR 条番号を併記**する(判定者の照合が安くなる)
-  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+MyDeck demand 実測値必須・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)
+  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+MyDeck 実プレイ摩擦の根拠必須・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)
 - 台帳 `research/cr-grounding/cr-backbone-ledger.json` は**読み参照は推奨・編集は判定者専有**(`docs/judge-protocol.md` も同様に判定者専有)
 
-### J0(判定者不在)モード
+### 資源状態②(Claude 週次上限=判定者不在)モード
 ユーザーが「判定者不在・あなたが批評+実装を両担してよい」と明示した時のみ、`review.*`/`docs/` の直接変更が許される(git・`CLAUDE.md`・本ファイルは不可のまま)。条件=復帰した判定者が CR 等の外部権威に当てて独立再検証・再オーナー化するまで、あなたの緑は「未監査」扱い。**fake-green は絶対禁止**——通らない条件を通ったことにするより、FROZEN 撤回を維持して正直に報告する方が正しい(M-CR-RECONCILE の precedent)。
 
 ## エンジン規律(`src/engine/`)
@@ -32,7 +32,7 @@
 
 ## CR 接地(ルールの正本)
 
-- 総合ルール `rule/MagicCompRules*.txt`(**2026-06-19 版に固定**)が一次の決定論的権威。権威順序 = CR > 人間 gold > LLM 解釈
+- 総合ルール `rule/Magic_The_Gathering_Comprehensive_Rules.txt`(**2026-06-19 版に固定**)が一次の決定論的権威。権威順序 = CR > 人間 gold > LLM 解釈
 - ルールが一意に答える問い(ゾーン遷移・owner/controller・キーワード定義・SBA・ターン構造等)は**推測せず CR を引いて条番号を併記**する
 - カードのルール解析は英語 `oracleText` を正本とする(`printedText`(日本語)は表示専用)
 - Scryfall 連携の変更は**実 API で裏取りしてから**仕様化する(API ドキュメントと実挙動の差で重大バグが複数出た実績)
@@ -46,7 +46,7 @@
 
 ## 受け入れ標準(全タスク共通・ブリーフ固有条件に加えて)
 
-- **機械チェック4点を各個に実行し全通過**(`&&` 連結しない): `npm run lint` / `npx tsc --noEmit` / `npx vitest run` / `npm run build`
+- **機械チェック全通過**: `npm run check`(lint / vitest / build を各個に実行する単一正本 = `scripts/checks/machine-checks.mjs`。素の `tsc --noEmit` は本リポでは no-op のため廃止——型検査は build の `tsc -b` が正)
 - `npm run build` で生成した `dist/` は確認後に削除する
 - 既存テストの回帰なし。ブリーフ指定の golden ケースが実行可能テストに配線されていること
 - **UI に見える変更を含むタスクは、ブラウザのコンソールエラー0件が合格条件**(最終の実機確認は判定者が Claude Preview で行うが、あなたも新規コンソールエラーを残さないこと)

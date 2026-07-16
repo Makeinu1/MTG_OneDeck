@@ -13,11 +13,9 @@
 
 ## 必ず実行し「実出力」で報告する(自己申告禁止)
 
-1. 機械チェック4点を**各個に**(`&&` 連結しない): `npm run lint` / `npx tsc --noEmit` / `npx vitest run` / `npm run build`。
-   - **注**: ルート `tsconfig.json` が `files:[]` のため bare `tsc --noEmit` は実質 no-op。**型の正は `npm run build`(`tsc -b`)**。
+1. 機械チェック: `npm run check`(単一正本 = `scripts/checks/machine-checks.mjs`。lint / vitest / build を各個に実行し、型検査は build の `tsc -b` が担う)。
    - `dist/` を生成したら削除する。
-2. **禁止ファイル走査**: `git status --short` 全件。**`review.` で始まるファイル名**(実際の規約は `review.<key>.test.ts`)・`docs/`・`research/`・`rule/`・`src/engine/`・`CLAUDE.md`・`AGENTS.md`・`eslint.config.js`・`package.json` の混入は赤旗。
-   - **`review.` の部分一致で走査しない**: `CardPreview.tsx` が「CardP*review.*tsx」で誤検出する。正しくは `grep -E "(^|/)review\."`。
+2. **禁止ファイル走査**: `npm run check:forbidden`(単一正本 = `scripts/checks/forbidden-files.mjs`。FORBIDDEN 検出=赤旗、NEEDS-REAUTH 表示=判定者の再オーナー化対象として報告に含める。`review.` 部分一致の誤検出対策はスクリプト内に固定済み——散文で regex を再定義しない)。
 3. **`review.*` テストの実行**(FP/FN ガード込みで壊れていないか)。
 4. **weakening 検出**: テスト diff の**削除行**を精査。アサーション削除・`skip` 化・閾値緩和・期待値の緩みを敵対的に探す。
 5. **scope 漏れ**: ブリーフの defer/隔離を破っていないか。UI 差分に見せかけてエンジンの意味論を変えていないか。

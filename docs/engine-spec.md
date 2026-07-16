@@ -1145,7 +1145,7 @@ export interface CardInstance {
 
 ### 26.3 不変・非干渉
 - **エンジン/分類器ロジック不変**(計測のみ)。`src/` の変更は `mapScryfallCardToCardDef` の `export` 追加のみ。`review.*`/`docs/`/`CLAUDE.md`/`eslint.config.js`/`CACHE_SCHEMA_VERSION` は変更しない(本節の reviewer テスト `review.classifier-corpus` は Fable 専有)。
-- ハーネスはビルド(`tsc -b`/`vite build`)・出荷に含まれない(`scripts/` は `include` 外)。機械チェック4点(`npm run lint`/`tsc --noEmit`/`vitest run`/`build`)は引き続き全通過。`npm run accuracy` でレポート生成できること。
+- ハーネスはビルド(`tsc -b`/`vite build`)・出荷に含まれない(`scripts/` は `include` 外)。機械チェック(`npm run check`)は引き続き全通過。`npm run accuracy` でレポート生成できること。
 
 ## 27. Phase B 分類精度向上: キーワード行文法の精緻化(`src/engine/keywordGrammar.ts`)— この節も契約である
 
@@ -1187,7 +1187,7 @@ equip を generic な `keywordStartsClause` 経路から外し、cycling/landwal
 ### 27.5 不変・非干渉
 - **grant≠has 不変**: `"creatures you control gain X"` / `"is a [type] with flying"` / `"equipped creature has haste"` 等の付与・他者付与は引き続き保有から除外(§26 / P1 の成果・`review.m6kw`)。
 - **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変(状態形不変)。`possessedKeywords` / `classifyCardRules` は純粋・決定的のまま。
-- 変更は `src/engine/keywordGrammar.ts` のみ。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。reviewer テスト `review.classifier-corpus`(コーパス fixture 含む)は Fable 専有。機械チェック4点全通過 + `npm run accuracy` 再生成で equip FP→0・equip FN ≤2・flying FN が Nalathni/Teremko 分減ること。
+- 変更は `src/engine/keywordGrammar.ts` のみ。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。reviewer テスト `review.classifier-corpus`(コーパス fixture 含む)は Fable 専有。機械チェック(`npm run check`)全通過 + `npm run accuracy` 再生成で equip FP→0・equip FN ≤2・flying FN が Nalathni/Teremko 分減ること。
 
 ## 28. Phase C 分類精度向上: 誘発ファミリー拡充(`src/data/ruleClassifier.ts`)— この節も契約である
 
@@ -1247,7 +1247,7 @@ Scryfall に「triggers」正解集合は**無い**ため、誘発精度は Scry
 ### 28.5 不変・非干渉
 - **grant≠has 不変**: 他者に誘発を付与する文(`creatures you control gain "whenever …"` 等)は自分が保有とタグ付けしない(§26/P1・`review.m6kw` の方針を維持)。
 - **GameState 不変**(I1〜I7 影響なし)・snapshot 前方/後方互換不変。`classifyCardRules` は純粋・決定的のまま。エンジン(`src/engine/`)は変更しない。
-- 実装の変更対象は `src/data/ruleClassifier.ts`(タグ+regex)/ `src/store/gameStore.ts`(end-step/draw 分岐)/ `scripts/classifier-accuracy.ts`(プローブ)/ `classifier-corpus.ts`(fixture)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない(reviewer テスト `review.classifier-corpus` と本節の `review.phaseC` は Fable 専有)。機械チェック4点全通過 + `npm run accuracy` 再生成で誘発ファミリー候補節が出力されること。
+- 実装の変更対象は `src/data/ruleClassifier.ts`(タグ+regex)/ `src/store/gameStore.ts`(end-step/draw 分岐)/ `scripts/classifier-accuracy.ts`(プローブ)/ `classifier-corpus.ts`(fixture)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない(reviewer テスト `review.classifier-corpus` と本節の `review.phaseC` は Fable 専有)。機械チェック(`npm run check`)全通過 + `npm run accuracy` 再生成で誘発ファミリー候補節が出力されること。
 
 ## 29. エンジン文法器トラック Phase G0: 文法カバレッジ分析ハーネス(`src/engine/grammar/` + `scripts/grammar-coverage.ts`)— この節も契約である
 
@@ -1322,7 +1322,7 @@ probe 確定前に snapshot 実カード文言で誤発火/取りこぼしを点
 - **計測専用**: GameState を生成・変更しない。`applyCommand`/コマンド/ストアに触れない。**I1〜I7 影響なし**・snapshot 互換不変。
 - `src/engine/grammar/*` は純粋・決定的(同入力→同出力)。`src/engine/` の既存ファイル・公開挙動は**差分ゼロ**(import のための index 新設は可、既存 export 改変は不可)。
 - 実装の変更対象は **新規** `src/engine/grammar/*` / `scripts/grammar-coverage.ts` / `research/grammar-coverage/*`(生成物)/ `package.json`(`grammar-coverage` script 追加のみ)。`src/engine/` 既存ファイル / `src/data/` / `src/store/` / `src/components/` / `review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` は変更しない。
-- reviewer 専有テスト `review.grammar-coverage`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-coverage` が 17,491枚で完走し §29.5 の累積カバレッジ曲線を出力すること。
+- reviewer 専有テスト `review.grammar-coverage`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック(`npm run check`)全通過 + `npm run grammar-coverage` が 17,491枚で完走し §29.5 の累積カバレッジ曲線を出力すること。
 
 ## 30. エンジン文法器トラック Phase G1: 能力IR型 + targetless パーサ(`src/engine/grammar/ir.ts` + `rule-refs.ts` + `scripts/grammar-ir.ts`)— この節も契約である
 
@@ -1453,7 +1453,7 @@ probe/数詞/cost 抽出を確定する前に snapshot 実カード文言で点�
 - **計測/表現専用**: GameState を生成・変更しない。`applyCommand`/コマンド/ストアに触れない。**I1〜I7 影響なし**・snapshot 互換不変。
 - `src/engine/grammar/*` は純粋・決定的(同入力→同出力・入力非破壊)。`src/engine/` 既存公開挙動は**差分ゼロ**。index.ts は `EFFECT_ATOM_DEFINITIONS` への `ruleRef` 加算のみ可(probe/id/関数・既存 export の改変不可)。G0 の `review.grammar-coverage` が引き続き全通過すること。
 - 実装の変更対象は **新規** `src/engine/grammar/ir.ts` / `src/engine/grammar/rule-refs.ts` / `scripts/grammar-ir.ts` / `research/grammar-ir/*`(生成物)/ `package.json`(`grammar-ir` script 追加のみ)+ index.ts への `ruleRef` 加算。`src/data/` / `src/store/` / `src/components/` / `review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
-- reviewer 専有テスト `review.grammar-ir`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-ir` が 17,491枚で完走し §30.5 の IR 表現フロンティアを出力すること。
+- reviewer 専有テスト `review.grammar-ir`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック(`npm run check`)全通過 + `npm run grammar-ir` が 17,491枚で完走し §30.5 の IR 表現フロンティアを出力すること。
 
 ## 31. エンジン文法器トラック Phase G2: インタプリタ + 全自動実行 — この節も契約である
 
@@ -1572,7 +1572,7 @@ snapshot 実カード文言で点検し `review.grammar-compile` / `review.g2-ex
   - 自動実行は **`decision:'auto'` の行のみ**を `applyCommands` 経由で適用する(新たな副作用経路を作らない)。I1〜I7 は既存コマンド経由のため維持される。
 - 既存の `review.grammar-coverage` / `review.grammar-ir` / `review.properties`(I1〜I7)が引き続き全通過すること。
 - 実装の変更対象: **新規** `src/engine/grammar/compile.ts` / `scripts/grammar-compile.ts` / `research/grammar-compile/*`(生成物)/ `src/engine/types.ts`(`effectsAuto`・`abilityLineIndex`)/ `src/engine/commands.ts`(新コマンド2種・`addAbilityToStack` 引数・`applyResolveStackTop` フック)/ `src/engine/init.ts`(初期 `effectsAuto`)/ `src/store/gameStore.ts`(`restoreGame` 補完・切替 action・能力起動/誘発時の `abilityLineIndex` 伝播)/ `src/components/*` ・ `src/App.tsx`(トグル・右クリック OFF・`data-testid`)/ `package.json`(`grammar-compile` script 追加)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
-- reviewer 専有テスト `review.grammar-compile` / `review.g2-exec`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §31.5 の executable frontier を出力すること。
+- reviewer 専有テスト `review.grammar-compile` / `review.g2-exec`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。機械チェック(`npm run check`)全通過 + `npm run grammar-compile` が 17,491枚で完走し §31.5 の executable frontier を出力すること。
 
 ## 32. エンジン文法器トラック Phase G3: 対象/モード誘導フロー(`compile.ts` guided ティア + ストア誘導 + `ModalChoiceDialog`)— この節も契約である
 
@@ -1693,7 +1693,7 @@ function buildGuidedCommands(prompt: EffectPrompt, answer: GuidedAnswer, ctx: Co
 - **I8 維持**: `effectsAuto` OFF 時は guided も発火せず解決前差分ゼロ。guided は必ずダイアログ確定→`applyCommands` 経由でのみ盤面を変える(新副作用経路なし)。
 - I1〜I7 は既存コマンド経由ゆえ維持。
 - **変更対象**: `src/engine/grammar/compile.ts`(guided ティア・`EffectPrompt`/`buildGuidedCommands`・ゲート置換)/ `src/engine/grammar/ir.ts`(`AbilityIR.modal` + 解析)/ `src/engine/grammar/index.ts`(`splitAbilityLines` の modal 段落結合)/ `src/engine/commands.ts` or grammar(`guidedPlanForStackTop`・`eligibleTargets` 純ヘルパ。**新 GameCommand は不要**)/ `src/store/gameStore.ts`(pending guided キュー・確定/キャンセル action・modal 再帰)/ `src/components/playmat/Playmat.tsx`(解決フロー合流・ダイアログ配線・`data-testid`)/ `src/components/playmat/ModalChoiceDialog`(新規・`AttackDialog` 流用)/ `scripts/grammar-compile.ts`(guided 集計)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**(既存コマンドへ写すのが G3 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
-- reviewer 専有テスト `review.grammar-guided` / `review.g3-flow`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。既存 `review.grammar-coverage` / `review.grammar-ir` / `review.grammar-compile` / `review.g2-exec` / `review.properties`(I1〜I7)は再ベースラインで期待値が変わる分を **Fable が更新**(実装は触らない)。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §32.6 の guided frontier を出力すること。
+- reviewer 専有テスト `review.grammar-guided` / `review.g3-flow`(`src/engine/__tests__/`)は Fable が先に書く。Codex は触らない。既存 `review.grammar-coverage` / `review.grammar-ir` / `review.grammar-compile` / `review.g2-exec` / `review.properties`(I1〜I7)は再ベースラインで期待値が変わる分を **Fable が更新**(実装は触らない)。機械チェック(`npm run check`)全通過 + `npm run grammar-compile` が 17,491枚で完走し §32.6 の guided frontier を出力すること。
 
 ### 32.8 leaf catalog 追補(cr-701 discard / cr-111 predefined token・2026-07-04)— この項も契約である
 
@@ -1824,7 +1824,7 @@ function activatedManaAbilityPlanForSource(
 - **I8 維持**: コスト精算は活性化時のみ。解決時の効果 auto/guided 実行ロジックは不変。
 - I1〜I7 は既存コマンド(`setTapped`/`payMana`/`moveCard`/`addAbilityToStack`)経由ゆえ維持。`compileAbilityIR`(効果側)・`parseAbilityIR`・`splitAbilityLines` は**挙動差分ゼロ**(G4 はコスト消費の追加のみ)。
 - **変更対象**: `src/engine/grammar/compile.ts`(`compileAbilityCost`・`CompiledCost`/`CostDecision`・純粋・新コマンド型0)/ `src/engine/commands.ts`(純ヘルパ `activationPlanForSource` / `activatedManaAbilityPlanForSource`・state 読み取り専用。§32 の `guidedPlanForStackTop` 追加と同格。**新 GameCommand 型は追加しない**)/ `src/store/gameStore.ts`(`activateAbility` action・薄いオーケストレーション)/ `src/components/playmat/Playmat.tsx`(`ability-activate` を `activateAbility` へ配線)/ `scripts/grammar-compile.ts`(cost セクション)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**。`ir.ts`/`index.ts` は**変更しない**(コスト消費とマナ加算は既存コマンドへ写すのが G4 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
-- reviewer 専有テスト `review.grammar-cost`(純 `compileAbilityCost`)/ `review.g4-activate`(`activationPlanForSource` engine 統合・I9)は Fable が先に書く(済)。Codex は触らない。既存 `review.grammar-compile` に cost セクションが増えた分の期待値は **Fable が更新**(実装は触らない)。`review.properties`(I1〜I7)は既存コマンド経由ゆえ変更不要。機械チェック4点全通過 + `npm run grammar-compile` が 17,491枚で完走し §33.5 の activation frontier / fully-playable を出力すること。
+- reviewer 専有テスト `review.grammar-cost`(純 `compileAbilityCost`)/ `review.g4-activate`(`activationPlanForSource` engine 統合・I9)は Fable が先に書く(済)。Codex は触らない。既存 `review.grammar-compile` に cost セクションが増えた分の期待値は **Fable が更新**(実装は触らない)。`review.properties`(I1〜I7)は既存コマンド経由ゆえ変更不要。機械チェック(`npm run check`)全通過 + `npm run grammar-compile` が 17,491枚で完走し §33.5 の activation frontier / fully-playable を出力すること。
 
 ---
 
@@ -2191,10 +2191,10 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
 **回帰ゲート(本ゲート専有)**: `review.cr-conformance`(Fable author)= `crConformance.ts` 純関数(集合比較・集計・bounded 判定・条件4 judge)の
 論理を pin + gold 代表カードの CR 接地期待を 4分類器の実出力で pin(物差しの歯)。併せて
 `review.{event,zone,timing,layer}-coverage`/`-oracle`(Slice 分類器修正の非悪化)・`review.classifier-parity`(条件6=0 非回帰)・
-`review.golden-replay`(条件5 非回帰)・`review.m-contract-gate`(集計ロジック)を緑に保つ。機械4点も緑。
+`review.golden-replay`(条件5 非回帰)・`review.m-contract-gate`(集計ロジック)を緑に保つ。機械チェック(`npm run check`)も緑。
 
 ### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ
-**契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック4点(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
+**契約のみ。エンジン/UI/store・既存テストは一切変更しない**。成果物は本章(engine-spec §34)+ `docs/architecture-substrate-compiler.md`(WHAT)+ `docs/engine-design-method.md`(HOW=設計手法)+ `CLAUDE.md` L35 改定。機械チェック(`npm run check`)(`npm run lint`/`npx tsc --noEmit`/`npx vitest run`/`npm run build`)は docs/規約変更ゆえコードパス無関係で自明に不変。`review.*` テストは追加しない(コードが無い)。実装は M0 収束後に S-EVENTS から着手する。
 
 2026-06-26 追記: M-CR-RECONCILE では `rule/` の固定CR、`docs/` 契約、`research/cr-grounding/` gold、`src/engine/grammar/rule-refs.ts` の 701.69 追加を変更する。これは凍結判定の撤回と再整合であり、S-EVENTS 実装ではない。
 
@@ -2224,7 +2224,7 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
   外科的1行修正(beginning パターンに `—\s+` 接頭辞アンカー追加)で conformance **100%・bounded**。`review.timing-coverage`/`-oracle` 無回帰。
   **条件3 post-yardstick churn**: CR 修正適用後に 4スライス同時スナップショット(baseline=`04184e4`)= layer 0%/event 1.95%/zone 0%/timing 0.82% → max **1.95% < 5% PASS**。
   event 1.95% は M-GATE-2 eventClassify の CR 修正が未スナップショットだった分の清算(計測欠落の解消)。**高 conformance + 低 churn = 物差しを当てても崩れない真の収束**(§4)。
-  全7条件 PASS=**スコアカード FROZEN**。`src/engine/` 盤面挙動不変・機械4点緑・`review.cr-conformance` 緑。**当時の次手 = M-FREEZE(§34 凍結手続き → S-EVENTS)**。
+  全7条件 PASS=**スコアカード FROZEN**。`src/engine/` 盤面挙動不変・機械チェック(`npm run check`)緑・`review.cr-conformance` 緑。**当時の次手 = M-FREEZE(§34 凍結手続き → S-EVENTS)**。
 - **M-CR-RECONCILE(2026-06-26・本追補)**: 上記 FROZEN は分類器/既存 replay の研究成果としては有効だが、CR 状態遷移 gold が不足していたため凍結根拠として撤回。CR 2026-06-19 へ固定し、§34.0 と `research/cr-grounding/golden-cases.json` を追加。次手は M-FREEZE ではなく、CR-grounding gold の実行可能化と scorecard 再判定。
 
 ### 34.10 S-EVENTS / PRIORITY(Q5 Phase 2 実装契約)— この節も契約である
@@ -2917,7 +2917,7 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 **スコープ境界(defer)**: -1/-1 や charge/loyalty 等 +1/+1 以外・可変数(for each/X)・each/mass・複数 counter 種混在・equipped/enchanted 相対・「on it」の後に残余修飾を持つ複合節。ループ変更(`AbilityIR.effectClauses: string[]` 追加で全 split-clause を antecedent 文脈に供給)の blast radius=counter 以外の atom 反転 **0件**(Tier-1 実測)。
 
-**受け入れ(判定者先行 authoring)**: `review.cr122-self-referential-counter.test.ts`(レビュー専有)= 正例(this creature/自名/This Vehicle becomes 型→auto・source counter)+ **不定主語 HIGH pin**(a/another <X> you control・非生物 source→manual・self counter 無し)+ Aang型先行 target/Additive Evolution型先行生成→manual。機械4点全緑。
+**受け入れ(判定者先行 authoring)**: `review.cr122-self-referential-counter.test.ts`(レビュー専有)= 正例(this creature/自名/This Vehicle becomes 型→auto・source counter)+ **不定主語 HIGH pin**(a/another <X> you control・非生物 source→manual・self counter 無し)+ Aang型先行 target/Additive Evolution型先行生成→manual。機械チェック(`npm run check`)全緑。
 
 ### 34.40 手動スタック対象注記 `setManualTargets`(サンドボックス可視化・CR 115/400.7/707.10)— この節も契約である
 
@@ -2952,7 +2952,7 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 
 **CR 根拠**: CR 109.2a(「card」+ゾーン名=そのゾーンのカード集合)・CR 202.3/202.3b(mana value=非負整数特性・非stack カードは cmc 由来)・CR 701.14a(return=指定ゾーンへ移動)・CR 608.2b(解決時 target legality 再チェック=既存 leaf と同じ)・**CR 110.4a**(permanent card 定義)・CR 602.2b/601.2c(起動/唱える際に対象確定)。
 
-**受け入れ(判定者先行 authoring)**: `review.cr400-408-return.test.ts`(レビュー専有)batch6 describe = creature/permanent の MV上限 guided + filter shape・MV境界 eligibility(MV=N 可・N+1 除外)+ 解決・6 DEFER 形全 manual・無フィルタ exact-match 非回帰(`maxManaValue` 漏れなし)・**起動型 MV reanimation の activation-time target 提示 pin**(Order of Whiteclay 型=`activationTargetPromptsForSource` 非空+上限 filter)。**コーパス flip 実測(408 reanimation 行)= false-auto 0・IN形13カード正しく guided**(独立 Tier-1)。機械4点全緑。
+**受け入れ(判定者先行 authoring)**: `review.cr400-408-return.test.ts`(レビュー専有)batch6 describe = creature/permanent の MV上限 guided + filter shape・MV境界 eligibility(MV=N 可・N+1 除外)+ 解決・6 DEFER 形全 manual・無フィルタ exact-match 非回帰(`maxManaValue` 漏れなし)・**起動型 MV reanimation の activation-time target 提示 pin**(Order of Whiteclay 型=`activationTargetPromptsForSource` 非空+上限 filter)。**コーパス flip 実測(408 reanimation 行)= false-auto 0・IN形13カード正しく guided**(独立 Tier-1)。機械チェック(`npm run check`)全緑。
 
 ### 34.42 MP-STATE: N-player 正準 player state(design-lock・CR 102.1/103.1/103.4c/800.1)— この節も契約である
 
@@ -2997,11 +2997,11 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 
 **実装出荷(2026-07-15 Codex実装 → 2026-07-16 判定者監査)**: 契約どおり実装・全pin緑。判定者作の25 pinは無改変で残存(6弁別アサーションのfixed-string検査で確認)。実際の受け入れファイルパスは `src/store/__tests__/review.mp-state.test.ts`(store層のrestore検証を含むため store 側へ配置)。
 
-**受け入れ(判定者先行 authoring)**: `src/store/__tests__/review.mp-state.test.ts`(レビュー専有・I24〜I28)。加えて既存 reviewer pin 群が**無改変で緑**であること — 特に `review.golden-replay`(イベントストリーム不変の証明)・`review.cr102-players-zones`(`zonesByPlayer` 意味論不変)・`review.sba-defeat`/`review.903-10a`(3 scheme を固定)・`review.properties`(I1〜)。**これらが改変を要したら挙動が変わった証拠=stop-the-line**。機械4点全緑(`npm run build` が真の型検査=bare `tsc --noEmit` は root tsconfig の `files:[]` ゆえ no-op)。`git diff --stat` に `src/components/**` が現れないこと(UI 不変の pin)。実機ブラウザ確認は**不要**(挙動不変・UI なしのスライスゆえ計器を無駄に回さない=北極星③)。
+**受け入れ(判定者先行 authoring)**: `src/store/__tests__/review.mp-state.test.ts`(レビュー専有・I24〜I28)。加えて既存 reviewer pin 群が**無改変で緑**であること — 特に `review.golden-replay`(イベントストリーム不変の証明)・`review.cr102-players-zones`(`zonesByPlayer` 意味論不変)・`review.sba-defeat`/`review.903-10a`(3 scheme を固定)・`review.properties`(I1〜)。**これらが改変を要したら挙動が変わった証拠=stop-the-line**。機械チェック(`npm run check`)全緑(`npm run build` が真の型検査=bare `tsc --noEmit` は root tsconfig の `files:[]` ゆえ no-op)。`git diff --stat` に `src/components/**` が現れないこと(UI 不変の pin)。実機ブラウザ確認は**不要**(挙動不変・UI なしのスライスゆえ計器を無駄に回さない=北極星③)。
 
 ### 34.43 MP-ZONES/COMMANDS Slice A: owner-routed private zones + cross-player core commands (CR 102.1/121/400.1/400.3/701.9/701.24/704.5b-c)
 
-> **J0起草 → 判定者監査済み**(起草 2026-07-15 J0=Codex両担・監査 2026-07-16 復帰判定者): 独立再検証=①判定者による全review diff精読とCR照合 ②実装と別主体の冷Tier-1敵対監査(HIGH 0)③機械4点の独立再実行 ④実機E2E。Tier-1が検出したMEDIUM 1件(`detectTriggerCandidates`がflat墓地のみを読み相手の死亡を計器上見逃す=実プレイ経路は無影響)は判定者が外科修正し、弁別実証済みregression pinを`review.mp-dummy.test.ts`へ追加。
+> **J0起草 → 判定者監査済み**(起草 2026-07-15 J0=Codex両担・監査 2026-07-16 復帰判定者): 独立再検証=①判定者による全review diff精読とCR照合 ②実装と別主体の冷Tier-1敵対監査(HIGH 0)③機械チェック(`npm run check`)の独立再実行 ④実機E2E。Tier-1が検出したMEDIUM 1件(`detectTriggerCandidates`がflat墓地のみを読み相手の死亡を計器上見逃す=実プレイ経路は無影響)は判定者が外科修正し、弁別実証済みregression pinを`review.mp-dummy.test.ts`へ追加。
 
 **位置づけ**: §34.42 MP-STATE の後続であり、`cr-player-specific-zones` の実行スライス第2弾。最大需要のcross-player clusterを解錠する最小範囲に限定し、private zone正本の極性反転と、draw/mill/shuffle/discard/life/player counterだけをPlayerId対応する。マナ・キャスト・ターン主体の一般化はSlice Bへdeferする。
 
@@ -3023,7 +3023,7 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 
 **スコープ境界**: mana command/autotap/manaTransaction・cast/playLand/turn progressionのactor一般化、search/arrangeTop/mulligan/putOnBottomのcross-player UI、compilerの`you/opponent/each-player` subject binding、`DefeatPlayerRef` storage再キー、commander damage matrix、manual target whitelist、UIは本Slice外。`PlayerState`全fieldの正本極性反転はこれらreader移行と同時にSlice Bで行う。
 
-**受け入れ**: `src/store/__tests__/review.mp-zones-commands.test.ts`がI29〜I32をpinする。§34.17の旧HIGH-2「mixed ownerをP1へ誤mirror」は本節で意図的に反転するため、既存`review.cr102-players-zones.test.ts`の該当1件だけをJ0でCR400.3期待へ更新する。他の既存review assertionは変更禁止。機械4点全緑、`SNAPSHOT_VERSION`/`CACHE_SCHEMA_VERSION`不変、UI差分なし。
+**受け入れ**: `src/store/__tests__/review.mp-zones-commands.test.ts`がI29〜I32をpinする。§34.17の旧HIGH-2「mixed ownerをP1へ誤mirror」は本節で意図的に反転するため、既存`review.cr102-players-zones.test.ts`の該当1件だけをJ0でCR400.3期待へ更新する。他の既存review assertionは変更禁止。機械チェック(`npm run check`)全緑、`SNAPSHOT_VERSION`/`CACHE_SCHEMA_VERSION`不変、UI差分なし。
 
 ### 34.44 MP-IDENTITY / MP-DUMMY / MP-SETUP基盤(J0未監査・CR 102.1/110.2/111.1/400.1/400.3/400.7/704.5d)
 

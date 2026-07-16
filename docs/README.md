@@ -1,18 +1,12 @@
 # ドキュメント案内 — 何を正本として読むか
 
 > **役割**: このファイルは入口と状態一覧であり、個別契約を上書きしない。
-> **最終棚卸し**: 2026-07-12 J0(Codex)。Claude 判定者復帰後の再オーナー化が必要。
+> **最終棚卸し**: 2026-07-16 判定者(統治リストラ時)。
 
 ## まず読む順序
 
-1. `CLAUDE.md` — 統治・役割・北極星
-2. `AGENTS.md` — 実装者の不可侵事項と受け入れ標準
-3. `docs/judge-protocol.md` — 判定準則
-4. `research/cr-grounding/cr-backbone-ledger.json` — スライス状態と順序の正本
-5. `.claude/loop-state.md` — 現在セッションの作業位置
-
-設計・実装の詳細は、判断の種類に応じて以下だけを読む。複数文書を最初から全文読んで
-最新状態を推測してはならない。
+**読込順の正本 = `docs/judge-protocol.md` §0**(ここでは重複させない)。
+設計・実装の詳細は、判断の種類に応じて以下の状態一覧から該当文書だけを読む。複数文書を最初から全文読んで最新状態を推測してはならない。
 
 ## 文書の状態
 
@@ -25,12 +19,13 @@
 | `docs/ui-architecture-v2.md` | UI移行の目標構造 | **partially implemented**。D4未完、現行コードの説明書ではない |
 | `docs/design-playbook.md` | D0〜D7実行カード | **historical execution contract**。D4回復契約の再承認まで新規実行に使わない |
 | `research/design/mockups/index.html` | 2026-07-09時点の視覚案v4 | **reference, not current truth**。現行PC問題を反映していない |
-| `research/design/pc-ui-regression-diagnosis.draft.md` | PC退行の実測診断 | **J0 draft** |
-| `research/design/design-recovery-plan.draft.md` | 文書・デザイン・進行の回復案 | **J0 draft** |
-| `research/design/r1-pc-ui-baseline.draft.md` | 新旧UIの実測比較 | **J0 draft / 基礎比較完了** |
-| `research/design/d4a-pc-affordance-recovery.draft.md` | PC回復の受け入れ契約案 | **J0 draft / J2未承認** |
-| `research/design/d4a-review-plan.draft.md` | D4a独立reviewのアサーション計画 | **J0 draft** |
+| `research/design/pc-ui-regression-diagnosis.draft.md` | PC退行の実測診断 | **未監査draft**(判定者不在期に作成) |
+| `research/design/design-recovery-plan.draft.md` | 文書・デザイン・進行の回復案 | **未監査draft** |
+| `research/design/r1-pc-ui-baseline.draft.md` | 新旧UIの実測比較 | **未監査draft / 基礎比較完了** |
+| `research/design/d4a-pc-affordance-recovery.draft.md` | PC回復の受け入れ契約案 | **未監査draft / 契約未承認** |
+| `research/design/d4a-review-plan.draft.md` | D4a独立reviewのアサーション計画 | **未監査draft** |
 | `src/dev/visualFixtures/` | 6場面の決定論的visual state builder | **dev-only / 製品entry未接続** |
+| `research/archive/` | M-CONTRACT期の退蔵計測レーン15本+旧監査 | **historical**。索引 = `research/archive/README.md` |
 
 ### エンジン関連の補助文書
 
@@ -43,15 +38,14 @@
 | `docs/mtg-rule-terms.md` | 用語参照。CR 2026-06-19を上位権威とする |
 | `docs/rule-automation-plan.md` / `docs/m5-rule-implementation-proposal.md` / `docs/engine-refactoring-plan.md` | **historical proposals**。現行スライスの正本にしない |
 
-## 現在の製品状態(2026-07-12)
+## 現在の製品状態(2026-07-16)
 
-- D0/D1/D2/D3/D5 は出荷済み。
+- D0/D1/D2/D3/D5 は出荷済み。多人数基盤(MP-STATE〜MP-BOARD・対戦相手セットアップ)は 2026-07-16 出荷。
 - **D4 デスクトップ再構成は未完了**。現行PC版はD2の単一カラムを1100pxに制限した暫定版。
 - D5をD4より先に出荷したため、ロードマップの番号順と実製品の完成順は一致しない。
 - 現行 `GameScreen` はhover previewとDnDを失い、8枚手札・フェーズ可読性・ゾーン視認性・
   土地表示・盤面幅でユーザー確認済みの退行がある。
 - 旧 `Playmat` はロールバック経路かつ機能参照元である。**同等性証明前に削除しない**。
-- CR-121スコープは保存済みだが、最新ユーザー指示によりPCデザイン回復を先に扱う。
 
 ## 腐敗を増やさない規則
 
@@ -62,11 +56,10 @@
    を混ぜない。
 5. モックは仮説であり、実機でユーザー価値を損ねた場合は実測を優先して再設計する。
 6. 1スライスの終了時に、コードだけでなく文書の状態・リンク・未完了DEFERを照合する。
+7. 同じルールを2文書に書かない(**二重管理は必ずドリフトする**)。正本の地図 = `CLAUDE.md`「統治の読み方」。
 
-## 判定者復帰時の再オーナー化チェック
+## 未処理の再オーナー化事項(2026-07-16 棚卸し)
 
-- 本ファイルと `research/design/*recovery*.draft.md` をユーザー指摘・実測スクリーンショットへ照合する。
-- `docs/judge-protocol.md` §2の終了済みscore.ts暫定則を現役本文から退役させる。
-- D4を「PC回復」「デスクトップ再構成」「旧実装削除」に分割する契約変更をJ2が裁定する。
-- 台帳と `.claude/loop-state.md` の次スライスを一致させる。
-- 未監査J0文書変更を独立監査し、採用または撤回する。
+- `research/design/*recovery*.draft.md` をユーザー指摘・実測スクリーンショットへ照合し、採用または撤回する(未監査draftの独立監査)。
+- D4を「PC回復」「デスクトップ再構成」「旧実装削除」に分割する契約変更を判定者が裁定する(§7 格上げ事項)。
+- ~~judge-protocol §2 の終了済み score.ts 暫定則の退役~~(2026-07-16 完了)。
