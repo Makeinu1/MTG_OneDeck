@@ -36,7 +36,10 @@
 
 .game-screen__status { grid-area: status; }
 .game-screen__stack { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
-.game-screen__board { grid-area: board; min-height: 0; overflow: auto; }
+/* overflow は hidden を維持する。auto にすると .board(height:100%)がセルからはみ出した
+   ぶんがスクロールになり、盤面が「下へ消える」= 7b2c5c1 の回帰。.board 内側の
+   overflow:hidden と二重スクロールcontainerが喧嘩する。review pin が固定している。 */
+.game-screen__board { grid-area: board; min-height: 0; overflow: hidden; }
 .game-screen__lands {
   grid-area: lands; min-height: 0;
   display: grid; grid-template-columns: clamp(184px, 15vw, 224px) minmax(0, 1fr);
@@ -812,10 +815,12 @@
 .opponent-setup {
   min-height: 100dvh;
   padding: clamp(16px, 3vw, 40px);
-  color: var(--text, #f3efe5);
-  background:
-    radial-gradient(circle at 85% 0%, rgb(94 65 24 / 32%), transparent 35%),
-    linear-gradient(145deg, #151712, #090b09 58%, #16120d);
+  color: var(--text);
+  /* 卓の背景スタック(アルケイン戦術卓 canon)= .game-screen の3層
+     (--table-light / --table-vignette / --surface-0)に、独立全画面ゆえ
+     hero 系画面と同じ --hero-wash を1層足したもの(.game-screen と同一ではない)。
+     旧実装の生hexの茶/オリーブはトークン外=テーマ切替から不可視だった。 */
+  background: var(--hero-wash), var(--table-light), var(--table-vignette), var(--surface-0);
 }
 .opponent-setup__header,
 .opponent-setup__player,
@@ -835,52 +840,62 @@
 .opponent-setup__header h1,
 .opponent-setup__section-heading h2 { margin: 0; }
 .opponent-setup__header p,
-.opponent-setup__section-heading p { margin: 4px 0 0; color: #aaa99f; }
-.opponent-setup__kicker { letter-spacing: .18em; color: #d6aa5d !important; font-size: 12px; }
+.opponent-setup__section-heading p { margin: 4px 0 0; color: var(--text-dim); }
+.opponent-setup__kicker { letter-spacing: .18em; color: var(--gold-bright); font-size: var(--font-size-xs); }
 .opponent-setup__header-actions { display: flex; gap: 10px; }
 .opponent-setup__error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border: 1px solid #b8473f;
-  border-radius: 6px;
-  color: #ffd4cf;
-  background: rgb(112 28 25 / 45%);
+  margin: var(--space-3) 0;
+  padding: 10px var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--text-h);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface-1));
 }
+/* 前景と背景の両端を同じ規則で宣言する。color:inherit と固定背景の同居が
+   ライトで 1.31:1 を生んだ真因(--text はトークンで反転し背景は生hexで不動だった)。
+   --text on --surface-1 は design-system.md:69 が ≥4.5:1 を保証する唯一の対。 */
 .opponent-setup button,
 .opponent-setup input,
 .opponent-setup select {
-  border: 1px solid #55564e;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #20221d;
-  color: inherit;
+  background: var(--surface-1);
+  color: var(--text);
   padding: 9px 11px;
 }
 .opponent-setup button { cursor: pointer; }
 .opponent-setup button:disabled { opacity: .4; cursor: default; }
 .opponent-setup__header-actions button:last-child,
-.opponent-setup__section-heading > button { border-color: #b88a42; background: #6d4a1c; }
+.opponent-setup__section-heading > button {
+  border-color: var(--gold-bright);
+  background: var(--action-primary);
+  color: var(--action-primary-text); /* 金の上は専用文字色(≥7:1・design-system.md:43) */
+}
 .opponent-setup__player,
 .opponent-setup__permanents {
   max-width: 1120px;
   margin: 0 auto 20px;
   padding: 18px;
-  border: 1px solid #35372f;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgb(20 22 18 / 88%);
+  background: var(--surface-translucent);
 }
 .opponent-setup__player { flex-wrap: wrap; }
-.opponent-setup label { display: grid; gap: 6px; font-size: 13px; color: #d1d0c7; }
+.opponent-setup label { display: grid; gap: 6px; font-size: var(--font-size-sm); color: var(--text-dim); }
 .opponent-setup__player label { min-width: 160px; }
 .opponent-setup__section-heading { justify-content: space-between; margin-bottom: 16px; }
 .opponent-setup__list { display: grid; gap: 14px; }
-.opponent-setup__empty { padding: 30px; text-align: center; color: #8e9087; }
+/* 判定者ブリーフは .board-shelf__empty に倣い color-mix(--text-dim 46%) を指定したが、
+   あれは小さな重ねラベル用。ここは中央の本文ゆえ 46% では ~2:1 に落ちる。
+   本文として --text-dim(契約 ≥4.5:1)を採用する。 */
+.opponent-setup__empty { padding: 30px; text-align: center; color: var(--text-dim); }
 .opponent-setup-card {
   display: grid;
   gap: 13px;
-  padding: 16px;
-  border: 1px solid #42443b;
-  border-radius: 12px;
-  background: #171914;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
 }
 .opponent-setup-card__heading { justify-content: space-between; }
 .opponent-setup-card__actions { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -890,7 +905,7 @@
   gap: 10px;
   margin: 0;
   padding: 10px;
-  border: 1px solid #34362f;
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 .opponent-setup-card fieldset label,
@@ -906,31 +921,38 @@
   .opponent-setup-card__heading { align-items: flex-start; flex-direction: column; }
 }
 
-/* ---------- controller-projected opponent battlefield ---------- */
-.opponent-boards { display: grid; gap: 8px; margin-bottom: 8px; }
+/* ---------- controller-projected opponent battlefield ----------
+   常設しない(docs/design-vision.md:80 原則7「常設の…相手ライフ行…は廃止し
+   『タップで出す』へ降格」)。メニュー「相手盤面を見る」のモーダル内でのみ描画する。 */
+.opponent-boards { display: grid; gap: 8px; }
 .opponent-board {
+  /* レーンの構造寸法。トークンが無い寸法は規則側で1度だけ宣言する既存作法
+     (.game-screen の --band-h / --land-h と同型)。 */
+  --opp-lane-h: 82px;
   padding: 7px;
-  border: 1px solid color-mix(in srgb, var(--warn, #c58d42) 45%, transparent);
-  border-radius: 10px;
-  background: rgb(35 25 17 / 72%);
+  /* --warn は破壊操作に予約(design-system.md:44)。相手盤面は警告ではない。 */
+  border: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
 }
 .opponent-board__header {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 0 4px 5px;
-  font-size: 12px;
-  color: #d9c6a5;
+  font-size: var(--font-size-xs);
+  color: var(--text-dim);
 }
+.opponent-board__empty { padding: var(--space-3) 4px; font-size: var(--font-size-sm); color: var(--text-dim); }
 .opponent-board__rows { display: grid; grid-template-columns: 1fr 1fr minmax(96px, .7fr); gap: 6px; }
-.opponent-board .board-shelf-wrap { min-height: 82px; }
+.opponent-board .board-shelf-wrap { min-height: var(--opp-lane-h); }
 .opponent-board__lands {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
-  min-height: 82px;
+  min-height: var(--opp-lane-h);
   overflow-x: auto;
 }
 .opponent-board__lands .game-card { flex: 0 0 72px; }

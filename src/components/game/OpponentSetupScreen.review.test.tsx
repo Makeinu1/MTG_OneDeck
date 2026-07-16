@@ -1,6 +1,9 @@
 // Reviewer-owned UI pins for the independent opponent setup screen (I34/I40).
 // 実装エージェントは本ファイルを変更しないこと。落ちたら実装側を直す。
 // (J0起草 2026-07-15 → 判定者が実機E2E(draft不変・単一undo・console 0)で再オーナー化 2026-07-16。)
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,8 +12,9 @@ import { makeDeck } from '../../engine/__tests__/helpers';
 import { DEFAULT_OPPONENT_ID, playerIdForLifeLabel, requirePlayer } from '../../engine/types';
 import { useGameStore } from '../../store/gameStore';
 import type { GameController } from './gameController';
-import { OpponentBoards } from './OpponentBoards';
+import { OpponentBoardDialog, OpponentBoards } from './OpponentBoards';
 import { OpponentSetupScreen } from './OpponentSetupScreen';
+import { ThumbZone } from './ThumbZone';
 import { AttackDialog } from '../playmat/dialogs';
 
 function mount(node: ReactNode) {
@@ -66,6 +70,10 @@ function controllerFor(state: NonNullable<ReturnType<typeof useGameStore.getStat
     openLibraryActions: vi.fn(),
     libraryActionsOpen: false,
     openZoneViewer: vi.fn(),
+    // MP-UI-FIX: 相手盤面はメニュー起動のモーダルへ降格(既定で隠す)。
+    opponentBoardOpen: false,
+    openOpponentBoard: vi.fn(),
+    closeOpponentBoard: vi.fn(),
     openTokenDialog: vi.fn(),
     openAttackDialog: vi.fn(),
     openArrangeTop: vi.fn(),
@@ -279,6 +287,108 @@ describe('opponent setup independent screen', () => {
       '対戦相手A',
       [{ cardId: 'ui-blocker', attackerId: 'ui-attacker' }],
     );
+    view.unmount();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MP-UI-FIX 判定者先行 pin(2026-07-16・発注前に authoring)
+//
+// 由来: commit 7b2c5c1 が OpponentBoards を .game-screen__board セルの中へ
+// <Board> の兄として挿入し、自分の盤面を画面外へ押し出した。相手が0枚でも
+// 空ストリップが desktop ~100px / mobile ~250px を食う回帰だった。
+// ユーザー裁定(2026-07-16): 既定で完全に隠し、メニュー「相手盤面を見る」で出す。
+// 契約: docs/design-vision.md:80 原則7「常設のゾーンラベル・相手ライフ行…は廃止し
+// 「タップで出す」へ降格」(要は「シート」でなく「常設(の禁止)」)。
+//
+// ⚠ コントラスト比はここでは検証できない(jsdom は cascade も var() も color-mix() も
+// 解決しない)。**jsdom でコントラストを主張するテストは嘘**。実測は実機ブラウザの
+// visual fixture(light/dark)でのみ行う。ここを偽アサーションで「埋めない」こと。
+// ---------------------------------------------------------------------------
+describe('MP-UI-FIX: 相手盤面は既定で隠れ、メニューから出す', () => {
+  // beforeEach は describe スコープ=上の describe のものは効かない。
+  // これが無いと前の test が setState した相手 permanent が漏れ、
+  // 「盤面なし」の pin が別テストの残骸で偽陰性になる。
+  beforeEach(() => {
+    resetStore();
+    useGameStore.getState().newGame(makeDeck(8), 1);
+  });
+
+  const gameScreenSrc = readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), './GameScreen.tsx'),
+    'utf-8',
+  );
+  const gameCss = readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), './game.css'),
+    'utf-8',
+  );
+
+  it('回帰そのもの: GameScreen は OpponentBoards を描画しない', () => {
+    // 構造で pin する(GameScreen の実マウントは DndContext/Suspense を引き込み遅く脆い)。
+    expect(gameScreenSrc).not.toMatch(/<OpponentBoards\b/);
+  });
+
+  it('回帰そのもの: .game-screen__board は overflow:hidden(auto は不可視に失敗する)', () => {
+    // hidden は clip ゆえ、再発しても「静かに」壊れる=このpinが唯一の防波堤。
+    const rule = gameCss.match(/\.game-screen__board\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(rule, '.game-screen__board 規則が見つからない').not.toBe('');
+    expect(rule).toMatch(/overflow:\s*hidden/);
+    expect(rule).not.toMatch(/overflow:\s*auto/);
+  });
+
+  it('配線の継ぎ目: メニューの「相手盤面を見る」が openOpponentBoard を呼ぶ', () => {
+    const state = useGameStore.getState().state!;
+    const controller = controllerFor(state);
+    const view = mount(<ThumbZone controller={controller} />);
+
+    act(() => view.container.querySelector<HTMLButtonElement>('[data-testid="game-menu"]')?.click());
+    const item = view.container.querySelector<HTMLButtonElement>('[data-testid="menu-opponent-board"]');
+    expect(item, 'menu-opponent-board が存在しない').not.toBeNull();
+    expect(item?.textContent).toContain('相手盤面を見る');
+    act(() => item?.click());
+
+    expect(controller.openOpponentBoard).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  it('中身: ダイアログは相手の permanent を controller 別に映す', () => {
+    let state = useGameStore.getState().state!;
+    state = applyCommand(state, {
+      type: 'createScenarioDummy',
+      cardId: 'ui-opp-creature',
+      defId: 'ui-opp-creature-def',
+      playerId: DEFAULT_OPPONENT_ID,
+      name: '相手クリーチャー',
+      typeLine: 'Creature',
+      power: '2',
+      toughness: '2',
+      tapped: false,
+      counters: {},
+      keywords: [],
+      isToken: false,
+    }).state;
+    useGameStore.setState({ state });
+
+    const controller = controllerFor(state);
+    const view = mount(<OpponentBoardDialog controller={controller} onClose={vi.fn()} />);
+
+    expect(view.container.querySelector('[data-testid="opponent-boards"]')).not.toBeNull();
+    expect(
+      view.container.querySelector(`[data-testid="opponent-board-${DEFAULT_OPPONENT_ID}"]`),
+    ).not.toBeNull();
+    expect(view.container.textContent).toContain('相手クリーチャー');
+    view.unmount();
+  });
+
+  it('北極星②: permanent 0枚の相手は空レーン3本でなく「盤面なし」1行に畳む', () => {
+    const state = useGameStore.getState().state!;
+    const controller = controllerFor(state);
+    const view = mount(<OpponentBoardDialog controller={controller} onClose={vi.fn()} />);
+
+    const board = view.container.querySelector(`[data-testid="opponent-board-${DEFAULT_OPPONENT_ID}"]`);
+    expect(board).not.toBeNull();
+    expect(board?.textContent).toContain('盤面なし');
+    expect(board?.querySelector(`[data-testid="opponent-creatures-${DEFAULT_OPPONENT_ID}"]`)).toBeNull();
     view.unmount();
   });
 });

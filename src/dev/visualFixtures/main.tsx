@@ -15,7 +15,7 @@ import {
   isVisualFixtureScenario,
   type VisualFixtureScenario,
 } from './fixtureBuilder';
-import { initializeTheme } from '../../ui/theme';
+import { initializeTheme, saveThemePreference } from '../../ui/theme';
 
 type FixtureUi = 'new' | 'legacy';
 
@@ -34,7 +34,31 @@ function fixtureUi(): FixtureUi {
 
 const scenario = fixtureScenario();
 const ui = fixtureUi();
-if (scenario === 'theme-light' || scenario === 'theme-dark') {
+
+/**
+ * `?theme=light|dark` は**どのシナリオにも**効く。
+ * 以前はテーマ固定が theme-light / theme-dark シナリオ専用で、他のシナリオは
+ * 保存済みの好みに従っていた=新しい fixture を両テーマで見る手段が無かった。
+ * ライトの可読性が壊れたまま出荷された穴はここ(2026-07-16 に塞いだ)。
+ */
+function queryTheme(): 'light' | 'dark' | null {
+  const q = queryValue('theme');
+  return q === 'light' || q === 'dark' ? q : null;
+}
+
+const explicitTheme = queryTheme();
+if (explicitTheme) {
+  // **保存される**(localStorage `mtg-onedeck:theme`)。dev harness は実アプリと同一
+  // オリジンなので、この後アプリを開くと同じテーマで起動する。
+  // なぜ dataset 直書きでないか: ThemeToggle(useTheme)がマウント時に
+  // applyTheme(loadThemePreference()) で同期し直書きを上書きするため、
+  // メニューを開いた瞬間にテーマが戻ってしまう。相手盤面の確認はメニュー経由が
+  // 必須ゆえ、直書きだと fixture は常に誤ったテーマを見せる(=ライトが壊れたまま
+  // 出荷された穴)。ゆえに**明示的な `?theme=` を渡した時だけ**好みごと切り替える
+  // (opt-in の副作用)。テーマを汚したくない場合は `?theme=` を付けない。
+  saveThemePreference(explicitTheme);
+} else if (scenario === 'theme-light' || scenario === 'theme-dark') {
+  // 既存シナリオは従来どおり**保存しない**(この場での見た目固定のみ)。
   document.documentElement.dataset.theme = scenario === 'theme-light' ? 'light' : 'dark';
   document.documentElement.style.colorScheme = scenario === 'theme-light' ? 'light' : 'dark';
 } else {

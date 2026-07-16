@@ -71,6 +71,9 @@ function GameMenuSheet({
           <button type="button" className="game-menu__action" data-testid="menu-search" onClick={act(() => controller.openZoneViewer('library'))}>
             ライブラリを見る
           </button>
+          <button type="button" className="game-menu__action" data-testid="menu-opponent-board" onClick={act(controller.openOpponentBoard)}>
+            相手盤面を見る
+          </button>
           <button type="button" className="game-menu__action" data-testid="menu-tap-all" onClick={act(() => store.tapAllPermanents())}>
             全てタップ
           </button>

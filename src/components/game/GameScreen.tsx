@@ -22,7 +22,7 @@ import { useGameController } from './gameController';
 import { StatusBand } from './StatusBand';
 import { StackBand } from './StackBand';
 import { Board } from './Board';
-import { OpponentBoards } from './OpponentBoards';
+import { OpponentBoardDialog } from './OpponentBoards';
 import { LandRow } from './LandRow';
 import { HandRibbon } from './HandRibbon';
 import { ThumbZone } from './ThumbZone';
@@ -171,8 +171,10 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         <div className="game-screen__stack">
           <StackBand controller={controller} />
         </div>
+        {/* 盤面セルの子は Board だけ。相手盤面を兄として差し込むと Board(height:100%)が
+            セルからはみ出し、自分の盤面が画面外へ消える(7b2c5c1 の回帰)。
+            相手盤面はメニュー「相手盤面を見る」のモーダルで出す=design-vision:80 原則7。 */}
         <div className="game-screen__board">
-          <OpponentBoards controller={controller} />
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <TransitionCue cue={controller.transitionCue} onDone={controller.dismissTransitionCue} />
@@ -197,6 +199,9 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         </div>
 
         {controller.feedOpen && <Feed controller={controller} onClose={controller.closeFeed} />}
+        {controller.opponentBoardOpen && (
+          <OpponentBoardDialog controller={controller} onClose={controller.closeOpponentBoard} />
+        )}
         {controller.overlays}
         {ResearchRecorder && uxResearchModeEnabled() && (
           <Suspense fallback={null}>

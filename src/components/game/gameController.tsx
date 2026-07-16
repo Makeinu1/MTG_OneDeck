@@ -125,6 +125,15 @@ export interface GameController {
   libraryActionsOpen: boolean;
   /** ゾーンビューア(墓地/追放/ライブラリ)を開く。 */
   openZoneViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
+  /**
+   * 相手盤面ビューア(モーダル)。常設しない=docs/design-vision.md:80 原則7
+   * 「常設の…相手ライフ行…は廃止し『タップで出す』へ降格」。
+   * overlays はコントローラ生成前に組まれ controller を参照できないため、
+   * Feed と同じく GameScreen が opponentBoardOpen を見て描画する。
+   */
+  opponentBoardOpen: boolean;
+  openOpponentBoard: () => void;
+  closeOpponentBoard: () => void;
   openTokenDialog: () => void;
   openAttackDialog: () => void;
   openArrangeTop: () => void;
@@ -177,6 +186,7 @@ export function useGameController({
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [zoneViewer, setZoneViewer] = useState<'graveyard' | 'exile' | 'library' | null>(null);
+  const [opponentBoardOpen, setOpponentBoardOpen] = useState(false);
   const [fetchDialog, setFetchDialog] = useState<FetchDialogState | null>(null);
   const [pendingRuleTarget, setPendingRuleTarget] = useState<PendingRuleTargetAction | null>(null);
   const [pendingBloodCrackCardId, setPendingBloodCrackCardId] = useState<string | null>(null);
@@ -212,6 +222,7 @@ export function useGameController({
     commanderMove !== null ||
     tokenDialogOpen ||
     zoneViewer !== null ||
+    opponentBoardOpen ||
     fetchDialog !== null ||
     pendingRuleTarget !== null ||
     pendingBloodCrackCardId !== null ||
@@ -1149,6 +1160,9 @@ export function useGameController({
     openLibraryActions,
     libraryActionsOpen: libraryMenu !== null,
     openZoneViewer: (zone) => setZoneViewer(zone),
+    opponentBoardOpen,
+    openOpponentBoard: () => setOpponentBoardOpen(true),
+    closeOpponentBoard: () => setOpponentBoardOpen(false),
     openTokenDialog: () => setTokenDialogOpen(true),
     openAttackDialog: () => setAttackDialogOpen(true),
     openArrangeTop: () => setArrangeTopOpen(true),

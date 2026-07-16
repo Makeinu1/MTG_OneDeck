@@ -1,6 +1,8 @@
 import { applyCommand } from '../../engine/commands';
 import { initGame, type InitDeckCard } from '../../engine/init';
 import {
+  DEFAULT_OPPONENT_ID,
+  DEFAULT_OPPONENT_LIFE_LABEL,
   objectIdOf,
   syncDerivedViews,
   type GameState,
@@ -39,6 +41,7 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'card-dfc-back',
   'theme-light',
   'theme-dark',
+  'opponent-board',
 ] as const;
 
 export type VisualFixtureScenario = (typeof VISUAL_FIXTURE_SCENARIOS)[number];
@@ -430,6 +433,41 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
   if (scenario === 'board-overflow') {
     state = moveCards(state, handIds.slice(0, 60), 'battlefield');
     return { ...state, phase: 'main1', turn: 9 };
+  }
+  if (scenario === 'opponent-board') {
+    // 相手 permanent を作る唯一の fixture。これが無いと相手盤面の検証は
+    // 実アプリ8操作(取込→開始→セットアップ→相手追加→permanent追加→戻る→
+    // メニュー→テーマ切替)を要し、事実上二度と実行されない=ライトが壊れた原因。
+    // 3レーン(creature / その他 / 土地)と header を全部露出させる。
+    const dummies: { id: string; name: string; typeLine: string; pt?: [string, string] }[] = [
+      { id: 'fixture-opp-creature-1', name: '対戦相手の兵士', typeLine: 'Creature', pt: ['2', '2'] },
+      { id: 'fixture-opp-creature-2', name: '対戦相手の巨人', typeLine: 'Creature', pt: ['5', '4'] },
+      { id: 'fixture-opp-other-1', name: '対戦相手の護符', typeLine: 'Artifact' },
+      { id: 'fixture-opp-land-1', name: '対戦相手の島', typeLine: 'Land' },
+      { id: 'fixture-opp-land-2', name: '対戦相手の山', typeLine: 'Land' },
+    ];
+    for (const dummy of dummies) {
+      state = applyCommand(state, {
+        type: 'createScenarioDummy',
+        cardId: dummy.id,
+        defId: dummy.id + '-def',
+        playerId: DEFAULT_OPPONENT_ID,
+        name: dummy.name,
+        typeLine: dummy.typeLine,
+        power: dummy.pt?.[0],
+        toughness: dummy.pt?.[1],
+        tapped: dummy.id === 'fixture-opp-land-2',
+        counters: {},
+        keywords: [],
+        isToken: false,
+      }).state;
+    }
+    state = applyCommand(state, {
+      type: 'adjustOpponentLife',
+      label: DEFAULT_OPPONENT_LIFE_LABEL,
+      delta: -12,
+    }).state;
+    return { ...state, phase: 'main1', turn: 4 };
   }
   if (
     scenario === 'battlefield'
