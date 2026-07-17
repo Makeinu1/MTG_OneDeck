@@ -25,6 +25,8 @@ export interface GameCardProps {
   showCommanderBadge?: boolean;
   /** プレビュー等の複製カードでは無効化する。GameScreen上の実カードは既定で有効。 */
   draggable?: boolean;
+  /** DrawFlight が同じカードを運んでいる間、手札側の実体を隠す。 */
+  arriving?: boolean;
 }
 
 export function GameCard({
@@ -34,6 +36,7 @@ export function GameCard({
   playable = false,
   showCommanderBadge = true,
   draggable = true,
+  arriving = false,
 }: GameCardProps) {
   const { state } = controller;
   // マウント時点の motionArmed を捕捉(以降 arm が変わっても再演出しない・D5 Tier-1 #1)。
@@ -106,7 +109,9 @@ export function GameCard({
   const commander = isCommander(state, cardId);
 
   const cls = `game-card game-card--${size}${playable ? ' game-card--playable' : ''}${
-    celebrateOnMount ? ' game-card--celebrate' : ''
+    celebrateOnMount && instance.zone === 'battlefield' ? ' game-card--celebrate' : ''
+  }${
+    arriving ? ' game-card--draw-arriving' : ''
   }`;
 
   function schedulePreview(anchor: CardPreviewAnchor): void {

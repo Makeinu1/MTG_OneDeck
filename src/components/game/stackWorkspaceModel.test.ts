@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { applyCommand } from '../../engine/commands';
-import { clampWorkspaceOffset, stackItemPresentations } from './stackWorkspaceModel';
+import { stackItemPresentations } from './stackWorkspaceModel';
 
 describe('stack workspace model', () => {
   it('orders the top item first', () => {
@@ -26,12 +26,5 @@ describe('stack workspace model', () => {
       xValue: 0,
     }).state;
     expect(stackItemPresentations(state).find((item) => item.cardId === cardId)?.announcedX).toBe(0);
-  });
-
-  it('keeps dragged workspace within the viewport', () => {
-    expect(clampWorkspaceOffset({ x: 9999, y: -9999 }, { width: 1280, height: 800 }))
-      .toEqual({ x: 348, y: -78 });
-    expect(clampWorkspaceOffset({ x: 9999, y: -9999 }, { width: 812, height: 375 }))
-      .toEqual({ x: 114, y: 0 });
   });
 });

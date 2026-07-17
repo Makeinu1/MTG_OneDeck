@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isCommander } from '../../engine/commander';
 import { GameCard } from './GameCard';
 import type { GameController } from './gameController';
-import { commanderAltarItems } from './commanderAltarModel';
+import { commanderAltarCollapsed, commanderAltarItems } from './commanderAltarModel';
 import type { DropTarget } from './dragIntent';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
@@ -16,9 +16,11 @@ export function CommanderAltar({
 }) {
   const { state } = controller;
   const [open, setOpen] = useState(false);
+  const [dragConcealed, setDragConcealed] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  const hiddenForDragRef = useRef(false);
+  const restoreFrameRef = useRef<number | null>(null);
+  const dropCompletedRef = useRef(false);
   const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
   // 統率者以外を受けると commanderAltarItems が描画しない=カードが盤上から消える。
   // 誘い(ハイライト・ラベル)自体を出さない。
@@ -39,17 +41,26 @@ export function CommanderAltar({
   }, [open]);
 
   useEffect(() => {
-    const closeAfterDrop = () => setOpen(false);
+    const closeAfterDrop = () => {
+      dropCompletedRef.current = true;
+      setDragConcealed(false);
+      setOpen(false);
+    };
     // On mobile the altar is a full-screen modal. Once its commander has been
     // lifted, keeping that modal visible hides the real cast target and stack.
     const hideWhileDragging = () => {
-      hiddenForDragRef.current = open;
-      setOpen(false);
+      if (!open) return;
+      dropCompletedRef.current = false;
+      setDragConcealed(true);
     };
     const restoreTriggerAfterDrag = () => {
-      if (!hiddenForDragRef.current) return;
-      hiddenForDragRef.current = false;
-      requestAnimationFrame(() => triggerRef.current?.focus());
+      if (!open) return;
+      restoreFrameRef.current = requestAnimationFrame(() => {
+        restoreFrameRef.current = null;
+        if (dropCompletedRef.current) return;
+        setDragConcealed(false);
+        triggerRef.current?.focus();
+      });
     };
     document.addEventListener('onedeck-drop-complete', closeAfterDrop);
     document.addEventListener(DRAG_UI_START_EVENT, hideWhileDragging);
@@ -58,13 +69,16 @@ export function CommanderAltar({
       document.removeEventListener('onedeck-drop-complete', closeAfterDrop);
       document.removeEventListener(DRAG_UI_START_EVENT, hideWhileDragging);
       document.removeEventListener(DRAG_UI_END_EVENT, restoreTriggerAfterDrag);
+      if (restoreFrameRef.current !== null) cancelAnimationFrame(restoreFrameRef.current);
     };
   }, [open]);
 
   if (!state) return null;
   const items = commanderAltarItems(state);
+  const collapsed = commanderAltarCollapsed(state);
 
   function close(): void {
+    setDragConcealed(false);
     setOpen(false);
     requestAnimationFrame(() => triggerRef.current?.focus());
   }
@@ -75,7 +89,9 @@ export function CommanderAltar({
       className="commander-altar"
       data-testid="commander-altar"
       data-count={items.length}
+      data-collapsed={collapsed || undefined}
       data-open={open || undefined}
+      data-drag-concealed={dragConcealed || undefined}
       data-drop-active={dropTarget !== null || undefined}
       data-drop-over={isOver || undefined}
       aria-label="統率者領域"

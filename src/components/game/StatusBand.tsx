@@ -72,6 +72,7 @@ export function StatusBand({ controller }: StatusBandProps) {
   }, [life]);
   if (!state) return null;
   const model = statusBandModel(state);
+  const activePhaseIndex = PHASE_ORDER.indexOf(model.phase);
   const mana = manaReadinessModel(state);
   const unseen = feedUnseenCount(store.warnings, store.triggerCandidates);
 
@@ -86,12 +87,12 @@ export function StatusBand({ controller }: StatusBandProps) {
 
       <div className="status-band__phases" data-testid="phase-indicator" data-phase={model.phase}>
         <strong className="status-band__phase-current" data-testid="current-phase-label">
-          現在：{model.phaseLabel}
+          現在：{model.phaseLabel}<span>・{store.autoAdvanceToMain ? '自動' : '手動'}</span>
         </strong>
-        {PHASE_ORDER.map((phase) => (
+        {PHASE_ORDER.map((phase, index) => (
           <span
             key={phase}
-            className={`status-band__phase ${phase === model.phase ? 'is-active' : ''}`}
+            className={`status-band__phase${phase === model.phase ? ' is-active' : ''}${index < activePhaseIndex ? ' is-done' : ''}`}
             title={PHASE_META[phase].label}
           >
             {PHASE_META[phase].short}

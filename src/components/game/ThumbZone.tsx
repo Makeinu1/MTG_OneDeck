@@ -95,7 +95,7 @@ function GameMenuSheet({
             data-testid="menu-auto-advance"
             onClick={act(() => store.setAutoAdvance(!store.autoAdvanceToMain))}
           >
-            自動メイン移行: {store.autoAdvanceToMain ? 'ON' : 'OFF'}
+            ターン開始: {store.autoAdvanceToMain ? '自動でメイン1まで' : 'フェイズごとに進む'}
           </button>
           <button
             type="button"

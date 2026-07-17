@@ -1,15 +1,8 @@
-/**
- * StackBand — 盤面中央に開く、移動可能な非modal Stack Workspace。
- * 表示位置はUIローカル状態であり、GameState/snapshotへは保存しない。
- */
+/** StackBand — desktop right rail / compact mobile sheet. */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GameCard } from './GameCard';
-import {
-  clampWorkspaceOffset,
-  stackItemPresentations,
-  type StackItemPresentation,
-} from './stackWorkspaceModel';
+import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
 import type { GameController } from './gameController';
 import { ManualTargetDialog } from './ManualTargetDialog';
 
@@ -21,18 +14,18 @@ interface TargetLine {
   y2: number;
 }
 
-function StackTargetLines({ items, offset }: {
-  items: StackItemPresentation[];
-  offset: { x: number; y: number };
-}) {
+function StackTargetLines({ item }: { item: StackItemPresentation | undefined }) {
   const [lines, setLines] = useState<TargetLine[]>([]);
 
   useLayoutEffect(() => {
     function measure(): void {
       const next: TargetLine[] = [];
-      for (const item of items) {
+      if (item) {
         const source = document.querySelector<HTMLElement>(`[data-stack-item-id="${item.cardId}"]`);
-        if (!source) continue;
+        if (!source || source.getClientRects().length === 0) {
+          setLines([]);
+          return;
+        }
         const sourceRect = source.getBoundingClientRect();
         item.targets.forEach((target, index) => {
           const stackTarget = target.cardId
@@ -69,7 +62,7 @@ function StackTargetLines({ items, offset }: {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
-  }, [items, offset]);
+  }, [item]);
 
   if (lines.length === 0) return null;
   return (
@@ -94,15 +87,9 @@ export function StackBand({ controller }: StackBandProps) {
   const stackLen = controller.state?.zones.stack.length ?? 0;
   const prevLen = useRef(stackLen);
   const [flash, setFlash] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [manualTargetSourceId, setManualTargetSourceId] = useState<string | null>(null);
-  const dragRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    originX: number;
-    originY: number;
-  } | null>(null);
 
   useEffect(() => {
     if (stackLen < prevLen.current && stackLen > 0) {
@@ -114,78 +101,56 @@ export function StackBand({ controller }: StackBandProps) {
     prevLen.current = stackLen;
   }, [stackLen]);
 
-  useEffect(() => {
-    const reclamp = () => setOffset((current) => clampWorkspaceOffset(current, {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }));
-    window.addEventListener('resize', reclamp);
-    return () => window.removeEventListener('resize', reclamp);
-  }, []);
-
   const { state } = controller;
   if (!state || state.zones.stack.length === 0) {
     return <div className="stack-band stack-band--empty" data-testid="stack-band" aria-hidden />;
   }
 
   const items = stackItemPresentations(state);
-
-  function beginDrag(event: React.PointerEvent<HTMLDivElement>): void {
-    if ((event.target as HTMLElement).closest('button')) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: offset.x,
-      originY: offset.y,
-    };
-  }
-
-  function moveDrag(event: React.PointerEvent<HTMLDivElement>): void {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    setOffset(clampWorkspaceOffset({
-      x: drag.originX + event.clientX - drag.startX,
-      y: drag.originY + event.clientY - drag.startY,
-    }, { width: window.innerWidth, height: window.innerHeight }));
-  }
-
-  function endDrag(event: React.PointerEvent<HTMLDivElement>): void {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
-  }
-
-  const style = {
-    '--stack-workspace-x': `${offset.x}px`,
-    '--stack-workspace-y': `${offset.y}px`,
-  } as React.CSSProperties;
+  const selectedItem = items.find((item) => item.cardId === selectedCardId) ?? items[0];
 
   return (
     <>
-      <StackTargetLines items={items} offset={offset} />
+      <StackTargetLines item={selectedItem} />
+      <button
+        type="button"
+        className="stack-compact-trigger"
+        data-testid="stack-compact-trigger"
+        data-mobile-open={mobileOpen || undefined}
+        aria-expanded={mobileOpen}
+        aria-controls="stack-workspace"
+        onClick={() => setMobileOpen(true)}
+      >
+        <span>次に解決</span>
+        <strong>{items[0]?.name}</strong>
+        <small>{items.length}件</small>
+      </button>
       <section
+        id="stack-workspace"
         className={`stack-band stack-workspace${flash ? ' stack-band--flash' : ''}`}
         data-testid="stack-band"
-        style={style}
+        data-mobile-open={mobileOpen || undefined}
         aria-label={`スタック ${items.length}件`}
       >
-        <div
-          className="stack-workspace__handle"
-          data-testid="stack-workspace-handle"
-          onPointerDown={beginDrag}
-          onPointerMove={moveDrag}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        >
+        <div className="stack-workspace__handle" data-testid="stack-workspace-handle">
           <div>
             <strong>スタック</strong>
             <span>{items.length}件 · 上から順に解決</span>
           </div>
-          <button type="button" onClick={() => setOffset({ x: 0, y: 0 })}>位置を戻す</button>
+          <button type="button" className="stack-workspace__close" onClick={() => setMobileOpen(false)}>閉じる</button>
         </div>
         <ol className="stack-workspace__items">
           {items.map((item, index) => (
-            <li key={item.cardId} data-stack-item-id={item.cardId} data-testid={`stack-workspace-item-${item.cardId}`}>
+            <li
+              key={item.cardId}
+              className={item.cardId === selectedItem?.cardId ? 'is-selected' : ''}
+              data-stack-item-id={item.cardId}
+              data-testid={`stack-workspace-item-${item.cardId}`}
+              tabIndex={0}
+              onMouseEnter={() => setSelectedCardId(item.cardId)}
+              onFocus={() => setSelectedCardId(item.cardId)}
+              onClick={() => setSelectedCardId(item.cardId)}
+            >
               <div className="stack-workspace__card">
                 {/* スタックからの移動は resolveTop/removeStackItem が解決時効果(CR608)を
                     適用する専用経路を通す必要がある。汎用の D&D move-zone はそれを迂回して
@@ -201,42 +166,38 @@ export function StackBand({ controller }: StackBandProps) {
                   </span>
                 )}
                 {item.source && <span>発生源 {item.source}</span>}
-                <span className="stack-workspace__targets">
-                  対象{' '}
-                  {item.targets.length > 0
-                    ? item.targets.map((target, targetIndex) => (
-                      <span
-                        key={`${target.label}-${targetIndex}`}
-                        className="stack-workspace__target-chip"
-                        data-target-player={target.playerId}
-                      >
-                        {target.label}
-                      </span>
-                    ))
-                    : 'なし／未記録'}
-                </span>
-                <button
-                  type="button"
-                  className="stack-workspace__manual-target"
-                  data-testid={`stack-manual-target-${item.cardId}`}
-                  onClick={() => setManualTargetSourceId(item.cardId)}
-                >
-                  対象を手動設定
-                </button>
+                {item.cardId === selectedItem?.cardId && (
+                  <>
+                    <span className="stack-workspace__targets">
+                      対象{' '}
+                      {item.targets.length > 0
+                        ? item.targets.map((target, targetIndex) => (
+                          <span
+                            key={`${target.label}-${targetIndex}`}
+                            className="stack-workspace__target-chip"
+                            data-target-player={target.playerId}
+                          >
+                            {target.label}
+                          </span>
+                        ))
+                        : 'なし／未記録'}
+                    </span>
+                    <button
+                      type="button"
+                      className="stack-workspace__manual-target"
+                      data-testid={`stack-manual-target-${item.cardId}`}
+                      onClick={() => setManualTargetSourceId(item.cardId)}
+                    >
+                      対象を手動設定
+                    </button>
+                  </>
+                )}
               </div>
             </li>
           ))}
         </ol>
         <footer>
-          <span>手札・盤面から応答を追加できます</span>
-          <button
-            type="button"
-            className="stack-band__resolve"
-            data-testid="stack-band-resolve"
-            onClick={() => controller.requestResolveTop()}
-          >
-            最上段を解決
-          </button>
+          <span>解決は画面下のプライマリアクションから。手札・盤面から応答を追加できます。</span>
         </footer>
       </section>
       {manualTargetSourceId && (

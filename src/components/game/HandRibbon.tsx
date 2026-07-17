@@ -6,6 +6,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -14,13 +15,37 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { useDroppable } from '@dnd-kit/core';
 import { GameCard } from './GameCard';
+import { CardView } from '../CardView';
 import { playableHandCardIds } from './affordability';
 import { celebrate } from './sound';
 import { shouldCompress } from './motion';
+import { appendedLocalDraws, drawStaggerMs } from './drawAnimationModel';
 import type { GameController } from './gameController';
 import { handFanCardLayout } from './handFanLayout';
+import type { GameEvent } from '../../engine/types';
+
+const DRAW_FLIGHT_MS = 240;
+
+interface DrawFlightGeometry {
+  eventId: string;
+  cardId: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  fromX: number;
+  fromY: number;
+  delayMs: number;
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 export interface HandRibbonProps {
   controller: GameController;
@@ -40,7 +65,12 @@ export function HandRibbon({
   const { state, store } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const handCardsRef = useRef<HTMLDivElement | null>(null);
+  const libraryTileRef = useRef<HTMLButtonElement | null>(null);
+  const previousEventLogRef = useRef<readonly GameEvent[] | null>(null);
+  const flightTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const [handScrollEdges, setHandScrollEdges] = useState({ left: false, right: false });
+  const [arrivingCardIds, setArrivingCardIds] = useState<Set<string>>(() => new Set());
+  const [drawFlights, setDrawFlights] = useState<DrawFlightGeometry[]>([]);
   const { setNodeRef: setGraveyardDropRef, isOver: graveyardDropOver } = useDroppable({
     id: 'game-graveyard-drop',
     data: { dropTarget: { kind: 'move-zone', zone: 'graveyard' } },
@@ -64,6 +94,7 @@ export function HandRibbon({
     [],
   );
   const handCount = state?.zones.hand.length ?? 0;
+  const openingHand = store.mulliganDecisionPending;
   const largeHandCollapsed = handCount > 15 && !workspaceOpen && !flatControl;
   const handLayout = flatControl
     ? 'flat'
@@ -110,6 +141,79 @@ export function HandRibbon({
     };
   }, [handCount, handLayout]);
 
+  useEffect(() => () => {
+    flightTimersRef.current.forEach(clearTimeout);
+    flightTimersRef.current = [];
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!state) {
+      previousEventLogRef.current = null;
+      return;
+    }
+    const previous = previousEventLogRef.current;
+    previousEventLogRef.current = state.eventLog;
+    const arrivals = appendedLocalDraws(previous, state.eventLog, state.localPlayerId)
+      .filter(({ cardId }) => state.cards[cardId]?.zone === 'hand');
+    if (arrivals.length === 0 || !controller.motionArmed || prefersReducedMotion()) return;
+
+    const arrivingIds = new Set(arrivals.map(({ cardId }) => cardId));
+    setArrivingCardIds((current) => new Set([...current, ...arrivingIds]));
+
+    const handNode = handCardsRef.current;
+    if (handNode) {
+      const handRect = handNode.getBoundingClientRect();
+      const destinationRects = arrivals.flatMap(({ cardId }) => {
+        const node = handNode.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`);
+        return node ? [node.getBoundingClientRect()] : [];
+      });
+      const furthestRight = destinationRects.reduce((right, rect) => Math.max(right, rect.right), handRect.right);
+      const furthestLeft = destinationRects.reduce((left, rect) => Math.min(left, rect.left), handRect.left);
+      if (furthestRight > handRect.right) handNode.scrollLeft += furthestRight - handRect.right + 8;
+      else if (furthestLeft < handRect.left) handNode.scrollLeft -= handRect.left - furthestLeft + 8;
+    }
+
+    const animationFrame = requestAnimationFrame(() => {
+      const origin = libraryTileRef.current?.getBoundingClientRect();
+      const currentHand = handCardsRef.current;
+      if (!origin || !currentHand) {
+        setArrivingCardIds((current) => new Set([...current].filter((id) => !arrivingIds.has(id))));
+        return;
+      }
+      const timelineDelay = arrivals.some(({ causeCommandType }) => causeCommandType === 'nextPhase')
+        ? (controller.transitionCue?.drawAtMs ?? 0)
+        : 0;
+      const nextFlights = arrivals.flatMap((arrival, index) => {
+        const destination = currentHand.querySelector<HTMLElement>(`[data-testid="card-${arrival.cardId}"]`);
+        if (!destination) return [];
+        const rect = destination.getBoundingClientRect();
+        return [{
+          eventId: arrival.eventId,
+          cardId: arrival.cardId,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          fromX: origin.left + origin.width / 2 - (rect.left + rect.width / 2),
+          fromY: origin.top + origin.height / 2 - (rect.top + rect.height / 2),
+          delayMs: timelineDelay + drawStaggerMs(index),
+        }];
+      });
+      if (nextFlights.length === 0) {
+        setArrivingCardIds((current) => new Set([...current].filter((id) => !arrivingIds.has(id))));
+        return;
+      }
+      setDrawFlights((current) => [...current, ...nextFlights]);
+      const releaseTimer = setTimeout(() => {
+        const eventIds = new Set(nextFlights.map(({ eventId }) => eventId));
+        setDrawFlights((current) => current.filter(({ eventId }) => !eventIds.has(eventId)));
+        setArrivingCardIds((current) => new Set([...current].filter((id) => !arrivingIds.has(id))));
+      }, Math.max(...nextFlights.map(({ delayMs }) => delayMs)) + DRAW_FLIGHT_MS + 40);
+      flightTimersRef.current.push(releaseTimer);
+    });
+    return () => cancelAnimationFrame(animationFrame);
+  }, [controller.motionArmed, controller.transitionCue, state]);
+
   if (!state) return null;
 
   function handleWorkspaceKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
@@ -149,6 +253,7 @@ export function HandRibbon({
       className="hand-ribbon"
       data-testid="hand-ribbon"
       data-layout={handLayout}
+      data-opening-hand={openingHand || undefined}
       id="hand-workspace"
       role={handLayout === 'workspace' ? 'dialog' : undefined}
       aria-modal={handLayout === 'workspace' ? true : undefined}
@@ -184,6 +289,7 @@ export function HandRibbon({
           }}
         >
           <button
+            ref={libraryTileRef}
             type="button"
             className="hand-ribbon__zone hand-ribbon__zone--library"
             data-testid="library-tile"
@@ -281,14 +387,53 @@ export function HandRibbon({
               '--fan-mobile-rotation': `${fan.rotationDeg * 0.38}deg`,
               '--fan-mobile-y': `${fan.translateY * 0.25}px`,
               '--fan-mobile-margin': `${Math.max(-24, fan.marginLeft * 0.42)}px`,
+              '--deal-index': index,
             } as CSSProperties : undefined;
             return (
-              <div className="hand-ribbon__slot" style={style} key={cardId}>
-                <GameCard controller={controller} cardId={cardId} size="hand" playable={playable.has(cardId)} />
+              <div
+                className="hand-ribbon__slot"
+                style={style}
+                key={openingHand ? `opening-${state.mulliganCount}-${cardId}` : cardId}
+              >
+                <GameCard
+                  controller={controller}
+                  cardId={cardId}
+                  size="hand"
+                  playable={playable.has(cardId)}
+                  arriving={arrivingCardIds.has(cardId)}
+                />
               </div>
             );
           })}
         </div>
+      )}
+      {typeof document !== 'undefined' && createPortal(
+        <div className="draw-flight-layer" aria-hidden="true">
+          {drawFlights.map((flight) => {
+            const instance = state.cards[flight.cardId];
+            const def = instance ? state.defs[instance.defId] : undefined;
+            if (!instance) return null;
+            return (
+              <div
+                key={flight.eventId}
+                className="draw-flight-card"
+                data-testid={`draw-flight-${flight.cardId}`}
+                style={{
+                  left: flight.left,
+                  top: flight.top,
+                  width: flight.width,
+                  height: flight.height,
+                  '--draw-from-x': `${flight.fromX}px`,
+                  '--draw-from-y': `${flight.fromY}px`,
+                  '--draw-flight-delay': `${flight.delayMs}ms`,
+                } as CSSProperties}
+              >
+                <CardView instance={instance} def={def} size="battlefield" draggable={false} />
+              </div>
+            );
+          })}
+        </div>,
+        document.body,
       )}
     </div>
   );

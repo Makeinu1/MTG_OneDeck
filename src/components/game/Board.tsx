@@ -58,9 +58,11 @@ export function BattlefieldShelf({ controller, cardIds, testId, emptyLabel }: Sh
           ['--board-overlap-margin' as string]: `${boardOverlapMargin(width)}px`,
         }}
       >
-        {cardIds.map((cardId) => (
-          <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
-        ))}
+        <div className="board-shelf__lane">
+          {cardIds.map((cardId) => (
+            <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
+          ))}
+        </div>
       </div>
       {overflowExpected && (
         <>

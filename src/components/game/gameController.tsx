@@ -56,6 +56,7 @@ import {
 } from '../playmat/dialogs';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 import type { DropIntent } from './dragIntent';
+import { HISTORY_UI_EVENT } from './historyUiEvents';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -261,12 +262,23 @@ export function useGameController({
 
   const cards = state?.cards ?? {};
 
-  function announceTransition(previous: GameState, next: GameState | null): void {
+  function announceTransition(
+    previous: GameState,
+    next: GameState | null,
+    options: { forceTurnStart?: boolean } = {},
+  ): void {
     if (!next) return;
-    const cue = transitionCueFor(previous, next);
+    const cue = transitionCueFor(previous, next, options);
     if (!cue) return;
     transitionCueIdRef.current += 1;
     setTransitionCue({ ...cue, id: transitionCueIdRef.current });
+  }
+
+  function beginFirstTurn(): void {
+    const previous = useGameStore.getState().state;
+    if (!previous) return;
+    store.beginFirstTurn();
+    announceTransition(previous, useGameStore.getState().state, { forceTurnStart: true });
   }
 
   function advancePhase(): void {
@@ -285,11 +297,13 @@ export function useGameController({
 
   function undo(): void {
     setTransitionCue(null);
+    document.dispatchEvent(new Event(HISTORY_UI_EVENT));
     store.undo();
   }
 
   function redo(): void {
     setTransitionCue(null);
+    document.dispatchEvent(new Event(HISTORY_UI_EVENT));
     store.redo();
   }
 
@@ -833,7 +847,7 @@ export function useGameController({
             store.keepOpeningHand();
             const bottom = freeMulliganBottomCount(count);
             if (bottom > 0) setMulliganBottomCount(bottom);
-            else store.beginFirstTurn();
+            else beginFirstTurn();
           }}
           onMulligan={() => store.mulligan()}
         />
@@ -847,7 +861,7 @@ export function useGameController({
           onConfirm={(chosen) => {
             store.putBottomForMulligan(chosen);
             setMulliganBottomCount(null);
-            store.beginFirstTurn();
+            beginFirstTurn();
           }}
         />
       )}

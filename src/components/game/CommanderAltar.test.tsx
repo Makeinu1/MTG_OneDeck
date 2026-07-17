@@ -5,7 +5,7 @@ import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { useGameStore } from '../../store/gameStore';
 import { CommanderAltar } from './CommanderAltar';
 import type { GameController } from './gameController';
-import { DRAG_UI_START_EVENT } from './dragUiEvents';
+import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
 vi.mock('./sound', () => ({ celebrate: vi.fn() }));
 
@@ -83,7 +83,11 @@ describe('CommanderAltar', () => {
     act(() => root.unmount());
   });
 
-  it('hides the temporary panel as soon as a drag starts', () => {
+  it('conceals the temporary panel without removing its drag source geometry', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
     const { controller } = controllerForAway();
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -97,9 +101,43 @@ describe('CommanderAltar', () => {
     act(() => {
       document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
     });
-    expect(altar?.dataset.open).toBeUndefined();
-    expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+    expect(altar?.dataset.open).toBe('true');
+    expect(altar?.dataset.dragConcealed).toBe('true');
+    expect(container.querySelector('[data-testid^="card-"]')).not.toBeNull();
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
+    });
+    expect(altar?.dataset.open).toBe('true');
+    expect(altar?.dataset.dragConcealed).toBeUndefined();
     act(() => root.unmount());
+    raf.mockRestore();
+  });
+
+  it('closes the temporary panel after a successful drop', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    const { controller } = controllerForAway();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<CommanderAltar controller={controller} />));
+    const altar = container.querySelector<HTMLElement>('[data-testid="commander-altar"]');
+    const trigger = container.querySelector<HTMLButtonElement>('[data-testid="commander-altar-toggle"]');
+
+    act(() => trigger?.click());
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
+    });
+    act(() => {
+      document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
+      document.dispatchEvent(new Event('onedeck-drop-complete'));
+    });
+    expect(altar?.dataset.open).toBeUndefined();
+    expect(altar?.dataset.dragConcealed).toBeUndefined();
+    act(() => root.unmount());
+    raf.mockRestore();
   });
 
   it('keeps a commander outside the command zone keyboard- and pointer-operable', () => {

@@ -46,18 +46,3 @@ export function stackItemPresentations(state: GameState): StackItemPresentation[
     };
   });
 }
-
-export function clampWorkspaceOffset(
-  offset: { x: number; y: number },
-  viewport: { width: number; height: number },
-): { x: number; y: number } {
-  const margin = 12;
-  const workspaceWidth = Math.min(560, Math.max(0, viewport.width - margin * 2));
-  const workspaceHeight = Math.min(620, Math.max(0, viewport.height - margin * 2));
-  const maxX = Math.max(0, (viewport.width - workspaceWidth) / 2 - margin);
-  const maxY = Math.max(0, (viewport.height - workspaceHeight) / 2 - margin);
-  return {
-    x: Math.max(-maxX, Math.min(maxX, offset.x)),
-    y: maxY === 0 ? 0 : Math.max(-maxY, Math.min(maxY, offset.y)),
-  };
-}

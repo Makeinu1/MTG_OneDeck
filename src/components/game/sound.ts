@@ -2,14 +2,14 @@
  * sound — 祝祭感の効果(D5): WebAudio 合成音 + ハプティクス。docs/design-system.md §7/§7b。
  *
  * 音は**既定 OFF・opt-in**(motion.isSoundEnabled)。WebAudio の OscillatorNode + エンベロープで
- * 合成する(外部アセット/依存の追加なし=STOP③回避)。音数 ≤3・各 ≤400ms。3レイヤー設計は D7。
+ * 合成する(外部アセット/依存の追加なし=STOP③回避)。音数 ≤10・各 ≤400ms。3レイヤー設計は D7。
  * ハプティクス navigator.vibrate(10) を primary/draw/resolve に(reduced-motion では抑制)。
  */
 
 import { isSoundEnabled } from './motion';
 
 /** 祝祭の効果種別(ハプティクス/音の発火点)。 */
-export type CelebrationEffect = 'primary' | 'draw' | 'resolve';
+export type CelebrationEffect = 'primary' | 'draw' | 'resolve' | 'commander' | 'chain';
 
 let ctx: AudioContext | null = null;
 
@@ -34,6 +34,8 @@ const TONE: Record<CelebrationEffect, { freq: number; type: OscillatorType; dur:
   primary: { freq: 320, type: 'triangle', dur: 0.06, gain: 0.05 }, // 極小クリック
   draw: { freq: 520, type: 'sine', dur: 0.12, gain: 0.06 }, // 紙の滑り(短い上昇なし=単音)
   resolve: { freq: 740, type: 'sine', dur: 0.22, gain: 0.07 }, // 澄んだ確定音
+  commander: { freq: 620, type: 'triangle', dur: 0.30, gain: 0.075 },
+  chain: { freq: 860, type: 'sine', dur: 0.34, gain: 0.065 },
 };
 
 function playTone(effect: CelebrationEffect): void {

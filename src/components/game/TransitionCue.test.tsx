@@ -13,10 +13,10 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phase: 'combat' }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
     });
     expect(container.querySelector('[data-testid="transition-cue"]')?.textContent).toContain('戦闘');
-    act(() => { vi.advanceTimersByTime(759); });
+    act(() => { vi.advanceTimersByTime(519); });
     expect(onDone).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(1); });
     expect(onDone).toHaveBeenCalledWith(1);
@@ -24,22 +24,52 @@ describe('TransitionCue', () => {
     container.remove();
   });
 
-  it('uses the longer turn duration and announces only the final phase', () => {
+  it('uses the longer turn duration and announces the full beginning sequence', () => {
     vi.useFakeTimers();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 2, kind: 'turn', turn: 4, phase: 'main1' }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 2, kind: 'turn', turn: 4, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 600, durationMs: 1100 }} onDone={onDone} />);
     });
     expect(container.textContent).toContain('第4ターン');
     expect(container.textContent).toContain('メイン1');
-    expect(container.textContent).not.toContain('アップキープ');
+    expect(container.textContent).toContain('アップキープ');
     act(() => { vi.advanceTimersByTime(1100); });
     expect(onDone).toHaveBeenCalledWith(2);
     act(() => root.unmount());
     container.remove();
+  });
+
+  it('keeps a short static announcement for reduced motion', () => {
+    vi.useFakeTimers();
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    });
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: matchMedia });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const onDone = vi.fn();
+    act(() => {
+      root.render(<TransitionCue cue={{ id: 3, kind: 'turn', turn: 5, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 600, durationMs: 1100 }} onDone={onDone} />);
+    });
+    expect(container.querySelector('.is-active')?.getAttribute('title')).toBe('メイン1');
+    act(() => { vi.advanceTimersByTime(239); });
+    expect(onDone).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(onDone).toHaveBeenCalledWith(3);
+    act(() => root.unmount());
+    container.remove();
+    Reflect.deleteProperty(window, 'matchMedia');
   });
 
   it('restarts the visible lifetime when rapid input replaces the cue', () => {
@@ -49,17 +79,17 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phase: 'combat' }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
     });
     const firstLayer = container.querySelector('[data-testid="transition-cue"]');
     act(() => { vi.advanceTimersByTime(400); });
     act(() => {
-      root.render(<TransitionCue cue={{ id: 2, kind: 'phase', turn: 2, phase: 'main2' }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 2, kind: 'phase', turn: 2, phases: ['main2'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
     });
     const secondLayer = container.querySelector('[data-testid="transition-cue"]');
     expect(secondLayer).not.toBe(firstLayer);
     expect(secondLayer?.textContent).toContain('メイン2');
-    act(() => { vi.advanceTimersByTime(360); });
+    act(() => { vi.advanceTimersByTime(120); });
     expect(onDone).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(400); });
     expect(onDone).toHaveBeenCalledTimes(1);

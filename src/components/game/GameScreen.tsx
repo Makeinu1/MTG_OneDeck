@@ -29,7 +29,11 @@ import { ThumbZone } from './ThumbZone';
 import { Feed } from './Feed';
 import { CommanderAltar } from './CommanderAltar';
 import { TransitionCue } from './TransitionCue';
+import { RecentCue } from './RecentCue';
+import { CelebrationLayer } from './CelebrationLayer';
 import type { KeybindingsMap } from '../../data/keybindings';
+import type { CardInstance } from '../../engine/types';
+import type { CardDef } from '../../types/card';
 import { CardView } from '../CardView';
 import { TOUCH_DRAG_ACTIVATION } from '../touchDrag';
 import { resolveDropIntent, type DropTarget } from './dragIntent';
@@ -55,6 +59,13 @@ export interface GameScreenProps {
   onOpenOpponentSetup?: () => void;
 }
 
+interface ActiveDragVisual {
+  cardId: string;
+  instance: CardInstance;
+  def: CardDef;
+  geometry: DragOverlayGeometry;
+}
+
 function activatorClientPoint(event: Event): { x: number; y: number } | null {
   const mouseEvent = event as Partial<MouseEvent>;
   if (typeof mouseEvent.clientX === 'number' && typeof mouseEvent.clientY === 'number') {
@@ -72,8 +83,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
   );
   const handWorkspaceAvailable = initialHandLayout !== 'flat';
   const [handWorkspaceOpen, setHandWorkspaceOpen] = useState(initialHandLayout === 'workspace');
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [dragOverlayGeometry, setDragOverlayGeometry] = useState<DragOverlayGeometry | null>(null);
+  const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
   const controller = useGameController({
     keybindings,
     externalShortcutsBlocked: handWorkspaceOpen,
@@ -103,12 +113,14 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
   }
 
   if (!controller.state) return null;
-  const activeCard = activeDragId ? controller.state.cards[activeDragId] : undefined;
-  const activeDef = activeCard ? controller.state.defs[activeCard.defId] : undefined;
+  const activeDragId = activeDrag?.cardId ?? null;
 
   function handleDragStart(event: DragStartEvent): void {
     controller.closeTransientUi();
     const cardId = String(event.active.id);
+    const instance = controller.state?.cards[cardId];
+    const def = instance ? controller.state?.defs[instance.defId] : undefined;
+    if (!instance || !def) return;
     const eventTarget = event.activatorEvent.target;
     const sourceCard = eventTarget instanceof Element
       ? eventTarget.closest<HTMLElement>('.card-view')
@@ -124,20 +136,21 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
     const faceElement = cardElement?.querySelector<HTMLElement>('.card-view__face');
     const faceTransform = faceElement ? getComputedStyle(faceElement).transform : 'none';
 
-    setDragOverlayGeometry(createDragOverlayGeometry(
+    const geometry = createDragOverlayGeometry(
       initialBounds,
       cardElement ? { width: cardElement.offsetWidth, height: cardElement.offsetHeight } : null,
       transform,
       faceTransform,
       activatorClientPoint(event.activatorEvent),
-    ));
-    setActiveDragId(cardId);
+    );
+    // Capture the whole visual before CommanderAltar conceals its modal. The
+    // overlay must never consult a source node whose layout can change mid-drag.
+    setActiveDrag({ cardId, instance, def, geometry });
     document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
   }
 
   function finishDrag(): void {
-    setActiveDragId(null);
-    setDragOverlayGeometry(null);
+    setActiveDrag(null);
     document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
   }
 
@@ -164,6 +177,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         data-testid="game-screen"
         data-hand-workspace-open={handWorkspaceOpen || undefined}
         data-drag-active={activeDragId || undefined}
+        data-stack-active={controller.state.zones.stack.length > 0 || undefined}
       >
         <div className="game-screen__status">
           <StatusBand controller={controller} />
@@ -178,6 +192,8 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <TransitionCue cue={controller.transitionCue} onDone={controller.dismissTransitionCue} />
+        <RecentCue controller={controller} />
+        <CelebrationLayer controller={controller} />
         <UpdateNotice />
         <div className="game-screen__lands">
           <CommanderAltar controller={controller} activeDragId={activeDragId} />
@@ -215,30 +231,30 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           one-card grip offset. The semantic transition owns the feedback, so
           the transient drag copy must disappear immediately on release. */}
       <DragOverlay adjustScale={false} dropAnimation={null}>
-        {activeCard && activeDef && dragOverlayGeometry ? (
+        {activeDrag ? (
           <div
             className="game-drag-overlay"
             data-testid="game-drag-overlay"
             style={{
-              width: dragOverlayGeometry.frameWidth,
-              height: dragOverlayGeometry.frameHeight,
+              width: activeDrag.geometry.frameWidth,
+              height: activeDrag.geometry.frameHeight,
             }}
           >
             <div
               className="game-drag-overlay__card"
               style={{
-                width: dragOverlayGeometry.cardWidth,
-                height: dragOverlayGeometry.cardHeight,
-                left: dragOverlayGeometry.gripOffsetX,
-                top: dragOverlayGeometry.gripOffsetY,
-                transform: `translate(${-dragOverlayGeometry.cardGripX}px, ${-dragOverlayGeometry.cardGripY}px)`,
+                width: activeDrag.geometry.cardWidth,
+                height: activeDrag.geometry.cardHeight,
+                left: activeDrag.geometry.gripOffsetX,
+                top: activeDrag.geometry.gripOffsetY,
+                transform: `translate(${-activeDrag.geometry.cardGripX}px, ${-activeDrag.geometry.cardGripY}px)`,
               }}
             >
               <div
                 className="game-drag-overlay__visual"
-                style={{ '--drag-face-transform': dragOverlayGeometry.faceTransform } as React.CSSProperties}
+                style={{ '--drag-face-transform': activeDrag.geometry.faceTransform } as React.CSSProperties}
               >
-                <CardView instance={activeCard} def={activeDef} size="battlefield" draggable={false} />
+                <CardView instance={activeDrag.instance} def={activeDrag.def} size="battlefield" draggable={false} />
               </div>
             </div>
           </div>

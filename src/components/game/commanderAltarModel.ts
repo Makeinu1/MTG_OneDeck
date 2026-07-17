@@ -27,3 +27,9 @@ export function commanderAltarItems(state: GameState) {
     }];
   });
 }
+
+/** Desktop keeps the full altar only while at least one commander is available there. */
+export function commanderAltarCollapsed(state: GameState): boolean {
+  const items = commanderAltarItems(state);
+  return items.length > 0 && items.every((item) => !item.inCommandZone);
+}

@@ -11,6 +11,8 @@ import { GameCard } from './GameCard';
 import { LandRow } from './LandRow';
 import { Board } from './Board';
 import { StackBand } from './StackBand';
+import { RecentCue } from './RecentCue';
+import { ThumbZone } from './ThumbZone';
 import type { GameController } from './gameController';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
@@ -264,6 +266,58 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('keeps resolution in PrimaryAction and lets the rail select one target story at a time', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(
+      <DndContext>
+        <StackBand controller={controller} />
+      </DndContext>,
+    );
+    const items = container.querySelectorAll<HTMLElement>('[data-testid^="stack-workspace-item-"]');
+
+    expect(container.querySelector('[data-testid="stack-band-resolve"]')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
+    expect(items[0]?.classList.contains('is-selected')).toBe(true);
+    act(() => {
+      items[1]?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(items[0]?.classList.contains('is-selected')).toBe(false);
+    expect(items[1]?.classList.contains('is-selected')).toBe(true);
+    act(() => root.unmount());
+  });
+
+  it('marks an undecided opening hand for the staggered deal ritual', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const openingController = {
+      ...controller,
+      store: { ...controller.store, mulliganDecisionPending: true },
+    } as GameController;
+    const { container, root } = mount(<HandRibbon controller={openingController} />);
+
+    expect(container.querySelector('[data-testid="hand-ribbon"]')?.getAttribute('data-opening-hand')).toBe('true');
+    expect(container.querySelector<HTMLElement>('.hand-ribbon__slot')?.style.getPropertyValue('--deal-index')).toBe('0');
+    act(() => root.unmount());
+  });
+
+  it('shows a new draw as a short cue and opens the full feed on request', () => {
+    vi.useFakeTimers();
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const openFeed = vi.fn();
+    const controller = controllerFor(state, { motionArmed: true, openFeed });
+    const { container, root } = mount(<RecentCue controller={controller} />);
+
+    act(() => useGameStore.getState().draw(1));
+    const nextState = useGameStore.getState().state;
+    act(() => root.render(<RecentCue controller={{ ...controller, state: nextState, store: useGameStore.getState() }} />));
+    const cue = container.querySelector<HTMLButtonElement>('[data-testid="recent-cue"]');
+    expect(cue?.textContent).toContain('を引きました');
+    act(() => cue?.click());
+    expect(openFeed).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
   it('adjusts life inline while the value still opens details', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state);
@@ -336,11 +390,39 @@ describe('high-frequency HUD interactions', () => {
     const right = container.querySelector<HTMLButtonElement>('[data-testid="board-creatures-scroll-right"]');
 
     expect(right).not.toBeNull();
+    expect(shelf.firstElementChild?.classList.contains('board-shelf__lane')).toBe(true);
     act(() => right?.click());
     expect(scrollBy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
     expect((scrollBy.mock.calls[0]?.[0] as ScrollToOptions).left).toBeGreaterThan(0);
     act(() => root.unmount());
   }, 10_000);
+
+  it('wraps a sparse battlefield in the same centerable inner lane', () => {
+    const state = buildVisualFixture('board-sparse').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<Board controller={controller} />);
+    const shelves = container.querySelectorAll<HTMLElement>('.board-shelf');
+
+    expect(shelves.length).toBe(2);
+    for (const shelf of shelves) {
+      expect(shelf.firstElementChild?.classList.contains('board-shelf__lane')).toBe(true);
+    }
+    act(() => root.unmount());
+  });
+
+  it('labels the turn-start mode by its actual behavior', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<ThumbZone controller={controller} />);
+
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="game-menu"]')?.click());
+    expect(container.querySelector('[data-testid="menu-auto-advance"]')?.textContent)
+      .toContain('ターン開始: 自動でメイン1まで');
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="menu-auto-advance"]')?.click());
+    expect(useGameStore.getState().autoAdvanceToMain).toBe(false);
+    act(() => useGameStore.getState().setAutoAdvance(true));
+    act(() => root.unmount());
+  });
 
   it('does not draw from the library tile and provides a separate explicit draw button', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
