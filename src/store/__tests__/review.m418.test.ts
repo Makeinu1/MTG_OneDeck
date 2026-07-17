@@ -100,7 +100,12 @@ describe('manaProductionAmount: "N mana of any one color" sources (M4.18 機能D
     expect(useGameStore.getState().state!.manaPool.G).toBe(3);
   });
 
-  it('Mana Confluence-style "one mana of any color" yields 1', () => {
+  it('Mana Confluence-style "one mana of any color" yields 1 and pays the pre-colon life cost (ACT-1/CR118.3)', () => {
+    // Reviewer update (ACT-1): the original expectation let the naive tapForMana
+    // path add mana while skipping the pre-colon "Pay 1 life" cost — the exact
+    // cost-bypass bug class review.act1-mana-shortcut-cost closes. The amount
+    // contract ("one mana" = 1, not 3) is preserved; the route is now the general
+    // activateAbility path, which pays the cost atomically (CR118.3/602.2).
     const conf = makeDef({
       scryfallId: 'confluence',
       typeLine: 'Land',
@@ -114,8 +119,20 @@ describe('manaProductionAmount: "N mana of any one color" sources (M4.18 機能D
       ],
     });
     const id = onBattlefield(conf);
+    const lifeBefore = useGameStore.getState().state!.life;
+
     expect(useGameStore.getState().tapForMana(id, 'U')).toBe('ok');
-    expect(useGameStore.getState().state!.manaPool.U).toBe(1);
+    // no naive add: delegated to the guided mana-ability path, nothing committed yet
+    expect(useGameStore.getState().state!.manaPool.U).toBe(0);
+    expect(useGameStore.getState().pendingGuided?.mode).toBe('mana-ability');
+
+    useGameStore.getState().confirmGuidedMana('U');
+
+    const after = useGameStore.getState().state!;
+    expect(after.manaPool.U).toBe(1);
+    expect(after.life).toBe(lifeBefore - 1);
+    expect(after.cards[id].tapped).toBe(true);
+    expect(after.zones.stack).toHaveLength(0);
   });
 
   it('regression: explicit {C}{C}{C} symbol source still yields 3', () => {

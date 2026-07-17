@@ -165,6 +165,36 @@
       "domainId": "cr-player-specific-zones",
       "status": "shipped",
       "note": "**出荷(2026-07-16・多人数基盤MP-STATE〜MP-BOARD一括・§34.42-45)**。由来=ユーザーがSTOP①「V4前進 vs V1磨き込み」をV4前進へ裁定(2026-07-15)し実装者草稿multiplayer-foundation-opponent-setup.draft.mdを判定者が8点修正で承認(§34.42=MP-CONTRACT+MP-STATE契約)。MP-STATE=Codex実装(判定者発注・25pin先行authoring)。MP-ZONES/COMMANDS〜MP-BOARD=判定者トークン枯渇中にユーザー許可のJ0運用でCodexが契約+review+実装を両担(§34.43-45)。復帰判定者(Fable)が要石どおり独立再検証=①全review.*/docs diff精読+CR照合 ②冷Tier-1敵対監査(実装と別主体・HIGH 0/MEDIUM 1/LOW 1)③機械4点独立再実行(219files/1840tests) ④実機E2E(setup draft不変→apply→単一undo→redo・desktop/mobile・console 0)。MEDIUM=detectTriggerCandidatesがflat墓地のみ読み相手死亡を計器上見逃す(実プレイはevent-log経路で無影響)→判定者外科修正+弁別実証済みpin追加(review.mp-dummy)。manual→auto反転3件(each player/opponent draw/mill)はapplyPlayerEffectのAPNAP・owner-routingトレースでCR-honest裁定。既知UX負債=モバイル相手ストリップ縦幅過大(Dトラック)。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-605-mana-abilities",
+      "status": "shipped",
+      "note": "**ACT-1 マナ経路のコスト整合・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済)**。由来=ユーザー報告『睡蓮の花びらからマナが出るが生贄処理なし』→判定者診断で producedMana メタデータ駆動ショートカット(tapForMana/planAutoTap/actionCatalog)が起動コストを迂回する CR118.3/602.2 違反と確定(一般経路は正動作=review pin で証明)。修正=oracle 正本の単一 recognizer naiveTapManaColors(grammar/manaShortcut.ts・WeakMap メモ化)で『コストが正確に {T} の行』の色のみ naive 適格・他は activateAbility 委譲・起動型 add-mana 行なしは producedMana fallback(基本土地)。Tier-1 コーパス実測(17,491枚)= false-pure 0 件・false-costed 2クラス(MEDIUM)→判定者外科修正: ①ability-word ラベル strip(CR207.2c・Mox Opal 等14枚回復)②基本土地タイプの内在マナ能力(CR305.6・Murmuring Bosk 型退行の根絶)。判定者が review.m418 の Mana Confluence 期待値(旧=ライフ未払いでマナ=バグのピン)を『量1維持+一般経路でライフ支払い』へ再オーナー化。evidence=review.act1-mana-shortcut-cost.test.ts(19 pin)+engine-spec §34.11 項7+実機E2E(petal 生贄+黒1・森 naive 維持・console 0)。ACT バッチ初弾(プラン=activate-cost-starry-fern・ユーザー承認 2026-07-17)。実装者逸脱の記録=禁止されていた git stash を実行し stash@{0}(d4a-a-wip-for-attribution-test)が残留(内容欠損なしを判定者検証済・UIトラック ship 時に処分判断)。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-602-activated-abilities",
+      "status": "pending",
+      "note": "**ACT-2 起動ラインの選択と強行(UI到達性)**。ユーザー承認プラン(2026-07-17 activate-cost-starry-fern)により judge-gated 3件(cr-121候補2/cr-609/cr-121 loot)より優先消費。複数起動型能力カードは abilityLineIndexForKind が単一行時のみ index 解決(triggers.ts:167-183)で全 manual 落ち。actionCatalog で activated 行を列挙し行ごとアクション(コスト文字列ラベル)→ activateAbility(cardId, lineIndex) 配線。警告ブロック時の強行ボタン(opts.force・forcedActivationWarning)。出荷済みコスト精算(コーパス cost auto 76%)が多能力カードで初めて発火する最大乗数スライス。CR602.2b/117。**ACT-1 からの carry**: needs-choice 色選択ダイアログの選択肢を raw producedMana から naiveTapManaColors ベースへ(gameController/Playmat 計4箇所・corpus 不整合2枚=Haunted Screen/Drowner of Truth)。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-702-keyword-abilities-frequent",
+      "status": "pending",
+      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Equip {2}/Crew 2/Level up 等はコロン形式でなく activated 認識されない。CR702 定義文で canonical activated line へ展開し既存単一 recognizer に流す(新抽象なし=judge-protocol §5.1 分解可能性テスト通過)。対象キーワードは MyDeck demand 実測降順で step0 に Codex が確定。activation restriction(sorcery-only 等)は警告のみ(サンドボックス)。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-118-costs",
+      "status": "pending",
+      "note": "**ACT-4 コスト語彙 leaf(需要順)**(プラン=activate-cost-starry-fern)。tap-other(Tap N untapped X you control)・カウンター除去(Remove a counter)・{X} の guided 値選択。§33 と同じ auto 詐称なし規律。ActivationCostComponentKind 追加は spec 追補(判定者承認)を実装前に先行。demand=cost:tap 11/cost:nonmana 12。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-602-activated-abilities",
+      "status": "judge-gated",
+      "note": "**ACT-5 忠誠度 envelope(CR606)= JUDGE-GATE**(プラン=activate-cost-starry-fern)。§34.19 の明示 defer を解く新 design-lock(新 domain cr-606 の要否判定含む)。着手前に step0 で MyDeck の PW 需要実測を確認し、需要が立たなければ据置。"
     }
   ],
   "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。 【2026-07-15消化: ユーザーがV4前進を裁定。予約STOP①は消化済み。次の分岐=cross-player解錠後のrule leaf復帰 vs MP-IDENTITY(通常の北極星⑤メタレビューで判定者が扱ってよい)。】",
@@ -865,14 +895,17 @@
         "eventLog",
         "guidedManaColorChoice"
       ],
-      "boundary": "605.1b 誘発型は d9e3a63 で出荷済。**mana:write catalog slice 出荷**(2026-07-03・engine-spec §34.11 項6)= literal シンボル列 auto(106.1b 個数正確)・any-color/identity 色選択 guided(色選択≠target=605.1a 維持・no-stack)・or選択/chosen color/combination/snow/条件/restriction は manual(auto 詐称なし)。既 tap {T} 源の cost atomicity を no-stack 経路にも適用(Tier-1 赤旗修正・CR118.3/602.2)。605.1b 第1節実カード検出は C-GRAMMAR carry 継続。",
+      "boundary": "605.1b 誘発型は d9e3a63 で出荷済。**mana:write catalog slice 出荷**(2026-07-03・engine-spec §34.11 項6)= literal シンボル列 auto(106.1b 個数正確)・any-color/identity 色選択 guided(色選択≠target=605.1a 維持・no-stack)・or選択/chosen color/combination/snow/条件/restriction は manual(auto 詐称なし)。既 tap {T} 源の cost atomicity を no-stack 経路にも適用(Tier-1 赤旗修正・CR118.3/602.2)。605.1b 第1節実カード検出は C-GRAMMAR carry 継続。**ACT-1(2026-07-17)= producedMana ショートカットのコスト迂回を封鎖**(naiveTapManaColors 単一 recognizer・pure {T} 行のみ naive・ability-word strip CR207.2c・基本土地タイプ内在色 CR305.6・他は activateAbility 委譲・基本土地は metadata fallback)。",
       "evidence": [
         "src/store/__tests__/review.mana-write.test.ts",
         "docs/engine-spec.md §34.11 項6",
         "cr-mana-ability-no-stack",
         "cr-triggered-mana-ability-no-stack",
         "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
-        "cr-targeted-add-mana-trigger-is-normal-trigger"
+        "cr-targeted-add-mana-trigger-is-normal-trigger",
+        "src/store/__tests__/review.act1-mana-shortcut-cost.test.ts",
+        "src/engine/grammar/manaShortcut.ts",
+        "docs/engine-spec.md §34.11 項7"
       ],
       "nextGate": "manual 分類(or 選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。605.1b 第1節検出は C-GRAMMAR。",
       "judge": "deterministic-cr"

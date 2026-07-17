@@ -1938,8 +1938,15 @@ function clauseSuggestsNonSelfCounterReferent(raw: string): boolean {
   );
 }
 
+// CR 207.2c: an ability word is an italicized label with no rules meaning.
+const ABILITY_WORD_LABEL_PATTERN = /^\s*[A-Za-z][A-Za-z '-]*\s+(?:\u2014|--|-)\s*/;
+
 function hasAbilityWordLabel(raw: string): boolean {
-  return /^\s*[A-Za-z][A-Za-z '-]*\s+(?:\u2014|--|-)\s*/.test(raw);
+  return ABILITY_WORD_LABEL_PATTERN.test(raw);
+}
+
+export function stripAbilityWordLabel(raw: string): string {
+  return raw.replace(ABILITY_WORD_LABEL_PATTERN, '');
 }
 
 function isSelfSacrificeCostElement(element: string, cardName: string): boolean {

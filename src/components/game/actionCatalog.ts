@@ -13,6 +13,7 @@
  * 純粋性: 同一 context → 同一出力。context も出力も変異しない。
  */
 
+import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
 import type { CardInstance, ZoneId } from '../../engine/types';
 import type { CardDef } from '../../types/card';
 import { fetchAbility, cyclingCost } from '../../engine/status';
@@ -169,7 +170,7 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
 
   // --- 戦場 ---
   if (card.zone === 'battlefield') {
-    const produced = def?.producedMana ?? [];
+    const naiveManaColors = naiveTapManaColors(def);
     const isLand = typeLine.includes('Land');
     specs.push({
       id: 'tap',
@@ -180,7 +181,7 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
 
     if (isTreasure) {
       specs.push({ id: 'crack-treasure', label: '割ってマナを出す', separator: true });
-    } else if (produced.length > 0 && !card.tapped) {
+    } else if (naiveManaColors.length > 0 && !card.tapped) {
       specs.push({
         id: 'tapForMana',
         label: 'マナを生成してタップ',

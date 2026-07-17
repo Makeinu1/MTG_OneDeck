@@ -1,4 +1,5 @@
 import type { ManaColor } from '../types/card';
+import { naiveTapManaColors } from './grammar/manaShortcut';
 import { type ParsedCost, solvePayment } from './mana';
 import { isSummoningSick } from './status';
 import type { GameState, ManaPool, PlayerId } from './types';
@@ -67,19 +68,6 @@ function candidatePriority(typeLine: string, colorCount: number): number {
   return 3;
 }
 
-function orderedUniqueColors(colors: ManaColor[] | undefined): ManaColor[] {
-  if (!colors) return [];
-  const seen = new Set<ManaColor>();
-  const result: ManaColor[] = [];
-  for (const color of colors) {
-    if (!seen.has(color)) {
-      seen.add(color);
-      result.push(color);
-    }
-  }
-  return result;
-}
-
 function currentTypeLine(state: GameState, cardId: string): string {
   const card = state.cards[cardId];
   if (!card) return '';
@@ -103,7 +91,7 @@ function buildSources(state: GameState, playerId: PlayerId): Source[] {
         isSummoningSick(state, cardId)
       ) return null;
       const def = state.defs[card.defId];
-      const colors = orderedUniqueColors(def?.producedMana);
+      const colors = naiveTapManaColors(def);
       if (colors.length === 0 || def?.tokenKind === 'treasure') return null;
       const typeLine = currentTypeLine(state, cardId);
       return {

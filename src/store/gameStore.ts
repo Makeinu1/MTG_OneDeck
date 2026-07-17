@@ -33,6 +33,7 @@ import {
 } from '../engine/scenario';
 import { splitAbilityLines } from '../engine/grammar';
 import { parseAbilityIR } from '../engine/grammar/ir';
+import { hasActivatedAddManaLine, naiveTapManaColors } from '../engine/grammar/manaShortcut';
 import {
   buildGuidedCommands,
   compileAbilityIR,
@@ -2409,43 +2410,70 @@ export const useGameStore = create<GameStore>((set, get) => {
       const card = cur.cards[cardId];
       if (!card) return 'ok';
       const def = cur.defs[card.defId];
-      const produced = def?.producedMana ?? [];
-      if (produced.length === 0) {
-        // nothing to add; just tap
-        dispatch({ type: 'setTapped', cardId, tapped: true });
-        return 'ok';
-      }
-      let chosen: ManaColor;
-      if (produced.length === 1) {
-        chosen = produced[0];
-      } else if (color && produced.includes(color)) {
-        chosen = color;
-      } else {
-        return 'needs-choice';
-      }
+
       // single committed step: tap + add mana. Apply sequentially on a state
       // and commit once so undo reverts both.
-      try {
-        const amount = Math.max(1, manaProductionAmount(def, chosen));
-        const result = resolveManaAbilityTransaction(cur, {
-          sourceId: cardId,
-          commands: [
-            { type: 'setTapped', cardId, tapped: true },
-            {
-              type: 'addMana',
-              color: chosen,
-              amount,
-              ...(card.controllerId !== cur.localPlayerId
-                ? { playerId: card.controllerId }
-                : {}),
-            },
-          ],
-        });
-        commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
-      } catch (err) {
-        console.error(err);
+      const commitTapAndAdd = (chosen: ManaColor): void => {
+        try {
+          const amount = Math.max(1, manaProductionAmount(def, chosen));
+          const result = resolveManaAbilityTransaction(cur, {
+            sourceId: cardId,
+            commands: [
+              { type: 'setTapped', cardId, tapped: true },
+              {
+                type: 'addMana',
+                color: chosen,
+                amount,
+                ...(card.controllerId !== cur.localPlayerId
+                  ? { playerId: card.controllerId }
+                  : {}),
+              },
+            ],
+          });
+          commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      if (!hasActivatedAddManaLine(def)) {
+        const produced = def?.producedMana ?? [];
+        if (produced.length === 0) {
+          // nothing to add; just tap
+          dispatch({ type: 'setTapped', cardId, tapped: true });
+          return 'ok';
+        }
+        if (produced.length === 1) {
+          commitTapAndAdd(produced[0]);
+          return 'ok';
+        }
+        if (color && produced.includes(color)) {
+          commitTapAndAdd(color);
+          return 'ok';
+        }
+        return 'needs-choice';
       }
-      return 'ok';
+
+      // CR118.3/602.2: a costed activated mana ability (sacrifice, additional mana, ...) may
+      // not be naively tapped+added — route through activateAbility so the cost is paid.
+      const naive = naiveTapManaColors(def);
+      if (naive.length === 0) {
+        get().activateAbility(cardId);
+        return 'ok';
+      }
+      if (color) {
+        if (!naive.includes(color)) {
+          get().activateAbility(cardId);
+          return 'ok';
+        }
+        commitTapAndAdd(color);
+        return 'ok';
+      }
+      if (naive.length === 1) {
+        commitTapAndAdd(naive[0]);
+        return 'ok';
+      }
+      return 'needs-choice';
     },
 
     crackTreasure(cardId, color) {
