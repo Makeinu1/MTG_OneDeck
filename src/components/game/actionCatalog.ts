@@ -13,6 +13,7 @@
  * 純粋性: 同一 context → 同一出力。context も出力も変異しない。
  */
 
+import { activatedAbilityLines } from '../../engine/grammar';
 import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
 import type { CardInstance, ZoneId } from '../../engine/types';
 import type { CardDef } from '../../types/card';
@@ -94,6 +95,12 @@ function castCostAdvisorySpec(def: CardDef | undefined): ActionSpec | null {
     testId: 'cast-cost-advisory',
     disabled: true,
   };
+}
+
+/** 効果プレビューを ~60 字で切って弁別ラベル用に短縮する。 */
+function truncateAbilityPreview(text: string, maxLength = 60): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}…`;
 }
 
 function ruleCandidateSpecs(def: CardDef | undefined): ActionSpec[] {
@@ -218,10 +225,29 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
     }
 
     specs.push({ id: 'copy-permanent', label: 'コピー(トークン)', testId: 'copy-permanent', separator: !fetch });
-    specs.push(
-      { id: 'ability-activate', label: '能力を起動(スタックへ)', testId: 'ability-activate', separator: true },
-      { id: 'ability-trigger', label: '誘発を積む(スタックへ)', testId: 'ability-trigger' },
-    );
+
+    // 起動型行が2本以上あるカードは行ごとに列挙する(index は splitAbilityLines の
+    // flat index 空間=activateAbility の abilityLineIndex と同じ。ACT-2)。1本以下は
+    // 従来どおり総称 ability-activate を維持する(golden 集合の非回帰)。
+    const activationLines = def ? activatedAbilityLines(def, card.faceIndex) : [];
+    if (activationLines.length >= 2) {
+      activationLines.forEach((line, index) => {
+        specs.push({
+          id: `ability-activate-${line.index}`,
+          label: `${line.costText}: ${truncateAbilityPreview(line.effectText)}`,
+          testId: `ability-activate-${line.index}`,
+          separator: index === 0,
+        });
+      });
+    } else {
+      specs.push({
+        id: 'ability-activate',
+        label: '能力を起動(スタックへ)',
+        testId: 'ability-activate',
+        separator: true,
+      });
+    }
+    specs.push({ id: 'ability-trigger', label: '誘発を積む(スタックへ)', testId: 'ability-trigger' });
   }
 
   // --- 手札 ---

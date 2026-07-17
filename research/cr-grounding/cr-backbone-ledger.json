@@ -175,14 +175,14 @@
     {
       "type": "domain-slice",
       "domainId": "cr-602-activated-abilities",
-      "status": "pending",
-      "note": "**ACT-2 起動ラインの選択と強行(UI到達性)**。ユーザー承認プラン(2026-07-17 activate-cost-starry-fern)により judge-gated 3件(cr-121候補2/cr-609/cr-121 loot)より優先消費。複数起動型能力カードは abilityLineIndexForKind が単一行時のみ index 解決(triggers.ts:167-183)で全 manual 落ち。actionCatalog で activated 行を列挙し行ごとアクション(コスト文字列ラベル)→ activateAbility(cardId, lineIndex) 配線。警告ブロック時の強行ボタン(opts.force・forcedActivationWarning)。出荷済みコスト精算(コーパス cost auto 76%)が多能力カードで初めて発火する最大乗数スライス。CR602.2b/117。**ACT-1 からの carry**: needs-choice 色選択ダイアログの選択肢を raw producedMana から naiveTapManaColors ベースへ(gameController/Playmat 計4箇所・corpus 不整合2枚=Haunted Screen/Drowner of Truth)。"
+      "status": "shipped",
+      "note": "**ACT-2 起動ラインの選択と強行(UI到達性)・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済・契約=engine-spec §34.46)**。実装前カバレッジ実測=同一面2+起動行 MyDeck 48枚/コーパス946枚(5.41%)。単一recognizer activatedAbilityLines(def, faceIndex?)(grammar/index.ts・flat index維持・costText/effectText分割)を engine/UI で共有。actionCatalog は2本以上で ability-activate-<flatIndex>(コスト文字列ラベル)へ展開・1本以下は総称維持(golden非回帰)。強行=pendingForceActivation+confirm/cancelForceActivation(CR118.3ブロック点のみ・manual助言はセットしない・全リセット経路網羅)。**Tier-1 HIGH 1件=DFC/MDFC face-desync**(UIは面フィルタ済ボタン1個なのに abilityLineIndexForKind が全面カウントで manual落ち・実カード43枚=Pathway全10種)→判定者CR裁定(CR712.8d/712.8f=裏面能力は存在しない=面フィルタはCR要求)→差し戻しround1で activated 分岐を activatedAbilityLines(def, card.faceIndex) 共有へ根治。**判定者ピン自己誤り1件**=『起動即タップ』期待は CR601.2c(対象)→601.2h(支払)順に違反=実装無罪・ピンを順序検証へ強化(memory review-test-authoring-pitfalls 再現)。Tier-1コーパス実測(17,491枚)=過剰列挙0・誤ラベル0・index空間ズレ0・面フィルタ漏れ0・forced二重警告なし(runtime trace)。evidence=review.act2-activation-lines.test.ts(17pin)+§34.46+実機light/dark console 0。**残 carry**: ①needs-choice 色ダイアログ statement(ACT-1 carry・4箇所)=ACTバッチ後続へ ②誘発型の面フィルタ(CR712.8d は誘発にも及ぶ)=別スライス ③Playmat.tsx レガシー buildMenuItems 死コード撤去=cleanup スライス。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-702-keyword-abilities-frequent",
       "status": "pending",
-      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Equip {2}/Crew 2/Level up 等はコロン形式でなく activated 認識されない。CR702 定義文で canonical activated line へ展開し既存単一 recognizer に流す(新抽象なし=judge-protocol §5.1 分解可能性テスト通過)。対象キーワードは MyDeck demand 実測降順で step0 に Codex が確定。activation restriction(sorcery-only 等)は警告のみ(サンドボックス)。"
+      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Equip {2}/Crew 2/Level up 等はコロン形式でなく activated 認識されない。CR702 定義文で canonical activated line へ展開し既存単一 recognizer に流す(新抽象なし=judge-protocol §5.1 分解可能性テスト通過)。対象キーワードは MyDeck demand 実測降順で step0 に Codex が確定。activation restriction(sorcery-only 等)は警告のみ(サンドボックス)。 **先行probe実測(2026-07-17)**: コーパス頻度=unearth 47/ninjutsu 30/adapt 22/reconfigure 17/monstrosity 16/level up 13。**MyDeck実需要は薄い**(unearth 2枚・adapt 1枚・他0)。adapt/monstrosity は CR702 キーワード能力でなく **CR701 アクション**=当初前提(CR702定義文で canonical 展開)から外れる。草稿=act3-keyword-canonicalization.draft.md。次周 step 0b で優先度再検討(edhValue vs MyDeck 需要)。"
     },
     {
       "type": "domain-slice",

@@ -42,6 +42,7 @@ import {
   CountDialog,
   ManaChoiceDialog,
   ShortfallDialog,
+  ForceActivationDialog,
   CommanderMoveDialog,
   LandTapChoiceDialog,
   ModalChoiceDialog,
@@ -215,6 +216,7 @@ export function useGameController({
 
   const isDialogOpen =
     store.pendingGuided !== null ||
+    store.pendingForceActivation !== null ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
@@ -523,6 +525,14 @@ export function useGameController({
     if (id.startsWith('move-')) {
       const to = id.slice('move-'.length) as ZoneId;
       return () => performMove({ cardId, to });
+    }
+    if (id.startsWith('ability-activate-')) {
+      // ACT-2: 行選択 id(actionCatalog が >=2 行のとき出す)。素朴 parse で index を
+      // 取り出す。NaN なら fail-closed で総称(index 未指定)側と同じ挙動へ倒す。
+      const index = Number.parseInt(id.slice('ability-activate-'.length), 10);
+      return Number.isNaN(index)
+        ? () => store.activateAbility(cardId)
+        : () => store.activateAbility(cardId, index);
     }
 
     switch (id) {
@@ -907,6 +917,14 @@ export function useGameController({
             setPendingPayment(null);
           }}
           onCancel={() => setPendingPayment(null)}
+        />
+      )}
+
+      {store.pendingForceActivation && (
+        <ForceActivationDialog
+          warnings={store.pendingForceActivation.warnings}
+          onForce={() => store.confirmForceActivation()}
+          onCancel={() => store.cancelForceActivation()}
         />
       )}
 

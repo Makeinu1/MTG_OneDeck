@@ -151,6 +151,16 @@ export interface PendingManaAbility {
   manaShortfall: number;
 }
 
+/**
+ * ACT-2: 支払えない起動コストの強行候補(サンドボックス哲学=禁止せず確認する)。
+ * `confirmForceActivation`/`cancelForceActivation` で解消する。
+ */
+export interface PendingForceActivation {
+  sourceId: string;
+  abilityLineIndex?: number;
+  warnings: string[];
+}
+
 export interface PendingGuidedResolution {
   mode?: 'resolution' | 'activation' | 'mana-ability';
   sourceId: string;
@@ -844,6 +854,7 @@ export interface GameStore {
   warnings: string[];
   triggerCandidates: TriggerCandidate[];
   pendingGuided: PendingGuidedResolution | null;
+  pendingForceActivation: PendingForceActivation | null;
   canUndo: boolean;
   canRedo: boolean;
   autoAdvanceToMain: boolean;
@@ -912,6 +923,8 @@ export interface GameStore {
   putPendingTriggersOnStack(pendingTriggerIds: string[]): void;
   placePendingTriggersForPriority(pendingTriggerIds: string[]): void;
   activateAbility(sourceId: string, abilityLineIndex?: number, opts?: { force?: boolean }): void;
+  confirmForceActivation(): void;
+  cancelForceActivation(): void;
   dismissTriggerCandidates(): void;
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
@@ -1334,6 +1347,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
+      // ACT-2: 成功した起動(=commit まで到達した)は強行ダイアログを引きずらない
+      // (誤ダイアログを出さない)。commit() は全ての成功コミットの単一 chokepoint。
+      pendingForceActivation: null,
     };
     set(nextStoreState);
   }
@@ -1960,6 +1976,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     warnings: [],
     triggerCandidates: [],
     pendingGuided: null,
+    pendingForceActivation: null,
     canUndo: false,
     canRedo: false,
     autoAdvanceToMain: true,
@@ -1980,6 +1997,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: openingHand.warnings,
         triggerCandidates: [],
         pendingGuided: null,
+        // ACT-2: 新しいゲームへ残留した強行ダイアログを持ち越さない。
+        pendingForceActivation: null,
         canUndo: false,
         canRedo: false,
         mulliganDecisionPending: true,
@@ -1997,6 +2016,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: [],
         triggerCandidates: [],
         pendingGuided: null,
+        pendingForceActivation: null,
         canUndo: false,
         canRedo: false,
         autoAdvanceToMain: snapshot.autoAdvanceToMain,
@@ -2040,6 +2060,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           warnings: result.warnings,
           triggerCandidates: [],
           pendingGuided: null,
+          pendingForceActivation: null,
           canUndo: false,
           canRedo: false,
         });
@@ -2146,6 +2167,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: prev,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingForceActivation: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -2163,6 +2185,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: next,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingForceActivation: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
       });
@@ -2866,6 +2889,15 @@ export const useGameStore = create<GameStore>((set, get) => {
                 `${cardLabel(cur, sourceId)}はすでにタップされているため{T}コストを支払えません。`,
               ],
               pendingGuided: null,
+              // ACT-2: 強行可能なブロック点。UI が強行ダイアログを提示できるよう対象の
+              // 行つきで pending を持つ(サンドボックス哲学=禁止せず確認する)。
+              pendingForceActivation: {
+                sourceId,
+                ...(resolvedAbilityLineIndex === undefined
+                  ? {}
+                  : { abilityLineIndex: resolvedAbilityLineIndex }),
+                warnings: [`${cardLabel(cur, sourceId)}はすでにタップされているため{T}コストを支払えません。`],
+              },
             });
             return;
           }
@@ -2882,12 +2914,18 @@ export const useGameStore = create<GameStore>((set, get) => {
           : (cur.players[manaAbilityControllerId]?.life ?? 0);
         if (manaAbilityPlan.lifeCost > manaAbilityControllerLife) {
           if (!opts?.force) {
+            const shortfallWarning = `${cardLabel(cur, sourceId)}のマナ能力のライフコストが${manaAbilityPlan.lifeCost - manaAbilityControllerLife}点不足しています。`;
             set({
-              warnings: [
-                ...get().warnings,
-                `${cardLabel(cur, sourceId)}のマナ能力のライフコストが${manaAbilityPlan.lifeCost - manaAbilityControllerLife}点不足しています。`,
-              ],
+              warnings: [...get().warnings, shortfallWarning],
               pendingGuided: null,
+              // ACT-2: 強行可能なブロック点(ライフコスト不足)。
+              pendingForceActivation: {
+                sourceId,
+                ...(resolvedAbilityLineIndex === undefined
+                  ? {}
+                  : { abilityLineIndex: resolvedAbilityLineIndex }),
+                warnings: [shortfallWarning],
+              },
             });
             return;
           }
@@ -2921,6 +2959,8 @@ export const useGameStore = create<GameStore>((set, get) => {
                 manaShortfall: manaAbilityPlan.manaShortfall,
               },
             },
+            // ACT-2: この起動は成功経路(guided)に入った。誤ダイアログを残さない。
+            pendingForceActivation: null,
           });
           return;
         }
@@ -2981,8 +3021,32 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
       const costWarnings = activationCostWarnings(cur, pendingActivation);
       if (paymentMode === 'rules-legal' && costWarnings.length > 0) {
-        set({ warnings: [...get().warnings, ...costWarnings], pendingGuided: null });
+        set({
+          warnings: [...get().warnings, ...costWarnings],
+          pendingGuided: null,
+          // ACT-2: 強行可能なブロック点(一般経路の起動コスト不足・CR118.3)。UI が
+          // 強行ダイアログを提示できるよう対象の行つきで pending を持つ。
+          pendingForceActivation: {
+            sourceId,
+            ...(resolvedAbilityLineIndex === undefined
+              ? {}
+              : { abilityLineIndex: resolvedAbilityLineIndex }),
+            warnings: costWarnings,
+          },
+        });
         return;
+      }
+      if (paymentMode === 'forced' && costWarnings.length > 0) {
+        // Mirrors the mana-ability sandbox escape idiom above: forced activation must
+        // record the CR-legal disclaimer immediately, since a targeted ability defers
+        // the actual commit to the guided target picker (below) and would otherwise
+        // leave no trace of the sandbox escape until that picker resolves.
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, sourceId)}の起動コストは支払えないため、この起動をCR-legalとして扱いません(強行)。`,
+          ],
+        });
       }
 
       // Targets are chosen as the ability is activated (CR 115.1c/602.2b), regardless of
@@ -2998,11 +3062,25 @@ export const useGameStore = create<GameStore>((set, get) => {
             commands: [],
             activation: pendingActivation,
           },
+          // ACT-2: この起動は成功経路(guided target選択)に入った。誤ダイアログを残さない。
+          pendingForceActivation: null,
         });
         return;
       }
 
       commitActivation(pendingActivation, [], []);
+    },
+
+    confirmForceActivation() {
+      const pending = get().pendingForceActivation;
+      if (!pending) return;
+      set({ pendingForceActivation: null });
+      get().activateAbility(pending.sourceId, pending.abilityLineIndex, { force: true });
+    },
+
+    cancelForceActivation() {
+      // 盤面は変えない。ダイアログを解くだけ(サンドボックス哲学=強行しないことも自由)。
+      set({ pendingForceActivation: null });
     },
 
     dismissTriggerCandidates() {

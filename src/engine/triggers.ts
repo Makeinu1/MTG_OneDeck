@@ -1,5 +1,5 @@
 import { classifyCardRules } from '../data/ruleClassifier';
-import { splitAbilityLines, type AbilityShape } from './grammar/index';
+import { activatedAbilityLines, splitAbilityLines, type AbilityShape } from './grammar/index';
 import { effectivePower } from './status';
 import {
   objectIdOf,
@@ -173,6 +173,17 @@ export function abilityLineIndexForKind(
   if (!card) return undefined;
   const def = state.defs[card.defId];
   if (!def) return undefined;
+
+  if (kind === 'activated') {
+    // CR712.8d/712.8f: 表を向いている面の特性のみを持つ=裏面の起動型能力は「存在しない」。
+    // 全面を数えると Pathway 型 MDFC(表 {T}: Add {G} / 裏 {T}: Add {U})が「2本=曖昧」と
+    // 判定され undefined→manual 落ちする一方、UI(actionCatalog)は面フィルタ済みで
+    // ボタン1個しか出さない=store だけが manual へ落ちる desync になる(実カード43枚)。
+    // ゆえに ACT-2 の単一 recognizer を**面フィルタごと共有**して desync クラスを根絶する。
+    // index は activatedAbilityLines が返す splitAbilityLines の flat index 空間のまま。
+    const activated = activatedAbilityLines(def, card.faceIndex);
+    return activated.length === 1 ? activated[0].index : undefined;
+  }
 
   const shapes = abilityShapesForKind(kind);
   const matches = splitAbilityLines(def)

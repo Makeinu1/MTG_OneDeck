@@ -81,6 +81,49 @@ export function ShortfallDialog({
   );
 }
 
+/**
+ * ACT-2: 支払えない起動コストの強行確認(サンドボックス哲学=強行そのものは禁止しない)。
+ * `ShortfallDialog` の idiom をそのまま踏襲する。
+ */
+export function ForceActivationDialog({
+  warnings,
+  onForce,
+  onCancel,
+}: {
+  warnings: string[];
+  onForce: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal title="起動コストが支払えません" onClose={onCancel} width="sm" testId="force-activation-dialog">
+      <ul>
+        {warnings.map((warning, index) => (
+          <li key={index}>{warning}</li>
+        ))}
+      </ul>
+      <p>強行すると、この起動はCR-legalとして扱われません。それでも起動しますか?</p>
+      <div className="dialog__actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={onCancel}
+          data-testid="force-activation-cancel"
+        >
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--danger"
+          onClick={onForce}
+          data-testid="force-activation-force"
+        >
+          強行する
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function XCostDialog({
   cardName,
   manaCost,

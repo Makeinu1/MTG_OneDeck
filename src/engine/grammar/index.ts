@@ -170,6 +170,40 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
   return lines;
 }
 
+export interface ActivatedAbilityLine {
+  index: number;
+  faceIndex: number;
+  text: string;
+  costText: string;
+  effectText: string;
+}
+
+/**
+ * 起動型能力行(shape === 'activated')だけを flat index つきで列挙する(ACT-2 単一
+ * recognizer)。`index` は `splitAbilityLines` の flat index 空間そのもの
+ * (= `abilityLineIndexForKind` の戻り値・`activateAbility` の `abilityLineIndex` と同じ
+ * 空間)。filter 後に連番を振り直すと `activateAbility` へ渡す index がズレる
+ * (a902a9f と同型の desync)ため、絶対に filter 後の連番にしない。
+ *
+ * `faceIndex` を渡すとその面の行だけに絞る(両面カードで裏面の能力を誤提示しないため)。
+ * 省略時は全面を返す(engine 内部の abilityLineIndexForKind 等が使う空間と一致させる)。
+ */
+export function activatedAbilityLines(
+  def: CardDef,
+  faceIndex?: number,
+): ActivatedAbilityLine[] {
+  return splitAbilityLines(def)
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line.shape === 'activated')
+    .filter(({ line }) => faceIndex === undefined || line.faceIndex === faceIndex)
+    .map(({ line, index }) => {
+      const colonIndex = line.text.indexOf(':');
+      const costText = colonIndex < 0 ? line.text.trim() : line.text.slice(0, colonIndex).trim();
+      const effectText = colonIndex < 0 ? '' : line.text.slice(colonIndex + 1).trim();
+      return { index, faceIndex: line.faceIndex, text: line.text, costText, effectText };
+    });
+}
+
 function mergeModalParagraphs(paragraphs: readonly string[]): string[] {
   const merged: string[] = [];
   for (const paragraph of paragraphs) {
