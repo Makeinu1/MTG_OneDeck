@@ -1315,6 +1315,18 @@ function withMoveReason(commands: readonly GameCommand[], reason: 'sacrifice'): 
   );
 }
 
+// CR608.2h variable loot support: the guided discard prompt for "discard up to N / any
+// number of cards, then draw that many cards" is answered one card at a time and
+// re-presented (see confirmGuidedDiscard/cancelGuidedPrompt below) with each already-chosen
+// discard accumulating as its own `{type:'discard', cardIds:[id]}` command in
+// `pending.commands`. Since the underlying GameState is not mutated until the whole guided
+// resolution finishes (finishGuidedResolution applies all commands together), `cur.zones.hand`
+// still lists every card already picked in this same resolution — this scans the
+// accumulated commands so a card can't be picked (and discarded) twice in one loot resolution.
+function variableLootDiscardedCardIds(commands: readonly GameCommand[]): string[] {
+  return commands.flatMap((command) => (command.type === 'discard' ? command.cardIds : []));
+}
+
 function guidedCommandsWithSemanticReasons(
   prompt: EffectPrompt,
   commands: readonly GameCommand[],
@@ -3352,7 +3364,12 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
       const controllerId = guidedControllerId(cur, pending);
-      if (!cur.zonesByPlayer[controllerId].hand.includes(cardId)) {
+      const variableLoot = prompt.variableLoot;
+      // Only computed (non-empty) for a variableLoot prompt — every pre-existing single-shot
+      // discard prompt has no `variableLoot`, so `alreadyDiscarded` stays `[]` and the guard
+      // below collapses to the original hand-membership check unchanged.
+      const alreadyDiscarded = variableLoot ? variableLootDiscardedCardIds(pending.commands) : [];
+      if (!cur.zonesByPlayer[controllerId].hand.includes(cardId) || alreadyDiscarded.includes(cardId)) {
         set({
           warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
         });
@@ -3363,12 +3380,37 @@ export const useGameStore = create<GameStore>((set, get) => {
         advanceGuidedResolution([]);
         return;
       }
-      const commands = buildGuidedCommands(
+      const discardCommands = buildGuidedCommands(
         prompt,
         { kind: 'discard', cardIds: [cardId] },
         { sourceId: pending.sourceId, controllerId, def },
       );
-      advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
+      if (!variableLoot) {
+        advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, discardCommands));
+        return;
+      }
+
+      // CR608.2h: the draw count is the number of cards the player *actually* discarded, not
+      // the declared "up to"/"any number of" upper bound — so it can only be finalized once
+      // discarding stops (max reached, hand exhausted, or the player cancels/declines to
+      // discard more). Until then, re-present the same prompt with `discarded` incremented
+      // instead of consuming it (prependPrompts keeps it at slot 0; see advanceGuidedResolution).
+      const discardedCount = variableLoot.discarded + 1;
+      // MP: hand exhaustion and the finalizing draw belong to the prompt's controller,
+      // not the local player (CR121.2 — each player draws from their own library).
+      const remainingHand = cur.zonesByPlayer[controllerId].hand.length - alreadyDiscarded.length - 1;
+      const reachedMax = Number.isFinite(variableLoot.max) && discardedCount >= variableLoot.max;
+      if (reachedMax || remainingHand <= 0) {
+        const drawCount = Math.max(0, discardedCount + variableLoot.drawDelta);
+        advanceGuidedResolution([
+          ...discardCommands,
+          { type: 'draw', count: drawCount, playerId: controllerId },
+        ]);
+        return;
+      }
+      advanceGuidedResolution(discardCommands, [
+        { ...prompt, variableLoot: { ...variableLoot, discarded: discardedCount } },
+      ]);
     },
 
     confirmGuidedLibrarySearch(cardId) {
@@ -3627,6 +3669,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       const pending = get().pendingGuided;
       if (isActivationPending(pending) || isManaAbilityPending(pending)) {
         set({ pendingGuided: null });
+        return;
+      }
+      // CR608.2h: cancelling a variable-loot discard prompt means "done discarding" (not
+      // "abandon the ability") — finalize with a draw for however many were actually
+      // discarded so far (0 if none), floored at 0 after the signed delta.
+      const variableLoot = pending?.prompts[0]?.variableLoot;
+      if (variableLoot && pending) {
+        const cur = get().state;
+        const drawCount = Math.max(0, variableLoot.discarded + variableLoot.drawDelta);
+        advanceGuidedResolution([{
+          type: 'draw',
+          count: drawCount,
+          // MP: the finalizing draw belongs to the prompt's controller (CR121.2).
+          ...(cur ? { playerId: guidedControllerId(cur, pending) } : {}),
+        }]);
         return;
       }
       advanceGuidedResolution([]);
