@@ -4,7 +4,7 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "batch3充填(2026-07-06・J3 Sonnet)= Codex起草(research/cr-grounding/planned-sequence-batch3.draft.md・demand実測+CR条番号+golden候補)を判定者がCR原文照合+demand数値検証し、優先度式(demand降順>edhValue>S-phase依存順)で充填。8エントリ全edhValue=high・cr-601/cr-modalのdemand同値tie(共に10)はlane(backbone>leaf-compiler)でbreak。STOP-flagged(cr-714-sagas/cr-716-719-720-721-722、judge:user-stop)はCodex草稿が候補外として明示フラグ済み=judge単独裁定せず据え置き。前回batch2(cr-118〜cr-102-players・10スライス)は全出荷完了(HEAD 5ea83da)。 batch4充填(2026-07-07・J3 Sonnet、Codex quota枯渇のためドラフトも判定者代行= research/cr-grounding/planned-sequence-batch4.draft.md)= 補充手順実行中にCodex quotaブロック(2026-07-11まで)判明、判定者が直接research/mydeck-scoring/gaps.jsonとscripts/mydeck-scoring/score.tsのソースを読み重要な計測器欠陥を発見: score.tsのcategoryForDemand/compareDemandsはevent:*/zone:*/layer:*/timing:*系タグを産むclassifierとのみ突合しており、cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*系demandは実装状況に関係なく常にmissing判定になる構造的欠陥(compile.tsの実装カタログを一切参照しない)。実例でsrc/engine/grammar/compile.tsのliteralManaCommands/guidedManaPromptを確認しSol Ring/Signet等の`{T}: Add {C}`は既存実装済み(cr-605-mana-abilities shipped)なのにgaps.jsonはsubstrate不足と誤判定していることをbyte-levelで確認。この軸のdemand数値(cost:activation 232等トップ7件)は今回は信頼せず不採用。真に計測器で裏取りされたdemand(event:draw 25/zone:library 15)とledger nextGateが実際に解放済みと確認できたcr-702(combat/layers/cast-from-zone前提が全てshipped済みと確認)の2件のみ、CR原文照合の上でplannedSequenceへ充填。demand軸の欠陥修正自体はresearch/cr-grounding/planned-sequence-batch4.draft.md item3に記録し、accuracy-programトラックの将来課題としてmemoryへ残す(ledger domainではないためplannedSequence対象外)。 D-トラック追加(2026-07-08・J1 Fable・ユーザー依頼のデザイン刷新設計セッション)= UI/UX診断(55/100の5主因)→契約3本(docs/design-vision.md・docs/design-system.md・docs/ui-architecture-v2.md)+視覚正本(research/design/mockups/)を新設し、D0-D5をdesign-sliceとして追記。CRトラック(S-*/C-*)は不変更・並走。D-トラックとCRトラックの着手順はユーザー裁定(userGate付き=autoloopは明示指示まで消費しない)。 **運用オーバーライド(2026-07-12・ユーザー裁定)**: (1) design-track(D4/D6/D7)は ChatGPT 5.6 の並行UIトラックへ全面移管=autoloop step0 消費対象外・status=deferred で可視境界化。(2) 当面Codex/ChatGPTリソースは使わず、autoloopの実装者ロール=Sonnetサブエージェント(Agent model:sonnet・別transcript)。Codex=実装者の既定を Sonnet で置換(役割は能力で定義=CLAUDE.md)。監査Tier-1も冷Sonnet。判定者席=在席最上位Claude。詳細=memory chatgpt-ui-ux-track。 **batch5 promotion(2026-07-12・判定者=在席Opus判定者席・スコープ草稿=Sonnet補充担当research/cr-grounding/planned-sequence-batch5.draft.md)**: 非shipエンジンdomainを母集団にdemand実測(compile.ts直読spot-check済)→優先度式で選定。機械的demand降順トップは候補2(48)だがper-player command配線未実装(最大blast radius)+GameCommand意味変更のJ2判定含み+stale ledger裁定を要すため『クリーンに着手できる単一スライスでない』と判定=候補1(loot可変数・19・依存ゼロ・純additive・J3)を次スライスに選定(実行順序の技術判断=STOP①でない・ドラフト§91もJ3裁量内と明記)。候補3/4=依存ゼロ低リスクを後続。候補2/候補5=judge-gated(step0で判定者判断まで実装しない=Sonnet盲目実装防止)。user-stop 14件は母集団除外。実装者=Sonnet(Codex/ChatGPT不使用の運用オーバーライド)。 **candidate-1破棄(2026-07-12)**: loot fixed-N型はTier-1コーパス実測で実カード0件+2枚回帰(net-negative)=破棄。真のloot demandは全てup-to/any-number=gameStore配線待ちのfollow-onへ([11] judge-gated化)。この事故を機にautoloopへ『実装前カバレッジ検証』(§腐敗ハイジーン#4)を新設=demand数値でなく実コーパスカバレッジを実装コストの前に確認する。次actionable=[12]candidate-3(reanimation tapped・真demand≈8-10)・[13]candidate-4(自己参照counter)=いずれも実装前カバレッジ検証を課す。 **candidate-3 coverage-verify失格(2026-07-12)**: §4検証で実カバレッジ2件(census内0)=fetchland/token over-report。実装せず再スコープ判定者gate化。candidate-1/3とも census依存demandがover-reportで失格→compiler-confirmed demandのcandidate-4/2を優先。§4が実装前に安く捕捉=浪費回避を実証。 **candidate-4 §4 PASS→実装承認(2026-07-12)**: coverage 25-30件(census非依存のcompiler-confirmed gap)。§4検証が先行target/生成節『it』誤付与リスク(Aang48件等)を事前特定→review.*/goldenで負pin。 **腐敗sweep(2026-07-13・§腐敗ハイジーン#3初回・判定者代行=Sonnet委譲不能のため)**: 真のdead ref 1件修正(docs/engine-spec.md §32.9?→cr-608-resolution-batch3-2.draft.md がarchive/へ移動済なのに参照が旧パス=archiveパスへ訂正)。orphan draft 8件(cr-121-drawing-scope/planned-sequence-batch3/4/score-ts-demand-catalog-repair等)は**living契約[ledger provenance/evidence・judge-protocol]から参照されており未archive**=archiveするなら全参照のパス移行が必須(dead ref新設回避)。予算逼迫下では危険ゆえ**archival+ref移行は予算回復後のhygiene follow-up**へ。cr-player-specific-zones boundaryのstale疑い(zonesByPlayer保存形はcr-102-players出荷済だがcommand書込経路は未実装=I22)も同follow-upで精査。 **candidate-4出荷(2026-07-13)**: 自己参照+1/+1 counter leaf。§4カバレッジ検証PASS→実装→Tier-1がdeny-list初版のfalse-auto 11件をコーパス実測で検出→allow-list(CR608.2 fail-closed)転換で0件化・正当auto 19維持。engine-spec §34.39再オーナー化。§4+Tier-1コーパスflipの二段が誤自動化を捕捉した好例。 **setManualTargets出荷(2026-07-13)**: ChatGPT越権エンジン変更(UI中に書いた手動対象注記)をユーザー裁定[option A]で正規監査に載せ確定。抽象昇格承認+CR400.7/707.10照合+judge review.*(8pin緑)+独立Tier-1。tree絡まりと未監査エンジン変更を解消。ChatGPTはUI/契約先行実装でなくエンジン変更はengine trackへ提案する運用が今後の指針。",
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -12,7 +12,7 @@
       "track": "design",
       "status": "shipped",
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。①死CSS削除(src/App.css:838-960と:2793-2872の旧レイアウト系統=現JSX未使用) ②viewStore.ts新設(空殻+テスト。ui-architecture-v2 §3のinterface) ③src/ui/icons.tsx=インラインSVGスプライト新設しUnicode偽装アイコン(App.css:4293-4345のti ti-*)を全廃 ④カード画像フォールバック修正=日本語版画像欠落時にScryfall EN画像へ(『Localized Image Not Available』プレースホルダ根絶)。機械的・低リスク・見た目回帰なし(3形態スクショ比較)。 **出荷完了(2026-07-10・J3代行実装。Codex quota枯渇7/11までのためdesign-playbook §6の代行規則を適用)**: 死CSS削除(旧3カラム.playmat__sidebar/__main/__stage/__zones/__hand/__log一式+.ti/.ti-*::before全廃)・src/ui/icons.tsx新設(22アイコン。design-system.md §6に実装乖離記録追記済み)・src/store/viewStore.ts新設(空殻)・src/data/scryfall.tsにusableImageUrl新設(image_status:placeholder/missing判定。実API裏取り済み)。独立Tier-1監査(冷Sonnet)完了=HIGH相当1件(cache staleness。CACHE_SCHEMA_VERSION 3→4で解消)+process gap2件(icon数/実装パス乖離。design-system.md §6へ記録)を判定者が裁定・修正済み。機械4点全green(173 files/1494 tests)・実機3形態確認済み(縦=既存RotateNotice仕様どおり)。evidence=review.d0-viewstore.test.ts/review.d0-image-fallback.test.ts/review.d0-dead-css-scan.test.ts。"
+      "note": "D0 地ならし(2026-07-08 J1 Fable設計セッション起点。契約=docs/design-vision.md/docs/ui-architecture-v2.md §4)。"
     },
     {
       "type": "design-slice",
@@ -23,7 +23,7 @@
       ],
       "status": "shipped",
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "D1 デザインシステム+カードシート。①src/ui/tokens.css=docs/design-system.md §2のトークン実装(**テーマ=アルケイン戦術卓に確定済**・2026-07-08 Round 3ユーザー裁定。視覚正本research/design/mockups/index.html v3の<style>冒頭トークン層を移植) ②CardActionSheet+actionCatalog.ts新設(ui-architecture-v2 §2。既存buildMenuItems(Playmat.tsx:735-1109)を純関数抽出しrankActions(card,zone,state)で文脈上位1-3件を昇格、全操作は『その他』に畳む=サンドボックス全操作保存) ③右クリック/タップの開き先をContextMenu→シートへ(VITE_UI_V2_SHEETフラグでロールバック可)。受け入れ=森タップでマナ生成が一等地・タッチターゲット44px+・機械4点+review.*+実機コンソール0。 **出荷完了(2026-07-10・J2 Opus召喚下でJ2実装代行=Codex quota枯渇7/11まで・design-playbook §6)**: tokens.css新設(アルケイン戦術卓トークン正本)・index.css felt→inkエイリアス移行・actionCatalog.ts(純関数buildCardActionCatalog+rankActions・onSelectはbuildMenuItems再利用しlabelはspec正本)・CardActionSheet.tsx/.css(bottom sheet/popover)・Playmat配線(isV2SheetEnabledフラグ)。独立Tier-1監査(冷Sonnet)完了=赤旗3件(統率者税ラベルのid-join死コード→withSpecLabelで修正・フラグOFF経路未検証→vi.stubEnvで両値テスト追加・優先5のfetch代替→J2追認しdesign-system §8記録)+黄4件を判定者が裁定・修正。乖離記録=design-system §2(feltエイリアス)/§8(affordability D3延期・優先5代替・新トークンscrim/popover-w)・ui-architecture-v2 §6(D4で重複実装抽出+playmat依存解消)。機械4点全green(174 files/1506 tests)・実機3形態確認済み(1440=popover/812×375=bottom sheet/375portrait=RotateNotice[D2前想定]・森→マナ生成一等地・44px・コンソール0)。evidence=review.d1-action-catalog.test.ts(10ケース)+Playmat.test.tsx統合ピン2件(税ラベル/フラグOFF)+archive/d1-design-system-card-sheet/tier1-findings.md。"
+      "note": "D1 デザインシステム+カードシート。"
     },
     {
       "type": "design-slice",
@@ -34,7 +34,7 @@
         "d1-design-system-card-sheet"
       ],
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "**出荷完了(2026-07-10・J2 Opus召喚下でJ2実装代行=ユーザー『Codexの代わりにOpusが作業を行え』指示・Codex quota枯渇7/11まで)**: src/components/game/一式新設(GameScreen=単一adaptive tree・CSS grid-template-areasのみで3形態/StatusBand 1行36px/StackBand 青白glow/Board=BoardShelf密度96/84/72・14枚〜重ね/LandRow=同名基本地形bundle+統率者金枠常駐/HandRibbon/ThumbZone=PrimaryAction簡易状態機械/GameCard/LifeSheet=ライフ・マナプール・毒/エネ/経験・統率者ダメージ/ManualKeywordsDialog)+純関数(boardShelf/landRowModel/statusBandModel・review.d2-layout-model 16ケース)+gameController(旧Playmatダイアログ機構をhandlerFor[=D4のbindAction正本]+全dialogs.tsx流用で再構成)。App.tsx=VITE_UI_V2_LAYOUTフラグ(既定ON)でGameScreen/旧Playmat切替。**J2裁定**: ①全面置換の単一adaptive tree ②旧Playmat無編集(byte-identical・ロールバック保全) ③DnD/mobile系(useIsPhoneLandscape/MobileControlsDrawer/MobileZoneSwap)削除はD4へ(フラグ経路がPlaymatを生かすため)。機械4点全緑(175 files/1522 tests)・実機3形態確認(375縦=完走+chrome15.3%/board66%[予算達成]・812横=stack空時board可視/active時squeeze→D4で3カラム化・1440=1100中央寄せ機能版)・コンソール0。独立Tier-1監査(冷Sonnet)=BLOCKER1(HUD操作欠落:マナプール/統率者ダメージ/毒等/redo/tap-all/proliferate/dice/coin/auto-advance)→J2裁定でLifeSheet+ThumbZoneメニューへ全復元(info panelのみ延期・rollbackで担保)、HIGH1(copy-permanentがcopyStackItem誤呼びでEngineError)→handlerFor分離修正・実機で15→16トークン生成+コンソール0確認。乖離記録=StatusBandベル(D3フィード入口へ延期)・LandRow束シート一括タップ(D3/D4延期・個別操作は保持)。evidence=research/cr-grounding/d2-portrait-layout-tier1-findings.md・src/components/game/__tests__/review.d2-layout-model.test.ts。 --- 契約(参考): D2 縦持ちレイアウト(刷新の本丸。Round 2 v2で確定)。src/components/game/一式新設(GameScreen/StatusBand/StackBand/Board/LandRow/HandRibbon/ThumbZone=ui-architecture-v2 §2)。RotateNotice撤去=縦持ちの壁を壊す。単一adaptive tree(JSXでのisPhone分岐禁止・CSS grid-template-areasのみで3形態)。**カードが主役(vision 原則7)**=ラベル/相手ライフ常設行/ゾーンチップ列は廃止しステータス帯1行36px+タップシートへ。土地=同名基本地形の物理スタック(ずらし重ね・design-system §8 LandRow)+統率者常駐。MobileControlsDrawer/MobileZoneSwap/useIsPhoneLandscape退役。視覚正本=research/design/mockups/index.html(v2)画面1-2。受け入れ=375pxで1ゲーム完走(実機ヒューリスティック)+クローム予算実測(非カードUI≤25%/盤面カード≥55%)+3形態スクショ+機械4点+review.*。 盤面=BoardShelf(統一サイズ棚・密度96/84/72px・14枚〜重ね。design-system §8 BoardShelf・視覚正本=モックv4 2026-07-09)。"
+      "note": "**出荷完了(2026-07-10・J2 Opus召喚下でJ2実装代行=ユーザー『Codexの代わりにOpusが作業を行え』指示・Codex quota枯渇7/11まで)**: src/components/game/一式新設(GameScreen=単一adaptive tree・CSS grid-template-areasのみで3形態/StatusBand 1行36px/StackBand 青白glow/Board=BoardShelf密度96/84/72・14枚〜重ね/LandRow=同名基本地形bundle+統率者金枠常駐/HandRibbon/ThumbZone=PrimaryAction簡易状態機械/GameCard/LifeSheet=ライフ・マナプール・毒/エネ/経験・統率者ダメージ/ManualKeywordsDialog)+純関数(boardShelf/landRowModel/statusBandModel・review.d2-layout-model 16ケース)+gameController(旧Playmatダイアログ機構をhandlerFor[=D4のbindAction正本]+全dialogs.tsx流用で再構成)。"
     },
     {
       "type": "design-slice",
@@ -45,7 +45,7 @@
         "d2-portrait-layout"
       ],
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "**出荷完了(2026-07-10・J2 Opus実装代行=ユーザー『Codexの代わりにOpusが』継続指示・D2直後にユーザー裁定でOpus続行)**: primaryAction.ts(状態機械=スタック非空→解決/誘発候補n>0→誘発を処理/戦闘フェイズ攻撃宣言前[phase==='combat'&&combat未生成=engine実到達状態]→攻撃を確定/他→次のフェイズ。スタック優先=CLAUDE.md唯一の強制ルールの構造表現)・affordability.ts(マナ計算selector=未タップ源をユニット化しKuhn二部マッチング+monoHybridバックトラック。playableHandCardIds)・feedProjection.ts(warnings/triggerCandidates/ログの純投影・新しい順)・Feed.tsx(誘発スタックへ/全無視・浮動Toasts/TriggerCandidatePanelは新treeで非採用)。配線=ThumbZone(PrimaryAction)/StatusBand(ベル+バッジ)/HandRibbon(memo化glow)/GameCard(playable縁光)/gameController(feedOpen)。review.d3-primary-feed(22ケース)。機械4点全緑(176 files/1543 tests)・実機3形態+コンソール0(fresh server再起動で確認)。**独立Tier-1(冷Sonnet)**=HIGH2(①combat分岐がdeclareAttackers[到達不能]→phase==='combat'&&combat未生成へ修正・実機engineで攻撃を確定表示確認 ②monoHybrid {2/W}が色固定で過小評価→色OR不特定2のバックトラック修正)+MED3(feed 44px化・無視をper-itemから単一グローバル化しtestid重複解消・viewStore/markSeen未配線)を裁定=①②修正・feed修正・viewStore乖離をui-architecture-v2 §6へ記録。MED(Sol Ring等複数マナ源の過小評価)はハイライト助言ゆえ許容+ファイル注記、LOW(APNAP順序UI・next-turn disabled)は将来スライスへ。evidence=research/cr-grounding/d3-primary-feed-tier1-findings.md・review.d3-primary-feed.test.ts。 --- 契約(参考): D3 プライマリアクション+フィード(エンジンの見える化=design-vision 原則2/4)。①PrimaryAction状態機械(スタック非空→解決/未処理誘発→誘発を処理(n)/戦闘→攻撃確定/他→次のフェイズ。スタック未解決中のフェイズ禁止をボタン状態で表現=CLAUDE.md唯一の強制ルール) ②プレイ可能ハイライト(マナ計算selector・手札金縁発光) ③Feed=warnings/triggerCandidates/ログの投影合成(独自真実なし・undoで巻き戻る。ui-architecture-v2 §3)。Toasts/TriggerCandidatePanel浮動版退役。視覚正本=mockups画面3。"
+      "note": "**出荷完了(2026-07-10・J2 Opus実装代行=ユーザー『Codexの代わりにOpusが』継続指示・D2直後にユーザー裁定でOpus続行)**: primaryAction.ts(状態機械=スタック非空→解決/誘発候補n>0→誘発を処理/戦闘フェイズ攻撃宣言前[phase==='combat'&&combat未生成=engine実到達状態]→攻撃を確定/他→次のフェイズ。スタック優先=CLAUDE.md唯一の強制ルールの構造表現)・affordability.ts(マナ計算selector=未タップ源をユニット化しKuhn二部マッチング+monoHybridバックトラック。playableHandCardIds)・feedProjection.ts(warnings/triggerCandidates/ログの純投影・新しい順)・Feed.tsx(誘発スタックへ/全無視・浮動Toasts/TriggerCandidatePanelは新treeで非採用)。"
     },
     {
       "type": "design-slice",
@@ -56,7 +56,7 @@
       ],
       "userGate": "2026-07-12 ユーザー明示指示で解除=PC版退行の回復を現最優先(cr-121より上位)。旧D4を判定者(J2 Opus)がd4a/d4b/d4cへ分割承認。consumable(design-slice だがユーザーが D-トラックのPC回復を明示指示済)。",
       "specStatus": "judge-endorsed",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4a PC affordance回復。旧Playmatの全面復帰/削除はせず、同じGameScreen tree へ desktop affordance を戻す。**受け入れ契約(判定者endorse)=research/design/d4a-pc-affordance-recovery.draft.md A-I**: 全幅/舞台(1280≥95%幅・1920中央≥72%)・8枚手札(scroll無・9枚+はgap→bounded overlap→scroll段階圧縮)・readable turn model(7phase常時可視・現在/次を日本語名・色依存しない)・入力parity(hover 250ms preview・通常click=inspect・right-click全action代替・DnD復元・keyboard)・ゾーン常設(墓地/追放/山を完全名+枚数・1click 44px+)・space-aware土地(container overflow起点)・マリガン central化+**restoreGame(gameStore.ts:1845)のpending保存/導出バグ修正+review.m424再オーナー化**・feed/stack常設。実測根拠=research/design/r1-pc-ui-baseline.draft.md。検証=visual fixture(src/dev/visualFixtures)6場面×5 viewport+機械4点+console 0。別JSX tree禁止(media/container query)。段階出荷可。独立Tier-1必須。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
       "status": "deferred"
     },
     {
@@ -92,7 +92,7 @@
         "d2-portrait-layout"
       ],
       "userGate": "2026-07-09 ユーザー裁定: D-トラック先行。autoloopはD0→D5を順に消費してよい(実行カード=docs/design-playbook.md §3)。CRトラック(fetchland/score.ts修復)はD-track完了後または明示指示で再開",
-      "note": "**出荷完了(2026-07-11・J2 Opus実装代行=ユーザー『あなたの推奨を進めよ』→判定者推奨でD5選定[D4は高blast-radius=新セッション])**: motion.ts(純関数=motionLevelFor[kind→L値]/motionDuration[reduced分岐]/shouldCompress[連続圧縮]/lifeFlashDirection/sound opt-in localStorage既定OFF)・sound.ts(WebAudio合成=OscillatorNode+エンベロープ・外部依存なし・遅延生成AudioContext・celebrate()=vibrate(10)+音・reduced-motionでvibrate抑制)・game.css(@keyframes 4種=celebrate-draw[手札slide-in L2]/etb[盤面bounce+金縁 L3]/stack-flash[青白 L3]/life-gain・loss[色フラッシュ L1]・prefers-reduced-motionで全停止)。配線=StackBand(解決flash・length減少検知)/StatusBand(life flash方向)/ThumbZone(primary haptics+音トグル)/HandRibbon(draw haptics)/gameController(motionArmed gate+resolve celebrate)/GameCard(--celebrate)。review.d5-motion(11)。機械4点全緑(177 files/1555 tests)・実機375+1440コンソール0(motionArmed=初期0/draw後1を実測確認)。**独立Tier-1(冷Sonnet)**=HIGH2(①再開時に既存カード全体が演出誤発火→motionArmed gate[初回描画後setTimeoutでarm・GameCardがマウント時捕捉]で抑止・実機検証 ②resolve celebrateがフェッチダイアログ前に先撃ち→実解決パスへ移動)+MED1(motion純関数未配線→shouldCompressをdraw haptic圧縮へ配線・motionLevelFor/Durationは§7方針層としてheader明記)+LOW2(生rgba→transparent/token化・空ライブラリdraw guard)を全裁定・修正。evidence=research/cr-grounding/d5-celebration-tier1-findings.md・review.d5-motion.test.ts。 --- 契約(参考): D5 祝祭感(気持ち良さ=Arenaとの体感差の正体)。design-system §7の4種のみ: ドロー(山札→手札の弧)/解決(スタック帯の金の閃き→縮小移動)/ETB(着地バウンス+一瞬の金縁)/ダメージ・ライフ(カウントロール+色フラッシュ)。navigator.vibrate(10)をプライマリ/ドロー/解決に。音はオプトイン既定OFF・3音以下。prefers-reduced-motionで全停止。これ以外の装飾モーション追加は禁止(design-system §9)。D3完了後推奨だがD2後でも着手可。視覚正本=mockups v3の5場面デモ(初手/キャスト/解決/統率者/連鎖)のL1-L3中核。演出レベル体系はdesign-system §7。"
+      "note": "**出荷完了(2026-07-11・J2 Opus実装代行=ユーザー『あなたの推奨を進めよ』→判定者推奨でD5選定[D4は高blast-radius=新セッション])**: motion.ts(純関数=motionLevelFor[kind→L値]/motionDuration[reduced分岐]/shouldCompress[連続圧縮]/lifeFlashDirection/sound opt-in localStorage既定OFF)・sound.ts(WebAudio合成=OscillatorNode+エンベロープ・外部依存なし・遅延生成AudioContext・celebrate()=vibrate(10)+音・reduced-motionでvibrate抑制)・game.css(@keyframes 4種=celebrate-draw[手札slide-in L2]/etb[盤面bounce+金縁 L3]/stack-flash[青白 L3]/life-gain・loss[色フラッシュ L1]・prefers-reduced-motionで全停止)。"
     },
     {
       "type": "design-slice",
@@ -103,7 +103,7 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D6 連鎖感+演出レベル制御(vision-only=方向のみ契約。北極星②=design-vision §2「狙う感情」2026-07-08追記)。演出強度の段階制御・連鎖ヒューリスティック(短時間の複数誘発/1ターン大量ドロー/大量トークン/マナ急増/スタック連続解決で背景と音を一段だけ盛る=コンボの厳密検出はしない)・スタック儀式/統率者登場の強調。エンジン前提=イベントストリーム(cr-603系/S-EVENTS。連鎖ヒューリスティックの供給源=北極星①の製品価値化)。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。視覚正本=mockups v3の統率者登場(L3+)・連鎖(L4)場面。演出レベル制御はdesign-system §7。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
       "status": "deferred"
     },
     {
@@ -115,74 +115,74 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D7 音+セッション演出(vision-only=方向のみ契約。北極星②)。音3レイヤー(UI音/カード操作音/状態音)・初手配布の儀式(7枚が1枚ずつ配られ扇に整う。キープ=開始確定の小演出)・ゲーム開始演出。オプトイン既定OFF・長時間プレイで疲れないことを優先・OFFで完全無音。詳細契約は着手決定時に research/design/vision-sources/game-feel-dialogue-2026-07.txt から蒸留して起草する。音3レイヤー方針=design-system §7b。 契約ドラフト=docs/design-playbook.md §5(連鎖ヒューリスティック初期閾値/音=WebAudio合成・依存追加なし)。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
       "status": "deferred"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
-      "note": "**出荷完了(2026-07-12・J2 Opus 判定者席・実装=Sonnet サブエージェント[ユーザー指示『Codex/ChatGPT リソースでなく Sonnet を使う』])**: CR121.2c 誠実性ガード。`hasSupportedPlayerSubject`(compile.ts effect.draw)に cross-player/optional recipient ブロッカー + 先頭 embedded 遅延誘発条件 strip を追加。Tataru Taru 型の部分 P1-only 誤自動 draw を manual 化(V1『誤自動化≈0』の穴)。新 GameCommand/state なし=既存 draw leaf eligibility ガードのみ。engine-spec §32.9 draw leaf 明確化ピンへ再オーナー化。独立 Tier-1(冷 Sonnet)が HIGH 赤旗1件(Maeve, Insidious Singer false-manual 回帰=embedded 遅延誘発の 'opponents' 誤マッチ)を検出→判定者裁定で差し戻し→strip 修正→再実測で false-manual 0・反転は正当2件(Tataru/Sphinx)のみ。機械4点緑(vitest 1587)。受け入れ=cr121DrawCrossPlayerGuard.test.ts。 旧スコープ note: batch4-2(2026-07-12 score-ts修復出荷で heldPending 解除)。**スコーピング完了(2026-07-12・Codex草稿=research/cr-grounding/cr-121-drawing-scope.draft.md・判定者がCR照合+実compiler probeで独立検証)**: 台帳仮説『draw-N guided catalog化』は誤り=固定数self draw(ETB/attack/upkeep trigger起点含む)は既にauto出荷済(engine-spec §32.8・cr121DrawCompiler/cr121DrawAuto test)。**真の残ギャップ=CR 121.2c honesty guard**: 現状 `hasSupportedPlayerSubject`(compile.ts:967-972)は『supported self-subjectが出現するか』のみ判定し『それが唯一の受益者か』を見ないため、**Tataru Taru ETB『you draw a card and target opponent may draw a card』が [auto] で P1 分の{draw,count:1}を誤発火(=誤自動化。V1査定の誤自動化≈0不変条件違反)**を判定者が実probeで確認(2026-07-12)。修正=draw clause が P1 単独のときのみ auto emit・target/opponent/each/optional/mixed-recipient は manual かつ draw command を残さない(scope draft §41-43)。新GameCommand/state無し=既存draw leaf の eligibility guard。**contract-ready**(engine-spec §32.8 clarification + adversarial pins)。CR 121.1-121.2(draw本体)・121.2c(multi-player順序)・104.3c/121.4/**704.5b**(empty-library loss SBA・既存commands.ts:247/gameStore.ts:110で正しく704.5b実装済=旧note『703.4d』は誤記訂正)。golden: Tataru Taru(誤自動化本体)・Fear of Missing Out(既にguided=gap無)・Banon(optional条件manual)・Blue Sun's Zenith(variable+target=defer負golden・実Scryfall裏取り要)。variable-count/opponent強制draw執行はdefer継続。**実装は新セッション推奨**(判定者トークン枯渇回避=本セッション5マイルストーン出荷済)。",
+      "note": "**出荷完了(2026-07-12・J2 Opus 判定者席・実装=Sonnet サブエージェント[ユーザー指示『Codex/ChatGPT リソースでなく Sonnet を使う』])**: CR121.2c 誠実性ガード。",
       "status": "shipped"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
       "status": "judge-gated",
-      "note": "**candidate-1 破棄・再スコープ(2026-07-12・Tier-1コーパス実測で誤スコープ発覚)**。当初『discard 固定N, draw that many』型をguided化しようとしたが、冷SonnetのTier-1が17,491枚実測で: (1)fixed-N『draw that many』型は**実カード0件**(実lootは全てup-to/any-number/all-cards-in-hand=Fable/Celes/Tersa/Daretti等)、(2)『up to』誤fixed修正のfake-auto除去=0件(latent)、(3)かつ実カード2枚回帰(Tolsimir/Absolving Lammasu=共有countアーキ経由で無関係な『up to one』がgain-life定数3を汚染しauto喪失)。net-negativeゆえコード破棄(ir.ts/compile.ts=HEAD復帰)。**真のloot demand(cluster2・約19件)は全てup-to/any-numberで、実際に捨てた枚数だけ引く配線=gameStore.ts解決経路が必須**。→ **gameStore-gated follow-on**: gameStore.tsがChatGPT UI/UXトラックのout-of-band変更でcommit-cleanになってから、up-to/any-number loot guided実行を配線する。設計2案=research/cr-grounding/loot-variable-count.draft.md §3。新GameCommand不要見込だがguided prompt queueの累積discard枚数→draw count伝播機構が要る。CR121.1/121.2/701.9/608.2h。**学び=実装前にコーパス実カバレッジを検証せよ**(autoloop §腐敗ハイジーン#4新設)。demand数値だけ信じない。"
+      "note": "**candidate-1 破棄・再スコープ(2026-07-12・Tier-1コーパス実測で誤スコープ発覚)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-400-408-zones-lki",
       "status": "shipped",
-      "note": "**出荷完了(2026-07-14・engine-spec §34.41・judge=在席Opus判定者席・実装=Sonnet・独立Tier-1=冷Sonnet)**: mana value 上限フィルタ付き墓地→戦場 reanimation return leaf。TargetFilter.maxManaValue additive + eligibleTargets graveyard permanent型(CR110.4a・battle除外)+上限。recognizer 単一化で起動型 desync(Order of Whiteclay・CR602.2b)を Tier-1 検出→判定者裁定(compiler誤訳)→graveyardReturnFilterForRaw 共有化で根絶。コーパスflip false-auto 0・IN形13カード guided。§4 census 16行(Celes reanimator)。新 GameCommand/state なし。domain nextGate へ畳込み。 旧 note(選定経緯): **batch6 replenishment で選定・re-scope option A 承認(2026-07-14・判定者=在席Opus判定者席・§4 census実測)**: 旧judge-gate(『判定者の設計判断を要する再スコープ』)を解除。信頼demand計器のトップからHaiku probeが起こした batch6 候補(research/cr-grounding/planned-sequence-batch6.draft.md)を判定者がCR照合+§4 gaps.json実測で検証: probe筆頭のUntap target/tapped tokenは既出荷(cr-110 untap既compiled=compile.ts:1588 / tapped creature tokenはcreateDefinedToken initialTapped既対応)で破棄。**選定=option A『mana value フィルタ付き墓地→戦場 reanimation return』**。MyDeck census実測=16 gap行(Celes reanimatorに集中: Extraction Specialist/Sevinne's Reclamation/Carnage/Squall/Sun Titan/Alesha系=『return target <creature|permanent> card with mana value N or less from your graveyard to the battlefield』)。旧note推定~7件より高価値。**scope**: 単一target・固定整数N閾値のみauto/guided。現状 isExactGraveyardCreatureReturn(compile.ts:1418)は無フィルタ完全一致のみ→MVフィルタで一般化。TargetFilterにmana value上限フィールド追加(compile.tsローカルstruct・**新GameCommand不要**=§5.1 PASS・既存guided target+moveCard再利用)。CR 701.14(return)/613・711(filter)/400.7(zone change new object)。**DEFER(manual維持)**: mass『return all ... cards』(Ascend from Avernus/Aftermath Analyst)・可変/『up to one/X』(General Leo)・自己参照『return this card』(Skeleton Crew=別atom=option B)・payment/trigger wrapperは外側ability構造の別関心。**出荷クリーン=compile.tsのみ・ChatGPT非干渉**。旧judge-gate note(参考): exact-matchスコープはコーパス2件(Gravewaker/Writ of Return)・census0で非推奨だった。"
+      "note": "**出荷完了(2026-07-14・engine-spec §34.41・judge=在席Opus判定者席・実装=Sonnet・独立Tier-1=冷Sonnet)**: mana value 上限フィルタ付き墓地→戦場 reanimation return leaf。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-122-counters",
       "status": "shipped",
-      "note": "**出荷(2026-07-13・自己参照+1/+1 counter leaf・engine-spec §34.39再オーナー化)**: 「put a/an/<固定N> +1/+1 counter(s) on it」でit=source確定時のみauto・既存addCounters(sourceCardId)emit。**要石=CR608.2 allow-list(fail-closed)**: 主語が『this <type>』指示語 or 自カード名のときのみ自己参照auto・不定主語(a/an/another <X> you control等)はmanual。独立Tier-1がdeny-list(fail-open)初版のfalse-auto 11件(不定主語・非生物source含む)をコーパス実測で検出→allow-list転換でfalse-auto 11→0・正当auto 19維持を判定者がflip再実測で確認。ループ変更(AbilityIR.effectClauses追加)のblast radius=counter以外atom反転0件。新GameCommand/state無し。機械4点緑(1627)。受け入れ=review.cr122-self-referential-counter.test.ts(不定主語HIGH pin含む)。"
+      "note": "**出荷(2026-07-13・自己参照+1/+1 counter leaf・engine-spec §34.39再オーナー化)**: 「put a/an/<固定N> +1/+1 counter(s) on it」でit=source確定時のみauto・既存addCounters(sourceCardId)emit。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
       "status": "judge-gated",
-      "note": "**候補2: クロスプレイヤー効果の実行(cluster1)= JUDGE-GATE(step0で判定者判断まで実装しない)**。demand=48(最高)。cr-121(draw)主・cross-cutting=cr-701(discard/sac)/cr-119(life)/cr-120(damage)。CR608.2/121.2c/701.9/701.21a。**着手前に判定者が要決定(3点)**: (1)台帳stale裁定=cr-player-specific-zones boundaryが『zonesByPlayer実体未着手』と記述だがcr-102-playersで保存形は出荷済(実際に未実装なのはdraw/discard/adjustLifeのplayerId書込経路=I22)。(2)抽象昇格=既存GameCommandへ additive playerId? 追加は型はadditiveだが『P1固定→player可変』の意味変更ゆえ§5.1でJ2召喚相当か判定者確認。(3)分解=基盤(per-player command routing)とleaf(cross-player compile)に分けるか。2-entity(P1+ダミー対戦相手)境界内に留める。cr-121誠実性ガード(35d1f49)でmanual化した対象の実行側=自然な後続だが最大blast radius。judge=deterministic-cr寄りだがJ2判定含みうる=step0でSTOP候補①でなく判定者gate。"
+      "note": "**候補2: クロスプレイヤー効果の実行(cluster1)= JUDGE-GATE(step0で判定者判断まで実装しない)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-609-one-shot-mass",
       "status": "judge-gated",
-      "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。CR609。demand=5(最小)。Ruinous Ultimatum/Culling Ritual/Pernicious Deed等。compiler直読: TARGET_REQUIRED_ATOMSにeffect.destroy含みall/each文言が単一target経路を通れずmanual。スコープ見込=filter一致集合を盤面から求めN個の既存単体コマンドを生成時展開(新コマンド型不要=分解可能性PASS見込)だが設計コスト高。ledgerに直接対応domainId無し=**新規domain新設 or 既存吸収を判定者裁定**(軽微な価値判断含みうる)。demand最小ゆえ他候補の後。"
+      "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-115-targets",
       "status": "shipped",
-      "note": "**出荷(2026-07-13・手動スタック対象注記 setManualTargets・engine-spec §34.40再オーナー化)**。由来=並行ChatGPT UIトラックがUI作業中に書いたエンジン変更を、判定者が抽象昇格を審査(承認=既存プリミティブに『スタック項目へ手動対象を書く』操作が無く既存targetSelections state再利用の最小新コマンド)し独立監査を通してスライス化。新GameCommand setManualTargets(source stack必須・他非abilityスタック呪文/非ability戦場permanentのみ・manual-target-*/unchecked-warning記録・checked選択保持・manual名前空間のみ置換)。CR400.7=resetCardForZoneChangeで全targetSelectionsクリア(judge open question裁定=全クリア承認)。CR707.10=copyでtargetSelectionsコピー。既存state再利用ゆえ新state型なし。設計draft=research/cr-grounding/manual-stack-target-annotation.draft.md(judge review required提出)。UI(注記ダイアログ・矢印)はChatGPTトラックが別途。受け入れ=review.cr-manual-stack-targets.test.ts(8pin)。独立Tier-1(CR400.7共有関数変更のblast radius検証)。"
+      "note": "**出荷(2026-07-13・手動スタック対象注記 setManualTargets・engine-spec §34.40再オーナー化)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-player-specific-zones",
       "status": "shipped",
-      "note": "**出荷(2026-07-16・多人数基盤MP-STATE〜MP-BOARD一括・§34.42-45)**。由来=ユーザーがSTOP①「V4前進 vs V1磨き込み」をV4前進へ裁定(2026-07-15)し実装者草稿multiplayer-foundation-opponent-setup.draft.mdを判定者が8点修正で承認(§34.42=MP-CONTRACT+MP-STATE契約)。MP-STATE=Codex実装(判定者発注・25pin先行authoring)。MP-ZONES/COMMANDS〜MP-BOARD=判定者トークン枯渇中にユーザー許可のJ0運用でCodexが契約+review+実装を両担(§34.43-45)。復帰判定者(Fable)が要石どおり独立再検証=①全review.*/docs diff精読+CR照合 ②冷Tier-1敵対監査(実装と別主体・HIGH 0/MEDIUM 1/LOW 1)③機械4点独立再実行(219files/1840tests) ④実機E2E(setup draft不変→apply→単一undo→redo・desktop/mobile・console 0)。MEDIUM=detectTriggerCandidatesがflat墓地のみ読み相手死亡を計器上見逃す(実プレイはevent-log経路で無影響)→判定者外科修正+弁別実証済みpin追加(review.mp-dummy)。manual→auto反転3件(each player/opponent draw/mill)はapplyPlayerEffectのAPNAP・owner-routingトレースでCR-honest裁定。既知UX負債=モバイル相手ストリップ縦幅過大(Dトラック)。"
+      "note": "**出荷(2026-07-16・多人数基盤MP-STATE〜MP-BOARD一括・§34.42-45)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-605-mana-abilities",
       "status": "shipped",
-      "note": "**ACT-1 マナ経路のコスト整合・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済)**。由来=ユーザー報告『睡蓮の花びらからマナが出るが生贄処理なし』→判定者診断で producedMana メタデータ駆動ショートカット(tapForMana/planAutoTap/actionCatalog)が起動コストを迂回する CR118.3/602.2 違反と確定(一般経路は正動作=review pin で証明)。修正=oracle 正本の単一 recognizer naiveTapManaColors(grammar/manaShortcut.ts・WeakMap メモ化)で『コストが正確に {T} の行』の色のみ naive 適格・他は activateAbility 委譲・起動型 add-mana 行なしは producedMana fallback(基本土地)。Tier-1 コーパス実測(17,491枚)= false-pure 0 件・false-costed 2クラス(MEDIUM)→判定者外科修正: ①ability-word ラベル strip(CR207.2c・Mox Opal 等14枚回復)②基本土地タイプの内在マナ能力(CR305.6・Murmuring Bosk 型退行の根絶)。判定者が review.m418 の Mana Confluence 期待値(旧=ライフ未払いでマナ=バグのピン)を『量1維持+一般経路でライフ支払い』へ再オーナー化。evidence=review.act1-mana-shortcut-cost.test.ts(19 pin)+engine-spec §34.11 項7+実機E2E(petal 生贄+黒1・森 naive 維持・console 0)。ACT バッチ初弾(プラン=activate-cost-starry-fern・ユーザー承認 2026-07-17)。実装者逸脱の記録=禁止されていた git stash を実行し stash@{0}(d4a-a-wip-for-attribution-test)が残留(内容欠損なしを判定者検証済・UIトラック ship 時に処分判断)。"
+      "note": "**ACT-1 マナ経路のコスト整合・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-602-activated-abilities",
       "status": "shipped",
-      "note": "**ACT-2 起動ラインの選択と強行(UI到達性)・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済・契約=engine-spec §34.46)**。実装前カバレッジ実測=同一面2+起動行 MyDeck 48枚/コーパス946枚(5.41%)。単一recognizer activatedAbilityLines(def, faceIndex?)(grammar/index.ts・flat index維持・costText/effectText分割)を engine/UI で共有。actionCatalog は2本以上で ability-activate-<flatIndex>(コスト文字列ラベル)へ展開・1本以下は総称維持(golden非回帰)。強行=pendingForceActivation+confirm/cancelForceActivation(CR118.3ブロック点のみ・manual助言はセットしない・全リセット経路網羅)。**Tier-1 HIGH 1件=DFC/MDFC face-desync**(UIは面フィルタ済ボタン1個なのに abilityLineIndexForKind が全面カウントで manual落ち・実カード43枚=Pathway全10種)→判定者CR裁定(CR712.8d/712.8f=裏面能力は存在しない=面フィルタはCR要求)→差し戻しround1で activated 分岐を activatedAbilityLines(def, card.faceIndex) 共有へ根治。**判定者ピン自己誤り1件**=『起動即タップ』期待は CR601.2c(対象)→601.2h(支払)順に違反=実装無罪・ピンを順序検証へ強化(memory review-test-authoring-pitfalls 再現)。Tier-1コーパス実測(17,491枚)=過剰列挙0・誤ラベル0・index空間ズレ0・面フィルタ漏れ0・forced二重警告なし(runtime trace)。evidence=review.act2-activation-lines.test.ts(17pin)+§34.46+実機light/dark console 0。**残 carry**: ①needs-choice 色ダイアログ statement(ACT-1 carry・4箇所)=ACTバッチ後続へ ②誘発型の面フィルタ(CR712.8d は誘発にも及ぶ)=別スライス ③Playmat.tsx レガシー buildMenuItems 死コード撤去=cleanup スライス。"
+      "note": "**ACT-2 起動ラインの選択と強行(UI到達性)・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済・契約=engine-spec §34.46)**。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-702-keyword-abilities-frequent",
       "status": "pending",
-      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Equip {2}/Crew 2/Level up 等はコロン形式でなく activated 認識されない。CR702 定義文で canonical activated line へ展開し既存単一 recognizer に流す(新抽象なし=judge-protocol §5.1 分解可能性テスト通過)。対象キーワードは MyDeck demand 実測降順で step0 に Codex が確定。activation restriction(sorcery-only 等)は警告のみ(サンドボックス)。 **先行probe実測(2026-07-17)**: コーパス頻度=unearth 47/ninjutsu 30/adapt 22/reconfigure 17/monstrosity 16/level up 13。**MyDeck実需要は薄い**(unearth 2枚・adapt 1枚・他0)。adapt/monstrosity は CR702 キーワード能力でなく **CR701 アクション**=当初前提(CR702定義文で canonical 展開)から外れる。草稿=act3-keyword-canonicalization.draft.md。次周 step 0b で優先度再検討(edhValue vs MyDeck 需要)。"
+      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。"
     },
     {
       "type": "domain-slice",
@@ -197,7 +197,7 @@
       "note": "**ACT-5 忠誠度 envelope(CR606)= JUDGE-GATE**(プラン=activate-cost-starry-fern)。§34.19 の明示 defer を解く新 design-lock(新 domain cr-606 の要否判定含む)。着手前に step0 で MyDeck の PW 需要実測を確認し、需要が立たなければ据置。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。 【2026-07-15消化: ユーザーがV4前進を裁定。予約STOP①は消化済み。次の分岐=cross-player解錠後のrule leaf復帰 vs MP-IDENTITY(通常の北極星⑤メタレビューで判定者が扱ってよい)。】",
+  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(demand 降順 > edhValue > S-phase 依存順)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。(消化済み履歴注記は cr-backbone-ledger-history.json selectionRuleFull へ退避)",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",
@@ -219,7 +219,7 @@
       "edhValue": "meta",
       "status": "shipped",
       "landingState": [],
-      "boundary": "**demand 計器修復出荷**(2026-07-12・spec=research/cr-grounding/score-ts-demand-catalog-repair.draft.md §2-4+§3b・Codex実装2ラウンド+冷Sonnet Tier-1)。scripts/mydeck-scoring の coverage 判定を、9 family(cost/mana/action/tap-state/damage/life/counter/target/token)について**4テキスト分類器でなく実 runtime compiler**(engineCoverage.ts=parseAbilityIR→compileAbilityIR/compileAbilityCost・per-line engineCoverageTagsForLine)に anchor。covered=command または guided prompt(decision!=='manual')。4分類器(event/zone/layer/timing)は不変=追加のみ。 **Tier-1 round1=Hypothesis B(4 under-credit+1 over-correction)を発見→Codex round2で5件修正**: ①cost-form sacrifice/exile credit ②action:shuffle family追加 ③compiled.decision尊重(manual leak阻止)④modal clean per-mode text ⑤score.ts per-line化(card-scoped union=Plaza of Heroes誤complete解消)。 **判定者裁定(calibration)**: 修復後 gap=510→382。draft §4概算150-220に未達だが、これは§2がability-compiler経路のみをscopeし、§6.4の概算がapp全経路coverageを暗に仮定した契約内不整合。§2(operative)を優先=382はability-compiler scopeのhonest floor。真値へは別経路credit(follow-up score-ts-credit-nonability-paths)が必要。engine-spec §34.7.1 に coverage anchoring契約+既知残境界を記載。parity=構造的0(並行分類器が残っていない)。",
+      "boundary": "**demand 計器修復出荷**(2026-07-12・spec=research/cr-grounding/score-ts-demand-catalog-repair.draft.md §2-4+§3b・Codex実装2ラウンド+冷Sonnet Tier-1)。",
       "evidence": [
         "scripts/mydeck-scoring/engineCoverage.ts (engineCoverageTags/engineCoverageTagsForLine)",
         "scripts/mydeck-scoring/score.ts (per-line union)",
@@ -238,7 +238,7 @@
       "edhValue": "meta",
       "status": "shipped",
       "landingState": [],
-      "boundary": "**計器の別 engine 経路 credit 完遂**(2026-07-14・判定者=在席 Claude 判定者席・実装=Sonnet サブエージェント・独立 Tier-1=冷 Sonnet 2 パス)。本体修復(score-ts-demand-catalog-repair・8476488)後の計器は ability-compiler 経路のみ credit だったため、app が専用経路で解決するカードを gap 誤計上していた。本スライスで4経路を credit: fetch(fetchAbility)/land-enters-tapped(landEntersTapped)/mana-ability(tapForMana・producedMana)/cycling(cyclingCost+gameStore.cycle)。各 credit は『app が実 emit するコマンド経路』に line-local + card-level gate で厳密一致(over-credit=最悪故障を要石として排除)。 **由来の特殊性(独立監査で再オーナー化)**: fetch/land/mana の3経路は ChatGPT UI/UX トラックの巨大コミット 76c52d9 に混載して着地し判定者監査を通っていなかった=本スライスで独立 Tier-1(冷 Sonnet・engine source アンカー・敵対的 over-credit ハント)により再オーナー化(RED 0)。keyword 経路は cycling のみが専用 UI 経路を持つと実測確定(§4 coverage-verify)し実装。demand-probe 側の {T}→tap-state:write 誤タグも修正(effectText スコープ化)。 **判定者 review.* pin が炙り出した over-credit(要石の実証)**: judge 専有 pin が、実装者・1回目 Tier-1 の双方が見逃した coverage 側 cost-leak(compileAbilityCost の setTapped[{T}コスト]を effect family tap-state:write に、adjustLife[pay-life]を life:write に誤 credit する generic-map ループ)を検出。実装者非review テストが自らこの leak を正しい挙動として pin していた(循環ゴールポスト)。判定者外科修正=engineCoverageTagsForLine の cost generic-map ループ撤去(cost の正当 credit は下部専用ブロックが個別発行・fetch life:write は addFetchEngineCoverage 直発行=全存続)。追跡 Tier-1 が credit 減少方向のみ・露出した +3 tap-state:write gap(Ioreth/Kelpie Guide/Fatestitcher=effect 側 manual な {T}-cost 行)が全て genuine・under-credit 回帰0 を独立確認。 **calibration**: catalog未写+substrate不足 = 382 → 283(draft §4 目標 150-220 へ前進。残差は §8 の genuine capability cluster=cross-player/variable-count/mass 等で真のバックログ)。機械4点全 green(vitest 1734)。",
+      "boundary": "**計器の別 engine 経路 credit 完遂**(2026-07-14・判定者=在席 Claude 判定者席・実装=Sonnet サブエージェント・独立 Tier-1=冷 Sonnet 2 パス)。",
       "evidence": [
         "scripts/mydeck-scoring/engineCoverage.ts (addFetchEngineCoverage/addLandEntersTappedCoverage/addManaAbilityEngineCoverage/addCyclingEngineCoverage・cost generic-map ループ撤去)",
         "scripts/mydeck-scoring/score.ts (cycling demand 追加・tap-state:write を effectText へスコープ化)",
@@ -246,7 +246,7 @@
         "scripts/mydeck-scoring/__tests__/engineCoverage.nonAbilityPaths.test.ts (実装者テスト・L58 判定者訂正=cost-leak pin を honest 化)",
         "research/mydeck-scoring/{summary,report,gaps}.md/.json (再生成)"
       ],
-      "nextGate": "計器は fetch/land/mana/cycling の別経路を credit 済み=絶対 count はこれら経路について真値に接近(『上限』caveat は当該経路で解消)。既知残境界: (1)cycling 以外の keyword は 9-family に実質寄与せず(実測) (2)mana ability の『Activate only if…』制限に対応する demand が無い(pre-existing blind spot・本スライス非導入) (3)engine 側 cycle() が landcycling を discard+draw 誤処理 = **修正済**(スライス score-ts-credit-nonability-paths から別タスク化した engine fix。cyclingInfo による [type]cycling 判別で fail-closed=支払い+discard のみ・draw 抑止・手動サーチ warning。CR 702.29a/e。独立 Tier-1=冷 Sonnet が regression proof[fix stash→新 review テスト RED]込みで clean 確認。ship 待ち)。完全自動化(destination:'hand' tutor)は DEFER=別スライス。demand 軸の運用則は selectionRule 参照。",
+      "nextGate": "計器は fetch/land/mana/cycling の別経路を credit 済み=絶対 count はこれら経路について真値に接近(『上限』caveat は当該経路で解消)。",
       "note": "2026-07-14 判定者。ユーザー裁定=フルスコープ(監査+整合+残り実装)。要石の実証例=判定者独立 review.* pin が、実装者の自己 pin と 1 回目 Tier-1 監査の双方をすり抜けた循環 over-credit を単独で捕捉→外科修正→追跡 Tier-1 で再確認。out-of-band 混載(76c52d9)の再オーナー化パターン=memory codex-out-of-band-fixes と同根。"
     },
     {
@@ -260,7 +260,7 @@
       "edhValue": "high",
       "status": "shipped",
       "landingState": [],
-      "boundary": "**fetchland fetch は既に実装+両UI配線済**(2026-07-12 判定者[Opus 4.8]検証で確定)。activateFetch(pay life + sacrifice + ability-to-stack)→FetchSearchDialog(matchesFetchFilterでlibraryをbasic/subtype/any-landに絞込+show-all escape・stack top到達で自動オープン)→resolveFetch(move + tapped + shuffle[found除外])。MyDeck 4 fetchland(Fabled Passage/Flooded Strand/Misty Rainforest/Polluted Delta)全て正しく認識・絞込。既存test=review.m415(fetchAbility parse + fetchLand合成)/m428(activate/resolve stack choreography)/cr701LibrarySearchGuided。**batch5-1台帳前提『gap=認識拡張』はstale**=playability census(ability compiler経路のみ計上・専用fetch経路を未クレジット=同doc自身が3経路で警告する盲点の4番目)由来。実機検証(冷Sonnet)=pay life/sacrifice/自動絞込dialog/tapped・untapped/shuffle 全て動作・console 0。 **本スライスの誠実な残渣のみ実装(2026-07-12・engine-spec §11.1)**= 寓話の小道型の条件付きアンタップ(『then if you control four or more lands, untap that land』)。FetchAbility に additive optional `untapIfControlLandsAtLeast?: number` + 純関数 `fetchEntersTapped(state, ability, controllerId)`(entersTapped=false→false・閾値欠落→entersTappedそのまま・有り時は解決後支配土地数[現支配土地+フェッチ土地自身の+1]が閾値以上でfalse=untap)。UIはFetchSearchDialogの『タップ状態で出す』既定をfetchEntersTappedで盤面依存化(サンドボックス=上書き可)。CR: 条件はフェッチ土地が戦場に出た後評価・その土地自身も数える。source sacrificeは活性化時ゆえ二重計上なし(冷Sonnet監査で+1のoff-by-oneなしを確認)。新GameCommand型なし・GameState新フィールドなし(engine-spec §11の設計指針維持)。読み取りは英語oracleText正本(日本語のみ文面はundefined=常にtapped安全側)。",
+      "boundary": "**fetchland fetch は既に実装+両UI配線済**(2026-07-12 判定者[Opus 4.8]検証で確定)。",
       "evidence": [
         "src/store/__tests__/review.m415.test.ts",
         "src/store/__tests__/review.cr701-fabled-passage-untap.test.ts",
@@ -269,7 +269,7 @@
         "research/mydeck-scoring/playability/top-10-v1-gaps.md (#1 gap・premise stale判定の出所)"
       ],
       "nextGate": "fetchland自動化は本スライスで完結(V1最頻gap #1充足)。将来のfetchland variant(条件付ETB置換のより一般化・非基本fetch等)はdemand実測次第で別スライス。Fabled Passageのconditional untapは本スライスで着地。",
-      "note": "2026-07-12 判定者(Opus 4.8=J2 tier)裁定: batch5-1は『新規実装スライス』でなく『既存実装の検証 + 誠実残渣の外科着地』だった。plannedSequenceから消費・本domainへ畳込み。stale premiseの教訓=census計器はauto/guided/manualをability compiler経路で分類するため、専用engine経路(playLand/effectiveKeywords/mana-ability/fetch)を常にmanual誤計上する。demand/census数値を優先度信号に使う前にcompile.ts実装済み経路をspot-checkする(暫定則と同根)。"
+      "note": "2026-07-12 判定者(Opus 4.8=J2 tier)裁定: batch5-1は『新規実装スライス』でなく『既存実装の検証 + 誠実残渣の外科着地』だった。"
     },
     {
       "id": "cr-102-players",
@@ -288,7 +288,7 @@
         "opponentLife",
         "zonesByPlayer"
       ],
-      "boundary": "PlayerId/owner/controller/APNAP coreはあるが、dummy opponent は未凍結。**S-ZONES player-specific storage 出荷**(2026-07-05・engine-spec §34.17実装出荷ノート)= `GameState.zonesByPlayer:Record<PlayerId,{library,hand,graveyard}>` additive。flat zones は P1 mirrorのまま(flatが正・zonesByPlayer.P1は常に導出)。lossless P1 preservation-first backfill。**個別command(moveCard等)はplayer-aware化せず**(progressive migration=次スライス)。I17-I21実装。Tier-1独立監査でHIGH2件発見: (1)公開export `performStateBasedActions` がSBA駆動zone変更後にmirror同期漏れ→判定者が1行追加で修正 (2)flat private zonesはowner非区分ゆえmixed-owner card(cr-400-408系テストで構築可能)がzonesByPlayer.P1へ誤mirrorされる=既存§34.17自身のbackfill規律文が既に許容する既知境界としてreview.*へ明示pin(silent gapでなくdocumented boundary化)。",
+      "boundary": "PlayerId/owner/controller/APNAP coreはあるが、dummy opponent は未凍結。",
       "evidence": [
         "cr-trigger-sba-priority-loop",
         "cr-trigger-6033b-apnap-per-bucket",
@@ -410,7 +410,7 @@
         "counters",
         "attachedTo"
       ],
-      "boundary": "**tap/untap status write leaf 出荷**(batch2-2・2026-07-04・engine-spec §32.2/§33.6)= guided 単一対象 `Tap/Untap target ...` を既存 `effect.tap`/`effect.untap`→`setTapped` で解決(新コマンド型/新 state なし)。CR 701.26a(untapped のみ tap 可)/701.26b(tapped のみ untap 可)違反は hard-block せず warning のみ(サンドボックス哲学=強行可)。ETB tapped(`landEntersTapped`+`playLand`)は既存出荷。条件付き ETB・mass untap・put/return onto battlefield tapped・tapped token 生成・tap-as-cost は manual/defer。permanent 分類/非permanent 境界・attachment legality は未契約(別スライス)。",
+      "boundary": "**tap/untap status write leaf 出荷**(batch2-2・2026-07-04・engine-spec §32.2/§33.6)= guided 単一対象 `Tap/Untap target ...` を既存 `effect.tap`/`effect.untap`→`setTapped` で解決(新コマンド型/新 state なし)。",
       "evidence": [
         "src/store/__tests__/review.cr110-tap-status.test.ts",
         "src/store/__tests__/cr110TapStatus.test.ts",
@@ -438,7 +438,7 @@
         "ObjectSnapshot",
         "createToken compiler"
       ],
-      "boundary": "token death before cease 実行可能 + **predefined token leaf 出荷**(2026-07-04・engine-spec §32.8)= 固定数 Clue/Food/Blood(111.10f/b/g)を auto で createToken emit・Treasure は共有 helper 化。可変数/複数種混在は manual。Gold/Map/Role 等の他 subtype と Investigate alias は deferred-by-demand。**custom creature token leaf 出荷**(batch2-7・2026-07-05・engine-spec §34.23)= 新コマンド `createDefinedToken`(既存 createToken は無変更)。fixed-count/fixed-P-T/単色/no-ability-text の custom creature token を auto(golden=Liliana/Tormod・tapped/untapped両方)。owner/controller は `createdBy` から同時設定(CR111.2)。ability-text/variable-count/modal/複数種類混在/**copy token(CR707・完全K0 defer)**は honest manual。Tier-1独立監査でHIGH(複数色token文が破損typeLineでauto詐称)発見→判定者が数行の外科修正でfail-closed化。",
+      "boundary": "token death before cease 実行可能 + **predefined token leaf 出荷**(2026-07-04・engine-spec §32.8)= 固定数 Clue/Food/Blood(111.10f/b/g)を auto で createToken emit・Treasure は共有 helper 化。",
       "evidence": [
         "cr-token-dies-before-ceases",
         "src/store/__tests__/review.leaf-discard-token.test.ts",
@@ -519,7 +519,7 @@
         "targetFilters",
         "stack"
       ],
-      "boundary": "**target candidate legality filter leaf 出荷**(batch2-3・2026-07-04・engine-spec §32.2 TargetFilter)= 単一 battlefield object 対象の合法候補を CR115.2/601.2c で絞る。`non<type>`→`excludedTypes`(正型に足さない)・`nontoken`→`excludeTokens`・`another/other target`→`excludeSource`・`you control`/`you don't control`/`an opponent controls`→`controller`。`eligibleTargets` を spell 解決・起動時両方に適用し、非合法候補選択は warning して確定させない(起動型は cost 未精算・stack 非搭載=atomicity 維持。Tier-1 独立監査でトレース確認)。値/複数/非戦場/`any target`/player 対象は honest manual。`controller:'opponent'`==`!=='P1'` は現行 2-entity PlayerId で完全(N-player 化は cr-player-specific-zones)。 **手動スタック対象注記 setManualTargets出荷**(2026-07-13・engine-spec §34.40): サンドボックス可視化。unchecked-warning注記=CR-legal僭称せず・guided/stored-target executionはmanual-target-*を消費しない。CR400.7全ゾーン遷移でtargetSelectionsクリア・CR707.10 copyでコピー。ChatGPT UIトラック由来のエンジン変更を判定者が抽象昇格審査+独立監査でスライス化。",
+      "boundary": "**target candidate legality filter leaf 出荷**(batch2-3・2026-07-04・engine-spec §32.2 TargetFilter)= 単一 battlefield object 対象の合法候補を CR115.2/601.2c で絞る。",
       "evidence": [
         "src/engine/__tests__/review.cr115-target-filter.test.ts",
         "src/store/__tests__/review.cr115-target-legality.test.ts",
@@ -574,7 +574,7 @@
         "commanderCastCount",
         "warnings"
       ],
-      "boundary": "commander tax は実行可能。**§33 cost catalog slice 出荷**(batch2-1・2026-07-04・engine-spec §33.6)= 固定 `Pay N life` を CR118.1/118.3b/119.4 の決定的コストとして `adjustLife -N` へ auto 転写(新コマンド型なし)・strict self-exile(`Exile it`/`Exile this ...`/exact card name)を CR701.13a/400.7j で `moveCard(source,'exile')` へ auto。`Pay X life`(CR107.3a 値選択)・数/対象/他オブジェクト選択の exile・self-sac↔self-exile 競合は honest manual(auto 詐称なし)。§34.19 envelope は再オープンせず。Tier-1 独立監査(Sonnet)= auto over-claim 0・contract weakening 0。追加/代替/可変コストの支払いUIは sandbox warning + guided で段階化継続。",
+      "boundary": "commander tax は実行可能。",
       "evidence": [
         "cr-commander-tax-cast-not-return",
         "src/engine/__tests__/review.grammar-cost.test.ts",
@@ -608,7 +608,7 @@
         "eventLog",
         "GameEvent(lifeChange|draw|damage)"
       ],
-      "boundary": "S-EVENTS event envelope 出荷済み(engine-spec §34.18・2026-07-02)。GameEvent union を additive 拡張(lifeChange/draw を全 wire・damage は type-only)。凍結境界=0-delta/0-damage 非event(CR119.9/119.10/120.8)・mill≠draw(121.5)・multi-draw individual(121.2)・damage は CR-legal source 必須(120.1)。replacement/prevention は metadata hook のみ(engine は cr-614-615 late-backbone へ defer)。source-backed DamageEvent emission と damage-result link は combat/damage slice へ defer。設計 packet は archive/cr-119-life/ へ集約。",
+      "boundary": "S-EVENTS event envelope 出荷済み(engine-spec §34.18・2026-07-02)。",
       "evidence": [
         "src/store/__tests__/review.s-events-envelope.test.ts",
         "src/engine/__tests__/eventEnvelope.test.ts",
@@ -636,7 +636,7 @@
         "life",
         "defeat"
       ],
-      "boundary": "marked damage/combat damage/lethal/deathtouch coreはあるが、prevention, replacement, infect, wither, lifelink, trample, commander damage は未閉鎖。**source-backed noncombat damage 出荷**(batch2-6・2026-07-05・engine-spec §34.22)= 新コマンド `dealDamage`(既存 source-less `markDamage` は不変)。player→life減算+`LifeChangeEvent`リンク(CR120.3a)・creature→既存 `applyMarkDamage` 経由 marked damage(CR120.3e/704.5h)・`amount<=0` は非event(CR120.8)。Tier-1独立監査で MEDIUM(dual-target同時指定のsilent fallback)+残余note(planeswalker対象のsilent誤マーク)を発見→判定者が数行の外科修正で明示 `EngineError` throw化(silent fallback 根絶)。combat経路/grammar compilerは本スライス対象外・無変更。",
+      "boundary": "marked damage/combat damage/lethal/deathtouch coreはあるが、prevention, replacement, infect, wither, lifelink, trample, commander damage は未閉鎖。",
       "evidence": [
         "cr-sba-lethal-damage-destroys-creature",
         "cr-sba-sublethal-damage-survives",
@@ -665,7 +665,7 @@
         "emptyLibraryDrawFlags",
         "lossAdvisories"
       ],
-      "boundary": "empty library draw advisoryはあるが、player-specific library と multi-draw完全形は未凍結。 **CR121.2c 誠実性ガード出荷**(2026-07-12・engine-spec §32.9 draw leaf 明確化ピン): mixed self+cross-player / optional draw 節は manual・partial P1 emit 禁止(誤自動化≈0 不変条件の穴を塞ぐ)。先頭 embedded 遅延誘発条件は受益者でない(Maeve 型は P1 単独 self draw ゆえ auto 維持)。独立 Tier-1(冷 Sonnet)がコーパス17,491枚で auto→manual 反転を実測=正当2件(Tataru/Sphinx)・false-manual 0・under-block 0。判定者が独立 probe + 機械4点再実行で再検証。domain 全体凍結(player-specific zones + draw event envelope 同時凍結)は未達継続。",
+      "boundary": "empty library draw advisoryはあるが、player-specific library と multi-draw完全形は未凍結。",
       "evidence": [
         "cr-sba-defeat-empty-library-draw",
         "cr-sba-defeat-empty-library-draw-partial-multidraw",
@@ -691,7 +691,7 @@
         "poisonCounters",
         "lossAdvisories"
       ],
-      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryに加え、**guided counter-plus leafの符号バグ修正**(batch3-4・2026-07-06・engine-spec §34.30)= 既存effect.counter-plus guided leafがoracle文の符号を無視し常にcounterType:'+1/+1'をハードコードしていた実バグ(「Put a -1/-1 counter on target creature.」型カードが逆符号のカウンターを置く)を判定者が発見・修正。counterDescriptorForRawで符号+magnitude解析、解析不能な記述はguidedを提示せずfail closed to manual。counter cap, Saga lore counters, rad counters, defense counters, counter-placement event emission, loyalty/charge/age等の他counter種別は未着手。 **追加確認(実装ギャップなし)**: event:counter demand=8は既存cr-603 Slice C配線(trigger.counter-put)が符号非依存で既に正しく機能していたことをreview.cr122-counter-put-trigger-sign.test.ts(3 pin)で確認・恒久ガード化。新規実装不要。 **自己参照+1/+1 counter leaf出荷**(2026-07-13・engine-spec §34.39): 「put a/an/<N> +1/+1 counter(s) on it」でit=source(this <type>/自カード名主語)確定時のみauto。不定主語はCR608.2 allow-listでmanual fail-closed(Tier-1がfalse-auto 11件検出→修正で0)。domain全体凍結は他counter種別(loyalty/charge/age)・cap(122.4)・Saga/battle/rad未達で継続。",
+      "boundary": "+1/+1/-1/-1相殺とpoison loss advisoryに加え、**guided counter-plus leafの符号バグ修正**(batch3-4・2026-07-06・engine-spec §34.30)= 既存effect.counter-plus guided leafがoracle文の符号を無視し常にcounterType:'+1/+1'をハードコードしていた実バグ(「Put a -1/-1 counter on target creature.」型カードが逆符号のカウンターを置く)を判定者が発見・修正。",
       "evidence": [
         "cr-sba-plus-minus-counter-annihilation",
         "cr-sba-defeat-poison-threshold",
@@ -729,7 +729,7 @@
         "eventLog",
         "linkedExiles"
       ],
-      "boundary": "zone move creates new object と LKI core は review-green(実行可能)。simple target exile は §32.9 guided 出荷済。**linked-exile substrate 出荷**(2026-07-05・design-lock=J2 Opus §34.21 → 実装=Codex → J3 Tier-1独立監査(冷Sonnet)→ BLOCKER 1件発見・J3 外科修正 → reviewer pin)= `GameState.linkedExiles:Record<string,LinkedExileRecord>` additive・`moveCard.linkedExileWrite?` 経由の record 書込(**新 GameCommand 型なし**)・`exiled-with-source`(607.2a・sourceObjectId+physicalId 両一致必須の consume guard)・`temporary-return`(same-resolution のみ・608.2h return guard=現在 exile object 検証後のみ battlefield 移動)・snapshot fwd-compat(linkedExiles:{} backfill)。Thassa, Deep-Dwelling 型 compiler leaf 出荷。**Tier-1 で発見・修正した BLOCKER**: `isSameResolutionBattlefieldReturn` の `$` anchor 欠如により delayed-return 文言(\"at the beginning of the next end step\" 等)が same-resolution として誤guided化される可能性=修正済み・reviewer pin で固定。Skyclave Apparition 型 oracle-text 認識(exiled card mana value → token生成)・真の delayed(未来turn/phase)return・multi-card link・face-down exile piles・player-specific zones・replacement 由来 linked exile(607.2b)は未実装/defer。",
+      "boundary": "zone move creates new object と LKI core は review-green(実行可能)。",
       "evidence": [
         "cr-zone-change-new-object-lki",
         "docs/engine-spec.md §34.21",
@@ -742,7 +742,7 @@
         "docs/engine-spec.md §34.41",
         "research/cr-grounding/archive/cr-400-408-reanim-mv-filter/"
       ],
-      "nextGate": "Skyclave Apparition 型 exiled-with-source oracle-text 認識(exiled card の mana value から token 生成)は次スライス。真の delayed(未来turn/phase)return は turn-phase scheduler 導入スライスへ defer。400.7a-d/e/j の高頻度例外は S-ZONES/S-LAYERS へ段階追加。**reanimation leaf 出荷**(batch2-8・2026-07-05・engine-spec §34.24)= 厳密一致「Return target creature card from your graveyard to the battlefield.」(修飾語なし)のみ guided/auto。TargetFilter に `zone`/`owner` 追加(型のみ・既存moveCard無変更)。golden=Karmic Guide(trigger)/Priest of Fell Rites(通常起動・自己ターゲット不可のatomicity二重防御=構造的除外+解決時objectId再チェック)。Sun Titan はboundary(manual)のまま。CR608.2b一般再チェック(自己犠牲以外の要因での対象消失)も判定者がreview.*へ明示pin。Tier-1独立監査=0 BLOCKER/0 HIGH。他プレイヤーgraveyard・修飾語変種・mana value cap・複数対象・library search・linked-exile blinkは全部manual/defer(既存サブスコープ無関係のまま無変更)。 **mana value 上限フィルタ拡張 出荷**(batch6・2026-07-14・engine-spec §34.41・judge=在席Opus判定者席・実装=Sonnet・独立Tier-1=冷Sonnet)= 「Return target <creature|permanent> card with mana value N or less from your graveyard to the battlefield.」(固定整数N)を guided 化。TargetFilter に `maxManaValue?` additive 追加・eligibleTargets graveyard 分岐へ permanent型(CR110.4a・battle除外=未モデル化)+上限除外。recognizer 単一化(graveyardReturnFilterForRaw を compile.ts→commands.ts 共有・複製 isExactGraveyardCreatureReturn 削除)で起動型経路(Order of Whiteclay)も CR602.2b 準拠に。**独立Tier-1 が起動型 path desync の HIGH を実測検出→判定者裁定(compiler誤訳)→単一化で解消**。コーパスflip false-auto 0・IN形13カード guided。新 GameCommand/state なし。**残 defer**: permanent の battle型・up-to/X・mass(all)・可変X・自己参照 return this(option B)・you may optional・後続修飾(tapped/under your control)。",
+      "nextGate": "Skyclave Apparition 型 exiled-with-source oracle-text 認識(exiled card の mana value から token 生成)は次スライス。",
       "judge": "deterministic-cr"
     },
     {
@@ -768,7 +768,7 @@
         "damageMarked",
         "priorityBoundary"
       ],
-      "boundary": "combat slice と cleanup damage clear はある。**S-TURN 前半 出荷**(2026-07-04・engine-spec §17.3/§34.5)= 両半分とも実装済で既存 §17(M6.2a)/§34.5 に契約化済だったが、cleanup surrogate(CR514.2)は単発 `clearMarkedDamage` コマンドの pin(review.damage-marked.test.ts)しかなく、実際の `nextPhase()`/`nextTurn()` store 呼び出しを end-to-end で確認する reviewer pin が欠けていた。`review.cr500-514-turn-structure.test.ts` を新規 authoring(4 tests)= end→untap 遷移でのクリア・中間フェイズでは非クリア・nextTurn() 経由のクリア・スタック非空時は部分実行されない(atomicity)、を確認。独立 adversarial review(Sonnet 別セッション)で CR500.2/500.3/514.1/514.2/514.3/514.3a 原文照合 + false-positive 検証 = 0 BLOCKER/HIGH。実装変更ゼロ(既存コードが正しく動作)。全phase/step automation・514.3a extra cleanup loop・turn-based actions全体・hand-size discard(514.1)は引き続き未閉鎖(スコープ外・§34.5 boundary (d) 明記済み)。",
+      "boundary": "combat slice と cleanup damage clear はある。",
       "evidence": [
         "cr-cleanup-clears-marked-damage",
         "cr-combat-unblocked-attacker-damages-defending-player",
@@ -799,7 +799,7 @@
         "defeat",
         "eventLog"
       ],
-      "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はある。**現況訂正**: legend rule(704.5j)は Q5 Phase 1(commit c6dcb7c・2026-06-30)で `pendingRuleChoices`(kind:'legend-rule')として既に実装済み(旧 nextGate の「legend系はchoice設計後」は陳腐化していた)。commander-zone(903.9a)と同じ substrate 上。**golden未整備gapを閉じた**(2026-07-05・engine-spec §34.20)= `review.cr703-704-sba-turn-based.test.ts` が「legend-rule choice pending 中は無関係な他SBA(704.5a等)も次passへdeferされ、選択解決後の次passで正しく検出される」を end-to-end pin(state消失/crashなし)。既知境界(LOW・実デッキ需要0)= この defer は CR704.3 の literal simultaneity とは非一致だが、pendingRuleChoices の複数同時グループ一般化は再設計しない(cr-903-9-commander-zone-choice 自身の future nextGate)。commander damage 903.10a は advisory-level 出荷済み(§34.16)、per-opponent-exact は defer。attachment 系 SBA(legend 以外・704.5m/n 等)は attachment 設計後。",
+      "boundary": "704.5d/e/f/i/q と 704.5a/b/c + 903.10a advisory slice(review.sba-defeat + review.903-10a + I13不変条件で green)はある。",
       "evidence": [
         "cr-token-dies-before-ceases",
         "cr-sba-copy-ceases-outside-stack",
@@ -832,7 +832,7 @@
         "commanderCastCount",
         "costPlan"
       ],
-      "boundary": "commander taxを含むcast完了時の一部は実行可能。full CR601 casting procedure、modes/targets/cost locks、cast-from-zone permission は後期化。 **Slice A出荷完了**(graveyardからの土地プレイ許可・engine-spec §34.36)= 実装ギャップ精査の結果、cast spell from graveyard/exileは既存engine/UIとも無条件で動作済み(demand10件中spell側は充足済み)。残gap=applyPlayLandのzone制限緩和(hand|graveyard)+UIメニュー項目のみで解消。独立Tier-1監査0件・ブラウザ実機で右クリック→battlefield移動をend-to-end確認。exileは対象外(defer)。",
+      "boundary": "commander taxを含むcast完了時の一部は実行可能。",
       "evidence": [
         "cr-commander-tax-cast-not-return",
         "src/engine/__tests__/m431.test.ts",
@@ -864,7 +864,7 @@
         "manaTransactions",
         "activationEnvelope(cost|target|stackPolicy)"
       ],
-      "boundary": "envelope design-lock §34.19 凍結(2026-07-02)→ slice 1 出荷(c1b47f9・target 保存 + atomicity + mana isolation・F-4 修正済)→ **slice 2 出荷**(2026-07-03・nonmana cost component=pay-life/discard/non-self sacrifice を guided status で実装・auto 詐称なし・複数 component atomicity・forced でも subject 選択必須=F-4 原則維持・Tier-1 Sonnet 監査 8観点全緑)。envelope の契約4点(cost/target/stack-no-stack/atomicity)完了。counter 系 cost・CR608 illegal target・個別 leaf effect・loyalty(CR606)・complex cost は §34.19 明示境界として defer(別 domain/需要時)。設計 packet は archive/cr-602/ へ集約。",
+      "boundary": "envelope design-lock §34.19 凍結(2026-07-02)→ slice 1 出荷(c1b47f9・target 保存 + atomicity + mana isolation・F-4 修正済)→ **slice 2 出荷**(2026-07-03・nonmana cost component=pay-life/discard/non-self sacrifice を guided status で実装・auto 詐称なし・複数 component atomicity・forced でも subject 選択必須=F-4 原則維持・Tier-1 Sonnet 監査 8観点全緑)。",
       "evidence": [
         "src/store/__tests__/review.activated-envelope.test.ts",
         "src/store/__tests__/activatedAbilityEnvelope.test.ts",
@@ -895,7 +895,7 @@
         "eventLog",
         "guidedManaColorChoice"
       ],
-      "boundary": "605.1b 誘発型は d9e3a63 で出荷済。**mana:write catalog slice 出荷**(2026-07-03・engine-spec §34.11 項6)= literal シンボル列 auto(106.1b 個数正確)・any-color/identity 色選択 guided(色選択≠target=605.1a 維持・no-stack)・or選択/chosen color/combination/snow/条件/restriction は manual(auto 詐称なし)。既 tap {T} 源の cost atomicity を no-stack 経路にも適用(Tier-1 赤旗修正・CR118.3/602.2)。605.1b 第1節実カード検出は C-GRAMMAR carry 継続。**ACT-1(2026-07-17)= producedMana ショートカットのコスト迂回を封鎖**(naiveTapManaColors 単一 recognizer・pure {T} 行のみ naive・ability-word strip CR207.2c・基本土地タイプ内在色 CR305.6・他は activateAbility 委譲・基本土地は metadata fallback)。",
+      "boundary": "605.1b 誘発型は d9e3a63 で出荷済。",
       "evidence": [
         "src/store/__tests__/review.mana-write.test.ts",
         "docs/engine-spec.md §34.11 項6",
@@ -925,7 +925,7 @@
         "resolutionContext",
         "eventLog"
       ],
-      "boundary": "Slice A(stack-target filtering + 単純counter-spell・batch3-2a・2026-07-06・engine-spec §34.28)+ Slice B(解決時LKI読み取り。Feed the Swarm型 mana value・batch3-2b・2026-07-06・engine-spec §34.29)両方出荷完了。Slice A=TargetFilter.zoneに'stack'追加+既存removeStackItem再利用。Slice B=ObjectSnapshotへmanaValue追加(additive・def.cmc由来)+TargetSelection.snapshotからの解決時読み取り(persistent GameState.resolutionContext不使用・新規GameCommand追加なし)。両スライスともTier-1独立監査で0 BLOCKER/0 HIGH。",
+      "boundary": "Slice A(stack-target filtering + 単純counter-spell・batch3-2a・2026-07-06・engine-spec §34.28)+ Slice B(解決時LKI読み取り。Feed the Swarm型 mana value・batch3-2b・2026-07-06・engine-spec §34.29)両方出荷完了。",
       "evidence": [
         "src/engine/__tests__/review.cr608-resolution-sliceA.test.ts",
         "src/engine/__tests__/cr608CounterSpellGuided.test.ts",
@@ -957,7 +957,7 @@
         "sourceSnapshot",
         "activePlayerId"
       ],
-      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。Slice A(event-driven trigger subscription leaf・engine-spec §34.25)+Slice B(delayed-trigger scheduling primitive・engine-spec §34.26)出荷済み。**Slice C(discard/sacrifice/counter semantic event)出荷**(batch3-1c・2026-07-06・engine-spec §34.27)= `ZoneChangeReason`拡張(discard/sacrifice追加・additive)+新規`CounterChangeEvent`(GameEvent union additive追加)。discard(CR701.9)/sacrifice(CR701.21a)/counter-put(CR122.1)へのtrigger購読leaf。**Tier-1監査でHIGH発見**: CR704.5q annihilation SBAが+1/+1・-1/-1両カウンターをintent記録なしで直接変異させ、annihilation経由の+1/+1減少が一切CounterChangeEventとして観測されず、かつ古いstale eventがログに訂正されず残存(既存golden`cr-sba-plus-minus-counter-annihilation`がこの誤挙動をそのまま期待値化)。判定者がannihilationループへ`recordCounterChangeIntent`呼出を追加する外科修正+該当golden修正。これでcr-603-triggers-apnap全体(Slice A/B/C)が完了。",
+      "boundary": "603.3b two-bucket APNAP配置(stackPlacementBucket)は既存出荷済み。",
       "evidence": [
         "cr-trigger-sba-priority-loop",
         "cr-trigger-6033b-two-bucket-order",
@@ -1104,7 +1104,7 @@
         "timestamps",
         "dependencyGraph"
       ],
-      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。effectiveTypeLine(state,cardId)をstatus.tsへ追加(read-time・新GameState/GameCommandなし)。typeLineOf/typeLineForStateCard/eligibleTargets/isSummoningSickを移行。ObjectSnapshotは意図的に非migration(printedTypeLineOf)。Tier-1監査でHIGH発見=staticAbilityLinesForCurrentFaceが段落単位分割のみで複数文static textの文境界を跨ぐ実バグ→判定者が文単位分割へ外科修正。Layer6(keyword付与)・stored continuous-effect ledger(611.2解決由来・timestamp/dependency)は次スライスへ。 **Slice B出荷完了**(keyword-only Layer6 additions・engine-spec §34.32)= effectiveKeywordsをLayer6 ability-adding(keywordのみ)まで拡張。Slice Aと共通反復ロジックをforEachAdditiveStaticSourceLineへ抽出(Slice A非regression確認済み)。独立Tier-1監査0件。ability除去・keyword counter・non-keyword ability付与は引き続き対象外。",
+      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。",
       "evidence": [
         "docs/engine-spec.md §34.31",
         "research/cr-grounding/cr604-layers-batch3-5.draft.md",
@@ -1133,7 +1133,7 @@
         "eventRewriteChoices",
         "regenerationShields"
       ],
-      "boundary": "shockland型ETB(demand replacement 11件中7件)は既存landEntersTapped+playLandのhonest-choiceフローで実装ギャップなし確認済み(engine-spec §34.33)。残るgenuine gap=graveyard→exile置換hook(Emet-Selch型)・damage-doubling replacement(Kuja型・defer)・kicker依存ETB counter(Everflowing Chalice型・defer)・単一ターン戦闘ダメージ防止shield(Spore Frog型。prevention demand=1件)。commander 903.9b hand/library replacementのgoldenは既存(cr-commander-hand-library-replacement)。 **Slice A出荷完了**(単一ターン戦闘ダメージ防止shield・engine-spec §34.34)= combatDamagePreventedUntilEndOfTurn(additive)+preventCombatDamageThisTurn command。Fog/Darkness/Spore Frog/Constant Mists型のprevention demand(1件)を充足。独立Tier-1監査0件。 **Slice B出荷完了**(graveyard→exile置換hook・engine-spec §34.35・Fable裁定)= moveCardInternal冒頭1点フック(全graveyard経路の完全捕捉をgrep検証)。Hades/Necrodominance/Festival of Embers/Yawgmoth's Agendaの2 variant対応。Tier-1が発見したcommander 903.9a抑止はcommander除外で解消(regressionは不完全性に優先)。完全な616.1適用順選択・discard誘発の置換下発火(CR701.9)・ability-word同一行gapは明示的deferral。",
+      "boundary": "shockland型ETB(demand replacement 11件中7件)は既存landEntersTapped+playLandのhonest-choiceフローで実装ギャップなし確認済み(engine-spec §34.33)。",
       "evidence": [
         "cr-commander-hand-library-replacement",
         "docs/engine-spec.md §34.33",
@@ -1204,7 +1204,7 @@
         "guidedActions",
         "manualFallbacks"
       ],
-      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。複数count・each-player/opponent・target-player・unless/may・qualified 選択・可変X はすべて manual(auto 詐称なし)。Heal は 2026 vocabulary boundary。owner別 graveyard routing は S-ZONES 後。 **generic ramp search composite 出荷**(batch2-4・2026-07-05・engine-spec §32.9)= `Search your library for a <basic land|単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle`(Nature's Lore/Rampant Growth 型)を guided 化(既存 moveCard+setTapped+shuffle 列・新 GameCommand 型なし)。CR701.24b=found を shuffle 対象外(confirm 時 library−found から順列確定)・0枚 miss 合法。broad tutor/複数/Farseek 複合/subtype OR/target-player/非library/非battlefield destination/optional/basic+subtype 連言は honest manual。fetch-land(Evolving Wilds 型)は M4.15/M4.28 既済で対象外。Tier-1 独立監査(Sonnet)= over-claim 0・CR701.24b/決定論/filter弁別 全緑。 **batch3-3残leaf(mill/scry/surveil)出荷**(2026-07-06・engine-spec §32.10)= 実装ギャップなし(既存GameCommand.mill/arrangeTop/EffectPrompt.scry-surveilが既に正しく稼働)。判定者が発見した1件のみ外科修正=buildGuidedCommandsのscry-surveil分岐にatom別destination強制ガード追加(scry→toGraveyard強制空・surveil→toBottom強制空。CR701.22a/701.25a)。target-player/opponent mill・word「one」・scry/surveil 0特別処理・standalone reveal leafは引き続きhonest manual/対象外。",
+      "boundary": "**frequent-verb leaves 出荷完了**(2026-07-04・engine-spec §32.8/§32.9)= discard(701.9 guided)/predefined token(111.10 auto)/sacrifice(701.21a self=auto・単体=guided・非制御拒否)/draw(121.1-121.2 固定数 auto・空library advisory)/exile(701.13a 単体 guided)/search(701.23a/d 単発 guided)/shuffle(701.24a 純粋 self-library auto・順列はコマンド生成時確定)。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
         "src/store/__tests__/review.leaf-discard-token.test.ts",
@@ -1252,7 +1252,7 @@
         "effectiveCharacteristics",
         "manualFallbacks"
       ],
-      "boundary": "golden未定義部分残置。flying/vigilance/haste/deathtouch/first-strike/double-strikeのキーワード認識自体とvigilance/haste/deathtouchの戦闘・SBA接続は既存(S-LAYERS Slice B以前から)完了済みと判明。**Slice A出荷**(batch4-1・engine-spec §34.38)= 未接続だった`lifelink`(702.15b・ダメージ量分のライフ獲得)と`trample`(702.19b・単一blocker限定の超過ダメージ割当)の2キーワードを`applyPositiveCombatDamage`/`applyResolveCombatDamage`(`src/engine/commands.ts`)へ配線。新規GameState/GameCommandなし(既存ライフ変動・戦闘解決経路を再利用)。deathtouchとの複合(致死閾値1)も既存`sourceHasDeathtouch`を再利用して対応。独立Sonnet Tier-1監査0 BLOCKER/0 HIGH/0 MEDIUM/0 LOW(engine-spec §34.38)。",
+      "boundary": "golden未定義部分残置。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
         "src/engine/__tests__/review.grammar-compile.test.ts",
@@ -1299,7 +1299,7 @@
         "variableValues",
         "compiledCommands"
       ],
-      "boundary": "modal選択(choice:mode-or-value・demand10件)は実装ギャップなし確認済み(engine-spec §34.37)。src/store/gameStore.tsのcompileSelectedModalOptions(confirmGuidedModalから呼ばれる)が既に選択モードのraw textを再帰的にparseAbilityIR+compileAbilityIRへ通しauto/guided両方のcommands/promptsを蓄積している。一度もend-to-endでテストされていなかったため、判定者が実地確認しreview.*で初めて恒久pin留め。compile.tsのbuildGuidedCommandsはmodal answerに常に[]を返す既存契約(再帰コンパイルはストア層)のまま維持(既存review.grammar-guided.test.tsのpin無変更)。variable count・repeated modes・target選択を伴う2段階guided chainの実地検証は次回demand時。",
+      "boundary": "modal選択(choice:mode-or-value・demand10件)は実装ギャップなし確認済み(engine-spec §34.37)。",
       "evidence": [
         "docs/engine-spec.md §34.37",
         "src/store/__tests__/review.cr700-modal-choice-compile.test.ts"
