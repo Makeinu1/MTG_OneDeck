@@ -18,6 +18,7 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'hand7',
   'hand10',
   'hand15',
+  'land-drop-empty',
   'hand60',
   'hand100',
   'lands',
@@ -321,6 +322,11 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
               ? 15
             : 8;
   state = moveCards(state, handIds.slice(0, handCount), 'hand');
+
+  if (scenario === 'land-drop-empty') {
+    state = moveCards(state, idsWithPrefix(state, 'fixture-basic-').slice(0, 1), 'hand');
+    return state;
+  }
 
   if (scenario === 'token-showcase' || scenario === 'token-image-missing') {
     const specs = scenario === 'token-showcase'

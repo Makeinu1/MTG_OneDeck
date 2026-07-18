@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { DrawEvent, GameEvent, LifeChangeEvent } from '../../engine/types';
-import { appendedLocalDraws, drawStaggerMs } from './drawAnimationModel';
+import {
+  appendedLocalDraws,
+  drawFlightDestinationKind,
+  drawStaggerMs,
+} from './drawAnimationModel';
 
 function drawEvent(
   eventId: string,
@@ -78,5 +82,12 @@ describe('draw animation model', () => {
 
   it('compresses long batches after the fifth visual offset', () => {
     expect([0, 1, 2, 4, 8].map(drawStaggerMs)).toEqual([0, 60, 120, 240, 240]);
+  });
+
+  it('targets the storage pile only when a large hand is collapsed', () => {
+    expect(drawFlightDestinationKind(15, false, false)).toBe('hand-card');
+    expect(drawFlightDestinationKind(16, false, false)).toBe('large-hand-pile');
+    expect(drawFlightDestinationKind(60, true, false)).toBe('hand-card');
+    expect(drawFlightDestinationKind(60, false, true)).toBe('hand-card');
   });
 });

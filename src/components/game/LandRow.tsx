@@ -120,6 +120,7 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
     <div
       ref={setNodeRef}
       className="land-row-wrap"
+      data-empty={bundles.length === 0 || undefined}
       data-drop-active={dropTarget !== null || undefined}
       data-drop-over={isOver || undefined}
     >

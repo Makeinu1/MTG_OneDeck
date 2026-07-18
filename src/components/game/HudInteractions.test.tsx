@@ -10,6 +10,7 @@ import { StatusBand } from './StatusBand';
 import { GameCard } from './GameCard';
 import { LandRow } from './LandRow';
 import { Board } from './Board';
+import { SupportRow } from './SupportRow';
 import { StackBand } from './StackBand';
 import { RecentCue } from './RecentCue';
 import { CelebrationLayer } from './CelebrationLayer';
@@ -511,6 +512,25 @@ describe('high-frequency HUD interactions', () => {
     act(() => bundleButton?.click());
     expect(bundleButton?.getAttribute('aria-expanded')).toBe('true');
     expect(bundle?.dataset.expanded).toBe('true');
+    act(() => root.unmount());
+  });
+
+  it('keeps an empty land lane exposed while a hand land is being dragged', () => {
+    const state = buildVisualFixture('land-drop-empty').snapshot.state;
+    const landId = state.zones.hand.find((cardId) => (
+      state.defs[state.cards[cardId].defId]?.typeLine?.includes('Land')
+    ));
+    expect(landId).toBeDefined();
+    const controller = controllerFor(state);
+    const { container, root } = mount(
+      <SupportRow controller={controller} activeDragId={landId} />,
+    );
+
+    expect(container.querySelector('[data-testid="support-row"]')?.getAttribute('data-has-lands')).toBeNull();
+    expect(container.querySelector('[data-testid="support-row"]')?.getAttribute('data-land-drop-active')).toBe('true');
+    expect(container.querySelector('.land-row-wrap')?.getAttribute('data-empty')).toBe('true');
+    expect(container.querySelector('.land-row-wrap')?.getAttribute('data-drop-active')).toBe('true');
+    expect(container.querySelector('[data-testid="drop-play-land"]')).not.toBeNull();
     act(() => root.unmount());
   });
 

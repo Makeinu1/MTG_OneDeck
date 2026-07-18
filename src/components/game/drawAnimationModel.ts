@@ -7,6 +7,23 @@ export interface DrawArrival {
   causeCommandType: string | null;
 }
 
+export type DrawFlightDestinationKind = 'hand-card' | 'large-hand-pile';
+
+/**
+ * A collapsed large hand has no rendered destination card. Keep draw feedback
+ * by targeting the visible storage pile; flat and open-workspace layouts still
+ * fly to the actual card.
+ */
+export function drawFlightDestinationKind(
+  handCount: number,
+  workspaceOpen: boolean,
+  flatControl: boolean,
+): DrawFlightDestinationKind {
+  return handCount > 15 && !workspaceOpen && !flatControl
+    ? 'large-hand-pile'
+    : 'hand-card';
+}
+
 /**
  * Returns only draw events appended since the previous render. Initial mount,
  * undo/restore (shorter or divergent logs), empty-library attempts, opponent

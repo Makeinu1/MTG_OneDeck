@@ -18,6 +18,9 @@ export function SupportRow({
 }) {
   const state = controller.state;
   const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
+  const landDropActive = Boolean(
+    state && activeCard && activeCard.zone !== 'battlefield' && isLandCard(state, activeCard.id),
+  );
   let dropTarget: DropTarget | null = null;
   if (state && activeCard && !isLandCard(state, activeCard.id)) {
     dropTarget = activeCard.zone === 'hand' || activeCard.zone === 'command'
@@ -58,6 +61,7 @@ export function SupportRow({
       data-testid="support-row"
       data-has-lands={projection.lands.length > 0 || undefined}
       data-has-support={projection.support.length > 0 || undefined}
+      data-land-drop-active={landDropActive || undefined}
       data-drop-over={isOver || undefined}
       style={{
         '--support-card-w': `${layout.cardWidth}px`,

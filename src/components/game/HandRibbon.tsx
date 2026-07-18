@@ -22,7 +22,12 @@ import { CardView } from '../CardView';
 import { playableHandCardIds } from './affordability';
 import { celebrate } from './sound';
 import { shouldCompress } from './motion';
-import { appendedLocalDraws, drawStaggerMs } from './drawAnimationModel';
+import {
+  appendedLocalDraws,
+  drawFlightDestinationKind,
+  drawStaggerMs,
+  type DrawFlightDestinationKind,
+} from './drawAnimationModel';
 import type { GameController } from './gameController';
 import { handFanCardLayout } from './handFanLayout';
 import type { GameEvent } from '../../engine/types';
@@ -41,6 +46,7 @@ interface DrawFlightGeometry {
   midX: number;
   midY: number;
   delayMs: number;
+  destinationKind: DrawFlightDestinationKind;
 }
 
 function prefersReducedMotion(): boolean {
@@ -67,6 +73,7 @@ export function HandRibbon({
   const { state, store } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const handCardsRef = useRef<HTMLDivElement | null>(null);
+  const largeHandPileRef = useRef<HTMLDivElement | null>(null);
   const libraryTileRef = useRef<HTMLButtonElement | null>(null);
   const previousEventLogRef = useRef<readonly GameEvent[] | null>(null);
   const flightTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
@@ -105,6 +112,7 @@ export function HandRibbon({
       : largeHandCollapsed
         ? 'large'
         : 'fan';
+  const flightDestinationKind = drawFlightDestinationKind(handCount, workspaceOpen, flatControl);
 
   function updateHandScrollEdges(): void {
     const node = handCardsRef.current;
@@ -160,7 +168,9 @@ export function HandRibbon({
     if (arrivals.length === 0 || !controller.motionArmed || prefersReducedMotion()) return;
 
     const arrivingIds = new Set(arrivals.map(({ cardId }) => cardId));
-    setArrivingCardIds((current) => new Set([...current, ...arrivingIds]));
+    if (flightDestinationKind === 'hand-card') {
+      setArrivingCardIds((current) => new Set([...current, ...arrivingIds]));
+    }
 
     const handNode = handCardsRef.current;
     if (handNode) {
@@ -178,7 +188,10 @@ export function HandRibbon({
     const animationFrame = requestAnimationFrame(() => {
       const origin = libraryTileRef.current?.getBoundingClientRect();
       const currentHand = handCardsRef.current;
-      if (!origin || !currentHand) {
+      const pileDestination = largeHandPileRef.current?.querySelector<HTMLElement>(
+        '[data-testid="large-hand-pile-card"]',
+      );
+      if (!origin || (flightDestinationKind === 'hand-card' ? !currentHand : !pileDestination)) {
         setArrivingCardIds((current) => new Set([...current].filter((id) => !arrivingIds.has(id))));
         return;
       }
@@ -186,7 +199,9 @@ export function HandRibbon({
         ? (controller.transitionCue?.drawAtMs ?? 0)
         : 0;
       const nextFlights = arrivals.flatMap((arrival, index) => {
-        const destination = currentHand.querySelector<HTMLElement>(`[data-testid="card-${arrival.cardId}"]`);
+        const destination = flightDestinationKind === 'large-hand-pile'
+          ? pileDestination
+          : currentHand?.querySelector<HTMLElement>(`[data-testid="card-${arrival.cardId}"]`);
         if (!destination) return [];
         const rect = destination.getBoundingClientRect();
         return [{
@@ -198,9 +213,14 @@ export function HandRibbon({
           height: rect.height,
           fromX: origin.left + origin.width / 2 - (rect.left + rect.width / 2),
           fromY: origin.top + origin.height / 2 - (rect.top + rect.height / 2),
-          midX: window.innerWidth / 2 - (rect.left + rect.width / 2),
-          midY: window.innerHeight / 2 - (rect.top + rect.height / 2),
+          midX: flightDestinationKind === 'large-hand-pile'
+            ? (origin.left + origin.width / 2 - (rect.left + rect.width / 2)) * 0.35
+            : window.innerWidth / 2 - (rect.left + rect.width / 2),
+          midY: flightDestinationKind === 'large-hand-pile'
+            ? (origin.top + origin.height / 2 - (rect.top + rect.height / 2)) * 0.35 - 18
+            : window.innerHeight / 2 - (rect.top + rect.height / 2),
           delayMs: timelineDelay + drawStaggerMs(index),
+          destinationKind: flightDestinationKind,
         }];
       });
       if (nextFlights.length === 0) {
@@ -216,7 +236,7 @@ export function HandRibbon({
       flightTimersRef.current.push(releaseTimer);
     });
     return () => cancelAnimationFrame(animationFrame);
-  }, [controller.motionArmed, controller.transitionCue, state]);
+  }, [controller.motionArmed, controller.transitionCue, flightDestinationKind, state]);
 
   if (!state) return null;
 
@@ -355,8 +375,8 @@ export function HandRibbon({
           data-testid="large-hand-summary"
           data-drop-over={handDropOver || undefined}
         >
-          <div className="hand-ribbon__large-stack" aria-hidden="true">
-            <span /><span /><span /><span /><span />
+          <div ref={largeHandPileRef} className="hand-ribbon__large-stack" aria-hidden="true">
+            <span /><span /><span data-testid="large-hand-pile-card" /><span /><span />
           </div>
           <button
             type="button"
@@ -422,6 +442,7 @@ export function HandRibbon({
                 key={flight.eventId}
                 className="draw-flight-card"
                 data-testid={`draw-flight-${flight.cardId}`}
+                data-destination={flight.destinationKind}
                 style={{
                   left: flight.left,
                   top: flight.top,
