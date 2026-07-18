@@ -60,6 +60,16 @@ export interface GameScreenProps {
   onOpenOpponentSetup?: () => void;
 }
 
+export function TabletopSurface() {
+  return (
+    <div
+      className="game-screen__tabletop-surface"
+      data-testid="tabletop-surface"
+      aria-hidden="true"
+    />
+  );
+}
+
 interface ActiveDragVisual {
   cardId: string;
   instance: CardInstance;
@@ -194,6 +204,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         <div className="game-screen__stack">
           <StackBand controller={controller} />
         </div>
+        <TabletopSurface />
         {/* 盤面セルの子は Board だけ。相手盤面を兄として差し込むと Board(height:100%)が
             セルからはみ出し、自分の盤面が画面外へ消える(7b2c5c1 の回帰)。
             相手盤面はメニュー「相手盤面を見る」のモーダルで出す=design-vision:80 原則7。 */}

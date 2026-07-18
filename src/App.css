@@ -47,6 +47,22 @@
   font-size: var(--font-size-xs);
 }
 
+.app__fan-content {
+  width: min(82.5rem, 100%);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: var(--font-size-xs);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.app__fan-content p {
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
 /* =========================================================================
    Saved deck library
    ========================================================================= */

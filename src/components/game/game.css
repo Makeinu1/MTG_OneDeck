@@ -11,6 +11,12 @@
   --land-h: 190px;
   --hand-h: auto;
   --decision-h: 0px;
+  --tabletop-edge: color-mix(in srgb, var(--gold-dim) 58%, var(--line));
+  --tabletop-glow: color-mix(in srgb, var(--gold) 10%, transparent);
+  --tabletop-surface:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 76%, transparent), transparent 42%),
+    radial-gradient(ellipse at 50% 108%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 62%),
+    linear-gradient(115deg, color-mix(in srgb, var(--surface-2) 78%, transparent), color-mix(in srgb, var(--surface-0) 86%, transparent));
 
   position: fixed;
   inset: 0;
@@ -36,13 +42,37 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+html[data-theme='light'] .game-screen {
+  --tabletop-edge: color-mix(in srgb, var(--gold-dim) 70%, var(--line-strong));
+  --tabletop-glow: color-mix(in srgb, var(--gold) 16%, transparent);
+  --tabletop-surface:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-0) 38%, transparent), transparent 40%),
+    radial-gradient(ellipse at 50% 108%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 64%),
+    linear-gradient(115deg, color-mix(in srgb, var(--surface-1) 86%, transparent), color-mix(in srgb, var(--surface-2) 78%, transparent));
+}
+
+.game-screen__tabletop-surface {
+  grid-column: 1;
+  grid-row: 2 / 4;
+  min-width: 0;
+  min-height: 0;
+  z-index: 0;
+  pointer-events: none;
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  background: var(--tabletop-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--tabletop-edge),
+    var(--shadow-soft);
+  filter: drop-shadow(0 -8px 18px var(--tabletop-glow));
+}
+
 .game-screen__status { grid-area: status; }
 .game-screen__stack { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
 /* overflow は hidden を維持する。auto にすると .board(height:100%)がセルからはみ出した
    ぶんがスクロールになり、盤面が「下へ消える」= 7b2c5c1 の回帰。.board 内側の
    overflow:hidden と二重スクロールcontainerが喧嘩する。review pin が固定している。 */
-.game-screen__board { grid-area: board; min-height: 0; overflow: hidden; }
-.game-screen__support { grid-area: lands; min-height: 0; overflow: hidden; }
+.game-screen__board { grid-area: board; min-height: 0; overflow: hidden; position: relative; z-index: 1; }
+.game-screen__support { grid-area: lands; min-height: 0; overflow: hidden; position: relative; z-index: 1; }
 .game-screen__decision { grid-area: decision; min-height: 0; overflow: hidden; }
 .game-screen__hand { grid-area: hand; min-height: 0; }
 .game-screen__thumb { grid-area: thumb; }
@@ -1842,6 +1872,12 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   }
   .game-card--hand { width: clamp(96px, 12vw, 132px); }
   .support-row { --support-commander-w: 224px; }
+  .game-screen__board > .board { padding-inline: clamp(38px, 5vw, 88px); }
+  /* margin(padding不可): SupportRow の useElementSize は自要素の border-box を測るため、
+     padding では adaptiveLaneLayout の可用幅が過大になる(Tier-1指摘)。margin は測定幅を縮める。 */
+  .game-screen__support > .support-row {
+    margin-inline: clamp(8px, 1vw, 20px);
+  }
 }
 
 @media (min-width: 1400px) and (min-height: 800px) {
@@ -1853,6 +1889,19 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .commander-altar__slot { min-width: 112px; flex-basis: 112px; }
   .commander-altar__away { width: 112px; }
   .game-card--hand { width: 144px; }
+}
+
+@media (max-width: 899px) and (orientation: landscape) {
+  .game-screen__tabletop-surface {
+    clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+  }
+  .game-screen__board > .board { padding-inline: 18px; }
+}
+
+@media (max-width: 899px) and (orientation: portrait) {
+  .game-screen__tabletop-surface {
+    clip-path: polygon(1.5% 0, 98.5% 0, 100% 100%, 0 100%);
+  }
 }
 
 /* ---------- モバイル共通: 統率者を一時表示へ畳み、手札は横ジェスチャーを優先 ---------- */

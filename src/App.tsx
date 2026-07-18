@@ -40,6 +40,18 @@ interface StoredDeckCard {
   isCommander: boolean;
 }
 
+export function FanContentNotice() {
+  return (
+    <footer className="app__fan-content" data-testid="fan-content-notice">
+      <p>
+        {'このコンテンツは、ウィザーズ・オブ・ザ・コーストのファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。'}
+        {'ウィザーズ・オブ・ザ・コースト社の認可・許諾を受けたものではありません。'}
+        {'題材の一部にWizards of the Coast LLCの財産が含まれています。© Wizards of the Coast LLC.'}
+      </p>
+    </footer>
+  );
+}
+
 function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null } {
   try {
     const deckText = localStorage.getItem(DECK_TEXT_KEY) ?? '';
@@ -324,6 +336,7 @@ function App() {
           </div>
         </Modal>
       )}
+      <FanContentNotice />
     </div>
   );
 }

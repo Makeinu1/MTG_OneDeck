@@ -1,0 +1,16 @@
+/*
+ * The approved tabletop now lives in the production GameScreen. Keep an
+ * explicit dev-only baseline switch so visual review can still compare the old
+ * flat board without adding a production feature flag.
+ */
+html[data-tabletop-prototype='baseline'] .game-screen__tabletop-surface {
+  display: none;
+}
+
+html[data-tabletop-prototype='baseline'] .game-screen__board > .board {
+  padding-inline: var(--space-2);
+}
+
+html[data-tabletop-prototype='baseline'] .game-screen__support > .support-row {
+  margin-inline: 0;
+}

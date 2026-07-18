@@ -129,6 +129,15 @@ function makeCard(
   };
 }
 
+function withFixtureRules(def: CardDef, oracleText: string, printedText: string): CardDef {
+  return {
+    ...def,
+    faces: def.faces.map((face, index) => index === 0
+      ? { ...face, oracleText, printedText }
+      : face),
+  };
+}
+
 function entry(def: CardDef, isCommander = false): InitDeckCard {
   return { def, isCommander };
 }
@@ -186,7 +195,15 @@ function fixtureDeck(scenario?: VisualFixtureScenario): InitDeckCard[] {
     deck.push(entry(makeCard(id, name, 'Land', tone, { producedMana: ['C'] })));
   }
   for (let index = 1; index <= 6; index += 1) {
-    deck.push(entry(makeCard(`fixture-creature-${index}`, `クリーチャー ${index}`, 'Creature — Beast', '#70433c')));
+    const creature = makeCard(
+      `fixture-creature-${index}`,
+      `クリーチャー ${index}`,
+      'Creature — Beast',
+      '#70433c',
+    );
+    deck.push(entry(index === 1
+      ? withFixtureRules(creature, '{T}: Add {G}.', '{T}：{G}を加える。')
+      : creature));
   }
   for (let index = 1; index <= 4; index += 1) {
     deck.push(entry(makeCard(`fixture-permanent-${index}`, `置物 ${index}`, index % 2 === 0 ? 'Enchantment' : 'Artifact', '#56506f')));

@@ -16,6 +16,11 @@ import {
   type VisualFixtureScenario,
 } from './fixtureBuilder';
 import { initializeTheme, saveThemePreference } from '../../ui/theme';
+import {
+  applyTabletopPrototypeMode,
+  resolveTabletopPrototypeMode,
+} from './tabletopPrototype';
+import './tabletopPrototype.css';
 
 type FixtureUi = 'new' | 'legacy';
 
@@ -34,6 +39,8 @@ function fixtureUi(): FixtureUi {
 
 const scenario = fixtureScenario();
 const ui = fixtureUi();
+const tabletopMode = resolveTabletopPrototypeMode(queryValue('tabletop'));
+applyTabletopPrototypeMode(document.documentElement, tabletopMode);
 
 /**
  * `?theme=light|dark` は**どのシナリオにも**効く。
@@ -103,7 +110,7 @@ async function renderFixture(): Promise<void> {
     : scenario;
   document.documentElement.dataset.fixtureScenario = fixtureName;
   document.documentElement.dataset.fixtureUi = ui;
-  document.title = `MTG OneDeck — ${fixtureName} — ${ui}`;
+  document.title = `MTG OneDeck — ${fixtureName} — ${ui} — ${tabletopMode}`;
 
   createRoot(rootElement).render(
     ui === 'legacy' ? (

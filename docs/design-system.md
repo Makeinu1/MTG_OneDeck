@@ -209,6 +209,12 @@
 - **日本語の自然さ**: `手札 Workspace`→「手札一覧」、`カード全体を保ったまま一覧`→「全体表示 · n枚」、`盤面を見る`→「盤面へ」。操作説明を常時段落で反復しない。
 - **幅制約**: 375px縦は2段status + compact action、812px横はstatus全体を固定して色別mana stepperだけを横スクロール、1440pxは完全ラベル。狭幅でも `aria-label` / title / keyboard経路を同一にする。
 
+### Tabletop 2.5D卓面(2026-07-19・試作承認ゲート経由でユーザー承認済)
+- **卓上視点は背景レイヤーだけで作る**: `TabletopSurface`(装飾専用div・`pointer-events:none`・`aria-hidden`・z-index 0)を盤面+土地行(grid-row 2/4)の背後に敷き、台形clip-path(奥=上辺を絞る: デスクトップ6%/横画面3%/縦画面1.5%)+卓面グラデーションで遠近感を出す。カード・DnD座標・ポップアップ・HUD(手札/Status/Stack/Decision/Thumb)には3D変形を一切かけない——可読性と矩形当たり判定の維持が優先。
+- `.game-screen__board`/`.game-screen__support` は `position:relative; z-index:1` で卓面の上に載せる。デスクトップは `.board` に padding-inline を足して台形上辺の絞りとカードの重なりを防ぐ。
+- 色はトークン(`--tabletop-edge`/`--tabletop-glow`/`--tabletop-surface` を `--gold`/`--surface-*` から color-mix 導出)。light テーマは `html[data-theme='light']` で上書き。
+- 開発Fixtureの `?tabletop=baseline` で旧平面表示と比較可能(本番には切替フラグを置かない)。
+
 ### PrimaryAction(プライマリアクションボタン)
 - 親指ゾーン左側の幅優先ボタン。`--gold-surface` + `--gold-edge`、文字 `--action-primary-text`・`--font-size-lg`。
 - 状態機械(表示文言はエンジン状態から導出): スタック非空→「スタックを解決」/ 未処理誘発→「誘発を処理(n)」/ 戦闘宣言中→「攻撃を確定」/ それ以外→「次のフェイズ →」(長押し or 隣の小ボタンで「次のターン ≫」)。
