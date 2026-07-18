@@ -1,7 +1,9 @@
-import { useState } from 'react';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import type { GameState, PlayerId } from '../../engine/types';
+import { activatedAbilityLines } from '../../engine/grammar';
+import { activatedAbilityDisplayText } from './abilityDisplay';
+import { useInteractionHistory } from '../../hooks/useInteractionHistory';
 
 export function ManualTargetDialog({
   state,
@@ -15,7 +17,7 @@ export function ManualTargetDialog({
   onCancel: () => void;
 }) {
   const candidates = [
-    ...state.zones.stack.filter((id) => id !== sourceId && !state.cards[id]?.isAbility),
+    ...state.zones.stack.filter((id) => id !== sourceId),
     ...state.zones.battlefield.filter((id) => !state.cards[id]?.isAbility),
   ];
   const current = new Set(
@@ -26,14 +28,18 @@ export function ManualTargetDialog({
         ? [target.selection.physicalCardId]
         : []),
   );
-  const [selected, setSelected] = useState<string[]>([...current]);
   const currentPlayers = new Set(
     (state.cards[sourceId]?.targetSelections ?? []).flatMap((target) =>
       target.slotId.startsWith('manual-target-') && target.selection.kind === 'player'
         ? [target.selection.playerId]
         : []),
   );
-  const [selectedPlayers, setSelectedPlayers] = useState<PlayerId[]>([...currentPlayers]);
+  const [selection, setSelection] = useInteractionHistory(
+    { cards: [...current], players: [...currentPlayers] },
+    onCancel,
+  );
+  const selected = selection.cards;
+  const selectedPlayers = selection.players;
   const playerTargets = state.turnOrder.flatMap((playerId) => {
     const player = state.players[playerId];
     return player
@@ -42,15 +48,25 @@ export function ManualTargetDialog({
   });
 
   function setChecked(cardId: string, checked: boolean): void {
-    setSelected((ids) => checked
-      ? (ids.includes(cardId) ? ids : [...ids, cardId])
-      : ids.filter((id) => id !== cardId));
+    setSelection((currentSelection) => ({
+      ...currentSelection,
+      cards: checked
+        ? (currentSelection.cards.includes(cardId)
+          ? currentSelection.cards
+          : [...currentSelection.cards, cardId])
+        : currentSelection.cards.filter((id) => id !== cardId),
+    }));
   }
 
   function setPlayerChecked(playerId: PlayerId, checked: boolean): void {
-    setSelectedPlayers((ids) => checked
-      ? (ids.includes(playerId) ? ids : [...ids, playerId])
-      : ids.filter((id) => id !== playerId));
+    setSelection((currentSelection) => ({
+      ...currentSelection,
+      players: checked
+        ? (currentSelection.players.includes(playerId)
+          ? currentSelection.players
+          : [...currentSelection.players, playerId])
+        : currentSelection.players.filter((id) => id !== playerId),
+    }));
   }
 
   const selectedCount = selected.length + selectedPlayers.length;
@@ -78,7 +94,7 @@ export function ManualTargetDialog({
         })}
       </fieldset>
       {candidates.length === 0 ? (
-        <p className="zone-viewer__empty">選べる呪文またはパーマネントはありません。</p>
+        <p className="zone-viewer__empty">選べる呪文・能力・パーマネントはありません。</p>
       ) : (
         <ul className="manual-target-dialog__list">
           {candidates.map((cardId) => {
@@ -88,6 +104,10 @@ export function ManualTargetDialog({
             const face = def.faces[card.faceIndex] ?? def.faces[0];
             const name = face?.printedName ?? face?.name ?? def.printedName ?? def.name;
             const checked = selected.includes(cardId);
+            const abilityLine = card.isAbility && card.abilityLineIndex !== undefined
+              ? activatedAbilityLines(def).find((line) => line.index === card.abilityLineIndex)
+              : undefined;
+            const abilityText = abilityLine ? activatedAbilityDisplayText(def, abilityLine) : undefined;
             return (
               <li key={cardId}>
                 <label className={`manual-target-dialog__item${checked ? ' is-selected' : ''}`}>
@@ -102,7 +122,12 @@ export function ManualTargetDialog({
                   </span>
                   <span>
                     <strong>《{name}》</strong>
-                    <small>{card.zone === 'stack' ? 'スタック上の呪文' : '戦場のパーマネント'}</small>
+                    <small>{card.zone === 'stack'
+                      ? card.isAbility
+                        ? `スタック上の${card.abilityKind === 'triggered' ? '誘発型能力' : '起動型能力'}`
+                        : 'スタック上の呪文'
+                      : '戦場のパーマネント'}</small>
+                    {abilityText && <small>{abilityText}</small>}
                   </span>
                 </label>
               </li>

@@ -176,7 +176,7 @@ describe('high-frequency HUD interactions', () => {
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
       );
     });
-    expect(activateAbility).toHaveBeenCalledWith(cardId, 0);
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 0, { assistRestrictedMana: true });
     const quickButton = container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}"]`)!;
     expect(quickButton.title).toContain('即時');
 
@@ -216,7 +216,7 @@ describe('high-frequency HUD interactions', () => {
     act(() => {
       container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}-2"]`)?.click();
     });
-    expect(activateAbility).toHaveBeenCalledWith(cardId, 2);
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 2, { assistRestrictedMana: true });
     expect(container.querySelector(`[data-testid="quick-ability-picker-${cardId}"]`)).toBeNull();
     act(() => root.unmount());
   });
@@ -241,6 +241,27 @@ describe('high-frequency HUD interactions', () => {
     });
     expect(chooseDecisionCard).toHaveBeenCalledWith(cardId);
     expect(openCardMenu).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  it('selects a focused stack candidate with Enter or Space', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const cardId = state.zones.stack.find((id) => !state.cards[id].isAbility)!;
+    const chooseDecisionCard = vi.fn();
+    const controller = controllerFor(state, {
+      chooseDecisionCard,
+      decisionFocus: {
+        kind: 'target', title: '対象を選択', instruction: '選択', candidateIds: [cardId], selectedIds: [],
+      },
+    });
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
+    const layoutCard = container.querySelector<HTMLElement>(`[data-layout-card-id="${cardId}"]`)!;
+
+    act(() => { layoutCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    act(() => { layoutCard.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); });
+
+    expect(chooseDecisionCard).toHaveBeenCalledTimes(2);
+    expect(chooseDecisionCard).toHaveBeenNthCalledWith(1, cardId);
     act(() => root.unmount());
   });
 
@@ -419,6 +440,20 @@ describe('high-frequency HUD interactions', () => {
     });
     expect(items[0]?.classList.contains('is-selected')).toBe(false);
     expect(items[1]?.classList.contains('is-selected')).toBe(true);
+    act(() => root.unmount());
+  });
+
+  it('opens the compact stack workspace while a stack target decision is active', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const cardId = state.zones.stack.find((id) => !state.cards[id].isAbility)!;
+    const controller = controllerFor(state, {
+      decisionFocus: {
+        kind: 'target', title: '対象を選択', instruction: '選択', candidateIds: [cardId], selectedIds: [],
+      },
+    });
+    const { container, root } = mount(<StackBand controller={controller} />);
+
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
     act(() => root.unmount());
   });
 

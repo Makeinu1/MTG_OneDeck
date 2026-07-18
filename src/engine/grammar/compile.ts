@@ -36,6 +36,8 @@ export interface TargetFilter {
   excludeSource?: boolean;
   controller?: 'any' | 'you' | 'opponent';
   zone?: 'battlefield' | 'graveyard' | 'stack';
+  /** Stack object kinds accepted by this prompt. Undefined keeps the legacy spell-only default. */
+  stackKinds?: Array<'spell' | 'activated-ability' | 'triggered-ability'>;
   owner?: 'any' | 'you' | 'opponent';
   /**
    * CR 202.3/202.3b mana-value ceiling ("... with mana value N or less ..."). Additive-only
@@ -1638,6 +1640,39 @@ function stackSpellTargetFilterForRaw(raw: string): TargetFilter | null {
     default:
       return null;
   }
+}
+
+/**
+ * Safe UI assist for a manual composite whose unconditional counter leaf is independently
+ * deterministic. The ordinary compiler intentionally remains `manual`: only the counter leaf
+ * is offered by guidedPlanForStackTop and every remaining clause stays explicitly manual.
+ */
+export function guidedCounterLeafForManualComposite(
+  ir: AbilityIR,
+): { prompt: EffectPrompt; warning: string } | null {
+  const counterEffects = ir.effects.filter((effect) => effect.atom === 'effect.counter-spell');
+  const remainderEffects = ir.effects.filter((effect) => effect.atom !== 'effect.counter-spell');
+  if (counterEffects.length !== 1 || remainderEffects.length === 0) return null;
+  // Replacement remainders ("...exile it instead of putting it into its owner's graveyard")
+  // rewrite where the countered object goes (CR 616.1). Executing the plain counter leaf
+  // (removeStackItem → graveyard) would route the object through the wrong zone, so any
+  // "instead" remainder keeps the whole composite manual (engine-spec §34.49(b)).
+  if (remainderEffects.some((effect) => /\binstead\b/i.test(effect.raw))) return null;
+  const counterEffect = counterEffects[0];
+  const filter = stackSpellTargetFilterForRaw(counterEffect.raw);
+  if (!filter) return null;
+  const remainder = [...new Set(remainderEffects.map((effect) => effect.raw.trim()))].join(' / ');
+  return {
+    prompt: {
+      atom: 'effect.counter-spell',
+      kind: 'target',
+      count: 1,
+      targetKind: 'object',
+      filter,
+      raw: counterEffect.raw,
+    },
+    warning: `打ち消しだけを自動処理しました。残りの効果は手動で反映してください: ${remainder}`,
+  };
 }
 
 function isSingleTargetClause(raw: string): boolean {

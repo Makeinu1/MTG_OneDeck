@@ -57,7 +57,7 @@ import {
 import { MulliganStage } from './MulliganStage';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 import type { DropIntent } from './dragIntent';
-import { HISTORY_UI_EVENT } from './historyUiEvents';
+import { requestInteractionHistory } from './historyUiEvents';
 import type { DecisionFocusModel } from './decisionFocus';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
@@ -133,6 +133,8 @@ export interface GameController {
   advanceTurn: () => void;
   undo: () => void;
   redo: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   setManualTargets: (stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]) => void;
   /** ライブラリ操作メニュー(引く/シャッフル/切削/占術…)。 */
   openLibraryActions: (e: MenuTriggerEvent) => void;
@@ -383,14 +385,52 @@ export function useGameController({
 
   function undo(): void {
     setTransitionCue(null);
-    document.dispatchEvent(new Event(HISTORY_UI_EVENT));
+    if (requestInteractionHistory('undo')) return;
+    if (closeTopmostInteraction()) return;
     store.undo();
   }
 
   function redo(): void {
     setTransitionCue(null);
-    document.dispatchEvent(new Event(HISTORY_UI_EVENT));
+    if (requestInteractionHistory('redo')) return;
     store.redo();
+  }
+
+  function closeTopmostInteraction(): boolean {
+    if (store.pendingForceActivation) {
+      store.cancelForceActivation();
+      return true;
+    }
+    if (manaChoice) { setManaChoice(null); return true; }
+    if (pendingPayment) { setPendingPayment(null); return true; }
+    if (pendingXCast) { setPendingXCast(null); return true; }
+    if (pendingFaceCastCardId) { setPendingFaceCastCardId(null); return true; }
+    if (pendingLandPlay) { setPendingLandPlay(null); return true; }
+    if (pendingLandTapChoice) { setPendingLandTapChoice(null); return true; }
+    if (commanderMove) { setCommanderMove(null); return true; }
+    if (tokenDialogOpen) { setTokenDialogOpen(false); return true; }
+    if (zoneViewer) { setZoneViewer(null); return true; }
+    if (opponentBoardOpen) { setOpponentBoardOpen(false); return true; }
+    if (fetchDialog) { setFetchDialog(null); return true; }
+    if (pendingRuleTarget) { setPendingRuleTarget(null); return true; }
+    if (pendingBloodCrackCardId) { setPendingBloodCrackCardId(null); return true; }
+    if (manualKeywordsCardId) { setManualKeywordsCardId(null); return true; }
+    if (arrangeTopOpen) { setArrangeTopOpen(false); return true; }
+    if (countDialog) { setCountDialog(null); return true; }
+    if (peekCount !== null) { setPeekCount(null); return true; }
+    if (attackDialogOpen) { setAttackDialogOpen(false); return true; }
+    if (mulliganBottomCount !== null) {
+      setMulliganBottomCount(null);
+      useGameStore.setState({ mulliganDecisionPending: true });
+      return true;
+    }
+    if (confirmAction) { setConfirmAction(null); return true; }
+    if (menu) { setMenu(null); return true; }
+    if (libraryMenu) { setLibraryMenu(null); return true; }
+    if (feedOpen) { setFeedOpen(false); return true; }
+    if (triggerSheetOpen) { setTriggerSheetOpen(false); return true; }
+    if (mulliganDecisionPending) return true;
+    return false;
   }
 
   function typeLineFor(cardId: string): string {
@@ -628,8 +668,8 @@ export function useGameController({
       // 取り出す。NaN なら fail-closed で総称(index 未指定)側と同じ挙動へ倒す。
       const index = Number.parseInt(id.slice('ability-activate-'.length), 10);
       return Number.isNaN(index)
-        ? () => store.activateAbility(cardId)
-        : () => store.activateAbility(cardId, index);
+        ? () => store.activateAbility(cardId, undefined, { assistRestrictedMana: true })
+        : () => store.activateAbility(cardId, index, { assistRestrictedMana: true });
     }
 
     switch (id) {
@@ -666,7 +706,7 @@ export function useGameController({
       case 'stack-copy-ability':
         return () => store.copyStackItem(cardId);
       case 'ability-activate':
-        return () => store.activateAbility(cardId);
+        return () => store.activateAbility(cardId, undefined, { assistRestrictedMana: true });
       case 'ability-trigger':
         return () => store.addAbilityToStack(cardId, 'triggered');
       case 'stack-resolve-top':
@@ -1062,6 +1102,10 @@ export function useGameController({
             setMulliganBottomCount(null);
             beginFirstTurn();
           }}
+          onUndoBoundary={() => {
+            setMulliganBottomCount(null);
+            useGameStore.setState({ mulliganDecisionPending: true });
+          }}
         />
       )}
 
@@ -1199,6 +1243,7 @@ export function useGameController({
           lockMode
           onConfirm={(topOrder, toBottom, toGraveyard) => store.confirmGuidedScrySurveil(topOrder, toBottom, toGraveyard)}
           onCancel={() => store.cancelGuidedPrompt()}
+          onUndoBoundary={() => store.undo()}
         />
       )}
       {guidedPrompt?.kind === 'modal' && (
@@ -1206,6 +1251,7 @@ export function useGameController({
           prompt={guidedPrompt}
           onConfirm={(chosen) => store.confirmGuidedModal(chosen)}
           onCancel={() => store.cancelGuidedPrompt()}
+          onUndoBoundary={() => store.undo()}
         />
       )}
 
@@ -1249,6 +1295,7 @@ export function useGameController({
             setArrangeTopOpen(false);
           }}
           onCancel={() => setArrangeTopOpen(false)}
+          onUndoBoundary={() => setArrangeTopOpen(false)}
         />
       )}
       {countDialog && countDialogConfig && (
@@ -1340,6 +1387,8 @@ export function useGameController({
     advanceTurn,
     undo,
     redo,
+    canUndo: store.canUndoInteraction || store.canUndo || shortcutsBlocked,
+    canRedo: store.canRedoInteraction || store.canRedo || isDialogOpen,
     setManualTargets: (stackItemId, targetIds, targetPlayerIds) => store.setManualTargets(stackItemId, targetIds, targetPlayerIds),
     openLibraryActions,
     libraryActionsOpen: libraryMenu !== null,

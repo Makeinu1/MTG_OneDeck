@@ -156,7 +156,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         type="button"
         className="thumb-zone__icon-btn"
         data-testid="undo"
-        disabled={!store.canUndo}
+        disabled={!(controller.canUndo ?? store.canUndo)}
         onClick={controller.undo}
         title="元に戻す"
       >
@@ -167,7 +167,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         type="button"
         className="thumb-zone__icon-btn"
         data-testid="redo"
-        disabled={!store.canRedo}
+        disabled={!(controller.canRedo ?? store.canRedo)}
         onClick={controller.redo}
         title="やり直す"
       >

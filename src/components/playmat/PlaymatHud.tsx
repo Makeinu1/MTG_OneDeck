@@ -455,14 +455,14 @@ export function ControlRail({ store }: ControlRailProps) {
           icon="undo"
           label="元に戻す"
           testId="undo"
-          disabled={!store.canUndo}
+          disabled={!store.canUndo && !store.canUndoInteraction}
           onClick={() => store.undo()}
         />
         <ControlButton
           icon="redo"
           label="やり直す"
           testId="redo"
-          disabled={!store.canRedo}
+          disabled={!store.canRedo && !store.canRedoInteraction}
           onClick={() => store.redo()}
         />
       </div>

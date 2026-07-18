@@ -9,6 +9,7 @@ import { parseManaCost } from '../../engine/mana';
 import { effectivePower, fetchEntersTapped, isSummoningSick, type FetchAbility } from '../../engine/status';
 import { CardView } from '../CardView';
 import { tokenVisualForKind } from '../../ui/tokenVisual';
+import { useInteractionHistory } from '../../hooks/useInteractionHistory';
 
 const MANA_LABELS: Record<ManaColor, string> = {
   W: '白',
@@ -332,9 +333,16 @@ export function AttackDialog({
     const typeLine = face?.typeLine ?? def?.typeLine ?? '';
     return typeLine.includes('Creature') && card?.controllerId !== state.localPlayerId;
   });
-  const [selected, setSelected] = useState<string[]>([]);
-  const [targetLabel, setTargetLabel] = useState(opponentLabels[0] ?? '対戦相手A');
-  const [blockAssignments, setBlockAssignments] = useState<Record<string, string>>({});
+  const [attackChoice, setAttackChoice] = useInteractionHistory<{
+    selected: string[];
+    targetLabel: string;
+    blockAssignments: Record<string, string>;
+  }>({
+    selected: [],
+    targetLabel: opponentLabels[0] ?? '対戦相手A',
+    blockAssignments: {},
+  }, onCancel);
+  const { selected, targetLabel, blockAssignments } = attackChoice;
   const defendingPlayerId = state.turnOrder.find(
     (playerId) => state.players[playerId]?.label === targetLabel,
   );
@@ -343,9 +351,12 @@ export function AttackDialog({
   );
 
   function toggle(cardId: string): void {
-    setSelected((prev) =>
-      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
-    );
+    setAttackChoice((current) => ({
+      ...current,
+      selected: current.selected.includes(cardId)
+        ? current.selected.filter((id) => id !== cardId)
+        : [...current.selected, cardId],
+    }));
   }
 
   const totalPower = selected.reduce((sum, cardId) => sum + effectivePower(state, cardId), 0);
@@ -404,7 +415,11 @@ export function AttackDialog({
             攻撃先
             <select
               value={targetLabel}
-              onChange={(e) => setTargetLabel(e.target.value)}
+              onChange={(e) => setAttackChoice((current) => ({
+                ...current,
+                targetLabel: e.target.value,
+                blockAssignments: {},
+              }))}
               data-testid="attack-target-select"
             >
               {opponentLabels.map((label) => (
@@ -429,9 +444,12 @@ export function AttackDialog({
                       value={blockAssignments[blockerId] ?? ''}
                       onChange={(event) => {
                         const attackerId = event.currentTarget.value;
-                        setBlockAssignments((current) => ({
+                        setAttackChoice((current) => ({
                           ...current,
-                          [blockerId]: attackerId,
+                          blockAssignments: {
+                            ...current.blockAssignments,
+                            [blockerId]: attackerId,
+                          },
                         }));
                       }}
                       data-testid={'blocker-select-' + blockerId}
@@ -478,15 +496,17 @@ export function ModalChoiceDialog({
   prompt,
   onConfirm,
   onCancel,
+  onUndoBoundary,
 }: {
   prompt: EffectPrompt;
   onConfirm: (chosen: number[]) => void;
   onCancel: () => void;
+  onUndoBoundary?: () => void;
 }) {
   const options = prompt.options ?? [];
   const min = prompt.minCount ?? prompt.count;
   const max = prompt.count;
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useInteractionHistory<number[]>([], onUndoBoundary);
 
   function toggle(index: number): void {
     setSelected((prev) => {
@@ -896,6 +916,7 @@ export function ArrangeTopDialog({
   lockMode = false,
   onConfirm,
   onCancel,
+  onUndoBoundary = onCancel,
 }: {
   state: GameState;
   playerId?: PlayerId;
@@ -905,61 +926,69 @@ export function ArrangeTopDialog({
   lockMode?: boolean;
   onConfirm: (topOrder: string[], toBottom: string[], toGraveyard: string[]) => void;
   onCancel: () => void;
+  onUndoBoundary?: () => void;
 }) {
   const library = state.zonesByPlayer[playerId ?? state.localPlayerId].library;
   const libraryCount = library.length;
   const initialVisibleCount = Math.min(Math.max(0, initialCount ?? 1), libraryCount);
-  const [count, setCount] = useState(initialVisibleCount);
-  const [mode, setMode] = useState<ArrangeMode>(initialMode);
-  const [topOrder, setTopOrder] = useState<string[]>(library.slice(0, initialVisibleCount));
-  const [toBottom, setToBottom] = useState<string[]>([]);
-  const [toGraveyard, setToGraveyard] = useState<string[]>([]);
+  const [arrangement, setArrangement] = useInteractionHistory({
+    count: initialVisibleCount,
+    mode: initialMode,
+    topOrder: library.slice(0, initialVisibleCount),
+    toBottom: [] as string[],
+    toGraveyard: [] as string[],
+  }, onUndoBoundary);
+  const { count, mode, topOrder, toBottom, toGraveyard } = arrangement;
 
   function resetForCount(nextCount: number): void {
     const clamped = Math.max(0, Math.min(libraryCount, nextCount));
     const nextIds = library.slice(0, clamped);
-    setCount(clamped);
-    setTopOrder(nextIds);
-    setToBottom([]);
-    setToGraveyard([]);
+    setArrangement((current) => ({
+      ...current,
+      count: clamped,
+      topOrder: nextIds,
+      toBottom: [],
+      toGraveyard: [],
+    }));
   }
 
   function changeMode(nextMode: ArrangeMode): void {
     if (nextMode === mode) {
       return;
     }
-    setMode(nextMode);
-    resetForCount(count);
+    const nextIds = library.slice(0, count);
+    setArrangement((current) => ({
+      ...current,
+      mode: nextMode,
+      topOrder: nextIds,
+      toBottom: [],
+      toGraveyard: [],
+    }));
   }
 
   function moveCardTo(cardId: string, bucket: ArrangeBucket): void {
-    const nextTop = topOrder.filter((id) => id !== cardId);
-    const nextBottom = toBottom.filter((id) => id !== cardId);
-    const nextGraveyard = toGraveyard.filter((id) => id !== cardId);
-
-    if (bucket === 'top') {
-      setTopOrder([...nextTop, cardId]);
-      setToBottom(nextBottom);
-      setToGraveyard(nextGraveyard);
-    } else if (bucket === 'bottom') {
-      setTopOrder(nextTop);
-      setToBottom([...nextBottom, cardId]);
-      setToGraveyard(nextGraveyard);
-    } else {
-      setTopOrder(nextTop);
-      setToBottom(nextBottom);
-      setToGraveyard([...nextGraveyard, cardId]);
-    }
+    setArrangement((current) => {
+      const nextTop = current.topOrder.filter((id) => id !== cardId);
+      const nextBottom = current.toBottom.filter((id) => id !== cardId);
+      const nextGraveyard = current.toGraveyard.filter((id) => id !== cardId);
+      return {
+        ...current,
+        topOrder: bucket === 'top' ? [...nextTop, cardId] : nextTop,
+        toBottom: bucket === 'bottom' ? [...nextBottom, cardId] : nextBottom,
+        toGraveyard: bucket === 'graveyard' ? [...nextGraveyard, cardId] : nextGraveyard,
+      };
+    });
   }
 
   function moveCardInBucket(bucket: ArrangeBucket, cardId: string, delta: -1 | 1): void {
-    if (bucket === 'top') {
-      setTopOrder((prev) => moveWithin(prev, cardId, delta));
-    } else if (bucket === 'bottom') {
-      setToBottom((prev) => moveWithin(prev, cardId, delta));
-    } else {
-      setToGraveyard((prev) => moveWithin(prev, cardId, delta));
-    }
+    setArrangement((current) => ({
+      ...current,
+      topOrder: bucket === 'top' ? moveWithin(current.topOrder, cardId, delta) : current.topOrder,
+      toBottom: bucket === 'bottom' ? moveWithin(current.toBottom, cardId, delta) : current.toBottom,
+      toGraveyard: bucket === 'graveyard'
+        ? moveWithin(current.toGraveyard, cardId, delta)
+        : current.toGraveyard,
+    }));
   }
 
   const moveTargets: Array<{ bucket: ArrangeBucket; label: string }> =

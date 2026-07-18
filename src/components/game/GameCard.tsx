@@ -175,7 +175,7 @@ export function GameCard({
     setPreviewPinned(false);
     closePreview();
     if (quickAction.kind === 'activate') {
-      controller.store.activateAbility(cardId, quickAction.lines[0].index);
+      controller.store.activateAbility(cardId, quickAction.lines[0].index, { assistRestrictedMana: true });
       return;
     }
     if (quickAction.kind === 'choose') {
@@ -254,7 +254,13 @@ export function GameCard({
       }}
       onBlur={closeTransientPreview}
       onKeyDown={(event) => {
-        if (controller.decisionFocus || event.repeat) return;
+        if (event.repeat) return;
+        if (decisionRole === 'candidate' && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          controller.chooseDecisionCard?.(cardId);
+          return;
+        }
+        if (controller.decisionFocus) return;
         if (event.key === ' ' && instance.zone === 'battlefield') {
           event.preventDefault();
           runQuickAction();
@@ -327,12 +333,14 @@ export function GameCard({
               data-testid={`quick-ability-${cardId}-${line.index}`}
               onClick={() => {
                 setQuickPickerOpen(false);
-                controller.store.activateAbility(cardId, line.index);
+                controller.store.activateAbility(cardId, line.index, { assistRestrictedMana: true });
               }}
             >
               {quickAbilityLabel(
                 line,
                 immediateQuickLineIndexes.has(line.index) ? 'immediate' : 'stack',
+                52,
+                def,
               )}
             </button>
           ))}

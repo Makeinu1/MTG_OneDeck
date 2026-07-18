@@ -1,8 +1,64 @@
 import { describe, expect, it } from 'vitest';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
-import { applyCommand, objectSnapshotForCard } from '../commands';
+import { applyCommand, eligibleTargets, objectSnapshotForCard } from '../commands';
 
 describe('manual stack target annotations', () => {
+  it('records an activated ability targeting another activated or triggered ability', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourcePermanentId = initial.zones.battlefield.find((id) => !initial.cards[id].isAbility)!;
+    const withActivated = applyCommand(initial, {
+      type: 'addAbilityToStack', sourceId: sourcePermanentId, kind: 'activated',
+    }).state;
+    const activatedId = withActivated.zones.stack.at(-1)!;
+    const withTriggered = applyCommand(withActivated, {
+      type: 'addAbilityToStack', sourceId: sourcePermanentId, kind: 'triggered',
+    }).state;
+    const triggeredId = withTriggered.zones.stack.at(-1)!;
+
+    const result = applyCommand(withTriggered, {
+      type: 'setManualTargets', stackItemId: activatedId, targetIds: [triggeredId], allowStackAbilities: true,
+    }).state;
+
+    expect(result.cards[activatedId].isAbility).toBe(true);
+    const recorded = result.cards[activatedId].targetSelections?.[0];
+    expect(recorded?.legalityMode).toBe('unchecked-warning');
+    expect(recorded?.selection.kind).toBe('object');
+    if (recorded?.selection.kind !== 'object') throw new Error('expected object target');
+    expect(recorded.selection.physicalCardId).toBe(triggeredId);
+  });
+
+  it('enumerates stack abilities only when their kinds are explicitly requested', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourcePermanentId = initial.zones.battlefield.find((id) => !initial.cards[id].isAbility)!;
+    const withActivated = applyCommand(initial, {
+      type: 'addAbilityToStack', sourceId: sourcePermanentId, kind: 'activated',
+    }).state;
+    const activatedId = withActivated.zones.stack.at(-1)!;
+    const withTriggered = applyCommand(withActivated, {
+      type: 'addAbilityToStack', sourceId: sourcePermanentId, kind: 'triggered',
+    }).state;
+    const triggeredId = withTriggered.zones.stack.at(-1)!;
+
+    expect(eligibleTargets(withTriggered, { zone: 'stack' })).not.toContain(activatedId);
+    expect(eligibleTargets(withTriggered, {
+      zone: 'stack', stackKinds: ['activated-ability', 'triggered-ability'],
+    })).toEqual(expect.arrayContaining([activatedId, triggeredId]));
+  });
+
+  it('rejects an ability annotating itself without partially changing the source', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourcePermanentId = initial.zones.battlefield.find((id) => !initial.cards[id].isAbility)!;
+    const state = applyCommand(initial, {
+      type: 'addAbilityToStack', sourceId: sourcePermanentId, kind: 'activated',
+    }).state;
+    const abilityId = state.zones.stack.at(-1)!;
+
+    expect(() => applyCommand(state, {
+      type: 'setManualTargets', stackItemId: abilityId, targetIds: [abilityId], allowStackAbilities: true,
+    })).toThrow(/他のスタック/);
+    expect(state.cards[abilityId].targetSelections).toEqual([]);
+  });
+
   it('records stack spells and battlefield permanents without replacing checked targets', () => {
     const initial = buildVisualFixture('stack').snapshot.state;
     const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;

@@ -2951,6 +2951,8 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 **受け入れ(判定者先行 authoring)**: `review.cr-manual-stack-targets.test.ts`(レビュー専有・8 pin)= unchecked-warning 記録・非stack source 拒否・不正ゾーン target 拒否(no partial write)・自己注記拒否・manual名前空間のみ置換・checked 選択保持・**CR400.7 ゾーン遷移全クリア**・決定性(入力state不変)。UI(注記ダイアログ・stack-to-stack 矢印)は並行 ChatGPT トラックが別途担うため本エンジンスライスに含めない。
 
+**改訂(2026-07-19・判定者承認・CR 115.2/115.5/405.1–4)**: `setManualTargets` に additive な `allowStackAbilities?: boolean` を追加。**未指定(既定)は上記の spell-only 契約を厳密維持**(既存 review pin は不変のまま有効)。`true` のとき、source は任意のスタックオブジェクト(呪文・起動型能力・誘発型能力)を許可し、target 候補にも他のスタック上の能力を含める(《物真似の達人、悟悟》型=能力を対象とする能力)。自己対象拒否(CR 115.5)・ゾーン離脱拒否・unchecked-warning 意味論・manual名前空間・CR400.7 全クリア・コピー複製は全kind共通で不変。ゲームプレイUIは常に `true` を渡す。`eligibleTargets` の stack zone には `stackKinds?: ('spell'|'activated-ability'|'triggered-ability')[]` フィルタを追加(未指定=従来どおり spell のみ。能力オブジェクトはカードタイプを持たない[CR 405.4]ため card-type filter は spell 専用)。設計草稿= `research/cr-grounding/stack-object-targeting-expansion.draft.md`。
+
 ### 34.41 cr-400-408 reanimation の mana value 上限フィルタ拡張(§34 exact-match reanimation leaf の additive 拡張)— この節も契約である
 
 **位置づけ**: batch6 replenishment(judge=在席 Opus 判定者席・実装=Sonnet サブエージェント)。信頼 demand 計器(`score-ts-credit-nonability-paths` 出荷後)のトップから Haiku probe が起こした候補を判定者が §4 census 実測(`gaps.json` reanimation 16行=Celes reanimator 集中)で検証して選定。judge-gated だった cr-400-408 の **re-scope option A** を un-gate。新 substrate でなく既存の exact-match graveyard-return leaf(「Return target creature card from your graveyard to the battlefield.」)への **additive 拡張**。
@@ -3132,6 +3134,16 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **CR根拠**: 702.6a/c/e、702.49a/d、702.67a、702.84a、702.87a、702.107a、702.122a、702.128a、702.129a、702.151a。
 
 **受け入れ**: `src/engine/__tests__/review.act3-activated-keyword.test.ts`が全canonical形、修飾Equip、Reconfigure二行、metadata/flat index、ゾーン別actionCatalog、通常能力+Unearthの分離、墓地発生源のコスト支払+stack source snapshotをpinする(判定者が2026-07-18に再オーナー化)。
+
+### 34.49 誠実な部分自動化補助: 制限付き固定マナ `assisted` + manual複合カウンター葉(2026-07-19・判定者承認)— この節も契約である
+
+**位置づけ**: typecycling fail-closed(§34.43系)で確立した「安全な決定的部分だけを実行し、残余を明示warningで可視化する(無言半実行の禁止)」パターンの2適用。いずれも新 GameCommand/GameState なし。
+
+**(a) 制限付き固定マナ補助(CR 106.6/118.3/405.6c/605.3b/602.2)**: `activatedManaAbilityPlanForSource` に decision `'assisted'` を追加。**コストと出力 literal マナがともに決定的で、使用制限(construct.mana-restriction)だけが manual 要因**の起動型マナ能力(《奇怪な宝石》`{T}: Add {C}{C}`型)は、コスト精算+マナ加算をスタック非経由・原子的・単一undoで実行し、**Oracle の使用制限文をそのまま日本語warningで即時提示**する(CR 106.6=使用制限はマナのタイプを変えないため literal 加算は正当。プールに provenance/制限強制は追加しない=強制しないサンドボックス哲学、ただし警告は必須)。構造ガード `restrictedLiteralManaAssistText` = mana-restriction 単独 construct+effect.add-mana のみ+commands 全 addMana を要求——選択色・条件付き・可変値・対象付きは従来どおり manual(推測実行の禁止)。低レベル store 経路は opt-in、ゲームプレイUIは常時有効。草稿= `restricted-fixed-mana-assist.draft.md`。
+
+**(b) manual複合カウンターの無条件葉(CR 701.6a-b/608)**: `guidedPlanForStackTop` は manual 判定の複合文に対し `guidedCounterLeafForManualComposite` を試し、**無条件の「counter target spell」葉が認識できる場合だけ** checked stack-spell 対象プロンプトを出して打ち消しを実行、**残余文は warning として明示提示**する(無言実行しない)。「unless」条件付き・置換形は葉と認識しない(manual維持)。戻り値に `warnings: string[]` を additive 追加。
+
+**(c) 統一 Undo(UI層契約)**: 選択途中の一時状態(guided プロンプト・ダイアログ)は `useInteractionHistory`(GameState 外・スナップショット非対象)が保持し、Undo はまず選択を一段戻し、ダイアログ先頭では副作用なく閉じ、その次で盤面 undo へ委譲する。エンジンの「1コマンド=1 undo」契約(§7.8)は不変。ショートカットはフォーカスが input/select/contenteditable のときだけ標準編集へ譲る。
 
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 

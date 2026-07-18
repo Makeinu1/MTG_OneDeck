@@ -68,6 +68,7 @@ import {
   type Keyword,
 } from '../../engine/status';
 import { useShortcuts } from '../../hooks/useShortcuts';
+import { requestInteractionHistory } from '../game/historyUiEvents';
 import { useHoverPreview } from '../../hooks/useHoverPreview';
 import { useIsPhoneLandscape } from '../../hooks/useIsPhoneLandscape';
 import type { KeybindingsMap } from '../../data/keybindings';
@@ -354,8 +355,8 @@ export function Playmat({ keybindings }: PlaymatProps) {
       store.nextPhase();
     },
     onNextTurn: () => store.nextTurn(),
-    onUndo: () => store.undo(),
-    onRedo: () => store.redo(),
+    onUndo: () => { if (!requestInteractionHistory('undo')) store.undo(); },
+    onRedo: () => { if (!requestInteractionHistory('redo')) store.redo(); },
     onRestart: () => setConfirmAction('restart'),
     onDraw: () => store.draw(1),
     isDialogOpen: shortcutsBlocked,
@@ -953,7 +954,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
           key: 'ability-activate',
           label: '能力を起動(スタックへ)',
           testId: 'ability-activate',
-          onSelect: () => store.activateAbility(cardId),
+          onSelect: () => store.activateAbility(cardId, undefined, { assistRestrictedMana: true }),
           separator: true,
         },
         {
@@ -1649,6 +1650,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
               store.confirmGuidedScrySurveil(topOrder, toBottom, toGraveyard);
             }}
             onCancel={() => store.cancelGuidedPrompt()}
+            onUndoBoundary={() => store.undo()}
           />
         )}
 
@@ -1657,6 +1659,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
             prompt={guidedPrompt}
             onConfirm={(chosen) => store.confirmGuidedModal(chosen)}
             onCancel={() => store.cancelGuidedPrompt()}
+            onUndoBoundary={() => store.undo()}
           />
         )}
 

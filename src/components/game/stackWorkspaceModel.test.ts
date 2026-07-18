@@ -27,4 +27,34 @@ describe('stack workspace model', () => {
     }).state;
     expect(stackItemPresentations(state).find((item) => item.cardId === cardId)?.announcedX).toBe(0);
   });
+
+  it('presents a stack ability with its mapped Japanese printed text', () => {
+    const initial = buildVisualFixture('battlefield').snapshot.state;
+    const sourceId = initial.zones.battlefield.find((id) => !initial.cards[id].isAbility)!;
+    const source = initial.cards[sourceId];
+    const def = initial.defs[source.defId];
+    const localized = {
+      ...initial,
+      defs: {
+        ...initial.defs,
+        [def.scryfallId]: {
+          ...def,
+          faces: def.faces.map((face, index) => index === source.faceIndex
+            ? {
+                ...face,
+                oracleText: '{T}: Untap another target artifact.',
+                printedText: '{T}：他のアーティファクト１つを対象とし、それをアンタップする。',
+              }
+            : face),
+        },
+      },
+    };
+    const state = applyCommand(localized, {
+      type: 'addAbilityToStack', sourceId, kind: 'activated', abilityLineIndex: 0,
+    }).state;
+    const abilityId = state.zones.stack.at(-1)!;
+
+    expect(stackItemPresentations(state).find((item) => item.cardId === abilityId)?.abilityText)
+      .toContain('アンタップする');
+  });
 });

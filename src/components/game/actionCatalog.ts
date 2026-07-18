@@ -20,6 +20,7 @@ import type { CardDef } from '../../types/card';
 import { fetchAbility, cyclingCost } from '../../engine/status';
 import { classifyCardRules } from '../../data/ruleClassifier';
 import { ruleActionCandidatesFromTags } from '../playmat/ruleActionCandidates';
+import { activatedAbilityDisplayText } from './abilityDisplay';
 
 /** 唱えるコストの手動精算アドバイザリを出すルールタグ。 */
 const CAST_COST_ADVISORY_TAG_IDS = [
@@ -130,7 +131,7 @@ function activationSpecsForZone(
     id: `ability-activate-${line.index}`,
     label: line.keywordLabel
       ? `${line.keywordLabel} (${line.keywordCost ?? line.costText})`
-      : `${line.costText}: ${truncateAbilityPreview(line.effectText)}`,
+      : truncateAbilityPreview(activatedAbilityDisplayText(def, line)),
     testId: `ability-activate-${line.index}`,
     separator: index === 0,
   }));

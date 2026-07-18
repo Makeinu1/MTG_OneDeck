@@ -1,6 +1,7 @@
 import { activatedAbilityLines, type ActivatedAbilityLine } from '../../engine/grammar';
 import type { CardInstance } from '../../engine/types';
 import type { CardDef } from '../../types/card';
+import { activatedAbilityDisplayText } from './abilityDisplay';
 
 export type QuickAbilityAction =
   | { kind: 'manual-tap'; lines: [] }
@@ -32,8 +33,10 @@ export function quickAbilityLabel(
   line: ActivatedAbilityLine,
   timing: 'immediate' | 'stack' | null = null,
   maxLength = 52,
+  def?: CardDef,
 ): string {
   const timingLabel = timing === 'immediate' ? ' [即時]' : timing === 'stack' ? ' [スタック]' : '';
-  const label = `${line.costText}: ${line.effectText}${timingLabel}`;
+  const displayText = def ? activatedAbilityDisplayText(def, line) : `${line.costText}: ${line.effectText}`;
+  const label = `${displayText}${timingLabel}`;
   return label.length <= maxLength ? label : `${label.slice(0, maxLength).trimEnd()}…`;
 }

@@ -6,6 +6,7 @@ import {
   compileAbilityCost,
   compileAbilityIR,
   graveyardReturnFilterForRaw,
+  guidedCounterLeafForManualComposite,
   type AutoDecision,
   type CostDecision,
   type EffectPrompt,
@@ -203,7 +204,13 @@ export type GameCommand =
     }
   | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
-  | { type: 'setManualTargets'; stackItemId: string; targetIds: string[]; targetPlayerIds?: PlayerId[] }
+  | {
+      type: 'setManualTargets';
+      stackItemId: string;
+      targetIds: string[];
+      targetPlayerIds?: PlayerId[];
+      allowStackAbilities?: boolean;
+    }
   | { type: 'copyStackItem'; cardId: string }
   | { type: 'copyPermanent'; cardId: string; quantity: number }
   | {
@@ -2803,23 +2810,24 @@ function applySetManualTargets(
   stackItemId: string,
   targetIds: string[],
   targetPlayerIds: PlayerId[] = [],
+  allowStackAbilities = false,
 ): void {
   const source = requireCard(draft, stackItemId);
   if (source.zone !== 'stack') {
     throw new EngineError('手動対象を設定できるのはスタック上の項目だけです。');
   }
-  // 手動対象注記は「文法で解けない呪文」の可視化用。能力は guided compilation が対象を
-  // モデル化するため対象外(判定者裁定・Tier-1 LOW 指摘の scope 精密化)。
-  if (source.isAbility) {
+  if (source.isAbility && !allowStackAbilities) {
     throw new EngineError('手動対象を設定できるのは呪文だけです(能力は対象外)。');
   }
   const uniqueIds = [...new Set(targetIds)];
   const manualObjectSelections = uniqueIds.map((targetId, index): TargetSelection => {
     const target = requireCard(draft, targetId);
     const isPermanent = target.zone === 'battlefield' && !target.isAbility;
-    const isSpell = target.zone === 'stack' && !target.isAbility && target.id !== stackItemId;
-    if (!isPermanent && !isSpell) {
-      throw new EngineError('手動対象には戦場のパーマネントか、他のスタック上の呪文を選んでください。');
+    const isOtherStackObject = target.zone === 'stack'
+      && target.id !== stackItemId
+      && (allowStackAbilities || !target.isAbility);
+    if (!isPermanent && !isOtherStackObject) {
+      throw new EngineError('手動対象には戦場のパーマネントか、他のスタック上の呪文・能力を選んでください。');
     }
     const snapshot = objectSnapshotOf(draft, target);
     return {
@@ -3499,7 +3507,7 @@ function storedTargetSelectionFor(
 
 export function guidedPlanForStackTop(
   state: GameState,
-): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[] } | null {
+): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[]; warnings: string[] } | null {
   const topId = state.zones.stack[state.zones.stack.length - 1];
   if (!topId) {
     return null;
@@ -3515,6 +3523,7 @@ export function guidedPlanForStackTop(
   // applied by finishGuidedResolution and NOT re-applied at resolveStackTop, which skips
   // non-auto lines. Dropping them would silently half-execute the line (CR 608.2c).
   const commands: GameCommand[] = [];
+  const warnings: string[] = [];
   let sourceId: string | null = null;
   let targetIndex = 0;
   const commanderColorIdentity = commanderColorIdentityForState(state);
@@ -3526,6 +3535,22 @@ export function guidedPlanForStackTop(
       controllerId: card.controllerId,
       commanderColorIdentity,
     });
+    if (compiled.decision === 'manual') {
+      const counterAssist = guidedCounterLeafForManualComposite(ir);
+      if (counterAssist) {
+        sourceId = sourceId ?? effectLine.sourceId;
+        const normalizedPrompt = {
+          ...counterAssist.prompt,
+          slotId: targetSlotId(counterAssist.prompt, targetIndex),
+        };
+        if (!storedTargetSelectionFor(card, normalizedPrompt, targetIndex)) {
+          prompts.push(normalizedPrompt);
+        }
+        targetIndex += 1;
+        warnings.push(counterAssist.warning);
+      }
+      continue;
+    }
     if (compiled.decision !== 'guided') {
       continue;
     }
@@ -3548,7 +3573,7 @@ export function guidedPlanForStackTop(
     }
   }
 
-  return sourceId && prompts.length > 0 ? { sourceId, prompts, commands } : null;
+  return sourceId && prompts.length > 0 ? { sourceId, prompts, commands, warnings } : null;
 }
 
 export function activationPlanForSource(
@@ -3688,10 +3713,11 @@ export function activatedManaAbilityPlanForSource(
   abilityLineIndex?: number,
 ): {
   commands: GameCommand[];
-  decision: AutoDecision;
+  decision: AutoDecision | 'assisted';
   prompts: EffectPrompt[];
   manaShortfall: number;
   lifeCost: number;
+  restrictionText?: string;
 } | null {
   const source = state.cards[sourceId];
   if (!source) {
@@ -3741,7 +3767,25 @@ export function activatedManaAbilityPlanForSource(
     commanderColorIdentity,
   });
   if (compiledEffect.decision === 'manual') {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
+    const restrictionText = restrictedLiteralManaAssistText(ir, compiledEffect.commands);
+    if (restrictionText === null) {
+      return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
+    }
+    const costCommands = ir.cost?.sacrificesSelf
+      ? withSelfSacrificeReason(compiledCost.commands, sourceId)
+      : compiledCost.commands.slice();
+    return {
+      commands: [...costCommands, ...compiledEffect.commands],
+      decision: 'assisted',
+      prompts: [],
+      manaShortfall: 0,
+      lifeCost: compiledCost.commands.reduce(
+        (total, command) =>
+          total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
+        0,
+      ),
+      restrictionText,
+    };
   }
   if (
     compiledEffect.decision === 'guided' &&
@@ -3780,6 +3824,24 @@ export function activatedManaAbilityPlanForSource(
     manaShortfall,
     lifeCost,
   };
+}
+
+function restrictedLiteralManaAssistText(
+  ir: ReturnType<typeof parseAbilityIR>,
+  commands: readonly GameCommand[],
+): string | null {
+  if (
+    !ir.constructs.includes('construct.mana-restriction') ||
+    ir.constructs.some((construct) => construct !== 'construct.mana-restriction') ||
+    ir.effects.some((effect) => effect.atom !== 'effect.add-mana') ||
+    commands.length === 0 ||
+    commands.some((command) => command.type !== 'addMana')
+  ) {
+    return null;
+  }
+  return ir.effectClauses.find((clause) =>
+    /\b(?:spend|use) this mana only\b|\bthis mana (?:can't|cannot) be spent\b|\bspend (?:that|this) mana\b/i.test(clause),
+  ) ?? null;
 }
 
 function commanderColorIdentityForState(state: GameState): ManaColor[] {
@@ -3833,11 +3895,20 @@ export function eligibleTargets(
   const excludedTypes = filter.excludedTypes ?? [];
   if (zone === 'stack') {
     const acceptsAnySpell = types.length === 0;
+    const acceptedKinds = filter.stackKinds ?? ['spell'];
     return state.zones.stack.filter((cardId) => {
       const card = state.cards[cardId];
-      if (!card || card.isAbility || card.zone !== 'stack') {
+      if (!card || card.zone !== 'stack') {
         return false;
       }
+      const stackKind = !card.isAbility
+        ? 'spell'
+        : card.abilityKind === 'activated'
+          ? 'activated-ability'
+          : card.abilityKind === 'triggered'
+            ? 'triggered-ability'
+            : null;
+      if (!stackKind || !acceptedKinds.includes(stackKind)) return false;
       if (context.sourceId === cardId) {
         return false;
       }
@@ -3857,6 +3928,9 @@ export function eligibleTargets(
         return false;
       }
 
+      // Ability objects have only their ability text (CR 405.4), so card-type filters apply
+      // exclusively to spells. Ability-aware callers use stackKinds without types.
+      if (card.isAbility && types.length > 0) return false;
       const typeLine = typeLineForStateCard(state, card);
       if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {
         return false;
@@ -5021,7 +5095,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'setManualTargets': {
-      applySetManualTargets(draft, cmd.stackItemId, cmd.targetIds, cmd.targetPlayerIds);
+      applySetManualTargets(
+        draft,
+        cmd.stackItemId,
+        cmd.targetIds,
+        cmd.targetPlayerIds,
+        cmd.allowStackAbilities,
+      );
       break;
     }
     case 'copyStackItem': {

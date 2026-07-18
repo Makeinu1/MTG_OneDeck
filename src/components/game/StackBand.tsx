@@ -109,6 +109,10 @@ export function StackBand({ controller }: StackBandProps) {
 
   const items = stackItemPresentations(state);
   const selectedItem = items.find((item) => item.cardId === selectedCardId) ?? items[0];
+  const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
+    (cardId) => state.cards[cardId]?.zone === 'stack',
+  ) ?? false;
+  const mobileWorkspaceOpen = mobileOpen || hasStackCandidate;
 
   return (
     <>
@@ -117,8 +121,8 @@ export function StackBand({ controller }: StackBandProps) {
         type="button"
         className="stack-compact-trigger"
         data-testid="stack-compact-trigger"
-        data-mobile-open={mobileOpen || undefined}
-        aria-expanded={mobileOpen}
+        data-mobile-open={mobileWorkspaceOpen || undefined}
+        aria-expanded={mobileWorkspaceOpen}
         aria-controls="stack-workspace"
         onClick={() => setMobileOpen(true)}
       >
@@ -130,7 +134,7 @@ export function StackBand({ controller }: StackBandProps) {
         id="stack-workspace"
         className={`stack-band stack-workspace${flash ? ' stack-band--flash' : ''}`}
         data-testid="stack-band"
-        data-mobile-open={mobileOpen || undefined}
+        data-mobile-open={mobileWorkspaceOpen || undefined}
         aria-label={`スタック ${items.length}件`}
       >
         <div className="stack-workspace__handle" data-testid="stack-workspace-handle">
@@ -167,6 +171,7 @@ export function StackBand({ controller }: StackBandProps) {
                   </span>
                 )}
                 {item.source && <span>発生源 {item.source}</span>}
+                {item.abilityText && <span>{item.abilityText}</span>}
                 {item.cardId === selectedItem?.cardId && (
                   <>
                     <span className="stack-workspace__targets">

@@ -286,6 +286,66 @@ describe('mana:write activated mana ability catalog', () => {
     expect(store().warnings.some((warning) => warning.includes('手動'))).toBe(true);
   });
 
+  it('assists The Enigma Jewel fixed restricted mana without using the stack', () => {
+    const source = makeDef({
+      scryfallId: 'the-enigma-jewel',
+      name: 'The Enigma Jewel',
+      printedName: '奇怪な宝石',
+      typeLine: 'Legendary Artifact',
+      faces: [{
+        name: 'The Enigma Jewel',
+        printedName: '奇怪な宝石',
+        typeLine: 'Legendary Artifact',
+        oracleText: '{T}: Add {C}{C}. Spend this mana only to activate abilities.',
+      }],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 41);
+    const sourceId = findInstanceId('the-enigma-jewel');
+    moveToBattlefield(sourceId);
+    store().clearWarnings();
+
+    store().activateAbility(sourceId, 0, { assistRestrictedMana: true });
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().state!.cards[sourceId].tapped).toBe(true);
+    expect(store().state!.manaPool.C).toBe(2);
+    expect(store().warnings).toContainEqual(expect.stringContaining('能力の起動にのみ使用'));
+
+    store().undo();
+    expect(store().state!.cards[sourceId].tapped).toBe(false);
+    expect(store().state!.manaPool.C).toBe(0);
+  });
+
+  it('assists Omen Hawker literal mixed restricted mana atomically', () => {
+    const source = makeDef({
+      scryfallId: 'omen-hawker',
+      name: 'Omen Hawker',
+      printedName: '前兆の行商人',
+      typeLine: 'Creature — Cephalid Advisor',
+      faces: [{
+        name: 'Omen Hawker',
+        printedName: '前兆の行商人',
+        typeLine: 'Creature — Cephalid Advisor',
+        oracleText: '{T}: Add {C}{U}. Spend this mana only to activate abilities.',
+      }],
+    });
+
+    store().newGame([{ def: source, isCommander: false }, ...makeDeck(10)], 42);
+    const sourceId = findInstanceId('omen-hawker');
+    moveToBattlefield(sourceId);
+    store().clearWarnings();
+
+    store().activateAbility(sourceId, 0, { assistRestrictedMana: true });
+
+    expect(store().state!.zones.stack).toHaveLength(0);
+    expect(store().state!.cards[sourceId].tapped).toBe(true);
+    expect(store().state!.manaPool.C).toBe(1);
+    expect(store().state!.manaPool.U).toBe(1);
+    expect(store().warnings).toContainEqual(expect.stringContaining('用途制限は手動'));
+  });
+
   it('keeps targeted add-mana abilities on the ordinary activation stack path', () => {
     const source = makeDef({
       scryfallId: 'mana-write-targeted',

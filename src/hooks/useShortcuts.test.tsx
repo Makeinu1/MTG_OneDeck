@@ -104,7 +104,7 @@ describe('useShortcuts', () => {
     expect(handlers.onRedo).toHaveBeenCalledTimes(2);
   });
 
-  it('blocks phase-turn-restart-undo-redo shortcuts while a dialog is open but still allows draw', () => {
+  it('blocks phase-turn-restart while a dialog is open but keeps interaction undo/redo active', () => {
     const handlers = renderHarness({ isDialogOpen: true });
 
     dispatchKeyDown('w');
@@ -120,8 +120,8 @@ describe('useShortcuts', () => {
     expect(handlers.onNextPhase).not.toHaveBeenCalled();
     expect(handlers.onNextTurn).not.toHaveBeenCalled();
     expect(handlers.onRestart).not.toHaveBeenCalled();
-    expect(handlers.onUndo).not.toHaveBeenCalled();
-    expect(handlers.onRedo).not.toHaveBeenCalled();
+    expect(handlers.onUndo).toHaveBeenCalledTimes(2);
+    expect(handlers.onRedo).toHaveBeenCalledTimes(3);
     expect(handlers.onDraw).toHaveBeenCalledTimes(1);
   });
 
@@ -137,6 +137,32 @@ describe('useShortcuts', () => {
 
     expect(handlers.onNextTurn).not.toHaveBeenCalled();
     expect(handlers.onNextPhase).not.toHaveBeenCalled();
+    button.remove();
+  });
+
+  it('keeps modifier undo/redo active while a dialog button has focus', () => {
+    const handlers = renderHarness({ isDialogOpen: true });
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+
+    act(() => {
+      button.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'z',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      }));
+      button.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Z',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }));
+    });
+
+    expect(handlers.onUndo).toHaveBeenCalledOnce();
+    expect(handlers.onRedo).toHaveBeenCalledOnce();
     button.remove();
   });
 });

@@ -17,16 +17,20 @@ export interface ShortcutHandlers {
   onRestart: () => void;
   /** Draw one card. */
   onDraw: () => void;
-  /** Whether a modal/dialog is currently open (disables phase/turn/restart/undo/redo shortcuts). */
+  /** Whether a modal/dialog is currently open (disables phase/turn/restart; undo/redo stay active). */
   isDialogOpen: boolean;
   /** User-configurable single-key bindings. */
   keybindings: KeybindingsMap;
 }
 
-function isShortcutOwnedByTarget(target: EventTarget | null): boolean {
+function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return true;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
   return target.closest('button, a[href], [role="button"], [role="menuitem"]') !== null;
 }
 
@@ -52,13 +56,12 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
-      if (isShortcutOwnedByTarget(e.target) || e.repeat) return;
+      if (isEditableTarget(e.target) || e.repeat) return;
 
       const isMod = e.metaKey || e.ctrlKey;
 
       if (isMod && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
-        if (isDialogOpen) return;
         if (e.shiftKey) {
           onRedo();
         } else {
@@ -69,7 +72,6 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
       if (isMod && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
-        if (isDialogOpen) return;
         onRedo();
         return;
       }
@@ -78,6 +80,10 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
         return;
       }
 
+      // Enter/Space and remapped single-key shortcuts remain owned by the
+      // focused control. Modifier-based history shortcuts above are global.
+      if (isInteractiveTarget(e.target)) return;
+
       const pressedKey = normalizePressedKey(e.key, e.code);
       if (!pressedKey) return;
 
@@ -85,8 +91,6 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
         isDialogOpen &&
         (pressedKey === keybindings.nextTurn ||
           pressedKey === keybindings.nextPhase ||
-          pressedKey === keybindings.redo ||
-          pressedKey === keybindings.undo ||
           pressedKey === keybindings.restart)
       ) {
         e.preventDefault();

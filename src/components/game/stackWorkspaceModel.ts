@@ -1,9 +1,12 @@
 import { objectIdOf, type GameState, type PlayerId, type TargetSelection } from '../../engine/types';
+import { activatedAbilityLines } from '../../engine/grammar';
+import { activatedAbilityDisplayText } from './abilityDisplay';
 
 export interface StackItemPresentation {
   cardId: string;
   name: string;
   source: string | null;
+  abilityText?: string;
   announcedX?: number;
   targets: { label: string; cardId?: string; playerId?: PlayerId }[];
 }
@@ -37,10 +40,15 @@ export function stackItemPresentations(state: GameState): StackItemPresentation[
   return [...state.zones.stack].reverse().map((cardId) => {
     const card = state.cards[cardId];
     const sourceId = card?.sourceId ?? card?.sourceSnapshot?.physicalCardId;
+    const def = card ? state.defs[card.defId] : undefined;
+    const abilityLine = card?.isAbility && def && card.abilityLineIndex !== undefined
+      ? activatedAbilityLines(def).find((line) => line.index === card.abilityLineIndex)
+      : undefined;
     return {
       cardId,
       name: `《${cardName(state, cardId)}》`,
       source: sourceId ? `《${cardName(state, sourceId)}》` : null,
+      ...(def && abilityLine ? { abilityText: activatedAbilityDisplayText(def, abilityLine) } : {}),
       announcedX: card?.announcedX,
       targets: (card?.targetSelections ?? []).map((target) => targetPresentation(state, target)),
     };

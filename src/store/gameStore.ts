@@ -163,7 +163,13 @@ export interface PendingManaAbility {
 export interface PendingForceActivation {
   sourceId: string;
   abilityLineIndex?: number;
+  assistRestrictedMana?: boolean;
   warnings: string[];
+}
+
+export interface ActivateAbilityOptions {
+  force?: boolean;
+  assistRestrictedMana?: boolean;
 }
 
 export interface PendingGuidedResolution {
@@ -874,6 +880,8 @@ export interface GameStore {
   pendingForceActivation: PendingForceActivation | null;
   canUndo: boolean;
   canRedo: boolean;
+  canUndoInteraction: boolean;
+  canRedoInteraction: boolean;
   autoAdvanceToMain: boolean;
   mulliganDecisionPending: boolean;
 
@@ -939,7 +947,7 @@ export interface GameStore {
   putPendingTriggerOnStack(pendingTriggerId: string): void;
   putPendingTriggersOnStack(pendingTriggerIds: string[]): void;
   placePendingTriggersForPriority(pendingTriggerIds: string[]): void;
-  activateAbility(sourceId: string, abilityLineIndex?: number, opts?: { force?: boolean }): void;
+  activateAbility(sourceId: string, abilityLineIndex?: number, opts?: ActivateAbilityOptions): void;
   confirmForceActivation(): void;
   cancelForceActivation(): void;
   dismissTriggerCandidates(): void;
@@ -998,6 +1006,8 @@ export interface GameStore {
 interface InternalState {
   past: GameState[];
   future: GameState[];
+  pendingPast: PendingGuidedResolution[];
+  pendingFuture: PendingGuidedResolution[];
   // remembered for restart()
   deck: InitDeckCard[] | null;
   lastSeed: number;
@@ -1368,6 +1378,8 @@ export const useGameStore = create<GameStore>((set, get) => {
   const internal: InternalState = {
     past: [],
     future: [],
+    pendingPast: [],
+    pendingFuture: [],
     deck: null,
     lastSeed: 0,
     resolutionGroupAnchor: null,
@@ -1389,11 +1401,49 @@ export const useGameStore = create<GameStore>((set, get) => {
   }
   snapshotInternal = internal;
 
+  function clearPendingInteractionHistory(): void {
+    internal.pendingPast = [];
+    internal.pendingFuture = [];
+  }
+
+  function startPendingGuided(pending: PendingGuidedResolution): void {
+    clearPendingInteractionHistory();
+    set({
+      pendingGuided: pending,
+      canUndoInteraction: true,
+      canRedoInteraction: false,
+    });
+  }
+
+  function advancePendingGuided(next: PendingGuidedResolution): void {
+    const current = get().pendingGuided;
+    if (current) {
+      internal.pendingPast.push(current);
+      if (internal.pendingPast.length > HISTORY_LIMIT) internal.pendingPast.shift();
+    }
+    internal.pendingFuture = [];
+    set({
+      pendingGuided: next,
+      canUndoInteraction: true,
+      canRedoInteraction: false,
+    });
+  }
+
+  function discardPendingGuided(): void {
+    clearPendingInteractionHistory();
+    set({
+      pendingGuided: null,
+      canUndoInteraction: false,
+      canRedoInteraction: false,
+    });
+  }
+
   function commit(
     next: GameState,
     warnings: string[],
     options: { collectPending?: boolean; groupedHistory?: boolean } = {},
   ): void {
+    clearPendingInteractionHistory();
     const cur = get().state;
     const shouldCollectPending = options.collectPending ?? true;
     const nextWithPending =
@@ -1416,6 +1466,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
+      canUndoInteraction: false,
+      canRedoInteraction: false,
       pendingCommanderResolution: null,
       // ACT-2: 成功した起動(=commit まで到達した)は強行ダイアログを引きずらない
       // (誤ダイアログを出さない)。commit() は全ての成功コミットの単一 chokepoint。
@@ -1504,8 +1556,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       continueResolveAll: options.continueResolveAll ?? false,
       groupedHistory: options.groupedHistory ?? false,
     };
+    clearPendingInteractionHistory();
     set({
       pendingGuided: null,
+      canUndoInteraction: false,
+      canRedoInteraction: false,
       pendingCommanderResolution: cue,
     });
     return true;
@@ -1594,7 +1649,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     } catch (err) {
       console.error(err);
-      set({ pendingGuided: null });
+      discardPendingGuided();
     }
   }
 
@@ -1620,9 +1675,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       return;
     }
 
-    set({
-      pendingGuided: nextPending,
-    });
+    advancePendingGuided(nextPending);
   }
 
   function compileSelectedModalOptions(
@@ -1706,7 +1759,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       commit(next, warnings);
     } catch (err) {
       const message = err instanceof EngineError ? err.message : String(err);
-      set({ warnings: [...get().warnings, message], pendingGuided: null });
+      discardPendingGuided();
+      set({ warnings: [...get().warnings, message] });
     }
   }
 
@@ -1723,12 +1777,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       return;
     }
 
-    set({
-      pendingGuided: {
+    advancePendingGuided({
         ...pending,
         prompts,
         commands,
-      },
     });
   }
 
@@ -1990,7 +2042,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     ];
     const forced = pending.paymentMode === 'forced';
     if (!forced && warnings.length > 0) {
-      set({ warnings: [...get().warnings, ...warnings], pendingGuided: null });
+      discardPendingGuided();
+      set({ warnings: [...get().warnings, ...warnings] });
       return;
     }
 
@@ -2032,7 +2085,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       ]);
     } catch (err) {
       const message = err instanceof EngineError ? err.message : String(err);
-      set({ warnings: [...get().warnings, message], pendingGuided: null });
+      discardPendingGuided();
+      set({ warnings: [...get().warnings, message] });
     }
   }
 
@@ -2097,15 +2151,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       return;
     }
 
-    set({
-      pendingGuided: {
+    advancePendingGuided({
         ...pendingGuided,
         prompts,
         activation: {
           ...activation,
           targetSelections,
         },
-      },
     });
   }
 
@@ -2128,12 +2180,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       return;
     }
 
-    set({
-      pendingGuided: {
+    advancePendingGuided({
         ...pendingGuided,
         prompts,
         activation,
-      },
     });
   }
 
@@ -2146,6 +2196,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     pendingForceActivation: null,
     canUndo: false,
     canRedo: false,
+    canUndoInteraction: false,
+    canRedoInteraction: false,
     autoAdvanceToMain: true,
     mulliganDecisionPending: false,
 
@@ -2155,6 +2207,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = usedSeed;
       internal.past = [];
       internal.future = [];
+      clearPendingInteractionHistory();
       discardPendingCommanderResolution();
 
       const base = initGame(cards, usedSeed);
@@ -2165,6 +2218,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: openingHand.warnings,
         triggerCandidates: [],
         pendingGuided: null,
+        canUndoInteraction: false,
+        canRedoInteraction: false,
         pendingCommanderResolution: null,
         // ACT-2: 新しいゲームへ残留した強行ダイアログを持ち越さない。
         pendingForceActivation: null,
@@ -2180,12 +2235,15 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = lastSeed;
       internal.past = [];
       internal.future = [];
+      clearPendingInteractionHistory();
       discardPendingCommanderResolution();
       set({
         state: normalizeSnapshotState(snapshot.state),
         warnings: [],
         triggerCandidates: [],
         pendingGuided: null,
+        canUndoInteraction: false,
+        canRedoInteraction: false,
         pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: false,
@@ -2226,11 +2284,14 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, untapToMainCommands());
         internal.past = [];
         internal.future = [];
+        clearPendingInteractionHistory();
         set({
           state: result.state,
           warnings: result.warnings,
           triggerCandidates: [],
           pendingGuided: null,
+          canUndoInteraction: false,
+          canRedoInteraction: false,
           pendingForceActivation: null,
           canUndo: false,
           canRedo: false,
@@ -2327,9 +2388,27 @@ export const useGameStore = create<GameStore>((set, get) => {
     dispatch,
 
     undo() {
+      if (get().pendingCommanderResolution) {
+        discardPendingCommanderResolution();
+        set({ pendingCommanderResolution: null });
+        return;
+      }
       discardPendingCommanderResolution();
+      const pending = get().pendingGuided;
+      if (pending) {
+        internal.pendingFuture.push(pending);
+        if (internal.pendingFuture.length > HISTORY_LIMIT) internal.pendingFuture.shift();
+        const previous = internal.pendingPast.pop() ?? null;
+        set({
+          pendingGuided: previous,
+          canUndoInteraction: previous !== null,
+          canRedoInteraction: true,
+        });
+        return;
+      }
       const cur = get().state;
       if (internal.past.length === 0 || !cur) return;
+      clearPendingInteractionHistory();
       const prev = clearPendingTriggers(internal.past.pop() as GameState);
       internal.future.push(clearPendingTriggers(cur));
       if (internal.future.length > HISTORY_LIMIT) {
@@ -2339,6 +2418,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: prev,
         triggerCandidates: [],
         pendingGuided: null,
+        canUndoInteraction: false,
+        canRedoInteraction: false,
         pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: internal.past.length > 0,
@@ -2348,8 +2429,20 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     redo() {
       discardPendingCommanderResolution();
+      const pendingInteraction = internal.pendingFuture.pop();
+      if (pendingInteraction) {
+        const current = get().pendingGuided;
+        if (current) internal.pendingPast.push(current);
+        set({
+          pendingGuided: pendingInteraction,
+          canUndoInteraction: true,
+          canRedoInteraction: internal.pendingFuture.length > 0,
+        });
+        return;
+      }
       const cur = get().state;
       if (internal.future.length === 0 || !cur) return;
+      clearPendingInteractionHistory();
       const next = clearPendingTriggers(internal.future.pop() as GameState);
       internal.past.push(clearPendingTriggers(cur));
       if (internal.past.length > HISTORY_LIMIT) {
@@ -2359,6 +2452,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: next,
         triggerCandidates: [],
         pendingGuided: null,
+        canUndoInteraction: false,
+        canRedoInteraction: false,
         pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: internal.past.length > 0,
@@ -3075,6 +3170,7 @@ export const useGameStore = create<GameStore>((set, get) => {
                 ...(resolvedAbilityLineIndex === undefined
                   ? {}
                   : { abilityLineIndex: resolvedAbilityLineIndex }),
+                ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
                 warnings: [`${cardLabel(cur, sourceId)}はすでにタップされているため{T}コストを支払えません。`],
               },
             });
@@ -3103,6 +3199,7 @@ export const useGameStore = create<GameStore>((set, get) => {
                 ...(resolvedAbilityLineIndex === undefined
                   ? {}
                   : { abilityLineIndex: resolvedAbilityLineIndex }),
+                ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
                 warnings: [shortfallWarning],
               },
             });
@@ -3124,9 +3221,17 @@ export const useGameStore = create<GameStore>((set, get) => {
           });
           return;
         }
-        if (manaAbilityPlan.decision === 'guided') {
+        if (manaAbilityPlan.decision === 'assisted' && !opts?.assistRestrictedMana) {
           set({
-            pendingGuided: {
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}の用途制限付きマナ能力は手動で反映してください。`,
+            ],
+          });
+          return;
+        }
+        if (manaAbilityPlan.decision === 'guided') {
+          startPendingGuided({
               mode: 'mana-ability',
               sourceId,
               prompts: manaAbilityPlan.prompts,
@@ -3137,7 +3242,8 @@ export const useGameStore = create<GameStore>((set, get) => {
                   : { abilityLineIndex: resolvedAbilityLineIndex }),
                 manaShortfall: manaAbilityPlan.manaShortfall,
               },
-            },
+          });
+          set({
             // ACT-2: この起動は成功経路(guided)に入った。誤ダイアログを残さない。
             pendingForceActivation: null,
           });
@@ -3153,6 +3259,14 @@ export const useGameStore = create<GameStore>((set, get) => {
             commands: manaAbilityPlan.commands,
           });
           const warnings = result.warnings.slice();
+          if (manaAbilityPlan.decision === 'assisted' && manaAbilityPlan.restrictionText) {
+            const activationOnly = /\bonly to activate abilities\b/i.test(manaAbilityPlan.restrictionText);
+            warnings.push(
+              activationOnly
+                ? `${cardLabel(cur, sourceId)}が生成したマナは能力の起動にのみ使用できます。用途制限は手動で管理してください。`
+                : `${cardLabel(cur, sourceId)}が生成したマナには用途制限があります。使用先は手動で確認してください。`,
+            );
+          }
           if (manaAbilityPlan.manaShortfall > 0) {
             warnings.push(
               `${cardLabel(cur, sourceId)}のマナ能力の起動コストのマナが${manaAbilityPlan.manaShortfall}点不足しています。`,
@@ -3210,6 +3324,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             ...(resolvedAbilityLineIndex === undefined
               ? {}
               : { abilityLineIndex: resolvedAbilityLineIndex }),
+            ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
             warnings: costWarnings,
           },
         });
@@ -3233,14 +3348,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       // So a targeted ability always routes through the target picker before commit.
       const activationPrompts = [...targetPrompts, ...pendingActivation.costPrompts];
       if (activationPrompts.length > 0) {
-        set({
-          pendingGuided: {
+        startPendingGuided({
             mode: 'activation',
             sourceId,
             prompts: activationPrompts,
             commands: [],
             activation: pendingActivation,
-          },
+        });
+        set({
           // ACT-2: この起動は成功経路(guided target選択)に入った。誤ダイアログを残さない。
           pendingForceActivation: null,
         });
@@ -3254,7 +3369,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       const pending = get().pendingForceActivation;
       if (!pending) return;
       set({ pendingForceActivation: null });
-      get().activateAbility(pending.sourceId, pending.abilityLineIndex, { force: true });
+      get().activateAbility(pending.sourceId, pending.abilityLineIndex, {
+        force: true,
+        ...(pending.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
+      });
     },
 
     cancelForceActivation() {
@@ -3283,15 +3401,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || get().pendingCommanderResolution) return;
       const plan = guidedPlanForStackTop(cur);
       if (plan) {
-        set({
-          pendingGuided: {
+        startPendingGuided({
             sourceId: plan.sourceId,
             prompts: plan.prompts,
             // Deterministic commands of the guided lines ride along so mixed auto+guided
             // lines are not half-executed (§32 mixed→guided; CR 608.2c).
             commands: plan.commands,
+            ...(plan.warnings.length > 0 ? { warnings: plan.warnings } : {}),
             ...(to === undefined ? {} : { to }),
-          },
         });
         return;
       }
@@ -3690,7 +3807,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     cancelGuidedPrompt() {
       const pending = get().pendingGuided;
       if (isActivationPending(pending) || isManaAbilityPending(pending)) {
-        set({ pendingGuided: null });
+        discardPendingGuided();
         return;
       }
       // CR608.2h: cancelling a variable-loot discard prompt means "done discarding" (not
@@ -3723,7 +3840,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     setManualTargets(stackItemId, targetIds, targetPlayerIds = []) {
-      dispatch({ type: 'setManualTargets', stackItemId, targetIds, targetPlayerIds });
+      dispatch({
+        type: 'setManualTargets',
+        stackItemId,
+        targetIds,
+        targetPlayerIds,
+        allowStackAbilities: true,
+      });
     },
 
     declareAttack(attackerIds, targetLabel, blockers = []) {

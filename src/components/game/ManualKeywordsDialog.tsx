@@ -4,9 +4,9 @@
  * 旧 Playmat は無編集(ロールバック経路保全)ゆえ当面は二重定義=D4 で Playmat 側を退役。
  */
 
-import { useState } from 'react';
 import { Modal } from '../Modal';
 import { normalizeKeywords, type Keyword } from '../../engine/status';
+import { useInteractionHistory } from '../../hooks/useInteractionHistory';
 
 const MANUAL_KEYWORD_OPTIONS: ReadonlyArray<{ id: Keyword; label: string }> = [
   { id: 'flying', label: '飛行' },
@@ -38,8 +38,9 @@ export function ManualKeywordsDialog({
   onConfirm,
   onCancel,
 }: ManualKeywordsDialogProps) {
-  const [selected, setSelected] = useState<Set<Keyword>>(
-    () => new Set(normalizeKeywords(initialKeywords)),
+  const [selected, setSelected] = useInteractionHistory<Set<Keyword>>(
+    new Set(normalizeKeywords(initialKeywords)),
+    onCancel,
   );
 
   function setKeyword(keyword: Keyword, checked: boolean): void {

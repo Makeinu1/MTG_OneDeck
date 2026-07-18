@@ -93,6 +93,37 @@ describe('CR 608/701.6 guided counter target spell Slice A', () => {
     ).not.toMatchObject({ decision: 'guided' });
   });
 
+  it('guides only a safe counter leaf from a manual composite and warns about the remainder', () => {
+    const offer = spellDef(
+      'an-offer-you-cant-refuse',
+      'Instant',
+      'Counter target noncreature spell. Its controller creates two Treasure tokens.',
+    );
+    const target = spellDef('offer-target', 'Instant', 'Draw a card.');
+    let state = initGame(
+      [{ def: offer, isCommander: false }, { def: target, isCommander: false }],
+      9,
+    );
+    const offerId = idOf(state, 'an-offer-you-cant-refuse');
+    const targetId = idOf(state, 'offer-target');
+    state = move(state, targetId, 'stack');
+    state = move(state, offerId, 'stack');
+
+    const plan = guidedPlanForStackTop(state);
+    expect(plan?.prompts).toEqual([
+      expect.objectContaining({ atom: 'effect.counter-spell', filter: { zone: 'stack', excludedTypes: ['creature'] } }),
+    ]);
+    expect(plan?.warnings).toEqual([
+      expect.stringContaining('残りの効果は手動で反映'),
+    ]);
+    const commands = buildGuidedCommands(
+      plan!.prompts[0],
+      { kind: 'target', cardIds: [targetId] },
+      { sourceId: offerId, def: offer },
+    );
+    expect(commands).toEqual([{ type: 'removeStackItem', id: targetId }]);
+  });
+
   it('Fierce Guardianship filters noncreature stack spells and counters the chosen spell without refund', () => {
     const fierce = spellDef('fierce-guardianship', 'Instant', 'Counter target noncreature spell.');
     const drawSpell = spellDef('draw-spell', 'Instant', 'Draw two cards.');

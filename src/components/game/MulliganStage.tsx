@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { GameState } from '../../engine/types';
 import { CardView } from '../CardView';
+import { useInteractionHistory } from '../../hooks/useInteractionHistory';
 
 export function MulliganStage({
   state,
@@ -9,6 +10,7 @@ export function MulliganStage({
   onKeep,
   onMulligan,
   onBottomConfirm,
+  onUndoBoundary,
 }: {
   state: GameState;
   mode: 'decision' | 'bottom';
@@ -16,9 +18,10 @@ export function MulliganStage({
   onKeep?: () => void;
   onMulligan?: () => void;
   onBottomConfirm?: (cardIds: string[]) => void;
+  onUndoBoundary?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useInteractionHistory<string[]>([], onUndoBoundary);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
