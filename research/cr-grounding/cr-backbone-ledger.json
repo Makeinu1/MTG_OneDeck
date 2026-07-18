@@ -1556,11 +1556,11 @@
     }
   ],
   "judgePolicy": {
-    "reference": "CLAUDE.md「判定者ラダー」参照。判定者=在席最上位の Claude(J1 Fable〜2026-07-07 / J2 Opus 4.8 / J3 Sonnet 5 / J0 不在=Codex 両担+復帰時再オーナー化)。",
+    "reference": "CLAUDE.md「役割 = 資源状態 → 割当」参照。判定者は資源状態に応じて割り当て、判定者不在時の暫定両担は復帰後の独立再検証・再オーナー化を要する。",
     "values": {
-      "deterministic-cr": "CR 照合で裁定可能。J3(Sonnet)判定者が CR を引いて自走してよい(prompt 再走や推測は禁止=CR が一次権威)。",
+      "deterministic-cr": "CR 照合で裁定可能。在席判定者が CR を引いて自走してよい(prompt 再走や推測は禁止=CR が一次権威)。",
       "user-stop": "昇格/スコープ/優先度は価値判断=autoloop STOP①。判定者はティアに関わらず単独裁定しない。"
     },
-    "principle": "照合に還元できない判断は (a) 台帳/docs の standing 裁定を lookup → (b) なければ STOP→ユーザー。下位判定者は背伸びして裁定しない。"
+    "principle": "照合に還元できない判断は (a) 台帳/docs の standing 裁定を lookup → (b) なければ STOP→ユーザー。在席判定者は役割表と STOP 条件に従う。"
   }
 }

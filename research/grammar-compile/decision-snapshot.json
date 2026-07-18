@@ -1,4 +1,4 @@
-{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":21896,"auto":2550,"guided":2027,"manual":17319}}
+{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":21896,"auto":2550,"guided":2036,"manual":17310}}
 {"k":"+2 Mace#e882c9f9#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Aang, Airbending Master#de7a150b#0#1","d":"a","c":"f301de67","r":"4f53cda1"}
 {"k":"Aang, Airbending Master#de7a150b#0#2","d":"m","c":"4f53cda1","r":"3d695272"}
@@ -2244,7 +2244,7 @@
 {"k":"Brass Knuckles#63f4448c#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Brass Knuckles#63f4448c#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Brass's Bounty#65fe7127#0#0","d":"m","c":"4f53cda1","r":"03f5877e"}
-{"k":"Brass's Tunnel-Grinder // Tecutlan, the Searing Rift#d61d8895#0#0","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Brass's Tunnel-Grinder // Tecutlan, the Searing Rift#d61d8895#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Brass's Tunnel-Grinder // Tecutlan, the Searing Rift#d61d8895#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Brass's Tunnel-Grinder // Tecutlan, the Searing Rift#d61d8895#1#2","d":"a","c":"d224e6f6","r":"4f53cda1"}
 {"k":"Braulios of Pheres Band#01789cb2#0#1","d":"m","c":"8b476dbc","r":"7529d74c"}
@@ -2828,7 +2828,7 @@
 {"k":"Cavalier of Dawn#0d650ea3#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Cavalier of Dawn#0d650ea3#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Cavalier of Flame#751ca32d#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Cavalier of Flame#751ca32d#0#1","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Cavalier of Flame#751ca32d#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Cavalier of Flame#751ca32d#0#2","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Cavalier of Gales#289cc92d#0#1","d":"a","c":"e629f8af","r":"4f53cda1"}
 {"k":"Cavalier of Gales#289cc92d#0#2","d":"m","c":"4f53cda1","r":"2714bff2"}
@@ -2866,7 +2866,7 @@
 {"k":"Celebr-8000#1aa7b481#0#0","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Celebrate the Harvest#70432583#0#0","d":"m","c":"4f53cda1","r":"4c00281e"}
 {"k":"Celebrity Fencer#5afb5c5c#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Celes, Rune Knight#30584c53#0#0","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Celes, Rune Knight#30584c53#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Celes, Rune Knight#30584c53#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Celestial Ancient#ba11e0c6#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Celestial Archon#70e1129c#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -3411,7 +3411,7 @@
 {"k":"Colossus of Sardia#d856475f#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Colossus of Sardia#d856475f#0#2","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Colossus of the Blood Age#bfa7f0a4#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Colossus of the Blood Age#bfa7f0a4#0#1","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Colossus of the Blood Age#bfa7f0a4#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Colossus, Steel Stalwart#b9e94fec#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Combat Calligrapher#3c154814#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Combat Calligrapher#3c154814#0#2","d":"m","c":"4f53cda1","r":"65157444"}
@@ -9252,7 +9252,7 @@
 {"k":"Into the Fire#80f649bb#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Into the Flood Maw#50b9575a#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Into the Flood Maw#50b9575a#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
-{"k":"Into the Night#b5a96286#0#0","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Into the Night#b5a96286#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Into the Roil#25edefa9#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Into the Story#24c55c03#0#1","d":"a","c":"e8450a97","r":"4f53cda1"}
 {"k":"Intrepid Ace#dead141b#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -9732,7 +9732,7 @@
 {"k":"Joraga Visionary#44f13d49#0#0","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Jor Kadeen, First Goldwarden#e7e4d8f7#0#1","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Jor Kadeen, the Prevailer#b849e6a2#0#1","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Joshua, Phoenix's Dominant // Phoenix, Warden of Fire#457fdbb9#0#0","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Joshua, Phoenix's Dominant // Phoenix, Warden of Fire#457fdbb9#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Joshua, Phoenix's Dominant // Phoenix, Warden of Fire#457fdbb9#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Joshua, Phoenix's Dominant // Phoenix, Warden of Fire#457fdbb9#1#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Joshua, Phoenix's Dominant // Phoenix, Warden of Fire#457fdbb9#1#3","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -12872,7 +12872,7 @@
 {"k":"Obscuring Haze#21c8e59c#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Observed Stasis#6301c10c#0#2","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Observed Stasis#6301c10c#0#3","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Obsessive Astronomer#4f6e0cb6#0#1","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Obsessive Astronomer#4f6e0cb6#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Obsessive Pursuit#e837e29c#0#0","d":"a","c":"adfaa97d","r":"4f53cda1"}
 {"k":"Obsessive Pursuit#e837e29c#0#1","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Obsessive Search#1d97436e#0#0","d":"a","c":"8b476dbc","r":"4f53cda1"}
@@ -16983,7 +16983,7 @@
 {"k":"Sokenzan Smelter#758724f9#0#0","d":"m","c":"4f53cda1","r":"091f56d0"}
 {"k":"Sokka and Suki#d3b0800f#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Sokka and Suki#d3b0800f#0#1","d":"a","c":"4af8a10d","r":"4f53cda1"}
-{"k":"Sokka, Bold Boomeranger#4a1f1472#0#0","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Sokka, Bold Boomeranger#4a1f1472#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Sokka, Bold Boomeranger#4a1f1472#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sokka, Lateral Strategist#1326c5db#0#1","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Sokka's Haiku#004be4bc#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
@@ -18635,7 +18635,7 @@
 {"k":"Terror of the Peaks#904ff94a#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Terror of Towashi#9a759d44#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Terror Tide#0a281d2c#0#0","d":"m","c":"4f53cda1","r":"b6914a1b"}
-{"k":"Tersa Lightshatter#99e96b34#0#1","d":"m","c":"4f53cda1","r":"7939b430"}
+{"k":"Tersa Lightshatter#99e96b34#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Tersa Lightshatter#99e96b34#0#2","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Tervigon#50909e0e#0#2","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Tesak, Judith's Hellhound#0e563c13#0#3","d":"m","c":"4f53cda1","r":"03f5877e"}
