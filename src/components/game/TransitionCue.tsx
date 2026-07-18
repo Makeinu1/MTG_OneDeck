@@ -5,6 +5,7 @@ import {
   TURN_PHASE_STEP_MS,
   type TransitionCueData,
 } from './transitionCueModel';
+import { drawPresentationText, type DrawPresentationCue } from './presentationCueModel';
 
 function reducedMotion(): boolean {
   return typeof window !== 'undefined'
@@ -14,9 +15,11 @@ function reducedMotion(): boolean {
 
 function ActiveTransitionCue({
   cue,
+  drawCue,
   onDone,
 }: {
   cue: TransitionCueData;
+  drawCue: DrawPresentationCue | null;
   onDone: (id: number) => void;
 }) {
   const reduce = reducedMotion();
@@ -40,12 +43,33 @@ function ActiveTransitionCue({
 
   const activePhase = cue.phases[activeIndex] ?? cue.phases[0];
   const phaseLabel = activePhase ? PHASE_META[activePhase].label : '';
+  const activeDrawCue = activePhase === 'draw' ? drawCue : null;
+
+  useEffect(() => {
+    if (!activePhase) return;
+    document.documentElement.dataset.presentationPhase = activePhase;
+    return () => {
+      if (document.documentElement.dataset.presentationPhase === activePhase) {
+        delete document.documentElement.dataset.presentationPhase;
+      }
+    };
+  }, [activePhase]);
 
   return (
-    <div className="turn-transition-layer" data-testid="transition-cue" data-kind={cue.kind}>
+    <div
+      className="turn-transition-layer presentation-layer"
+      data-testid="transition-cue"
+      data-kind={cue.kind}
+      data-active-draw={activeDrawCue ? true : undefined}
+    >
       <div className="turn-transition-cue" aria-hidden="true">
         {cue.kind === 'turn' && <small>第{cue.turn}ターン</small>}
         <strong>{phaseLabel}</strong>
+        {activeDrawCue && (
+          <span className="turn-transition-cue__draw" data-testid="transition-draw-detail">
+            {drawPresentationText(activeDrawCue)}
+          </span>
+        )}
         <div className="turn-transition-cue__track">
           {cue.phases.map((phase, index) => (
             <span
@@ -64,9 +88,11 @@ function ActiveTransitionCue({
 
 export function TransitionCue({
   cue,
+  drawCue = null,
   onDone,
 }: {
   cue: TransitionCueData | null;
+  drawCue?: DrawPresentationCue | null;
   onDone: (id: number) => void;
 }) {
   const firstPhase = cue?.phases[0];
@@ -77,7 +103,7 @@ export function TransitionCue({
       : firstPhase ? `${PHASE_META[firstPhase].label}へ移行` : '';
   return (
     <>
-      {cue && <ActiveTransitionCue key={cue.id} cue={cue} onDone={onDone} />}
+      {cue && <ActiveTransitionCue key={cue.id} cue={cue} drawCue={drawCue} onDone={onDone} />}
       <span className="sr-only" aria-live="polite">{announcement}</span>
     </>
   );

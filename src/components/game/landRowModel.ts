@@ -78,3 +78,24 @@ export function bundleLands(cards: readonly LandRowCard[]): LandBundle[] {
 
   return bundles;
 }
+
+export function landRowCards(state: GameState, cardIds: readonly string[]): LandRowCard[] {
+  return cardIds.flatMap((id) => {
+    const card = state.cards[id];
+    const def = card ? state.defs[card.defId] : undefined;
+    const face = def?.faces[card?.faceIndex ?? 0] ?? def?.faces[0];
+    const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+    if (!card || !typeLine.includes('Land')) return [];
+    return [{
+      id,
+      name: face?.name ?? def?.name ?? id,
+      isBasic: typeLine.includes('Basic'),
+      tapped: card.tapped,
+    }];
+  });
+}
+
+export function landVisualUnitCount(state: GameState, cardIds: readonly string[]): number {
+  return bundleLands(landRowCards(state, cardIds)).length;
+}
+import type { GameState } from '../../engine/types';

@@ -4,12 +4,13 @@
  * 盤面(クリーチャー行/その他行)は統一サイズの棚。枚数で基準カード幅を自動縮小し、
  * 14枚以上で重ね(overlap)に切り替える。CSS は本モジュールが返す値をトークン変数へ流す。
  *
- * 密度段階(§8): 〜5枚=96px / 6〜9枚=84px / 10枚〜=72px / 14枚〜は重ね。
+ * 支援列: 〜5枚=96px / 6〜9枚=84px / 10枚〜=72px。
+ * クリーチャー列: 〜5枚=128px / 6〜9枚=112px / 10〜13枚=96px / 14枚〜=80px。
  * 純粋性: 同一 count → 同一出力。副作用なし。
  */
 
 /** 盤面カード基準幅(px)。BoardShelf 密度段階。 */
-export type BoardCardWidth = 96 | 84 | 72;
+export type BoardCardWidth = 128 | 112 | 96 | 84 | 80 | 72;
 
 /** 密度閾値(§8。上端は「その枚数まで」)。 */
 export const BOARD_DENSITY_THRESHOLDS = {
@@ -26,6 +27,14 @@ export function boardCardWidth(count: number): BoardCardWidth {
   if (count <= BOARD_DENSITY_THRESHOLDS.base) return 96;
   if (count <= BOARD_DENSITY_THRESHOLDS.mid) return 84;
   return 72;
+}
+
+/** Primary creature lane keeps cards deliberately larger than support permanents. */
+export function creatureCardWidth(count: number): BoardCardWidth {
+  if (count <= BOARD_DENSITY_THRESHOLDS.base) return 128;
+  if (count <= BOARD_DENSITY_THRESHOLDS.mid) return 112;
+  if (count < BOARD_DENSITY_THRESHOLDS.overlap) return 96;
+  return 80;
 }
 
 /** 14枚以上で重ね表示に切り替えるか。§8。 */

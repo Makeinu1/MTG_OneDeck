@@ -27,7 +27,7 @@ import type { GameController } from './gameController';
 import { handFanCardLayout } from './handFanLayout';
 import type { GameEvent } from '../../engine/types';
 
-const DRAW_FLIGHT_MS = 240;
+const DRAW_FLIGHT_MS = 650;
 
 interface DrawFlightGeometry {
   eventId: string;
@@ -38,6 +38,8 @@ interface DrawFlightGeometry {
   height: number;
   fromX: number;
   fromY: number;
+  midX: number;
+  midY: number;
   delayMs: number;
 }
 
@@ -196,6 +198,8 @@ export function HandRibbon({
           height: rect.height,
           fromX: origin.left + origin.width / 2 - (rect.left + rect.width / 2),
           fromY: origin.top + origin.height / 2 - (rect.top + rect.height / 2),
+          midX: window.innerWidth / 2 - (rect.left + rect.width / 2),
+          midY: window.innerHeight / 2 - (rect.top + rect.height / 2),
           delayMs: timelineDelay + drawStaggerMs(index),
         }];
       });
@@ -425,6 +429,8 @@ export function HandRibbon({
                   height: flight.height,
                   '--draw-from-x': `${flight.fromX}px`,
                   '--draw-from-y': `${flight.fromY}px`,
+                  '--draw-mid-x': `${flight.midX}px`,
+                  '--draw-mid-y': `${flight.midY}px`,
                   '--draw-flight-delay': `${flight.delayMs}ms`,
                 } as CSSProperties}
               >

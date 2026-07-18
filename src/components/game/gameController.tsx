@@ -35,7 +35,6 @@ import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { celebrate } from './sound';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
-import { TargetPickerDialog } from '../playmat/TargetPickerDialog';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -49,15 +48,16 @@ import {
   TokenCreateDialog,
   XCostDialog,
   ZoneViewerDialog,
-  MulliganBottomDialog,
-  MulliganDecisionDialog,
   ConfirmDialog,
   FetchSearchDialog,
   GuidedLibrarySearchDialog,
+  CastFaceDialog,
 } from '../playmat/dialogs';
+import { MulliganStage } from './MulliganStage';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 import type { DropIntent } from './dragIntent';
 import { HISTORY_UI_EVENT } from './historyUiEvents';
+import type { DecisionFocusModel } from './decisionFocus';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -91,14 +91,24 @@ const TARGET_RULE_ACTION_TITLES: Record<string, string> = {
 type MenuTriggerEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>;
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
-  | { kind: 'stack'; cardId: string; shortfall: number; xValue: number }
+  | { kind: 'stack'; cardId: string; shortfall: number; xValue: number; faceIndex: number }
   | { kind: 'cycle'; cardId: string; shortfall: number };
 type ManaChoiceRequest = { kind: 'tap' | 'treasure'; cardId: string; options: ManaColor[] };
-type PendingXCast = { cardId: string };
+type PendingXCast = { cardId: string; faceIndex: number };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = { kind: 'draw' | 'mill' | 'peek' | 'discard-random'; defaultValue: number };
 type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
 type PendingRuleTargetAction = { kind: string; sourceCardId: string };
+
+export interface CommanderCutInData {
+  token: number;
+  cardId: string;
+  faceIndex: number;
+  name: string;
+  typeLine: string;
+  imageUrl?: string;
+  landed: boolean;
+}
 
 function isCommanderZoneChoiceDestination(zone: ZoneId): boolean {
   return zone === 'graveyard' || zone === 'exile' || zone === 'hand' || zone === 'library';
@@ -112,6 +122,7 @@ export interface GameController {
   store: GameStore;
   /** カードシート/コンテキストメニューを開く(タップ/右クリック)。 */
   openCardMenu: (cardId: string, e: MenuTriggerEvent) => void;
+  openCardMenuAt?: (cardId: string, x: number, y: number) => void;
   /** ダブルクリック/クイックアクション。 */
   handleCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
@@ -159,6 +170,14 @@ export interface GameController {
   performDrop: (intent: DropIntent) => void;
   /** ドラッグ開始時にhover以外の一時UIも閉じる。 */
   closeTransientUi: () => void;
+  /** 解決直前の統率者演出。旧レイアウト／テスト用controllerでは省略可能。 */
+  commanderCutIn?: CommanderCutInData | null;
+  resolutionLocked?: boolean;
+  decisionFocus?: DecisionFocusModel | null;
+  chooseDecisionCard?: (cardId: string) => void;
+  chooseDecisionPlayer?: (playerId: PlayerId) => void;
+  cancelDecision?: () => void;
+  mulliganActive?: boolean;
 }
 
 /**
@@ -173,6 +192,10 @@ export function useGameController({
 }): GameController {
   const store = useGameStore();
   const { state, mulliganDecisionPending } = store;
+  const pendingCommanderResolution = store.pendingCommanderResolution;
+  const commitCommanderResolution = useCallback((token: number) => {
+    useGameStore.getState().commitCommanderResolution(token);
+  }, []);
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [libraryMenu, setLibraryMenu] = useState<{
@@ -183,6 +206,7 @@ export function useGameController({
   const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
   const [pendingPayment, setPendingPayment] = useState<PendingPaymentAction | null>(null);
   const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
+  const [pendingFaceCastCardId, setPendingFaceCastCardId] = useState<string | null>(null);
   const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
   const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(null);
   const [commanderMove, setCommanderMove] = useState<{ cardId: string; to: ZoneId } | null>(null);
@@ -201,6 +225,8 @@ export function useGameController({
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
+  const [commanderCutIn, setCommanderCutIn] = useState<CommanderCutInData | null>(null);
+  const commanderTimersRef = useRef<number[]>([]);
   const transitionCueIdRef = useRef(0);
   const dismissTransitionCue = useCallback((id: number) => {
     setTransitionCue((current) => current?.id === id ? null : current);
@@ -214,12 +240,40 @@ export function useGameController({
     return () => clearTimeout(id);
   }, []);
 
+  useEffect(() => {
+    const pending = pendingCommanderResolution;
+    if (!pending) return;
+    commanderTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    commanderTimersRef.current = [];
+    const cue: CommanderCutInData = { ...pending, landed: false };
+    const showTimer = window.setTimeout(() => setCommanderCutIn(cue), 0);
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const commitDelay = reducedMotion ? 80 : 780;
+    const finishDelay = reducedMotion ? 240 : 1050;
+    const commitTimer = window.setTimeout(() => {
+      setCommanderCutIn((current) => current?.token === pending.token
+        ? { ...current, landed: true }
+        : current);
+      commitCommanderResolution(pending.token);
+      celebrate('commander');
+    }, commitDelay);
+    const finishTimer = window.setTimeout(() => {
+      setCommanderCutIn((current) => current?.token === pending.token ? null : current);
+    }, finishDelay);
+    commanderTimersRef.current = [showTimer, commitTimer, finishTimer];
+  }, [commitCommanderResolution, pendingCommanderResolution]);
+
+  useEffect(() => () => {
+    commanderTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+  }, []);
+
   const isDialogOpen =
     store.pendingGuided !== null ||
     store.pendingForceActivation !== null ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
+    pendingFaceCastCardId !== null ||
     pendingLandPlay !== null ||
     pendingLandTapChoice !== null ||
     commanderMove !== null ||
@@ -236,12 +290,14 @@ export function useGameController({
     attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
+  const resolutionLocked = store.pendingCommanderResolution !== null;
   const shortcutsBlocked =
     mulliganDecisionPending ||
     isDialogOpen ||
     menu !== null ||
     libraryMenu !== null ||
     feedOpen ||
+    resolutionLocked ||
     externalShortcutsBlocked;
 
   useShortcuts({
@@ -316,22 +372,22 @@ export function useGameController({
     const face = def?.faces[card.faceIndex] ?? def?.faces[0];
     return face?.typeLine ?? def?.typeLine ?? '';
   }
-  function cardNameFor(cardId: string): string {
+  function cardNameFor(cardId: string, faceIndex?: number): string {
     const card = cards[cardId];
     if (!card || !state) return '不明';
     const def = state.defs[card.defId];
-    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    const face = def?.faces[faceIndex ?? card.faceIndex] ?? def?.faces[0];
     return face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
   }
-  function manaCostFor(cardId: string): string {
+  function manaCostFor(cardId: string, faceIndex?: number): string {
     const card = cards[cardId];
     if (!card || !state) return '';
     const def = state.defs[card.defId];
-    const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+    const face = def?.faces[faceIndex ?? card.faceIndex] ?? def?.faces[0];
     return face?.manaCost ?? '';
   }
-  function requiresXValue(cardId: string): boolean {
-    return parseManaCost(manaCostFor(cardId)).x > 0;
+  function requiresXValue(cardId: string, faceIndex?: number): boolean {
+    return parseManaCost(manaCostFor(cardId, faceIndex)).x > 0;
   }
   function treasureColors(cardId: string): ManaColor[] {
     const card = cards[cardId];
@@ -354,15 +410,28 @@ export function useGameController({
     if (result === 'needs-confirm') setPendingLandPlay({ cardId });
     else if (result === 'needs-tap-choice') setPendingLandTapChoice({ cardId, force: opts?.force });
   }
-  function requestCastToStack(cardId: string, xValue?: number): void {
-    if (xValue === undefined && requiresXValue(cardId)) {
-      setPendingXCast({ cardId });
+  function requestCastToStack(cardId: string, xValue?: number, faceIndex?: number): void {
+    const card = cards[cardId];
+    const def = card && state ? state.defs[card.defId] : undefined;
+    if (faceIndex === undefined && def?.layout === 'modal_dfc' && def.faces.length > 1) {
+      setPendingFaceCastCardId(cardId);
+      return;
+    }
+    const chosenFaceIndex = faceIndex ?? card?.faceIndex ?? 0;
+    if (xValue === undefined && requiresXValue(cardId, chosenFaceIndex)) {
+      setPendingXCast({ cardId, faceIndex: chosenFaceIndex });
       return;
     }
     const chosenXValue = xValue ?? 0;
-    const result = store.castToStack(cardId, { xValue: chosenXValue });
+    const result = store.castToStack(cardId, { xValue: chosenXValue, faceIndex: chosenFaceIndex });
     if (result !== 'ok') {
-      setPendingPayment({ kind: 'stack', cardId, shortfall: result.shortfall, xValue: chosenXValue });
+      setPendingPayment({
+        kind: 'stack',
+        cardId,
+        shortfall: result.shortfall,
+        xValue: chosenXValue,
+        faceIndex: chosenFaceIndex,
+      });
     }
   }
   function requestCycle(cardId: string): void {
@@ -674,12 +743,15 @@ export function useGameController({
   function openCardMenu(cardId: string, e: MenuTriggerEvent): void {
     e.stopPropagation();
     const bounds = e.currentTarget.getBoundingClientRect();
-    setLibraryMenu(null);
-    setMenu({
+    openCardMenuAt(
       cardId,
-      x: e.clientX || bounds.left + bounds.width / 2,
-      y: e.clientY || bounds.top + bounds.height / 2,
-    });
+      e.clientX || bounds.left + bounds.width / 2,
+      e.clientY || bounds.top + bounds.height / 2,
+    );
+  }
+  function openCardMenuAt(cardId: string, x: number, y: number): void {
+    setLibraryMenu(null);
+    setMenu({ cardId, x, y });
   }
   function openLibraryActions(e: MenuTriggerEvent): void {
     e.stopPropagation();
@@ -797,6 +869,90 @@ export function useGameController({
             ? { title: 'ランダムに捨てる', label: '枚数', inputTestId: 'discard-random-n', confirmTestId: 'discard-random-confirm' }
             : null;
 
+  const decisionFocus: DecisionFocusModel | null = (() => {
+    if (!state) return null;
+    const sourceId = store.pendingGuided?.sourceId;
+    if (guidedPrompt?.kind === 'target') return {
+      kind: 'target', title: '対象を選択', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
+      sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
+    };
+    if (guidedPrompt?.kind === 'discard') return {
+      kind: 'discard', title: '捨てるカードを選択', instruction: '手札の候補から1枚選んでください。',
+      sourceId, candidateIds: state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand, selectedIds: [],
+    };
+    if (guidedPrompt?.kind === 'sacrifice') return {
+      kind: 'sacrifice', title: '生け贄を選択', instruction: '戦場の候補から1枚選んでください。',
+      sourceId, candidateIds: guidedSacrificeIds, selectedIds: [],
+    };
+    if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') return {
+      kind: 'cost',
+      title: guidedPrompt.kind === 'cost-discard' ? '起動コスト：捨てる' : '起動コスト：生け贄',
+      instruction: '金色の候補を選んでコストを確定します。',
+      sourceId, candidateIds: guidedCostSubjectIds, selectedIds: [...guidedCostSelectedIds],
+      requiredCount: guidedPrompt.count,
+    };
+    if (pendingRuleTarget) return {
+      kind: 'target', title: TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? '対象を選択',
+      instruction: '金色の候補を選んでください。', sourceId: pendingRuleTarget.sourceCardId,
+      candidateIds: ruleTargetIds, selectedIds: [],
+    };
+    if (pendingBloodCrackCardId) return {
+      kind: 'discard', title: '血トークン：捨てるカード', instruction: '手札から1枚選んでください。',
+      sourceId: pendingBloodCrackCardId, candidateIds: state.zones.hand, selectedIds: [],
+    };
+    if (guidedPrompt?.kind === 'mana') return {
+      kind: 'payment', title: 'マナの色を選択', instruction: '支払いに使うマナを選んでください。',
+      sourceId, candidateIds: [], selectedIds: [],
+    };
+    if (manaChoice) return {
+      kind: 'payment', title: '生み出すマナを選択', instruction: '発生源を確認して色を選んでください。',
+      sourceId: manaChoice.cardId, candidateIds: [], selectedIds: [],
+    };
+    if (pendingXCast) return {
+      kind: 'payment', title: 'Xの値を決定', instruction: '支払うマナ量を入力してください。',
+      sourceId: pendingXCast.cardId, candidateIds: [], selectedIds: [],
+    };
+    if (pendingPayment) return {
+      kind: 'warning', title: 'マナが不足しています', instruction: '不足を確認し、強行するかキャンセルしてください。',
+      sourceId: pendingPayment.cardId, candidateIds: [], selectedIds: [],
+      warning: `不足 ${pendingPayment.shortfall}マナ`,
+      canForce: true,
+    };
+    if (pendingLandTapChoice) return {
+      kind: 'payment', title: '土地の着地状態', instruction: 'タップ状態で出すか選んでください。',
+      sourceId: pendingLandTapChoice.cardId, candidateIds: [], selectedIds: [],
+    };
+    return null;
+  })();
+
+  function chooseDecisionCard(cardId: string): void {
+    if (!decisionFocus?.candidateIds.includes(cardId)) return;
+    if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
+    else if (guidedPrompt?.kind === 'discard') store.confirmGuidedDiscard(cardId);
+    else if (guidedPrompt?.kind === 'sacrifice') store.confirmGuidedSacrifice(cardId);
+    else if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') store.confirmGuidedCostSubject(cardId);
+    else if (pendingRuleTarget) pickRuleActionTarget(cardId);
+    else if (pendingBloodCrackCardId) {
+      store.crackBlood(pendingBloodCrackCardId, cardId);
+      setPendingBloodCrackCardId(null);
+    }
+  }
+
+  function chooseDecisionPlayer(playerId: PlayerId): void {
+    if (!decisionFocus?.playerIds?.includes(playerId)) return;
+    store.confirmGuidedPlayerTarget(playerId);
+  }
+
+  function cancelDecision(): void {
+    if (store.pendingGuided) store.cancelGuidedPrompt();
+    else if (pendingRuleTarget) setPendingRuleTarget(null);
+    else if (pendingBloodCrackCardId) setPendingBloodCrackCardId(null);
+    else if (manaChoice) setManaChoice(null);
+    else if (pendingXCast) setPendingXCast(null);
+    else if (pendingPayment) setPendingPayment(null);
+    else if (pendingLandTapChoice) setPendingLandTapChoice(null);
+  }
+
   const overlays: ReactNode = !state ? null : (
     <>
       {menu &&
@@ -813,6 +969,10 @@ export function useGameController({
                 variant={cardSheetVariant()}
                 anchor={{ x: menu.x, y: menu.y }}
                 onClose={closeMenu}
+                card={state.cards[menu.cardId] ? {
+                  instance: state.cards[menu.cardId],
+                  def: state.defs[state.cards[menu.cardId].defId],
+                } : undefined}
               />
             );
           })()
@@ -850,8 +1010,9 @@ export function useGameController({
       )}
 
       {mulliganDecisionPending && (
-        <MulliganDecisionDialog
+        <MulliganStage
           state={state}
+          mode="decision"
           onKeep={() => {
             const count = useGameStore.getState().state?.mulliganCount ?? 0;
             store.keepOpeningHand();
@@ -864,11 +1025,11 @@ export function useGameController({
       )}
 
       {mulliganBottomCount !== null && (
-        <MulliganBottomDialog
-          cardIds={state.zones.hand}
+        <MulliganStage
           state={state}
-          count={mulliganBottomCount}
-          onConfirm={(chosen) => {
+          mode="bottom"
+          bottomCount={mulliganBottomCount}
+          onBottomConfirm={(chosen) => {
             store.putBottomForMulligan(chosen);
             setMulliganBottomCount(null);
             beginFirstTurn();
@@ -898,21 +1059,42 @@ export function useGameController({
 
       {pendingXCast && (
         <XCostDialog
-          cardName={cardNameFor(pendingXCast.cardId)}
-          manaCost={manaCostFor(pendingXCast.cardId)}
+          cardName={cardNameFor(pendingXCast.cardId, pendingXCast.faceIndex)}
+          manaCost={manaCostFor(pendingXCast.cardId, pendingXCast.faceIndex)}
           onConfirm={(xValue) => {
-            requestCastToStack(pendingXCast.cardId, xValue);
+            requestCastToStack(pendingXCast.cardId, xValue, pendingXCast.faceIndex);
             setPendingXCast(null);
           }}
           onCancel={() => setPendingXCast(null)}
         />
       )}
 
+      {pendingFaceCastCardId && state?.cards[pendingFaceCastCardId] && (() => {
+        const card = state.cards[pendingFaceCastCardId];
+        const def = state.defs[card.defId];
+        return def ? (
+          <CastFaceDialog
+            def={def}
+            initialFaceIndex={card.faceIndex}
+            onChoose={(faceIndex) => {
+              const cardId = pendingFaceCastCardId;
+              setPendingFaceCastCardId(null);
+              requestCastToStack(cardId, undefined, faceIndex);
+            }}
+            onCancel={() => setPendingFaceCastCardId(null)}
+          />
+        ) : null;
+      })()}
+
       {pendingPayment && (
         <ShortfallDialog
           shortfall={pendingPayment.shortfall}
           onForce={() => {
-            if (pendingPayment.kind === 'stack') store.castToStack(pendingPayment.cardId, { force: true, xValue: pendingPayment.xValue });
+            if (pendingPayment.kind === 'stack') store.castToStack(pendingPayment.cardId, {
+              force: true,
+              xValue: pendingPayment.xValue,
+              faceIndex: pendingPayment.faceIndex,
+            });
             else store.cycle(pendingPayment.cardId, { force: true });
             setPendingPayment(null);
           }}
@@ -967,26 +1149,6 @@ export function useGameController({
         />
       )}
 
-      {guidedPrompt?.kind === 'target' && (
-        <TargetPickerDialog
-          title="対象を選択"
-          cardIds={guidedTargetIds}
-          playerIds={guidedTargetPlayerIds}
-          state={state}
-          onPick={(id) => store.confirmGuidedTarget(id)}
-          onPickPlayer={(id) => store.confirmGuidedPlayerTarget(id)}
-          onCancel={() => store.cancelGuidedPrompt()}
-        />
-      )}
-      {guidedPrompt?.kind === 'discard' && (
-        <TargetPickerDialog
-          title="捨てるカードを選択"
-          cardIds={state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand}
-          state={state}
-          onPick={(id) => store.confirmGuidedDiscard(id)}
-          onCancel={() => store.cancelGuidedPrompt()}
-        />
-      )}
       {guidedPrompt?.kind === 'library-search' && (
         <GuidedLibrarySearchDialog
           state={state}
@@ -996,24 +1158,6 @@ export function useGameController({
           onConfirm={(id) => store.confirmGuidedLibrarySearch(id)}
           onMiss={() => store.confirmGuidedLibrarySearch()}
           onClose={() => store.cancelGuidedPrompt()}
-        />
-      )}
-      {guidedPrompt?.kind === 'sacrifice' && (
-        <TargetPickerDialog
-          title="生け贄を選択"
-          cardIds={guidedSacrificeIds}
-          state={state}
-          onPick={(id) => store.confirmGuidedSacrifice(id)}
-          onCancel={() => store.cancelGuidedPrompt()}
-        />
-      )}
-      {(guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') && (
-        <TargetPickerDialog
-          title={guidedPrompt.kind === 'cost-discard' ? '捨てるカードを選択' : '生け贄を選択'}
-          cardIds={guidedCostSubjectIds}
-          state={state}
-          onPick={(id) => store.confirmGuidedCostSubject(id)}
-          onCancel={() => store.cancelGuidedPrompt()}
         />
       )}
       {guidedPrompt?.kind === 'scry-surveil' && (
@@ -1037,27 +1181,6 @@ export function useGameController({
         />
       )}
 
-      {pendingRuleTarget && (
-        <TargetPickerDialog
-          title={TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? '対象を選択'}
-          cardIds={ruleTargetIds}
-          state={state}
-          onPick={pickRuleActionTarget}
-          onCancel={() => setPendingRuleTarget(null)}
-        />
-      )}
-      {pendingBloodCrackCardId && (
-        <TargetPickerDialog
-          title="捨てるカードを選択"
-          cardIds={state.zones.hand}
-          state={state}
-          onPick={(discardCardId) => {
-            store.crackBlood(pendingBloodCrackCardId, discardCardId);
-            setPendingBloodCrackCardId(null);
-          }}
-          onCancel={() => setPendingBloodCrackCardId(null)}
-        />
-      )}
       {commanderMove && (
         <CommanderMoveDialog
           cardName={cardNameFor(commanderMove.cardId)}
@@ -1181,6 +1304,7 @@ export function useGameController({
     state: state ?? null,
     store,
     openCardMenu,
+    openCardMenuAt,
     handleCardDoubleClick,
     requestResolveTop,
     requestResolveAll,
@@ -1209,6 +1333,13 @@ export function useGameController({
     shortcutsBlocked,
     transitionCue,
     dismissTransitionCue,
+    commanderCutIn,
+    resolutionLocked,
+    decisionFocus,
+    chooseDecisionCard,
+    chooseDecisionPlayer,
+    cancelDecision,
+    mulliganActive: mulliganDecisionPending || mulliganBottomCount !== null,
     performDrop,
     closeTransientUi: closeMenu,
   };

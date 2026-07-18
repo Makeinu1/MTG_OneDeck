@@ -172,6 +172,17 @@ export interface PendingGuidedResolution {
   manaAbility?: PendingManaAbility;
 }
 
+export interface PendingCommanderResolution {
+  token: number;
+  cardId: string;
+  objectId: string;
+  defId: string;
+  faceIndex: number;
+  name: string;
+  typeLine: string;
+  imageUrl?: string;
+}
+
 export function guidedControllerId(
   state: GameState,
   pending: Pick<PendingGuidedResolution, 'sourceId' | 'activation'>,
@@ -854,6 +865,7 @@ export interface GameStore {
   warnings: string[];
   triggerCandidates: TriggerCandidate[];
   pendingGuided: PendingGuidedResolution | null;
+  pendingCommanderResolution: PendingCommanderResolution | null;
   pendingForceActivation: PendingForceActivation | null;
   canUndo: boolean;
   canRedo: boolean;
@@ -903,15 +915,15 @@ export interface GameStore {
   crackBlood(cardId: string, discardCardId?: string): void;
   castFromHand(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean },
+    opts?: { xValue?: number; force?: boolean; faceIndex?: number },
   ): 'ok' | { shortfall: number };
   castCommander(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean },
+    opts?: { xValue?: number; force?: boolean; faceIndex?: number },
   ): 'ok' | { shortfall: number };
   castToStack(
     cardId: string,
-    opts?: { xValue?: number; force?: boolean },
+    opts?: { xValue?: number; force?: boolean; faceIndex?: number },
   ): 'ok' | { shortfall: number };
   addAbilityToStack(
     sourceId: string,
@@ -929,6 +941,8 @@ export interface GameStore {
   copyStackItem(cardId: string): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
+  commitCommanderResolution(token: number): void;
+  cancelCommanderResolution(token: number): void;
   confirmGuidedTarget(cardId: string): void;
   confirmGuidedDiscard(cardId: string): void;
   confirmGuidedLibrarySearch(cardId?: string): void;
@@ -983,6 +997,7 @@ interface InternalState {
   // remembered for restart()
   deck: InitDeckCard[] | null;
   lastSeed: number;
+  resolutionGroupAnchor: GameState | null;
 }
 
 let snapshotInternal: InternalState | null = null;
@@ -1321,24 +1336,38 @@ export const useGameStore = create<GameStore>((set, get) => {
     future: [],
     deck: null,
     lastSeed: 0,
+    resolutionGroupAnchor: null,
   };
+  let pendingCommanderCommit: {
+    token: number;
+    sourceState: GameState;
+    nextState: GameState;
+    warnings: string[];
+    continueResolveAll: boolean;
+    groupedHistory: boolean;
+  } | null = null;
+  let commanderResolutionToken = 0;
   snapshotInternal = internal;
 
   function commit(
     next: GameState,
     warnings: string[],
-    options: { collectPending?: boolean } = {},
+    options: { collectPending?: boolean; groupedHistory?: boolean } = {},
   ): void {
     const cur = get().state;
     const shouldCollectPending = options.collectPending ?? true;
     const nextWithPending =
       cur && shouldCollectPending ? appendCollectedPendingTriggers(cur, next) : next;
-    if (cur) {
+    if (cur && (!options.groupedHistory || internal.resolutionGroupAnchor === null)) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
         internal.past.shift();
       }
     }
+    if (cur && options.groupedHistory && internal.resolutionGroupAnchor === null) {
+      internal.resolutionGroupAnchor = cur;
+    }
+    if (!options.groupedHistory) internal.resolutionGroupAnchor = null;
     internal.future = [];
     const nextStoreState: Partial<GameStore> = {
       state: nextWithPending,
@@ -1347,6 +1376,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
+      pendingCommanderResolution: null,
       // ACT-2: 成功した起動(=commit まで到達した)は強行ダイアログを引きずらない
       // (誤ダイアログを出さない)。commit() は全ての成功コミットの単一 chokepoint。
       pendingForceActivation: null,
@@ -1384,6 +1414,95 @@ export const useGameStore = create<GameStore>((set, get) => {
       ...base,
       libraryShuffleOrder: shuffledOrder(cur.zonesByPlayer[controllerId].library, rng),
     };
+  }
+
+  function commanderLandingFrom(
+    sourceState: GameState,
+    nextState: GameState,
+  ): PendingCommanderResolution | null {
+    const appended = nextState.eventLog.slice(sourceState.eventLog.length);
+    const event = [...appended].reverse().find((candidate) => (
+      candidate.type === 'zoneChange'
+      && candidate.reason === 'resolve'
+      && candidate.fromZone === 'stack'
+      && candidate.toZone === 'battlefield'
+      && candidate.before.isCommander
+    ));
+    if (!event || event.type !== 'zoneChange') return null;
+    const landed = nextState.cards[event.physicalCardId];
+    if (!landed || landed.zone !== 'battlefield' || landed.faceIndex !== event.before.faceIndex) {
+      return null;
+    }
+    const def = sourceState.defs[event.before.defId];
+    const face = def?.faces[event.before.faceIndex];
+    if (!def || !face) return null;
+    return {
+      token: ++commanderResolutionToken,
+      cardId: event.physicalCardId,
+      objectId: event.before.objectId,
+      defId: event.before.defId,
+      faceIndex: event.before.faceIndex,
+      name: face.printedName ?? face.name ?? def.printedName ?? def.name,
+      typeLine: face.printedTypeLine ?? face.typeLine ?? def.typeLine,
+      ...(face.imageUrl ? { imageUrl: face.imageUrl } : {}),
+    };
+  }
+
+  function prepareCommanderResolution(
+    sourceState: GameState,
+    nextState: GameState,
+    warnings: string[],
+    options: { continueResolveAll?: boolean; groupedHistory?: boolean } = {},
+  ): boolean {
+    const cue = commanderLandingFrom(sourceState, nextState);
+    if (!cue) return false;
+    pendingCommanderCommit = {
+      token: cue.token,
+      sourceState,
+      nextState,
+      warnings,
+      continueResolveAll: options.continueResolveAll ?? false,
+      groupedHistory: options.groupedHistory ?? false,
+    };
+    set({
+      pendingGuided: null,
+      pendingCommanderResolution: cue,
+    });
+    return true;
+  }
+
+  function continueResolveAll(): void {
+    while (true) {
+      const cur = get().state;
+      if (!cur || cur.zones.stack.length === 0) {
+        internal.resolutionGroupAnchor = null;
+        return;
+      }
+      if (guidedPlanForStackTop(cur)) {
+        internal.resolutionGroupAnchor = null;
+        get().resolveTop();
+        return;
+      }
+      const topId = cur.zones.stack[cur.zones.stack.length - 1];
+      if (isFetchAbilityStackItem(cur, topId)) {
+        internal.resolutionGroupAnchor = null;
+        return;
+      }
+      try {
+        const result = applyCommand(cur, resolveStackTopCommandForState(cur));
+        if (prepareCommanderResolution(cur, result.state, result.warnings, {
+          continueResolveAll: true,
+          groupedHistory: true,
+        })) {
+          return;
+        }
+        commit(result.state, result.warnings, { groupedHistory: true });
+      } catch (err) {
+        internal.resolutionGroupAnchor = null;
+        console.error(err);
+        return;
+      }
+    }
   }
 
   function warningForSummoningSickness(state: GameState, cardId: string): string[] {
@@ -1425,7 +1544,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         result.state,
         `${cardLabel(cur, pending.sourceId)}の効果を誘導実行した。`,
       );
-      commit(logged, [...(pending.warnings ?? []), ...result.warnings]);
+      const warnings = [...(pending.warnings ?? []), ...result.warnings];
+      if (!prepareCommanderResolution(cur, logged, warnings)) {
+        commit(logged, warnings);
+      }
     } catch (err) {
       console.error(err);
       set({ pendingGuided: null });
@@ -1976,6 +2098,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     warnings: [],
     triggerCandidates: [],
     pendingGuided: null,
+    pendingCommanderResolution: null,
     pendingForceActivation: null,
     canUndo: false,
     canRedo: false,
@@ -1988,6 +2111,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = usedSeed;
       internal.past = [];
       internal.future = [];
+      internal.resolutionGroupAnchor = null;
+      pendingCommanderCommit = null;
 
       const base = initGame(cards, usedSeed);
       // Build the initial board state as a single non-undoable setup step.
@@ -1997,6 +2122,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: openingHand.warnings,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCommanderResolution: null,
         // ACT-2: 新しいゲームへ残留した強行ダイアログを持ち越さない。
         pendingForceActivation: null,
         canUndo: false,
@@ -2011,11 +2137,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = lastSeed;
       internal.past = [];
       internal.future = [];
+      internal.resolutionGroupAnchor = null;
+      pendingCommanderCommit = null;
       set({
         state: normalizeSnapshotState(snapshot.state),
         warnings: [],
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: false,
         canRedo: false,
@@ -2156,6 +2285,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     dispatch,
 
     undo() {
+      pendingCommanderCommit = null;
+      internal.resolutionGroupAnchor = null;
       const cur = get().state;
       if (internal.past.length === 0 || !cur) return;
       const prev = clearPendingTriggers(internal.past.pop() as GameState);
@@ -2167,6 +2298,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: prev,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
@@ -2174,6 +2306,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     redo() {
+      pendingCommanderCommit = null;
+      internal.resolutionGroupAnchor = null;
       const cur = get().state;
       if (internal.future.length === 0 || !cur) return;
       const next = clearPendingTriggers(internal.future.pop() as GameState);
@@ -2185,6 +2319,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         state: next,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCommanderResolution: null,
         pendingForceActivation: null,
         canUndo: internal.past.length > 0,
         canRedo: internal.future.length > 0,
@@ -2573,7 +2708,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       const card = cur.cards[cardId];
       if (!card) return 'ok';
       const def = cur.defs[card.defId];
-      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const faceIndex = opts?.faceIndex ?? card.faceIndex;
+      const face = def?.faces[faceIndex] ?? def?.faces[0];
       const cost = parseManaCost(face?.manaCost ?? '');
       const xValue = opts?.xValue ?? 0;
       const sol = solvePayment(cur.manaPool, cost, xValue);
@@ -2583,6 +2719,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           cardId,
           payment: sol.payment,
           forced: false,
+          faceIndex,
         });
         return 'ok';
       }
@@ -2600,6 +2737,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             cardId,
             payment: plan.payment,
             forced: !plan.ok,
+            faceIndex,
           },
         ];
         const result = applyCommands(cur, commands);
@@ -2617,7 +2755,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!card) return 'ok';
       if (!isCommander(cur, cardId)) return 'ok';
       const def = cur.defs[card.defId];
-      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const faceIndex = opts?.faceIndex ?? card.faceIndex;
+      const face = def?.faces[faceIndex] ?? def?.faces[0];
       const cost = parseManaCost(face?.manaCost ?? '');
       // add commander tax to generic
       const tax = commanderTax(cur, cardId);
@@ -2630,6 +2769,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           cardId,
           payment: sol.payment,
           forced: false,
+          faceIndex,
         });
         return 'ok';
       }
@@ -2647,6 +2787,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             cardId,
             payment: plan.payment,
             forced: !plan.ok,
+            faceIndex,
           },
         ];
         const result = applyCommands(cur, commands);
@@ -2664,7 +2805,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!card) return 'ok';
 
       const def = cur.defs[card.defId];
-      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const faceIndex = opts?.faceIndex ?? card.faceIndex;
+      const face = def?.faces[faceIndex] ?? def?.faces[0];
       const cost = parseManaCost(face?.manaCost ?? '');
       const isCommandCommander = card.zone === 'command' && isCommander(cur, cardId);
       const taxedCost = isCommandCommander
@@ -2679,6 +2821,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           cardId,
           payment: directPayment.payment,
           forced: false,
+          faceIndex,
           xValue: cost.x > 0 ? xValue : undefined,
         });
         return 'ok';
@@ -2697,6 +2840,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             cardId,
             payment: plan.payment,
             forced: !plan.ok,
+            faceIndex,
             xValue: cost.x > 0 ? xValue : undefined,
           },
         ]);
@@ -3101,7 +3245,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resolveTop(to) {
       const cur = get().state;
-      if (!cur) return;
+      if (!cur || get().pendingCommanderResolution) return;
       const plan = guidedPlanForStackTop(cur);
       if (plan) {
         set({
@@ -3116,7 +3260,35 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
-      dispatch(resolveStackTopCommandForState(cur, to));
+      try {
+        const result = applyCommand(cur, resolveStackTopCommandForState(cur, to));
+        if (!prepareCommanderResolution(cur, result.state, result.warnings)) {
+          commit(result.state, result.warnings);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    commitCommanderResolution(token) {
+      const prepared = pendingCommanderCommit;
+      const current = get().state;
+      if (!prepared || prepared.token !== token) return;
+      if (current !== prepared.sourceState) {
+        pendingCommanderCommit = null;
+        set({ pendingCommanderResolution: null });
+        return;
+      }
+      pendingCommanderCommit = null;
+      commit(prepared.nextState, prepared.warnings, { groupedHistory: prepared.groupedHistory });
+      if (prepared.continueResolveAll) continueResolveAll();
+    },
+
+    cancelCommanderResolution(token) {
+      if (pendingCommanderCommit?.token !== token) return;
+      pendingCommanderCommit = null;
+      internal.resolutionGroupAnchor = null;
+      set({ pendingCommanderResolution: null });
     },
 
     confirmGuidedTarget(cardId) {
@@ -3468,28 +3640,9 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resolveAll() {
       const cur = get().state;
-      if (!cur || cur.zones.stack.length === 0) return;
-
-      if (guidedPlanForStackTop(cur)) {
-        get().resolveTop();
-        return;
-      }
-
-      const commands: GameCommand[] = [];
-      for (let i = cur.zones.stack.length - 1; i >= 0; i--) {
-        if (isFetchAbilityStackItem(cur, cur.zones.stack[i])) {
-          break;
-        }
-        commands.push({ type: 'resolveStackTop' });
-      }
-      if (commands.length === 0) return;
-
-      try {
-        const result = applyCommands(cur, commands);
-        commit(result.state, result.warnings);
-      } catch (err) {
-        console.error(err);
-      }
+      if (!cur || cur.zones.stack.length === 0 || get().pendingCommanderResolution) return;
+      internal.resolutionGroupAnchor = null;
+      continueResolveAll();
     },
 
     removeStackItem(id, to) {

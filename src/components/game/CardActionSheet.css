@@ -37,6 +37,17 @@
   animation: card-sheet-rise var(--dur-move) var(--ease-out);
 }
 
+.card-sheet__card-detail {
+  display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-3);
+  align-items: start; margin-bottom: var(--space-3);
+}
+.card-sheet__card-image,
+.card-sheet__card-image .card-view { width: 112px; }
+.card-sheet__card-detail p {
+  max-height: 156px; margin: 0; overflow-y: auto; white-space: pre-line;
+  color: var(--text); font-size: var(--font-size-sm); line-height: 1.45;
+}
+
 .card-sheet--popover {
   position: absolute;
   min-width: var(--popover-w-min);

@@ -1,9 +1,9 @@
 import type { GameState, Phase } from '../../engine/types';
 
 export const AUTO_TURN_PHASES = ['untap', 'upkeep', 'draw', 'main1'] as const satisfies readonly Phase[];
-export const PHASE_CUE_MS = 520;
-export const TURN_PHASE_STEP_MS = 190;
-export const TURN_CUE_LEAD_MS = 220;
+export const PHASE_CUE_MS = 650;
+export const TURN_PHASE_STEP_MS = 180;
+export const TURN_CUE_LEAD_MS = 200;
 
 export interface TransitionCueData {
   id: number;
@@ -30,7 +30,7 @@ export function transitionCueFor(
       turn: next.turn,
       phases,
       drawAtMs: drawIndex < 0 ? null : TURN_CUE_LEAD_MS + drawIndex * TURN_PHASE_STEP_MS,
-      durationMs: TURN_CUE_LEAD_MS + phases.length * TURN_PHASE_STEP_MS + 120,
+      durationMs: TURN_CUE_LEAD_MS + phases.length * TURN_PHASE_STEP_MS + 130,
     };
   }
   if (previous.phase !== next.phase) {

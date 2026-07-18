@@ -23,14 +23,15 @@ import { StatusBand } from './StatusBand';
 import { StackBand } from './StackBand';
 import { Board } from './Board';
 import { OpponentBoardDialog } from './OpponentBoards';
-import { LandRow } from './LandRow';
+import { SupportRow } from './SupportRow';
+import { DecisionBar } from './DecisionBar';
+import { useLayoutMemory } from './useLayoutMemory';
 import { HandRibbon } from './HandRibbon';
 import { ThumbZone } from './ThumbZone';
 import { Feed } from './Feed';
-import { CommanderAltar } from './CommanderAltar';
-import { TransitionCue } from './TransitionCue';
-import { RecentCue } from './RecentCue';
+import { PresentationLayer } from './PresentationLayer';
 import { CelebrationLayer } from './CelebrationLayer';
+import { CommanderCutIn } from './CommanderCutIn';
 import type { KeybindingsMap } from '../../data/keybindings';
 import type { CardInstance } from '../../engine/types';
 import type { CardDef } from '../../types/card';
@@ -39,7 +40,6 @@ import { TOUCH_DRAG_ACTIVATION } from '../touchDrag';
 import { resolveDropIntent, type DropTarget } from './dragIntent';
 import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
-import { UpdateNotice } from './UpdateNotice';
 import './game.css';
 
 const ResearchRecorder = import.meta.env.DEV
@@ -88,6 +88,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
     keybindings,
     externalShortcutsBlocked: handWorkspaceOpen,
   });
+  useLayoutMemory(controller.state);
   const localHandWorkspaceButtonRef = useRef<HTMLButtonElement | null>(null);
   const restoreHandFocusRef = useRef(false);
   const sensors = useSensors(
@@ -134,7 +135,10 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
     const initialBounds = sourceBounds ?? event.active.rect.current.initial ?? null;
     const transform = transformedElement ? getComputedStyle(transformedElement).transform : 'none';
     const faceElement = cardElement?.querySelector<HTMLElement>('.card-view__face');
-    const faceTransform = faceElement ? getComputedStyle(faceElement).transform : 'none';
+    const boardPerspective = cardElement?.closest('.game-screen__board, .game-screen__support');
+    const faceTransform = boardPerspective
+      ? 'none'
+      : faceElement ? getComputedStyle(faceElement).transform : 'none';
 
     const geometry = createDragOverlayGeometry(
       initialBounds,
@@ -178,6 +182,10 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         data-hand-workspace-open={handWorkspaceOpen || undefined}
         data-drag-active={activeDragId || undefined}
         data-stack-active={controller.state.zones.stack.length > 0 || undefined}
+        data-resolution-locked={controller.resolutionLocked || undefined}
+        data-decision-active={controller.decisionFocus ? controller.decisionFocus.kind : undefined}
+        data-mulligan-active={controller.mulliganActive || undefined}
+        aria-busy={controller.resolutionLocked || undefined}
       >
         <div className="game-screen__status">
           <StatusBand controller={controller} />
@@ -191,13 +199,14 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         <div className="game-screen__board">
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
-        <TransitionCue cue={controller.transitionCue} onDone={controller.dismissTransitionCue} />
-        <RecentCue controller={controller} />
+        <PresentationLayer controller={controller} />
         <CelebrationLayer controller={controller} />
-        <UpdateNotice />
-        <div className="game-screen__lands">
-          <CommanderAltar controller={controller} activeDragId={activeDragId} />
-          <LandRow controller={controller} activeDragId={activeDragId} />
+        {controller.commanderCutIn && <CommanderCutIn cue={controller.commanderCutIn} />}
+        <div className="game-screen__support">
+          <SupportRow controller={controller} activeDragId={activeDragId} />
+        </div>
+        <div className="game-screen__decision">
+          <DecisionBar controller={controller} />
         </div>
         <div className="game-screen__hand">
           <HandRibbon

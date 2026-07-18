@@ -19,6 +19,43 @@ const MANA_LABELS: Record<ManaColor, string> = {
   C: '無色',
 };
 
+export function CastFaceDialog({
+  def,
+  initialFaceIndex,
+  onChoose,
+  onCancel,
+}: {
+  def: CardDef;
+  initialFaceIndex: number;
+  onChoose: (faceIndex: number) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal title="唱える面を選択" onClose={onCancel} width="md" testId="cast-face-dialog">
+      <div className="cast-face-choice">
+        {def.faces.map((face, faceIndex) => (
+          <button
+            key={`${face.name}-${faceIndex}`}
+            type="button"
+            className="cast-face-choice__option"
+            data-testid={`cast-face-${faceIndex}`}
+            data-autofocus={faceIndex === initialFaceIndex ? 'true' : undefined}
+            onClick={() => onChoose(faceIndex)}
+          >
+            {face.imageUrl ? (
+              <img src={face.imageUrl} alt="" aria-hidden="true" />
+            ) : (
+              <span className="cast-face-choice__fallback" aria-hidden="true">◇</span>
+            )}
+            <strong>《{face.printedName ?? face.name}》</strong>
+            <small>{face.manaCost || 'マナ・コストなし'} · {face.printedTypeLine ?? face.typeLine}</small>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
 /** Popup asking which color to add when a multi-color mana source is tapped. */
 export function ManaChoiceDialog({
   options,
@@ -871,7 +908,7 @@ export function ArrangeTopDialog({
 }) {
   const library = state.zonesByPlayer[playerId ?? state.localPlayerId].library;
   const libraryCount = library.length;
-  const initialVisibleCount = Math.min(Math.max(0, initialCount ?? 3), libraryCount);
+  const initialVisibleCount = Math.min(Math.max(0, initialCount ?? 1), libraryCount);
   const [count, setCount] = useState(initialVisibleCount);
   const [mode, setMode] = useState<ArrangeMode>(initialMode);
   const [topOrder, setTopOrder] = useState<string[]>(library.slice(0, initialVisibleCount));

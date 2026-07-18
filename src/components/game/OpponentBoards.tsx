@@ -1,15 +1,9 @@
-import type { GameState, PlayerId } from '../../engine/types';
+import type { PlayerId } from '../../engine/types';
 import { Modal } from '../Modal';
 import { BattlefieldShelf } from './Board';
 import { GameCard } from './GameCard';
 import type { GameController } from './gameController';
-
-function typeLineOf(state: GameState, cardId: string): string {
-  const card = state.cards[cardId];
-  const def = card ? state.defs[card.defId] : undefined;
-  const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
-  return face?.typeLine ?? def?.typeLine ?? '';
-}
+import { projectBattlefield } from './battlefieldProjection';
 
 function ProjectedBoard({
   controller,
@@ -20,19 +14,10 @@ function ProjectedBoard({
 }) {
   const state = controller.state;
   if (!state) return null;
-  const permanents = state.zones.battlefield.filter((cardId) => {
-    const card = state.cards[cardId];
-    return card?.controllerId === playerId && !card.isAbility && !card.attachedTo;
-  });
-  const creatures: string[] = [];
-  const others: string[] = [];
-  const lands: string[] = [];
-  for (const cardId of permanents) {
-    const typeLine = typeLineOf(state, cardId);
-    if (typeLine.includes('Land')) lands.push(cardId);
-    else if (typeLine.includes('Creature')) creatures.push(cardId);
-    else others.push(cardId);
-  }
+  const projection = projectBattlefield(state, playerId);
+  const permanentCount = projection.creatures.flatMap((bundle) => bundle.cardIds).length
+    + projection.lands.length
+    + projection.support.flatMap((bundle) => bundle.cardIds).length;
   const player = state.players[playerId];
   return (
     <section className="opponent-board" data-testid={'opponent-board-' + playerId}>
@@ -40,7 +25,7 @@ function ProjectedBoard({
         <strong>{player?.label ?? playerId}</strong>
         <span>ライフ {player?.life ?? '?'} / 毒 {player?.poison ?? 0}</span>
       </header>
-      {permanents.length === 0 ? (
+      {permanentCount === 0 ? (
         // permanent が0枚なら空レーン3本(各82px)を描かない。既定の対戦相手は常に
         // turnOrder に居るため、これが無いと何も無い相手が縦250px(mobile)を占める。
         <p className="opponent-board__empty">盤面なし</p>
@@ -48,21 +33,26 @@ function ProjectedBoard({
       <div className="opponent-board__rows">
         <BattlefieldShelf
           controller={controller}
-          cardIds={creatures}
+          bundles={projection.creatures}
+          attachmentsByHost={projection.attachmentsByHost}
           testId={'opponent-creatures-' + playerId}
           emptyLabel="クリーチャー"
+          role="creature"
         />
-        <BattlefieldShelf
-          controller={controller}
-          cardIds={others}
-          testId={'opponent-others-' + playerId}
-          emptyLabel="その他"
-        />
-        <div className="opponent-board__lands" data-testid={'opponent-lands-' + playerId}>
-          {lands.length === 0 && <span className="board-shelf__empty">土地</span>}
-          {lands.map((cardId) => (
-            <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
-          ))}
+        <div className="opponent-board__support">
+          <div className="opponent-board__lands" data-testid={'opponent-lands-' + playerId}>
+            {projection.lands.length === 0 && <span className="board-shelf__empty">土地</span>}
+            {projection.lands.map((cardId) => (
+              <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
+            ))}
+          </div>
+          <BattlefieldShelf
+            controller={controller}
+            bundles={projection.support}
+            attachmentsByHost={projection.attachmentsByHost}
+            testId={'opponent-others-' + playerId}
+            emptyLabel="その他"
+          />
         </div>
       </div>
       )}

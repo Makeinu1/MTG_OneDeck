@@ -48,6 +48,11 @@
   --stack-glow: 0 0 0 1px rgba(159, 212, 255, 0.55), 0 0 20px rgba(140, 190, 255, 0.35);
   --commander-platinum: #e9eef6; /* 統率者の白金 */
   --platinum-glow: 0 0 0 1.5px rgba(233, 238, 246, 0.7), 0 0 22px rgba(210, 225, 250, 0.4);
+  --presentation-line: var(--gold-bright);
+  --presentation-ring: var(--stack-glow-c);
+  --presentation-scrim: color-mix(in srgb, var(--surface-0) 10%, transparent);
+  --presentation-local-bg: color-mix(in srgb, var(--surface-0) 68%, transparent);
+  --presentation-text-shadow: 0 2px 16px var(--surface-0), 0 0 24px color-mix(in srgb, var(--gold) 22%, transparent);
 
   /* --- §2 エンジン由来イベントの意味色(フィード/バッジ) --- */
   --auto: #7fb8d8; /* エンジン自動実行(青=機械) */
@@ -144,6 +149,11 @@
   --action-bar-shadow: 0 4px 14px rgba(36, 49, 68, 0.18);
   --stack-glow-c: #256ea1;
   --commander-platinum: #56657a;
+  --presentation-line: #315f92;
+  --presentation-ring: #8b5c18;
+  --presentation-scrim: rgba(25, 39, 58, 0.1);
+  --presentation-local-bg: rgba(243, 239, 229, 0.84);
+  --presentation-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 14px rgba(25, 39, 58, 0.34);
   --table-light: radial-gradient(120% 55% at 50% 26%, rgba(255, 255, 255, 0.78), transparent 62%);
   --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 64%, rgba(89, 70, 41, 0.12) 100%);
   --hero-wash: radial-gradient(80% 85% at 78% 18%, rgba(154, 109, 38, 0.12), transparent 68%);

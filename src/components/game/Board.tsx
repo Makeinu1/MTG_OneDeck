@@ -1,87 +1,182 @@
 /**
  * Board — 盤面カード棚(BoardShelf)。docs/design-system.md §8。
- * クリーチャー行 / その他パーマネント行の2段(hairline・ラベルなし)。統一サイズの棚で、
- * 枚数に応じて基準幅 --board-card-w を 96/84/72px へ自動縮小、14枚〜は重ね。
- * 土地は LandRow が担当(ここには出さない)。ability オブジェクトも除外。
+ * 3層盤面の上段となるクリーチャー棚。通常は128px、枚数に応じて
+ * 112/96/80pxへ縮小し、14束以上は重ねて横スクロールする。
+ * 土地・その他・PWはSupportRowが担当する。abilityオブジェクトも除外。
  */
 
 import { useDroppable } from '@dnd-kit/core';
-import { useRef } from 'react';
-import type { GameState } from '../../engine/types';
+import { useState } from 'react';
 import { GameCard } from './GameCard';
-import { boardCardWidth, boardDensity, boardOverlapMargin, isBoardOverlap } from './boardShelf';
+import { Modal } from '../Modal';
+import { computeAdaptiveLaneLayout, useElementSize } from './adaptiveLaneLayout';
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
+import {
+  bundleVisibleTokens,
+  projectBattlefield,
+  type AttachmentCluster,
+  type VisualTokenBundle,
+} from './battlefieldProjection';
 
-function typeLineOf(state: GameState, cardId: string): string {
-  const card = state.cards[cardId];
-  if (!card) return '';
-  const def = state.defs[card.defId];
-  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
-  return face?.typeLine ?? def?.typeLine ?? '';
+function AttachmentFan({
+  controller,
+  cluster,
+}: {
+  controller: GameController;
+  cluster: AttachmentCluster | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!cluster || cluster.cardIds.length === 0) return null;
+  return (
+    <div className="attachment-cluster" data-open={open || undefined} data-testid={`attachments-${cluster.hostId}`}>
+      <button
+        type="button"
+        className="attachment-cluster__toggle"
+        aria-expanded={open}
+        aria-label={`付与カード${cluster.cardIds.length}枚を${open ? '閉じる' : '開く'}`}
+        onClick={() => setOpen((value) => !value)}
+      >
+        ＋{cluster.cardIds.length}
+      </button>
+      <div className="attachment-cluster__cards">
+        {cluster.cardIds.map((cardId) => (
+          <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VisualBundle({
+  controller,
+  bundle,
+  attachment,
+}: {
+  controller: GameController;
+  bundle: VisualTokenBundle;
+  attachment?: AttachmentCluster;
+}) {
+  const [open, setOpen] = useState(false);
+  const isBundle = bundle.cardIds.length > 1;
+  return (
+    <div
+      className="visual-card-bundle"
+      data-expanded={open || undefined}
+      data-count={bundle.cardIds.length}
+      data-testid={`visual-bundle-${bundle.representativeId}`}
+    >
+      <div className="visual-card-bundle__cards">
+        {(open ? bundle.cardIds : [bundle.representativeId]).map((cardId) => (
+          <div className="visual-card-bundle__slot" key={cardId}>
+            <GameCard controller={controller} cardId={cardId} size="board" />
+            <AttachmentFan controller={controller} cluster={cardId === bundle.representativeId ? attachment : undefined} />
+          </div>
+        ))}
+      </div>
+      {isBundle && (
+        <button
+          type="button"
+          className="visual-card-bundle__count"
+          aria-expanded={open}
+          aria-label={`同じ状態のトークン${bundle.cardIds.length}体を${open ? '束ねる' : '展開する'}`}
+          onClick={() => setOpen((value) => !value)}
+        >
+          ×{bundle.cardIds.length}
+        </button>
+      )}
+    </div>
+  );
 }
 
 interface ShelfProps {
   controller: GameController;
-  cardIds: string[];
+  cardIds?: string[];
+  bundles?: VisualTokenBundle[];
+  attachmentsByHost?: ReadonlyMap<string, AttachmentCluster>;
   testId: string;
   emptyLabel?: string;
+  role?: 'creature' | 'support';
+  sharedCardWidth?: number;
+  sharedRows?: number;
 }
 
-export function BattlefieldShelf({ controller, cardIds, testId, emptyLabel }: ShelfProps) {
-  const shelfRef = useRef<HTMLDivElement>(null);
-  const width = boardCardWidth(cardIds.length);
-  const density = boardDensity(cardIds.length);
-  const overlap = isBoardOverlap(cardIds.length);
-  const overflowExpected = cardIds.length >= 14;
-  function scrollShelf(direction: -1 | 1): void {
-    const shelf = shelfRef.current;
-    if (!shelf) return;
-    shelf.scrollBy({ left: direction * Math.max(240, shelf.clientWidth * 0.7), behavior: 'smooth' });
-  }
+export function BattlefieldShelf({
+  controller,
+  cardIds = [],
+  bundles,
+  attachmentsByHost,
+  testId,
+  emptyLabel,
+  role = 'support',
+  sharedCardWidth,
+  sharedRows,
+}: ShelfProps) {
+  const { setNode: setShelfNode, width: shelfWidth, height: shelfHeight } = useElementSize<HTMLDivElement>();
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const visualBundles = bundles ?? (controller.state ? bundleVisibleTokens(controller.state, cardIds) : []);
+  const count = visualBundles.length;
+  const preferredWidth = role === 'creature' ? 168 : 112;
+  const layout = computeAdaptiveLaneLayout({
+    width: shelfWidth > 0 ? Math.max(1, shelfWidth - 16) : preferredWidth * Math.max(1, count),
+    height: shelfHeight > 0 ? Math.max(1, shelfHeight - 12) : preferredWidth * (680 / 488),
+    count,
+    preferredWidth,
+    wrapWidth: role === 'creature' ? 96 : 72,
+  });
+  const width = sharedCardWidth ?? layout.cardWidth;
+  const rows = sharedRows ?? layout.rows;
+  const denseOverview = width < 44;
   return (
     <div className="board-shelf-wrap">
-      {cardIds.length === 0 && (
+      {count === 0 && (
         <span className="board-shelf__empty" aria-hidden>
           {emptyLabel ?? (testId === 'board-creatures' ? 'クリーチャー' : 'その他')}
         </span>
       )}
       <div
-        ref={shelfRef}
+        ref={setShelfNode}
         className="board-shelf"
         data-testid={testId}
-        data-density={density}
-        data-overlap={overlap}
-        data-count={cardIds.length}
+        data-rows={rows}
+        data-dense-overview={denseOverview || undefined}
+        data-role={role}
+        data-count={count}
         style={{
           ['--board-card-w' as string]: `${width}px`,
-          ['--board-overlap-margin' as string]: `${boardOverlapMargin(width)}px`,
+          ['--lane-columns' as string]: Math.max(1, Math.ceil(count / rows)),
+          ['--lane-rows' as string]: rows,
         }}
       >
         <div className="board-shelf__lane">
-          {cardIds.map((cardId) => (
-            <GameCard key={cardId} controller={controller} cardId={cardId} size="board" />
+          {visualBundles.map((bundle) => (
+            <VisualBundle
+              key={bundle.key}
+              controller={controller}
+              bundle={bundle}
+              attachment={attachmentsByHost?.get(bundle.representativeId)}
+            />
           ))}
         </div>
       </div>
-      {overflowExpected && (
-        <>
-          <span className="board-shelf__count" aria-hidden>{cardIds.length}枚</span>
-          <button
-            type="button"
-            className="board-shelf__nav board-shelf__nav--left"
-            data-testid={`${testId}-scroll-left`}
-            aria-label={`${cardIds.length}枚の盤面を左へ移動`}
-            onClick={() => scrollShelf(-1)}
-          >‹</button>
-          <button
-            type="button"
-            className="board-shelf__nav board-shelf__nav--right"
-            data-testid={`${testId}-scroll-right`}
-            aria-label={`${cardIds.length}枚の盤面を右へ移動`}
-            onClick={() => scrollShelf(1)}
-          >›</button>
-        </>
+      {denseOverview && (
+        <button type="button" className="board-shelf__overview" onClick={() => setOverviewOpen(true)}>
+          一覧で操作
+        </button>
+      )}
+      {overviewOpen && (
+        <Modal
+          title={role === 'creature' ? 'クリーチャー一覧' : 'パーマネント一覧'}
+          width="xl"
+          testId={`${testId}-overview`}
+          onClose={() => setOverviewOpen(false)}
+        >
+          <div className="board-overview__cards">
+            {visualBundles.flatMap((bundle) => bundle.cardIds).map((cardId) => (
+              <GameCard key={cardId} controller={controller} cardId={cardId} size="board" draggable={false} />
+            ))}
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -110,21 +205,7 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
   });
   if (!state) return null;
 
-  const permanents = state.zones.battlefield.filter((id) => {
-    const card = state.cards[id];
-    return card
-      && card.controllerId === state.localPlayerId
-      && !card.isAbility
-      && !card.attachedTo;
-  });
-  const creatures: string[] = [];
-  const others: string[] = [];
-  for (const id of permanents) {
-    const tl = typeLineOf(state, id);
-    if (tl.includes('Land')) continue; // 土地は LandRow へ。
-    if (tl.includes('Creature')) creatures.push(id);
-    else others.push(id);
-  }
+  const projection = projectBattlefield(state);
 
   return (
     <div
@@ -134,9 +215,13 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
       data-drop-active={dropTarget !== null || undefined}
       data-drop-over={isOver || undefined}
     >
-      <BattlefieldShelf controller={controller} cardIds={creatures} testId="board-creatures" />
-      <div className="board__divider" aria-hidden />
-      <BattlefieldShelf controller={controller} cardIds={others} testId="board-others" />
+      <BattlefieldShelf
+        controller={controller}
+        bundles={projection.creatures}
+        attachmentsByHost={projection.attachmentsByHost}
+        testId="board-creatures"
+        role="creature"
+      />
       {dropTarget && (
         <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden>
           {dropTarget.kind === 'cast' ? '盤面へ移動して唱える → スタック' : '盤面へ移動して戦場へ'}

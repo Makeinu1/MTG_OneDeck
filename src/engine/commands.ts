@@ -181,13 +181,14 @@ export type GameCommand =
       playerId?: PlayerId;
     }
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
-  | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean; playerId?: PlayerId }
-  | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean; playerId?: PlayerId }
+  | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean; faceIndex?: number; playerId?: PlayerId }
+  | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean; faceIndex?: number; playerId?: PlayerId }
   | {
       type: 'castToStack';
       cardId: string;
       payment: ManaPool;
       forced: boolean;
+      faceIndex?: number;
       xValue?: number;
       playerId?: PlayerId;
     }
@@ -609,14 +610,18 @@ function insertIntoZone(arr: string[], cardId: string, position: 'top' | 'bottom
 }
 
 /** Reset card state on a true zone change (not same-zone reordering). */
-function resetCardForZoneChange(card: CardInstance, to: ZoneId): CardInstance {
+function resetCardForZoneChange(
+  card: CardInstance,
+  to: ZoneId,
+  options: { preserveFace?: boolean } = {},
+): CardInstance {
   return {
     ...card,
     zone: to,
     zoneChangeCounter: card.zoneChangeCounter + 1,
     tapped: false,
     faceDown: false,
-    faceIndex: 0,
+    faceIndex: options.preserveFace ? card.faceIndex : 0,
     counters: {},
     damageMarked: 0,
     hasDeathtouchDamage: false,
@@ -1158,7 +1163,15 @@ function moveCardInternal(
   insertIntoZone(dest, cardId, effectivePosition);
 
   const before = sameZone ? undefined : objectSnapshotOf(draft, card);
-  let updated = sameZone ? { ...card, zone: to } : resetCardForZoneChange(card, to);
+  // CR 712.8c/712.8f/712.11b: the chosen face is an intrinsic characteristic
+  // of a double-faced spell on the stack and of the permanent it becomes.
+  // Other true zone changes still reset the physical card to its front face.
+  const preserveFace =
+    !sameZone && ((reason === 'cast' && (to === 'stack' || to === 'battlefield'))
+      || (reason === 'resolve' && from === 'stack' && to === 'battlefield'));
+  let updated = sameZone
+    ? { ...card, zone: to }
+    : resetCardForZoneChange(card, to, { preserveFace });
   if (!sameZone && to === 'battlefield') {
     updated = applyBattlefieldEntryEffects(draft, updated);
     if (card.isCopy) {
@@ -2612,9 +2625,19 @@ function applyCast(
   payment: ManaPool,
   forced: boolean,
   commander: boolean,
+  faceIndex?: number,
   requestedPlayerId?: PlayerId,
 ): void {
-  const card = requireCard(draft, cardId);
+  let card = requireCard(draft, cardId);
+  const def = draft.state.defs[card.defId];
+  const chosenFaceIndex = faceIndex ?? 0;
+  if (!Number.isInteger(chosenFaceIndex) || !def?.faces[chosenFaceIndex]) {
+    throw new EngineError(`唱える面が存在しません: ${cardId} face=${chosenFaceIndex}`);
+  }
+  if (card.faceIndex !== chosenFaceIndex) {
+    card = { ...card, faceIndex: chosenFaceIndex };
+    setCard(draft, card);
+  }
   const playerId = requestedPlayerId ?? card.controllerId;
   requirePlayer(draft.state, playerId);
   if (card.controllerId !== playerId) {
@@ -2732,10 +2755,20 @@ function applyCastToStack(
   cardId: string,
   payment: ManaPool,
   forced: boolean,
+  faceIndex?: number,
   xValue?: number,
   requestedPlayerId?: PlayerId,
 ): void {
-  const card = requireCard(draft, cardId);
+  let card = requireCard(draft, cardId);
+  const def = draft.state.defs[card.defId];
+  const chosenFaceIndex = faceIndex ?? 0;
+  if (!Number.isInteger(chosenFaceIndex) || !def?.faces[chosenFaceIndex]) {
+    throw new EngineError(`唱える面が存在しません: ${cardId} face=${chosenFaceIndex}`);
+  }
+  if (card.faceIndex !== chosenFaceIndex) {
+    card = { ...card, faceIndex: chosenFaceIndex };
+    setCard(draft, card);
+  }
   const playerId = requestedPlayerId ?? card.controllerId;
   requirePlayer(draft.state, playerId);
   if (card.controllerId !== playerId) {
@@ -4971,15 +5004,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'castSpell': {
-      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false, cmd.playerId);
+      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false, cmd.faceIndex, cmd.playerId);
       break;
     }
     case 'castCommander': {
-      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, true, cmd.playerId);
+      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, true, cmd.faceIndex, cmd.playerId);
       break;
     }
     case 'castToStack': {
-      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.xValue, cmd.playerId);
+      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.faceIndex, cmd.xValue, cmd.playerId);
       break;
     }
     case 'addAbilityToStack': {

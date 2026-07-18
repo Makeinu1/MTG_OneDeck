@@ -8,30 +8,10 @@
 
 import { useDroppable } from '@dnd-kit/core';
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import type { GameState } from '../../engine/types';
 import { GameCard } from './GameCard';
-import { bundleLands, type LandRowCard, type LandBundle } from './landRowModel';
+import { bundleLands, landRowCards, type LandBundle } from './landRowModel';
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
-
-function faceOf(state: GameState, cardId: string) {
-  const card = state.cards[cardId];
-  const def = card ? state.defs[card.defId] : undefined;
-  return { card, def, face: def?.faces[card?.faceIndex ?? 0] ?? def?.faces[0] };
-}
-
-function toLandRowCard(state: GameState, cardId: string): LandRowCard | null {
-  const { card, face, def } = faceOf(state, cardId);
-  if (!card) return null;
-  const typeLine = face?.typeLine ?? def?.typeLine ?? '';
-  if (!typeLine.includes('Land')) return null;
-  return {
-    id: cardId,
-    name: face?.name ?? def?.name ?? cardId,
-    isBasic: typeLine.includes('Basic'),
-    tapped: card.tapped,
-  };
-}
 
 function Bundle({ controller, bundle }: { controller: GameController; bundle: LandBundle }) {
   const multi = bundle.cardIds.length > 1;
@@ -81,9 +61,10 @@ function Bundle({ controller, bundle }: { controller: GameController; bundle: La
 export interface LandRowProps {
   controller: GameController;
   activeDragId?: string | null;
+  cardIds?: readonly string[];
 }
 
-export function LandRow({ controller, activeDragId = null }: LandRowProps) {
+export function LandRow({ controller, activeDragId = null, cardIds }: LandRowProps) {
   const { state } = controller;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [scrollState, setScrollState] = useState({ left: false, right: false });
@@ -114,7 +95,6 @@ export function LandRow({ controller, activeDragId = null }: LandRowProps) {
   useLayoutEffect(() => {
     const row = scrollRef.current;
     if (!row) return;
-    row.scrollLeft = 0;
     updateScrollState();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(updateScrollState);
@@ -124,10 +104,8 @@ export function LandRow({ controller, activeDragId = null }: LandRowProps) {
 
   if (!state) return null;
 
-  const landCards = state.zones.battlefield
-    .filter((id) => state.cards[id]?.controllerId === state.localPlayerId)
-    .map((id) => toLandRowCard(state, id))
-    .filter((c): c is LandRowCard => c !== null);
+  const landCards = landRowCards(state, (cardIds ?? state.zones.battlefield)
+    .filter((id) => state.cards[id]?.controllerId === state.localPlayerId));
   const bundles = bundleLands(landCards);
   const density = bundles.length <= 6 ? 'spacious' : bundles.length <= 10 ? 'balanced' : 'dense';
 

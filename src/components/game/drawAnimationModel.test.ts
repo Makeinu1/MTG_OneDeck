@@ -77,6 +77,6 @@ describe('draw animation model', () => {
   });
 
   it('compresses long batches after the fifth visual offset', () => {
-    expect([0, 1, 2, 4, 8].map(drawStaggerMs)).toEqual([0, 40, 80, 160, 160]);
+    expect([0, 1, 2, 4, 8].map(drawStaggerMs)).toEqual([0, 60, 120, 240, 240]);
   });
 });

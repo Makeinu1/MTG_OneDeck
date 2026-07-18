@@ -1,5 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { MenuItem } from '../ContextMenu';
+import type { CardInstance } from '../../engine/types';
+import type { CardDef } from '../../types/card';
+import { CardView } from '../CardView';
 import './CardActionSheet.css';
 
 export type CardActionSheetVariant = 'sheet' | 'popover';
@@ -20,6 +23,7 @@ export interface CardActionSheetProps {
   /** popover の表示位置(variant='popover' のとき)。 */
   anchor?: { x: number; y: number };
   onClose: () => void;
+  card?: { instance: CardInstance; def: CardDef | undefined };
 }
 
 const MANA_EDGE: Record<string, string> = {
@@ -82,6 +86,7 @@ export function CardActionSheet({
   variant,
   anchor,
   onClose,
+  card,
 }: CardActionSheetProps) {
   const [showOther, setShowOther] = useState(rankedItems.length === 0);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -177,6 +182,27 @@ export function CardActionSheet({
           </div>
           {typeLine && <div className="card-sheet__type">{typeLine}</div>}
         </div>
+
+        {variant === 'sheet' && card && (() => {
+          const face = card.instance.faceDown
+            ? undefined
+            : (card.def?.faces[card.instance.faceIndex] ?? card.def?.faces[0]);
+          const rules = face?.printedText ?? face?.oracleText;
+          return (
+            <div className="card-sheet__card-detail" data-testid="card-sheet-card-detail">
+              <div className="card-sheet__card-image">
+                <CardView
+                  instance={{ ...card.instance, tapped: false }}
+                  def={card.def}
+                  size="battlefield"
+                  draggable={false}
+                  imageQuality="normal"
+                />
+              </div>
+              {rules && <p>{rules}</p>}
+            </div>
+          );
+        })()}
 
         {rankedItems.length > 0 && (
           <div className="card-sheet__ranked" data-testid="card-sheet-ranked">

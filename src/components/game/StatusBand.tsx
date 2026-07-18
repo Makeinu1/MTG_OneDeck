@@ -13,6 +13,9 @@ import { LifeSheet } from './LifeSheet';
 import type { GameController } from './gameController';
 import { manaReadinessModel } from './manaReadiness';
 import { Icon } from '../../ui/icons';
+import { RecentCue } from './RecentCue';
+import { UpdateNotice } from './UpdateNotice';
+import type { RecentCueKind } from './recentCueModel';
 
 const MANA_LABELS = [
   { color: 'W', kanji: '白', name: '白マナ' },
@@ -36,6 +39,8 @@ export function StatusBand({ controller }: StatusBandProps) {
   const manaScrollRef = useRef<HTMLDivElement | null>(null);
   const [manaCanScrollRight, setManaCanScrollRight] = useState(false);
   const [lifeFlash, setLifeFlash] = useState<'gain' | 'loss' | null>(null);
+  const [modeFlash, setModeFlash] = useState(false);
+  const [recentCueKind, setRecentCueKind] = useState<RecentCueKind | null>(null);
 
   function updateManaScrollEdge(): void {
     const node = manaScrollRef.current;
@@ -70,6 +75,11 @@ export function StatusBand({ controller }: StatusBandProps) {
     }
     prevLife.current = life;
   }, [life]);
+  useEffect(() => {
+    if (!modeFlash) return;
+    const timer = setTimeout(() => setModeFlash(false), 420);
+    return () => clearTimeout(timer);
+  }, [modeFlash]);
   if (!state) return null;
   const model = statusBandModel(state);
   const activePhaseIndex = PHASE_ORDER.indexOf(model.phase);
@@ -85,13 +95,24 @@ export function StatusBand({ controller }: StatusBandProps) {
         </span>
       </div>
 
-      <div className="status-band__phases" data-testid="phase-indicator" data-phase={model.phase}>
-        <strong className="status-band__phase-current" data-testid="current-phase-label">
+      <div className="status-band__phases" data-testid="phase-indicator" data-phase={model.phase} data-mode-flash={modeFlash || undefined}>
+        <button
+          type="button"
+          className="status-band__phase-current"
+          data-testid="current-phase-label"
+          aria-pressed={store.autoAdvanceToMain}
+          aria-label={`現在は${model.phaseLabel}。ターン開始は${store.autoAdvanceToMain ? '自動でメイン1まで進む' : 'フェイズごとに進む'}。押すと${store.autoAdvanceToMain ? '手動' : '自動'}へ切り替えます`}
+          onClick={() => {
+            store.setAutoAdvance(!store.autoAdvanceToMain);
+            setModeFlash(true);
+          }}
+        >
           現在：{model.phaseLabel}<span>・{store.autoAdvanceToMain ? '自動' : '手動'}</span>
-        </strong>
+        </button>
         {PHASE_ORDER.map((phase, index) => (
           <span
             key={phase}
+            data-phase-step={phase}
             className={`status-band__phase${phase === model.phase ? ' is-active' : ''}${index < activePhaseIndex ? ' is-done' : ''}`}
             title={PHASE_META[phase].label}
           >
@@ -146,6 +167,11 @@ export function StatusBand({ controller }: StatusBandProps) {
         <span className="status-band__mana-sources" title="未タップのマナ源">源<strong>{mana.untappedSourceCount}</strong></span>
       </div>
 
+      <div className="status-band__event-slot" data-testid="status-event-slot">
+        <RecentCue controller={controller} onKindChange={setRecentCueKind} />
+        <UpdateNotice />
+      </div>
+
       <div className="status-band__right-actions">
         <div className={`status-band__life-cluster${lifeFlash ? ` status-band__life--${lifeFlash}` : ''}`}>
           <button
@@ -180,6 +206,7 @@ export function StatusBand({ controller }: StatusBandProps) {
         <button
           type="button"
           className="status-band__bell"
+          data-recent-kind={recentCueKind ?? undefined}
           data-testid="feed-bell"
           onClick={() => controller.openFeed()}
           title="フィード(誘発/警告/ログ)"

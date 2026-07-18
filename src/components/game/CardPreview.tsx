@@ -79,11 +79,17 @@ export function CardPreview({
       aria-live="polite"
     >
       <div className="game-card-preview__image">
-        <CardView instance={instance} def={displayDef} size="battlefield" draggable={false} imageQuality="normal" />
+        <CardView
+          instance={{ ...instance, tapped: false }}
+          def={displayDef}
+          size="battlefield"
+          draggable={false}
+          imageQuality="normal"
+        />
       </div>
       <div className="game-card-preview__details">
         <strong>{name}</strong>
-        <span className="game-card-preview__touch-hint">もう一度タップで操作</span>
+        <span className="game-card-preview__touch-hint">内容を確認中</span>
         {face?.manaCost && <span className="game-card-preview__mana">{face.manaCost}</span>}
         {typeLine && <span>{typeLine}</span>}
         {localizationPending && (

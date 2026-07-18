@@ -8,7 +8,7 @@ describe('transitionCueFor', () => {
 
   it('announces a phase destination', () => {
     expect(transitionCueFor({ turn: 3, phase: 'main1' }, { turn: 3, phase: 'combat' }))
-      .toMatchObject({ kind: 'phase', turn: 3, phases: ['combat'], drawAtMs: null });
+      .toMatchObject({ kind: 'phase', turn: 3, phases: ['combat'], drawAtMs: null, durationMs: 650 });
   });
 
   it('keeps every beginning step visible when a turn auto-advances to main one', () => {
@@ -17,6 +17,8 @@ describe('transitionCueFor', () => {
         kind: 'turn',
         turn: 4,
         phases: ['untap', 'upkeep', 'draw', 'main1'],
+        drawAtMs: 560,
+        durationMs: 1050,
       });
   });
 

@@ -1,6 +1,7 @@
 /**
  * GameCard — 新レイアウトのカード1枚。CardView(共有レンダラ)を controller に配線する薄いラッパ。
- * タップ/右クリック→カードシート、ダブルクリック→クイックアクション。幅は親(棚/手札)が制御。
+ * モバイルはタップ→プレビュー／ダブルタップ→操作、デスクトップは右クリック→操作。
+ * 幅は親(棚/手札)が制御。
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,8 +12,11 @@ import type { GameController } from './gameController';
 import { CardPreview } from './CardPreview';
 import type { CardPreviewAnchor } from './cardPreviewPosition';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
+import { decisionCardRole } from './decisionFocus';
 
 const PREVIEW_DELAY_MS = 150;
+const DOUBLE_TAP_WINDOW_MS = 280;
+const DOUBLE_TAP_RADIUS_PX = 24;
 
 export interface GameCardProps {
   controller: GameController;
@@ -48,6 +52,7 @@ export function GameCard({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dragActiveRef = useRef(false);
   const dragEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTouchTapRef = useRef<{ at: number; x: number; y: number } | null>(null);
   useEffect(() => {
     const handleDragStart = () => {
       if (dragEndTimerRef.current) clearTimeout(dragEndTimerRef.current);
@@ -57,6 +62,7 @@ export function GameCard({
       previewTimerRef.current = null;
       setPreviewPinned(false);
       setPreviewAnchor(null);
+      lastTouchTapRef.current = null;
     };
     const handleDragEnd = () => {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
@@ -90,6 +96,7 @@ export function GameCard({
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && rootRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('.game-card-preview')) return;
       unpin();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -107,11 +114,17 @@ export function GameCard({
   if (!instance) return null;
   const def = state.defs[instance.defId];
   const commander = isCommander(state, cardId);
+  const decisionRole = decisionCardRole(controller.decisionFocus, cardId);
+  const combatAttacker = state.combat?.attackers.find((entry) => entry.cardId === cardId);
+  const combatBlocker = state.combat?.blockers.find((entry) => entry.cardId === cardId);
 
   const cls = `game-card game-card--${size}${playable ? ' game-card--playable' : ''}${
     celebrateOnMount && instance.zone === 'battlefield' ? ' game-card--celebrate' : ''
   }${
     arriving ? ' game-card--draw-arriving' : ''
+  }${decisionRole ? ` game-card--decision-${decisionRole}` : ''
+  }${combatAttacker ? ' game-card--combat-attacker' : ''
+  }${combatBlocker ? ' game-card--combat-blocker' : ''
   }`;
 
   function schedulePreview(anchor: CardPreviewAnchor): void {
@@ -131,6 +144,12 @@ export function GameCard({
   }
 
   function handleDoubleClick(event: React.MouseEvent): void {
+    if (controller.decisionFocus) return;
+    if (instance.zone === 'battlefield') {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     setPreviewPinned(false);
     closePreview();
     event.preventDefault();
@@ -139,12 +158,24 @@ export function GameCard({
 
   function handleTouchTap(event: React.PointerEvent<HTMLDivElement>): void {
     if (dragActiveRef.current) return;
-    if (previewPinned) {
+    if (decisionRole === 'candidate') {
+      event.preventDefault();
+      controller.chooseDecisionCard?.(cardId);
+      return;
+    }
+    const now = performance.now();
+    const previous = lastTouchTapRef.current;
+    const doubleTap = previous !== null
+      && now - previous.at <= DOUBLE_TAP_WINDOW_MS
+      && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= DOUBLE_TAP_RADIUS_PX;
+    if (doubleTap) {
+      lastTouchTapRef.current = null;
       setPreviewPinned(false);
       closePreview();
       controller.openCardMenu(cardId, event);
       return;
     }
+    lastTouchTapRef.current = { at: now, x: event.clientX, y: event.clientY };
     const rect = rootRef.current?.getBoundingClientRect();
     if (!rect) return;
     setPreviewPinned(true);
@@ -155,13 +186,22 @@ export function GameCard({
     <div
       ref={rootRef}
       className={cls}
+      data-layout-card-id={cardId}
+      data-decision-role={decisionRole ?? undefined}
       onMouseEnter={(event) => schedulePreview({ x: event.clientX, y: event.clientY })}
       onMouseLeave={closeTransientPreview}
       onClick={(event) => {
         if (dragActiveRef.current || event.detail !== 1) return;
-        if (previewPinned) {
+        if (decisionRole === 'candidate') {
+          event.preventDefault();
+          controller.chooseDecisionCard?.(cardId);
+          return;
+        }
+        if (instance.zone === 'battlefield') {
+          event.preventDefault();
           setPreviewPinned(false);
           closePreview();
+          controller.store.toggleTap(cardId);
           return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
@@ -173,23 +213,54 @@ export function GameCard({
         schedulePreview({ x: rect.right, y: rect.top + rect.height / 2 });
       }}
       onBlur={closeTransientPreview}
+      onKeyDown={(event) => {
+        if (controller.decisionFocus || event.repeat) return;
+        if (event.key === ' ' && instance.zone === 'battlefield') {
+          event.preventDefault();
+          controller.store.toggleTap(cardId);
+          return;
+        }
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const rect = rootRef.current?.getBoundingClientRect();
+          if (rect) controller.openCardMenuAt?.(cardId, rect.right, rect.top + rect.height / 2);
+        }
+      }}
     >
       <CardView
         instance={instance}
         def={def}
         size="battlefield"
-        draggable={draggable}
+        draggable={draggable && !controller.decisionFocus}
         badge={undefined}
         summoningSick={isSummoningSick(state, cardId)}
         focusable
-        onContextMenu={(e) => controller.openCardMenu(cardId, e)}
+        onContextMenu={(e) => {
+          if (controller.decisionFocus) {
+            e.preventDefault();
+            return;
+          }
+          controller.openCardMenu(cardId, e);
+        }}
         onTouchTap={handleTouchTap}
         onDoubleClick={handleDoubleClick}
       />
       {commander && showCommanderBadge && (
         <span className="game-card__commander-marker" aria-label="統率者" title="統率者">統</span>
       )}
-      {previewAnchor && <CardPreview instance={instance} def={def} anchor={previewAnchor} />}
+      {combatAttacker && (
+        <span className="game-card__combat-marker" data-role="attacker">
+          攻撃 → {combatAttacker.target.lifeLabel ?? state.players[combatAttacker.target.playerId]?.label ?? combatAttacker.target.playerId}
+        </span>
+      )}
+      {combatBlocker && <span className="game-card__combat-marker" data-role="blocker">ブロック</span>}
+      {previewAnchor && (
+        <CardPreview
+          instance={instance}
+          def={def}
+          anchor={previewAnchor}
+        />
+      )}
     </div>
   );
 }

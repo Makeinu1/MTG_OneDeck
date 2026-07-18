@@ -61,7 +61,7 @@ const KEYWORD_BADGES: Record<Keyword, string> = {
   ward: '護',
 };
 
-const TOUCH_TAP_MAX_DISTANCE_PX = 8;
+const TOUCH_TAP_MAX_DISTANCE_PX = 10;
 /** 「ドラッグに変わる直前までは短押し」= tap 上限は drag しきい値と地続き(touchDrag.ts 参照)。 */
 const TOUCH_TAP_MAX_DURATION_MS = TOUCH_DRAG_DELAY_MS;
 

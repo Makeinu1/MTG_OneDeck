@@ -150,6 +150,7 @@ export function recentCueForAppend(input: {
   currentLog: readonly LogEntry[];
   state: GameState;
   suppress?: boolean;
+  excludeKinds?: readonly RecentCueKind[];
 }): RecentCueData | null {
   const appendedEvents = appendedByKey(input.previousEvents, input.currentEvents, (event) => event.eventId);
   const appendedLog = appendedByKey(input.previousLog, input.currentLog, (entry) => entry.seq);
@@ -159,9 +160,10 @@ export function recentCueForAppend(input: {
   const drawZoneEventIds = new Set(events.flatMap((event) => (
     event.type === 'draw' && event.zoneChangeEventId ? [event.zoneChangeEventId] : []
   )));
+  const excluded = new Set(input.excludeKinds ?? []);
   const candidates = events.flatMap((event) => {
     const candidate = candidateForEvent(event, input.state, drawZoneEventIds);
-    return candidate ? [candidate] : [];
+    return candidate && !excluded.has(candidate.kind) ? [candidate] : [];
   });
   if (candidates.length === 0) return fallbackLogCue(appendedLog ?? []);
   candidates.sort((left, right) => right.priority - left.priority || right.sequence - left.sequence);

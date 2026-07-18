@@ -13,10 +13,10 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 650 }} onDone={onDone} />);
     });
     expect(container.querySelector('[data-testid="transition-cue"]')?.textContent).toContain('戦闘');
-    act(() => { vi.advanceTimersByTime(519); });
+    act(() => { vi.advanceTimersByTime(649); });
     expect(onDone).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(1); });
     expect(onDone).toHaveBeenCalledWith(1);
@@ -31,13 +31,31 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 2, kind: 'turn', turn: 4, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 600, durationMs: 1100 }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 2, kind: 'turn', turn: 4, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 560, durationMs: 1050 }} onDone={onDone} />);
     });
     expect(container.textContent).toContain('第4ターン');
     expect(container.textContent).toContain('メイン1');
     expect(container.textContent).toContain('アップキープ');
-    act(() => { vi.advanceTimersByTime(1100); });
+    act(() => { vi.advanceTimersByTime(1050); });
     expect(onDone).toHaveBeenCalledWith(2);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('merges the actual drawn card into the draw phase presentation', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <TransitionCue
+          cue={{ id: 4, kind: 'phase', turn: 2, phases: ['draw'], drawAtMs: 0, durationMs: 650 }}
+          drawCue={{ id: 'd1', cardIds: ['c1'], primaryName: '稲妻', extraCount: 0, delayMs: 0, durationMs: 650, phaseBound: true }}
+          onDone={vi.fn()}
+        />,
+      );
+    });
+    expect(container.querySelector('[data-testid="transition-draw-detail"]')?.textContent).toContain('《稲妻》を引きました');
     act(() => root.unmount());
     container.remove();
   });
@@ -60,7 +78,7 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 3, kind: 'turn', turn: 5, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 600, durationMs: 1100 }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 3, kind: 'turn', turn: 5, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 560, durationMs: 1050 }} onDone={onDone} />);
     });
     expect(container.querySelector('.is-active')?.getAttribute('title')).toBe('メイン1');
     act(() => { vi.advanceTimersByTime(239); });
@@ -79,19 +97,19 @@ describe('TransitionCue', () => {
     const root = createRoot(container);
     const onDone = vi.fn();
     act(() => {
-      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 1, kind: 'phase', turn: 2, phases: ['combat'], drawAtMs: null, durationMs: 650 }} onDone={onDone} />);
     });
     const firstLayer = container.querySelector('[data-testid="transition-cue"]');
     act(() => { vi.advanceTimersByTime(400); });
     act(() => {
-      root.render(<TransitionCue cue={{ id: 2, kind: 'phase', turn: 2, phases: ['main2'], drawAtMs: null, durationMs: 520 }} onDone={onDone} />);
+      root.render(<TransitionCue cue={{ id: 2, kind: 'phase', turn: 2, phases: ['main2'], drawAtMs: null, durationMs: 650 }} onDone={onDone} />);
     });
     const secondLayer = container.querySelector('[data-testid="transition-cue"]');
     expect(secondLayer).not.toBe(firstLayer);
     expect(secondLayer?.textContent).toContain('メイン2');
     act(() => { vi.advanceTimersByTime(120); });
     expect(onDone).not.toHaveBeenCalled();
-    act(() => { vi.advanceTimersByTime(400); });
+    act(() => { vi.advanceTimersByTime(530); });
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(onDone).toHaveBeenCalledWith(2);
     act(() => root.unmount());

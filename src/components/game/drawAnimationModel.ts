@@ -42,5 +42,5 @@ export function appendedLocalDraws(
 
 /** Keep even very large draw batches inside one short visual beat. */
 export function drawStaggerMs(index: number): number {
-  return Math.min(Math.max(0, index), 4) * 40;
+  return Math.min(Math.max(0, index), 4) * 60;
 }

@@ -12,6 +12,9 @@ import { LandRow } from './LandRow';
 import { Board } from './Board';
 import { StackBand } from './StackBand';
 import { RecentCue } from './RecentCue';
+import { CelebrationLayer } from './CelebrationLayer';
+import { PresentationLayer } from './PresentationLayer';
+import { CommanderCutIn } from './CommanderCutIn';
 import { ThumbZone } from './ThumbZone';
 import type { GameController } from './gameController';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
@@ -64,6 +67,8 @@ function controllerFor(
     shortcutsBlocked: false,
     transitionCue: null,
     dismissTransitionCue: vi.fn(),
+    commanderCutIn: null,
+    resolutionLocked: false,
     performDrop: vi.fn(),
     closeTransientUi: vi.fn(),
     ...overrides,
@@ -94,7 +99,7 @@ afterEach(() => {
 });
 
 describe('high-frequency HUD interactions', () => {
-  it('uses first touch tap for details and the second for card operations', () => {
+  it('uses one touch tap for preview and a second tap for detailed operations', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const openCardMenu = vi.fn();
     const controller = controllerFor(state, { openCardMenu });
@@ -106,9 +111,61 @@ describe('high-frequency HUD interactions', () => {
     expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).not.toBeNull();
     expect(openCardMenu).not.toHaveBeenCalled();
 
+    expect(document.querySelector('.game-card-preview__actions')).toBeNull();
     act(() => dispatchTouchTap(card));
     expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).toBeNull();
     expect(openCardMenu).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
+  it('does not treat distant taps as a double tap', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const openCardMenu = vi.fn();
+    const controller = controllerFor(state, { openCardMenu });
+    const cardId = state.zones.hand[0];
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    const card = container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)!;
+
+    act(() => dispatchTouchTap(card, 20, 20));
+    act(() => dispatchTouchTap(card, 60, 20));
+    expect(openCardMenu).not.toHaveBeenCalled();
+    expect(document.querySelector(`[data-testid="card-preview-${cardId}"]`)).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('toggles a battlefield card on a single desktop click', () => {
+    const state = buildVisualFixture('battlefield').snapshot.state;
+    const cardId = state.zones.battlefield.find((id) => state.cards[id]?.controllerId === state.localPlayerId)!;
+    const before = state.cards[cardId].tapped;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
+    const card = container.querySelector<HTMLElement>(`[data-layout-card-id="${cardId}"]`)!;
+
+    act(() => { card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })); });
+    expect(useGameStore.getState().state?.cards[cardId].tapped).toBe(!before);
+    act(() => root.unmount());
+  });
+
+  it('selects a focused candidate directly without opening card operations', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const cardId = state.zones.hand[0];
+    const chooseDecisionCard = vi.fn();
+    const openCardMenu = vi.fn();
+    const controller = controllerFor(state, {
+      openCardMenu,
+      chooseDecisionCard,
+      decisionFocus: {
+        kind: 'discard', title: '捨てる', instruction: '選択', candidateIds: [cardId], selectedIds: [],
+      },
+    });
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} size="hand" />);
+    act(() => {
+      container.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`)?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
+      );
+    });
+    expect(chooseDecisionCard).toHaveBeenCalledWith(cardId);
+    expect(openCardMenu).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
 
@@ -301,20 +358,82 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
-  it('shows a new draw as a short cue and opens the full feed on request', () => {
+  it('shows a non-draw board change as a short cue and opens the full feed on request', () => {
     vi.useFakeTimers();
     const state = buildVisualFixture('hand7').snapshot.state;
     const openFeed = vi.fn();
     const controller = controllerFor(state, { motionArmed: true, openFeed });
     const { container, root } = mount(<RecentCue controller={controller} />);
 
-    act(() => useGameStore.getState().draw(1));
+    act(() => useGameStore.getState().dispatch({ type: 'adjustLife', delta: -1 }));
     const nextState = useGameStore.getState().state;
     act(() => root.render(<RecentCue controller={{ ...controller, state: nextState, store: useGameStore.getState() }} />));
     const cue = container.querySelector<HTMLButtonElement>('[data-testid="recent-cue"]');
-    expect(cue?.textContent).toContain('を引きました');
+    expect(cue?.textContent).toContain('ライフ');
     act(() => cue?.click());
     expect(openFeed).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
+  it('moves a manual draw into the central presentation lane instead of the top cue', () => {
+    vi.useFakeTimers();
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state, { motionArmed: true });
+    const { container, root } = mount(
+      <>
+        <PresentationLayer controller={controller} />
+        <RecentCue controller={controller} />
+      </>,
+    );
+
+    act(() => useGameStore.getState().draw(1));
+    const nextState = useGameStore.getState().state;
+    const nextController = { ...controller, state: nextState, store: useGameStore.getState() };
+    act(() => root.render(
+      <>
+        <PresentationLayer controller={nextController} />
+        <RecentCue controller={nextController} />
+      </>,
+    ));
+    expect(container.querySelector('[data-testid="draw-presentation-cue"]')?.textContent).toContain('ドロー');
+    expect(container.querySelector('[data-testid="recent-cue"]')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('keeps chain ambience but exposes no evaluative chain wording or announcement', () => {
+    vi.useFakeTimers();
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state, { motionArmed: true });
+    const { container, root } = mount(<CelebrationLayer controller={controller} />);
+
+    act(() => useGameStore.getState().draw(5));
+    const nextState = useGameStore.getState().state;
+    act(() => root.render(<CelebrationLayer controller={{ ...controller, state: nextState, store: useGameStore.getState() }} />));
+    const ambience = container.querySelector('[data-testid="chain-celebration"]');
+    expect(ambience).not.toBeNull();
+    expect(ambience?.textContent).toBe('');
+    expect(ambience?.getAttribute('aria-hidden')).toBe('true');
+    expect(container.textContent).not.toContain('連鎖中');
+    expect(container.textContent).not.toContain('手札が回り始めました');
+    act(() => root.unmount());
+  });
+
+  it('renders the resolved commander face in the cinematic cut-in', () => {
+    const { container, root } = mount(
+      <CommanderCutIn cue={{
+        token: 7,
+        cardId: 'commander-1',
+        faceIndex: 1,
+        name: '裏面の統率者',
+        typeLine: '伝説のプレインズウォーカー',
+        imageUrl: 'https://example.com/back.jpg',
+        landed: false,
+      }} />,
+    );
+    const cutIn = container.querySelector('[data-testid="commander-cutin"]');
+    expect(cutIn?.textContent).toContain('《裏面の統率者》');
+    expect(cutIn?.querySelector('img')?.getAttribute('src')).toBe('https://example.com/back.jpg');
+    expect(cutIn?.hasAttribute('data-landed')).toBe(false);
     act(() => root.unmount());
   });
 
@@ -349,6 +468,21 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('toggles automatic turn-start progression directly from the current phase label', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<StatusBand controller={controller} />);
+    const toggle = container.querySelector<HTMLButtonElement>('[data-testid="current-phase-label"]');
+
+    expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+    act(() => toggle?.click());
+    expect(useGameStore.getState().autoAdvanceToMain).toBe(false);
+    act(() => root.render(<StatusBand controller={{ ...controller, store: useGameStore.getState() }} />));
+    expect(container.querySelector('[data-testid="current-phase-label"]')?.getAttribute('aria-pressed')).toBe('false');
+    act(() => useGameStore.getState().setAutoAdvance(true));
+    act(() => root.unmount());
+  });
+
   it.each(['W', 'U', 'B', 'R', 'G', 'C'] as const)('adjusts %s mana directly in the status band', (color) => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state);
@@ -380,20 +514,14 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
-  it('provides explicit recovery controls for an overflowing battlefield shelf', () => {
+  it('keeps an overflowing desktop battlefield in the adaptive lane without scroll arrows', () => {
     const state = buildVisualFixture('board-overflow').snapshot.state;
     const controller = controllerFor(state);
     const { container, root } = mount(<Board controller={controller} />);
     const shelf = container.querySelector<HTMLElement>('[data-testid="board-creatures"]')!;
-    const scrollBy = vi.fn();
-    shelf.scrollBy = scrollBy;
-    const right = container.querySelector<HTMLButtonElement>('[data-testid="board-creatures-scroll-right"]');
-
-    expect(right).not.toBeNull();
+    expect(container.querySelector('[data-testid="board-creatures-scroll-right"]')).toBeNull();
     expect(shelf.firstElementChild?.classList.contains('board-shelf__lane')).toBe(true);
-    act(() => right?.click());
-    expect(scrollBy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
-    expect((scrollBy.mock.calls[0]?.[0] as ScrollToOptions).left).toBeGreaterThan(0);
+    expect(shelf.dataset.rows).toBeDefined();
     act(() => root.unmount());
   }, 10_000);
 
@@ -403,7 +531,7 @@ describe('high-frequency HUD interactions', () => {
     const { container, root } = mount(<Board controller={controller} />);
     const shelves = container.querySelectorAll<HTMLElement>('.board-shelf');
 
-    expect(shelves.length).toBe(2);
+    expect(shelves.length).toBe(1);
     for (const shelf of shelves) {
       expect(shelf.firstElementChild?.classList.contains('board-shelf__lane')).toBe(true);
     }

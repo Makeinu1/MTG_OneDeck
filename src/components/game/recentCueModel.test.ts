@@ -46,4 +46,13 @@ describe('recent cue model', () => {
     expect(recentCueForAppend({ previousEvents: [], currentEvents: [drawEvent('e1', 1, cardId, state)], previousLog: [], currentLog: [], state, suppress: true }))
       .toBeNull();
   });
+
+  it('can exclude draw events from the top-screen recent cue lane', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const cardId = state.zones.library[0];
+    expect(recentCueForAppend({
+      previousEvents: [], currentEvents: [drawEvent('e1', 1, cardId, state)],
+      previousLog: [], currentLog: [], state, excludeKinds: ['draw'],
+    })).toBeNull();
+  });
 });
