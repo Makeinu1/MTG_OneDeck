@@ -942,7 +942,6 @@ export interface GameStore {
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   commitCommanderResolution(token: number): void;
-  cancelCommanderResolution(token: number): void;
   confirmGuidedTarget(cardId: string): void;
   confirmGuidedDiscard(cardId: string): void;
   confirmGuidedLibrarySearch(cardId?: string): void;
@@ -1347,6 +1346,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     groupedHistory: boolean;
   } | null = null;
   let commanderResolutionToken = 0;
+
+  /** Drop any staged commander-resolution commit and close the grouped-history window. */
+  function discardPendingCommanderResolution(): void {
+    pendingCommanderCommit = null;
+    internal.resolutionGroupAnchor = null;
+  }
   snapshotInternal = internal;
 
   function commit(
@@ -2111,8 +2116,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = usedSeed;
       internal.past = [];
       internal.future = [];
-      internal.resolutionGroupAnchor = null;
-      pendingCommanderCommit = null;
+      discardPendingCommanderResolution();
 
       const base = initGame(cards, usedSeed);
       // Build the initial board state as a single non-undoable setup step.
@@ -2137,8 +2141,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.lastSeed = lastSeed;
       internal.past = [];
       internal.future = [];
-      internal.resolutionGroupAnchor = null;
-      pendingCommanderCommit = null;
+      discardPendingCommanderResolution();
       set({
         state: normalizeSnapshotState(snapshot.state),
         warnings: [],
@@ -2285,8 +2288,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     dispatch,
 
     undo() {
-      pendingCommanderCommit = null;
-      internal.resolutionGroupAnchor = null;
+      discardPendingCommanderResolution();
       const cur = get().state;
       if (internal.past.length === 0 || !cur) return;
       const prev = clearPendingTriggers(internal.past.pop() as GameState);
@@ -2306,8 +2308,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     redo() {
-      pendingCommanderCommit = null;
-      internal.resolutionGroupAnchor = null;
+      discardPendingCommanderResolution();
       const cur = get().state;
       if (internal.future.length === 0 || !cur) return;
       const next = clearPendingTriggers(internal.future.pop() as GameState);
@@ -3282,13 +3283,6 @@ export const useGameStore = create<GameStore>((set, get) => {
       pendingCommanderCommit = null;
       commit(prepared.nextState, prepared.warnings, { groupedHistory: prepared.groupedHistory });
       if (prepared.continueResolveAll) continueResolveAll();
-    },
-
-    cancelCommanderResolution(token) {
-      if (pendingCommanderCommit?.token !== token) return;
-      pendingCommanderCommit = null;
-      internal.resolutionGroupAnchor = null;
-      set({ pendingCommanderResolution: null });
     },
 
     confirmGuidedTarget(cardId) {

@@ -1,42 +1,21 @@
 /**
  * review.d2-layout-model — D2 縦持ちレイアウトの純関数層ピン(レビュー担当専有)。
- * 対象: boardShelf 密度 / landRowModel 束ね / statusBandModel selector。
+ * 対象: landRowModel 束ね / statusBandModel selector。
  * 契約: docs/design-system.md §8・docs/design-playbook.md §3 D2(b)。
  *
  * これが落ちたら実装(src/components/game/*.ts)を直す。テストは変更禁止(review.*)。
+ *
+ * 2026-07-18 判定者による退役: boardShelf 密度節は 8a72e0d の adaptiveLaneLayout /
+ * battlefieldProjection への置換に伴い削除(boardShelf.ts 本体ごと退役。
+ * design-system §8 BoardShelf は SUPERSEDED 注記済み)。置換後のレイアウト契約は
+ * adaptiveLaneLayout.test.ts が担う。
  */
 
 import { describe, it, expect } from 'vitest';
-import { boardCardWidth, isBoardOverlap, boardDensity } from '../boardShelf';
 import { bundleLands, type LandRowCard } from '../landRowModel';
 import { statusBandModel, PHASE_META } from '../statusBandModel';
 import { initGame } from '../../../engine/init';
 import { makeDeck, makeDef } from '../../../engine/__tests__/helpers';
-
-describe('boardShelf density (design-system §8)', () => {
-  it('〜5枚は96px', () => {
-    for (const n of [0, 1, 3, 5]) expect(boardCardWidth(n)).toBe(96);
-  });
-  it('6〜9枚は84px', () => {
-    for (const n of [6, 7, 9]) expect(boardCardWidth(n)).toBe(84);
-  });
-  it('10枚以上は72px', () => {
-    for (const n of [10, 13, 14, 30]) expect(boardCardWidth(n)).toBe(72);
-  });
-  it('14枚以上で重ねに切り替わる(それ未満は重ねない)', () => {
-    expect(isBoardOverlap(13)).toBe(false);
-    expect(isBoardOverlap(14)).toBe(true);
-    expect(isBoardOverlap(20)).toBe(true);
-  });
-  it('密度段階の識別子が境界で正しい', () => {
-    expect(boardDensity(5)).toBe('base');
-    expect(boardDensity(6)).toBe('mid');
-    expect(boardDensity(9)).toBe('mid');
-    expect(boardDensity(10)).toBe('high');
-    expect(boardDensity(13)).toBe('high');
-    expect(boardDensity(14)).toBe('overlap');
-  });
-});
 
 describe('landRowModel bundling (design-system §8)', () => {
   const forest = (id: string, tapped = false): LandRowCard => ({
