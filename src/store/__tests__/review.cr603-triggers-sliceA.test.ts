@@ -61,7 +61,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     });
   });
 
-  it('once-per-turn gate resets on the next turn (CR 603.2h): suppressed in turn N, fires again in turn N+1', () => {
+  it('once-per-turn gate resets after the pending trigger is handled and the next turn begins (CR 603.2h)', () => {
     const source = makeDef({
       scryfallId: 'r-cr603-once-reset',
       faces: [
@@ -96,6 +96,15 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     store().moveCard(filler2Id, 'battlefield');
     expect(pendingFor(sourceId)).toHaveLength(1);
 
+    // UX-TRIGGER (2026-07-18, unreviewed state②): ready pending triggers may no
+    // longer leak across a turn transition. Place and resolve the mandatory
+    // trigger before testing the once-per-turn ledger reset itself.
+    const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
+    expect(pendingTriggerId).toBeDefined();
+    store().placePendingTriggersForPriority([pendingTriggerId]);
+    store().resolveTop();
+    expect(pendingFor(sourceId)).toEqual([]);
+
     const turnBefore = snap().turn;
     store().nextTurn();
     expect(snap().turn).toBeGreaterThan(turnBefore);
@@ -105,7 +114,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     // not stay suppressed by a stale ledger from the prior turn.
     store().moveCard(filler1Id, 'exile');
     store().moveCard(filler1Id, 'battlefield');
-    expect(pendingFor(sourceId)).toHaveLength(2);
+    expect(pendingFor(sourceId)).toHaveLength(1);
   });
 
   it('CR 400.7: blinking the once-per-turn source resets its ledger key (new object identity, not a bug)', () => {

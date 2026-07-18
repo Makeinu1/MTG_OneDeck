@@ -1,5 +1,5 @@
 import type { CardDef, ManaColor } from '../types/card';
-import { planAutoTap } from './autotap';
+import { autoTapCommands, planAutoTap } from './autotap';
 import { isCommander } from './commander';
 import {
   buildGuidedCommands,
@@ -3650,7 +3650,7 @@ export function activationPlanForSource(
   if (compiledCost.manaCost !== null) {
     const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
     commands.push(
-      ...tapCommands(plan.taps, source.controllerId),
+      ...autoTapCommands(plan, source.controllerId),
       {
         type: 'payMana',
         payment: plan.payment,
@@ -3762,7 +3762,7 @@ export function activatedManaAbilityPlanForSource(
   if (compiledCost.manaCost !== null) {
     const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
     commands.push(
-      ...tapCommands(plan.taps, source.controllerId),
+      ...autoTapCommands(plan, source.controllerId),
       {
         type: 'payMana',
         payment: plan.payment,
@@ -3958,21 +3958,6 @@ function typeLineForStateCard(state: GameState, card: CardInstance): string {
 
 function typeLineHasType(typeLine: string, type: string): boolean {
   return new RegExp(`\\b${type}\\b`, 'i').test(typeLine);
-}
-
-function tapCommands(
-  taps: { cardId: string; color: ManaColor }[],
-  playerId?: PlayerId,
-): GameCommand[] {
-  return taps.flatMap((tap) => [
-    { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
-    {
-      type: 'addMana',
-      color: tap.color,
-      amount: 1,
-      ...(playerId && playerId !== 'P1' ? { playerId } : {}),
-    } satisfies GameCommand,
-  ]);
 }
 
 function withMoveReason(

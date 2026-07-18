@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { naiveTapManaColors, hasActivatedAddManaLine } from '../manaShortcut';
+import {
+  naiveTapManaColors,
+  naiveTapManaOutputs,
+  hasActivatedAddManaLine,
+} from '../manaShortcut';
 import { makeDef } from '../../__tests__/helpers';
 import type { CardDef } from '../../../types/card';
 
@@ -63,6 +67,7 @@ describe('naiveTapManaColors', () => {
       faces: [{ name: 'unit-sol-ring', typeLine: 'Artifact', oracleText: '{T}: Add {C}{C}.' }],
     });
     expect(naiveTapManaColors(def)).toEqual(['C']);
+    expect(naiveTapManaOutputs(def)).toEqual([{ C: 2 }]);
   });
 
   it('only credits the pure line for a mixed pure/costed card (Vivid land type)', () => {
@@ -96,6 +101,69 @@ describe('naiveTapManaColors', () => {
       ],
     });
     expect(naiveTapManaColors(def).sort()).toEqual(['C', 'R', 'W'].sort());
+    expect(naiveTapManaOutputs(def)).toEqual([{ C: 1 }, { R: 1 }, { W: 1 }]);
+  });
+
+  it('keeps a fixed multicolor output as one activation bundle', () => {
+    const def = makeDef({
+      scryfallId: 'unit-growth-chamber',
+      typeLine: 'Land',
+      producedMana: ['G', 'U'],
+      faces: [
+        {
+          name: 'unit-growth-chamber',
+          typeLine: 'Land',
+          oracleText: '{T}: Add {G}{U}.',
+        },
+      ],
+    });
+    expect(naiveTapManaOutputs(def)).toEqual([{ G: 1, U: 1 }]);
+  });
+
+  it('preserves the amount for any-one-color output', () => {
+    const def = makeDef({
+      scryfallId: 'unit-gilded-lotus',
+      typeLine: 'Artifact',
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+      faces: [
+        {
+          name: 'unit-gilded-lotus',
+          typeLine: 'Artifact',
+          oracleText: '{T}: Add three mana of any one color.',
+        },
+      ],
+    });
+    expect(naiveTapManaOutputs(def)).toEqual([
+      { W: 3 },
+      { U: 3 },
+      { B: 3 },
+      { R: 3 },
+      { G: 3 },
+    ]);
+  });
+
+  it('enumerates fixed any-combination output bundles', () => {
+    const def = makeDef({
+      scryfallId: 'unit-relic-of-sauron',
+      typeLine: 'Artifact',
+      producedMana: ['U', 'B', 'R'],
+      faces: [
+        {
+          name: 'unit-relic-of-sauron',
+          typeLine: 'Artifact',
+          oracleText: '{T}: Add two mana in any combination of {U}, {B}, and/or {R}.',
+        },
+      ],
+    });
+    expect(naiveTapManaOutputs(def)).toEqual(expect.arrayContaining([
+      { U: 2 },
+      { U: 1, B: 1 },
+      { U: 1, R: 1 },
+      { B: 2 },
+      { B: 1, R: 1 },
+      { R: 2 },
+    ]));
+    expect(naiveTapManaOutputs(def)).toHaveLength(6);
   });
 
   it('returns [] for an undefined def', () => {

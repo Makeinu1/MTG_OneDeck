@@ -1564,6 +1564,16 @@ export function ZoneViewerDialog({
                   </span>
                   {!readOnly && onMove && (
                     <div className="zone-viewer__targets">
+                      {onCardContextMenu && (
+                        <button
+                          type="button"
+                          className="btn btn--primary btn--sm"
+                          onClick={(event) => onCardContextMenu(id, event)}
+                          data-testid={`zone-actions-${id}`}
+                        >
+                          操作…
+                        </button>
+                      )}
                       {targets.map((t) => (
                         <button
                           key={t.zone}

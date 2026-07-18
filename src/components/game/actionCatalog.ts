@@ -103,6 +103,39 @@ function truncateAbilityPreview(text: string, maxLength = 60): string {
   return `${text.slice(0, maxLength).trimEnd()}…`;
 }
 
+function activationSpecsForZone(
+  def: CardDef | undefined,
+  faceIndex: number,
+  zone: ZoneId,
+): ActionSpec[] {
+  if (!def) return [];
+
+  const available = activatedAbilityLines(def, faceIndex).filter((line) =>
+    line.activationZones
+      ? line.activationZones.some((activationZone) => activationZone === zone)
+      : zone === 'battlefield');
+  if (available.length === 0) return [];
+
+  const requiresExplicitLine = zone !== 'battlefield' || available.some((line) => line.keywordId);
+  if (available.length === 1 && !requiresExplicitLine) {
+    return [{
+      id: 'ability-activate',
+      label: '能力を起動(スタックへ)',
+      testId: 'ability-activate',
+      separator: true,
+    }];
+  }
+
+  return available.map((line, index) => ({
+    id: `ability-activate-${line.index}`,
+    label: line.keywordLabel
+      ? `${line.keywordLabel} (${line.keywordCost ?? line.costText})`
+      : `${line.costText}: ${truncateAbilityPreview(line.effectText)}`,
+    testId: `ability-activate-${line.index}`,
+    separator: index === 0,
+  }));
+}
+
 function ruleCandidateSpecs(def: CardDef | undefined): ActionSpec[] {
   if (!def) return [];
   return ruleActionCandidatesFromTags(classifyCardRules(def)).map((candidate, index) => ({
@@ -226,20 +259,11 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
 
     specs.push({ id: 'copy-permanent', label: 'コピー(トークン)', testId: 'copy-permanent', separator: !fetch });
 
-    // 起動型行が2本以上あるカードは行ごとに列挙する(index は splitAbilityLines の
-    // flat index 空間=activateAbility の abilityLineIndex と同じ。ACT-2)。1本以下は
-    // 従来どおり総称 ability-activate を維持する(golden 集合の非回帰)。
-    const activationLines = def ? activatedAbilityLines(def, card.faceIndex) : [];
-    if (activationLines.length >= 2) {
-      activationLines.forEach((line, index) => {
-        specs.push({
-          id: `ability-activate-${line.index}`,
-          label: `${line.costText}: ${truncateAbilityPreview(line.effectText)}`,
-          testId: `ability-activate-${line.index}`,
-          separator: index === 0,
-        });
-      });
+    const activationSpecs = activationSpecsForZone(def, card.faceIndex, card.zone);
+    if (activationSpecs.length > 0) {
+      specs.push(...activationSpecs);
     } else {
+      // 能力行を認識できないカードにも手動起動の逃げ道を残す(ACT-2 非回帰)。
       specs.push({
         id: 'ability-activate',
         label: '能力を起動(スタックへ)',
@@ -276,6 +300,7 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
     if (cycleCost) {
       specs.push({ id: 'cycle', label: `サイクリング(${cycleCost})` });
     }
+    specs.push(...activationSpecsForZone(def, card.faceIndex, card.zone));
     specs.push({ id: 'discard', label: '捨てる(墓地へ)' });
   }
 
@@ -293,11 +318,19 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
     if (advisory) specs.push(advisory);
   }
 
+  if (card.zone === 'command') {
+    specs.push(...activationSpecsForZone(def, card.faceIndex, card.zone));
+  }
+
   // --- 墓地/追放からの唱える ---
   if ((card.zone === 'graveyard' || card.zone === 'exile') && !typeLine.includes('Land')) {
     specs.push({ id: 'cast-from-zone', label: '唱える(スタック)', testId: 'cast-from-zone', separator: true });
     const advisory = castCostAdvisorySpec(def);
     if (advisory) specs.push(advisory);
+  }
+
+  if (card.zone === 'graveyard') {
+    specs.push(...activationSpecsForZone(def, card.faceIndex, card.zone));
   }
 
   if (card.zone === 'graveyard' && typeLine.includes('Land')) {

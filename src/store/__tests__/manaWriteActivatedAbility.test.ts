@@ -64,6 +64,67 @@ describe('mana:write activated mana ability catalog', () => {
     expect(store().state!.manaPool.U).toBe(1);
   });
 
+  it('routes auto-cast mana activations through the CR 605 transaction', () => {
+    const land = makeDef({
+      scryfallId: 'auto-cast-mana-land',
+      typeLine: 'Land',
+      producedMana: ['G'],
+      faces: [
+        {
+          name: 'auto-cast-mana-land',
+          typeLine: 'Land',
+          oracleText: '{T}: Add {G}.',
+        },
+      ],
+    });
+    const watcher = makeDef({
+      scryfallId: 'auto-cast-mana-watcher',
+      typeLine: 'Enchantment',
+      faces: [
+        {
+          name: 'auto-cast-mana-watcher',
+          typeLine: 'Enchantment',
+          oracleText:
+            'Whenever a player taps a land for mana, that player adds one mana of any type that land produced.',
+        },
+      ],
+    });
+    const spell = makeDef({
+      scryfallId: 'auto-cast-spell',
+      typeLine: 'Sorcery',
+      faces: [
+        {
+          name: 'auto-cast-spell',
+          typeLine: 'Sorcery',
+          manaCost: '{1}',
+        },
+      ],
+    });
+
+    store().newGame(
+      [
+        { def: land, isCommander: false },
+        { def: watcher, isCommander: false },
+        { def: spell, isCommander: false },
+        ...makeDeck(10),
+      ],
+      1,
+    );
+    const landId = findInstanceId('auto-cast-mana-land');
+    const watcherId = findInstanceId('auto-cast-mana-watcher');
+    const spellId = findInstanceId('auto-cast-spell');
+    moveToBattlefield(landId);
+    moveToBattlefield(watcherId);
+    store().moveCard(spellId, 'hand', 'bottom');
+
+    expect(store().castToStack(spellId)).toBe('ok');
+
+    expect(store().state!.cards[landId].tapped).toBe(true);
+    expect(store().state!.manaPool.G).toBe(1);
+    expect(store().state!.pendingTriggers).toEqual([]);
+    expect(store().state!.zones.stack).toContain(spellId);
+  });
+
   it('pays fixed life costs before resolving no-stack mana abilities', () => {
     const source = makeDef({
       scryfallId: 'mana-write-pay-life',

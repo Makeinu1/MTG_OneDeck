@@ -196,10 +196,24 @@
   - **乖離記録1(affordability・D3 へ延期)**: マナ支払可否(手札呪文の昇格判定)は D1 では既定 `true` 固定——実ゲーム状態に基づくマナ計算関数がまだ無いため。**「マナ不足の唱えるは昇格しない」受け入れ基準(playbook §3 D1(a)(3)・(b))は D3(プレイ可能ハイライト selector)へ明示的に繰り越す**(D1 では純関数 `rankActions` が `canAffordCast:false` を注入された時に正しく振る舞うことを review.d1 でピン留めのみ)。強行キャストは元々サンドボックス許容ゆえ実害なし。統率者の唱えるはマナ可否によらず昇格(規則表 優先1)。
   - **乖離記録2(優先5の代替・J2 追認)**: playbook §3 D1(a)(3) の「優先5: 戦場の起動型能力持ち→先頭の能力起動」は、substrate が「意味のある起動型能力を持つか」を安価に判定できず、汎用 `ability-activate`(全戦場パーマネントに無条件で存在)を昇格すると全カードで雑音化するため、**検出可能な具体的起動型能力である「フェッチ起動」(`fetchActivate`)を優先5相当(priority 60)に割り当て、汎用 `ability-activate` は昇格しない**方針へ J2 が変更・追認した。将来「起動型能力保有」分類器ができた時点で本来ルールへ精密化可能。
 
+### Smart tap / quick ability(2026-07-18・資源状態②追補→同日判定者監査済)
+- 戦場の表向き・アンタップ状態のカードに、現在面のoracleからモデル化できた `{T}` 起動型能力が**1本**ある場合、カードの通常クリック/Spaceを手動タップではなく `activateAbility(cardId, flatIndex)` へ配線する。コスト支払いと対象選択を既存CR 602 envelopeから迂回しない。
+- `{T}` 能力が**複数**ならカード直上の小型pickerを開き、コスト+効果プレビューから行を選ぶ。行indexは `splitAbilityLines` のflat indexを保持する。マナ能力には `[即時]`、通常能力には `[スタック]` を付けてCR 605の意味差を表示する。
+- `{T}` 能力なし・タップ済み・裏向きは従来の手動tap/untap。CardActionSheetの「タップ/アンタップ」は常設し、攻撃やサンドボックス操作の逃げ道を残す。
+- カード右上の常設丸ボタンは発見性とモバイル1タップ導線を兼ねる。カード本体のモバイル短押しはpreview、二度押しは全操作sheetという既存契約を維持する。
+
+### Responsive action language(2026-07-18・資源状態②追補→同日判定者監査済)
+- **意味の二層化**: 常設面は `Icon` + 漢字2–4文字を基本とし、完全な操作文は `aria-label` / `title` に保持する。重要な初回選択や不可逆操作は短縮せず、CardActionSheet/専用dialogで説明する。アイコン単独への全面置換はしない。
+- **PrimaryAction**: 520px以下では「解決 n」「誘発 n」「攻撃」「戦闘」等へ短縮し、stack/bell/attack/phase SVGを併置する。広幅では従来の完全ラベルを表示する。DOM上のaccessible nameは幅にかかわらず完全ラベル。
+- **三スライス横断**: quick abilityは正式なtap SVG（複数時は件数badge）、TriggerSheetはbell +「誘発」/ info +「下から解決」、stack footerはphase icon +「下の『解決』から」。CR 605即時/CR 602 stackの区別は能力pickerの文字badgeを残し、意味をアイコンだけへ委ねない。
+- **日本語の自然さ**: `手札 Workspace`→「手札一覧」、`カード全体を保ったまま一覧`→「全体表示 · n枚」、`盤面を見る`→「盤面へ」。操作説明を常時段落で反復しない。
+- **幅制約**: 375px縦は2段status + compact action、812px横はstatus全体を固定して色別mana stepperだけを横スクロール、1440pxは完全ラベル。狭幅でも `aria-label` / title / keyboard経路を同一にする。
+
 ### PrimaryAction(プライマリアクションボタン)
 - 親指ゾーン左側の幅優先ボタン。`--gold-surface` + `--gold-edge`、文字 `--action-primary-text`・`--font-size-lg`。
 - 状態機械(表示文言はエンジン状態から導出): スタック非空→「スタックを解決」/ 未処理誘発→「誘発を処理(n)」/ 戦闘宣言中→「攻撃を確定」/ それ以外→「次のフェイズ →」(長押し or 隣の小ボタンで「次のターン ≫」)。
 - スタック未解決中のフェイズ移動禁止は**ボタンがそもそも「解決」になる**ことで表現(無効化グレーではなく、次にすべきことの提示)。
+- **誘発直接導線(2026-07-18・資源状態②追補→同日判定者監査済)**: PrimaryAction/次フェイズショートカットは同じ判定を使う。単一かつ対象選択不要なら即座にCR 603.3のスタック配置へ進む。複数または対象選択を伴う場合は専用 `TriggerSheet` を開き、順序を選んで配置する。Feedを必須中継点にしない。シートを閉じても候補は消さず、ready pending trigger中のフェイズ/ターン移動は禁止する。
 
 ### BoardShelf(盤面カード棚・Round 4 追加 2026-07-09)【SUPERSEDED 2026-07-18】
 - **本節の密度段階仕様(96/84/72px・14枚〜重ね)は 8a72e0d の UI 刷新で `adaptiveLaneLayout.ts` / `battlefieldProjection.ts`(行折返し+動的縮小)に置換され退役**。実装正本はコード(`src/components/game/adaptiveLaneLayout.ts`)+ `adaptiveLaneLayout.test.ts`。旧 `boardShelf.ts` と `review.d2-layout-model` の boardShelf 節は 2026-07-18 のクリーンアップで削除済み。
@@ -215,6 +229,7 @@
 
 ### Feed(フィード)
 - 右端スワイプ/ベルで展開する `--surface-2` パネル。項目タイプ: 手動操作(`--text`)・自動実行(`--auto` 左縁+歯車アイコン)・誘発候補(`--trigger` 左縁+「スタックへ/無視」ボタン内蔵)・警告(`--warn`)。
+- 誘発項目は履歴/代替導線として残すが、PrimaryActionからFeedを開かない。誘発の正規導線は直接配置または専用TriggerSheet。
 - 各項目に相対時刻とカード参照チップ(タップでカードシート)。undo は項目単位でなく従来のグローバル undo ボタンを親指ゾーンに残す(スナップショット方式と整合)。
 - 未読誘発・警告はステータス帯のベルにバッジ。
 

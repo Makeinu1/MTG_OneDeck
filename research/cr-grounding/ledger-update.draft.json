@@ -1,0 +1,103 @@
+{
+  "status": "applied-to-ledger-unreviewed",
+  "createdAt": "2026-07-18",
+  "authority": {
+    "kind": "direct-user-play-friction",
+    "summary": "The user is broadly satisfied with the current UI and requests focused improvement: partial mana automation, trigger handling through Feed, hidden activated-ability access, and responsive Japanese prose interrupt the core solo-play loop. This is not authority for a full redesign.",
+    "priorityBasis": "docs/judge-protocol.md section 2: MyDeck/direct play friction is the highest selection signal"
+  },
+  "sourceDraft": "research/cr-grounding/planned-sequence-batch6.draft.md",
+  "requestedMutation": {
+    "operation": "insert-before-current-consumable-pending-entry-act-3",
+    "priorityClass": "top-direct-play-friction-cohort",
+    "preserveExistingPendingEntries": true,
+    "appliedEntries": [
+      {
+        "type": "design-slice",
+        "domainId": "ux-mana-complete-loop",
+        "track": "play-loop",
+        "status": "proposed",
+        "relatedDomains": [
+          "cr-605-mana-abilities",
+          "cr-601-casting",
+          "cr-118-costs"
+        ],
+        "cr": [
+          "601.2f",
+          "601.2g",
+          "601.2h",
+          "602.2",
+          "605.1a",
+          "605.3a",
+          "605.3b",
+          "118.3",
+          "118.3c",
+          "305.6",
+          "405.6c"
+        ],
+        "note": "Top priority: complete MyDeck mana-source inventory and integrate all CR-modeled activated mana ability plans into cast auto-payment; no silently omitted source and no fake-auto."
+      },
+      {
+        "type": "design-slice",
+        "domainId": "ux-trigger-direct-loop",
+        "track": "play-loop",
+        "status": "proposed",
+        "dependsOn": [],
+        "relatedDomains": [
+          "cr-603-triggered-abilities",
+          "cr-117-priority"
+        ],
+        "cr": [
+          "117.5",
+          "603.3",
+          "603.3b",
+          "603.3c",
+          "603.3d",
+          "603.6a"
+        ],
+        "note": "Unify PrimaryAction and ArrowUp, place simple triggers directly, use a dedicated trigger-order/choice surface for nontrivial cases, and remove Feed as a mandatory action hop."
+      },
+      {
+        "type": "design-slice",
+        "domainId": "ux-ability-quick-action",
+        "track": "play-loop",
+        "status": "proposed",
+        "relatedDomains": [
+          "cr-602-activated-abilities",
+          "cr-605-mana-abilities"
+        ],
+        "cr": [
+          "602.2",
+          "602.2b",
+          "605.1a",
+          "605.3b",
+          "118.3"
+        ],
+        "note": "Make the battlefield click a CR-aware smart tap when exactly one modeled tap ability exists; show an inline picker when ambiguous; retain manual tap in the full action sheet."
+      },
+      {
+        "type": "design-slice",
+        "domainId": "ux-responsive-action-language",
+        "track": "play-loop",
+        "status": "proposed",
+        "crossCuttingFor": [
+          "ux-mana-complete-loop",
+          "ux-trigger-direct-loop",
+          "ux-ability-quick-action"
+        ],
+        "semanticCr": [
+          "602.2",
+          "603.3",
+          "605.3b"
+        ],
+        "note": "Use icon-first repeated actions, icon plus 2-4 kanji for unfamiliar or consequential actions, and move prose to progressive disclosure. Verify 375 portrait, 812 landscape, and 1440 desktop with no overflow."
+      }
+    ]
+  },
+  "constraints": [
+    "Applied to cr-backbone-ledger.json under the user's explicit 2026-07-18 exception for ledger editing while the Claude judge lacks tokens.",
+    "The user owns this priority order; the returning judge owns contract changes, reviewer tests, and independent revalidation of these unreviewed entries.",
+    "ACT-3 and ACT-4 remain pending after this cohort; they are not deleted.",
+    "Responsive icon work is a cross-cutting acceptance constraint, not a standalone visual-polish diversion."
+  ]
+}

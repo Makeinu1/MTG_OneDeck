@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { primaryActionModel } from './primaryAction';
 import { celebrate } from './sound';
 import { isSoundEnabled, setSoundEnabled } from './motion';
-import { primaryActionDisplayLabel } from './primaryActionDisplay';
+import { primaryActionLanguage } from './primaryActionDisplay';
 import type { GameController } from './gameController';
 import { ThemeToggle } from '../ThemeToggle';
 import { Icon } from '../../ui/icons';
@@ -126,8 +126,9 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   if (!state) return null;
   const stackActive = state.zones.stack.length > 0;
+  const progressBlocked = stackActive || controller.triggerCandidateCount > 0;
   const primary = primaryActionModel(state, controller.triggerCandidateCount);
-  const primaryLabel = primaryActionDisplayLabel(state, primary);
+  const primaryLanguage = primaryActionLanguage(state, primary, controller.triggerCandidateCount);
 
   function runPrimary(): void {
     switch (primary.kind) {
@@ -136,7 +137,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         break;
       case 'triggers':
         celebrate('primary');
-        controller.openFeed();
+        controller.processTriggers?.();
         break;
       case 'attack':
         celebrate('primary');
@@ -178,16 +179,20 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         className={`thumb-zone__primary${primary.glow ? ' thumb-zone__primary--stack' : ''}${primary.kind === 'next-phase' ? ' thumb-zone__primary--advance' : ''}`}
         data-testid="primary-action"
         data-kind={primary.kind}
+        aria-label={primaryLanguage.full}
+        title={primaryLanguage.full}
         onClick={runPrimary}
       >
-        {primaryLabel}
+        <Icon name={primaryLanguage.icon} />
+        <span className="thumb-zone__primary-full">{primaryLanguage.full}</span>
+        <span className="thumb-zone__primary-compact" aria-hidden="true">{primaryLanguage.compact}</span>
       </button>
 
       <button
         type="button"
         className="thumb-zone__icon-btn"
         data-testid="next-turn"
-        disabled={stackActive}
+        disabled={progressBlocked}
         onClick={() => controller.advanceTurn()}
         title="次のターン"
       >

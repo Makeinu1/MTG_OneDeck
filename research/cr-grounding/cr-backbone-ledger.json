@@ -4,7 +4,7 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。",
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -180,10 +180,244 @@
       "note": "**ACT-2 起動ラインの選択と強行(UI到達性)・出荷(2026-07-17・判定者=Fable・実装=Sonnetサブエージェント・Tier-1冷監査済・契約=engine-spec §34.46)**。"
     },
     {
+      "type": "design-slice",
+      "domainId": "ux-mana-complete-loop",
+      "track": "play-loop",
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "userGate": "2026-07-18 ユーザー直接プレイ裁定: 現行UIは概ね維持し、部分的な自動マナ対応による摩擦を最上位で改善する。Claude判定者のトークン不足によりCodexの台帳本体編集を特例許可。",
+      "relatedDomains": [
+        "cr-605-mana-abilities",
+        "cr-601-casting",
+        "cr-118-costs"
+      ],
+      "crRefs": [
+        "601.2f",
+        "601.2g",
+        "601.2h",
+        "602.2",
+        "605.1a",
+        "605.3a",
+        "605.3b",
+        "118.3",
+        "118.3c",
+        "305.6",
+        "405.6c"
+      ],
+      "selectionPolicy": {
+        "name": "future-option-preserving-auto-payment",
+        "userIntent": "必要コストを満たすだけでなく、支払い後に残る色選択肢と盤面価値を最大化し、ユーザーが後悔しにくいマナ源の組合せを推定する。全色源は他の狭い色範囲の土地で支払える限り最後まで残す。",
+        "objectiveOrder": [
+          "CR上合法に総コストを完全支払いする",
+          "生け贄・追放・ライフ・自己ダメージ等の不可逆/有償コストを最小化する",
+          "支払い後に生成可能な色の集合と、唯一の色供給源を最大限残す",
+          "生成可能色が少ない源から使い、5色/rainbow源・任意色源・出力選択肢の多い源を最後にする",
+          "将来使える非マナ能力や戦闘価値を持つパーマネントを温存する",
+          "過剰生成と起動枚数を最小化し、なお同値なら盤面順で決定する"
+        ],
+        "acceptanceExample": "必要色を単色/二色土地だけで満たせる場合、同じ支払いを作れる5色土地はアンタップのまま残す。5色土地がなければ完全支払いできない場合だけ使用する。",
+        "uiFollowUp": "最大自動化を妨げる事前確認は出さない。選ばれたマナ源を短時間highlightし、履歴/詳細から『なぜこの源を使ったか』と残した色選択肢を確認できる説明UIはux-responsive-action-languageで扱う。"
+      },
+      "evidenceDraft": "research/cr-grounding/planned-sequence-batch6.draft.md",
+      "implementation": {
+        "implementedAt": "2026-07-18",
+        "files": [
+          "src/engine/autotap.ts",
+          "src/engine/grammar/manaShortcut.ts",
+          "src/store/gameStore.ts"
+        ],
+        "covered": [
+          "将来の色選択肢/唯一色源を温存する決定的source ranking",
+          "rainbow/任意色源のlast-resort選択",
+          "literal複数マナ・固定多色・any-one-color・any-combinationの正確な1起動出力束",
+          "Signet/filter型の追加マナコスト連鎖",
+          "自己生け贄・固定ライフ・自己ダメージのlast-resort評価と原子的コマンド",
+          "charge counter・Swamp条件・伝説パーマネント色のstate依存評価",
+          "a creature生け贄対象の自動選択(統率者は最後)",
+          "cast/cycle時のCR605 mana transaction統合"
+        ],
+        "honestManualBoundaries": [
+          "用途制限付きmana lot(activate-only/legendary-spell-only等): ManaPoolにprovenanceがないため自動キャストへ混ぜない",
+          "exertとspent-mana rider: state追跡がないためmanual",
+          "X/パワー/タフネス等の未正規化可変出力とonce-per-turn制約: manual",
+          "色指標のみで色を持つ伝説パーマネント: CardDefにcolors/colorIndicatorがないためmanual/false-negative側"
+        ],
+        "verification": "npm run check PASS (lint / 235 files・1985 tests / build)。ローカル開始画面→保存ゲーム復帰→盤面でconsole warning/error 0。独立監査は未実施。"
+      },
+      "note": "**最優先: マナ能力カバレッジ完遂 + キャスト自動支払い**。MyDeck実カードの全マナ源をinventory化し、対応可能な源をauto/guided化する。cast plannerをnaiveな純{T}=1マナ源だけでなく、正規化済みactivated mana ability transactionへ統合する。黙って候補から外す源0件・未対応理由可視・fake-auto禁止。**2026-07-18ユーザー追補**: 支払い後の選択肢を温存する「後悔最小」推定を評価関数に含め、狭い色範囲の土地で足りるなら5色/rainbow源は最後まで残す。**Codex暫定実装**: 中核planner/transaction/主要MyDeck形状を実装し機械チェック緑。ただし用途制限mana等はstate substrate不足によりmanual、Claude独立監査未実施のためimplemented-not-green。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "ux-trigger-direct-loop",
+      "track": "play-loop",
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "dependsOn": [
+        "d3-primary-action-feed"
+      ],
+      "userGate": "2026-07-18 ユーザー直接プレイ裁定: ETB後の誘発が上矢印で処理されず、誘発→Feed→stackが非直感的。主操作から直接処理する。",
+      "relatedDomains": [
+        "cr-603-triggered-abilities",
+        "cr-117-priority"
+      ],
+      "crRefs": [
+        "117.5",
+        "603.3",
+        "603.3b",
+        "603.3c",
+        "603.3d",
+        "603.6a"
+      ],
+      "evidenceDraft": "research/cr-grounding/planned-sequence-batch6.draft.md",
+      "implementation": {
+        "implementedAt": "2026-07-18",
+        "files": [
+          "src/components/game/triggerDirectAction.ts",
+          "src/components/game/TriggerSheet.tsx",
+          "src/components/game/gameController.tsx",
+          "src/components/game/ThumbZone.tsx",
+          "src/components/game/GameScreen.tsx",
+          "src/components/playmat/Playmat.tsx",
+          "src/store/gameStore.ts"
+        ],
+        "covered": [
+          "PrimaryActionと次フェイズショートカットの単一判定",
+          "単一・targetなし誘発のFeed非経由stack placement",
+          "複数/targetあり誘発の専用TriggerSheet",
+          "複数誘発の手動順序指定と既存APNAP検証への委譲",
+          "ready pending trigger中のphase/turn transition block",
+          "シートcloseとpending破棄の分離",
+          "stack解決を誘発/phaseより優先"
+        ],
+        "reviewContractUpdate": "review.cr603-triggers-sliceA のonce-per-turn resetケースを、前ターンpending持越しから『配置・解決後にnextTurn』へ更新。ユーザー裁定とCR603.3 priority boundaryに合わせた未監査変更。",
+        "verification": "npm run check PASS (lint / 237 files・1992 tests / build)。TriggerSheet component testで順序変更/一括配置、旧Playmat shortcut実結合、store transition blockを確認。ローカル保存ゲーム復帰後の新UIでconsole warning/error 0。独立監査は未実施。"
+      },
+      "note": "**誘発の直接導線**。PrimaryActionと上矢印を単一状態機械へ統合する。単一・選択不要の誘発は直接CR準拠stack placement、複数/選択ありは専用誘発sheetへ進め、Feedを必須中継点から外す。pending中のphase advanceとsilent dismissは禁止。**Codex暫定実装(2026-07-18)**: 上記導線と進行blockを実装し機械チェック緑。review契約1件を新preconditionへ更新したため、Claude独立監査まではimplemented-not-green。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "ux-ability-quick-action",
+      "track": "play-loop",
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "dependsOn": [
+        "ux-mana-complete-loop"
+      ],
+      "userGate": "2026-07-18 ユーザー直接プレイ裁定: 右クリック詳細へ入らず、盤面上でタップ能力・起動型能力を発見し実行できるUIへ改善する。",
+      "relatedDomains": [
+        "cr-602-activated-abilities",
+        "cr-605-mana-abilities"
+      ],
+      "crRefs": [
+        "602.2",
+        "602.2b",
+        "605.1a",
+        "605.3b",
+        "118.3"
+      ],
+      "evidenceDraft": "research/cr-grounding/planned-sequence-batch6.draft.md",
+      "implementation": {
+        "implementedAt": "2026-07-18",
+        "files": [
+          "src/components/game/quickAbilityAction.ts",
+          "src/components/game/GameCard.tsx",
+          "src/components/game/game.css"
+        ],
+        "covered": [
+          "現在面のoracleにある{T}能力の単一/複数/なし純粋判定",
+          "単一{T}能力の通常クリック/Space直接起動",
+          "複数{T}能力のカード上inline pickerとflat index保持",
+          "マナ能力[即時]と通常能力[スタック]の表示差",
+          "カード右上の常設能力ボタンによるモバイル1タップ導線",
+          "タップ済み/裏向き/能力なしの手動tap維持",
+          "全操作sheetの手動tap/untap代替維持"
+        ],
+        "honestBoundary": "VITE_UI_V2_LAYOUT=false の旧Playmatはロールバック専用の退役経路でありsmart tapを追加しない。現行GameScreen経路を実装正本とする。",
+        "verification": "npm run check PASS (lint / 238 files・1998 tests / build)。保存ゲーム上の《太陽の指輪》で常設能力ボタン→無色2マナ即時加算・stack非生成を確認。390x844でボタン配置を確認し、desktop/mobileともbrowser console warning/error 0。独立監査は未実施。"
+      },
+      "note": "**カード上のsmart tap / quick ability**。モデル化済み{T}能力が1本なら通常クリックからコスト支払い込みで起動し、複数/曖昧ならinline pickerを開く。能力なしは手動tapを維持し、全操作sheetにも手動tap/untapを常設する。マナ能力は即時、通常能力はstackという意味差をUIで保持。**Codex暫定実装(2026-07-18)**: 現行GameScreenへ上記導線を実装。Claude独立監査まではimplemented-not-green。"
+    },
+    {
+      "type": "design-slice",
+      "domainId": "ux-responsive-action-language",
+      "track": "play-loop",
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "dependsOn": [
+        "ux-mana-complete-loop",
+        "ux-trigger-direct-loop",
+        "ux-ability-quick-action"
+      ],
+      "crossCuttingFor": [
+        "ux-mana-complete-loop",
+        "ux-trigger-direct-loop",
+        "ux-ability-quick-action"
+      ],
+      "userGate": "2026-07-18 ユーザー直接プレイ裁定: モバイルで日本語説明が2行化・overflow・機械的に見える摩擦を、プロ判断でアイコン中心のaction languageへ改善する。全面UI再設計やアニメーション変更は求めていない。",
+      "semanticCrRefs": [
+        "602.2",
+        "603.3",
+        "605.3b"
+      ],
+      "evidenceDraft": "research/cr-grounding/planned-sequence-batch6.draft.md",
+      "implementation": {
+        "implementedAt": "2026-07-18",
+        "files": [
+          "src/ui/icons.tsx",
+          "src/components/game/primaryActionDisplay.ts",
+          "src/components/game/ThumbZone.tsx",
+          "src/components/game/StatusBand.tsx",
+          "src/components/game/TriggerSheet.tsx",
+          "src/components/game/StackBand.tsx",
+          "src/components/game/HandRibbon.tsx",
+          "src/components/game/GameCard.tsx",
+          "src/components/game/game.css"
+        ],
+        "covered": [
+          "PrimaryActionのfull/compact/icon三点モデルと完全aria-label",
+          "quick abilityの正式tap SVGと複数件数badge",
+          "TriggerSheetのbell/info/stack iconと短い自然言語",
+          "stack footer長文のprogressive disclosure",
+          "手札Workspaceの自然な日本語化",
+          "status phaseのphase+自/手表示",
+          "812px横のstatus外側overflow解消とmana内部scrollへの局所化"
+        ],
+        "responsiveEvidence": "375x812: compact PrimaryAction/phase mode/quick icon、812x375: status clientWidth=scrollWidth=812・manaのみclient432/scroll564、1440x900: full PrimaryAction・status clientWidth=scrollWidth=1440。各幅でconsole warning/error 0。",
+        "verification": "npm run check PASS (lint / 238 files・2000 tests / build)。375x812・812x375・1440x900とstack workspace実画面を確認し、browser console warning/error 0。独立監査は未実施。"
+      },
+      "note": "**候補1–3の横断制約 + 残差監査**。反復操作はicon-first、初見/重要操作はicon+漢字2–4文字、長文はprogressive disclosureへ移す。アイコン単独の全面置換はしない。375px縦/812px横/1440pxで意図しない2行化・overflow 0、aria-label/tooltip/keyboard経路を必須とする。**Codex暫定実装(2026-07-18)**: 三幅の実測と横断UI更新を完了。Claude独立監査まではimplemented-not-green。"
+    },
+    {
       "type": "domain-slice",
       "domainId": "cr-702-keyword-abilities-frequent",
-      "status": "pending",
-      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。"
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "implementation": {
+        "implementedAt": "2026-07-18",
+        "files": [
+          "src/engine/grammar/activatedKeyword.ts",
+          "src/engine/grammar/index.ts",
+          "src/components/game/actionCatalog.ts",
+          "src/components/playmat/dialogs.tsx",
+          "src/engine/__tests__/review.act3-activated-keyword.test.ts",
+          "src/engine/__tests__/review.timing-coverage.test.ts",
+          "research/grammar-compile/decision-snapshot.json",
+          "docs/engine-spec.md §34.48",
+          "docs/acceptance.md ACT-3"
+        ],
+        "covered": [
+          "Equip/Fortify/Level up/Outlast/Unearth/Embalm/Eternalize/Ninjutsu/Commander ninjutsu/Crew/ReconfigureのCR正規形展開",
+          "Reconfigureのattach/unattach二行化とACT-2 flat index保持",
+          "battlefield/graveyard/hand/commandの定義ゾーン別actionCatalog",
+          "墓地一覧の明示的な操作ボタンから蘇生へ到達",
+          "墓地発生源snapshotを保持したコスト支払いと能力スタック化",
+          "未モデル化複合処理のmanual維持"
+        ],
+        "corpusEvidence": "17,491枚・22,419 effect lines。新規523行、decision遷移0、commandHashChanged 6(いずれもmanual維持)、mappingFailures 0。",
+        "responsiveEvidence": "実カード《Priest of Fell Rites》で墓地→操作…→蘇生({3}{W}{B})→マナ不足のCR-legal強行確認まで到達。375x812でdocument width=scrollWidth=375、墓地/警告dialog overflowなし、console warning/error 0。",
+        "verification": "npm run check PASS (lint / 239 files・2025 tests / build)。初回に意図的snapshot差分と旧Sword timing goldを検出し、CR702.6aへ訂正・snapshot更新後に全再実行。実画面console warning/error 0。独立監査は未実施。"
+      },
+      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Codex暫定実装(2026-07-18)。完全自動解決ではなく、CR正規形・定義ゾーンでの発見・既存起動経路への接続まで。Crew tap-other、Ninjutsu複合コスト、Unearth遅延誘発+置換、Embalm/Eternalize例外付きcopy等はmanual境界を維持。Claude独立監査まではimplemented-not-green。"
     },
     {
       "type": "domain-slice",

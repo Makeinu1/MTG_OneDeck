@@ -509,6 +509,69 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G4-7 | 全工程 | コスト精算は1スナップショット(単一 undo)。エンジン純粋性維持(新コマンド型なし)。コンソールエラー0件 |
 | G4-8 | 「{T}, Pay 3 life: ...」「{3}, {T}, Exile this land: ...」を起動(自動 ON) | 固定ライフ支払い/strict self-exile は既存コマンド(`adjustLife`/`moveCard -> exile`)で精算され、能力がスタックへ。`Pay X life` や選択を伴う exile は G4-6 の manual 境界に残る |
 
+### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| UX-MANA-1 | 単色/二色土地だけで支払える色拘束を、同じ色を出せる5色土地もアンタップの状態でキャスト | 単色/二色土地を使い、5色土地をアンタップで残す |
+| UX-MANA-2 | 必要色を5色土地でしか満たせない呪文をキャスト | 5色土地を必要色として使用し、完全支払いする |
+| UX-MANA-3 | 通常土地と自己生け贄/ライフ/自己ダメージ源のどちらでも支払える呪文をキャスト | 通常土地を優先。不利益源しか完全支払いを作れない場合のみ、対応するコスト/ダメージを含めて使用する |
+| UX-MANA-4 | 《Sol Ring》型2点源、《Gilded Lotus》型同色3点源、二色同時出力源でキャスト | 1回の起動で正確なマナ束が生成され、過少/過剰なタップをしない |
+| UX-MANA-5 | `{1},{T}: Add {R}{W}` 型を、起動用の1マナ源とともに使ってキャスト | 起動用マナ生成→能力コスト支払い→2色生成→呪文支払いを単一undo単位で原子的に完了する |
+| UX-MANA-6 | 《Phyrexian Tower》型の「クリーチャー1体を生け贄」マナ能力が必要な状態でキャスト | トークン→非統率者→低マナ総量→盤面順で対象を決定し、統率者は最後の候補にする。通常源で足りる場合は生け贄能力を使わない |
+
+根拠: CR 601.2f-h、602.2、605.3b、118.3。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
+
+### UX-TRIGGER 誘発の直接処理(2026-07-18・資源状態②追補→同日判定者監査済)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| UX-TRIGGER-1 | ETB等で対象選択不要の誘発が1件出た後、PrimaryActionまたは次フェイズショートカットを実行 | Feedを開かず誘発をスタックへ置く。フェイズは進まない |
+| UX-TRIGGER-2 | 同時に複数の誘発が出た後、PrimaryActionまたは次フェイズショートカットを実行 | 専用TriggerSheetが開き、順序変更後に既存APNAP検証を通して一括配置できる |
+| UX-TRIGGER-3 | targetを含む誘発が1件出た後にPrimaryActionを実行 | 自動配置せず専用TriggerSheetを開く |
+| UX-TRIGGER-4 | TriggerSheetを閉じて次フェイズ/次ターンを実行 | 誘発候補は消えず、フェイズ/ターンも進まず警告される |
+| UX-TRIGGER-5 | スタックと誘発候補がともにある状態でPrimaryAction/ショートカットを実行 | スタック解決を先に行い、誘発処理やフェイズ移動を追い越さない |
+
+根拠: CR 117.5、603.3、603.3b-d、603.6a。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
+
+### UX-ABILITY カード上の起動型能力(2026-07-18・資源状態②追補→同日判定者監査済)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| UX-ABILITY-1 | 表向き・アンタップの戦場カードにモデル化済み `{T}` 能力が1本ある状態で通常クリック/Space | `toggleTap` ではなく該当flat indexの `activateAbility` を呼び、既存のコスト・対象選択処理を通る |
+| UX-ABILITY-2 | 同じ面にモデル化済み `{T}` 能力が複数あるカードを通常クリック | カード直上pickerが開く。選択した行のflat indexだけを起動する |
+| UX-ABILITY-3 | `{T}: Add ...` と通常の `{T}: ...` をpickerで表示 | 前者は `[即時]`、後者は `[スタック]` と表示し、実処理もCR 605 no-stack / CR 602 stackに分かれる |
+| UX-ABILITY-4 | `{T}` 能力なし、タップ済み、または裏向きカードを通常クリック | 従来どおり手動tap/untap。全操作sheetにも「タップ/アンタップ」が残る |
+| UX-ABILITY-5 | モバイルで `{T}` 能力持ちカードを操作 | 通常短押しpreviewを維持し、カード右上の常設能力ボタンから1タップで直接起動/選択できる。右クリック/全操作sheetも代替として残る |
+
+根拠: CR 602.2、602.2b、605.1a、605.3b、118.3。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
+
+### UX-LANGUAGE レスポンシブ操作言語(2026-07-18・資源状態②追補→同日判定者監査済)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| UX-LANGUAGE-1 | 375×812で通常/stack/triggerのPrimaryActionを表示 | visible labelはicon + 2–4文字主体の1行。accessible nameは「スタックを解決(n)」「誘発を処理(n)」等の完全な意味を保持 |
+| UX-LANGUAGE-2 | 812×375でstatus bandを表示 | status band自体の横overflowなし。収まりきらない色別mana stepperだけが内部スクロールし、life/feed等を押し出さない |
+| UX-LANGUAGE-3 | 1440×900で同じPrimaryActionを表示 | 完全ラベルを1行表示し、compact labelは視覚的に隠す。操作・accessible nameは狭幅と同一 |
+| UX-LANGUAGE-4 | モバイルでTriggerSheet/stack workspaceを開く | 誘発順は「下から解決」、stack footerは「下の『解決』から」と短く表示。完全説明はtitle/ariaへ段階開示 |
+| UX-LANGUAGE-5 | quick abilityが1本/複数あるカードを表示 | tap SVGを表示し、複数時だけ件数badge。マナ能力の `[即時]` / 通常能力の `[スタック]` は文字で残す |
+| UX-LANGUAGE-6 | keyboard/スクリーンリーダーで短縮UIを操作 | focus経路、完全なaria-label、tooltipが存在し、表示幅によって操作集合が変わらない |
+
+意味根拠: CR 602.2、603.3、605.3b。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
+
+### ACT-3 起動型キーワードの正規形展開(2026-07-18・資源状態②追補→同日判定者監査済)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| ACT3-1 | Equip/Fortify/Level up/Outlast/Crewを持つ戦場カードの操作一覧を開く | キーワード名とコストを含む `ability-activate-<flat index>` が表示され、既存のコスト精算・対象選択・スタック経路へ進む |
+| ACT3-2 | Unearth/Embalm/Eternalizeを持つカードを戦場と墓地で確認 | 墓地でだけ該当能力を表示する。同じカードの戦場用通常能力と墓地用キーワード能力を混同しない |
+| ACT3-3 | Ninjutsuを持つカードを手札、Commander ninjutsuを持つカードを手札/統率領域で確認 | CR 702.49a/dの定義ゾーンでだけ能力を表示する |
+| ACT3-4 | Reconfigureを持つ戦場カードを確認 | attachとunattachの2能力を別flat indexで表示する |
+| ACT3-5 | 墓地のUnearthを十分なマナで起動 | マナを原子的に支払い、墓地の発生源snapshotを保持した能力をスタックへ積む。解決前に発生源を戦場へ移さない |
+| ACT3-6 | Crew/Ninjutsu/Unearth/Embalm/Eternalize等の未モデル化複合処理を解決 | 対応部分だけを誤自動実行せずmanual境界を維持する。完全自動化済みとは表示しない |
+
+根拠: CR 602.1/602.2b、702.6a/c/e、702.49a/d、702.67a、702.84a、702.87a、702.107a、702.122a、702.128a、702.129a、702.151a。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
+
 ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
 S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。
 

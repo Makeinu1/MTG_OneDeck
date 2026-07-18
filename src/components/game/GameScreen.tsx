@@ -29,6 +29,7 @@ import { useLayoutMemory } from './useLayoutMemory';
 import { HandRibbon } from './HandRibbon';
 import { ThumbZone } from './ThumbZone';
 import { Feed } from './Feed';
+import { TriggerSheet } from './TriggerSheet';
 import { PresentationLayer } from './PresentationLayer';
 import { CelebrationLayer } from './CelebrationLayer';
 import { CommanderCutIn } from './CommanderCutIn';
@@ -224,6 +225,9 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         </div>
 
         {controller.feedOpen && <Feed controller={controller} onClose={controller.closeFeed} />}
+        {controller.triggerSheetOpen && (
+          <TriggerSheet controller={controller} onClose={controller.closeTriggerSheet ?? (() => {})} />
+        )}
         {controller.opponentBoardOpen && (
           <OpponentBoardDialog controller={controller} onClose={controller.closeOpponentBoard} />
         )}

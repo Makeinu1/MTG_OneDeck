@@ -103,14 +103,14 @@ const cases: ReadonlyArray<
     ['flash'],
   ],
   // ══ castTiming 軸 + 敵対的負例 ════════════════════════════════════════════════════════
-  // ── 🔴 juncture 真値負例: 「deals combat damage」= Slice2 damage であって juncture でない ─
+  // ── 🔴 juncture 真値負例: damage はjunctureでない。EquipはCR702.6aのsorcery-speed ─
   [
     'Sword of Feast and Famine',
     'Artifact — Equipment',
     'Equipped creature gets +2/+2 and has protection from black and from green.\nWhenever equipped creature deals combat damage to a player, that player discards a card and you untap all lands you control.\nEquip {2}',
     [],
     [],
-    ['none'],
+    ['sorcery-speed'],
   ],
   // ── sorcery-speed: 起動の「Activate only as a sorcery」───────────────────────────────
   [

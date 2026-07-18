@@ -60,6 +60,9 @@ function controllerFor(
     openCountDialog: vi.fn(),
     requestConfirm: vi.fn(),
     triggerCandidateCount: 0,
+    triggerSheetOpen: false,
+    processTriggers: vi.fn(),
+    closeTriggerSheet: vi.fn(),
     motionArmed: false,
     feedOpen: false,
     openFeed: vi.fn(),
@@ -144,6 +147,77 @@ describe('high-frequency HUD interactions', () => {
 
     act(() => { card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })); });
     expect(useGameStore.getState().state?.cards[cardId].tapped).toBe(!before);
+    act(() => root.unmount());
+  });
+
+  it('activates one modeled tap ability from the normal battlefield click', () => {
+    const fixtureState = buildVisualFixture('battlefield').snapshot.state;
+    const cardId = fixtureState.zones.battlefield.find((id) =>
+      fixtureState.defs[fixtureState.cards[id].defId]?.typeLine.includes('Creature'))!;
+    const card = fixtureState.cards[cardId];
+    const sourceDef = fixtureState.defs[card.defId];
+    const state = {
+      ...fixtureState,
+      defs: {
+        ...fixtureState.defs,
+        [card.defId]: {
+          ...sourceDef,
+          faces: sourceDef.faces.map((face, index) =>
+            index === card.faceIndex ? { ...face, oracleText: '{T}: Add {G}.' } : face),
+        },
+      },
+    };
+    const controller = controllerFor(state);
+    const activateAbility = vi.spyOn(controller.store, 'activateAbility');
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
+
+    act(() => {
+      container.querySelector<HTMLElement>(`[data-layout-card-id="${cardId}"]`)?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
+      );
+    });
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 0);
+    const quickButton = container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}"]`)!;
+    expect(quickButton.title).toContain('即時');
+
+    // モバイルでは通常タップがpreviewのままでも、カード上の常設ボタンから1タップで起動できる。
+    act(() => quickButton.click());
+    expect(activateAbility).toHaveBeenCalledTimes(2);
+    act(() => root.unmount());
+  });
+
+  it('opens an inline picker for multiple tap abilities and preserves the selected flat index', () => {
+    const fixtureState = buildVisualFixture('battlefield').snapshot.state;
+    const cardId = fixtureState.zones.battlefield.find((id) =>
+      fixtureState.defs[fixtureState.cards[id].defId]?.typeLine.includes('Creature'))!;
+    const card = fixtureState.cards[cardId];
+    const sourceDef = fixtureState.defs[card.defId];
+    const state = {
+      ...fixtureState,
+      defs: {
+        ...fixtureState.defs,
+        [card.defId]: {
+          ...sourceDef,
+          faces: sourceDef.faces.map((face, index) => index === card.faceIndex
+            ? { ...face, oracleText: 'Flying\n{T}: Add {G}.\n{T}: Draw a card.' }
+            : face),
+        },
+      },
+    };
+    const controller = controllerFor(state);
+    const activateAbility = vi.spyOn(controller.store, 'activateAbility');
+    const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
+    const layoutCard = container.querySelector<HTMLElement>(`[data-layout-card-id="${cardId}"]`)!;
+
+    act(() => {
+      layoutCard.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+    });
+    expect(container.querySelector(`[data-testid="quick-ability-picker-${cardId}"]`)).not.toBeNull();
+    act(() => {
+      container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}-2"]`)?.click();
+    });
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 2);
+    expect(container.querySelector(`[data-testid="quick-ability-picker-${cardId}"]`)).toBeNull();
     act(() => root.unmount());
   });
 
@@ -336,6 +410,9 @@ describe('high-frequency HUD interactions', () => {
 
     expect(container.querySelector('[data-testid="stack-band-resolve"]')).toBeNull();
     expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
+    expect(container.querySelector('.stack-workspace__footer-compact')?.textContent).toBe('下の「解決」から');
+    expect(container.querySelector('.stack-workspace footer')?.getAttribute('title'))
+      .toContain('手札・盤面から応答');
     expect(items[0]?.classList.contains('is-selected')).toBe(true);
     act(() => {
       items[1]?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
@@ -476,10 +553,12 @@ describe('high-frequency HUD interactions', () => {
     const toggle = container.querySelector<HTMLButtonElement>('[data-testid="current-phase-label"]');
 
     expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle?.querySelector('.status-band__phase-mode')?.textContent).toContain('自');
     act(() => toggle?.click());
     expect(useGameStore.getState().autoAdvanceToMain).toBe(false);
     act(() => root.render(<StatusBand controller={{ ...controller, store: useGameStore.getState() }} />));
     expect(container.querySelector('[data-testid="current-phase-label"]')?.getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('.status-band__phase-mode')?.textContent).toContain('手');
     act(() => useGameStore.getState().setAutoAdvance(true));
     act(() => root.unmount());
   });
@@ -572,6 +651,27 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('routes the trigger PrimaryAction directly instead of opening Feed', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const processTriggers = vi.fn();
+    const openFeed = vi.fn();
+    const controller = controllerFor(state, {
+      triggerCandidateCount: 1,
+      processTriggers,
+      openFeed,
+    });
+    const { container, root } = mount(<ThumbZone controller={controller} />);
+    const primary = container.querySelector<HTMLButtonElement>('[data-testid="primary-action"]');
+
+    expect(primary?.dataset.kind).toBe('triggers');
+    expect(primary?.getAttribute('aria-label')).toBe('誘発を処理 (1)');
+    expect(primary?.querySelector('.thumb-zone__primary-compact')?.textContent).toBe('誘発 1');
+    act(() => primary?.click());
+    expect(processTriggers).toHaveBeenCalledTimes(1);
+    expect(openFeed).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
   it('does not draw from the library tile and provides a separate explicit draw button', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const openLibraryActions = vi.fn();
@@ -609,6 +709,18 @@ describe('high-frequency HUD interactions', () => {
     expect(open?.textContent).toContain('60枚');
     act(() => open?.click());
     expect(onOpenWorkspace).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
+  it('uses natural short Japanese in the expanded hand workspace', () => {
+    const state = buildVisualFixture('hand60').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(
+      <HandRibbon controller={controller} workspaceOpen onCloseWorkspace={vi.fn()} />,
+    );
+    expect(container.querySelector('#hand-workspace-title')?.textContent).toBe('手札一覧');
+    expect(container.querySelector('.hand-ribbon__workspace-heading span')?.textContent).toBe('全体表示 · 60枚');
+    expect(container.querySelector('[data-testid="close-hand-workspace"]')?.textContent).toContain('盤面へ');
     act(() => root.unmount());
   });
 

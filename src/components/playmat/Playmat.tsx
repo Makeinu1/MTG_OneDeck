@@ -28,6 +28,7 @@ import { Zones } from './Zones';
 import { GameLog } from './GameLog';
 import { Toasts } from './Toasts';
 import { TriggerCandidatePanel } from './TriggerCandidatePanel';
+import { triggerDirectAction } from '../game/triggerDirectAction';
 import { TargetPickerDialog } from './TargetPickerDialog';
 import {
   ControlRail,
@@ -328,9 +329,26 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
   useShortcuts({
     onNextPhase: () => {
-      const currentState = useGameStore.getState().state;
+      const current = useGameStore.getState();
+      const currentState = current.state;
       if (currentState && currentState.zones.stack.length > 0) {
         requestResolveTop();
+        return;
+      }
+      if (currentState && current.triggerCandidates.length > 0) {
+        const action = triggerDirectAction(currentState, current.triggerCandidates);
+        if (action.kind === 'place') {
+          const candidate = action.candidate;
+          if (candidate.pendingTriggerId) {
+            current.placePendingTriggersForPriority([candidate.pendingTriggerId]);
+          } else {
+            current.addAbilityToStack(
+              candidate.sourceId,
+              'triggered',
+              candidate.abilityLineIndex,
+            );
+          }
+        }
         return;
       }
       store.nextPhase();

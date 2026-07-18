@@ -5,6 +5,7 @@ import {
   removeReminderAndQuotes,
   splitParagraphs,
 } from '../keywordGrammar';
+import { canonicalizeActivatedKeyword, type KeywordActivationZone } from './activatedKeyword';
 
 export type AbilityShape =
   | 'activated'
@@ -19,6 +20,10 @@ export interface AbilityLine {
   faceIndex: number;
   text: string;
   shape: AbilityShape;
+  keywordId?: string;
+  keywordLabel?: string;
+  keywordCost?: string;
+  activationZones?: readonly KeywordActivationZone[];
 }
 
 export type EffectAtomId = string;
@@ -160,6 +165,21 @@ export function splitAbilityLines(def: CardDef): AbilityLine[] {
       if (text === '') {
         continue;
       }
+      const canonicalKeyword = canonicalizeActivatedKeyword(text);
+      if (canonicalKeyword) {
+        for (const activation of canonicalKeyword) {
+          lines.push({
+            faceIndex,
+            text: activation.text,
+            shape: 'activated',
+            keywordId: activation.keywordId,
+            keywordLabel: activation.keywordLabel,
+            keywordCost: activation.keywordCost,
+            activationZones: activation.activationZones,
+          });
+        }
+        continue;
+      }
       const shape =
         parsePureKeywordLine(text)
           ? 'keyword'
@@ -176,6 +196,10 @@ export interface ActivatedAbilityLine {
   text: string;
   costText: string;
   effectText: string;
+  keywordId?: string;
+  keywordLabel?: string;
+  keywordCost?: string;
+  activationZones?: readonly KeywordActivationZone[];
 }
 
 /**
@@ -200,7 +224,17 @@ export function activatedAbilityLines(
       const colonIndex = line.text.indexOf(':');
       const costText = colonIndex < 0 ? line.text.trim() : line.text.slice(0, colonIndex).trim();
       const effectText = colonIndex < 0 ? '' : line.text.slice(colonIndex + 1).trim();
-      return { index, faceIndex: line.faceIndex, text: line.text, costText, effectText };
+      return {
+        index,
+        faceIndex: line.faceIndex,
+        text: line.text,
+        costText,
+        effectText,
+        ...(line.keywordId ? { keywordId: line.keywordId } : {}),
+        ...(line.keywordLabel ? { keywordLabel: line.keywordLabel } : {}),
+        ...(line.keywordCost ? { keywordCost: line.keywordCost } : {}),
+        ...(line.activationZones ? { activationZones: line.activationZones } : {}),
+      };
     });
 }
 

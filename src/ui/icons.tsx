@@ -13,6 +13,7 @@ export type IconName =
   | 'bell'
   | 'close'
   | 'tap'
+  | 'stack'
   | 'attack'
   | 'life-up'
   | 'life-down'
@@ -72,6 +73,13 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M20 12a8 8 0 1 1-2.34-5.66" />
       <polyline points="20 4 20 9 15 9" />
+    </>
+  ),
+  stack: (
+    <>
+      <rect x="5" y="4" width="12" height="12" rx="1.5" />
+      <path d="M8 19h10a1 1 0 0 0 1-1V8" />
+      <path d="M9 8h4M9 11h6" />
     </>
   ),
   attack: (

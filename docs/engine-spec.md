@@ -295,16 +295,24 @@ export function isSummoningSick(state: GameState, cardId: string): boolean;
 export interface AutoTapPlan {
   ok: boolean;                       // 浮きマナ+計画タップで完全支払い可能か
   taps: { cardId: string; color: ManaColor }[];  // タップすべき供給源と出す色
+  activations: AutoTapActivation[];  // 1起動ごとの正確な出力束と追加コストを含むコマンド
   payment: ManaPool;                 // 最終的にプールから引く量(浮き+追加分)
   shortfall: number;
 }
 export function planAutoTap(state: GameState, cost: ParsedCost, xValue: number): AutoTapPlan;
+export function planAutoManaPayment(state: GameState, cost: ParsedCost, xValue: number): AutoTapPlan;
+export function autoTapCommands(plan: Pick<AutoTapPlan, 'activations'>): GameCommand[];
 ```
-- 候補: battlefield の未タップかつ `producedMana` 非空。ただし `isSummoningSick` と `tokenKind === 'treasure'` は除外
+- `planAutoTap` は ACT-1 契約を維持する純 `{T}` shortcut。追加コストを勝手に払わない。
+- `planAutoManaPayment` はキャスト/サイクリングの支払い専用。oracle の起動型マナ能力を候補化し、確定的な追加コストと出力を1 activationとして原子的に計画する(CR 118.3/602.2/605.3b)。条件・用途制限・可変値を安全に評価できない能力は候補に含めない(fake-auto禁止)。
+- 盤面依存で決定可能な出力は現在stateを読む: charge counter数、Swamp保有条件、伝説のクリーチャー/プレインズウォーカー/パーマネントの現在面マナ・コスト由来色。生け贄対象が「a creature」で一意に分類できる場合はトークン→非統率者→低mana value→battlefield順で決定し、統率者は最後の候補とする。
+- 候補: battlefield の未タップかつ生成可能なマナ束が非空。ただし `isSummoningSick` と `tokenKind === 'treasure'` は除外
 - 浮きマナ(state.manaPool)を先に充当し、不足分のみタップ計画
-- 優先順位: 単色土地 → 多色土地 → 非クリーチャー非土地 → クリーチャー(同順位内は producedMana が少ない順)
+- 出力は1起動単位の正確な束として扱う(`{C}{C}`=2点、`{G}{U}`=同時2色、`three mana of any one color`=選択色3点)。
+- 選択方針: 完全支払い可能性 → 自己生け贄/追放・ライフ・自己ダメージの回避 → 支払い後に残る色集合と唯一色源の温存 → 生成色の狭い源を先に使いrainbow/任意色源を最後にする → 非マナ/戦闘価値 → 起動数・過剰生成 → battlefield順の決定的tie-break。
 - 色拘束 pip は供給可能ソースが少ない色から割当。**単純貪欲で完全支払いを取りこぼさないこと**(solvePayment と同様、必要ならバックトラック。候補は高々数十、pip は高々十数なので全列挙可)
 - ok=false の場合も「最善の部分計画」を返す(強行用)
+- 本追補は資源状態②でCodexが暫定起草し、2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。CR 601.2f-h/602.2/605.3b/118.3照合済。
 
 ### 7.8 ストア追加・変更
 ```ts
@@ -314,7 +322,7 @@ playLand(cardId: string, opts?: { force?: boolean }): 'ok' | 'needs-confirm';
 crackTreasure(cardId: string, color: ManaColor): void;
 
 // castFromHand / castCommander:
-//   solvePayment が不足 → planAutoTap。ok なら taps の setTapped+addMana と cast コマンドを
+//   solvePayment が不足 → planAutoManaPayment。ok なら autoTapCommands(plan) と cast コマンドを
 //   順次 applyCommand し【1回の commit】(undo 1回で全復元)。ログには自動タップの内訳を残す。
 //   autotap でも不足 → 従来通り {shortfall} を返し UI が確認(強行=可能な分タップ+部分支払い)
 
@@ -323,6 +331,14 @@ crackTreasure(cardId: string, color: ManaColor): void;
 // toggleTap / tapForMana: 対象が isSummoningSick なら warning
 //   「《X》は召喚酔い中です。」を付与(操作は通す)
 ```
+
+#### 7.8a 誘発のPrimaryAction直接処理(2026-07-18・資源状態②追補→同日判定者監査済)
+
+- 優先順は stack非空→stack解決、stack空かつready pending triggerあり→誘発処理、それ以外→phase advance。
+- 単一かつoracle行にtargetを含まない誘発は `placePendingTriggersForPriority([pendingTriggerId])` へ直結する。PrimaryActionと次フェイズショートカットは同一判定 `triggerDirectAction` を使う。
+- 複数誘発またはtargetを含む誘発はFeedでなく専用TriggerSheetへ進む。複数はユーザー指定順を `placePendingTriggersForPriority` へ渡し、既存APNAP検証を迂回しない(CR 603.3b/603.3d)。
+- ready pending triggerがある間、`nextPhase`/`nextTurn` はstateを変更せず警告する。シートを閉じてもpendingを消さない。明示的な「無視」はサンドボックスの代替導線にだけ残し、通常の閉じる操作と混同しない。
+- 根拠: CR 117.5、603.3、603.3b-d、603.6a。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。
 
 ### 7.9 不変条件の追加(プロパティテスト対象)
 - I6: `landsPlayedThisTurn >= 0`。untap 進入直後は常に 0
@@ -3099,6 +3115,24 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **CR 根拠**: CR121.1/121.2(draw=ライブラリ上から手札へ)・CR701.9(discard=手札→墓地)・CR608.2h(プレイヤー選択に依存する値は解決時に確定)。
 
 **受け入れ(判定者先行 authoring・要石)**: `review.cr121-loot-variable-count.test.ts`(レビュー専有・5 pin=挙動ベース public store API + zone/library 枚数)= (1)up-to 2 で2枚捨て→draw 2、(2)**誠実性 pin=1枚捨て→cancel→draw 1(上限2を引かない)**、(3)0枚(即 cancel)→draw 0、(4)cross-player「Target player discards…」は self-discard guided を開かない(fail-closed)、(5)plain「Draw two cards.」は無誘導 auto 継続(回帰中立)。実 oracle golden(Tersa Lightshatter=up-to 2 / Celes, Rune Knight=any-number +1 / Fable 第II章=optional 不発火)。機械4点全緑(214 files/1781 tests・独立判定者再検証済)。実装 commit=`0fbceef`・review pin=`4ee804b`。
+### 34.48 ACT-3 起動型キーワードの正規形展開(CR 702.6/49/67/84/87/107/122/128/129/151)— この節も契約である
+
+> **資源状態②の暫定起草→同日監査済**(2026-07-18): ユーザーが判定者不在中のCodex両担と台帳本体編集を明示許可。2026-07-18監査済: Fable判定者+冷Sonnet Tier-1で独立再検証(clean)。CR原文とreview pinへの照合済。
+
+**位置づけ**: ACT-2(§34.46)が通常のコロン付き起動型能力を行別に到達可能にした後続。Oracle上は `Keyword [cost]` とだけ書かれ、コロンを含まない起動型キーワードを、CR 702の定義文どおり通常の `[Cost]: [Effect]` 行へ決定的に展開する。新しいGameCommand/GameStateは追加しない。
+
+**単一正規化層**: `canonicalizeActivatedKeyword` を `sanitizeLine` 後・`parsePureKeywordLine` 前に一度だけ適用する。対象は Equip(修飾付き/planeswalker/非マナコストを含む)、Fortify、Level up、Outlast、Unearth、Embalm、Eternalize、Ninjutsu、Commander ninjutsu、Crew、Reconfigure。ReconfigureはCR 702.151aどおりattach/unattachの2行へ展開する。生成行は `shape:'activated'`、`keywordId`、日本語短縮ラベル、表示用cost、定義ゾーン集合を保持し、flat index空間はACT-2と共通にする。
+
+**定義ゾーンとUI到達性**: 通常の起動型行は戦場のみ。キーワード行はCRが規定するゾーンだけをactionCatalogへ出す: battlefield=Equip/Fortify/Level up/Outlast/Crew/Reconfigure、graveyard=Unearth/Embalm/Eternalize、hand=Ninjutsu、hand+command=Commander ninjutsu(CR 702.49d)。キーワードは1行でも `ability-activate-<flat index>` を使い、`<日本語ラベル> (<keyword cost>)` と表示する。これにより、通常能力とUnearthを併記するカードは戦場と墓地で別の行だけを提示する。
+
+**起動契約**: UI idは既存 `activateAbility(sourceId, flatIndex)` へ流し、CR 602.2bの既存コスト精算・対象選択・source snapshot・能力スタック経路を再利用する。墓地/手札/統率領域の発生源を起動しても、能力がスタックに積まれた時点では、効果によるゾーン移動はまだ起こらない。
+
+**誠実な境界**: 本スライスの完了条件は「CR正規形への展開・正しいゾーンでの発見・既存起動経路への接続」であり、複合効果の完全自動解決ではない。Crewの他クリーチャーtap、Ninjutsuの複合コスト、Unearthの遅延誘発+置換効果、Embalm/Eternalizeの例外付きコピー、Reconfigureのdetachなど、既存compiler/GameCommandで全体を表現できない処理はmanual判定を維持する。認識した一部だけを実行してautoを名乗ってはならない。これらのコスト語彙拡張はACT-4以降。
+
+**CR根拠**: 702.6a/c/e、702.49a/d、702.67a、702.84a、702.87a、702.107a、702.122a、702.128a、702.129a、702.151a。
+
+**受け入れ**: `src/engine/__tests__/review.act3-activated-keyword.test.ts`が全canonical形、修飾Equip、Reconfigure二行、metadata/flat index、ゾーン別actionCatalog、通常能力+Unearthの分離、墓地発生源のコスト支払+stack source snapshotをpinする(判定者が2026-07-18に再オーナー化)。
+
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 
 **位置づけ(判定者裁定 2026-07-18)**: コンパイラの decision(auto/guided/manual)+生成コマンド指紋をコーパス全行(17,491枚・21,896効果行)でスナップショット化し、新パターン追加が既存 auto/guided の挙動を無言で変える回帰(candidate 汚染)を vitest が機械検出する。**現行検証プロトコル(fail-closed・独立 Tier-1 監査)の*補完*であり代替ではない**——残置ブランチ 69ecc88 が主張した fail-open 高速レーン(冷監査の既定廃止)はユーザー裁定 2026-07-18 で不採用。本計器は監査を置き換えず、Tier-1 の corpus flip 実測を常設ゲート化するもの。

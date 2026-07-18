@@ -34,6 +34,7 @@ import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { celebrate } from './sound';
+import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
 import {
   ArrangeTopDialog,
@@ -154,6 +155,9 @@ export interface GameController {
   requestConfirm: (action: 'restart' | 'back-to-import') => void;
   /** 誘発候補の件数(PrimaryAction 状態機械・ベルバッジ用)。 */
   triggerCandidateCount: number;
+  triggerSheetOpen?: boolean;
+  processTriggers?: () => void;
+  closeTriggerSheet?: () => void;
   /** 祝祭アニメを許可するか(初期マウント/再開の一斉再生を抑止・D5)。 */
   motionArmed: boolean;
   /** フィード(誘発/警告/ログ)の開閉。GameScreen が feedOpen で <Feed> を描画。 */
@@ -224,6 +228,7 @@ export function useGameController({
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
+  const [triggerSheetOpen, setTriggerSheetOpen] = useState(false);
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
   const [commanderCutIn, setCommanderCutIn] = useState<CommanderCutInData | null>(null);
   const commanderTimersRef = useRef<number[]>([]);
@@ -297,14 +302,37 @@ export function useGameController({
     menu !== null ||
     libraryMenu !== null ||
     feedOpen ||
+    triggerSheetOpen ||
     resolutionLocked ||
     externalShortcutsBlocked;
 
+  function processTriggers(): void {
+    const current = useGameStore.getState();
+    const currentState = current.state;
+    if (!currentState) return;
+    const action = triggerDirectAction(currentState, current.triggerCandidates);
+    if (action.kind === 'place') {
+      const candidate = action.candidate;
+      if (candidate.pendingTriggerId) {
+        current.placePendingTriggersForPriority([candidate.pendingTriggerId]);
+      } else {
+        current.addAbilityToStack(candidate.sourceId, 'triggered', candidate.abilityLineIndex);
+      }
+      return;
+    }
+    if (action.kind === 'sheet') setTriggerSheetOpen(true);
+  }
+
   useShortcuts({
     onNextPhase: () => {
-      const s = useGameStore.getState().state;
+      const current = useGameStore.getState();
+      const s = current.state;
       if (s && s.zones.stack.length > 0) {
         requestResolveTop();
+        return;
+      }
+      if (current.triggerCandidates.length > 0) {
+        processTriggers();
         return;
       }
       advancePhase();
@@ -1325,6 +1353,9 @@ export function useGameController({
     openCountDialog: (kind, defaultValue) => setCountDialog({ kind, defaultValue }),
     requestConfirm: (action) => setConfirmAction(action),
     triggerCandidateCount: store.triggerCandidates.length,
+    triggerSheetOpen,
+    processTriggers,
+    closeTriggerSheet: () => setTriggerSheetOpen(false),
     motionArmed,
     feedOpen,
     openFeed: () => setFeedOpen(true),

@@ -5,6 +5,7 @@ import { GameCard } from './GameCard';
 import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
 import type { GameController } from './gameController';
 import { ManualTargetDialog } from './ManualTargetDialog';
+import { Icon } from '../../ui/icons';
 
 interface TargetLine {
   key: string;
@@ -196,8 +197,10 @@ export function StackBand({ controller }: StackBandProps) {
             </li>
           ))}
         </ol>
-        <footer>
-          <span>解決は画面下のプライマリアクションから。手札・盤面から応答を追加できます。</span>
+        <footer title="解決は画面下のプライマリアクションから。手札・盤面から応答を追加できます。">
+          <Icon name="phase-next" />
+          <span className="stack-workspace__footer-full">下のプライマリアクションで解決。手札・盤面から応答できます。</span>
+          <span className="stack-workspace__footer-compact" aria-hidden="true">下の「解決」から</span>
         </footer>
       </section>
       {manualTargetSourceId && (

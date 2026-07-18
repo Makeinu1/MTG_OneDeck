@@ -94,6 +94,29 @@ describe('trigger candidates', () => {
     ]);
   });
 
+  it('blocks phase and turn movement while a ready trigger is pending', () => {
+    const etb = makeDef({
+      scryfallId: 'candidate-transition-block',
+      faces: [{
+        name: 'Candidate Transition Block',
+        typeLine: 'Creature',
+        oracleText: 'When Candidate Transition Block enters, draw a card.',
+      }],
+    });
+    startGameWith([etb]);
+    const sourceId = findInstanceId(etb.scryfallId);
+    store().moveCard(sourceId, 'battlefield');
+    const beforePhase = snap().phase;
+    const beforeTurn = snap().turn;
+
+    store().nextPhase();
+    store().nextTurn();
+
+    expect(snap().phase).toBe(beforePhase);
+    expect(snap().turn).toBe(beforeTurn);
+    expect(store().warnings).toContain('未処理の誘発があります。先にスタックへ置いてください。');
+  });
+
   it('clears candidates on undo and redo instead of re-detecting them', () => {
     const etb = makeDef({
       scryfallId: 'candidate-undo-etb',

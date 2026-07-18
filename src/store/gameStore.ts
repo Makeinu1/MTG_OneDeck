@@ -23,7 +23,11 @@ import {
 } from '../engine/commands';
 import { commanderTax, isCommander } from '../engine/commander';
 import { initGame, type InitDeckCard } from '../engine/init';
-import { planAutoTap } from '../engine/autotap';
+import {
+  autoTapCommands,
+  planAutoManaPayment,
+  type AutoTapPlan,
+} from '../engine/autotap';
 import { parseManaCost, solvePayment } from '../engine/mana';
 import { orderPendingTriggersApnap, triggerStackPlacementBucketOf } from '../engine/priority';
 import { createRng, shuffledOrder } from '../engine/random';
@@ -122,6 +126,7 @@ const DEFEAT_RULE_REFS: Record<DefeatReason, DefeatRuleRef> = {
   commanderDamage: '903.10a',
 };
 const STACK_TRANSITION_BLOCKED_WARNING = 'スタックに未解決の効果があります。先に解決してください。';
+const TRIGGER_TRANSITION_BLOCKED_WARNING = '未処理の誘発があります。先にスタックへ置いてください。';
 const PRIORITY_TRIGGER_ORDER_INCOMPLETE_WARNING =
   '優先権前に置く誘発の順序が未指定です。すべての pending trigger を順序指定してください。';
 const PRIORITY_TRIGGER_FIXED_POINT_MANUAL_WARNING =
@@ -1288,11 +1293,29 @@ function manaProductionAmount(def: CardDef | undefined, color: ManaColor): numbe
   return 1;
 }
 
-function tapCommands(taps: { cardId: string; color: ManaColor }[]): GameCommand[] {
-  return taps.flatMap((tap) => [
-    { type: 'setTapped', cardId: tap.cardId, tapped: true } satisfies GameCommand,
-    { type: 'addMana', color: tap.color, amount: 1 } satisfies GameCommand,
-  ]);
+function applyAutoManaPaymentAndCommands(
+  state: GameState,
+  plan: AutoTapPlan,
+  finalCommands: readonly GameCommand[],
+): ApplyResult {
+  let workingState = state;
+  const warnings: string[] = [];
+
+  for (const activation of plan.activations) {
+    const commands = autoTapCommands({ activations: [activation] });
+    const resolved = resolveManaAbilityTransaction(workingState, {
+      sourceId: activation.cardId,
+      ...(activation.abilityLineIndex === undefined
+        ? {}
+        : { abilityLineIndex: activation.abilityLineIndex }),
+      commands,
+    });
+    workingState = resolved.state;
+    warnings.push(...resolved.warnings);
+  }
+
+  const finalized = applyCommands(workingState, finalCommands);
+  return { state: finalized.state, warnings: [...warnings, ...finalized.warnings] };
 }
 
 function isFetchAbilityStackItem(state: GameState, cardId: string): boolean {
@@ -1534,6 +1557,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (!cur) return;
     if (cur.zones.stack.length > 0) {
       set({ warnings: [STACK_TRANSITION_BLOCKED_WARNING] });
+      return;
+    }
+    if (readyPendingTriggers(cur.pendingTriggers).length > 0) {
+      set({ warnings: [TRIGGER_TRANSITION_BLOCKED_WARNING] });
       return;
     }
 
@@ -2737,14 +2764,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         return 'ok';
       }
 
-      const plan = planAutoTap(cur, cost, xValue);
+      const plan = planAutoManaPayment(cur, cost, xValue);
       if (!plan.ok && !opts?.force) {
         return { shortfall: plan.shortfall };
       }
 
       try {
-        const commands: GameCommand[] = [
-          ...tapCommands(plan.taps),
+        const result = applyAutoManaPaymentAndCommands(cur, plan, [
           {
             type: 'castSpell',
             cardId,
@@ -2752,8 +2778,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             forced: !plan.ok,
             faceIndex,
           },
-        ];
-        const result = applyCommands(cur, commands);
+        ]);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -2787,14 +2812,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         return 'ok';
       }
 
-      const plan = planAutoTap(cur, taxedCost, xValue);
+      const plan = planAutoManaPayment(cur, taxedCost, xValue);
       if (!plan.ok && !opts?.force) {
         return { shortfall: plan.shortfall };
       }
 
       try {
-        const commands: GameCommand[] = [
-          ...tapCommands(plan.taps),
+        const result = applyAutoManaPaymentAndCommands(cur, plan, [
           {
             type: 'castCommander',
             cardId,
@@ -2802,8 +2826,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             forced: !plan.ok,
             faceIndex,
           },
-        ];
-        const result = applyCommands(cur, commands);
+        ]);
         commit(result.state, result.warnings);
       } catch (err) {
         console.error(err);
@@ -2840,14 +2863,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         return 'ok';
       }
 
-      const plan = planAutoTap(cur, taxedCost, xValue);
+      const plan = planAutoManaPayment(cur, taxedCost, xValue);
       if (!plan.ok && !opts?.force) {
         return { shortfall: plan.shortfall };
       }
 
       try {
-        const result = applyCommands(cur, [
-          ...tapCommands(plan.taps),
+        const result = applyAutoManaPaymentAndCommands(cur, plan, [
           {
             type: 'castToStack',
             cardId,
@@ -3842,14 +3864,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         return 'ok';
       }
 
-      const plan = planAutoTap(cur, cost, 0);
+      const plan = planAutoManaPayment(cur, cost, 0);
       if (!plan.ok && !opts?.force) {
         return { shortfall: plan.shortfall };
       }
 
       try {
-        const result = applyCommands(cur, [
-          ...tapCommands(plan.taps),
+        const result = applyAutoManaPaymentAndCommands(cur, plan, [
           { type: 'payMana', payment: plan.payment },
           ...effectCommands,
         ]);

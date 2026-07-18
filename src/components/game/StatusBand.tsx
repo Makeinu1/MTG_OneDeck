@@ -107,7 +107,11 @@ export function StatusBand({ controller }: StatusBandProps) {
             setModeFlash(true);
           }}
         >
-          現在：{model.phaseLabel}<span>・{store.autoAdvanceToMain ? '自動' : '手動'}</span>
+          <span className="status-band__phase-prefix">現在：</span>
+          <strong>{model.phaseLabel}</strong>
+          <span className="status-band__phase-mode" title={store.autoAdvanceToMain ? '自動進行' : '手動進行'}>
+            <Icon name="auto" />{store.autoAdvanceToMain ? '自' : '手'}
+          </span>
         </button>
         {PHASE_ORDER.map((phase, index) => (
           <span

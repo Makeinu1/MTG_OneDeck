@@ -1,8 +1,10 @@
 # ACT-3 起動型キーワードの正規形展開 — Scoping Draft
 
 **Date**: 2026-07-17  
-**Status**: Research & Scoping (no implementation)  
-**Background**: ACT-1 (b6400c0) で起動コスト迂回を封鎖後、次フェーズは起動型キーワード能力(equip, crew, level up等)の canonical activated line への展開。Equip と Crew は既に出荷済みだが、他の10種類のキーワードはまだ manual fallback。
+**Status**: Implemented under State②; independent judge audit pending  
+**Background**: ACT-1 で起動コスト迂回を封鎖後、ACT-3は起動型キーワード能力(equip, crew, level up等)を canonical activated line へ展開する。調査時点ではEquip/Crewを既出荷と推定していたが、実装監査で通常のpure keyword分類に留まり起動経路へ未接続と判明したため、本スライスで同じ単一正規化層へ統合した。
+
+> 2026-07-18 実装結果: `src/engine/grammar/activatedKeyword.ts` + `docs/engine-spec.md §34.48` が現行契約。本ファイルの下記案は調査履歴であり、現行実装と矛盾する箇所は§34.48を優先する。完全自動解決ではなく、正規形・定義ゾーン・既存起動経路への接続が完了範囲。
 
 ---
 

@@ -13,6 +13,9 @@ import { CardPreview } from './CardPreview';
 import type { CardPreviewAnchor } from './cardPreviewPosition';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import { decisionCardRole } from './decisionFocus';
+import { quickAbilityAction, quickAbilityLabel } from './quickAbilityAction';
+import { activatedManaAbilityPlanForSource } from '../../engine/commands';
+import { Icon } from '../../ui/icons';
 
 const PREVIEW_DELAY_MS = 150;
 const DOUBLE_TAP_WINDOW_MS = 280;
@@ -48,6 +51,7 @@ export function GameCard({
   const [celebrateOnMount] = useState(() => controller.motionArmed);
   const [previewAnchor, setPreviewAnchor] = useState<CardPreviewAnchor | null>(null);
   const [previewPinned, setPreviewPinned] = useState(false);
+  const [quickPickerOpen, setQuickPickerOpen] = useState(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dragActiveRef = useRef(false);
@@ -62,6 +66,7 @@ export function GameCard({
       previewTimerRef.current = null;
       setPreviewPinned(false);
       setPreviewAnchor(null);
+      setQuickPickerOpen(false);
       lastTouchTapRef.current = null;
     };
     const handleDragEnd = () => {
@@ -109,6 +114,23 @@ export function GameCard({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [previewPinned]);
+  useEffect(() => {
+    if (!quickPickerOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && rootRef.current?.contains(target)) return;
+      setQuickPickerOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setQuickPickerOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [quickPickerOpen]);
   if (!state) return null;
   const instance = state.cards[cardId];
   if (!instance) return null;
@@ -117,6 +139,12 @@ export function GameCard({
   const decisionRole = decisionCardRole(controller.decisionFocus, cardId);
   const combatAttacker = state.combat?.attackers.find((entry) => entry.cardId === cardId);
   const combatBlocker = state.combat?.blockers.find((entry) => entry.cardId === cardId);
+  const quickAction = quickAbilityAction(instance, def);
+  const immediateQuickLineIndexes = new Set(
+    quickAction.lines
+      .filter((line) => activatedManaAbilityPlanForSource(state, cardId, line.index) !== null)
+      .map((line) => line.index),
+  );
 
   const cls = `game-card game-card--${size}${playable ? ' game-card--playable' : ''}${
     celebrateOnMount && instance.zone === 'battlefield' ? ' game-card--celebrate' : ''
@@ -141,6 +169,20 @@ export function GameCard({
 
   function closeTransientPreview(): void {
     if (!previewPinned) closePreview();
+  }
+
+  function runQuickAction(): void {
+    setPreviewPinned(false);
+    closePreview();
+    if (quickAction.kind === 'activate') {
+      controller.store.activateAbility(cardId, quickAction.lines[0].index);
+      return;
+    }
+    if (quickAction.kind === 'choose') {
+      setQuickPickerOpen(true);
+      return;
+    }
+    controller.store.toggleTap(cardId);
   }
 
   function handleDoubleClick(event: React.MouseEvent): void {
@@ -199,9 +241,7 @@ export function GameCard({
         }
         if (instance.zone === 'battlefield') {
           event.preventDefault();
-          setPreviewPinned(false);
-          closePreview();
-          controller.store.toggleTap(cardId);
+          runQuickAction();
           return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
@@ -217,7 +257,7 @@ export function GameCard({
         if (controller.decisionFocus || event.repeat) return;
         if (event.key === ' ' && instance.zone === 'battlefield') {
           event.preventDefault();
-          controller.store.toggleTap(cardId);
+          runQuickAction();
           return;
         }
         if (event.key === 'Enter') {
@@ -247,6 +287,57 @@ export function GameCard({
       />
       {commander && showCommanderBadge && (
         <span className="game-card__commander-marker" aria-label="統率者" title="統率者">統</span>
+      )}
+      {quickAction.kind !== 'manual-tap' && (
+        <button
+          type="button"
+          className="game-card__quick-ability-marker"
+          data-testid={`quick-ability-${cardId}`}
+          aria-label={quickAction.kind === 'activate' ? 'タップ能力を起動' : 'タップ能力を選ぶ'}
+          title={quickAction.kind === 'activate'
+            ? immediateQuickLineIndexes.has(quickAction.lines[0].index)
+              ? 'クリックでマナ能力を即時起動'
+              : 'クリックで能力をスタックへ置く'
+            : 'クリックでタップ能力を選択'}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            runQuickAction();
+          }}
+        >
+          <Icon name="tap" />
+          {quickAction.kind === 'choose' && (
+            <span className="game-card__quick-ability-count" aria-hidden="true">{quickAction.lines.length}</span>
+          )}
+        </button>
+      )}
+      {quickPickerOpen && quickAction.kind === 'choose' && (
+        <div
+          className="game-card__quick-picker"
+          data-testid={`quick-ability-picker-${cardId}`}
+          role="dialog"
+          aria-label="起動するタップ能力を選ぶ"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {quickAction.lines.map((line) => (
+            <button
+              type="button"
+              key={line.index}
+              data-testid={`quick-ability-${cardId}-${line.index}`}
+              onClick={() => {
+                setQuickPickerOpen(false);
+                controller.store.activateAbility(cardId, line.index);
+              }}
+            >
+              {quickAbilityLabel(
+                line,
+                immediateQuickLineIndexes.has(line.index) ? 'immediate' : 'stack',
+              )}
+            </button>
+          ))}
+          <button type="button" onClick={() => setQuickPickerOpen(false)}>閉じる</button>
+        </div>
       )}
       {combatAttacker && (
         <span className="game-card__combat-marker" data-role="attacker">

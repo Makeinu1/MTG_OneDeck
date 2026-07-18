@@ -541,6 +541,38 @@ describe('Playmat', () => {
     cleanupRender(root, container);
   });
 
+  it('uses ArrowUp to put one choice-free trigger on the stack before phase advance', () => {
+    const etb = makeDef({
+      scryfallId: 'playmat-direct-trigger',
+      typeLine: 'Creature',
+      faces: [{
+        name: 'playmat-direct-trigger',
+        typeLine: 'Creature',
+        oracleText: 'When playmat-direct-trigger enters, draw a card.',
+      }],
+    });
+    act(() => {
+      useGameStore.getState().newGame([{ def: etb, isCommander: false }, ...makeDeck(12)], 1);
+      useGameStore.getState().keepOpeningHand();
+      useGameStore.getState().beginFirstTurn();
+    });
+    const sourceId = findInstanceId(etb.scryfallId);
+    act(() => useGameStore.getState().moveCard(sourceId, 'battlefield'));
+    const { container, root } = renderPlaymat();
+    const before = useGameStore.getState().state;
+    expect(before?.phase).toBe('main1');
+    expect(useGameStore.getState().triggerCandidates).toHaveLength(1);
+
+    act(() => shortcutCapture.handlers?.onNextPhase());
+
+    const after = useGameStore.getState().state;
+    expect(after?.phase).toBe('main1');
+    expect(after?.zones.stack).toHaveLength(1);
+    expect(after?.pendingTriggers).toEqual([]);
+    expect(useGameStore.getState().triggerCandidates).toEqual([]);
+    cleanupRender(root, container);
+  });
+
   it('disables phase and turn buttons while the stack is non-empty', () => {
     act(() => {
       useGameStore.getState().newGame(makeDeck(12), 1);

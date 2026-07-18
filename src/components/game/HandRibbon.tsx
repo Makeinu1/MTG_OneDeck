@@ -287,8 +287,8 @@ export function HandRibbon({
       {handLayout === 'workspace' && (
         <div className="hand-ribbon__workspace-heading" data-testid="hand-workspace-heading">
           <div>
-            <strong id="hand-workspace-title">手札 Workspace</strong>
-            <span>{state.zones.hand.length}枚 — カード全体を保ったまま一覧</span>
+            <strong id="hand-workspace-title">手札一覧</strong>
+            <span>全体表示 · {state.zones.hand.length}枚</span>
           </div>
           <button
             type="button"
@@ -298,7 +298,7 @@ export function HandRibbon({
             ref={closeButtonRef}
             onClick={onCloseWorkspace}
           >
-            盤面を見る
+            盤面へ
           </button>
         </div>
       )}
