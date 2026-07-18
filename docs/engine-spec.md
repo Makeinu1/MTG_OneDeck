@@ -3077,3 +3077,14 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **スコープ境界(本スライスでやらないこと)**: ACT-1 carry(needs-choice 色選択ダイアログの `naiveTapManaColors` 統一・§34.11 項7 の「既知 carry」)は **ACT-2 では扱わず ACT バッチの後続へ繰り越す**(本節がその carry 先の訂正=§34.11 項7 の「ACT-2 へ」は本節により後続スライスへ読み替える)。起動型キーワードの正規形展開(Equip/Crew 等)= ACT-3。コスト語彙 leaf(tap-other・カウンター除去・`{X}`)= ACT-4。忠誠度能力(CR 606)= §34.19 の明示 defer を維持。誘発型の面フィルタ= 上記のとおり別スライス。`Playmat.tsx` のレガシー `buildMenuItems`(import 元が自身のテストのみ=**死コード**・実経路は `gameController`)は触らない=別途 cleanup。
 
 **受け入れ(判定者先行 authoring=実装を見る前に契約の形から書いた)**: `src/store/__tests__/review.act2-activation-lines.test.ts`(レビュー専有・**17 pin**)= 列挙の flat index/コロン分割/非起動型の除外/面フィルタ・行ごと spec とコストラベル・2本以上での総称抑止・1本/0本の総称維持(golden 非回帰)・純粋性・**行 index 指定で正しい行が起動**(`{T}` 行=タップして戦場に残る / 生け贄行=墓地へ)・**CR601.2c→601.2h の順序**(対象確定前は盤面不変)・**Pathway 型 MDFC の表面/裏面解決**(manual 落ちしない)・強行(盤面不変でブロック→pending 提示→confirm で CR-legal 記録+picker 到達→cancel は盤面不変→支払える起動では pending を作らない)。**独立 Tier-1 のコーパス実測(17,491枚)= 過剰列挙 0・誤ラベル 0・index 空間ズレ 0・面フィルタ漏れ 0**。機械4点全緑(1920 tests)。
+
+## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
+
+**位置づけ(判定者裁定 2026-07-18)**: コンパイラの decision(auto/guided/manual)+生成コマンド指紋をコーパス全行(17,491枚・21,896効果行)でスナップショット化し、新パターン追加が既存 auto/guided の挙動を無言で変える回帰(candidate 汚染)を vitest が機械検出する。**現行検証プロトコル(fail-closed・独立 Tier-1 監査)の*補完*であり代替ではない**——残置ブランチ 69ecc88 が主張した fail-open 高速レーン(冷監査の既定廃止)はユーザー裁定 2026-07-18 で不採用。本計器は監査を置き換えず、Tier-1 の corpus flip 実測を常設ゲート化するもの。
+
+- `scripts/lib/decisionFingerprint.ts`: 指紋計算の単一正本(抽出射影型・canonical JSON + sha256・NDJSON snapshot・diffSnapshots/遷移サマリ a↔g↔m)。
+- `research/grammar-compile/corpus-extract.json.gz`(tracked): コーパス全カードの compiler 入力最小射影。生成=`npm run snapshot:extract`(raw corpus があるローカルのみ。生成時に raw との指紋一致を自己検証)。
+- `research/grammar-compile/decision-snapshot.json`(tracked): 全効果行の decision+コマンド指紋。更新=`npm run snapshot:update`(遷移サマリを出力)。
+- vitest ゲート(`src/engine/grammar/__tests__/decisionSnapshot.test.ts`): extract が存在する環境(=リポジトリ checkout 全部。両ファイル tracked)で常時実行。現行コードとスナップショットの差分=fail。**意図的な decision 変化は `npm run snapshot:update` で再生成し、遷移サマリ(a↔g↔m 件数+実例)を ship diff に同梱して判定者が承認する**。検出力自体は fixture corpus の実パイプラインデモテスト(decision 反転・指紋変化・行増減を fail として検出)で常時証明。
+
+**不変**: 本計器は読み取り専用(GameState/GameCommand に触れない)。review.* 不可侵・機械4点・独立 Tier-1 監査の既定は変わらない。
