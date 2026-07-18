@@ -2139,7 +2139,7 @@ export interface CrGoldEntry {
 }
 ```
 - 17,491 snapshot から **4決定論軸で層化サンプル**した代表集合(**≥150枚**目安・各軸を被覆)。deck 加重でなくコーパス代表性で採る
-  (deck 加重は条件5 の役割)。既存 `research/cr-conformance-audit.md` の所見(destroy/sacrifice=701.8a/701.21a・dies=700.4・
+  (deck 加重は条件5 の役割)。既存 `research/archive/cr-conformance-audit.md` の所見(destroy/sacrifice=701.8a/701.21a・dies=700.4・
   leaves=603.6c・landfall・layer=613)を CR 引用の出発点に使う。`expected` は **CR 条文が一意に決める決定論ラベルのみ**(解釈的・曖昧は
   gold に入れない=LLM を当てない=相関遮断)。
 
@@ -2216,7 +2216,7 @@ FROZEN 確認後に §34.7.1 現況ブロックを更新(全7緑 + CR-grounding 
 - **M0-Z iter3-b(CR 基盤化・2026-06-24・監査合格)**: 上記手法を適用。**🔴 iter3-a 分類器の CR 違反を是正** = destroy(701.8a)/sacrifice(701.21a)は `battlefield→owner's graveyard` ゆえ
   `graveyard` を欠落していた FN(churn 11.86%・graveyard +1,945)。CR 真理テーブル(ESO「iter3 CR ゾーン遷移真理テーブル」)を正本に分類器修正 + gold CR-truth 化(Doom Blade/Fling)+ prompt v4(CR 写像明示)。
   オラクル v4 差分: zone 6.95%(CR 誤り初稿 25.67% から解消)/crossPlayer 2.67%/ownership 2.67%/playerScope 8.02%/unverifiable 5.29%。帰属 substrate0/compiler18/oracle5/ambiguous9(残差=解釈的・小粒)。
-  **CR 準拠監査**(`research/cr-conformance-audit.md`)= runtime `triggers.ts` `trigger.death` が CR700.4 違反(`put into a graveyard` が「from the battlefield」非限定で mill/discard を死亡誤検出・parity 計測済・別タスク化)+ `trigger.landfall` 緩い。SBA/owner・controller/ゾーン分割の不在は設計(サンドボックス+substrate 未実装)。**Slice3 は CR 接地で実質収束方向。次 = Slice4 前進可**。
+  **CR 準拠監査**(`research/archive/cr-conformance-audit.md`)= runtime `triggers.ts` `trigger.death` が CR700.4 違反(`put into a graveyard` が「from the battlefield」非限定で mill/discard を死亡誤検出・parity 計測済・別タスク化)+ `trigger.landfall` 緩い。SBA/owner・controller/ゾーン分割の不在は設計(サンドボックス+substrate 未実装)。**Slice3 は CR 接地で実質収束方向。次 = Slice4 前進可**。
 - **M-GATE-4(条件4+条件3 緑化 → 凍結到達・2026-06-25・監査合格)= 手法 §34.7.5**: 条件4(非LLM独立物差し)を散文監査から**機械可読 CR 真理テーブル**へ昇格。
   Codex が代表160枚(4軸×40・各エントリ CR 条番号付き)gold を草稿し `crConformance.ts`/`cr-conformance.ts` harness を構築 → conformance 98.75%・divergent 2 を Fable へ提出。
   **Fable 裁定**: 2件(`Acrobatic Cheerleader`/`Cautious Survivor` の "Survival — At the beginning of your second main phase")は CR 505.1a で main-postcombat が一意=**classifier-FN**(gold 正)。
@@ -3099,3 +3099,13 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **CR 根拠**: CR121.1/121.2(draw=ライブラリ上から手札へ)・CR701.9(discard=手札→墓地)・CR608.2h(プレイヤー選択に依存する値は解決時に確定)。
 
 **受け入れ(判定者先行 authoring・要石)**: `review.cr121-loot-variable-count.test.ts`(レビュー専有・5 pin=挙動ベース public store API + zone/library 枚数)= (1)up-to 2 で2枚捨て→draw 2、(2)**誠実性 pin=1枚捨て→cancel→draw 1(上限2を引かない)**、(3)0枚(即 cancel)→draw 0、(4)cross-player「Target player discards…」は self-discard guided を開かない(fail-closed)、(5)plain「Draw two cards.」は無誘導 auto 継続(回帰中立)。実 oracle golden(Tersa Lightshatter=up-to 2 / Celes, Rune Knight=any-number +1 / Fable 第II章=optional 不発火)。機械4点全緑(214 files/1781 tests・独立判定者再検証済)。実装 commit=`0fbceef`・review pin=`4ee804b`。
+## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
+
+**位置づけ(判定者裁定 2026-07-18)**: コンパイラの decision(auto/guided/manual)+生成コマンド指紋をコーパス全行(17,491枚・21,896効果行)でスナップショット化し、新パターン追加が既存 auto/guided の挙動を無言で変える回帰(candidate 汚染)を vitest が機械検出する。**現行検証プロトコル(fail-closed・独立 Tier-1 監査)の*補完*であり代替ではない**——残置ブランチ 69ecc88 が主張した fail-open 高速レーン(冷監査の既定廃止)はユーザー裁定 2026-07-18 で不採用。本計器は監査を置き換えず、Tier-1 の corpus flip 実測を常設ゲート化するもの。
+
+- `scripts/lib/decisionFingerprint.ts`: 指紋計算の単一正本(抽出射影型・canonical JSON + sha256・NDJSON snapshot・diffSnapshots/遷移サマリ a↔g↔m)。
+- `research/grammar-compile/corpus-extract.json.gz`(tracked): コーパス全カードの compiler 入力最小射影。生成=`npm run snapshot:extract`(raw corpus があるローカルのみ。生成時に raw との指紋一致を自己検証)。
+- `research/grammar-compile/decision-snapshot.json`(tracked): 全効果行の decision+コマンド指紋。更新=`npm run snapshot:update`(遷移サマリを出力)。
+- vitest ゲート(`src/engine/grammar/__tests__/decisionSnapshot.test.ts`): extract が存在する環境(=リポジトリ checkout 全部。両ファイル tracked)で常時実行。現行コードとスナップショットの差分=fail。**意図的な decision 変化は `npm run snapshot:update` で再生成し、遷移サマリ(a↔g↔m 件数+実例)を ship diff に同梱して判定者が承認する**。検出力自体は fixture corpus の実パイプラインデモテスト(decision 反転・指紋変化・行増減を fail として検出)で常時証明。
+
+**不変**: 本計器は読み取り専用(GameState/GameCommand に触れない)。review.* 不可侵・機械4点・独立 Tier-1 監査の既定は変わらない。

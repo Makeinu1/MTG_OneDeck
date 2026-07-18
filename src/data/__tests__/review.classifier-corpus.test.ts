@@ -6,7 +6,7 @@
  * Implementation agents must NOT modify this file.
  *
  * Corpus data: ./fixtures/classifier-corpus.ts. Known-divergence rationale:
- * research/classifier-accuracy/known-divergences.json.
+ * research/archive/classifier-accuracy/known-divergences.json.
  */
 import { describe, expect, it } from 'vitest';
 import { classifyCardRules } from '../ruleClassifier';

@@ -1,6 +1,6 @@
 // Auto-generated high-confidence classifier regression corpus.
 // Oracle text from the Scryfall snapshot (2026-06-19). See
-// docs/engine-spec.md §26 and research/classifier-accuracy/.
+// docs/engine-spec.md §26 and research/archive/classifier-accuracy/.
 // Reviewer-owned (paired with review.classifier-corpus.test.ts).
 
 export interface CorpusEntry {

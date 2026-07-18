@@ -819,7 +819,7 @@ flip-flop の射程外(method §3:外部真理 CR が在るため分類器とオ
 - 機械4点 Fable 独立緑(lint/tsc/**vitest 851**/build)+ review.zone-coverage **31/31**(Doom Blade/Fling CR-pin)+ review.zone-oracle 緑。
 - **trust(iter3-b 後)**: E-ZONE-REF = **CR 接地で大幅収束**(6.95%・残差は認識 FN)。E-ZONE-CROSS = 良好(2.67%・残差は相手 dies の cross 照応)。
   E-OWNER/E-CONTROLLER = 良好(2.67%・残差 ambiguous owner)。E-PLAYER-SCOPE = 改善(8.02%・残差 recipient/owner-scope 認識)。
-- **収束読み**: zone 6.95%/scope 8.02% は 5% 閾値に**接近(未達)**。だが**最大の成果は手法の是正** = 決定論的軸を CR 真理テーブルへ移し、LLM-oracle を認識・解釈に限定したこと(本件以前は決定論的問いを物差しで予測し誤収束・3回の prompt 再走を浪費)。残差は認識精度(compiler 小)と owner 境界(ambiguous)で、いずれも substrate を脅かさない。**Slice3 は CR 接地で実質収束方向**。次の小改善 = 認識 FN(no-target bounce/return-spell-stack/相手 dies cross)。**Slice4(タイミング/SBA)前進可**。CR 準拠監査 = `research/cr-conformance-audit.md`(runtime `trigger.death` の CR700.4 違反を別タスク化)。
+- **収束読み**: zone 6.95%/scope 8.02% は 5% 閾値に**接近(未達)**。だが**最大の成果は手法の是正** = 決定論的軸を CR 真理テーブルへ移し、LLM-oracle を認識・解釈に限定したこと(本件以前は決定論的問いを物差しで予測し誤収束・3回の prompt 再走を浪費)。残差は認識精度(compiler 小)と owner 境界(ambiguous)で、いずれも substrate を脅かさない。**Slice3 は CR 接地で実質収束方向**。次の小改善 = 認識 FN(no-target bounce/return-spell-stack/相手 dies cross)。**Slice4(タイミング/SBA)前進可**。CR 準拠監査 = `research/archive/cr-conformance-audit.md`(runtime `trigger.death` の CR700.4 違反を別タスク化)。
 
 ---
 

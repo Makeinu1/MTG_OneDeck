@@ -215,7 +215,7 @@ const cases: ReadonlyArray<
   ],
 
   // ════ M0-O2 iter2-a 回帰 pin(LLM-oracle 盲予測 iter1 が炙り出した compiler 帰属の修正を固定)════
-  // 正本 = research/event-oracle/adjudication.json。各 pin は CR 準拠の正しい分類で、修正前は classifier が外す。
+  // 正本 = research/archive/event-oracle/adjudication.json。各 pin は CR 準拠の正しい分類で、修正前は classifier が外す。
 
   // ── P1: 自己名 short form。「Whenever <legendary short name> attacks」= self(分類器は full name のみ照合し unknown) ──
   [
@@ -324,7 +324,7 @@ const cases: ReadonlyArray<
   ],
 
   // ════ M0-O2 iter3 裁定 pin(ESO 境界3決定 + compiler 複合トリガ修正を固定)════
-  // 正本 = docs/engine-state-ontology.md「iter3 ESO 境界裁定」/ research/event-oracle/adjudication.json。
+  // 正本 = docs/engine-state-ontology.md「iter3 ESO 境界裁定」/ research/archive/event-oracle/adjudication.json。
 
   // ── 裁定1(unknown→any): 被付与/装備パーマネント主体 = コントローラ不問の開集合 → any。tap-for-mana は other 族。──
   [
