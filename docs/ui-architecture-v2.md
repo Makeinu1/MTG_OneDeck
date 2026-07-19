@@ -3,9 +3,12 @@
 **status**: 契約(判定者専有)。`docs/design-vision.md` のIAを実装可能な構造に落としたもの。D0〜D5 スライスの実装分解の正本。
 **前提**: エンジン(`src/engine/`)と store の公開 API(`GameStore` interface, `src/store/gameStore.ts:713-812`)は**変更しない**。UI刷新はエンジン契約に触れない(必要が生じたら spec 変更承認フロー)。
 
-> **実装状態(2026-07-12・J0草稿)**: D2/D3の新treeは稼働中だがD4は未完。現行コードの完全な
-> 説明書ではなくtarget architectureである。特にDnD、hover、viewStore、desktop grid、旧Playmat退役は
-> 未達または乖離。旧Playmat削除はPC機能同等性の実証まで凍結し、D4分割案をJ2が再裁定する。
+> **実装状態(2026-07-19 更新)**: D2/D3の新treeは稼働中。**旧 Playmat とその周辺12ファイルは
+> 削除済み**(2026-07-19・ユーザー授権・D4前倒し)——既定経路が本番デフォルトでは到達不能
+> (dev fixture `?ui=legacy` のみ)で「生きた同等性参照」ではなくなっていたため。ロールバックは
+> `git revert`。現役だった `dialogs.tsx`/`ruleActionCandidates.ts` は `src/components/game/` へ移設。
+> **未完はデスクトップ grid-area(§4 D4 本体・PC退行の回復)と DnD/hover/viewStore の乖離**で、
+> これらは旧 Playmat 復活ではなく新レイアウト側で埋める(作業計画 = `research/design/d4a-*`)。
 
 ---
 
@@ -36,7 +39,7 @@ src/
       CardActionSheet.tsx    ← カード操作シート(ContextMenu 後継)
       Feed.tsx               ← ログ/誘発/警告/自動実行の統合タイムライン
       sheets/                ← ZoneSheet・ライフ増減・確認等の bottom sheet 群
-    playmat/                 ← 旧実装(D4 完了時に削除)
+    (旧 playmat/ は 2026-07-19 に削除。dialogs.tsx / ruleActionCandidates.ts は game/ へ移設)
   store/
     gameStore.ts             ← 不変(エンジン橋)
     viewStore.ts             ← 新設(D0): view state 専用 Zustand store
@@ -79,7 +82,7 @@ interface ViewStore {
 | D1 | `ui/tokens.css`・`CardActionSheet`+`actionCatalog.ts` | 右クリック/タップの開き先を ContextMenu→シートへ(フラグ `VITE_UI_V2_SHEET` でロールバック可に) | — |
 | D2 | `game/` レイアウト一式(GameScreen〜ThumbZone) | `App.tsx` の描画先を Playmat→GameScreen へ・`RotateNotice` 撤去 | `MobileControlsDrawer`/`MobileZoneSwap`/`useIsPhoneLandscape` |
 | D3 | `PrimaryAction` 状態機械・プレイ可能判定 selector・`Feed` 合成 | Toasts/TriggerCandidatePanel/GameLog の役割をフィードへ | `Toasts.tsx`・`TriggerCandidatePanel.tsx`(浮動版) |
-| D4 | デスクトップ grid-area・導入画面の保存デッキ一覧 | — | 旧 `playmat/Playmat.tsx`・旧サイドバー・`Stack.tsx` 浮動版・ContextMenu(シート完全移行を確認後)・関連 App.css 区画 |
+| D4 | デスクトップ grid-area・導入画面の保存デッキ一覧 | — | 旧 `playmat/` 一式(**2026-07-19 削除済み**・§6 負債 (1)(2) 回収)・ContextMenu(新UIが現用中ゆえ据置)・残 App.css 区画 |
 | D5 | モーション4種+ハプティクス+オプトイン音 | — | — |
 
 **受け入れ共通則**(全スライス): 機械チェック(`npm run check`)+`review.*` 緑+実機コンソールエラー0+**縦375px/横812px/デスクトップ1440pxの3形態スクショ確認**。旧機能の削除は「新経路で同じ操作が全て可能」を review.* が確認してから(サンドボックス全操作の保存=vision 原則6)。
@@ -89,8 +92,8 @@ interface ViewStore {
 | 資産 | 扱い |
 |---|---|
 | `CardView.tsx` のタッチ判別(tap 220ms/8px, `:122-157`) | **維持・流用**。タップの意味だけ変更(メニュー即開→シート開) |
-| dnd-kit 配線(`Playmat.tsx:291-295`) | 維持(デスクトップ第一)。D2 で GameScreen に移植。全DnD操作にシート代替必須 |
-| `dialogs.tsx` 16種 | guided resolution 系は当面流用(D3 でシート様式へ再皮膜)。Attack/Token 等は ≡ メニュー配下に残す |
+| dnd-kit 配線(旧 `Playmat.tsx`) | D2 で GameScreen へ移植済み。旧 Playmat は 2026-07-19 削除。全DnD操作にシート代替必須 |
+| `dialogs.tsx` 16種(**現 `src/components/game/dialogs.tsx`**・2026-07-19 移設) | guided resolution 系は流用(D3 でシート様式へ再皮膜)。Attack/Token 等は ≡ メニュー配下に残す |
 | `useShortcuts` キーバインド | 維持(デスクトップ)。PrimaryAction と同じ selector を叩く |
 | `GameLog` データ | フィードの投影元として維持(表示コンポーネントのみ退役) |
 | PWA meta/safe-area(`index.html`) | 維持。D2 で `viewport-fit=cover`+`env(safe-area-inset-*)` を thumb zone に適用 |
@@ -101,5 +104,6 @@ interface ViewStore {
 - **`data-testid` は維持**(`zone-*`/`card-*`/`next-phase` 等)。review.* とブラウザ自動操作の互換を守る。新設要素にも同規約で付与(`primary-action`/`card-sheet`/`feed` 等)。
 - **土地の物理スタック束ね**は「同名の基本地形のみ」(Snow-Covered は別束。特殊地形は個別)。表現は抽象チップでなく実カードのずらし重ね(design-system §8 LandRow)。束の中の個別操作(1枚だけ生け贄等)は束シート内の一覧から可能にする=情報の非破壊。
 - **undo 文言**: フィードは投影ゆえ undo 後の履歴表示が巻き戻る。「操作の記録が消える」ことへの違和感は、undo 実行時にフィードへ「◀ 直前の操作を取り消した」項目を挿入して緩和(gameStore は触らず view 層で)。
-- **D1 実装の負債(D4 で回収する監査項目・Tier-1 findings #5/#7 由来)**: (1) `actionCatalog.ts` は当面 `buildMenuItems` の「抽出+re-export」でなく**独立重複実装**(id/label/separator を手で再現)になっている。golden id テスト(review.d1)は手書き期待値ゆえ機械的ドリフト検出はできない——旧 Playmat が消える D4 で `buildMenuItems` を退役させ actionCatalog を唯一の正本にする(その時点でハンドラ束ね `bindAction` を `game/` へ移す)。(2) `game/actionCatalog.ts` が `playmat/ruleActionCandidates` を import しており、D4 で `playmat/` を削除すると `game/` がビルド不能になる隠れ依存。**D4 実行時に `ruleActionCandidates.ts` を `game/`(or 共有レーン)へ移設**する。両者を D4 の Tier-1 に明示監査項目として渡す。
+- **旧UI 死CSS の一掃(2026-07-19 完了)**: 旧 Playmat + 12ファイル削除で死んだ `App.css` の旧盤面CSSを到達性解析で一掃した。除去ファミリ = `.playmat*`・`.hand`(bare)/`.hand__*`・`.stack`(bare)/`.stack__*`・`.mobile-zone-swap*`・`.mobile-controls-drawer*`・`.battlefield*`・`.zones*`・`.zone-card*`・`.game-log*`・`.other-actions*`・`.match-controls*`(**245ルール・約2,254行・CSSバンドル −26KB**)。新UI盤面CSSは `src/components/game/game.css` の別名前空間(`hand-ribbon*`/`stack-band`/`stack-workspace*`)で App.css とは別ファイルゆえ無傷。生存する `.card-view--hand`(hand を含むが `.hand` パターンに掛からない)・`.hand-card`(game.css)等は温存。手法 = ブレース深度パーサで「実セレクタ(`:not()`等の内側を除く)に死クラスを含むルール」を whole-rule 削除(コンマ混在の部分書換は発生せず)。カスタムプロパティの越境参照ゼロ・両テーマ実機で視覚退行ゼロを確認。`review.d0-dead-css-scan.test.ts` の pin を全死ファミリの恒久不在 + over-purge 反証アサートへ拡張済み。
+- **D1 実装の負債(2026-07-19 回収済み・旧 Tier-1 findings #5/#7 由来)**: (1) `actionCatalog.ts` は `buildMenuItems` の「抽出+re-export」でなく独立重複実装だったが、`buildMenuItems` を抱えていた旧 Playmat.tsx の削除により **`actionCatalog` + `gameController.handlerFor`(=bindAction 相当)が唯一の正本**になった。golden id テスト(review.d1/review.m64)は引き続き actionCatalog を叩く。(2) `game/actionCatalog.ts` の `playmat/ruleActionCandidates` 隠れ依存は、**`ruleActionCandidates.ts` を `src/components/game/` へ移設して解消**(同時に `dialogs.tsx` も移設)。旧 `playmat/` は空になり削除。
 - **D3 実装の乖離(2026-07-10・J2・Tier-1 findings #3 由来)**: (1) **viewStore(§3)は D3 では未配線**——`feedOpen` は `gameController` のローカル `useState`、フィード投影は `feedProjection`(純関数)を各コンポーネントが直接呼ぶ構成にした。理由=D3 の投影は state 非依存の純導出ゆえ Zustand store を挟む必要が薄く、局所 state で十分機能する。viewStore の `feedItems`/`activeSheet`/`toggleFeed` の本配線は、複数パネルの同時制御が必要になる D4(デスクトップ常設フィード)へ延期する。(2) **ベルバッジ = 未処理件数(`feedUnseenCount` = warnings + triggerCandidates)**とし、契約の「既読は markSeen」(read 追跡でバッジを消す)は**未実装**。判定者裁定=バッジは「まだ対応していない項目数」を示す方が一人回しでは有用(誘発をスタックへ/無視、警告をクリアすると自然に 0 へ)。read 追跡の markSeen は viewStore 本配線(D4)と同時に再評価する。

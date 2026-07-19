@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { classifyCardRules } from '../ruleClassifier';
-import { ruleActionCandidatesFromTags } from '../../components/playmat/ruleActionCandidates';
+import { ruleActionCandidatesFromTags } from '../../components/game/ruleActionCandidates';
 import type { CardDef } from '../../types/card';
 
 function card(name: string, oracleText: string, typeLine = 'Sorcery'): CardDef {

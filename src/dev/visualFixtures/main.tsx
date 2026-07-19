@@ -2,8 +2,6 @@ import { createRoot } from 'react-dom/client';
 import '../../index.css';
 import '../../App.css';
 import { GameScreen } from '../../components/game/GameScreen';
-import { Playmat } from '../../components/playmat/Playmat';
-import { RotateNotice } from '../../components/RotateNotice';
 import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
 import {
   disableSnapshotPersistenceForDevelopment,
@@ -22,8 +20,6 @@ import {
 } from './tabletopPrototype';
 import './tabletopPrototype.css';
 
-type FixtureUi = 'new' | 'legacy';
-
 function queryValue(name: string): string | null {
   return new URLSearchParams(window.location.search).get(name);
 }
@@ -33,12 +29,7 @@ function fixtureScenario(): VisualFixtureScenario {
   return isVisualFixtureScenario(value) ? value : 'battlefield';
 }
 
-function fixtureUi(): FixtureUi {
-  return queryValue('ui') === 'legacy' ? 'legacy' : 'new';
-}
-
 const scenario = fixtureScenario();
-const ui = fixtureUi();
 const tabletopMode = resolveTabletopPrototypeMode(queryValue('tabletop'));
 applyTabletopPrototypeMode(document.documentElement, tabletopMode);
 
@@ -109,21 +100,9 @@ async function renderFixture(): Promise<void> {
     ? `captured-${capturedCheckpoint.reason}`
     : scenario;
   document.documentElement.dataset.fixtureScenario = fixtureName;
-  document.documentElement.dataset.fixtureUi = ui;
-  document.title = `MTG OneDeck — ${fixtureName} — ${ui} — ${tabletopMode}`;
+  document.title = `MTG OneDeck — ${fixtureName} — ${tabletopMode}`;
 
-  createRoot(rootElement).render(
-    ui === 'legacy' ? (
-      <div className="playmat-shell">
-        <div className="playmat-shell__game">
-          <Playmat keybindings={DEFAULT_KEYBINDINGS} />
-        </div>
-        <RotateNotice />
-      </div>
-    ) : (
-      <GameScreen keybindings={DEFAULT_KEYBINDINGS} />
-    ),
-  );
+  createRoot(rootElement).render(<GameScreen keybindings={DEFAULT_KEYBINDINGS} />);
 }
 
 void renderFixture().catch((error: unknown) => {

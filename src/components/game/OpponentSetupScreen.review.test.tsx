@@ -15,7 +15,7 @@ import type { GameController } from './gameController';
 import { OpponentBoardDialog, OpponentBoards } from './OpponentBoards';
 import { OpponentSetupScreen } from './OpponentSetupScreen';
 import { ThumbZone } from './ThumbZone';
-import { AttackDialog } from '../playmat/dialogs';
+import { AttackDialog } from './dialogs';
 
 function mount(node: ReactNode) {
   const container = document.createElement('div');

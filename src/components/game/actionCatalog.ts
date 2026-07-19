@@ -19,7 +19,7 @@ import type { CardInstance, ZoneId } from '../../engine/types';
 import type { CardDef } from '../../types/card';
 import { fetchAbility, cyclingCost } from '../../engine/status';
 import { classifyCardRules } from '../../data/ruleClassifier';
-import { ruleActionCandidatesFromTags } from '../playmat/ruleActionCandidates';
+import { ruleActionCandidatesFromTags } from './ruleActionCandidates';
 import { activatedAbilityDisplayText } from './abilityDisplay';
 
 /** 唱えるコストの手動精算アドバイザリを出すルールタグ。 */
