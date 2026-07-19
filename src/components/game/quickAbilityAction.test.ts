@@ -16,6 +16,21 @@ function battlefieldSubject(oracleText: string) {
   return { card, def };
 }
 
+function battlefieldLand(oracleText: string, typeLine: string, producedMana: CardDef['producedMana']) {
+  const { card, def } = battlefieldSubject(oracleText);
+  return {
+    card,
+    def: {
+      ...def,
+      typeLine,
+      producedMana,
+      faces: def.faces.map((face, index) => index === card.faceIndex
+        ? { ...face, typeLine, oracleText }
+        : face),
+    },
+  };
+}
+
 describe('quickAbilityAction', () => {
   it('routes one modeled {T} line to its flat ability index', () => {
     const { card, def } = battlefieldSubject('Flying\n{T}: Add {G}.');
@@ -36,6 +51,33 @@ describe('quickAbilityAction', () => {
     expect(quickAbilityAction(card, def).kind).toBe('manual-tap');
     expect(quickAbilityAction({ ...card, faceDown: true }, def).kind).toBe('manual-tap');
     expect(quickAbilityAction({ ...card, tapped: true }, def).kind).toBe('manual-tap');
+  });
+
+  it('routes intrinsic and reminder-only land mana through tap-for-mana', () => {
+    const island = battlefieldLand('({T}: Add {U}.)', 'Basic Land — Island', ['U']);
+    expect(quickAbilityAction(island.card, island.def)).toEqual({
+      kind: 'tap-for-mana', lines: [], colors: ['U'],
+    });
+
+    const sanctuary = battlefieldLand(
+      'Mystic Sanctuary enters tapped unless you control three or more other Islands.\nWhen Mystic Sanctuary enters untapped, you may put target instant or sorcery card from your graveyard on top of your library.\n({T}: Add {U}.)',
+      'Land — Island',
+      ['U'],
+    );
+    expect(quickAbilityAction(sanctuary.card, sanctuary.def).kind).toBe('tap-for-mana');
+  });
+
+  it('preserves color choice and fails closed when another activated ability exists', () => {
+    const dual = battlefieldLand('', 'Land', ['U', 'R']);
+    expect(quickAbilityAction(dual.card, dual.def)).toEqual({
+      kind: 'tap-for-mana', lines: [], colors: ['U', 'R'],
+    });
+
+    const complex = battlefieldLand('{1}, {T}: Add {U}.', 'Land', ['U']);
+    expect(quickAbilityAction(complex.card, complex.def).kind).toBe('activate');
+
+    const competing = battlefieldLand('{1}: Scry 1.', 'Land — Island', ['U']);
+    expect(quickAbilityAction(competing.card, competing.def).kind).toBe('manual-tap');
   });
 
   it('shortens long picker labels without changing short labels', () => {

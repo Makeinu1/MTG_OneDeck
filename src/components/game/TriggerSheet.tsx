@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { TriggerCandidate } from '../../engine/triggers';
 import type { GameController } from './gameController';
 import { Icon } from '../../ui/icons';
@@ -47,6 +47,16 @@ export function TriggerSheet({ controller, onClose }: TriggerSheetProps) {
         return candidate ? [candidate] : [];
       })
     : candidates;
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent): void {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onClose();
+    }
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
 
   function place(candidate: TriggerCandidate): void {
     if (candidate.pendingTriggerId) {

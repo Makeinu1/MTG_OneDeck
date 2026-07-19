@@ -75,6 +75,7 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
     new Set(['対戦相手A', ...Object.keys(state.opponentLife), ...Object.keys(state.commanderDamage)]),
   );
   const manaTotal = MANA_ORDER.reduce((sum, c) => sum + (state.manaPool[c] ?? 0), 0);
+  const maximumHandSizeOverride = state.players[state.localPlayerId]?.maximumHandSizeOverride;
 
   return (
     <div className="game-sheet-overlay" data-testid="life-sheet-overlay" onClick={onClose}>
@@ -112,6 +113,56 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="life-sheet__section" data-testid="maximum-hand-size-section">
+          <div className="life-sheet__section-head">
+            <label className="life-sheet__label" htmlFor="maximum-hand-size-mode">
+              手札上限（手動補正）
+            </label>
+            <select
+              id="maximum-hand-size-mode"
+              className="life-sheet__select"
+              data-testid="maximum-hand-size-mode"
+              value={maximumHandSizeOverride === undefined
+                ? 'auto'
+                : maximumHandSizeOverride === 'none'
+                  ? 'none'
+                  : 'number'}
+              onChange={(event) => {
+                const mode = event.currentTarget.value;
+                store.dispatch({
+                  type: 'setMaximumHandSizeOverride',
+                  value: mode === 'auto' ? undefined : mode === 'none' ? 'none' : 7,
+                });
+              }}
+            >
+              <option value="auto">自動（通常7枚）</option>
+              <option value="none">上限なし</option>
+              <option value="number">枚数を指定</option>
+            </select>
+          </div>
+          {typeof maximumHandSizeOverride === 'number' && (
+            <label className="life-sheet__number-label">
+              上限枚数
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={maximumHandSizeOverride}
+                data-testid="maximum-hand-size-value"
+                onChange={(event) => {
+                  const value = event.currentTarget.valueAsNumber;
+                  if (Number.isFinite(value)) {
+                    store.dispatch({ type: 'setMaximumHandSizeOverride', value });
+                  }
+                }}
+              />
+            </label>
+          )}
+          <small className="life-sheet__help">
+            未対応カードの補正用です。自動判定より優先され、操作は取り消せます。
+          </small>
         </div>
 
         {/* マナプール */}

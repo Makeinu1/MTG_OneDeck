@@ -5,6 +5,7 @@ import { DndContext } from '@dnd-kit/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { useGameStore } from '../../store/gameStore';
+import { applyCommand } from '../../engine/commands';
 import { HandRibbon } from './HandRibbon';
 import { StatusBand } from './StatusBand';
 import { GameCard } from './GameCard';
@@ -457,6 +458,47 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('opens once per stack session and keeps a manual close until the stack becomes empty', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const controller = controllerFor(initial);
+    const { container, root } = mount(<StackBand controller={controller} />);
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
+
+    act(() => container.querySelector<HTMLButtonElement>('.stack-workspace__close')?.click());
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
+
+    const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;
+    const withAnotherItem = applyCommand(initial, { type: 'copyStackItem', cardId: sourceId }).state;
+    act(() => root.render(<StackBand controller={controllerFor(withAnotherItem)} />));
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+
+    const empty = {
+      ...withAnotherItem,
+      zones: { ...withAnotherItem.zones, stack: [] },
+    };
+    const bottomStackId = initial.zones.stack[0];
+    const newSession = {
+      ...initial,
+      cards: {
+        ...initial.cards,
+        [bottomStackId]: {
+          ...initial.cards[bottomStackId],
+          zoneChangeCounter: initial.cards[bottomStackId].zoneChangeCounter + 1,
+        },
+      },
+    };
+    act(() => root.render(<StackBand controller={controllerFor(empty)} />));
+    act(() => root.render(<StackBand controller={controllerFor(newSession)} />));
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+    act(() => root.unmount());
+  });
+
   it('marks an undecided opening hand for the staggered deal ritual', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state);
@@ -564,6 +606,25 @@ describe('high-frequency HUD interactions', () => {
     expect(useGameStore.getState().state?.life).toBe(state.life);
     act(() => value?.click());
     expect(container.querySelector('[data-testid="life-sheet"]')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('exposes an undoable manual maximum-hand-size correction in the detail sheet', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<StatusBand controller={controller} />);
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="life-value"]')?.click());
+    const mode = container.querySelector<HTMLSelectElement>('[data-testid="maximum-hand-size-mode"]');
+    if (!mode) throw new Error('maximum hand size mode missing');
+
+    act(() => {
+      mode.value = 'none';
+      mode.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(useGameStore.getState().state?.players.P1?.maximumHandSizeOverride).toBe('none');
+    expect(useGameStore.getState().canUndo).toBe(true);
+    act(() => useGameStore.getState().undo());
+    expect(useGameStore.getState().state?.players.P1?.maximumHandSizeOverride).toBeUndefined();
     act(() => root.unmount());
   });
 

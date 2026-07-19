@@ -10,6 +10,7 @@ const NEXT_PHASE_LABELS: Record<GameState['phase'], string> = {
   combat: 'メイン2へ',
   main2: '終了ステップへ',
   end: '次のターンへ',
+  cleanup: 'クリーンナップを完了',
 };
 
 export function primaryActionDisplayLabel(

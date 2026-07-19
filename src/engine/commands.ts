@@ -15,6 +15,7 @@ import {
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR, type AbilityCost } from './grammar/ir';
 import { parseManaCost } from './mana';
+import { effectiveMaximumHandSize } from './handSize';
 import {
   effectiveKeywords,
   effectivePower,
@@ -27,12 +28,15 @@ import {
   hasDelayedPhaseBeginTiming,
   makeScheduledDelayedTrigger,
   promoteDueScheduledTriggers,
+  splitDelayedPhaseBeginText,
+  triggerConditionSatisfied,
 } from './triggers';
 import type {
   AbilityKind,
   ActivationCostComponent,
   ActivationEnvelope,
   ActivationSourceRef,
+  AttackDeclarationEvent,
   CardInstance,
   CombatAttacker,
   CombatBlocker,
@@ -56,6 +60,7 @@ import type {
   LifeChangeEvent,
   LogEntry,
   ManaPool,
+  ManualTargetZone,
   ObjectSnapshot,
   PendingTrigger,
   Phase,
@@ -64,6 +69,7 @@ import type {
   PrivateZoneId,
   TargetSelection,
   TargetSelectionKind,
+  TriggerCondition,
   ZoneChangeEvent,
   ZoneChangeReason,
   ZoneId,
@@ -147,6 +153,11 @@ export type GameCommand =
       playerId?: PlayerId;
     }
   | {
+      type: 'setMaximumHandSizeOverride';
+      value?: number | 'none';
+      playerId?: PlayerId;
+    }
+  | {
       type: 'applyPlayerEffect';
       controllerId: PlayerId;
       recipients: 'you' | 'eachOpponent' | 'eachPlayer';
@@ -201,6 +212,9 @@ export type GameCommand =
       sourceSnapshot?: ObjectSnapshot;
       targetSelections?: TargetSelection[];
       activationEnvelope?: ActivationEnvelope;
+      triggerCondition?: TriggerCondition;
+      resolutionText?: string;
+      announcedX?: number;
     }
   | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
@@ -210,8 +224,9 @@ export type GameCommand =
       targetIds: string[];
       targetPlayerIds?: PlayerId[];
       allowStackAbilities?: boolean;
+      allowedZones?: ManualTargetZone[];
     }
-  | { type: 'copyStackItem'; cardId: string }
+  | { type: 'copyStackItem'; cardId: string; quantity?: number }
   | { type: 'copyPermanent'; cardId: string; quantity: number }
   | {
       type: 'createToken';
@@ -249,8 +264,9 @@ export type GameCommand =
       keywords: string[];
       isToken: boolean;
     }
-  | { type: 'nextPhase'; drawnHandled?: boolean }
+  | { type: 'nextPhase'; drawnHandled?: boolean; manualCleanupHandled?: boolean }
   | { type: 'nextTurn'; advanceTurnOrder?: boolean }
+  | { type: 'completeCleanupStateActions' }
   | { type: 'mulligan'; order: string[]; playerId?: PlayerId };
 
 export interface ApplyResult {
@@ -285,7 +301,8 @@ type GameEventPayload =
   | Omit<LifeChangeEvent, 'eventId' | 'sequence'>
   | Omit<DamageEvent, 'eventId' | 'sequence'>
   | Omit<DrawEvent, 'eventId' | 'sequence'>
-  | Omit<CounterChangeEvent, 'eventId' | 'sequence'>;
+  | Omit<CounterChangeEvent, 'eventId' | 'sequence'>
+  | Omit<AttackDeclarationEvent, 'eventId' | 'sequence'>;
 
 const ZONE_LABELS: Record<ZoneId, string> = {
   library: 'ライブラリ',
@@ -497,6 +514,15 @@ function pushEvent(draft: Draft, event: GameEventPayload): GameEvent {
     }
     case 'draw': {
       const fullEvent: DrawEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'attackDeclaration': {
+      const fullEvent: AttackDeclarationEvent = {
         ...event,
         eventId,
         sequence,
@@ -1090,6 +1116,7 @@ function moveCardInternal(
   log: boolean,
   reason: ZoneChangeReason = 'move',
   eventOptions?: Pick<ZoneChangeEvent, 'replacementApplied' | 'sbaApplied' | 'simultaneousGroupId'>,
+  battlefieldEntryTapped?: boolean,
 ): ZoneChangeEvent | undefined {
   const card = requireCard(draft, cardId);
   // CR 614.1a/614.5/614.6 (design-lock §34.35): the Emet-Selch-family static
@@ -1181,6 +1208,9 @@ function moveCardInternal(
     : resetCardForZoneChange(card, to, { preserveFace });
   if (!sameZone && to === 'battlefield') {
     updated = applyBattlefieldEntryEffects(draft, updated);
+    if (battlefieldEntryTapped !== undefined) {
+      updated = { ...updated, tapped: battlefieldEntryTapped };
+    }
     if (card.isCopy) {
       updated = {
         ...updated,
@@ -1733,6 +1763,21 @@ function applyDeclareAttackers(
     attackers: declared,
     blockers: [],
   };
+  const declaredSnapshots = declared.flatMap((entry) => {
+    const current = draft.state.cards[entry.cardId];
+    return current ? [objectSnapshotOf(draft, current)] : [];
+  });
+  pushEvent(draft, {
+    type: 'attackDeclaration',
+    turn: draft.state.turn,
+    combatId: combat.combatId,
+    attackingPlayerId: combat.attackingPlayerId,
+    attackers: declaredSnapshots,
+    battlefield: draft.state.zones.battlefield.flatMap((cardId) => {
+      const current = draft.state.cards[cardId];
+      return current ? [objectSnapshotOf(draft, current)] : [];
+    }),
+  });
   pushLog(draft, `${declared.length}体の攻撃クリーチャーを宣言しました。`);
 }
 
@@ -2264,6 +2309,7 @@ const PHASE_LABELS: Record<Phase, string> = {
   combat: '戦闘',
   main2: 'メイン2',
   end: '終了',
+  cleanup: 'クリーンナップ',
 };
 
 function untapAll(draft: Draft): void {
@@ -2500,20 +2546,77 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
   draft.state = promoteDueScheduledTriggers(draft.state);
 }
 
-function applyNextPhase(draft: Draft, drawnHandled: boolean): void {
+function ensureCleanupDiscardChoice(draft: Draft): boolean {
+  const playerId = draft.state.activePlayerId;
+  const maximum = effectiveMaximumHandSize(draft.state, playerId);
+  if (maximum === null) return false;
+  const hand = draft.state.zonesByPlayer[playerId]?.hand ?? [];
+  const requiredCount = Math.max(0, hand.length - maximum);
+  if (requiredCount === 0) return false;
+  const existing = draft.state.pendingRuleChoices.find(
+    (choice) => choice.kind === 'cleanup-discard' && choice.playerId === playerId,
+  );
+  if (existing) return true;
+  draft.state.pendingRuleChoices = [
+    ...draft.state.pendingRuleChoices,
+    {
+      choiceId: `cleanup-discard:${draft.state.turn}:${playerId}:${draft.nextSeq}`,
+      kind: 'cleanup-discard',
+      ruleRef: '514.1',
+      playerId,
+      cardIds: hand.slice(),
+      requiredCount,
+    },
+  ];
+  pushLog(draft, `クリーンナップで手札を${requiredCount}枚捨てる必要があります。`);
+  return true;
+}
+
+function beginCleanup(draft: Draft): void {
+  enterPhase(draft, 'cleanup', true);
+  ensureCleanupDiscardChoice(draft);
+  pushLog(draft, 'クリーンナップ・ステップを開始しました。');
+}
+
+function completeCleanupStateActions(draft: Draft): void {
+  clearMarkedDamageInternal(draft);
+  draft.state.combatDamagePreventedUntilEndOfTurn = false;
+}
+
+function finishTurnAfterCleanup(draft: Draft, drawnHandled: boolean): void {
+  draft.state.turn += 1;
+  resetOncePerTurnTriggerLedger(draft);
+  enterPhase(draft, 'untap', drawnHandled);
+  pushLog(draft, `ターン${draft.state.turn}に移行しました。`);
+}
+
+function applyNextPhase(
+  draft: Draft,
+  drawnHandled: boolean,
+  manualCleanupHandled = false,
+): void {
   clearPool(
     draft,
     'フェイズ移行によりマナプールが空になりました。',
     draft.state.activePlayerId,
   );
   const idx = PHASE_ORDER.indexOf(draft.state.phase);
-  if (idx === PHASE_ORDER.length - 1) {
-    // end -> next turn untap
-    clearMarkedDamageInternal(draft);
-    draft.state.turn += 1;
-    resetOncePerTurnTriggerLedger(draft);
-    enterPhase(draft, 'untap', drawnHandled);
-    pushLog(draft, `ターン${draft.state.turn}に移行しました。`);
+  if (draft.state.phase === 'end') {
+    beginCleanup(draft);
+    if (!draft.state.pendingRuleChoices.some((choice) => choice.kind === 'cleanup-discard')) {
+      completeCleanupStateActions(draft);
+      finishTurnAfterCleanup(draft, drawnHandled);
+    }
+  } else if (draft.state.phase === 'cleanup') {
+    if (manualCleanupHandled) {
+      completeCleanupStateActions(draft);
+      finishTurnAfterCleanup(draft, drawnHandled);
+    } else if (!ensureCleanupDiscardChoice(draft)) {
+      completeCleanupStateActions(draft);
+      finishTurnAfterCleanup(draft, drawnHandled);
+    }
+  } else if (idx === PHASE_ORDER.length - 1) {
+    finishTurnAfterCleanup(draft, drawnHandled);
   } else {
     const next = PHASE_ORDER[idx + 1];
     enterPhase(draft, next, drawnHandled);
@@ -2538,7 +2641,19 @@ function applyNextTurn(draft: Draft, advanceTurnOrder: boolean): void {
     'ターン移行によりマナプールが空になりました。',
     draft.state.activePlayerId,
   );
-  clearMarkedDamageInternal(draft);
+  if (draft.state.phase !== 'cleanup') beginCleanup(draft);
+  const skippedCleanupChoices = draft.state.pendingRuleChoices.filter(
+    (choice) => choice.kind === 'cleanup-discard',
+  );
+  if (skippedCleanupChoices.length > 0) {
+    draft.state.pendingRuleChoices = draft.state.pendingRuleChoices.filter(
+      (choice) => choice.kind !== 'cleanup-discard',
+    );
+    draft.warnings.push(
+      'ターンを直接進めたため、クリーンナップの手札調整を手動処理済みとして続行しました。',
+    );
+  }
+  completeCleanupStateActions(draft);
   draft.state.turn += 1;
   if (advanceTurnOrder) advanceActivePlayer(draft);
   resetOncePerTurnTriggerLedger(draft);
@@ -2580,11 +2695,18 @@ function applyPlayLand(
     throw new EngineError(`土地ではないカードです: ${cardId}`);
   }
 
-  moveCardInternal(draft, cardId, 'battlefield', 'bottom', false);
-  if (entersTapped) {
-    const entered = requireCard(draft, cardId);
-    setCard(draft, { ...entered, tapped: true });
-  }
+  // The zone-change event's `after` snapshot must already include the chosen
+  // entry state; ETB conditions such as Mystic Sanctuary inspect that snapshot.
+  moveCardInternal(
+    draft,
+    cardId,
+    'battlefield',
+    'bottom',
+    false,
+    'move',
+    undefined,
+    entersTapped ?? false,
+  );
   const landsPlayed = incrementPlayerTurnCounter(draft, playerId, 'landsPlayedThisTurn');
   pushLog(draft, `${nameOf(draft, cardId)}を土地としてプレイしました。`);
   if (landsPlayed >= 2) {
@@ -2730,6 +2852,9 @@ function createAbilityObject(
   sourceSnapshot?: ObjectSnapshot,
   targetSelections: TargetSelection[] = [],
   activationEnvelope?: ActivationEnvelope,
+  triggerCondition?: TriggerCondition,
+  abilityResolutionText?: string,
+  announcedX?: number,
 ): CardInstance {
   return {
     id: abilityId,
@@ -2754,6 +2879,9 @@ function createAbilityObject(
     abilityLineIndex,
     targetSelections: targetSelections.map((selection) => ({ ...selection })),
     activationEnvelope,
+    triggerCondition,
+    abilityResolutionText,
+    announcedX,
   };
 }
 
@@ -2811,6 +2939,7 @@ function applySetManualTargets(
   targetIds: string[],
   targetPlayerIds: PlayerId[] = [],
   allowStackAbilities = false,
+  allowedZones?: ManualTargetZone[],
 ): void {
   const source = requireCard(draft, stackItemId);
   if (source.zone !== 'stack') {
@@ -2819,15 +2948,26 @@ function applySetManualTargets(
   if (source.isAbility && !allowStackAbilities) {
     throw new EngineError('手動対象を設定できるのは呪文だけです(能力は対象外)。');
   }
+  const allowed = new Set<ManualTargetZone>(allowedZones ?? ['battlefield', 'stack']);
   const uniqueIds = [...new Set(targetIds)];
   const manualObjectSelections = uniqueIds.map((targetId, index): TargetSelection => {
     const target = requireCard(draft, targetId);
+    if (target.zone === 'stack' && target.id === stackItemId) {
+      throw new EngineError('手動対象には他のスタック上の呪文・能力を選んでください。');
+    }
     const isPermanent = target.zone === 'battlefield' && !target.isAbility;
     const isOtherStackObject = target.zone === 'stack'
       && target.id !== stackItemId
       && (allowStackAbilities || !target.isAbility);
-    if (!isPermanent && !isOtherStackObject) {
-      throw new EngineError('手動対象には戦場のパーマネントか、他のスタック上の呪文・能力を選んでください。');
+    const isAdditionalZone = target.zone !== 'battlefield'
+      && target.zone !== 'stack'
+      && target.zone !== 'library'
+      && allowed.has(target.zone);
+    const isOwnHand = target.zone !== 'hand' || target.ownerId === draft.state.localPlayerId;
+    if (!allowed.has(target.zone as ManualTargetZone)
+      || (!isPermanent && !isOtherStackObject && !isAdditionalZone)
+      || !isOwnHand) {
+      throw new EngineError('手動対象に指定できない領域または非公開カードです。');
     }
     const snapshot = objectSnapshotOf(draft, target);
     return {
@@ -2872,6 +3012,9 @@ function applyAddAbilityToStack(
   sourceSnapshot?: ObjectSnapshot,
   targetSelections: TargetSelection[] = [],
   activationEnvelope?: ActivationEnvelope,
+  triggerCondition?: TriggerCondition,
+  resolutionText?: string,
+  announcedX?: number,
 ): void {
   const source = draft.state.cards[sourceId];
   const defId = source?.defId ?? sourceSnapshot?.defId;
@@ -2895,6 +3038,9 @@ function applyAddAbilityToStack(
     sourceSnapshot,
     targetSelections,
     activationEnvelope,
+    triggerCondition,
+    resolutionText,
+    announcedX,
   );
   draft.state.cards = cards;
   stack.push(abilityId);
@@ -2942,6 +3088,18 @@ function effectLinesForStackItemState(
 
   const lines = splitAbilityLines(def);
   if (card.isAbility) {
+    if (card.abilityResolutionText) {
+      return [{
+        sourceId,
+        def,
+        line: {
+          faceIndex: card.sourceSnapshot?.faceIndex ?? 0,
+          text: card.abilityResolutionText,
+          shape: 'triggered',
+        },
+        typeLine: def.faces[card.sourceSnapshot?.faceIndex ?? 0]?.typeLine ?? def.typeLine,
+      }];
+    }
     if (card.abilityLineIndex === undefined) {
       return [];
     }
@@ -3369,6 +3527,14 @@ function targetFilterForActivationRaw(raw: string, kind: TargetSelectionKind): T
   if (kind === 'player') {
     return {};
   }
+  if (/\btarget activated or triggered ability you control\b/i.test(raw)) {
+    return {
+      zone: 'stack',
+      stackKinds: ['activated-ability', 'triggered-ability'],
+      controller: 'you',
+      excludeManaAbilities: true,
+    };
+  }
   // Reuse the single graveyard-return recognizer shared with the compile-time guided path
   // (compile.ts). This keeps the activation-time target prompt in lockstep with the compiled
   // decision — a desync here silently drops the activation-time target selection (CR 602.2b).
@@ -3580,6 +3746,7 @@ export function activationPlanForSource(
   state: GameState,
   sourceId: string,
   abilityLineIndex?: number,
+  xValue = 0,
 ): {
   commands: GameCommand[];
   decision: CostDecision;
@@ -3636,11 +3803,26 @@ export function activationPlanForSource(
 
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
   const ir = parseAbilityIR(line.text, typeLine);
+  const xSymbolCount = ir.cost?.raw.match(/\{X\}/gi)?.length ?? 0;
+  if (
+    xSymbolCount > 0
+    && (xSymbolCount !== 2 || !/\bX can['’]t be 0\b|\bX cannot be 0\b/i.test(line.text))
+  ) {
+    return {
+      commands: [],
+      decision: 'manual',
+      manaShortfall: 0,
+      costComponents: [],
+      costPrompts: [],
+    };
+  }
+  const announcedX = Math.max(0, Math.floor(xValue));
+  const resolvedCostRaw = (ir.cost?.raw ?? '').replace(/\{X\}/gi, `{${announcedX}}`);
   const commanderColorIdentity = commanderColorIdentityForState(state);
   const sourceSnapshot = objectSnapshotForCard(state, sourceId);
   const nonmanaCost =
     sourceSnapshot && ir.cost
-      ? activationNonmanaCosts(state, ir.cost.raw, sourceSnapshot)
+      ? activationNonmanaCosts(state, resolvedCostRaw, sourceSnapshot)
       : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
   const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
   const compiledCost = compileAbilityCost(autoCost, {
@@ -3882,6 +4064,17 @@ function isLoyaltyAbilityLine(text: string, typeLine: string): boolean {
 // are excluded, matching the "permanent card" wording.
 const GRAVEYARD_PERMANENT_CARD_TYPES = ['artifact', 'creature', 'enchantment', 'land', 'planeswalker'];
 
+function stackObjectIsManaAbility(state: GameState, card: CardInstance): boolean {
+  if (!card.isAbility || card.abilityKind !== 'activated' || card.abilityLineIndex === undefined) {
+    return false;
+  }
+  const def = state.defs[card.defId];
+  const line = def ? splitAbilityLines(def)[card.abilityLineIndex] : undefined;
+  if (!def || !line) return false;
+  const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
+  return isActivatedManaAbilityIR(parseAbilityIR(line.text, typeLine));
+}
+
 export function eligibleTargets(
   state: GameState,
   filter: TargetFilter,
@@ -3909,6 +4102,7 @@ export function eligibleTargets(
             ? 'triggered-ability'
             : null;
       if (!stackKind || !acceptedKinds.includes(stackKind)) return false;
+      if (filter.excludeManaAbilities && stackObjectIsManaAbility(state, card)) return false;
       if (context.sourceId === cardId) {
         return false;
       }
@@ -4063,6 +4257,30 @@ function lineHasSelfSacrifice(raw: string): boolean {
   return /\bsacrifice\b[^.。]*(?:\b(?:this|it|itself|self)\b|~)/i.test(raw);
 }
 
+function applyMaximumHandSizeOverride(
+  draft: Draft,
+  value: number | 'none' | undefined,
+  requestedPlayerId?: PlayerId,
+): void {
+  const playerId = requestedPlayerId ?? draft.state.localPlayerId;
+  const player = requirePlayer(draft.state, playerId);
+  const normalized = typeof value === 'number'
+    ? Math.max(0, Math.floor(value))
+    : value;
+  draft.state.players = {
+    ...draft.state.players,
+    [playerId]: { ...player, maximumHandSizeOverride: normalized },
+  };
+  pushLog(
+    draft,
+    normalized === undefined
+      ? `${player.label}の手札上限をカード効果から自動判定します。`
+      : normalized === 'none'
+        ? `${player.label}の手札上限を「上限なし」に手動補正しました。`
+        : `${player.label}の手札上限を${normalized}枚に手動補正しました。`,
+  );
+}
+
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
     case 'moveCard': {
@@ -4122,6 +4340,10 @@ function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
         cmd.kind,
         cmd.delta,
       );
+      break;
+    }
+    case 'setMaximumHandSizeOverride': {
+      applyMaximumHandSizeOverride(draft, cmd.value, cmd.playerId);
       break;
     }
     case 'applyPlayerEffect': {
@@ -4272,15 +4494,20 @@ function scheduleDelayedTriggerForEffectLine(
   stackItem: CardInstance,
   effectLine: ResolvableEffectLine,
   lineIndex: number,
-): boolean {
+): { scheduled: boolean; immediateText?: string } | null {
   if (!hasDelayedPhaseBeginTiming(effectLine.line.text)) {
-    return false;
+    return null;
+  }
+  const split = splitDelayedPhaseBeginText(effectLine.line.text);
+  if (!split) {
+    draft.warnings.push(`${stackNameOf(draft, stackItem)}の複合遅延効果を分割できないため手動扱いにしました。`);
+    return { scheduled: false };
   }
 
   const sourceSnapshot = sourceSnapshotForResolvedEffectLine(draft, stackItem, effectLine.sourceId);
   if (!sourceSnapshot) {
     draft.warnings.push(`${stackNameOf(draft, stackItem)}の遅延誘発の発生源を特定できません。`);
-    return true;
+    return { scheduled: false };
   }
 
   const eventId = [
@@ -4298,7 +4525,8 @@ function scheduleDelayedTriggerForEffectLine(
     eventId,
   );
   if (!pending) {
-    return false;
+    draft.warnings.push(`${stackNameOf(draft, stackItem)}の遅延誘発を安全に予約できないため手動扱いにしました。`);
+    return { scheduled: false };
   }
 
   appendPendingTrigger(draft, pending);
@@ -4306,6 +4534,27 @@ function scheduleDelayedTriggerForEffectLine(
     draft,
     `《${cardName(draft.state.defs[sourceSnapshot.defId])}》の遅延誘発を予約しました。`,
   );
+  return {
+    scheduled: true,
+    ...(split.immediateText === undefined ? {} : { immediateText: split.immediateText }),
+  };
+}
+
+function applyModeledStackCopyEffect(draft: Draft, card: CardInstance): boolean {
+  const text = stackItemRulesText(draft.state, card);
+  if (!/\bcopy target activated or triggered ability you control X times\b/i.test(text)) {
+    return false;
+  }
+  const quantity = card.announcedX ?? 0;
+  const target = card.targetSelections?.find(
+    (selection) => selection.selection.kind === 'object',
+  );
+  if (quantity < 1 || target?.selection.kind !== 'object') {
+    draft.warnings.push(`${stackNameOf(draft, card)}のコピー回数または対象が記録されていません。`);
+    return true;
+  }
+  applyCopyStackItem(draft, target.selection.physicalCardId, quantity);
+  pushLog(draft, `${stackNameOf(draft, card)}により対象の能力を${quantity}回コピーした。`);
   return true;
 }
 
@@ -4315,12 +4564,15 @@ function applyCompiledEffectsForStackItem(
   effectLines: readonly ResolvableEffectLine[],
   libraryShuffleOrder?: readonly string[],
 ): void {
+  if (applyModeledStackCopyEffect(draft, card)) return;
   const commanderColorIdentity = commanderColorIdentityForState(draft.state);
   for (const [lineIndex, effectLine] of effectLines.entries()) {
-    if (scheduleDelayedTriggerForEffectLine(draft, card, effectLine, lineIndex)) {
-      continue;
-    }
-    const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
+    const delayed = scheduleDelayedTriggerForEffectLine(draft, card, effectLine, lineIndex);
+    if (delayed && (!delayed.scheduled || delayed.immediateText === undefined)) continue;
+    const resolvedLine = delayed?.immediateText === undefined
+      ? effectLine.line
+      : { ...effectLine.line, text: delayed.immediateText };
+    const ir = parseAbilityIR(resolvedLine.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
       def: effectLine.def,
@@ -4331,23 +4583,39 @@ function applyCompiledEffectsForStackItem(
         : {}),
     });
     if (compiled.decision !== 'auto') {
+      const warningCountBeforeManualHandling = draft.warnings.length;
+      if (delayed?.scheduled) {
+        draft.warnings.push(
+          `${stackNameOf(draft, card)}の遅延誘発は予約しましたが、即時部分は手動で処理してください。`,
+        );
+      }
+      let appliedStoredTargets = false;
       if (compiled.decision === 'guided') {
-        const applied = applyStoredTargetCommands(
+        appliedStoredTargets = applyStoredTargetCommands(
           draft,
           card,
           compiled.prompts,
           effectLine.sourceId,
           effectLine.def,
         );
-        if (applied) {
+        if (appliedStoredTargets) {
           pushLog(draft, `${stackNameOf(draft, card)}の保存済み対象への効果を実行した。`);
         }
+      }
+      if (
+        !delayed?.scheduled
+        && !appliedStoredTargets
+        && draft.warnings.length === warningCountBeforeManualHandling
+      ) {
+        draft.warnings.push(
+          `${stackNameOf(draft, card)}の効果には自動化未対応部分があります。一部手動で処理してください。`,
+        );
       }
       continue;
     }
     applyAutoCommands(
       draft,
-      lineHasSelfSacrifice(effectLine.line.text)
+      lineHasSelfSacrifice(resolvedLine.text)
         ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
         : compiled.commands,
     );
@@ -4375,6 +4643,10 @@ function applyResolveStackTop(
 
   if (card.isAbility) {
     deleteCardFromState(draft, topId);
+    if (card.triggerCondition && !triggerConditionSatisfied(draft.state, card.triggerCondition)) {
+      pushLog(draft, `${stackNameOf(draft, card)}の能力は解決時の条件を満たさず効果を発生しなかった。`);
+      return;
+    }
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
     applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
     return;
@@ -4403,7 +4675,18 @@ function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
   pushLog(draft, `${stackNameOf(draft, card)}を打ち消した(→${ZONE_LABELS[destination]})。`);
 }
 
-function applyCopyStackItem(draft: Draft, cardId: string): void {
+function stackItemRulesText(state: GameState, card: CardInstance): string {
+  if (card.abilityResolutionText) return card.abilityResolutionText;
+  const def = state.defs[card.defId];
+  if (!def) return '';
+  if (card.isAbility && card.abilityLineIndex !== undefined) {
+    return splitAbilityLines(def)[card.abilityLineIndex]?.text ?? '';
+  }
+  const face = def.faces[card.faceIndex] ?? def.faces[0];
+  return face?.oracleText ?? '';
+}
+
+function applyCopyStackItemOnce(draft: Draft, cardId: string): void {
   if (!draft.state.zones.stack.includes(cardId)) {
     throw new EngineError(`スタックに存在しないカードです: ${cardId}`);
   }
@@ -4423,8 +4706,11 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
       source.ownerId,
       source.controllerId,
       source.sourceSnapshot,
-      source.targetSelections ?? [],
-      source.activationEnvelope,
+    source.targetSelections ?? [],
+    source.activationEnvelope,
+    source.triggerCondition,
+    source.abilityResolutionText,
+    source.announcedX,
     );
     draft.state.cards = cards;
     stack.push(abilityId);
@@ -4459,6 +4745,23 @@ function applyCopyStackItem(draft: Draft, cardId: string): void {
   draft.state.cards = cards;
   stack.push(copyId);
   pushLog(draft, `${stackNameOf(draft, source)}をコピーした(スタックへ)。`);
+}
+
+function applyCopyStackItem(draft: Draft, cardId: string, quantity = 1): void {
+  if (!draft.state.zones.stack.includes(cardId)) {
+    throw new EngineError(`スタックに存在しないカードです: ${cardId}`);
+  }
+  const source = requireCard(draft, cardId);
+  if (/\b(?:this (?:ability|spell)|it)\s+(?:can['’]t|cannot)\s+be copied\b/i.test(
+    stackItemRulesText(draft.state, source),
+  )) {
+    draft.warnings.push(`${stackNameOf(draft, source)}はコピーできません。`);
+    return;
+  }
+  const count = Math.max(0, Math.floor(quantity));
+  for (let index = 0; index < count; index += 1) {
+    applyCopyStackItemOnce(draft, cardId);
+  }
 }
 
 function applyCopyPermanent(draft: Draft, cardId: string, quantity: number): void {
@@ -4960,6 +5263,10 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       );
       break;
     }
+    case 'setMaximumHandSizeOverride': {
+      applyMaximumHandSizeOverride(draft, cmd.value, cmd.playerId);
+      break;
+    }
     case 'applyPlayerEffect': {
       applyPlayerEffect(draft, cmd);
       break;
@@ -5083,6 +5390,9 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.sourceSnapshot,
         cmd.targetSelections,
         cmd.activationEnvelope,
+        cmd.triggerCondition,
+        cmd.resolutionText,
+        cmd.announcedX,
       );
       break;
     }
@@ -5101,11 +5411,12 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
         cmd.targetIds,
         cmd.targetPlayerIds,
         cmd.allowStackAbilities,
+        cmd.allowedZones,
       );
       break;
     }
     case 'copyStackItem': {
-      applyCopyStackItem(draft, cmd.cardId);
+      applyCopyStackItem(draft, cmd.cardId, cmd.quantity);
       break;
     }
     case 'copyPermanent': {
@@ -5135,11 +5446,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'nextPhase': {
-      applyNextPhase(draft, cmd.drawnHandled ?? false);
+      applyNextPhase(draft, cmd.drawnHandled ?? false, cmd.manualCleanupHandled ?? false);
       break;
     }
     case 'nextTurn': {
       applyNextTurn(draft, cmd.advanceTurnOrder ?? false);
+      break;
+    }
+    case 'completeCleanupStateActions': {
+      completeCleanupStateActions(draft);
       break;
     }
     case 'mulligan': {

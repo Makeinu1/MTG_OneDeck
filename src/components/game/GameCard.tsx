@@ -175,11 +175,26 @@ export function GameCard({
     setPreviewPinned(false);
     closePreview();
     if (quickAction.kind === 'activate') {
-      controller.store.activateAbility(cardId, quickAction.lines[0].index, { assistRestrictedMana: true });
+      if (controller.requestActivateAbility) {
+        controller.requestActivateAbility(cardId, quickAction.lines[0].index);
+      } else {
+        controller.store.activateAbility(cardId, quickAction.lines[0].index, { assistRestrictedMana: true });
+      }
       return;
     }
     if (quickAction.kind === 'choose') {
       setQuickPickerOpen(true);
+      return;
+    }
+    if (quickAction.kind === 'tap-for-mana') {
+      if (controller.requestTapForMana) {
+        controller.requestTapForMana(cardId);
+      } else {
+        controller.store.tapForMana(
+          cardId,
+          quickAction.colors.length === 1 ? quickAction.colors[0] : undefined,
+        );
+      }
       return;
     }
     controller.store.toggleTap(cardId);
@@ -333,7 +348,8 @@ export function GameCard({
               data-testid={`quick-ability-${cardId}-${line.index}`}
               onClick={() => {
                 setQuickPickerOpen(false);
-                controller.store.activateAbility(cardId, line.index, { assistRestrictedMana: true });
+                if (controller.requestActivateAbility) controller.requestActivateAbility(cardId, line.index);
+                else controller.store.activateAbility(cardId, line.index, { assistRestrictedMana: true });
               }}
             >
               {quickAbilityLabel(

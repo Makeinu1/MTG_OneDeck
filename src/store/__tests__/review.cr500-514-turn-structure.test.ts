@@ -7,14 +7,15 @@
 //   the stack-empty precondition as a hard block on `nextPhase`/`nextTurn` (docs/engine-spec.md
 //   §17 M6.2a) — already reviewer-pinned in `review.m62stack.test.ts` (not duplicated here).
 // - CR 514.2: at cleanup, all damage marked on permanents is removed, simultaneously, without
-//   using the stack. This engine has no standalone cleanup step; docs/engine-spec.md §34.5
-//   documents the surrogate = wiring `clearMarkedDamage` into the `end -> untap` transition
-//   (`applyNextPhase`) and into `nextTurn` (`applyNextTurn`). That wiring exists in
-//   `src/engine/commands.ts`, but until this file, no reviewer pin exercised the *actual*
-//   store-level `nextPhase()`/`nextTurn()` transition end-to-end — only the standalone
-//   `clearMarkedDamage` command was pinned in isolation (`review.damage-marked.test.ts`).
-// - CR 514.3/514.3a (extra cleanup loop for pending SBA/triggers) is explicitly out of scope
-//   (engine-spec §34.5 boundary (d)); not asserted here.
+//   using the stack. As of 2026-07-19 (engine-spec §34.50) this engine models a *real*
+//   standalone `cleanup` phase in `PHASE_ORDER` (superseding the former end->untap surrogate).
+//   `clearMarkedDamage` runs inside `completeCleanupStateActions` as the cleanup turn-based
+//   action. When no hand-size discard is required, a single `nextPhase()` from `end` still
+//   passes straight through cleanup to the next turn's untap with damage cleared — this file
+//   pins that passthrough edge and the stack-block precondition end-to-end. The discard-stop
+//   behavior (hand over the limit halting in cleanup) is pinned in `review.cleanup-hand-size`.
+// - CR 514.3/514.3a (extra cleanup loop for a resolution-time draw) is modeled via
+//   re-cleanup and is pinned in `review.cleanup-hand-size` (not duplicated here).
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';

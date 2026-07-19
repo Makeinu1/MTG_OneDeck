@@ -100,6 +100,61 @@ describe('manual stack target annotations', () => {
     ]);
   });
 
+  it('keeps the legacy battlefield/stack boundary unless extra manual zones are explicit', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;
+    const handId = initial.zones.hand[0];
+
+    expect(() => applyCommand(initial, {
+      type: 'setManualTargets',
+      stackItemId: sourceId,
+      targetIds: [handId],
+    })).toThrow(/指定できない領域/);
+
+    const annotated = applyCommand(initial, {
+      type: 'setManualTargets',
+      stackItemId: sourceId,
+      targetIds: [handId],
+      allowedZones: ['hand'],
+    }).state;
+    expect(annotated.cards[sourceId].targetSelections?.at(-1)).toMatchObject({
+      legalityMode: 'unchecked-warning',
+      selection: { physicalCardId: handId },
+    });
+  });
+
+  it('allows explicit manual annotations across own hand, graveyard, exile, and command', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;
+    const handId = initial.zones.hand[0];
+    const movable = initial.zones.battlefield.filter((id) => id !== sourceId).slice(0, 3);
+    const [graveyardId, exileId, commandId] = movable;
+    if (!graveyardId || !exileId || !commandId) throw new Error('fixture targets missing');
+    const withGraveyard = applyCommand(initial, {
+      type: 'moveCard', cardId: graveyardId, to: 'graveyard', position: 'bottom',
+    }).state;
+    const withExile = applyCommand(withGraveyard, {
+      type: 'moveCard', cardId: exileId, to: 'exile', position: 'bottom',
+    }).state;
+    const state = applyCommand(withExile, {
+      type: 'moveCard', cardId: commandId, to: 'command', position: 'bottom',
+    }).state;
+
+    const result = applyCommand(state, {
+      type: 'setManualTargets',
+      stackItemId: sourceId,
+      targetIds: [handId, graveyardId, exileId, commandId],
+      allowedZones: ['hand', 'graveyard', 'exile', 'command'],
+    }).state;
+
+    const manualIds = result.cards[sourceId].targetSelections
+      ?.filter((selection) => selection.slotId.startsWith('manual-target-'))
+      .flatMap((selection) => selection.selection.kind === 'object'
+        ? [selection.selection.physicalCardId]
+        : []);
+    expect(manualIds).toEqual([handId, graveyardId, exileId, commandId]);
+  });
+
   it('keeps an announced X on the stack and copies it with the spell', () => {
     const initial = buildVisualFixture('hand7').snapshot.state;
     const cardId = initial.zones.hand[0];

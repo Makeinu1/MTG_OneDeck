@@ -1,9 +1,17 @@
 import { classifyCardRules } from '../data/ruleClassifier';
-import { activatedAbilityLines, splitAbilityLines, type AbilityShape } from './grammar/index';
+import {
+  activatedAbilityLines,
+  classifyAbilityShape,
+  splitAbilityLines,
+  type AbilityShape,
+} from './grammar/index';
+import { stripAbilityWordLabel } from './grammar/abilityText';
+import { distinctCardTypesInGraveyard } from './cardTypes';
 import { effectivePower } from './status';
 import {
   objectIdOf,
   type AbilityKind,
+  type AttackDeclarationEvent,
   type CounterChangeEvent,
   type DamageEvent,
   type DrawEvent,
@@ -16,6 +24,7 @@ import {
   type PlayerId,
   type Phase,
   type ZoneChangeEvent,
+  type TriggerCondition,
 } from './types';
 
 const LAND_ENTERS_TRIGGER_PATTERN =
@@ -120,7 +129,12 @@ function triggeredAbilityEntries(state: GameState, defId: string): TriggerAbilit
       // Intentionally excludes 'delayed-triggered' lines: delayed-trigger scheduling
       // (batch3-1b) has no future turn/phase primitive yet, so this leaf must not
       // pull those lines into the ordinary event-subscription path.
-      .filter((entry) => entry.line.shape === 'triggered')
+      .filter((entry) => (
+        classifyAbilityShape(
+          stripAbilityWordLabel(entry.line.text),
+          def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
+        ) === 'triggered'
+      ))
       .map((entry) => ({ abilityLineIndex: entry.index, text: entry.line.text }))
   );
 }
@@ -134,30 +148,6 @@ function abilityLineText(
   const def = state.defs[defId];
   if (!def) return undefined;
   return splitAbilityLines(def)[abilityLineIndex]?.text;
-}
-
-function defHasSelfEtbTrigger(state: GameState, defId: string): boolean {
-  const def = state.defs[defId];
-  if (!def) return false;
-  return splitAbilityLines(def).some((line) => {
-    if (line.shape !== 'triggered' && line.shape !== 'delayed-triggered') {
-      return false;
-    }
-    const text = line.text;
-    if (!/\benters\b/i.test(text)) {
-      return false;
-    }
-    if (LAND_ENTERS_TRIGGER_PATTERN.test(text)) {
-      return false;
-    }
-    if (/\b(?:another|other)\b/i.test(text)) {
-      return false;
-    }
-    if (/\b(?:a|an|one or more|each)\s+[^.]*\benters\b/i.test(text)) {
-      return false;
-    }
-    return true;
-  });
 }
 
 function abilityShapesForKind(kind: AbilityKind): AbilityShape[] {
@@ -188,7 +178,10 @@ export function abilityLineIndexForKind(
   const shapes = abilityShapesForKind(kind);
   const matches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
-    .filter((entry) => shapes.includes(entry.line.shape));
+    .filter((entry) => shapes.includes(classifyAbilityShape(
+      stripAbilityWordLabel(entry.line.text),
+      def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
+    )));
 
   return matches.length === 1 ? matches[0].index : undefined;
 }
@@ -214,7 +207,11 @@ function abilityLineIndexForTriggerDef(
   const triggerMatches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
     .filter((entry) => {
-      if (entry.line.shape !== 'triggered' && entry.line.shape !== 'delayed-triggered') {
+      const normalizedShape = classifyAbilityShape(
+        stripAbilityWordLabel(entry.line.text),
+        def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
+      );
+      if (normalizedShape !== 'triggered' && normalizedShape !== 'delayed-triggered') {
         return false;
       }
       const text = entry.line.text;
@@ -271,12 +268,9 @@ function abilityLineIndexForTriggerDef(
   if (triggerMatches.length === 1) {
     return triggerMatches[0].index;
   }
-  const triggeredMatches = splitAbilityLines(def)
-    .map((line, index) => ({ line, index }))
-    .filter(
-      (entry) => entry.line.shape === 'triggered' || entry.line.shape === 'delayed-triggered',
-    );
-  return triggeredMatches.length === 1 ? triggeredMatches[0].index : undefined;
+  // Fail closed. A trigger event must never borrow a different sole triggered
+  // line (the former fallback made an attack resolve an ETB ability).
+  return undefined;
 }
 
 function makeTriggerCandidate(
@@ -537,9 +531,12 @@ function makePendingTrigger(
   eventId: string,
   simultaneousGroupId = eventId,
   abilityLineIndexOverride?: number,
+  condition?: TriggerCondition,
 ): PendingTrigger {
   const pending: PendingTrigger = {
-    pendingTriggerId: `${eventId}:${triggerId}:${sourceSnapshot.objectId}`,
+    pendingTriggerId: `${eventId}:${triggerId}:${sourceSnapshot.objectId}${
+      abilityLineIndexOverride === undefined ? '' : `:line-${abilityLineIndexOverride}`
+    }`,
     eventId,
     simultaneousGroupId,
     triggerId,
@@ -556,6 +553,7 @@ function makePendingTrigger(
   if (abilityLineIndex !== undefined) {
     pending.abilityLineIndex = abilityLineIndex;
   }
+  if (condition) pending.condition = condition;
   return pending;
 }
 
@@ -616,6 +614,34 @@ export function hasDelayedPhaseBeginTiming(text: string): boolean {
   return delayedPhaseBeginTimingForText(text) !== null;
 }
 
+export interface DelayedPhaseBeginTextSplit {
+  resolutionText: string;
+  immediateText?: string;
+}
+
+export function splitDelayedPhaseBeginText(text: string): DelayedPhaseBeginTextSplit | null {
+  const colonIndex = text.indexOf(':');
+  const effectText = (colonIndex < 0 ? text : text.slice(colonIndex + 1)).trim();
+  const sentences = effectText.match(/[^.]+(?:\.|$)/g)?.map((sentence) => sentence.trim()) ?? [];
+  const delayedIndex = sentences.findIndex((sentence) => hasDelayedPhaseBeginTiming(sentence));
+  if (delayedIndex < 0) return null;
+
+  const delayedSentence = sentences[delayedIndex];
+  const timingSuffix = /^(.*?)\s+at\s+the\s+beginning\s+of\s+(?:(?:the|your|its\s+owner's)\s+)?next\s+(?:end\s+step|turn['’]s\s+upkeep)\.?$/i.exec(delayedSentence);
+  const timingPrefix = /^at\s+the\s+beginning\s+of\s+(?:(?:the|your|its\s+owner's)\s+)?next\s+(?:end\s+step|turn['’]s\s+upkeep)\s*,\s*(.+)$/i.exec(delayedSentence);
+  const action = (timingSuffix?.[1] ?? timingPrefix?.[1] ?? '').replace(/[.。]\s*$/, '').trim();
+  if (action === '') return null;
+
+  const immediateText = sentences
+    .filter((_, index) => index !== delayedIndex)
+    .join(' ')
+    .trim();
+  return {
+    resolutionText: `${action}.`,
+    ...(immediateText === '' ? {} : { immediateText }),
+  };
+}
+
 export function makeScheduledDelayedTrigger(
   state: GameState,
   sourceSnapshot: ObjectSnapshot,
@@ -624,7 +650,8 @@ export function makeScheduledDelayedTrigger(
   simultaneousGroupId = eventId,
 ): PendingTrigger | null {
   const timing = delayedPhaseBeginTimingForText(text);
-  if (!timing) {
+  const split = splitDelayedPhaseBeginText(text);
+  if (!timing || !split) {
     return null;
   }
 
@@ -648,6 +675,7 @@ export function makeScheduledDelayedTrigger(
   return {
     ...pending,
     schedule: scheduleForDelayedPhaseBegin(state, timing),
+    resolutionText: split.resolutionText,
   };
 }
 
@@ -758,6 +786,7 @@ function addCurrentPermanentPendingTrigger(
   eventId: string,
   simultaneousGroupId = eventId,
   abilityLineIndex?: number,
+  condition?: TriggerCondition,
 ): void {
   const snapshot = snapshotOfCurrentCard(state, sourceId);
   if (!snapshot) return;
@@ -772,6 +801,7 @@ function addCurrentPermanentPendingTrigger(
       eventId,
       simultaneousGroupId,
       abilityLineIndex,
+      condition,
     ),
   );
 }
@@ -807,6 +837,31 @@ function controllerOf(snapshot: ObjectSnapshot): PlayerId {
 function triggerConditionText(lineText: string): string {
   const match = /\b(?:when|whenever)\b\s+([^,.;]+)/i.exec(lineText);
   return normalizeWhitespace(match?.[1] ?? lineText);
+}
+
+function selfEtbLineMatchesEvent(
+  state: GameState,
+  entered: ObjectSnapshot,
+  lineText: string,
+): boolean {
+  const condition = triggerConditionText(lineText);
+  const entersIndex = condition.search(/\benters\b/i);
+  if (entersIndex < 0) return false;
+  const subject = condition.slice(0, entersIndex);
+  if (!textReferencesSelf(state, entered.defId, subject)) return false;
+  if (/\b(?:another|other)\b/i.test(subject)) return false;
+  if (/\benters\s+untapped\b/i.test(condition) && entered.tapped) return false;
+  if (/\benters\s+tapped\b/i.test(condition) && !entered.tapped) return false;
+  return true;
+}
+
+function matchingSelfEtbAbilityLineIndexes(
+  state: GameState,
+  entered: ObjectSnapshot,
+): number[] {
+  return triggeredAbilityEntries(state, entered.defId)
+    .filter((entry) => selfEtbLineMatchesEvent(state, entered, entry.text))
+    .map((entry) => entry.abilityLineIndex);
 }
 
 function typeLineHas(
@@ -1229,6 +1284,137 @@ function counterPutLineMatchesEvent(
   return true;
 }
 
+function priorAttackByObject(
+  state: GameState,
+  event: AttackDeclarationEvent,
+  objectId: string,
+): boolean {
+  return state.eventLog.some(
+    (candidate) => candidate.type === 'attackDeclaration'
+      && candidate.turn === event.turn
+      && candidate.sequence < event.sequence
+      && candidate.attackers.some((attacker) => attacker.objectId === objectId),
+  );
+}
+
+function selfAttackLineMatchesEvent(
+  state: GameState,
+  source: ObjectSnapshot,
+  lineText: string,
+  event: AttackDeclarationEvent,
+): boolean {
+  const condition = triggerConditionText(lineText);
+  const attacksIndex = condition.search(/\battacks\b/i);
+  if (attacksIndex < 0) return false;
+  const subject = condition.slice(0, attacksIndex);
+  if (!textReferencesSelf(state, source.defId, subject)) return false;
+  if (/\bfirst time each turn\b/i.test(condition) && priorAttackByObject(state, event, source.objectId)) {
+    return false;
+  }
+  return true;
+}
+
+function attackWatcherLineMatchesEvent(
+  state: GameState,
+  source: ObjectSnapshot,
+  lineText: string,
+  event: AttackDeclarationEvent,
+): boolean {
+  const condition = triggerConditionText(lineText);
+  const attacksIndex = condition.search(/\battacks\b/i);
+  if (attacksIndex < 0) return false;
+  const subject = condition.slice(0, attacksIndex);
+  if (textReferencesSelf(state, source.defId, subject)) return false;
+  const controllerId = controllerOf(source);
+  // CR 603.2: the watcher triggers when the attack declaration includes at least
+  // one attacker matching the line's subject scope. Match each attacker:
+  //  - "another"/"other" excludes the watcher's own object (it must not count its
+  //    own attack);
+  //  - "you control"/"your" requires an attacker the watcher's controller controls;
+  //  - "opponent(s)" requires an attacker an opponent controls;
+  //  - otherwise ("whenever a creature attacks") any attacker qualifies.
+  const requiresOther = /\b(another|other)\b/i.test(subject);
+  const requiresYours = /\byou control\b|\byour\b/i.test(subject);
+  const requiresOpponent = /\bopponents?\b|\ban opponent\b/i.test(subject);
+  const qualifies = (attacker: ObjectSnapshot): boolean => {
+    if (requiresOther && attacker.objectId === source.objectId) return false;
+    const attackerController = controllerOf(attacker);
+    if (requiresYours) return attackerController === controllerId;
+    if (requiresOpponent) return attackerController !== controllerId;
+    return true;
+  };
+  return event.attackers.some(qualifies);
+}
+
+function graveyardCardTypeConditionForLine(
+  controllerId: PlayerId,
+  lineText: string,
+): TriggerCondition | undefined {
+  if (!/\bif there are four or more card types among cards in your graveyard\b/i.test(lineText)) {
+    return undefined;
+  }
+  return { kind: 'graveyard-card-types-at-least', playerId: controllerId, minimum: 4 };
+}
+
+export function triggerConditionSatisfied(state: GameState, condition: TriggerCondition): boolean {
+  switch (condition.kind) {
+    case 'graveyard-card-types-at-least':
+      return distinctCardTypesInGraveyard(state, condition.playerId).size >= condition.minimum;
+  }
+}
+
+function collectAttackDeclarationPendingTriggers(
+  prev: GameState,
+  next: GameState,
+  context: TriggerCollectionContext,
+): void {
+  for (const event of newEventsOfType(prev, next, 'attackDeclaration')) {
+    for (const attacker of event.attackers) {
+      for (const entry of triggeredAbilityEntries(next, attacker.defId)) {
+        if (!selfAttackLineMatchesEvent(next, attacker, entry.text, event)) continue;
+        const condition = graveyardCardTypeConditionForLine(controllerOf(attacker), entry.text);
+        if (condition && !triggerConditionSatisfied(next, condition)) continue;
+        addPendingTrigger(
+          context,
+          next,
+          makePendingTrigger(
+            next,
+            attacker,
+            'trigger.attack',
+            '攻撃したとき',
+            event.eventId,
+            event.eventId,
+            entry.abilityLineIndex,
+            condition,
+          ),
+        );
+      }
+    }
+
+    for (const source of event.battlefield) {
+      for (const entry of triggeredAbilityEntries(next, source.defId)) {
+        if (!attackWatcherLineMatchesEvent(next, source, entry.text, event)) continue;
+        const condition = graveyardCardTypeConditionForLine(controllerOf(source), entry.text);
+        if (condition && !triggerConditionSatisfied(next, condition)) continue;
+        addPendingTrigger(
+          context,
+          next,
+          makePendingTrigger(
+            next,
+            source,
+            'trigger.attack-watcher',
+            'クリーチャー攻撃時',
+            event.eventId,
+            event.eventId,
+            entry.abilityLineIndex,
+            condition,
+          ),
+        );
+      }
+    }
+  }
+}
+
 function collectZoneChangePendingTriggers(
   prev: GameState,
   next: GameState,
@@ -1241,7 +1427,7 @@ function collectZoneChangePendingTriggers(
     const simultaneousGroupId = event.simultaneousGroupId ?? eventId;
 
     if (event.toZone === 'battlefield' && event.after) {
-      if (defHasSelfEtbTrigger(next, event.after.defId)) {
+      for (const abilityLineIndex of matchingSelfEtbAbilityLineIndexes(next, event.after)) {
         addPendingTrigger(
           context,
           next,
@@ -1252,6 +1438,7 @@ function collectZoneChangePendingTriggers(
             '戦場に出たとき',
             eventId,
             simultaneousGroupId,
+            abilityLineIndex,
           ),
         );
       }
@@ -1636,6 +1823,7 @@ export function collectPendingTriggerUpdate(
     oncePerTurnConsumedKeys: oncePerTurnConsumedKeysForState(next),
   };
   collectZoneChangePendingTriggers(prev, next, context);
+  collectAttackDeclarationPendingTriggers(prev, next, context);
   collectDrawPendingTriggers(prev, next, context);
   collectLifeChangePendingTriggers(prev, next, context);
   collectDamagePendingTriggers(prev, next, context);
@@ -1645,43 +1833,6 @@ export function collectPendingTriggerUpdate(
     state: stateWithOncePerTurnLedger(next, context),
     pendingTriggers: context.pending,
   };
-}
-
-export function collectAttackPendingTriggers(
-  state: GameState,
-  attackerIds: string[],
-): PendingTrigger[] {
-  const context: TriggerCollectionContext = {
-    pending: [],
-    oncePerTurnConsumedKeys: oncePerTurnConsumedKeysForState(state),
-  };
-  const eventId = `implicit:attack:${state.turn}:${state.phase}:${state.log.length}:${attackerIds.join(',')}`;
-
-  for (const cardId of attackerIds) {
-    if (!cardHasRuleTag(state, cardId, 'trigger.attack')) continue;
-    addCurrentPermanentPendingTrigger(
-      state,
-      context,
-      cardId,
-      'trigger.attack',
-      '攻撃したとき',
-      eventId,
-    );
-  }
-
-  for (const cardId of state.zones.battlefield) {
-    if (!cardHasRuleTag(state, cardId, 'trigger.attack-watcher')) continue;
-    addCurrentPermanentPendingTrigger(
-      state,
-      context,
-      cardId,
-      'trigger.attack-watcher',
-      'クリーチャー攻撃時',
-      eventId,
-    );
-  }
-
-  return context.pending;
 }
 
 export function triggerCandidatesFromPendingTriggers(

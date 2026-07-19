@@ -14,6 +14,7 @@ import {
   type VisualFixtureScenario,
 } from './fixtureBuilder';
 import { initializeTheme, saveThemePreference } from '../../ui/theme';
+import { triggerCandidatesFromPendingTriggers } from '../../engine/triggers';
 import {
   applyTabletopPrototypeMode,
   resolveTabletopPrototypeMode,
@@ -88,7 +89,7 @@ async function renderFixture(): Promise<void> {
   store.restoreGame(snapshot);
   useGameStore.setState({
     warnings: capturedCheckpoint?.transient.warnings ?? syntheticFixture?.warnings ?? [],
-    triggerCandidates: [],
+    triggerCandidates: triggerCandidatesFromPendingTriggers(snapshot.state.pendingTriggers),
     pendingGuided: capturedCheckpoint?.transient.pendingGuided ?? null,
     mulliganDecisionPending:
       capturedCheckpoint?.transient.mulliganDecisionPending ??

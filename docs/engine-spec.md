@@ -19,8 +19,8 @@
 ```ts
 export type ZoneId = 'library' | 'hand' | 'battlefield' | 'graveyard' | 'exile' | 'command';
 
-export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end';
-export const PHASE_ORDER: Phase[] = ['untap', 'upkeep', 'draw', 'main1', 'combat', 'main2', 'end'];
+export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end' | 'cleanup';
+export const PHASE_ORDER: Phase[] = ['untap', 'upkeep', 'draw', 'main1', 'combat', 'main2', 'end', 'cleanup']; // §34.50: cleanup は 2026-07-19 に surrogate から実フェイズへ昇格
 
 export interface ManaPool { W: number; U: number; B: number; R: number; G: number; C: number; }
 
@@ -116,7 +116,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult;
 - **moveCard**: `position` は移動先ゾーン配列内の挿入位置。`'top'` = index 0。battlefield 行きは常に末尾追加でよい(UIが並び順を管理しない)。ゾーン移動時に `tapped=false, faceDown=false, faceIndex=0, counters={}, attachedTo=undefined` にリセット(battlefield → battlefield 内移動は対象外)。トークンが battlefield 外へ移動した場合は zone-change event / pending trigger 収集後、`stabilizeBeforePriority()` の CR 704.5d で消滅する(I2)
 - **castSpell**: 手札(または指定ゾーン—v1は手札のみ)から、`typeLine` に `Instant`/`Sorcery` を含むなら graveyard へ、それ以外は battlefield へ移動し、`payment` をプールから減算。プール不足分があるのに `forced=false` ならコマンド拒否ではなく **payment はソルバ計算済みが前提**なので、エンジンは payment > pool の場合 pool を下限0でクランプし warning を返す
 - **castCommander**: castSpell と同様 + 対象が commanders に含まれることを検証し `castCount += 1`。統率領域からのみ
-- **nextPhase**: `PHASE_ORDER` の次へ(end の次は turn+1 の untap)。**untap 進入時**: battlefield 全カードを `tapped=false`。**draw 進入時**: 1枚ドロー(`turn===1` でも引く=EDH/多人数戦準拠。§7.5 の M4.6 改訂でターン1のドロースキップは廃止された)。フェイズ遷移時にプールをクリア(I5)
+- **nextPhase**: `PHASE_ORDER` の次へ(end の次は cleanup、cleanup で手札上限を満たせば turn+1 の untap まで一気に進む=§34.50)。**untap 進入時**: battlefield 全カードを `tapped=false`。**draw 進入時**: 1枚ドロー(`turn===1` でも引く=EDH/多人数戦準拠。§7.5 の M4.6 改訂でターン1のドロースキップは廃止された)。フェイズ遷移時にプールをクリア(I5)
 - **mulligan**: 現在の手札全カードを library へ移し、`order`(手札+ライブラリ全体の新順列)で並べ、`mulliganCount += 1`。その後の draw(7) と putOnBottom(mulliganCount 枚) はストア層が別コマンドとして発行
 - すべてのコマンドは適切な日本語 LogEntry を log に追加する
 
@@ -887,7 +887,7 @@ export function summarizeDeckRuleTags(entries: RuleDeckEntry[]): RuleDeckSummary
 - **ArrowUp(M4.29)は不変**: スタック非空ならフェイズ進行ではなくトップ解決(`requestResolveTop`)にリダイレクトされる(従来挙動を維持)。
 
 ### 17.3 cr-500-514-turn-structure(CR 500.2/500.3・S-TURN 前半)との関係
-本節のスタックブロックは CR 500.2/500.3(優先権のあるフェイズ/ステップはスタックが空かつ全員パスするまで終わらない)の UI 層モデル化そのもの。cleanup surrogate(CR 514.2・`clearMarkedDamage` を `end→untap`/`nextTurn` へ配線・§34.5 参照)がこのブロック下で部分実行されないことを含め、`src/store/__tests__/review.cr500-514-turn-structure.test.ts` が本節と§34.5 双方をまたいで end-to-end で reviewer-pin(2026-07-04)。
+本節のスタックブロックは CR 500.2/500.3(優先権のあるフェイズ/ステップはスタックが空かつ全員パスするまで終わらない)の UI 層モデル化そのもの。cleanup step(CR 514.2・`clearMarkedDamage`。**2026-07-19 に surrogate から実 `cleanup` phase へ昇格=§34.50**)がこのブロック下で部分実行されない(スタック非空時に `nextPhase` がブロックされ damage が消えない)ことを含め、`src/store/__tests__/review.cr500-514-turn-structure.test.ts` が end-to-end で reviewer-pin(2026-07-04・2026-07-19 に実 cleanup phase へ再ピン)。
 
 ---
 
@@ -2352,11 +2352,11 @@ interface CardInstance {
 
 **3. SBA(`performStateBasedActionsOnce`・既存 704.5f/i/d/e と同枠)**: 704.5g(effective toughness>0 かつ `damageMarked>=toughness` → owner's graveyard・`sbaApplied:'704.5g'`)・704.5h(effective toughness>0 かつ `hasDeathtouchDamage` かつ `damageMarked>=1` → owner's graveyard・`sbaApplied:'704.5h'`)。effective toughness は 704.5f と同一ヘルパ(counter 込み)=分岐なし。704.5f が toughness≤0 を専有するので 0-toughness は g/h 非該当=二重破壊なし。
 
-**4. cleanup 配線判断(§34.5)**: 現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。将来 standalone cleanup step は contract 不変のまま `clearMarkedDamage` を呼べばよい。**2026-07-04: end-to-end reviewer-pin 追加**(`review.cr500-514-turn-structure.test.ts`)= 単発 `clearMarkedDamage` コマンドの pin(`review.damage-marked.test.ts`)に加え、実際の `nextPhase()`/`nextTurn()` store 呼び出しでダメージが消えること・中間フェイズ移行では消えないこと・スタック非空時は部分実行されないことを確認(cr-500-514-turn-structure ドメイン=§17.3 参照)。
+**4. cleanup 配線判断(§34.5)**: ~~現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。~~ **【2026-07-19 更新=§34.50 で置換】**: standalone `cleanup` phase を `PHASE_ORDER` に追加し実モデル化した。`clearMarkedDamage`(514.2)は `completeCleanupStateActions` 内で cleanup step の turn-based action として実行される。**contract 予告どおり** cleanup step 導入は `clearMarkedDamage` を呼ぶだけで済み、damage-marked substrate の挙動は不変(手札上限を満たすターンは end→cleanup→untap が単一 `nextPhase` で貫通するため surrogate と同一エッジで damage が消える)。**2026-07-04: end-to-end reviewer-pin**(`review.cr500-514-turn-structure.test.ts`)= 実 `nextPhase()`/`nextTurn()` でダメージが消えること・中間フェイズ移行では消えないこと・スタック非空時は部分実行されないことを確認。**2026-07-19: 同 pin を実 cleanup phase へ再ピン**(cleanup step が挟まっても no-discard パスの end→untap 貫通と damage クリアが保たれる)。
 
 **5. golden / test(4点不変条件③)**: `golden-cases.json` に `cr-sba-lethal-damage-destroys-creature`(704.5g/120.6)・`cr-sba-sublethal-damage-survives`・`cr-sba-deathtouch-any-damage-destroys`(704.5h)・`cr-cleanup-clears-marked-damage`(514.2)を追加し `crGroundingGoldenCases.test.ts` で実行可能化。受け入れ acceptance contract = `src/store/__tests__/review.damage-marked.test.ts`(**レビュー担当専有**=exactly-lethal/sublethal/deathtouch-by-flag/cleanup/負 clamp/0-toughness 単発破壊 の敵対 pin)。I3 不変条件に `damageMarked>=0` を追加(`review.properties`)。
 
-**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)**full combat phase orchestration**(declare attackers/blockers・combat damage step 自動)→ C-GRAMMAR/combat carry。damage は `markDamage` 経由でのみ入る (b)**regeneration replacement**(704.5g の「unless regenerated」/ CR 701.18)→ regeneration shield state が無いので未実装・704.5g は無条件破壊 (c)**first/double strike** の damage step 分割 → defer (d)**standalone CR 514 cleanup step** → 未モデル(turn 遷移が surrogate)。これらは leaf/compiler 後付けで substrate を壊さず差し込める。
+**6. スコープ境界(§34.5・PASS に混ぜない=4点不変条件④)**: (a)**full combat phase orchestration**(declare attackers/blockers・combat damage step 自動)→ C-GRAMMAR/combat carry。damage は `markDamage` 経由でのみ入る (b)**regeneration replacement**(704.5g の「unless regenerated」/ CR 701.18)→ regeneration shield state が無いので未実装・704.5g は無条件破壊 (c)**first/double strike** の damage step 分割 → defer ~~(d)**standalone CR 514 cleanup step** → 未モデル(turn 遷移が surrogate)~~ **【2026-07-19: (d) は §34.50 で解消。standalone cleanup phase + 手札上限捨てを実装済み。CR 514.3/514.3a の追加 cleanup ループも解決中ドロー→再クリーンナップで実装】**。これらは leaf/compiler 後付けで substrate を壊さず差し込める。
 
 ### 34.13 S-COMBAT: combat structure(first slice・CR 506–510)— この節も契約である
 
@@ -3146,6 +3146,33 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 **(b) manual複合カウンターの無条件葉(CR 701.6a-b/608)**: `guidedPlanForStackTop` は manual 判定の複合文に対し `guidedCounterLeafForManualComposite` を試し、**無条件の「counter target spell」葉が認識できる場合だけ** checked stack-spell 対象プロンプトを出して打ち消しを実行、**残余文は warning として明示提示**する(無言実行しない)。「unless」条件付き・置換形は葉と認識しない(manual維持)。戻り値に `warnings: string[]` を additive 追加。
 
 **(c) 統一 Undo(UI層契約)**: 選択途中の一時状態(guided プロンプト・ダイアログ)は `useInteractionHistory`(GameState 外・スナップショット非対象)が保持し、Undo はまず選択を一段戻し、ダイアログ先頭では副作用なく閉じ、その次で盤面 undo へ委譲する。エンジンの「1コマンド=1 undo」契約(§7.8)は不変。ショートカットはフォーカスが input/select/contenteditable のときだけ標準編集へ譲る。
+
+### 34.50 cleanup step + 手札上限 + プレイ信頼性スライス(CR 402.2/514.1–514.3a/207.2c/603.4)— この節も契約である
+
+**位置づけ**(2026-07-19・ユーザー要望⑤②③④⑥由来・状態②実装を判定者復帰監査で再オーナー化): §34.12 item4/6 が「turn 遷移 surrogate」として明示 defer していた standalone cleanup step を実装し、手札上限の捨てと関連プレイ信頼性を配線した。**新規公開契約の単一正本はここ**。既存 damage-marked substrate 契約(§34.12)は不変。
+
+**1. `cleanup` phase(CR 514・§34.12 item4 の予告どおり）**: `Phase`/`PHASE_ORDER` に `'end'` の後ろへ `'cleanup'` を追加。`applyNextPhase`:
+- `phase==='end'` → `beginCleanup`(cleanup へ入り `ensureCleanupDiscardChoice`)。捨て不要なら同一 `nextPhase` 内で `completeCleanupStateActions`(514.2 `clearMarkedDamage` + `combatDamagePreventedUntilEndOfTurn=false`)→ `finishTurnAfterCleanup`(turn+1・untap)まで貫通=**7枚以下の通常ターンは追加クリックを発生させない**(surrogate と同一の観測挙動)。
+- `phase==='cleanup'` かつ捨て残あり → cleanup に留まり `cleanup-discard` rule choice を保持。`manualCleanupHandled` または捨て完了で state action→次ターンへ。
+- `nextTurn`(ターン直接送り)は cleanup choice を drop して warning「手動処理済みとして続行」を出し、常に damage クリア+untap(サンドボックス強行)。
+
+**2. 有効手札上限 `effectiveMaximumHandSize(state, playerId): number | null`(`src/engine/handSize.ts`・CR 402.2)**: `null`=上限なし。優先順位=(a) `PlayerState.maximumHandSizeOverride`(`number | 'none'`。手動補正が最優先。`'none'`→null・数値→`floor,>=0`) > (b) 自コントロール permanent の英語 oracle に `you have no maximum hand size`(《Thought Vessel》型)→null > (c) 既定 `7`。**加減算・条件付き・固定値・タイムスタンプ競合の一般解釈は defer**(後続スライスで同関数へ additive 追加)。北極星③=実カード需要順に拡張。
+
+**3. `cleanup-discard` rule choice(CR 514.1）**: `CleanupDiscardRuleChoice{ kind:'cleanup-discard'; ruleRef:'514.1'; playerId; cardIds; requiredCount }` を `PendingRuleChoice` へ追加。解決 = `RuleChoiceSelection` へ `{ kind:'cleanup-discard'; cardIds; manualHandled? }`。**ちょうど `requiredCount` 枚**を選び墓地へ。通常は選択完了までフェイズ進行を止めるが `manualHandled` で強行可(警告付き)。捨て後にドローで再超過したら再クリーンナップ(CR 514.3/514.3a の追加ループ)。
+
+**4. 誘発信頼性(CR 207.2c/603.4)**:
+- **能力語剥がし**: `Delirium —` 等の能力語(CR 207.2c=ルール上の意味なし)を形状分類前に `stripAbilityWordLabel`(`src/engine/grammar/abilityText.ts`)で除去。《逸失への恐怖》の攻撃行(昂揚)が能力語で誤マスクされない。
+- **ETB 条件の解決時再評価**: `PendingTrigger.condition?: TriggerCondition` を stack object へ伝播し、解決時に `triggerConditionSatisfied` を再評価(603.4 intervening-if)。満たさなければ効果を実行せず除去(《逸失》昂揚4種の解決時再チェック)。
+- **ETB 汎用フォールバック撤廃**: イベントに一致する誘発行が無いとき「唯一の誘発行を流用」する fail-open を廃止し fail-closed。《神秘の聖域》は post-entry snapshot が untapped のときだけ ETB 誘発(該当能力行 × ゾーン移動後スナップショット照合)。
+- **攻撃 watcher の scope 照合(CR 603.2・ユーザー裁定 2026-07-19=正しく実装)**: `AttackDeclarationEvent{ type:'attackDeclaration'; combatId; attackingPlayerId; attackers; battlefield }` を eventLog へ記録。自身の攻撃行(`trigger.attack`・first-time-each-turn 込み)は `selfAttackLineMatchesEvent`。「〜が攻撃するたび」型 watcher 行(`attackWatcherLineMatchesEvent`)は**各 attacker を subject の scope へ照合**し、少なくとも1体が適格なら検出=候補表示(このエンジンの誘発は「検出→ユーザーがスタックに乗せるのを確認」方式=検出が半手動アフォーダンス)。scope: 「another/other」= watcher 自身の objectId を除外(自身の攻撃を数えない=誤発火バグの根治)/「you control・your」= attacker の controller が watcher の controller/「opponent(s)」= attacker の controller が対戦相手/無指定 = 全 attacker 適格。**このエンジンは watcher あたり1候補**(attacker 数分の複数誘発は簡略化=defer)。追加戦闘フェイズ自動化は defer(手動+警告)。
+
+**5. 遅延誘発の解決本文分離(CR 603.7・ミシュラのがらくた型)**: `PendingTrigger.resolutionText?` / `CardInstance.abilityResolutionText?` に、元の起動能力全体でなく**遅延部分の本文だけ**(「次のアップキープ開始時にカードを1枚引く」)を予約。即時部分(占術/look)と遅延部分を分割し、遅延誘発が即時部分を飲み込まない。予約→次アップキープ→スタック→解決で**実際に手札が1枚増える**ところまで golden replay(`review.plan-*`)。分割不能な複合文は成功表示せず手動+警告。
+
+**6. 起動時 X 宣言・スタック対象拡張(CR 601.2b/115.1c・悟悟型)**: `ActivateAbilityOptions.xValue?`(601.2b で X を宣言)。`CardInstance.announcedX?` を能力スタックオブジェクトへ保存(表示・undo・コピーで保持)。`copyStackItem(cardId, quantity?)` で対象能力を X 回・決定順にコピー。`setManualTargets` の許可領域を戦場・スタックから hand/graveyard/exile/command へ拡張(`ManualTargetZone = Exclude<ZoneId,'library'>`)。相手の非公開手札・ライブラリは候補外。サンドボックス注記であり適正対象判定は装わない。
+
+**7. 前方互換(I16)**: `maximumHandSizeOverride`/`announcedX`/`abilityResolutionText`/`resolutionText`/`condition` は全て optional。旧 snapshot は override 未設定(=既定7)として `restoreGame` で backfill。`CACHE_SCHEMA_VERSION` は不変(additive optional のみ)。
+
+**受け入れ(判定者専有 review.*）**: `review.cleanup-hand-size`(7/8/複数超過・no-max 自動・override 手動優先・解決中ドロー再クリーンナップ・ダメージ除去・旧 snapshot backfill・undo)/ `review.attack-trigger-failclose`(watcher 非自動・self-attack 昂揚/first-time/解決時再評価)/ `review.plan-card-fixtures-scryfall`(fixture の type_line/oracle が 2026-07-19 Scryfall スナップショットに一致)。実装者テスト=`src/store/__tests__/plan{Cleanup,Gogo,MishrasBauble,TriggerReliability}.test.ts`。
 
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 

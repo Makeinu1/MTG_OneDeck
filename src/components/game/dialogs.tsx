@@ -165,15 +165,17 @@ export function ForceActivationDialog({
 export function XCostDialog({
   cardName,
   manaCost,
+  minValue = 0,
   onConfirm,
   onCancel,
 }: {
   cardName: string;
   manaCost: string;
+  minValue?: number;
   onConfirm: (xValue: number) => void;
   onCancel: () => void;
 }) {
-  const [value, setValue] = useState('0');
+  const [value, setValue] = useState(String(minValue));
   const xSymbols = parseManaCost(manaCost).x;
 
   return (
@@ -186,7 +188,7 @@ export function XCostDialog({
         X
         <input
           type="number"
-          min={0}
+          min={minValue}
           step={1}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -201,7 +203,7 @@ export function XCostDialog({
         <button
           type="button"
           className="btn btn--accent"
-          onClick={() => onConfirm(Math.max(0, Number.parseInt(value, 10) || 0))}
+          onClick={() => onConfirm(Math.max(minValue, Number.parseInt(value, 10) || minValue))}
           data-testid="x-cost-confirm"
         >
           決定

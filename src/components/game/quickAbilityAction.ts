@@ -1,10 +1,12 @@
 import { activatedAbilityLines, type ActivatedAbilityLine } from '../../engine/grammar';
+import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
 import type { CardInstance } from '../../engine/types';
-import type { CardDef } from '../../types/card';
+import type { CardDef, ManaColor } from '../../types/card';
 import { activatedAbilityDisplayText } from './abilityDisplay';
 
 export type QuickAbilityAction =
   | { kind: 'manual-tap'; lines: [] }
+  | { kind: 'tap-for-mana'; lines: []; colors: ManaColor[] }
   | { kind: 'activate'; lines: [ActivatedAbilityLine] }
   | { kind: 'choose'; lines: ActivatedAbilityLine[] };
 
@@ -22,8 +24,18 @@ export function quickAbilityAction(
     return { kind: 'manual-tap', lines: [] };
   }
 
-  const lines = activatedAbilityLines(def, card.faceIndex).filter((line) => /\{T\}/i.test(line.costText));
-  if (lines.length === 0) return { kind: 'manual-tap', lines: [] };
+  const activatedLines = activatedAbilityLines(def, card.faceIndex);
+  const lines = activatedLines.filter((line) => /\{T\}/i.test(line.costText));
+  if (lines.length === 0) {
+    // CR 305.6 intrinsic basic-land-type abilities and reminder-only oracle text
+    // do not necessarily produce an explicit activated line. Only use the
+    // producedMana shortcut when no printed activated ability competes for the
+    // click; complex/costed/filter abilities stay in the normal ability UI.
+    const colors = activatedLines.length === 0 ? naiveTapManaColors(def) : [];
+    return colors.length > 0
+      ? { kind: 'tap-for-mana', lines: [], colors }
+      : { kind: 'manual-tap', lines: [] };
+  }
   if (lines.length === 1) return { kind: 'activate', lines: [lines[0]] };
   return { kind: 'choose', lines };
 }

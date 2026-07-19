@@ -4,6 +4,7 @@ import type { GameState, PlayerId } from '../../engine/types';
 import { activatedAbilityLines } from '../../engine/grammar';
 import { activatedAbilityDisplayText } from './abilityDisplay';
 import { useInteractionHistory } from '../../hooks/useInteractionHistory';
+import { ZONE_LABELS_JA } from '../../data/zoneLabels';
 
 export function ManualTargetDialog({
   state,
@@ -16,10 +17,18 @@ export function ManualTargetDialog({
   onConfirm: (targetIds: string[], targetPlayerIds: PlayerId[]) => void;
   onCancel: () => void;
 }) {
-  const candidates = [
-    ...state.zones.stack.filter((id) => id !== sourceId),
-    ...state.zones.battlefield.filter((id) => !state.cards[id]?.isAbility),
-  ];
+  const candidateGroups = [
+    { zone: 'stack', ids: state.zones.stack.filter((id) => id !== sourceId) },
+    { zone: 'battlefield', ids: state.zones.battlefield.filter((id) => !state.cards[id]?.isAbility) },
+    { zone: 'hand', ids: state.zonesByPlayer[state.localPlayerId]?.hand ?? [] },
+    {
+      zone: 'graveyard',
+      ids: state.turnOrder.flatMap((playerId) => state.zonesByPlayer[playerId]?.graveyard ?? []),
+    },
+    { zone: 'exile', ids: state.zones.exile },
+    { zone: 'command', ids: state.zones.command },
+  ] as const;
+  const candidates = candidateGroups.flatMap((group) => group.ids);
   const current = new Set(
     (state.cards[sourceId]?.targetSelections ?? []).flatMap((target) =>
       target.slotId.startsWith('manual-target-')
@@ -96,8 +105,12 @@ export function ManualTargetDialog({
       {candidates.length === 0 ? (
         <p className="zone-viewer__empty">選べる呪文・能力・パーマネントはありません。</p>
       ) : (
-        <ul className="manual-target-dialog__list">
-          {candidates.map((cardId) => {
+        <div className="manual-target-dialog__groups">
+          {candidateGroups.filter((group) => group.ids.length > 0).map((group) => (
+            <section key={group.zone} className="manual-target-dialog__group" data-zone={group.zone}>
+              <h3>{ZONE_LABELS_JA[group.zone]}</h3>
+              <ul className="manual-target-dialog__list">
+          {group.ids.map((cardId) => {
             const card = state.cards[cardId];
             const def = card ? state.defs[card.defId] : undefined;
             if (!card || !def) return null;
@@ -108,6 +121,7 @@ export function ManualTargetDialog({
               ? activatedAbilityLines(def).find((line) => line.index === card.abilityLineIndex)
               : undefined;
             const abilityText = abilityLine ? activatedAbilityDisplayText(def, abilityLine) : undefined;
+            const controllerLabel = state.players[card.controllerId]?.label ?? card.controllerId;
             return (
               <li key={cardId}>
                 <label className={`manual-target-dialog__item${checked ? ' is-selected' : ''}`}>
@@ -126,14 +140,17 @@ export function ManualTargetDialog({
                       ? card.isAbility
                         ? `スタック上の${card.abilityKind === 'triggered' ? '誘発型能力' : '起動型能力'}`
                         : 'スタック上の呪文'
-                      : '戦場のパーマネント'}</small>
+                      : `${ZONE_LABELS_JA[card.zone]} / ${controllerLabel}`}</small>
                     {abilityText && <small>{abilityText}</small>}
                   </span>
                 </label>
               </li>
             );
           })}
-        </ul>
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
       <div className="dialog__actions">
         <button type="button" className="btn" onClick={onCancel}>キャンセル</button>

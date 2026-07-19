@@ -49,4 +49,21 @@ describe('TriggerSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     act(() => root.unmount());
   });
+
+  it('closes with Escape for keyboard operation', () => {
+    const controller = {
+      store: { triggerCandidates: [candidate('a', '誘発A')] },
+    } as unknown as GameController;
+    const onClose = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<TriggerSheet controller={controller} onClose={onClose} />));
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
 });

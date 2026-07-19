@@ -1,11 +1,12 @@
-/** StackBand — desktop right rail / compact mobile sheet. */
+/** StackBand — board-stable centered overlay with a compact closed-state trigger. */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { GameCard } from './GameCard';
 import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
 import type { GameController } from './gameController';
 import { ManualTargetDialog } from './ManualTargetDialog';
 import { Icon } from '../../ui/icons';
+import { objectIdOf } from '../../engine/types';
 
 interface TargetLine {
   key: string;
@@ -86,21 +87,28 @@ export interface StackBandProps {
 
 export function StackBand({ controller }: StackBandProps) {
   const stackLen = controller.state?.zones.stack.length ?? 0;
-  const prevLen = useRef(stackLen);
-  const [flash, setFlash] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const bottomStackId = controller.state?.zones.stack[0];
+  const bottomStackCard = bottomStackId ? controller.state?.cards[bottomStackId] : undefined;
+  const sessionId = bottomStackCard
+    ? `${bottomStackCard.id}:${objectIdOf(bottomStackCard)}`
+    : 'empty';
+  const [closedSessionId, setClosedSessionId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [manualTargetSourceId, setManualTargetSourceId] = useState<string | null>(null);
 
+  const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
+    (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
+  ) ?? false;
+  const effectiveOpen = (stackLen > 0 && closedSessionId !== sessionId) || hasStackCandidate;
+
   useEffect(() => {
-    if (stackLen < prevLen.current && stackLen > 0) {
-      setFlash(true);
-      const timer = setTimeout(() => setFlash(false), 500);
-      prevLen.current = stackLen;
-      return () => clearTimeout(timer);
-    }
-    prevLen.current = stackLen;
-  }, [stackLen]);
+    if (!effectiveOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !hasStackCandidate) setClosedSessionId(sessionId);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [effectiveOpen, hasStackCandidate, sessionId]);
 
   const { state } = controller;
   if (!state || state.zones.stack.length === 0) {
@@ -109,32 +117,38 @@ export function StackBand({ controller }: StackBandProps) {
 
   const items = stackItemPresentations(state);
   const selectedItem = items.find((item) => item.cardId === selectedCardId) ?? items[0];
-  const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
-    (cardId) => state.cards[cardId]?.zone === 'stack',
-  ) ?? false;
-  const mobileWorkspaceOpen = mobileOpen || hasStackCandidate;
-
   return (
     <>
-      <StackTargetLines item={selectedItem} />
+      {effectiveOpen && <StackTargetLines item={selectedItem} />}
       <button
         type="button"
         className="stack-compact-trigger"
         data-testid="stack-compact-trigger"
-        data-mobile-open={mobileWorkspaceOpen || undefined}
-        aria-expanded={mobileWorkspaceOpen}
+        data-mobile-open={effectiveOpen || undefined}
+        aria-expanded={effectiveOpen}
         aria-controls="stack-workspace"
-        onClick={() => setMobileOpen(true)}
+        onClick={() => setClosedSessionId(null)}
       >
         <span>次に解決</span>
         <strong>{items[0]?.name}</strong>
         <small>{items.length}件</small>
       </button>
+      {effectiveOpen && (
+        <button
+          type="button"
+          className="stack-workspace__backdrop"
+          aria-label="スタック画面を閉じる"
+          data-testid="stack-workspace-backdrop"
+          onClick={() => {
+            if (!hasStackCandidate) setClosedSessionId(sessionId);
+          }}
+        />
+      )}
       <section
         id="stack-workspace"
-        className={`stack-band stack-workspace${flash ? ' stack-band--flash' : ''}`}
+        className="stack-band stack-workspace"
         data-testid="stack-band"
-        data-mobile-open={mobileWorkspaceOpen || undefined}
+        data-mobile-open={effectiveOpen || undefined}
         aria-label={`スタック ${items.length}件`}
       >
         <div className="stack-workspace__handle" data-testid="stack-workspace-handle">
@@ -142,7 +156,13 @@ export function StackBand({ controller }: StackBandProps) {
             <strong>スタック</strong>
             <span>{items.length}件 · 上から順に解決</span>
           </div>
-          <button type="button" className="stack-workspace__close" onClick={() => setMobileOpen(false)}>閉じる</button>
+          <button
+            type="button"
+            className="stack-workspace__close"
+            onClick={() => {
+              if (!hasStackCandidate) setClosedSessionId(sessionId);
+            }}
+          >閉じる</button>
         </div>
         <ol className="stack-workspace__items">
           {items.map((item, index) => (
@@ -208,7 +228,7 @@ export function StackBand({ controller }: StackBandProps) {
           <span className="stack-workspace__footer-compact" aria-hidden="true">下の「解決」から</span>
         </footer>
       </section>
-      {manualTargetSourceId && (
+      {manualTargetSourceId && state.cards[manualTargetSourceId]?.zone === 'stack' && (
         <ManualTargetDialog
           state={state}
           sourceId={manualTargetSourceId}

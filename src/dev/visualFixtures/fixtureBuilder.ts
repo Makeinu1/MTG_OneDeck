@@ -26,6 +26,7 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'battlefield',
   'commander-battlefield',
   'stack',
+  'trigger-order',
   'graveyard',
   'partner',
   'partner-away',
@@ -444,6 +445,28 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
       : basePermanentIds;
   state = moveCards(state, creatureIds, 'battlefield');
   state = moveCards(state, permanentIds, 'battlefield');
+  if (scenario === 'trigger-order') {
+    const sources = [creatureIds[0], permanentIds[0]];
+    const pendingTriggers = sources.map((sourceId, index) => {
+      const sourceSnapshot = snapshotFor(state, sourceId);
+      const eventId = `fixture-trigger-event-${index + 1}`;
+      return {
+        pendingTriggerId: `fixture-pending-trigger-${index + 1}`,
+        eventId,
+        simultaneousGroupId: 'fixture-trigger-group',
+        triggerId: index === 0 ? 'trigger.etb' : 'trigger.draw',
+        sourceId,
+        sourceObjectId: sourceSnapshot.objectId,
+        sourceSnapshot,
+        controllerId: sourceSnapshot.controllerId ?? sourceSnapshot.ownerId,
+        label: index === 0
+          ? '戦場に出たとき: 《クリーチャー 1》'
+          : 'カードを引いたとき: 《置物 1》',
+        stackPlacementBucket: 'ordinary' as const,
+      };
+    });
+    return { ...state, phase: 'main2', turn: 4, pendingTriggers };
+  }
   if (scenario === 'commander-battlefield') {
     state = moveCards(state, [state.commanders[0].cardId], 'battlefield');
   }

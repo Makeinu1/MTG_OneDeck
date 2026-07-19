@@ -122,6 +122,8 @@ function candidateForEvent(
         priority: 110,
         sequence: event.sequence,
       };
+    case 'attackDeclaration':
+      return null;
   }
 }
 

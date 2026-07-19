@@ -59,6 +59,41 @@ describe('ManualTargetDialog', () => {
     act(() => root.unmount());
   });
 
+  it('groups manual candidates from every public zone plus the local hand', () => {
+    const initial = buildVisualFixture('stack').snapshot.state;
+    const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;
+    const handId = initial.zones.hand[0];
+    const movable = initial.zones.battlefield.slice(0, 3);
+    const [graveyardId, exileId, commandId] = movable;
+    if (!graveyardId || !exileId || !commandId) throw new Error('fixture targets missing');
+    const withGraveyard = applyCommand(initial, {
+      type: 'moveCard', cardId: graveyardId, to: 'graveyard', position: 'bottom',
+    }).state;
+    const withExile = applyCommand(withGraveyard, {
+      type: 'moveCard', cardId: exileId, to: 'exile', position: 'bottom',
+    }).state;
+    const state = applyCommand(withExile, {
+      type: 'moveCard', cardId: commandId, to: 'command', position: 'bottom',
+    }).state;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <ManualTargetDialog state={state} sourceId={sourceId} onConfirm={vi.fn()} onCancel={vi.fn()} />,
+    ));
+
+    for (const cardId of [handId, graveyardId, exileId, commandId]) {
+      expect(document.querySelector(`[data-testid="manual-target-${cardId}"]`)).not.toBeNull();
+    }
+    expect(document.body.textContent).toContain('手札');
+    expect(document.body.textContent).toContain('墓地');
+    expect(document.body.textContent).toContain('追放');
+    expect(document.body.textContent).toContain('統率領域');
+    expect(document.body.textContent).toContain('/ あなた');
+    act(() => root.unmount());
+  });
+
   it('undoes checkbox choices one at a time and closes only at the interaction boundary', () => {
     const state = buildVisualFixture('stack').snapshot.state;
     const sourceId = state.zones.stack.find((id) => !state.cards[id].isAbility)!;

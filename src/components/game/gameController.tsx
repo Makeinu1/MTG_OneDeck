@@ -20,10 +20,12 @@ import {
   useGameStore,
   type GameStore,
 } from '../../store/gameStore';
-import type { GameState, PlayerId, ZoneId } from '../../engine/types';
+import type { GameState, ManualTargetZone, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { parseManaCost } from '../../engine/mana';
+import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
+import { activatedAbilityLines } from '../../engine/grammar';
 import { fetchAbility, type FetchAbility } from '../../engine/status';
 import type { RuleActionCandidateKind } from './ruleActionCandidates';
 import type { ManaColor } from '../../types/card';
@@ -36,6 +38,7 @@ import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { celebrate } from './sound';
 import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
+import { CleanupDiscardDialog } from './CleanupDiscardDialog';
 import {
   ArrangeTopDialog,
   AttackDialog,
@@ -88,6 +91,12 @@ type PendingPaymentAction =
   | { kind: 'cycle'; cardId: string; shortfall: number };
 type ManaChoiceRequest = { kind: 'tap' | 'treasure'; cardId: string; options: ManaColor[] };
 type PendingXCast = { cardId: string; faceIndex: number };
+type PendingXAbility = {
+  cardId: string;
+  abilityLineIndex: number;
+  manaCost: string;
+  minValue: number;
+};
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = { kind: 'draw' | 'mill' | 'peek' | 'discard-random'; defaultValue: number };
 type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
@@ -118,6 +127,9 @@ export interface GameController {
   openCardMenuAt?: (cardId: string, x: number, y: number) => void;
   /** ダブルクリック/クイックアクション。 */
   handleCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
+  /** CR 305.6/producedMana の安全な土地クリックを色選択つきで実行する。 */
+  requestTapForMana?: (cardId: string) => void;
+  requestActivateAbility?: (cardId: string, abilityLineIndex?: number) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
   requestResolveTop: () => void;
   requestResolveAll: () => void;
@@ -127,7 +139,12 @@ export interface GameController {
   redo: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
-  setManualTargets: (stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]) => void;
+  setManualTargets: (
+    stackItemId: string,
+    targetIds: string[],
+    targetPlayerIds?: PlayerId[],
+    allowedZones?: ManualTargetZone[],
+  ) => void;
   /** ライブラリ操作メニュー(引く/シャッフル/切削/占術…)。 */
   openLibraryActions: (e: MenuTriggerEvent) => void;
   libraryActionsOpen: boolean;
@@ -204,6 +221,7 @@ export function useGameController({
   const [manaChoice, setManaChoice] = useState<ManaChoiceRequest | null>(null);
   const [pendingPayment, setPendingPayment] = useState<PendingPaymentAction | null>(null);
   const [pendingXCast, setPendingXCast] = useState<PendingXCast | null>(null);
+  const [pendingXAbility, setPendingXAbility] = useState<PendingXAbility | null>(null);
   const [pendingFaceCastCardId, setPendingFaceCastCardId] = useState<string | null>(null);
   const [pendingLandPlay, setPendingLandPlay] = useState<{ cardId: string } | null>(null);
   const [pendingLandTapChoice, setPendingLandTapChoice] = useState<PendingLandTapChoice | null>(null);
@@ -267,11 +285,13 @@ export function useGameController({
   }, []);
 
   const isDialogOpen =
+    (state?.pendingRuleChoices.some((choice) => choice.kind === 'cleanup-discard') ?? false) ||
     store.pendingGuided !== null ||
     store.pendingForceActivation !== null ||
     manaChoice !== null ||
     pendingPayment !== null ||
     pendingXCast !== null ||
+    pendingXAbility !== null ||
     pendingFaceCastCardId !== null ||
     pendingLandPlay !== null ||
     pendingLandTapChoice !== null ||
@@ -396,6 +416,7 @@ export function useGameController({
     if (manaChoice) { setManaChoice(null); return true; }
     if (pendingPayment) { setPendingPayment(null); return true; }
     if (pendingXCast) { setPendingXCast(null); return true; }
+    if (pendingXAbility) { setPendingXAbility(null); return true; }
     if (pendingFaceCastCardId) { setPendingFaceCastCardId(null); return true; }
     if (pendingLandPlay) { setPendingLandPlay(null); return true; }
     if (pendingLandTapChoice) { setPendingLandTapChoice(null); return true; }
@@ -660,8 +681,8 @@ export function useGameController({
       // 取り出す。NaN なら fail-closed で総称(index 未指定)側と同じ挙動へ倒す。
       const index = Number.parseInt(id.slice('ability-activate-'.length), 10);
       return Number.isNaN(index)
-        ? () => store.activateAbility(cardId, undefined, { assistRestrictedMana: true })
-        : () => store.activateAbility(cardId, index, { assistRestrictedMana: true });
+        ? () => requestActivateAbility(cardId)
+        : () => requestActivateAbility(cardId, index);
     }
 
     switch (id) {
@@ -698,7 +719,7 @@ export function useGameController({
       case 'stack-copy-ability':
         return () => store.copyStackItem(cardId);
       case 'ability-activate':
-        return () => store.activateAbility(cardId, undefined, { assistRestrictedMana: true });
+        return () => requestActivateAbility(cardId);
       case 'ability-trigger':
         return () => store.addAbilityToStack(cardId, 'triggered');
       case 'stack-resolve-top':
@@ -863,6 +884,36 @@ export function useGameController({
     if (card.zone === 'library') store.draw(1);
   }
 
+  function requestTapForMana(cardId: string): void {
+    if (!state) return;
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    const result = store.tapForMana(cardId);
+    if (result === 'needs-choice') {
+      setManaChoice({ kind: 'tap', cardId, options: naiveTapManaColors(def) });
+    }
+  }
+
+  function requestActivateAbility(cardId: string, abilityLineIndex?: number): void {
+    if (!state) return;
+    const card = state.cards[cardId];
+    const def = card ? state.defs[card.defId] : undefined;
+    const lines = def ? activatedAbilityLines(def, card.faceIndex) : [];
+    const line = abilityLineIndex === undefined
+      ? (lines.length === 1 ? lines[0] : undefined)
+      : lines.find((candidate) => candidate.index === abilityLineIndex);
+    if (line && parseManaCost(line.costText).x > 0) {
+      setPendingXAbility({
+        cardId,
+        abilityLineIndex: line.index,
+        manaCost: line.costText,
+        minValue: /\bX can['’]t be 0\b|\bX cannot be 0\b/i.test(line.text) ? 1 : 0,
+      });
+      return;
+    }
+    store.activateAbility(cardId, abilityLineIndex, { assistRestrictedMana: true });
+  }
+
   // --- overlays (menu + all dialogs) ---
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
   const guidedPlayerId = state && store.pendingGuided
@@ -972,6 +1023,10 @@ export function useGameController({
       kind: 'payment', title: 'Xの値を決定', instruction: '支払うマナ量を入力してください。',
       sourceId: pendingXCast.cardId, candidateIds: [], selectedIds: [],
     };
+    if (pendingXAbility) return {
+      kind: 'payment', title: 'Xの値を決定', instruction: '起動コストのXを入力してください。',
+      sourceId: pendingXAbility.cardId, candidateIds: [], selectedIds: [],
+    };
     if (pendingPayment) return {
       kind: 'warning', title: 'マナが不足しています', instruction: '不足を確認し、強行するかキャンセルしてください。',
       sourceId: pendingPayment.cardId, candidateIds: [], selectedIds: [],
@@ -1009,12 +1064,33 @@ export function useGameController({
     else if (pendingBloodCrackCardId) setPendingBloodCrackCardId(null);
     else if (manaChoice) setManaChoice(null);
     else if (pendingXCast) setPendingXCast(null);
+    else if (pendingXAbility) setPendingXAbility(null);
     else if (pendingPayment) setPendingPayment(null);
     else if (pendingLandTapChoice) setPendingLandTapChoice(null);
   }
 
   const overlays: ReactNode = !state ? null : (
     <>
+      {(() => {
+        const cleanupChoice = state.pendingRuleChoices.find(
+          (choice) => choice.kind === 'cleanup-discard',
+        );
+        return cleanupChoice ? (
+          <CleanupDiscardDialog
+            state={state}
+            choice={cleanupChoice}
+            onConfirm={(cardIds) => store.resolveRuleChoice(cleanupChoice.choiceId, {
+              kind: 'cleanup-discard',
+              cardIds,
+            })}
+            onManualHandled={() => store.resolveRuleChoice(cleanupChoice.choiceId, {
+              kind: 'cleanup-discard',
+              cardIds: [],
+              manualHandled: true,
+            })}
+          />
+        ) : null;
+      })()}
       {menu &&
         (isV2SheetEnabled() ? (
           (() => {
@@ -1130,6 +1206,23 @@ export function useGameController({
             setPendingXCast(null);
           }}
           onCancel={() => setPendingXCast(null)}
+        />
+      )}
+
+      {pendingXAbility && (
+        <XCostDialog
+          cardName={cardNameFor(pendingXAbility.cardId)}
+          manaCost={pendingXAbility.manaCost}
+          minValue={pendingXAbility.minValue}
+          onConfirm={(xValue) => {
+            store.activateAbility(
+              pendingXAbility.cardId,
+              pendingXAbility.abilityLineIndex,
+              { xValue, assistRestrictedMana: true },
+            );
+            setPendingXAbility(null);
+          }}
+          onCancel={() => setPendingXAbility(null)}
         />
       )}
 
@@ -1373,6 +1466,8 @@ export function useGameController({
     openCardMenu,
     openCardMenuAt,
     handleCardDoubleClick,
+    requestTapForMana,
+    requestActivateAbility,
     requestResolveTop,
     requestResolveAll,
     advancePhase,
@@ -1381,7 +1476,12 @@ export function useGameController({
     redo,
     canUndo: store.canUndoInteraction || store.canUndo || shortcutsBlocked,
     canRedo: store.canRedoInteraction || store.canRedo || isDialogOpen,
-    setManualTargets: (stackItemId, targetIds, targetPlayerIds) => store.setManualTargets(stackItemId, targetIds, targetPlayerIds),
+    setManualTargets: (stackItemId, targetIds, targetPlayerIds, allowedZones) => store.setManualTargets(
+      stackItemId,
+      targetIds,
+      targetPlayerIds,
+      allowedZones,
+    ),
     openLibraryActions,
     libraryActionsOpen: libraryMenu !== null,
     openZoneViewer: (zone) => setZoneViewer(zone),

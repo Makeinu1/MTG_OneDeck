@@ -10,7 +10,7 @@
  * paid atomically with the effect.
  */
 import type { CardDef, ManaColor } from '../../types/card';
-import { stripAbilityWordLabel } from './compile';
+import { stripAbilityWordLabel } from './abilityText';
 import { splitAbilityLines } from './index';
 import { parseAbilityIR } from './ir';
 

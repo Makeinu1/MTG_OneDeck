@@ -64,6 +64,7 @@ import {
   type DefeatRuleRef,
   type GameState,
   type LinkedExileRecord,
+  type ManualTargetZone,
   type PendingRuleChoice,
   type PendingSbaChoice,
   type PendingTrigger,
@@ -79,7 +80,6 @@ import {
 } from '../engine/types';
 import {
   abilityLineIndexForKind,
-  collectAttackPendingTriggers,
   collectPendingTriggerUpdate,
   readyPendingTriggers,
   triggerCandidatesFromPendingTriggers,
@@ -149,6 +149,7 @@ export interface PendingActivation {
   paymentMode: ActivationPaymentMode;
   manaShortfall: number;
   costDecision: 'auto' | 'manual' | 'disabled';
+  announcedX?: number;
 }
 
 export interface PendingManaAbility {
@@ -164,12 +165,14 @@ export interface PendingForceActivation {
   sourceId: string;
   abilityLineIndex?: number;
   assistRestrictedMana?: boolean;
+  xValue?: number;
   warnings: string[];
 }
 
 export interface ActivateAbilityOptions {
   force?: boolean;
   assistRestrictedMana?: boolean;
+  xValue?: number;
 }
 
 export interface PendingGuidedResolution {
@@ -368,7 +371,8 @@ function isPhase(value: unknown): value is Phase {
     value === 'main1' ||
     value === 'combat' ||
     value === 'main2' ||
-    value === 'end'
+    value === 'end' ||
+    value === 'cleanup'
   );
 }
 
@@ -818,6 +822,8 @@ function commandForPendingTrigger(pending: PendingTrigger): GameCommand {
       ? {}
       : { abilityLineIndex: pending.abilityLineIndex }),
     sourceSnapshot: pending.sourceSnapshot,
+    ...(pending.condition === undefined ? {} : { triggerCondition: pending.condition }),
+    ...(pending.resolutionText === undefined ? {} : { resolutionText: pending.resolutionText }),
   };
 }
 
@@ -951,7 +957,7 @@ export interface GameStore {
   confirmForceActivation(): void;
   cancelForceActivation(): void;
   dismissTriggerCandidates(): void;
-  copyStackItem(cardId: string): void;
+  copyStackItem(cardId: string, quantity?: number): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
   commitCommanderResolution(token: number): void;
@@ -967,7 +973,12 @@ export interface GameStore {
   cancelGuidedPrompt(): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
-  setManualTargets(stackItemId: string, targetIds: string[], targetPlayerIds?: PlayerId[]): void;
+  setManualTargets(
+    stackItemId: string,
+    targetIds: string[],
+    targetPlayerIds?: PlayerId[],
+    allowedZones?: ManualTargetZone[],
+  ): void;
   declareAttack(
     attackerIds: string[],
     targetLabel: string,
@@ -1120,6 +1131,48 @@ function resolveRuleChoiceInState(
     return {
       state: removePendingRuleChoiceById(moved.state, choiceId),
       warnings: moved.warnings,
+    };
+  }
+
+  if (choice.kind === 'cleanup-discard') {
+    if (selection.kind !== 'cleanup-discard') {
+      return { state, warnings: [`ルール選択の種類が一致しません: ${choiceId}`] };
+    }
+    if (selection.manualHandled) {
+      const withoutChoice = removePendingRuleChoiceById(state, choiceId);
+      const advanced = applyCommand(withoutChoice, {
+        type: 'nextPhase',
+        manualCleanupHandled: true,
+      });
+      return {
+        state: advanced.state,
+        warnings: [
+          ...advanced.warnings,
+          'クリーンナップの手札調整を手動処理済みとして続行しました。',
+        ],
+      };
+    }
+    const uniqueCardIds = [...new Set(selection.cardIds)];
+    const currentHand = state.zonesByPlayer[choice.playerId]?.hand ?? [];
+    if (uniqueCardIds.length !== choice.requiredCount) {
+      return {
+        state,
+        warnings: [`クリーンナップでは手札をちょうど${choice.requiredCount}枚選んでください。`],
+      };
+    }
+    if (uniqueCardIds.some((cardId) => !currentHand.includes(cardId))) {
+      return { state, warnings: ['クリーンナップで現在の手札以外が選ばれています。'] };
+    }
+    const discarded = applyCommand(state, {
+      type: 'discard',
+      cardIds: uniqueCardIds,
+      playerId: choice.playerId,
+    });
+    const withoutChoice = removePendingRuleChoiceById(discarded.state, choiceId);
+    const completed = applyCommand(withoutChoice, { type: 'completeCleanupStateActions' });
+    return {
+      state: completed.state,
+      warnings: [...discarded.warnings, ...completed.warnings],
     };
   }
 
@@ -1457,8 +1510,19 @@ export const useGameStore = create<GameStore>((set, get) => {
     clearPendingInteractionHistory();
     const cur = get().state;
     const shouldCollectPending = options.collectPending ?? true;
-    const nextWithPending =
+    let nextWithPending =
       cur && shouldCollectPending ? appendCollectedPendingTriggers(cur, next) : next;
+    let commitWarnings = warnings;
+    if (
+      nextWithPending.phase === 'cleanup'
+      && nextWithPending.zones.stack.length === 0
+      && readyPendingTriggers(nextWithPending.pendingTriggers).length === 0
+      && nextWithPending.pendingRuleChoices.length === 0
+    ) {
+      const advanced = applyCommand(nextWithPending, { type: 'nextPhase' });
+      nextWithPending = appendCollectedPendingTriggers(nextWithPending, advanced.state);
+      commitWarnings = [...commitWarnings, ...advanced.warnings];
+    }
     if (cur && (!options.groupedHistory || internal.resolutionGroupAnchor === null)) {
       internal.past.push(cur);
       if (internal.past.length > HISTORY_LIMIT) {
@@ -1472,7 +1536,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     internal.future = [];
     const nextStoreState: Partial<GameStore> = {
       state: nextWithPending,
-      warnings,
+      warnings: commitWarnings,
       triggerCandidates: triggerCandidatesFromPendingTriggers(nextWithPending.pendingTriggers),
       canUndo: internal.past.length > 0,
       canRedo: false,
@@ -1623,6 +1687,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
     if (readyPendingTriggers(cur.pendingTriggers).length > 0) {
       set({ warnings: [TRIGGER_TRANSITION_BLOCKED_WARNING] });
+      return;
+    }
+    if (cur.pendingRuleChoices.length > 0) {
+      set({ warnings: [PRIORITY_RULE_CHOICE_PENDING_WARNING] });
       return;
     }
 
@@ -2065,6 +2133,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       sourceSnapshot: pending.sourceSnapshot,
       targetSelections: targetSelections.map((selection) => ({ ...selection })),
       activationEnvelope,
+      ...(pending.announcedX === undefined ? {} : { announcedX: pending.announcedX }),
     };
 
     try {
@@ -3138,6 +3207,29 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       const resolvedAbilityLineIndex =
         abilityLineIndex ?? abilityLineIndexForKind(cur, sourceId, 'activated');
+      const source = cur.cards[sourceId];
+      const def = source ? cur.defs[source.defId] : undefined;
+      const abilityLine = resolvedAbilityLineIndex === undefined || !def
+        ? undefined
+        : splitAbilityLines(def)[resolvedAbilityLineIndex];
+      const costText = abilityLine?.text.split(':', 1)[0] ?? '';
+      const xSymbols = parseManaCost(costText).x;
+      let announcedX: number | undefined;
+      if (xSymbols > 0) {
+        const requestedX = opts?.xValue;
+        const minimum = /\bX can['’]t be 0\b|\bX cannot be 0\b/i.test(abilityLine?.text ?? '') ? 1 : 0;
+        if (requestedX === undefined || !Number.isInteger(requestedX) || requestedX < minimum) {
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}のXには${minimum}以上の整数を指定してください。`,
+            ],
+            pendingGuided: null,
+          });
+          return;
+        }
+        announcedX = requestedX;
+      }
       const manaAbilityPlan = activatedManaAbilityPlanForSource(
         cur,
         sourceId,
@@ -3276,7 +3368,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
-      const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex);
+      const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex, announcedX ?? 0);
       const sourceSnapshot = objectSnapshotForCard(cur, sourceId);
       if (!sourceSnapshot) {
         set({ warnings: [...get().warnings, `能力の発生源が存在しません: ${sourceId}`] });
@@ -3297,6 +3389,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         paymentMode,
         manaShortfall: plan?.manaShortfall ?? 0,
         costDecision: plan === null ? 'disabled' : plan.decision,
+        ...(announcedX === undefined ? {} : { announcedX }),
       };
 
       const targetPrompts = activationTargetPromptsForSource(
@@ -3317,6 +3410,7 @@ export const useGameStore = create<GameStore>((set, get) => {
               ? {}
               : { abilityLineIndex: resolvedAbilityLineIndex }),
             ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
+            ...(announcedX === undefined ? {} : { xValue: announcedX }),
             warnings: costWarnings,
           },
         });
@@ -3364,6 +3458,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       get().activateAbility(pending.sourceId, pending.abilityLineIndex, {
         force: true,
         ...(pending.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
+        ...(pending.xValue === undefined ? {} : { xValue: pending.xValue }),
       });
     },
 
@@ -3380,8 +3475,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       });
     },
 
-    copyStackItem(cardId) {
-      dispatch({ type: 'copyStackItem', cardId });
+    copyStackItem(cardId, quantity = 1) {
+      const cur = get().state;
+      if (!cur) return;
+      try {
+        const result = applyCommand(cur, { type: 'copyStackItem', cardId, quantity });
+        const noOp = result.state.zones.stack.length === cur.zones.stack.length
+          && result.state.log.length === cur.log.length;
+        if (noOp) {
+          set({ warnings: result.warnings });
+          return;
+        }
+        commit(result.state, result.warnings);
+      } catch (err) {
+        reportActionError(err);
+      }
     },
 
     copyPermanent(cardId, quantity = 1) {
@@ -3831,13 +3939,21 @@ export const useGameStore = create<GameStore>((set, get) => {
       dispatch({ type: 'removeStackItem', id, to });
     },
 
-    setManualTargets(stackItemId, targetIds, targetPlayerIds = []) {
+    setManualTargets(stackItemId, targetIds, targetPlayerIds = [], allowedZones = [
+      'battlefield',
+      'stack',
+      'hand',
+      'graveyard',
+      'exile',
+      'command',
+    ]) {
       dispatch({
         type: 'setManualTargets',
         stackItemId,
         targetIds,
         targetPlayerIds,
         allowStackAbilities: true,
+        allowedZones,
       });
     },
 
@@ -3874,18 +3990,26 @@ export const useGameStore = create<GameStore>((set, get) => {
       ];
 
       try {
-        const result = applyCommands(cur, commands);
-        commit(result.state, [...result.warnings, ...warnings]);
-        const committed = get().state;
-        if (!committed) return;
-        const nextWithPending = appendPendingTriggers(
-          committed,
-          collectAttackPendingTriggers(committed, attackerIds),
+        // CR 508.1m triggers are observed at declaration time, before blockers,
+        // damage, and SBA can remove their sources. Keep the public one-click
+        // combat transaction and one undo entry while collecting at that boundary.
+        const declaration = applyCommands(cur, commands.slice(0, 2));
+        const declarationTriggers = collectPendingTriggerUpdate(cur, declaration.state);
+        const afterDeclaration = appendPendingTriggers(
+          declarationTriggers.state,
+          declarationTriggers.pendingTriggers,
         );
-        set({
-          state: nextWithPending,
-          triggerCandidates: triggerCandidatesFromPendingTriggers(nextWithPending.pendingTriggers),
-        });
+        const resolution = applyCommands(afterDeclaration, commands.slice(2));
+        const resolutionTriggers = collectPendingTriggerUpdate(afterDeclaration, resolution.state);
+        const finalState = appendPendingTriggers(
+          resolutionTriggers.state,
+          resolutionTriggers.pendingTriggers,
+        );
+        commit(
+          finalState,
+          [...declaration.warnings, ...resolution.warnings, ...warnings],
+          { collectPending: false },
+        );
       } catch (err) {
         reportActionError(err);
       }

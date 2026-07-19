@@ -3,6 +3,7 @@ import type { GameCommand } from '../commands';
 import type { LinkedExilePurpose, ObjectSnapshot, PlayerId, TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
+import { hasAbilityWordLabel } from './abilityText';
 
 export interface CompileContext {
   sourceId: string;
@@ -38,6 +39,7 @@ export interface TargetFilter {
   zone?: 'battlefield' | 'graveyard' | 'stack';
   /** Stack object kinds accepted by this prompt. Undefined keeps the legacy spell-only default. */
   stackKinds?: Array<'spell' | 'activated-ability' | 'triggered-ability'>;
+  excludeManaAbilities?: boolean;
   owner?: 'any' | 'you' | 'opponent';
   /**
    * CR 202.3/202.3b mana-value ceiling ("... with mana value N or less ..."). Additive-only
@@ -2115,17 +2117,6 @@ function clauseSuggestsNonSelfCounterReferent(raw: string): boolean {
     /\bequipped\b/i.test(raw) ||
     /\benchanted\b/i.test(raw)
   );
-}
-
-// CR 207.2c: an ability word is an italicized label with no rules meaning.
-const ABILITY_WORD_LABEL_PATTERN = /^\s*[A-Za-z][A-Za-z '-]*\s+(?:\u2014|--|-)\s*/;
-
-function hasAbilityWordLabel(raw: string): boolean {
-  return ABILITY_WORD_LABEL_PATTERN.test(raw);
-}
-
-export function stripAbilityWordLabel(raw: string): string {
-  return raw.replace(ABILITY_WORD_LABEL_PATTERN, '');
 }
 
 function isSelfSacrificeCostElement(element: string, cardName: string): boolean {

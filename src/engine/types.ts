@@ -10,12 +10,13 @@ export type ZoneId =
   | 'stack';
 
 export type PrivateZoneId = 'library' | 'hand' | 'graveyard';
+export type ManualTargetZone = Exclude<ZoneId, 'library'>;
 
 export type AbilityKind = 'activated' | 'triggered';
 
-export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end';
+export type Phase = 'untap' | 'upkeep' | 'draw' | 'main1' | 'combat' | 'main2' | 'end' | 'cleanup';
 
-export const PHASE_ORDER: Phase[] = ['untap', 'upkeep', 'draw', 'main1', 'combat', 'main2', 'end'];
+export const PHASE_ORDER: Phase[] = ['untap', 'upkeep', 'draw', 'main1', 'combat', 'main2', 'end', 'cleanup'];
 
 export interface ManaPool {
   W: number;
@@ -56,6 +57,10 @@ export interface CardInstance {
   /** CR 107.3a/601.2b: X announced while this object is a spell on the stack. */
   announcedX?: number;
   activationEnvelope?: ActivationEnvelope;
+  /** CR 603.4 intervening-if condition copied from the pending trigger. */
+  triggerCondition?: TriggerCondition;
+  /** Isolated effect body for a delayed trigger embedded in another ability. */
+  abilityResolutionText?: string;
   isCopy?: boolean;
 }
 
@@ -255,7 +260,13 @@ export interface ZoneChangeEvent {
   after?: ObjectSnapshot;
 }
 
-export type KnownEventKind = 'zoneChange' | 'defeatAdvisory' | 'damage' | 'lifeChange' | 'draw';
+export type KnownEventKind =
+  | 'zoneChange'
+  | 'defeatAdvisory'
+  | 'damage'
+  | 'lifeChange'
+  | 'draw'
+  | 'attackDeclaration';
 export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';
 
 export type EventCause =
@@ -351,6 +362,31 @@ export interface DrawEvent extends EventEnvelopeBase<'draw'> {
   after?: ObjectSnapshot;
 }
 
+/** CR 508.1m: emitted after attackers are declared and before later combat steps. */
+export interface AttackDeclarationEvent {
+  type: 'attackDeclaration';
+  eventId: string;
+  sequence: number;
+  turn: number;
+  combatId: string;
+  attackingPlayerId: PlayerId;
+  attackers: ObjectSnapshot[];
+  battlefield: ObjectSnapshot[];
+  simultaneousGroupId?: never;
+  causeCommandId?: never;
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  fromZone?: never;
+  toZone?: never;
+  reason?: never;
+  replacementApplied?: never;
+  preventionApplied?: never;
+  sbaApplied?: never;
+  before?: never;
+  after?: never;
+}
+
 export interface CounterChangeEvent {
   type: 'counterChange';
   eventId: string;
@@ -441,6 +477,7 @@ export type GameEvent =
   | DamageEvent
   | LifeChangeEvent
   | DrawEvent
+  | AttackDeclarationEvent
   | CounterChangeEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
@@ -453,6 +490,12 @@ export interface PendingTriggerSchedule {
   createdAtTurn: number;
   createdAtPhase: Phase;
 }
+
+export type TriggerCondition = {
+  kind: 'graveyard-card-types-at-least';
+  playerId: PlayerId;
+  minimum: number;
+};
 
 export interface PendingTrigger {
   pendingTriggerId: string;
@@ -469,6 +512,8 @@ export interface PendingTrigger {
   triggeredByPendingTriggerId?: string;
   triggeredByAbilityEventId?: string;
   schedule?: PendingTriggerSchedule;
+  condition?: TriggerCondition;
+  resolutionText?: string;
 }
 
 export interface OncePerTurnTriggerLedger {
@@ -509,13 +554,23 @@ export interface LegendRuleChoice {
   cardIds: PhysicalCardId[];
 }
 
-export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice;
+export interface CleanupDiscardRuleChoice {
+  choiceId: string;
+  kind: 'cleanup-discard';
+  ruleRef: '514.1';
+  playerId: PlayerId;
+  cardIds: PhysicalCardId[];
+  requiredCount: number;
+}
+
+export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice | CleanupDiscardRuleChoice;
 
 export type PendingSbaChoice = CommanderZoneRuleChoice;
 
 export type RuleChoiceSelection =
   | { kind: 'commander-zone'; toCommandZone: boolean }
-  | { kind: 'legend-rule'; keepCardId: PhysicalCardId };
+  | { kind: 'legend-rule'; keepCardId: PhysicalCardId }
+  | { kind: 'cleanup-discard'; cardIds: PhysicalCardId[]; manualHandled?: boolean };
 
 export interface CommanderInfo {
   cardId: string; // CardInstance.id
@@ -541,6 +596,7 @@ export interface PlayerState {
   spellsCastThisTurn: number;
   drawnThisTurn: number;
   mulliganCount: number;
+  maximumHandSizeOverride?: number | 'none';
 }
 
 export interface GameState {
@@ -685,6 +741,7 @@ function playerStateFromLegacyLife(
     spellsCastThisTurn: prior?.spellsCastThisTurn ?? 0,
     drawnThisTurn: prior?.drawnThisTurn ?? 0,
     mulliganCount: prior?.mulliganCount ?? 0,
+    maximumHandSizeOverride: prior?.maximumHandSizeOverride,
   };
 }
 
@@ -705,6 +762,7 @@ export function syncPlayersFromLegacyScalars(state: GameState): GameState {
       spellsCastThisTurn: state.spellsCastThisTurn,
       drawnThisTurn: state.drawnThisTurn,
       mulliganCount: state.mulliganCount,
+      maximumHandSizeOverride: localPrior?.maximumHandSizeOverride,
     },
   };
 

@@ -18,6 +18,7 @@ export const PHASE_META: Record<Phase, { short: string; label: string }> = {
   combat: { short: '戦', label: '戦闘' },
   main2: { short: '2', label: 'メイン2' },
   end: { short: '終', label: '終了' },
+  cleanup: { short: '整', label: 'クリーンナップ' },
 };
 
 /** ステータス帯に常設するゾーン枚数チップ(手札・墓地・追放・ライブラリ)。 */
