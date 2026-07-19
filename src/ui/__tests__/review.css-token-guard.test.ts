@@ -57,7 +57,7 @@ const ALLOWLIST: readonly { file: string; contains: string; why: string }[] = [
  * (game.css の `mask-image: linear-gradient(..., #000 ...)` が代表例)。
  * ここを区別しないとマスク8行が誤検知になり、ガードが「邪魔だから消される」=生存しない。
  */
-const COLOR_PROPERTY = /^(color|background|background-color|background-image|border|border-[a-z-]+|outline|outline-color|box-shadow|text-shadow|fill|stroke|caret-color|accent-color|text-decoration-color|column-rule-color)$/;
+const COLOR_PROPERTY = /^(color|background|background-color|background-image|border|border-[a-z-]+|outline|outline-color|box-shadow|text-shadow|fill|stroke|caret-color|accent-color|text-decoration-color|column-rule-color|--[\w-]+)$/;
 
 /**
  * 生カラーの検出。hex / rgb() / hsl() に加えて **CSS 名前付き色**も捕まえる
@@ -100,25 +100,27 @@ function scanRawColors(file: string): Offense[] {
   const css = stripComments(readFileSync(path.resolve(repoSrc, file), 'utf-8'));
   const offenses: Offense[] = [];
 
-  css.split('\n').forEach((rawLine, index) => {
-    // 1行に複数宣言がありうる(このリポジトリの game.css は実際そう書かれている)。
-    for (const decl of rawLine.split(';')) {
-      const colonAt = decl.indexOf(':');
-      if (colonAt < 0) continue;
-      const prop = decl.slice(0, colonAt).trim().replace(/^.*[{\s]/, '').toLowerCase();
-      const value = decl.slice(colonAt + 1);
-      if (!COLOR_PROPERTY.test(prop)) continue;
-      // トークン識別子を先に除去する。これが無いと `var(--gold)` の中の "gold" が
-      // 名前付き色として誤検知される(=正しくトークンを使っているコードを罰する)。
-      if (!RAW_COLOR.test(stripTokenNames(value))) continue;
-      const text = decl.trim();
-      const allowed = ALLOWLIST.some(
-        (entry) => entry.file === file && text.includes(entry.contains),
-      );
-      if (allowed) continue;
-      offenses.push({ file, line: index + 1, prop, text });
-    }
-  });
+  // 宣言単位で走査する。旧実装は行単位split(';')だったため、プロパティ名と値が
+  // 別行に分かれる複数行宣言(`--x:\n  linear-gradient(... rgb(...))`)を構造的に
+  // 素通しした(2026-07-19 Tier-1 が実証)。値は `;`/`{`/`}` まで貪欲に取り、
+  // 改行を含んでも1宣言として判定する。カスタムプロパティ値も対象
+  // (生カラーを --x に隠して background: var(--x) で使う迂回の封鎖)。
+  const declPattern = /(--[\w-]+|[a-zA-Z][-a-zA-Z]*)\s*:\s*([^;{}]*)/g;
+  for (const match of css.matchAll(declPattern)) {
+    const prop = match[1].toLowerCase();
+    if (!COLOR_PROPERTY.test(prop)) continue;
+    const value = match[2];
+    // トークン識別子を先に除去する。これが無いと `var(--gold)` の中の "gold" が
+    // 名前付き色として誤検知される(=正しくトークンを使っているコードを罰する)。
+    if (!RAW_COLOR.test(stripTokenNames(value))) continue;
+    const text = `${match[1]}: ${value.replace(/\s+/g, ' ').trim()}`;
+    const allowed = ALLOWLIST.some(
+      (entry) => entry.file === file && text.includes(entry.contains),
+    );
+    if (allowed) continue;
+    const line = css.slice(0, match.index ?? 0).split('\n').length;
+    offenses.push({ file, line, prop, text });
+  }
 
   return offenses;
 }
@@ -163,6 +165,18 @@ describe('トークン期CSSの生カラー禁止(ライトテーマ回帰の ba
 
   it('許可リストは最小のまま(肥大したら返済スライスを切る合図)', () => {
     expect(ALLOWLIST.length).toBeLessThanOrEqual(2);
+  });
+
+  it('検出器の弁別: 複数行宣言とカスタムプロパティ値の生カラーも捕まえる(2026-07-19盲点封鎖)', () => {
+    // 旧実装(行単位split)は「プロパティ名と値が別行」の宣言を素通しした。
+    // scanRawColors と同じ宣言パターンで multi-line 形が1宣言に正規化されることを固定する。
+    const multiline = 'a{\n  --sheen:\n    linear-gradient(180deg, rgb(255 255 255 / 38%), transparent);\n  box-shadow:\n    inset 0 0 0 1px var(--line),\n    0 14px 28px rgb(0 0 0 / 18%);\n}';
+    const declPattern = /(--[\w-]+|[a-zA-Z][-a-zA-Z]*)\s*:\s*([^;{}]*)/g;
+    const caught = [...multiline.matchAll(declPattern)]
+      .filter((m) => COLOR_PROPERTY.test(m[1].toLowerCase()))
+      .filter((m) => RAW_COLOR.test(stripTokenNames(m[2])))
+      .map((m) => m[1]);
+    expect(caught).toEqual(['--sheen', 'box-shadow']);
   });
 
   it('検出器の弁別: 生カラー(hex/rgb/名前付き)は捕まえ、トークン参照は罰しない', () => {

@@ -929,15 +929,15 @@ export interface GameStore {
   castFromHand(
     cardId: string,
     opts?: { xValue?: number; force?: boolean; faceIndex?: number },
-  ): 'ok' | { shortfall: number };
+  ): 'ok' | 'error' | { shortfall: number };
   castCommander(
     cardId: string,
     opts?: { xValue?: number; force?: boolean; faceIndex?: number },
-  ): 'ok' | { shortfall: number };
+  ): 'ok' | 'error' | { shortfall: number };
   castToStack(
     cardId: string,
     opts?: { xValue?: number; force?: boolean; faceIndex?: number },
-  ): 'ok' | { shortfall: number };
+  ): 'ok' | 'error' | { shortfall: number };
   addAbilityToStack(
     sourceId: string,
     kind: 'activated' | 'triggered',
@@ -1438,6 +1438,17 @@ export const useGameStore = create<GameStore>((set, get) => {
     });
   }
 
+  /** EngineError=ユーザー向けの拒否理由(日本語)なので warnings へ可視化する。
+      それ以外は実装バグとして console に残す(2026-07-19 腐敗掃除: 従来は
+      EngineError も console 行きでユーザーに何も見えなかった)。 */
+  function reportActionError(err: unknown): void {
+    if (err instanceof EngineError) {
+      set({ warnings: [err.message] });
+    } else {
+      console.error(err);
+    }
+  }
+
   function commit(
     next: GameState,
     warnings: string[],
@@ -1483,11 +1494,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const result = applyCommand(cur, cmd);
       commit(result.state, result.warnings);
     } catch (err) {
-      if (err instanceof EngineError) {
-        console.error(err.message);
-      } else {
-        console.error(err);
-      }
+      reportActionError(err);
     }
   }
 
@@ -1594,7 +1601,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         commit(result.state, result.warnings, { groupedHistory: true });
       } catch (err) {
         internal.resolutionGroupAnchor = null;
-        console.error(err);
+        reportActionError(err);
         return;
       }
     }
@@ -1628,7 +1635,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const result = applyCommands(cur, commands);
       commit(result.state, result.warnings);
     } catch (err) {
-      console.error(err);
+      reportActionError(err);
     }
   }
 
@@ -1648,7 +1655,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         commit(logged, warnings);
       }
     } catch (err) {
-      console.error(err);
+      reportActionError(err);
       discardPendingGuided();
     }
   }
@@ -2272,7 +2279,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2297,7 +2304,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           canRedo: false,
         });
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2337,7 +2344,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2516,11 +2523,7 @@ export const useGameStore = create<GameStore>((set, get) => {
             : { state: withPendingChoice, warnings: [] };
           commit(resolved.state, [...toDestination.warnings, ...resolved.warnings]);
         } catch (err) {
-          if (err instanceof EngineError) {
-            console.error(err.message);
-          } else {
-            console.error(err);
-          }
+          reportActionError(err);
         }
         return;
       }
@@ -2552,11 +2555,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = returnLinkedExileToBattlefield(cur, linkId);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -2567,11 +2566,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = consumeLinkedExileForSourceInState(cur, linkId, sourcePhysicalId);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -2596,7 +2591,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2635,7 +2630,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2693,7 +2688,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommand(cur, { type: 'setTapped', cardId, tapped: !card.tapped });
         commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2725,7 +2720,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           });
           commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
         } catch (err) {
-          console.error(err);
+          reportActionError(err);
         }
       };
 
@@ -2787,7 +2782,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2805,7 +2800,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2833,7 +2828,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           : [...result.warnings, '捨てるカードがありません'];
         commit(result.state, warnings);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -2876,7 +2871,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        // 例外時は state 不変。'ok' を返すと呼び出し側が成功と誤認するため
+        // 'error' で区別する(理由は reportActionError が warnings へ可視化済み)。
+        reportActionError(err);
+        return 'error';
       }
       return 'ok';
     },
@@ -2924,7 +2922,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        // 例外時は state 不変。'ok' を返すと呼び出し側が成功と誤認するため
+        // 'error' で区別する(理由は reportActionError が warnings へ可視化済み)。
+        reportActionError(err);
+        return 'error';
       }
       return 'ok';
     },
@@ -2976,7 +2977,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, result.warnings);
       } catch (err) {
-        console.error(err);
+        // 例外時は state 不変。'ok' を返すと呼び出し側が成功と誤認するため
+        // 'error' で区別する(理由は reportActionError が warnings へ可視化済み)。
+        reportActionError(err);
+        return 'error';
       }
 
       return 'ok';
@@ -3015,11 +3019,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = resolveRuleChoiceInState(cur, choiceId, selection);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -3064,11 +3064,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           ),
         });
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -3275,11 +3271,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           const next = appendLog(result.state, `${cardLabel(cur, sourceId)}のマナ能力を起動。`);
           commit(next, warnings);
         } catch (err) {
-          if (err instanceof EngineError) {
-            console.error(err.message);
-          } else {
-            console.error(err);
-          }
+          reportActionError(err);
         }
         return;
       }
@@ -3418,7 +3410,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           commit(result.state, result.warnings);
         }
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -3895,7 +3887,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           triggerCandidates: triggerCandidatesFromPendingTriggers(nextWithPending.pendingTriggers),
         });
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
     },
 
@@ -3982,7 +3974,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           ]);
           commit(result.state, [...result.warnings, ...typecyclingWarnings]);
         } catch (err) {
-          console.error(err);
+          reportActionError(err);
         }
         return 'ok';
       }
@@ -3999,7 +3991,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         ]);
         commit(result.state, [...result.warnings, ...typecyclingWarnings]);
       } catch (err) {
-        console.error(err);
+        reportActionError(err);
       }
 
       return 'ok';
@@ -4028,11 +4020,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -4058,11 +4046,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
 
@@ -4093,11 +4077,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const result = applyCommands(cur, commands);
         commit(result.state, result.warnings);
       } catch (err) {
-        if (err instanceof EngineError) {
-          console.error(err.message);
-        } else {
-          console.error(err);
-        }
+        reportActionError(err);
       }
     },
   };

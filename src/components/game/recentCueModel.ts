@@ -1,4 +1,5 @@
-import type { GameEvent, GameState, LogEntry, ObjectSnapshot, ZoneId } from '../../engine/types';
+import type { GameEvent, GameState, LogEntry, ObjectSnapshot } from '../../engine/types';
+import { ZONE_LABELS_JA as ZONE_LABELS } from '../../data/zoneLabels';
 
 export type RecentCueKind = 'draw' | 'stack' | 'zone' | 'life' | 'counter' | 'warning' | 'log';
 
@@ -8,16 +9,6 @@ export interface RecentCueData {
   extraCount: number;
   kind: RecentCueKind;
 }
-
-const ZONE_LABELS: Record<ZoneId, string> = {
-  library: 'ライブラリー',
-  hand: '手札',
-  battlefield: '戦場',
-  graveyard: '墓地',
-  exile: '追放',
-  command: '統率領域',
-  stack: 'スタック',
-};
 
 interface CueCandidate extends RecentCueData {
   priority: number;

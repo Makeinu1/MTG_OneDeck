@@ -78,6 +78,8 @@ export interface GameState {
 
 ## 2. コマンド(src/engine/commands.ts)
 
+> **注意(2026-07-19 判定者)**: 本節の union は初期契約の抜粋であり、§7 以降・§34 各追補で追加されたコマンド(dealDamage・戦闘系・スタック系・setManualTargets・copy系・token系ほか)は**ここに再掲していない**。全コマンドの正本は `src/engine/commands.ts` の `GameCommand` 型。本節を全体像として引用しないこと。
+
 ```ts
 export type GameCommand =
   | { type: 'moveCard'; cardId: string; to: ZoneId; position: 'top' | 'bottom' | number }
@@ -118,7 +120,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult;
 - **mulligan**: 現在の手札全カードを library へ移し、`order`(手札+ライブラリ全体の新順列)で並べ、`mulliganCount += 1`。その後の draw(7) と putOnBottom(mulliganCount 枚) はストア層が別コマンドとして発行
 - すべてのコマンドは適切な日本語 LogEntry を log に追加する
 
-エラー(存在しない cardId、ゾーン不整合な castCommander 等)は `EngineError` を throw(ストア層が捕捉して無視+console.error)。
+エラー(存在しない cardId、ゾーン不整合な castCommander 等)は `EngineError` を throw。ストア層は捕捉して state 不変のまま、`EngineError` は日本語 warnings へ可視化し、それ以外は実装バグとして console.error に残す(`reportActionError`・2026-07-19)。cast 系 action は例外時 `'error'` を返し `'ok'` と区別する。
 
 ---
 

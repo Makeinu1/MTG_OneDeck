@@ -129,7 +129,7 @@
 受け入れ: 機械4点+縦375pxで1ゲーム完走+クローム予算(chrome≤25%/boardCards≥55%)+コンソール0
 
 1. 単一adaptive tree: GameScreenがCSS grid-template-areasのみで縦/横/デスクトップを出し分け。JSXのisPhone分岐禁止。
-2. Board=BoardShelf(design-system §8): クリーチャー/その他の2段(hairline・ラベルなし)・統一サイズ棚・横スク・密度で--board-card-w 96/84/72px・14枚〜重ね・幅遷移は--dur-move。
+2. Board=BoardShelf(design-system §8)【SUPERSEDED 2026-07-18 → adaptiveLaneLayout.ts。密度段階仕様は退役】: クリーチャー/その他の2段(hairline・ラベルなし)・統一サイズ棚・横スク・密度で--board-card-w 96/84/72px・14枚〜重ね・幅遷移は--dur-move。
 3. LandRow(design-system §8): 同名基本地形ずらし重ね(×nバッジ・タップ混在は傾き+n⤵)・特殊地形個別・統率者常駐(金枠・統率領域にいる間)。束タップ=束シート(一括タップ+個別一覧)。
 4. StatusBand 1行36px: ターン/フェーズ+ゾーン枚数+自ライフ+ベル(全てタップ=シート。相手ライフ・ゾーンチップ列は常設しない)。
 5. StackBand: 浮動Stack.tsxの後継(帯・空時は不可視・タップで展開)。

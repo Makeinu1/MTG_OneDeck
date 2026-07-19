@@ -71,15 +71,7 @@ function cardSheetVariant(): 'sheet' | 'popover' {
   return window.matchMedia('(min-width: 900px)').matches ? 'popover' : 'sheet';
 }
 
-const ZONE_LABELS: Record<ZoneId, string> = {
-  library: 'ライブラリ',
-  hand: '手札',
-  battlefield: '戦場',
-  graveyard: '墓地',
-  exile: '追放',
-  command: '統率領域',
-  stack: 'スタック',
-};
+import { ZONE_LABELS_JA as ZONE_LABELS } from '../../data/zoneLabels';
 
 const TARGET_RULE_ACTION_TITLES: Record<string, string> = {
   'sacrifice-target': '対象の生け贄',
@@ -492,7 +484,7 @@ export function useGameController({
     }
     const chosenXValue = xValue ?? 0;
     const result = store.castToStack(cardId, { xValue: chosenXValue, faceIndex: chosenFaceIndex });
-    if (result !== 'ok') {
+    if (typeof result === 'object') {
       setPendingPayment({
         kind: 'stack',
         cardId,

@@ -55,7 +55,7 @@ S-LAYERS で実装)が一手に引き受ける(契約 = engine-spec §34.1 C-B)�
 #### E-CHAR-2: effectiveCharacteristics(有効特性 / 層適用後)
 - **CR根拠**: 613.1(7層の起点 = actual)、613.3(層2-6 は CDA 先、その後タイムスタンプ順)、613.5(自動・即時)
 - **コーパス需要**: TBD(全継続効果カードが寄与。`layer-coverage` 抽出待ち)
-- **state read/write**: write = 派生値(エンジンが各 objId について算出する有効 P/T・型・色・キーワード集合・コントローラ)。**正本 = 将来の `computeEffectiveCharacteristics(state, objId)`**。現状 `src/data/status.ts` の `effectivePower`/`effectiveKeywords` は移行対象(parity 確認まで併存)
+- **state read/write**: write = 派生値(エンジンが各 objId について算出する有効 P/T・型・色・キーワード集合・コントローラ)。**正本 = 将来の `computeEffectiveCharacteristics(state, objId)`**。現状 `src/engine/status.ts` の `effectivePower`/`effectiveKeywords` は移行対象(parity 確認まで併存)
 - **検証手段**: ゴールド(`review.layer-coverage`)+ コーパス頻度 + 将来 Forge 差分
 - **trust**: 未検証(runtime 未実装)
 - **既知欠落**: 層依存(CR613.8)・置換相互作用(CR616)は §34.5 の初期非対応

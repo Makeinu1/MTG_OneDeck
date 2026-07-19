@@ -1,15 +1,9 @@
 import { commanderTax } from '../../engine/commander';
 import type { GameState, ZoneId } from '../../engine/types';
 
-export const COMMANDER_ZONE_LABELS: Record<ZoneId, string> = {
-  library: 'ライブラリー',
-  hand: '手札',
-  battlefield: '戦場',
-  graveyard: '墓地',
-  exile: '追放',
-  command: '統率領域',
-  stack: 'スタック',
-};
+import { ZONE_LABELS_JA } from '../../data/zoneLabels';
+
+export const COMMANDER_ZONE_LABELS: Record<ZoneId, string> = ZONE_LABELS_JA;
 
 export function commanderAltarItems(state: GameState) {
   return state.commanders.flatMap((info) => {
@@ -21,7 +15,7 @@ export function commanderAltarItems(state: GameState) {
       cardId: info.cardId,
       name: face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? info.cardId,
       zone: card.zone,
-      zoneLabel: COMMANDER_ZONE_LABELS[card.zone],
+      zoneLabel: ZONE_LABELS_JA[card.zone],
       tax: commanderTax(state, info.cardId),
       inCommandZone: card.zone === 'command',
     }];

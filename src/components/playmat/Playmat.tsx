@@ -437,7 +437,7 @@ export function Playmat({ keybindings }: PlaymatProps) {
 
     const chosenXValue = xValue ?? 0;
     const result = store.castToStack(cardId, { xValue: chosenXValue });
-    if (result !== 'ok') {
+    if (typeof result === 'object') {
       setPendingPayment({
         kind: 'stack',
         cardId,

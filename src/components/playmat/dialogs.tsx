@@ -1135,15 +1135,7 @@ export function ArrangeTopDialog({
   );
 }
 
-const ZONE_TITLES: Record<ZoneId, string> = {
-  library: 'ライブラリ',
-  hand: '手札',
-  battlefield: '戦場',
-  graveyard: '墓地',
-  exile: '追放',
-  command: '統率領域',
-  stack: 'スタック',
-};
+import { ZONE_LABELS_JA as ZONE_TITLES } from '../../data/zoneLabels';
 
 /** Returns every display name (printed + English, both faces) for a card, for search matching. */
 function searchableNames(def: CardDef | undefined): string[] {
