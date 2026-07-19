@@ -1,0 +1,4 @@
+interface:
+  display_name: "MTG OneDeck Development"
+  short_description: "Run contract-first MTG OneDeck milestones"
+  default_prompt: "Use $mtg-onedeck-development to run one contract-first MTG OneDeck milestone through implementation and independent audit."

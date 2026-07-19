@@ -1,94 +1,14 @@
-# MTG_OneDeck プロジェクト規約
+# MTG_OneDeck — Claude 利用時の互換入口
 
-統率者戦(EDH)一人回しWebアプリ。React + TypeScript + Vite のサーバーレスSPA。
-正体は二重: **自分のデッキで遊び「理解と発見の快感」を得る道具**であると同時に、**MTG総合ルール(CR)を検査可能な GameState と可逆な GameCommand 列へ落とし込み、oracle 文を段階的にコンパイルしていく実験場**(北極星②③の対象)。
-カードデータは Scryfall API(日本語版優先、IndexedDBキャッシュ)。
-公開先: https://makeinu1.github.io/MTG_OneDeck/ (GitHub Pages、main への push で自動デプロイ)
+**統治の正本は [`AGENTS.md`](AGENTS.md)**(モデル非依存)。Claude(Claude Code 等)を使う場合も、役割・不可侵・北極星・受け入れ標準・検証プロトコル・コーディング規約はすべて `AGENTS.md` に従う。このファイルは独自の優先順位・モデル表・復帰待ち条件を**持たない**——それらは 2026-07-20 に `AGENTS.md` へ一本化した(ChatGPT 完結ガバナンスへの移行・ユーザー裁定)。
 
-## 統治の読み方(単一正本の地図)
+## Claude 固有のブートストラップ
 
-このファイルは要石であり、手順の詳細は**繰り返さない**。各ルールの正本は一箇所だけ:
+- 反復ワークフローの正本 = `.agents/skills/mtg-onedeck-development/`(SKILL.md + references/{cycle,token-economy}.md)。`.claude/commands/{milestone,audit,ship,autoloop}.md` は同 Skill への薄い互換参照。
+- 裁定準則・優先度式・コールドスタート読込順 = `docs/judge-protocol.md`(読込順の正本は §0)。
+- Tier-1 監査の常設規約 = `.claude/audit-standing.md`。
+- 機械チェック = `npm run check` / 禁止ファイル走査 = `npm run check:forbidden`。
 
-- 裁定準則・優先度式・コールドスタート読込順 = `docs/judge-protocol.md`(読込順の正本は §0)
-- 実装者の不可侵事項・受け入れ標準 = `AGENTS.md`
-- Tier-1 監査の常設規約 = `.claude/audit-standing.md`
-- ワークフロー = `.claude/commands/{milestone,audit,ship,autoloop}.md`(STOP条件・委譲規律の正本 = autoloop.md、/ship 委譲手順の正本 = ship.md)
-- スライス状態・次スライス = `research/cr-grounding/cr-backbone-ledger.json`(退避済み履歴 = 同 `cr-backbone-ledger-history.json`)
-- 機械チェック = `npm run check` / 禁止ファイル走査 = `npm run check:forbidden`(`scripts/checks/` が正本。散文で再定義しない)
-- M0(モデリング・サイクル)の分担・相関遮断 = `docs/engine-design-method.md` §7–8
+## 役割(要約・正本 = `AGENTS.md`「役割」節)
 
-## 役割 = 資源状態 → 割当(モデル名でなく能力で定義)
-
-ユーザーは ChatGPT Pro + Claude Pro を契約。役割は「判定者(judge)」と「実装者(implementer)」の2席で、**どの資源状態でもプロジェクトが止まらない**よう割当を切り替える:
-
-| 資源状態 | 判定者 | 実装者 | Tier-1 監査 |
-|---|---|---|---|
-| **①両方潤沢**(通常) | 在席最上位の Claude | Codex/ChatGPT の現行最上位ティア | 実装と別の冷たいセッション(Codex or Claude サブエージェント) |
-| **②Claude 週次上限** | Codex/ChatGPT が批評+実装を暫定両担 | 同左 | 自己批判プロンプト(相関遮断の弱まりを明示許容)。**条件**=Claude 復帰後に全変更を独立再検証・再オーナー化するまで「未監査」扱い(fake-green 禁止) |
-| **③Codex/ChatGPT 週次上限** | 在席最上位の Claude | Claude サブエージェント(別 transcript) | さらに別の Claude サブエージェント(実装側と別 transcript で相関遮断を維持) |
-| **④両方枯渇** | 自律実行不可。資源回復まで待機、または人間が手動続行 | — | — |
-
-**現在値**(モデル更新はこの行だけ編集): 判定者既定=Sonnet 5(格上げ召喚=Opus 4.8。契約[spec]変更承認・凍結判定・アーキ判断のみ)/ 実装者既定=Codex CLI(GPT-5.6)。起動手順の正本 = `.claude/commands/autoloop.md`。
-
-**原則**(全状態に共通):
-- **トークン経済**: Claude トークンは「判断」(裁定・承認・go/no-go)にだけ使い、機械化できるもの(実装・草稿・計測・機械チェック)は全部実装者・サブエージェント・スクリプトへ寄せる。判定者が raw ソース精読・diff 行読み・契約/テスト初稿の自筆をしたら委譲漏れのシグナル(正本 = autoloop.md)。
-- **相関遮断**: 判定者≠実装者が既定。実装者と受け入れ基準の作者が同一だと循環(ゴールポストが動く)ため、凍結・信頼・最終コミットの前に必ず独立監査を1回通す——これが**全状態で不変の要石**。状態②はこの要石を「後日の独立再検証」で満たす例外運用。
-- **助言≠決定**: 照合に還元できない生の分析(アーキ・真に曖昧な CR 解釈・spec 変更)は実装者側モデルへ冷たい別セッションで助言照会してよい。ただし助言者は盤面・契約・`docs/`・`review.*` を変えず、決定・commit・再オーナー化は判定者が保持する。
-- 判定の大半は外部権威(CR 真理テーブル・`review.*`・機械チェック・非LLM物差し)への**照合**に還元済みで判定者の地力に依存しない。照合に還元できない判断は `docs/judge-protocol.md` の lookup へ、それでも確信が持てなければ STOP→ユーザー。
-- 契約(spec)の初稿・決定論的判断の**草稿**は実装者に書かせてよい(根拠 CR 条番号併記・自分のレーン `research/cr-grounding/*.draft` へ)。`docs/`・`review.*` への反映と commit は判定者。
-- **例外**: 監査中に見つけた数行規模の外科的修正のみ、判定者が直接行ってよい。
-
-## 不変(不可侵・変更はユーザー裁定)
-
-- 実装エージェントは **git 操作・`review.*`・`CLAUDE.md`・`AGENTS.md`・`eslint.config.js` を変更しない**(詳細 = `AGENTS.md`。機械検出 = `npm run check:forbidden`)。
-- 凍結・信頼・最終コミットの前に必ず**独立監査を1回**通す(上記の要石)。
-- ルールが一意に答える決定論的 CR 裁定は **CR を引いて終了**する(prompt 再走・多数決で希少トークンを浪費しない)。
-- 北極星・契約原則の変更、不可逆な外部書込(依存追加/更新・データ削除・外部API書込・秘密)は**ユーザー裁定**。
-
-## 自律境界(何を確認なしで進めてよいか)
-
-- 公開・外部送信・戻せない決定は確認が既定。**唯一の例外 = `/ship`**: 監査合格(`npm run check` 全緑 + `review.*` 緑)を認可とみなし、人間確認なしで push/Pages 公開まで自走してよい。/ship は機械的手順ゆえサブエージェントへ**最大1回だけ**委譲可(手順・検証の正本 = `.claude/commands/ship.md`)。
-- 止まってユーザーに聞くのは4類のみ(正本 = autoloop.md の STOP 条件): ①ロードマップ分岐の価値判断 ②CR 解釈の真の曖昧 ③不可逆・外部書込(通常の Pages push を除く)④実装者2連敗かつ有界な外科修正で直らない。
-- **セッション運用**: 手動運用の既定は「1セッション=1マイルストーン。終わったら `/clear`」(長大セッションは文脈再読で Claude トークンを最も浪費する)。`/autoloop` はループ内継続が意図された例外で、継続性は loop-state と台帳が担保する(正本 = autoloop.md)。定型ワークフローは `/milestone`・`/audit`・`/ship` で呼ぶ(手順の再生成を避ける)。
-
-## 契約ドキュメント
-
-- `docs/engine-spec.md` — エンジンAPI契約。型名・関数名・挙動の変更は**実装前に**判定者の承認が必要。仕様変更はまず spec を更新してから実装する。
-- `docs/acceptance.md` — 受け入れシナリオ(判定者が維持)。受け入れゲートでは**1項目でも失敗したら修正後にシナリオ全体を最初から再実行**する。
-
-## 設計原則
-
-- **サンドボックス哲学**: ルールは強制しない。警告・確認ダイアログは出すが、ユーザーは常に強行できる(土地2枚目、マナ不足の強行キャスト等)。**例外**: スタックに未解決の効果がある間のフェイズ/ターン移動は MTG ルール準拠で禁止する(強行不可。先にスタックを解決する)。
-- エンジン(`src/engine/`)は純粋関数のみ。React/DOM/Zustand に依存しない。GameState はイミュータブル(構造共有)。
-- 乱数はコマンド生成時に確定(ペイロードに順列を埋め込む)。`applyCommand` は決定的。
-- undo/redo はスナップショット方式(ストア層が履歴を保持、上限200)。
-- **ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ**(設計 = `docs/architecture-substrate-compiler.md`、手法 = `docs/engine-design-method.md`、契約 = engine-spec §34): CRの構造規則を有界・決定的・可逆に盤面再現する基盤と、oracle文を決定的プリミティブ列へ翻訳する部分的・計測管理のコンパイラに分離し、統制された範囲で自動化を進める(少数の誤謬は許容)。コンパイラは GameState を直接書かず拡張 `GameCommand` 列のみ生成=誤訳も undo で必ず戻る。LLMジャッジは助言のみで盤面を変更しない。初期非対応の複雑相互作用は engine-spec §34 に列挙。
-- **🧭 北極星は3本**(①正しさ ②気持ちよさ ③作り方。いずれの変更もユーザー裁定):
-  - **北極星①「CR を検査器にする」(決定論は予測せず照合する)**: ルールが一意に答える問い(ゾーン遷移・owner/controller・キーワード定義・SBA[CR704]・ターン構造[CR500]等)は総合ルール(`rule/Magic_The_Gathering_Comprehensive_Rules.txt`)を一次の決定論的権威とし、CR から抽出した**真理テーブル/不変条件で成果物を叩く**(全文を読ませるのではなく)。LLM(物差し・ジャッジ)は解釈・認識・相関遮断にのみ使い、決定論的軸を予測させない。**権威順序 = CR > 人間 gold > LLM-oracle(解釈のみ)**。本体 = `docs/engine-design-method.md` §3。
-  - **北極星②「理解と発見の快感を、静と動のリズムで祝祭にする」**: 届ける快感は「勝利」でなく**知的高揚**(この初手は強い/シナジーが繋がった/このコンボは美しい)。常時は静か、デッキが動き出す瞬間だけ一段盛る——雀魂から輸入するのは見た目でなく**演出強弱のリズム設計**。祝祭の優先順位=スタックの物語>統率者の登場>連鎖感>初手の儀式。本体 = `docs/design-vision.md` §2。
-  - **北極星③「メタは遊びに従属する」**: 型・契約・台帳・運用はすべてメタであり、①実プレイの困りごと削減 ②state 設計の手戻り削減 ③コンパイラ着地先の明確化のどれかに答えられなければ**作らない・削る**。新しい抽象の昇格判定 = 実デッキ需要 × CR根拠 × 既存プリミティブへの分解可能性。壊れた計器の数値を優先度に使わない。**スライス優先度の最上位シグナル = MyDeck 実プレイ需要**(正本 = judge-protocol §2 の優先度式)。本体 = `docs/engine-design-method.md` §9。
-- すべての操作に右クリックメニューの代替を用意する(D&D・ダブルクリック専用の操作を作らない)。
-- **ルール本文の読み取りは英語 `oracleText` を正本とする**(`printedText`(日本語)は表示専用)。キーワード保有判定・ルール解析は英語のみで行う。
-
-## 検証プロトコル
-
-- 実装側の「テスト通過」報告は合否判定に**使わない**。判定者が独立に敵対的テストを書いて判定する。
-- ファイル名に `review.` を含むテストは判定者専有。**実装エージェントは変更禁止**(これが落ちたら実装側のコードを直す)。
-- fast-check プロパティテストの不変条件 **I1〜I7**(`docs/engine-spec.md` 参照)を維持する。GameState に状態を追加したら対応する不変条件も追加する。
-- 機械チェックは `npm run check`(lint / vitest / build を個別実行。build が型検査を内蔵——素の `tsc --noEmit` は本リポでは no-op)。
-- UI変更はブラウザ実機(Claude Preview、`.claude/launch.json` の `mtg-onedeck`)で確認。**コンソールエラー0件**が合格条件。実機確認は要所のUIだけ(eval往復はトークン高)。
-- Scryfall 連携の変更は実APIで裏取りしてから仕様化する(APIドキュメントと実挙動の差で重大バグが出た実績あり)。
-
-## コーディング規約
-
-- TypeScript strict。`any` 禁止(やむを得なければ `unknown`+型ガード)。
-- UI文言は日本語、コード・コメント・識別子は英語。カード名表示は `printedName ?? name` を《》で囲む。
-- conventional commits(`feat:` / `fix:` / `docs:` / `chore:` 等)。Claude 署名は付けない。
-- `git add` は変更ファイルを明示指定する(`-A` 禁止)。ファイルを「無関係」として除外する前に `git grep -n "<name>" -- docs/ research/` で契約参照の有無を確認(参照ありなら除外禁止)。
-- 主要UI要素には `data-testid` を付与する(レビューのブラウザ自動操作で使用)。
-
-## デプロイ
-
-- main へ push すると GitHub Actions が `npm test` → ビルド(`--base=/MTG_OneDeck/`)→ Pages デプロイを実行する(テストが落ちるとデプロイされない)。
-- デプロイ後は https://makeinu1.github.io/MTG_OneDeck/ が 200 を返すことを確認する。
-- Hugging Face Spaces(Static)へは `npm run build` の `dist/` をそのままアップロード可能。
+判定者(judge)/実装者(implementer)/冷監査者(cold auditor)の3席は**どの席も ChatGPT で担当でき、Claude は任意の助言・追加監査として使ってよいが正式 green の必須資源ではない**。相関遮断(実装者≠受け入れ基準作者≠監査者)と「凍結・信頼・最終コミットの前に別の冷たいセッションで独立監査を1回」は全状態で不変の要石。詳細・不可侵・自律境界・北極星は `AGENTS.md` を読むこと。
