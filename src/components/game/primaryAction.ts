@@ -14,7 +14,7 @@
 
 import type { GameState } from '../../engine/types';
 
-export type PrimaryActionKind = 'resolve' | 'triggers' | 'attack' | 'next-phase';
+export type PrimaryActionKind = 'manual-resolution' | 'resolve' | 'triggers' | 'attack' | 'next-phase';
 
 export interface PrimaryActionModel {
   kind: PrimaryActionKind;
@@ -27,7 +27,11 @@ export interface PrimaryActionModel {
 export function primaryActionModel(
   state: GameState,
   triggerCandidateCount: number,
+  manualResolutionRequired = false,
 ): PrimaryActionModel {
+  if (manualResolutionRequired) {
+    return { kind: 'manual-resolution', label: '手動処理済み', testId: 'primary-action', glow: true };
+  }
   const stackN = state.zones.stack.length;
   if (stackN > 0) {
     return { kind: 'resolve', label: `スタックを解決 (${stackN})`, testId: 'primary-action', glow: true };

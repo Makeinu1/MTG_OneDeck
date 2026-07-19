@@ -584,6 +584,25 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 
 根拠: CR 115.2/115.5、405.1–4、701.6a-b、106.6、605.3b、602.2。正本= engine-spec §34.40改訂・§34.49。
 
+### M-STACK-CONTROL 手動完遂可能なスタック体験(2026-07-20・ユーザー直接プレイ摩擦)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| MSC-1 | マナ源/カード/stack buttonにfocusを残して↑/←/→ | ↑はstack top解決または次phase、←/→はundo/redo。Enter/Spaceはfocused controlをactivateし、input編集は奪わない |
+| MSC-2 | Counterspell/Negateをstackへ唱える | 支払い前に合法なstack spell対象を選び、確定で支払い+cast+checked対象保存が単一commit。cancelはstate不変 |
+| MSC-3 | 《白鳥の歌》を唱える | enchantment/instant/sorcery spellだけがcast-time候補。対象矢印を解決前から表示する |
+| MSC-4 | checked対象がstackを離れてからcounterを解決 | CR608.2bによりsourceは不発でgraveyardへ行き、counterもBird生成taskも起こらない |
+| MSC-5 | 合法対象へ《白鳥の歌》を解決 | 対象を打ち消し、Bird生成だけをpartial manual taskとして表示。`手動処理済み`まで次解決/phaseを止め、完了後1 undoで全差分が戻る |
+| MSC-6 | 完全manual spellを解決 | sourceをstackに保持したsoft gateが開く。盤面の手動操作・session内undo/redoが可能で、taskは他操作で消えない |
+| MSC-7 | Stack Workspaceで項目を選択 | `対応を追加`/`上から解決`/`全解決`/`対象を設定・変更`/`手動で打ち消す`または`スタックから取り除く`へmenuなしで到達する |
+| MSC-8 | stack workspace表示中に手札/盤面を操作 | backdropがpointer操作を遮らず、responseを同じ盤面で追加できる |
+| MSC-9 | `全解決`がguided/fetch/commander/manualへ到達 | 明示理由を表示して停止し、再開後も全件1 global undoのgroup境界を維持する |
+| MSC-10 | resolution session中に保存/reload | 半解決stateを復元せず、解決開始前baselineへ戻る。GameState/schema versionは増えない |
+| MSC-11 | auto/partial/manual/runtime errorを解決 | 成功後にだけ対応する視覚cueを出し、理由別日本語を表示。音OFFでも見え、reduced-motionで移動しない |
+| MSC-12 | 375×812 / 812×375 / 1440×900で対局 | stack/hand/boardの主要操作が到達可能、overflowによる操作消失なし、console warning/error 0 |
+
+根拠: CR 115.1a、405.1–4、601.2b/c/h/i、608.1/608.2b、701.6a-b。正本=engine-spec §34.51。Oracle golden=《白鳥の歌》英語Oracle。
+
 ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
 S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。
 

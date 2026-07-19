@@ -36,6 +36,8 @@ export function primaryActionLanguage(
 ): PrimaryActionLanguage {
   const full = primaryActionDisplayLabel(state, primary);
   switch (primary.kind) {
+    case 'manual-resolution':
+      return { full, compact: '手動完了', icon: 'stack' };
     case 'resolve':
       return { full, compact: `解決 ${state.zones.stack.length}`, icon: 'stack' };
     case 'triggers':

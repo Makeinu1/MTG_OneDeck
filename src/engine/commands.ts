@@ -203,6 +203,7 @@ export type GameCommand =
       faceIndex?: number;
       xValue?: number;
       playerId?: PlayerId;
+      targetSelections?: TargetSelection[];
     }
   | {
       type: 'addAbilityToStack';
@@ -2893,6 +2894,7 @@ function applyCastToStack(
   faceIndex?: number,
   xValue?: number,
   requestedPlayerId?: PlayerId,
+  targetSelections: readonly TargetSelection[] = [],
 ): void {
   let card = requireCard(draft, cardId);
   const def = draft.state.defs[card.defId];
@@ -2922,9 +2924,15 @@ function applyCastToStack(
   }
 
   moveCardInternal(draft, cardId, 'stack', 'bottom', false, 'cast');
-  if (xValue !== undefined) {
+  if (xValue !== undefined || targetSelections.length > 0) {
     const stacked = requireCard(draft, cardId);
-    setCard(draft, { ...stacked, announcedX: Math.max(0, Math.floor(xValue)) });
+    setCard(draft, {
+      ...stacked,
+      ...(xValue === undefined ? {} : { announcedX: Math.max(0, Math.floor(xValue)) }),
+      ...(targetSelections.length === 0
+        ? {}
+        : { targetSelections: targetSelections.map((selection) => ({ ...selection })) }),
+    });
   }
   if (fromCommand) {
     incrementCommanderCastCount(draft, cardId);
@@ -5378,7 +5386,16 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
       break;
     }
     case 'castToStack': {
-      applyCastToStack(draft, cmd.cardId, cmd.payment, cmd.forced, cmd.faceIndex, cmd.xValue, cmd.playerId);
+      applyCastToStack(
+        draft,
+        cmd.cardId,
+        cmd.payment,
+        cmd.forced,
+        cmd.faceIndex,
+        cmd.xValue,
+        cmd.playerId,
+        cmd.targetSelections,
+      );
       break;
     }
     case 'addAbilityToStack': {

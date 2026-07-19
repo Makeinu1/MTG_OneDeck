@@ -41,6 +41,7 @@ import { hasActivatedAddManaLine, naiveTapManaColors } from '../engine/grammar/m
 import {
   buildGuidedCommands,
   compileAbilityIR,
+  guidedCounterLeafForManualComposite,
   type EffectPrompt,
   type LibrarySearchFilter,
 } from '../engine/grammar/compile';
@@ -64,6 +65,7 @@ import {
   type DefeatRuleRef,
   type GameState,
   type LinkedExileRecord,
+  type ManaPool,
   type ManualTargetZone,
   type PendingRuleChoice,
   type PendingSbaChoice,
@@ -177,6 +179,7 @@ export interface ActivateAbilityOptions {
 
 export interface PendingGuidedResolution {
   mode?: 'resolution' | 'activation' | 'mana-ability';
+  resolutionMode?: 'top' | 'all';
   sourceId: string;
   prompts: EffectPrompt[];
   commands: GameCommand[];
@@ -184,6 +187,34 @@ export interface PendingGuidedResolution {
   to?: ZoneId;
   activation?: PendingActivation;
   manaAbility?: PendingManaAbility;
+}
+
+export interface PendingCastTransaction {
+  cardId: string;
+  faceIndex: number;
+  xValue: number;
+  forced: boolean;
+  payment: ManaPool;
+  prompts: EffectPrompt[];
+  targetSelections: TargetSelection[];
+  warnings: string[];
+  autoTapPlan?: AutoTapPlan;
+}
+
+export interface ResolutionTask {
+  id: string;
+  message: string;
+}
+
+export interface ResolutionSession {
+  mode: 'top' | 'all';
+  sourceId: string;
+  baseline: GameState;
+  stage: 'resolving' | 'manual-required';
+  reason?: 'unsupported' | 'partial' | 'runtime-failure';
+  tasks: ResolutionTask[];
+  stepPast: GameState[];
+  stepFuture: GameState[];
 }
 
 export interface PendingCommanderResolution {
@@ -882,6 +913,8 @@ export interface GameStore {
   warnings: string[];
   triggerCandidates: TriggerCandidate[];
   pendingGuided: PendingGuidedResolution | null;
+  pendingCast: PendingCastTransaction | null;
+  resolutionSession: ResolutionSession | null;
   pendingCommanderResolution: PendingCommanderResolution | null;
   pendingForceActivation: PendingForceActivation | null;
   canUndo: boolean;
@@ -943,7 +976,10 @@ export interface GameStore {
   castToStack(
     cardId: string,
     opts?: { xValue?: number; force?: boolean; faceIndex?: number },
-  ): 'ok' | 'error' | { shortfall: number };
+  ): 'ok' | 'error' | 'needs-choice' | { shortfall: number };
+  answerPendingCastTarget(cardId: string): void;
+  confirmPendingCast(): void;
+  cancelPendingCast(): void;
   addAbilityToStack(
     sourceId: string,
     kind: 'activated' | 'triggered',
@@ -960,6 +996,7 @@ export interface GameStore {
   copyStackItem(cardId: string, quantity?: number): void;
   copyPermanent(cardId: string, quantity?: number): void;
   resolveTop(to?: ZoneId): void;
+  completeManualResolution(): void;
   commitCommanderResolution(token: number): void;
   confirmGuidedTarget(cardId: string): void;
   confirmGuidedDiscard(cardId: string): void;
@@ -1039,6 +1076,100 @@ function cardLabel(state: GameState, cardId: string): string {
   const face = def?.faces[card.faceIndex] ?? def?.faces[0];
   const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
   return `《${name}》`;
+}
+
+interface CounterCastPlan {
+  prompt: EffectPrompt;
+  warnings: string[];
+  partial: boolean;
+}
+
+function counterCastPlanForCard(
+  state: GameState,
+  cardId: string,
+  faceIndex?: number,
+): CounterCastPlan | null {
+  const card = state.cards[cardId];
+  if (!card || card.isAbility) return null;
+  const def = state.defs[card.defId];
+  const chosenFaceIndex = faceIndex ?? card.faceIndex;
+  const face = def?.faces[chosenFaceIndex] ?? def?.faces[0];
+  if (!def || !face?.oracleText) return null;
+  const ir = parseAbilityIR(face.oracleText, face.typeLine ?? def.typeLine);
+  const compiled = compileAbilityIR(ir, {
+    sourceId: cardId,
+    def,
+    controllerId: card.controllerId,
+  });
+  if (compiled.decision === 'guided') {
+    const prompt = compiled.prompts.find(
+      (candidate) => candidate.kind === 'target' && candidate.atom === 'effect.counter-spell',
+    );
+    return prompt
+      ? { prompt: { ...prompt, slotId: 'target-0' }, warnings: [], partial: false }
+      : null;
+  }
+  if (compiled.decision !== 'manual') return null;
+  const assist = guidedCounterLeafForManualComposite(ir);
+  return assist
+    ? {
+        prompt: { ...assist.prompt, slotId: 'target-0' },
+        warnings: [assist.warning],
+        partial: true,
+      }
+    : null;
+}
+
+function stackItemRulesForStore(
+  state: GameState,
+  cardId: string,
+): { text: string; typeLine: string; def: CardDef } | null {
+  const card = state.cards[cardId];
+  if (!card) return null;
+  const def = state.defs[card.defId];
+  if (!def) return null;
+  if (card.abilityResolutionText) {
+    return { text: card.abilityResolutionText, typeLine: def.typeLine, def };
+  }
+  if (card.isAbility && card.abilityLineIndex !== undefined) {
+    const line = splitAbilityLines(def)[card.abilityLineIndex];
+    if (!line) return null;
+    const face = def.faces[line.faceIndex] ?? def.faces[0];
+    return { text: line.text, typeLine: face?.typeLine ?? def.typeLine, def };
+  }
+  const face = def.faces[card.faceIndex] ?? def.faces[0];
+  return face ? { text: face.oracleText ?? '', typeLine: face.typeLine ?? def.typeLine, def } : null;
+}
+
+function stackItemIsWhollyUnsupported(state: GameState, cardId: string): boolean {
+  const card = state.cards[cardId];
+  if (!card || state.effectsAuto === false || card.effectsAuto === false) return true;
+  const rules = stackItemRulesForStore(state, cardId);
+  if (!rules) return true;
+  // A vanilla permanent spell has no effect body to automate; resolving the
+  // stack object to the battlefield is already fully modeled.
+  if (rules.text.trim() === '') return false;
+  // This exact effect has a dedicated deterministic engine path even though
+  // the generic compiler intentionally classifies the sentence as manual.
+  if (/\bcopy target activated or triggered ability you control X times\b/i.test(rules.text)) {
+    return false;
+  }
+  if (isPureSelfLibraryShuffleLine(rules.text)) return false;
+  const compiled = compileAbilityIR(parseAbilityIR(rules.text, rules.typeLine), {
+    sourceId: card.sourceId ?? cardId,
+    def: rules.def,
+    controllerId: card.controllerId,
+  });
+  return compiled.decision === 'manual';
+}
+
+function manualResolutionDestination(state: GameState, cardId: string): ZoneId {
+  const card = state.cards[cardId];
+  if (!card || card.isAbility) return 'graveyard';
+  const def = state.defs[card.defId];
+  const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+  const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+  return /Instant|Sorcery/i.test(typeLine) ? 'graveyard' : 'battlefield';
 }
 
 function guidedTapStatusWarnings(
@@ -1446,6 +1577,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     groupedHistory: boolean;
   } | null = null;
   let commanderResolutionToken = 0;
+  let requestedResolutionMode: ResolutionSession['mode'] = 'top';
 
   /** Drop any staged commander-resolution commit and close the grouped-history window. */
   function discardPendingCommanderResolution(): void {
@@ -1507,8 +1639,26 @@ export const useGameStore = create<GameStore>((set, get) => {
     warnings: string[],
     options: { collectPending?: boolean; groupedHistory?: boolean } = {},
   ): void {
-    clearPendingInteractionHistory();
     const cur = get().state;
+    const resolutionSession = get().resolutionSession;
+    if (cur && resolutionSession?.stage === 'manual-required') {
+      const stepPast = [...resolutionSession.stepPast, cur].slice(-HISTORY_LIMIT);
+      set({
+        state: next,
+        warnings,
+        triggerCandidates: [],
+        pendingCast: null,
+        resolutionSession: {
+          ...resolutionSession,
+          stepPast,
+          stepFuture: [],
+        },
+        canUndoInteraction: true,
+        canRedoInteraction: false,
+      });
+      return;
+    }
+    clearPendingInteractionHistory();
     const shouldCollectPending = options.collectPending ?? true;
     let nextWithPending =
       cur && shouldCollectPending ? appendCollectedPendingTriggers(cur, next) : next;
@@ -1541,6 +1691,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       canUndo: internal.past.length > 0,
       canRedo: false,
       pendingGuided: null,
+      pendingCast: null,
       canUndoInteraction: false,
       canRedoInteraction: false,
       pendingCommanderResolution: null,
@@ -1549,6 +1700,76 @@ export const useGameStore = create<GameStore>((set, get) => {
       pendingForceActivation: null,
     };
     set(nextStoreState);
+  }
+
+  function startManualResolutionSession(
+    baseline: GameState,
+    working: GameState,
+    sourceId: string,
+    reason: NonNullable<ResolutionSession['reason']>,
+    message: string,
+    mode: ResolutionSession['mode'] = 'top',
+  ): void {
+    clearPendingInteractionHistory();
+    set({
+      state: working,
+      warnings: [],
+      triggerCandidates: [],
+      pendingGuided: null,
+      pendingCast: null,
+      resolutionSession: {
+        mode,
+        sourceId,
+        baseline,
+        stage: 'manual-required',
+        reason,
+        tasks: [{ id: `${sourceId}:${reason}`, message }],
+        stepPast: [],
+        stepFuture: [],
+      },
+      canUndoInteraction: false,
+      canRedoInteraction: false,
+    });
+  }
+
+  function commitCompletedResolutionSession(next: GameState, warnings: string[]): void {
+    const session = get().resolutionSession;
+    if (!session) return;
+    let finalized = appendCollectedPendingTriggers(session.baseline, next);
+    if (
+      finalized.phase === 'cleanup'
+      && finalized.zones.stack.length === 0
+      && readyPendingTriggers(finalized.pendingTriggers).length === 0
+      && finalized.pendingRuleChoices.length === 0
+    ) {
+      const advanced = applyCommand(finalized, { type: 'nextPhase' });
+      finalized = appendCollectedPendingTriggers(finalized, advanced.state);
+      warnings = [...warnings, ...advanced.warnings];
+    }
+    if (session.mode !== 'all' || internal.resolutionGroupAnchor === null) {
+      internal.past.push(session.baseline);
+      if (internal.past.length > HISTORY_LIMIT) internal.past.shift();
+    }
+    if (session.mode === 'all' && internal.resolutionGroupAnchor === null) {
+      internal.resolutionGroupAnchor = session.baseline;
+    }
+    internal.future = [];
+    if (session.mode === 'top') internal.resolutionGroupAnchor = null;
+    clearPendingInteractionHistory();
+    set({
+      state: finalized,
+      warnings,
+      triggerCandidates: triggerCandidatesFromPendingTriggers(finalized.pendingTriggers),
+      pendingGuided: null,
+      pendingCast: null,
+      resolutionSession: null,
+      pendingCommanderResolution: null,
+      pendingForceActivation: null,
+      canUndoInteraction: false,
+      canRedoInteraction: false,
+      canUndo: internal.past.length > 0,
+      canRedo: false,
+    });
   }
 
   function dispatch(cmd: GameCommand): void {
@@ -1640,32 +1861,28 @@ export const useGameStore = create<GameStore>((set, get) => {
   function continueResolveAll(): void {
     while (true) {
       const cur = get().state;
-      if (!cur || cur.zones.stack.length === 0) {
+      if (
+        !cur
+        || cur.zones.stack.length === 0
+        || readyPendingTriggers(cur.pendingTriggers).length > 0
+      ) {
+        // A ready trigger must be put on the stack before the next lower item
+        // can resolve (CR 603.3). Closing the group here preserves the single
+        // undo entry already anchored at the start of this resolve-all batch.
         internal.resolutionGroupAnchor = null;
-        return;
-      }
-      if (guidedPlanForStackTop(cur)) {
-        internal.resolutionGroupAnchor = null;
-        get().resolveTop();
         return;
       }
       const topId = cur.zones.stack[cur.zones.stack.length - 1];
       if (isFetchAbilityStackItem(cur, topId)) {
-        internal.resolutionGroupAnchor = null;
         return;
       }
-      try {
-        const result = applyCommand(cur, resolveStackTopCommandForState(cur));
-        if (prepareCommanderResolution(cur, result.state, result.warnings, {
-          continueResolveAll: true,
-          groupedHistory: true,
-        })) {
-          return;
-        }
-        commit(result.state, result.warnings, { groupedHistory: true });
-      } catch (err) {
+      requestedResolutionMode = 'all';
+      get().resolveTop();
+      requestedResolutionMode = 'top';
+      const next = get();
+      if (next.resolutionSession || next.pendingGuided || next.pendingCommanderResolution) return;
+      if (next.state === cur) {
         internal.resolutionGroupAnchor = null;
-        reportActionError(err);
         return;
       }
     }
@@ -1681,6 +1898,10 @@ export const useGameStore = create<GameStore>((set, get) => {
   ): void {
     const cur = get().state;
     if (!cur) return;
+    if (get().resolutionSession) {
+      set({ warnings: ['手動処理を完了してからゲームを進めてください。'] });
+      return;
+    }
     if (cur.zones.stack.length > 0) {
       set({ warnings: [STACK_TRANSITION_BLOCKED_WARNING] });
       return;
@@ -1719,8 +1940,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         `${cardLabel(cur, pending.sourceId)}の効果を誘導実行した。`,
       );
       const warnings = [...(pending.warnings ?? []), ...result.warnings];
-      if (!prepareCommanderResolution(cur, logged, warnings)) {
-        commit(logged, warnings);
+      const resolvingAll = pending.resolutionMode === 'all';
+      if (!prepareCommanderResolution(cur, logged, warnings, {
+        continueResolveAll: resolvingAll,
+        groupedHistory: resolvingAll,
+      })) {
+        commit(logged, warnings, { groupedHistory: resolvingAll });
+        if (resolvingAll) continueResolveAll();
       }
     } catch (err) {
       reportActionError(err);
@@ -2268,6 +2494,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     warnings: [],
     triggerCandidates: [],
     pendingGuided: null,
+    pendingCast: null,
+    resolutionSession: null,
     pendingCommanderResolution: null,
     pendingForceActivation: null,
     canUndo: false,
@@ -2294,6 +2522,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: openingHand.warnings,
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCast: null,
+        resolutionSession: null,
         canUndoInteraction: false,
         canRedoInteraction: false,
         pendingCommanderResolution: null,
@@ -2318,6 +2548,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         warnings: [],
         triggerCandidates: [],
         pendingGuided: null,
+        pendingCast: null,
+        resolutionSession: null,
         canUndoInteraction: false,
         canRedoInteraction: false,
         pendingCommanderResolution: null,
@@ -2464,6 +2696,28 @@ export const useGameStore = create<GameStore>((set, get) => {
     dispatch,
 
     undo() {
+      if (get().pendingCast) {
+        set({ pendingCast: null, canUndoInteraction: false, canRedoInteraction: false });
+        return;
+      }
+      const resolutionSession = get().resolutionSession;
+      const resolutionState = get().state;
+      if (resolutionSession && resolutionState) {
+        const previous = resolutionSession.stepPast.at(-1);
+        if (!previous) return;
+        set({
+          state: previous,
+          triggerCandidates: [],
+          resolutionSession: {
+            ...resolutionSession,
+            stepPast: resolutionSession.stepPast.slice(0, -1),
+            stepFuture: [...resolutionSession.stepFuture, resolutionState].slice(-HISTORY_LIMIT),
+          },
+          canUndoInteraction: resolutionSession.stepPast.length > 1,
+          canRedoInteraction: true,
+        });
+        return;
+      }
       if (get().pendingCommanderResolution) {
         discardPendingCommanderResolution();
         set({ pendingCommanderResolution: null });
@@ -2504,6 +2758,24 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     redo() {
+      const resolutionSession = get().resolutionSession;
+      const resolutionState = get().state;
+      if (resolutionSession && resolutionState) {
+        const next = resolutionSession.stepFuture.at(-1);
+        if (!next) return;
+        set({
+          state: next,
+          triggerCandidates: [],
+          resolutionSession: {
+            ...resolutionSession,
+            stepPast: [...resolutionSession.stepPast, resolutionState].slice(-HISTORY_LIMIT),
+            stepFuture: resolutionSession.stepFuture.slice(0, -1),
+          },
+          canUndoInteraction: true,
+          canRedoInteraction: resolutionSession.stepFuture.length > 1,
+        });
+        return;
+      }
       discardPendingCommanderResolution();
       const pendingInteraction = internal.pendingFuture.pop();
       if (pendingInteraction) {
@@ -3002,6 +3274,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     castToStack(cardId, opts) {
       const cur = get().state;
       if (!cur) return 'ok';
+      if (get().resolutionSession) {
+        set({ warnings: ['手動処理を完了してから、スタックへ対応を追加してください。'] });
+        return 'error';
+      }
       const card = cur.cards[cardId];
       if (!card) return 'ok';
 
@@ -3015,8 +3291,26 @@ export const useGameStore = create<GameStore>((set, get) => {
         : cost;
       const xValue = opts?.xValue ?? 0;
       const directPayment = solvePayment(cur.manaPool, taxedCost, xValue);
+      const counterPlan = counterCastPlanForCard(cur, cardId, faceIndex);
 
       if (directPayment.ok) {
+        if (counterPlan) {
+          set({
+            pendingCast: {
+              cardId,
+              faceIndex,
+              xValue,
+              forced: false,
+              payment: directPayment.payment,
+              prompts: [counterPlan.prompt],
+              targetSelections: [],
+              warnings: counterPlan.warnings,
+            },
+            canUndoInteraction: true,
+            canRedoInteraction: false,
+          });
+          return 'needs-choice';
+        }
         dispatch({
           type: 'castToStack',
           cardId,
@@ -3031,6 +3325,25 @@ export const useGameStore = create<GameStore>((set, get) => {
       const plan = planAutoManaPayment(cur, taxedCost, xValue);
       if (!plan.ok && !opts?.force) {
         return { shortfall: plan.shortfall };
+      }
+
+      if (counterPlan) {
+        set({
+          pendingCast: {
+            cardId,
+            faceIndex,
+            xValue,
+            forced: !plan.ok,
+            payment: plan.payment,
+            prompts: [counterPlan.prompt],
+            targetSelections: [],
+            warnings: counterPlan.warnings,
+            autoTapPlan: plan,
+          },
+          canUndoInteraction: true,
+          canRedoInteraction: false,
+        });
+        return 'needs-choice';
       }
 
       try {
@@ -3055,7 +3368,67 @@ export const useGameStore = create<GameStore>((set, get) => {
       return 'ok';
     },
 
+    answerPendingCastTarget(cardId) {
+      const cur = get().state;
+      const pending = get().pendingCast;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'target') return;
+      if (!eligibleTargets(cur, prompt.filter ?? {}, { sourceId: pending.cardId }).includes(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}は対象候補にありません。`] });
+        return;
+      }
+      const selection = targetSelectionForCard(
+        cur,
+        prompt,
+        cardId,
+        false,
+        pending.targetSelections.length,
+        pending.cardId,
+      );
+      if (!selection || selection.legalityMode !== 'checked') return;
+      set({
+        pendingCast: {
+          ...pending,
+          prompts: pending.prompts.slice(1),
+          targetSelections: [...pending.targetSelections, selection],
+        },
+      });
+    },
+
+    confirmPendingCast() {
+      const cur = get().state;
+      const pending = get().pendingCast;
+      if (!cur || !pending || pending.prompts.length > 0) return;
+      const command: GameCommand = {
+        type: 'castToStack',
+        cardId: pending.cardId,
+        payment: pending.payment,
+        forced: pending.forced,
+        faceIndex: pending.faceIndex,
+        ...(parseManaCost(
+          cur.defs[cur.cards[pending.cardId]?.defId ?? '']?.faces[pending.faceIndex]?.manaCost ?? '',
+        ).x > 0 ? { xValue: pending.xValue } : {}),
+        targetSelections: pending.targetSelections.map((selection) => ({ ...selection })),
+      };
+      try {
+        const result = pending.autoTapPlan
+          ? applyAutoManaPaymentAndCommands(cur, pending.autoTapPlan, [command])
+          : applyCommand(cur, command);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        reportActionError(err);
+      }
+    },
+
+    cancelPendingCast() {
+      set({ pendingCast: null, canUndoInteraction: false, canRedoInteraction: false });
+    },
+
     addAbilityToStack(sourceId, kind, abilityLineIndex) {
+      if (get().resolutionSession) {
+        set({ warnings: ['手動処理を完了してから、スタックへ対応を追加してください。'] });
+        return;
+      }
       const before = get().state;
       const resolvedAbilityLineIndex =
         abilityLineIndex ?? (before ? abilityLineIndexForKind(before, sourceId, kind) : undefined);
@@ -3202,6 +3575,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     activateAbility(sourceId, abilityLineIndex, opts) {
+      if (get().resolutionSession) {
+        set({ warnings: ['手動処理を完了してから、能力を起動してください。'] });
+        return;
+      }
       const cur = get().state;
       if (!cur) return;
 
@@ -3478,6 +3855,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     copyStackItem(cardId, quantity = 1) {
       const cur = get().state;
       if (!cur) return;
+      if (get().resolutionSession) {
+        set({ warnings: ['手動処理を完了してからスタックへ対応を追加してください。'] });
+        return;
+      }
       try {
         const result = applyCommand(cur, { type: 'copyStackItem', cardId, quantity });
         const noOp = result.state.zones.stack.length === cur.zones.stack.length
@@ -3498,7 +3879,95 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resolveTop(to) {
       const cur = get().state;
-      if (!cur || get().pendingCommanderResolution) return;
+      if (!cur || get().pendingCommanderResolution || get().resolutionSession) return;
+      const resolutionMode = requestedResolutionMode;
+      const topId = cur.zones.stack.at(-1);
+      if (!topId) return;
+      const topCard = cur.cards[topId];
+      const counterPlan = counterCastPlanForCard(cur, topId, topCard?.faceIndex);
+      const storedCounterTarget = topCard?.targetSelections?.find(
+        (selection) => selection.slotId === counterPlan?.prompt.slotId,
+      );
+      if (counterPlan && storedCounterTarget) {
+        if (
+          storedCounterTarget.legalityMode !== 'checked'
+          || storedCounterTarget.selection.kind !== 'object'
+        ) {
+          startManualResolutionSession(
+            cur,
+            cur,
+            topId,
+            'unsupported',
+            `${cardLabel(cur, topId)}の対象は未検証です。効果を手動で処理してください。`,
+            resolutionMode,
+          );
+          return;
+        }
+        const targetId = storedCounterTarget.selection.physicalCardId;
+        const currentTarget = cur.cards[targetId];
+        const legal = currentTarget
+          && objectSnapshotForCard(cur, targetId)?.objectId === storedCounterTarget.selection.objectId
+          && eligibleTargets(cur, counterPlan.prompt.filter ?? {}, { sourceId: topId }).includes(targetId);
+        if (!legal) {
+          try {
+            const result = applyCommand(cur, resolveStackTopCommandForState(cur, to));
+            const logged = appendLog(
+              result.state,
+              `${cardLabel(cur, topId)}は対象不適正で不発になりました。`,
+            );
+            commit(logged, [], { groupedHistory: resolutionMode === 'all' });
+          } catch {
+            startManualResolutionSession(
+              cur,
+              cur,
+              topId,
+              'runtime-failure',
+              `${cardLabel(cur, topId)}を自動処理できませんでした。手動で処理してください。`,
+              resolutionMode,
+            );
+          }
+          return;
+        }
+        if (counterPlan.partial) {
+          const def = topCard ? cur.defs[topCard.defId] : undefined;
+          if (!def) return;
+          try {
+            const commands = buildGuidedCommands(
+              counterPlan.prompt,
+              {
+                kind: 'target',
+                cardIds: [targetId],
+                targetSnapshots: [storedCounterTarget.selection.snapshot],
+              },
+              {
+                sourceId: topId,
+                controllerId: topCard?.controllerId,
+                def,
+              },
+            );
+            const result = applyCommands(cur, commands);
+            startManualResolutionSession(
+              cur,
+              result.state,
+              topId,
+              'partial',
+              counterPlan.warnings[0]
+                ?? `${cardLabel(cur, topId)}の残りの効果を手動で処理してください。`,
+              resolutionMode,
+            );
+          } catch {
+            startManualResolutionSession(
+              cur,
+              cur,
+              topId,
+              'runtime-failure',
+              `${cardLabel(cur, topId)}を自動処理できませんでした。手動で処理してください。`,
+              resolutionMode,
+            );
+          }
+          return;
+        }
+      }
       const plan = guidedPlanForStackTop(cur);
       if (plan) {
         startPendingGuided({
@@ -3509,15 +3978,79 @@ export const useGameStore = create<GameStore>((set, get) => {
             commands: plan.commands,
             ...(plan.warnings.length > 0 ? { warnings: plan.warnings } : {}),
             ...(to === undefined ? {} : { to }),
+            resolutionMode,
         });
+        return;
+      }
+      if (stackItemIsWhollyUnsupported(cur, topId)) {
+        startManualResolutionSession(
+          cur,
+          cur,
+          topId,
+          'unsupported',
+          `${cardLabel(cur, topId)}の効果は自動化未対応です。手動で処理してください。`,
+          resolutionMode,
+        );
         return;
       }
       try {
         const result = applyCommand(cur, resolveStackTopCommandForState(cur, to));
-        if (!prepareCommanderResolution(cur, result.state, result.warnings)) {
-          commit(result.state, result.warnings);
+        const resolvingAll = resolutionMode === 'all';
+        if (!prepareCommanderResolution(cur, result.state, result.warnings, {
+          continueResolveAll: resolvingAll,
+          groupedHistory: resolvingAll,
+        })) {
+          commit(result.state, result.warnings, { groupedHistory: resolvingAll });
         }
+      } catch {
+        startManualResolutionSession(
+          cur,
+          cur,
+          topId,
+          'runtime-failure',
+          `${cardLabel(cur, topId)}を自動処理できませんでした。手動で処理してください。`,
+          resolutionMode,
+        );
+      }
+    },
+
+    completeManualResolution() {
+      const session = get().resolutionSession;
+      const cur = get().state;
+      if (!session || !cur) return;
+      const source = cur.cards[session.sourceId];
+      try {
+        let next = cur;
+        let warnings: string[] = [];
+        if (source?.zone === 'stack') {
+          const result = source.isAbility
+            ? applyCommand(cur, { type: 'removeStackItem', id: session.sourceId })
+            : applyCommand(cur, {
+                type: 'moveCard',
+                cardId: session.sourceId,
+                to: manualResolutionDestination(cur, session.sourceId),
+                position: 'bottom',
+                reason: 'resolve',
+              });
+          next = result.state;
+          warnings = result.warnings;
+        }
+        next = appendLog(next, `${cardLabel(cur, session.sourceId)}の手動処理を完了しました。`);
+        const continueAll = session.mode === 'all';
+        commitCompletedResolutionSession(next, warnings);
+        if (continueAll) continueResolveAll();
       } catch (err) {
+        set({
+          resolutionSession: {
+            ...session,
+            stage: 'manual-required',
+            reason: 'runtime-failure',
+            tasks: [{
+              id: `${session.sourceId}:runtime-failure`,
+              message: `${cardLabel(cur, session.sourceId)}を完了できませんでした。手動操作を確認してください。`,
+            }],
+          },
+        });
         reportActionError(err);
       }
     },
@@ -3930,7 +4463,12 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resolveAll() {
       const cur = get().state;
-      if (!cur || cur.zones.stack.length === 0 || get().pendingCommanderResolution) return;
+      if (
+        !cur
+        || cur.zones.stack.length === 0
+        || get().pendingCommanderResolution
+        || get().resolutionSession
+      ) return;
       internal.resolutionGroupAnchor = null;
       continueResolveAll();
     },
@@ -4227,7 +4765,7 @@ useGameStore.subscribe((state, prevState) => {
 
     void saveSnapshot({
       version: SNAPSHOT_VERSION,
-      state: s.state,
+      state: s.resolutionSession?.baseline ?? s.state,
       deck: snapshotInternal?.deck ?? [],
       autoAdvanceToMain: s.autoAdvanceToMain,
     });

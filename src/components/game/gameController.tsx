@@ -59,6 +59,7 @@ import {
 } from './dialogs';
 import { MulliganStage } from './MulliganStage';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
+import { completedAutomaticTopResolution } from './resolutionCueModel';
 import type { DropIntent } from './dragIntent';
 import { requestInteractionHistory } from './historyUiEvents';
 import type { DecisionFocusModel } from './decisionFocus';
@@ -287,6 +288,7 @@ export function useGameController({
   const isDialogOpen =
     (state?.pendingRuleChoices.some((choice) => choice.kind === 'cleanup-discard') ?? false) ||
     store.pendingGuided !== null ||
+    store.pendingCast !== null ||
     store.pendingForceActivation !== null ||
     manaChoice !== null ||
     pendingPayment !== null ||
@@ -531,14 +533,17 @@ export function useGameController({
     return { abilityId, sourceId: abilityCard.sourceId, ability };
   }
   function requestResolveTop(): void {
-    const s = useGameStore.getState().state;
-    const dialog = fetchDialogForTop(s);
+    const before = useGameStore.getState().state;
+    const dialog = fetchDialogForTop(before);
     if (dialog) {
       setFetchDialog(dialog); // フェッチはダイアログ経由=まだ解決していないので祝祭しない(Tier-1 #2)。
       return;
     }
-    celebrate('resolve'); // 実際に解決する時だけ祝祭(ハプティクス+音・装飾層)。
     store.resolveTop();
+    const after = useGameStore.getState();
+    if (completedAutomaticTopResolution(before, after)) {
+      celebrate('resolve');
+    }
   }
   function requestResolveAll(): void {
     store.resolveAll();
@@ -916,16 +921,19 @@ export function useGameController({
 
   // --- overlays (menu + all dialogs) ---
   const guidedPrompt = store.pendingGuided?.prompts[0] ?? null;
+  const castPrompt = store.pendingCast?.prompts[0] ?? null;
+  const targetPrompt = castPrompt?.kind === 'target' ? castPrompt : guidedPrompt;
+  const targetSourceId = store.pendingCast?.cardId ?? store.pendingGuided?.sourceId;
   const guidedPlayerId = state && store.pendingGuided
     ? guidedControllerId(state, store.pendingGuided)
     : state?.localPlayerId;
   const guidedTargetIds =
-    state && guidedPrompt?.kind === 'target' && guidedPrompt.targetKind !== 'player'
-      ? eligibleTargets(state, guidedPrompt.filter ?? {}, { sourceId: store.pendingGuided?.sourceId })
+    state && targetPrompt?.kind === 'target' && targetPrompt.targetKind !== 'player'
+      ? eligibleTargets(state, targetPrompt.filter ?? {}, { sourceId: targetSourceId })
       : [];
   const guidedTargetPlayerIds: PlayerId[] =
-    state && guidedPrompt?.kind === 'target' &&
-    (guidedPrompt.targetKind === 'player' || guidedPrompt.targetKind === 'object-or-player')
+    state && targetPrompt?.kind === 'target' &&
+    (targetPrompt.targetKind === 'player' || targetPrompt.targetKind === 'object-or-player')
       ? state.turnOrder.slice()
       : [];
   const guidedSacrificeIds =
@@ -982,8 +990,8 @@ export function useGameController({
 
   const decisionFocus: DecisionFocusModel | null = (() => {
     if (!state) return null;
-    const sourceId = store.pendingGuided?.sourceId;
-    if (guidedPrompt?.kind === 'target') return {
+    const sourceId = targetSourceId;
+    if (targetPrompt?.kind === 'target') return {
       kind: 'target', title: '対象を選択', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
       sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
     };
@@ -1042,7 +1050,11 @@ export function useGameController({
 
   function chooseDecisionCard(cardId: string): void {
     if (!decisionFocus?.candidateIds.includes(cardId)) return;
-    if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
+    if (castPrompt?.kind === 'target') {
+      store.answerPendingCastTarget(cardId);
+      useGameStore.getState().confirmPendingCast();
+    }
+    else if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
     else if (guidedPrompt?.kind === 'discard') store.confirmGuidedDiscard(cardId);
     else if (guidedPrompt?.kind === 'sacrifice') store.confirmGuidedSacrifice(cardId);
     else if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') store.confirmGuidedCostSubject(cardId);
@@ -1059,7 +1071,8 @@ export function useGameController({
   }
 
   function cancelDecision(): void {
-    if (store.pendingGuided) store.cancelGuidedPrompt();
+    if (store.pendingCast) store.cancelPendingCast();
+    else if (store.pendingGuided) store.cancelGuidedPrompt();
     else if (pendingRuleTarget) setPendingRuleTarget(null);
     else if (pendingBloodCrackCardId) setPendingBloodCrackCardId(null);
     else if (manaChoice) setManaChoice(null);

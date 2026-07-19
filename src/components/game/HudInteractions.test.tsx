@@ -420,7 +420,7 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
-  it('keeps resolution in PrimaryAction and lets the rail select one target story at a time', () => {
+  it('exposes direct stack actions and lets the rail select one target story at a time', () => {
     const state = buildVisualFixture('stack').snapshot.state;
     const controller = controllerFor(state);
     const { container, root } = mount(
@@ -430,11 +430,12 @@ describe('high-frequency HUD interactions', () => {
     );
     const items = container.querySelectorAll<HTMLElement>('[data-testid^="stack-workspace-item-"]');
 
-    expect(container.querySelector('[data-testid="stack-band-resolve"]')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-band-resolve-top"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="stack-band-resolve-all"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="stack-band-respond"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
-    expect(container.querySelector('.stack-workspace__footer-compact')?.textContent).toBe('下の「解決」から');
     expect(container.querySelector('.stack-workspace footer')?.getAttribute('title'))
-      .toContain('手札・盤面から応答');
+      .toContain('手札・盤面を操作');
     expect(items[0]?.classList.contains('is-selected')).toBe(true);
     act(() => {
       items[1]?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));

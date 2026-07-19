@@ -106,7 +106,12 @@ describe('plan trigger reliability fixtures', () => {
     store().undo();
     store().moveCard(cardId(graveDefs[3].scryfallId), 'graveyard');
     store().resolveTop();
-    expect(store().warnings.some((warning) => warning.includes('一部手動'))).toBe(true);
+    expect(store().resolutionSession).toMatchObject({
+      sourceId: stackId,
+      stage: 'manual-required',
+      reason: 'unsupported',
+    });
+    expect(state().zones.stack).toContain(stackId);
 
     store().declareAttack([fearId], '対戦相手A');
     expect(state().pendingTriggers.filter((trigger) => trigger.sourceId === fearId)).toEqual([]);

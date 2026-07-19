@@ -127,11 +127,18 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
   if (!state) return null;
   const stackActive = state.zones.stack.length > 0;
   const progressBlocked = stackActive || controller.triggerCandidateCount > 0;
-  const primary = primaryActionModel(state, controller.triggerCandidateCount);
+  const primary = primaryActionModel(
+    state,
+    controller.triggerCandidateCount,
+    store.resolutionSession?.stage === 'manual-required',
+  );
   const primaryLanguage = primaryActionLanguage(state, primary, controller.triggerCandidateCount);
 
   function runPrimary(): void {
     switch (primary.kind) {
+      case 'manual-resolution':
+        store.completeManualResolution();
+        break;
       case 'resolve':
         controller.requestResolveTop(); // celebrate('resolve') はコントローラ内。
         break;

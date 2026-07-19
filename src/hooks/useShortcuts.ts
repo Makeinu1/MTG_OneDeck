@@ -80,9 +80,10 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
         return;
       }
 
-      // Enter/Space and remapped single-key shortcuts remain owned by the
-      // focused control. Modifier-based history shortcuts above are global.
-      if (isInteractiveTarget(e.target)) return;
+      // Native activation keys remain owned by the focused control. Other
+      // configured shortcuts (notably the arrow-key play controls) stay
+      // global even when a mana/card button retains focus after a click.
+      if (isInteractiveTarget(e.target) && (e.key === 'Enter' || e.key === ' ')) return;
 
       const pressedKey = normalizePressedKey(e.key, e.code);
       if (!pressedKey) return;

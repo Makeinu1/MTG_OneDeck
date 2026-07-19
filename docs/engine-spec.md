@@ -3174,6 +3174,44 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 
 **受け入れ(判定者専有 review.*）**: `review.cleanup-hand-size`(7/8/複数超過・no-max 自動・override 手動優先・解決中ドロー再クリーンナップ・ダメージ除去・旧 snapshot backfill・undo)/ `review.attack-trigger-failclose`(watcher 非自動・self-attack 昂揚/first-time/解決時再評価)/ `review.plan-card-fixtures-scryfall`(fixture の type_line/oracle が 2026-07-19 Scryfall スナップショットに一致)。実装者テスト=`src/store/__tests__/plan{Cleanup,Gogo,MishrasBauble,TriggerReliability}.test.ts`。
 
+### 34.51 M-STACK-CONTROL: cast-time対象 + 手動完遂可能な解決セッション(2026-07-20・ユーザー直接プレイ摩擦)
+
+**目的**: 自動化可否にかかわらず、スタックへ応答し、対象を宣言し、解決を完了し、undoで戻せる単一の操作物語を提供する。既存§34.28/§34.49の「counter対象を解決時に選ぶ」部分は本節で置換する。手動到達性を新規自動化より優先し、未対応効果を解決済みと表示しない。
+
+**CR根拠**: CR 115.1a/601.2c(対象はキャスト中に選択)、601.2h–i(全選択後にコストを払い、完了後にcast成立)、405.1–4(stack object)、608.1(解決中に応答を挟まない)、608.2b(解決時の対象再確認・全対象不適正なら残余を含め不発)、701.6a–b(counter=stackから除去・コスト返却なし)。実Oracle golden=`Swan Song`: “Counter target enchantment, instant, or sorcery spell. Its controller creates a 2/2 blue Bird creature token with flying.”
+
+#### 34.51.1 Cast transaction(一時状態・GameState外)
+
+- `PendingCastTransaction { cardId; faceIndex; xValue; forced; payment; prompts; targetSelections; warnings }` をstoreの一時状態として追加する。snapshotへ保存せず、キャンセル/restore/newGameで破棄する。
+- `castToStack` の戻り値へ `'needs-choice'` を追加。キャスト時target promptがある場合は支払い・tap・zone移動を一切行わず pending を作る。対象不要なら従来どおり即commit。
+- `answerPendingCastTarget(cardId)` は現promptをchecked `TargetSelection`へ変換する。`confirmPendingCast()` は全必須選択が揃った場合だけ、マナ支払い(自動tapを含む)+stack投入+target保存を単一commitする。`cancelPendingCast()` は盤面無変更でpendingだけ破棄する。
+- `GameCommand.castToStack` に `targetSelections?: TargetSelection[]` をadditive追加する。`applyCastToStack` はzone change後のstack objectへ配列を複製して保存する。入力state/commandは不変、再生は決定的。
+- cast-time promptは既存の厳密5 counter patternと`guidedCounterLeafForManualComposite`の安全な無条件counter葉に適用する。解決時plannerは保存済みchecked対象を再質問しない。条件付き`unless`・置換counter・認識不能構文はmanualのまま。
+
+#### 34.51.2 解決セッションとsoft gate(GameState外)
+
+- `ResolutionSession { mode:'top'|'all'; sourceId; baseline; stage:'resolving'|'manual-required'; reason?:'unsupported'|'partial'|'runtime-failure'; tasks; stepPast; stepFuture }` をstore一時状態として追加する。`GameState`/`CACHE_SCHEMA_VERSION`は不変。
+- `resolveTop`/`resolveAll` は実行中sessionがある場合no-op。自動解決は既存command列+sourceの`resolveStackTop`を原子的にcommitする。実行例外はbaselineを維持して`runtime-failure` taskを出す。
+- 既知manual全体はsourceをstackに残し`unsupported` taskへ移る。安全な部分効果がある複合文は、そのcommandだけsession作業状態へ反映して`partial` taskへ移る。`completeManualResolution()`でsourceを通常の着地先へ移し、保留した誘発を収集して1 history stepとして確定する。
+- manual-required中は通常の盤面commandをsession内の`stepPast/stepFuture`へ積む。`undo`/`redo`はsession内履歴を優先し、完了後の通常undoは解決開始前baselineへ一括復元する。`resolveAll`は既存どおり全件を単一global undoとし、soft gate中もgroup anchorを保持する。
+- soft gate中は盤面の手動操作を許可するが、次のstack解決、phase/turn移動、response追加を禁止する。解決中に生じたtriggerはsession完了までUIへ昇格させない。
+- snapshot保存はsession中だけbaselineを保存対象にする。reloadは半解決状態でなく解決開始前へ戻る。
+
+#### 34.51.3 Counter解決の決定境界
+
+- checked targetはphysical id+object id+期待zone/typeを解決時に再検査する。全対象が不適正ならsourceだけを通常着地先へ移し、counter葉もmanual remainderも実行しない。ログへ「対象不適正で不発」を残す。
+- 単純counterは合法targetへ`removeStackItem`を適用後、sourceを解決してsession完了。
+- 《白鳥の歌》は合法targetを打ち消した後、Bird token生成を`partial` taskとして残す。task完了まではsourceをstackに保持し、`completeManualResolution()`でgraveyardへ移す。unchecked manual target注記はこの自動判定へ絶対に使用しない。
+
+#### 34.51.4 UI/shortcut契約
+
+- Stack Workspaceは非モーダル。背景は視覚scrimのみ(`pointer-events:none`)で盤面・手札を操作可能にし、選択項目へ`対応を追加`、`上から解決`、`全解決`、`対象を設定・変更`、spell用`手動で打ち消す`／ability用`スタックから取り除く`を直接表示する。自動解決はtopだけ。
+- manual taskは中央表示を一度だけ行い、その後は永続する短いtask cardと`手動処理済み`を表示する。`unsupported`/`partial`/`runtime-failure`を文言で区別し、同じ内容をtoastへ重複させない。
+- 解決演出は要求時でなく状態遷移成功後に発火する。開始focus、auto完了、manual handoffを区別し、音OFFでも視覚表示する。`prefers-reduced-motion`では移動を静的statusへ置換する。
+- shortcutはinput/textarea/select/contenteditableだけ標準編集へ譲る。button/link/menuitemはEnter/Spaceのみcontrolへ譲り、割当済みArrow/文字キーとCmd/Ctrl historyはフォーカスが残っていても発火する。dialog中のphase/turn/restart blockは維持。
+
+**スコープ外**: full CR117 priority、全counter構文、相手が行うtoken生成の自動化、manual注記からの合法性推論、quick-cast強制廃止。これらを本マイルストーンのPASSに混ぜない。
+
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 
 **位置づけ(判定者裁定 2026-07-18)**: コンパイラの decision(auto/guided/manual)+生成コマンド指紋をコーパス全行(17,491枚・21,896効果行)でスナップショット化し、新パターン追加が既存 auto/guided の挙動を無言で変える回帰(candidate 汚染)を vitest が機械検出する。**現行検証プロトコル(fail-closed・独立 Tier-1 監査)の*補完*であり代替ではない**——残置ブランチ 69ecc88 が主張した fail-open 高速レーン(冷監査の既定廃止)はユーザー裁定 2026-07-18 で不採用。本計器は監査を置き換えず、Tier-1 の corpus flip 実測を常設ゲート化するもの。

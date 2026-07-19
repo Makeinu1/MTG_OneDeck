@@ -89,7 +89,12 @@ describe('CR 701.24 shuffle auto resolution', () => {
 
     const state = store().state!;
     expect(state.zones.library).toEqual(beforeLibrary);
-    expect(state.cards[sourceId].zone).toBe('graveyard');
+    expect(state.cards[sourceId].zone).toBe('stack');
+    expect(store().resolutionSession).toMatchObject({
+      sourceId,
+      stage: 'manual-required',
+      reason: 'unsupported',
+    });
     expect(state.log.map((entry) => entry.message)).not.toContain('ライブラリをシャッフルしました。');
   });
 });

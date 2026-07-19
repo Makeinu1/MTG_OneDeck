@@ -8,7 +8,12 @@ export interface StackItemPresentation {
   source: string | null;
   abilityText?: string;
   announcedX?: number;
-  targets: { label: string; cardId?: string; playerId?: PlayerId }[];
+  targets: {
+    label: string;
+    cardId?: string;
+    playerId?: PlayerId;
+    legalityMode: TargetSelection['legalityMode'];
+  }[];
 }
 
 function cardName(state: GameState, cardId: string): string {
@@ -25,6 +30,7 @@ function targetPresentation(state: GameState, target: TargetSelection) {
         ? '自分（プレイヤー）'
         : state.players[target.selection.playerId]?.label ?? target.selection.playerId,
       playerId: target.selection.playerId,
+      legalityMode: target.legalityMode,
     };
   }
   const cardId = target.selection.physicalCardId;
@@ -33,6 +39,7 @@ function targetPresentation(state: GameState, target: TargetSelection) {
   return {
     label: `《${cardName(state, cardId)}》${isSameObject ? '' : '（以前のオブジェクト）'}`,
     ...(isSameObject ? { cardId } : {}),
+    legalityMode: target.legalityMode,
   };
 }
 

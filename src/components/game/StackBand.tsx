@@ -1,6 +1,6 @@
 /** StackBand — board-stable centered overlay with a compact closed-state trigger. */
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GameCard } from './GameCard';
 import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
 import type { GameController } from './gameController';
@@ -87,6 +87,8 @@ export interface StackBandProps {
 
 export function StackBand({ controller }: StackBandProps) {
   const stackLen = controller.state?.zones.stack.length ?? 0;
+  const previousStackLenRef = useRef(stackLen);
+  const [flash, setFlash] = useState(false);
   const bottomStackId = controller.state?.zones.stack[0];
   const bottomStackCard = bottomStackId ? controller.state?.cards[bottomStackId] : undefined;
   const sessionId = bottomStackCard
@@ -95,6 +97,15 @@ export function StackBand({ controller }: StackBandProps) {
   const [closedSessionId, setClosedSessionId] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [manualTargetSourceId, setManualTargetSourceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const previous = previousStackLenRef.current;
+    previousStackLenRef.current = stackLen;
+    if (stackLen >= previous || stackLen === 0) return;
+    setFlash(true);
+    const timer = window.setTimeout(() => setFlash(false), 720);
+    return () => window.clearTimeout(timer);
+  }, [stackLen]);
 
   const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
     (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
@@ -134,19 +145,17 @@ export function StackBand({ controller }: StackBandProps) {
         <small>{items.length}件</small>
       </button>
       {effectiveOpen && (
-        <button
-          type="button"
+        <div
           className="stack-workspace__backdrop"
-          aria-label="スタック画面を閉じる"
-          data-testid="stack-workspace-backdrop"
-          onClick={() => {
-            if (!hasStackCandidate) setClosedSessionId(sessionId);
-          }}
+          data-testid="stack-workspace-scrim"
+          aria-hidden="true"
         />
       )}
       <section
         id="stack-workspace"
-        className="stack-band stack-workspace"
+        className={`stack-band stack-workspace${flash ? ' stack-band--flash' : ''}${
+          controller.store.resolutionSession ? ' stack-workspace--manual' : ''
+        }`}
         data-testid="stack-band"
         data-mobile-open={effectiveOpen || undefined}
         aria-label={`スタック ${items.length}件`}
@@ -202,8 +211,9 @@ export function StackBand({ controller }: StackBandProps) {
                             key={`${target.label}-${targetIndex}`}
                             className="stack-workspace__target-chip"
                             data-target-player={target.playerId}
+                            data-legality={target.legalityMode}
                           >
-                            {target.label}
+                            {target.label}{target.legalityMode === 'checked' ? '' : '（未検証）'}
                           </span>
                         ))
                         : 'なし／未記録'}
@@ -214,7 +224,17 @@ export function StackBand({ controller }: StackBandProps) {
                       data-testid={`stack-manual-target-${item.cardId}`}
                       onClick={() => setManualTargetSourceId(item.cardId)}
                     >
-                      対象を手動設定
+                      {item.targets.length > 0 ? '対象を設定・変更' : '対象を手動設定'}
+                    </button>
+                    <button
+                      type="button"
+                      className="stack-workspace__manual-target"
+                      data-testid={`stack-manual-remove-${item.cardId}`}
+                      onClick={() => controller.store.removeStackItem(item.cardId)}
+                    >
+                      {state.cards[item.cardId]?.isAbility
+                        ? 'スタックから取り除く'
+                        : '手動で打ち消す'}
                     </button>
                   </>
                 )}
@@ -222,10 +242,40 @@ export function StackBand({ controller }: StackBandProps) {
             </li>
           ))}
         </ol>
-        <footer title="解決は画面下のプライマリアクションから。手札・盤面から応答を追加できます。">
-          <Icon name="phase-next" />
-          <span className="stack-workspace__footer-full">下のプライマリアクションで解決。手札・盤面から応答できます。</span>
-          <span className="stack-workspace__footer-compact" aria-hidden="true">下の「解決」から</span>
+        {controller.store.resolutionSession?.stage === 'manual-required' && (
+          <div className="stack-workspace__manual-task" data-testid="stack-manual-task">
+            <strong>手動処理が必要です</strong>
+            <span>{controller.store.resolutionSession.tasks[0]?.message}</span>
+            <button type="button" onClick={() => controller.store.completeManualResolution()}>
+              手動処理済み
+            </button>
+          </div>
+        )}
+        <footer title="手札・盤面を操作しながら、スタックへ対応または解決できます。">
+          <button
+            type="button"
+            data-testid="stack-band-respond"
+            onClick={() => setClosedSessionId(sessionId)}
+            disabled={controller.store.resolutionSession !== null}
+          >
+            対応を追加
+          </button>
+          <button
+            type="button"
+            data-testid="stack-band-resolve-top"
+            onClick={controller.requestResolveTop}
+            disabled={selectedItem?.cardId !== items[0]?.cardId || controller.store.resolutionSession !== null}
+          >
+            <Icon name="phase-next" /> 上から解決
+          </button>
+          <button
+            type="button"
+            data-testid="stack-band-resolve-all"
+            onClick={controller.requestResolveAll}
+            disabled={controller.store.resolutionSession !== null}
+          >
+            全解決
+          </button>
         </footer>
       </section>
       {manualTargetSourceId && state.cards[manualTargetSourceId]?.zone === 'stack' && (
