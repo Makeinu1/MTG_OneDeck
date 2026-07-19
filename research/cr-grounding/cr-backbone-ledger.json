@@ -165,8 +165,9 @@
       "type": "design-slice",
       "domainId": "m-stack-control",
       "track": "play-loop",
-      "status": "review-green",
+      "status": "shipped",
       "auditStatus": "audited-2026-07-20-cold-chatgpt-clean-after-high-fixes",
+      "releaseEvidence": "2026-07-20: feature commit 4a5e58870a0487a89a55b4c355966109c7c74497、GitHub Actions run 29706451704 success(test/build/deploy)、Pages HTTP 200。",
       "userGate": "2026-07-20 ユーザー直接プレイ裁定: エンジン未成熟時も手動で必ず完遂できるスタック体験をP0として実装する。フル優先権と全counter自動化は対象外。",
       "relatedDomains": [
         "cr-115-targets",
@@ -199,7 +200,7 @@
         "cold ChatGPT re-audit: no findings after 2 HIGH + 1 MEDIUM fixes"
       ],
       "boundary": "cast-time checked対象は安全なcounter leafだけ。未検証の手動対象は自動効果入力に使わない。手動soft gate・一時ResolutionSession・保存baseline・局所/一括undo・非モーダルstack workspaceを実装。フル優先権、全counter文法、一般modal/X/複数対象は未実装。",
-      "nextGate": "ローカル変更はreview-green。commit/CI/Pages後にshippedへ昇格する。以後はMyDeck実需要があるcast-time選択またはcounter複合文だけを個別スライス化する。"
+      "nextGate": "出荷完了。以後はMyDeck実需要があるcast-time選択またはcounter複合文だけを個別スライス化する。"
     },
     {
       "type": "domain-slice",
@@ -794,7 +795,7 @@
         "targetFilters",
         "stack"
       ],
-      "boundary": "**target candidate legality filter leaf 出荷**(batch2-3・2026-07-04・engine-spec §32.2 TargetFilter)= 単一 battlefield object 対象の合法候補を CR115.2/601.2c で絞る。M-STACK-CONTROLはreview-green(2026-07-20・§34.51): 安全なcounter leafだけcast-time checked対象を原子的に保存し、解決前にCR608.2b合法性を再確認する。",
+      "boundary": "**target candidate legality filter leaf 出荷**(batch2-3・2026-07-04・engine-spec §32.2 TargetFilter)= 単一 battlefield object 対象の合法候補を CR115.2/601.2c で絞る。M-STACK-CONTROL出荷(2026-07-20・§34.51): 安全なcounter leafだけcast-time checked対象を原子的に保存し、解決前にCR608.2b合法性を再確認する。",
       "evidence": [
         "src/engine/__tests__/review.cr115-target-filter.test.ts",
         "src/store/__tests__/review.cr115-target-legality.test.ts",
@@ -1203,7 +1204,7 @@
         "resolutionContext",
         "eventLog"
       ],
-      "boundary": "Slice A(stack-target filtering + 単純counter-spell・batch3-2a・2026-07-06・engine-spec §34.28)+ Slice B(解決時LKI読み取り。Feed the Swarm型 mana value・batch3-2b・2026-07-06・engine-spec §34.29)は出荷済み。M-STACK-CONTROLはreview-green(2026-07-20・§34.51): ResolutionSessionで自動/部分/手動/失敗を分離し、手動完了まで次解決をsoft gate、解決中誘発を完了後に提示する。",
+      "boundary": "Slice A(stack-target filtering + 単純counter-spell・batch3-2a・2026-07-06・engine-spec §34.28)+ Slice B(解決時LKI読み取り。Feed the Swarm型 mana value・batch3-2b・2026-07-06・engine-spec §34.29)は出荷済み。M-STACK-CONTROL出荷(2026-07-20・§34.51): ResolutionSessionで自動/部分/手動/失敗を分離し、手動完了まで次解決をsoft gate、解決中誘発を完了後に提示する。",
       "evidence": [
         "src/engine/__tests__/review.cr608-resolution-sliceA.test.ts",
         "src/engine/__tests__/cr608CounterSpellGuided.test.ts",
@@ -1214,7 +1215,7 @@
         "src/store/__tests__/review.stack-control.test.ts",
         "docs/engine-spec.md §34.51"
       ],
-      "nextGate": "既存出荷sliceは完了。M-STACK-CONTROLはcommit/CI/Pages後にshippedへ昇格する。追加demandはpower/toughness等LKI、Mana Drain型delayed mana、一般複合解決を別スライスとしてplannedSequenceへ投入する。",
+      "nextGate": "既存出荷sliceとM-STACK-CONTROLは完了。追加demandはpower/toughness等LKI、Mana Drain型delayed mana、一般複合解決を別スライスとしてplannedSequenceへ投入する。",
       "judge": "deterministic-cr"
     },
     {
