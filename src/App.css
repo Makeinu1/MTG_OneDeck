@@ -11,12 +11,6 @@
   padding: 48px 24px 80px;
 }
 
-.playmat-shell,
-.playmat-shell__game {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
 .app__resume {
   min-width: 0;
   padding: var(--space-3) var(--space-4);
@@ -1449,55 +1443,6 @@
   padding-left: max(12px, env(safe-area-inset-left));
   box-sizing: border-box;
   overflow: hidden;
-}
-
-.rotate-notice {
-  position: fixed;
-  inset: 0;
-  z-index: 400;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(216, 176, 106, 0.18), transparent 44%),
-    linear-gradient(180deg, rgba(8, 13, 11, 0.96), rgba(8, 13, 11, 0.99));
-  text-align: center;
-}
-
-.rotate-notice__panel {
-  width: min(320px, 100%);
-  padding: 28px 24px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--accent-border);
-  background: rgba(18, 27, 22, 0.96);
-  box-shadow: var(--shadow-pop);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-}
-
-.rotate-notice__icon {
-  font-size: 44px;
-  line-height: 1;
-}
-
-.rotate-notice__title,
-.rotate-notice__body {
-  margin: 0;
-}
-
-.rotate-notice__title {
-  font-family: var(--display);
-  font-size: 22px;
-  color: var(--text-h);
-}
-
-.rotate-notice__body {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-dim);
 }
 
 /* =========================================================================
@@ -3509,17 +3454,6 @@
     min-width: 122px;
     max-width: 122px;
     margin-left: calc(-1 * clamp(0px, calc((var(--hand-count, 1) - 5) * 2px), 32px));
-  }
-}
-
-@media (orientation: portrait) and (max-width: 600px) {
-  .playmat-shell__game {
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  .rotate-notice {
-    display: flex;
   }
 }
 

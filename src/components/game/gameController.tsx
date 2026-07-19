@@ -3,14 +3,14 @@
  *
  * docs/ui-architecture-v2.md §2/§6・docs/design-playbook.md §3 D2。
  *
- * 旧 Playmat.tsx のダイアログ機構(~25 の transient/guided dialog + request 系ヘルパ)を、
- * 新レイアウトが消費できる自己完結フックへ再構成したもの。**旧 Playmat は無編集**
- * (ロールバック経路の保全)ゆえ当面は機構が二重化する——これは D1 で受理済みの
- * 「actionCatalog は buildMenuItems の重複実装、D4 で統合」パターンの継続であり、
- * 本フックの handlerFor(=bindAction 相当)+ actionCatalog specs が **D4 で唯一の正本**になる。
+ * かつて旧 Playmat.tsx が抱えていたダイアログ機構(~25 の transient/guided dialog +
+ * request 系ヘルパ)を、新レイアウトが消費できる自己完結フックへ再構成したもの。
+ * 旧 Playmat とその周辺 12 ファイルは D4 前倒しで削除済み(2026-07-19・ユーザー授権)ゆえ、
+ * かつて D1 で予告された「buildMenuItems の重複実装を D4 で統合」は完了し、
+ * 本フックの handlerFor(=bindAction 相当)+ actionCatalog specs が **唯一の正本**である。
  *
- * カード操作の onSelect は buildMenuItems を複製せず、actionCatalog(純関数 spec)+
- * handlerFor(id→store 呼び出しの switch)で組む=旧 374 行のクロージャを畳んだ。
+ * カード操作の onSelect は actionCatalog(純関数 spec)+ handlerFor(id→store 呼び出しの
+ * switch)で組む(旧 Playmat の buildMenuItems クロージャを畳んだ設計を継承)。
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -25,7 +25,7 @@ import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { parseManaCost } from '../../engine/mana';
 import { fetchAbility, type FetchAbility } from '../../engine/status';
-import type { RuleActionCandidateKind } from '../playmat/ruleActionCandidates';
+import type { RuleActionCandidateKind } from './ruleActionCandidates';
 import type { ManaColor } from '../../types/card';
 import type { KeybindingsMap } from '../../data/keybindings';
 import { useShortcuts } from '../../hooks/useShortcuts';
@@ -53,7 +53,7 @@ import {
   FetchSearchDialog,
   GuidedLibrarySearchDialog,
   CastFaceDialog,
-} from '../playmat/dialogs';
+} from './dialogs';
 import { MulliganStage } from './MulliganStage';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 import type { DropIntent } from './dragIntent';

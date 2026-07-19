@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // 禁止ファイル走査の単一正本。npm run check:forbidden で起動する。
 // 既定は worktree の変更(git status --short)、--diff <ref> で ref との差分を走査。
-// `review.` の部分一致は CardPreview.tsx 等を誤検出する(ee45cf6 の教訓)ため、
-// パス区切りに固定した正規表現のみを使う。
+// `review.` の裸の部分一致は CardPreview.tsx 等を誤検出する(ee45cf6 の教訓)。
+// 一方 `Name.review.test.tsx`(ドット区切りの review テスト)も判定者専有ゆえ拾う必要がある。
+// ゆえに境界を「行頭・パス区切り・ドット」に固定する: `.review.` は拾い、`Preview.`(直前が
+// 英字)は拾わない。
 import { execFileSync } from 'node:child_process';
 
 // FORBIDDEN: 実装エージェントが変更してはならないファイル(検出時 exit 1)
 const FORBIDDEN = [
-  { re: /(^|\/)review\./, why: 'review.* はレビュー担当(判定者)専有' },
+  { re: /(^|\/|\.)review\./, why: 'review.* はレビュー担当(判定者)専有' },
   { re: /^CLAUDE\.md$/, why: 'CLAUDE.md は判定者専有' },
   { re: /^AGENTS\.md$/, why: 'AGENTS.md は判定者専有' },
   { re: /^eslint\.config\.js$/, why: 'lint 設定の変更は判定者承認が必要' },

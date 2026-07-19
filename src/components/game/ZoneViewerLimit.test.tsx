@@ -2,7 +2,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
-import { ZoneViewerDialog } from '../playmat/dialogs';
+import { ZoneViewerDialog } from './dialogs';
 
 afterEach(() => document.body.replaceChildren());
 

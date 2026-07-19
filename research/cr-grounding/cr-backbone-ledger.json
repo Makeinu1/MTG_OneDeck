@@ -80,7 +80,7 @@
       ],
       "userGate": "**J2召喚ゲート**。全操作の新旧同等性を review.*+実機で実証してから、旧playmat/Playmat.tsx(1735行)・浮動Stack.tsx・ContextMenu・死CSS・保存デッキ一覧を削除。隠れ依存(actionCatalog.ts→playmat/ruleActionCandidates 等)の解消を Tier-1 の明示項目に。1コミットで git revert 可能に。",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4c 旧実装削除(strangler完了)。同等性未実証まで凍結。VITE_UI_V2_LAYOUT=false の rollback を壊さない。",
+      "note": "**[2026-07-19 部分実行・ユーザー授権]** 到達不能だった旧UIのTSX削除だけを凍結解除して先行実行: 旧Playmat.tsx+周辺12ファイル削除・dialogs.tsx/ruleActionCandidates.tsをgame/へ移設・App.tsxのVITE_UI_V2_LAYOUTロールバック分岐とfixture ui=legacy撤去・.playmat-shell/.rotate-notice死CSS除去。既定経路が本番デフォルトで到達不能(ui=legacy専用)=生きた同等性参照でなかったため同等性実証ゲートを回避(ユーザー授権)。ロールバックはgit revert。残=死CSS~580行のpurge・ContextMenu退役・保存デッキ一覧・desktop composition(d4b)は依然deferred。 **[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4c 旧実装削除(strangler完了)。同等性未実証まで凍結。",
       "status": "deferred"
     },
     {

@@ -21,7 +21,10 @@ describe('App.css 死CSS走査', () => {
   });
 
   it('旧3カラム系(.playmat__sidebar/__main/__stage/__zones/__hand/__log)が残存しない', () => {
-    // \b 境界必須: .playmat__handrow(現行クラス)を .playmat__hand の誤検出にしない
+    // \b 境界必須: .playmat__handrow を .playmat__hand の誤検出にしない。
+    // 注(2026-07-19): 旧 Playmat 削除で .playmat*/.hand__*/.stack__*/.mobile-* は全て死CSS化した。
+    // この pin は旧3カラム 6 クラスの不在のみを見る。残る死CSS(~580行)の一掃は
+    // docs/ui-architecture-v2.md §6 の D4 App.css purge 追跡項目。
     for (const cls of [
       'playmat__sidebar',
       'playmat__main',
@@ -37,24 +40,5 @@ describe('App.css 死CSS走査', () => {
 
   it('新アイコンラッパークラス(.icon)は存在する', () => {
     expect(appCss).toMatch(/\.icon\s*\{/);
-  });
-});
-
-describe('tsx 側の ti-* 参照走査', () => {
-  it('PlaymatHud/MobileControlsDrawer に ti-* クラス/プロパティが残存しない', () => {
-    const targets = [
-      path.resolve(
-        path.dirname(fileURLToPath(import.meta.url)),
-        '../../components/playmat/PlaymatHud.tsx',
-      ),
-      path.resolve(
-        path.dirname(fileURLToPath(import.meta.url)),
-        '../../components/playmat/MobileControlsDrawer.tsx',
-      ),
-    ];
-    for (const file of targets) {
-      const content = readFileSync(file, 'utf-8');
-      expect(content).not.toMatch(/ti ti-|"ti-[a-z0-9-]+"|className="ti\b/);
-    }
   });
 });

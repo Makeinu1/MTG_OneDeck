@@ -45,7 +45,14 @@
 - D5をD4より先に出荷したため、ロードマップの番号順と実製品の完成順は一致しない。
 - 現行 `GameScreen` はhover previewとDnDを失い、8枚手札・フェーズ可読性・ゾーン視認性・
   土地表示・盤面幅でユーザー確認済みの退行がある。
-- 旧 `Playmat` はロールバック経路かつ機能参照元である。**同等性証明前に削除しない**。
+- 旧 `Playmat` とその周辺12ファイル(Battlefield/GameLog/Hand/InfoPanel/MobileControlsDrawer/
+  MobileZoneSwap/PlaymatHud/Stack/TargetPickerDialog/Toasts/TriggerCandidatePanel/Zones)は
+  **2026-07-19 に削除済み**(ユーザー授権・D4前倒し)。既定経路は本番デフォルトでは到達不能
+  (dev fixture `?ui=legacy` のみ)だった=生きた同等性参照ではなくなっていたための撤去。
+  ロールバックは `git revert`。現役だった `dialogs.tsx`/`ruleActionCandidates.ts` は
+  `src/components/game/` へ移設(旧UI専用ではなく新UIが常時 import する現役コード)。
+- **PC版退行の回復は旧 `Playmat` 復活ではなく D4(デスクトップ grid-area)で行う**
+  (作業計画 = `research/design/d4a-*`)。旧実装は同等性参照として残さない。
 
 ## 腐敗を増やさない規則
 
