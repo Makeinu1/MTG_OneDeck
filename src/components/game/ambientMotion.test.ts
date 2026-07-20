@@ -64,15 +64,15 @@ describe('ambient toggle (opt-in, default ON)', () => {
 });
 
 describe('star field (deterministic, v4.3 arithmetic)', () => {
-  it('builds the approved layer counts (far 44 / mid 22 / near 14 = 80)', () => {
-    expect(STAR_COUNTS.far + STAR_COUNTS.mid + STAR_COUNTS.near).toBe(80);
-    expect(buildStarLayer('far')).toHaveLength(44);
-    expect(buildStarLayer('mid')).toHaveLength(22);
-    expect(buildStarLayer('near')).toHaveLength(14);
+  it('builds the approved layer counts (far 84 / mid 46 / near 26 = 156)', () => {
+    expect(STAR_COUNTS.far + STAR_COUNTS.mid + STAR_COUNTS.near).toBe(156);
+    expect(buildStarLayer('far')).toHaveLength(84);
+    expect(buildStarLayer('mid')).toHaveLength(46);
+    expect(buildStarLayer('near')).toHaveLength(26);
     const field = buildStarField();
-    expect(field.far).toHaveLength(44);
-    expect(field.mid).toHaveLength(22);
-    expect(field.near).toHaveLength(14);
+    expect(field.far).toHaveLength(84);
+    expect(field.mid).toHaveLength(46);
+    expect(field.near).toHaveLength(26);
   });
 
   it('is deterministic (same input → identical specs)', () => {

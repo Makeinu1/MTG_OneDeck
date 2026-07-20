@@ -220,13 +220,7 @@ html[data-theme='light'] .game-screen {
 }
 .presentation-layer--draw .turn-transition-cue,
 .presentation-layer[data-active-draw='true'] .turn-transition-cue {
-  translate: 0 clamp(-150px, -16vh, -80px); /* phase 変種専用。turn 変種は下記 :not() で除外 */
-}
-/* turn 変種では translate を無効化(ドロー被り時の上下ズレ防止)。
-   既存ルールの translate を :not([data-kind='turn']) で除外し、
-   turn 変種には translate プロパティ自体が効かないようにする。 */
-.turn-transition-layer[data-kind='turn'] .turn-transition-cue {
-  translate: 0 0;
+  translate: 0 clamp(-150px, -16vh, -80px);
 }
 body:has(.commander-cutin) .presentation-layer,
 body:has(.commander-cutin) .celebration-layer { opacity: 0; transition: opacity var(--dur-fast) ease; }
@@ -2213,8 +2207,6 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 .ambient-backdrop {
   position: absolute; inset: 0; z-index: -1;
   pointer-events: none; overflow: hidden;
-  /* Chrome のレイアウト再計算を局所化(パフォーマンス)。 */
-  contain: layout style paint;
 }
 .ambient-backdrop__dark,
 .ambient-backdrop__light { position: absolute; inset: 0; }
@@ -2292,25 +2284,20 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-star {
   position: absolute; /* モックの inline span を確実に散布させる(視覚正本と同一結果を仕様で保証) */
   left: var(--x); top: var(--y); width: var(--sz); height: var(--sz); border-radius: 50%;
-  /* box-shadow 削除(Chrome で transform 変更時のシャドウ再ラスタライズが重い)。
-     radial-gradient の background だけで光暈を表現。
-     サイズを 3 倍にしてグラデーションの拡散で光暈を再現。 */
-  width: calc(var(--sz) * 3); height: calc(var(--sz) * 3);
-  margin-left: calc(var(--sz) * -1); margin-top: calc(var(--sz) * -1);
-  background: radial-gradient(circle, var(--tint) 0%, var(--tint) 18%, transparent 72%);
+  background: radial-gradient(circle, var(--tint) 0%, transparent 72%);
+  box-shadow: 0 0 calc(var(--sz) * 1.2) var(--tint);
   animation: ambient-twinkle var(--d) ease-in-out infinite;
   animation-delay: var(--dl);
 }
 @keyframes ambient-twinkle {
-  /* transform: scale() 削除(Chrome で box-shadow/gradient 再ラスタライズをトリガー)。
-     opacity のみで twinkle 表現。 */
-  0%, 100% { opacity: calc(var(--o) * .16); }
-  50% { opacity: var(--o); }
+  0%, 100% { opacity: calc(var(--o) * .16); transform: scale(.72); }
+  50% { opacity: var(--o); transform: scale(1.32); }
 }
 
 .ambient-shoot {
   width: 230px; height: 2px; border-radius: 2px; opacity: 0;
   background: linear-gradient(90deg, var(--ambient-shoot-head), var(--ambient-shoot-tail) 55%, transparent);
+  box-shadow: 0 0 14px var(--ambient-shoot-glow);
   animation: ambient-shoot-run var(--sd) linear infinite;
   animation-delay: var(--sdl);
 }
@@ -2489,6 +2476,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   position: absolute;
   left: var(--x); top: var(--y); width: var(--s); height: calc(var(--s) * 1.5);
   background: linear-gradient(160deg, var(--ambient-fleck-a), var(--ambient-fleck-b));
+  box-shadow: 0 0 4px var(--ambient-fleck-glow);
   transform: rotate(var(--r));
   animation: ambient-fleck-drift var(--d) ease-in-out infinite alternate, ambient-fleck-twinkle calc(var(--d) / 3) ease-in-out infinite;
 }
@@ -2531,7 +2519,6 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
     0 0 0 1px color-mix(in srgb, var(--stack-glow-c) 45%, transparent),
     0 0 24px color-mix(in srgb, var(--stack-glow-c) 30%, transparent);
   animation: ambient-stack-underline var(--beat) ease-in-out infinite;
-  opacity: .35;
 }
 .status-band__life-heart {
   display: inline-block; color: var(--warn); font-style: normal;
