@@ -1045,6 +1045,7 @@ function parseEtbCounters(oracleText: string): { counterType: string; count: num
   for (const line of oracleText.split('\n')) {
     const match = ETB_COUNTER_PATTERN.exec(line);
     if (!match) continue;
+    if (/\bfor each\b/i.test(line)) continue;
     const count = WORD_TO_NUMBER[match[1].toLowerCase()] ?? Number.parseInt(match[1], 10);
     if (Number.isNaN(count) || count <= 0) continue;
     results.push({ counterType: match[2], count });
@@ -4054,6 +4055,35 @@ export function activationPlanForSource(
   };
 }
 
+const COUNTER_SCALED_MANA_PATTERN =
+  /add\s+(\{[WUBRGC]\})\s+for each\s+(\w+(?:\/\w+)*)\s+counters?\s+on\b/i;
+
+function counterScaledManaCommands(
+  state: GameState,
+  sourceId: string,
+  effectText: string,
+  controllerId?: PlayerId,
+): GameCommand[] | null {
+  const match = COUNTER_SCALED_MANA_PATTERN.exec(effectText);
+  if (!match) return null;
+  const color = match[1].slice(1, -1).toUpperCase() as 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
+  const counterType = match[2];
+  const source = state.cards[sourceId];
+  if (!source) return null;
+  const count = source.counters[counterType] ?? 0;
+  if (count <= 0) return [];
+  const commands: GameCommand[] = [];
+  for (let i = 0; i < count; i++) {
+    commands.push({
+      type: 'addMana',
+      color,
+      amount: 1,
+      ...(controllerId && controllerId !== 'P1' ? { playerId: controllerId } : {}),
+    });
+  }
+  return commands;
+}
+
 export function activatedManaAbilityPlanForSource(
   state: GameState,
   sourceId: string,
@@ -4114,6 +4144,24 @@ export function activatedManaAbilityPlanForSource(
     commanderColorIdentity,
   });
   if (compiledEffect.decision === 'manual') {
+    const effectRaw = ir.effects.map((e) => e.raw).join(' ');
+    const scaledMana = counterScaledManaCommands(state, sourceId, effectRaw, source.controllerId);
+    if (scaledMana !== null) {
+      const costCommands = ir.cost?.sacrificesSelf
+        ? withSelfSacrificeReason(compiledCost.commands, sourceId)
+        : compiledCost.commands.slice();
+      return {
+        commands: [...costCommands, ...scaledMana],
+        decision: 'auto',
+        prompts: [],
+        manaShortfall: 0,
+        lifeCost: compiledCost.commands.reduce(
+          (total, command) =>
+            total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
+          0,
+        ),
+      };
+    }
     const restrictionText = restrictedLiteralManaAssistText(ir, compiledEffect.commands);
     if (restrictionText === null) {
       return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
