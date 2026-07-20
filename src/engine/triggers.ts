@@ -1,4 +1,5 @@
 import { classifyCardRules } from '../data/ruleClassifier';
+import type { CardDef } from '../types/card';
 import {
   activatedAbilityLines,
   classifyAbilityShape,
@@ -78,7 +79,58 @@ function cardLabel(state: GameState, cardId: string): string {
 function cardHasRuleTag(state: GameState, cardId: string, tagId: string): boolean {
   const card = state.cards[cardId];
   if (!card) return false;
-  return defHasRuleTag(state, card.defId, tagId);
+  if (!defHasRuleTag(state, card.defId, tagId)) return false;
+  // CR 712.8d: for DFCs, verify the tagged ability exists on the current face.
+  const def = state.defs[card.defId];
+  if (!def || def.faces.length <= 1) return true;
+  return splitAbilityLines(def)
+    .filter((line) => line.faceIndex === card.faceIndex)
+    .some((line) => matchesTriggerTagId(line.text, tagId, def));
+}
+
+function matchesTriggerTagId(text: string, tagId: string, def: CardDef): boolean {
+  const parsed = parseTriggerConditionLines(text, def);
+  switch (tagId) {
+    case 'trigger.etb':
+    case 'trigger.etb-other':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\benters?\b/i.test(p.condition));
+    case 'trigger.death':
+    case 'trigger.death-other':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && (/\bdies\b/i.test(p.condition) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(p.condition)));
+    case 'trigger.leaves':
+    case 'trigger.leaves-other':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && (LEAVES_BATTLEFIELD_PATTERN.test(p.condition) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(p.condition)));
+    case 'trigger.landfall':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && LAND_ENTERS_TRIGGER_PATTERN.test(`${p.word} ${p.condition}`));
+    case 'trigger.upkeep':
+      return parsed.some((p) => p.word === 'at' || /\bupkeep\b/i.test(p.condition));
+    case 'trigger.end-step':
+      return parsed.some((p) => /\bend step\b/i.test(p.condition));
+    case 'trigger.draw':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\bdraw/i.test(p.condition));
+    case 'trigger.cast':
+    case 'trigger.cast-watcher':
+      return /\bcast/i.test(text);
+    case 'trigger.attack':
+    case 'trigger.attack-watcher':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\battack/i.test(p.condition));
+    case 'trigger.life':
+    case 'trigger.life-gain':
+    case 'trigger.life-loss':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && LIFE_TRIGGER_PATTERN.test(p.condition));
+    case 'trigger.damage':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && DAMAGE_TRIGGER_PATTERN.test(p.condition));
+    case 'trigger.leaves-graveyard':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && (LEAVES_GRAVEYARD_PATTERN.test(p.condition) || GRAVEYARD_FROM_NONBATTLEFIELD_PATTERN.test(p.condition)));
+    case 'trigger.discard':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\bdiscard/i.test(p.condition));
+    case 'trigger.sacrifice':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\bsacrific/i.test(p.condition));
+    case 'trigger.counter-put':
+      return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\bcounter/i.test(p.condition));
+    default:
+      return true;
+  }
 }
 
 function defHasRuleTag(state: GameState, defId: string, tagId: string): boolean {
@@ -122,12 +174,13 @@ function textReferencesSelf(state: GameState, defId: string, text: string): bool
   );
 }
 
-function triggeredAbilityEntries(state: GameState, defId: string): TriggerAbilityEntry[] {
+function triggeredAbilityEntries(state: GameState, defId: string, faceIndex?: number): TriggerAbilityEntry[] {
   const def = state.defs[defId];
   if (!def) return [];
   return (
     splitAbilityLines(def)
       .map((line, index) => ({ line, index }))
+      .filter((entry) => faceIndex === undefined || entry.line.faceIndex === faceIndex)
       .flatMap((entry) => {
         return parseTriggerConditionLines(entry.line.text, def)
           .filter((parsed) => parsed.word !== 'at')
@@ -179,6 +232,7 @@ export function abilityLineIndexForKind(
   const shapes = abilityShapesForKind(kind);
   const matches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
+    .filter((entry) => entry.line.faceIndex === card.faceIndex)
     .filter((entry) => shapes.includes(classifyAbilityShape(
       stripAbilityWordLabel(entry.line.text),
       def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
@@ -194,19 +248,21 @@ function abilityLineIndexForTrigger(
 ): number | undefined {
   const card = state.cards[sourceId];
   if (!card) return undefined;
-  return abilityLineIndexForTriggerDef(state, card.defId, triggerId);
+  return abilityLineIndexForTriggerDef(state, card.defId, triggerId, card.faceIndex);
 }
 
 function abilityLineIndexForTriggerDef(
   state: GameState,
   defId: string,
   triggerId: string,
+  faceIndex?: number,
 ): number | undefined {
   const def = state.defs[defId];
   if (!def) return undefined;
 
   const triggerMatches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
+    .filter((entry) => faceIndex === undefined || entry.line.faceIndex === faceIndex)
     .filter((entry) => {
       return parseTriggerConditionLines(entry.line.text, def).some((parsed) => {
         const text = parsed.condition;
@@ -548,7 +604,7 @@ function makePendingTrigger(
   };
   const abilityLineIndex =
     abilityLineIndexOverride ??
-    abilityLineIndexForTriggerDef(state, sourceSnapshot.defId, triggerId);
+    abilityLineIndexForTriggerDef(state, sourceSnapshot.defId, triggerId, sourceSnapshot.faceIndex);
   if (abilityLineIndex !== undefined) {
     pending.abilityLineIndex = abilityLineIndex;
   }
@@ -852,7 +908,7 @@ function matchingSelfEtbAbilityLineIndexes(
   state: GameState,
   entered: ObjectSnapshot,
 ): number[] {
-  return triggeredAbilityEntries(state, entered.defId)
+  return triggeredAbilityEntries(state, entered.defId, entered.faceIndex)
     .filter((entry) => selfEtbLineMatchesEvent(state, entered, entry.conditionText))
     .map((entry) => entry.abilityLineIndex);
 }
@@ -938,7 +994,7 @@ function matchingEtbOtherAbilityLineIndex(
 ): number | undefined {
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
-  return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
+  return triggeredAbilityEntries(state, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
     etbOtherLineMatchesEvent(state, sourceSnapshot, entry.conditionText, entered),
   )?.abilityLineIndex;
 }
@@ -1001,7 +1057,7 @@ function matchingDeathOtherAbilityLineIndex(
 ): number | undefined {
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
-  return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
+  return triggeredAbilityEntries(state, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
     deathOtherLineMatchesEvent(state, sourceSnapshot, entry.conditionText, died),
   )?.abilityLineIndex;
 }
@@ -1159,7 +1215,7 @@ function matchingLeavesGraveyardAbilityLineIndex(
 ): number | undefined {
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
-  return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
+  return triggeredAbilityEntries(state, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
     leavesGraveyardLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
   )?.abilityLineIndex;
 }
@@ -1352,7 +1408,7 @@ function collectAttackDeclarationPendingTriggers(
 ): void {
   for (const event of newEventsOfType(prev, next, 'attackDeclaration')) {
     for (const attacker of event.attackers) {
-      for (const entry of triggeredAbilityEntries(next, attacker.defId)) {
+      for (const entry of triggeredAbilityEntries(next, attacker.defId, attacker.faceIndex)) {
         if (!selfAttackLineMatchesEvent(next, attacker, entry.conditionText, event)) continue;
         const condition = graveyardCardTypeConditionForLine(controllerOf(attacker), entry.text);
         if (condition && !triggerConditionSatisfied(next, condition)) continue;
@@ -1374,7 +1430,7 @@ function collectAttackDeclarationPendingTriggers(
     }
 
     for (const source of event.battlefield) {
-      for (const entry of triggeredAbilityEntries(next, source.defId)) {
+      for (const entry of triggeredAbilityEntries(next, source.defId, source.faceIndex)) {
         if (!attackWatcherLineMatchesEvent(next, source, entry.conditionText, event)) continue;
         const condition = graveyardCardTypeConditionForLine(controllerOf(source), entry.text);
         if (condition && !triggerConditionSatisfied(next, condition)) continue;
@@ -1588,7 +1644,7 @@ function collectZoneChangePendingTriggers(
     for (const cardId of next.zones.battlefield) {
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
-      const discardAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
+      const discardAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find(
         (entry) => discardLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (discardAbilityLineIndex !== undefined) {
@@ -1604,7 +1660,7 @@ function collectZoneChangePendingTriggers(
         );
       }
 
-      const sacrificeAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
+      const sacrificeAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find(
         (entry) => sacrificeLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (sacrificeAbilityLineIndex === undefined) continue;
@@ -1634,7 +1690,7 @@ function collectDrawPendingTriggers(
     for (const cardId of next.zones.battlefield) {
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
-      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
+      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
         drawLineMatchesEvent(controllerOf(sourceSnapshot), entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
@@ -1663,7 +1719,7 @@ function collectLifeChangePendingTriggers(
     for (const cardId of next.zones.battlefield) {
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
-      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
+      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
         lifeLineMatchesEvent(controllerOf(sourceSnapshot), entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
@@ -1694,7 +1750,7 @@ function collectDamagePendingTriggers(
     for (const cardId of next.zones.battlefield) {
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
-      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
+      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
         damageLineMatchesEvent(next, sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
@@ -1723,7 +1779,7 @@ function collectCounterChangePendingTriggers(
     for (const cardId of next.zones.battlefield) {
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
-      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
+      const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId, sourceSnapshot.faceIndex).find((entry) =>
         counterPutLineMatchesEvent(next, sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
