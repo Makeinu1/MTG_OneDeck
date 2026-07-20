@@ -1060,6 +1060,10 @@ interface InternalState {
   deck: InitDeckCard[] | null;
   lastSeed: number;
   resolutionGroupAnchor: GameState | null;
+  /** resolveAll開始前のglobal undo。中断時だけ復元し、正常完了時は破棄する。 */
+  resolutionGroupPast: GameState[] | null;
+  /** resolveAll開始前のglobal redo。中断時だけ復元し、正常完了時は破棄する。 */
+  resolutionGroupFuture: GameState[] | null;
 }
 
 let snapshotInternal: InternalState | null = null;
@@ -1567,6 +1571,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     deck: null,
     lastSeed: 0,
     resolutionGroupAnchor: null,
+    resolutionGroupPast: null,
+    resolutionGroupFuture: null,
   };
   let pendingCommanderCommit: {
     token: number;
@@ -1583,6 +1589,8 @@ export const useGameStore = create<GameStore>((set, get) => {
   function discardPendingCommanderResolution(): void {
     pendingCommanderCommit = null;
     internal.resolutionGroupAnchor = null;
+    internal.resolutionGroupPast = null;
+    internal.resolutionGroupFuture = null;
   }
   snapshotInternal = internal;
 
@@ -1655,6 +1663,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         },
         canUndoInteraction: true,
         canRedoInteraction: false,
+        canRedo: false,
       });
       return;
     }
@@ -1682,7 +1691,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (cur && options.groupedHistory && internal.resolutionGroupAnchor === null) {
       internal.resolutionGroupAnchor = cur;
     }
-    if (!options.groupedHistory) internal.resolutionGroupAnchor = null;
+    if (!options.groupedHistory) {
+      internal.resolutionGroupAnchor = null;
+      internal.resolutionGroupPast = null;
+      internal.resolutionGroupFuture = null;
+    }
     internal.future = [];
     const nextStoreState: Partial<GameStore> = {
       state: nextWithPending,
@@ -1727,8 +1740,44 @@ export const useGameStore = create<GameStore>((set, get) => {
         stepPast: [],
         stepFuture: [],
       },
+      canUndoInteraction: true,
+      canRedoInteraction: false,
+      canRedo: false,
+    });
+  }
+
+  function abortManualResolutionSession(session: ResolutionSession): void {
+    const groupAnchor = session.mode === 'all' ? internal.resolutionGroupAnchor : null;
+    const baseline = groupAnchor ?? session.baseline;
+    const groupedPast = session.mode === 'all' ? internal.resolutionGroupPast : null;
+    const groupedFuture = session.mode === 'all' ? internal.resolutionGroupFuture : null;
+    // A grouped resolve pushes the exact anchor object once. Remove only that
+    // entry; older global history must remain available after the abort.
+    if (groupedPast) {
+      internal.past = groupedPast;
+    } else if (groupAnchor && internal.past.at(-1) === groupAnchor) {
+      internal.past.pop();
+    }
+    if (groupedFuture) {
+      internal.future = groupedFuture;
+    }
+    internal.resolutionGroupAnchor = null;
+    internal.resolutionGroupPast = null;
+    internal.resolutionGroupFuture = null;
+    clearPendingInteractionHistory();
+    set({
+      state: baseline,
+      warnings: [],
+      triggerCandidates: triggerCandidatesFromPendingTriggers(baseline.pendingTriggers),
+      pendingGuided: null,
+      pendingCast: null,
+      resolutionSession: null,
+      pendingCommanderResolution: null,
+      pendingForceActivation: null,
       canUndoInteraction: false,
       canRedoInteraction: false,
+      canUndo: internal.past.length > 0,
+      canRedo: internal.future.length > 0,
     });
   }
 
@@ -1754,7 +1803,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       internal.resolutionGroupAnchor = session.baseline;
     }
     internal.future = [];
-    if (session.mode === 'top') internal.resolutionGroupAnchor = null;
+    if (session.mode === 'top') {
+      internal.resolutionGroupAnchor = null;
+      internal.resolutionGroupPast = null;
+      internal.resolutionGroupFuture = null;
+    }
     clearPendingInteractionHistory();
     set({
       state: finalized,
@@ -1870,6 +1923,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         // can resolve (CR 603.3). Closing the group here preserves the single
         // undo entry already anchored at the start of this resolve-all batch.
         internal.resolutionGroupAnchor = null;
+        internal.resolutionGroupPast = null;
+        internal.resolutionGroupFuture = null;
         return;
       }
       const topId = cur.zones.stack[cur.zones.stack.length - 1];
@@ -1883,6 +1938,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (next.resolutionSession || next.pendingGuided || next.pendingCommanderResolution) return;
       if (next.state === cur) {
         internal.resolutionGroupAnchor = null;
+        internal.resolutionGroupPast = null;
+        internal.resolutionGroupFuture = null;
         return;
       }
     }
@@ -2704,7 +2761,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       const resolutionState = get().state;
       if (resolutionSession && resolutionState) {
         const previous = resolutionSession.stepPast.at(-1);
-        if (!previous) return;
+        if (!previous) {
+          abortManualResolutionSession(resolutionSession);
+          return;
+        }
         set({
           state: previous,
           triggerCandidates: [],
@@ -2713,8 +2773,11 @@ export const useGameStore = create<GameStore>((set, get) => {
             stepPast: resolutionSession.stepPast.slice(0, -1),
             stepFuture: [...resolutionSession.stepFuture, resolutionState].slice(-HISTORY_LIMIT),
           },
-          canUndoInteraction: resolutionSession.stepPast.length > 1,
+          // Even after the final local step is undone, one more Undo remains:
+          // aborting the unfinished resolution session itself.
+          canUndoInteraction: true,
           canRedoInteraction: true,
+          canRedo: false,
         });
         return;
       }
@@ -2773,6 +2836,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           },
           canUndoInteraction: true,
           canRedoInteraction: resolutionSession.stepFuture.length > 1,
+          canRedo: false,
         });
         return;
       }
@@ -4470,6 +4534,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         || get().resolutionSession
       ) return;
       internal.resolutionGroupAnchor = null;
+      internal.resolutionGroupPast = internal.past.slice();
+      internal.resolutionGroupFuture = internal.future.slice();
       continueResolveAll();
     },
 

@@ -1,5 +1,6 @@
 import type { AbilityLine } from '../../src/engine/grammar/index.ts';
 import { cardOracleTexts, splitParagraphs } from '../../src/engine/keywordGrammar.ts';
+import { parseTriggerConditionLines } from '../../src/engine/triggerCondition.ts';
 import type { CardDef } from '../../src/types/card';
 
 export type TriggerShape = 'at' | 'when' | 'whenever';
@@ -125,191 +126,18 @@ interface ParsedTriggerLine {
 }
 
 function parseTriggerLines(line: string, def?: CardDef): ParsedTriggerLine[] {
-  const text = stripAbilityWordPrefix(
-    maskSelfNamePunctuation(normalize(stripReminderAndQuotedText(line)), def),
-  );
-  const segments = triggerSegments(text);
-  return segments.flatMap((segment) => {
-    const trigger = parseTriggerSegment(segment);
-    return trigger
-      ? [
-          {
-            ...trigger,
-            conditionText: unmaskSelfNamePunctuation(trigger.conditionText),
-          },
-        ]
-      : [];
+  return parseTriggerConditionLines(stripReminderAndQuotedText(line), def).map((parsed) => {
+    const lead = parsed.word === 'at'
+      ? 'At'
+      : parsed.word === 'when'
+        ? 'When'
+        : 'Whenever';
+    return {
+      shape: parsed.word,
+      conditionText: `${lead} ${parsed.condition}`,
+      interveningIf: startsWithInterveningIf(parsed.effect),
+    };
   });
-}
-
-function parseTriggerSegment(segment: string): ParsedTriggerLine | undefined {
-  const text = stripAbilityWordPrefix(normalize(segment));
-  const shape = triggerShape(text);
-  if (!shape) {
-    return undefined;
-  }
-
-  const commaEnd = firstConditionCommaIndex(text);
-  const sentenceEnd = text.search(/[.!?]/);
-  const conditionEnd =
-    commaEnd < 0 ? sentenceEnd : sentenceEnd < 0 ? commaEnd : Math.min(commaEnd, sentenceEnd);
-  const conditionText = normalize(text.slice(0, conditionEnd < 0 ? text.length : conditionEnd));
-  if (conditionText === '') {
-    return undefined;
-  }
-
-  return {
-    shape,
-    conditionText,
-    interveningIf: conditionEnd >= 0 && startsWithInterveningIf(text.slice(conditionEnd + 1)),
-  };
-}
-
-function triggerSegments(text: string): string[] {
-  const starts = triggerStartIndices(text);
-  if (starts.length === 0) {
-    return [];
-  }
-
-  return starts.map((start, index) => text.slice(start, starts[index + 1] ?? text.length).trim());
-}
-
-function triggerStartIndices(text: string): number[] {
-  const starts: number[] = [];
-  const triggerProbe = /\b(?:Whenever|When|At the beginning of)\b/gi;
-  for (const match of text.matchAll(triggerProbe)) {
-    const index = match.index;
-    if (typeof index === 'number' && isTriggerClauseStart(text, index)) {
-      starts.push(index);
-    }
-  }
-  return starts;
-}
-
-function isTriggerClauseStart(text: string, index: number): boolean {
-  if (index === 0) {
-    return true;
-  }
-  if (/^(?:When|Whenever)\b/i.test(text.slice(index))) {
-    return true;
-  }
-
-  const before = text.slice(0, index).trimEnd();
-  if (/[.!?]$/.test(before)) {
-    return true;
-  }
-
-  const sentenceStart = Math.max(
-    before.lastIndexOf('.'),
-    before.lastIndexOf('!'),
-    before.lastIndexOf('?'),
-  );
-  const prefix = before.slice(sentenceStart + 1).trim();
-
-  return (
-    prefix === '•' ||
-    /(?:--|[\u2013\u2014]|\|)$/.test(prefix) ||
-    /:$/.test(prefix) ||
-    /^(?:(?:[+\-\u2212]?\d+|[IVX]+(?:\s*,\s*[IVX]+)*|\d+\+)\s*:\s*)?(?:until|during|for)\b[^,]{0,180},$/i.test(
-      prefix,
-    )
-  );
-}
-
-function stripAbilityWordPrefix(text: string): string {
-  if (/^(?:Whenever|When|At)\b/i.test(text)) {
-    return text;
-  }
-  return normalize(
-    text.replace(/^(?:•\s*)?[A-Z0-9{][^.\u2013\u2014]{0,80}(?:--|[\u2013\u2014])\s+/u, ''),
-  );
-}
-
-function triggerShape(text: string): TriggerShape | undefined {
-  if (/^Whenever\b/i.test(text)) {
-    return 'whenever';
-  }
-  if (/^When\b/i.test(text)) {
-    return 'when';
-  }
-  if (/^At the beginning of\b/i.test(text)) {
-    return 'at';
-  }
-  return undefined;
-}
-
-function firstConditionCommaIndex(text: string): number {
-  const firstComma = text.indexOf(',');
-  if (firstComma < 0) {
-    return -1;
-  }
-
-  const castEnumerationEnd = castEnumeratedSpellConditionCommaIndex(text, firstComma);
-  if (castEnumerationEnd !== undefined) {
-    return castEnumerationEnd;
-  }
-
-  let conditionEnd = firstComma;
-  while (conditionEnd >= 0) {
-    const nextComma = text.indexOf(',', conditionEnd + 1);
-    if (nextComma < 0) {
-      return conditionEnd;
-    }
-
-    const continuation = text.slice(conditionEnd + 1, nextComma);
-    if (!isEnumeratedTriggerConditionContinuation(continuation)) {
-      return conditionEnd;
-    }
-    conditionEnd = nextComma;
-  }
-
-  return firstComma;
-}
-
-function castEnumeratedSpellConditionCommaIndex(
-  text: string,
-  firstComma: number,
-): number | undefined {
-  const castMatch = /\bcasts?\b/i.exec(text);
-  if (!castMatch || firstComma <= castMatch.index) {
-    return undefined;
-  }
-
-  const afterCast = text.slice(castMatch.index);
-  const spellMatch = /\bspells?\b/i.exec(afterCast);
-  if (!spellMatch) {
-    return undefined;
-  }
-
-  const spellStart = castMatch.index + spellMatch.index;
-  if (spellStart <= firstComma) {
-    return undefined;
-  }
-
-  const spellEnd = spellStart + spellMatch[0].length;
-  const conditionComma = text.indexOf(',', spellEnd);
-  return conditionComma >= 0 ? conditionComma : undefined;
-}
-
-function isEnumeratedTriggerConditionContinuation(text: string): boolean {
-  const normalized = normalize(text);
-  const startsWithOr = /^or\s+/i.test(normalized);
-  const continuation = normalized.replace(/^or\s+/i, '');
-  if (
-    /^(?:attacks|blocks|casts|draws|discards|sacrifices|deals|leaves|enters|dies|becomes)\b/i.test(
-      continuation,
-    )
-  ) {
-    return true;
-  }
-
-  return (
-    startsWithOr &&
-    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(continuation) &&
-    /\b(?:dies|die|enters?|leaves?|attacks?|blocks?|casts?|draws?|discards?|sacrifices?|deals?|is\s+put|are\s+put|is\s+exiled|are\s+exiled)\b/i.test(
-      continuation,
-    )
-  );
 }
 
 function startsWithInterveningIf(afterTriggerCondition: string): boolean {
@@ -638,21 +466,6 @@ function selfNames(def: CardDef | undefined): string[] {
     ...def.faces.flatMap((face) => selfNameAliases(face.name, face.typeLine)),
   ];
   return [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => b.length - a.length);
-}
-
-function maskSelfNamePunctuation(text: string, def: CardDef | undefined): string {
-  let masked = text;
-  for (const name of selfNames(def).filter((candidate) => /[,.;]/.test(candidate))) {
-    masked = masked.replace(
-      new RegExp(escapeRegExp(name), 'gi'),
-      name.replaceAll(',', '\u0000').replaceAll('.', '\u0001').replaceAll(';', '\u0002'),
-    );
-  }
-  return masked;
-}
-
-function unmaskSelfNamePunctuation(text: string): string {
-  return text.replaceAll('\u0000', ',').replaceAll('\u0001', '.').replaceAll('\u0002', ';');
 }
 
 function selfNameAliases(name: string, typeLine: string): string[] {

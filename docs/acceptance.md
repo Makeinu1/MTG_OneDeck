@@ -600,8 +600,13 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | MSC-10 | resolution session中に保存/reload | 半解決stateを復元せず、解決開始前baselineへ戻る。GameState/schema versionは増えない |
 | MSC-11 | auto/partial/manual/runtime errorを解決 | 成功後にだけ対応する視覚cueを出し、理由別日本語を表示。音OFFでも見え、reduced-motionで移動しない |
 | MSC-12 | 375×812 / 812×375 / 1440×900で対局 | stack/hand/boardの主要操作が到達可能、overflowによる操作消失なし、console warning/error 0 |
+| MSC-13 | manual-required開始直後に既存UndoボタンまたはArrowLeft | `resolveTop`は対象項目の解決前へ戻りsession/taskが閉じる。手動操作がある場合は1段ずつ戻し、履歴が空になった次のUndoでsession全体を中止する |
+| MSC-14 | `全解決`が上側の自動解決後にmanual-requiredで停止し、Undo | batch開始前のstack/盤面へ1回で復元し、次のglobal Undoが同じbaselineへ空振りしない。以前の履歴は保存する |
+| MSC-15 | 《The One Ring》が戦場にある状態で無関係なライフ喪失を実行 | `At the beginning of your upkeep, you lose...`は`trigger.life-loss`を生成しない。upkeep開始時にだけ`trigger.upkeep`を1件生成する |
+| MSC-16 | `At the beginning...`の効果にdraw/damage/discard/sacrifice/counter/attackが含まれるMyDeckカードで無関係eventを実行 | 効果語をevent購読条件に使わず誤誘発なし。先頭`When/Whenever`の真正条件は従来どおり誘発する |
+| MSC-17 | 能力語付き・カード名内句読点・列挙条件・引用`Whenever`・`When you do`を解析 | 先頭の誘発条件だけがruntime/classifier/ability-line mappingで一致し、効果内の内側triggerを常在購読しない |
 
-根拠: CR 115.1a、405.1–4、601.2b/c/h/i、608.1/608.2b、701.6a-b。正本=engine-spec §34.51。Oracle golden=《白鳥の歌》英語Oracle。
+根拠: CR 115.1a、405.1–4、601.2b/c/h/i、603.1/603.2/603.2b/603.12、608.1/608.2b、701.6a-b。正本=engine-spec §34.25/§34.51。Oracle golden=《白鳥の歌》《The One Ring》《Kelpie Guide》英語Oracle。
 
 ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
 S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。

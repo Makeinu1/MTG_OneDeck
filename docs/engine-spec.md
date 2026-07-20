@@ -2625,6 +2625,7 @@ type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';
 
 **凍結挙動**:
 - 既存emitted event(DrawEvent/LifeChangeEvent/DamageEvent/ZoneChangeEvent)への trigger購読leafを追加(**新規GameEvent union memberは追加しない**)。ETB(battlefieldへの移動)・leaves-graveyard(graveyardからの移動)は既存ZoneChangeEventで検出。
+- **M-STACK-TRUST-HOTFIX(2026-07-20・CR603.1/603.2/603.2b)**: event購読に使える条件は、能力語(CR207.2c)を除いたability lineの**先頭**が`When`または`Whenever`で始まる場合の、最初の条件句だけ。カード名内の句読点・列挙条件は保存するが、カンマ以降の効果、引用能力、解決中に作られるreflexive trigger(`When you do` / CR603.12)を常在購読条件にしない。先頭が`At`の能力はCR603.2bのphase/step begin経路だけで扱い、効果文の`lose life`/`draw`/`deal damage`/`discard`/`sacrifice`/`put counters`/`attack`等を別eventの購読に代用しない。runtime collector・rule classifier・triggerId→ability line対応はこの単一条件parserを共有する。未対応phaseの`At`能力はmanual/未対応のままとし、無関係eventで代替実行しない。
 - ETB「another creature」判定は自己参照text検出+`physicalCardId`一致の二重guardで自己トリガーを防止。無修飾「whenever a creature enters」は他クリーチャーのETBに正しく反応し続ける(power/control filterは条件文言に一致した時のみ適用=false-negative regressionなし)。
 - **once-per-turn gate(CR603.2h)**: 新state `GameState.oncePerTurnTriggerLedger: {turn:number; consumedKeys:string[]}`。key=`${turn}|${sourceObjectId}|line-${abilityLineIndex}|${controllerId}`(abilityLineIndex不明時はtriggerId fallback)。`applyNextPhase`(end→untap)/`applyNextTurn`でリセット。snapshot backfill=欠落/不正形/turn不一致は`{turn:state.turn, consumedKeys:[]}`へ正規化。
 - **CR400.7設計判断(意図的・要石)**: oncePerTurn keyは`sourceObjectId`(object identity)基準であり、`physicalCardId`(permanent概念)基準ではない。同一ターン内でsourceがblink(exile→battlefield)されると新objectIdとなり、once-per-turn消費履歴を引き継がない=そのターン内で再度誘発しうる。これはCR400.7の正しい帰結(新objectは旧objectの記憶を持たない)であり**バグではない**。逆に`physicalCardId`基準へ変更する方がCR違反になる。
@@ -3193,7 +3194,7 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 - `ResolutionSession { mode:'top'|'all'; sourceId; baseline; stage:'resolving'|'manual-required'; reason?:'unsupported'|'partial'|'runtime-failure'; tasks; stepPast; stepFuture }` をstore一時状態として追加する。`GameState`/`CACHE_SCHEMA_VERSION`は不変。
 - `resolveTop`/`resolveAll` は実行中sessionがある場合no-op。自動解決は既存command列+sourceの`resolveStackTop`を原子的にcommitする。実行例外はbaselineを維持して`runtime-failure` taskを出す。
 - 既知manual全体はsourceをstackに残し`unsupported` taskへ移る。安全な部分効果がある複合文は、そのcommandだけsession作業状態へ反映して`partial` taskへ移る。`completeManualResolution()`でsourceを通常の着地先へ移し、保留した誘発を収集して1 history stepとして確定する。
-- manual-required中は通常の盤面commandをsession内の`stepPast/stepFuture`へ積む。`undo`/`redo`はsession内履歴を優先し、完了後の通常undoは解決開始前baselineへ一括復元する。`resolveAll`は既存どおり全件を単一global undoとし、soft gate中もgroup anchorを保持する。
+- manual-required中は通常の盤面commandをsession内の`stepPast/stepFuture`へ積む。`undo`/`redo`はsession内履歴を優先し、完了後の通常undoは解決開始前baselineへ一括復元する。`resolveAll`は既存どおり全件を単一global undoとし、soft gate中もgroup anchorを保持する。**M-STACK-TRUST-HOTFIX**: session開始直後から既存Undo/ArrowLeftを有効にする。`stepPast`がある間は手動操作を1段ずつ戻し、空での次のUndoは未完了session自体を中止する。`mode:'top'`は`baseline`、`mode:'all'`は`resolutionGroupAnchor ?? baseline`へ復元し、当該batchがglobal pastに積んだanchorだけを除去して古い履歴を保存する。task・部分自動差分・候補表示をbaselineと一致させ、中止した半解決状態自体はredo entryにしない。session中のRedo到達性は`stepFuture`だけを反映し、古いglobal redoでボタンを見かけ上有効にしない。
 - soft gate中は盤面の手動操作を許可するが、次のstack解決、phase/turn移動、response追加を禁止する。解決中に生じたtriggerはsession完了までUIへ昇格させない。
 - snapshot保存はsession中だけbaselineを保存対象にする。reloadは半解決状態でなく解決開始前へ戻る。
 

@@ -6,6 +6,7 @@ import {
   type AbilityShape,
 } from './grammar/index';
 import { stripAbilityWordLabel } from './grammar/abilityText';
+import { parseTriggerConditionLines } from './triggerCondition';
 import { distinctCardTypesInGraveyard } from './cardTypes';
 import { effectivePower } from './status';
 import {
@@ -60,6 +61,7 @@ interface TriggerCollectionContext {
 interface TriggerAbilityEntry {
   abilityLineIndex: number;
   text: string;
+  conditionText: string;
 }
 
 type DelayedPhaseBeginTiming = 'next-end-step' | 'next-turn-upkeep';
@@ -126,16 +128,15 @@ function triggeredAbilityEntries(state: GameState, defId: string): TriggerAbilit
   return (
     splitAbilityLines(def)
       .map((line, index) => ({ line, index }))
-      // Intentionally excludes 'delayed-triggered' lines: delayed-trigger scheduling
-      // (batch3-1b) has no future turn/phase primitive yet, so this leaf must not
-      // pull those lines into the ordinary event-subscription path.
-      .filter((entry) => (
-        classifyAbilityShape(
-          stripAbilityWordLabel(entry.line.text),
-          def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
-        ) === 'triggered'
-      ))
-      .map((entry) => ({ abilityLineIndex: entry.index, text: entry.line.text }))
+      .flatMap((entry) => {
+        return parseTriggerConditionLines(entry.line.text, def)
+          .filter((parsed) => parsed.word !== 'at')
+          .map((parsed) => ({
+              abilityLineIndex: entry.index,
+              text: entry.line.text,
+              conditionText: parsed.condition,
+          }));
+      })
   );
 }
 
@@ -207,62 +208,60 @@ function abilityLineIndexForTriggerDef(
   const triggerMatches = splitAbilityLines(def)
     .map((line, index) => ({ line, index }))
     .filter((entry) => {
-      const normalizedShape = classifyAbilityShape(
-        stripAbilityWordLabel(entry.line.text),
-        def.faces[entry.line.faceIndex]?.typeLine ?? def.typeLine,
-      );
-      if (normalizedShape !== 'triggered' && normalizedShape !== 'delayed-triggered') {
-        return false;
-      }
-      const text = entry.line.text;
-      switch (triggerId) {
+      return parseTriggerConditionLines(entry.line.text, def).some((parsed) => {
+        const text = parsed.condition;
+        const isEventTrigger = parsed.word === 'when' || parsed.word === 'whenever';
+        switch (triggerId) {
         case 'trigger.etb':
-          return /\benters\b/i.test(text);
+          return isEventTrigger && /\benters\b/i.test(text);
         case 'trigger.etb-other':
-          return /\benters\b/i.test(text) && /\b(?:another|other)\b/i.test(text);
+          return isEventTrigger
+            && /\benters\b/i.test(text)
+            && /\b(?:another|other)\b/i.test(text);
         case 'trigger.death':
         case 'trigger.death-other':
-          return /\bdies\b/i.test(text) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(text);
+          return isEventTrigger
+            && (/\bdies\b/i.test(text) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(text));
         case 'trigger.leaves':
         case 'trigger.leaves-other':
-          return (
+          return isEventTrigger && (
             LEAVES_BATTLEFIELD_PATTERN.test(text) || BATTLEFIELD_TO_GRAVEYARD_PATTERN.test(text)
           );
         case 'trigger.landfall':
-          return /\blandfall\b/i.test(text) || LAND_ENTERS_TRIGGER_PATTERN.test(text);
+          return isEventTrigger && LAND_ENTERS_TRIGGER_PATTERN.test(`${parsed.word} ${text}`);
         case 'trigger.upkeep':
-          return /\bupkeep\b/i.test(text);
+          return parsed.word === 'at' && /\bupkeep\b/i.test(text);
         case 'trigger.end-step':
-          return /\bend step\b/i.test(text);
+          return parsed.word === 'at' && /\bend step\b/i.test(text);
         case 'trigger.draw':
-          return /\bdraw\b/i.test(text);
+          return isEventTrigger && /\bdraw\b/i.test(text);
         case 'trigger.life':
         case 'trigger.life-gain':
         case 'trigger.life-loss':
-          return LIFE_TRIGGER_PATTERN.test(text);
+          return isEventTrigger && LIFE_TRIGGER_PATTERN.test(text);
         case 'trigger.damage':
-          return DAMAGE_TRIGGER_PATTERN.test(text);
+          return isEventTrigger && DAMAGE_TRIGGER_PATTERN.test(text);
         case 'trigger.cast':
         case 'trigger.cast-watcher':
-          return /\bcast\b/i.test(text);
+          return isEventTrigger && /\bcast\b/i.test(text);
         case 'trigger.leaves-graveyard':
-          return (
+          return isEventTrigger && (
             LEAVES_GRAVEYARD_PATTERN.test(text) || GRAVEYARD_FROM_NONBATTLEFIELD_PATTERN.test(text)
           );
         case 'trigger.discard':
-          return /\bdiscard(?:s|ed)?\b/i.test(text);
+          return isEventTrigger && /\bdiscard(?:s|ed)?\b/i.test(text);
         case 'trigger.sacrifice':
-          return /\bsacrific(?:e|es|ed|ing)?\b/i.test(text);
+          return isEventTrigger && /\bsacrific(?:e|es|ed|ing)?\b/i.test(text);
         case 'trigger.counter-put':
-          return /\bput(?:s|ting)?\b[^.;]*\bcounters?\b|\bcounters?\b[^.;]*\bput\b/i.test(
-            text,
-          );
+          return isEventTrigger
+            && /\bput(?:s|ting)?\b[^.;]*\bcounters?\b|\bcounters?\b[^.;]*\bput\b/i.test(text);
         case 'trigger.attack':
         case 'trigger.attack-watcher':
-          return /\battack/i.test(text);
+          return isEventTrigger && /\battack/i.test(text);
         default:
           return false;
-      }
+        }
+      });
     });
 
   if (triggerMatches.length === 1) {
@@ -834,17 +833,11 @@ function controllerOf(snapshot: ObjectSnapshot): PlayerId {
   return snapshot.controllerId ?? snapshot.ownerId;
 }
 
-function triggerConditionText(lineText: string): string {
-  const match = /\b(?:when|whenever)\b\s+([^,.;]+)/i.exec(lineText);
-  return normalizeWhitespace(match?.[1] ?? lineText);
-}
-
 function selfEtbLineMatchesEvent(
   state: GameState,
   entered: ObjectSnapshot,
-  lineText: string,
+  condition: string,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   const entersIndex = condition.search(/\benters\b/i);
   if (entersIndex < 0) return false;
   const subject = condition.slice(0, entersIndex);
@@ -860,7 +853,7 @@ function matchingSelfEtbAbilityLineIndexes(
   entered: ObjectSnapshot,
 ): number[] {
   return triggeredAbilityEntries(state, entered.defId)
-    .filter((entry) => selfEtbLineMatchesEvent(state, entered, entry.text))
+    .filter((entry) => selfEtbLineMatchesEvent(state, entered, entry.conditionText))
     .map((entry) => entry.abilityLineIndex);
 }
 
@@ -883,10 +876,9 @@ function enteredPower(state: GameState, entered: ObjectSnapshot): number {
 function etbOtherLineMatchesEvent(
   state: GameState,
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   entered: ObjectSnapshot,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   if (!/\benters?\b/i.test(condition)) {
     return false;
   }
@@ -947,17 +939,16 @@ function matchingEtbOtherAbilityLineIndex(
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
   return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
-    etbOtherLineMatchesEvent(state, sourceSnapshot, entry.text, entered),
+    etbOtherLineMatchesEvent(state, sourceSnapshot, entry.conditionText, entered),
   )?.abilityLineIndex;
 }
 
 function deathOtherLineMatchesEvent(
   state: GameState,
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   died: ObjectSnapshot,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   // "Dies" is the creature-specific event (CR 700.4). Generic
   // battlefield-to-graveyard wording is handled by leaves-other subscriptions.
   if (!/\bdies\b/i.test(condition)) {
@@ -1011,16 +1002,15 @@ function matchingDeathOtherAbilityLineIndex(
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
   return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
-    deathOtherLineMatchesEvent(state, sourceSnapshot, entry.text, died),
+    deathOtherLineMatchesEvent(state, sourceSnapshot, entry.conditionText, died),
   )?.abilityLineIndex;
 }
 
 function drawLineMatchesEvent(
   sourceController: PlayerId,
-  lineText: string,
+  condition: string,
   event: DrawEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   if (!/\bdraws?\b[^.;]*\bcards?\b/i.test(condition)) {
     return false;
   }
@@ -1038,10 +1028,9 @@ function drawLineMatchesEvent(
 
 function lifeLineMatchesEvent(
   sourceController: PlayerId,
-  lineText: string,
+  condition: string,
   event: LifeChangeEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   if (!LIFE_TRIGGER_PATTERN.test(condition)) {
     return false;
   }
@@ -1116,10 +1105,9 @@ function damageTargetMatchesCondition(
 function damageLineMatchesEvent(
   state: GameState,
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: DamageEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   if (!DAMAGE_TRIGGER_PATTERN.test(condition)) {
     return false;
   }
@@ -1134,10 +1122,9 @@ function damageLineMatchesEvent(
 
 function leavesGraveyardLineMatchesEvent(
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: ZoneChangeEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   const leavesYourGraveyard =
     event.fromZone === 'graveyard' &&
     event.toZone !== undefined &&
@@ -1173,19 +1160,18 @@ function matchingLeavesGraveyardAbilityLineIndex(
   const sourceSnapshot = snapshotOfCurrentCard(state, sourceId);
   if (!sourceSnapshot) return undefined;
   return triggeredAbilityEntries(state, sourceSnapshot.defId).find((entry) =>
-    leavesGraveyardLineMatchesEvent(sourceSnapshot, entry.text, event),
+    leavesGraveyardLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
   )?.abilityLineIndex;
 }
 
 function discardLineMatchesEvent(
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: ZoneChangeEvent,
 ): boolean {
   if (event.reason !== 'discard' || event.fromZone !== 'hand' || event.toZone !== 'graveyard') {
     return false;
   }
-  const condition = triggerConditionText(lineText);
   if (!/\bdiscard(?:s|ed)?\b/i.test(condition)) {
     return false;
   }
@@ -1200,7 +1186,7 @@ function discardLineMatchesEvent(
 
 function sacrificeLineMatchesEvent(
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: ZoneChangeEvent,
 ): boolean {
   if (
@@ -1210,7 +1196,6 @@ function sacrificeLineMatchesEvent(
   ) {
     return false;
   }
-  const condition = triggerConditionText(lineText);
   if (!/\bsacrific(?:e|es|ed|ing)?\b/i.test(condition)) {
     return false;
   }
@@ -1244,13 +1229,12 @@ function sacrificeLineMatchesEvent(
 function counterPutLineMatchesEvent(
   state: GameState,
   sourceSnapshot: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: CounterChangeEvent,
 ): boolean {
   if (event.delta <= 0 || event.target.kind !== 'object') {
     return false;
   }
-  const condition = triggerConditionText(lineText);
   if (!/\bput(?:s|ting)?\b[^.;]*\bcounters?\b|\bcounters?\b[^.;]*\bput\b/i.test(condition)) {
     return false;
   }
@@ -1300,10 +1284,9 @@ function priorAttackByObject(
 function selfAttackLineMatchesEvent(
   state: GameState,
   source: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: AttackDeclarationEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   const attacksIndex = condition.search(/\battacks\b/i);
   if (attacksIndex < 0) return false;
   const subject = condition.slice(0, attacksIndex);
@@ -1317,10 +1300,9 @@ function selfAttackLineMatchesEvent(
 function attackWatcherLineMatchesEvent(
   state: GameState,
   source: ObjectSnapshot,
-  lineText: string,
+  condition: string,
   event: AttackDeclarationEvent,
 ): boolean {
-  const condition = triggerConditionText(lineText);
   const attacksIndex = condition.search(/\battacks\b/i);
   if (attacksIndex < 0) return false;
   const subject = condition.slice(0, attacksIndex);
@@ -1371,7 +1353,7 @@ function collectAttackDeclarationPendingTriggers(
   for (const event of newEventsOfType(prev, next, 'attackDeclaration')) {
     for (const attacker of event.attackers) {
       for (const entry of triggeredAbilityEntries(next, attacker.defId)) {
-        if (!selfAttackLineMatchesEvent(next, attacker, entry.text, event)) continue;
+        if (!selfAttackLineMatchesEvent(next, attacker, entry.conditionText, event)) continue;
         const condition = graveyardCardTypeConditionForLine(controllerOf(attacker), entry.text);
         if (condition && !triggerConditionSatisfied(next, condition)) continue;
         addPendingTrigger(
@@ -1393,7 +1375,7 @@ function collectAttackDeclarationPendingTriggers(
 
     for (const source of event.battlefield) {
       for (const entry of triggeredAbilityEntries(next, source.defId)) {
-        if (!attackWatcherLineMatchesEvent(next, source, entry.text, event)) continue;
+        if (!attackWatcherLineMatchesEvent(next, source, entry.conditionText, event)) continue;
         const condition = graveyardCardTypeConditionForLine(controllerOf(source), entry.text);
         if (condition && !triggerConditionSatisfied(next, condition)) continue;
         addPendingTrigger(
@@ -1607,7 +1589,7 @@ function collectZoneChangePendingTriggers(
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
       const discardAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
-        (entry) => discardLineMatchesEvent(sourceSnapshot, entry.text, event),
+        (entry) => discardLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (discardAbilityLineIndex !== undefined) {
         addCurrentPermanentPendingTrigger(
@@ -1623,7 +1605,7 @@ function collectZoneChangePendingTriggers(
       }
 
       const sacrificeAbilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find(
-        (entry) => sacrificeLineMatchesEvent(sourceSnapshot, entry.text, event),
+        (entry) => sacrificeLineMatchesEvent(sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (sacrificeAbilityLineIndex === undefined) continue;
       addCurrentPermanentPendingTrigger(
@@ -1653,7 +1635,7 @@ function collectDrawPendingTriggers(
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
       const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
-        drawLineMatchesEvent(controllerOf(sourceSnapshot), entry.text, event),
+        drawLineMatchesEvent(controllerOf(sourceSnapshot), entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
       addCurrentPermanentPendingTrigger(
@@ -1682,7 +1664,7 @@ function collectLifeChangePendingTriggers(
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
       const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
-        lifeLineMatchesEvent(controllerOf(sourceSnapshot), entry.text, event),
+        lifeLineMatchesEvent(controllerOf(sourceSnapshot), entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
       const triggerId = event.direction === 'gain' ? 'trigger.life-gain' : 'trigger.life-loss';
@@ -1713,7 +1695,7 @@ function collectDamagePendingTriggers(
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
       const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
-        damageLineMatchesEvent(next, sourceSnapshot, entry.text, event),
+        damageLineMatchesEvent(next, sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
       addCurrentPermanentPendingTrigger(
@@ -1742,7 +1724,7 @@ function collectCounterChangePendingTriggers(
       const sourceSnapshot = snapshotOfCurrentCard(next, cardId);
       if (!sourceSnapshot) continue;
       const abilityLineIndex = triggeredAbilityEntries(next, sourceSnapshot.defId).find((entry) =>
-        counterPutLineMatchesEvent(next, sourceSnapshot, entry.text, event),
+        counterPutLineMatchesEvent(next, sourceSnapshot, entry.conditionText, event),
       )?.abilityLineIndex;
       if (abilityLineIndex === undefined) continue;
       addCurrentPermanentPendingTrigger(

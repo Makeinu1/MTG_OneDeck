@@ -6,6 +6,7 @@ import {
   removeReminderAndQuotes,
   splitParagraphs,
 } from '../engine/keywordGrammar';
+import { parseTriggerConditionLines } from '../engine/triggerCondition';
 
 export type RuleRisk = 'A' | 'B' | 'C' | 'D' | 'E';
 export type RuleAutomationLayer =
@@ -400,20 +401,34 @@ export function classifyCardRules(def: CardDef): RuleTag[] {
 }
 
 function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: CardDef): void {
-  const triggerConditions = triggerConditionClauses(core, def);
+  const parsedTriggers = parseTriggerConditionLines(core, def);
+  const triggerConditions: TriggerConditionClause[] = parsedTriggers.flatMap((trigger) =>
+    trigger.word === 'at'
+      ? []
+      : [{ shape: trigger.word, text: trigger.condition }],
+  );
   classifyMappedTriggerConditions(tags, triggerConditions, def);
   classifyBattlefieldDepartureTriggers(tags, triggerConditions, def);
-  matchTag(tags, core, 'trigger.upkeep', /\bat the beginning of[^.]*\bupkeep\b/i, 'high');
-  if (!/\bnext end step\b/i.test(core)) {
-    matchTag(tags, core, 'trigger.end-step', /\bat the beginning of\b[^.]*\bend step\b/i, 'high');
+  for (const parsedTrigger of parsedTriggers) {
+    if (
+      parsedTrigger.word === 'at'
+      && /\bthe beginning of\b[^.]*\bupkeep\b/i.test(parsedTrigger.condition)
+    ) {
+      addTemplateTag(tags, 'trigger.upkeep', parsedTrigger.condition, 'high');
+    }
+    if (
+      parsedTrigger.word === 'at'
+      && !/\bnext end step\b/i.test(parsedTrigger.condition)
+      && /\bthe beginning of\b[^.]*\bend step\b/i.test(parsedTrigger.condition)
+    ) {
+      addTemplateTag(tags, 'trigger.end-step', parsedTrigger.condition, 'high');
+    }
   }
-  matchTag(
-    tags,
-    core,
-    'trigger.combat-damage',
-    /\b(?:when|whenever)\b[^,.]*\bdeals?\b[^,.]*\bcombat damage\b/i,
-    'high',
-  );
+  for (const condition of triggerConditions) {
+    if (/\bdeals?\b[^,.]*\bcombat damage\b/i.test(condition.text)) {
+      addTemplateTag(tags, 'trigger.combat-damage', condition.text, 'high');
+    }
+  }
   matchTag(tags, core, 'action.draw', /\bdraw(?:s|n)?\b[^,.]*\bcards?\b/i, 'medium');
   matchTag(tags, core, 'action.create-token', /\bcreate\b[^,.]*\btokens?\b/i, 'high');
   matchTag(
@@ -584,121 +599,6 @@ function classifyBattlefieldDepartureTriggers(
       }
     }
   }
-}
-
-function triggerConditionClauses(core: string, def: CardDef): TriggerConditionClause[] {
-  const conditions: TriggerConditionClause[] = [];
-  const protectedCore = maskSelfNamePunctuation(core, def);
-  const probe = /\b(when|whenever)\b/gi;
-
-  for (const match of protectedCore.matchAll(probe)) {
-    const shape = match[1]?.toLowerCase();
-    const index = match.index;
-    if ((shape !== 'when' && shape !== 'whenever') || typeof index !== 'number') {
-      continue;
-    }
-
-    const bodyStart = index + match[0].length;
-    const remaining = protectedCore.slice(bodyStart).trimStart();
-    const sentenceEnd = remaining.search(/[.;]/);
-    const sentence = sentenceEnd < 0 ? remaining : remaining.slice(0, sentenceEnd);
-    const conditionEnd = firstTriggerConditionCommaIndex(sentence);
-    const condition = sentence.slice(0, conditionEnd < 0 ? sentence.length : conditionEnd);
-    const text = normalizeWhitespace(unmaskSelfNamePunctuation(condition));
-    if (text !== '') {
-      conditions.push({ shape, text });
-    }
-  }
-
-  return conditions;
-}
-
-function firstTriggerConditionCommaIndex(text: string): number {
-  const firstComma = text.indexOf(',');
-  if (firstComma < 0) {
-    return -1;
-  }
-
-  const castEnumerationEnd = castEnumeratedSpellConditionCommaIndex(text, firstComma);
-  if (castEnumerationEnd !== undefined) {
-    return castEnumerationEnd;
-  }
-
-  let conditionEnd = firstComma;
-  while (conditionEnd >= 0) {
-    const nextComma = text.indexOf(',', conditionEnd + 1);
-    if (nextComma < 0) {
-      return conditionEnd;
-    }
-
-    const continuation = normalizeWhitespace(text.slice(conditionEnd + 1, nextComma));
-    if (!isEnumeratedTriggerConditionContinuation(continuation)) {
-      return conditionEnd;
-    }
-    conditionEnd = nextComma;
-  }
-
-  return firstComma;
-}
-
-function castEnumeratedSpellConditionCommaIndex(
-  text: string,
-  firstComma: number,
-): number | undefined {
-  const castMatch = /\bcasts?\b/i.exec(text);
-  if (!castMatch || firstComma <= castMatch.index) {
-    return undefined;
-  }
-
-  const afterCast = text.slice(castMatch.index);
-  const spellMatch = /\bspells?\b/i.exec(afterCast);
-  if (!spellMatch) {
-    return undefined;
-  }
-
-  const spellStart = castMatch.index + spellMatch.index;
-  if (spellStart <= firstComma) {
-    return undefined;
-  }
-
-  const spellEnd = spellStart + spellMatch[0].length;
-  const conditionComma = text.indexOf(',', spellEnd);
-  return conditionComma >= 0 ? conditionComma : undefined;
-}
-
-function isEnumeratedTriggerConditionContinuation(text: string): boolean {
-  const startsWithOr = /^or\s+/i.test(text);
-  const continuation = text.replace(/^or\s+/i, '');
-  if (
-    /^(?:attacks|blocks|casts|draws|discards|sacrifices|deals|leaves|enters|dies|becomes)\b/i.test(
-      continuation,
-    )
-  ) {
-    return true;
-  }
-
-  return (
-    startsWithOr &&
-    /^(?:a|an|another|each|one or more|two or more|three or more)\b/i.test(continuation) &&
-    /\b(?:dies|die|enters?|leaves?|attacks?|blocks?|casts?|draws?|discards?|sacrifices?|deals?|is\s+put|are\s+put|is\s+exiled|are\s+exiled)\b/i.test(
-      continuation,
-    )
-  );
-}
-
-function maskSelfNamePunctuation(core: string, def: CardDef): string {
-  let masked = core;
-  for (const name of selfNames(def).filter((candidate) => /[,.;]/.test(candidate))) {
-    masked = masked.replace(
-      new RegExp(escapeRegExp(name), 'gi'),
-      name.replaceAll(',', '\u0000').replaceAll('.', '\u0001').replaceAll(';', '\u0002'),
-    );
-  }
-  return masked;
-}
-
-function unmaskSelfNamePunctuation(text: string): string {
-  return text.replaceAll('\u0000', ',').replaceAll('\u0001', '.').replaceAll('\u0002', ';');
 }
 
 function explicitDiesSubjectsOf(text: string): string[] {
