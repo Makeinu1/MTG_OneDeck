@@ -238,6 +238,12 @@ export interface SnapshotTotals {
   auto: number;
   guided: number;
   manual: number;
+  /** Cards where ALL effect lines are auto/guided (fully automated). */
+  completeCards: number;
+  /** Cards with a mix of auto/guided AND manual lines (partially automated). */
+  partialCards: number;
+  /** Cards where ALL effect lines are manual. */
+  manualOnlyCards: number;
 }
 
 export interface SnapshotHeader {
@@ -259,12 +265,40 @@ export function buildSnapshotFromFingerprints(
   corpusHash: string,
 ): Snapshot {
   const entries = fingerprintResult.entries;
+
+  // Per-card completeness: group entries by card key (name#hash#face)
+  const cardDecisions = new Map<string, { hasAutomated: boolean; hasManual: boolean }>();
+  for (const entry of entries) {
+    // key format: "CardName#hash#faceIndex#lineIndex" → card key = first 3 segments
+    const parts = entry.k.split('#');
+    const cardKey = parts.slice(0, 3).join('#');
+    const record = cardDecisions.get(cardKey) ?? { hasAutomated: false, hasManual: false };
+    if (entry.d === 'm') {
+      record.hasManual = true;
+    } else {
+      record.hasAutomated = true;
+    }
+    cardDecisions.set(cardKey, record);
+  }
+
+  let completeCards = 0;
+  let partialCards = 0;
+  let manualOnlyCards = 0;
+  for (const { hasAutomated, hasManual } of cardDecisions.values()) {
+    if (hasAutomated && !hasManual) completeCards++;
+    else if (hasAutomated && hasManual) partialCards++;
+    else manualOnlyCards++;
+  }
+
   const totals: SnapshotTotals = {
     cards: fingerprintResult.cardCount,
     effectLines: entries.length,
     auto: entries.filter((entry) => entry.d === 'a').length,
     guided: entries.filter((entry) => entry.d === 'g').length,
     manual: entries.filter((entry) => entry.d === 'm').length,
+    completeCards,
+    partialCards,
+    manualOnlyCards,
   };
   return { header: { corpusHash, totals }, entries };
 }
