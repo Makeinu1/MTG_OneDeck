@@ -172,6 +172,14 @@ export type GameCommand =
       kind: 'poison' | 'energy' | 'experience';
       amount: number;
     }
+  | {
+      type: 'applyPlayerEffect';
+      controllerId: PlayerId;
+      recipients: 'you' | 'eachOpponent' | 'eachPlayer';
+      effect: 'damage';
+      sourceId: string;
+      amount: number;
+    }
   | { type: 'adjustCommanderDamage'; label: string; delta: number }
   | { type: 'adjustOpponentLife'; label: string; delta: number }
   | { type: 'addMana'; color: ManaColor; amount: number; playerId?: PlayerId }
@@ -2522,6 +2530,9 @@ function applyPlayerEffect(draft: Draft, cmd: ApplyPlayerEffectCommand): void {
         break;
       case 'counter':
         applyPlayerCounterDelta(draft, playerId, cmd.kind, cmd.amount);
+        break;
+      case 'damage':
+        applyLifeDeltaForPlayer(draft, playerId, -cmd.amount, commandCause(cmd.type));
         break;
     }
   }

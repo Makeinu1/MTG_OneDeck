@@ -5,7 +5,9 @@ import { activationPlanForSource } from '../commands';
 import { applyCommand } from '../commands';
 import { initGame } from '../init';
 import type { GameState } from '../types';
-import { makeDeck } from './helpers';
+import { makeDeck, makeDef } from './helpers';
+import { parseAbilityIR } from '../grammar/ir';
+import { compileAbilityIR } from '../grammar/compile';
 
 function activatedSource(id: string, typeLine: string, oracleText: string): CardDef {
   return {
@@ -163,5 +165,39 @@ describe('ACT-4: {X} guided unblock (Gogo / Pernicious Deed pattern)', () => {
       (c) => c.type === 'moveCard' && c.cardId === sourceId && c.to === 'graveyard',
     );
     expect(sacCmd).toBeDefined();
+  });
+});
+
+describe('Cast-watcher guided: Vivi Ornitier pattern', () => {
+  it('auto-compiles "put a +1/+1 counter on Vivi Ornitier and it deals 1 damage to each opponent"', () => {
+    const viviText = 'Whenever you cast a noncreature spell, put a +1/+1 counter on Vivi Ornitier and it deals 1 damage to each opponent.';
+    const def = makeDef({
+      scryfallId: 'Vivi Ornitier',
+      name: 'Vivi Ornitier',
+      typeLine: 'Legendary Creature — Bird Wizard',
+      faces: [{ name: 'Vivi Ornitier', typeLine: 'Legendary Creature — Bird Wizard', oracleText: viviText }],
+    });
+    const ir = parseAbilityIR(viviText, 'Legendary Creature — Bird Wizard');
+    const compiled = compileAbilityIR(ir, { sourceId: 'c1', def, controllerId: 'P1' });
+    expect(compiled.decision).toBe('auto');
+    expect(compiled.reasons).toEqual([]);
+    const counterCmd = compiled.commands.find((c) => c.type === 'addCounters');
+    expect(counterCmd).toMatchObject({ type: 'addCounters', cardId: 'c1', counterType: '+1/+1', delta: 1 });
+    const damageCmd = compiled.commands.find((c) => c.type === 'applyPlayerEffect');
+    expect(damageCmd).toMatchObject({ type: 'applyPlayerEffect', recipients: 'eachOpponent', effect: 'damage', amount: 1 });
+  });
+
+  it('auto-compiles Niv-Mizzet "you draw a card" (already working)', () => {
+    const nivText = 'Whenever a player casts an instant or sorcery spell, you draw a card.';
+    const def = makeDef({
+      scryfallId: 'Niv-Mizzet, Parun',
+      name: 'Niv-Mizzet, Parun',
+      typeLine: 'Legendary Creature — Dragon Wizard',
+      faces: [{ name: 'Niv-Mizzet, Parun', typeLine: 'Legendary Creature — Dragon Wizard', oracleText: nivText }],
+    });
+    const ir = parseAbilityIR(nivText, 'Legendary Creature — Dragon Wizard');
+    const compiled = compileAbilityIR(ir, { sourceId: 'c1', def, controllerId: 'P1' });
+    expect(compiled.decision).toBe('auto');
+    expect(compiled.commands).toContainEqual({ type: 'draw', count: 1 });
   });
 });

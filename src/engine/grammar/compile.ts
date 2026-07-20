@@ -919,6 +919,16 @@ function compileEffect(
       });
       return { commands, prompts, reasons: [...reasons] };
     }
+    const selfNameDescriptor = selfNameCounterPlusDescriptor(effect.raw, ctx.def);
+    if (selfNameDescriptor) {
+      commands.push({
+        type: 'addCounters',
+        cardId: ctx.sourceId,
+        counterType: selfNameDescriptor.counterType,
+        delta: selfNameDescriptor.delta,
+      });
+      return { commands, prompts, reasons: [...reasons] };
+    }
   }
 
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
@@ -952,6 +962,14 @@ function compileEffect(
     }
   }
 
+  if (effect.atom === 'effect.damage') {
+    const damageCmd = compileEachPlayerDamage(effect.raw, ctx);
+    if (damageCmd) {
+      commands.push(damageCmd);
+      return { commands, prompts, reasons: [...reasons] };
+    }
+  }
+
   if (TARGET_REQUIRED_ATOMS.has(effect.atom)) {
     reasons.add('needs-target');
   } else if (CHOICE_REQUIRED_ATOMS.has(effect.atom)) {
@@ -971,6 +989,36 @@ function isSelfLibraryShuffleClause(raw: string): boolean {
     .replace(/\s+/g, ' ')
     .trim();
   return /^(?:then\s+)?(?:you\s+)?shuffle(?:\s+(?:your|the)\s+library)?$/i.test(normalized);
+}
+
+// CR 510.1/120.3: "deals N damage to each opponent/player" is a deterministic global
+// effect requiring no target choice. Recognized shapes:
+//   "[subject] deals N damage to each opponent"
+//   "[subject] deals N damage to each player"
+//   "it deals N damage to each opponent"
+// The subject is irrelevant for resolution (the source is always ctx.sourceId).
+const EACH_PLAYER_DAMAGE_RE =
+  /\bdeals?\s+(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+damage\s+to\s+each\s+(opponent|player)/i;
+
+function compileEachPlayerDamage(raw: string, ctx: CompileContext): GameCommand | null {
+  const match = EACH_PLAYER_DAMAGE_RE.exec(raw);
+  if (!match) {
+    return null;
+  }
+  const countMatch = /\b(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|(\d+))\s+damage\b/i.exec(raw);
+  const amount = countMatch?.[1] ? Number.parseInt(countMatch[1], 10) : 1;
+  if (amount < 1) {
+    return null;
+  }
+  const recipient = match[1].toLowerCase() === 'player' ? 'eachPlayer' : 'eachOpponent';
+  return {
+    type: 'applyPlayerEffect',
+    controllerId: ctx.controllerId ?? 'P1',
+    recipients: recipient,
+    effect: 'damage',
+    sourceId: ctx.sourceId,
+    amount,
+  };
 }
 
 function isPreventAllCombatDamageThisTurnClause(raw: string): boolean {
@@ -2024,6 +2072,34 @@ function counterDescriptorForRaw(raw: string): CounterDescriptor | null {
 // preceding (trigger + earlier-clause) context.
 const SELF_REFERENTIAL_COUNTER_PLUS_RE =
   /^put\s+(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+\+1\/\+1\s+counters?\s+on\s+it$/i;
+
+// CR 201.3: a card's own name in its oracle text refers to itself. Matches
+// "put a/an/<N> +1/+1 counter(s) on <card name>" at the head of the clause,
+// allowing trailing compound text ("... and it deals 1 damage to each opponent").
+function selfNameCounterPlusDescriptor(raw: string, def: CardDef): CounterDescriptor | null {
+  if (/\btarget\b/i.test(raw)) {
+    return null;
+  }
+  const normalized = raw
+    .replace(/[.。]\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const names = selfNameSubjectForms(def.name);
+  for (const name of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(
+      `^put\\s+(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d+)\\s+\\+1\\/\\+1\\s+counters?\\s+on\\s+${escaped}\\b`,
+      'i',
+    );
+    if (re.test(normalized)) {
+      const descriptor = counterDescriptorForRaw(normalized);
+      if (descriptor && descriptor.counterType === '+1/+1') {
+        return descriptor;
+      }
+    }
+  }
+  return null;
+}
 
 function selfReferentialCounterPlusDescriptor(raw: string): CounterDescriptor | null {
   if (/\btarget\b/i.test(raw)) {
