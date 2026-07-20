@@ -493,11 +493,16 @@ export interface PendingTriggerSchedule {
   createdAtPhase: Phase;
 }
 
-export type TriggerCondition = {
-  kind: 'graveyard-card-types-at-least';
-  playerId: PlayerId;
-  minimum: number;
-};
+export type TriggerCondition =
+  | {
+      kind: 'graveyard-card-types-at-least';
+      playerId: PlayerId;
+      minimum: number;
+    }
+  | {
+      kind: 'source-is-tapped';
+      sourceId: string;
+    };
 
 export interface PendingTrigger {
   pendingTriggerId: string;

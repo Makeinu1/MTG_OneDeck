@@ -106,6 +106,8 @@ function matchesTriggerTagId(text: string, tagId: string, def: CardDef): boolean
       return parsed.some((p) => p.word === 'at' || /\bupkeep\b/i.test(p.condition));
     case 'trigger.end-step':
       return parsed.some((p) => /\bend step\b/i.test(p.condition));
+    case 'trigger.draw-step':
+      return parsed.some((p) => p.word === 'at' && /\bdraw step\b/i.test(p.condition));
     case 'trigger.draw':
       return parsed.some((p) => (p.word === 'when' || p.word === 'whenever') && /\bdraw/i.test(p.condition));
     case 'trigger.cast':
@@ -1384,6 +1386,24 @@ function attackWatcherLineMatchesEvent(
   return event.attackers.some(qualifies);
 }
 
+function sourceIsTappedConditionForCard(
+  state: GameState,
+  cardId: string,
+): TriggerCondition | undefined {
+  const card = state.cards[cardId];
+  if (!card) return undefined;
+  const def = state.defs[card.defId];
+  if (!def) return undefined;
+  const lines = splitAbilityLines(def).filter((line) => line.faceIndex === card.faceIndex);
+  const hasTappedCondition = lines.some((line) => {
+    const parsed = parseTriggerConditionLines(line.text, def);
+    return parsed.some(
+      (p) => p.word === 'at' && /\bdraw step\b/i.test(p.condition),
+    ) && /\bif\b[^.]*\btapped\b/i.test(line.text);
+  });
+  return hasTappedCondition ? { kind: 'source-is-tapped', sourceId: cardId } : undefined;
+}
+
 function graveyardCardTypeConditionForLine(
   controllerId: PlayerId,
   lineText: string,
@@ -1398,6 +1418,10 @@ export function triggerConditionSatisfied(state: GameState, condition: TriggerCo
   switch (condition.kind) {
     case 'graveyard-card-types-at-least':
       return distinctCardTypesInGraveyard(state, condition.playerId).size >= condition.minimum;
+    case 'source-is-tapped': {
+      const sourceCard = state.cards[condition.sourceId];
+      return sourceCard !== undefined && sourceCard.tapped === true;
+    }
   }
 }
 
@@ -1828,6 +1852,26 @@ function collectImplicitPendingTriggers(
         'trigger.end-step',
         'エンドステップ開始時',
         eventId,
+      );
+    }
+  }
+
+  if (prev.phase !== 'draw' && next.phase === 'draw') {
+    const eventId = `implicit:draw-step:${next.turn}:${next.log.length}`;
+    for (const cardId of next.zones.battlefield) {
+      if (!cardHasRuleTag(next, cardId, 'trigger.draw-step')) continue;
+      const condition = sourceIsTappedConditionForCard(next, cardId);
+      if (condition && !triggerConditionSatisfied(next, condition)) continue;
+      addCurrentPermanentPendingTrigger(
+        next,
+        context,
+        cardId,
+        'trigger.draw-step',
+        'ドローステップ開始時',
+        eventId,
+        eventId,
+        undefined,
+        condition,
       );
     }
   }

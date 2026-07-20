@@ -125,6 +125,12 @@ const TAG_TEMPLATES: Record<string, TagTemplate> = {
     risk: 'C',
     layer: 'trigger-assist',
   },
+  'trigger.draw-step': {
+    label: 'ドローステップ開始時の誘発',
+    kind: 'trigger',
+    risk: 'C',
+    layer: 'trigger-assist',
+  },
   'trigger.draw': {
     label: 'カードを引いたときの誘発',
     kind: 'trigger',
@@ -308,6 +314,7 @@ const FIXED_TAG_ORDER = [
   'trigger.landfall',
   'trigger.upkeep',
   'trigger.end-step',
+  'trigger.draw-step',
   'trigger.draw',
   'trigger.sacrifice',
   'trigger.combat-damage',
@@ -422,6 +429,12 @@ function classifyAbilityText(tags: Map<string, RuleTag>, core: string, def: Card
       && /\bthe beginning of\b[^.]*\bend step\b/i.test(parsedTrigger.condition)
     ) {
       addTemplateTag(tags, 'trigger.end-step', parsedTrigger.condition, 'high');
+    }
+    if (
+      parsedTrigger.word === 'at'
+      && /\bthe beginning of\b[^.]*\bdraw step\b/i.test(parsedTrigger.condition)
+    ) {
+      addTemplateTag(tags, 'trigger.draw-step', parsedTrigger.condition, 'high');
     }
   }
   for (const condition of triggerConditions) {
