@@ -11,6 +11,11 @@ import { useState } from 'react';
 import { primaryActionModel } from './primaryAction';
 import { celebrate } from './sound';
 import { isSoundEnabled, setSoundEnabled } from './motion';
+import {
+  AMBIENT_CHANGE_EVENT,
+  isAmbientEnabled,
+  setAmbientEnabled,
+} from './ambientMotion';
 import { primaryActionLanguage } from './primaryActionDisplay';
 import type { GameController } from './gameController';
 import { ThemeToggle } from '../ThemeToggle';
@@ -32,6 +37,7 @@ function GameMenuSheet({
 }) {
   const { store } = controller;
   const [sound, setSound] = useState(isSoundEnabled());
+  const [ambient, setAmbient] = useState(isAmbientEnabled());
   const act = (fn: () => void) => () => {
     fn();
     onClose();
@@ -108,6 +114,19 @@ function GameMenuSheet({
             }}
           >
             音(演出): {sound ? 'ON' : 'OFF'}
+          </button>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-ambient"
+            onClick={() => {
+              const next = !ambient;
+              setAmbientEnabled(next);
+              setAmbient(next);
+              document.dispatchEvent(new Event(AMBIENT_CHANGE_EVENT));
+            }}
+          >
+            背景モーション: {ambient ? 'ON' : 'OFF'}
           </button>
           <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-restart" onClick={act(() => controller.requestConfirm('restart'))}>
             最初からやり直す

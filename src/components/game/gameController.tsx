@@ -1165,15 +1165,26 @@ export function useGameController({
           <CleanupDiscardDialog
             state={state}
             choice={cleanupChoice}
-            onConfirm={(cardIds) => store.resolveRuleChoice(cleanupChoice.choiceId, {
-              kind: 'cleanup-discard',
-              cardIds,
-            })}
-            onManualHandled={() => store.resolveRuleChoice(cleanupChoice.choiceId, {
-              kind: 'cleanup-discard',
-              cardIds: [],
-              manualHandled: true,
-            })}
+            onConfirm={(cardIds) => {
+              // cleanup-discard 解決後はエンジンが cleanup 完了→次ターン開始まで
+              // 同一 dispatch で進行するが、その経路は announceTransition を通らない
+              // (=既存バグ: ディスカード後にターン演出が出ない)。解決前後の state で補完する。
+              const previous = useGameStore.getState().state;
+              store.resolveRuleChoice(cleanupChoice.choiceId, {
+                kind: 'cleanup-discard',
+                cardIds,
+              });
+              if (previous) announceTransition(previous, useGameStore.getState().state);
+            }}
+            onManualHandled={() => {
+              const previous = useGameStore.getState().state;
+              store.resolveRuleChoice(cleanupChoice.choiceId, {
+                kind: 'cleanup-discard',
+                cardIds: [],
+                manualHandled: true,
+              });
+              if (previous) announceTransition(previous, useGameStore.getState().state);
+            }}
           />
         ) : null;
       })()}

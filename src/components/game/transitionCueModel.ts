@@ -4,6 +4,9 @@ export const AUTO_TURN_PHASES = ['untap', 'upkeep', 'draw', 'main1'] as const sa
 export const PHASE_CUE_MS = 650;
 export const TURN_PHASE_STEP_MS = 180;
 export const TURN_CUE_LEAD_MS = 200;
+/** ターン交代スタンプの保持時間(§8a・v4.3 モック準拠。既存の計算値 ~1050ms を置換)。
+    フェイズトラックの step 進行(TURN_CUE_LEAD_MS/TURN_PHASE_STEP_MS)は不変。 */
+export const TURN_STAMP_HOLD_MS = 1500;
 
 export interface TransitionCueData {
   id: number;
@@ -30,7 +33,7 @@ export function transitionCueFor(
       turn: next.turn,
       phases,
       drawAtMs: drawIndex < 0 ? null : TURN_CUE_LEAD_MS + drawIndex * TURN_PHASE_STEP_MS,
-      durationMs: TURN_CUE_LEAD_MS + phases.length * TURN_PHASE_STEP_MS + 130,
+      durationMs: TURN_STAMP_HOLD_MS,
     };
   }
   if (previous.phase !== next.phase) {

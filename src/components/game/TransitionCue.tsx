@@ -62,8 +62,20 @@ function ActiveTransitionCue({
       data-kind={cue.kind}
       data-active-draw={activeDrawCue ? true : undefined}
     >
+      {cue.kind === 'turn' && (
+        <>
+          <div className="turn-sweep turn-sweep--cold" aria-hidden="true" />
+          <div className="turn-sweep turn-sweep--gold" aria-hidden="true" />
+        </>
+      )}
       <div className="turn-transition-cue" aria-hidden="true">
-        {cue.kind === 'turn' && <small>第{cue.turn}ターン</small>}
+        {cue.kind === 'turn' ? (
+          <>
+            <small className="turn-stamp__label">TURN</small>
+            <span className="turn-stamp__num">第{cue.turn}ターン</span>
+            <span className="turn-stamp__rule" aria-hidden="true" />
+          </>
+        ) : null}
         <strong>{phaseLabel}</strong>
         {activeDrawCue && (
           <span className="turn-transition-cue__draw" data-testid="transition-draw-detail">

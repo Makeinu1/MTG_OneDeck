@@ -195,6 +195,7 @@ export function StatusBand({ controller }: StatusBandProps) {
             aria-live="polite"
             onClick={() => setLifeOpen(true)}
           >
+            <span className="status-band__life-heart" aria-hidden="true">♥</span>
             {model.life}
           </button>
           <button

@@ -33,6 +33,7 @@
 | 構造(ファイル・store・移行順・消すもの) | `docs/ui-architecture-v2.md`(目標構造=§2・viewStore=§3・strangler表=§4) |
 | 感情・演出の優先順位(何を祝うか) | `docs/design-vision.md` §2「狙う感情」(北極星②) |
 | 視覚の最終正本(迷ったらこれに合わせる) | `research/design/mockups/index.html`(**v4**)。ローカル閲覧=`.claude/launch.json` の `mockups`(port 8899) |
+| 生きた背景(アンビエント)の視覚正本 | `research/design/mockups/ambient-motion.html`(**v4.3 最終確定**・design-system §8a と対。自己完結ファイル=ブラウザで直接開く) |
 | 裁量の境界(誰が何を決めてよいか) | 本書§4 |
 | 検証の手順 | 本書§2 |
 | 演出のさらなる詳細(D6/D7契約起草時) | `research/design/vision-sources/game-feel-dialogue-2026-07.txt`(全文転写はしない=北極星③) |
@@ -219,11 +220,19 @@
 
 実行カードは§5.2。視覚正本=モックv4場面1(初手の儀式)。
 
+### D8 生きた背景(AmbientLayer)【ティア: J3。D4/D6/D7の停止と無関係の単独トラック(2026-07-20 ユーザー裁定)】
+
+スコープ: design-system §8a の全実装——純関数 `src/components/game/ambientMotion.ts`(ビート周期/トグル状態/星・墨の決定的配置)+ `AmbientBackdrop.tsx`(`GameScreen` の `TabletopSurface` 直後に mount・`pointer-events:none`・`aria-hidden`)+ `game.css` §8a keyframes + `--ambient-*` トークン(`src/ui/tokens.css`)+ ThumbZone メニュー「背景モーション」トグル(既定 ON・`localStorage: mtg-onedeck:ambient-motion`・§7b 音トグルと同パターン)。
+視覚正本 = `research/design/mockups/ambient-motion.html`(**v4.3 最終確定**)。モック専用要素(速度スライダー×0.4-3・注釈・`.chrome`)は製品に持ち込まない——**テンポはトークン固定値**。
+DEFER: 音との同期(D7)・イベント層の追加演出。**フェイズ進行は既存 `TransitionCue` のみ=変更禁止**(ユーザー裁定)。
+受け入れ: ①`npm run check` 緑・既存テスト回帰なし ②アンビエントは transform/opacity(+自描筆致の stroke-dashoffset)のみ ③`prefers-reduced-motion` でアンビエント全静止+流れ星非表示+スウィープ/スタンプはフェードのみ ④トグル OFF でアンビエント層が消え、既存 UI と見た目完全一致 ⑤**既存 UI(カード/クローム/メニュー/配置)への差分ゼロ**——本スライスは背景層の注入のみ。
+新トークン `--ambient-*` は design-system §8a 契約としてユーザー裁定済み(v4.3)——§4 の J2 ゲート(新トークン)は当該裁定をもって通過済みとする。
+
 ## §4 デザイン裁量の境界(lookup)
 
 | 主体 | してよい | してはならない |
 |---|---|---|
-| **Codex** | トークン値の適用・余白/折返しの微調整・実装都合のDOM構造選択(data-testid維持) | 新トークン・生hex/px・モック外の見た目判断・L0-L4体系外のモーション |
+| **Codex** | トークン値の適用・余白/折返しの微調整・実装都合のDOM構造選択(data-testid維持) | 新トークン・生hex/px・モック外の見た目判断・L0-L4体系外のモーション・§8a上限超のアンビエント振幅 |
 | **J3** | 既存トークン内の割当変更・アイコン追加(§6の20個枠内)・モックとの軽微乖離の記録承認・閾値の±20%調整(BoardShelf枚数閾値・連鎖ヒューリスティック) | 新トークン・IA変更(バンド構成/行構成)・コンポーネント分割の変更 |
 | **J2(召喚)** | 新トークン追加・IA/コンポーネント構造変更・engine/store公開APIへの接触判断・D2/D4の削除go | テーマ変更・北極星②の解釈変更 |
 | **ユーザー(STOP)** | — | に相当する事項: テーマ・北極星②③・成功指標(80点)・依存追加(testing-library/音源ライブラリ含む)・D6/D7の着手go |

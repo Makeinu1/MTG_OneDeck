@@ -84,6 +84,7 @@ interface ViewStore {
 | D3 | `PrimaryAction` 状態機械・プレイ可能判定 selector・`Feed` 合成 | Toasts/TriggerCandidatePanel/GameLog の役割をフィードへ | `Toasts.tsx`・`TriggerCandidatePanel.tsx`(浮動版) |
 | D4 | デスクトップ grid-area・導入画面の保存デッキ一覧 | — | 旧 `playmat/` 一式(**2026-07-19 削除済み**・§6 負債 (1)(2) 回収)・ContextMenu(新UIが現用中ゆえ据置)・残 App.css 区画 |
 | D5 | モーション4種+ハプティクス+オプトイン音 | — | — |
+| D8 | `game/ambientMotion.ts`+`AmbientBackdrop.tsx`(生きた背景・design-system §8a)+`--ambient-*` トークン+ThumbZone「背景モーション」トグル | — | — |
 
 **受け入れ共通則**(全スライス): 機械チェック(`npm run check`)+`review.*` 緑+実機コンソールエラー0+**縦375px/横812px/デスクトップ1440pxの3形態スクショ確認**。旧機能の削除は「新経路で同じ操作が全て可能」を review.* が確認してから(サンドボックス全操作の保存=vision 原則6)。
 

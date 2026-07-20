@@ -18,7 +18,7 @@ describe('transitionCueFor', () => {
         turn: 4,
         phases: ['untap', 'upkeep', 'draw', 'main1'],
         drawAtMs: 560,
-        durationMs: 1050,
+        durationMs: 1500,
       });
   });
 

@@ -64,6 +64,86 @@
   --table-vignette: radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0, 0, 5, 0.5) 100%);
   --hero-wash: radial-gradient(80% 85% at 78% 18%, rgba(216, 176, 106, 0.11), transparent 68%);
 
+  /* --- §8a アンビエント層(生きた背景・2026-07-20 ユーザー裁定・v4.3 最終モック確定) ---
+     正本 = design-system §8a + research/design/mockups/ambient-motion.html。
+     テンポはトークン固定値(モックの速度スライダーは製品に持ち込まない)。
+     二スキン(ダーク=脈動する星雲 / ライト=墨の世界)の値をここに集約し、
+     game.css は var() 参照のみ(トークンガード: game.css 生カラー禁止)。 */
+  --ambient-beat: 700ms; /* 鼓動(ダークのペースアンカー) */
+  --ambient-beat-combat: 525ms; /* 戦闘中の鼓動 */
+  /* ダーク = 脈動する星雲(冬のクオリティ) */
+  --ambient-gas-ice: rgba(96, 150, 255, 0.20);
+  --ambient-gas-ice-2: rgba(130, 195, 255, 0.13);
+  --ambient-gas-gold: rgba(240, 207, 140, 0.13);
+  --ambient-gas-gold-2: rgba(240, 207, 140, 0.08);
+  --ambient-gas-teal: rgba(96, 214, 196, 0.11);
+  --ambient-gas-teal-2: rgba(96, 214, 196, 0.07);
+  --ambient-aurora-1: rgba(120, 200, 235, 0.06);
+  --ambient-aurora-2: rgba(150, 220, 255, 0.10);
+  --ambient-star-1: #dfe9ff;
+  --ambient-star-2: #cfe4ff;
+  --ambient-star-3: #e8f2ff;
+  --ambient-star-4: #bff0ea;
+  --ambient-star-5: #f4e9c8; /* 冷色中心・暖色は約1/5 */
+  --ambient-shoot-head: rgba(225, 238, 255, 0.95);
+  --ambient-shoot-tail: rgba(160, 200, 255, 0.35);
+  --ambient-shoot-glow: rgba(190, 220, 255, 0.8);
+  --ambient-core: rgba(170, 205, 255, 0.15);
+  --ambient-core-combat: rgba(255, 180, 140, 0.16);
+  --ambient-edge-heat: rgba(255, 110, 70, 0.17);
+  --ambient-vignette-dark: rgba(0, 0, 5, 0.6);
+  /* ライト = 墨の世界(ペースアンカー: 液态呼吸 3400ms)。
+     墨の3原色(藍黒/セピア/インディゴ)は alpha 混色ごとトークン化する
+     (game.css はトークンガードで生カラー禁止・rgba(var()) も検出対象のため)。 */
+  --ambient-inkcloud-blue: rgba(39, 54, 74, 0.22);
+  --ambient-inkcloud-blue-2: rgba(39, 54, 74, 0.16);
+  --ambient-inkcloud-sepia: rgba(84, 64, 38, 0.18);
+  --ambient-inkcloud-sepia-2: rgba(84, 64, 38, 0.13);
+  --ambient-inkcloud-indigo: rgba(49, 95, 146, 0.15);
+  --ambient-inkcloud-indigo-2: rgba(49, 95, 146, 0.11);
+  --ambient-bloom-1: rgba(39, 54, 74, 0.17);
+  --ambient-bloom-2: rgba(49, 95, 146, 0.14);
+  --ambient-bloom-3: rgba(84, 64, 38, 0.15);
+  --ambient-bloom-4: rgba(39, 54, 74, 0.13);
+  --ambient-bloom-5: rgba(49, 95, 146, 0.10);
+  --ambient-bloom-6: rgba(39, 54, 74, 0.12);
+  --ambient-drip-core-1: rgba(39, 54, 74, 0.30);
+  --ambient-drip-edge-1: rgba(39, 54, 74, 0.13);
+  --ambient-drip-core-2: rgba(49, 95, 146, 0.30);
+  --ambient-drip-edge-2: rgba(49, 95, 146, 0.13);
+  --ambient-drip-core-3: rgba(84, 64, 38, 0.30);
+  --ambient-drip-edge-3: rgba(84, 64, 38, 0.13);
+  --ambient-drip-core-4: rgba(39, 54, 74, 0.30);
+  --ambient-drip-edge-4: rgba(39, 54, 74, 0.13);
+  --ambient-drip-core-5: rgba(49, 95, 146, 0.30);
+  --ambient-drip-edge-5: rgba(49, 95, 146, 0.13);
+  --ambient-current-1: rgba(49, 95, 146, 0.10);
+  --ambient-current-1-2: rgba(49, 95, 146, 0.06);
+  --ambient-current-2: rgba(39, 54, 74, 0.09);
+  --ambient-current-2-2: rgba(39, 54, 74, 0.054);
+  --ambient-current-3: rgba(84, 64, 38, 0.08);
+  --ambient-current-3-2: rgba(84, 64, 38, 0.048);
+  --ambient-brush-blue: rgba(39, 54, 74, 0.07);
+  --ambient-brush-sepia: rgba(84, 64, 38, 0.06);
+  --ambient-write-blue: rgba(39, 54, 74, 0.9);
+  --ambient-write-sepia: rgba(84, 64, 38, 0.85);
+  --ambient-fleck-a: #d9b46a;
+  --ambient-fleck-b: #9a6d26;
+  --ambient-fleck-glow: rgba(154, 109, 38, 0.4);
+  --ambient-paper-pool: rgba(255, 255, 255, 0.8);
+  --ambient-vignette-light: rgba(89, 70, 41, 0.16);
+  --ambient-sun-wash: rgba(224, 186, 120, 0.20);
+  --ambient-sun-wash-edge: rgba(224, 186, 120, 0.07);
+  --ambient-counter-shade: rgba(39, 54, 74, 0.075);
+  --ambient-sheen-light: rgba(255, 252, 244, 0.18);
+  --ambient-sheen-dark: rgba(39, 54, 74, 0.05);
+  /* ターン交代イベント層(フルコース) */
+  --ambient-sweep-cold: rgba(190, 220, 255, 0.18);
+  --ambient-sweep-cold-2: rgba(159, 212, 255, 0.10);
+  --ambient-sweep-gold: rgba(240, 207, 140, 0.15);
+  --ambient-rays: rgba(240, 207, 140, 0.11);
+  --ambient-ring: rgba(240, 207, 140, 0.55);
+
   /* --- §3 タイポグラフィ(役割固定) --- */
   --display: 'Cinzel', 'Hiragino Mincho ProN', serif;
   --sans: 'Manrope', 'Hiragino Sans', 'Yu Gothic', sans-serif;

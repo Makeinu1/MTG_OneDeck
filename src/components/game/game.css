@@ -11,16 +11,21 @@
   --land-h: 190px;
   --hand-h: auto;
   --decision-h: 0px;
+  /* §8a アンビエント層の鼓動時計(ダーク 700ms・戦闘 525ms)。
+     ハート/スタック脈動とアンビエント層が共通消費する。 */
+  --beat: var(--ambient-beat);
   --tabletop-edge: color-mix(in srgb, var(--gold-dim) 58%, var(--line));
   --tabletop-glow: color-mix(in srgb, var(--gold) 10%, transparent);
-  --tabletop-surface:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 76%, transparent), transparent 42%),
-    radial-gradient(ellipse at 50% 108%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 62%),
-    linear-gradient(115deg, color-mix(in srgb, var(--surface-2) 78%, transparent), color-mix(in srgb, var(--surface-0) 86%, transparent));
+  /* 盤面の塗りは透明(2026-07-21 ユーザー指示): アンビエント背景を殺さず透かす。
+     戦術ライン(inset edge)と glow(drop-shadow)は残し「舞台の枠」だけを残す。 */
+  --tabletop-surface: transparent;
 
   position: fixed;
   inset: 0;
   display: grid;
+  /* アンビエント層(z-index:-1)を全クロムの厳密に下へ積層するスタッキング文脈。
+     見た目不変——既存 UI へのオーバーレイを生まない(§8a「既存 UI は不変」の技術的保証)。 */
+  isolation: isolate;
   /* 単一カラムを container 幅へ拘束(minmax(0,1fr))。これが無いと暗黙カラムが
      max-content 化し、盤面棚/土地行の総幅まで画面全体が横に膨張する。 */
   grid-template-columns: minmax(0, 1fr);
@@ -45,10 +50,7 @@
 html[data-theme='light'] .game-screen {
   --tabletop-edge: color-mix(in srgb, var(--gold-dim) 70%, var(--line-strong));
   --tabletop-glow: color-mix(in srgb, var(--gold) 16%, transparent);
-  --tabletop-surface:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-0) 38%, transparent), transparent 40%),
-    radial-gradient(ellipse at 50% 108%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 64%),
-    linear-gradient(115deg, color-mix(in srgb, var(--surface-1) 86%, transparent), color-mix(in srgb, var(--surface-2) 78%, transparent));
+  --tabletop-surface: transparent;
 }
 
 .game-screen__tabletop-surface {
@@ -307,6 +309,7 @@ body:has(.commander-cutin) .celebration-layer { opacity: 0; transition: opacity 
 
 /* ---------- StatusBand ---------- */
 .status-band {
+  position: relative; /* §8a スタック下線脈動(::after)の配置基準。見た目不変。 */
   height: var(--band-h);
   display: flex;
   align-items: center;
@@ -2169,4 +2172,451 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 @media (prefers-reduced-motion: reduce) {
   .semantic-drop { transition: none !important; }
   .land-row { scroll-behavior: auto; }
+}
+
+
+
+/* ============================================================
+   §8a 生きた背景(AmbientLayer・D8・2026-07-20 ユーザー裁定・v4.3 最終モック確定)
+   視覚正本 = research/design/mockups/ambient-motion.html。
+   トークン正本 = tokens.css --ambient-*。
+   既存 UI は不変——本層は .game-screen の isolation 内 z-index:-1 に積層し、
+   全クロムの厳密に下へ置く(オーバーレイ0)。
+   ガードレール: アニメーションは transform/opacity のみ
+   (唯一の例外 = 自描筆致の SVG stroke-dashoffset+opacity)。
+   pointer-events:none + aria-hidden。タブ非表示で一時停止。
+   reduced-motion で全静止(世界観は静止画として残す)。
+   二スキン: ダーク=脈動する星雲 / ライト=墨の世界(色差し替えでなく別スキン)。
+
+   パフォーマンス方針(2026-07-21 実機計測を受けて改訂):
+   - SVG feTurbulence/feDisplacementMap は常時アニメーション下で致命的に重いため
+     **全廃**。不定形の縁は有機的 border-radius で代替(契約の意図=不定形は維持)。
+   - will-change はレイヤー量産(特に星156)でメモリを食うため**全廃**
+     (transform/opacity アニメはブラウザが自動プロモートする)。
+   - mix-blend-mode は合成を強制し GPU 負荷を上げるため**全廃**
+     (ダーク背景上では radial-gradient の輝度で十分光る)。
+   - 星の box-shadow は blur 半径を縮小(ペイント領域の削減)。
+
+   ターン演出の減衰(2026-07-21 ユーザーFB): 光輪(放射光線 rays / 拡がる輪 ring)は
+   「やりすぎ」のため撤去。文字スタンプ+描き線+横切るスウィープのみ残す。
+   ============================================================ */
+
+/* 戦闘中は鼓動時計を 525ms へ切替(アンビエント層+ハート+スタック脈動が共通消費)。 */
+.game-screen[data-combat] { --beat: var(--ambient-beat-combat); }
+
+.ambient-backdrop {
+  position: absolute; inset: 0; z-index: -1;
+  pointer-events: none; overflow: hidden;
+}
+.ambient-backdrop__dark,
+.ambient-backdrop__light { position: absolute; inset: 0; }
+.ambient-backdrop__dark > *,
+.ambient-backdrop__light > * { position: absolute; }
+/* 二スキン原則: 既定(ダーク)ではライト層を隠し、ライトテーマではダーク層を隠す。 */
+.ambient-backdrop__light { display: none; }
+html[data-theme='light'] .ambient-backdrop__dark { display: none; }
+html[data-theme='light'] .ambient-backdrop__light { display: block; }
+/* タブ非表示で一時停止(省電力・別タブでの無駄な合成を止める)。 */
+.ambient-backdrop[data-paused] * { animation-play-state: paused !important; }
+
+/* ---------- ダーク = 脈動する星雲(冬のクオリティ: 冷たく・透き通り・鋭い) ---------- */
+.ambient-vignette {
+  inset: 0;
+  background: radial-gradient(140% 105% at 50% 44%, transparent 56%, var(--ambient-vignette-dark) 100%);
+  animation: ambient-vignette-beat var(--beat) ease-in-out infinite;
+  animation-delay: calc(var(--beat) / -2); /* 鼓動と逆相(半周期オフセット) */
+}
+@keyframes ambient-vignette-beat { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+
+.ambient-nebula { inset: -14%; animation: ambient-neb-rotate 300s linear infinite; }
+@keyframes ambient-neb-rotate { to { transform: rotate(360deg); } }
+.ambient-gas {
+  position: absolute;
+  /* 不定形の縁: feTurbulence の代わりに有機的 border-radius(パフォーマンス優先)。 */
+  border-radius: 47% 53% 44% 56% / 52% 46% 54% 48%;
+}
+.ambient-gas--a {
+  width: 120vmax; height: 92vmax; left: -28vmax; top: -34vmax;
+  border-radius: 44% 56% 48% 52% / 50% 44% 56% 50%;
+  background:
+    radial-gradient(52% 46% at 44% 46%, var(--ambient-gas-ice), transparent 70%),
+    radial-gradient(36% 30% at 64% 58%, var(--ambient-gas-ice-2), transparent 70%);
+  animation: ambient-gas-a 64s ease-in-out infinite alternate, ambient-gas-breathe 7.4s ease-in-out infinite;
+}
+.ambient-gas--b {
+  width: 104vmax; height: 88vmax; right: -30vmax; top: -6vmax;
+  border-radius: 52% 48% 43% 57% / 47% 53% 47% 53%;
+  background:
+    radial-gradient(50% 44% at 52% 42%, var(--ambient-gas-gold), transparent 70%),
+    radial-gradient(32% 28% at 36% 60%, var(--ambient-gas-gold-2), transparent 70%);
+  animation: ambient-gas-b 88s ease-in-out infinite alternate, ambient-gas-breathe 9.6s ease-in-out infinite;
+  animation-delay: 0s, -3.2s;
+}
+.ambient-gas--c {
+  width: 96vmax; height: 80vmax; left: 4vmax; bottom: -36vmax;
+  border-radius: 49% 51% 55% 45% / 53% 47% 53% 47%;
+  background:
+    radial-gradient(52% 46% at 48% 44%, var(--ambient-gas-teal), transparent 70%),
+    radial-gradient(30% 26% at 66% 36%, var(--ambient-gas-teal-2), transparent 70%);
+  animation: ambient-gas-c 112s ease-in-out infinite alternate, ambient-gas-breathe 11.8s ease-in-out infinite;
+  animation-delay: 0s, -6.1s;
+}
+@keyframes ambient-gas-breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes ambient-gas-a { from { transform: translate(0, 0) rotate(0deg) scale(1); } to { transform: translate(9vmax, 7vmax) rotate(18deg) scale(1.14); } }
+@keyframes ambient-gas-b { from { transform: translate(0, 0) rotate(0deg) scale(1.08); } to { transform: translate(-10vmax, 5vmax) rotate(-14deg) scale(.92); } }
+@keyframes ambient-gas-c { from { transform: translate(0, 0) rotate(0deg) scale(.95); } to { transform: translate(8vmax, -8vmax) rotate(12deg) scale(1.12); } }
+
+.ambient-aurora {
+  left: -22%; right: -22%; top: 10%; height: 30%;
+  transform: rotate(-7deg);
+  background: linear-gradient(180deg, transparent, var(--ambient-aurora-1) 36%, var(--ambient-aurora-2) 52%, transparent 78%);
+  animation: ambient-aurora-sway 17s ease-in-out infinite alternate;
+}
+@keyframes ambient-aurora-sway {
+  from { transform: rotate(-7deg) translateX(-4%); opacity: .65; }
+  to { transform: rotate(-4.5deg) translateX(4%); opacity: 1; }
+}
+
+/* 星3層・計156(遠84/中46/近26)。個別周波数/位相/色の深いきらめき。
+   やわらかな光点のみ——十字スパイク禁止(チープとしてユーザー却下)。星は主役ではない。
+   box-shadow は blur 縮小版(ペイント領域削減)。will-change 無し(自動プロモートに任せる)。 */
+.ambient-stars { inset: 0; }
+.ambient-star {
+  position: absolute; /* モックの inline span を確実に散布させる(視覚正本と同一結果を仕様で保証) */
+  left: var(--x); top: var(--y); width: var(--sz); height: var(--sz); border-radius: 50%;
+  background: radial-gradient(circle, var(--tint) 0%, transparent 72%);
+  box-shadow: 0 0 calc(var(--sz) * 1.2) var(--tint);
+  animation: ambient-twinkle var(--d) ease-in-out infinite;
+  animation-delay: var(--dl);
+}
+@keyframes ambient-twinkle {
+  0%, 100% { opacity: calc(var(--o) * .16); transform: scale(.72); }
+  50% { opacity: var(--o); transform: scale(1.32); }
+}
+
+.ambient-shoot {
+  width: 230px; height: 2px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, var(--ambient-shoot-head), var(--ambient-shoot-tail) 55%, transparent);
+  box-shadow: 0 0 14px var(--ambient-shoot-glow);
+  animation: ambient-shoot-run var(--sd) linear infinite;
+  animation-delay: var(--sdl);
+}
+.ambient-shoot--a { left: 12%; top: 15%; --ang: -24deg; --dx: 64vw; --sd: 11s; --sdl: -3s; }
+.ambient-shoot--b { left: 56%; top: 9%; --ang: -31deg; --dx: 52vw; --sd: 17s; --sdl: -9s; }
+@keyframes ambient-shoot-run {
+  0% { transform: rotate(var(--ang)) translateX(0); opacity: 0; }
+  2% { opacity: 1; }
+  8% { transform: rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+  100% { transform: rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+}
+
+/* 鼓動: 中心コア光 700ms(戦闘 525ms)——"a whisper, never a wave"。 */
+.ambient-core {
+  left: 50%; top: 42%; width: 66vmin; height: 42vmin; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, var(--ambient-core), transparent 70%);
+  animation: ambient-core-beat var(--beat) ease-in-out infinite;
+}
+@keyframes ambient-core-beat {
+  0%, 100% { opacity: .4; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: .92; transform: translate(-50%, -50%) scale(1.05); }
+}
+.game-screen[data-combat] .ambient-core {
+  background: radial-gradient(closest-side, var(--ambient-core-combat), transparent 70%);
+  animation-name: ambient-core-beat-combat;
+}
+@keyframes ambient-core-beat-combat {
+  0%, 100% { opacity: .45; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.07); }
+}
+.ambient-combat-edge {
+  inset: 0; opacity: 0; transition: opacity 600ms var(--ease-out);
+  background: radial-gradient(115% 92% at 50% 46%, transparent 60%, var(--ambient-edge-heat) 100%);
+}
+.game-screen[data-combat] .ambient-combat-edge {
+  opacity: 1; animation: ambient-edge-beat var(--beat) ease-in-out infinite;
+}
+@keyframes ambient-edge-beat { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+/* ---------- ライト = 墨の世界(ペースアンカー: 液态呼吸 3400ms) ---------- */
+.ambient-vignette--light {
+  background: radial-gradient(140% 105% at 50% 44%, transparent 62%, var(--ambient-vignette-light) 100%);
+  animation: ambient-light-vignette 30s ease-in-out infinite;
+}
+@keyframes ambient-light-vignette { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
+.ambient-pool {
+  inset: 0;
+  background: radial-gradient(120% 55% at 50% 26%, var(--ambient-paper-pool), transparent 62%);
+  animation: ambient-light-pool 3.6s ease-in-out infinite;
+}
+@keyframes ambient-light-pool { 0%, 100% { opacity: .8; } 50% { opacity: 1; } }
+.ambient-inkfield { inset: -10%; animation: ambient-ink-rotate 180s linear infinite; }
+@keyframes ambient-ink-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ambient-inkcloud {
+  position: absolute;
+  border-radius: 48% 52% 45% 55% / 51% 47% 53% 49%;
+}
+.ambient-inkcloud--a {
+  width: 88vmax; height: 76vmax; left: -16vmax; top: -24vmax;
+  border-radius: 45% 55% 50% 50% / 52% 48% 52% 48%;
+  background:
+    radial-gradient(56% 50% at 42% 44%, var(--ambient-inkcloud-blue), transparent 70%),
+    radial-gradient(38% 34% at 66% 60%, var(--ambient-inkcloud-blue-2), transparent 70%);
+  animation: ambient-ink-a 24s ease-in-out infinite alternate, ambient-ink-breathe 3400ms ease-in-out infinite;
+}
+.ambient-inkcloud--b {
+  width: 96vmax; height: 84vmax; right: -24vmax; top: 0;
+  border-radius: 53% 47% 44% 56% / 48% 52% 48% 52%;
+  background:
+    radial-gradient(52% 46% at 55% 40%, var(--ambient-inkcloud-sepia), transparent 70%),
+    radial-gradient(34% 30% at 34% 62%, var(--ambient-inkcloud-sepia-2), transparent 70%);
+  animation: ambient-ink-b 38s ease-in-out infinite alternate, ambient-ink-breathe 3400ms ease-in-out infinite;
+  animation-delay: 0s, -1100ms;
+}
+.ambient-inkcloud--c {
+  width: 78vmax; height: 70vmax; left: 10vmax; bottom: -32vmax;
+  border-radius: 50% 50% 54% 46% / 53% 47% 53% 47%;
+  background:
+    radial-gradient(54% 48% at 48% 46%, var(--ambient-inkcloud-indigo), transparent 70%),
+    radial-gradient(30% 26% at 68% 34%, var(--ambient-inkcloud-indigo-2), transparent 70%);
+  animation: ambient-ink-c 52s ease-in-out infinite alternate, ambient-ink-breathe 3400ms ease-in-out infinite;
+  animation-delay: 0s, -2300ms;
+}
+@keyframes ambient-ink-breathe { 0%, 100% { opacity: .64; } 50% { opacity: 1; } }
+@keyframes ambient-ink-a { from { transform: translate(0, 0) rotate(0deg) scale(1); } to { transform: translate(11vmax, 8vmax) rotate(26deg) scale(1.16); } }
+@keyframes ambient-ink-b { from { transform: translate(0, 0) rotate(0deg) scale(1.08); } to { transform: translate(-13vmax, 6vmax) rotate(-20deg) scale(.9); } }
+@keyframes ambient-ink-c { from { transform: translate(0, 0) rotate(0deg) scale(.94); } to { transform: translate(9vmax, -11vmax) rotate(16deg) scale(1.14); } }
+
+.ambient-blooms { inset: 0; }
+.ambient-bloom {
+  position: absolute;
+  left: var(--x); top: var(--y); width: 36vmin; height: 36vmin;
+  transform: translate(-50%, -50%) scale(.3);
+  background: radial-gradient(closest-side, var(--bc), transparent 72%);
+  opacity: 0;
+  animation: ambient-ink-bloom 9s ease-in-out infinite;
+  animation-delay: var(--dl);
+}
+.ambient-bloom--1 { --bc: var(--ambient-bloom-1); }
+.ambient-bloom--2 { --bc: var(--ambient-bloom-2); }
+.ambient-bloom--3 { --bc: var(--ambient-bloom-3); }
+.ambient-bloom--4 { --bc: var(--ambient-bloom-4); }
+.ambient-bloom--5 { --bc: var(--ambient-bloom-5); }
+.ambient-bloom--6 { --bc: var(--ambient-bloom-6); }
+@keyframes ambient-ink-bloom {
+  0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
+  12% { opacity: var(--bo); }
+  50% { opacity: var(--bo); }
+  64% { transform: translate(-50%, -50%) scale(1.22); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1.22); opacity: 0; }
+}
+
+.ambient-current {
+  left: -30%; right: -30%; height: 16vmin; top: var(--y); transform: rotate(var(--r));
+  background: linear-gradient(90deg, transparent 6%, var(--cc) 30%, var(--cc-2) 55%, transparent 92%);
+  animation: ambient-current-run var(--d) ease-in-out infinite alternate;
+}
+.ambient-current--1 { --cc: var(--ambient-current-1); --cc-2: var(--ambient-current-1-2); }
+.ambient-current--2 { --cc: var(--ambient-current-2); --cc-2: var(--ambient-current-2-2); }
+.ambient-current--3 { --cc: var(--ambient-current-3); --cc-2: var(--ambient-current-3-2); }
+@keyframes ambient-current-run {
+  from { transform: rotate(var(--r)) translateX(-14%); }
+  to { transform: rotate(var(--r)) translateX(14%); }
+}
+
+.ambient-brushlayer { inset: 0; animation: ambient-brush-drift 90s ease-in-out infinite alternate; }
+@keyframes ambient-brush-drift {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to { transform: translate(-3vmax, 2vmax) rotate(-1.6deg); }
+}
+.ambient-brush { fill: none; stroke-linecap: round; }
+.ambient-brush--a { stroke: var(--ambient-brush-blue); stroke-width: 92; }
+.ambient-brush--b { stroke: var(--ambient-brush-sepia); stroke-width: 70; }
+
+/* 自描筆致: 見えない筆が定期的にひと筆置く(pathLength=1 で描画→保持→フェード)。
+   ガードレールの唯一の例外 = stroke-dashoffset + opacity。 */
+.ambient-brushlayer--write path {
+  fill: none; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0;
+  animation: ambient-stroke-write var(--wd) ease-in-out infinite;
+  animation-delay: var(--wdl);
+}
+.ambient-write--a { --wd: 21s; --wdl: -4s; --wo: .10; stroke: var(--ambient-write-blue); stroke-width: 26; }
+.ambient-write--b { --wd: 29s; --wdl: -15s; --wo: .08; stroke: var(--ambient-write-sepia); stroke-width: 20; }
+@keyframes ambient-stroke-write {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  7% { opacity: var(--wo); }
+  46% { stroke-dashoffset: 0; opacity: var(--wo); }
+  72% { stroke-dashoffset: 0; opacity: var(--wo); }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.ambient-drips { inset: 0; }
+.ambient-drip {
+  position: absolute;
+  left: var(--x); top: var(--y); width: 9vmin; height: 9vmin;
+  background: radial-gradient(closest-side, var(--dc-core), var(--dc-edge) 46%, transparent 70%);
+  transform: translate(-50%, -50%) scale(.2); opacity: 0;
+  animation: ambient-drip-spread 7s ease-out infinite;
+  animation-delay: var(--dl);
+}
+.ambient-drip--1 { --dc-core: var(--ambient-drip-core-1); --dc-edge: var(--ambient-drip-edge-1); }
+.ambient-drip--2 { --dc-core: var(--ambient-drip-core-2); --dc-edge: var(--ambient-drip-edge-2); }
+.ambient-drip--3 { --dc-core: var(--ambient-drip-core-3); --dc-edge: var(--ambient-drip-edge-3); }
+.ambient-drip--4 { --dc-core: var(--ambient-drip-core-4); --dc-edge: var(--ambient-drip-edge-4); }
+.ambient-drip--5 { --dc-core: var(--ambient-drip-core-5); --dc-edge: var(--ambient-drip-edge-5); }
+@keyframes ambient-drip-spread {
+  0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; }
+  10% { opacity: var(--do); }
+  46% { transform: translate(-50%, -50%) scale(1); opacity: calc(var(--do) * .8); }
+  100% { transform: translate(-50%, -50%) scale(1.55); opacity: 0; }
+}
+
+.ambient-flecks { inset: 0; }
+.ambient-fleck {
+  position: absolute;
+  left: var(--x); top: var(--y); width: var(--s); height: calc(var(--s) * 1.5);
+  background: linear-gradient(160deg, var(--ambient-fleck-a), var(--ambient-fleck-b));
+  box-shadow: 0 0 4px var(--ambient-fleck-glow);
+  transform: rotate(var(--r));
+  animation: ambient-fleck-drift var(--d) ease-in-out infinite alternate, ambient-fleck-twinkle calc(var(--d) / 3) ease-in-out infinite;
+}
+@keyframes ambient-fleck-drift { to { transform: rotate(var(--r)) translate(22px, -30px); } }
+@keyframes ambient-fleck-twinkle { 0%, 100% { opacity: var(--o); } 50% { opacity: calc(var(--o) * .4); } }
+
+/* 盤面上の光源: 見えない太陽が頭上を90sで一周。太陽の円盤は描かない——光そのものが太陽。 */
+.ambient-sun-arm,
+.ambient-shade-arm,
+.ambient-sheen-arm { left: 50%; top: 80%; width: 0; height: 0; }
+.ambient-sun-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }
+.ambient-shade-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -67s; }
+.ambient-sheen-arm { left: 50%; top: 50%; animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }
+@keyframes ambient-sun-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.ambient-sun-wash {
+  position: absolute; left: -50vmax; top: calc(-74vmin - 50vmax); width: 100vmax; height: 100vmax;
+  background: radial-gradient(closest-side, var(--ambient-sun-wash), var(--ambient-sun-wash-edge) 44%, transparent 70%);
+}
+.ambient-shade {
+  position: absolute; left: -50vmax; top: calc(-74vmin - 50vmax); width: 100vmax; height: 100vmax;
+  background: radial-gradient(closest-side, var(--ambient-counter-shade), transparent 68%);
+}
+.ambient-sheen {
+  position: absolute; left: -110vmax; top: -110vmax; width: 220vmax; height: 220vmax;
+  background: linear-gradient(90deg, var(--ambient-sheen-light), transparent 38%, var(--ambient-sheen-dark) 78%, transparent);
+}
+
+/* ---------- スタック同期 + ハート脈動(同じ鼓動時計・同じトグルゲート。OFF 時は既存 UI と完全一致) ---------- */
+:root[data-ambient='on'] .status-band[data-stack-active='true']::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--stack-glow-c);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--stack-glow-c) 18%, transparent);
+  animation: ambient-stack-underline var(--beat) ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ambient-stack-underline { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+:root[data-ambient='on'] .stack-workspace::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--stack-glow-c) 45%, transparent),
+    0 0 24px color-mix(in srgb, var(--stack-glow-c) 30%, transparent);
+  animation: ambient-stack-underline var(--beat) ease-in-out infinite;
+}
+.status-band__life-heart {
+  display: inline-block; color: var(--warn); font-style: normal;
+  font-size: var(--font-size-sm); line-height: 1; margin-inline-end: 2px;
+}
+:root[data-ambient='on'] .status-band__life-heart {
+  animation: ambient-heart-throb calc(var(--beat) * 2) ease-in-out infinite;
+}
+@keyframes ambient-heart-throb {
+  0%, 100% { transform: scale(1); }
+  12% { transform: scale(1.18); }
+  24% { transform: scale(1); }
+}
+
+/* ---------- ターン交代イベント層(v4.3 減衰版): スウィープ+スタンプ+描き線(光輪は撤去) ---------- */
+/* 既存の presentation 線/紋章(::before/::after)はターン変種では非表示。 */
+.turn-transition-layer[data-kind='turn']::before,
+.turn-transition-layer[data-kind='turn']::after { display: none; }
+/* ターン変種は星雲/墨の上でも映えるよう暗転スクリームを張らない(モック準拠)。 */
+.turn-transition-layer[data-kind='turn'] { background: transparent; animation: none; }
+.turn-transition-layer[data-kind='turn'] .turn-transition-cue {
+  background: transparent; min-width: 0; padding: 0; gap: 6px;
+  animation: turn-stamp-hold 1500ms var(--ease-out) both;
+}
+@keyframes turn-stamp-hold { 0% { opacity: 0; } 10% { opacity: 1; } 76% { opacity: 1; } 100% { opacity: 0; } }
+/* ドロー演出と被ってもスタンプは中央固定(既存の draw translate は phase 変種専用・
+   turn 変種に効くと「中央→上→中央」のズレになるため打ち消す)。 */
+.turn-transition-layer[data-kind='turn'].presentation-layer--draw .turn-transition-cue,
+.turn-transition-layer[data-kind='turn'].presentation-layer[data-active-draw='true'] .turn-transition-cue {
+  translate: 0;
+}
+.turn-sweep {
+  position: absolute; top: -12%; bottom: -12%; left: 0; z-index: -1;
+  opacity: 0; pointer-events: none;
+  transform: translateX(-70vw) skewX(-10deg);
+  animation: turn-sweep-run 700ms var(--ease-out) both;
+}
+.turn-sweep--cold {
+  width: 36vw;
+  background: linear-gradient(105deg, transparent 8%, var(--ambient-sweep-cold) 38%, var(--ambient-sweep-cold-2) 55%, transparent 88%);
+}
+.turn-sweep--gold {
+  width: 30vw;
+  background: linear-gradient(105deg, transparent 12%, var(--ambient-sweep-gold) 42%, transparent 82%);
+  animation-delay: 120ms;
+}
+@keyframes turn-sweep-run {
+  0% { opacity: 0; transform: translateX(-70vw) skewX(-10deg); }
+  14% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(180vw) skewX(-10deg); }
+}
+.turn-stamp__label {
+  color: var(--gold-bright); font-size: 14px; font-weight: 600;
+  letter-spacing: .42em; text-indent: .42em;
+}
+.turn-stamp__num {
+  font-family: var(--display); font-weight: 700; line-height: 1;
+  font-size: clamp(72px, 16vw, 148px); color: var(--text-h);
+  text-shadow:
+    0 0 38px color-mix(in srgb, var(--stack-glow-c) 45%, transparent),
+    0 2px 0 color-mix(in srgb, var(--surface-0) 40%, transparent);
+  animation: turn-stamp-in 520ms var(--ease-snap) both;
+}
+@keyframes turn-stamp-in {
+  0% { transform: scale(1.55); opacity: 0; filter: blur(6px); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+.turn-stamp__rule {
+  display: block; width: 190px; height: 2px; margin: 10px auto 0;
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+  transform: scaleX(0);
+  animation: turn-rule-draw 340ms var(--ease-out) 240ms both;
+}
+@keyframes turn-rule-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* ターン変種のフェイズラベル(既存 strong をスタンプ配下の控えめラベルへ再皮膜)。 */
+.turn-transition-layer[data-kind='turn'] .turn-transition-cue strong {
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  letter-spacing: .3em; text-indent: .3em; color: var(--text-dim); margin-top: 9px;
+}
+@keyframes turn-sweep-fade { 0% { opacity: 0; } 30% { opacity: .45; } 100% { opacity: 0; } }
+
+/* ---------- reduced-motion: アンビエント全静止(世界観は静止画として残す)+イベント層はフェードのみ ---------- */
+.ambient-backdrop[data-reduced] * { animation: none !important; }
+.ambient-backdrop[data-reduced] .ambient-shoot { display: none; }
+.ambient-backdrop[data-reduced] .ambient-star { opacity: .6; }
+.ambient-backdrop[data-reduced] .ambient-core { opacity: .6; }
+.ambient-backdrop[data-reduced] .ambient-gas { opacity: .8; }
+@media (prefers-reduced-motion: reduce) {
+  /* OS 設定側の二重安全網(JS の data-reduced と併用)。 */
+  .ambient-backdrop * { animation: none !important; }
+  .ambient-backdrop .ambient-shoot { display: none !important; }
+  .ambient-backdrop .ambient-star { opacity: .6 !important; }
+  .ambient-backdrop .ambient-core { opacity: .6 !important; }
+  .ambient-backdrop .ambient-gas { opacity: .8 !important; }
+  :root[data-ambient='on'] .status-band[data-stack-active='true']::after,
+  :root[data-ambient='on'] .stack-workspace::after,
+  .status-band__life-heart { animation: none !important; }
+  .turn-sweep { animation: turn-sweep-fade 420ms linear both !important; }
+  .turn-stamp__num,
+  .turn-stamp__rule { animation: none !important; }
 }

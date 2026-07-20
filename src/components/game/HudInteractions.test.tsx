@@ -610,6 +610,19 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('shows a decorative heartbeat glyph inside the life value (§8a)', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    const { container, root } = mount(<StatusBand controller={controller} />);
+    const heart = container.querySelector('.status-band__life-heart');
+    expect(heart).not.toBeNull();
+    expect(heart?.getAttribute('aria-hidden')).toBe('true');
+    expect(heart?.textContent).toBe('♥');
+    // The glyph lives inside the life-value button so it pulses with the life readout.
+    expect(container.querySelector('[data-testid="life-value"] .status-band__life-heart')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
   it('exposes an undoable manual maximum-hand-size correction in the detail sheet', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state);

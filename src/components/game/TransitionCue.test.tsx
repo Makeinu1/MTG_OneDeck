@@ -115,4 +115,35 @@ describe('TransitionCue', () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  it('renders the full turn stamp (sweep + rays + ring + Cinzel number) for a turn cue', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(<TransitionCue cue={{ id: 7, kind: 'turn', turn: 6, phases: ['untap', 'upkeep', 'draw', 'main1'], drawAtMs: 560, durationMs: 1500 }} onDone={() => {}} />);
+    });
+    const layer = container.querySelector('[data-testid="transition-cue"]');
+    expect(layer?.getAttribute('data-kind')).toBe('turn');
+    expect(container.querySelectorAll('.turn-sweep')).toHaveLength(2);
+    expect(container.querySelector('.turn-stamp__label')?.textContent).toBe('TURN');
+    expect(container.querySelector('.turn-stamp__num')?.textContent).toBe('第6ターン');
+    expect(container.querySelector('.turn-stamp__rule')).not.toBeNull();
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('omits the turn stamp decoration for a phase cue (existing cue unchanged)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(<TransitionCue cue={{ id: 8, kind: 'phase', turn: 6, phases: ['combat'], drawAtMs: null, durationMs: 650 }} onDone={() => {}} />);
+    });
+    expect(container.querySelector('.turn-sweep')).toBeNull();
+    expect(container.querySelector('.turn-stamp__num')).toBeNull();
+    expect(container.querySelector('.turn-stamp__label')).toBeNull();
+    act(() => root.unmount());
+    container.remove();
+  });
 });

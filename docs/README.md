@@ -19,6 +19,7 @@
 | `docs/ui-architecture-v2.md` | UI移行の目標構造 | **partially implemented**。D4未完、現行コードの説明書ではない |
 | `docs/design-playbook.md` | D0〜D7実行カード | **historical execution contract**。D4回復契約の再承認まで新規実行に使わない |
 | `research/design/mockups/index.html` | 2026-07-09時点の視覚案v4 | **reference, not current truth**。現行PC問題を反映していない |
+| `research/design/mockups/ambient-motion.html` | 生きた背景の視覚正本(v4.3・2026-07-20 ユーザー裁定・最終確定) | **active visual contract**。design-system §8a と対。実装 = playbook D8(未実装) |
 | `research/design/pc-ui-regression-diagnosis.draft.md` | PC退行の実測診断 | **未監査draft**(判定者不在期に作成) |
 | `research/design/design-recovery-plan.draft.md` | 文書・デザイン・進行の回復案 | **未監査draft** |
 | `research/design/r1-pc-ui-baseline.draft.md` | 新旧UIの実測比較 | **未監査draft / 基礎比較完了** |
@@ -41,6 +42,7 @@
 ## 現在の製品状態(2026-07-16)
 
 - D0/D1/D2/D3/D5 は出荷済み。多人数基盤(MP-STATE〜MP-BOARD・対戦相手セットアップ)は 2026-07-16 出荷。
+- **生きた背景(AmbientLayer)は契約確定・未実装**(2026-07-20 ユーザー裁定): 視覚正本 = `research/design/mockups/ambient-motion.html`(v4.3)・契約 = design-system §8a・実行カード = playbook D8。既存 UI は不変——背景層の注入のみ。
 - **D4 デスクトップ再構成は未完了**。現行PC版はD2の単一カラムを1100pxに制限した暫定版。
 - D5をD4より先に出荷したため、ロードマップの番号順と実製品の完成順は一致しない。
 - 現行 `GameScreen` はhover previewとDnDを失い、8枚手札・フェーズ可読性・ゾーン視認性・

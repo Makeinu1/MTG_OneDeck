@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MTG OneDeck — アンビエントモーション・モック v4.3 最終確定(脈動する星雲 / 墨の奔流)</title>
+<!-- 視覚正本 v4.3(2026-07-20 ユーザー裁定・最終確定・tetra-nova 実機調査済み):
+     参照元の本質 = 音楽同期で脈動するネビュラ背景 + 3層スター(個別周波数のきらめき)+
+     オーロラバンド + 中心脈動("a whisper, never a wave")。これを CSS で近似・減衰:
+     - ダーク = 脈動する星雲: 氷/金/ティールの瓦斯3枚(ドリフト+呼吸+300s旋回)、156星の3層
+       (個別 1.5-5.3s の深いきらめき・スパイク廃止=やわらかな光点のみ)、オーロラ帯、中心コアの鼓動 700ms
+       (戦闘 525ms)、流れ星2本。ダンスフロア案は撤去(ユーザー却下)。
+     - ライト = 墨の奔流(ペースアンカー呼吸 3400ms)+ 自描筆致(21s/29s)+ 墨の滴×5 + 盤面上の光源(90s公転・太陽は描かず光のみ)。
+     - 両スキンに速度スライダー(×0.4-3.0・モック専用。製品はトークン固定値)。
+     - フェイズは既存 TransitionCue のみ・ターン交代は v2 承認済み・UI は既存踏襲(実カード)。
+     - モック専用(.chrome/.note/.ctrl)は製品に持ち込まない。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================ トークン */
+:root {
+  --ink-0:#0a0e14; --ink-1:#0d1320; --ink-2:#111a2a;
+  --surface-0:var(--ink-0); --surface-1:#141d2e; --surface-2:#1c2a42;
+  --surface-translucent: rgba(20,29,46,.88);
+  --line: rgba(150,185,235,.10); --line-strong: rgba(150,185,235,.24);
+  --text:#c9d6e8; --text-dim:#7f94b0; --text-h:#f0f5fd;
+  --mana-w:#f8e7b9; --mana-u:#6cc3e8; --mana-b:#b48be0; --mana-r:#ff8c6b; --mana-g:#8fd99a;
+  --gold:#d8b06a; --gold-bright:#f0cf8c; --gold-dim: rgba(216,176,106,.18);
+  --stack-glow-c:#9fd4ff; --warn:#ef6f6f;
+  --display:'Cinzel','Hiragino Mincho ProN',serif;
+  --sans:'Manrope','Hiragino Sans','Yu Gothic',sans-serif;
+  --mono:'Space Mono',ui-monospace,Consolas,monospace;
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-snap: cubic-bezier(.34,1.3,.64,1);
+  --radius-md:10px;
+  --shadow-card: 0 3px 12px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.5);
+  --ambient-beat: 700ms;
+  --ambient-beat-combat: 525ms;
+  --ink-blue: 39,54,74; --ink-sepia: 84,64,38; --ink-indigo: 49,95,146;
+}
+:root { --beat: var(--ambient-beat); --speed: 1; --rate: 1; }
+[data-combat="on"] { --beat: var(--ambient-beat-combat); --speed: .62; }
+
+* { box-sizing:border-box; margin:0; }
+html,body { height:100%; }
+body { font:15px/1.5 var(--sans); background:#05070d; color:var(--text); overflow:hidden; -webkit-font-smoothing:antialiased; }
+button { font-family:var(--sans); cursor:pointer; }
+.svg-defs { position:absolute; width:0; height:0; overflow:hidden; }
+
+/* ============================================================ chrome(モック専用) */
+.chrome { position:fixed; inset:0 0 auto 0; z-index:90; display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:10px 16px; background:linear-gradient(180deg, rgba(6,9,15,.95), rgba(6,9,15,.78)); border-bottom:1px solid var(--line); backdrop-filter:blur(6px); }
+.chrome__brand { display:flex; align-items:baseline; gap:10px; margin-right:6px; }
+.chrome__brand b { font-family:var(--display); font-size:15px; letter-spacing:.14em; color:var(--gold-bright); font-weight:600; }
+.chrome__brand code { font:11px var(--mono); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:4px; padding:1px 6px; }
+.chrome__tabs { display:flex; gap:4px; flex-wrap:wrap; }
+.chrome__tab { appearance:none; border:1px solid transparent; background:transparent; color:var(--text-dim); font:600 12.5px/1 var(--sans); letter-spacing:.05em; padding:8px 12px; border-radius:8px; transition:color .18s var(--ease-out), background .18s var(--ease-out), transform .12s var(--ease-out); }
+.chrome__tab:hover { color:var(--text-h); background:rgba(150,185,235,.07); transform:translateY(-1px); }
+.chrome__tab:active { transform:translateY(0) scale(.97); }
+.chrome__tab.is-active { color:var(--gold-bright); background:var(--gold-dim); border-color:rgba(216,176,106,.35); }
+.chrome__tab:focus-visible, .chrome__notes:focus-visible, .btn:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
+.chrome__notes { margin-left:auto; appearance:none; border:1px solid rgba(120,190,230,.4); background:rgba(90,160,200,.12); color:#9fd0ea; font:600 12px/1 var(--sans); padding:7px 11px; border-radius:8px; transition:background .18s, transform .12s; }
+.chrome__notes:hover { background:rgba(90,160,200,.22); }
+.chrome__notes:active { transform:scale(.96); }
+
+/* ============================================================ scene */
+.scene { position:fixed; inset:0; display:none; overflow:hidden; }
+.scene.is-active { display:block; }
+.scene--dark { background:radial-gradient(120% 90% at 50% 30%, #0a0f1c 0%, #05070d 62%); }
+
+/* ============================================================ 背景: ダーク = 脈動する星雲 */
+.amb { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.amb > * { position:absolute; }
+.amb-vignette { inset:0; background:radial-gradient(140% 105% at 50% 44%, transparent 56%, rgba(0,0,5,.6) 100%); animation:vignette-beat calc(var(--beat) / var(--rate)) ease-in-out infinite; animation-delay:calc(var(--beat) / var(--rate) / -2); }
+@keyframes vignette-beat { 0%,100% { opacity:.7; } 50% { opacity:1; } }
+/* 星雲ガス(3瓦斯・ドリフト+呼吸・場全体が300s旋回) */
+.nebula { inset:-14%; animation:neb-rotate calc(300s / var(--rate)) linear infinite; will-change:transform; }
+@keyframes neb-rotate { to { transform:rotate(360deg); } }
+.gas { position:absolute; border-radius:50%; filter:url(#ink-rough); mix-blend-mode:screen; will-change:transform,opacity; }
+.gas--a { width:120vmax; height:92vmax; left:-28vmax; top:-34vmax;
+  background:radial-gradient(52% 46% at 44% 46%, rgba(96,150,255,.20), transparent 70%), radial-gradient(36% 30% at 64% 58%, rgba(130,195,255,.13), transparent 70%);
+  animation:gas-a calc(64s / var(--rate)) ease-in-out infinite alternate, gas-breathe calc(7.4s / var(--rate)) ease-in-out infinite; }
+.gas--b { width:104vmax; height:88vmax; right:-30vmax; top:-6vmax;
+  background:radial-gradient(50% 44% at 52% 42%, rgba(240,207,140,.13), transparent 70%), radial-gradient(32% 28% at 36% 60%, rgba(240,207,140,.08), transparent 70%);
+  animation:gas-b calc(88s / var(--rate)) ease-in-out infinite alternate, gas-breathe calc(9.6s / var(--rate)) ease-in-out infinite; animation-delay:0s, -3.2s; }
+.gas--c { width:96vmax; height:80vmax; left:4vmax; bottom:-36vmax;
+  background:radial-gradient(52% 46% at 48% 44%, rgba(96,214,196,.11), transparent 70%), radial-gradient(30% 26% at 66% 36%, rgba(96,214,196,.07), transparent 70%);
+  animation:gas-c calc(112s / var(--rate)) ease-in-out infinite alternate, gas-breathe calc(11.8s / var(--rate)) ease-in-out infinite; animation-delay:0s, -6.1s; }
+@keyframes gas-breathe { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+@keyframes gas-a { from { transform:translate(0,0) rotate(0deg) scale(1); } to { transform:translate(9vmax,7vmax) rotate(18deg) scale(1.14); } }
+@keyframes gas-b { from { transform:translate(0,0) rotate(0deg) scale(1.08); } to { transform:translate(-10vmax,5vmax) rotate(-14deg) scale(.92); } }
+@keyframes gas-c { from { transform:translate(0,0) rotate(0deg) scale(.95); } to { transform:translate(8vmax,-8vmax) rotate(12deg) scale(1.12); } }
+/* オーロラバンド */
+.aurora { left:-22%; right:-22%; top:10%; height:30%; transform:rotate(-7deg); mix-blend-mode:screen; filter:url(#ink-rough);
+  background:linear-gradient(180deg, transparent, rgba(120,200,235,.06) 36%, rgba(150,220,255,.10) 52%, transparent 78%);
+  animation:aurora-sway calc(17s / var(--rate)) ease-in-out infinite alternate; will-change:transform,opacity; }
+@keyframes aurora-sway { from { transform:rotate(-7deg) translateX(-4%); opacity:.65; } to { transform:rotate(-4.5deg) translateX(4%); opacity:1; } }
+/* 星々(3層・個別周波数のきらめき) */
+.stars { inset:0; }
+.star { left:var(--x); top:var(--y); width:var(--sz); height:var(--sz); border-radius:50%;
+  background:var(--tint); box-shadow:0 0 calc(var(--sz) * var(--glow, 3)) var(--tint);
+  animation:twinkle calc(var(--d) / var(--rate)) ease-in-out infinite; animation-delay:var(--dl);
+  will-change:opacity,transform; }
+@keyframes twinkle { 0%,100% { opacity:calc(var(--o) * .16); transform:scale(.72); } 50% { opacity:var(--o); transform:scale(1.32); } }
+.star--spiked::before, .star--spiked::after { content:''; position:absolute; left:50%; top:50%; background:linear-gradient(90deg, transparent, var(--tint), transparent); }
+.star--spiked::before { width:calc(var(--sz) * 8); height:1px; transform:translate(-50%,-50%); }
+.star--spiked::after { width:1px; height:calc(var(--sz) * 8); transform:translate(-50%,-50%); background:linear-gradient(180deg, transparent, var(--tint), transparent); }
+/* 中心コアの鼓動(beat・"a whisper, never a wave") */
+.neb-core { left:50%; top:42%; width:66vmin; height:42vmin; transform:translate(-50%,-50%);
+  background:radial-gradient(closest-side, rgba(170,205,255,.15), transparent 70%);
+  animation:core-beat calc(var(--beat) / var(--rate)) ease-in-out infinite; will-change:transform,opacity; }
+@keyframes core-beat { 0%,100% { opacity:.4; transform:translate(-50%,-50%) scale(1); } 50% { opacity:.92; transform:translate(-50%,-50%) scale(1.05); } }
+[data-combat="on"] .neb-core { background:radial-gradient(closest-side, rgba(255,180,140,.16), transparent 70%); animation-name:core-beat-combat; }
+@keyframes core-beat-combat { 0%,100% { opacity:.45; transform:translate(-50%,-50%) scale(1); } 50% { opacity:1; transform:translate(-50%,-50%) scale(1.07); } }
+/* 流れ星(定期スケジュール) */
+.shoot { width:230px; height:2px; border-radius:2px; opacity:0;
+  background:linear-gradient(90deg, rgba(225,238,255,.95), rgba(160,200,255,.35) 55%, transparent);
+  box-shadow:0 0 14px rgba(190,220,255,.8);
+  animation:shoot calc(var(--sd) / var(--rate)) linear infinite; animation-delay:var(--sdl);
+  will-change:transform,opacity; }
+.shoot--a { left:12%; top:15%; --ang:-24deg; --dx:64vw; --sd:11s; --sdl:-3s; }
+.shoot--b { left:56%; top:9%;  --ang:-31deg; --dx:52vw; --sd:17s; --sdl:-9s; }
+@keyframes shoot { 0% { transform:rotate(var(--ang)) translateX(0); opacity:0; } 2% { opacity:1; } 8% { transform:rotate(var(--ang)) translateX(var(--dx)); opacity:0; } 100% { transform:rotate(var(--ang)) translateX(var(--dx)); opacity:0; } }
+/* 戦闘: 縁のヒート */
+.amb-combat-edge { inset:0; opacity:0; transition:opacity 600ms var(--ease-out); background:radial-gradient(115% 92% at 50% 46%, transparent 60%, rgba(255,110,70,.17) 100%); }
+[data-combat="on"] .amb-combat-edge { opacity:1; animation:edge-beat calc(var(--beat) / var(--rate)) ease-in-out infinite; }
+@keyframes edge-beat { 0%,100% { opacity:.45; } 50% { opacity:1; } }
+
+/* ============================================================ 背景: ライト = 墨の奔流(高速化) */
+.scene--light { background:#f3efe5; color:#27364a;
+  --surface-0:#f3efe5; --surface-1:#fbf8f1; --surface-2:#ffffff; --surface-translucent:rgba(251,248,241,.9);
+  --line:rgba(36,49,68,.12); --line-strong:rgba(36,49,68,.26);
+  --text:#27364a; --text-dim:#657286; --text-h:#111b2a;
+  --gold:#9a6d26; --gold-bright:#704a12; --gold-dim:rgba(154,109,38,.13);
+  --stack-glow-c:#256ea1; --warn:#c04444;
+  --shadow-card:0 3px 10px rgba(48,38,24,.2), 0 1px 2px rgba(48,38,24,.12);
+}
+.scene--light .amb-vignette { background:radial-gradient(140% 105% at 50% 44%, transparent 62%, rgba(89,70,41,.16) 100%); animation:light-vignette calc(30s / var(--rate)) ease-in-out infinite; }
+@keyframes light-vignette { 0%,100% { opacity:.72; } 50% { opacity:1; } }
+.scene--light .amb-pool { animation:light-pool calc(3.6s / var(--rate)) ease-in-out infinite; background:radial-gradient(120% 55% at 50% 26%, rgba(255,255,255,.8), transparent 62%); }
+@keyframes light-pool { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+.paper-grain { inset:0; filter:url(#paper-noise); opacity:.8; mix-blend-mode:multiply; }
+.inkfield { inset:-10%; animation:ink-rotate calc(180s / var(--rate)) linear infinite; will-change:transform; }
+@keyframes ink-rotate { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+.inkcloud { position:absolute; border-radius:50%; filter:url(#ink-rough); will-change:transform,opacity; }
+.inkcloud--a { width:88vmax; height:76vmax; left:-16vmax; top:-24vmax;
+  background:radial-gradient(56% 50% at 42% 44%, rgba(var(--ink-blue),.22), transparent 70%), radial-gradient(38% 34% at 66% 60%, rgba(var(--ink-blue),.16), transparent 70%);
+  animation:ink-a calc(24s / var(--rate)) ease-in-out infinite alternate, ink-breathe calc(3400ms / var(--rate)) ease-in-out infinite; }
+.inkcloud--b { width:96vmax; height:84vmax; right:-24vmax; top:0;
+  background:radial-gradient(52% 46% at 55% 40%, rgba(var(--ink-sepia),.18), transparent 70%), radial-gradient(34% 30% at 34% 62%, rgba(var(--ink-sepia),.13), transparent 70%);
+  animation:ink-b calc(38s / var(--rate)) ease-in-out infinite alternate, ink-breathe calc(3400ms / var(--rate)) ease-in-out infinite; animation-delay:0s, -1100ms; }
+.inkcloud--c { width:78vmax; height:70vmax; left:10vmax; bottom:-32vmax;
+  background:radial-gradient(54% 48% at 48% 46%, rgba(var(--ink-indigo),.15), transparent 70%), radial-gradient(30% 26% at 68% 34%, rgba(var(--ink-indigo),.11), transparent 70%);
+  animation:ink-c calc(52s / var(--rate)) ease-in-out infinite alternate, ink-breathe calc(3400ms / var(--rate)) ease-in-out infinite; animation-delay:0s, -2300ms; }
+@keyframes ink-breathe { 0%,100% { opacity:.64; } 50% { opacity:1; } }
+@keyframes ink-a { from { transform:translate(0,0) rotate(0deg) scale(1); } to { transform:translate(11vmax,8vmax) rotate(26deg) scale(1.16); } }
+@keyframes ink-b { from { transform:translate(0,0) rotate(0deg) scale(1.08); } to { transform:translate(-13vmax,6vmax) rotate(-20deg) scale(.9); } }
+@keyframes ink-c { from { transform:translate(0,0) rotate(0deg) scale(.94); } to { transform:translate(9vmax,-11vmax) rotate(16deg) scale(1.14); } }
+.blooms { inset:0; }
+.bloom { left:var(--x); top:var(--y); width:36vmin; height:36vmin; transform:translate(-50%,-50%) scale(.3); background:radial-gradient(closest-side, rgba(var(--bc),var(--ba)), transparent 72%); filter:url(#ink-rough); opacity:0; animation:ink-bloom calc(9s / var(--rate)) ease-in-out infinite; animation-delay:var(--dl); will-change:transform,opacity; }
+@keyframes ink-bloom { 0% { transform:translate(-50%,-50%) scale(.3); opacity:0; } 12% { opacity:var(--bo); } 50% { opacity:var(--bo); } 64% { transform:translate(-50%,-50%) scale(1.22); opacity:0; } 100% { transform:translate(-50%,-50%) scale(1.22); opacity:0; } }
+.current { left:-30%; right:-30%; height:16vmin; top:var(--y); transform:rotate(var(--r)); background:linear-gradient(90deg, transparent 6%, rgba(var(--cc),var(--ca)) 30%, rgba(var(--cc),calc(var(--ca) * .6)) 55%, transparent 92%); animation:current-run calc(var(--d) / var(--rate)) ease-in-out infinite alternate; will-change:transform; }
+@keyframes current-run { from { transform:rotate(var(--r)) translateX(-14%); } to { transform:rotate(var(--r)) translateX(14%); } }
+.brushlayer { inset:0; animation:brush-drift calc(90s / var(--rate)) ease-in-out infinite alternate; will-change:transform; }
+@keyframes brush-drift { from { transform:translate(0,0) rotate(0deg); } to { transform:translate(-3vmax,2vmax) rotate(-1.6deg); } }
+.flecks { inset:0; }
+.fleck { left:var(--x); top:var(--y); width:var(--s); height:calc(var(--s) * 1.5); background:linear-gradient(160deg,#d9b46a,#9a6d26); box-shadow:0 0 4px rgba(154,109,38,.4); transform:rotate(var(--r)); animation:fleck-drift calc(var(--d) / var(--rate)) ease-in-out infinite alternate, fleck-twinkle calc(var(--d) / var(--rate) / 3) ease-in-out infinite; will-change:transform,opacity; }
+@keyframes fleck-drift { to { transform:rotate(var(--r)) translate(22px,-30px); } }
+@keyframes fleck-twinkle { 0%,100% { opacity:var(--o); } 50% { opacity:calc(var(--o) * .4); } }
+
+
+/* 自描筆致(見えない筆が定期的にひと筆置く・pathLength=1 で描画) */
+.brushlayer--write path { stroke-dasharray:1; stroke-dashoffset:1; opacity:0;
+  animation:stroke-write calc(var(--wd) / var(--rate)) ease-in-out infinite; animation-delay:var(--wdl); }
+@keyframes stroke-write { 0% { stroke-dashoffset:1; opacity:0; } 7% { opacity:var(--wo); }
+  46% { stroke-dashoffset:0; opacity:var(--wo); } 72% { stroke-dashoffset:0; opacity:var(--wo); }
+  100% { stroke-dashoffset:0; opacity:0; } }
+/* 墨の滴(紙に落ちて広がる・小ぶり・濃い芯) */
+.drips { inset:0; }
+.drip { left:var(--x); top:var(--y); width:9vmin; height:9vmin;
+  background:radial-gradient(closest-side, rgba(var(--dc),.30), rgba(var(--dc),.13) 46%, transparent 70%);
+  filter:url(#ink-rough); transform:translate(-50%,-50%) scale(.2); opacity:0;
+  animation:drip-spread calc(7s / var(--rate)) ease-out infinite; animation-delay:var(--dl);
+  will-change:transform,opacity; }
+@keyframes drip-spread { 0% { transform:translate(-50%,-50%) scale(.2); opacity:0; }
+  10% { opacity:var(--do); } 46% { transform:translate(-50%,-50%) scale(1); opacity:calc(var(--do) * .8); }
+  100% { transform:translate(-50%,-50%) scale(1.55); opacity:0; } }
+
+
+/* 盤面上の光源: 見えない太陽が頭上を90sで一周 = 暖光の池が紙面を渡り、
+   冷たい対蹠の影と紙のシーンが同じ角度で回る(太陽の円盤は描かない) */
+.sun-arm, .shade-arm, .sheen-arm { left:50%; top:80%; width:0; height:0; }
+.sun-arm { animation:sun-orbit calc(90s / var(--rate)) linear infinite; animation-delay:-22s; }
+.shade-arm { animation:sun-orbit calc(90s / var(--rate)) linear infinite; animation-delay:-67s; }
+.sheen-arm { left:50%; top:50%; animation:sun-orbit calc(90s / var(--rate)) linear infinite; animation-delay:-22s; }
+@keyframes sun-orbit { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+.sun-wash { position:absolute; left:-50vmax; top:calc(-74vmin - 50vmax); width:100vmax; height:100vmax;
+  background:radial-gradient(closest-side, rgba(224,186,120,.20), rgba(224,186,120,.07) 44%, transparent 70%); }
+.shade { position:absolute; left:-50vmax; top:calc(-74vmin - 50vmax); width:100vmax; height:100vmax;
+  background:radial-gradient(closest-side, rgba(39,54,74,.075), transparent 68%); }
+.sheen { position:absolute; left:-110vmax; top:-110vmax; width:220vmax; height:220vmax;
+  background:linear-gradient(90deg, rgba(255,252,244,.18), rgba(255,252,244,0) 38%, rgba(39,54,74,.05) 78%, rgba(39,54,74,0)); }
+
+/* ============================================================ 既存 UI 再現(踏襲・実カード) */
+.game { position:absolute; inset:0; display:flex; flex-direction:column; padding-top:48px; z-index:3; }
+.statusband { height:42px; display:flex; align-items:center; gap:8px; padding:0 12px; border-bottom:1px solid var(--line); font-size:13px; background:var(--surface-translucent); position:relative; z-index:6; }
+.statusband[data-stack-active="true"] { box-shadow:inset 0 -2px 0 var(--stack-glow-c); animation:sb-stack calc(var(--beat) / var(--rate)) ease-in-out infinite; }
+@keyframes sb-stack { 0%,100% { box-shadow:inset 0 -2px 0 rgba(159,212,255,.35); } 50% { box-shadow:inset 0 -2px 0 rgba(159,212,255,.95), 0 6px 18px rgba(140,190,255,.18); } }
+.sb-turn { display:flex; align-items:baseline; gap:2px; color:var(--text-dim); flex:0 0 34px; }
+.sb-turn b { font-family:var(--mono); color:var(--text-h); font-size:15px; font-weight:700; }
+.sb-phases { display:flex; align-items:center; gap:2px; }
+.sb-phase-current { display:flex; align-items:center; gap:5px; padding:3px 9px; border:1px solid var(--line-strong); border-radius:8px; color:var(--text-h); font-weight:700; font-size:12.5px; }
+.sb-phase-current .mode { color:var(--gold-bright); font-size:11px; }
+.sb-steps { display:flex; gap:2px; margin-left:4px; }
+.sb-steps span { padding:3px 6px; border-radius:6px; font-size:10.5px; color:var(--text-dim); font-weight:600; }
+.sb-steps span.is-done { color:color-mix(in srgb, var(--gold-bright) 58%, var(--text-dim)); }
+.sb-steps span.is-active { background:var(--gold-dim); color:var(--gold-bright); }
+.sb-life { margin-left:auto; display:flex; align-items:baseline; gap:4px; }
+.sb-life em { font-style:normal; color:var(--warn); font-size:15px; display:inline-block; animation:heart-throb calc(var(--beat) * 2 / var(--rate)) ease-in-out infinite; }
+@keyframes heart-throb { 0%,100% { transform:scale(1); } 12% { transform:scale(1.18); } 24% { transform:scale(1); } }
+.sb-life b { font-family:var(--display); font-size:19px; color:var(--text-h); font-weight:600; }
+.sb-pile { display:flex; flex-direction:column; align-items:center; padding:2px 8px; border:1px solid var(--line); border-radius:8px; color:var(--text-dim); font-size:9.5px; line-height:1.2; }
+.sb-pile b { font-family:var(--mono); color:var(--text-h); font-size:12.5px; }
+.sb-bell { position:relative; width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--line); border-radius:8px; color:var(--text-dim); background:transparent; font-size:14px; }
+
+.board { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; gap:10px; padding:8px 16px; }
+.lane { display:flex; gap:10px; justify-content:center; align-items:center; }
+.lane + .lane { border-top:1px solid var(--line); padding-top:10px; }
+.game-card { position:relative; width:88px; aspect-ratio:63/88; border-radius:5px; overflow:hidden; background:linear-gradient(160deg, var(--surface-2), var(--ink-2)); box-shadow:var(--shadow-card); flex:0 0 auto; transition:transform .18s var(--ease-out), box-shadow .18s var(--ease-out); }
+.scene--light .game-card { background:linear-gradient(160deg,#ffffff,#ece5d6); }
+.game-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.game-card__fb { position:absolute; inset:0; display:grid; place-items:center; font:600 9px/1.3 var(--sans); color:var(--text-dim); text-align:center; padding:6px; }
+.game-card:hover { transform:translateY(-5px); box-shadow:0 12px 24px rgba(0,0,0,.5); }
+.game-card.is-playable { box-shadow:0 0 0 2px var(--gold-bright), 0 0 14px rgba(240,207,140,.4), var(--shadow-card); }
+.game-card.is-tapped { transform:rotate(90deg) translateX(10px); filter:brightness(.72); }
+.game-card.is-tapped:hover { transform:rotate(90deg) translateX(10px) scale(1.04); }
+
+.landrow { height:118px; flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:8px 16px; overflow:hidden; }
+.commander-slot { position:relative; flex:0 0 auto; }
+.commander-slot .game-card { width:76px; outline:2px solid var(--gold); outline-offset:1px; }
+.commander-slot b { position:absolute; top:-7px; left:4px; z-index:2; background:var(--gold-dim); border:1px solid rgba(216,176,106,.5); color:var(--gold-bright); font:700 8.5px/1 var(--sans); letter-spacing:.08em; padding:2px 5px; border-radius:4px; }
+.land-bundle { position:relative; width:96px; height:100px; flex:0 0 auto; }
+.land-bundle .game-card { position:absolute; top:0; width:72px; }
+.land-bundle .game-card:nth-child(1) { left:0; }
+.land-bundle .game-card:nth-child(2) { left:5px; top:-5px; }
+.land-bundle__count { position:absolute; left:2px; bottom:2px; z-index:5; min-width:20px; height:20px; display:grid; place-items:center; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:50%; font:700 11px var(--mono); color:var(--text-h); }
+.land-bundle__tapped { position:absolute; left:-3px; top:-5px; z-index:6; font:700 10.5px var(--mono); color:var(--gold-bright); }
+
+.handrow { flex:0 0 auto; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:end; gap:10px; padding:10px 12px 12px; }
+.zones { display:flex; gap:5px; padding:5px; background:color-mix(in srgb, var(--surface-1) 72%, transparent); border:1px solid var(--line); border-radius:var(--radius-md); }
+.zone { width:56px; height:92px; padding:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; background:var(--surface-1); border:1px solid var(--line-strong); border-radius:var(--radius-md); color:var(--text-dim); font-size:9.5px; }
+.zone b { font-family:var(--mono); color:var(--text-h); font-size:15px; }
+.zone--library { background:linear-gradient(135deg, var(--surface-2), var(--surface-1)); box-shadow:var(--shadow-card); }
+.zone--library small { color:var(--gold-bright); font-size:8.5px; }
+.hand { display:flex; justify-content:center; align-items:flex-end; min-height:104px; }
+.hand .game-card { width:78px; margin:0 -9px; transition:transform .2s var(--ease-out), box-shadow .2s; }
+.hand .game-card:nth-child(1) { transform:rotate(-6deg) translateY(5px); }
+.hand .game-card:nth-child(2) { transform:rotate(-2deg); }
+.hand .game-card:nth-child(4) { transform:rotate(3deg); }
+.hand .game-card:nth-child(5) { transform:rotate(7deg) translateY(6px); }
+.hand .game-card:hover { transform:translateY(-14px) rotate(0deg) scale(1.06); z-index:10; }
+.thumb-zone { display:flex; align-items:flex-end; gap:7px; }
+.icon-btn { width:44px; height:44px; display:grid; place-items:center; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface-1); color:var(--text); font-size:17px; transition:transform .14s var(--ease-out), background .18s; }
+.icon-btn:hover { transform:translateY(-1px); background:var(--surface-2); }
+.icon-btn:active { transform:scale(.95); }
+.btn { appearance:none; border-radius:10px; padding:12px 18px; font:700 13.5px/1 var(--sans); letter-spacing:.05em; transition:transform .14s var(--ease-out), box-shadow .18s var(--ease-out); }
+.btn:active { transform:scale(.96); }
+.btn--gold { border:1px solid rgba(255,235,190,.5); color:#17130a; background:linear-gradient(160deg,#e8c883,#d8b06a 45%,#b8904e); box-shadow:inset 0 1px 0 rgba(255,235,190,.5), 0 4px 14px rgba(216,176,106,.28); }
+.scene--light .btn--gold { background:linear-gradient(160deg,#d9b46a,#bd8b3c 52%,#9a6d26); color:#140d04; }
+.btn--gold:hover { transform:translateY(-1px); box-shadow:inset 0 1px 0 rgba(255,235,190,.5), 0 7px 20px rgba(216,176,106,.42); }
+.btn--ghost { border:1px solid var(--line-strong); color:var(--text); background:rgba(150,185,235,.06); }
+.btn--ghost:hover { transform:translateY(-1px); background:rgba(150,185,235,.13); }
+
+.stack-workspace { position:absolute; right:14px; top:26%; z-index:7; width:236px; background:var(--surface-translucent); border:1px solid rgba(159,212,255,.4); border-radius:12px; box-shadow:0 16px 38px rgba(0,0,0,.4); opacity:0; transform:translateY(8px); transition:opacity .24s var(--ease-out), transform .24s var(--ease-out); pointer-events:none; }
+[data-stack="on"] .stack-workspace { opacity:1; transform:none; pointer-events:auto; animation:stack-beat calc(var(--beat) / var(--rate)) ease-in-out infinite; }
+@keyframes stack-beat { 0%,100% { box-shadow:0 16px 38px rgba(0,0,0,.4), 0 0 0 1px rgba(159,212,255,.25), 0 0 12px rgba(140,190,255,.14); } 50% { box-shadow:0 16px 38px rgba(0,0,0,.4), 0 0 0 2px rgba(159,212,255,.65), 0 0 30px rgba(140,190,255,.4); } }
+.stack-workspace__handle { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); font:700 11px/1 var(--sans); letter-spacing:.14em; color:var(--stack-glow-c); }
+.stack-item { display:flex; gap:9px; padding:10px 12px; align-items:center; }
+.stack-item .game-card { width:44px; }
+.stack-item__info { min-width:0; }
+.stack-item__info strong { display:block; font-size:12.5px; color:var(--text-h); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stack-item__info span { font-size:10.5px; color:var(--text-dim); }
+.stack-item__chip { display:inline-block; margin-top:3px; padding:2px 7px; border-radius:99px; border:1px solid var(--line-strong); font-size:10px; color:var(--text-dim); }
+
+/* ============================================================ ターン交代 + 既存 TransitionCue */
+.sweep { position:absolute; top:-12%; bottom:-12%; left:0; z-index:6; opacity:0; pointer-events:none; transform:translateX(-70vw) skewX(-10deg); }
+.sweep--cold { width:36vw; background:linear-gradient(105deg, transparent 8%, rgba(190,220,255,.18) 38%, rgba(159,212,255,.10) 55%, transparent 88%); }
+.sweep--gold { width:30vw; background:linear-gradient(105deg, transparent 12%, rgba(240,207,140,.15) 42%, transparent 82%); }
+.sweep.is-playing { animation:turn-sweep 700ms var(--ease-out) both; }
+.sweep--gold.is-playing { animation-delay:120ms; }
+@keyframes turn-sweep { 0% { opacity:0; transform:translateX(-70vw) skewX(-10deg); } 14% { opacity:1; } 100% { opacity:0; transform:translateX(180vw) skewX(-10deg); } }
+.stamp-rays { position:absolute; left:50%; top:38%; width:560px; height:560px; z-index:6; margin:-280px 0 0 -280px; border-radius:50%; opacity:0; pointer-events:none; background:repeating-conic-gradient(from 8deg, rgba(240,207,140,.11) 0deg 5deg, transparent 5deg 24deg); -webkit-mask:radial-gradient(closest-side, transparent 16%, #000 30%, transparent 74%); mask:radial-gradient(closest-side, transparent 16%, #000 30%, transparent 74%); }
+.stamp-rays.is-playing { animation:rays-in 950ms var(--ease-out) both; }
+@keyframes rays-in { 0% { opacity:0; transform:scale(.55) rotate(-10deg); } 22% { opacity:1; } 100% { opacity:0; transform:scale(1.18) rotate(7deg); } }
+.stamp { position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); z-index:8; text-align:center; opacity:0; pointer-events:none; }
+.stamp.is-playing { animation:stamp-hold 1500ms var(--ease-out) both; }
+@keyframes stamp-hold { 0%{opacity:0} 10%{opacity:1} 76%{opacity:1} 100%{opacity:0} }
+.stamp small { display:block; font:600 14px/1 var(--sans); letter-spacing:.42em; text-indent:.42em; color:var(--gold-bright); margin-bottom:6px; }
+.stamp .num { display:inline-block; font-family:var(--display); font-weight:700; line-height:1; font-size:clamp(72px,16vw,148px); color:var(--text-h); text-shadow:0 0 38px rgba(160,200,255,.45), 0 2px 0 rgba(0,0,0,.4); }
+.stamp.is-playing .num { animation:stamp-in 520ms var(--ease-snap) both; }
+@keyframes stamp-in { 0% { transform:scale(1.55); opacity:0; filter:blur(6px); } 100% { transform:scale(1); opacity:1; filter:blur(0); } }
+.stamp-rule { display:block; width:190px; height:2px; margin:10px auto 0; background:linear-gradient(90deg, transparent, var(--gold-bright), transparent); transform:scaleX(0); }
+.stamp.is-playing .stamp-rule { animation:rule-draw 340ms var(--ease-out) 240ms both; }
+@keyframes rule-draw { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+.stamp em { display:block; font:600 13px/1 var(--sans); letter-spacing:.3em; text-indent:.3em; color:var(--text-dim); margin-top:9px; }
+.stamp-ring { position:absolute; left:50%; top:38%; width:130px; height:130px; z-index:6; margin:-65px 0 0 -65px; border:1.5px solid rgba(240,207,140,.55); border-radius:50%; opacity:0; pointer-events:none; }
+.stamp-ring.is-playing { animation:ring-impact 650ms var(--ease-out) both; }
+@keyframes ring-impact { 0% { opacity:.9; transform:scale(.3); } 100% { opacity:0; transform:scale(3.6); } }
+.cue { position:absolute; left:50%; top:30%; transform:translate(-50%,-50%); z-index:9; text-align:center; opacity:0; pointer-events:none; }
+.cue.is-playing { animation:cue-hold 1050ms var(--ease-out) both; }
+@keyframes cue-hold { 0%{opacity:0; transform:translate(-50%,-46%);} 12%{opacity:1; transform:translate(-50%,-50%);} 80%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-50%);} }
+.cue small { display:block; color:var(--gold-bright); font:600 12.5px/1 var(--sans); letter-spacing:.18em; text-shadow:0 1px 8px rgba(0,0,0,.6); }
+.cue strong { display:block; font-family:var(--display); font-size:34px; font-weight:600; color:var(--text-h); letter-spacing:.06em; text-shadow:0 2px 18px rgba(0,0,0,.65); margin-top:2px; }
+.cue__track { display:flex; gap:4px; justify-content:center; margin-top:8px; }
+.cue__track span { padding:3px 7px; border-radius:6px; background:rgba(150,185,235,.14); color:var(--text-dim); font:600 10.5px/1 var(--sans); }
+.cue__track span.is-done { background:var(--gold-dim); }
+.cue__track span.is-active { background:var(--gold-bright); color:#17130a; box-shadow:0 0 10px rgba(240,207,140,.5); }
+
+/* ============================================================ コントロール/注釈(モック専用) */
+.ctrl { position:absolute; left:16px; bottom:16px; z-index:20; min-width:248px; padding:14px 16px; border-radius:12px; background:rgba(10,15,24,.86); border:1px solid var(--line-strong); backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:11px; }
+.scene--light .ctrl { background:rgba(251,248,241,.92); border-color:rgba(36,49,68,.2); color:#27364a; }
+.ctrl h3 { font:700 11px/1 var(--sans); letter-spacing:.22em; color:var(--text-dim); }
+.ctrl__row { display:flex; align-items:center; justify-content:space-between; gap:16px; font:600 13px/1 var(--sans); }
+.switch { position:relative; display:inline-block; width:42px; height:24px; }
+.switch input { position:absolute; opacity:0; inset:0; cursor:pointer; }
+.switch .knob { position:absolute; inset:0; border-radius:99px; background:rgba(150,185,235,.16); border:1px solid var(--line-strong); transition:background .2s var(--ease-out), border-color .2s; }
+.switch .knob::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--text-dim); transition:transform .2s var(--ease-snap), background .2s; }
+.switch input:checked + .knob { background:var(--gold-dim); border-color:rgba(216,176,106,.55); }
+.switch input:checked + .knob::after { transform:translateX(18px); background:var(--gold-bright); box-shadow:0 0 8px rgba(240,207,140,.55); }
+.switch input:focus-visible + .knob { outline:2px solid var(--gold-bright); outline-offset:2px; }
+.ctrl__readout { display:flex; align-items:center; gap:9px; font:12px var(--mono); color:var(--text-dim); }
+.beat-dot { width:10px; height:10px; border-radius:50%; background:var(--stack-glow-c); animation:beat-dot calc(var(--beat) / var(--rate)) ease-in-out infinite; }
+@keyframes beat-dot { 0%,100% { opacity:.35; transform:scale(.8);} 50% { opacity:1; transform:scale(1.2);} }
+.slider-wrap { display:flex; align-items:center; gap:8px; }
+.slider-wrap input[type="range"] { width:108px; accent-color:var(--gold-bright); cursor:pointer; }
+.slider-wrap output { font:700 12px var(--mono); color:var(--gold-bright); min-width:38px; text-align:right; }
+.note { position:absolute; z-index:30; max-width:272px; padding:8px 11px; border-radius:9px; background:rgba(90,160,200,.13); border:1px solid rgba(120,190,230,.42); color:#a8d6ee; font:500 12px/1.55 var(--sans); transition:opacity .25s var(--ease-out); }
+.note b { color:#d3ecfa; font-weight:700; }
+.note::before { content:''; position:absolute; left:-5px; top:14px; width:8px; height:8px; background:inherit; border-left:1px solid rgba(120,190,230,.42); border-bottom:1px solid rgba(120,190,230,.42); transform:rotate(45deg); }
+.scene--light .note { background:rgba(37,110,150,.10); border-color:rgba(37,110,150,.4); color:#1d5e86; }
+.scene--light .note b { color:#14496b; }
+.scene--light .note::before { border-color:rgba(37,110,150,.4); }
+body[data-notes="off"] .note { opacity:0; pointer-events:none; }
+.demo { position:absolute; left:50%; bottom:20px; transform:translateX(-50%); z-index:20; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center; padding:12px 16px; border-radius:14px; background:rgba(10,15,24,.88); border:1px solid var(--line-strong); backdrop-filter:blur(6px); max-width:94vw; }
+.demo__phases { display:flex; gap:5px; }
+.demo__phases button { appearance:none; min-width:28px; height:26px; padding:0 6px; border-radius:7px; border:1px solid var(--line-strong); background:transparent; color:var(--text-dim); font:600 10.5px/1 var(--sans); transition:all .18s var(--ease-out); }
+.demo__phases button:hover { border-color:rgba(190,220,255,.5); color:var(--text-h); transform:scale(1.08); }
+.demo__phases button.on { background:var(--gold-bright); border-color:var(--gold-bright); color:#17130a; box-shadow:0 0 10px rgba(240,207,140,.4); }
+
+/* ============================================================ シーン4: reduced-motion */
+.split { position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; }
+.pane { position:relative; overflow:hidden; }
+.pane + .pane { border-left:1px solid var(--line-strong); }
+.pane__title { position:absolute; top:56px; left:18px; z-index:8; font:700 12px/1 var(--mono); letter-spacing:.14em; color:var(--text-dim); }
+.pane__title b { color:var(--text-h); }
+.pane--reduced .gas, .pane--reduced .star, .pane--reduced .aurora, .pane--reduced .neb-core,
+.pane--reduced .amb-vignette, .pane--reduced .sun-arm, .pane--reduced .shade-arm,
+.pane--reduced .sheen-arm, .pane--reduced .beat-dot, .pane--reduced .sb-life em,
+.pane--reduced .nebula { animation:none !important; }
+.pane--reduced .star { opacity:.6; }
+.pane--reduced .shoot { display:none; }
+.pane--reduced .neb-core { opacity:.6; }
+.pane--reduced .gas { opacity:.8; }
+.pane--reduced .sweep.is-playing { animation:sweep-fade 420ms linear both; }
+@keyframes sweep-fade { 0%{opacity:0} 30%{opacity:.45} 100%{opacity:0} }
+.pane--reduced .stamp.is-playing .num, .pane--reduced .stamp.is-playing .stamp-rule { animation:none; }
+.pane--reduced .stamp.is-playing { animation:stamp-hold-reduced 900ms linear both; }
+@keyframes stamp-hold-reduced { 0%{opacity:0} 20%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+.pane--reduced .stamp-ring { display:none; }
+.pane .btn { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); z-index:20; }
+.pane .btn:active { transform:translateX(-50%) scale(.96); }
+.pane .btn:hover { transform:translateX(-50%) translateY(-1px); }
+.pane .game { padding-top:52px; }
+.pane .handrow { display:none; }
+@media (max-width: 900px) {
+  .split { grid-template-columns:1fr; grid-template-rows:1fr 1fr; }
+  .pane + .pane { border-left:none; border-top:1px solid var(--line-strong); }
+  .game-card { width:64px; }
+  .note { max-width:200px; }
+  .sb-steps, .sb-pile { display:none; }
+}
+</style>
+</head>
+<body data-notes="on">
+
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="ink-rough" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="70"/>
+    </filter>
+    <filter id="paper-noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.40  0 0 0 0 0.30  0 0 0 0.05 0"/>
+    </filter>
+  </defs>
+</svg>
+
+<nav class="chrome" aria-label="モック場面切替">
+  <span class="chrome__brand"><b>MTG OneDeck</b><code>§8a v4.3 · 星雲 / 墨</code></span>
+  <div class="chrome__tabs">
+    <button class="chrome__tab is-active" data-go="dark">① ダーク・脈動する星雲</button>
+    <button class="chrome__tab" data-go="light">② ライト・墨の奔流</button>
+    <button class="chrome__tab" data-go="beats">③ ターン交代とフェイズ</button>
+    <button class="chrome__tab" data-go="reduced">④ reduced-motion</button>
+  </div>
+  <button class="chrome__notes" id="notes-toggle">注釈 ON</button>
+</nav>
+
+<!-- ============ ① ダーク・脈動する星雲 ============ -->
+<section class="scene scene--dark is-active" id="scene-dark" data-combat="off" data-stack="off" aria-label="ダーク・脈動する星雲">
+  <div class="amb" aria-hidden="true">
+    <div class="amb-vignette"></div>
+    <div class="nebula">
+      <div class="gas gas--a"></div><div class="gas gas--b"></div><div class="gas gas--c"></div>
+    </div>
+    <div class="aurora"></div>
+    <div class="stars stars--far"></div>
+    <div class="stars stars--mid"></div>
+    <div class="stars stars--near"></div>
+    <div class="shoot shoot--a"></div><div class="shoot shoot--b"></div>
+    <div class="neb-core"></div>
+    <div class="amb-combat-edge"></div>
+  </div>
+
+  <div class="game">
+    <div class="statusband" id="sb-dark" data-stack-active="false">
+      <span class="sb-turn">T<b>5</b></span>
+      <div class="sb-phases">
+        <span class="sb-phase-current">メイン1<span class="mode">▶▶</span></span>
+        <span class="sb-steps"><span class="is-done">解</span><span class="is-done">維</span><span class="is-done">引</span><span class="is-active">戦1</span><span>闘</span><span>戦2</span><span>終</span></span>
+      </div>
+      <span class="sb-life"><em>♥</em><b>40</b></span>
+      <span class="sb-pile"><b>87</b>山</span>
+      <span class="sb-pile"><b>4</b>墓</span>
+      <span class="sb-pile"><b>1</b>追</span>
+      <button class="sb-bell" type="button" aria-label="フィード">🔔</button>
+    </div>
+    <div class="board">
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">ラノワールのエルフ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Llanowar+Elves&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">極楽鳥</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Birds+of+Paradise&format=image&version=normal"></div>
+        <div class="game-card is-tapped"><span class="game-card__fb">桜族の長老</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Sakura-Tribe+Elder&format=image&version=normal"></div>
+      </div>
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">太陽の指輪</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Sol+Ring&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">秘儀の印鑑</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Arcane+Signet&format=image&version=normal"></div>
+      </div>
+    </div>
+    <div class="landrow">
+      <div class="commander-slot"><b>統率者</b>
+        <div class="game-card"><span class="game-card__fb">墓潮のマルドロッサ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Muldrotha+the+Gravetide&format=image&version=normal"></div>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">森</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Forest&format=image&version=normal"></div>
+        <div class="game-card"><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Forest&format=image&version=normal"></div>
+        <span class="land-bundle__count">×3</span>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card is-tapped"><span class="game-card__fb">島</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Island&format=image&version=normal"></div>
+        <span class="land-bundle__count">×2</span><span class="land-bundle__tapped">1⤵</span>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">沼</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Swamp&format=image&version=normal"></div>
+        <span class="land-bundle__count">×1</span>
+      </div>
+    </div>
+    <div class="handrow">
+      <div class="zones">
+        <span class="zone zone--library"><b>87</b><small>山札</small><small>+1 引く</small></span>
+        <span class="zone"><b>4</b>墓地</span>
+        <span class="zone"><b>1</b>追放</span>
+      </div>
+      <div class="hand">
+        <div class="game-card"><span class="game-card__fb">対抗呪文</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Counterspell&format=image&version=normal"></div>
+        <div class="game-card is-playable"><span class="game-card__fb">稲妻</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">蔓延する成長</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Rampant+Growth&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">思案</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Brainstorm&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">腐敗</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Putrefy&format=image&version=normal"></div>
+      </div>
+      <div class="thumb-zone">
+        <button class="icon-btn" type="button" aria-label="undo">↶</button>
+        <button class="btn btn--gold" type="button" data-primary>次のフェイズ →</button>
+        <button class="icon-btn" type="button" aria-label="メニュー">≡</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack-workspace" aria-hidden="true">
+    <div class="stack-workspace__handle"><span>スタック (1)</span><span>▾</span></div>
+    <div class="stack-item">
+      <div class="game-card"><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div>
+      <div class="stack-item__info"><strong>稲妻</strong><span>あなた → 解決待ち</span><br><span class="stack-item__chip">対象: ♥ あなた</span></div>
+    </div>
+  </div>
+
+  <div class="ctrl">
+    <h3>シミュレーション</h3>
+    <label class="ctrl__row">戦闘フェイズ<span class="switch"><input type="checkbox" id="tgl-combat"><span class="knob"></span></span></label>
+    <label class="ctrl__row">スタック非空<span class="switch"><input type="checkbox" id="tgl-stack"><span class="knob"></span></span></label>
+    <div class="ctrl__row">速度<span class="slider-wrap"><input type="range" id="sld-dark" min="0.4" max="3" step="0.1" value="1"><output id="sld-dark-out">×1.0</output></span></div>
+    <div class="ctrl__readout"><span class="beat-dot" aria-hidden="true"></span><span id="beat-readout">鼓動 700ms</span></div>
+  </div>
+
+  <div class="note" style="right:16px; top:112px;"><b>脈動する星雲</b>(tetra-nova の本質を CSS 近似・減衰): 氷/金/ティールの瓦斯がドリフト+呼吸(7-12s)、場全体が 300s で旋回。中心コアは<b>鼓動 700ms</b>——「ささやきであり、波ではない」。</div>
+  <div class="note" style="left:16px; top:33%;"><b>星のきらめき</b>: 3層<b>156星</b>をやや増してまぶす——ただし<b>主役ではない</b>(スパイク廃止・やわらかな光点のみ、白〜氷色中心)。個別周波数 1.5-5.4s の深い瞬き、流れ星は 11s/17s 周期で少し明るく。UI は既存そのもの。</div>
+  <div class="note" style="left:282px; bottom:18px;">戦闘 → <b>525ms</b> + コアが焔色 + 縁のヒート。スタック → StackBand/StatusBand が同拍で光る。<b>速度スライダー</b>で全体テンポ調整(×0.4-3)。</div>
+</section>
+
+<!-- ============ ② ライト・墨の奔流(高速) ============ -->
+<section class="scene scene--light" id="scene-light" aria-label="ライト・墨の奔流">
+  <div class="amb" aria-hidden="true">
+    <div class="paper-grain"></div>
+    <div class="inkfield">
+      <div class="inkcloud inkcloud--a"></div>
+      <div class="inkcloud inkcloud--b"></div>
+      <div class="inkcloud inkcloud--c"></div>
+    </div>
+    <div class="sun-arm" aria-hidden="true"><div class="sun-wash"></div></div>
+    <div class="shade-arm" aria-hidden="true"><div class="shade"></div></div>
+    <div class="sheen-arm" aria-hidden="true"><div class="sheen"></div></div>
+    <svg class="brushlayer" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+      <path d="M-40,640 C220,560 430,690 700,580 S1080,470 1260,420" stroke="rgba(39,54,74,.07)" stroke-width="92" fill="none" stroke-linecap="round" filter="url(#ink-rough)"/>
+      <path d="M-60,180 C260,240 520,120 820,210 S1140,300 1280,260" stroke="rgba(84,64,38,.06)" stroke-width="70" fill="none" stroke-linecap="round" filter="url(#ink-rough)"/>
+    </svg>
+    <div class="current" style="--y:16%; --r:-7deg; --cc:var(--ink-indigo); --ca:.10; --d:14s;"></div>
+    <div class="current" style="--y:52%; --r:5deg; --cc:var(--ink-blue); --ca:.09; --d:18s;"></div>
+    <div class="current" style="--y:78%; --r:-4deg; --cc:var(--ink-sepia); --ca:.08; --d:22s;"></div>
+    <svg class="brushlayer brushlayer--write" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+      <path pathLength="1" style="--wd:21s; --wdl:-4s; --wo:.10;" d="M140,120 C340,90 520,170 700,130 S1020,90 1120,140" stroke="rgba(39,54,74,.9)" stroke-width="26" fill="none" stroke-linecap="round" filter="url(#ink-rough)"/>
+      <path pathLength="1" style="--wd:29s; --wdl:-15s; --wo:.08;" d="M90,700 C300,740 560,660 800,710 S1080,750 1160,700" stroke="rgba(84,64,38,.85)" stroke-width="20" fill="none" stroke-linecap="round" filter="url(#ink-rough)"/>
+    </svg>
+    <div class="drips"></div>
+    <div class="blooms"></div>
+    <div class="flecks"></div>
+    <div class="amb-pool"></div>
+    <div class="amb-vignette"></div>
+  </div>
+
+  <div class="game">
+    <div class="statusband">
+      <span class="sb-turn">T<b>5</b></span>
+      <div class="sb-phases">
+        <span class="sb-phase-current">メイン1<span class="mode">▶▶</span></span>
+        <span class="sb-steps"><span class="is-done">解</span><span class="is-done">維</span><span class="is-done">引</span><span class="is-active">戦1</span><span>闘</span><span>戦2</span><span>終</span></span>
+      </div>
+      <span class="sb-life"><em>♥</em><b>40</b></span>
+      <span class="sb-pile"><b>87</b>山</span>
+      <span class="sb-pile"><b>4</b>墓</span>
+      <span class="sb-pile"><b>1</b>追</span>
+      <button class="sb-bell" type="button" aria-label="フィード">🔔</button>
+    </div>
+    <div class="board">
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">ラノワールのエルフ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Llanowar+Elves&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">極楽鳥</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Birds+of+Paradise&format=image&version=normal"></div>
+        <div class="game-card is-tapped"><span class="game-card__fb">桜族の長老</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Sakura-Tribe+Elder&format=image&version=normal"></div>
+      </div>
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">太陽の指輪</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Sol+Ring&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">秘儀の印鑑</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Arcane+Signet&format=image&version=normal"></div>
+      </div>
+    </div>
+    <div class="landrow">
+      <div class="commander-slot"><b>統率者</b>
+        <div class="game-card"><span class="game-card__fb">墓潮のマルドロッサ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Muldrotha+the+Gravetide&format=image&version=normal"></div>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">森</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Forest&format=image&version=normal"></div>
+        <div class="game-card"><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Forest&format=image&version=normal"></div>
+        <span class="land-bundle__count">×3</span>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card is-tapped"><span class="game-card__fb">島</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Island&format=image&version=normal"></div>
+        <span class="land-bundle__count">×2</span><span class="land-bundle__tapped">1⤵</span>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">沼</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Swamp&format=image&version=normal"></div>
+        <span class="land-bundle__count">×1</span>
+      </div>
+    </div>
+    <div class="handrow">
+      <div class="zones">
+        <span class="zone zone--library"><b>87</b><small>山札</small><small>+1 引く</small></span>
+        <span class="zone"><b>4</b>墓地</span>
+        <span class="zone"><b>1</b>追放</span>
+      </div>
+      <div class="hand">
+        <div class="game-card"><span class="game-card__fb">対抗呪文</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Counterspell&format=image&version=normal"></div>
+        <div class="game-card is-playable"><span class="game-card__fb">稲妻</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">蔓延する成長</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Rampant+Growth&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">思案</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Brainstorm&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">腐敗</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Putrefy&format=image&version=normal"></div>
+      </div>
+      <div class="thumb-zone">
+        <button class="icon-btn" type="button" aria-label="undo">↶</button>
+        <button class="btn btn--gold" type="button">次のフェイズ →</button>
+        <button class="icon-btn" type="button" aria-label="メニュー">≡</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctrl">
+    <h3>墨の奔流スキン</h3>
+    <div class="ctrl__row">速度<span class="slider-wrap"><input type="range" id="sld-light" min="0.4" max="3" step="0.1" value="1"><output id="sld-light-out">×1.0</output></span></div>
+    <div class="ctrl__readout"><span style="width:10px;height:10px;border-radius:50%;background:rgba(39,54,74,.5);animation:ink-breathe 3400ms ease-in-out infinite;"></span><span>液态呼吸 3400ms</span></div>
+    <div class="ctrl__readout"><span>雲 24/38/52s ・ 光の公転 90s ・ 筆致 ・ 滴5 ・ 金箔10</span></div>
+  </div>
+
+  <div class="note" style="right:16px; top:112px;">ペースアンカー = <b>液态呼吸 3400ms</b>(確定)。雲 24/38/52s、墨の滲み 9s×6、奔流 14-22s。しかも動きながら<b>墨そのもの</b>: 見えない筆が 21s/29s 周期でひと筆置き(自描筆致)、5箇所で墨の滴が落ちて広がる。速度スライダーは ×0.4-3。</div>
+  <div class="note" style="left:16px; top:40%;"><b>盤面上の光源</b>: 見えない太陽が頭上を <b>90s で一周</b>——暖かい光の池が紙面を渡り、冷たい対蹠の影と紙のシーン(光沢)が角度ごと回る。<b>太陽は描かない。光そのものが太陽</b>。墨場も 180s で旋回。</div>
+  <div class="note" style="right:16px; bottom:18px;">和紙の目 + 筆致の骨格は維持。UI はダークと同一構造・<b>ライトトークンのみ切替</b>(既存 data-theme 機構と同じ)。</div>
+</section>
+
+<!-- ============ ③ ターン交代(承認済み)+ フェイズ(既存) ============ -->
+<section class="scene scene--dark" id="scene-beats" data-combat="off" data-stack="off" aria-label="ターン交代とフェイズ">
+  <div class="amb" aria-hidden="true">
+    <div class="amb-vignette"></div>
+    <div class="nebula"><div class="gas gas--a"></div><div class="gas gas--b"></div><div class="gas gas--c"></div></div>
+    <div class="aurora"></div>
+    <div class="stars stars--far"></div><div class="stars stars--mid"></div><div class="stars stars--near"></div>
+    <div class="shoot shoot--a"></div><div class="shoot shoot--b"></div>
+    <div class="neb-core"></div>
+  </div>
+  <div class="sweep sweep--cold" id="sweep-cold" aria-hidden="true"></div>
+  <div class="sweep sweep--gold" id="sweep-gold" aria-hidden="true"></div>
+  <div class="stamp-rays" id="stamp-rays" aria-hidden="true"></div>
+  <div class="stamp-ring" id="stamp-ring" aria-hidden="true"></div>
+  <div class="stamp" id="stamp" aria-hidden="true">
+    <small>TURN</small><span class="num" id="stamp-num">第6ターン</span>
+    <span class="stamp-rule"></span><em id="stamp-phase">アンタップ</em>
+  </div>
+  <div class="cue" id="cue" aria-hidden="true">
+    <small id="cue-turn">第6ターン</small>
+    <strong id="cue-label">メイン1</strong>
+    <div class="cue__track" id="cue-track"></div>
+  </div>
+
+  <div class="game">
+    <div class="statusband">
+      <span class="sb-turn">T<b id="sb-turn-num">6</b></span>
+      <div class="sb-phases">
+        <span class="sb-phase-current" id="sb-phase-label">メイン1<span class="mode">▶▶</span></span>
+        <span class="sb-steps" id="sb-steps"><span class="is-done">解</span><span class="is-done">維</span><span class="is-done">引</span><span class="is-active">戦1</span><span>闘</span><span>戦2</span><span>終</span></span>
+      </div>
+      <span class="sb-life"><em>♥</em><b>40</b></span>
+      <span class="sb-pile"><b>87</b>山</span>
+      <span class="sb-pile"><b>4</b>墓</span>
+      <button class="sb-bell" type="button" aria-label="フィード">🔔</button>
+    </div>
+    <div class="board">
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">ラノワールのエルフ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Llanowar+Elves&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">極楽鳥</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Birds+of+Paradise&format=image&version=normal"></div>
+      </div>
+      <div class="lane">
+        <div class="game-card"><span class="game-card__fb">太陽の指輪</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Sol+Ring&format=image&version=normal"></div>
+      </div>
+    </div>
+    <div class="landrow">
+      <div class="commander-slot"><b>統率者</b>
+        <div class="game-card"><span class="game-card__fb">墓潮のマルドロッサ</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Muldrotha+the+Gravetide&format=image&version=normal"></div>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">森</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Forest&format=image&version=normal"></div>
+        <span class="land-bundle__count">×3</span>
+      </div>
+      <div class="land-bundle">
+        <div class="game-card"><span class="game-card__fb">島</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Island&format=image&version=normal"></div>
+        <span class="land-bundle__count">×2</span>
+      </div>
+    </div>
+    <div class="handrow">
+      <div class="zones">
+        <span class="zone zone--library"><b>87</b><small>山札</small><small>+1 引く</small></span>
+        <span class="zone"><b>4</b>墓地</span>
+      </div>
+      <div class="hand">
+        <div class="game-card is-playable"><span class="game-card__fb">稲妻</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">対抗呪文</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Counterspell&format=image&version=normal"></div>
+        <div class="game-card"><span class="game-card__fb">思案</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Brainstorm&format=image&version=normal"></div>
+      </div>
+      <div class="thumb-zone">
+        <button class="icon-btn" type="button" aria-label="undo">↶</button>
+        <button class="btn btn--gold" type="button">次のフェイズ →</button>
+        <button class="icon-btn" type="button" aria-label="メニュー">≡</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <button class="btn btn--gold" id="btn-turn">ターン交代 ▶</button>
+    <button class="btn btn--ghost" id="btn-phase">フェイズ進行 ▶<small style="display:block;font-weight:500;font-size:9.5px;opacity:.75;margin-top:2px;">既存 TransitionCue</small></button>
+    <div class="demo__phases" id="phase-dots" aria-label="フェイズトラック"></div>
+  </div>
+
+  <div class="note" style="left:16px; top:112px;"><b>ターン交代(承認済み)</b>: 冷+金スウィープ 700ms・光線・スタンプ・描き線・インパクトリング。星雲の上でも映える「大きな句読点」。</div>
+  <div class="note" style="right:16px; top:30%;"><b>フェイズ進行は既存のまま</b>: TransitionCue(ラベル+トラック)を再現。新規の波紋・色温度はつけない——既存 UI への追加は背景のみ。</div>
+  <div class="note" style="right:16px; bottom:96px;">ターン交代の瞬間、中心コアの鼓動が一拍だけ強く同期(実装は既存 keyframes と同じトークン参照)。</div>
+</section>
+
+<!-- ============ ④ reduced-motion ============ -->
+<section class="scene scene--dark" id="scene-reduced" aria-label="reduced-motion 比較">
+  <div class="split">
+    <div class="pane" data-combat="off">
+      <div class="amb" aria-hidden="true">
+        <div class="amb-vignette"></div>
+        <div class="nebula"><div class="gas gas--a"></div><div class="gas gas--b"></div></div>
+        <div class="stars stars--far"></div><div class="stars stars--mid"></div><div class="stars stars--near"></div>
+        <div class="shoot shoot--a"></div><div class="neb-core"></div>
+      </div>
+      <div class="sweep sweep--cold" id="sweep-normal" aria-hidden="true"></div>
+      <div class="stamp" id="stamp-normal"><small>TURN</small><span class="num">第7ターン</span><span class="stamp-rule"></span></div>
+      <div class="game"><div class="statusband"><span class="sb-turn">T<b>7</b></span><span class="sb-phase-current">メイン1</span><span class="sb-life" style="margin-left:auto;"><em>♥</em><b>40</b></span></div>
+        <div class="board"><div class="lane"><div class="game-card"><span class="game-card__fb">極楽鳥</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Birds+of+Paradise&format=image&version=normal"></div><div class="game-card is-playable"><span class="game-card__fb">稲妻</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div></div></div></div>
+      <div class="pane__title"><b>通常</b> — 鼓動 700ms + 全層</div>
+      <button class="btn btn--ghost" id="btn-sweep-normal">ターン交代 ▶</button>
+    </div>
+    <div class="pane pane--reduced" data-combat="off">
+      <div class="amb" aria-hidden="true">
+        <div class="amb-vignette"></div>
+        <div class="nebula"><div class="gas gas--a"></div><div class="gas gas--b"></div></div>
+        <div class="stars stars--far"></div><div class="stars stars--mid"></div><div class="stars stars--near"></div>
+        <div class="neb-core"></div>
+      </div>
+      <div class="sweep sweep--cold" id="sweep-reduced" aria-hidden="true"></div>
+      <div class="stamp" id="stamp-reduced"><small>TURN</small><span class="num">第7ターン</span><span class="stamp-rule"></span></div>
+      <div class="game"><div class="statusband"><span class="sb-turn">T<b>7</b></span><span class="sb-phase-current">メイン1</span><span class="sb-life" style="margin-left:auto;"><em>♥</em><b>40</b></span></div>
+        <div class="board"><div class="lane"><div class="game-card"><span class="game-card__fb">極楽鳥</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Birds+of+Paradise&format=image&version=normal"></div><div class="game-card is-playable"><span class="game-card__fb">稲妻</span><img loading="lazy" referrerpolicy="no-referrer" alt="" src="https://api.scryfall.com/cards/named?fuzzy=Lightning+Bolt&format=image&version=normal"></div></div></div></div>
+      <div class="pane__title"><b>prefers-reduced-motion</b> — 静止</div>
+      <button class="btn btn--ghost" id="btn-sweep-reduced">ターン交代 ▶</button>
+    </div>
+  </div>
+  <div class="note" style="left:16px; bottom:72px;">OS が reduce の実機では<b>全シーンが右側と同じく静止</b>。星雲と星は静止画として残り(世界観は維持)、動きだけが消える。流れ星は出ない。</div>
+  <div class="note" style="right:16px; bottom:72px;">製品版は ThumbZone メニューの<b>「背景モーション」トグル</b>(既定 ON・音トグルと同パターン)でも停止可能。</div>
+</section>
+
+<script>
+(function () {
+  'use strict';
+  var scenes = { dark: 'scene-dark', light: 'scene-light', beats: 'scene-beats', reduced: 'scene-reduced' };
+  var tabs = document.querySelectorAll('.chrome__tab');
+  function go(name) {
+    Object.keys(scenes).forEach(function (key) {
+      document.getElementById(scenes[key]).classList.toggle('is-active', key === name);
+    });
+    tabs.forEach(function (tab) { tab.classList.toggle('is-active', tab.dataset.go === name); });
+  }
+  tabs.forEach(function (tab) { tab.addEventListener('click', function () { go(tab.dataset.go); }); });
+  window.addEventListener('keydown', function (event) {
+    var index = ['1', '2', '3', '4'].indexOf(event.key);
+    if (index >= 0) go(['dark', 'light', 'beats', 'reduced'][index]);
+  });
+  document.getElementById('notes-toggle').addEventListener('click', function () {
+    var off = document.body.dataset.notes === 'off';
+    document.body.dataset.notes = off ? 'on' : 'off';
+    this.textContent = off ? '注釈 ON' : '注釈 OFF';
+  });
+  function replay(el) { el.classList.remove('is-playing'); void el.offsetWidth; el.classList.add('is-playing'); }
+
+  /* 星々: 3層・決定的配置(個別周波数/位相/色) */
+  var STAR_TINTS = ['#dfe9ff', '#cfe4ff', '#e8f2ff', '#bff0ea', '#f4e9c8']; /* 冷色中心・暖色は稀 */
+  function seedStars(container, count, kind) {
+    for (var i = 0; i < count; i += 1) {
+      var star = document.createElement('span');
+      var spiked = false; /* v4.3: スパイク廃止——やわらかな光点のみ(厳かさ優先) */
+      star.className = 'star' + (spiked ? ' star--spiked' : '');
+      star.style.setProperty('--x', ((i * 53.7 + (kind === 'far' ? 11 : kind === 'mid' ? 29 : 47)) % 100).toFixed(1) + '%');
+      star.style.setProperty('--y', ((i * 31.3 + (kind === 'far' ? 7 : kind === 'mid' ? 19 : 3)) % 90 + 3).toFixed(1) + '%');
+      var size = kind === 'far' ? 1 + (i % 2) : kind === 'mid' ? 1.6 + (i % 2) : 2.6 + (i % 3);
+      star.style.setProperty('--sz', size + 'px');
+      var base = kind === 'far' ? 3.2 : kind === 'mid' ? 2.4 : 1.5;
+      star.style.setProperty('--d', (base + ((i * 37) % 22) / 10).toFixed(1) + 's');
+      star.style.setProperty('--dl', (-((i * 61) % 40) / 10).toFixed(1) + 's');
+      star.style.setProperty('--o', (kind === 'far' ? 0.42 : kind === 'mid' ? 0.62 : 0.8) + (i % 3) * 0.07);
+      star.style.setProperty('--glow', kind === 'far' ? '2.6' : kind === 'mid' ? '3.2' : '4.4');
+      star.style.setProperty('--tint', STAR_TINTS[i % STAR_TINTS.length]);
+      container.appendChild(star);
+    }
+  }
+  document.querySelectorAll('.stars--far').forEach(function (el) { seedStars(el, 84, 'far'); });
+  document.querySelectorAll('.stars--mid').forEach(function (el) { seedStars(el, 46, 'mid'); });
+  document.querySelectorAll('.stars--near').forEach(function (el) { seedStars(el, 26, 'near'); });
+
+  /* 墨の滲み(bloom)6連 */
+  var BLOOMS = [
+    { x: '20%', y: '28%', c: '39,54,74',  a: 0.17, o: 0.6 },
+    { x: '76%', y: '22%', c: '49,95,146', a: 0.14, o: 0.55 },
+    { x: '64%', y: '70%', c: '84,64,38',  a: 0.15, o: 0.55 },
+    { x: '28%', y: '78%', c: '39,54,74',  a: 0.13, o: 0.5 },
+    { x: '48%', y: '46%', c: '49,95,146', a: 0.10, o: 0.45 },
+    { x: '90%', y: '58%', c: '39,54,74',  a: 0.12, o: 0.5 }
+  ];
+  document.querySelectorAll('.blooms').forEach(function (container) {
+    BLOOMS.forEach(function (spot, index) {
+      var bloom = document.createElement('span');
+      bloom.className = 'bloom';
+      bloom.style.setProperty('--x', spot.x); bloom.style.setProperty('--y', spot.y);
+      bloom.style.setProperty('--bc', spot.c); bloom.style.setProperty('--ba', String(spot.a));
+      bloom.style.setProperty('--bo', String(spot.o)); bloom.style.setProperty('--dl', (index * -1.5) + 's');
+      container.appendChild(bloom);
+    });
+  });
+  /* 金箔 10 枚 */
+  document.querySelectorAll('.flecks').forEach(function (container) {
+    for (var i = 0; i < 10; i += 1) {
+      var fleck = document.createElement('span');
+      fleck.className = 'fleck';
+      fleck.style.setProperty('--x', (6 + i * 9.4) + '%');
+      fleck.style.setProperty('--y', (12 + ((i * 43) % 66)) + '%');
+      fleck.style.setProperty('--s', (4 + (i % 3)) + 'px');
+      fleck.style.setProperty('--r', ((i * 47) % 360) + 'deg');
+      fleck.style.setProperty('--d', (9 + ((i * 29) % 80) / 10) + 's');
+      fleck.style.setProperty('--o', (0.5 + (i % 3) * 0.15).toFixed(2));
+      container.appendChild(fleck);
+    }
+  });
+
+
+  /* 墨の滴 5連(紙に落ちて広がる) */
+  var DRIPS = [
+    { x: '16%', y: '40%', c: '39,54,74',  o: 0.5 },
+    { x: '58%', y: '18%', c: '49,95,146', o: 0.45 },
+    { x: '82%', y: '46%', c: '84,64,38',  o: 0.45 },
+    { x: '38%', y: '64%', c: '39,54,74',  o: 0.4 },
+    { x: '70%', y: '84%', c: '49,95,146', o: 0.4 }
+  ];
+  document.querySelectorAll('.drips').forEach(function (container) {
+    DRIPS.forEach(function (spot, index) {
+      var drip = document.createElement('span');
+      drip.className = 'drip';
+      drip.style.setProperty('--x', spot.x); drip.style.setProperty('--y', spot.y);
+      drip.style.setProperty('--dc', spot.c); drip.style.setProperty('--do', String(spot.o));
+      drip.style.setProperty('--dl', (index * -1.4) + 's');
+      container.appendChild(drip);
+    });
+  });
+
+  /* 速度スライダー(モック専用) */
+  function wireSlider(inputId, outId, sceneId, beatReadoutId, combatInputId) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    var scene = document.getElementById(sceneId);
+    input.addEventListener('input', function () {
+      var rate = Number(input.value);
+      scene.style.setProperty('--rate', String(rate));
+      document.getElementById(outId).textContent = '×' + rate.toFixed(1);
+      if (beatReadoutId) {
+        var combat = document.getElementById(combatInputId).checked;
+        var base = combat ? 525 : 700;
+        document.getElementById(beatReadoutId).textContent =
+          '鼓動 ' + Math.round(base / rate) + 'ms' + (combat ? ' ・ 戦闘' : '');
+      }
+    });
+  }
+  wireSlider('sld-dark', 'sld-dark-out', 'scene-dark', 'beat-readout', 'tgl-combat');
+  wireSlider('sld-light', 'sld-light-out', 'scene-light', null, null);
+
+  /* ① の toggle */
+  var sceneDark = document.getElementById('scene-dark');
+  document.getElementById('tgl-combat').addEventListener('change', function () {
+    sceneDark.dataset.combat = this.checked ? 'on' : 'off';
+    var rate = Number(document.getElementById('sld-dark').value);
+    document.getElementById('beat-readout').textContent =
+      '鼓動 ' + Math.round((this.checked ? 525 : 700) / rate) + 'ms' + (this.checked ? ' ・ 戦闘' : '');
+    var primary = sceneDark.querySelector('[data-primary]');
+    if (primary) primary.textContent = this.checked ? '攻撃を確定 ▶' : '次のフェイズ →';
+  });
+  document.getElementById('tgl-stack').addEventListener('change', function () {
+    sceneDark.dataset.stack = this.checked ? 'on' : 'off';
+    document.getElementById('sb-dark').dataset.stackActive = this.checked ? 'true' : 'false';
+  });
+
+  /* ③ フェイズ(既存 TransitionCue 形状) */
+  var PHASES = [
+    { short: '解', label: 'アンタップ' }, { short: '維', label: 'アップキープ' },
+    { short: '引', label: 'ドロー' }, { short: '戦1', label: 'メイン1' },
+    { short: '闘', label: '戦闘' }, { short: '戦2', label: 'メイン2' },
+    { short: '終', label: '終了' }
+  ];
+  var phaseIndex = 3;
+  var turnNo = 6;
+  var phaseDots = document.getElementById('phase-dots');
+  var cueTrack = document.getElementById('cue-track');
+  PHASES.forEach(function (phase, index) {
+    var dot = document.createElement('button');
+    dot.type = 'button'; dot.textContent = phase.short; dot.title = phase.label;
+    dot.addEventListener('click', function () { setPhase(index); replayCue(); });
+    phaseDots.appendChild(dot);
+    var trackChip = document.createElement('span');
+    trackChip.textContent = phase.short;
+    cueTrack.appendChild(trackChip);
+  });
+  function setPhase(index) {
+    phaseIndex = index;
+    var phase = PHASES[index];
+    document.getElementById('cue-label').textContent = phase.label;
+    document.getElementById('sb-phase-label').innerHTML = phase.label + '<span class="mode">▶▶</span>';
+    [phaseDots, cueTrack, document.getElementById('sb-steps')].forEach(function (row) {
+      Array.prototype.forEach.call(row.children, function (child, childIndex) {
+        child.classList.toggle('is-active', childIndex === index);
+        child.classList.toggle('is-done', childIndex < index);
+      });
+    });
+  }
+  function replayCue() {
+    document.getElementById('cue-turn').textContent = '第' + turnNo + 'ターン';
+    replay(document.getElementById('cue'));
+  }
+  document.getElementById('btn-phase').addEventListener('click', function () {
+    setPhase((phaseIndex + 1) % PHASES.length);
+    replayCue();
+  });
+  document.getElementById('btn-turn').addEventListener('click', function () {
+    turnNo += 1;
+    document.getElementById('stamp-num').textContent = '第' + turnNo + 'ターン';
+    document.getElementById('stamp-phase').textContent = PHASES[0].label;
+    document.getElementById('sb-turn-num').textContent = String(turnNo);
+    setPhase(0);
+    replay(document.getElementById('sweep-cold'));
+    replay(document.getElementById('sweep-gold'));
+    replay(document.getElementById('stamp-rays'));
+    replay(document.getElementById('stamp-ring'));
+    replay(document.getElementById('stamp'));
+    setTimeout(replayCue, 260);
+  });
+
+  /* ④ */
+  document.getElementById('btn-sweep-normal').addEventListener('click', function () {
+    replay(document.getElementById('sweep-normal'));
+    replay(document.getElementById('stamp-normal'));
+  });
+  document.getElementById('btn-sweep-reduced').addEventListener('click', function () {
+    replay(document.getElementById('sweep-reduced'));
+    replay(document.getElementById('stamp-reduced'));
+  });
+})();
+</script>
+</body>
+</html>

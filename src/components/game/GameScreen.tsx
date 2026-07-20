@@ -32,6 +32,7 @@ import { Feed } from './Feed';
 import { TriggerSheet } from './TriggerSheet';
 import { PresentationLayer } from './PresentationLayer';
 import { CelebrationLayer } from './CelebrationLayer';
+import { AmbientBackdrop } from './AmbientBackdrop';
 import { CommanderCutIn } from './CommanderCutIn';
 import { Toast } from './Toast';
 import type { KeybindingsMap } from '../../data/keybindings';
@@ -194,6 +195,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         data-hand-workspace-open={handWorkspaceOpen || undefined}
         data-drag-active={activeDragId || undefined}
         data-stack-active={controller.state.zones.stack.length > 0 || undefined}
+        data-combat={controller.state.phase === 'combat' || undefined}
         data-resolution-locked={controller.resolutionLocked || undefined}
         data-decision-active={controller.decisionFocus ? controller.decisionFocus.kind : undefined}
         data-mulligan-active={controller.mulliganActive || undefined}
@@ -206,6 +208,9 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           <StackBand controller={controller} />
         </div>
         <TabletopSurface />
+        {/* §8a 生きた背景(アンビエント層)。既存 UI は不変——TabletopSurface 直後・
+            .game-screen の isolation 内 z-index:-1 に積層し全クロムの下に置く。 */}
+        <AmbientBackdrop />
         {/* 盤面セルの子は Board だけ。相手盤面を兄として差し込むと Board(height:100%)が
             セルからはみ出し、自分の盤面が画面外へ消える(7b2c5c1 の回帰)。
             相手盤面はメニュー「相手盤面を見る」のモーダルで出す=design-vision:80 原則7。 */}
