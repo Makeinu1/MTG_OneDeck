@@ -1,0 +1,46 @@
+{
+  "object": "ledger-update-draft",
+  "date": "2026-07-20",
+  "author": "Claude strategy session (user-commissioned advisory; see research/strategy/strategic-review-2026-07-20.md)",
+  "basis": [
+    "ユーザー裁定 2026-07-20: 直近の重心=品質向上(「基本的には、品質を上げる方向で進めたい」)",
+    "ユーザー裁定 2026-07-20: UI/UXトラック(D4/D6/D7)のオーナーはqwen統治へ統合(2026-07-12「ChatGPT 5.6並行トラック」裁定の更新)",
+    "ユーザー裁定 2026-07-20: 不具合報告トリアージ準則(別draft user-report-triage.draft.md)"
+  ],
+  "note": "台帳本体は判定者専有のため本draftは提案のみ。適用・却下はqwen統治の判定者。順序の最終判断はしない(draftレーン規約)。既存 ledger-update.draft.json(2026-07-18・applied-to-ledger-unreviewed)は別件の適用済み記録であり本draftとは無関係。",
+  "proposedChanges": [
+    {
+      "op": "insert-plannedSequence-entry",
+      "position": "before idx 27 (cr-118-costs)",
+      "entry": {
+        "type": "checkpoint",
+        "domainId": "mydeck-friction-replenishment-2026-07",
+        "status": "pending",
+        "note": "摩擦replenishment(品質裁定2026-07-20の初手)。①census/playthrough再走でACT/MP/UX出荷後の最新gap実測(top-10-v1-gaps更新) ②judge-gated 3件(cr-121-drawing cross-player / cr-609-one-shot-mass / cr-602 ACT-5忠誠度)を実数で裁定 ③plannedSequenceを補充(以後、残2件で補充発火を運用則化)。手順=selectionRule既存のstanding補充手順+judge-protocol §2(実プレイ摩擦最上位・demandは補助)。"
+      },
+      "rationale": "plannedSequence残がpending 1+judge-gated 3で実質枯渇。判定材料の再実測なしにはjudge-gated 3件を裁定できない。"
+    },
+    {
+      "op": "update-plannedSequence-note",
+      "target": "idx 14 (cr-121-drawing, judge-gated)",
+      "append": "[2026-07-20 品質裁定] ユーザー裁定「品質を上げる方向」により、replenishment実測で需要が確認され次第、品質路線の最優先候補(V1ギャップ#2・需要48・MP基盤で解錠済み)。実装時の既知警戒=self-loot旧単一プレイヤーAPI残骸の同型バグ(cr-121 loot merge Tier-1のHIGH実例)。",
+      "rationale": "V4前進裁定(2026-07-15)と品質裁定(2026-07-20)の交点: cross-playerはV1品質ギャップでありMP基盤の初の実消費者=Arc-B検証を兼ねる。"
+    },
+    {
+      "op": "update-plannedSequence-note",
+      "targets": "idx 4/5/8/9 (d4a-pc-affordance-recovery, d4b-desktop-composition, d6-chain-feel, d7-sound-session)",
+      "append": "[2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコープ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行未commit編集(out-of-band)前提のship規律は不要化できる。",
+      "rationale": "2026-07-12移管裁定の更新がリポジトリ未記録だった。本draftが初の記録。"
+    },
+    {
+      "op": "no-change",
+      "target": "idx 27 (cr-118-costs, pending)",
+      "note": "ACT-4はpending先頭のまま維持。決定論的に着手可能なため、cross-player契約起案と並行の実装枠にも適する(順序の最終判断は判定者)。"
+    },
+    {
+      "op": "suggest-selectionRule-append",
+      "append": "plannedSequenceの未出荷残(pending+judge-gated)が2件になったらreplenishmentを発火する(枯渇前補充・2026-07-20戦略レビュー§2.6の教訓)。",
+      "rationale": "補充遅れでバックログが価値分岐のみになりautoloopが自走できなくなった再発防止。"
+    }
+  ]
+}
