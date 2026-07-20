@@ -34,6 +34,13 @@ standing 裁定(ユーザー委譲済み: 2026-06-30 北極星=CR完全性 → *
 - STOP① に該当するのは次の4つだけ: (a) 式で真の同点かつ性質の異なる分岐 (b) Phase S/C 完了境界の「V4 前進 vs V1 磨き込み」(予約済み価値判断) (c) 北極星・契約原則そのものの変更 (d) `judge: user-stop` マークの domain。
 - **plannedSequence 補充手順**(常駐判定者で可): 実装者が候補草稿(`research/cr-grounding/planned-sequence-batch*.draft.md`・CR 条番号+実プレイ摩擦の根拠必須)→ 在席判定者が CR 原文と摩擦の実在へ照合して台帳へ充填。真の価値分岐のみ STOP①。
 
+**ユーザー実プレイ報告のトリアージ(standing・2026-07-20 ユーザー裁定)**:
+
+1. 報告を受けたら、まず台帳(domains の note/boundary・plannedSequence・carry 群)と既知 gap 一覧(`research/mydeck-scoring/playability/top-10-v1-gaps.md`)を grep する。
+2. **既知**(台帳・spec 境界・DEFER 記録に載っている)→ ユーザーへ「既知。台帳の◯◯・対応予定は△△」と**差し返して**、現行スライスを中断せず続行する。差し返しは STOP ではない。
+3. **未知** → 有界の調査(再現・CR 照合・原因の層の特定)を行い、結果を台帳へ記載(既存 domain の note か、replenishment レーンの plannedSequence 候補)してから続行する。実プレイを止める致命(キャスト経路凍結級)なら現行スライスに割り込んで外科修正してよい(既存の「数行規模の外科的修正」例外の範囲)。それ以外は記載のみ行い、優先度は §2 の式で通常どおり並ぶ。
+4. いずれの場合も、報告そのものが「実プレイ摩擦の最上位シグナル」の一次ソースなので、記載時に頻度・退屈さ・深刻度のメモを残す(top-10 更新の入力になる)。
+
 ## 3. 許容差(allowance) vs 修正可能バグ
 
 standing 裁定(2026-06 M0-Z で確定・以後不変): **新規 allowance 追加 0 件・divergent===0 を目標とする**。

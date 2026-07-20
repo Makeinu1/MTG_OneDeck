@@ -1,6 +1,6 @@
 {
   "deck": "Kefka",
-  "generatedAt": "2026-07-07T12:09:21.455Z",
+  "generatedAt": "2026-07-20T05:28:11.712Z",
   "seed": 1,
   "turnsRequested": 10,
   "turnsCompleted": 10,
@@ -8,9 +8,9 @@
   "unresolvedEntries": 4,
   "crashed": false,
   "totalCardsDrawn": 10,
-  "totalSpellsCast": 10,
+  "totalSpellsCast": 9,
   "totalInterventions": 1,
-  "totalWarnings": 0,
+  "totalWarnings": 6,
   "turns": [
     {
       "turn": 1,
@@ -49,8 +49,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 1,
-        "phase": "end",
+        "turn": 2,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -133,8 +133,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 2,
-        "phase": "end",
+        "turn": 4,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -160,7 +160,7 @@
           {
             "id": "c75",
             "name": "Forbidden Orchard",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -169,7 +169,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -234,8 +234,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 3,
-        "phase": "end",
+        "turn": 6,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -261,7 +261,7 @@
           {
             "id": "c75",
             "name": "Forbidden Orchard",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -270,7 +270,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -288,7 +288,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -343,11 +343,13 @@
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Wheel of Misfortune》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 4,
-        "phase": "end",
+        "turn": 8,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -382,7 +384,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -400,7 +402,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -418,7 +420,7 @@
           {
             "id": "c81",
             "name": "Luxury Suite",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -463,11 +465,13 @@
         }
       ],
       "pendingGuidedPrompts": 1,
-      "warnings": [],
+      "warnings": [
+        "《Will of the Jeskai》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 5,
-        "phase": "end",
+        "turn": 10,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -502,7 +506,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -520,7 +524,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -538,7 +542,7 @@
           {
             "id": "c81",
             "name": "Luxury Suite",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -547,7 +551,7 @@
           {
             "id": "c76",
             "name": "Geier Reach Sanitarium",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -591,11 +595,13 @@
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Frantic Search》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 6,
-        "phase": "end",
+        "turn": 12,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -630,7 +636,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -648,7 +654,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -675,7 +681,7 @@
           {
             "id": "c76",
             "name": "Geier Reach Sanitarium",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -710,11 +716,6 @@
           "cardId": "c97",
           "cardName": "Dark Deal",
           "outcome": "cast"
-        },
-        {
-          "cardId": "c1",
-          "cardName": "Kefka, Court Mage // Kefka, Ruler of Ruin",
-          "outcome": "cast"
         }
       ],
       "spellsSkipped": [
@@ -723,14 +724,22 @@
           "cardName": "Hide on the Ceiling",
           "outcome": "not-auto-castable",
           "reasonIfSkipped": "variable-X cost: heuristic does not choose X"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Kefka, Court Mage // Kefka, Ruler of Ruin",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Dark Deal》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 7,
-        "phase": "end",
+        "turn": 14,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -746,17 +755,17 @@
         "zoneCounts": {
           "library": 85,
           "hand": 1,
-          "battlefield": 10,
+          "battlefield": 9,
           "graveyard": 4,
           "exile": 0,
-          "command": 0,
+          "command": 1,
           "stack": 0
         },
         "battlefield": [
           {
             "id": "c75",
             "name": "Forbidden Orchard",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -765,7 +774,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -774,7 +783,7 @@
           {
             "id": "c44",
             "name": "Waste Not",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -783,7 +792,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -801,7 +810,7 @@
           {
             "id": "c81",
             "name": "Luxury Suite",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -810,7 +819,7 @@
           {
             "id": "c76",
             "name": "Geier Reach Sanitarium",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -819,7 +828,7 @@
           {
             "id": "c87",
             "name": "Shivan Reef",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -828,18 +837,9 @@
           {
             "id": "c70",
             "name": "Darkwater Catacombs",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c1",
-            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
             "tapped": false,
             "counters": {},
-            "isCommander": true,
+            "isCommander": false,
             "isToken": false,
             "damageMarked": 0
           }
@@ -848,9 +848,7 @@
           "Hide on the Ceiling"
         ],
         "stackSize": 0,
-        "commandersInPlay": [
-          "Kefka, Court Mage // Kefka, Ruler of Ruin"
-        ]
+        "commandersInPlay": []
       }
     },
     {
@@ -872,14 +870,22 @@
           "cardName": "Hide on the Ceiling",
           "outcome": "not-auto-castable",
           "reasonIfSkipped": "variable-X cost: heuristic does not choose X"
+        },
+        {
+          "cardId": "c1",
+          "cardName": "Kefka, Court Mage // Kefka, Ruler of Ruin",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 1)"
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Grave Researcher // Reanimate》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 8,
-        "phase": "end",
+        "turn": 16,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -895,6 +901,159 @@
         "zoneCounts": {
           "library": 84,
           "hand": 1,
+          "battlefield": 10,
+          "graveyard": 4,
+          "exile": 0,
+          "command": 1,
+          "stack": 0
+        },
+        "battlefield": [
+          {
+            "id": "c75",
+            "name": "Forbidden Orchard",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c66",
+            "name": "Clearwater Pathway // Murkwater Pathway",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c44",
+            "name": "Waste Not",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c83",
+            "name": "Mountain",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c9",
+            "name": "Spellseeker",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c81",
+            "name": "Luxury Suite",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c76",
+            "name": "Geier Reach Sanitarium",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c87",
+            "name": "Shivan Reef",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c70",
+            "name": "Darkwater Catacombs",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          },
+          {
+            "id": "c29",
+            "name": "Grave Researcher // Reanimate",
+            "tapped": false,
+            "counters": {},
+            "isCommander": false,
+            "isToken": false,
+            "damageMarked": 0
+          }
+        ],
+        "hand": [
+          "Hide on the Ceiling"
+        ],
+        "stackSize": 0,
+        "commandersInPlay": []
+      }
+    },
+    {
+      "turn": 9,
+      "cardsDrawn": [
+        "Rousing Refrain"
+      ],
+      "landPlayed": null,
+      "spellsCast": [
+        {
+          "cardId": "c1",
+          "cardName": "Kefka, Court Mage // Kefka, Ruler of Ruin",
+          "outcome": "cast"
+        }
+      ],
+      "spellsSkipped": [
+        {
+          "cardId": "c22",
+          "cardName": "Hide on the Ceiling",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "variable-X cost: heuristic does not choose X"
+        },
+        {
+          "cardId": "c39",
+          "cardName": "Rousing Refrain",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 3)"
+        }
+      ],
+      "pendingGuidedPrompts": 0,
+      "warnings": [],
+      "errors": [],
+      "boardStateAfterTurn": {
+        "turn": 18,
+        "phase": "untap",
+        "life": 40,
+        "poison": 0,
+        "energy": 0,
+        "experience": 0,
+        "manaPool": {
+          "W": 0,
+          "U": 0,
+          "B": 0,
+          "R": 0,
+          "G": 0,
+          "C": 0
+        },
+        "zoneCounts": {
+          "library": 83,
+          "hand": 2,
           "battlefield": 11,
           "graveyard": 4,
           "exile": 0,
@@ -914,7 +1073,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -932,7 +1091,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -959,7 +1118,7 @@
           {
             "id": "c76",
             "name": "Geier Reach Sanitarium",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -984,15 +1143,6 @@
             "damageMarked": 0
           },
           {
-            "id": "c1",
-            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
-            "tapped": false,
-            "counters": {},
-            "isCommander": true,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
             "id": "c29",
             "name": "Grave Researcher // Reanimate",
             "tapped": false,
@@ -1000,10 +1150,20 @@
             "isCommander": false,
             "isToken": false,
             "damageMarked": 0
+          },
+          {
+            "id": "c1",
+            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
+            "tapped": false,
+            "counters": {},
+            "isCommander": true,
+            "isToken": false,
+            "damageMarked": 0
           }
         ],
         "hand": [
-          "Hide on the Ceiling"
+          "Hide on the Ceiling",
+          "Rousing Refrain"
         ],
         "stackSize": 0,
         "commandersInPlay": [
@@ -1012,9 +1172,9 @@
       }
     },
     {
-      "turn": 9,
+      "turn": 10,
       "cardsDrawn": [
-        "Rousing Refrain"
+        "Kefka, Dancing Mad"
       ],
       "landPlayed": null,
       "spellsCast": [
@@ -1030,14 +1190,22 @@
           "cardName": "Hide on the Ceiling",
           "outcome": "not-auto-castable",
           "reasonIfSkipped": "variable-X cost: heuristic does not choose X"
+        },
+        {
+          "cardId": "c19",
+          "cardName": "Kefka, Dancing Mad",
+          "outcome": "not-auto-castable",
+          "reasonIfSkipped": "insufficient mana (shortfall 5)"
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Rousing Refrain》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 9,
-        "phase": "end",
+        "turn": 20,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -1051,8 +1219,8 @@
           "C": 0
         },
         "zoneCounts": {
-          "library": 83,
-          "hand": 1,
+          "library": 82,
+          "hand": 2,
           "battlefield": 11,
           "graveyard": 5,
           "exile": 0,
@@ -1072,7 +1240,7 @@
           {
             "id": "c66",
             "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1090,7 +1258,7 @@
           {
             "id": "c83",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1108,7 +1276,7 @@
           {
             "id": "c81",
             "name": "Luxury Suite",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1117,7 +1285,7 @@
           {
             "id": "c76",
             "name": "Geier Reach Sanitarium",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1135,176 +1303,9 @@
           {
             "id": "c70",
             "name": "Darkwater Catacombs",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c1",
-            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
-            "tapped": false,
-            "counters": {},
-            "isCommander": true,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c29",
-            "name": "Grave Researcher // Reanimate",
             "tapped": false,
             "counters": {},
             "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          }
-        ],
-        "hand": [
-          "Hide on the Ceiling"
-        ],
-        "stackSize": 0,
-        "commandersInPlay": [
-          "Kefka, Court Mage // Kefka, Ruler of Ruin"
-        ]
-      }
-    },
-    {
-      "turn": 10,
-      "cardsDrawn": [
-        "Kefka, Dancing Mad"
-      ],
-      "landPlayed": null,
-      "spellsCast": [
-        {
-          "cardId": "c19",
-          "cardName": "Kefka, Dancing Mad",
-          "outcome": "cast"
-        }
-      ],
-      "spellsSkipped": [
-        {
-          "cardId": "c22",
-          "cardName": "Hide on the Ceiling",
-          "outcome": "not-auto-castable",
-          "reasonIfSkipped": "variable-X cost: heuristic does not choose X"
-        }
-      ],
-      "pendingGuidedPrompts": 0,
-      "warnings": [],
-      "errors": [],
-      "boardStateAfterTurn": {
-        "turn": 10,
-        "phase": "end",
-        "life": 40,
-        "poison": 0,
-        "energy": 0,
-        "experience": 0,
-        "manaPool": {
-          "W": 0,
-          "U": 0,
-          "B": 0,
-          "R": 0,
-          "G": 0,
-          "C": 0
-        },
-        "zoneCounts": {
-          "library": 82,
-          "hand": 1,
-          "battlefield": 12,
-          "graveyard": 5,
-          "exile": 0,
-          "command": 0,
-          "stack": 0
-        },
-        "battlefield": [
-          {
-            "id": "c75",
-            "name": "Forbidden Orchard",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c66",
-            "name": "Clearwater Pathway // Murkwater Pathway",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c44",
-            "name": "Waste Not",
-            "tapped": false,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c83",
-            "name": "Mountain",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c9",
-            "name": "Spellseeker",
-            "tapped": false,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c81",
-            "name": "Luxury Suite",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c76",
-            "name": "Geier Reach Sanitarium",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c87",
-            "name": "Shivan Reef",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c70",
-            "name": "Darkwater Catacombs",
-            "tapped": true,
-            "counters": {},
-            "isCommander": false,
-            "isToken": false,
-            "damageMarked": 0
-          },
-          {
-            "id": "c1",
-            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
-            "tapped": false,
-            "counters": {},
-            "isCommander": true,
             "isToken": false,
             "damageMarked": 0
           },
@@ -1318,17 +1319,18 @@
             "damageMarked": 0
           },
           {
-            "id": "c19",
-            "name": "Kefka, Dancing Mad",
+            "id": "c1",
+            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
             "tapped": false,
             "counters": {},
-            "isCommander": false,
+            "isCommander": true,
             "isToken": false,
             "damageMarked": 0
           }
         ],
         "hand": [
-          "Hide on the Ceiling"
+          "Hide on the Ceiling",
+          "Kefka, Dancing Mad"
         ],
         "stackSize": 0,
         "commandersInPlay": [
@@ -1338,8 +1340,8 @@
     }
   ],
   "finalBoardState": {
-    "turn": 10,
-    "phase": "end",
+    "turn": 20,
+    "phase": "untap",
     "life": 40,
     "poison": 0,
     "energy": 0,
@@ -1354,8 +1356,8 @@
     },
     "zoneCounts": {
       "library": 82,
-      "hand": 1,
-      "battlefield": 12,
+      "hand": 2,
+      "battlefield": 11,
       "graveyard": 5,
       "exile": 0,
       "command": 0,
@@ -1365,7 +1367,7 @@
       {
         "id": "c75",
         "name": "Forbidden Orchard",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1374,7 +1376,7 @@
       {
         "id": "c66",
         "name": "Clearwater Pathway // Murkwater Pathway",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1392,7 +1394,7 @@
       {
         "id": "c83",
         "name": "Mountain",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1410,7 +1412,7 @@
       {
         "id": "c81",
         "name": "Luxury Suite",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1419,7 +1421,7 @@
       {
         "id": "c76",
         "name": "Geier Reach Sanitarium",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1428,7 +1430,7 @@
       {
         "id": "c87",
         "name": "Shivan Reef",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1437,18 +1439,9 @@
       {
         "id": "c70",
         "name": "Darkwater Catacombs",
-        "tapped": true,
-        "counters": {},
-        "isCommander": false,
-        "isToken": false,
-        "damageMarked": 0
-      },
-      {
-        "id": "c1",
-        "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
         "tapped": false,
         "counters": {},
-        "isCommander": true,
+        "isCommander": false,
         "isToken": false,
         "damageMarked": 0
       },
@@ -1462,17 +1455,18 @@
         "damageMarked": 0
       },
       {
-        "id": "c19",
-        "name": "Kefka, Dancing Mad",
+        "id": "c1",
+        "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
         "tapped": false,
         "counters": {},
-        "isCommander": false,
+        "isCommander": true,
         "isToken": false,
         "damageMarked": 0
       }
     ],
     "hand": [
-      "Hide on the Ceiling"
+      "Hide on the Ceiling",
+      "Kefka, Dancing Mad"
     ],
     "stackSize": 0,
     "commandersInPlay": [

@@ -1,5 +1,11 @@
 # Project Goal and Milestones
 
+> **[HISTORICAL・2026-07-20]** 本文書の「destination = CR 完全性(漸近線)・substrate-first の到達法」
+> (ユーザー裁定 2026-06-30)は現在も有効な理念の正本。ただし §以下のマイルストーンマップは
+> 2026-06-30 時点の snapshot であり、以後の実進捗(ACT トラック・多人数基盤 §34.42-45・UX 群)を
+> 反映していない。**現在値の正本 = 台帳 `cr-backbone-ledger.json`(plannedSequence)**。
+> ロードマップの直近レビュー = `research/strategy/strategic-review-2026-07-20.md` §5。
+
 最終更新: 2026-06-28
 固定CR: Magic: The Gathering Comprehensive Rules, effective 2026-06-19
 

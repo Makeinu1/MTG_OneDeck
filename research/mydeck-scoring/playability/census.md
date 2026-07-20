@@ -1,6 +1,6 @@
 # MyDeck Playability Census (static compiler coverage)
 
-Generated: 2026-07-07T12:13:09.196Z
+Generated: 2026-07-20T05:27:21.754Z
 
 ## Re-run
 
@@ -19,11 +19,11 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 | deck | entries | resolved | unresolved | auto cards | guided cards | manual cards | auto lines | guided lines | manual lines |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Celes | 99 | 95 | 4 | 10 | 7 | 78 | 30/180 | 13/180 | 137/180 |
+| Celes | 99 | 95 | 4 | 10 | 7 | 78 | 30/180 | 17/180 | 133/180 |
 | Gogo | 83 | 76 | 7 | 6 | 8 | 62 | 20/144 | 20/144 | 104/144 |
-| Kefka | 103 | 99 | 4 | 12 | 6 | 81 | 30/192 | 14/192 | 148/192 |
+| Kefka | 103 | 99 | 4 | 12 | 6 | 81 | 31/192 | 14/192 | 147/192 |
 | Muldrotha | 96 | 93 | 3 | 11 | 11 | 71 | 21/148 | 15/148 | 112/148 |
-| ALL | 381 | 363 | 18 | 39 | 32 | 292 | 101/664 | 62/664 | 501/664 |
+| ALL | 381 | 363 | 18 | 39 | 32 | 292 | 102/664 | 66/664 | 496/664 |
 
 ## Cross-deck recurring gaps
 

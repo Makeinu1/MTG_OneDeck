@@ -4,7 +4,7 @@
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
   "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。",
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -56,7 +56,7 @@
       ],
       "userGate": "2026-07-12 ユーザー明示指示で解除=PC版退行の回復を現最優先(cr-121より上位)。旧D4を判定者(J2 Opus)がd4a/d4b/d4cへ分割承認。consumable(design-slice だがユーザーが D-トラックのPC回復を明示指示済)。",
       "specStatus": "judge-endorsed",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
       "status": "deferred"
     },
     {
@@ -68,7 +68,7 @@
       ],
       "userGate": "D4a出荷+実測後にレイアウト(2/3カラム/可変レール)を判定者が裁定。**3カラム自体を目的化しない**(固定レールで中央盤面が狭まり手札問題再発の罠=r1実測根拠)。着手はD4a完了確認後。",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4b デスクトップ構成。D4aで affordance を戻した上で、余剰幅の配分(中央盤面拡張 vs 左右レール)を実測で決める。design-vision §3 の3カラムIAは候補であって前提ではない。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。autoloopのdesign-slice userGateに加え status=deferred で可視境界化。Claude/autoloopはこのスライスを掴まない。以下は旧note: D4b デスクトップ構成。D4aで affordance を戻した上で、余剰幅の配分(中央盤面拡張 vs 左右レール)を実測で決める。design-vision §3 の3カラムIAは候補であって前提ではない。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
       "status": "deferred"
     },
     {
@@ -103,7 +103,7 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
       "status": "deferred"
     },
     {
@@ -115,7 +115,7 @@
       ],
       "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
       "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。",
+      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
       "status": "deferred"
     },
     {
@@ -146,14 +146,20 @@
     {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
-      "status": "judge-gated",
-      "note": "**候補2: クロスプレイヤー効果の実行(cluster1)= JUDGE-GATE(step0で判定者判断まで実装しない)**。"
+      "status": "pending",
+      "note": "**候補2: クロスプレイヤー効果の実行(cluster1)= JUDGE-GATE(step0で判定者判断まで実装しない)**。 [2026-07-20 品質裁定] ユーザー裁定「品質を上げる方向」により、replenishment実測で需要が確認され次第、品質路線の最優先候補(V1ギャップ#2・需要48・MP基盤で解錠済み)。実装時の既知警戒=self-loot旧単一プレイヤーAPI残骸の同型バグ(cr-121 loot merge Tier-1のHIGH実例)。 [2026-07-20 replenishment裁定] census実測=MyDeck 4デッキでcross-player効果54枚manual(全域分布・Wheel系/各プレイヤーsacrifice/discard/draw/mill/相手誘発)。需要48→実測54で確認。MP基盤§34.42-45で解錠済み。品質路線の本命としてpending化。既知警戒=self-loot旧API残骸の同型バグ。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-609-one-shot-mass",
-      "status": "judge-gated",
-      "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。"
+      "status": "pending",
+      "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。 [2026-07-20 replenishment裁定] census実測=mass効果12枚manual(Blasphemous Act 2デッキ/Toxic Deluge 2デッキ/Pernicious Deed/Culling Ritual/Ruinous Ultimatum等)。新domain cr-609新設を承認。cross-player(54枚)より需要低いがEDH staple含むためpending化(優先度はcross-playerの後)。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "carry-quality-debt-2026-07",
+      "status": "pending",
+      "note": "carry群の小粒品質債を1スライスに束ねる。①needs-choice色ダイアログ4箇所(ACT-1由来・needs-choice 55枚の一部) ②誘発型の面フィルタ(ACT-2既知gap・CR712.8d=表向きの面の特性のみ・DFC/MDFC 43枚) ③Playmat死コード撤去(到達不能TSX残存)。Tier-1一括監査が効率的。census 2026-07-20: needs-choice 55枚/needs-target 202枚が最大カテゴリ。"
     },
     {
       "type": "domain-slice",
@@ -494,6 +500,12 @@
       "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Codex暫定実装(2026-07-18)。完全自動解決ではなく、CR正規形・定義ゾーンでの発見・既存起動経路への接続まで。Crew tap-other、Ninjutsu複合コスト、Unearth遅延誘発+置換、Embalm/Eternalize例外付きcopy等はmanual境界を維持。Claude独立監査まではimplemented-not-green。"
     },
     {
+      "type": "checkpoint",
+      "domainId": "mydeck-friction-replenishment-2026-07",
+      "status": "shipped",
+      "note": "摩擦replenishment(品質裁定2026-07-20の初手)。①census/playthrough再走でACT/MP/UX出荷後の最新gap実測(top-10-v1-gaps更新) ②judge-gated 3件(cr-121-drawing cross-player / cr-609-one-shot-mass / cr-602 ACT-5忠誠度)を実数で裁定 ③plannedSequenceを補充(以後、残2件で補充発火を運用則化)。手順=selectionRule既存のstanding補充手順+judge-protocol §2(実プレイ摩擦最上位・demandは補助)。 [2026-07-20 shipped] census/playthrough再走完了(4デッキ10/10ターン・クラッシュ0)。judge-gated裁定: cross-player=pending(54枚)/mass=pending(12枚)/ACT-5=据置(PW4枚)。plannedSequence補充: carry群追加でpending4件。top-10-v1-gaps更新。selectionRule枯渇前補充則適用。"
+    },
+    {
       "type": "domain-slice",
       "domainId": "cr-118-costs",
       "status": "pending",
@@ -503,10 +515,10 @@
       "type": "domain-slice",
       "domainId": "cr-602-activated-abilities",
       "status": "judge-gated",
-      "note": "**ACT-5 忠誠度 envelope(CR606)= JUDGE-GATE**(プラン=activate-cost-starry-fern)。§34.19 の明示 defer を解く新 design-lock(新 domain cr-606 の要否判定含む)。着手前に step0 で MyDeck の PW 需要実測を確認し、需要が立たなければ据置。"
+      "note": "**ACT-5 忠誠度 envelope(CR606)= JUDGE-GATE**(プラン=activate-cost-starry-fern)。§34.19 の明示 defer を解く新 design-lock(新 domain cr-606 の要否判定含む)。着手前に step0 で MyDeck の PW 需要実測を確認し、需要が立たなければ据置。 [2026-07-20 replenishment裁定] census実測=MyDeck 4デッキのPWは4枚のみ(Liliana Dreadhorde/Teferi Temporal/Tezzeret Seeker/Ugin)。需要薄のため据置。PW需要が立つデッキ追加があれば再検討。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(正本 = docs/judge-protocol.md §2。MyDeck 実プレイ摩擦が最上位・demand は補助)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。(消化済み履歴注記は cr-backbone-ledger-history.json selectionRuleFull へ退避)",
+  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(正本 = docs/judge-protocol.md §2。MyDeck 実プレイ摩擦が最上位・demand は補助)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。(消化済み履歴注記は cr-backbone-ledger-history.json selectionRuleFull へ退避) **枯渇前補充の発火条件(2026-07-20 standing)**: plannedSequenceの未出荷残(pending+judge-gated)が2件になったらreplenishmentを発火する(枯渇してからではなく枯渇する前に補充)。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",

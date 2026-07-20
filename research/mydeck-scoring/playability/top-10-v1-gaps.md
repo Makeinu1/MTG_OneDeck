@@ -1,94 +1,57 @@
-# V1 Playability Assessment — findings & top-10 gaps
+# V1 Playability Assessment — Top-10 Gaps (2026-07-20 再走)
 
-Author: J2 Opus (judge synthesis), 2026-07-07. Measurement scripts (Sonnet):
-`scripts/mydeck-scoring/census.ts` (static, real compiler) +
-`playthrough.ts` (headless 10-turn play, seed=1). Raw data:
-`research/mydeck-scoring/playability/{census.json,playthrough-*.json}`.
+Author: qwen判定者(replenishment checkpoint)。Measurement: `npx tsx scripts/mydeck-scoring/census.ts` + `playthrough.ts`。
+旧版(2026-07-07 J2 Opus) = `top-10-v1-gaps-2026-07-07.md`。
 
-## Headline (honest ground truth — the demand meter hid all of this)
+## Headline
 
-Static census over 4 decks (363 resolved cards), each ability line run through the
-REAL compiler (`parseAbilityIR`→`compileAbilityIR`):
+census 4デッキ(363 resolved cards, 664 ability lines):
 
-| bucket | cards | % |
+| bucket | cards | lines |
 |---|---:|---:|
-| `auto` (engine fully resolves) | 39 | 11% |
-| `guided` (needs one click: a target/choice) | 32 | 9% |
-| `manual` (engine can't resolve) | 292 | 80% |
+| auto | 39 (11%) | 102/664 (15%) |
+| guided | 32 (9%) | 66/664 (10%) |
+| manual | 292 (80%) | 496/664 (75%) |
 
-Play-through: **all 4 decks ran 10/10 turns, zero crashes, zero engine errors.**
-Mana, lands, keywords all functioned; the decks are playable end-to-end.
+playthrough: **4デッキすべて10/10ターン・クラッシュ0・エンジンエラー0**。
 
-## The two numbers that matter, corrected
+## 旧版(2026-07-07)からの変化
 
-**1. The 80% "unsupported" massively over-reports the real gap.** The census routes
-every oracle line through the *ability* compiler, but three big classes are handled
-by OTHER engine paths it doesn't credit — confirmed working by the 10-turn play-through:
+カード単位の auto/guided/manual 分布は不変(39/32/292)。ACT-1〜3・MP基盤・UX群の出荷は
+**信頼性・UI到達性・起動コスト経路**の改善であり、新規カードの auto 化ではない。
+真の自動化フロンティア≈156枚の推定は維持。
 
-| census "manual" that already works | cards | handled by |
+## Manual 理由カテゴリ(card-level count)
+
+| reason | cards | 意味 |
 |---|---:|---|
-| ETB-tapped lands ("enters tapped [unless…]") | 45 | `playLand` / `landEntersTapped` (shipped §34.33/36) |
-| keyword abilities (Flying/Haste/Lifelink/…) | 30 | `effectiveKeywords`/status (shipped §34.38 etc.) |
-| mana abilities ("{T}: Add …") | 28 | mana-ability path + autotap solver |
-| **blind-spot subtotal** | **103** | |
-| deliberate sandbox "you may …" | 33 | correct-by-design (optional = player choice) |
+| needs-target | 202 | 対象選択が必要(コンパイラは対象を決定できない) |
+| needs-parse | 168 | 構文が未解析(compiler が IR を生成できない) |
+| no-effect | 109 | 効果タイプが未実装(GameCommand がない) |
+| optional | 66 | "you may" 系(意図的サンドボックス・manual が正) |
+| needs-choice | 55 | プレイヤー選択が必要 |
+| ambiguous-mana | 39 | マナコスト曖昧(多色/汎用) |
+| variable-count | 37 | 可変数(up to X / any number) |
+| no-command | 29 | 対応 GameCommand が存在しない |
 
-So of 292 "manual", **~103 already play fine and ~33 are deliberately manual. The
-genuine automatable frontier is ≈156 cards** — and the decks are already *usable*
-today (manual resolution is always available). **The gap is automation DEPTH, not
-brokenness.**
+## Top-10 品質ギャップ(実プレイ摩擦順・2026-07-20 裁定)
 
-**2. 誤自動化 (wrong-automation) ≈ 0.** Spot-check of all 39 `auto` cards: almost
-entirely literal mana (Sol Ring, Signets, dorks, filter lands) + a few simple draws +
-the Spore Frog prevention shield. None carry silent-error risk. The engine **fails
-closed to manual** — it only auto-resolves what it's confident about. The counter-sign
-bug fixed earlier this session was the exception, now gone. **Risk is under-automation,
-not mis-automation.** (Caveat: the headless script silently skips unsupported effects
-on cast; the real app surfaces them for manual resolution via `pendingGuided` — verify
-in-browser that unsupported effects prompt rather than no-op.)
+| # | gap | cards | 対応予定 |
+|---|---|---:|---|
+| 1 | cross-player 効果(each player/opponent 系) | 54 | **plannedSequence[14] pending** |
+| 2 | mass 効果(each creature/all creatures 系) | 12 | plannedSequence[15] pending |
+| 3 | needs-choice 色ダイアログ(ACT-1 carry) | ~4 | plannedSequence[16] carry群 |
+| 4 | 誘発型 DFC 面フィルタ(CR712.8d) | 43 | plannedSequence[16] carry群 |
+| 5 | ACT-4 コスト語彙(tap-other/counter/X) | ~23 | plannedSequence[29] pending |
+| 6 | Fabled Passage 型条件付きアンタップ | 4 | cross-player と関連(2+ opponents 条件) |
+| 7 | variable-count(up-to/any-number) | 37 | cr-121 出荷済み loot 型。残は needs-parse 依存 |
+| 8 | ambiguous-mana(多色/汎用コスト) | 39 | autotap solver 改善(ACT-4 と関連) |
+| 9 | needs-parse 構文拡張(最大カテゴリ) | 168 | 摩擦順で逐次(A6 フロンティア消化) |
+| 10 | no-effect 新 GameCommand 需要 | 109 | 抽象昇格テスト(judge-protocol §5.1)で個別裁定 |
 
-## Metric reconciliation (the three the user asked for)
+## 注記
 
-- **非対応カード数 (unsupported)**: reported 292 → **genuine ≈156** after removing the
-  103 blind-spot + 33 deliberate-manual.
-- **手動介入回数 (needs-click)**: 32 `guided` cards (e.g. Arcane Signet all 4 decks) —
-  acceptable UX (one click); NOT a V1 blocker.
-- **誤自動化数 (wrong-auto)**: **≈0** (fail-closed design).
-
-## Top-10 V1 gaps (ranked: cross-deck frequency × per-game tedium × severity)
-
-Genuine automatable gaps only. Each maps to an implementable compiler/engine slice and
-aligns with the 5 frontier clusters from this session's demand-instrument audit.
-
-| # | gap (capability) | occ | why V1 | anchor |
-|---|---|---:|---|---|
-| 1 | **Fetchland fetch** ("{T}, [pay life,] Sac: search library for [land], put onto battlefield [tapped], shuffle") | 24 (all 4 decks) | played nearly every game; most tedious manual step | reuse `parseSingleCardRampSearch` (compile.ts); CR 701.19/103.2 |
-| 2 | **Cross-player effects** ("each player/opponent sacrifices/discards/draws", edicts, "target opponent") | 27 | biggest genuine EFFECT cluster; edicts/wraths are game-defining | audit cluster 1; needs non-"you" subject in `hasSupportedPlayerSubject` |
-| 3 | **Activated targeted creature abilities** ("{T}: target creature you control gains/does X") | ~11+ | repeated every turn (Mother of Runes, Cathar Commando) | guided-target activated path; CR 602/115 |
-| 4 | **Variable / dynamic counts** ("draw that many", "any number of", "X where X=…") | 8 | includes commanders themselves (Celes) | audit cluster 2; `resolveCount` only does one/fixed; CR 608.2h |
-| 5 | **Mass / board-wide untargeted** ("destroy all nonland permanents", "return all") | 5 | board wipes are pivotal turns (Toxic Deluge, Blasphemous Act, Ruinous) | audit cluster 4; `TARGET_REQUIRED_ATOMS` mis-routes; CR 609 |
-| 6 | **Token creation variants** (tapped / multi / saga-chapter tokens) | 7 | recurring value engines | audit cluster 3; extend `createDefinedToken` |
-| 7 | **Complex triggered ETB bodies** (ETB exile/mill/conditional) | 11 | ETB is the dominant EDH shape | CR 603; per-effect parse |
-| 8 | **Graveyard recursion** ("return creature card from your graveyard") | 2 | Muldrotha deck's core loop | CR 608; guided-target-from-graveyard |
-| 9 | **Non-target counter placement** ("put a +1/+1 counter on it/[name]") | 1+ | self-buff creatures; simple in spirit | audit cluster 5; `counterDescriptorForRaw` needs no-"target" path |
-| 10 | **Painland/filter mana with rider** ("{T}: Add R or W. This deals 1 damage to you") | (in mana 28) | borderline blind-spot — verify these actually work in-app vs census false-negative | mana path + damage rider |
-
-## Recommended sequencing (post-Codex 7/11)
-
-Gaps **1, 2, 4, 5, 6, 9** ARE the 5 audit clusters already in the pipeline — this
-play-through independently confirms them by real frequency and adds **#1 fetchlands**
-as the single highest per-game-value item (not surfaced by the demand meter at all).
-Suggested V1 order: **#1 fetchlands → #2 cross-player → #3 activated-targeted →
-#4 variable-count → #5 board-wipes**, then the rest. Each is a bounded leaf; implement
-via Codex on return (or judge-surgical for #1, which largely reuses existing ramp-search).
-
-## Caveats / limits
-- Census credits only the ability-compiler path; lands/keywords/mana handled elsewhere
-  are false-negatives (corrected above). The score.ts repair (this session's spec)
-  should teach the meter these paths so the number stops lying in both directions.
-- Wrong-automation is judge spot-check only (no oracle). The `auto` set is small/safe
-  today; re-check whenever the auto set grows.
-- 18 cards unresolved (not in the 2026-06-19 snapshot) — data-availability, not a
-  compiler gap; excluded from all counts.
-- Play-through heuristic is deliberately dumb (few casts, no combat) — it proves
-  no-crash + exercises resolution, but the census is the authoritative coverage signal.
+- `optional`(66枚)は意図的サンドボックス(manual が正しい挙動)。ギャップではない。
+- cross-player 54枚には "enters tapped unless 2+ opponents" 土地(4種×2デッキ)を含む。
+- PW は4枚のみ(Liliana/Teferi/Tezzeret/Ugin)。ACT-5 忠誠度は需要薄で据置。
+- 計器の数値は playthrough+judge 照合+census 実測で叩くまで裁定に使わない(戦略レビュー §2 教訓)。

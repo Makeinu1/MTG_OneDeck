@@ -1,7 +1,7 @@
 import type { ManaColor } from '../types/card';
 import type { GameCommand } from './commands';
 import { compileAbilityCost } from './grammar/compile';
-import { splitAbilityLines } from './grammar';
+import { splitAbilityLines } from './grammar/index';
 import { parseAbilityIR } from './grammar/ir';
 import {
   hasActivatedAddManaLine,

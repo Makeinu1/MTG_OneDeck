@@ -1,6 +1,6 @@
 {
   "deck": "Celes",
-  "generatedAt": "2026-07-07T12:09:16.916Z",
+  "generatedAt": "2026-07-20T05:28:07.904Z",
   "seed": 1,
   "turnsRequested": 10,
   "turnsCompleted": 10,
@@ -10,7 +10,7 @@
   "totalCardsDrawn": 10,
   "totalSpellsCast": 11,
   "totalInterventions": 1,
-  "totalWarnings": 0,
+  "totalWarnings": 3,
   "turns": [
     {
       "turn": 1,
@@ -61,8 +61,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 1,
-        "phase": "end",
+        "turn": 2,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -163,8 +163,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 2,
-        "phase": "end",
+        "turn": 4,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -190,7 +190,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -199,7 +199,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -276,8 +276,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 3,
-        "phase": "end",
+        "turn": 6,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -303,7 +303,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -312,7 +312,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -330,7 +330,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -403,11 +403,13 @@
         }
       ],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Naktamun Lorespinner // Wheel of Fortune》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 4,
-        "phase": "end",
+        "turn": 8,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -433,7 +435,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -442,7 +444,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -460,7 +462,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -547,8 +549,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 5,
-        "phase": "end",
+        "turn": 10,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -574,7 +576,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -583,7 +585,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -601,7 +603,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -702,11 +704,13 @@
         }
       ],
       "pendingGuidedPrompts": 1,
-      "warnings": [],
+      "warnings": [
+        "《Akroma's Will》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 6,
-        "phase": "end",
+        "turn": 12,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -732,7 +736,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -741,7 +745,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -759,7 +763,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -795,7 +799,7 @@
           {
             "id": "c95",
             "name": "Swamp",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -862,8 +866,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 7,
-        "phase": "end",
+        "turn": 14,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -889,7 +893,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -898,7 +902,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -907,7 +911,7 @@
           {
             "id": "c55",
             "name": "Talisman of Conviction",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -916,7 +920,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -934,7 +938,7 @@
           {
             "id": "c68",
             "name": "Command Tower",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -952,7 +956,7 @@
           {
             "id": "c95",
             "name": "Swamp",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1030,8 +1034,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 8,
-        "phase": "end",
+        "turn": 16,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -1057,7 +1061,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1066,7 +1070,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1075,7 +1079,7 @@
           {
             "id": "c55",
             "name": "Talisman of Conviction",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1084,7 +1088,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1102,7 +1106,7 @@
           {
             "id": "c68",
             "name": "Command Tower",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1120,7 +1124,7 @@
           {
             "id": "c95",
             "name": "Swamp",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1207,8 +1211,8 @@
       "warnings": [],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 9,
-        "phase": "end",
+        "turn": 18,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -1234,7 +1238,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1243,7 +1247,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1261,7 +1265,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1297,7 +1301,7 @@
           {
             "id": "c95",
             "name": "Swamp",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1391,11 +1395,13 @@
       ],
       "spellsSkipped": [],
       "pendingGuidedPrompts": 0,
-      "warnings": [],
+      "warnings": [
+        "《Ruinous Ultimatum》の効果には自動化未対応部分があります。一部手動で処理してください。"
+      ],
       "errors": [],
       "boardStateAfterTurn": {
-        "turn": 10,
-        "phase": "end",
+        "turn": 20,
+        "phase": "untap",
         "life": 40,
         "poison": 0,
         "energy": 0,
@@ -1421,7 +1427,7 @@
           {
             "id": "c84",
             "name": "Plains",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1430,7 +1436,7 @@
           {
             "id": "c64",
             "name": "Bojuka Bog",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1448,7 +1454,7 @@
           {
             "id": "c80",
             "name": "Mountain",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1466,7 +1472,7 @@
           {
             "id": "c68",
             "name": "Command Tower",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1484,7 +1490,7 @@
           {
             "id": "c95",
             "name": "Swamp",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1538,7 +1544,7 @@
           {
             "id": "c79",
             "name": "Luxury Suite",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1556,7 +1562,7 @@
           {
             "id": "c66",
             "name": "Caves of Koilos",
-            "tapped": true,
+            "tapped": false,
             "counters": {},
             "isCommander": false,
             "isToken": false,
@@ -1572,8 +1578,8 @@
     }
   ],
   "finalBoardState": {
-    "turn": 10,
-    "phase": "end",
+    "turn": 20,
+    "phase": "untap",
     "life": 40,
     "poison": 0,
     "energy": 0,
@@ -1599,7 +1605,7 @@
       {
         "id": "c84",
         "name": "Plains",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1608,7 +1614,7 @@
       {
         "id": "c64",
         "name": "Bojuka Bog",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1626,7 +1632,7 @@
       {
         "id": "c80",
         "name": "Mountain",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1644,7 +1650,7 @@
       {
         "id": "c68",
         "name": "Command Tower",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1662,7 +1668,7 @@
       {
         "id": "c95",
         "name": "Swamp",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1716,7 +1722,7 @@
       {
         "id": "c79",
         "name": "Luxury Suite",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
@@ -1734,7 +1740,7 @@
       {
         "id": "c66",
         "name": "Caves of Koilos",
-        "tapped": true,
+        "tapped": false,
         "counters": {},
         "isCommander": false,
         "isToken": false,
