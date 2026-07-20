@@ -1153,6 +1153,16 @@ function stackItemIsWhollyUnsupported(state: GameState, cardId: string): boolean
   // A vanilla permanent spell has no effect body to automate; resolving the
   // stack object to the battlefield is already fully modeled.
   if (rules.text.trim() === '') return false;
+  // CR 608.3: resolving a permanent spell = put onto battlefield. Static/triggered/
+  // activated abilities printed on it do NOT resolve on the stack — they become
+  // active after the permanent enters. If there are no 'spell'-shape effect lines,
+  // there is nothing to automate beyond the battlefield move (already modeled).
+  if (!card.isAbility && !/Instant|Sorcery/i.test(rules.typeLine)) {
+    const hasSpellEffect = splitAbilityLines(rules.def)
+      .filter((line) => line.faceIndex === card.faceIndex)
+      .some((line) => line.shape === 'spell');
+    if (!hasSpellEffect) return false;
+  }
   // This exact effect has a dedicated deterministic engine path even though
   // the generic compiler intentionally classifies the sentence as manual.
   if (/\bcopy target activated or triggered ability you control X times\b/i.test(rules.text)) {
