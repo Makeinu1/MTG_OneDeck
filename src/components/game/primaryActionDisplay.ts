@@ -18,7 +18,8 @@ export function primaryActionDisplayLabel(
   primary: PrimaryActionModel,
 ): string {
   if (primary.kind === 'next-phase') return NEXT_PHASE_LABELS[state.phase];
-  if (primary.kind === 'attack') return '攻撃クリーチャーを選ぶ';
+  if (primary.kind === 'attack') return `${primary.eligibleAttackers ?? 0}体で攻撃`;
+  if (primary.kind === 'skip-combat') return '攻撃せず進む';
   return primary.label;
 }
 
@@ -43,7 +44,9 @@ export function primaryActionLanguage(
     case 'triggers':
       return { full, compact: `誘発 ${triggerCandidateCount}`, icon: 'bell' };
     case 'attack':
-      return { full, compact: '攻撃', icon: 'attack' };
+      return { full, compact: `攻撃 ${primary.eligibleAttackers ?? 0}`, icon: 'attack' };
+    case 'skip-combat':
+      return { full, compact: '攻撃せず進む', icon: 'phase-next' };
     case 'next-phase':
       return { full, compact: full.replace(/^次へ：/, ''), icon: 'phase-next' };
   }

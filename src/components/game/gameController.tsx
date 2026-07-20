@@ -33,7 +33,7 @@ import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { celebrate } from './sound';
-import { primaryActionModel } from './primaryAction';
+import { primaryActionModel, eligibleAttackerIds } from './primaryAction';
 import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
 import { CleanupDiscardDialog } from './CleanupDiscardDialog';
@@ -238,6 +238,7 @@ export function useGameController({
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
   const [attackDialogOpen, setAttackDialogOpen] = useState(false);
+  const [pendingAttackPreselect, setPendingAttackPreselect] = useState<string[] | null>(null);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
@@ -413,7 +414,12 @@ export function useGameController({
         break;
       case 'attack':
         celebrate('primary');
+        setPendingAttackPreselect(eligibleAttackerIds(s));
         setAttackDialogOpen(true);
+        break;
+      case 'skip-combat':
+        celebrate('primary');
+        advancePhase();
         break;
       case 'next-phase':
         celebrate('primary');
@@ -1445,11 +1451,16 @@ export function useGameController({
         <AttackDialog
           state={state}
           opponentLabels={opponentLabels}
+          initialAttackerIds={pendingAttackPreselect ?? []}
           onConfirm={(attackerIds, targetLabel, blockers) => {
             store.declareAttack(attackerIds, targetLabel, blockers);
             setAttackDialogOpen(false);
+            setPendingAttackPreselect(null);
           }}
-          onCancel={() => setAttackDialogOpen(false)}
+          onCancel={() => {
+            setAttackDialogOpen(false);
+            setPendingAttackPreselect(null);
+          }}
         />
       )}
       {arrangeTopOpen && (

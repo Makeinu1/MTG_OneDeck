@@ -309,11 +309,13 @@ export function LandTapChoiceDialog({
 export function AttackDialog({
   state,
   opponentLabels,
+  initialAttackerIds = [],
   onConfirm,
   onCancel,
 }: {
   state: GameState;
   opponentLabels: string[];
+  initialAttackerIds?: string[];
   onConfirm: (
     attackerIds: string[],
     targetLabel: string,
@@ -340,7 +342,7 @@ export function AttackDialog({
     targetLabel: string;
     blockAssignments: Record<string, string>;
   }>({
-    selected: [],
+    selected: initialAttackerIds,
     targetLabel: opponentLabels[0] ?? '対戦相手A',
     blockAssignments: {},
   }, onCancel);

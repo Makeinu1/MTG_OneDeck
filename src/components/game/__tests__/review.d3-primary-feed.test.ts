@@ -42,12 +42,43 @@ describe('primaryActionModel state machine (playbook §3 D3(1))', () => {
     expect(m.label).toBe('誘発を処理 (2)');
   });
 
-  it('③ 戦闘フェイズ・攻撃宣言前(combat=null=engine実到達状態) → 攻撃を確定', () => {
+  it('③ 戦闘フェイズ・攻撃宣言前(combat=null)・攻撃可能0 → 攻撃せず進む(skip-combat)', () => {
     // engine は combat フェイズ突入時 state.combat=null(declareAttack が enterCombat を含む)。
+    // 契約変更(ユーザー裁定 2026-07-20): 攻撃可能クリーチャー0体は戦闘スキップを提示。
     const s: GameState = { ...baseState(), phase: 'combat', combat: null };
     const m = primaryActionModel(s, 0);
+    expect(m.kind).toBe('skip-combat');
+    expect(m.label).toBe('攻撃せず進む');
+  });
+
+  it('③b 戦闘フェイズ・攻撃可能n>0 → n体で攻撃(attack)', () => {
+    // 契約変更(ユーザー裁定 2026-07-20): 攻撃可能クリーチャーn体を事前選択して攻撃ダイアログへ。
+    let s = baseState();
+    const def = makeDef({ scryfallId: 'attacker', typeLine: 'Creature', faces: [{ name: 'Attacker', typeLine: 'Creature', power: '2', toughness: '2' }] });
+    s = { ...s, defs: { ...s.defs, attacker: def } };
+    const attackerId = 'c-attacker';
+    s = {
+      ...s,
+      cards: {
+        ...s.cards,
+        [attackerId]: {
+          ...s.cards[Object.keys(s.cards)[0]],
+          id: attackerId,
+          defId: 'attacker',
+          zone: 'battlefield',
+          controllerId: s.localPlayerId,
+          tapped: false,
+          enteredTurn: 0,
+        },
+      },
+      zones: { ...s.zones, battlefield: [...s.zones.battlefield, attackerId] },
+      phase: 'combat',
+      combat: null,
+    };
+    const m = primaryActionModel(s, 0);
     expect(m.kind).toBe('attack');
-    expect(m.label).toBe('攻撃を確定');
+    expect(m.label).toBe('1体で攻撃');
+    expect(m.eligibleAttackers).toBe(1);
   });
 
   it('攻撃宣言後(combat.step=declareBlockers)は攻撃を確定にせず次へ', () => {

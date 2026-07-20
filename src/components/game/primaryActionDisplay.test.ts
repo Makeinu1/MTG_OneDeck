@@ -12,11 +12,18 @@ describe('primaryActionDisplayLabel', () => {
     )).toBe('次へ：戦闘');
   });
 
-  it('describes the action that opens the attack chooser', () => {
+  it('describes the action that opens the attack chooser with the eligible count', () => {
     expect(primaryActionDisplayLabel(
       { ...state, phase: 'combat' },
-      { kind: 'attack', label: '攻撃を確定', testId: 'primary-action', glow: false },
-    )).toBe('攻撃クリーチャーを選ぶ');
+      { kind: 'attack', label: '3体で攻撃', testId: 'primary-action', glow: false, eligibleAttackers: 3 },
+    )).toBe('3体で攻撃');
+  });
+
+  it('labels the zero-attacker case as skipping combat', () => {
+    expect(primaryActionDisplayLabel(
+      { ...state, phase: 'combat' },
+      { kind: 'skip-combat', label: '攻撃せず進む', testId: 'primary-action', glow: false, eligibleAttackers: 0 },
+    )).toBe('攻撃せず進む');
   });
 
   it('keeps full accessible meaning and emits compact icon-first labels', () => {

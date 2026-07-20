@@ -154,6 +154,10 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         celebrate('primary');
         controller.openAttackDialog();
         break;
+      case 'skip-combat':
+        celebrate('primary');
+        controller.advancePhase();
+        break;
       case 'next-phase':
         celebrate('primary');
         controller.advancePhase();
