@@ -503,7 +503,7 @@ export function detectTriggerCandidates(
     const topStackId = next.zones.stack[next.zones.stack.length - 1];
     const topStackCard = topStackId ? next.cards[topStackId] : undefined;
     if (topStackId && topStackCard && !topStackCard.isAbility && !prevStack.has(topStackId)) {
-      if (cardHasRuleTag(next, topStackId, 'trigger.cast')) {
+      if (cardHasRuleTag(next, topStackId, 'trigger.cast') && !cardHasRuleTag(next, topStackId, 'trigger.cast-watcher')) {
         addTriggerCandidate(
           candidates,
           makeTriggerCandidate(next, topStackId, 'trigger.cast', '唱えたとき'),
@@ -512,6 +512,7 @@ export function detectTriggerCandidates(
     }
     for (const cardId of next.zones.battlefield) {
       if (!cardHasRuleTag(next, cardId, 'trigger.cast-watcher')) continue;
+      if (topStackId && !castWatcherMatchesSpell(next, cardId, topStackId)) continue;
       addTriggerCandidate(
         candidates,
         makeTriggerCandidate(next, cardId, 'trigger.cast-watcher', '呪文を唱えるたび'),
@@ -1622,7 +1623,7 @@ function collectZoneChangePendingTriggers(
       event.after &&
       !next.cards[event.physicalCardId]?.isAbility
     ) {
-      if (defHasRuleTag(next, event.after.defId, 'trigger.cast')) {
+      if (defHasRuleTag(next, event.after.defId, 'trigger.cast') && !defHasRuleTag(next, event.after.defId, 'trigger.cast-watcher')) {
         addPendingTrigger(
           context,
           next,
@@ -1638,6 +1639,7 @@ function collectZoneChangePendingTriggers(
       }
       for (const cardId of next.zones.battlefield) {
         if (!cardHasRuleTag(next, cardId, 'trigger.cast-watcher')) continue;
+        if (!castWatcherMatchesSpell(next, cardId, event.physicalCardId)) continue;
         addCurrentPermanentPendingTrigger(
           next,
           context,
@@ -1819,6 +1821,43 @@ function collectCounterChangePendingTriggers(
       );
     }
   }
+}
+
+function castWatcherMatchesSpell(
+  state: GameState,
+  watcherCardId: string,
+  spellCardId: string,
+): boolean {
+  const watcher = state.cards[watcherCardId];
+  const spell = state.cards[spellCardId];
+  if (!watcher || !spell) return true;
+  const watcherDef = state.defs[watcher.defId];
+  const spellDef = state.defs[spell.defId];
+  if (!watcherDef || !spellDef) return true;
+  const watcherFace = watcherDef.faces[watcher.faceIndex] ?? watcherDef.faces[0];
+  const spellFace = spellDef.faces[spell.faceIndex] ?? spellDef.faces[0];
+  const watcherText = watcherFace?.oracleText ?? '';
+  const spellTypeLine = (spellFace?.typeLine ?? spellDef.typeLine ?? '').toLowerCase();
+
+  if (/\bnoncreature\s+spells?\b/i.test(watcherText)) {
+    if (/\bcreature\b/.test(spellTypeLine)) return false;
+  }
+  if (/\bcreature\s+spells?\b/i.test(watcherText) && !/\bnoncreature\b/i.test(watcherText)) {
+    if (!/\bcreature\b/.test(spellTypeLine)) return false;
+  }
+  if (/\binstant\s+spells?\b/i.test(watcherText)) {
+    if (!/\binstant\b/.test(spellTypeLine)) return false;
+  }
+  if (/\bsorcery\s+spells?\b/i.test(watcherText)) {
+    if (!/\bsorcery\b/.test(spellTypeLine)) return false;
+  }
+  if (/\bartifact\s+spells?\b/i.test(watcherText)) {
+    if (!/\bartifact\b/.test(spellTypeLine)) return false;
+  }
+  if (/\benchantment\s+spells?\b/i.test(watcherText)) {
+    if (!/\benchantment\b/.test(spellTypeLine)) return false;
+  }
+  return true;
 }
 
 function collectImplicitPendingTriggers(
