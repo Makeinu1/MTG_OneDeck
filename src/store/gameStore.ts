@@ -2320,7 +2320,26 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
       }
     }
+
+
+
     return warnings;
+  }
+
+  function sorcerySpeedWarning(state: GameState, pending: PendingActivation): string | null {
+    const source = state.cards[pending.sourceId];
+    if (!source) return null;
+    const def = state.defs[source.defId];
+    if (!def) return null;
+    const lineIndex = pending.abilityLineIndex;
+    if (lineIndex === undefined) return null;
+    const line = splitAbilityLines(def)[lineIndex];
+    if (!line || !/activate (?:this ability )?only as a sorcery/i.test(line.text)) return null;
+    const isMainPhase = state.phase === 'main1' || state.phase === 'main2';
+    const isYourTurn = state.activePlayerId === state.localPlayerId;
+    const stackEmpty = state.zones.stack.length === 0;
+    if (isMainPhase && isYourTurn && stackEmpty) return null;
+    return `${cardLabel(state, pending.sourceId)}の能力はソーサリーとしてのみ起動できます(あなたのメインフェイズ・スタックが空)。`;
   }
 
   function missingTargetWarnings(
@@ -3886,6 +3905,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         resolvedAbilityLineIndex,
       );
       const costWarnings = activationCostWarnings(cur, pendingActivation);
+      const timingWarning = sorcerySpeedWarning(cur, pendingActivation);
       if (paymentMode === 'rules-legal' && costWarnings.length > 0) {
         set({
           warnings: [...get().warnings, ...costWarnings],
@@ -3903,6 +3923,9 @@ export const useGameStore = create<GameStore>((set, get) => {
           },
         });
         return;
+      }
+      if (timingWarning && paymentMode === 'rules-legal') {
+        set({ warnings: [...get().warnings, timingWarning] });
       }
       if (paymentMode === 'forced' && costWarnings.length > 0) {
         // Mirrors the mana-ability sandbox escape idiom above: forced activation must

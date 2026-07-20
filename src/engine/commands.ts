@@ -1031,6 +1031,27 @@ function addDefeatAdvisory(
   return true;
 }
 
+const WORD_TO_NUMBER: Record<string, number> = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+
+const ETB_COUNTER_PATTERN = new RegExp(
+  'enters (?:the battlefield )?with (a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d+) ([\\w+/-]+) counters?', 'i',
+);
+
+function parseEtbCounters(oracleText: string): { counterType: string; count: number }[] {
+  const results: { counterType: string; count: number }[] = [];
+  for (const line of oracleText.split('\n')) {
+    const match = ETB_COUNTER_PATTERN.exec(line);
+    if (!match) continue;
+    const count = WORD_TO_NUMBER[match[1].toLowerCase()] ?? Number.parseInt(match[1], 10);
+    if (Number.isNaN(count) || count <= 0) continue;
+    results.push({ counterType: match[2], count });
+  }
+  return results;
+}
+
 function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardInstance {
   const face = currentFaceOf(draft, card);
   const counters = { ...card.counters };
@@ -1046,6 +1067,13 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
   if (typeLine.includes('Saga')) {
     counters.lore = 1;
     pushLog(draft, `${nameOfCard(draft, card)}は第I章で戦場に出た。`);
+  }
+
+  const oracleText = face?.oracleText;
+  if (oracleText) {
+    for (const spec of parseEtbCounters(oracleText)) {
+      counters[spec.counterType] = (counters[spec.counterType] ?? 0) + spec.count;
+    }
   }
 
   return {
