@@ -1,10 +1,10 @@
 # 判定プロトコル(judge-protocol)— 判定者席の標準裁定準則
 
-**正本性**: 判定者専有(実装エージェントは変更禁止)。判定者席の裁定様式を「判断の先払い」として lookup 可能な形に固めたもの。在席する判定者が誰であれ、**裁定の前にまずこの文書を引く**。ここに書いてある判断は判定者の地力を使わずそのまま適用してよい。権威順序 = CR(`rule/Magic_The_Gathering_Comprehensive_Rules.txt` 2026-06-19版)> 人間 gold > LLM(解釈のみ)。役割・フェイルオーバーの正本 = `CLAUDE.md`「役割 = 資源状態 → 割当」。
+**正本性**: 判定者専有(実装エージェントは変更禁止)。判定者席の裁定様式を「判断の先払い」として lookup 可能な形に固めたもの。在席する判定者が誰であれ、**裁定の前にまずこの文書を引く**。ここに書いてある判断は判定者の地力を使わずそのまま適用してよい。権威順序 = CR(`rule/Magic_The_Gathering_Comprehensive_Rules.txt` 2026-06-19版)> 人間 gold > LLM(解釈のみ)。役割・フェイルオーバーの正本 = `AGENTS.md`「役割 = 能力で定義」節。
 
 ## 0. 判断が来たら最初にやること(コールドスタート手順)
 
-新しい判定者セッションの読込順(**本節が読込順の唯一の正本**): `CLAUDE.md` → 本文書 → 台帳 `research/cr-grounding/cr-backbone-ledger.json`(plannedSequence / selectionRule / judgePolicy。履歴の深掘りが要るときだけ `cr-backbone-ledger-history.json`)→ 直近 memory。**圧縮(auto-compact)後の復旧にも同じ読込順を適用**し、`.claude/loop-state.md` が存在すればループ内位置(autoloop の現 step・背景作業)の正とする(gitignore 対象ゆえ存在しないことがある。その場合は台帳と memory から再構築)。その上で:
+新しい判定者セッションの読込順(**本節が読込順の唯一の正本**): `AGENTS.md`(Codex CLI が自動読込) → 本文書 → 台帳 `research/cr-grounding/cr-backbone-ledger.json`(plannedSequence / selectionRule / judgePolicy。履歴の深掘りが要るときだけ `cr-backbone-ledger-history.json`)→ `.agents/skills/mtg-onedeck-development/references/`(cycle / token-economy / codex-autoloop)。**圧縮(auto-compact)後の復旧にも同じ読込順を適用**し、`.claude/loop-state.md` が存在すればループ内位置(autoloop の現 step・背景作業)の正とする(gitignore 対象ゆえ存在しないことがある。その場合は台帳と skill references から再構築)。その上で:
 
 1. その判断は**決定論的か**? → §1 の3問テスト
 2. 決定論的 → **CR を引いて終了**(条番号を成果物に併記)。prompt 再走・再考・多数決をしない
