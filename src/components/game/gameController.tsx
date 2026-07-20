@@ -33,6 +33,7 @@ import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { celebrate } from './sound';
+import { primaryActionModel } from './primaryAction';
 import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
 import { CleanupDiscardDialog } from './CleanupDiscardDialog';
@@ -133,6 +134,8 @@ export interface GameController {
   requestResolveAll: () => void;
   advancePhase: () => void;
   advanceTurn: () => void;
+  /** 「次に進む」単一アクション(PrimaryAction 状態機械)。ボタンとショートカット共通。 */
+  runPrimaryAction?: () => void;
   undo: () => void;
   redo: () => void;
   canUndo?: boolean;
@@ -337,19 +340,7 @@ export function useGameController({
   }
 
   useShortcuts({
-    onNextPhase: () => {
-      const current = useGameStore.getState();
-      const s = current.state;
-      if (s && s.zones.stack.length > 0) {
-        requestResolveTop();
-        return;
-      }
-      if (current.triggerCandidates.length > 0) {
-        processTriggers();
-        return;
-      }
-      advancePhase();
-    },
+    onNextPhase: () => runPrimaryAction(),
     onNextTurn: () => advanceTurn(),
     onUndo: () => undo(),
     onRedo: () => redo(),
@@ -392,6 +383,43 @@ export function useGameController({
     if (!previous) return;
     store.nextTurn();
     announceTransition(previous, useGameStore.getState().state);
+  }
+
+  /**
+   * 「次に進む」単一アクション(PrimaryAction 状態機械)。
+   * サムゾーンのプライマリボタンとキーボードショートカット(次のフェイズ枠)が
+   * 同一挙動であることを保証する唯一の実体。
+   * 優先順: 手動処理完了 > スタック解決 > 誘発処理 > 攻撃確定 > 次のフェイズ。
+   */
+  function runPrimaryAction(): void {
+    const current = useGameStore.getState();
+    const s = current.state;
+    if (!s) return;
+    const primary = primaryActionModel(
+      s,
+      current.triggerCandidates.length,
+      current.resolutionSession?.stage === 'manual-required',
+    );
+    switch (primary.kind) {
+      case 'manual-resolution':
+        current.completeManualResolution();
+        break;
+      case 'resolve':
+        requestResolveTop();
+        break;
+      case 'triggers':
+        celebrate('primary');
+        processTriggers();
+        break;
+      case 'attack':
+        celebrate('primary');
+        setAttackDialogOpen(true);
+        break;
+      case 'next-phase':
+        celebrate('primary');
+        advancePhase();
+        break;
+    }
   }
 
   function undo(): void {
@@ -1524,6 +1552,7 @@ export function useGameController({
     requestResolveAll,
     advancePhase,
     advanceTurn,
+    runPrimaryAction,
     undo,
     redo,
     canUndo: store.canUndoInteraction || store.canUndo || shortcutsBlocked,

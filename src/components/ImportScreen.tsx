@@ -42,12 +42,12 @@ interface ResolvedEntry {
 }
 
 const ACTION_LABELS: Record<KeybindingAction, string> = {
-  nextPhase: '次のフェイズ',
+  nextPhase: '次に進む(フェイズ/解決/誘発)',
   nextTurn: '次のターン',
   draw: 'ドロー',
-  restart: 'やり直し',
+  restart: '最初からやり直す',
   undo: '元に戻す',
-  redo: 'やり直す',
+  redo: 'やり直す(戻したのを進む)',
 };
 
 const KEY_LABELS: Record<string, string> = {

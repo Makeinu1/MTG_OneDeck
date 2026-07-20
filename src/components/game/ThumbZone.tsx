@@ -135,12 +135,16 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
   const primaryLanguage = primaryActionLanguage(state, primary, controller.triggerCandidateCount);
 
   function runPrimary(): void {
+    if (controller.runPrimaryAction) {
+      controller.runPrimaryAction();
+      return;
+    }
     switch (primary.kind) {
       case 'manual-resolution':
         store.completeManualResolution();
         break;
       case 'resolve':
-        controller.requestResolveTop(); // celebrate('resolve') はコントローラ内。
+        controller.requestResolveTop();
         break;
       case 'triggers':
         celebrate('primary');
