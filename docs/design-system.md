@@ -194,18 +194,22 @@
 ユーザー要望(2026-07-20): 静止背景を廃止し、アイドル時間にも盤面が呼吸する。参照 tetra-nova の本質(音楽同期で脈動するネビュラ背景+多層星+中心脈動)を **CSS 近似+減衰**——"a whisper, never a wave"。**常に抽象表現・具象物体を置かない**(星座線・月・太陽円盤・ルーンリング・フロアグリッド等はすべてユーザー裁定で却下)。**既存 UI は不変**——本層は `GameScreen` 背後への注入のみ(`pointer-events:none`・`aria-hidden`)。視覚正本 = `research/design/mockups/ambient-motion.html`(v4.3)。背景は二層: **アンビエント層**(常時・本節)+ **イベント層**(既存 L1-L4 + ターン交代)。
 **二スキン原則**: ダークとライトは別のスキン(色差し替えではない)。ペースアンカー: ダーク = 鼓動 700ms / ライト = 液态呼吸 3400ms。
 - **ダーク = 脈動する星雲(冬のクオリティ: 冷たく・透き通り・鋭い)**:
-  - 星雲ガス×3(氷/金/ティール・中心 alpha .07-.20): ドリフト 64s/88s/112s(alternate)+ 呼吸 7.4s/9.6s/11.8s(opacity .55↔1・位相ずらし)、不定形の縁(SVG turbulence 変位)、`mix-blend-mode: screen`。場全体が 300s で緩慢旋回。
+  - 星雲ガス×3(氷/金/ティール・中心 alpha .07-.20): ドリフト 64s/88s/112s(alternate)+ 呼吸 7.4s/9.6s/11.8s(opacity .55↔1・位相ずらし)、不定形の縁(**有機的 border-radius** で代替・2026-07-21 パフォーマンス改訂: SVG feTurbulence は常時アニメーション下で致命的に重いため全廃)、`mix-blend-mode` も GPU 合成負荷のため全廃(radial-gradient の輝度で十分光る)。場全体が 300s で緩慢旋回。
   - 星3層・計156(遠84/中46/近26): **個別周波数**(遠 3.2-5.3s/中 2.4-4.5s/近 1.5-3.5s)+個別位相(負 delay)の深いきらめき(opacity 床 ~0.16x・scale .72↔1.32)。**やわらかな光点のみ——十字スパイク禁止**(チープとしてユーザー却下)。冷たいパレット(白〜氷色中心・暖色は約1/5)。**星は主役ではない**。
   - オーロラバンド(抽象・17s スウェイ・opacity .65↔1)+ 流れ星×2(11s/17s スケジュール・可視窓~8%)。
   - **鼓動**: 中心コア光 700ms(opacity .4↔.92・scale 1↔1.05)、ヴィネットは逆相(半周期オフセット)。戦闘 → **525ms** + コア燠火色 + 縁のヒート脈動。
   - **スタック同期**: スタック非空の間、StackBand + StatusBand 下線が同じビート時計で脈動。ライフのハートは2拍ごとに一拍(既存 D5 と同じ時計)。
 - **ライト = 墨の世界(ペースアンカー: 液态呼吸 3400ms)**:
-  - 墨雲×3(藍黒/セピア/インディゴ・中心 alpha .11-.22・turbulence の不定形縁): ドリフト 24s/38s/52s・液态呼吸 3400ms(opacity .64↔1・位相ずらし)、場全体が 180s で旋回。
+  - 墨雲×3(藍黒/セピア/インディゴ・中心 alpha .11-.22・**有機的 border-radius** の不定形縁): ドリフト 24s/38s/52s・液态呼吸 3400ms(opacity .64↔1・位相ずらし)、場全体が 180s で旋回。
   - **自描筆致**×2: 見えない筆がひと筆置く(pathLength dash 21s/29s: 描画→保持→フェード)。**墨の滴**×5(落下・拡散 7s・stagger)。**墨の滲み(bloom)**×6(9s)。**奔流**×3(14s/18s/22s)。**金箔**×10(ドリフト+瞬き)。和紙の目(静的)+ 和紙ハイライト池(上部・3.6s 呼吸・opacity .8↔1)+ 筆致の骨格(90s)+ ヴィネット呼吸 30s。
   - **盤面上の光源**: 見えない太陽が頭上を **90s で一周**——暖かい光の池(回転腕・中心 `--ambient-sun-wash`)が紙面を渡り、冷たい対蹠の影(180°オフセット)と紙のシーン(光沢)が角度ごと回る。**太陽の円盤は描かない——光そのものが太陽**。
 - **ターン交代(イベント層・フルコース)**: 冷+金ダブルスウィープ 700ms(金は+120ms)+ 光線 950ms + ターン数スタンプ(Cinzel・`--ease-snap` 520ms)+ 描き線(340ms・240ms delay)+ インパクトリング 650ms・保持 1500ms。
 - **フェイズ進行**: **既存 `TransitionCue` のみ**——新規の波紋/ティントは追加しない(ユーザー裁定で撤廃)。`TransitionCue` のタイミング定数(`TURN_CUE_LEAD_MS` 等)は不変。
-- **ガードレール(上限・機械検証対象)**: アニメーションは **transform/opacity のみ**(`background-position`・layout プロパティのアニメ禁止。唯一の例外 = 自描筆致の SVG `stroke-dashoffset`+opacity)。アンビエント層は `pointer-events:none` + `aria-hidden` + `will-change`。タブ非表示で一時停止。`prefers-reduced-motion: reduce` → アンビエント完全静止(世界観は静止画として残す)、スウィープ/スタンプはフェードのみ、流れ星は非表示。ThumbZone メニューに**「背景モーション」トグル**(既定 ON・`localStorage: mtg-onedeck:ambient-motion`・§7b 音トグルと同パターン)。
+- **ガードレール(上限・機械検証対象)**: アニメーションは **transform/opacity のみ**(`background-position`・layout プロパティのアニメ禁止。唯一の例外 = 自描筆致の SVG `stroke-dashoffset`+opacity)。アンビエント層は `pointer-events:none` + `aria-hidden`(**`will-change` は全廃**——星156+多数のレイヤー量産でメモリを食うため・transform/opacity アニメはブラウザ自動プロモートに任せる・2026-07-21 パフォーマンス改訂)。タブ非表示で一時停止。`prefers-reduced-motion: reduce` → アンビエント完全静止(世界観は静止画として残す)、スウィープ/スタンプはフェードのみ、流れ星は非表示。ThumbZone メニューに**「背景モーション」トグル**(既定 ON・`localStorage: mtg-onedeck:ambient-motion`・§7b 音トグルと同パターン)。
+- **パフォーマンス改訂記録(2026-07-21 実機計測)**: ①SVG `feTurbulence`/`feDisplacementMap` は常時アニメーション下でピクセル単位のノイズ生成を毎フレーム行い致命的に重い(特に Chrome)ため**全廃**。不定形の縁は有機的 `border-radius` で代替(契約の意図=不定形は維持)。②`will-change` は星156+多数への付与でレイヤー量産→メモリ爆発のため**全廃**。③`mix-blend-mode: screen` は合成を強制し GPU 負荷を上げるため**全廃**(ダーク背景上では radial-gradient の輝度で十分)。④星の `box-shadow` blur 半径を縮小(ペイント領域削減)。⑤和紙ノイズ層(`paper-grain`)も削除。
+- **ターン演出の減衰記録(2026-07-21 ユーザーFB)**: 光輪(放射光線 rays / 拡がる輪 ring)は「やりすぎ」のため撤去。文字スタンプ(Cinzel)+描き線+横切るスウィープのみ残す。
+- **スタック脈動の実装記録(2026-07-21)**: StatusBand 下線と StackWorkspace の脈動は `::after` 疑似要素の **opacity** アニメーションで実装(ガードレール「transform/opacity のみ」準拠・既存の静的 box-shadow は不変)。
+- **台形盤面の透明化記録(2026-07-21 ユーザー指示)**: `--tabletop-surface` を transparent に変更(ダーク/ライト両方)。アンビエント背景を殺さず透かす。戦術ライン(inset edge)と glow(drop-shadow)は残し「舞台の枠」だけ維持。
 - **実装**: 純関数 `src/components/game/ambientMotion.ts`(ビート周期/トグル状態/星・墨の決定的配置)+ `AmbientBackdrop` コンポーネント(`GameScreen` の `TabletopSurface` 直後に mount)+ `game.css` keyframes + `--ambient-*` トークン(`src/ui/tokens.css`)。**テンポはトークン固定値**(モックの速度スライダー ×0.4-3 はモック専用・製品に持ち込まない)。
 
 ### CardActionSheet(カードシート)
