@@ -143,4 +143,21 @@ describe('mana:write compiler catalog', () => {
     expect(result.prompts).toEqual([]);
   });
 
+
+  it('auto-compiles "{3}: Untap [self name]" as self-referential (CR 201.3)', () => {
+    const monolithDef = def({
+      scryfallId: 'basalt-monolith',
+      oracleId: 'basalt-monolith',
+      name: 'Basalt Monolith',
+      faces: [{ name: 'Basalt Monolith', typeLine: 'Artifact' }],
+    });
+    const result = compileAbilityIR(
+      parseAbilityIR('{3}: Untap Basalt Monolith.', 'Artifact'),
+      { sourceId: 'c1', def: monolithDef },
+    );
+
+    expect(result.decision).toBe('auto');
+    expect(result.commands).toEqual([{ type: 'setTapped', cardId: 'c1', tapped: false }]);
+  });
+
 });

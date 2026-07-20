@@ -1,4 +1,4 @@
-{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":22419,"auto":2735,"guided":2068,"manual":17616,"completeCards":2500,"partialCards":1932,"manualOnlyCards":11686}}
+{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":22419,"auto":2741,"guided":2068,"manual":17610,"completeCards":2500,"partialCards":1936,"manualOnlyCards":11682}}
 {"k":"+2 Mace#e882c9f9#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"+2 Mace#e882c9f9#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Aang, Airbending Master#de7a150b#0#1","d":"a","c":"f301de67","r":"4f53cda1"}
@@ -3077,7 +3077,7 @@
 {"k":"Chandra, Dressed to Kill#640b112d#0#0","d":"m","c":"d224e6f6","r":"cbdffa0d"}
 {"k":"Chandra, Dressed to Kill#640b112d#0#1","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Chandra, Dressed to Kill#640b112d#0#2","d":"m","c":"4f53cda1","r":"7529d74c"}
-{"k":"Chandra, Fire of Kaladesh // Chandra, Roaring Flame#b910c6a1#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Chandra, Fire of Kaladesh // Chandra, Roaring Flame#b910c6a1#0#0","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Chandra, Fire of Kaladesh // Chandra, Roaring Flame#b910c6a1#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Chandra, Fire of Kaladesh // Chandra, Roaring Flame#b910c6a1#1#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Chandra, Fire of Kaladesh // Chandra, Roaring Flame#b910c6a1#1#3","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -6240,7 +6240,7 @@
 {"k":"Fain, the Broker#7f1ff9e5#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Fain, the Broker#7f1ff9e5#0#1","d":"a","c":"5ddba80c","r":"4f53cda1"}
 {"k":"Fain, the Broker#7f1ff9e5#0#2","d":"m","c":"4f53cda1","r":"2714bff2"}
-{"k":"Fain, the Broker#7f1ff9e5#0#3","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Fain, the Broker#7f1ff9e5#0#3","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Fairgrounds Trumpeter#f2c6408b#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Fairgrounds Warden#737a4c9c#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Faithbound Judge // Sinner's Judgment#db791fb6#1#6","d":"m","c":"4f53cda1","r":"65157444"}
@@ -9095,7 +9095,7 @@
 {"k":"Hydrolash#2e388f8a#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Hydrolash#2e388f8a#0#1","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Hydro-Man, Fluid Felon#e53115a4#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Hydro-Man, Fluid Felon#e53115a4#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Hydro-Man, Fluid Felon#e53115a4#0#1","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Hyena Umbra#f6cc0f1f#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Hylda of the Icy Crown#ae9231fd#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Hylda's Crown of Winter#b0d4a6c0#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
@@ -15708,7 +15708,7 @@
 {"k":"Rolling Hamsphere#04d6e7f2#0#1","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Romana II#4ccc3ebd#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Romantic Rendezvous#ede080dd#0#0","d":"g","c":"5b3dafcc","r":"4f53cda1"}
-{"k":"Rona, Herald of Invasion // Rona, Tolarian Obliterator#f487b582#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Rona, Herald of Invasion // Rona, Tolarian Obliterator#f487b582#0#0","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Rona, Herald of Invasion // Rona, Tolarian Obliterator#f487b582#0#1","d":"g","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Rona, Herald of Invasion // Rona, Tolarian Obliterator#f487b582#0#2","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Rona, Herald of Invasion // Rona, Tolarian Obliterator#f487b582#1#4","d":"m","c":"4f53cda1","r":"e45837f1"}
@@ -15966,7 +15966,7 @@
 {"k":"Sai, Master Thopterist#ad0b5c09#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Sai, Master Thopterist#ad0b5c09#0#1","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Saint Traft and Rem Karolus#55a45de4#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
-{"k":"Saint Traft and Rem Karolus#55a45de4#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Saint Traft and Rem Karolus#55a45de4#0#1","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Sakashima of a Thousand Faces#bc372135#0#0","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Sakashima's Student#1175b8f8#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sakashima's Student#1175b8f8#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
@@ -20285,7 +20285,7 @@
 {"k":"Traverse the Ulvenwald#77b459cb#0#1","d":"m","c":"4f53cda1","r":"2cdf8cc7"}
 {"k":"Trawler Drake#f442442d#0#2","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Traxos, Scourge of Kroog#8566e91a#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Traxos, Scourge of Kroog#8566e91a#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
+{"k":"Traxos, Scourge of Kroog#8566e91a#0#2","d":"a","c":"2d268015","r":"4f53cda1"}
 {"k":"Treacherous Greed#e4b9260b#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Treacherous Greed#e4b9260b#0#1","d":"a","c":"5d4b5c22","r":"4f53cda1"}
 {"k":"Treacherous Trapezist#456149a1#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}

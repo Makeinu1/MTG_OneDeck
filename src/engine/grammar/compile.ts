@@ -931,6 +931,12 @@ function compileEffect(
     }
   }
 
+  // CR 201.3: "Untap [card name]" where the name is the source's own name is self-referential.
+  if (effect.atom === 'effect.untap' && isSelfNameUntap(effect.raw, ctx.def)) {
+    commands.push({ type: 'setTapped', cardId: ctx.sourceId, tapped: false });
+    return { commands, prompts, reasons: [...reasons] };
+  }
+
   if (!effect.optional && GUIDED_TARGET_ATOMS.has(effect.atom)) {
     const prompt = guidedTargetPrompt(effect);
     if (prompt) {
@@ -2141,6 +2147,18 @@ function selfNameCounterPlusDescriptor(raw: string, def: CardDef): CounterDescri
     }
   }
   return null;
+}
+
+// CR 201.3: "Untap [card name]" where the name matches the source card is self-referential.
+function isSelfNameUntap(raw: string, def: CardDef): boolean {
+  if (/\btarget\b/i.test(raw)) return false;
+  const normalized = raw.replace(/[.。]\s*$/, '').replace(/\s+/g, ' ').trim();
+  const names = selfNameSubjectForms(def.name);
+  for (const name of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`^untap\\s+${escaped}$`, 'i').test(normalized)) return true;
+  }
+  return false;
 }
 
 function selfReferentialCounterPlusDescriptor(raw: string): CounterDescriptor | null {
