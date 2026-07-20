@@ -203,6 +203,39 @@
       "nextGate": "出荷完了。以後はMyDeck実需要があるcast-time選択またはcounter複合文だけを個別スライス化する。"
     },
     {
+      "type": "design-slice",
+      "domainId": "m-stack-trust-hotfix",
+      "track": "play-loop",
+      "status": "shipped",
+      "auditStatus": "audited-2026-07-20-cold-chatgpt-no-findings",
+      "dependsOn": [
+        "m-stack-control"
+      ],
+      "releaseEvidence": "2026-07-20: feature commit a624e9b354e1762cde4cc5a0a59858cf60c42205、GitHub Actions run 29716842581 success(test/build/deploy)、Pages HTTP 200。ship工程はClaude判定者席がinline実行(Codex .git書き込み上限のため)。",
+      "userGate": "2026-07-20 ユーザー直接プレイ裁定: 手動解決中にショートカットで戻れない・《一つの指輪》の誤誘発が強いストレス。同種問題の横断探索込みで修復する。",
+      "relatedDomains": [
+        "m-stack-control",
+        "cr-603-triggered-abilities"
+      ],
+      "crRefs": [
+        "603.1",
+        "603.2",
+        "603.2b",
+        "603.12"
+      ],
+      "evidence": [
+        "docs/engine-spec.md §34.25 / §34.51",
+        "docs/acceptance.md MSC-13..17",
+        "src/store/__tests__/review.stack-trust-hotfix.test.ts",
+        "src/store/__tests__/review.cr603-trigger-condition-boundary.test.ts",
+        "src/engine/triggerCondition.ts(共有条件parser・runtime/classifier/eventClassify共用)",
+        "3 viewport browser QA + console error 0",
+        "cold ChatGPT audit: no findings"
+      ],
+      "boundary": "ResolutionSessionのUndo脱出(stepPast空→session全体中止・resolveAll=batch開始前復元・global履歴保存)と、能力語除去後の先頭When/Whenever条件句のみをevent購読に使う単一parser。At能力はphase/step経路専用で効果文をevent購読に代用しない。《一つの指輪》のupkeep効果自動化は対象外。",
+      "nextGate": "出荷完了。"
+    },
+    {
       "type": "domain-slice",
       "domainId": "cr-player-specific-zones",
       "status": "shipped",
