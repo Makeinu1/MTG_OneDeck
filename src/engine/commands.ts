@@ -2707,16 +2707,13 @@ function applyNextTurn(draft: Draft, advanceTurnOrder: boolean): void {
     draft.state.activePlayerId,
   );
   if (draft.state.phase !== 'cleanup') beginCleanup(draft);
-  const skippedCleanupChoices = draft.state.pendingRuleChoices.filter(
-    (choice) => choice.kind === 'cleanup-discard',
-  );
-  if (skippedCleanupChoices.length > 0) {
-    draft.state.pendingRuleChoices = draft.state.pendingRuleChoices.filter(
-      (choice) => choice.kind !== 'cleanup-discard',
-    );
-    draft.warnings.push(
-      'ターンを直接進めたため、クリーンナップの手札調整を手動処理済みとして続行しました。',
-    );
+  // CR 514.1 準拠: cleanup の手札調整はプレイヤーの選択が必要。
+  // nextTurn の本来の意図「各フェイズを自動パスして次ターンへ」は、
+  // cleanup の手札調整の前で止まるべき(陳腐化是正 2026-07-21)。
+  // cleanup-discard が生成されていればここで return し、UI がダイアログを表示。
+  // ユーザーが解決すると resolveRuleChoice 経路で finishTurnAfterCleanup が走る。
+  if (draft.state.pendingRuleChoices.some((choice) => choice.kind === 'cleanup-discard')) {
+    return;
   }
   completeCleanupStateActions(draft);
   draft.state.turn += 1;

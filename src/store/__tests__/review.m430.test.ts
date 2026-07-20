@@ -81,7 +81,16 @@ describe('per-turn reset on untap (M4.30)', () => {
     expect(snap().zones.stack.length).toBe(0);
 
     store().nextTurn(); // advances into next turn's untap -> handleUntapEntry resets
-    // land on untap (autoAdvanceToMain false)
+    // nextTurn 是正(2026-07-21 判定者裁定): 手札超過時は cleanup で止まる(CR 514.1)。
+    // cleanup-discard を解決してからターン進行を検証する。
+    if (snap().phase === 'cleanup') {
+      const choice = snap().pendingRuleChoices.find((c) => c.kind === 'cleanup-discard');
+      if (choice) {
+        const hand = snap().zones.hand;
+        const discards = hand.slice(0, Math.max(0, hand.length - 7));
+        store().resolveRuleChoice(choice.choiceId, { kind: 'cleanup-discard', cardIds: discards });
+      }
+    }
     expect(snap().phase).toBe('untap');
     expect(snap().spellsCastThisTurn).toBe(0);
     expect(snap().drawnThisTurn).toBe(0);

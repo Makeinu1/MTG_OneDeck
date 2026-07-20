@@ -104,6 +104,17 @@ describe('M4.30 per-turn counters', () => {
     expect(snap().zones.stack.length).toBe(0);
 
     store().nextTurn();
+    // nextTurn 是正(2026-07-21): 手札超過時は cleanup で止まる(CR 514.1)。
+    // cleanup-discard を解決してからターン進行を検証する。
+    if (snap().phase === 'cleanup') {
+      const choice = snap().pendingRuleChoices.find((c) => c.kind === 'cleanup-discard');
+      if (choice) {
+        const hand = snap().zones.hand;
+        const max = 7;
+        const discards = hand.slice(0, Math.max(0, hand.length - max));
+        store().resolveRuleChoice(choice.choiceId, { kind: 'cleanup-discard', cardIds: discards });
+      }
+    }
     expect(snap().phase).toBe('untap');
     expect(snap().spellsCastThisTurn).toBe(0);
     expect(snap().drawnThisTurn).toBe(0);
@@ -173,8 +184,12 @@ describe('M4.30 per-turn counters', () => {
               state = applyCommand(state, { type: 'draw', count: counts[index] }).state;
             } else if (op === 'nextTurn') {
               state = applyCommand(state, { type: 'nextTurn' }).state;
-              expect(state.spellsCastThisTurn).toBe(0);
-              expect(state.drawnThisTurn).toBe(0);
+              // nextTurn 是正(2026-07-21): 手札超過時は cleanup で止まる。
+              // cleanup で止まらなかった場合のみカウンターリセットを検証。
+              if (state.phase !== 'cleanup') {
+                expect(state.spellsCastThisTurn).toBe(0);
+                expect(state.drawnThisTurn).toBe(0);
+              }
             } else if (op === 'cast') {
               if (state.cards[spellId].zone !== 'hand') {
                 state = applyCommand(state, {
