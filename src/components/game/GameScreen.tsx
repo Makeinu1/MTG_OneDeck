@@ -33,6 +33,7 @@ import { TriggerSheet } from './TriggerSheet';
 import { PresentationLayer } from './PresentationLayer';
 import { CelebrationLayer } from './CelebrationLayer';
 import { CommanderCutIn } from './CommanderCutIn';
+import { Toast } from './Toast';
 import type { KeybindingsMap } from '../../data/keybindings';
 import type { CardInstance } from '../../engine/types';
 import type { CardDef } from '../../types/card';
@@ -214,6 +215,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         <PresentationLayer controller={controller} />
         <CelebrationLayer controller={controller} />
         {controller.commanderCutIn && <CommanderCutIn cue={controller.commanderCutIn} />}
+        <Toast />
         <div className="game-screen__support">
           <SupportRow controller={controller} activeDragId={activeDragId} />
         </div>

@@ -29,18 +29,29 @@ export interface FeedItem {
   timestamp: number;
 }
 
+export interface Toast {
+  id: number;
+  message: string;
+  kind: 'warning' | 'info';
+}
+
 export interface ViewStore {
   activeSheet: ActiveSheet;
   feedOpen: boolean;
   stackExpanded: boolean;
   feedItems: FeedItem[];
   unseenCount: number;
+  toast: Toast | null;
   openSheet(sheet: ActiveSheet): void;
   closeSheet(): void;
   toggleFeed(): void;
   toggleStack(): void;
   markSeen(): void;
+  showToast(message: string, kind?: 'warning' | 'info'): void;
+  dismissToast(): void;
 }
+
+let toastCounter = 0;
 
 export const useViewStore = create<ViewStore>((set) => ({
   activeSheet: null,
@@ -48,9 +59,12 @@ export const useViewStore = create<ViewStore>((set) => ({
   stackExpanded: false,
   feedItems: [],
   unseenCount: 0,
+  toast: null,
   openSheet: (sheet) => set({ activeSheet: sheet }),
   closeSheet: () => set({ activeSheet: null }),
   toggleFeed: () => set((state) => ({ feedOpen: !state.feedOpen })),
   toggleStack: () => set((state) => ({ stackExpanded: !state.stackExpanded })),
   markSeen: () => set({ unseenCount: 0 }),
+  showToast: (message, kind = 'warning') => set({ toast: { id: ++toastCounter, message, kind } }),
+  dismissToast: () => set({ toast: null }),
 }));

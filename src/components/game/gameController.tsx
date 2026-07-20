@@ -20,6 +20,8 @@ import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { parseManaCost } from '../../engine/mana';
 import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
+import { isPartiallyImplemented } from '../../engine/grammar/partialImplementation';
+import { useViewStore } from '../../store/viewStore';
 import { activatedAbilityLines } from '../../engine/grammar';
 import { fetchAbility, type FetchAbility } from '../../engine/status';
 import type { RuleActionCandidateKind } from './ruleActionCandidates';
@@ -694,6 +696,11 @@ export function useGameController({
           if (result === 'needs-choice') {
             setManaChoice({ kind: 'tap', cardId, options: def?.producedMana ?? [] });
           }
+          if (def && isPartiallyImplemented(def)) {
+            useViewStore.getState().showToast(
+              `《${def.printedName ?? def.name}》は一部の効果が未実装です。手動処理が必要な能力があります。`,
+            );
+          }
         };
       case 'crack-treasure':
         return () => requestTreasureCrack(cardId);
@@ -872,6 +879,11 @@ export function useGameController({
       if (!card.tapped && produced.length > 0) {
         const result = store.tapForMana(cardId);
         if (result === 'needs-choice') setManaChoice({ kind: 'tap', cardId, options: produced });
+        if (def && isPartiallyImplemented(def)) {
+          useViewStore.getState().showToast(
+            `《${def.printedName ?? def.name}》は一部の効果が未実装です。手動処理が必要な能力があります。`,
+          );
+        }
         return;
       }
       store.toggleTap(cardId);
@@ -891,6 +903,11 @@ export function useGameController({
     const result = store.tapForMana(cardId);
     if (result === 'needs-choice') {
       setManaChoice({ kind: 'tap', cardId, options: naiveTapManaColors(def) });
+    }
+    if (def && isPartiallyImplemented(def)) {
+      useViewStore.getState().showToast(
+        `《${def.printedName ?? def.name}》は一部の効果が未実装です。手動処理が必要な能力があります。`,
+      );
     }
   }
 
