@@ -119,6 +119,25 @@
       "status": "deferred"
     },
     {
+      "type": "design-slice",
+      "domainId": "d8-ambient-layer",
+      "track": "design",
+      "dependsOn": [
+        "d5-celebration"
+      ],
+      "status": "shipped",
+      "userGate": "2026-07-20 ユーザー裁定: v4.3最終モック確定。D4/D6/D7の停止と無関係の単独トラック。",
+      "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: 生きた背景(AmbientLayer)。ダーク=脈動する星雲(鼓動700ms/戦闘525ms/星156/流れ星)、ライト=墨の世界(液态呼吸3400ms/自描筆致/墨の滴/盤面上の光源90s公転)。パフォーマンス: feTurbulence/will-change/mix-blend-mode全廃(有機border-radius代替)。ターン交代: Cinzelスタンプ+スウィープ+描き線(光輪撤去)。ライフ♥脈動。スタック同期脈動。台形盤面透明化。ThumbZone「背景モーション」トグル(既定ON)。契約=design-system §8a。視覚正本=research/design/mockups/ambient-motion.html(v4.3)。cleanup-discard解決後のターン演出補完(announceTransition)。"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "nextturn-cleanup-stale-design",
+      "track": "engine",
+      "status": "shipped",
+      "userGate": "2026-07-21 ユーザー裁定: nextTurnの設計意味陳腐化を是正。cleanup-discardをスキップせずCR 514.1準拠で停止。",
+      "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: applyNextTurnのcleanup-discardスキップロジックを撤去。nextTurnの本来の意図「各フェイズを自動パスして次ターンへ」に対し、cleanup実装後に「cleanup-discardをスキップして続行」が設計として固着していた(陳腐化)。CR 514.1準拠: cleanupの手札調整はプレイヤーの選択が必要。nextTurnはcleanup-discardが生成されていればそこで停止し、UIがダイアログを表示。review.* 2件を更新(判定者裁定: 是正に伴う必然的更新。冷監査で後検証)。"
+    },
+    {
       "type": "domain-slice",
       "domainId": "cr-121-drawing",
       "note": "**出荷完了(2026-07-12・J2 Opus 判定者席・実装=Sonnet サブエージェント[ユーザー指示『Codex/ChatGPT リソースでなく Sonnet を使う』])**: CR121.2c 誠実性ガード。",
