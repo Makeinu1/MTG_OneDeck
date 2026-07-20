@@ -2207,6 +2207,18 @@ export const useGameStore = create<GameStore>((set, get) => {
         { sourceId: pending.sourceId },
       ).filter((cardId) => cardId !== pending.sourceId && !selected.has(cardId));
     }
+    if (prompt.kind === 'cost-tap') {
+      return eligibleTargets(
+        state,
+        prompt.filter ?? { types: ['permanent'], controller: 'you' },
+        { sourceId: pending.sourceId },
+      ).filter(
+        (cardId) =>
+          cardId !== pending.sourceId &&
+          state.cards[cardId]?.tapped !== true &&
+          !selected.has(cardId),
+      );
+    }
     return [];
   }
 
@@ -2339,7 +2351,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   function costSubjectWarnings(state: GameState, pending: PendingActivation): string[] {
     const warnings: string[] = [];
     for (const component of pending.costComponents) {
-      if (component.kind !== 'discard' && component.kind !== 'sacrifice-object') {
+      if (component.kind !== 'discard' && component.kind !== 'sacrifice-object' && component.kind !== 'tap-object') {
         continue;
       }
       const amount = component.amount ?? 0;
@@ -2360,6 +2372,31 @@ export const useGameStore = create<GameStore>((set, get) => {
         if (invalid) {
           warnings.push(
             `${cardLabel(state, pending.sourceId)}の捨てるカードが現在の手札にありません。`,
+          );
+        }
+        continue;
+      }
+
+      if (component.kind === 'tap-object') {
+        const tapPrompt = pending.costPrompts.find(
+          (entry) =>
+            entry.kind === 'cost-tap' &&
+            costComponentSlotIdForPrompt(entry) === component.slotId,
+        );
+        const tapEligible = new Set(
+          tapPrompt ? eligibleCostSubjectIds(state, pending, tapPrompt, { excludeSelected: false }) : [],
+        );
+        const tapInvalid = subjectRefs.some((subjectRef) => {
+          const snapshot = objectSnapshotForCard(state, subjectRef.physicalCardId);
+          return (
+            !snapshot ||
+            snapshot.objectId !== subjectRef.objectId ||
+            !tapEligible.has(subjectRef.physicalCardId)
+          );
+        });
+        if (tapInvalid) {
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}のタップコストの選択が現在の候補にありません。`,
           );
         }
         continue;
@@ -4355,7 +4392,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (
         !cur ||
         !isActivationPending(pending) ||
-        (prompt?.kind !== 'cost-discard' && prompt?.kind !== 'cost-sacrifice')
+        (prompt?.kind !== 'cost-discard' && prompt?.kind !== 'cost-sacrifice' && prompt?.kind !== 'cost-tap')
       ) {
         return;
       }
@@ -4403,6 +4440,20 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
+      if (
+        prompt.kind === 'cost-tap' &&
+        (cardId === pending.activation.sourceId
+          || cur.cards[cardId]?.zone !== 'battlefield'
+          || cur.cards[cardId]?.tapped === true)
+      ) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, cardId)}はタップコストの候補にありません。`,
+          ],
+        });
+        return;
+      }
 
       const subjectRef = activationSubjectRefFromSnapshot(snapshot);
       const costComponents = costComponentsWithSubject(
@@ -4413,7 +4464,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       const command: GameCommand =
         prompt.kind === 'cost-discard'
           ? { type: 'discard', cardIds: [cardId], playerId: controllerId }
-          : { type: 'moveCard', cardId, to: 'graveyard', position: 'top', reason: 'sacrifice' };
+          : prompt.kind === 'cost-tap'
+            ? { type: 'setTapped', cardId, tapped: true }
+            : { type: 'moveCard', cardId, to: 'graveyard', position: 'top', reason: 'sacrifice' };
       advanceActivationCostSubject(command, costComponents);
     },
 

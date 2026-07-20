@@ -3413,6 +3413,89 @@ function parseSacrificeObjectCostElement(
   };
 }
 
+function tapObjectCostFilter(subject: string): TargetFilter {
+  const lower = subject.toLowerCase();
+  const types = COST_OBJECT_TYPES.filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(lower));
+  return {
+    types: types.length > 0 ? types : ['permanent'],
+    controller: 'you',
+  };
+}
+
+function parseTapObjectCostElement(
+  element: string,
+  payerId: PlayerId,
+  slotId: string,
+): { component: ActivationCostComponent; prompts: EffectPrompt[] } | null {
+  const match = /^Tap\s+(?:an?\s+)?(?:untapped\s+)?(.+?)\s+you\s+control$/i.exec(element);
+  if (!match) {
+    return null;
+  }
+  const subject = match[1].trim();
+  if (/^(?:this|it|self|~)$/i.test(subject)) {
+    return null;
+  }
+  const countMatch = /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(.+)$/i.exec(
+    subject,
+  );
+  const amount = countMatch ? parseCostAmountToken(countMatch[1]) : 1;
+  const objectPhrase = countMatch ? countMatch[2].trim() : subject;
+  if (amount === null) {
+    return null;
+  }
+  const filter = tapObjectCostFilter(objectPhrase);
+  return {
+    component: {
+      kind: 'tap-object',
+      raw: element,
+      payerId,
+      status: 'guided',
+      amount,
+      slotId,
+    },
+    prompts: Array.from({ length: amount }, (_, index) => ({
+      atom: null,
+      kind: 'cost-tap' as const,
+      count: 1,
+      slotId: promptSlotId(slotId, index),
+      filter,
+      raw: element,
+    })),
+  };
+}
+
+function parseMillCostElement(
+  element: string,
+  payerId: PlayerId,
+  slotId: string,
+): { component: ActivationCostComponent; commands: GameCommand[] } | null {
+  const match = /^Mill\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+cards?$/i.exec(
+    element,
+  );
+  if (!match) {
+    return null;
+  }
+  const amount = parseCostAmountToken(match[1]);
+  if (amount === null) {
+    return null;
+  }
+  return {
+    component: {
+      kind: 'mill',
+      raw: element,
+      payerId,
+      status: 'auto',
+      amount,
+      slotId,
+    },
+    commands: [{
+      type: 'mill',
+      count: amount,
+      ...(payerId !== 'P1' ? { playerId: payerId } : {}),
+    }],
+  };
+}
+
 function activationNonmanaCosts(
   state: GameState,
   rawCost: string,
@@ -3448,6 +3531,20 @@ function activationNonmanaCosts(
     if (sacrifice) {
       components.push(sacrifice.component);
       prompts.push(...sacrifice.prompts);
+      return;
+    }
+
+    const tapObject = parseTapObjectCostElement(element, payerId, slotId);
+    if (tapObject) {
+      components.push(tapObject.component);
+      prompts.push(...tapObject.prompts);
+      return;
+    }
+
+    const mill = parseMillCostElement(element, payerId, slotId);
+    if (mill) {
+      components.push(mill.component);
+      commands.push(...mill.commands);
       return;
     }
 
@@ -3812,10 +3909,7 @@ export function activationPlanForSource(
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
   const ir = parseAbilityIR(line.text, typeLine);
   const xSymbolCount = ir.cost?.raw.match(/\{X\}/gi)?.length ?? 0;
-  if (
-    xSymbolCount > 0
-    && (xSymbolCount !== 2 || !/\bX can['’]t be 0\b|\bX cannot be 0\b/i.test(line.text))
-  ) {
+  if (xSymbolCount > 0 && xValue <= 0) {
     return {
       commands: [],
       decision: 'manual',

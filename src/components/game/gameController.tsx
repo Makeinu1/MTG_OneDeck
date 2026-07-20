@@ -965,7 +965,18 @@ export function useGameController({
             ).filter(
               (id) => id !== store.pendingGuided?.sourceId && !guidedCostSelectedIds.has(id),
             )
-          : [];
+          : guidedPrompt.kind === 'cost-tap'
+            ? eligibleTargets(
+                state,
+                guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+                { sourceId: store.pendingGuided?.sourceId },
+              ).filter(
+                (id) =>
+                  id !== store.pendingGuided?.sourceId &&
+                  state.cards[id]?.tapped !== true &&
+                  !guidedCostSelectedIds.has(id),
+              )
+            : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
   const peekIds =
     !state || peekCount === null
@@ -1003,9 +1014,9 @@ export function useGameController({
       kind: 'sacrifice', title: '生け贄を選択', instruction: '戦場の候補から1枚選んでください。',
       sourceId, candidateIds: guidedSacrificeIds, selectedIds: [],
     };
-    if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') return {
+    if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice' || guidedPrompt?.kind === 'cost-tap') return {
       kind: 'cost',
-      title: guidedPrompt.kind === 'cost-discard' ? '起動コスト：捨てる' : '起動コスト：生け贄',
+      title: guidedPrompt.kind === 'cost-discard' ? '起動コスト：捨てる' : guidedPrompt.kind === 'cost-tap' ? '起動コスト：タップ' : '起動コスト：生け贄',
       instruction: '金色の候補を選んでコストを確定します。',
       sourceId, candidateIds: guidedCostSubjectIds, selectedIds: [...guidedCostSelectedIds],
       requiredCount: guidedPrompt.count,
@@ -1057,7 +1068,7 @@ export function useGameController({
     else if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
     else if (guidedPrompt?.kind === 'discard') store.confirmGuidedDiscard(cardId);
     else if (guidedPrompt?.kind === 'sacrifice') store.confirmGuidedSacrifice(cardId);
-    else if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice') store.confirmGuidedCostSubject(cardId);
+    else if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice' || guidedPrompt?.kind === 'cost-tap') store.confirmGuidedCostSubject(cardId);
     else if (pendingRuleTarget) pickRuleActionTarget(cardId);
     else if (pendingBloodCrackCardId) {
       store.crackBlood(pendingBloodCrackCardId, cardId);

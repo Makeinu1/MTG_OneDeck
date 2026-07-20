@@ -28,7 +28,8 @@ export type PromptKind =
   | 'modal'
   | 'mana'
   | 'cost-discard'
-  | 'cost-sacrifice';
+  | 'cost-sacrifice'
+  | 'cost-tap';
 
 export interface TargetFilter {
   types?: string[];

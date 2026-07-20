@@ -206,7 +206,9 @@ export type ActivationCostComponentKind =
   | 'sacrifice-self'
   | 'sacrifice-object'
   | 'pay-life'
-  | 'discard';
+  | 'discard'
+  | 'tap-object'
+  | 'mill';
 export type ActivationCostComponentStatus = 'auto' | 'guided' | 'manual' | 'unparsed';
 
 export interface ActivationCostComponent {
