@@ -2337,12 +2337,33 @@ function untapAll(draft: Draft): void {
   }
 }
 
+/** CR 502.2 exception: "[This permanent] doesn't untap during your untap step." */
+function hasSelfDoesntUntapClause(state: GameState, card: CardInstance): boolean {
+  const def = state.defs[card.defId];
+  if (!def) return false;
+  const face = def.faces[card.faceIndex] ?? def.faces[0];
+  const oracleText = face?.oracleText;
+  if (!oracleText) return false;
+  for (const line of oracleText.split('\n')) {
+    if (/doesn't untap during your untap step/i.test(line)
+      && !/\benchanted\b|\bequipped\b|\bfortified\b|\btarget\b/i.test(line)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function untapControlledPermanents(draft: Draft, playerId: PlayerId): void {
   let changed = false;
+  const skipped: string[] = [];
   const cards = { ...draft.state.cards };
   for (const id of draft.state.zones.battlefield) {
     const card = cards[id];
     if (card?.controllerId === playerId && card.tapped) {
+      if (hasSelfDoesntUntapClause(draft.state, card)) {
+        skipped.push(nameOf(draft, id));
+        continue;
+      }
       cards[id] = { ...card, tapped: false };
       changed = true;
     }
@@ -2350,6 +2371,9 @@ function untapControlledPermanents(draft: Draft, playerId: PlayerId): void {
   if (changed) {
     draft.state.cards = cards;
     pushLog(draft, `${requirePlayer(draft.state, playerId).label}のパーマネントをアンタップした。`);
+  }
+  for (const name of skipped) {
+    pushLog(draft, `${name}はアンタップしない（CR 502.2例外）。`);
   }
 }
 
