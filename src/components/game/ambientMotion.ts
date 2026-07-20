@@ -75,8 +75,10 @@ const STAR_TINT_VARS = [
   'var(--ambient-star-5)',
 ];
 
-/** 3層・計156(遠84/中46/近26)。星は主役ではない。 */
-export const STAR_COUNTS: Record<StarKind, number> = { far: 84, mid: 46, near: 26 };
+/** 3層・計80(遠44/中22/近14)。星は主役ではない。
+    2026-07-21 パフォーマンス改訂: Chrome で156個の同時 opacity アニメが重いため削減。
+    Safari では156でも問題なかったが、クロスブラウザ統一のため80に。 */
+export const STAR_COUNTS: Record<StarKind, number> = { far: 44, mid: 22, near: 14 };
 
 const round1 = (value: number): number => Math.round(value * 10) / 10;
 

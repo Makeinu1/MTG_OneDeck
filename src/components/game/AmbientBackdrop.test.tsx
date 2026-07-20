@@ -25,12 +25,12 @@ afterEach(() => {
 });
 
 describe('AmbientBackdrop', () => {
-  it('renders an aria-hidden backdrop with the full 156-star field when enabled (default ON)', () => {
+  it('renders an aria-hidden backdrop with the full 80-star field when enabled (default ON)', () => {
     act(() => { root.render(<AmbientBackdrop />); });
     const backdrop = container.querySelector('[data-testid="ambient-backdrop"]');
     expect(backdrop).not.toBeNull();
     expect(backdrop?.getAttribute('aria-hidden')).toBe('true');
-    expect(container.querySelectorAll('.ambient-star')).toHaveLength(156);
+    expect(container.querySelectorAll('.ambient-star')).toHaveLength(80);
     // Both skins are present in the DOM; CSS theme-scoping shows one.
     expect(container.querySelector('.ambient-backdrop__dark')).not.toBeNull();
     expect(container.querySelector('.ambient-backdrop__light')).not.toBeNull();
