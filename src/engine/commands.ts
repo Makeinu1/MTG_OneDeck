@@ -4771,6 +4771,78 @@ function applyModeledStackCopyEffect(draft: Draft, card: CardInstance): boolean 
   return true;
 }
 
+const COUNTER_PUT_THEN_DRAW_PATTERN =
+  /put (?:a|an|one|\d+) (\w+(?:\/\w+)*) counters? on .+?\.\s*(?:then\s+)?draw (?:a|one) cards? for each (\w+(?:\/\w+)*) counters? on/i;
+const COUNTER_SCALED_DRAW_PATTERN =
+  /draw (?:a|one|\d+) cards? for each (\w+(?:\/\w+)*) counters? on/i;
+const COUNTER_SCALED_LIFE_LOSS_PATTERN =
+  /lose (?:a|one|\d+) life for each (\w+(?:\/\w+)*) counters? on/i;
+
+function tryCounterScaledResolution(
+  draft: Draft,
+  card: CardInstance,
+  effectText: string,
+  sourceId: string,
+  controllerId: PlayerId,
+): boolean {
+  const putThenDraw = COUNTER_PUT_THEN_DRAW_PATTERN.exec(effectText);
+  if (putThenDraw) {
+    const counterType = putThenDraw[1];
+    const source = draft.state.cards[sourceId];
+    if (!source) return false;
+    applyAutoCommands(draft, [{ type: 'addCounters', cardId: sourceId, counterType, delta: 1 }]);
+    const updatedCount = (draft.state.cards[sourceId]?.counters[counterType] ?? 0);
+    if (updatedCount > 0) {
+      applyAutoCommands(draft, [{
+        type: 'applyPlayerEffect',
+        controllerId,
+        recipients: 'you' as const,
+        effect: 'draw',
+        amount: updatedCount,
+      }]);
+    }
+    pushLog(draft, `${stackNameOf(draft, card)}の効果を解決した(カウンター${updatedCount}個ぶんドロー)。`);
+    return true;
+  }
+  const scaledDraw = COUNTER_SCALED_DRAW_PATTERN.exec(effectText);
+  if (scaledDraw) {
+    const counterType = scaledDraw[1];
+    const source = draft.state.cards[sourceId];
+    if (!source) return false;
+    const count = source.counters[counterType] ?? 0;
+    if (count > 0) {
+      applyAutoCommands(draft, [{
+        type: 'applyPlayerEffect',
+        controllerId,
+        recipients: 'you' as const,
+        effect: 'draw',
+        amount: count,
+      }]);
+    }
+    pushLog(draft, `${stackNameOf(draft, card)}の効果を解決した(カウンター${count}個ぶんドロー)。`);
+    return true;
+  }
+  const scaledLifeLoss = COUNTER_SCALED_LIFE_LOSS_PATTERN.exec(effectText);
+  if (scaledLifeLoss) {
+    const counterType = scaledLifeLoss[1];
+    const source = draft.state.cards[sourceId];
+    if (!source) return false;
+    const count = source.counters[counterType] ?? 0;
+    if (count > 0) {
+      applyAutoCommands(draft, [{
+        type: 'applyPlayerEffect',
+        controllerId,
+        recipients: 'you' as const,
+        effect: 'life',
+        amount: -count,
+      }]);
+    }
+    pushLog(draft, `${stackNameOf(draft, card)}の効果を解決した(カウンター${count}個ぶんのライフ喪失)。`);
+    return true;
+  }
+  return false;
+}
+
 function applyCompiledEffectsForStackItem(
   draft: Draft,
   card: CardInstance,
@@ -4796,6 +4868,9 @@ function applyCompiledEffectsForStackItem(
         : {}),
     });
     if (compiled.decision !== 'auto') {
+      if (tryCounterScaledResolution(draft, card, resolvedLine.text, effectLine.sourceId, card.controllerId)) {
+        continue;
+      }
       const warningCountBeforeManualHandling = draft.warnings.length;
       if (delayed?.scheduled) {
         draft.warnings.push(
