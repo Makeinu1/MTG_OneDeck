@@ -1564,23 +1564,65 @@ function guidedManaPrompt(raw: string, ctx: CompileContext): EffectPrompt | null
     /\bany(?:\s+one)?\s+color\s+(?:in|within)\s+(?:your commander's color identity|the color identity of your commander)\b/i.test(
       raw,
     );
+
+  // "Add N mana of any color" / "Add N mana of any one color"
   const anyColor = /\badd\s+([A-Za-z]+|\d+)\s+mana\s+of\s+any(?:\s+one)?\s+color\b/i.exec(raw);
-  if (!anyColor) {
-    return null;
+  if (anyColor) {
+    const amount = parseManaAmountToken(anyColor[1]);
+    if (amount === null) {
+      return null;
+    }
+    return {
+      atom: 'effect.add-mana',
+      kind: 'mana',
+      count: amount,
+      manaOptions: commanderIdentity ? commanderColorOptions(ctx) : COLORED_MANA.slice(),
+      raw,
+    };
   }
 
-  const amount = parseManaAmountToken(anyColor[1]);
-  if (amount === null) {
-    return null;
+  // "Add N mana in any combination of colors"
+  const anyCombination = /\badd\s+([A-Za-z]+|\d+)\s+mana\s+in\s+any\s+combination\s+of\s+colors\b/i.exec(raw);
+  if (anyCombination) {
+    const amount = parseManaAmountToken(anyCombination[1]);
+    if (amount !== null) {
+      return {
+        atom: 'effect.add-mana',
+        kind: 'mana',
+        count: amount,
+        manaOptions: COLORED_MANA.slice(),
+        raw,
+      };
+    }
   }
 
-  return {
-    atom: 'effect.add-mana',
-    kind: 'mana',
-    count: amount,
-    manaOptions: commanderIdentity ? commanderColorOptions(ctx) : COLORED_MANA.slice(),
-    raw,
-  };
+  // "Add N mana of the chosen color" (CR 607.2 linked ability)
+  const chosenColor = /\badd\s+([A-Za-z]+|\d+)\s+mana\s+of\s+the\s+chosen\s+color\b/i.exec(raw);
+  if (chosenColor) {
+    const amount = parseManaAmountToken(chosenColor[1]);
+    if (amount !== null) {
+      return {
+        atom: 'effect.add-mana',
+        kind: 'mana',
+        count: amount,
+        manaOptions: COLORED_MANA.slice(),
+        raw,
+      };
+    }
+  }
+
+  // "Add one mana of that color" (IR splits "Choose a color." into a separate clause)
+  if (/\badd\s+(?:one|1)\s+mana\s+of\s+that\s+color\b/i.test(raw)) {
+    return {
+      atom: 'effect.add-mana',
+      kind: 'mana',
+      count: 1,
+      manaOptions: COLORED_MANA.slice(),
+      raw,
+    };
+  }
+
+  return null;
 }
 
 function parseManaAmountToken(token: string): number | null {

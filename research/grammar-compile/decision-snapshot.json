@@ -1,4 +1,4 @@
-{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":22419,"auto":2735,"guided":2044,"manual":17640}}
+{"corpusHash":"ba651db91c482e2ff7f55ab883f5ddc002af9f37ad0022c9706d0bb885480349","totals":{"cards":17491,"effectLines":22419,"auto":2735,"guided":2068,"manual":17616}}
 {"k":"+2 Mace#e882c9f9#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"+2 Mace#e882c9f9#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Aang, Airbending Master#de7a150b#0#1","d":"a","c":"f301de67","r":"4f53cda1"}
@@ -1567,7 +1567,7 @@
 {"k":"Bat Whisperer#4412c901#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Batwing Brume#8e6a1cd0#0#0","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Baxter Building#1abc652f#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
-{"k":"Baxter Building#1abc652f#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Baxter Building#1abc652f#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Baxter Building#1abc652f#0#2","d":"m","c":"8b476dbc","r":"2714bff2"}
 {"k":"Baxter, Fly in the Ointment#f5ee290f#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Baxter, Fly in the Ointment#f5ee290f#0#1","d":"a","c":"39729089","r":"4f53cda1"}
@@ -1714,7 +1714,7 @@
 {"k":"Biblioplex Kraken#1f69f0bf#0#1","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Bident of Thassa#94751d5e#0#0","d":"m","c":"4f53cda1","r":"091f56d0"}
 {"k":"Big Apple, 3 a.m.#b9cc16f9#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Big Apple, 3 a.m.#b9cc16f9#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Big Apple, 3 a.m.#b9cc16f9#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Big Apple, 3 a.m.#b9cc16f9#0#2","d":"m","c":"4f53cda1","r":"3d695272"}
 {"k":"Big Bertha#bca1d8ba#0#1","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Big Bertha#bca1d8ba#0#2","d":"a","c":"39729089","r":"4f53cda1"}
@@ -2814,7 +2814,7 @@
 {"k":"Cascade Bluffs#22acccd2#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Cascade Bluffs#22acccd2#0#1","d":"m","c":"4f53cda1","r":"de4c6b1f"}
 {"k":"Cascading Cataracts#2f3fbd9b#0#1","d":"a","c":"499a8e9b","r":"4f53cda1"}
-{"k":"Cascading Cataracts#2f3fbd9b#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Cascading Cataracts#2f3fbd9b#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Case File Auditor#70a52038#0#0","d":"m","c":"4f53cda1","r":"d1b4f4f9"}
 {"k":"Case of the Burning Masks#29ee07df#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Case of the Burning Masks#29ee07df#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -3095,7 +3095,7 @@
 {"k":"Chandra, Flameshaper#a22d21ec#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Chandra, Flameshaper#a22d21ec#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Chandra, Hope's Beacon#a146ea07#0#0","d":"m","c":"4f53cda1","r":"7529d74c"}
-{"k":"Chandra, Hope's Beacon#a146ea07#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Chandra, Hope's Beacon#a146ea07#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Chandra, Hope's Beacon#a146ea07#0#2","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Chandra, Hope's Beacon#a146ea07#0#3","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Chandra, Legacy of Fire#6b764e0d#0#0","d":"m","c":"4f53cda1","r":"ebbe1149"}
@@ -3466,7 +3466,7 @@
 {"k":"Coin of Mastery#ca053574#0#1","d":"a","c":"5ddba80c","r":"4f53cda1"}
 {"k":"Cold-Eyed Selkie#8c39dc54#0#1","d":"m","c":"4f53cda1","r":"1c004ec9"}
 {"k":"Coldsteel Heart#b2548ad2#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Coldsteel Heart#b2548ad2#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Coldsteel Heart#b2548ad2#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Colfenor's Urn#753c8720#0#0","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Colfenor's Urn#753c8720#0#1","d":"m","c":"4f53cda1","r":"ac3f11b0"}
 {"k":"Coliseum Behemoth#900206f1#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
@@ -3731,7 +3731,7 @@
 {"k":"Convergence of Dominion#e03d8676#0#1","d":"a","c":"b16fe5ee","r":"4f53cda1"}
 {"k":"Conversion Apparatus#79193ac5#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Conversion Apparatus#79193ac5#0#1","d":"m","c":"4f53cda1","r":"3d695272"}
-{"k":"Conversion Apparatus#79193ac5#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Conversion Apparatus#79193ac5#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Convert to Slime#a4dfb147#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Convert to Slime#a4dfb147#0#1","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Convulsing Licid#5745aeba#0#0","d":"m","c":"4f53cda1","r":"7529d74c"}
@@ -3804,7 +3804,7 @@
 {"k":"Coruscation Mage#dc2c1de0#0#1","d":"a","c":"2b094fb1","r":"4f53cda1"}
 {"k":"Cosima, God of the Voyage // The Omenkeel#cd53b61b#0#0","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Cosima, God of the Voyage // The Omenkeel#cd53b61b#1#1","d":"m","c":"4f53cda1","r":"7529d74c"}
-{"k":"Cosmic Crucible#7436364b#0#0","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Cosmic Crucible#7436364b#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Cosmic Crucible#7436364b#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Cosmic Epiphany#79718dbe#0#0","d":"m","c":"4f53cda1","r":"3d695272"}
 {"k":"Cosmic Hunger#b8eef541#0#0","d":"m","c":"4f53cda1","r":"65157444"}
@@ -3980,7 +3980,7 @@
 {"k":"Crossroads Candleguide#5cad1524#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Crossroads Candleguide#5cad1524#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Crossroads Village#64db46d4#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Crossroads Village#64db46d4#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Crossroads Village#64db46d4#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Crossroads Watcher#6d62fcbb#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Crossway Troublemakers#95ef4f86#0#1","d":"m","c":"4f53cda1","r":"091f56d0"}
 {"k":"Crowd-Control Warden#cdf0578f#0#0","d":"m","c":"4f53cda1","r":"ebbe1149"}
@@ -5474,7 +5474,7 @@
 {"k":"Edgar's Awakening#b2ff8b0a#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Edge Rover#90741ec9#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Edgewall Inn#ec435e54#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Edgewall Inn#ec435e54#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Edgewall Inn#ec435e54#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Edgewall Inn#ec435e54#0#3","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Edgewall Innkeeper#abe77478#0#0","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Edgewall Pack#acda9d02#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
@@ -6694,7 +6694,7 @@
 {"k":"Flameblade Adept#ed02d939#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Flameblast Dragon#90390efc#0#1","d":"m","c":"4f53cda1","r":"f3bd32f4"}
 {"k":"Flame-Blessed Bolt#b1771a8f#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Flamebraider#b8aa428c#0#0","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Flamebraider#b8aa428c#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Flamecache Gecko#fb8e7c97#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Flamecache Gecko#fb8e7c97#0#1","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Flame-Chain Mauler#752d7e8e#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -6947,7 +6947,7 @@
 {"k":"Forsaken City#b61aae1a#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Forsaken Crossroads#56491238#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Forsaken Crossroads#56491238#0#2","d":"m","c":"4f53cda1","r":"ead8e3a7"}
-{"k":"Forsaken Crossroads#56491238#0#3","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Forsaken Crossroads#56491238#0#3","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Forsaken Miner#1679f74d#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Forsaken Miner#1679f74d#0#1","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Forsaken Monument#82dfdb91#0#0","d":"m","c":"4f53cda1","r":"65157444"}
@@ -8023,7 +8023,7 @@
 {"k":"Great Hall of the Biblioplex#42d92674#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Great Hall of the Biblioplex#42d92674#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Great Hall of the Citadel#219c7b57#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
-{"k":"Great Hall of the Citadel#219c7b57#0#1","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Great Hall of the Citadel#219c7b57#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Great Intelligence's Plan#a798feb4#0#0","d":"m","c":"e629f8af","r":"d1b4f4f9"}
 {"k":"Great Oak Guardian#81b6f0ba#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Greatsword#89bf6c85#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -8252,7 +8252,7 @@
 {"k":"Gwaihir, Greatest of the Eagles#9c17c3bb#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Gwaihir, Greatest of the Eagles#9c17c3bb#0#2","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Gwaihir the Windlord#1a42c951#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
-{"k":"Gwenna, Eyes of Gaea#7ee387b7#0#0","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Gwenna, Eyes of Gaea#7ee387b7#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Gwenna, Eyes of Gaea#7ee387b7#0#1","d":"m","c":"39729089","r":"cbdffa0d"}
 {"k":"Gwen Stacy // Ghost-Spider#b0f1597f#0#0","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Gwen Stacy // Ghost-Spider#b0f1597f#0#1","d":"m","c":"4f53cda1","r":"65157444"}
@@ -8621,7 +8621,7 @@
 {"k":"Henrika Domnathi // Henrika, Infernal Seer#946ca338#1#3","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Henry Wu, InGen Geneticist#5b67d302#0#1","d":"m","c":"4edb11e0","r":"2714bff2"}
 {"k":"Heraldic Banner#743ea709#0#1","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Heraldic Banner#743ea709#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Heraldic Banner#743ea709#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Herald of Amity#0a36fe06#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Herald of Amity#0a36fe06#0#2","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Herald of Anguish#fec860f2#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
@@ -8660,7 +8660,7 @@
 {"k":"Hermes, Overseer of Elpis#e04a05e5#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Hermit Druid#39c66895#0#0","d":"m","c":"4f53cda1","r":"5e40e8d8"}
 {"k":"Hermitic Herbalist#5d0ee441#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
-{"k":"Hermitic Herbalist#5d0ee441#0#1","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Hermitic Herbalist#5d0ee441#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Hermitic Nautilus#545503f8#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Heroes' Bane#7f83195c#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Heroes' Bane#7f83195c#0#1","d":"m","c":"4f53cda1","r":"b6914a1b"}
@@ -9461,7 +9461,7 @@
 {"k":"Interceptor, Shadow's Hound#30be9a07#0#2","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Intercessor's Arrest#e83f2148#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Interdimensional Web Watch#87a8e112#0#0","d":"m","c":"4f53cda1","r":"7529d74c"}
-{"k":"Interdimensional Web Watch#87a8e112#0#1","d":"m","c":"4f53cda1","r":"ac3f11b0"}
+{"k":"Interdimensional Web Watch#87a8e112#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Interface Ace#fcfd487a#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Interjection#0534cff6#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Intermediate Chirography#d60c64aa#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
@@ -11533,7 +11533,7 @@
 {"k":"Managorger Hydra#e9c124d7#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Manakin#9990b3d4#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Mana Leak#179236d9#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Manamorphose#fbbc184e#0#0","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Manamorphose#fbbc184e#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Manamorphose#fbbc184e#0#1","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Mana Reflection#d863ff4a#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Mana Sculpt#200c8e3d#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
@@ -11917,7 +11917,7 @@
 {"k":"Metamorphose#7815cac4#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Metamorphosis Fanatic#16448d95#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Metathran Elite#19668eb2#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Meteor Crater#cc67cb3d#0#0","d":"m","c":"4f53cda1","r":"d877649a"}
+{"k":"Meteor Crater#cc67cb3d#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Meteor Golem#a1a1cfec#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Meteoric Mace#3fb34a09#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Meteoric Mace#3fb34a09#0#1","d":"m","c":"4f53cda1","r":"65157444"}
@@ -12102,7 +12102,7 @@
 {"k":"Minwu, White Mage#6822144f#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Miraculous Recovery#1778b600#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Mirage Mesa#c3d2e816#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Mirage Mesa#c3d2e816#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Mirage Mesa#c3d2e816#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Mirage Mirror#e516bc14#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Mirage Mockery#67cead78#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Mirari's Wake#ef4fa4e8#0#0","d":"m","c":"4f53cda1","r":"65157444"}
@@ -12927,7 +12927,7 @@
 {"k":"Nightmare Sower#35dfa0f9#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Nightmare Unmaking#44dc5937#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Night Market#a8c1dce3#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Night Market#a8c1dce3#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Night Market#a8c1dce3#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Night Nurse, Healer of Heroes#3199907b#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Night of the Sweets' Revenge#27f53bed#0#0","d":"a","c":"b2a81621","r":"4f53cda1"}
 {"k":"Night of the Sweets' Revenge#27f53bed#0#2","d":"m","c":"4f53cda1","r":"ebbe1149"}
@@ -13446,7 +13446,7 @@
 {"k":"Orazca Relic#fd9e5b05#0#1","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Orazca Relic#fd9e5b05#0#2","d":"m","c":"45569a6a","r":"2714bff2"}
 {"k":"Orbital Plunge#2dc7cc17#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Orb of Dragonkind#9a1c2cdd#0#0","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Orb of Dragonkind#9a1c2cdd#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Orb of Dragonkind#9a1c2cdd#0#1","d":"m","c":"4f53cda1","r":"d1b4f4f9"}
 {"k":"Orca, Siege Demon#8511fc1e#0#1","d":"a","c":"39729089","r":"4f53cda1"}
 {"k":"Orca, Siege Demon#8511fc1e#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -14748,7 +14748,7 @@
 {"k":"Quirion Beastcaller#2a501319#0#1","d":"m","c":"4f53cda1","r":"ebbe1149"}
 {"k":"Quirion Dryad#49b43c4e#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Quirion Elves#2b8fbfcf#0#1","d":"a","c":"9475c80a","r":"4f53cda1"}
-{"k":"Quirion Elves#2b8fbfcf#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Quirion Elves#2b8fbfcf#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Quirion Ranger#11da032d#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Quistis Trepe#61784cbd#0#0","d":"m","c":"4f53cda1","r":"e45837f1"}
 {"k":"Qutrub Forayer#7475ecf6#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
@@ -15586,7 +15586,7 @@
 {"k":"Ritual Guardian#f077f07e#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Ritual of Hope#d8293903#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Ritual of Hope#d8293903#0#1","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Rivaz of the Claw#9a47573a#0#1","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Rivaz of the Claw#9a47573a#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Rivendell#bacd500c#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Rivendell#bacd500c#0#1","d":"a","c":"cb4fe3b3","r":"4f53cda1"}
 {"k":"Rivendell#bacd500c#0#2","d":"m","c":"4f53cda1","r":"2714bff2"}
@@ -15935,7 +15935,7 @@
 {"k":"Sage of the Falls#2d0d5c00#0#0","d":"m","c":"4f53cda1","r":"61c7f7a6"}
 {"k":"Sage of the Fang#1ebf4a9d#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Sage of the Fang#1ebf4a9d#0#1","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"Sage of the Maze#d420385a#0#0","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Sage of the Maze#d420385a#0#0","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Sage of the Maze#d420385a#0#2","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sage of the Skies#6ade6918#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Sage of the Unknowable#9f481ab3#0#0","d":"m","c":"499a8e9b","r":"2714bff2"}
@@ -16077,7 +16077,7 @@
 {"k":"Sarkhan, Dragonsoul#7cbd6f05#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sarkhan, Dragonsoul#7cbd6f05#0#2","d":"m","c":"4f53cda1","r":"5670cf7e"}
 {"k":"Sarkhan, Fireblood#8818250f#0#0","d":"m","c":"4f53cda1","r":"61c7f7a6"}
-{"k":"Sarkhan, Fireblood#8818250f#0#1","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Sarkhan, Fireblood#8818250f#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Sarkhan, Fireblood#8818250f#0#2","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Sarkhan, Soul Aflame#49d64e6b#0#1","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Sarkhan's Rage#457ed69d#0#0","d":"m","c":"4f53cda1","r":"65157444"}
@@ -16812,7 +16812,7 @@
 {"k":"Shimmercreep#f7c02899#0#1","d":"m","c":"4f53cda1","r":"03f5877e"}
 {"k":"Shimmer Dragon#3983a11e#0#2","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"Shimmerdrift Vale#a673adea#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Shimmerdrift Vale#a673adea#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Shimmerdrift Vale#a673adea#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Shimmering Glasskite#fe0c85e5#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Shimmerwilds Growth#c122719c#0#3","d":"m","c":"4f53cda1","r":"5e40e8d8"}
 {"k":"Shineshadow Snarl#7a198106#0#0","d":"m","c":"4f53cda1","r":"ead8e3a7"}
@@ -17323,7 +17323,7 @@
 {"k":"Smite the Deathless#8b716fcc#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Smitten Swordmaster // Curry Favor#1cd477f5#1#1","d":"m","c":"4f53cda1","r":"03f5877e"}
 {"k":"Smoke Bomb#4330d8ce#0#2","d":"m","c":"9fe4676a","r":"cbdffa0d"}
-{"k":"Smokebraider#d5975979#0#0","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Smokebraider#d5975979#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Smoke Shroud#d78c2f9f#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Smoke Shroud#d78c2f9f#0#2","d":"m","c":"4f53cda1","r":"7529d74c"}
 {"k":"Smoke Spirits' Aid#e492a245#0#0","d":"m","c":"4f53cda1","r":"b6914a1b"}
@@ -18418,8 +18418,8 @@
 {"k":"Sunhome, Fortress of the Legion#4ebb97da#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Sunhome, Fortress of the Legion#4ebb97da#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sunken Citadel#3e1c9b1a#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Sunken Citadel#3e1c9b1a#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
-{"k":"Sunken Citadel#3e1c9b1a#0#2","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Sunken Citadel#3e1c9b1a#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
+{"k":"Sunken Citadel#3e1c9b1a#0#2","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Sunken Hollow#3a8eef9b#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Sunken Palace#e44ee47c#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Sunken Palace#e44ee47c#0#1","d":"a","c":"cb4fe3b3","r":"4f53cda1"}
@@ -18855,7 +18855,7 @@
 {"k":"Tariel, Reckoner of Souls#b588dc15#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Tarkir Duneshaper // Burnished Dunestomper#fdc37acc#0#0","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Tarnation Vista#962552a1#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Tarnation Vista#962552a1#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Tarnation Vista#962552a1#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Tarnation Vista#962552a1#0#2","d":"m","c":"4f53cda1","r":"03f5877e"}
 {"k":"Tarnished Citadel#dd632fa3#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"Tarnished Citadel#dd632fa3#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
@@ -18995,7 +18995,7 @@
 {"k":"Temple of Silence#f7d3770f#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Temple of Silence#f7d3770f#0#2","d":"m","c":"4f53cda1","r":"de4c6b1f"}
 {"k":"Temple of the Dragon Queen#91658f56#0#0","d":"m","c":"4f53cda1","r":"ead8e3a7"}
-{"k":"Temple of the Dragon Queen#91658f56#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Temple of the Dragon Queen#91658f56#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Temple of the False God#1024f555#0#0","d":"m","c":"884c8086","r":"2714bff2"}
 {"k":"Temple of Triumph#d0e763f7#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Temple of Triumph#d0e763f7#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
@@ -19370,7 +19370,7 @@
 {"k":"The Gitrog Monster#40489e28#0#3","d":"a","c":"8b476dbc","r":"4f53cda1"}
 {"k":"The Gitrog, Ravenous Ride#82512813#0#1","d":"m","c":"4f53cda1","r":"f3bd32f4"}
 {"k":"The Golden Throne#fa515b78#0#0","d":"m","c":"4f53cda1","r":"65157444"}
-{"k":"The Golden Throne#fa515b78#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"The Golden Throne#fa515b78#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"The Gold Saucer#5363c881#0#0","d":"a","c":"499a8e9b","r":"4f53cda1"}
 {"k":"The Gold Saucer#5363c881#0#1","d":"m","c":"5ddba80c","r":"2714bff2"}
 {"k":"The Gold Saucer#5363c881#0#2","d":"a","c":"8b476dbc","r":"4f53cda1"}
@@ -19770,7 +19770,7 @@
 {"k":"Thornspire Verge#7e1cdc03#0#0","d":"a","c":"d224e6f6","r":"4f53cda1"}
 {"k":"Thornspire Verge#7e1cdc03#0#1","d":"m","c":"9475c80a","r":"2714bff2"}
 {"k":"Thornvault Forager#8c2d6b02#0#0","d":"a","c":"9475c80a","r":"4f53cda1"}
-{"k":"Thornvault Forager#8c2d6b02#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Thornvault Forager#8c2d6b02#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Thornvault Forager#8c2d6b02#0#2","d":"m","c":"4f53cda1","r":"706a26ae"}
 {"k":"Thornwood Falls#ebb502c2#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Thornwood Falls#ebb502c2#0#1","d":"a","c":"4ccca829","r":"4f53cda1"}
@@ -19869,7 +19869,7 @@
 {"k":"Thriving Skyclaw#465857f2#0#2","d":"m","c":"4f53cda1","r":"f3bd32f4"}
 {"k":"Throat Slitter#62a351c1#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Throat Slitter#62a351c1#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
-{"k":"Throne of Eldraine#6d98bdb7#0#1","d":"m","c":"4f53cda1","r":"47d3441e"}
+{"k":"Throne of Eldraine#6d98bdb7#0#1","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Throne of Eldraine#6d98bdb7#0#2","d":"a","c":"5b3dafcc","r":"4f53cda1"}
 {"k":"Throne of the Grim Captain // The Grim Captain#c13e8e3d#0#0","d":"a","c":"8a136ebb","r":"4f53cda1"}
 {"k":"Throne of the Grim Captain // The Grim Captain#c13e8e3d#1#3","d":"m","c":"4f53cda1","r":"7529d74c"}
@@ -20669,7 +20669,7 @@
 {"k":"Uncaged Fury#de8f4d5b#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Unchained Berserker#3c700d86#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
 {"k":"Uncharted Haven#68b90f54#0#0","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Uncharted Haven#68b90f54#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Uncharted Haven#68b90f54#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Uncharted Voyage#e0846820#0#1","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Uncivil Unrest#31afae93#0#1","d":"m","c":"4f53cda1","r":"65157444"}
 {"k":"Unclaimed Territory#d3782952#0#1","d":"a","c":"499a8e9b","r":"4f53cda1"}
@@ -20966,7 +20966,7 @@
 {"k":"Valgavoth, Harrower of Souls#8d7c1f6c#0#2","d":"m","c":"39729089","r":"2714bff2"}
 {"k":"Valgavoth's Faithful#995194a0#0#0","d":"m","c":"4f53cda1","r":"2714bff2"}
 {"k":"Valgavoth's Lair#65ff914e#0#1","d":"m","c":"4f53cda1","r":"cbdffa0d"}
-{"k":"Valgavoth's Lair#65ff914e#0#2","d":"m","c":"4f53cda1","r":"5e40e8d8"}
+{"k":"Valgavoth's Lair#65ff914e#0#2","d":"g","c":"4f53cda1","r":"4f53cda1"}
 {"k":"Valgavoth's Onslaught#7d4ba274#0#0","d":"m","c":"4f53cda1","r":"b6914a1b"}
 {"k":"Valgavoth, Terror Eater#7740ff55#0#1","d":"m","c":"4f53cda1","r":"5e40e8d8"}
 {"k":"Valgavoth, Terror Eater#7740ff55#0#2","d":"m","c":"4f53cda1","r":"65157444"}

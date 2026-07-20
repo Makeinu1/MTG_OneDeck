@@ -150,7 +150,7 @@ describe('CardView touch menu', () => {
   it('keeps every TouchSensor on the shared activation constraint', () => {
     // delay を各所でハードコードすると tap 上限との間に窓ができ、その保持時間では
     // ドラッグとタップが同時に成立する(CardView の tap 判定は drag 進行中を見ず、
-    // ガードを持つのは GameCard だけ=Playmat 経路には無い)。宣言だけの不変条件は
+    // ガードを持つのは GameCard だけ)。宣言だけの不変条件は
     // 実際に破られたので、機械で強制する。
     const roots = [join(process.cwd(), 'src')];
     const files: string[] = [];

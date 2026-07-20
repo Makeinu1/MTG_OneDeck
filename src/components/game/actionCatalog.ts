@@ -1,14 +1,9 @@
 /**
  * actionCatalog — カード操作の純粋モデル(docs/ui-architecture-v2.md §2/§4)。
  *
- * 旧 `Playmat.buildMenuItems`(374行のクロージャ)から「どのアクションが・どの順で
- * 存在するか」だけを純関数として抽出したもの。onSelect ハンドラ(store 依存)は持たず、
- * id(旧 MenuItem.key と一致)+ 表示メタ + 昇格優先度(priority)のみを返す。
- * コンポーネント側(Playmat / CardActionSheet)が id→handler を束ねる。
- *
- * これにより:
- *  - CardActionSheet が上位1〜3件を昇格し残りを「その他」へ畳める(D1)。
- *  - 旧 ContextMenu も同じカタログを消費するため、アクション集合が乖離しない。
+ * 「どのアクションが・どの順で存在するか」だけを純関数として定義。
+ * onSelect ハンドラ(store 依存)は持たず、id + 表示メタ + 昇格優先度(priority)のみを返す。
+ * コンポーネント側(CardActionSheet 等)が id→handler を束ねる。
  *
  * 純粋性: 同一 context → 同一出力。context も出力も変異しない。
  */

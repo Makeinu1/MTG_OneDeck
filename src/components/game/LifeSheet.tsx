@@ -2,7 +2,7 @@
  * LifeSheet — ライフ/マナ/カウンターの bottom sheet(ステータス帯のライフのタップ先)。
  * 相手ライフ行・マナプール・各種カウンターを常設しない(vision 原則7)ぶん、ここに集約する。
  *
- * D2(Tier-1監査でHUD操作欠落BLOCKER指摘を受け拡張): 旧 PlaymatHud の LifeOverlay/ManaOverlay
+ * D2(Tier-1監査でHUD操作欠落BLOCKER指摘を受け拡張): LifeOverlay/ManaOverlay
  * が持っていたライフ・マナプール・毒/エネルギー/経験/統率者ダメージの調整をここへ移設。
  * 残るHUD操作(ダイス/コイン/増殖/全タップ/自動メイン/情報パネル)は ThumbZone のメニューへ。
  */

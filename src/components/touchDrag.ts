@@ -6,9 +6,8 @@
  *   - 窓が tap 上限 < delay 側なら、tap も drag も成立せず、抑止されない合成 click が
  *     マウス用の経路へ落ちる(再タップでメニューが開かず閉じるだけになる)。
  *   - 窓が delay < tap 上限 側なら、ドラッグとタップが**同時に**成立する
- *     (CardView の tap 判定は drag 進行中かを見ない。ガードを持つのは GameCard だけで
- *      Playmat 経路には無い)。
- * 実際に後者が Playmat で起きた(delay 200 のハードコード放置)。
+ *     (CardView の tap 判定は drag 進行中かを見ない)。
+ * 実際に旧UIで後者が起きた(delay 200 のハードコード放置)。
  * `CardView.test.tsx` の「keeps every TouchSensor on the shared activation constraint」が
  * 全 TouchSensor の使用箇所を走査して機械的に強制する。
  */

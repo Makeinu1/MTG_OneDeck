@@ -4,8 +4,8 @@
 :root {
   /* strangler 互換エイリアス(D1・2026-07-10・J2 承認)。
    * 旧「緑金フェルト」テーマの felt-x・panel トークン名を維持しつつ、値だけ
-   * 新「アルケイン戦術卓」の ink・surface へ差し替える。これで旧 Playmat 系統
-   * (App.css の 29 参照)を無編集で新色へ移行できる。旧 Playmat の退役(D4)で
+   * 新「アルケイン戦術卓」の ink・surface へ差し替える。これで旧UI系統
+   * (App.css の 29 参照)を無編集で新色へ移行できる。旧UIの退役(D4)で
    * これらのエイリアスも削除する。乖離記録=docs/design-system.md §2。 */
   --felt-1: var(--surface-0);
   --felt-2: var(--ink-1);

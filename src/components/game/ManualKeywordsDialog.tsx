@@ -1,7 +1,6 @@
 /**
  * ManualKeywordsDialog — 手動キーワード付与ダイアログ。
- * 旧 Playmat.tsx のローカルコンポーネントを game/ レーンへ抽出(D2)。
- * 旧 Playmat は無編集(ロールバック経路保全)ゆえ当面は二重定義=D4 で Playmat 側を退役。
+ * マニュアルキーワード処理ダイアログ(game/ レーン)。
  */
 
 import { Modal } from '../Modal';
