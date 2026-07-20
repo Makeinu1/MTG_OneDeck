@@ -2,6 +2,8 @@
 description: 欲しいものを1マイルストーンとして起こす(判定者契約→実装者ブリーフ→背景実装)
 ---
 
+> **注**: 本ファイルは Claude Code 固有の手順。Codex CLI での正本 = `.agents/skills/mtg-onedeck-development/references/codex-autoloop.md`。
+
 ユーザーの要望「$ARGUMENTS」を1マイルストーンとして立ち上げる。CLAUDE.md のトークン経済(判定者は判断・実装者は作業。割当 = CLAUDE.md「役割 = 資源状態 → 割当」)を厳守。
 
 **要件化=ロードマップ参照(自律モード)**: 次フェーズは substrate-first 順で `research/cr-grounding/project-goal-milestones.md` が既に決め、設計も R-FREEZE 文書が既存のことが多い。その場合判定者の仕事は「起案」でなく「**承認**」。一意に決まらない/価値判断が要る時だけ STOP→ユーザーへ質問。

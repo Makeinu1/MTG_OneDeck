@@ -2,6 +2,8 @@
 description: 自律マイルストーン・ループ(無人で milestone→実装→audit→ship→更新 を同一セッションで回す。判定者は判断だけ)
 ---
 
+> **注**: 本ファイルは Claude Code 固有の手順(背景エージェント/TaskCreate/auto-compact hook 前提)。Codex CLI での正本 = `.agents/skills/mtg-onedeck-development/references/codex-autoloop.md`。
+
 `$ARGUMENTS` があれば今回の起点マイルストーン指定として使う。無ければロードマップから自動選定。
 
 **目的**: マイルストーン・サイクルを無人で回す。判定者(=CLAUDE.md「役割 = 資源状態 → 割当」の判定者席)は希少資源ゆえ**判断にだけ**使い、機械作業は全部 実装者/サブエージェント/Explore(別 transcript=判定者文脈を汚さない)へ寄せる。理想状態=**実装者-bound**(両予算を均衡消費)。起動は `/loop /autoloop`(interval 無し=自己ペース)。**「1セッション=1マイルストーン」は手動運用の既定であり、本ループは同一セッション継続が意図された例外**(継続性は loop-state+台帳が担保=§ループ内状態の外部化)。

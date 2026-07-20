@@ -2,6 +2,8 @@
 description: 監査合格後にコミット→push→CI→Pages確認(機械的リリースゲート・委譲可)
 ---
 
+> **注**: 本ファイルは Claude Code 固有の手順。Codex CLI での ship 手順は `.agents/skills/mtg-onedeck-development/references/codex-autoloop.md` §7 を参照。
+
 監査(`/audit`)に合格した変更だけをリリースする。
 
 **実行方針(2点)**:
