@@ -765,6 +765,22 @@ export function useGameController({
       case 'loyalty-minus':
         return () => store.dispatch({ type: 'addCounters', cardId, counterType: 'loyalty', delta: -1 });
       default:
+        if (id.startsWith('counter-other-plus:')) {
+          const counterType = id.slice('counter-other-plus:'.length);
+          return () => store.dispatch({ type: 'addCounters', cardId, counterType, delta: 1 });
+        }
+        if (id.startsWith('counter-other-minus:')) {
+          const counterType = id.slice('counter-other-minus:'.length);
+          return () => store.dispatch({ type: 'addCounters', cardId, counterType, delta: -1 });
+        }
+        if (id === 'counter-custom') {
+          return () => {
+            const input = window.prompt('カウンター種別を入力してください (例: charge, burden, oil, time)');
+            if (input && input.trim()) {
+              store.dispatch({ type: 'addCounters', cardId, counterType: input.trim(), delta: 1 });
+            }
+          };
+        }
         // cast-cost-advisory 等(disabled/no-op)。
         return () => undefined;
     }

@@ -368,6 +368,20 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
     { id: 'counter-minus', label: '+1/+1カウンターを取り除く', disabled: (card.counters['+1/+1'] ?? 0) <= 0 },
   );
 
+  const specialCounters = Object.entries(card.counters)
+    .filter(([kind]) => kind !== '+1/+1' && kind !== '-1/-1' && kind !== 'loyalty' && kind !== 'lore')
+    .sort(([a], [b]) => a.localeCompare(b));
+  for (const [counterType, count] of specialCounters) {
+    specs.push(
+      { id: `counter-other-plus:${counterType}`, label: `${counterType}カウンターを置く(${count})` },
+      { id: `counter-other-minus:${counterType}`, label: `${counterType}カウンターを取り除く`, disabled: count <= 0 },
+    );
+  }
+  const isBasicLand = /\bBasic\b/i.test(typeLine) && /\bLand\b/i.test(typeLine);
+  if (!isBasicLand) {
+    specs.push({ id: 'counter-custom', label: 'その他のカウンターを指定して置く…' });
+  }
+
   const allMoveTargets: { zone: ZoneId; label: string }[] = [
     { zone: 'battlefield', label: '戦場へ' },
     { zone: 'hand', label: '手札へ' },

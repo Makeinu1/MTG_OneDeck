@@ -4055,6 +4055,32 @@ export function activationPlanForSource(
   };
 }
 
+const JEWELED_AMULET_MANA_PATTERN =
+  /add one mana of the last noted type/i;
+
+function jeweledAmuletManaCommands(
+  state: GameState,
+  sourceId: string,
+  effectText: string,
+  controllerId?: PlayerId,
+): GameCommand[] | null {
+  if (!JEWELED_AMULET_MANA_PATTERN.test(effectText)) return null;
+  const source = state.cards[sourceId];
+  if (!source) return null;
+  const notedEntry = Object.entries(source.counters).find(([key]) => key.startsWith('noted-'));
+  const color = (notedEntry ? notedEntry[0].slice('noted-'.length) : 'C').toUpperCase() as 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
+  const commands: GameCommand[] = [
+    { type: 'addCounters', cardId: sourceId, counterType: 'charge', delta: -1 },
+    {
+      type: 'addMana',
+      color,
+      amount: 1,
+      ...(controllerId && controllerId !== 'P1' ? { playerId: controllerId } : {}),
+    },
+  ];
+  return commands;
+}
+
 const COUNTER_SCALED_MANA_PATTERN =
   /add\s+(\{[WUBRGC]\})\s+for each\s+(\w+(?:\/\w+)*)\s+counters?\s+on\b/i;
 
@@ -4126,6 +4152,19 @@ export function activatedManaAbilityPlanForSource(
     return null;
   }
 
+  const amuletEffectRaw = ir.effects.map((e) => e.raw).join(' ');
+  const amuletPlan = jeweledAmuletManaCommands(state, sourceId, amuletEffectRaw, source.controllerId);
+  if (amuletPlan !== null) {
+    const tapCommand: GameCommand = { type: 'setTapped', cardId: sourceId, tapped: true };
+    return {
+      commands: [tapCommand, ...amuletPlan],
+      decision: 'auto',
+      prompts: [],
+      manaShortfall: 0,
+      lifeCost: 0,
+    };
+  }
+
   const commanderColorIdentity = commanderColorIdentityForState(state);
   const compiledCost = compileAbilityCost(ir.cost, {
     sourceId,
@@ -4145,6 +4184,19 @@ export function activatedManaAbilityPlanForSource(
   });
   if (compiledEffect.decision === 'manual') {
     const effectRaw = ir.effects.map((e) => e.raw).join(' ');
+    const amuletMana = jeweledAmuletManaCommands(state, sourceId, effectRaw, source.controllerId);
+    if (amuletMana !== null) {
+      const costCommands = ir.cost?.sacrificesSelf
+        ? withSelfSacrificeReason(compiledCost.commands, sourceId)
+        : compiledCost.commands.slice();
+      return {
+        commands: [...costCommands, ...amuletMana],
+        decision: 'auto',
+        prompts: [],
+        manaShortfall: 0,
+        lifeCost: 0,
+      };
+    }
     const scaledMana = counterScaledManaCommands(state, sourceId, effectRaw, source.controllerId);
     if (scaledMana !== null) {
       const costCommands = ir.cost?.sacrificesSelf
@@ -4822,6 +4874,17 @@ function tryCounterScaledResolution(
     pushLog(draft, `${stackNameOf(draft, card)}の効果を解決した(カウンター${count}個ぶんドロー)。`);
     return true;
   }
+  const jeweledNote = /put a charge counter on .+?\. note the type of mana spent/i.exec(effectText);
+  if (jeweledNote) {
+    applyAutoCommands(draft, [{ type: 'addCounters', cardId: sourceId, counterType: 'charge', delta: 1 }]);
+    const hasNoted = Object.keys(draft.state.cards[sourceId]?.counters ?? {}).some((k) => k.startsWith('noted-'));
+    if (!hasNoted) {
+      applyAutoCommands(draft, [{ type: 'addCounters', cardId: sourceId, counterType: 'noted-C', delta: 1 }]);
+    }
+    pushLog(draft, `${stackNameOf(draft, card)}に蓄積カウンターを置いた。マナ種別は右クリックメニューのカウンター操作で記録してください。`);
+    return true;
+  }
+
   const scaledLifeLoss = COUNTER_SCALED_LIFE_LOSS_PATTERN.exec(effectText);
   if (scaledLifeLoss) {
     const counterType = scaledLifeLoss[1];
