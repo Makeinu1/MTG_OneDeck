@@ -720,7 +720,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": [
         "objectIdOf",
         "zoneChangeCounter",
@@ -732,7 +732,8 @@
         "cr-zone-change-new-object-lki"
       ],
       "nextGate": "public-zone exception と spell-to-permanent continuity をS-ZONES/S-LAYERSで段階化する",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: 400.7 core(zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot)+ LKI core 実行可能(golden cr-zone-change-new-object-lki)。400.7a-m例外群・full effective-characteristics snapshot・spell-to-permanent continuity は late-backbone(S-ZONES/S-LAYERS)へ段階化。"
     },
     {
       "id": "cr-110-permanents",
@@ -1028,7 +1029,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "counters",
         "poisonCounters",
@@ -1046,7 +1047,8 @@
         "docs/engine-spec.md §34.39"
       ],
       "nextGate": "counter:write(14)・event:counter(8)双方のdemandは充足。残る需要=loyalty/charge/age等の他counter種別・counter cap(122.4)・Saga/battle/rad countersは次回demand実測時に別スライス。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: demand充足(counter:write 14・event:counter 8)。+1/+1/-1/-1相殺・poison loss advisory・符号バグ修正(§34.30/§34.39)全て review.* 緑。残る需要(loyalty/charge/age/cap/Saga/battle/rad)は別スライス。"
     },
     {
       "id": "cr-400-408-zones-lki",
@@ -1168,7 +1170,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "castCommand",
@@ -1183,7 +1185,8 @@
         "src/engine/__tests__/review.cr601-play-land-from-graveyard.test.ts"
       ],
       "nextGate": "demand実測ぶんは充足。残るfull CR601 casting procedure(modes/targets/cost locks全般)は複雑度が高くdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: demand実測ぶん充足。commander tax含むcast完了時core実行可能(review.cr601/m431緑)。full CR601 casting procedure(modes/targets/cost locks全般)は複雑度高でdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。"
     },
     {
       "id": "cr-602-activated-abilities",
@@ -1360,7 +1363,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": [
         "commanderCastCount",
         "commandZone",
@@ -1373,7 +1376,8 @@
         "src/store/__tests__/review.m431.test.ts"
       ],
       "nextGate": "cast-from-zone permission導入時にtax適用条件を再照合する",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: command zoneからのcast完了時に増えるcore実行可能(review.m431緑・golden cr-commander-tax-cast-not-return)。cast-from-zone permission導入時にtax適用条件を再照合する(boundary維持)。"
     },
     {
       "id": "cr-903-9-commander-zone-choice",
