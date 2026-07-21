@@ -17,13 +17,18 @@
 
 ## 役割 = 能力で定義(モデル名でなく席で。ChatGPT だけで完結できる)
 
-プロジェクトは3席で回る。**どの席も ChatGPT で担当でき、Claude は任意の助言・追加監査として使ってよいが、正式 green の必須資源ではない**:
+プロジェクトは3席で回る。**どの席も Codex(qwen3.8-max-preview 経由)で担当可**。Claude は解約済み(2026-07-22)——歴史的互換として `CLAUDE.md` は残すが、監査・助言・green のいずれにも使わない:
 
 - **判定者(judge / orchestrator)**: 契約(spec)の承認・CR 裁定・`review.*`・台帳・`docs/`・git commit/push/出荷を所有。決定・再オーナー化を保持する。
 - **実装者(implementer)**: ソースと通常テスト・機械チェック・契約や決定論的判断の**草稿**を担う。git・`review.*`・統治ファイルは触らない(下記不可侵)。
 - **冷監査者(cold auditor)**: 実装文脈を持たない別セッション。**findings only** で監査し、契約・盤面を変えない。
 
-**相関遮断は全状態で不変の要石**: 実装者と受け入れ基準の作者・監査者が同一だと循環(ゴールポストが動く)。ゆえに凍結・信頼・最終コミットの前に必ず**別の冷たいセッションによる独立監査を1回**通す。**同一 ChatGPT が判定と実装を兼ねた場合は、別の冷たい ChatGPT が監査するまで `implemented-not-audited` とし正式出荷しない**(fake-green 禁止——通らない条件を通ったことにするより FROZEN 撤回を維持して正直に報告する方が正しい・M-CR-RECONCILE の precedent)。Claude は任意の追加助言・監査として使えるが、合格条件・復帰待ち条件にはしない。
+**相関遮断は全状態で不変の要石**: 実装者と受け入れ基準の作者・監査者が同一だと循環(ゴールポストが動く)。ゆえに凍結・信頼・最終コミットの前に必ず**実装文脈を持たない別主体による独立監査を1回**通す。**同一セッションが判定と実装を兼ねた場合は、実装文脈を持たない別主体が監査するまで `implemented-not-audited` とし正式出荷しない**(fake-green 禁止——通らない条件を通ったことにするより FROZEN 撤回を維持して正直に報告する方が正しい・M-CR-RECONCILE の precedent)。
+
+**「別主体」の満たし方(2026-07-22 明文化・precedent=Wave 0-2 冷監査 Gibbs)**: 以下のいずれかで「実装文脈を持たない別主体」を満たす:
+- **サブエージェント(`fork_context: false`)**: 親セッションの会話履歴を継承しないサブエージェントを spawn し、監査ブリーフ(ファイル)だけ渡す。親はブリーフに実装の正当化を書かない(「この domain は shipped 相当か確認して」ではなく「この status 主張を敵対的に検証せよ」と書く)。findings は親が裁定するが、findings の生成自体は親の文脈から独立している。
+- **別 Codex タスク**: 完全に別のタスク/セッションで、監査ブリーフのファイルパスだけ渡して実行する。
+- いずれの場合も、監査者は**ファイルの編集禁止・findings only**。親セッションが findings を裁定し、HIGH 以上は修正後に再昇格する。
 
 **shipped 昇格の機械的条件(2026-07-22 裁定強化・precedent=Wave 0-2 冷監査スキップ事故)**: 台帳 domain の status を `shipped` へ昇格するには、以下の**全て**が揃っていなければならない。1つでも欠ければ `shipped` への書換は fake-green として差し戻す:
 1. 冷監査(実装文脈を持たない別セッション)が findings only で通過し、BLOCKER/HIGH = 0 であること
@@ -34,7 +39,31 @@
 
 **例外なし**: 「コード変更がない」「メタデータのみ」「既存テストが緑」は冷監査スキップの正当化にならない。status 昇格自体が「この domain は完了した」という主張であり、その主張の正当性は実装者と同じセッションが検証してはならない(相関遮断)。
 
-**現在値**(割当更新はこの行だけ編集): 判定者・実装者・冷監査者すべて **qwen3.8-max-preview**(Codex CLI 経由)で担当可(親セッション=判定者、別セッション=実装者、実装文脈を持たない別セッション=冷監査者)。qwen3.8-max-preview の起動は `QWEN.md` 経由。Claude を使う場合の起動は `CLAUDE.md` 経由(歴史的互換)。反復手順の正本 = `.agents/skills/mtg-onedeck-development/`。
+## 1セッション完結の監査ループ(2026-07-22 確立)
+
+判定者セッション内で実装→監査→ship を完結させる標準手順。サブエージェントの `fork_context: false` により、1セッション内で相関遮断を満たす。
+
+1. **判定者**: 実装・evidence テスト確認・台帳更新を行う
+2. **判定者**: 監査ブリーフを `research/cr-grounding/<key>-cold-audit-brief.draft.md` に書く。ブリーフには以下を含める:
+   - 監査対象(domain id・claimed status・evidence テスト一覧)
+   - 監査手順(テスト実行・boundary 検証・spot-check・adversarial check)
+   - 出力形式(domain ごとに verdict: SHIPPED-OK / BLOCKER / HIGH / MEDIUM / LOW)
+   - 制約(ファイル編集禁止・findings only・CR 参照先)
+   - **禁止**: 「shipped 相当か確認して」等の確認バイアスを誘発する文言。代わりに「status 主張を敵対的に検証せよ」と書く
+3. **判定者**: サブエージェントを `fork_context: false` で spawn し、ブリーフのファイルパスだけ渡す
+4. **冷監査者(サブエージェント)**: ブリーフを読み、テスト実行・boundary 検証・spot-check・adversarial check を実施。findings を返却
+5. **判定者**: findings を裁定する:
+   - SHIPPED-OK → shipped 昇格
+   - MEDIUM → boundary/note 修正後に shipped 昇格(修正内容を note に記載)
+   - HIGH → boundary/note 修正後に shipped 昇格(修正必須・修正内容を note に記載)
+   - BLOCKER → shipped 不可。実装修正→再監査
+6. **判定者**: commit メッセージに冷監査のセッション識別子(agent id)を記載し、push
+
+**ループの自動化**: 複数 domain の一括監査は、ブリーフに全 domain を列挙し、サブエージェント1回で全 domain の findings を返却させる。判定者は findings を一括裁定して1 commit にまとめる。
+
+**precedent**: Wave 0-2(2026-07-22・冷監査 Gibbs `019f86f2`)。13 domain 監査で 2 HIGH(boundary stale: cr-106-mana の 605.1b 実装済み未反映・cr-506-510-combat の trample 実装済み未反映)+ 2 MEDIUM(boundary stale + evidence 借用)を捕捉。実装者と同じセッションでは自己矛盾に気づけないことを実証。
+
+**現在値**(割当更新はこの行だけ編集): 判定者・実装者・冷監査者すべて **Codex(qwen3.8-max-preview 経由)** で担当可。親セッション=判定者、サブエージェント(`fork_context: false`)=実装者または冷監査者。冷監査は上記「1セッション完結の監査ループ」で回す。`CLAUDE.md` は歴史的互換のみ(Claude 解約済み・2026-07-22)。反復手順の正本 = `.agents/skills/mtg-onedeck-development/`。
 
 **原則**(全席共通):
 - **トークン経済**: 高能力モデルのトークンは「判断」(裁定・承認・go/no-go)にだけ使い、機械化できるもの(実装・草稿・計測・機械チェック)は全部実装者・サブタスク・スクリプトへ寄せる。判定者が raw ソース精読・diff 行読み・契約/テスト初稿の自筆をしたら委譲漏れのシグナル(正本 = token-economy.md)。
