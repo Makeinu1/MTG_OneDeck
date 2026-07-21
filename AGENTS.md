@@ -25,6 +25,15 @@
 
 **相関遮断は全状態で不変の要石**: 実装者と受け入れ基準の作者・監査者が同一だと循環(ゴールポストが動く)。ゆえに凍結・信頼・最終コミットの前に必ず**別の冷たいセッションによる独立監査を1回**通す。**同一 ChatGPT が判定と実装を兼ねた場合は、別の冷たい ChatGPT が監査するまで `implemented-not-audited` とし正式出荷しない**(fake-green 禁止——通らない条件を通ったことにするより FROZEN 撤回を維持して正直に報告する方が正しい・M-CR-RECONCILE の precedent)。Claude は任意の追加助言・監査として使えるが、合格条件・復帰待ち条件にはしない。
 
+**shipped 昇格の機械的条件(2026-07-22 裁定強化・precedent=Wave 0-2 冷監査スキップ事故)**: 台帳 domain の status を `shipped` へ昇格するには、以下の**全て**が揃っていなければならない。1つでも欠ければ `shipped` への書換は fake-green として差し戻す:
+1. 冷監査(実装文脈を持たない別セッション)が findings only で通過し、BLOCKER/HIGH = 0 であること
+2. 冷監査の findings 記録が台帳 note か `research/cr-grounding/archive/` に存在すること
+3. `npm run check` 全緑であること
+4. 該当 domain の evidence(review.* / golden)が緑であること
+5. 判定者が commit メッセージに冷監査のセッション識別子を記載すること
+
+**例外なし**: 「コード変更がない」「メタデータのみ」「既存テストが緑」は冷監査スキップの正当化にならない。status 昇格自体が「この domain は完了した」という主張であり、その主張の正当性は実装者と同じセッションが検証してはならない(相関遮断)。
+
 **現在値**(割当更新はこの行だけ編集): 判定者・実装者・冷監査者すべて **qwen3.8-max-preview**(Codex CLI 経由)で担当可(親セッション=判定者、別セッション=実装者、実装文脈を持たない別セッション=冷監査者)。qwen3.8-max-preview の起動は `QWEN.md` 経由。Claude を使う場合の起動は `CLAUDE.md` 経由(歴史的互換)。反復手順の正本 = `.agents/skills/mtg-onedeck-development/`。
 
 **原則**(全席共通):

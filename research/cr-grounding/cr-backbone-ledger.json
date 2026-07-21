@@ -652,7 +652,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "defeat",
         "lossAdvisories",
@@ -668,7 +668,7 @@
       ],
       "nextGate": "104.3j advisory 集合の完全統合は需要次第。defeat advisory 自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: 704.5a(life≤0)/704.5b(空ライブラリ draw)/704.5c(poison≥10) の defeat advisory 実行可能(review.sba-defeat 緑)。903.10a commander damage は cr-903-10a(shipped) で per-opponent 形。104.3j の advisory 集合統合は boundary 維持。サンドボックス方針により game 終了・操作封鎖はしない。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: 704.5a(life≤0)/704.5b(空ライブラリ draw)/704.5c(poison≥10) の defeat advisory 実行可能(review.sba-defeat 緑)。903.10a commander damage は cr-903-10a(shipped) で per-opponent 形。104.3j の advisory 集合統合は boundary 維持。サンドボックス方針により game 終了・操作封鎖はしない。"
     },
     {
       "id": "cr-106-mana",
@@ -680,7 +680,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "manaPool",
         "manaTransactions",
@@ -693,7 +693,7 @@
       ],
       "nextGate": "manual 分類の個別昇格は実デッキ需要次第。mana substrate 自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 1-3 ship(2026-07-22・判定者=Codex)**: 単純な起動型マナ能力(CR605.3)は manaTransaction で no-stack 即時解決。605.1b triggered mana ability の no-stack transaction 経路も manaTransaction.ts に実装済み(golden cr-mana-ability-no-stack / cr-triggered-mana-ability-no-stack 実行可能)。manaTransaction/review.mana-transaction/review.mana-write/review.activated-envelope 全緑。残る manual 分類(選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-3 ship(2026-07-22・判定者=Codex)**: 単純な起動型マナ能力(CR605.3)は manaTransaction で no-stack 即時解決。605.1b triggered mana ability の no-stack transaction 経路も manaTransaction.ts に実装済み(golden cr-mana-ability-no-stack / cr-triggered-mana-ability-no-stack 実行可能)。manaTransaction/review.mana-transaction/review.mana-write/review.activated-envelope 全緑。残る manual 分類(選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。"
     },
     {
       "id": "cr-108-cards",
@@ -702,7 +702,7 @@
       ],
       "lane": "backbone",
       "edhValue": "medium",
-      "status": "shipped",
+      "status": "drafted",
       "landingState": [
         "cardDefinitions",
         "physicalCardId",
@@ -716,7 +716,7 @@
       ],
       "nextGate": "full effective-characteristics snapshot は late-backbone(S-LAYERS)へ。Card/object 境界自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: Card と object/permanent/spell の境界は zone-change substrate(cr-109 shipped: zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot) から逆参照可能。CR 108 のカード/非カード境界は Scryfall card data + objectIdOf で実行可能に表現済み。full effective-characteristics snapshot は late-backbone へ。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため drafted へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: Card と object/permanent/spell の境界は zone-change substrate(cr-109 shipped: zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot) から逆参照可能。CR 108 のカード/非カード境界は Scryfall card data + objectIdOf で実行可能に表現済み。full effective-characteristics snapshot は late-backbone へ。"
     },
     {
       "id": "cr-109-objects",
@@ -727,7 +727,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "review-green",
       "landingState": [
         "objectIdOf",
         "zoneChangeCounter",
@@ -740,7 +740,7 @@
       ],
       "nextGate": "public-zone exception と spell-to-permanent continuity をS-ZONES/S-LAYERSで段階化する",
       "judge": "deterministic-cr",
-      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: 400.7 core(zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot)+ LKI core 実行可能(golden cr-zone-change-new-object-lki)。400.7a-m例外群・full effective-characteristics snapshot・spell-to-permanent continuity は late-backbone(S-ZONES/S-LAYERS)へ段階化。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため review-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 0 ship(2026-07-22・判定者=Codex)**: 400.7 core(zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot)+ LKI core 実行可能(golden cr-zone-change-new-object-lki)。400.7a-m例外群・full effective-characteristics snapshot・spell-to-permanent continuity は late-backbone(S-ZONES/S-LAYERS)へ段階化。"
     },
     {
       "id": "cr-110-permanents",
@@ -809,7 +809,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "stack",
         "spellObjects",
@@ -823,7 +823,7 @@
       ],
       "nextGate": "full CR601 casting procedure(modes/targets/cost locks)と spell-to-permanent continuity 完全形は後期境界。spell identity 有界 core は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: spell object と resolving object の identity/continuity は 400.7a-d の有界範囲で閉じている(cr-sba-copy-ceases-outside-stack / cr-commander-tax-cast-not-return 実行可能)。review.cr608-resolution-sliceA / review.stack-control-cast-targets 緑。full CR601 casting procedure と spell-to-permanent continuity の完全形は後期境界。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: spell object と resolving object の identity/continuity は 400.7a-d の有界範囲で閉じている(cr-sba-copy-ceases-outside-stack / cr-commander-tax-cast-not-return 実行可能)。review.cr608-resolution-sliceA / review.stack-control-cast-targets 緑。full CR601 casting procedure と spell-to-permanent continuity の完全形は後期境界。"
     },
     {
       "id": "cr-113-abilities",
@@ -836,7 +836,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "stack",
         "pendingTriggers",
@@ -851,7 +851,7 @@
       ],
       "nextGate": "static abilities の continuous effect 実装は late-backbone(cr-604-611-612-613-layers-continuous)へ。ability kind 着地先自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 1-4 ship(2026-07-22・判定者=Codex)**: ability kind 着地先マップ固定。activated→stack(addAbilityToStack)・triggered→pendingTriggers→stack(APNAP bucket 順序)・mana→no-stack(manaTransaction 即時解決)・static→late-backbone(S-LAYERS へ handoff・本 domain では実装しない)。AbilityKind 型・activatedAbilityEnvelope・review.m427/m428/review.activated-envelope 全緑。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-4 ship(2026-07-22・判定者=Codex)**: ability kind 着地先マップ固定。activated→stack(addAbilityToStack)・triggered→pendingTriggers→stack(APNAP bucket 順序)・mana→no-stack(manaTransaction 即時解決)・static→late-backbone(S-LAYERS へ handoff・本 domain では実装しない)。AbilityKind 型・activatedAbilityEnvelope・review.m427/m428/review.activated-envelope 全緑。"
     },
     {
       "id": "cr-115-targets",
@@ -894,7 +894,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "priorityBoundary",
         "pendingTriggers",
@@ -908,7 +908,7 @@
       ],
       "nextGate": "603.3b second bucket への実 trigger 割り当ては cr-603 trigger detection 側で需要が立った時に実装。priority loop 自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 1-1 ship(2026-07-22・判定者=Codex)**: SBA→choice→trigger placement→repeat の fixed-point loop(advanceToPriority)実行可能。bucket インフラ(TriggerStackPlacementBucket: ordinary/ability-triggered・APNAP 順序・gameStore 分岐)存在。603.3b の ability-triggered bucket への実 trigger 割り当ては cr-603 trigger detection 側の責務(本 domain の boundary)。priority.test / review.cr603 sliceA/B / golden 全緑。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-1 ship(2026-07-22・判定者=Codex)**: SBA→choice→trigger placement→repeat の fixed-point loop(advanceToPriority)実行可能。bucket インフラ(TriggerStackPlacementBucket: ordinary/ability-triggered・APNAP 順序・gameStore 分岐)存在。603.3b の ability-triggered bucket への実 trigger 割り当ては cr-603 trigger detection 側の責務(本 domain の boundary)。priority.test / review.cr603 sliceA/B / golden 全緑。"
     },
     {
       "id": "cr-118-costs",
@@ -1011,7 +1011,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "library",
         "hand",
@@ -1029,7 +1029,7 @@
       ],
       "nextGate": "draw leaf の追加構文は実デッキ需要次第。draw event envelope と player-specific routing 自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: player-specific zones(cr-102 shipped) と draw event envelope 凍結済み。empty library draw advisory / multi-draw partial / cross-player guard(cr121DrawCrossPlayerGuard) / draw auto(cr121DrawAuto) / draw compiler(cr121DrawCompiler) / loot variable count(review.cr121-loot-variable-count) 全緑。draw leaf 誠実性境界(engine-spec §32.9)維持。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: player-specific zones(cr-102 shipped) と draw event envelope 凍結済み。empty library draw advisory / multi-draw partial / cross-player guard(cr121DrawCrossPlayerGuard) / draw auto(cr121DrawAuto) / draw compiler(cr121DrawCompiler) / loot variable count(review.cr121-loot-variable-count) 全緑。draw leaf 誠実性境界(engine-spec §32.9)維持。"
     },
     {
       "id": "cr-122-counters",
@@ -1040,7 +1040,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "counters",
         "poisonCounters",
@@ -1059,7 +1059,7 @@
       ],
       "nextGate": "counter:write(14)・event:counter(8)双方のdemandは充足。残る需要=loyalty/charge/age等の他counter種別・counter cap(122.4)・Saga/battle/rad countersは次回demand実測時に別スライス。",
       "judge": "deterministic-cr",
-      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: demand充足(counter:write 14・event:counter 8)。+1/+1/-1/-1相殺・poison loss advisory・符号バグ修正(§34.30/§34.39)全て review.* 緑。残る需要(loyalty/charge/age/cap/Saga/battle/rad)は別スライス。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 0 ship(2026-07-22・判定者=Codex)**: demand充足(counter:write 14・event:counter 8)。+1/+1/-1/-1相殺・poison loss advisory・符号バグ修正(§34.30/§34.39)全て review.* 緑。残る需要(loyalty/charge/age/cap/Saga/battle/rad)は別スライス。"
     },
     {
       "id": "cr-400-408-zones-lki",
@@ -1181,7 +1181,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "stack",
         "castCommand",
@@ -1197,7 +1197,7 @@
       ],
       "nextGate": "demand実測ぶんは充足。残るfull CR601 casting procedure(modes/targets/cost locks全般)は複雑度が高くdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。",
       "judge": "deterministic-cr",
-      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: demand実測ぶん充足。commander tax含むcast完了時core実行可能(review.cr601/m431緑)。full CR601 casting procedure(modes/targets/cost locks全般)は複雑度高でdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 0 ship(2026-07-22・判定者=Codex)**: demand実測ぶん充足。commander tax含むcast完了時core実行可能(review.cr601/m431緑)。full CR601 casting procedure(modes/targets/cost locks全般)は複雑度高でdefer継続。exileからの土地プレイ・alt-cost付きcast(warp等)は需要が立ったら再訪。"
     },
     {
       "id": "cr-602-activated-abilities",
@@ -1347,7 +1347,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "combat",
         "attackers",
@@ -1365,7 +1365,7 @@
       ],
       "nextGate": "multiple blocker allocation は choice UI 後。first/double strike・trample・prevention・infect は実デッキ需要次第。combat 有界 core は完了。",
       "judge": "deterministic-cr",
-      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: single blocker/unblocked damage core 実行可能(review.combat 緑)。commander damage loss は cr-903-10a(shipped) で per-opponent 形。multiple blockers allocation / first-double strike / trample / prevention / infect / planeswalker-battle damage は後期境界(boundary 維持)。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: single blocker/unblocked damage core 実行可能(review.combat 緑)。commander damage loss は cr-903-10a(shipped) で per-opponent 形。multiple blockers allocation / first-double strike / trample / prevention / infect / planeswalker-battle damage は後期境界(boundary 維持)。"
     },
     {
       "id": "cr-903-8-commander-tax",
@@ -1375,7 +1375,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "review-green",
       "landingState": [
         "commanderCastCount",
         "commandZone",
@@ -1389,7 +1389,7 @@
       ],
       "nextGate": "cast-from-zone permission導入時にtax適用条件を再照合する",
       "judge": "deterministic-cr",
-      "note": "**Wave 0 ship(2026-07-22・判定者=Codex)**: command zoneからのcast完了時に増えるcore実行可能(review.m431緑・golden cr-commander-tax-cast-not-return)。cast-from-zone permission導入時にtax適用条件を再照合する(boundary維持)。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため review-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 0 ship(2026-07-22・判定者=Codex)**: command zoneからのcast完了時に増えるcore実行可能(review.m431緑・golden cr-commander-tax-cast-not-return)。cast-from-zone permission導入時にtax適用条件を再照合する(boundary維持)。"
     },
     {
       "id": "cr-903-9-commander-zone-choice",
@@ -1401,7 +1401,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "shipped",
+      "status": "implemented-not-green",
       "landingState": [
         "pendingSbaChoices",
         "commandZone",
@@ -1418,7 +1418,7 @@
       "nextGate": "deferred choice UI と stabilizeBeforePriority 本体統合は UI スライスへ。choice substrate 自体は完了。",
       "judge": "deterministic-cr",
       "judgeNote": "903.9a の command へ戻す処理は置換(replacement)であり SBA ではない=CR 903.9a 原文どおり。M-CONTRACT で deferred choice UI として裁定済み(standing)。pendingRuleChoices 一般化は S-ABILITY+DUMMY で実装。",
-      "note": "**Wave 1-2 ship(2026-07-22・判定者=Codex)**: pendingSbaChoices→pendingRuleChoices 一般化完了(legacy は空配列へ正規化・normalizePendingRuleChoices)。903.9a と legend rule(704.5j)が同一 choice substrate 上に存在。graveyard/exile SBA bridge + hand/library replacement golden 実行可能。crGrounding/ruleChoices/review.m430 全緑。deferred choice UI・stabilizeBeforePriority 本体統合は UI スライスへ。"
+      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-2 ship(2026-07-22・判定者=Codex)**: pendingSbaChoices→pendingRuleChoices 一般化完了(legacy は空配列へ正規化・normalizePendingRuleChoices)。903.9a と legend rule(704.5j)が同一 choice substrate 上に存在。graveyard/exile SBA bridge + hand/library replacement golden 実行可能。crGrounding/ruleChoices/review.m430 全緑。deferred choice UI・stabilizeBeforePriority 本体統合は UI スライスへ。"
     },
     {
       "id": "cr-903-10a-commander-damage",
