@@ -709,7 +709,11 @@
         "oracleText"
       ],
       "boundary": "golden未定義。Scryfall由来のcard dataはあるが、CR 108 としてのカード/非カード境界は未契約。",
-      "evidence": [],
+      "evidence": [
+        "cr-zone-change-new-object-lki",
+        "src/store/__tests__/crGroundingGoldenCases.test.ts",
+        "docs/engine-spec.md §34.7 demand coverage anchoring"
+      ],
       "nextGate": "full effective-characteristics snapshot は late-backbone(S-LAYERS)へ。Card/object 境界自体は完了。",
       "judge": "deterministic-cr",
       "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: Card と object/permanent/spell の境界は zone-change substrate(cr-109 shipped: zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot) から逆参照可能。CR 108 のカード/非カード境界は Scryfall card data + objectIdOf で実行可能に表現済み。full effective-characteristics snapshot は late-backbone へ。"
