@@ -2191,8 +2191,8 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
    パフォーマンス方針(2026-07-21 実機計測を受けて改訂):
    - SVG feTurbulence/feDisplacementMap は常時アニメーション下で致命的に重いため
      **全廃**。不定形の縁は有機的 border-radius で代替(契約の意図=不定形は維持)。
-   - will-change はレイヤー量産(特に星156)でメモリを食うため**全廃**
-     (transform/opacity アニメはブラウザが自動プロモートする)。
+   - will-change: transform, opacity は Chrome の毎フレーム再ラスタを抑制するため
+     星・ガス・墨雲・bloom・drip・current に付与(測定で Paint 74%削減を確認)。
    - mix-blend-mode は合成を強制し GPU 負荷を上げるため**全廃**
      (ダーク背景上では radial-gradient の輝度で十分光る)。
    - 星の box-shadow は blur 半径を縮小(ペイント領域の削減)。
@@ -2234,6 +2234,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   position: absolute;
   /* 不定形の縁: feTurbulence の代わりに有機的 border-radius(パフォーマンス優先)。 */
   border-radius: 47% 53% 44% 56% / 52% 46% 54% 48%;
+  will-change: transform, opacity;
 }
 .ambient-gas--a {
   width: 120vmax; height: 92vmax; left: -28vmax; top: -34vmax;
@@ -2271,6 +2272,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   transform: rotate(-7deg);
   background: linear-gradient(180deg, transparent, var(--ambient-aurora-1) 36%, var(--ambient-aurora-2) 52%, transparent 78%);
   animation: ambient-aurora-sway 17s ease-in-out infinite alternate;
+  will-change: transform, opacity;
 }
 @keyframes ambient-aurora-sway {
   from { transform: rotate(-7deg) translateX(-4%); opacity: .65; }
@@ -2279,7 +2281,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 
 /* 星3層・計156(遠84/中46/近26)。個別周波数/位相/色の深いきらめき。
    やわらかな光点のみ——十字スパイク禁止(チープとしてユーザー却下)。星は主役ではない。
-   box-shadow は blur 縮小版(ペイント領域削減)。will-change 無し(自動プロモートに任せる)。 */
+   box-shadow は blur 縮小版(ペイント領域削減)。will-change で合成レイヤー昇格(Chrome 再ラスタ抑制)。 */
 .ambient-stars { inset: 0; }
 .ambient-star {
   position: absolute; /* モックの inline span を確実に散布させる(視覚正本と同一結果を仕様で保証) */
@@ -2288,6 +2290,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   box-shadow: 0 0 calc(var(--sz) * 1.2) var(--tint);
   animation: ambient-twinkle var(--d) ease-in-out infinite;
   animation-delay: var(--dl);
+  will-change: transform, opacity;
 }
 @keyframes ambient-twinkle {
   0%, 100% { opacity: calc(var(--o) * .16); transform: scale(.72); }
@@ -2354,6 +2357,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-inkcloud {
   position: absolute;
   border-radius: 48% 52% 45% 55% / 51% 47% 53% 49%;
+  will-change: transform, opacity;
 }
 .ambient-inkcloud--a {
   width: 88vmax; height: 76vmax; left: -16vmax; top: -24vmax;
@@ -2395,6 +2399,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   opacity: 0;
   animation: ambient-ink-bloom 9s ease-in-out infinite;
   animation-delay: var(--dl);
+  will-change: transform, opacity;
 }
 .ambient-bloom--1 { --bc: var(--ambient-bloom-1); }
 .ambient-bloom--2 { --bc: var(--ambient-bloom-2); }
@@ -2414,6 +2419,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   left: -30%; right: -30%; height: 16vmin; top: var(--y); transform: rotate(var(--r));
   background: linear-gradient(90deg, transparent 6%, var(--cc) 30%, var(--cc-2) 55%, transparent 92%);
   animation: ambient-current-run var(--d) ease-in-out infinite alternate;
+  will-change: transform;
 }
 .ambient-current--1 { --cc: var(--ambient-current-1); --cc-2: var(--ambient-current-1-2); }
 .ambient-current--2 { --cc: var(--ambient-current-2); --cc-2: var(--ambient-current-2-2); }
@@ -2423,7 +2429,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   to { transform: rotate(var(--r)) translateX(14%); }
 }
 
-.ambient-brushlayer { inset: 0; animation: ambient-brush-drift 90s ease-in-out infinite alternate; }
+.ambient-brushlayer { inset: 0; animation: ambient-brush-drift 90s ease-in-out infinite alternate; will-change: transform; }
 @keyframes ambient-brush-drift {
   from { transform: translate(0, 0) rotate(0deg); }
   to { transform: translate(-3vmax, 2vmax) rotate(-1.6deg); }
@@ -2458,6 +2464,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   transform: translate(-50%, -50%) scale(.2); opacity: 0;
   animation: ambient-drip-spread 7s ease-out infinite;
   animation-delay: var(--dl);
+  will-change: transform, opacity;
 }
 .ambient-drip--1 { --dc-core: var(--ambient-drip-core-1); --dc-edge: var(--ambient-drip-edge-1); }
 .ambient-drip--2 { --dc-core: var(--ambient-drip-core-2); --dc-edge: var(--ambient-drip-edge-2); }
@@ -2479,6 +2486,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   box-shadow: 0 0 4px var(--ambient-fleck-glow);
   transform: rotate(var(--r));
   animation: ambient-fleck-drift var(--d) ease-in-out infinite alternate, ambient-fleck-twinkle calc(var(--d) / 3) ease-in-out infinite;
+  will-change: transform, opacity;
 }
 @keyframes ambient-fleck-drift { to { transform: rotate(var(--r)) translate(22px, -30px); } }
 @keyframes ambient-fleck-twinkle { 0%, 100% { opacity: var(--o); } 50% { opacity: calc(var(--o) * .4); } }
@@ -2486,7 +2494,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 /* 盤面上の光源: 見えない太陽が頭上を90sで一周。太陽の円盤は描かない——光そのものが太陽。 */
 .ambient-sun-arm,
 .ambient-shade-arm,
-.ambient-sheen-arm { left: 50%; top: 80%; width: 0; height: 0; }
+.ambient-sheen-arm { left: 50%; top: 80%; width: 0; height: 0; will-change: transform; }
 .ambient-sun-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }
 .ambient-shade-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -67s; }
 .ambient-sheen-arm { left: 50%; top: 50%; animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }

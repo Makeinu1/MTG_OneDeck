@@ -77,11 +77,13 @@ function ActiveTransitionCue({
           </>
         ) : null}
         <strong>{phaseLabel}</strong>
-        {activeDrawCue && (
-          <span className="turn-transition-cue__draw" data-testid="transition-draw-detail">
-            {drawPresentationText(activeDrawCue)}
-          </span>
-        )}
+        <span
+          className="turn-transition-cue__draw"
+          data-testid="transition-draw-detail"
+          style={activeDrawCue ? undefined : { visibility: 'hidden' }}
+        >
+          {activeDrawCue ? drawPresentationText(activeDrawCue) : '\u00A0'}
+        </span>
         <div className="turn-transition-cue__track">
           {cue.phases.map((phase, index) => (
             <span
