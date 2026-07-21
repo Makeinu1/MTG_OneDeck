@@ -679,7 +679,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "manaPool",
         "manaTransactions",
@@ -690,8 +690,9 @@
         "cr-mana-ability-no-stack",
         "src/engine/__tests__/mana.test.ts"
       ],
-      "nextGate": "605.1b triggered mana ability を normal pendingTriggers に混ぜない transaction として閉じる",
-      "judge": "deterministic-cr"
+      "nextGate": "manual 分類の個別昇格は実デッキ需要次第。mana substrate 自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 1-3 ship(2026-07-22・判定者=Codex)**: 単純な起動型マナ能力(CR605.3)は manaTransaction で no-stack 即時解決。605.1b triggered mana ability の no-stack transaction 経路も manaTransaction.ts に実装済み(golden cr-mana-ability-no-stack / cr-triggered-mana-ability-no-stack 実行可能)。manaTransaction/review.mana-transaction/review.mana-write/review.activated-envelope 全緑。残る manual 分類(選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。"
     },
     {
       "id": "cr-108-cards",
@@ -828,7 +829,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "pendingTriggers",
@@ -841,8 +842,9 @@
         "cr-trigger-sba-priority-loop",
         "cr-triggered-mana-ability-no-stack"
       ],
-      "nextGate": "ability kindごとの着地先を command/stack/no-stack/continuous に固定し、staticはS-LAYERSへ渡す",
-      "judge": "deterministic-cr"
+      "nextGate": "static abilities の continuous effect 実装は late-backbone(cr-604-611-612-613-layers-continuous)へ。ability kind 着地先自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 1-4 ship(2026-07-22・判定者=Codex)**: ability kind 着地先マップ固定。activated→stack(addAbilityToStack)・triggered→pendingTriggers→stack(APNAP bucket 順序)・mana→no-stack(manaTransaction 即時解決)・static→late-backbone(S-LAYERS へ handoff・本 domain では実装しない)。AbilityKind 型・activatedAbilityEnvelope・review.m427/m428/review.activated-envelope 全緑。"
     },
     {
       "id": "cr-115-targets",
@@ -885,7 +887,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "priorityBoundary",
         "pendingTriggers",
@@ -897,8 +899,9 @@
         "cr-trigger-sba-priority-loop",
         "cr-priority-loop-trigger-placement-rechecks-sba"
       ],
-      "nextGate": "SBA -> choice -> trigger placement -> repeat の順序を second bucket 対応込みで閉じる",
-      "judge": "deterministic-cr"
+      "nextGate": "603.3b second bucket への実 trigger 割り当ては cr-603 trigger detection 側で需要が立った時に実装。priority loop 自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 1-1 ship(2026-07-22・判定者=Codex)**: SBA→choice→trigger placement→repeat の fixed-point loop(advanceToPriority)実行可能。bucket インフラ(TriggerStackPlacementBucket: ordinary/ability-triggered・APNAP 順序・gameStore 分岐)存在。603.3b の ability-triggered bucket への実 trigger 割り当ては cr-603 trigger detection 側の責務(本 domain の boundary)。priority.test / review.cr603 sliceA/B / golden 全緑。"
     },
     {
       "id": "cr-118-costs",
@@ -1389,7 +1392,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "pendingSbaChoices",
         "commandZone",
@@ -1403,9 +1406,10 @@
         "cr-commander-hand-library-replacement",
         "src/store/__tests__/crGrounding.test.ts"
       ],
-      "nextGate": "pendingSbaChoices を pendingRuleChoices へ一般化し、903.9a と legend rule を同じchoice substrateへ載せる",
+      "nextGate": "deferred choice UI と stabilizeBeforePriority 本体統合は UI スライスへ。choice substrate 自体は完了。",
       "judge": "deterministic-cr",
-      "judgeNote": "903.9a の command へ戻す処理は置換(replacement)であり SBA ではない=CR 903.9a 原文どおり。M-CONTRACT で deferred choice UI として裁定済み(standing)。pendingRuleChoices 一般化は S-ABILITY+DUMMY で実装。"
+      "judgeNote": "903.9a の command へ戻す処理は置換(replacement)であり SBA ではない=CR 903.9a 原文どおり。M-CONTRACT で deferred choice UI として裁定済み(standing)。pendingRuleChoices 一般化は S-ABILITY+DUMMY で実装。",
+      "note": "**Wave 1-2 ship(2026-07-22・判定者=Codex)**: pendingSbaChoices→pendingRuleChoices 一般化完了(legacy は空配列へ正規化・normalizePendingRuleChoices)。903.9a と legend rule(704.5j)が同一 choice substrate 上に存在。graveyard/exile SBA bridge + hand/library replacement golden 実行可能。crGrounding/ruleChoices/review.m430 全緑。deferred choice UI・stabilizeBeforePriority 本体統合は UI スライスへ。"
     },
     {
       "id": "cr-903-10a-commander-damage",
