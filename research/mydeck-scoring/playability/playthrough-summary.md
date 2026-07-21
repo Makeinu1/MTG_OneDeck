@@ -1,6 +1,6 @@
 # MyDeck Playability Play-through Summary
 
-Generated: 2026-07-20T05:28:13.977Z
+Generated: 2026-07-21T17:41:36.664Z
 
 ## Re-run
 
@@ -15,7 +15,7 @@ Deterministic seeded heuristic (seed=1), 10 turns per deck. Per turn: advance th
 | deck | turns completed | spells cast | interventions | warnings | crashed |
 |---|---|---:|---:|---:|---|
 | Celes | 10/10 | 11 | 1 | 3 | no |
-| Gogo | 10/10 | 11 | 0 | 5 | no |
+| Gogo | 10/10 | 10 | 0 | 2 | no |
 | Kefka | 10/10 | 9 | 1 | 6 | no |
 | Muldrotha | 10/10 | 7 | 1 | 3 | no |
 
