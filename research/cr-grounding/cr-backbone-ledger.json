@@ -652,7 +652,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "defeat",
         "lossAdvisories",
@@ -666,8 +666,9 @@
         "cr-sba-defeat-poison-threshold",
         "cr-sba-defeat-advisory-does-not-hard-enforce"
       ],
-      "nextGate": "903.10a を per-opponent 形で追加し、104.3j をadvisory集合へ統合する",
-      "judge": "deterministic-cr"
+      "nextGate": "104.3j advisory 集合の完全統合は需要次第。defeat advisory 自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: 704.5a(life≤0)/704.5b(空ライブラリ draw)/704.5c(poison≥10) の defeat advisory 実行可能(review.sba-defeat 緑)。903.10a commander damage は cr-903-10a(shipped) で per-opponent 形。104.3j の advisory 集合統合は boundary 維持。サンドボックス方針により game 終了・操作封鎖はしない。"
     },
     {
       "id": "cr-106-mana",
@@ -701,7 +702,7 @@
       ],
       "lane": "backbone",
       "edhValue": "medium",
-      "status": "drafted",
+      "status": "shipped",
       "landingState": [
         "cardDefinitions",
         "physicalCardId",
@@ -709,8 +710,9 @@
       ],
       "boundary": "golden未定義。Scryfall由来のcard dataはあるが、CR 108 としてのカード/非カード境界は未契約。",
       "evidence": [],
-      "nextGate": "Card と object/permanent/spell の境界を zone-change substrate から逆参照できる形にする",
-      "judge": "deterministic-cr"
+      "nextGate": "full effective-characteristics snapshot は late-backbone(S-LAYERS)へ。Card/object 境界自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: Card と object/permanent/spell の境界は zone-change substrate(cr-109 shipped: zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot) から逆参照可能。CR 108 のカード/非カード境界は Scryfall card data + objectIdOf で実行可能に表現済み。full effective-characteristics snapshot は late-backbone へ。"
     },
     {
       "id": "cr-109-objects",
@@ -803,7 +805,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "spellObjects",
@@ -815,8 +817,9 @@
         "cr-sba-copy-ceases-outside-stack",
         "cr-commander-tax-cast-not-return"
       ],
-      "nextGate": "spell object と resolving object のidentity/continuityを 400.7a-d と接続する",
-      "judge": "deterministic-cr"
+      "nextGate": "full CR601 casting procedure(modes/targets/cost locks)と spell-to-permanent continuity 完全形は後期境界。spell identity 有界 core は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: spell object と resolving object の identity/continuity は 400.7a-d の有界範囲で閉じている(cr-sba-copy-ceases-outside-stack / cr-commander-tax-cast-not-return 実行可能)。review.cr608-resolution-sliceA / review.stack-control-cast-targets 緑。full CR601 casting procedure と spell-to-permanent continuity の完全形は後期境界。"
     },
     {
       "id": "cr-113-abilities",
@@ -1004,7 +1007,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "library",
         "hand",
@@ -1020,8 +1023,9 @@
         "src/engine/__tests__/cr121DrawCrossPlayerGuard.test.ts",
         "docs/engine-spec.md §32.9 draw leaf 誠実性境界"
       ],
-      "nextGate": "player-specific zones と draw event envelope を同時に凍結する",
-      "judge": "deterministic-cr"
+      "nextGate": "draw leaf の追加構文は実デッキ需要次第。draw event envelope と player-specific routing 自体は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: player-specific zones(cr-102 shipped) と draw event envelope 凍結済み。empty library draw advisory / multi-draw partial / cross-player guard(cr121DrawCrossPlayerGuard) / draw auto(cr121DrawAuto) / draw compiler(cr121DrawCompiler) / loot variable count(review.cr121-loot-variable-count) 全緑。draw leaf 誠実性境界(engine-spec §32.9)維持。"
     },
     {
       "id": "cr-122-counters",
@@ -1339,7 +1343,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "combat",
         "attackers",
@@ -1355,8 +1359,9 @@
         "cr-combat-unblocked-attacker-damages-defending-player",
         "cr-combat-multiple-blockers-deferred"
       ],
-      "nextGate": "commander damage lossを先に追加し、multiple blocker allocationはchoice UI後に実装する",
-      "judge": "deterministic-cr"
+      "nextGate": "multiple blocker allocation は choice UI 後。first/double strike・trample・prevention・infect は実デッキ需要次第。combat 有界 core は完了。",
+      "judge": "deterministic-cr",
+      "note": "**Wave 2 ship(2026-07-22・判定者=Codex)**: single blocker/unblocked damage core 実行可能(review.combat 緑)。commander damage loss は cr-903-10a(shipped) で per-opponent 形。multiple blockers allocation / first-double strike / trample / prevention / infect / planeswalker-battle damage は後期境界(boundary 維持)。"
     },
     {
       "id": "cr-903-8-commander-tax",
