@@ -652,7 +652,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "defeat",
         "lossAdvisories",
@@ -680,20 +680,20 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "manaPool",
         "manaTransactions",
         "eventLog"
       ],
-      "boundary": "単純な起動型マナ能力はCRG-4 PARTIAL。誘発型マナ能力 CR 605.1b/605.4a は未実装扱いを維持。",
+      "boundary": "単純な起動型マナ能力(CR605.3)は manaTransaction で no-stack 即時解決。誘発型マナ能力(CR605.1b/605.4a)も manaTransaction.ts に実装済み(kind: resolved-triggered-mana-ability・605.4a loop guard 付き)。manual 分類(選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。",
       "evidence": [
         "cr-mana-ability-no-stack",
         "src/engine/__tests__/mana.test.ts"
       ],
       "nextGate": "manual 分類の個別昇格は実デッキ需要次第。mana substrate 自体は完了。",
       "judge": "deterministic-cr",
-      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-3 ship(2026-07-22・判定者=Codex)**: 単純な起動型マナ能力(CR605.3)は manaTransaction で no-stack 即時解決。605.1b triggered mana ability の no-stack transaction 経路も manaTransaction.ts に実装済み(golden cr-mana-ability-no-stack / cr-triggered-mana-ability-no-stack 実行可能)。manaTransaction/review.mana-transaction/review.mana-write/review.activated-envelope 全緑。残る manual 分類(選択・combination・snow・restriction 執行)は実デッキ需要が出た形だけ個別昇格。"
+      "note": "**Wave 1-3 ship(2026-07-22・冷監査 Gibbs 通過)**: 起動型+誘発型マナ能力の no-stack transaction 実装済み。冷監査 HIGH(boundary stale: 605.1b/605.4a 未実装と記載だったが実装済み)を修正。244 tests green, bug-pinning 0。"
     },
     {
       "id": "cr-108-cards",
@@ -702,21 +702,21 @@
       ],
       "lane": "backbone",
       "edhValue": "medium",
-      "status": "drafted",
+      "status": "shipped",
       "landingState": [
         "cardDefinitions",
         "physicalCardId",
         "oracleText"
       ],
-      "boundary": "golden未定義。Scryfall由来のcard dataはあるが、CR 108 としてのカード/非カード境界は未契約。",
+      "boundary": "Card と object/permanent/spell の境界は zone-change substrate(cr-109: zoneChangeCounter/objectIdOf/ObjectSnapshot) から逆参照可能。CR 108 専用の card/non-card 境界テストは未作成(cr-109 の golden を借用中)。full effective-characteristics snapshot は late-backbone へ。",
       "evidence": [
         "cr-zone-change-new-object-lki",
         "src/store/__tests__/crGroundingGoldenCases.test.ts",
         "docs/engine-spec.md §34.7 demand coverage anchoring"
       ],
-      "nextGate": "full effective-characteristics snapshot は late-backbone(S-LAYERS)へ。Card/object 境界自体は完了。",
+      "nextGate": "CR 108 専用の card/non-card 境界 golden case を作成する(cr-109 借用の解消)。full effective-characteristics snapshot は late-backbone(S-LAYERS)へ。",
       "judge": "deterministic-cr",
-      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため drafted へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: Card と object/permanent/spell の境界は zone-change substrate(cr-109 shipped: zoneChangeCounter/objectIdOf/ObjectSnapshot/sourceSnapshot) から逆参照可能。CR 108 のカード/非カード境界は Scryfall card data + objectIdOf で実行可能に表現済み。full effective-characteristics snapshot は late-backbone へ。"
+      "note": "**Wave 2 ship(2026-07-22・冷監査 Gibbs 通過・MEDIUM 条件付き)**: 冷監査 MEDIUM(evidence が cr-109 借用で cr-108 専用テストなし)。boundary に借用を明記。専用 golden case の作成は次スライスへ carry。244 tests green。"
     },
     {
       "id": "cr-109-objects",
@@ -727,7 +727,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": [
         "objectIdOf",
         "zoneChangeCounter",
@@ -809,7 +809,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "spellObjects",
@@ -836,7 +836,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "pendingTriggers",
@@ -894,7 +894,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "priorityBoundary",
         "pendingTriggers",
@@ -1011,7 +1011,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "library",
         "hand",
@@ -1040,7 +1040,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "counters",
         "poisonCounters",
@@ -1181,7 +1181,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "stack",
         "castCommand",
@@ -1347,7 +1347,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "combat",
         "attackers",
@@ -1356,7 +1356,7 @@
         "damageEvents",
         "life"
       ],
-      "boundary": "single blocker/unblocked damage coreはあるが、multiple blockers allocation, first/double strike, trample, prevention, infect, planeswalker/battle damage は後期境界。",
+      "boundary": "single blocker/unblocked damage core + single-blocker trample(CR702.19b・deathtouch 相互作用 CR704.5h 付き・* toughness は honest defer) + lifelink(CR702.15b) は実装済み。multiple blockers allocation, first/double strike(追加 combat damage step), prevention, infect, planeswalker/battle damage, trample-over-planeswalkers は後期境界。",
       "evidence": [
         "cr-combat-single-block-lethal-mutual-damage",
         "cr-combat-single-block-sublethal-survives",
@@ -1365,7 +1365,7 @@
       ],
       "nextGate": "multiple blocker allocation は choice UI 後。first/double strike・trample・prevention・infect は実デッキ需要次第。combat 有界 core は完了。",
       "judge": "deterministic-cr",
-      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 2 ship(2026-07-22・判定者=Codex)**: single blocker/unblocked damage core 実行可能(review.combat 緑)。commander damage loss は cr-903-10a(shipped) で per-opponent 形。multiple blockers allocation / first-double strike / trample / prevention / infect / planeswalker-battle damage は後期境界(boundary 維持)。"
+      "note": "**Wave 2 ship(2026-07-22・冷監査 Gibbs 通過)**: single blocker/unblocked/trample(single-blocker)/lifelink 実装済み。冷監査 HIGH(boundary stale: trample を後期境界と記載だったが実装済み)を修正。244 tests green, bug-pinning 0。"
     },
     {
       "id": "cr-903-8-commander-tax",
@@ -1375,7 +1375,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
       "landingState": [
         "commanderCastCount",
         "commandZone",
@@ -1401,14 +1401,14 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
       "landingState": [
         "pendingSbaChoices",
         "commandZone",
         "zoneChangeEvents",
         "eventLog"
       ],
-      "boundary": "graveyard/exileの903.9a bridgeとhand/library replacement goldenはあるが、deferred choice UI、generic pendingRuleChoices、stabilizeBeforePriority本体統合は未完了。",
+      "boundary": "graveyard/exile の 903.9a bridge と hand/library replacement golden は実行可能。pendingRuleChoices 一般化と stabilizeBeforePriority 本体統合は完了済み。deferred choice UI のみ未実装。",
       "evidence": [
         "cr-commander-graveyard-exile-sba-not-replacement",
         "cr-commander-9039a-rule-choice",
@@ -1418,7 +1418,7 @@
       "nextGate": "deferred choice UI と stabilizeBeforePriority 本体統合は UI スライスへ。choice substrate 自体は完了。",
       "judge": "deterministic-cr",
       "judgeNote": "903.9a の command へ戻す処理は置換(replacement)であり SBA ではない=CR 903.9a 原文どおり。M-CONTRACT で deferred choice UI として裁定済み(standing)。pendingRuleChoices 一般化は S-ABILITY+DUMMY で実装。",
-      "note": "**[2026-07-22 裁定撤回]** 冷監査なしで shipped へ昇格していたため implemented-not-green へ戻す。冷監査(別 qwen3.8 セッション)通過後に再昇格。 **Wave 1-2 ship(2026-07-22・判定者=Codex)**: pendingSbaChoices→pendingRuleChoices 一般化完了(legacy は空配列へ正規化・normalizePendingRuleChoices)。903.9a と legend rule(704.5j)が同一 choice substrate 上に存在。graveyard/exile SBA bridge + hand/library replacement golden 実行可能。crGrounding/ruleChoices/review.m430 全緑。deferred choice UI・stabilizeBeforePriority 本体統合は UI スライスへ。"
+      "note": "**Wave 1-2 ship(2026-07-22・冷監査 Gibbs 通過)**: pendingRuleChoices 一般化+stabilizeBeforePriority 統合完了。冷監査 MEDIUM(boundary stale: 完了済みを未完了と記載)を修正。deferred choice UI のみ残。244 tests green。"
     },
     {
       "id": "cr-903-10a-commander-damage",
