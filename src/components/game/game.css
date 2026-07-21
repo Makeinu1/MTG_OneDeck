@@ -1959,6 +1959,8 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 @media (max-width: 899px) {
   .game-card__menu-hint { display: flex; align-items: center; justify-content: center; }
   .game-card--board { min-width: 48px; }
+  .board-shelf[data-role='creature'] { --board-card-w: 72px !important; }
+  .support-row__others .board-shelf { --board-card-w: 60px !important; }
   .support-row { --support-commander-w: 52px; }
 
   /* Mobile keeps readable card widths and scrolls each battlefield lane. */
@@ -2100,6 +2102,8 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 /* 低い横画面は常設HUD全体を横へ逃がさず、反復可能な色別mana stepperだけをスクロールする。 */
 @media (max-width: 899px) and (orientation: landscape) {
   .game-card--board { min-width: 64px; }
+  .board-shelf[data-role='creature'] { --board-card-w: 96px !important; }
+  .support-row__others .board-shelf { --board-card-w: 80px !important; }
   .status-band { overflow-x: hidden; }
   .status-band__phases { width: 112px; flex-basis: 112px; }
   .status-band__phase-current { inline-size: 112px; flex-basis: 112px; }
@@ -2173,7 +2177,7 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .hand-ribbon__zone--library small { display: none; }
   .hand-ribbon__draw-one { right: 0; bottom: 0; width: var(--hand-zone-w); height: var(--hand-zone-h); border-radius: var(--radius-sm); }
   .hand-ribbon__draw-glyph { font-size: 18px; }
-  .game-card--hand { width: clamp(88px, 23vw, 104px); }
+  .game-card--hand { width: clamp(52px, 10vh, 76px); }
   .hand-ribbon__cards {
     height: 100%; align-items: center;
     padding: var(--space-2) 18vw var(--space-2) 6vw;
