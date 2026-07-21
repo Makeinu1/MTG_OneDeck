@@ -245,6 +245,7 @@ export function GameCard({
       className={cls}
       data-layout-card-id={cardId}
       data-decision-role={decisionRole ?? undefined}
+      data-preview-pinned={previewPinned || undefined}
       onMouseEnter={(event) => schedulePreview({ x: event.clientX, y: event.clientY })}
       onMouseLeave={closeTransientPreview}
       onClick={(event) => {
@@ -308,6 +309,23 @@ export function GameCard({
       />
       {commander && showCommanderBadge && (
         <span className="game-card__commander-marker" aria-label="統率者" title="統率者">統</span>
+      )}
+      {previewPinned && (
+        <button
+          type="button"
+          className="game-card__menu-hint"
+          data-testid={`menu-hint-${cardId}`}
+          aria-label="カード操作メニューを開く"
+          title="タップでメニュー"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            controller.openCardMenu(cardId, event);
+          }}
+        >
+          ⋮
+        </button>
       )}
       {quickAction.kind !== 'manual-tap' && (
         <button
