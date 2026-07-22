@@ -34,6 +34,59 @@ export interface LandBundle {
   isBundle: boolean;
 }
 
+export interface MobileLandLayout {
+  cardWidth: number;
+  bundleWidth: number;
+  visibleCount: number;
+  visibleSpan: number;
+}
+
+const MOBILE_LAND_GAP = 4;
+const MOBILE_LAND_BUNDLE_OVERHEAD = 6;
+const MOBILE_LAND_SIDE_PADDING = 4;
+const MOBILE_LAND_VISIBLE_UNITS = 3;
+const CARD_ASPECT_RATIO = 680 / 488;
+
+/** Geometry for the portrait land rail. The fourth unit begins the scrollable overflow. */
+export function computeMobileLandLayout({
+  containerWidth,
+  containerHeight,
+  count,
+}: {
+  containerWidth: number;
+  containerHeight: number;
+  count: number;
+}): MobileLandLayout {
+  const visibleCount = Math.min(Math.max(0, count), MOBILE_LAND_VISIBLE_UNITS);
+  if (visibleCount === 0) {
+    const cardWidth = Math.max(1, Math.floor(Math.min(
+      96,
+      Math.max(0, containerHeight - MOBILE_LAND_SIDE_PADDING * 2) / CARD_ASPECT_RATIO,
+    )));
+    return {
+      cardWidth,
+      bundleWidth: cardWidth + MOBILE_LAND_BUNDLE_OVERHEAD,
+      visibleCount: 0,
+      visibleSpan: 0,
+    };
+  }
+  const horizontalLimit = (
+    Math.max(0, containerWidth - MOBILE_LAND_SIDE_PADDING * 2)
+    - MOBILE_LAND_GAP * Math.max(0, visibleCount - 1)
+  ) / visibleCount - MOBILE_LAND_BUNDLE_OVERHEAD;
+  const heightLimit = Math.max(0, containerHeight - MOBILE_LAND_SIDE_PADDING * 2) / CARD_ASPECT_RATIO;
+  const cardWidth = Math.max(1, Math.floor(Math.min(96, horizontalLimit, heightLimit)));
+  const bundleWidth = cardWidth + MOBILE_LAND_BUNDLE_OVERHEAD;
+  return {
+    cardWidth,
+    bundleWidth,
+    visibleCount,
+    visibleSpan: MOBILE_LAND_SIDE_PADDING * 2
+      + bundleWidth * visibleCount
+      + MOBILE_LAND_GAP * Math.max(0, visibleCount - 1),
+  };
+}
+
 /**
  * 土地カード列を LandRow の束へ畳む。同名基本地形のみ束ね、特殊地形は個別。
  * 束の出現順は「その名前が最初に現れた位置」を保つ(盤面の視覚的安定性)。

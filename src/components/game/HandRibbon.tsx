@@ -29,7 +29,8 @@ import {
   type DrawFlightDestinationKind,
 } from './drawAnimationModel';
 import type { GameController } from './gameController';
-import { handFanCardLayout } from './handFanLayout';
+import { computeMobileHandLayout, handFanCardLayout } from './handFanLayout';
+import { useElementSize } from './adaptiveLaneLayout';
 import type { GameEvent } from '../../engine/types';
 
 const DRAW_FLIGHT_MS = 650;
@@ -73,6 +74,7 @@ export function HandRibbon({
   const { state, store } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const handCardsRef = useRef<HTMLDivElement | null>(null);
+  const { setNode: setMeasuredHandNode, width: handCardsWidth } = useElementSize<HTMLDivElement>();
   const largeHandPileRef = useRef<HTMLDivElement | null>(null);
   const libraryTileRef = useRef<HTMLButtonElement | null>(null);
   const previousEventLogRef = useRef<readonly GameEvent[] | null>(null);
@@ -130,7 +132,8 @@ export function HandRibbon({
   const setHandCardsNode = useCallback((node: HTMLDivElement | null) => {
     handCardsRef.current = node;
     setHandDropRef(node);
-  }, [setHandDropRef]);
+    setMeasuredHandNode(node);
+  }, [setHandDropRef, setMeasuredHandNode]);
 
   useLayoutEffect(() => {
     if (workspaceOpen) closeButtonRef.current?.focus();
@@ -239,6 +242,17 @@ export function HandRibbon({
   }, [controller.motionArmed, controller.transitionCue, flightDestinationKind, state]);
 
   if (!state) return null;
+
+  const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
+  const viewportHeight = typeof window === 'undefined' ? 900 : window.innerHeight;
+  const mobilePortrait = viewportWidth < 900 && viewportHeight >= viewportWidth;
+  const mobileHandLayout = mobilePortrait && handCardsWidth > 0
+    ? computeMobileHandLayout({
+        containerWidth: handCardsWidth,
+        viewportHeight,
+        count: state.zones.hand.length,
+      })
+    : null;
 
   function handleWorkspaceKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
     if (event.key === 'Escape') {
@@ -399,6 +413,10 @@ export function HandRibbon({
           data-drop-over={handDropOver || undefined}
           data-scroll-left={handScrollEdges.left || undefined}
           data-scroll-right={handScrollEdges.right || undefined}
+          style={mobileHandLayout ? {
+            '--hand-mobile-card-w': `${mobileHandLayout.cardWidth}px`,
+            '--hand-mobile-margin': `${mobileHandLayout.marginLeft}px`,
+          } as CSSProperties : undefined}
           onScroll={updateHandScrollEdges}
         >
           {state.zones.hand.map((cardId, index) => {

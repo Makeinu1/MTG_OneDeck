@@ -4,7 +4,11 @@ import { BattlefieldShelf } from './Board';
 import { CommanderAltar } from './CommanderAltar';
 import { LandRow } from './LandRow';
 import { landVisualUnitCount } from './landRowModel';
-import { computeAdaptiveLaneLayout, useElementSize } from './adaptiveLaneLayout';
+import {
+  computeResponsiveLaneLayout,
+  responsiveLaneMode,
+  useElementSize,
+} from './adaptiveLaneLayout';
 import { projectBattlefield } from './battlefieldProjection';
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
@@ -41,13 +45,26 @@ export function SupportRow({
   const supportUnits = projection.support.length;
   const totalUnits = landUnits + supportUnits;
   const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
+  const viewportHeight = typeof window === 'undefined' ? 900 : window.innerHeight;
+  const mode = responsiveLaneMode(viewportWidth, viewportHeight);
   const commanderWidth = viewportWidth < 900 ? 52 : viewportWidth >= 1400 ? 260 : 224;
-  const layout = computeAdaptiveLaneLayout({
-    width: Math.max(112, rowWidth - commanderWidth - 18),
+  const availableWidth = Math.max(
+    1,
+    rowWidth - commanderWidth - (mode === 'mobile-portrait' ? 0 : 18),
+  );
+  const supportLaneWidth = mode !== 'mobile-portrait' || landUnits === 0
+    ? availableWidth
+    : availableWidth * supportUnits / Math.max(1, totalUnits);
+  const layout = computeResponsiveLaneLayout({
+    mode,
+    role: 'support',
+    width: mode === 'desktop'
+      ? Math.max(112, availableWidth)
+      : mode === 'mobile-landscape'
+        ? availableWidth
+        : Math.max(1, supportLaneWidth - 12),
     height: rowHeight > 0 ? Math.max(1, rowHeight - 16) : 156,
-    count: totalUnits,
-    preferredWidth: 112,
-    wrapWidth: 72,
+    count: mode === 'mobile-portrait' ? supportUnits : totalUnits,
   });
   const landShare = landUnits === 0 ? 0 : Math.max(1, landUnits);
   const supportShare = supportUnits === 0 ? 0 : Math.max(1, supportUnits);

@@ -310,23 +310,6 @@ export function GameCard({
       {commander && showCommanderBadge && (
         <span className="game-card__commander-marker" aria-label="統率者" title="統率者">統</span>
       )}
-      {previewPinned && (
-        <button
-          type="button"
-          className="game-card__menu-hint"
-          data-testid={`menu-hint-${cardId}`}
-          aria-label="カード操作メニューを開く"
-          title="タップでメニュー"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            controller.openCardMenu(cardId, event);
-          }}
-        >
-          ⋮
-        </button>
-      )}
       {quickAction.kind !== 'manual-tap' && (
         <button
           type="button"
@@ -392,6 +375,12 @@ export function GameCard({
           instance={instance}
           def={def}
           anchor={previewAnchor}
+          onOpenMenu={() => {
+            const rect = rootRef.current?.getBoundingClientRect();
+            setPreviewPinned(false);
+            closePreview();
+            if (rect) controller.openCardMenuAt?.(cardId, rect.right, rect.top + rect.height / 2);
+          }}
         />
       )}
     </div>

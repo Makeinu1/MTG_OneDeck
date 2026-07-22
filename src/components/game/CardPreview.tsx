@@ -10,10 +10,12 @@ export function CardPreview({
   instance,
   def,
   anchor,
+  onOpenMenu,
 }: {
   instance: CardInstance;
   def: CardDef | undefined;
   anchor: CardPreviewAnchor;
+  onOpenMenu: () => void;
 }) {
   const [localizedDef, setLocalizedDef] = useState<CardDef | undefined>();
   const [failedOracleId, setFailedOracleId] = useState<string | undefined>();
@@ -89,7 +91,19 @@ export function CardPreview({
       </div>
       <div className="game-card-preview__details">
         <strong>{name}</strong>
-        <span className="game-card-preview__touch-hint">内容を確認中</span>
+        <span className="game-card-preview__touch-hint">もう一度タップでも開けます</span>
+        <button
+          type="button"
+          className="game-card-preview__menu-action"
+          data-testid="card-preview-menu-action"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onOpenMenu();
+          }}
+        >
+          カード操作を開く
+        </button>
         {face?.manaCost && <span className="game-card-preview__mana">{face.manaCost}</span>}
         {typeLine && <span>{typeLine}</span>}
         {localizationPending && (

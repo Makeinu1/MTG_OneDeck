@@ -842,17 +842,6 @@ body:has(.commander-cutin) .celebration-layer { opacity: 0; transition: opacity 
 }
 .game-card__quick-picker button:last-child { text-align: center; color: var(--text-muted); }
 .game-card--board { width: var(--board-card-w, 112px); }
-.game-card__menu-hint {
-  display: none; position: absolute; bottom: 2px; right: 2px; z-index: 12;
-  width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
-  background: color-mix(in srgb, var(--surface-0) 80%, transparent);
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  color: var(--text-h); font-size: 14px; line-height: 22px; text-align: center;
-  cursor: pointer; opacity: 0; transition: opacity 200ms ease-out;
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--scrim) 60%, transparent);
-  pointer-events: auto; touch-action: manipulation;
-}
-.game-card[data-preview-pinned='true'] .game-card__menu-hint { opacity: 1; }
 .board-shelf .game-card--board {
   /* 棚の高さがカード幅より先に限界へ達する版面では、全体像を保つ最大幅へ縮める。 */
   max-width: calc(71.7647cqh - 2px);
@@ -1280,10 +1269,22 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 .game-drag-overlay__visual > .card-view:hover > .card-view__face {
   transform: var(--drag-face-transform, none);
 }
-.game-card-preview__details { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.game-card-preview__details {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2);
+  overflow-y: auto; overscroll-behavior-y: contain;
+}
 .game-card-preview__details strong { color: var(--text-h); font-size: var(--font-size-md); }
 .game-card-preview__details span { color: var(--text-dim); font-size: var(--font-size-xs); }
 .game-card-preview__touch-hint { display: none; color: var(--gold-bright) !important; font-weight: 700; }
+.game-card-preview__menu-action {
+  display: none; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+  min-height: var(--touch-target); padding: var(--space-2) var(--space-3);
+  color: var(--action-primary-text); background: var(--action-primary);
+  border: 1px solid var(--gold-bright); border-radius: var(--radius-sm);
+  font: inherit; font-weight: 800; cursor: pointer; pointer-events: auto;
+  touch-action: manipulation;
+}
 .game-card-preview__details p { margin: 0; white-space: pre-line; font-size: var(--font-size-sm); line-height: 1.45; }
 .game-card-preview__mana { font-family: var(--mono); color: var(--gold-bright) !important; }
 .game-card-preview__localization { color: var(--text-dim); }
@@ -1841,14 +1842,11 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .board { flex-direction: row; padding: var(--space-1); gap: var(--space-1); }
   .board__divider { width: 1px; height: auto; flex: 0 0 1px; }
   .board-shelf { min-width: 0; padding: 3px 0; }
-  .board-shelf[data-role='creature'] { --board-card-w: 64px !important; }
-  .support-row__others .board-shelf { --board-card-w: 52px !important; }
-  .board-shelf .game-card--board { max-width: none; min-width: 48px; }
+  .board-shelf .game-card--board { max-width: none; }
   .board-shelf__lane:empty { display: none; }
   .board-shelf-wrap:has(.board-shelf__lane:empty) { display: none; }
   .board:has(.board-shelf__lane:empty) .board__divider { display: none; }
 
-  .land-row { --land-card-w: 52px !important; --land-bundle-w: 80px !important; }
   .land-bundle__count { right: 0; bottom: 0; }
   .land-bundle__tapped { left: 0; top: 0; }
 
@@ -1893,6 +1891,15 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .hand-ribbon__open-workspace { min-width: 168px; min-height: 44px; padding: var(--space-1) var(--space-3); }
 }
 
+/* The mobile solver owns short layouts below 900px. Preserve the pre-existing
+   compact desktop dimensions for unusually short desktop windows. */
+@media (min-width: 900px) and (max-height: 520px) {
+  .board-shelf[data-role='creature'] { --board-card-w: 64px !important; }
+  .support-row__others .board-shelf { --board-card-w: 52px !important; }
+  .board-shelf .game-card--board { max-width: none; min-width: 48px; }
+  .land-row { --land-card-w: 52px !important; --land-bundle-w: 80px !important; }
+}
+
 @media (max-width: 1100px) {
   /* 文字列は現在地に集約し、7段階は同じ面積内のマイクロレールとして常設する。 */
   .status-band__phases {
@@ -1921,7 +1928,6 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
     inset: 0;
   }
   .game-card--hand { width: clamp(96px, 12vw, 132px); }
-  .game-card__menu-hint { display: none !important; }
   .support-row { --support-commander-w: 224px; }
   .game-screen__board > .board { padding-inline: clamp(38px, 5vw, 88px); }
   /* margin(padding不可): SupportRow の useElementSize は自要素の border-box を測るため、
@@ -1953,26 +1959,13 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .game-screen__tabletop-surface {
     clip-path: polygon(1.5% 0, 98.5% 0, 100% 100%, 0 100%);
   }
+  .support-row__others .board-shelf { padding-inline: 6px; }
 }
 
 /* ---------- モバイル共通: 統率者を一時表示へ畳み、手札は横ジェスチャーを優先 ---------- */
 @media (max-width: 899px) {
-  .game-card__menu-hint { display: flex; align-items: center; justify-content: center; }
-  .game-card--board { min-width: 48px; }
-  .board-shelf[data-role='creature'] { --board-card-w: 72px !important; }
-  .support-row__others .board-shelf { --board-card-w: 60px !important; }
   .support-row { --support-commander-w: 52px; }
 
-  /* Mobile keeps readable card widths and scrolls each battlefield lane. */
-  /* Mobile fits all cards in a wrapping grid — no horizontal scroll. */
-  .board-shelf {
-    overflow: hidden;
-  }
-  .board-shelf__lane {
-    display: flex; align-items: center; flex-wrap: wrap;
-    justify-content: center; gap: var(--space-1); padding-inline: var(--space-1);
-  }
-  .board-shelf__overview { display: none; }
   .land-row-wrap::after {
     content: ''; position: absolute; inset: 0 0 0 auto; z-index: 25;
     width: 18px; pointer-events: none;
@@ -1984,7 +1977,6 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   }
 
   .land-row {
-    --land-card-w: 96px !important; --land-bundle-w: 124px !important;
     overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
     -webkit-overflow-scrolling: touch; touch-action: pan-x;
   }
@@ -2091,19 +2083,17 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   }
   .hand-ribbon__cards::-webkit-scrollbar { display: none; }
   .hand-ribbon[data-layout='fan'] .hand-ribbon__slot {
-    margin-left: var(--fan-mobile-margin);
+    margin-left: var(--hand-mobile-margin, var(--fan-mobile-margin));
     transform: translateY(var(--fan-mobile-y)) rotate(var(--fan-mobile-rotation));
   }
   .hand-ribbon[data-layout='fan'] .hand-ribbon__slot:first-child { margin-left: 0; }
   .hand-ribbon__cards .card-view { touch-action: pan-x; }
   .game-card-preview__touch-hint { display: inline; }
+  .game-card-preview__menu-action { display: flex; }
 }
 
 /* 低い横画面は常設HUD全体を横へ逃がさず、反復可能な色別mana stepperだけをスクロールする。 */
 @media (max-width: 899px) and (orientation: landscape) {
-  .game-card--board { min-width: 64px; }
-  .board-shelf[data-role='creature'] { --board-card-w: 96px !important; }
-  .support-row__others .board-shelf { --board-card-w: 80px !important; }
   .status-band { overflow-x: hidden; }
   .status-band__phases { width: 112px; flex-basis: 112px; }
   .status-band__phase-current { inline-size: 112px; flex-basis: 112px; }
@@ -2116,7 +2106,7 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
 
 /* ---------- 縦持ち: 2段HUD + 細いゾーンドック + 有界な土地/手札 ---------- */
 @media (max-width: 899px) and (orientation: portrait) {
-  .game-card--hand { width: clamp(52px, 10vh, 76px); }
+  .hand-ribbon[data-layout='fan'] .game-card--hand { width: var(--hand-mobile-card-w, clamp(52px, 10vh, 76px)); }
   .game-screen {
     --band-h: calc(76px + env(safe-area-inset-top, 0px));
     --land-h: clamp(144px, 20vh, 168px);
@@ -2180,8 +2170,10 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   .game-card--hand { width: clamp(52px, 10vh, 76px); }
   .hand-ribbon__cards {
     height: 100%; align-items: center;
-    padding: var(--space-2) 18vw var(--space-2) 6vw;
+    box-sizing: border-box; padding: var(--space-2) 16px;
   }
+  .land-row { padding: 4px; }
+  .land-row__lands { gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -19,6 +19,22 @@ export interface AdaptiveLaneLayout {
   denseOverview: boolean;
 }
 
+export type ResponsiveLaneMode = 'desktop' | 'mobile-portrait' | 'mobile-landscape';
+export type ResponsiveLaneRole = 'creature' | 'support';
+
+export interface ResponsiveLaneLayoutInput {
+  mode: ResponsiveLaneMode;
+  role: ResponsiveLaneRole;
+  width: number;
+  height: number;
+  count: number;
+}
+
+export function responsiveLaneMode(width: number, height: number): ResponsiveLaneMode {
+  if (width >= 900) return 'desktop';
+  return width > height ? 'mobile-landscape' : 'mobile-portrait';
+}
+
 const DEFAULT_ASPECT_RATIO = 680 / 488;
 
 function widthForRows(input: AdaptiveLaneLayoutInput, rows: number): number {
@@ -57,6 +73,53 @@ export function computeAdaptiveLaneLayout(input: AdaptiveLaneLayoutInput): Adapt
     rows: bestRows,
     denseOverview: cardWidth < 44,
   };
+}
+
+/** Viewport profile wrapper used by every battlefield shelf. */
+export function computeResponsiveLaneLayout(input: ResponsiveLaneLayoutInput): AdaptiveLaneLayout {
+  const desktopProfile = input.role === 'creature'
+    ? { preferredWidth: 168, wrapWidth: 96 }
+    : { preferredWidth: 112, wrapWidth: 72 };
+
+  if (input.mode === 'desktop') {
+    return computeAdaptiveLaneLayout({
+      ...input,
+      ...desktopProfile,
+      maxRows: 3,
+    });
+  }
+
+  if (input.mode === 'mobile-landscape') {
+    return computeAdaptiveLaneLayout({
+      ...input,
+      ...desktopProfile,
+      maxRows: 1,
+    });
+  }
+
+  const portraitProfile = input.role === 'creature'
+    ? { preferredWidth: 72, wrapWidth: 48, targetCount: 5 }
+    : { preferredWidth: 60, wrapWidth: 44, targetCount: 3 };
+  if (input.count <= portraitProfile.targetCount) {
+    const cardWidth = input.count <= 0
+      ? portraitProfile.preferredWidth
+      : Math.floor(widthForRows({
+          ...input,
+          ...portraitProfile,
+          maxRows: 1,
+        }, 1));
+    return {
+      cardWidth,
+      columns: Math.max(0, input.count),
+      rows: 1,
+      denseOverview: cardWidth < 44,
+    };
+  }
+  return computeAdaptiveLaneLayout({
+    ...input,
+    ...portraitProfile,
+    maxRows: 2,
+  });
 }
 
 export function useElementSize<T extends HTMLElement>(): {

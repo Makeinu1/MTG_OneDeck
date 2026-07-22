@@ -9,9 +9,15 @@
 import { useDroppable } from '@dnd-kit/core';
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { GameCard } from './GameCard';
-import { bundleLands, landRowCards, type LandBundle } from './landRowModel';
+import {
+  bundleLands,
+  computeMobileLandLayout,
+  landRowCards,
+  type LandBundle,
+} from './landRowModel';
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
+import { useElementSize } from './adaptiveLaneLayout';
 
 function Bundle({ controller, bundle }: { controller: GameController; bundle: LandBundle }) {
   const multi = bundle.cardIds.length > 1;
@@ -67,6 +73,7 @@ export interface LandRowProps {
 export function LandRow({ controller, activeDragId = null, cardIds }: LandRowProps) {
   const { state } = controller;
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { setNode: setMeasuredRowNode, width: rowWidth, height: rowHeight } = useElementSize<HTMLDivElement>();
   const [scrollState, setScrollState] = useState({ left: false, right: false });
   const activeCard = state && activeDragId ? state.cards[activeDragId] : undefined;
   let dropTarget: DropTarget | null = null;
@@ -91,6 +98,10 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
       right: row.scrollLeft + row.clientWidth < row.scrollWidth - 2,
     });
   }, []);
+  const setRowNode = useCallback((node: HTMLDivElement | null) => {
+    scrollRef.current = node;
+    setMeasuredRowNode(node);
+  }, [setMeasuredRowNode]);
 
   useLayoutEffect(() => {
     const row = scrollRef.current;
@@ -108,6 +119,12 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
     .filter((id) => state.cards[id]?.controllerId === state.localPlayerId));
   const bundles = bundleLands(landCards);
   const density = bundles.length <= 6 ? 'spacious' : bundles.length <= 10 ? 'balanced' : 'dense';
+  const mobilePortrait = typeof window !== 'undefined'
+    && window.innerWidth < 900
+    && window.innerHeight >= window.innerWidth;
+  const mobileLayout = mobilePortrait && rowWidth > 0 && rowHeight > 0
+    ? computeMobileLandLayout({ containerWidth: rowWidth, containerHeight: rowHeight, count: bundles.length })
+    : null;
 
   function scroll(direction: -1 | 1): void {
     scrollRef.current?.scrollBy({
@@ -125,10 +142,14 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
       data-drop-over={isOver || undefined}
     >
       <div
-        ref={scrollRef}
+        ref={setRowNode}
         className="land-row"
         data-density={density}
         data-testid="land-row"
+        style={mobileLayout ? {
+          '--land-card-w': `${mobileLayout.cardWidth}px`,
+          '--land-bundle-w': `${mobileLayout.bundleWidth}px`,
+        } as CSSProperties : undefined}
         onScroll={updateScrollState}
       >
         <div className="land-row__lands">

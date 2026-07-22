@@ -32,6 +32,7 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'partner-away',
   'board-dense',
   'board-sparse',
+  'mobile-density',
   'board-overflow',
   'lands-overflow',
   'stack-deep',
@@ -338,7 +339,9 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
             ? 100
             : scenario === 'board-dense'
               ? 15
-            : 8;
+              : scenario === 'mobile-density'
+                ? 5
+                : 8;
   state = moveCards(state, handIds.slice(0, handCount), 'hand');
 
   if (scenario === 'land-drop-empty') {
@@ -418,7 +421,11 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
   const limitLandIds = idsWithPrefix(state, 'fixture-limit-land-');
   const limitSpecialIds = idsWithPrefix(state, 'fixture-limit-special-');
   const allLandIds = [...basicIds, ...specialIds, ...denseLandIds, ...limitLandIds, ...limitSpecialIds];
-  const landIds = scenario === 'board-sparse' ? allLandIds.slice(0, 4) : allLandIds;
+  const landIds = scenario === 'board-sparse'
+    ? allLandIds.slice(0, 4)
+    : scenario === 'mobile-density'
+      ? [...basicIds, ...specialIds.slice(0, 2)]
+      : allLandIds;
   state = moveCards(state, landIds, 'battlefield');
   if (landIds.includes(basicIds[1])) state = setTapped(state, basicIds[1]);
   if (landIds.includes(specialIds[1])) state = setTapped(state, specialIds[1]);
@@ -437,12 +444,16 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
     ? [...baseCreatureIds, ...idsWithPrefix(state, 'fixture-dense-creature-')]
     : scenario === 'board-sparse'
       ? baseCreatureIds.slice(0, 3)
-      : baseCreatureIds;
+      : scenario === 'mobile-density'
+        ? baseCreatureIds.slice(0, 5)
+        : baseCreatureIds;
   const permanentIds = scenario === 'board-dense'
     ? [...basePermanentIds, ...idsWithPrefix(state, 'fixture-dense-permanent-')]
     : scenario === 'board-sparse'
       ? basePermanentIds.slice(0, 2)
-      : basePermanentIds;
+      : scenario === 'mobile-density'
+        ? basePermanentIds.slice(0, 3)
+        : basePermanentIds;
   state = moveCards(state, creatureIds, 'battlefield');
   state = moveCards(state, permanentIds, 'battlefield');
   if (scenario === 'trigger-order') {
@@ -520,6 +531,7 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
     || scenario === 'commander-battlefield'
     || scenario === 'board-dense'
     || scenario === 'board-sparse'
+    || scenario === 'mobile-density'
     || scenario === 'theme-light'
     || scenario === 'theme-dark'
   ) {

@@ -9,7 +9,11 @@ import { useDroppable } from '@dnd-kit/core';
 import { useState } from 'react';
 import { GameCard } from './GameCard';
 import { Modal } from '../Modal';
-import { computeAdaptiveLaneLayout, useElementSize } from './adaptiveLaneLayout';
+import {
+  computeResponsiveLaneLayout,
+  responsiveLaneMode,
+  useElementSize,
+} from './adaptiveLaneLayout';
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
 import {
@@ -116,17 +120,22 @@ export function BattlefieldShelf({
   const [overviewOpen, setOverviewOpen] = useState(false);
   const visualBundles = bundles ?? (controller.state ? bundleVisibleTokens(controller.state, cardIds) : []);
   const count = visualBundles.length;
-  const preferredWidth = role === 'creature' ? 168 : 112;
-  const layout = computeAdaptiveLaneLayout({
-    width: shelfWidth > 0 ? Math.max(1, shelfWidth - 16) : preferredWidth * Math.max(1, count),
-    height: shelfHeight > 0 ? Math.max(1, shelfHeight - 12) : preferredWidth * (680 / 488),
+  const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
+  const viewportHeight = typeof window === 'undefined' ? 900 : window.innerHeight;
+  const mode = responsiveLaneMode(viewportWidth, viewportHeight);
+  const fallbackWidth = role === 'creature'
+    ? mode === 'mobile-portrait' ? 72 : 168
+    : mode === 'mobile-portrait' ? 60 : 112;
+  const layout = computeResponsiveLaneLayout({
+    mode,
+    role,
+    width: shelfWidth > 0 ? Math.max(1, shelfWidth - 16) : fallbackWidth * Math.max(1, count),
+    height: shelfHeight > 0 ? Math.max(1, shelfHeight - 12) : fallbackWidth * (680 / 488),
     count,
-    preferredWidth,
-    wrapWidth: role === 'creature' ? 96 : 72,
   });
   const width = sharedCardWidth ?? layout.cardWidth;
   const rows = sharedRows ?? layout.rows;
-  const denseOverview = width < 44;
+  const denseOverview = sharedCardWidth === undefined ? layout.denseOverview : width < 44;
   return (
     <div className="board-shelf-wrap">
       {count === 0 && (

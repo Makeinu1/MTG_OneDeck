@@ -1,6 +1,7 @@
 /** Deterministic state pins for the D4a visual-only harness. */
 import { describe, expect, it } from 'vitest';
 import { buildVisualFixture, VISUAL_FIXTURE_SCENARIOS } from './fixtureBuilder';
+import { bundleLands, landRowCards } from '../../components/game/landRowModel';
 
 function assertZoneConsistency(scenario: (typeof VISUAL_FIXTURE_SCENARIOS)[number]): void {
   const state = buildVisualFixture(scenario).snapshot.state;
@@ -102,6 +103,18 @@ describe('D4a visual fixture builder', () => {
     const commanderId = state.commanders[0].cardId;
     expect(state.cards[commanderId].zone).toBe('battlefield');
     expect(state.zones.battlefield).toContain(commanderId);
+  });
+
+  it('pins the mobile density acceptance scene', () => {
+    const state = buildVisualFixture('mobile-density').snapshot.state;
+    const battlefieldIds = state.zones.battlefield;
+    const types = battlefieldIds.map((cardId) => state.defs[state.cards[cardId].defId].typeLine);
+    const landIds = battlefieldIds.filter((_, index) => types[index].includes('Land'));
+
+    expect(state.zones.hand).toHaveLength(5);
+    expect(types.filter((typeLine) => typeLine.includes('Creature'))).toHaveLength(5);
+    expect(types.filter((typeLine) => !typeLine.includes('Land') && !typeLine.includes('Creature'))).toHaveLength(3);
+    expect(bundleLands(landRowCards(state, landIds))).toHaveLength(3);
   });
 
   it('builds isolated layout-limit fixtures without weakening zone consistency', () => {

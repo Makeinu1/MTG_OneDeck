@@ -5,9 +5,45 @@ export interface HandFanCardLayout {
   zIndex: number;
 }
 
+export interface MobileHandLayout {
+  cardWidth: number;
+  marginLeft: number;
+  visibleCount: number;
+  visibleSpan: number;
+}
+
 const DESKTOP_CARD_WIDTH = 132;
 const TARGET_FAN_WIDTH = 800;
 const MAX_OVERLAP = DESKTOP_CARD_WIDTH * 0.68;
+const MOBILE_HAND_SIDE_RESERVE = 16;
+const MOBILE_HAND_VISIBLE_CARDS = 5;
+const MOBILE_HAND_MIN_EXPOSURE = 44;
+
+/** Portrait-only hand rail geometry. Desktop and landscape continue to use the fan model. */
+export function computeMobileHandLayout({
+  containerWidth,
+  viewportHeight,
+  count,
+}: {
+  containerWidth: number;
+  viewportHeight: number;
+  count: number;
+}): MobileHandLayout {
+  const cardWidth = Math.min(76, Math.max(52, viewportHeight * 0.1));
+  const visibleCount = Math.min(Math.max(0, count), MOBILE_HAND_VISIBLE_CARDS);
+  if (visibleCount === 0) return { cardWidth, marginLeft: 0, visibleCount: 0, visibleSpan: 0 };
+  if (visibleCount === 1) return { cardWidth, marginLeft: 0, visibleCount: 1, visibleSpan: cardWidth };
+
+  const availableWidth = Math.max(0, containerWidth - MOBILE_HAND_SIDE_RESERVE * 2);
+  const fitMargin = (availableWidth - cardWidth) / (visibleCount - 1) - cardWidth;
+  const marginLeft = Math.min(0, Math.max(MOBILE_HAND_MIN_EXPOSURE - cardWidth, fitMargin));
+  return {
+    cardWidth,
+    marginLeft,
+    visibleCount,
+    visibleSpan: cardWidth + (visibleCount - 1) * (cardWidth + marginLeft),
+  };
+}
 
 export function handFanCardLayout(index: number, count: number): HandFanCardLayout {
   if (count <= 1) return { rotationDeg: 0, translateY: 0, marginLeft: 0, zIndex: 1 };
