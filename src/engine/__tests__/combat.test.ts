@@ -102,6 +102,46 @@ describe('combat commands', () => {
     expect(new Set(sbaEvents.map((event) => event.simultaneousGroupId)).size).toBe(1);
   });
 
+  it('prevents every real combat damage result while completing combat', () => {
+    const unblocked = combatCreature('combat-prevented-unblocked', '3', '3', 'Lifelink');
+    const blocked = combatCreature('combat-prevented-blocked', '2', '4', 'Lifelink');
+    const blocker = combatCreature('combat-prevented-blocker', '1', '4', 'Lifelink');
+    let state = battlefieldState([unblocked, blocked, blocker]);
+    const unblockedId = instanceId(state, unblocked.scryfallId);
+    const blockedId = instanceId(state, blocked.scryfallId);
+    const blockerId = instanceId(state, blocker.scryfallId);
+
+    state = apply(state, [
+      { type: 'enterCombat' },
+      {
+        type: 'declareAttackers',
+        attackers: [{ cardId: unblockedId }, { cardId: blockedId }],
+      },
+      {
+        type: 'declareBlockers',
+        blockers: [{ cardId: blockerId, attackerId: blockedId }],
+      },
+      { type: 'preventCombatDamageThisTurn' },
+    ]);
+
+    const beforeLife = state.life;
+    const beforeOpponentLife = { ...state.opponentLife };
+    const beforeCommanderDamage = { ...state.commanderDamage };
+    const beforeDamageEventCount = state.eventLog.filter((event) => event.type === 'damage').length;
+
+    state = applyCommand(state, { type: 'resolveCombatDamage' }).state;
+
+    expect(state.life).toBe(beforeLife);
+    expect(state.opponentLife).toEqual(beforeOpponentLife);
+    expect(state.commanderDamage).toEqual(beforeCommanderDamage);
+    expect(state.cards[blockedId].damageMarked).toBe(0);
+    expect(state.cards[blockerId].damageMarked).toBe(0);
+    expect(state.eventLog.filter((event) => event.type === 'damage')).toHaveLength(
+      beforeDamageEventCount,
+    );
+    expect(state.combat?.step).toBe('endOfCombat');
+  });
+
   it('clears combat when the phase leaves combat', () => {
     const attacker = combatCreature('combat-phase-attacker', '1', '1');
     let state = battlefieldState([attacker]);

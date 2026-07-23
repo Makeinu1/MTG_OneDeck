@@ -19,10 +19,10 @@
 3. 前ループから未 commit の台帳 delta があれば `git diff` で確認。競合書換なら判定者の版を正とし再オーナー化。
 
 **0b. 最終ゴールから逆算 → 台帳更新(每ループ・薄)**:
-台帳(正本) + `docs/judge-protocol.md` を読み、北極星(①CR完全性・②遊びの快感)と §2 優先度式(最上位=MyDeck 実プレイ需要)から逆算。plannedSequence 順序・boundary・nextGate・status が今も最終ゴールと整合するか自問し、ズレを台帳へ反映。更新は当該周の ship commit に同梱(なければ小 `docs:` commit)。
+台帳(正本) + `docs/judge-protocol.md` を読み、北極星(①CR完全性・②遊びの快感)と §2 優先度式(通常Commander scopeのCR章順+最小依存先行)から逆算。plannedSequence 順序・boundary・nextGate・status が今も最終ゴールと整合するか自問し、ズレを台帳へ反映。MyDeck需要は受け入れfixture/同CR順位tie-breakとして扱う。更新は当該周の ship commit に同梱(なければ小 `docs:` commit)。
 
 **0c. 次スライス選定**:
-台帳から次スライスを一意に選ぶ(`selectionRule` に従う)。優先 = `plannedSequence` を先に消費。枯渇時は補充手順(草稿→判定者照合・judge-protocol §2)。STOP→ユーザーは judge-protocol §2 の4類のみ。
+台帳から次スライスを一意に選ぶ(`selectionRule` に従う)。`domains` と `plannedSequence` の live entry を `domainId` で統合し、`domains.status` を正、`crOrder` と `dependsOn` を選定キーとする。`plannedSequence` の配列位置は履歴であり優先順位ではない。候補枯渇時は補充手順(草稿→判定者照合・judge-protocol §2)。選定の STOP① は judge-protocol §2 の3ケース(真の同点・scope変更・北極星/契約原則変更)だけ。CR曖昧・不可逆判断・実装2連敗を含むループ全体の停止条件は `AGENTS.md` の4類を参照する。
 
 ### 1. 契約起案(実装者草稿 → 判定者承認)
 

@@ -10,8 +10,8 @@ All three roles may use ChatGPT. Claude may advise but is never a release gate.
 
 ## Milestone sequence
 
-1. Resolve the next eligible ledger item and direct user friction. Repair false automation before adding coverage.
-2. Verify real-card demand and relevant Oracle text before designing a parser or state substrate.
+1. Resolve fake-green, broken automation, and unaudited implementation before adding coverage; otherwise select the earliest eligible in-scope CR section.
+2. Verify normal Commander reachability and relevant English Oracle text before designing a parser or state substrate. Use MyDeck cards as strong acceptance fixtures and same-CR tie-breaks, not as permission to skip earlier CR sections.
 3. Freeze public types, state transitions, failure behavior, CR references, and golden cases before implementation.
 4. Give the implementer a narrow brief containing only milestone-specific scope, boundaries, and acceptance cases.
 5. Iterate with targeted tests. Do not run or rewrite judge-owned review tests to manufacture green.
@@ -21,7 +21,7 @@ All three roles may use ChatGPT. Claude may advise but is never a release gate.
 
 ## Automation priority
 
-Use this order for new coverage: land actions, mana abilities, tap abilities, triggered abilities. Existing wrong or fake-complete automation outranks all new automation. Manual reachability outranks speculative full-card automation.
+Use CR chapter/section order for new normal-Commander coverage, with only the minimum missing substrate allowed to run ahead before returning to the blocked CR section. Existing wrong, fake-complete, or unaudited automation outranks all new coverage. Manual reachability outranks speculative full-card automation.
 
 ## Status vocabulary
 
@@ -29,4 +29,3 @@ Use this order for new coverage: land actions, mana abilities, tap abilities, tr
 - `implemented-not-audited`: implementation and ordinary checks exist, but no independent cold audit has passed.
 - `audited`: a cold auditor found no release-blocking issue on the frozen tree.
 - `shipped`: judge-owned audit, commit, CI, and deployment evidence are complete.
-

@@ -66,6 +66,15 @@ describe('classifyCardRules', () => {
     expect(tagIds(makeCard('Ornithopter', 'Flying'))).toContain('keyword.flying');
   });
 
+  it('uses the pinned CR reference for lifelink without broadening recognition', () => {
+    expect(tagById(makeCard('Lifelink Creature', 'Lifelink'), 'keyword.lifelink')).toMatchObject({
+      ruleRef: '702.15',
+    });
+    expect(tagIds(makeCard('Lifelink Grant', 'Target creature gains lifelink until end of turn.'))).not.toContain(
+      'keyword.lifelink',
+    );
+  });
+
   it('detects cycling with a cost as owned', () => {
     expect(tagIds(makeCard('Cycling Bear', 'Cycling {2}'))).toContain('keyword.cycling');
   });

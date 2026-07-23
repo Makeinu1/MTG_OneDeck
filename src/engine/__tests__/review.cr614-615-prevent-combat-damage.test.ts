@@ -60,6 +60,36 @@ describe('cr-614-615-616-replacement-prevention Slice A: combat damage preventio
     expect(state.life).toBe(before);
   });
 
+  it('shield blocks the real unblocked-attacker combat path, not only synthetic dealDamage', () => {
+    const attacker = makeDef({
+      scryfallId: 'r-cr615-real-combat-attacker',
+      name: 'r-cr615-real-combat-attacker',
+      typeLine: 'Creature — Bear',
+      faces: [
+        {
+          name: 'r-cr615-real-combat-attacker',
+          typeLine: 'Creature — Bear',
+          power: '3',
+          toughness: '3',
+        },
+      ],
+    });
+    let state = initGame([{ def: attacker, isCommander: false }], 1);
+    const attackerId = idOf(state, attacker.scryfallId);
+    state = move(state, attackerId, 'battlefield');
+    state = applyCommand(state, { type: 'enterCombat' }).state;
+    state = applyCommand(state, {
+      type: 'declareAttackers',
+      attackers: [{ cardId: attackerId }],
+    }).state;
+    state = applyCommand(state, { type: 'preventCombatDamageThisTurn' }).state;
+
+    const before = state.opponentLife['対戦相手A'];
+    state = applyCommand(state, { type: 'resolveCombatDamage' }).state;
+
+    expect(state.opponentLife['対戦相手A']).toBe(before);
+  });
+
   it('shield blocks combat damage dealt to a creature', () => {
     const source = cardDef('r-cr615-source2', 'Creature — Bear');
     const victim = cardDef('r-cr615-victim', 'Creature — Bear');

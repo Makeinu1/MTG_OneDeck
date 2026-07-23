@@ -77,7 +77,7 @@
 - **実装者は git 操作禁止**(add/commit/push/branch/stash すべて。コミットは監査合格後に判定者が行う)。
 - **実装者は `review.*` を名に含むテストを変更しない**(判定者専有。これが落ちたら実装側のコードを直す)。
 - **実装者は `CLAUDE.md`・`AGENTS.md`(本ファイル)・`eslint.config.js`・`CACHE_SCHEMA_VERSION` を変更しない**。判定者在席時は `docs/` の直接変更も禁止(草稿は `research/cr-grounding/*.draft` へ・根拠 CR 条番号併記)。
-  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+MyDeck 実プレイ摩擦の根拠必須・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)。
+  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+通常Commander/EDHのscope判定+依存関係必須・MyDeck実プレイは受け入れfixture/同CR順位のtie-breakとして記録・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)。
 - 台帳 `research/cr-grounding/cr-backbone-ledger.json` と `docs/judge-protocol.md` は判定者専有(実装者は読み参照のみ)。
 - 凍結・信頼・最終コミットの前に必ず**独立監査を1回**通す(上記の要石)。
 - ルールが一意に答える決定論的 CR 裁定は **CR を引いて終了**する(prompt 再走・多数決で希少トークンを浪費しない)。
@@ -106,7 +106,7 @@
 
 - **北極星①「CR を検査器にする」(決定論は予測せず照合する)**: ルールが一意に答える問い(ゾーン遷移・owner/controller・キーワード定義・SBA[CR704]・ターン構造[CR500]等)は総合ルール(`rule/Magic_The_Gathering_Comprehensive_Rules.txt`・**2026-06-19 版に固定**)を一次の決定論的権威とし、CR から抽出した**真理テーブル/不変条件で成果物を叩く**。LLM(物差し・ジャッジ)は解釈・認識・相関遮断にのみ使う。**権威順序 = CR > 人間 gold > LLM-oracle(解釈のみ)**。本体 = `docs/engine-design-method.md` §3。
 - **北極星②「理解と発見の快感を、静と動のリズムで祝祭にする」**: 届ける快感は「勝利」でなく**知的高揚**。常時は静か、デッキが動き出す瞬間だけ一段盛る。祝祭の優先順位=スタックの物語>統率者の登場>連鎖感>初手の儀式。本体 = `docs/design-vision.md` §2。
-- **北極星③「メタは遊びに従属する」**: 型・契約・台帳・運用はすべてメタであり、①実プレイの困りごと削減 ②state 設計の手戻り削減 ③コンパイラ着地先の明確化のどれかに答えられなければ**作らない・削る**。新しい抽象の昇格判定 = 実デッキ需要 × CR根拠 × 既存プリミティブへの分解可能性。**スライス優先度の最上位シグナル = MyDeck 実プレイ需要**(正本 = judge-protocol §2)。本体 = `docs/engine-design-method.md` §9。
+- **北極星③「メタは遊びに従属する」**: 型・契約・台帳・運用はすべてメタであり、①実プレイの困りごと削減 ②state 設計の手戻り削減 ③コンパイラ着地先の明確化のどれかに答えられなければ**作らない・削る**。新しい抽象の昇格判定 = 通常Commanderでの到達可能性 × CR根拠 × 既存プリミティブへの分解可能性。**スライス優先度 = 通常Commander/EDH scope 内で CR 章・節番号順、ただし不足substrateだけ先行**(2026-07-23ユーザー裁定・正本 = judge-protocol §2)。MyDeck実プレイ需要はgolden/replayの強いfixtureと同CR順位のtie-breakであり、章順を飛び越える主因にはしない。本体 = `docs/engine-design-method.md` §9。
 
 ## 検証プロトコル
 

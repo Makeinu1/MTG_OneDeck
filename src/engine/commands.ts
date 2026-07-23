@@ -1915,6 +1915,7 @@ function trampleLethalAssignment(
 
 function applyResolveCombatDamage(draft: Draft): void {
   const combat = requireCombat(draft);
+  const combatDamagePrevented = draft.state.combatDamagePreventedUntilEndOfTurn;
   const blockersById = new Map(combat.blockers.map((blocker) => [blocker.cardId, blocker]));
   const attackers = combat.attackers.slice().sort((left, right) => {
     const declared = left.declaredOrder - right.declaredOrder;
@@ -1928,9 +1929,11 @@ function applyResolveCombatDamage(draft: Draft): void {
       const attackerCard = liveCombatCreature(draft, attacker.cardId, attacker.objectId);
       if (attackerCard && attacker.target.type === 'player') {
         const power = Math.max(0, effectivePower(draft.state, attackerCard.id));
-        addCombatPlayerDamage(playerDamageTotals, attacker.target, power);
-        if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
-          gainLifeForController(draft, attacker.controllerId, power);
+        if (!combatDamagePrevented) {
+          addCombatPlayerDamage(playerDamageTotals, attacker.target, power);
+          if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
+            gainLifeForController(draft, attacker.controllerId, power);
+          }
         }
       }
       continue;
@@ -1972,26 +1975,28 @@ function applyResolveCombatDamage(draft: Draft): void {
       ));
     }
 
-    applyPositiveCombatDamage(
-      draft,
-      blockerCard.id,
-      attackerCard.id,
-      attacker.controllerId,
-      toBlocker,
-    );
-    if (overflow > 0) {
-      addCombatPlayerDamage(playerDamageTotals, attacker.target, overflow);
-      if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
-        gainLifeForController(draft, attacker.controllerId, overflow);
+    if (!combatDamagePrevented) {
+      applyPositiveCombatDamage(
+        draft,
+        blockerCard.id,
+        attackerCard.id,
+        attacker.controllerId,
+        toBlocker,
+      );
+      if (overflow > 0) {
+        addCombatPlayerDamage(playerDamageTotals, attacker.target, overflow);
+        if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
+          gainLifeForController(draft, attacker.controllerId, overflow);
+        }
       }
+      applyPositiveCombatDamage(
+        draft,
+        attackerCard.id,
+        blockerCard.id,
+        blocker.controllerId,
+        effectivePower(draft.state, blockerCard.id),
+      );
     }
-    applyPositiveCombatDamage(
-      draft,
-      attackerCard.id,
-      blockerCard.id,
-      blocker.controllerId,
-      effectivePower(draft.state, blockerCard.id),
-    );
   }
 
   applyCombatPlayerDamageTotals(draft, playerDamageTotals.values());

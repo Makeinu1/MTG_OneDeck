@@ -25,7 +25,7 @@ export const KEYWORD_DEFINITIONS: readonly KeywordDefinition[] = [
   { id: 'haste', name: 'haste', label: '速攻', ruleRef: '702.10' },
   { id: 'hexproof', name: 'hexproof', label: '呪禁', ruleRef: '702.11' },
   { id: 'indestructible', name: 'indestructible', label: '破壊不能', ruleRef: '702.12' },
-  { id: 'lifelink', name: 'lifelink', label: '絆魂', ruleRef: '702.13' },
+  { id: 'lifelink', name: 'lifelink', label: '絆魂', ruleRef: '702.15' },
   {
     id: 'landwalk',
     name: 'landwalk',

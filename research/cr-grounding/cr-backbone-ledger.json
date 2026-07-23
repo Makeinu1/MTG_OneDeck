@@ -3,8 +3,29 @@
   "crVersion": "2026-06-19",
   "status": "fable-promoted",
   "provenance": "Codex草稿(CR照合済) → Fable がレーン/根拠/plannedSequence を独立監査し promote(2026-07-01)。scope-partition.md / README ゲート表 / m0-freeze-overlay.json の重複役割を subsume。 2026-07-02: Fable(J1) が判定者ラダー化(CLAUDE.md)に伴い plannedSequence をS-phase 依存順で充填・judgePolicy/judge マークを付与(standing 裁定。後継判定者は lookup のみ)。",
-  "purpose": "全CR章の 背骨/後期背骨/葉/剪定 分類 + 5状態lifecycle + EDH価値。autoloopのnext判断をlookup化する単一正本。",
-  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。",
+  "purpose": "通常Commander/EDH scopeのCR章を 背骨/後期背骨/葉/剪定 に分類し、検査可能なGameStateと可逆なGameCommandへ章順に落とす。autoloopのnext判断をlookup化する単一正本。",
+  "goalPolicy": {
+    "scope": "normal-commander-edh",
+    "ordering": "cr-chapter-section-ascending-with-minimal-dependency-detours",
+    "precedence": [
+      "fake-green-or-broken-automation",
+      "unaudited-implementation",
+      "earliest-eligible-cr",
+      "minimum-blocking-substrate",
+      "mydeck-same-cr-tiebreak",
+      "commander-corpus-frequency",
+      "edhValue"
+    ],
+    "acceptance": "MyDeck and other normal-Commander English Oracle fixtures select golden/replay cases; they do not override CR order.",
+    "excludedScope": [
+      "ante",
+      "two-headed-giant-and-team-variants",
+      "planechase-archenemy-conspiracy-draft",
+      "other existing variant/pruned boundaries"
+    ],
+    "userRuling": "2026-07-23"
+  },
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -164,21 +185,41 @@
     },
     {
       "type": "domain-slice",
-      "domainId": "cr-121-drawing",
+      "domainId": "cr-118-costs-act4",
+      "crOrder": 118,
       "status": "pending",
-      "note": "**候補2: クロスプレイヤー効果の実行(cluster1)= JUDGE-GATE(step0で判定者判断まで実装しない)**。 [2026-07-20 品質裁定] ユーザー裁定「品質を上げる方向」により、replenishment実測で需要が確認され次第、品質路線の最優先候補(V1ギャップ#2・需要48・MP基盤で解錠済み)。実装時の既知警戒=self-loot旧単一プレイヤーAPI残骸の同型バグ(cr-121 loot merge Tier-1のHIGH実例)。 [2026-07-20 replenishment裁定] census実測=MyDeck 4デッキでcross-player効果54枚manual(全域分布・Wheel系/各プレイヤーsacrifice/discard/draw/mill/相手誘発)。需要48→実測54で確認。MP基盤§34.42-45で解錠済み。品質路線の本命としてpending化。既知警戒=self-loot旧API残骸の同型バグ。"
+      "dependsOn": [
+        "cr-118-costs",
+        "cr-602-activated-abilities"
+      ],
+      "evidence": [],
+      "manualBoundary": "{X}と他オブジェクトを含むコストは選択完了まで支払わない。未解析コストを部分支払いしない。",
+      "note": "**ACT-4 コスト語彙 leaf**。tap-other(Tap N untapped X you control)・カウンター除去(Remove a counter)・{X} の guided 値選択。§33 と同じauto詐称なし規律。支払い原子性・undo・旧snapshot非変更を最終盤面replayで固定する。"
     },
     {
       "type": "domain-slice",
-      "domainId": "cr-609-one-shot-mass",
+      "domainId": "cr-121-cross-player-draw",
+      "crOrder": 121,
       "status": "pending",
-      "note": "**候補5: 質量/盤面全体効果(cluster4 destroy all/each)= JUDGE-GATE(新規domain新設の要否を判定者判断)**。 [2026-07-20 replenishment裁定] census実測=mass効果12枚manual(Blasphemous Act 2デッキ/Toxic Deluge 2デッキ/Pernicious Deed/Culling Ritual/Ruinous Ultimatum等)。新domain cr-609新設を承認。cross-player(54枚)より需要低いがEDH staple含むためpending化(優先度はcross-playerの後)。"
+      "dependsOn": [
+        "cr-121-drawing",
+        "cr-player-specific-zones"
+      ],
+      "evidence": [],
+      "manualBoundary": "draw以外のcross-player sacrifice/discard/mill/triggerは各CR領域へ分割し、このsliceで部分実行しない。",
+      "note": "CR121専用のクロスプレイヤーdraw。each/target playerのprivate-zone routing、CR121.2c順序、empty-library draw eventをplayerIdごとに忠実化する。既知警戒=self-loot旧単一プレイヤーAPI残骸の同型バグ。MyDeck cluster54枚は全CR横断のfixture母集団であり、本sliceではdraw形だけを抽出する。"
     },
     {
       "type": "domain-slice",
-      "domainId": "carry-quality-debt-2026-07",
+      "domainId": "cr-605-mana-choice-ui",
+      "crOrder": 605,
       "status": "pending",
-      "note": "carry群の小粒品質債を1スライスに束ねる。①needs-choice色ダイアログ4箇所(ACT-1由来・needs-choice 55枚の一部) ②誘発型の面フィルタ(ACT-2既知gap・CR712.8d=表向きの面の特性のみ・DFC/MDFC 43枚) ③Playmat死コード撤去(到達不能TSX残存)。Tier-1一括監査が効率的。census 2026-07-20: needs-choice 55枚/needs-target 202枚が最大カテゴリ。"
+      "dependsOn": [
+        "cr-605-mana-abilities"
+      ],
+      "evidence": [],
+      "manualBoundary": "色または組合せを選ぶマナ能力は共通guided promptが完了するまでmanual表示を維持する。",
+      "note": "旧carry①をCR605へ分割。needs-choice色ダイアログ4箇所を既存EffectPrompt/PendingGuidedResolution境界へ統合し、ルール別専用フローを作らない。"
     },
     {
       "type": "domain-slice",
@@ -283,7 +324,7 @@
       "domainId": "ux-mana-complete-loop",
       "track": "play-loop",
       "status": "shipped",
-      "auditStatus": "audited-2026-07-18-judge-fable-tier1-cold-sonnet-clean",
+      "auditStatus": "audited-2026-07-23-context-free-cold-reaudit-clean",
       "userGate": "2026-07-18 ユーザー直接プレイ裁定: 現行UIは概ね維持し、部分的な自動マナ対応による摩擦を最上位で改善する。Claude判定者のトークン不足によりCodexの台帳本体編集を特例許可。",
       "relatedDomains": [
         "cr-605-mana-abilities",
@@ -514,9 +555,9 @@
         ],
         "corpusEvidence": "17,491枚・22,419 effect lines。新規523行、decision遷移0、commandHashChanged 6(いずれもmanual維持)、mappingFailures 0。",
         "responsiveEvidence": "実カード《Priest of Fell Rites》で墓地→操作…→蘇生({3}{W}{B})→マナ不足のCR-legal強行確認まで到達。375x812でdocument width=scrollWidth=375、墓地/警告dialog overflowなし、console warning/error 0。",
-        "verification": "npm run check PASS (lint / 239 files・2025 tests / build)。初回に意図的snapshot差分と旧Sword timing goldを検出し、CR702.6aへ訂正・snapshot更新後に全再実行。実画面console warning/error 0。独立監査は未実施。"
+        "verification": "npm run check PASS (lint / 239 files・2025 tests / build)。初回に意図的snapshot差分と旧Sword timing goldを検出し、CR702.6aへ訂正・snapshot更新後に全再実行。実画面console warning/error 0。2026-07-23管理マイルストーンで文脈非継承の冷監査を実施し、Lifelink ruleRef 702.15修正後にSHIPPED-OK。記録=research/cr-grounding/archive/cr-order-governance/cold-audit-findings.md。"
       },
-      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Codex暫定実装(2026-07-18)。完全自動解決ではなく、CR正規形・定義ゾーンでの発見・既存起動経路への接続まで。Crew tap-other、Ninjutsu複合コスト、Unearth遅延誘発+置換、Embalm/Eternalize例外付きcopy等はmanual境界を維持。Claude独立監査まではimplemented-not-green。"
+      "note": "**ACT-3 起動型キーワードの正規形展開**(プラン=activate-cost-starry-fern)。Codex暫定実装(2026-07-18)。完全自動解決ではなく、CR正規形・定義ゾーンでの発見・既存起動経路への接続まで。Crew tap-other、Ninjutsu複合コスト、Unearth遅延誘発+置換、Embalm/Eternalize例外付きcopy等はmanual境界を維持。2026-07-23文脈非継承の冷監査でSHIPPED-OK。"
     },
     {
       "type": "checkpoint",
@@ -526,18 +567,69 @@
     },
     {
       "type": "domain-slice",
-      "domainId": "cr-118-costs",
+      "domainId": "cr-606-loyalty-activation",
+      "crOrder": 606,
       "status": "pending",
-      "note": "**ACT-4 コスト語彙 leaf(需要順)**(プラン=activate-cost-starry-fern)。tap-other(Tap N untapped X you control)・カウンター除去(Remove a counter)・{X} の guided 値選択。§33 と同じ auto 詐称なし規律。ActivationCostComponentKind 追加は spec 追補(判定者承認)を実装前に先行。demand=cost:tap 11/cost:nonmana 12。"
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-602-activated-abilities"
+      ],
+      "evidence": [],
+      "manualBoundary": "忠誠度コスト・1ターン1回・sorcery timingを完全に表せない間は既存CR602起動として自動支払いしない。",
+      "note": "旧ACT-5を実体CR606へ分離。通常Commanderで到達可能なplaneswalker忠誠度能力のenvelopeを凍結し、需要数を着手gateにしない。"
     },
     {
       "type": "domain-slice",
-      "domainId": "cr-602-activated-abilities",
-      "status": "judge-gated",
-      "note": "**ACT-5 忠誠度 envelope(CR606)= JUDGE-GATE**(プラン=activate-cost-starry-fern)。§34.19 の明示 defer を解く新 design-lock(新 domain cr-606 の要否判定含む)。着手前に step0 で MyDeck の PW 需要実測を確認し、需要が立たなければ据置。 [2026-07-20 replenishment裁定] census実測=MyDeck 4デッキのPWは4枚のみ(Liliana Dreadhorde/Teferi Temporal/Tezzeret Seeker/Ugin)。需要薄のため据置。PW需要が立つデッキ追加があれば再検討。"
+      "domainId": "cr-609-one-shot-mass",
+      "crOrder": 609,
+      "status": "pending",
+      "dependsOn": [
+        "cr-608-resolution",
+        "cr-player-specific-zones"
+      ],
+      "evidence": [],
+      "manualBoundary": "destroy all/eachのうち置換・選択・可変集合を要求する複合形は、対応subsetだけ部分実行しない。",
+      "note": "CR609一回的全体効果。Blasphemous Act/Toxic Deluge/Pernicious Deed/Culling Ritual/Ruinous Ultimatum等の通常Commander実カードを受け入れfixtureにする。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-701-cross-player-actions",
+      "crOrder": 701,
+      "status": "pending",
+      "dependsOn": [
+        "cr-player-specific-zones",
+        "cr-701-keyword-actions-frequent"
+      ],
+      "evidence": [],
+      "manualBoundary": "cross-player sacrifice/discard/millを各CR701 actionごとに閉じ、未対応actionを同じ文から部分実行しない。",
+      "note": "旧cross-player clusterからCR701.9/701.17/701.21を分離。CR121 drawとは別マイルストーンにする。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-712-face-characteristics",
+      "crOrder": 712,
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-603-triggers-apnap",
+        "cr-602-activated-abilities"
+      ],
+      "evidence": [],
+      "manualBoundary": "表示面以外の能力を候補化・自動実行しない。DFC/MDFCの変身・唱え分け全体は既存境界を維持する。",
+      "note": "旧carry②をCR712.8dへ分割。誘発型・起動型の面フィルタを同じfaceIndex規律へ統合する。"
+    },
+    {
+      "type": "maintenance",
+      "domainId": "maintenance-dead-ui-removal",
+      "track": "maintenance",
+      "status": "deferred",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "ルール実行・右クリック代替の到達性を削除前に実証する。",
+      "note": "旧carry③の到達不能UI撤去。CR queue外で、ルールマイルストーンへ混在させない。"
     }
   ],
-  "selectionRule": "autoloop step 0 は plannedSequence を先に消費する(判定者の standing 裁定。type=checkpoint はコード無しマイルストーンとして同様に消費。type=tooling-fix で codexBlockedUntil がある entry は、その日付まで実装不可=Codex 復帰後に着手。specStatus=judge-authored-complete なら判断部は済ゆえ STOP せず、Codex 復帰待ちの間は次の非ブロック entry へ進んでよい。ただし heldPending が付いた entry は指定 entry の完了までスキップする)。**枯渇時の補充手順(standing・2026-07-04 J1)**: Codex に research/mydeck-scoring の demand 実測から候補草稿(research/cr-grounding/planned-sequence-batch*.draft.md・CR 条番号+demand 数値必須)を出させ、在席判定者が CR 原文と demand 数値へ照合し優先度式(正本 = docs/judge-protocol.md §2。MyDeck 実プレイ摩擦が最上位・demand は補助)で充填する(J3 で可・docs/judge-protocol.md §2)。**demand 軸の信頼度(2026-07-12 更新・score-ts-demand-catalog-repair 出荷後)**: 9 family(cost:*/mana:*/action:*/tap-state:*/damage:*/life:*/counter:*/target:*/token:*)の coverage は実 runtime compiler に anchor 済み(engineCoverageTagsForLine)ゆえ classifier-backed family 同様に信頼してよい。**別 engine 経路も credit 済み**(2026-07-14 follow-up `score-ts-credit-nonability-paths` 出荷=fetch/land-enters-tapped/mana-ability/cycling を engineCoverageTagsForLine が credit・cost-leak[{T}→tap-state:write / pay-life→life:write]も除去)ゆえ、9 family の gap 数はこれら経路について真値に接近し優先度信号として信頼してよい。既知残境界: cycling 以外の keyword は 9-family に実質寄与せず(実測)・mana ability の『Activate only if』制限に対応する demand が無い(pre-existing blind spot)。STOP① に格上げするのは: 真の同点の価値分岐 / Phase S/C 完了境界の「V4 オンライン前進 vs V1 磨き込み」(予約済み価値判断) / 北極星・契約原則の変更 / judge=user-stop domain の単独裁定(judgePolicy 参照)。 **design-slice(D-トラック・2026-07-08 J1)**: type=design-slice はユーザーが D-トラック着手を明示指示するまで autoloop step 0 の消費対象外(ロードマップ分岐の価値判断=STOP4類①)。指示後は dependsOn 順に消費し、UIスライスの受け入れには実機3形態(縦375/横812/デスクトップ1440)スクショ+コンソールエラー0を必ず含める(正本=docs/ui-architecture-v2.md §4)。(消化済み履歴注記は cr-backbone-ledger-history.json selectionRuleFull へ退避) **枯渇前補充の発火条件(2026-07-20 standing)**: plannedSequenceの未出荷残(pending+judge-gated)が2件になったらreplenishmentを発火する(枯渇してからではなく枯渇する前に補充)。",
+  "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",
@@ -545,11 +637,13 @@
     "pruned": "EDH一人回しの主価値に直結しない or 手動/助言で十分。実装しないが可視に残す。"
   },
   "statusDefinitions": {
-    "drafted": "契約草稿のみ",
-    "implemented-not-green": "実装したが機械チェック/review未緑",
-    "review-green": "review.*緑・golden実行可能",
-    "shipped": "commit+CI緑+(該当時)Pages",
-    "deferred": "明示的に後回し(境界として可視)"
+    "pending": "選定可能だが契約未凍結",
+    "judge-gated": "scope/契約のユーザーまたは判定者裁定待ち",
+    "drafted": "CR接地した契約草稿のみ",
+    "implemented-not-audited": "実装と通常チェックは存在するが独立冷監査未通過",
+    "audited": "独立冷監査でBLOCKER/HIGH 0。commit/CI/Pages証跡待ち",
+    "shipped": "冷監査記録+全check+明示commit+CI緑+(該当時)Pages",
+    "deferred": "通常Commander scope外または明示依存未充足として境界を可視化"
   },
   "domains": [
     {
@@ -1451,6 +1545,7 @@
     },
     {
       "id": "cr-604-611-612-613-layers-continuous",
+      "crOrder": 604,
       "crRefs": [
         "604",
         "611",
@@ -1459,27 +1554,31 @@
       ],
       "lane": "late-backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
+      "dependsOn": [],
       "landingState": [
         "effectiveCharacteristics",
         "continuousEffects",
         "timestamps",
         "dependencyGraph"
       ],
-      "boundary": "Slice A出荷完了(read-time additive Layer4 type accessor・engine-spec §34.31・commit予定)。",
+      "boundary": "Slice A(read-time additive Layer 4 type accessor・§34.31)とSlice B(read-time additive Layer 6 keyword accessor・§34.32)を実装・review・独立冷監査済み。color/P-T continuous layerは未実装。",
       "evidence": [
         "docs/engine-spec.md §34.31",
         "research/cr-grounding/cr604-layers-batch3-5.draft.md",
         "src/engine/__tests__/review.cr604-layers-sliceA.test.ts",
         "docs/engine-spec.md §34.32",
-        "src/engine/__tests__/review.cr604-layers-sliceB.test.ts"
+        "src/engine/__tests__/review.cr604-layers-sliceB.test.ts",
+        "research/cr-grounding/archive/cr-order-governance/cold-audit-findings.md"
       ],
-      "nextGate": "Slice C(stored continuous-effect ledger。611.2解決由来のduration/timestamp/dependency)。真に必要になった時のみ着手。demand実測に応じて優先度再評価。",
+      "manualBoundary": "Slice Cのstored continuous-effect ledger、duration/timestamp/dependency、完全なCR613層適用は未実装としてmanual/deferred表示を維持する。",
+      "nextGate": "未実装のSlice CをCR611-613子domainとしてCR順queueへ分離する。",
       "judge": "deterministic-cr",
       "judgeNote": "層の適用順自体は CR 613 で決定論。ただし置換効果との相互作用はスコープ境界(engine-spec §34.5)=境界内のみ実装し、境界拡張は STOP①。"
     },
     {
       "id": "cr-614-615-616-replacement-prevention",
+      "crOrder": 614,
       "crRefs": [
         "614",
         "615",
@@ -1488,14 +1587,15 @@
       ],
       "lane": "late-backbone",
       "edhValue": "high",
-      "status": "implemented-not-green",
+      "status": "shipped",
+      "dependsOn": [],
       "landingState": [
         "replacementEffects",
         "preventionEffects",
         "eventRewriteChoices",
         "regenerationShields"
       ],
-      "boundary": "shockland型ETB(demand replacement 11件中7件)は既存landEntersTapped+playLandのhonest-choiceフローで実装ギャップなし確認済み(engine-spec §34.33)。",
+      "boundary": "shockland型ETB(§34.33)、combat damage prevention(§34.34)、graveyard→exile replacement(§34.35)を実装・review・独立冷監査済み。通常のresolveCombatDamage経路もglobal prevention shieldを適用する。",
       "evidence": [
         "cr-commander-hand-library-replacement",
         "docs/engine-spec.md §34.33",
@@ -1503,9 +1603,11 @@
         "docs/engine-spec.md §34.34",
         "src/engine/__tests__/review.cr614-615-prevent-combat-damage.test.ts",
         "docs/engine-spec.md §34.35",
-        "src/engine/__tests__/review.cr614-grave-to-exile.test.ts"
+        "src/engine/__tests__/review.cr614-grave-to-exile.test.ts",
+        "research/cr-grounding/archive/cr-order-governance/cold-audit-findings.md"
       ],
-      "nextGate": "replacement demand実測ぶんは充足(shockland 7件=§34.33・Emet-Selch型=§34.35・prevention 1件=§34.34)。残deferral=damage-doubling(Kuja型)・kicker依存ETB counter(Everflowing Chalice型)・完全616.1順序選択。demandが立ったら再訪。",
+      "manualBoundary": "damage-doubling、kicker依存ETB counter、完全616.1適用順選択は未実装として部分適用しない。",
+      "nextGate": "残境界をCR614-616子domainとしてCR順queueへ分離する。",
       "judge": "deterministic-cr",
       "judgeNote": "個別 replacement の適用は CR 決定論。複数 replacement の相互作用(616.1 の適用順選択を除く)はスコープ境界(engine-spec §34.5)=境界拡張は STOP①。"
     },
@@ -1587,6 +1689,7 @@
     },
     {
       "id": "cr-702-keyword-abilities-frequent",
+      "crOrder": 702,
       "crRefs": [
         "702",
         "702.2",
@@ -1607,25 +1710,32 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "review-green",
+      "status": "shipped",
+      "dependsOn": [
+        "cr-506-510-combat"
+      ],
       "landingState": [
         "keywordAbilityIndex",
         "compiledCommands",
         "effectiveCharacteristics",
         "manualFallbacks"
       ],
-      "boundary": "golden未定義部分残置。",
+      "boundary": "grammar keyword認識とlifelink/single-blocker trampleを実装・review・独立冷監査済み。Lifelink ruleRefは固定CR 702.15。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary",
         "src/engine/__tests__/review.grammar-compile.test.ts",
         "docs/engine-spec.md §34.38",
-        "src/store/__tests__/review.cr702-lifelink-trample.test.ts"
+        "src/store/__tests__/review.cr702-lifelink-trample.test.ts",
+        "src/data/__tests__/review.cr702-keyword-rule-refs.test.ts",
+        "research/cr-grounding/archive/cr-order-governance/cold-audit-findings.md"
       ],
-      "nextGate": "Slice B候補=first strike/double strike(追加の戦闘ダメージステップという構造変更が必要)。Slice C候補=ward(対象化コストtrigger)・flying/reach/menaceのブロック合法性警告。multiple blockersとの組み合わせ・trample over planeswalkersは既存の別domain境界(cr-506-510-combatのdeferred multi-blocker/未対応planeswalkerダメージ)にブロックされたまま=当該domainが動くまで再訪しない。",
+      "manualBoundary": "first/double strike、ward、flying/reach/menace合法性、multiple blockers、planeswalker/battle damageは実装済みに混ぜない。",
+      "nextGate": "残keywordをCR702節番号順の子domainへ分割する。",
       "judge": "deterministic-cr"
     },
     {
       "id": "cr-20260619-new-vocabulary-boundary",
+      "crOrder": 701.69,
       "crRefs": [
         "701.69",
         "702.193",
@@ -1634,14 +1744,17 @@
       ],
       "lane": "pruned",
       "edhValue": "low",
-      "status": "review-green",
+      "status": "shipped",
+      "dependsOn": [],
       "landingState": [],
-      "boundary": "CRG-8 PASS(boundary)。Heal/Power-up/Teamwork/Preparation はCR語彙として認識するが、実行器はscope-boundaryで実装済みに混ぜない。",
+      "boundary": "CRG-8は2026-06-19追加語彙4件を文書上で分類したboundary成果物。runtime rule-ref registryで機械認識済みなのはHeal(701.69)だけで、Power-up(702.193)・Teamwork(702.194)・Preparation(722)は未認識・未実装。",
       "evidence": [
-        "cr-20260619-new-mechanics-boundary"
+        "cr-20260619-new-mechanics-boundary",
+        "research/cr-grounding/archive/cr-order-governance/cold-audit-findings.md"
       ],
-      "nextGate": "実デッキ需要が出た語彙だけを leaf-compiler または late-backbone へ個別昇格する",
-      "judge": "user-stop"
+      "manualBoundary": "4語彙とも最終GameState replayが揃うまでauto扱いしない。runtime registryの認識有無と実行器coverageを混同しない。",
+      "nextGate": "通常Commander scope内の701.69/702.193/702.194/722は個別子domainでCR順に扱う。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-modal-target-optional-variable",
@@ -1670,7 +1783,184 @@
       "judge": "deterministic-cr"
     },
     {
+      "id": "cr-118-costs-act4",
+      "crOrder": 118,
+      "crRefs": [
+        "107.3",
+        "118.3",
+        "118.7",
+        "602.2b"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs",
+        "cr-602-activated-abilities"
+      ],
+      "landingState": [
+        "activationEnvelope",
+        "guidedCostPrompts",
+        "announcedX"
+      ],
+      "boundary": "tap-other、counter removal、{X} activation costのguided paymentを既存GameCommand列へ落とす。",
+      "evidence": [],
+      "manualBoundary": "選択完了前の部分支払い、未解析costの部分実行、同じpermanentの重複選択を禁止する。",
+      "nextGate": "契約・reviewを先行凍結して実装する。最初のCRコードマイルストーン。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-121-cross-player-draw",
+      "crOrder": 121,
+      "crRefs": [
+        "121.1",
+        "121.2",
+        "121.2c",
+        "121.4"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-121-drawing",
+        "cr-player-specific-zones"
+      ],
+      "landingState": [
+        "zonesByPlayer",
+        "drawEvents",
+        "emptyLibraryDrawFlags"
+      ],
+      "boundary": "each/target player drawだけをplayer-awareに実行し、他のcross-player actionを混ぜない。",
+      "evidence": [],
+      "manualBoundary": "optional opponent draw、未モデルplayer selection、draw以外を含む複合文は全体manualへ落とす。",
+      "nextGate": "ACT-4出荷後の最若番CR slice。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-605-mana-choice-ui",
+      "crOrder": 605,
+      "crRefs": [
+        "605.1",
+        "605.3"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-605-mana-abilities"
+      ],
+      "landingState": [
+        "guidedManaPrompt",
+        "pendingGuided"
+      ],
+      "boundary": "色または組合せを選ぶ既存mana abilityを共通guided resolution UIから完遂可能にする。",
+      "evidence": [],
+      "manualBoundary": "未解析の用途制限・組合せはmanualのまま、既知色だけを勝手に選ばない。",
+      "nextGate": "CR121出荷後にCR605順で選定する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-606-loyalty-activation",
+      "crOrder": 606,
+      "crRefs": [
+        "606"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-602-activated-abilities"
+      ],
+      "landingState": [
+        "loyaltyCounters",
+        "activationEnvelope",
+        "turnActivationHistory"
+      ],
+      "boundary": "忠誠度cost・sorcery timing・permanentごとの1ターン1回を構造化する。",
+      "evidence": [],
+      "manualBoundary": "3条件を完全に検証できない忠誠度能力を一般CR602起動として自動支払いしない。",
+      "nextGate": "CR605選択UI出荷後のCR606 slice。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-609-one-shot-mass",
+      "crOrder": 609,
+      "crRefs": [
+        "609.1",
+        "609.3"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-608-resolution",
+        "cr-player-specific-zones"
+      ],
+      "landingState": [
+        "compiledCommands",
+        "simultaneousGroupId",
+        "zoneChangeEvents"
+      ],
+      "boundary": "有界なdestroy all/each subsetを同時処理として実行する。",
+      "evidence": [],
+      "manualBoundary": "置換・選択・可変集合を含む複合形は対応subsetだけ部分実行しない。",
+      "nextGate": "CR606出荷後のCR609 slice。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-701-cross-player-actions",
+      "crOrder": 701,
+      "crRefs": [
+        "701.9",
+        "701.17",
+        "701.21"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-player-specific-zones",
+        "cr-701-keyword-actions-frequent"
+      ],
+      "landingState": [
+        "zonesByPlayer",
+        "semanticEvents",
+        "guidedPrompts"
+      ],
+      "boundary": "cross-player discard/mill/sacrificeをactionごとのplayer-aware command列へ落とす。",
+      "evidence": [],
+      "manualBoundary": "選択者・対象player・複数actionのいずれかが未モデルなら全体manualへ落とす。",
+      "nextGate": "CR609出荷後、CR701節順に子sliceへ分割して実装する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-712-face-characteristics",
+      "crOrder": 712,
+      "crRefs": [
+        "712.8d"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-603-triggers-apnap",
+        "cr-602-activated-abilities"
+      ],
+      "landingState": [
+        "faceIndex",
+        "abilityCandidates"
+      ],
+      "boundary": "現在の表向き面の特性だけを誘発・起動候補へ使う。",
+      "evidence": [],
+      "manualBoundary": "変身・唱える面・DFC/MDFC全規則をこのfilter修正だけで自動化済みとしない。",
+      "nextGate": "CR701/702の先行slice後に実装する。",
+      "judge": "deterministic-cr"
+    },
+    {
       "id": "cr-123-stickers",
+      "crOrder": 123,
       "crRefs": [
         "123",
         "400.7m"
@@ -1678,29 +1968,41 @@
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [
+        "cr-400-408-zones-lki"
+      ],
       "landingState": [],
       "boundary": "golden未定義。sticker stateはEDH一人回し主価値に直結しないためscope-boundary。必要時だけCR refs付きで昇格。",
       "evidence": [],
-      "nextGate": "stickerを含む実デッキ需要が出るまで実装しない",
+      "manualBoundary": "sticker stateをGameStateへ追加せず、stickerを要求する効果はmanualに留める。",
+      "nextGate": "通常Commander scopeへstickerを含めるユーザー裁定が出るまで実装しない",
       "judge": "user-stop"
     },
     {
       "id": "cr-309-dungeons",
+      "crOrder": 309,
       "crRefs": [
         "309",
         "704.5t"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "low",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-player-specific-zones",
+        "cr-603-triggers-apnap",
+        "cr-703-704-sba-turn-based"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。dungeon/venture/initiative連動の専用stateが必要なため初期scope外。",
+      "boundary": "golden未定義。dungeon/venture/initiative連動の専用stateが必要。通常Commanderで到達可能なためscope内だが、依存未充足。",
       "evidence": [],
-      "nextGate": "venture/initiative採用デッキ需要が出たら dungeon state を独立domainとして再評価する",
-      "judge": "user-stop"
+      "manualBoundary": "dungeon/venture/initiativeを自動進行せず、選択と進行はmanualに留める。",
+      "nextGate": "CR309順で、player-specific zone・trigger/APNAP・SBA依存を満たして専用stateを契約化する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-311-315-variant-objects",
+      "crOrder": 311,
       "crRefs": [
         "311",
         "312",
@@ -1711,42 +2013,51 @@
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。planes/phenomena/vanguards/schemes/conspiracies は通常EDH一人回しの主価値外。command zone特殊objectsを増やさない。",
       "evidence": [],
+      "manualBoundary": "variant objectをGameStateへ追加せず、通常Commander盤面へ混入させない。",
       "nextGate": "Planechase/Archenemy/Conspiracy Draft modeを明示採用する場合のみ昇格する",
       "judge": "user-stop"
     },
     {
       "id": "cr-407-ante",
+      "crOrder": 407,
       "crRefs": [
         "407"
       ],
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。anteは現代EDH一人回しで主価値がなく、専用zone/所有権処理を入れない。",
       "evidence": [],
-      "nextGate": "実装しない。表示上のCR境界としてのみ残す",
+      "manualBoundary": "ante zone・所有権変更をGameStateへ追加しない。",
+      "nextGate": "通常Commander scope外。表示上のCR境界としてのみ残す",
       "judge": "user-stop"
     },
     {
       "id": "cr-717-attractions",
+      "crOrder": 717,
       "crRefs": [
         "717"
       ],
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。attraction deck/visit/open attraction stateが必要でEDH一人回し主価値外。",
       "evidence": [],
-      "nextGate": "Un-set/attraction需要が出るまで実装しない",
+      "manualBoundary": "attraction deck/visit/open状態をGameStateへ追加せずmanualに留める。",
+      "nextGate": "通常Commander scopeへAttractionを含めるユーザー裁定が出るまで実装しない",
       "judge": "user-stop"
     },
     {
       "id": "cr-901-904-905-casual-variants",
+      "crOrder": 901,
       "crRefs": [
         "901",
         "904",
@@ -1755,14 +2066,17 @@
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。Planechase/Archenemy/Conspiracy Draft は専用deck/role/team/draft stateが必要で初期scope外。",
       "evidence": [],
+      "manualBoundary": "variant専用deck/role/team/draft stateを通常Commander GameStateへ混ぜない。",
       "nextGate": "variant modeをプロダクト要件に入れる場合のみ再分類する",
       "judge": "user-stop"
     },
     {
       "id": "cr-subgames-restart-sideboard",
+      "crOrder": 727,
       "crRefs": [
         "100.4",
         "400.11",
@@ -1772,14 +2086,17 @@
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。subgames/restart game/tournament sideboard細則は一人回しの反復操作に対して重すぎるため実装しない。",
       "evidence": [],
+      "manualBoundary": "subgame/restart/sideboard状態を保存形式へ追加せずmanual/advisoryに留める。",
       "nextGate": "Wish系やKarn Liberated相当を支援対象にする場合のみmanual/advisoryから検討する",
       "judge": "user-stop"
     },
     {
       "id": "cr-810-two-headed-giant",
+      "crOrder": 810,
       "crRefs": [
         "805",
         "810"
@@ -1787,63 +2104,85 @@
       "lane": "pruned",
       "edhValue": "low",
       "status": "deferred",
+      "dependsOn": [],
       "landingState": [],
       "boundary": "golden未定義。2HG/team variantはshared team turns/life/poisonを要求し、EDH一人回しのopponent modelと別物。",
       "evidence": [],
+      "manualBoundary": "shared team turns/life/poisonを通常Commander player modelへ混ぜない。",
       "nextGate": "team variantを対象化するプロダクト判断が出るまで実装しない",
       "judge": "user-stop"
     },
     {
       "id": "cr-310-battles-deferred-by-demand",
+      "crOrder": 310,
       "crRefs": [
         "310",
         "704.5v",
         "704.5w",
         "704.5x"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-506-510-combat",
+        "cr-player-specific-zones",
+        "cr-703-704-sba-turn-based"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。紙EDHで出うるため永久削除ではないが、battle protector/defense/attacked battle stateが必要。deferred-by-demand。",
+      "boundary": "golden未定義。通常Commanderで到達可能。battle protector/defense/attacked battle stateが必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "battle採用デッキ需要が出たら protector/opponent model と一緒に昇格する",
-      "judge": "user-stop"
+      "manualBoundary": "battle protector/defense/attacked battle stateを追加せず、Battle操作はmanualに留める。",
+      "nextGate": "CR310順でprotector/opponent model・combat・SBA依存を満たして実装する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-731-day-night-deferred-by-demand",
+      "crOrder": 731,
       "crRefs": [
         "702.145",
         "703.4b",
         "731"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-500-514-turn-structure"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。day/night designation と spell-count turn history が必要。紙EDHで出うるが deferred-by-demand。",
+      "boundary": "golden未定義。通常Commanderで到達可能。day/night designation と spell-count turn history が必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "Werewolf/daybound需要が出たら turn history と transformation substrate 付きで再評価する",
-      "judge": "user-stop"
+      "manualBoundary": "day/night designationとspell-count turn historyを推測せずmanualに留める。",
+      "nextGate": "CR731順でturn historyとtransformation substrate付きで実装する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-725-726-monarch-initiative-deferred-by-demand",
+      "crOrder": 725,
       "crRefs": [
         "725",
         "726",
         "309"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-309-dungeons",
+        "cr-506-510-combat",
+        "cr-player-specific-zones"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。monarch/initiativeはplayer designationとcombat damage steal/dungeonが必要。EDHで出うるためdeferred-by-demand。",
+      "boundary": "golden未定義。monarch/initiativeは通常Commanderで到達可能。player designationとcombat damage steal/dungeonが必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "designation substrateを作る時に monarch と initiative を一緒に再分類する",
-      "judge": "user-stop"
+      "manualBoundary": "monarch/initiative designationとcombat damage stealを自動追跡しない。",
+      "nextGate": "CR725→726順でdesignation・combat・dungeon依存を満たし、別replayで実装する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-303-704-roles-deferred-by-demand",
+      "crOrder": 303.7,
       "crRefs": [
         "303.7",
         "111.10j",
@@ -1855,33 +2194,46 @@
         "111.10r",
         "704.5y"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-111-tokens",
+        "cr-703-704-sba-turn-based"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。Role token duplicate SBA はattachment grouping/timestamp/role subtypeが必要。紙EDHで出うるためdeferred-by-demand。",
+      "boundary": "golden未定義。Role token duplicate SBA は通常Commanderで到達可能。attachment grouping/timestamp/role subtypeが必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "attachment legality と timestamp state が入った後にRole duplicateだけを昇格候補にする",
-      "judge": "user-stop"
+      "manualBoundary": "Role attachment grouping/timestamp/duplicate SBAを自動適用しない。",
+      "nextGate": "CR303.7順でattachment legality・timestamp・token・SBA依存を満たして実装する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-714-sagas-deferred-by-demand",
+      "crOrder": 714,
       "crRefs": [
         "714",
         "703.4f",
         "704.5s"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-603-triggers-apnap",
+        "cr-703-704-sba-turn-based"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。Sagaはlore counters/chapter abilities/final chapter pending-stack判定が必要。紙EDHで出うるためdeferred-by-demand。",
+      "boundary": "golden未定義。Sagaは通常Commanderで到達可能。lore counters/chapter abilities/final chapter pending-stack判定が必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "counter + triggered ability + stack pending判定が揃った後にSagasを再評価する",
-      "judge": "user-stop"
+      "manualBoundary": "lore counter/chapter/final chapter sacrificeを部分自動化しない。",
+      "nextGate": "CR714順でcounter+triggered ability+stack pending判定を統合して実装する。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-716-719-720-721-722-new-card-frames-deferred-by-demand",
+      "crOrder": 716,
       "crRefs": [
         "709.5j",
         "716",
@@ -1890,37 +2242,262 @@
         "721",
         "722"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
       "status": "deferred",
+      "dependsOn": [
+        "cr-604-611-612-613-layers-continuous"
+      ],
       "landingState": [],
-      "boundary": "Case/Class/Room/Station/Omen/Preparation Cards は紙EDHで出うるが、designation/alternative characteristics/level/station/door stateが必要。deferred-by-demand。",
+      "boundary": "Case/Class/Room/Station/Omen/Preparation Cards は通常Commanderで到達可能。designation/alternative characteristics/level/station/door stateが必要で、依存未充足。複数CR実装は子domainへ分割する。",
       "evidence": [
         "cr-20260619-new-mechanics-boundary"
       ],
-      "nextGate": "採用デッキが出たcard frameだけを個別にlate-backboneまたはleafへ昇格する",
-      "judge": "user-stop"
+      "manualBoundary": "designation/alternative characteristics/level/station/door stateを推測せず各card frameをmanualに留める。",
+      "nextGate": "このbundle自体は選定せず、CR716/719/720/721/722子domainをcrOrder順に選ぶ。",
+      "judge": "deterministic-cr"
     },
     {
       "id": "cr-728-rad-counters-deferred-by-demand",
+      "crOrder": 728,
       "crRefs": [
         "728"
       ],
-      "lane": "pruned",
+      "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "deferred",
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-500-514-turn-structure",
+        "cr-701-keyword-actions-frequent"
+      ],
       "landingState": [],
-      "boundary": "golden未定義。Rad counters はcounter stateだけでなく upkeep mill/life loss loop が必要。EDH頻度が出るまでdeferred-by-demand。",
+      "boundary": "golden未定義。Rad counters は通常Commanderで到達可能。counter stateだけでなく upkeep mill/life loss loop が必要で、依存未充足。",
       "evidence": [],
-      "nextGate": "counter substrateの拡張時にRad専用upkeep処理の需要を再確認する",
-      "judge": "user-stop"
+      "manualBoundary": "Rad upkeep mill/life loss loopをcounter表示だけで自動化済みとしない。",
+      "nextGate": "CR728順でcounter+upkeep+mill+life-lossを1 replayで統合する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-701-69-heal",
+      "crOrder": 701.69,
+      "crRefs": [
+        "701.69"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-120-damage"
+      ],
+      "landingState": [
+        "damageMarked",
+        "compiledCommands",
+        "manualFallbacks"
+      ],
+      "boundary": "runtime rule-ref registryは701.69を認識するが、heal command/compiler/golden replayは未実装。",
+      "evidence": [
+        "cr-20260619-new-mechanics-boundary"
+      ],
+      "manualBoundary": "heal対象と量を推測せず、final GameState replayが揃うまでmanualに留める。",
+      "nextGate": "CR701.69順で既存marked-damage primitiveへ分解できる契約とreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-702-193-power-up",
+      "crOrder": 702.193,
+      "crRefs": [
+        "118.7",
+        "602",
+        "702.193"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-602-activated-abilities"
+      ],
+      "landingState": [
+        "activationCosts",
+        "oncePerTurnTriggerLedger",
+        "compiledCommands",
+        "manualFallbacks"
+      ],
+      "boundary": "Power-upのコスト軽減・entered-this-turn条件・activate-only-onceは未認識・未実装。",
+      "evidence": [
+        "cr-20260619-new-mechanics-boundary"
+      ],
+      "manualBoundary": "通常のactivated ability部分だけを実行してPower-up条件を成功扱いにしない。",
+      "nextGate": "CR702.193順でCR118 ACT-4とactivated-ability substrate上に原子的支払いreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-702-194-teamwork",
+      "crOrder": 702.194,
+      "crRefs": [
+        "601.2b",
+        "601.2f",
+        "601.2g",
+        "601.2h",
+        "702.194"
+      ],
+      "lane": "leaf-compiler",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-601-casting-stack"
+      ],
+      "landingState": [
+        "additionalCosts",
+        "castChoices",
+        "compiledCommands",
+        "manualFallbacks"
+      ],
+      "boundary": "Teamworkの任意追加コスト・合計power判定・using-teamwork記録は未認識・未実装。",
+      "evidence": [
+        "cr-20260619-new-mechanics-boundary"
+      ],
+      "manualBoundary": "クリーチャーtapだけを部分実行せず、宣言・対象選択・支払いを一つのcast transactionとして扱う。",
+      "nextGate": "CR702.194順でCR118 ACT-4とcasting transaction上にgolden replayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-716-class-cards",
+      "crOrder": 716,
+      "crRefs": [
+        "716"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-602-activated-abilities",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [
+        "classLevelDesignation",
+        "continuousEffects",
+        "activationCosts"
+      ],
+      "boundary": "Class level designation・sorcery-speed activation・level-gated abilitiesは未実装。",
+      "evidence": [],
+      "manualBoundary": "level counterとClass levelを混同せず、level能力を部分適用しない。",
+      "nextGate": "CR716順でdesignationとLayer 6能力付与を一つのreplayにする。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-719-case-cards",
+      "crOrder": 719,
+      "crRefs": [
+        "719"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-603-triggers-apnap",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [
+        "solvedDesignation",
+        "triggeredAbilities",
+        "continuousEffects"
+      ],
+      "boundary": "To solve条件・solved designation・Solved能力の有効化は未実装。",
+      "evidence": [],
+      "manualBoundary": "条件検査だけ、designationだけ、能力有効化だけを部分自動化しない。",
+      "nextGate": "CR719順でend-step triggerからSolved能力到達までreplay化する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-720-omen-cards",
+      "crOrder": 720,
+      "crRefs": [
+        "601",
+        "720"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-601-casting-stack"
+      ],
+      "landingState": [
+        "alternativeCharacteristics",
+        "castChoices",
+        "spellObjects"
+      ],
+      "boundary": "Omen alternative characteristics・cast choice・stack/leave-stack characteristicsは未実装。",
+      "evidence": [],
+      "manualBoundary": "通常面で唱えてOmenとして解決済みと扱わず、cast choice全体をmanualに留める。",
+      "nextGate": "CR720順でcast choiceからstack object、解決後zoneまでreplay化する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-721-station-cards",
+      "crOrder": 721,
+      "crRefs": [
+        "702.184",
+        "721"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [
+        "chargeCounters",
+        "effectiveCharacteristics",
+        "continuousEffects"
+      ],
+      "boundary": "Station threshold・ability/type/base P-T付与・非battlefield P/T境界は未実装。",
+      "evidence": [],
+      "manualBoundary": "charge counter表示だけでStation能力やcreature化を自動化済みとしない。",
+      "nextGate": "CR721順でthreshold前後のeffective characteristicsをreplay化する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-722-preparation-cards",
+      "crOrder": 722,
+      "crRefs": [
+        "601.2i",
+        "704.5e",
+        "722"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-400-408-zones-lki",
+        "cr-601-casting-stack",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [
+        "preparedDesignation",
+        "alternativeCharacteristics",
+        "linkedExileCopy",
+        "castChoices"
+      ],
+      "boundary": "Preparation alternative characteristics・prepared designation・linked exile copy・copy castingは未認識・未実装。",
+      "evidence": [
+        "cr-20260619-new-mechanics-boundary"
+      ],
+      "manualBoundary": "designation付与、copy生成、castの一部だけを行わず、全体replayが揃うまでmanualに留める。",
+      "nextGate": "CR722順でprepared化からcopy cast、designation消失までreplay化する。",
+      "judge": "deterministic-cr"
     }
   ],
   "judgePolicy": {
-    "reference": "CLAUDE.md「役割 = 資源状態 → 割当」参照。判定者は資源状態に応じて割り当て、判定者不在時の暫定両担は復帰後の独立再検証・再オーナー化を要する。",
+    "reference": "AGENTS.md「役割 = 能力で定義」と1セッション完結の監査ループを参照。親セッションが判定者を保持し、実装と監査を兼ねた場合は文脈非継承の別主体による独立再検証・再オーナー化を要する。",
     "values": {
       "deterministic-cr": "CR 照合で裁定可能。在席判定者が CR を引いて自走してよい(prompt 再走や推測は禁止=CR が一次権威)。",
-      "user-stop": "昇格/スコープ/優先度は価値判断=autoloop STOP①。判定者はティアに関わらず単独裁定しない。"
+      "user-stop": "式でも解けない真の同点、通常Commander scope変更、北極星/契約原則変更だけが選定STOP①。優先度はselectionRuleで自走し、需要0や旧ラベルだけでは停止しない。"
     },
     "principle": "照合に還元できない判断は (a) 台帳/docs の standing 裁定を lookup → (b) なければ STOP→ユーザー。在席判定者は役割表と STOP 条件に従う。"
   }
