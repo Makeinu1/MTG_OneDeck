@@ -332,5 +332,9 @@ function isCostLikeActivatedPrefix(left: string): boolean {
   if (/\{T\}/i.test(left) || /\{[^}]+\}/.test(left)) {
     return true;
   }
+  // CR 606.2: loyalty cost (+N, -N, −N) is an activated ability cost
+  if (/^[+−-]\d+$/.test(left)) {
+    return true;
+  }
   return /^(?:Sacrifice|Discard|Pay|Tap|Exile|Remove)\b\s+.+/i.test(left);
 }

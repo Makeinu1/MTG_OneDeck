@@ -1952,6 +1952,27 @@ UIは既存の共通解決workspaceを使う。カード候補はDecisionBarとk
 
 **review**: `src/store/__tests__/review.cr605-mana-choice-ui.test.ts`(13 cases)。
 
+### 33.11 CR606 loyalty ability activation(契約)
+
+**目的**: プレインズウォーカーの忠誠度能力(CR 606.2/606.3/606.4/606.6)の起動コスト精算・忠誠度不足ブロック・ターン1回制限を review テストで固定する。
+
+**CR 根拠**:
+- CR 606.2: 忠誠度能力 = 忠誠度シンボルをコストに持つ起動型能力
+- CR 606.3: プレインズウォーカー1体につき1ターンに1つだけ忠誠度能力を起動可能(ソーサリー速度)
+- CR 606.4: コスト = 忠誠度カウンターの追加/除去
+- CR 606.6: 負の忠誠度コストは現在の忠誠度以上でなければ支払えない
+
+**契約**:
+1. `parseLoyaltyDelta`(`ir.ts`)は `+N` / `-N` / `−N`(U+2212)をパースし `AbilityCost.loyaltyDelta` へ格納する。
+2. `isCostLikeActivatedPrefix`(`grammar/index.ts`)は loyalty コストを起動型能力として分類する。
+3. `activationPlanForSource`(`commands.ts`)は loyalty コストを `addCounters` command(delta=loyaltyDelta, counterType='loyalty')として生成する。非マナコストパーサーには loyalty コスト文字列を除去して渡す。
+4. `activateAbility`(store)は CR 606.6 を強制する: `loyaltyDelta < 0` かつ現在の忠誠度 < |delta| の場合、警告を出して起動をブロックする(force 時は除く)。
+5. `activateAbility`(store)は CR 606.3 を強制する: `oncePerTurnTriggerLedger.consumedKeys` に `loyalty-activation:{sourceId}` が含まれる場合、警告を出して起動をブロックする(force 時は除く)。
+6. `commitActivation`(store)は loyalty コストを含む起動が成功したとき、`oncePerTurnTriggerLedger.consumedKeys` に `loyalty-activation:{sourceId}` を記録する。
+7. `applyAddCounters` は loyalty が 0 になったとき counter key を削除する(既存挙動)。テストは `counters.loyalty ?? 0` で 0 を検証する。
+
+**review**: `src/store/__tests__/review.cr606-loyalty-activation.test.ts`(7 cases)。
+
 ---
 
 ## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である

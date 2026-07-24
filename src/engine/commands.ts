@@ -3289,6 +3289,7 @@ function abilityCostFromRaw(raw: string): AbilityCost {
     mana: mana === '' ? null : mana,
     tap: /\{T\}/i.test(raw),
     sacrificesSelf: /^Sacrifice\b.*\b(?:this|it|self)\b/i.test(raw),
+    loyaltyDelta: null,
   };
 }
 
@@ -4206,9 +4207,14 @@ export function activationPlanForSource(
   );
   const commanderColorIdentity = commanderColorIdentityForState(state);
   const sourceSnapshot = objectSnapshotForCard(state, sourceId);
+  // CR 606.4: strip the loyalty cost from the raw text before passing to the
+  // nonmana cost parser. The loyalty command is added separately below.
+  const costRawWithoutLoyalty = ir.cost?.loyaltyDelta != null
+    ? resolvedCostRaw.replace(/^\s*[+−-]\d+\s*$/, '').trim()
+    : resolvedCostRaw;
   const nonmanaCost =
     sourceSnapshot && ir.cost
-      ? activationNonmanaCosts(state, resolvedCostRaw, sourceSnapshot, announcedX)
+      ? activationNonmanaCosts(state, costRawWithoutLoyalty, sourceSnapshot, announcedX)
       : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
   const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
   const compiledCost = compileAbilityCost(autoCost, {
@@ -4253,6 +4259,16 @@ export function activationPlanForSource(
     manaShortfall = plan.shortfall;
   }
   commands.push(...nonmanaCost.commands);
+
+  // CR 606.4: loyalty cost = add/remove loyalty counters on the source permanent.
+  if (ir.cost?.loyaltyDelta != null && ir.cost.loyaltyDelta !== 0) {
+    commands.push({
+      type: 'addCounters',
+      cardId: sourceId,
+      counterType: 'loyalty',
+      delta: ir.cost.loyaltyDelta,
+    });
+  }
 
   return {
     commands,

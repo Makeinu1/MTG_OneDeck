@@ -582,14 +582,18 @@
       "type": "domain-slice",
       "domainId": "cr-606-loyalty-activation",
       "crOrder": 606,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-602-activated-abilities"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr606-loyalty-activation",
+        "engine-spec-33.11",
+        "acceptance-G7"
+      ],
       "manualBoundary": "忠誠度コスト・1ターン1回・sorcery timingを完全に表せない間は既存CR602起動として自動支払いしない。",
-      "note": "旧ACT-5を実体CR606へ分離。通常Commanderで到達可能なplaneswalker忠誠度能力のenvelopeを凍結し、需要数を着手gateにしない。"
+      "note": "**出荷完了(2026-07-25・判定者=Codex・冷監査=Nash 019f967a)**: CR606.2/606.3/606.4/606.6 忠誠度能力起動。loyaltyDelta parsing(+N/-N/−N) + addCounters command + store CR606.6 insufficient block + CR606.3 once-per-turn ledger。冷監査 SHIPPED-OK(BLOCKER/HIGH=0・LOW×3: timing警告未実装=defer・0:能力未分類=既存制限・別PW陽性テスト不在)。corpus snapshot m→a 24件+m→g 13件=全PW loyalty行。"
     },
     {
       "type": "domain-slice",

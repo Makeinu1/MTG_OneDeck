@@ -49,6 +49,8 @@ export interface AbilityCost {
   mana: string | null;
   tap: boolean;
   sacrificesSelf: boolean;
+  /** CR 606.4: loyalty cost delta (positive = add, negative = remove). null = not a loyalty cost. */
+  loyaltyDelta: number | null;
 }
 
 export interface TriggerCondition {
@@ -199,7 +201,17 @@ function parseCost(text: string): AbilityCost {
     mana: mana === '' ? null : mana,
     tap: /\{T\}/i.test(raw),
     sacrificesSelf: /^Sacrifice\b.*\b(?:this|it|self)\b/i.test(raw),
+    loyaltyDelta: parseLoyaltyDelta(raw),
   };
+}
+
+/** CR 606.2/606.4: parse loyalty cost from ability cost text (e.g. "+1", "−2", "-7"). */
+function parseLoyaltyDelta(raw: string): number | null {
+  // Match +N, -N, or −N (unicode minus U+2212) as the entire cost
+  const match = /^\s*([+−-])(\d+)\s*$/.exec(raw);
+  if (!match) return null;
+  const value = Number.parseInt(match[2], 10);
+  return match[1] === '+' ? value : -value;
 }
 
 function parseTrigger(text: string): TriggerCondition | null {

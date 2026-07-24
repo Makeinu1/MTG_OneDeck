@@ -2695,15 +2695,33 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     try {
       const result = applyCommands(cur, [...pending.commands, addCmd]);
+      // CR 606.3: record loyalty activation in the once-per-turn ledger.
+      const hasLoyaltyCost = pending.commands.some(
+        (cmd) => cmd.type === 'addCounters' && cmd.counterType === 'loyalty',
+      );
+      const withLedger = hasLoyaltyCost
+        ? {
+            ...result.state,
+            oncePerTurnTriggerLedger: {
+              turn: result.state.turn,
+              consumedKeys: [
+                ...(result.state.oncePerTurnTriggerLedger?.turn === result.state.turn
+                  ? result.state.oncePerTurnTriggerLedger.consumedKeys
+                  : []),
+                `loyalty-activation:${pending.sourceId}`,
+              ],
+            },
+          }
+        : result.state;
       const next =
         pending.costDecision === 'auto'
           ? appendLog(
-              result.state,
+              withLedger,
               forced
                 ? `${cardLabel(cur, pending.sourceId)}の能力を強行起動(コスト精算)。`
                 : `${cardLabel(cur, pending.sourceId)}の能力を起動(コスト精算)。`,
             )
-          : result.state;
+          : withLedger;
       const manualWarning =
         pending.costDecision === 'auto'
           ? []
@@ -4140,6 +4158,45 @@ export const useGameStore = create<GameStore>((set, get) => {
       const sourceSnapshot = objectSnapshotForCard(cur, sourceId);
       if (!sourceSnapshot) {
         set({ warnings: [...get().warnings, `能力の発生源が存在しません: ${sourceId}`] });
+        return;
+      }
+
+      // CR 606.6: loyalty ability with negative cost requires sufficient loyalty counters.
+      const loyaltyCostCmd = plan?.commands.find(
+        (cmd): cmd is Extract<GameCommand, { type: 'addCounters' }> =>
+          cmd.type === 'addCounters' && cmd.counterType === 'loyalty',
+      );
+      if (loyaltyCostCmd && loyaltyCostCmd.delta < 0 && !opts?.force) {
+        const currentLoyalty = source?.counters.loyalty ?? 0;
+        if (currentLoyalty < Math.abs(loyaltyCostCmd.delta)) {
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}の忠誠度が${Math.abs(loyaltyCostCmd.delta)}に足りません(現在${currentLoyalty})。`,
+            ],
+            pendingGuided: null,
+          });
+          return;
+        }
+      }
+
+      // CR 606.3: only one loyalty ability per permanent per turn.
+      const loyaltyLedger = cur.oncePerTurnTriggerLedger;
+      const loyaltyActivationKey = `loyalty-activation:${sourceId}`;
+      if (
+        loyaltyCostCmd
+        && loyaltyLedger
+        && loyaltyLedger.turn === cur.turn
+        && loyaltyLedger.consumedKeys.includes(loyaltyActivationKey)
+        && !opts?.force
+      ) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, sourceId)}の忠誠度能力はこのターンにすでに起動されています(CR 606.3)。`,
+          ],
+          pendingGuided: null,
+        });
         return;
       }
 
