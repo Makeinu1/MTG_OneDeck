@@ -1911,6 +1911,28 @@ genericなcounter種別選択、`from among` の分配、別counter種の選択�
 
 UIは既存の共通解決workspaceを使う。カード候補はDecisionBarとkeyboardで選択でき、counter amountは `counter-cost-dialog` / `counter-cost-amount` / `counter-cost-confirm` / `counter-cost-cancel`、X cancelは `x-cost-cancel` を持つ。右クリック以外のaction-sheet代替を維持する。対応costだけを完遂してeffectが未対応なら、stack解決はguided/manualと明示し、カード全体を「自動化済み」と表示しない。
 
+### 33.9 CR121 cross-player draw 検証ピン(契約)
+
+**目的**: CR 121.1/121.2/121.2c/121.4 の cross-player draw 挙動が既存の `applyPlayerEffect` + `orderedRecipients` + `drawCards` 基盤で正しく実装されていることを review テストで固定する。新 GameCommand・新 GameState フィールドは追加しない。
+
+**CR 根拠**:
+- CR 121.1: draw = top card of library → hand
+- CR 121.2: cards drawn one at a time; multiple draws = individual card draws
+- CR 121.2c: multi-player draw ordering — active player first, then APNAP
+- CR 121.4 / CR 704.5b: empty library draw attempt → SBA loss
+
+**契約**:
+1. `applyPlayerEffect` with `recipients: 'eachPlayer'` は active player の draw を先に実行し、その後 APNAP 順で他プレイヤーの draw を実行する。event log の draw イベント順で検証可能であること。
+2. `recipients: 'eachOpponent'` は controller を除外する。
+3. 各プレイヤーの `drawOrdinal` は独立に 1 から始まる。
+4. 空ライブラリからの draw 試行は `empty-library-attempt` イベントを記録し、`stabilizeBeforePriority` が `emptyLibraryDrawAttemptedSinceLastSba` フラグを消費して defeat advisory(`emptyLibraryDraw` / `704.5b`)を生成する。
+5. 旧 `draw` command の `playerId` オプションは指定プレイヤーのライブラリから引き、省略時は `localPlayerId` にフォールバックする。
+6. `applyCommand` は純粋: 入力 state は変更されない。cross-player draw は単一の state 遷移を返す。
+
+**compiler 境界**: `countDrivenCommand` は `each player draws N` / `each opponent draws N` を `applyPlayerEffect` へコンパイルする。`target player draws` は `DRAW_UNSUPPORTED_RECIPIENT_OR_CONDITION` により manual のまま維持する(対象選択のモデル化が未実装のため)。
+
+**review**: `src/store/__tests__/review.cr121-cross-player-draw.test.ts`(8 cases)。
+
 ---
 
 ## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である

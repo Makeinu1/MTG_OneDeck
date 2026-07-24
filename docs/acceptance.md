@@ -518,6 +518,19 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G4-16 | exact《Chthonian Nightmare》型の可変nonmana複合コスト | `Pay X {E}` が未対応なので全体manual。energy、sacrifice、self-return、mana、stackの部分実行を自動化成功として扱わない |
 | G4-17 | G4-9〜16のUIを375px縦・812px横・1440pxで操作 | DecisionBar/action sheet/keyboardから到達でき、X/counter dialogのconfirm・cancelが表示内。右クリック専用操作なし、コンソールエラー0件 |
 
+### G5 CR121 cross-player draw 検証ピン(2026-07-24・engine-spec §33.9)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| G5-1 | `applyPlayerEffect(recipients:'eachPlayer', effect:'draw', amount:2)` を active player=P1 の状態で適用 | P1 が先に2枚引き、次に OPPONENT_A が2枚引く。event log の draw イベント順が P1×2 → OPPONENT_A×2 |
+| G5-2 | `applyPlayerEffect(recipients:'eachOpponent', effect:'draw', amount:1)` を controller=P1 で適用 | P1 は引かない。OPPONENT_A だけ1枚引く |
+| G5-3 | 各プレイヤー3枚 draw の event ordinal | P1 の drawOrdinal=[1,2,3]、OPPONENT_A の drawOrdinal=[1,2,3]。独立に1から始まる |
+| G5-4 | 空ライブラリの OPPONENT_A に each-player draw 1 | OPPONENT_A に `empty-library-attempt` イベント。SBA が defeat advisory(`emptyLibraryDraw`/`704.5b`)を生成。P1 に defeat なし |
+| G5-5 | ライブラリ1枚の OPPONENT_A に each-player draw 3 | drawn×1 + empty-library-attempt×2。defeat advisory 生成 |
+| G5-6 | `draw` command with `playerId: OPPONENT_A` | OPPONENT_A のライブラリから引く。P1 のライブラリは不変 |
+| G5-7 | `draw` command without `playerId` | `localPlayerId`(P1)のライブラリから引く |
+| G5-8 | cross-player draw の applyCommand 純粋性 | 入力 state は JSON 不変。出力 state のみ変更。単一遷移 |
+
 ### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
 
 | ID | 操作 | 期待結果 |

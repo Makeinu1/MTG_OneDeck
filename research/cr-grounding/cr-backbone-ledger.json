@@ -205,14 +205,18 @@
       "type": "domain-slice",
       "domainId": "cr-121-cross-player-draw",
       "crOrder": 121,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-121-drawing",
         "cr-player-specific-zones"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr121-cross-player-draw",
+        "engine-spec-33.9",
+        "acceptance-G5-1..8"
+      ],
       "manualBoundary": "draw以外のcross-player sacrifice/discard/mill/triggerは各CR領域へ分割し、このsliceで部分実行しない。",
-      "note": "CR121専用のクロスプレイヤーdraw。each/target playerのprivate-zone routing、CR121.2c順序、empty-library draw eventをplayerIdごとに忠実化する。既知警戒=self-loot旧単一プレイヤーAPI残骸の同型バグ。MyDeck cluster54枚は全CR横断のfixture母集団であり、本sliceではdraw形だけを抽出する。"
+      "note": "**出荷完了(2026-07-24・判定者=Codex・冷監査=Nietzsche 019f94c4)**: CR121 cross-player draw検証ピン。APNAP ordering・per-player ordinals・empty-library SBAをreview 8 casesで固定。冷監査 SHIPPED-OK。"
     },
     {
       "type": "domain-slice",
@@ -1839,7 +1843,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-121-drawing",
         "cr-player-specific-zones"
@@ -1849,11 +1853,16 @@
         "drawEvents",
         "emptyLibraryDrawFlags"
       ],
-      "boundary": "each/target player drawだけをplayer-awareに実行し、他のcross-player actionを混ぜない。",
-      "evidence": [],
+      "boundary": "each/target player drawをplayer-awareに実行。APNAP ordering(CR 121.2c)・per-player ordinals・empty-library SBA(CR 704.5b)をreviewで固定。target player drawsはcompiler境界でmanual維持。",
+      "evidence": [
+        "review.cr121-cross-player-draw",
+        "engine-spec-33.9",
+        "acceptance-G5-1..8"
+      ],
       "manualBoundary": "optional opponent draw、未モデルplayer selection、draw以外を含む複合文は全体manualへ落とす。",
-      "nextGate": "ACT-4出荷後の最若番CR slice。",
-      "judge": "deterministic-cr"
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
+      "judge": "deterministic-cr",
+      "note": "**出荷完了(2026-07-24・判定者=Codex・冷監査=Nietzsche 019f94c4)**: CR121 cross-player draw検証ピン。エンジンコード変更ゼロ。既存applyPlayerEffect+orderedRecipients+drawCards基盤がCR 121.1/121.2/121.2c/121.4を正しく満たすことをreview 8 casesで固定。spec §33.9・acceptance G5-1..8追加。冷監査 SHIPPED-OK(BLOCKER/HIGH/MEDIUM=0・LOW=2件参考情報)。"
     },
     {
       "id": "cr-605-mana-choice-ui",
