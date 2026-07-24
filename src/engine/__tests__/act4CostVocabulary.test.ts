@@ -73,6 +73,8 @@ describe('ACT-4: tap-object cost (Relic of Legends pattern)', () => {
     expect(tapPrompt).toBeDefined();
     expect(tapPrompt!.filter?.types).toContain('creature');
     expect(tapPrompt!.filter?.controller).toBe('you');
+    expect(tapPrompt!.filter?.supertypes).toEqual(['legendary']);
+    expect(tapPrompt!.filter?.zone).toBe('battlefield');
   });
 
   it('tap-object component is present with guided status', () => {
@@ -99,6 +101,80 @@ describe('ACT-4: tap-object cost (Relic of Legends pattern)', () => {
     expect(tapComponent).toBeDefined();
     expect(tapComponent!.status).toBe('guided');
     expect(tapComponent!.amount).toBe(1);
+  });
+
+  it('keeps the source eligible unless "other" or a separate self-tap reserves it', () => {
+    const source = activatedSource(
+      'source-eligible-tap-cost',
+      'Artifact',
+      'Tap an untapped artifact you control: Draw a card.',
+    );
+    let state = initGame([{ def: source, isCommander: false }, ...makeDeck(12)], 8);
+    const sourceId = idOf(state, 'source-eligible-tap-cost');
+    state = onBattlefield(state, sourceId);
+
+    const prompt = activationPlanForSource(state, sourceId, 0)?.costPrompts[0];
+    expect(prompt).toMatchObject({
+      kind: 'cost-tap',
+      count: 1,
+      filter: { excludeSource: false, types: ['artifact'] },
+    });
+  });
+});
+
+describe('ACT-4: named counter removal', () => {
+  it('prepares an exact self-removal command without clamping the requested amount', () => {
+    const source = activatedSource(
+      'counter-self-cost',
+      'Artifact',
+      'Remove four charge counters from this artifact: Draw a card.',
+    );
+    let state = initGame([{ def: source, isCommander: false }, ...makeDeck(12)], 9);
+    const sourceId = idOf(state, 'counter-self-cost');
+    state = onBattlefield(state, sourceId);
+
+    const plan = activationPlanForSource(state, sourceId, 0);
+    expect(plan?.commands).toContainEqual({
+      type: 'addCounters',
+      cardId: sourceId,
+      counterType: 'charge',
+      delta: -4,
+    });
+    expect(plan?.costComponents).toContainEqual(
+      expect.objectContaining({
+        kind: 'remove-counter',
+        counterType: 'charge',
+        amount: 4,
+        status: 'auto',
+      }),
+    );
+  });
+
+  it('bounds one-or-more by the source current named-counter count', () => {
+    const source = activatedSource(
+      'counter-amount-cost',
+      'Artifact Creature — Robot',
+      'Remove one or more +1/+1 counters from this artifact: Draw a card.',
+    );
+    let state = initGame([{ def: source, isCommander: false }, ...makeDeck(12)], 10);
+    const sourceId = idOf(state, 'counter-amount-cost');
+    state = onBattlefield(state, sourceId);
+    state = applyCommand(state, {
+      type: 'addCounters',
+      cardId: sourceId,
+      counterType: '+1/+1',
+      delta: 3,
+    }).state;
+
+    expect(activationPlanForSource(state, sourceId, 0)?.costPrompts[0]).toMatchObject({
+      kind: 'cost-remove-counter',
+      counterCost: {
+        interaction: 'amount',
+        counterType: '+1/+1',
+        amount: { kind: 'one-or-more', min: 1, max: 3 },
+        sourceId,
+      },
+    });
   });
 });
 
@@ -165,6 +241,24 @@ describe('ACT-4: {X} guided unblock (Gogo / Pernicious Deed pattern)', () => {
       (c) => c.type === 'moveCard' && c.cardId === sourceId && c.to === 'graveyard',
     );
     expect(sacCmd).toBeDefined();
+  });
+
+  it('distinguishes unbound X from an explicitly announced zero', () => {
+    const source = activatedSource(
+      'zero-x-deed',
+      'Enchantment',
+      '{X}, Sacrifice this enchantment: Draw a card.',
+    );
+    let state = initGame([{ def: source, isCommander: false }, ...makeDeck(12)], 11);
+    const sourceId = idOf(state, 'zero-x-deed');
+    state = onBattlefield(state, sourceId);
+
+    expect(activationPlanForSource(state, sourceId, 0)?.decision).toBe('manual');
+    const zeroPlan = activationPlanForSource(state, sourceId, 0, 0);
+    expect(zeroPlan?.decision).toBe('auto');
+    expect(zeroPlan?.costComponents).toContainEqual(
+      expect.objectContaining({ kind: 'mana', amount: 0 }),
+    );
   });
 });
 

@@ -208,6 +208,7 @@ export type ActivationCostComponentKind =
   | 'pay-life'
   | 'discard'
   | 'tap-object'
+  | 'remove-counter'
   | 'mill';
 export type ActivationCostComponentStatus = 'auto' | 'guided' | 'manual' | 'unparsed';
 
@@ -221,6 +222,7 @@ export interface ActivationCostComponent {
   subjectRef?: ActivationSourceRef;
   subjectRefs?: ActivationSourceRef[];
   manaCost?: string;
+  counterType?: string;
 }
 
 export interface ActivationEnvelope {

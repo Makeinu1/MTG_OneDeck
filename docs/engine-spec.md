@@ -1844,6 +1844,73 @@ function activatedManaAbilityPlanForSource(
 - **変更対象**: `src/engine/grammar/compile.ts`(`compileAbilityCost`・`CompiledCost`/`CostDecision`・純粋・新コマンド型0)/ `src/engine/commands.ts`(純ヘルパ `activationPlanForSource` / `activatedManaAbilityPlanForSource`・state 読み取り専用。§32 の `guidedPlanForStackTop` 追加と同格。**新 GameCommand 型は追加しない**)/ `src/store/gameStore.ts`(`activateAbility` action・薄いオーケストレーション)/ `src/components/playmat/Playmat.tsx`(`ability-activate` を `activateAbility` へ配線)/ `scripts/grammar-compile.ts`(cost セクション)/ `research/grammar-compile/*`(生成物)。`commands.ts`/`types.ts` に**新コマンド型は追加しない**。`ir.ts`/`index.ts` は**変更しない**(コスト消費とマナ加算は既存コマンドへ写すのが G4 の肝)。`review.*` / `docs/` / `CLAUDE.md` / `eslint.config.js` / `CACHE_SCHEMA_VERSION` / `rule/` txt のコミット / git 操作は禁止。
 - reviewer 専有テスト `review.grammar-cost`(純 `compileAbilityCost`)/ `review.g4-activate`(`activationPlanForSource` engine 統合・I9)は Fable が先に書く(済)。Codex は触らない。既存 `review.grammar-compile` に cost セクションが増えた分の期待値は **Fable が更新**(実装は触らない)。`review.properties`(I1〜I7)は既存コマンド経由ゆえ変更不要。機械チェック(`npm run check`)全通過 + `npm run grammar-compile` が 17,491枚で完走し §33.5 の activation frontier / fully-playable を出力すること。
 
+### 33.8 ACT-4: 選択を伴う起動コスト(他パーマネントのタップ・カウンター除去・`{X}`)
+
+**CR grounding**: CR 107.1a-c, 107.3a/k, 107.5, 118.3-118.4, 122.1, 601.2f-h, 602.2/b, 605.3b, 701.26a, 733.1。ACT-4 は既存 `PendingGuidedResolution` / `ResolutionSession` を使い、選択を一時データへ積んだ後にコスト全体を1トランザクションで確定する。**新 `GameCommand`、新 `GameState` フィールド、別系統の pending state は追加しない。**
+
+#### 33.8.1 公開型・API
+
+- `PromptKind` に `'cost-remove-counter'` を追加する。
+- `TargetFilter` に加算的な `supertypes?: string[]`、`subtypes?: string[]`、`tokenOnly?: boolean` を追加する。既存 `types` / `controller` / `zone` とANDで評価し、実カードの active face type line と token 属性へ照合する。
+- `ActivationCostComponentKind` に `'remove-counter'`、`ActivationCostComponent` に `counterType?: string` を追加する。確定した component は `subjectRef`、正規化済み `counterType`、具体的な `amount` を必ず持つ。
+- `EffectPrompt.counterCost` は `kind==='cost-remove-counter'` の時だけ存在し、次の判別可能形を取る。
+
+```ts
+type CounterCostPrompt =
+  | {
+      interaction: 'source';
+      counterType: string;
+      amount: { kind: 'fixed'; value: number };
+    }
+  | {
+      interaction: 'amount';
+      counterType: string;
+      amount: { kind: 'one-or-more'; min: 1; max: number };
+      sourceId: string;
+    };
+```
+
+- `confirmGuidedCostSubject(cardId)` は既存のカード選択と同じ経路で `interaction:'source'` を処理する。`GameStore` に `confirmGuidedCounterAmount(amount: number): void` を追加し、`interaction:'amount'` だけを処理する。
+- `activationPlanForSource` と `activatedManaAbilityPlanForSource` のX入力は `announcedX?: number` とする。`undefined` は未宣言、`0` は明示的に宣言された合法なゼロであり、混同しない。両plannerは同じ純粋なコスト解析を再利用し、マナ能力側にも `costComponents` / cost prompt を伝播する。
+- 既存 `ActivateAbilityOptions.xValue` とスタック能力の `CardInstance.announcedX` を正本とする。X用の永続 state は追加しない。追加フィールドは型のoptional/unionだけで、pending UIは保存対象外のため `CACHE_SCHEMA_VERSION` と `restoreGame` backfill は変更しない。
+
+#### 33.8.2 他パーマネントをタップするコスト
+
+認識する形は `Tap [a|an|one|固定N|X] [other] [untapped] <descriptor> you control`。Xは同じ起動で宣言済みの場合だけ扱う。descriptor は permanent card type、`artifact and/or creature` / `artifact or creature`、`legendary`、単一 subtype、`token(s)` の組合せだけを扱う。
+
+候補は battlefield 上で payer が control し、未タップで、全descriptorに合致し、同じコストで未予約の permanent とする。Oracleが `other` と言う、別の `{T}` がsourceを予約済み、またはdescriptor不一致の場合だけsourceを除外する。散文のtapコストにはsummoning sicknessを適用しない(CR 107.5の制約はtap symbolに限る)。固定N／Xについてexactly N枚をpayerの選択順で予約し、`setTapped` を生成する。X=0は選択promptもtap commandも生成しない。
+
+power/toughness、mana value、能力・counterの有無、共有type比較、他プレイヤーの選択、`any number`、未対応の接続詞を含むdescriptorはコスト全体をmanualにする。合法候補が不足するrules-legal起動は盤面変更前に拒否する。強行時も既にタップ済みの物を支払い済みとは表示しない。
+
+#### 33.8.3 カウンターを取り除くコスト
+
+ACT-4で認識するのは次だけである。
+
+1. strict selfから、名前付きcounterを固定正数N個取り除く(auto)。
+2. payerがcontrolする単一の `<permanent|artifact|creature>` から、名前付きcounterを固定正数N個取り除く(source選択guided)。
+3. strict selfから、名前付きcounterを `one or more` 取り除く(amount選択guided、`1..現在数`)。
+4. strict selfから、名前付きcounterを宣言済みX個取り除く(auto。X=0も合法)。
+
+strict selfは `this ...`、`it`、`~`、active face名／split card名へ正確に照合する。確定直前に同じ `objectId`、zone、controller、counter type、具体amount、累積予約量を再検証する。正数amountについて現在数未満ならコスト全体を拒否し、`addCounters` のゼロclampに依存しない。全体preflight後だけ `{type:'addCounters', cardId, counterType, delta:-amount}` を生成する。
+
+genericなcounter種別選択、`from among` の分配、別counter種の選択肢、`any number of`、player counter、loyalty cost、counter移動／追加、置換効果を伴う除去はmanualとする。
+
+#### 33.8.4 `{X}` の宣言・束縛
+
+- 選択した起動コストに `{X}` があれば、対象／コスト対象選択より先に整数Xを1回だけ求める。既定最小値は0、正確な `X can't/cannot be 0` があれば1。未入力・負数・小数は起動しない。
+- 同じ値をコストとルール文章中の全Xに使う。`{X}{X}` は `2*X`、`{X}{X}{X}` は `3*X`。起動ごとに新しく選び、sourceや以前のstack objectから再利用しない。
+- 通常能力は生成する1個のstack abilityへ `announcedX` を保存し、stack copyはこれを保持する。mana abilityはstackを使わないが、同じ値をその1回のコスト／効果計画へ使う。
+- X dialogまたは後続promptのcancelは、mana、tap、counter、zone、stackのいずれも変更しない。rules-legalでマナ不足なら全体を拒否する。明示的な強行は非CR合法warningを伴う既存sandbox経路だけで許す。
+- `Pay X life`、`Pay X {E}`、X体のsacrifice/discard/exile、複数sourceからのremove-Xはmanual。`{X}` mana部分だけを先に払わない。
+
+#### 33.8.5 原子性・順序・誠実な縮退
+
+全コスト要素を先に解析し、1要素でもmanual/unparsedなら**コスト全体をmanual**にして、認識済み要素も部分実行しない。選択回答はpending interactionだけへ保存し、最終preflight通過後に限り1回の `applyCommands` と1回の `commit` を行う。cancel、回答の陳腐化、`EngineError` は起動要求前の `GameState` を保つ。
+
+決定的なcommand順は、(1)既存self cost、(2)mana source tapと`payMana`、(3)Oracle左から右の他nonmana cost、(4)各component内の回答順、(5)通常能力の `addAbilityToStack` またはmana abilityのno-stack effect。通常能力はstackへ正確に1個追加し、mana abilityはCR 605どおりstackへ追加しない。成功後は1 undoで起動前、1 redoで同じ支払いと結果へ戻る。
+
+UIは既存の共通解決workspaceを使う。カード候補はDecisionBarとkeyboardで選択でき、counter amountは `counter-cost-dialog` / `counter-cost-amount` / `counter-cost-confirm` / `counter-cost-cancel`、X cancelは `x-cost-cancel` を持つ。右クリック以外のaction-sheet代替を維持する。対応costだけを完遂してeffectが未対応なら、stack解決はguided/manualと明示し、カード全体を「自動化済み」と表示しない。
+
 ---
 
 ## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である

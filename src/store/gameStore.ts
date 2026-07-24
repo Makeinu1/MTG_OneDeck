@@ -157,7 +157,17 @@ export interface PendingActivation {
 export interface PendingManaAbility {
   abilityLineIndex?: number;
   manaShortfall: number;
+  sourceSnapshot: NonNullable<ActivationEnvelope['sourceRef']['snapshot']>;
+  costComponents: ActivationCostComponent[];
+  costPrompts: EffectPrompt[];
+  paymentMode: ActivationPaymentMode;
+  announcedX?: number;
 }
+
+type PendingCostState = Pick<
+  PendingActivation,
+  'sourceSnapshot' | 'costComponents' | 'costPrompts' | 'paymentMode'
+>;
 
 /**
  * ACT-2: 支払えない起動コストの強行候補(サンドボックス哲学=禁止せず確認する)。
@@ -1003,6 +1013,7 @@ export interface GameStore {
   confirmGuidedLibrarySearch(cardId?: string): void;
   confirmGuidedSacrifice(cardId: string): void;
   confirmGuidedCostSubject(cardId: string): void;
+  confirmGuidedCounterAmount(amount: number): void;
   confirmGuidedPlayerTarget(playerId: PlayerId): void;
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   confirmGuidedModal(chosen: number[]): void;
@@ -2109,6 +2120,39 @@ export const useGameStore = create<GameStore>((set, get) => {
     const cur = get().state;
     if (!cur) return;
 
+    const costCheck: PendingActivation = {
+      sourceId: pending.sourceId,
+      ...(pending.manaAbility.abilityLineIndex === undefined
+        ? {}
+        : { abilityLineIndex: pending.manaAbility.abilityLineIndex }),
+      commands: commands.slice(),
+      costComponents: pending.manaAbility.costComponents,
+      costPrompts: pending.manaAbility.costPrompts,
+      sourceSnapshot: pending.manaAbility.sourceSnapshot,
+      targetSelections: [],
+      paymentMode: pending.manaAbility.paymentMode,
+      manaShortfall: pending.manaAbility.manaShortfall,
+      costDecision: 'auto',
+      ...(pending.manaAbility.announcedX === undefined
+        ? {}
+        : { announcedX: pending.manaAbility.announcedX }),
+    };
+    const preflightWarnings = [
+      ...activationCostWarnings(cur, costCheck),
+      ...costSubjectWarnings(cur, pending.sourceId, pending.manaAbility),
+    ];
+    if (
+      hasUnpayableCounterRemoval(cur, pending.manaAbility)
+      || (
+        pending.manaAbility.paymentMode === 'rules-legal'
+        && preflightWarnings.length > 0
+      )
+    ) {
+      discardPendingGuided();
+      set({ warnings: [...get().warnings, ...preflightWarnings] });
+      return;
+    }
+
     try {
       const result = resolveManaAbilityTransaction(cur, {
         sourceId: pending.sourceId,
@@ -2117,7 +2161,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           : { abilityLineIndex: pending.manaAbility.abilityLineIndex }),
         commands,
       });
-      const warnings = result.warnings.slice();
+      const warnings = [...result.warnings, ...preflightWarnings];
       if (pending.manaAbility.manaShortfall > 0) {
         warnings.push(
           `${cardLabel(cur, pending.sourceId)}のマナ能力の起動コストのマナが${pending.manaAbility.manaShortfall}点不足しています。`,
@@ -2132,7 +2176,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
-  function advanceGuidedManaAbility(extraCommands: readonly GameCommand[]): void {
+  function advanceGuidedManaAbility(
+    extraCommands: readonly GameCommand[],
+    costComponents?: readonly ActivationCostComponent[],
+  ): void {
     const pending = get().pendingGuided;
     if (!isManaAbilityPending(pending)) {
       return;
@@ -2141,7 +2188,18 @@ export const useGameStore = create<GameStore>((set, get) => {
     const commands = [...pending.commands, ...extraCommands];
     const prompts = pending.prompts.slice(1);
     if (prompts.length === 0) {
-      finishGuidedManaAbility(pending, commands);
+      finishGuidedManaAbility(
+        costComponents
+          ? {
+              ...pending,
+              manaAbility: {
+                ...pending.manaAbility,
+                costComponents: costComponents.slice(),
+              },
+            }
+          : pending,
+        commands,
+      );
       return;
     }
 
@@ -2149,6 +2207,14 @@ export const useGameStore = create<GameStore>((set, get) => {
         ...pending,
         prompts,
         commands,
+        ...(costComponents
+          ? {
+              manaAbility: {
+                ...pending.manaAbility,
+                costComponents: costComponents.slice(),
+              },
+            }
+          : {}),
     });
   }
 
@@ -2175,7 +2241,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     };
   }
 
-  function selectedCostSubjectIds(activation: PendingActivation): Set<string> {
+  function selectedCostSubjectIds(activation: PendingCostState): Set<string> {
     const ids = new Set<string>();
     for (const component of activation.costComponents) {
       if (component.subjectRef) {
@@ -2190,7 +2256,8 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   function eligibleCostSubjectIds(
     state: GameState,
-    pending: PendingActivation,
+    sourceId: string,
+    pending: PendingCostState,
     prompt: EffectPrompt,
     options: { excludeSelected?: boolean } = {},
   ): string[] {
@@ -2204,19 +2271,34 @@ export const useGameStore = create<GameStore>((set, get) => {
       return eligibleTargets(
         state,
         prompt.filter ?? { types: ['permanent'], controller: 'you' },
-        { sourceId: pending.sourceId },
-      ).filter((cardId) => cardId !== pending.sourceId && !selected.has(cardId));
+        { sourceId },
+      ).filter((cardId) => cardId !== sourceId && !selected.has(cardId));
     }
     if (prompt.kind === 'cost-tap') {
       return eligibleTargets(
         state,
         prompt.filter ?? { types: ['permanent'], controller: 'you' },
-        { sourceId: pending.sourceId },
+        { sourceId },
       ).filter(
         (cardId) =>
-          cardId !== pending.sourceId &&
           state.cards[cardId]?.tapped !== true &&
           !selected.has(cardId),
+      );
+    }
+    if (
+      prompt.kind === 'cost-remove-counter'
+      && prompt.counterCost?.interaction === 'source'
+    ) {
+      const required = prompt.counterCost.amount.value;
+      const counterType = prompt.counterCost.counterType;
+      return eligibleTargets(
+        state,
+        prompt.filter ?? { types: ['permanent'], controller: 'you' },
+        { sourceId },
+      ).filter(
+        (cardId) =>
+          (state.cards[cardId]?.counters[counterType] ?? 0) >= required
+          && !selected.has(cardId),
       );
     }
     return [];
@@ -2270,6 +2352,47 @@ export const useGameStore = create<GameStore>((set, get) => {
     };
   }
 
+  function hasUnpayableCounterRemoval(
+    state: GameState,
+    pending: PendingCostState,
+  ): boolean {
+    const reservations = new Map<string, number>();
+    for (const component of pending.costComponents) {
+      if (component.kind !== 'remove-counter') continue;
+      const amountPrompt = pending.costPrompts.find(
+        (entry) =>
+          entry.kind === 'cost-remove-counter'
+          && entry.counterCost?.interaction === 'amount'
+          && costComponentSlotIdForPrompt(entry) === component.slotId,
+      );
+      if (
+        amountPrompt?.counterCost?.interaction === 'amount'
+        && amountPrompt.counterCost.amount.max < amountPrompt.counterCost.amount.min
+      ) {
+        return true;
+      }
+      if (component.amount === undefined || !component.subjectRef || !component.counterType) {
+        continue;
+      }
+      const { physicalCardId, objectId } = component.subjectRef;
+      const snapshot = objectSnapshotForCard(state, physicalCardId);
+      const card = state.cards[physicalCardId];
+      const key = `${objectId}\u0000${component.counterType}`;
+      const reserved = (reservations.get(key) ?? 0) + component.amount;
+      reservations.set(key, reserved);
+      if (
+        !snapshot
+        || snapshot.objectId !== objectId
+        || card?.zone !== 'battlefield'
+        || card.controllerId !== component.payerId
+        || (card.counters[component.counterType] ?? 0) < reserved
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function activationCostWarnings(state: GameState, pending: PendingActivation): string[] {
     const warnings: string[] = [];
     if (pending.manaShortfall > 0) {
@@ -2285,6 +2408,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (paysTapSelf && source?.tapped) {
       warnings.push(`${cardLabel(state, pending.sourceId)}はすでにタップされています。`);
     }
+    const counterReservations = new Map<string, number>();
     for (const component of pending.costComponents) {
       const amount = component.amount ?? 0;
       const payerId = component.payerId
@@ -2311,11 +2435,74 @@ export const useGameStore = create<GameStore>((set, get) => {
             costComponentSlotIdForPrompt(entry) === component.slotId,
         );
         const eligibleCount = prompt
-          ? eligibleCostSubjectIds(state, pending, prompt, { excludeSelected: false }).length
+          ? eligibleCostSubjectIds(
+              state,
+              pending.sourceId,
+              pending,
+              prompt,
+              { excludeSelected: false },
+            ).length
           : 0;
         if (eligibleCount < amount) {
           warnings.push(
             `${cardLabel(state, pending.sourceId)}の起動コストで生け贄に捧げるパーマネントが${amount - eligibleCount}体不足しています。`,
+          );
+        }
+      }
+      if (component.kind === 'tap-object') {
+        const prompt = pending.costPrompts.find(
+          (entry) =>
+            entry.kind === 'cost-tap'
+            && costComponentSlotIdForPrompt(entry) === component.slotId,
+        );
+        const eligibleCount = prompt
+          ? eligibleCostSubjectIds(
+              state,
+              pending.sourceId,
+              pending,
+              prompt,
+              { excludeSelected: false },
+            ).length
+          : 0;
+        if (eligibleCount < amount) {
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}の起動コストでタップするパーマネントが${amount - eligibleCount}体不足しています。`,
+          );
+        }
+      }
+      if (component.kind === 'remove-counter') {
+        const amountPrompt = pending.costPrompts.find(
+          (entry) =>
+            entry.kind === 'cost-remove-counter'
+            && entry.counterCost?.interaction === 'amount'
+            && costComponentSlotIdForPrompt(entry) === component.slotId,
+        );
+        if (
+          amountPrompt?.counterCost?.interaction === 'amount'
+          && amountPrompt.counterCost.amount.max < amountPrompt.counterCost.amount.min
+        ) {
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}の${component.counterType ?? ''}カウンターが不足しています。`,
+          );
+        }
+        if (component.amount === undefined || !component.subjectRef || !component.counterType) {
+          continue;
+        }
+        const subject = component.subjectRef;
+        const snapshot = objectSnapshotForCard(state, subject.physicalCardId);
+        const key = `${subject.objectId}\u0000${component.counterType}`;
+        const reserved = (counterReservations.get(key) ?? 0) + component.amount;
+        counterReservations.set(key, reserved);
+        const card = state.cards[subject.physicalCardId];
+        if (
+          !snapshot
+          || snapshot.objectId !== subject.objectId
+          || card?.zone !== 'battlefield'
+          || card.controllerId !== component.payerId
+          || (card.counters[component.counterType] ?? 0) < reserved
+        ) {
+          warnings.push(
+            `${cardLabel(state, pending.sourceId)}の${component.counterType}カウンターが不足しています。`,
           );
         }
       }
@@ -2367,17 +2554,50 @@ export const useGameStore = create<GameStore>((set, get) => {
       : [];
   }
 
-  function costSubjectWarnings(state: GameState, pending: PendingActivation): string[] {
+  function costSubjectWarnings(
+    state: GameState,
+    sourceId: string,
+    pending: PendingCostState,
+  ): string[] {
     const warnings: string[] = [];
+    const counterReservations = new Map<string, number>();
     for (const component of pending.costComponents) {
-      if (component.kind !== 'discard' && component.kind !== 'sacrifice-object' && component.kind !== 'tap-object') {
+      if (
+        component.kind !== 'discard'
+        && component.kind !== 'sacrifice-object'
+        && component.kind !== 'tap-object'
+        && component.kind !== 'remove-counter'
+      ) {
         continue;
       }
       const amount = component.amount ?? 0;
       const subjectRefs =
         component.subjectRefs ?? (component.subjectRef ? [component.subjectRef] : []);
+      if (component.kind === 'remove-counter') {
+        const subjectRef = component.subjectRef;
+        const counterType = component.counterType;
+        if (!subjectRef || !counterType || component.amount === undefined) {
+          warnings.push(`${cardLabel(state, sourceId)}のカウンター除去コストの選択が未完了です。`);
+          continue;
+        }
+        const snapshot = objectSnapshotForCard(state, subjectRef.physicalCardId);
+        const card = state.cards[subjectRef.physicalCardId];
+        const key = `${subjectRef.objectId}\u0000${counterType}`;
+        const reserved = (counterReservations.get(key) ?? 0) + component.amount;
+        counterReservations.set(key, reserved);
+        if (
+          !snapshot
+          || snapshot.objectId !== subjectRef.objectId
+          || card?.zone !== 'battlefield'
+          || card.controllerId !== component.payerId
+          || (card.counters[counterType] ?? 0) < reserved
+        ) {
+          warnings.push(`${cardLabel(state, sourceId)}の${counterType}カウンターが不足しています。`);
+        }
+        continue;
+      }
       if (subjectRefs.length < amount) {
-        warnings.push(`${cardLabel(state, pending.sourceId)}の起動コストの選択が未完了です。`);
+        warnings.push(`${cardLabel(state, sourceId)}の起動コストの選択が未完了です。`);
         continue;
       }
       if (component.kind === 'discard') {
@@ -2389,57 +2609,42 @@ export const useGameStore = create<GameStore>((set, get) => {
           (subjectRef) => !payerHand.includes(subjectRef.physicalCardId),
         );
         if (invalid) {
-          warnings.push(
-            `${cardLabel(state, pending.sourceId)}の捨てるカードが現在の手札にありません。`,
-          );
+          warnings.push(`${cardLabel(state, sourceId)}の捨てるカードが現在の手札にありません。`);
         }
         continue;
       }
 
-      if (component.kind === 'tap-object') {
-        const tapPrompt = pending.costPrompts.find(
-          (entry) =>
-            entry.kind === 'cost-tap' &&
-            costComponentSlotIdForPrompt(entry) === component.slotId,
-        );
-        const tapEligible = new Set(
-          tapPrompt ? eligibleCostSubjectIds(state, pending, tapPrompt, { excludeSelected: false }) : [],
-        );
-        const tapInvalid = subjectRefs.some((subjectRef) => {
-          const snapshot = objectSnapshotForCard(state, subjectRef.physicalCardId);
-          return (
-            !snapshot ||
-            snapshot.objectId !== subjectRef.objectId ||
-            !tapEligible.has(subjectRef.physicalCardId)
-          );
-        });
-        if (tapInvalid) {
-          warnings.push(
-            `${cardLabel(state, pending.sourceId)}のタップコストの選択が現在の候補にありません。`,
-          );
-        }
-        continue;
-      }
-
+      const promptKind =
+        component.kind === 'tap-object' ? 'cost-tap' : 'cost-sacrifice';
       const prompt = pending.costPrompts.find(
         (entry) =>
-          entry.kind === 'cost-sacrifice' &&
-          costComponentSlotIdForPrompt(entry) === component.slotId,
+          entry.kind === promptKind
+          && costComponentSlotIdForPrompt(entry) === component.slotId,
       );
       const eligible = new Set(
-        prompt ? eligibleCostSubjectIds(state, pending, prompt, { excludeSelected: false }) : [],
+        prompt
+          ? eligibleCostSubjectIds(
+              state,
+              sourceId,
+              pending,
+              prompt,
+              { excludeSelected: false },
+            )
+          : [],
       );
       const invalid = subjectRefs.some((subjectRef) => {
         const snapshot = objectSnapshotForCard(state, subjectRef.physicalCardId);
         return (
-          !snapshot ||
-          snapshot.objectId !== subjectRef.objectId ||
-          !eligible.has(subjectRef.physicalCardId)
+          !snapshot
+          || snapshot.objectId !== subjectRef.objectId
+          || !eligible.has(subjectRef.physicalCardId)
         );
       });
       if (invalid) {
         warnings.push(
-          `${cardLabel(state, pending.sourceId)}の生け贄コストの選択が現在の候補にありません。`,
+          component.kind === 'tap-object'
+            ? `${cardLabel(state, sourceId)}のタップコストの選択が現在の候補にありません。`
+            : `${cardLabel(state, sourceId)}の生け贄コストの選択が現在の候補にありません。`,
         );
       }
     }
@@ -2462,10 +2667,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       ...activationCostWarnings(cur, pending),
       ...missingTargetWarnings(cur, pending, remainingPrompts, targetSelections),
       ...uncheckedTargetWarnings(cur, pending, targetSelections),
-      ...costSubjectWarnings(cur, pending),
+      ...costSubjectWarnings(cur, pending.sourceId, pending),
     ];
     const forced = pending.paymentMode === 'forced';
-    if (!forced && warnings.length > 0) {
+    if (
+      hasUnpayableCounterRemoval(cur, pending)
+      || (!forced && warnings.length > 0)
+    ) {
       discardPendingGuided();
       set({ warnings: [...get().warnings, ...warnings] });
       return;
@@ -3720,9 +3928,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         ? undefined
         : splitAbilityLines(def)[resolvedAbilityLineIndex];
       const costText = abilityLine?.text.split(':', 1)[0] ?? '';
-      const xSymbols = parseManaCost(costText).x;
+      const costHasX = /\{X\}|\bX\b/i.test(costText);
       let announcedX: number | undefined;
-      if (xSymbols > 0) {
+      if (costHasX) {
         const requestedX = opts?.xValue;
         const minimum = /\bX can['’]t be 0\b|\bX cannot be 0\b/i.test(abilityLine?.text ?? '') ? 1 : 0;
         if (requestedX === undefined || !Number.isInteger(requestedX) || requestedX < minimum) {
@@ -3741,6 +3949,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         cur,
         sourceId,
         resolvedAbilityLineIndex,
+        announcedX,
       );
       if (manaAbilityPlan) {
         // CR 118.3/602.2: the no-stack mana path enforces the same cost atomicity as the
@@ -3807,6 +4016,53 @@ export const useGameStore = create<GameStore>((set, get) => {
             ],
           });
         }
+        const manaSourceSnapshot = objectSnapshotForCard(cur, sourceId);
+        if (!manaSourceSnapshot) {
+          set({
+            warnings: [...get().warnings, `能力の発生源が存在しません: ${sourceId}`],
+            pendingGuided: null,
+          });
+          return;
+        }
+        const paymentMode: ActivationPaymentMode =
+          opts?.force === true ? 'forced' : 'rules-legal';
+        const costCheck: PendingActivation = {
+          sourceId,
+          ...(resolvedAbilityLineIndex === undefined
+            ? {}
+            : { abilityLineIndex: resolvedAbilityLineIndex }),
+          commands: manaAbilityPlan.commands,
+          costComponents: manaAbilityPlan.costComponents,
+          costPrompts: manaAbilityPlan.costPrompts,
+          sourceSnapshot: manaSourceSnapshot,
+          targetSelections: [],
+          paymentMode,
+          manaShortfall: manaAbilityPlan.manaShortfall,
+          costDecision: 'auto',
+          ...(announcedX === undefined ? {} : { announcedX }),
+        };
+        const costWarnings = activationCostWarnings(cur, costCheck);
+        const hardCounterFailure = hasUnpayableCounterRemoval(cur, costCheck);
+        if (
+          hardCounterFailure
+          || (paymentMode === 'rules-legal' && costWarnings.length > 0)
+        ) {
+          set({
+            warnings: [...get().warnings, ...costWarnings],
+            pendingGuided: null,
+            pendingForceActivation: hardCounterFailure
+              ? null
+              : {
+                  sourceId,
+                  ...(resolvedAbilityLineIndex === undefined
+                    ? {}
+                    : { abilityLineIndex: resolvedAbilityLineIndex }),
+                  ...(announcedX === undefined ? {} : { xValue: announcedX }),
+                  warnings: costWarnings,
+                },
+          });
+          return;
+        }
         if (manaAbilityPlan.decision === 'manual') {
           set({
             warnings: [
@@ -3836,6 +4092,11 @@ export const useGameStore = create<GameStore>((set, get) => {
                   ? {}
                   : { abilityLineIndex: resolvedAbilityLineIndex }),
                 manaShortfall: manaAbilityPlan.manaShortfall,
+                sourceSnapshot: manaSourceSnapshot,
+                costComponents: manaAbilityPlan.costComponents,
+                costPrompts: manaAbilityPlan.costPrompts,
+                paymentMode,
+                ...(announcedX === undefined ? {} : { announcedX }),
               },
           });
           set({
@@ -3875,7 +4136,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
-      const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex, announcedX ?? 0);
+      const plan = activationPlanForSource(cur, sourceId, resolvedAbilityLineIndex, announcedX);
       const sourceSnapshot = objectSnapshotForCard(cur, sourceId);
       if (!sourceSnapshot) {
         set({ warnings: [...get().warnings, `能力の発生源が存在しません: ${sourceId}`] });
@@ -3906,21 +4167,27 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
       const costWarnings = activationCostWarnings(cur, pendingActivation);
       const timingWarning = sorcerySpeedWarning(cur, pendingActivation);
-      if (paymentMode === 'rules-legal' && costWarnings.length > 0) {
+      const hardCounterFailure = hasUnpayableCounterRemoval(cur, pendingActivation);
+      if (
+        hardCounterFailure
+        || (paymentMode === 'rules-legal' && costWarnings.length > 0)
+      ) {
         set({
           warnings: [...get().warnings, ...costWarnings],
           pendingGuided: null,
           // ACT-2: 強行可能なブロック点(一般経路の起動コスト不足・CR118.3)。UI が
           // 強行ダイアログを提示できるよう対象の行つきで pending を持つ。
-          pendingForceActivation: {
-            sourceId,
-            ...(resolvedAbilityLineIndex === undefined
-              ? {}
-              : { abilityLineIndex: resolvedAbilityLineIndex }),
-            ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
-            ...(announcedX === undefined ? {} : { xValue: announcedX }),
-            warnings: costWarnings,
-          },
+          pendingForceActivation: hardCounterFailure
+            ? null
+            : {
+                sourceId,
+                ...(resolvedAbilityLineIndex === undefined
+                  ? {}
+                  : { abilityLineIndex: resolvedAbilityLineIndex }),
+                ...(opts?.assistRestrictedMana ? { assistRestrictedMana: true } : {}),
+                ...(announcedX === undefined ? {} : { xValue: announcedX }),
+                warnings: costWarnings,
+              },
         });
         return;
       }
@@ -4412,10 +4679,27 @@ export const useGameStore = create<GameStore>((set, get) => {
       const cur = get().state;
       const pending = get().pendingGuided;
       const prompt = pending?.prompts[0];
+      const costState = isActivationPending(pending)
+        ? pending.activation
+        : isManaAbilityPending(pending)
+          ? pending.manaAbility
+          : null;
       if (
         !cur ||
-        !isActivationPending(pending) ||
-        (prompt?.kind !== 'cost-discard' && prompt?.kind !== 'cost-sacrifice' && prompt?.kind !== 'cost-tap')
+        !pending ||
+        !costState ||
+        (
+          prompt?.kind !== 'cost-discard'
+          && prompt?.kind !== 'cost-sacrifice'
+          && prompt?.kind !== 'cost-tap'
+          && prompt?.kind !== 'cost-remove-counter'
+        )
+      ) {
+        return;
+      }
+      if (
+        prompt.kind === 'cost-remove-counter'
+        && prompt.counterCost?.interaction !== 'source'
       ) {
         return;
       }
@@ -4425,14 +4709,19 @@ export const useGameStore = create<GameStore>((set, get) => {
         set({ warnings: [...get().warnings, `コストに選択したカードが存在しません: ${cardId}`] });
         return;
       }
-      if (selectedCostSubjectIds(pending.activation).has(cardId)) {
+      if (selectedCostSubjectIds(costState).has(cardId)) {
         set({ warnings: [...get().warnings, `コストに同じカードは選択できません: ${cardId}`] });
         return;
       }
 
-      const forced = pending.activation.paymentMode === 'forced';
-      const legalIds = new Set(eligibleCostSubjectIds(cur, pending.activation, prompt));
-      if (!legalIds.has(cardId) && !forced) {
+      const forced = costState.paymentMode === 'forced';
+      const legalIds = new Set(
+        eligibleCostSubjectIds(cur, pending.sourceId, costState, prompt),
+      );
+      if (
+        !legalIds.has(cardId)
+        && (prompt.kind === 'cost-remove-counter' || !forced)
+      ) {
         set({
           warnings: [
             ...get().warnings,
@@ -4441,7 +4730,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         });
         return;
       }
-      const controllerId = pending.activation.sourceSnapshot.controllerId ?? cur.localPlayerId;
+      const controllerId = costState.sourceSnapshot.controllerId ?? cur.localPlayerId;
       if (
         prompt.kind === 'cost-discard'
         && !cur.zonesByPlayer[controllerId].hand.includes(cardId)
@@ -4453,7 +4742,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       if (
         prompt.kind === 'cost-sacrifice' &&
-        (cardId === pending.activation.sourceId || cur.cards[cardId]?.zone !== 'battlefield')
+        (cardId === pending.sourceId || cur.cards[cardId]?.zone !== 'battlefield')
       ) {
         set({
           warnings: [
@@ -4465,8 +4754,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
       if (
         prompt.kind === 'cost-tap' &&
-        (cardId === pending.activation.sourceId
-          || cur.cards[cardId]?.zone !== 'battlefield'
+        (cur.cards[cardId]?.zone !== 'battlefield'
           || cur.cards[cardId]?.tapped === true)
       ) {
         set({
@@ -4480,17 +4768,103 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       const subjectRef = activationSubjectRefFromSnapshot(snapshot);
       const costComponents = costComponentsWithSubject(
-        pending.activation.costComponents,
+        costState.costComponents,
         prompt,
         subjectRef,
       );
-      const command: GameCommand =
-        prompt.kind === 'cost-discard'
-          ? { type: 'discard', cardIds: [cardId], playerId: controllerId }
-          : prompt.kind === 'cost-tap'
-            ? { type: 'setTapped', cardId, tapped: true }
-            : { type: 'moveCard', cardId, to: 'graveyard', position: 'top', reason: 'sacrifice' };
-      advanceActivationCostSubject(command, costComponents);
+      let command: GameCommand;
+      if (prompt.kind === 'cost-discard') {
+        command = { type: 'discard', cardIds: [cardId], playerId: controllerId };
+      } else if (prompt.kind === 'cost-tap') {
+        command = { type: 'setTapped', cardId, tapped: true };
+      } else if (prompt.kind === 'cost-remove-counter') {
+        const counterCost = prompt.counterCost;
+        if (counterCost?.interaction !== 'source') {
+          return;
+        }
+        command = {
+          type: 'addCounters',
+          cardId,
+          counterType: counterCost.counterType,
+          delta: -counterCost.amount.value,
+        };
+      } else {
+        command = {
+          type: 'moveCard',
+          cardId,
+          to: 'graveyard',
+          position: 'top',
+          reason: 'sacrifice',
+        };
+      }
+      if (isManaAbilityPending(pending)) {
+        advanceGuidedManaAbility([command], costComponents);
+      } else {
+        advanceActivationCostSubject(command, costComponents);
+      }
+    },
+
+    confirmGuidedCounterAmount(amount) {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      const costState = isActivationPending(pending)
+        ? pending.activation
+        : isManaAbilityPending(pending)
+          ? pending.manaAbility
+          : null;
+      if (
+        !cur
+        || !pending
+        || !costState
+        || prompt?.kind !== 'cost-remove-counter'
+        || prompt.counterCost?.interaction !== 'amount'
+      ) {
+        return;
+      }
+      const { min, max } = prompt.counterCost.amount;
+      if (!Number.isInteger(amount) || amount < min || amount > max) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `取り除くカウンター数は${min}以上${max}以下の整数で指定してください。`,
+          ],
+        });
+        return;
+      }
+      const sourceId = prompt.counterCost.sourceId;
+      const snapshot = objectSnapshotForCard(cur, sourceId);
+      if (
+        !snapshot
+        || snapshot.objectId !== costState.sourceSnapshot.objectId
+        || cur.cards[sourceId]?.zone !== 'battlefield'
+        || (cur.cards[sourceId]?.counters[prompt.counterCost.counterType] ?? 0) < amount
+      ) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `${cardLabel(cur, sourceId)}の${prompt.counterCost.counterType}カウンターが不足しています。`,
+          ],
+        });
+        return;
+      }
+      const componentSlotId = costComponentSlotIdForPrompt(prompt);
+      const costComponents = costState.costComponents.map((component) =>
+        component.slotId === componentSlotId
+          ? { ...component, amount }
+          : { ...component },
+      );
+      const command: GameCommand = {
+        type: 'addCounters',
+        cardId: sourceId,
+        counterType: prompt.counterCost.counterType,
+        delta: -amount,
+      };
+      if (isManaAbilityPending(pending)) {
+        advanceGuidedManaAbility([command], costComponents);
+      } else {
+        advanceActivationCostSubject(command, costComponents);
+      }
     },
 
     confirmGuidedPlayerTarget(playerId) {

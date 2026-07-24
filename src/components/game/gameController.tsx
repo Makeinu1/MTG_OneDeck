@@ -40,6 +40,7 @@ import { CleanupDiscardDialog } from './CleanupDiscardDialog';
 import {
   ArrangeTopDialog,
   AttackDialog,
+  CounterCostDialog,
   CountDialog,
   ManaChoiceDialog,
   ShortfallDialog,
@@ -969,7 +970,7 @@ export function useGameController({
     const line = abilityLineIndex === undefined
       ? (lines.length === 1 ? lines[0] : undefined)
       : lines.find((candidate) => candidate.index === abilityLineIndex);
-    if (line && parseManaCost(line.costText).x > 0) {
+    if (line && /\{X\}|\bX\b/i.test(line.costText)) {
       setPendingXAbility({
         cardId,
         abilityLineIndex: line.index,
@@ -1012,6 +1013,11 @@ export function useGameController({
       ...(component.subjectRefs?.map((ref) => ref.physicalCardId) ?? []),
     ]),
   );
+  const guidedCounterSourceCost =
+    guidedPrompt?.kind === 'cost-remove-counter'
+    && guidedPrompt.counterCost?.interaction === 'source'
+      ? guidedPrompt.counterCost
+      : null;
   const guidedCostSubjectIds =
     !state || !guidedPrompt
       ? []
@@ -1034,10 +1040,21 @@ export function useGameController({
                 { sourceId: store.pendingGuided?.sourceId },
               ).filter(
                 (id) =>
-                  id !== store.pendingGuided?.sourceId &&
                   state.cards[id]?.tapped !== true &&
                   !guidedCostSelectedIds.has(id),
               )
+            : guidedPrompt.kind === 'cost-remove-counter'
+              && guidedCounterSourceCost
+              ? eligibleTargets(
+                  state,
+                  guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
+                  { sourceId: store.pendingGuided?.sourceId },
+                ).filter(
+                  (id) =>
+                    (state.cards[id]?.counters[guidedCounterSourceCost.counterType] ?? 0)
+                      >= guidedCounterSourceCost.amount.value
+                    && !guidedCostSelectedIds.has(id),
+                )
             : [];
   const ruleTargetIds = pendingRuleTarget ? targetIdsForRuleAction(pendingRuleTarget.kind) : [];
   const peekIds =
@@ -1076,9 +1093,24 @@ export function useGameController({
       kind: 'sacrifice', title: '生け贄を選択', instruction: '戦場の候補から1枚選んでください。',
       sourceId, candidateIds: guidedSacrificeIds, selectedIds: [],
     };
-    if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice' || guidedPrompt?.kind === 'cost-tap') return {
+    if (
+      guidedPrompt?.kind === 'cost-discard'
+      || guidedPrompt?.kind === 'cost-sacrifice'
+      || guidedPrompt?.kind === 'cost-tap'
+      || (
+        guidedPrompt?.kind === 'cost-remove-counter'
+        && guidedPrompt.counterCost?.interaction === 'source'
+      )
+    ) return {
       kind: 'cost',
-      title: guidedPrompt.kind === 'cost-discard' ? '起動コスト：捨てる' : guidedPrompt.kind === 'cost-tap' ? '起動コスト：タップ' : '起動コスト：生け贄',
+      title:
+        guidedPrompt.kind === 'cost-discard'
+          ? '起動コスト：捨てる'
+          : guidedPrompt.kind === 'cost-tap'
+            ? '起動コスト：タップ'
+            : guidedPrompt.kind === 'cost-remove-counter'
+              ? '起動コスト：カウンターを取り除く'
+              : '起動コスト：生け贄',
       instruction: '金色の候補を選んでコストを確定します。',
       sourceId, candidateIds: guidedCostSubjectIds, selectedIds: [...guidedCostSelectedIds],
       requiredCount: guidedPrompt.count,
@@ -1130,7 +1162,15 @@ export function useGameController({
     else if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
     else if (guidedPrompt?.kind === 'discard') store.confirmGuidedDiscard(cardId);
     else if (guidedPrompt?.kind === 'sacrifice') store.confirmGuidedSacrifice(cardId);
-    else if (guidedPrompt?.kind === 'cost-discard' || guidedPrompt?.kind === 'cost-sacrifice' || guidedPrompt?.kind === 'cost-tap') store.confirmGuidedCostSubject(cardId);
+    else if (
+      guidedPrompt?.kind === 'cost-discard'
+      || guidedPrompt?.kind === 'cost-sacrifice'
+      || guidedPrompt?.kind === 'cost-tap'
+      || (
+        guidedPrompt?.kind === 'cost-remove-counter'
+        && guidedPrompt.counterCost?.interaction === 'source'
+      )
+    ) store.confirmGuidedCostSubject(cardId);
     else if (pendingRuleTarget) pickRuleActionTarget(cardId);
     else if (pendingBloodCrackCardId) {
       store.crackBlood(pendingBloodCrackCardId, cardId);
@@ -1290,6 +1330,17 @@ export function useGameController({
         <ManaChoiceDialog
           options={guidedPrompt.manaOptions ?? []}
           onChoose={(color) => store.confirmGuidedMana(color)}
+          onCancel={() => store.cancelGuidedPrompt()}
+        />
+      )}
+
+      {guidedPrompt?.kind === 'cost-remove-counter'
+        && guidedPrompt.counterCost?.interaction === 'amount' && (
+        <CounterCostDialog
+          counterType={guidedPrompt.counterCost.counterType}
+          min={guidedPrompt.counterCost.amount.min}
+          max={guidedPrompt.counterCost.amount.max}
+          onConfirm={(amount) => store.confirmGuidedCounterAmount(amount)}
           onCancel={() => store.cancelGuidedPrompt()}
         />
       )}

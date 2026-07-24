@@ -3311,11 +3311,19 @@ function isSelfSacrificeSubject(subject: string, sourceName: string): boolean {
   if (/^this\b/i.test(normalized)) {
     return true;
   }
-  return sourceName
+  const sourceNames = sourceName
     .split(/\s+\/\/\s+/)
     .map((name) => name.trim().toLowerCase())
-    .filter((name) => name !== '')
-    .includes(normalized.toLowerCase());
+    .filter((name) => name !== '');
+  const normalizedLower = normalized.toLowerCase();
+  if (sourceNames.includes(normalizedLower)) {
+    return true;
+  }
+  const compactSubject = normalizedLower.replace(/[^a-z0-9]/g, '');
+  return compactSubject.length > 0 && sourceNames.some((name) => {
+    const compactName = name.replace(/[^a-z0-9]/g, '');
+    return compactName.includes(compactSubject) || compactSubject.includes(compactName);
+  });
 }
 
 function sacrificeCostFilter(subject: string): TargetFilter {
@@ -3480,11 +3488,38 @@ function parseSacrificeObjectCostElement(
 }
 
 function tapObjectCostFilter(subject: string): TargetFilter {
-  const lower = subject.toLowerCase();
-  const types = COST_OBJECT_TYPES.filter((type) => new RegExp(`\\b${type}\\b`, 'i').test(lower));
+  const normalized = subject
+    .replace(/\b(tokens?|permanents?)\b/gi, (word) => word.toLowerCase())
+    .replace(/\s+/g, ' ')
+    .trim();
+  const lower = normalized.toLowerCase();
+  const types = COST_OBJECT_TYPES.filter((type) =>
+    new RegExp(`\\b${type}s?\\b`, 'i').test(lower),
+  );
+  const hasSupportedTypeDisjunction =
+    /^(?:legendary\s+)?artifacts?\s+(?:and\/or|or)\s+creatures?$/i.test(normalized);
+  const tokenOnly = /\btokens?\b/i.test(normalized);
+  const legendary = /\blegendary\b/i.test(normalized);
+  const descriptorWords = normalized
+    .replace(/\blegendary\b/gi, '')
+    .replace(/\b(?:artifact|creature|enchantment|land|planeswalker|permanent|token)s?\b/gi, '')
+    .replace(/\b(?:and\/or|or)\b/gi, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (types.length > 1 && !hasSupportedTypeDisjunction) {
+    return { types: [], controller: 'you' };
+  }
+  if (descriptorWords.length > 1) {
+    return { types: [], controller: 'you' };
+  }
   return {
     types: types.length > 0 ? types : ['permanent'],
     controller: 'you',
+    ...(legendary ? { supertypes: ['legendary'] } : {}),
+    ...(descriptorWords.length === 1 ? { subtypes: [descriptorWords[0].toLowerCase()] } : {}),
+    ...(tokenOnly ? { tokenOnly: true } : {}),
   };
 }
 
@@ -3492,24 +3527,35 @@ function parseTapObjectCostElement(
   element: string,
   payerId: PlayerId,
   slotId: string,
+  announcedX?: number,
 ): { component: ActivationCostComponent; prompts: EffectPrompt[] } | null {
-  const match = /^Tap\s+(?:an?\s+)?(?:untapped\s+)?(.+?)\s+you\s+control$/i.exec(element);
+  const match =
+    /^Tap\s+(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+|X)\s+(other\s+)?(untapped\s+)?(.+?)\s+you\s+control$/i.exec(
+      element,
+    );
   if (!match) {
     return null;
   }
-  const subject = match[1].trim();
-  if (/^(?:this|it|self|~)$/i.test(subject)) {
+  const amountToken = match[1];
+  const other = match[2] !== undefined;
+  const objectPhrase = match[4].trim();
+  if (/^(?:this|it|self|~)$/i.test(objectPhrase)) {
     return null;
   }
-  const countMatch = /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(.+)$/i.exec(
-    subject,
-  );
-  const amount = countMatch ? parseCostAmountToken(countMatch[1]) : 1;
-  const objectPhrase = countMatch ? countMatch[2].trim() : subject;
-  if (amount === null) {
+  const amount =
+    /^X$/i.test(amountToken) ? announcedX ?? null : parseCostAmountToken(amountToken);
+  if (amount === null || !Number.isInteger(amount) || amount < 0) {
     return null;
   }
-  const filter = tapObjectCostFilter(objectPhrase);
+  const parsedFilter = tapObjectCostFilter(objectPhrase);
+  if (parsedFilter.types?.length === 0) {
+    return null;
+  }
+  const filter: TargetFilter = {
+    ...parsedFilter,
+    zone: 'battlefield',
+    excludeSource: other,
+  };
   return {
     component: {
       kind: 'tap-object',
@@ -3522,11 +3568,155 @@ function parseTapObjectCostElement(
     prompts: Array.from({ length: amount }, (_, index) => ({
       atom: null,
       kind: 'cost-tap' as const,
-      count: 1,
+      count: amount,
       slotId: promptSlotId(slotId, index),
       filter,
       raw: element,
     })),
+  };
+}
+
+function normalizeCounterType(raw: string): string {
+  return raw.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function counterSourceFilter(subject: string): TargetFilter | null {
+  const match = /^(?:a|an|one)\s+(permanent|artifact|creature)\s+you\s+control$/i.exec(
+    subject.trim(),
+  );
+  if (!match) {
+    return null;
+  }
+  return {
+    types: [match[1].toLowerCase()],
+    controller: 'you',
+  };
+}
+
+function parseRemoveCounterCostElement(
+  state: GameState,
+  element: string,
+  payerId: PlayerId,
+  slotId: string,
+  sourceName: string,
+  sourceSnapshot: ObjectSnapshot,
+  announcedX?: number,
+): {
+  component: ActivationCostComponent;
+  commands: GameCommand[];
+  prompts: EffectPrompt[];
+} | null {
+  const match =
+    /^Remove\s+(one or more|a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+|X)\s+(.+?)\s+counters?\s+from\s+(.+)$/i.exec(
+      element,
+    );
+  if (!match) {
+    return null;
+  }
+  const amountToken = match[1];
+  const counterType = normalizeCounterType(match[2]);
+  const subject = match[3].trim();
+  if (!counterType || /\b(?:any|chosen)\b/i.test(counterType)) {
+    return null;
+  }
+
+  const sourceRef = activationSourceRefFromSnapshot(sourceSnapshot);
+  const strictSelf = isSelfSacrificeSubject(subject, sourceName);
+  if (/^one or more$/i.test(amountToken)) {
+    if (!strictSelf) {
+      return null;
+    }
+    const max = state.cards[sourceSnapshot.physicalCardId]?.counters[counterType] ?? 0;
+    return {
+      component: {
+        kind: 'remove-counter',
+        raw: element,
+        payerId,
+        status: 'guided',
+        slotId,
+        subjectRef: sourceRef,
+        subjectRefs: [sourceRef],
+        counterType,
+      },
+      commands: [],
+      prompts: [{
+        atom: null,
+        kind: 'cost-remove-counter',
+        count: 1,
+        slotId: promptSlotId(slotId, 0),
+        counterCost: {
+          interaction: 'amount',
+          counterType,
+          amount: { kind: 'one-or-more', min: 1, max },
+          sourceId: sourceSnapshot.physicalCardId,
+        },
+        raw: element,
+      }],
+    };
+  }
+
+  const amount =
+    /^X$/i.test(amountToken) ? announcedX ?? null : parseCostAmountToken(amountToken);
+  if (amount === null || !Number.isInteger(amount) || amount < 0) {
+    return null;
+  }
+  if (strictSelf) {
+    return {
+      component: {
+        kind: 'remove-counter',
+        raw: element,
+        payerId,
+        status: 'auto',
+        amount,
+        slotId,
+        subjectRef: sourceRef,
+        subjectRefs: [sourceRef],
+        counterType,
+      },
+      commands:
+        amount > 0
+          ? [{
+              type: 'addCounters',
+              cardId: sourceSnapshot.physicalCardId,
+              counterType,
+              delta: -amount,
+            }]
+          : [],
+      prompts: [],
+    };
+  }
+
+  if (amount <= 0) {
+    return null;
+  }
+  const filter = counterSourceFilter(subject);
+  if (!filter) {
+    return null;
+  }
+  return {
+    component: {
+      kind: 'remove-counter',
+      raw: element,
+      payerId,
+      status: 'guided',
+      amount,
+      slotId,
+      counterType,
+    },
+    commands: [],
+    prompts: [{
+      atom: null,
+      kind: 'cost-remove-counter',
+      count: 1,
+      slotId: promptSlotId(slotId, 0),
+      filter,
+      counterCost: {
+        interaction: 'source',
+        counterType,
+        amount: { kind: 'fixed', value: amount },
+      },
+      raw: element,
+    }],
   };
 }
 
@@ -3566,6 +3756,7 @@ function activationNonmanaCosts(
   state: GameState,
   rawCost: string,
   sourceSnapshot: ObjectSnapshot,
+  announcedX?: number,
 ): ParsedActivationNonmanaCost {
   const payerId = sourceSnapshot.controllerId ?? sourceSnapshot.ownerId;
   const sourceDef = state.defs[sourceSnapshot.defId];
@@ -3600,10 +3791,26 @@ function activationNonmanaCosts(
       return;
     }
 
-    const tapObject = parseTapObjectCostElement(element, payerId, slotId);
+    const tapObject = parseTapObjectCostElement(element, payerId, slotId, announcedX);
     if (tapObject) {
       components.push(tapObject.component);
       prompts.push(...tapObject.prompts);
+      return;
+    }
+
+    const removeCounter = parseRemoveCounterCostElement(
+      state,
+      element,
+      payerId,
+      slotId,
+      sourceName,
+      sourceSnapshot,
+      announcedX,
+    );
+    if (removeCounter) {
+      components.push(removeCounter.component);
+      commands.push(...removeCounter.commands);
+      prompts.push(...removeCounter.prompts);
       return;
     }
 
@@ -3638,12 +3845,14 @@ function activationCostComponents(
   const components: ActivationCostComponent[] = [];
 
   if (manaCost !== null) {
+    const parsedMana = parseManaCost(manaCost);
     components.push({
       kind: 'mana',
       raw: manaCost,
       payerId,
       status,
       manaCost,
+      amount: parsedMana.generic + parsedMana.pips.length,
     });
   }
 
@@ -3917,7 +4126,7 @@ export function activationPlanForSource(
   state: GameState,
   sourceId: string,
   abilityLineIndex?: number,
-  xValue = 0,
+  announcedX?: number,
 ): {
   commands: GameCommand[];
   decision: CostDecision;
@@ -3974,8 +4183,15 @@ export function activationPlanForSource(
 
   const typeLine = def.faces[line.faceIndex]?.typeLine ?? def.typeLine;
   const ir = parseAbilityIR(line.text, typeLine);
-  const xSymbolCount = ir.cost?.raw.match(/\{X\}/gi)?.length ?? 0;
-  if (xSymbolCount > 0 && xValue <= 0) {
+  const costHasX = /\{X\}|\bX\b/i.test(ir.cost?.raw ?? '');
+  if (
+    costHasX
+    && (
+      announcedX === undefined
+      || !Number.isInteger(announcedX)
+      || announcedX < 0
+    )
+  ) {
     return {
       commands: [],
       decision: 'manual',
@@ -3984,13 +4200,15 @@ export function activationPlanForSource(
       costPrompts: [],
     };
   }
-  const announcedX = Math.max(0, Math.floor(xValue));
-  const resolvedCostRaw = (ir.cost?.raw ?? '').replace(/\{X\}/gi, `{${announcedX}}`);
+  const resolvedCostRaw = (ir.cost?.raw ?? '').replace(
+    /\{X\}/gi,
+    `{${announcedX ?? 0}}`,
+  );
   const commanderColorIdentity = commanderColorIdentityForState(state);
   const sourceSnapshot = objectSnapshotForCard(state, sourceId);
   const nonmanaCost =
     sourceSnapshot && ir.cost
-      ? activationNonmanaCosts(state, resolvedCostRaw, sourceSnapshot)
+      ? activationNonmanaCosts(state, resolvedCostRaw, sourceSnapshot, announcedX)
       : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
   const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
   const compiledCost = compileAbilityCost(autoCost, {
@@ -4116,10 +4334,13 @@ export function activatedManaAbilityPlanForSource(
   state: GameState,
   sourceId: string,
   abilityLineIndex?: number,
+  announcedX?: number,
 ): {
   commands: GameCommand[];
   decision: AutoDecision | 'assisted';
   prompts: EffectPrompt[];
+  costComponents: ActivationCostComponent[];
+  costPrompts: EffectPrompt[];
   manaShortfall: number;
   lifeCost: number;
   restrictionText?: string;
@@ -4153,6 +4374,17 @@ export function activatedManaAbilityPlanForSource(
   if (!isActivatedManaAbilityIR(ir)) {
     return null;
   }
+  const costHasX = /\{X\}|\bX\b/i.test(ir.cost?.raw ?? '');
+  if (
+    costHasX
+    && (
+      announcedX === undefined
+      || !Number.isInteger(announcedX)
+      || announcedX < 0
+    )
+  ) {
+    return null;
+  }
 
   const amuletEffectRaw = ir.effects.map((e) => e.raw).join(' ');
   const amuletPlan = jeweledAmuletManaCommands(state, sourceId, amuletEffectRaw, source.controllerId);
@@ -4162,20 +4394,40 @@ export function activatedManaAbilityPlanForSource(
       commands: [tapCommand, ...amuletPlan],
       decision: 'auto',
       prompts: [],
+      costComponents: [],
+      costPrompts: [],
       manaShortfall: 0,
       lifeCost: 0,
     };
   }
 
   const commanderColorIdentity = commanderColorIdentityForState(state);
-  const compiledCost = compileAbilityCost(ir.cost, {
+  const sourceSnapshot = objectSnapshotForCard(state, sourceId);
+  const resolvedCostRaw = (ir.cost?.raw ?? '').replace(
+    /\{X\}/gi,
+    `{${announcedX ?? 0}}`,
+  );
+  const nonmanaCost =
+    sourceSnapshot && ir.cost
+      ? activationNonmanaCosts(state, resolvedCostRaw, sourceSnapshot, announcedX)
+      : { components: [], commands: [], prompts: [], remainingRaw: ir.cost?.raw ?? '' };
+  const autoCost = ir.cost ? abilityCostFromRaw(nonmanaCost.remainingRaw) : null;
+  const compiledCost = compileAbilityCost(autoCost, {
     sourceId,
     def,
     controllerId: source.controllerId,
     commanderColorIdentity,
   });
   if (compiledCost.decision === 'manual') {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
+    return {
+      commands: [],
+      decision: 'manual',
+      prompts: [],
+      costComponents: [],
+      costPrompts: [],
+      manaShortfall: 0,
+      lifeCost: 0,
+    };
   }
 
   const compiledEffect = compileAbilityIR(ir, {
@@ -4184,77 +4436,18 @@ export function activatedManaAbilityPlanForSource(
     controllerId: source.controllerId,
     commanderColorIdentity,
   });
-  if (compiledEffect.decision === 'manual') {
-    const effectRaw = ir.effects.map((e) => e.raw).join(' ');
-    const amuletMana = jeweledAmuletManaCommands(state, sourceId, effectRaw, source.controllerId);
-    if (amuletMana !== null) {
-      const costCommands = ir.cost?.sacrificesSelf
-        ? withSelfSacrificeReason(compiledCost.commands, sourceId)
-        : compiledCost.commands.slice();
-      return {
-        commands: [...costCommands, ...amuletMana],
-        decision: 'auto',
-        prompts: [],
-        manaShortfall: 0,
-        lifeCost: 0,
-      };
-    }
-    const scaledMana = counterScaledManaCommands(state, sourceId, effectRaw, source.controllerId);
-    if (scaledMana !== null) {
-      const costCommands = ir.cost?.sacrificesSelf
-        ? withSelfSacrificeReason(compiledCost.commands, sourceId)
-        : compiledCost.commands.slice();
-      return {
-        commands: [...costCommands, ...scaledMana],
-        decision: 'auto',
-        prompts: [],
-        manaShortfall: 0,
-        lifeCost: compiledCost.commands.reduce(
-          (total, command) =>
-            total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
-          0,
-        ),
-      };
-    }
-    const restrictionText = restrictedLiteralManaAssistText(ir, compiledEffect.commands);
-    if (restrictionText === null) {
-      return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
-    }
-    const costCommands = ir.cost?.sacrificesSelf
-      ? withSelfSacrificeReason(compiledCost.commands, sourceId)
-      : compiledCost.commands.slice();
-    return {
-      commands: [...costCommands, ...compiledEffect.commands],
-      decision: 'assisted',
-      prompts: [],
-      manaShortfall: 0,
-      lifeCost: compiledCost.commands.reduce(
-        (total, command) =>
-          total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
-        0,
-      ),
-      restrictionText,
-    };
-  }
-  if (
-    compiledEffect.decision === 'guided' &&
-    compiledEffect.prompts.some((prompt) => prompt.kind !== 'mana')
-  ) {
-    return { commands: [], decision: 'manual', prompts: [], manaShortfall: 0, lifeCost: 0 };
-  }
-
-  const commands: GameCommand[] = ir.cost?.sacrificesSelf
+  const baseCostCommands: GameCommand[] = autoCost?.sacrificesSelf
     ? withSelfSacrificeReason(compiledCost.commands, sourceId)
     : compiledCost.commands.slice();
-  const lifeCost = compiledCost.commands.reduce(
-    (total, command) =>
-      total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
-    0,
-  );
   let manaShortfall = 0;
   if (compiledCost.manaCost !== null) {
-    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
-    commands.push(
+    const plan = planAutoTap(
+      state,
+      parseManaCost(compiledCost.manaCost),
+      0,
+      source.controllerId,
+    );
+    baseCostCommands.push(
       ...autoTapCommands(plan, source.controllerId),
       {
         type: 'payMana',
@@ -4264,12 +4457,99 @@ export function activatedManaAbilityPlanForSource(
     );
     manaShortfall = plan.shortfall;
   }
-  commands.push(...compiledEffect.commands);
+  baseCostCommands.push(...nonmanaCost.commands);
+  const costComponents = sourceSnapshot
+    ? [
+        ...activationCostComponents(
+          sourceId,
+          sourceSnapshot,
+          ir.cost?.raw ?? '',
+          compiledCost.manaCost,
+          baseCostCommands,
+          'auto',
+        ),
+        ...nonmanaCost.components,
+      ]
+    : [];
+  const costPrompts = nonmanaCost.prompts;
+  const lifeCost = baseCostCommands.reduce(
+    (total, command) =>
+      total + (command.type === 'adjustLife' && command.delta < 0 ? -command.delta : 0),
+    0,
+  );
+
+  if (compiledEffect.decision === 'manual') {
+    const effectRaw = ir.effects.map((e) => e.raw).join(' ');
+    const amuletMana = jeweledAmuletManaCommands(state, sourceId, effectRaw, source.controllerId);
+    if (amuletMana !== null) {
+      return {
+        commands: [...baseCostCommands, ...amuletMana],
+        decision: costPrompts.length > 0 ? 'guided' : 'auto',
+        prompts: costPrompts,
+        costComponents,
+        costPrompts,
+        manaShortfall,
+        lifeCost,
+      };
+    }
+    const scaledMana = counterScaledManaCommands(state, sourceId, effectRaw, source.controllerId);
+    if (scaledMana !== null) {
+      return {
+        commands: [...baseCostCommands, ...scaledMana],
+        decision: costPrompts.length > 0 ? 'guided' : 'auto',
+        prompts: costPrompts,
+        costComponents,
+        costPrompts,
+        manaShortfall,
+        lifeCost,
+      };
+    }
+    const restrictionText = restrictedLiteralManaAssistText(ir, compiledEffect.commands);
+    if (restrictionText === null) {
+      return {
+        commands: [],
+        decision: 'manual',
+        prompts: [],
+        costComponents: [],
+        costPrompts: [],
+        manaShortfall: 0,
+        lifeCost: 0,
+      };
+    }
+    return {
+      commands: [...baseCostCommands, ...compiledEffect.commands],
+      decision: costPrompts.length > 0 ? 'guided' : 'assisted',
+      prompts: costPrompts,
+      costComponents,
+      costPrompts,
+      manaShortfall,
+      lifeCost,
+      restrictionText,
+    };
+  }
+  if (
+    compiledEffect.decision === 'guided' &&
+    compiledEffect.prompts.some((prompt) => prompt.kind !== 'mana')
+  ) {
+    return {
+      commands: [],
+      decision: 'manual',
+      prompts: [],
+      costComponents: [],
+      costPrompts: [],
+      manaShortfall: 0,
+      lifeCost: 0,
+    };
+  }
+
+  const prompts = [...costPrompts, ...compiledEffect.prompts];
 
   return {
-    commands,
-    decision: compiledEffect.decision,
-    prompts: compiledEffect.prompts,
+    commands: [...baseCostCommands, ...compiledEffect.commands],
+    decision: prompts.length > 0 ? 'guided' : compiledEffect.decision,
+    prompts,
+    costComponents,
+    costPrompts,
     manaShortfall,
     lifeCost,
   };
@@ -4388,11 +4668,22 @@ export function eligibleTargets(
       if (filter.excludeTokens && card.isToken) {
         return false;
       }
+      if (filter.tokenOnly && !card.isToken) {
+        return false;
+      }
 
       // Ability objects have only their ability text (CR 405.4), so card-type filters apply
       // exclusively to spells. Ability-aware callers use stackKinds without types.
       if (card.isAbility && types.length > 0) return false;
       const typeLine = typeLineForStateCard(state, card);
+      if (
+        filter.supertypes?.some((supertype) => !typeLineHasType(typeLine, supertype))
+      ) {
+        return false;
+      }
+      if (filter.subtypes?.some((subtype) => !typeLineHasType(typeLine, subtype))) {
+        return false;
+      }
       if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {
         return false;
       }
@@ -4427,12 +4718,23 @@ export function eligibleTargets(
       if (filter.excludeTokens && card.isToken) {
         return false;
       }
+      if (filter.tokenOnly && !card.isToken) {
+        return false;
+      }
       if (!supportsCreatureCard && !supportsPermanentCard) {
         return false;
       }
       const def = state.defs[card.defId];
       const face = def?.faces[card.faceIndex] ?? def?.faces[0];
       const typeLine = (face?.typeLine ?? def?.typeLine ?? '').toLowerCase();
+      if (
+        filter.supertypes?.some((supertype) => !typeLineHasType(typeLine, supertype))
+      ) {
+        return false;
+      }
+      if (filter.subtypes?.some((subtype) => !typeLineHasType(typeLine, subtype))) {
+        return false;
+      }
       if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
         return false;
       }
@@ -4475,6 +4777,15 @@ export function eligibleTargets(
     }
     const typeLine = typeLineForStateCard(state, card);
     if (filter.excludeTokens && card.isToken) {
+      return false;
+    }
+    if (filter.tokenOnly && !card.isToken) {
+      return false;
+    }
+    if (filter.supertypes?.some((supertype) => !typeLineHasType(typeLine, supertype))) {
+      return false;
+    }
+    if (filter.subtypes?.some((subtype) => !typeLineHasType(typeLine, subtype))) {
       return false;
     }
     if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {

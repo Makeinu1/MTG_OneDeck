@@ -503,11 +503,20 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G4-1 | 「{T}: Add {G}.」相当のマナ能力を持つパーマネントを右クリック→「能力を起動」(`ability-activate`、自動 ON) | CR 605.3b により当該パーマネントがタップされ、能力はスタックへ置かれず即解決し緑マナ +1。1回の undo で起動前(アンタップ・マナ未加算・スタック空)へ戻る |
 | G4-2 | 「{2}{R}, {T}: ...」相当を起動(盤面に十分なマナ源あり・自動 ON) | 必要な土地が自動タップされマナ支払い+自己タップが精算され、能力がスタックへ。単一undo |
 | G4-3 | 「{1}, {T}, Sacrifice this creature: Draw a card.」相当を起動 | 自己タップ+自己生け贄(墓地へ)+マナ支払いが精算され、能力スタックへ。解決でカード1枚(G2)。単一undo |
-| G4-4 | マナ源が不足する状態で G4-2 を起動 | サンドボックス哲学に従い警告ログを出しつつ強行(部分支払い)で能力はスタックへ。盤面はクラッシュしない |
+| G4-4 | マナ源が不足する状態で G4-2 をrules-legal起動 | コスト全体を拒否し、tap・mana・stackを一切変更しない。明示的な強行を選んだ場合だけ非CR合法warning付きで既存sandbox経路へ進める |
 | G4-5 | `effects-auto-toggle` OFF / または当該カード `card-effects-auto-off` で G4-1 を起動 | 自動補助OFFでも「マナ能力はスタックを使わない」不変条件は破らない。実装が即解決できない場合は能力スタック化ではなく manual/warning とし、CR 605 に反する自動スタック追加をしない |
-| G4-6 | 「{X}, {T}: ...」「Pay X life: ...」「{T}, Sacrifice another creature: ...」「{T}, Exile seven cards from your graveyard: ...」「Coven — {1}{W}: ...」を起動(自動 ON) | 選択・変数・未モデル要素を含むコストは自動精算されず能力スタックのみ(manual)。warning でコスト手払いを促す。誤発火なし |
+| G4-6 | 「Pay X life: ...」「Pay X {E}: ...」「{T}, Exile seven cards from your graveyard: ...」「Remove counters from among ...」「Coven — {1}{W}: ...」を起動(自動 ON) | 未モデル要素を1つでも含むコストは全体がmanual。認識済みのmana/tap等も部分精算せず、warningで手払いを促す |
 | G4-7 | 全工程 | コスト精算は1スナップショット(単一 undo)。エンジン純粋性維持(新コマンド型なし)。コンソールエラー0件 |
 | G4-8 | 「{T}, Pay 3 life: ...」「{3}, {T}, Exile this land: ...」を起動(自動 ON) | 固定ライフ支払い/strict self-exile は既存コマンド(`adjustLife`/`moveCard -> exile`)で精算され、能力がスタックへ。`Pay X life` や選択を伴う exile は G4-6 の manual 境界に残る |
+| G4-9 | 《Relic of Legends》の「Tap an untapped legendary creature you control: Add one mana of any color.」を起動 | 非legendary・相手・tap済みを候補外にし、legendary creature選択→色選択の後だけ単一commit。選択creatureがtap、指定mana +1、stack空。途中cancelは盤面不変、undo/redoは単一単位 |
+| G4-10 | 《Clock of Omens》型「Tap two untapped artifacts you control」を起動 | distinctなartifactをexactly 2枚、回答順に予約。同じcardの二重選択、候補不足、別の `{T}` との二重予約は拒否し、部分tapもstack追加もない |
+| G4-11 | 《Dragon's Hoard》型「Remove a gold counter from this artifact」をgold 1・charge 1で起動 | goldだけを1個除去し、残余コストを含む全体が1回で支払われ、通常能力はstackへ1個。gold不足時はchargeを代用／clampせず盤面不変 |
+| G4-12 | strict selfから4 charge countersを除く能力を、3個しかない状態で起動 | rules-legalでは全体拒否。counterを3個だけ除く、tapだけ払う、stackだけ積む、のいずれも発生しない |
+| G4-13 | 《Arcee, Sharpshooter》型「Remove one or more +1/+1 counters from this creature」で利用可能3、amount=2 | labeled dialogで1..3を選択でき、2だけ除去してcomponent envelopeへ具体amountを保存。0・小数・4・cancelは盤面不変。effect未対応なら解決はmanualと表示 |
+| G4-14 | 《Pernicious Deed》の `{X}` をX=0で起動 | X=0を未入力と混同せず、mana 0・self-sacrificeを1トランザクションで支払い、stack abilityへ `announcedX:0` を保存。undo/redoは単一単位 |
+| G4-15 | 《Gogo, Master of Mimicry》の `{X}{X}` をX=3で起動／途中cancel／不足状態で起動 | 6 manaを支払い、sourceをtapし、stackへX=3を保存。cancelとrules-legal不足は完全no-op。解決可能なfixtureではX回のcopyを含む最終GameState replayが一致 |
+| G4-16 | exact《Chthonian Nightmare》型の可変nonmana複合コスト | `Pay X {E}` が未対応なので全体manual。energy、sacrifice、self-return、mana、stackの部分実行を自動化成功として扱わない |
+| G4-17 | G4-9〜16のUIを375px縦・812px横・1440pxで操作 | DecisionBar/action sheet/keyboardから到達でき、X/counter dialogのconfirm・cancelが表示内。右クリック専用操作なし、コンソールエラー0件 |
 
 ### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
 

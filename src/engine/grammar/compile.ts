@@ -29,13 +29,17 @@ export type PromptKind =
   | 'mana'
   | 'cost-discard'
   | 'cost-sacrifice'
-  | 'cost-tap';
+  | 'cost-tap'
+  | 'cost-remove-counter';
 
 export interface TargetFilter {
   types?: string[];
   excludedTypes?: string[];
   excludeTokens?: boolean;
+  tokenOnly?: boolean;
   excludeSource?: boolean;
+  supertypes?: string[];
+  subtypes?: string[];
   controller?: 'any' | 'you' | 'opponent';
   zone?: 'battlefield' | 'graveyard' | 'stack';
   /** Stack object kinds accepted by this prompt. Undefined keeps the legacy spell-only default. */
@@ -66,6 +70,19 @@ export interface ModalOption {
   raw: string;
 }
 
+export type CounterCostPrompt =
+  | {
+      interaction: 'source';
+      counterType: string;
+      amount: { kind: 'fixed'; value: number };
+    }
+  | {
+      interaction: 'amount';
+      counterType: string;
+      amount: { kind: 'one-or-more'; min: 1; max: number };
+      sourceId: string;
+    };
+
 export interface EffectPrompt {
   atom: EffectAtomId | null;
   kind: PromptKind;
@@ -78,6 +95,7 @@ export interface EffectPrompt {
   options?: ModalOption[];
   manaOptions?: ManaColor[];
   linkedExile?: { purpose: LinkedExilePurpose };
+  counterCost?: CounterCostPrompt;
   /**
    * CR608.2h variable loot ("discard up to N / any number of cards, then draw that many
    * [plus/minus K] cards"): present only on the guided `discard` prompt emitted by

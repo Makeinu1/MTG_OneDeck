@@ -187,14 +187,19 @@
       "type": "domain-slice",
       "domainId": "cr-118-costs-act4",
       "crOrder": 118,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs",
         "cr-602-activated-abilities"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr118-act4",
+        "act4CostVocabulary",
+        "engine-spec-33.8",
+        "acceptance-G4-9..17"
+      ],
       "manualBoundary": "{X}と他オブジェクトを含むコストは選択完了まで支払わない。未解析コストを部分支払いしない。",
-      "note": "**ACT-4 コスト語彙 leaf**。tap-other(Tap N untapped X you control)・カウンター除去(Remove a counter)・{X} の guided 値選択。§33 と同じauto詐称なし規律。支払い原子性・undo・旧snapshot非変更を最終盤面replayで固定する。"
+      "note": "**出荷完了(2026-07-24・判定者=Codex・冷監査=Zeno 019f9495)**: ACT-4コスト語彙。tap-other(Relic of Legends型)・counter removal(Dragon's Hoard型)・{X}(Pernicious Deed型X=0合法)のguided payment。支払い原子性・cancel no-op・undo 1 snapshot・部分支払い防止・auto詐称なし。冷監査 SHIPPED-OK(BLOCKER/HIGH=0・MEDIUM=台帳陳腐化2件→本更新で修正)。"
     },
     {
       "type": "domain-slice",
@@ -1786,14 +1791,22 @@
       "id": "cr-118-costs-act4",
       "crOrder": 118,
       "crRefs": [
+        "107.1",
         "107.3",
+        "107.5",
         "118.3",
-        "118.7",
-        "602.2b"
+        "118.4",
+        "601.2f",
+        "601.2g",
+        "601.2h",
+        "602.2",
+        "605.3b",
+        "701.26a",
+        "733.1"
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs",
         "cr-602-activated-abilities"
@@ -1803,11 +1816,17 @@
         "guidedCostPrompts",
         "announcedX"
       ],
-      "boundary": "tap-other、counter removal、{X} activation costのguided paymentを既存GameCommand列へ落とす。",
-      "evidence": [],
+      "boundary": "tap-other(正確数・source除外はoracle otherのみ)・counter removal(4形態: strict-self fixed/source選択/one-or-more/X)・{X}(X=0合法・繰り返し同一値・announcedX保存)を既存GameCommand列へ原子的に落とす。未解析costはwholly manual。",
+      "evidence": [
+        "review.cr118-act4",
+        "act4CostVocabulary",
+        "engine-spec-33.8",
+        "acceptance-G4-9..17"
+      ],
       "manualBoundary": "選択完了前の部分支払い、未解析costの部分実行、同じpermanentの重複選択を禁止する。",
-      "nextGate": "契約・reviewを先行凍結して実装する。最初のCRコードマイルストーン。",
-      "judge": "deterministic-cr"
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
+      "judge": "deterministic-cr",
+      "note": "**出荷完了(2026-07-24・判定者=Codex・冷監査=Zeno 019f9495)**: ACT-4コスト語彙。tap-other(Relic of Legends型)・counter removal(Dragon's Hoard型)・{X}(Pernicious Deed型X=0合法)のguided payment。支払い原子性・cancel no-op・undo 1 snapshot・部分支払い防止・auto詐称なし。冷監査 SHIPPED-OK(BLOCKER/HIGH=0・MEDIUM=台帳陳腐化2件→本更新で修正)。"
     },
     {
       "id": "cr-121-cross-player-draw",

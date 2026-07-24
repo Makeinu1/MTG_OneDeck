@@ -197,14 +197,83 @@ export function XCostDialog({
         />
       </label>
       <div className="dialog__actions">
-        <button type="button" className="btn" onClick={onCancel}>
+        <button
+          type="button"
+          className="btn"
+          onClick={onCancel}
+          data-testid="x-cost-cancel"
+        >
           キャンセル
         </button>
         <button
           type="button"
           className="btn btn--accent"
-          onClick={() => onConfirm(Math.max(minValue, Number.parseInt(value, 10) || minValue))}
+          onClick={() => onConfirm(Number(value))}
           data-testid="x-cost-confirm"
+          disabled={!Number.isInteger(Number(value)) || Number(value) < minValue}
+        >
+          決定
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function CounterCostDialog({
+  counterType,
+  min,
+  max,
+  onConfirm,
+  onCancel,
+}: {
+  counterType: string;
+  min: number;
+  max: number;
+  onConfirm: (amount: number) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(String(min));
+
+  return (
+    <Modal
+      title="取り除くカウンター数"
+      onClose={onCancel}
+      width="sm"
+      testId="counter-cost-dialog"
+    >
+      <p>{counterType}カウンターを何個取り除きますか。</p>
+      <label className="dialog__field">
+        個数
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={1}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          data-testid="counter-cost-amount"
+          autoFocus
+        />
+      </label>
+      <div className="dialog__actions">
+        <button
+          type="button"
+          className="btn"
+          onClick={onCancel}
+          data-testid="counter-cost-cancel"
+        >
+          キャンセル
+        </button>
+        <button
+          type="button"
+          className="btn btn--accent"
+          onClick={() => onConfirm(Number(value))}
+          data-testid="counter-cost-confirm"
+          disabled={
+            !Number.isInteger(Number(value))
+            || Number(value) < min
+            || Number(value) > max
+          }
         >
           決定
         </button>
