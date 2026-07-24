@@ -531,6 +531,24 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G5-7 | `draw` command without `playerId` | `localPlayerId`(P1)のライブラリから引く |
 | G5-8 | cross-player draw の applyCommand 純粋性 | 入力 state は JSON 不変。出力 state のみ変更。単一遷移 |
 
+### G6 CR605 mana choice UI 検証ピン(2026-07-25・engine-spec §33.10)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| G6-1 | `{T}: Add one mana of any color.` をコンパイル | guided mana prompt(count=1, manaOptions=[W,U,B,R,G]) |
+| G6-2 | `{T}: Add two mana of any one color.` をコンパイル | guided mana prompt(count=2) |
+| G6-3 | commander color identity=[U,B] で "any color in your commander's color identity" をコンパイル | manaOptions=[U,B] に制限 |
+| G6-4 | `{T}: Add one mana of the chosen color.` をコンパイル | guided mana prompt(CR 607.2 linked) |
+| G6-5 | `{5}, {T}: Add five mana in any combination of colors.` をコンパイル | guided mana prompt(count=5) |
+| G6-6 | 用途制限付きマナ("Spend this mana only to...")をコンパイル | manual。prompts 空。fake guided なし |
+| G6-7 | 可変数マナ("Add X mana...")をコンパイル | manual。prompts 空 |
+| G6-8 | buildGuidedCommands(mana prompt, color='G') | `[{type:'addMana', color:'G', amount:1}]` |
+| G6-9 | buildGuidedCommands(manaOptions=[U,B], color='R') | 空配列(拒否) |
+| G6-10 | 多色土地(R/G)を tapForMana(色なし) | `needs-choice`。タップされない |
+| G6-11 | 多色土地(R/G)を tapForMana('R') | `ok`。タップ+マナプール R+1 |
+| G6-12 | 単色土地(G)を tapForMana(色なし) | `ok`。自動解決。タップ+マナプール G+1 |
+| G6-13 | マナ能力の guided prompt 解決後 | スタック長不変(CR 605.3b no-stack) |
+
 ### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
 
 | ID | 操作 | 期待結果 |

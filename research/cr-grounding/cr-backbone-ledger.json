@@ -222,13 +222,17 @@
       "type": "domain-slice",
       "domainId": "cr-605-mana-choice-ui",
       "crOrder": 605,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-605-mana-abilities"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr605-mana-choice-ui",
+        "engine-spec-33.10",
+        "acceptance-G6-1..13"
+      ],
       "manualBoundary": "色または組合せを選ぶマナ能力は共通guided promptが完了するまでmanual表示を維持する。",
-      "note": "旧carry①をCR605へ分割。needs-choice色ダイアログ4箇所を既存EffectPrompt/PendingGuidedResolution境界へ統合し、ルール別専用フローを作らない。"
+      "note": "**出荷完了(2026-07-25・判定者=Codex・冷監査=Jason 019f94f9)**: CR605 mana choice UI検証ピン。guided mana prompt + tapForMana needs-choiceフローをreview 13 casesで固定。冷監査MEDIUM 2件修正後に昇格。"
     },
     {
       "type": "domain-slice",
@@ -1869,11 +1873,12 @@
       "crOrder": 605,
       "crRefs": [
         "605.1",
-        "605.3"
+        "605.3b",
+        "106.3"
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-605-mana-abilities"
       ],
@@ -1881,11 +1886,16 @@
         "guidedManaPrompt",
         "pendingGuided"
       ],
-      "boundary": "色または組合せを選ぶ既存mana abilityを共通guided resolution UIから完遂可能にする。",
-      "evidence": [],
+      "boundary": "guided mana prompt(any color/any one color/any combination/chosen color/that color)をManaChoiceDialogで完遂。用途制限・可変数はmanual維持。tapForMana単色=自動/多色=needs-choice。CR 605.3b no-stack。",
+      "evidence": [
+        "review.cr605-mana-choice-ui",
+        "engine-spec-33.10",
+        "acceptance-G6-1..13"
+      ],
       "manualBoundary": "未解析の用途制限・組合せはmanualのまま、既知色だけを勝手に選ばない。",
-      "nextGate": "CR121出荷後にCR605順で選定する。",
-      "judge": "deterministic-cr"
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
+      "judge": "deterministic-cr",
+      "note": "**出荷完了(2026-07-25・判定者=Codex・冷監査=Jason 019f94f9)**: CR605 mana choice UI検証ピン。エンジン/ストア/UIコード変更ゼロ。既存guidedManaPrompt→pendingGuided→confirmGuidedMana→ManaChoiceDialogフローとtapForManaショートカットがCR 605.1/605.3b/106.3を正しく満たすことをreview 13 casesで固定。冷監査MEDIUM 2件(CR 106.7→106.3引用訂正・G6-13 vacuous-pass修正)を修正後に昇格。"
     },
     {
       "id": "cr-606-loyalty-activation",

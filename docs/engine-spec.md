@@ -1933,6 +1933,25 @@ UIは既存の共通解決workspaceを使う。カード候補はDecisionBarとk
 
 **review**: `src/store/__tests__/review.cr121-cross-player-draw.test.ts`(8 cases)。
 
+### 33.10 CR605 mana choice UI 検証ピン(契約)
+
+**目的**: CR 605.1/605.3b/106.3 のマナ能力色選択 UI が既存の guided mana prompt フロー(`guidedManaPrompt` → `pendingGuided` → `confirmGuidedMana` → `ManaChoiceDialog`)と `tapForMana` ショートカットフロー(`needs-choice` → `manaChoice` state → `ManaChoiceDialog`)で正しく実装されていることを review テストで固定する。新 GameCommand・新 GameState フィールドは追加しない。
+
+**CR 根拠**:
+- CR 605.1: マナ能力 = マナを追加する起動型能力・対象なし・loyalty ではない
+- CR 605.3b: マナ能力はスタックを使わずに解決する
+- CR 106.3: マナ生成の一般則(能力がマナを追加する際の選択メカニクス)
+
+**契約**:
+1. `guidedManaPrompt` は "Add N mana of any color" / "any one color" / "any combination of colors" / "the chosen color" / "that color" を guided mana prompt へコンパイルする。`manaOptions` は commander color identity で制限される場合がある。
+2. 用途制限付きマナ("Spend this mana only to...")は manual のまま維持する(fake guided 禁止)。
+3. 可変数マナ("Add X mana...")は manual のまま維持する。
+4. `buildGuidedCommands` は mana answer を `addMana` command へ写像する。`manaOptions` にない色は空配列を返す(拒否)。
+5. `tapForMana` は単色土地は自動解決、多色土地は `needs-choice` を返す。色指定付き呼び出しは指定色が `producedMana` にあれば `ok`、なければ `needs-choice`。
+6. マナ能力の guided prompt はスタックに追加しない(CR 605.3b)。`confirmGuidedMana` 後にスタック長は不変。
+
+**review**: `src/store/__tests__/review.cr605-mana-choice-ui.test.ts`(13 cases)。
+
 ---
 
 ## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である
