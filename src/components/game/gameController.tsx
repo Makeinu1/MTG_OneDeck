@@ -1082,15 +1082,15 @@ export function useGameController({
     if (!state) return null;
     const sourceId = targetSourceId;
     if (targetPrompt?.kind === 'target') return {
-      kind: 'target', title: '対象を選択', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
+      kind: 'target', title: '対象', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
       sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
     };
     if (guidedPrompt?.kind === 'discard') return {
-      kind: 'discard', title: '捨てるカードを選択', instruction: '手札の候補から1枚選んでください。',
+      kind: 'discard', title: '捨てる', instruction: '手札の候補から1枚選んでください。',
       sourceId, candidateIds: state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand, selectedIds: [],
     };
     if (guidedPrompt?.kind === 'sacrifice') return {
-      kind: 'sacrifice', title: '生け贄を選択', instruction: '戦場の候補から1枚選んでください。',
+      kind: 'sacrifice', title: '生け贄', instruction: '戦場の候補から1枚選んでください。',
       sourceId, candidateIds: guidedSacrificeIds, selectedIds: [],
     };
     if (
@@ -1105,18 +1105,18 @@ export function useGameController({
       kind: 'cost',
       title:
         guidedPrompt.kind === 'cost-discard'
-          ? '起動コスト：捨てる'
+          ? 'コスト：捨てる'
           : guidedPrompt.kind === 'cost-tap'
-            ? '起動コスト：タップ'
+            ? 'コスト：タップ'
             : guidedPrompt.kind === 'cost-remove-counter'
-              ? '起動コスト：カウンターを取り除く'
-              : '起動コスト：生け贄',
+              ? 'コスト：カウンター'
+              : 'コスト：生け贄',
       instruction: '金色の候補を選んでコストを確定します。',
       sourceId, candidateIds: guidedCostSubjectIds, selectedIds: [...guidedCostSelectedIds],
       requiredCount: guidedPrompt.count,
     };
     if (pendingRuleTarget) return {
-      kind: 'target', title: TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? '対象を選択',
+      kind: 'target', title: TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? '対象',
       instruction: '金色の候補を選んでください。', sourceId: pendingRuleTarget.sourceCardId,
       candidateIds: ruleTargetIds, selectedIds: [],
     };
@@ -1125,19 +1125,19 @@ export function useGameController({
       sourceId: pendingBloodCrackCardId, candidateIds: state.zones.hand, selectedIds: [],
     };
     if (guidedPrompt?.kind === 'mana') return {
-      kind: 'payment', title: 'マナの色を選択', instruction: '支払いに使うマナを選んでください。',
+      kind: 'payment', title: 'マナの色', instruction: '支払いに使うマナを選んでください。',
       sourceId, candidateIds: [], selectedIds: [],
     };
     if (manaChoice) return {
-      kind: 'payment', title: '生み出すマナを選択', instruction: '発生源を確認して色を選んでください。',
+      kind: 'payment', title: 'マナ', instruction: '発生源を確認して色を選んでください。',
       sourceId: manaChoice.cardId, candidateIds: [], selectedIds: [],
     };
     if (pendingXCast) return {
-      kind: 'payment', title: 'Xの値を決定', instruction: '支払うマナ量を入力してください。',
+      kind: 'payment', title: 'Xの値', instruction: '支払うマナ量を入力してください。',
       sourceId: pendingXCast.cardId, candidateIds: [], selectedIds: [],
     };
     if (pendingXAbility) return {
-      kind: 'payment', title: 'Xの値を決定', instruction: '起動コストのXを入力してください。',
+      kind: 'payment', title: 'Xの値', instruction: '起動コストのXを入力してください。',
       sourceId: pendingXAbility.cardId, candidateIds: [], selectedIds: [],
     };
     if (pendingPayment) return {
@@ -1147,7 +1147,7 @@ export function useGameController({
       canForce: true,
     };
     if (pendingLandTapChoice) return {
-      kind: 'payment', title: '土地の着地状態', instruction: 'タップ状態で出すか選んでください。',
+      kind: 'payment', title: '着地状態', instruction: 'タップ状態で出すか選んでください。',
       sourceId: pendingLandTapChoice.cardId, candidateIds: [], selectedIds: [],
     };
     return null;

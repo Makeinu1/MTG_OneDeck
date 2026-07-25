@@ -5,10 +5,9 @@ export function DecisionBar({ controller }: { controller: GameController }) {
   const state = controller.state;
   if (!focus || !state) return null;
   return (
-    <section className="decision-bar" data-testid="decision-bar" data-kind={focus.kind} role="region" aria-live="polite">
+    <section className="decision-bar" data-testid="decision-bar" data-kind={focus.kind} role="region" aria-live="polite" aria-label={`${focus.title}。${focus.instruction}`}>
       <div className="decision-bar__copy">
         <strong>{focus.title}</strong>
-        <span>{focus.instruction}</span>
       </div>
       {focus.playerIds && focus.playerIds.length > 0 && (
         <div className="decision-bar__players" role="group" aria-label="プレイヤーを選択">
@@ -22,7 +21,7 @@ export function DecisionBar({ controller }: { controller: GameController }) {
       {(focus.requiredCount !== undefined || focus.candidateIds.length > 0) && (
         <span className="decision-bar__count">
           {focus.requiredCount !== undefined
-            ? `選択 ${focus.selectedIds.length}/${focus.requiredCount}`
+            ? `${focus.selectedIds.length}/${focus.requiredCount}`
             : `候補 ${focus.candidateIds.length}`}
         </span>
       )}

@@ -159,9 +159,7 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
         </div>
       </div>
       {dropTarget && (
-        <div className="semantic-drop semantic-drop--lands" data-testid="drop-play-land" aria-hidden>
-          {dropTarget.kind === 'play-land' ? '土地をプレイ' : '土地を戦場へ移す'}
-        </div>
+        <div className="semantic-drop semantic-drop--lands" data-testid="drop-play-land" aria-hidden />
       )}
       {scrollState.left && (
         <button type="button" className="land-row__nav land-row__nav--left" onClick={() => scroll(-1)} aria-label="土地を左へ移動">‹</button>

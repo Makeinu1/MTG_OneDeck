@@ -104,9 +104,7 @@ export function SupportRow({
         />
       </div>
       {dropTarget && (
-        <div className="semantic-drop semantic-drop--support" aria-hidden>
-          {dropTarget.kind === 'cast' ? '唱える → スタック' : '戦場へ移す'}
-        </div>
+        <div className="semantic-drop semantic-drop--support" aria-hidden />
       )}
     </div>
   );

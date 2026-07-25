@@ -107,7 +107,6 @@ export function StatusBand({ controller }: StatusBandProps) {
             setModeFlash(true);
           }}
         >
-          <span className="status-band__phase-prefix">現在：</span>
           <strong>{model.phaseLabel}</strong>
           <span className="status-band__phase-mode" title={store.autoAdvanceToMain ? '自動進行' : '手動進行'}>
             <Icon name="auto" />{store.autoAdvanceToMain ? '自' : '手'}
@@ -140,7 +139,7 @@ export function StatusBand({ controller }: StatusBandProps) {
           onClick={() => setLifeOpen(true)}
           title="マナの詳細を開く"
         >
-          計<strong>{mana.poolTotal}</strong>
+          <strong>{mana.poolTotal}</strong>
         </button>
         <span className="status-band__mana-colors">
           {MANA_LABELS.map(({ color, kanji, name }) => (
@@ -168,7 +167,6 @@ export function StatusBand({ controller }: StatusBandProps) {
             </span>
           ))}
         </span>
-        <span className="status-band__mana-sources" title="未タップのマナ源">源<strong>{mana.untappedSourceCount}</strong></span>
       </div>
 
       <div className="status-band__event-slot" data-testid="status-event-slot">

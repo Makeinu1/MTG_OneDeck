@@ -33,20 +33,19 @@ export interface PrimaryActionLanguage {
 export function primaryActionLanguage(
   state: GameState,
   primary: PrimaryActionModel,
-  triggerCandidateCount: number,
 ): PrimaryActionLanguage {
   const full = primaryActionDisplayLabel(state, primary);
   switch (primary.kind) {
     case 'manual-resolution':
-      return { full, compact: '手動完了', icon: 'stack' };
+      return { full, compact: '完了', icon: 'stack' };
     case 'resolve':
-      return { full, compact: `解決 ${state.zones.stack.length}`, icon: 'stack' };
+      return { full, compact: '解決', icon: 'stack' };
     case 'triggers':
-      return { full, compact: `誘発 ${triggerCandidateCount}`, icon: 'bell' };
+      return { full, compact: '誘発', icon: 'bell' };
     case 'attack':
-      return { full, compact: `攻撃 ${primary.eligibleAttackers ?? 0}`, icon: 'attack' };
+      return { full, compact: '攻撃', icon: 'attack' };
     case 'skip-combat':
-      return { full, compact: '攻撃せず進む', icon: 'phase-next' };
+      return { full, compact: 'スキップ', icon: 'phase-next' };
     case 'next-phase':
       return { full, compact: full.replace(/^次へ：/, ''), icon: 'phase-next' };
   }

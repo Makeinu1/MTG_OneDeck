@@ -44,11 +44,6 @@ const GUARDED_FILES = [
  * 増やすときは「なぜトークンで表現できないか」を書くこと。
  */
 const ALLOWLIST: readonly { file: string; contains: string; why: string }[] = [
-  {
-    file: 'components/game/game.css',
-    contains: 'rgba(159, 212, 255, 0.52)',
-    why: 'D2以前からの未返済。スタックのハイライト境界。別スライスでトークン化する。',
-  },
 ];
 
 /**
@@ -153,13 +148,11 @@ describe('トークン期CSSの生カラー禁止(ライトテーマ回帰の ba
     const gameCss = readFileSync(path.resolve(repoSrc, 'components/game/game.css'), 'utf-8');
     expect(gameCss).toMatch(/mask-image:\s*linear-gradient\([^;]*#000/);
     expect(gameCss).toMatch(/filter:\s*drop-shadow\([^;]*rgb\(/);
-    expect(gameCss).toContain('rgba(159, 212, 255, 0.52)');
 
     // 上の生カラーガードと違い「0件」ではなく「この種類を含まない」を主張する
     // (真の違反が残っていても、誤検知の有無だけを独立に判定できるようにするため)。
     const offenses = scanRawColors('components/game/game.css');
     expect(offenses.filter((o) => /mask|filter/.test(o.prop))).toEqual([]);
-    expect(offenses.filter((o) => o.text.includes('rgba(159, 212, 255, 0.52)'))).toEqual([]);
     expect(offenses.filter((o) => o.text.includes('drop-shadow'))).toEqual([]);
   });
 

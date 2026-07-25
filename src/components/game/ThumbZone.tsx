@@ -151,7 +151,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
     controller.triggerCandidateCount,
     store.resolutionSession?.stage === 'manual-required',
   );
-  const primaryLanguage = primaryActionLanguage(state, primary, controller.triggerCandidateCount);
+  const primaryLanguage = primaryActionLanguage(state, primary);
 
   function runPrimary(): void {
     if (controller.runPrimaryAction) {

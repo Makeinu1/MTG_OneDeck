@@ -232,9 +232,7 @@ export function Board({ controller, activeDragId = null }: BoardProps) {
         role="creature"
       />
       {dropTarget && (
-        <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden>
-          {dropTarget.kind === 'cast' ? '盤面へ移動して唱える → スタック' : '盤面へ移動して戦場へ'}
-        </div>
+        <div className="semantic-drop semantic-drop--board" data-testid="drop-cast" aria-hidden />
       )}
     </div>
   );

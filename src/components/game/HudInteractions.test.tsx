@@ -412,7 +412,7 @@ describe('high-frequency HUD interactions', () => {
         <StackBand controller={controller} />
       </DndContext>,
     );
-    const stackCards = container.querySelectorAll('.stack-workspace__card .card-view');
+    const stackCards = container.querySelectorAll('.stack-pile__card .card-view');
     expect(stackCards.length).toBeGreaterThan(0);
     stackCards.forEach((card) => {
       expect(card.hasAttribute('aria-roledescription')).toBe(false);
@@ -428,14 +428,19 @@ describe('high-frequency HUD interactions', () => {
         <StackBand controller={controller} />
       </DndContext>,
     );
-    const items = container.querySelectorAll<HTMLElement>('[data-testid^="stack-workspace-item-"]');
 
-    expect(container.querySelector('[data-testid="stack-band-resolve-top"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="stack-band-resolve-all"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="stack-band-respond"]')).not.toBeNull();
+    // 旧来の直接解決ボタン・応答ボタンは廃止(⋯オーバーフローへ移行)。
+    expect(container.querySelector('[data-testid="stack-band-resolve-top"]')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-band-resolve-all"]')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-band-respond"]')).toBeNull();
     expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
-    expect(container.querySelector('.stack-workspace footer')?.getAttribute('title'))
-      .toContain('手札・盤面を操作');
+
+    // パイルはデフォルト折り畳み。展開してからリストの選択挙動を検証する。
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="stack-compact-trigger"]')?.click();
+    });
+    const items = container.querySelectorAll<HTMLElement>('.stack-pile__list [data-testid^="stack-workspace-item-"]');
+    expect(items.length).toBeGreaterThan(1);
     expect(items[0]?.classList.contains('is-selected')).toBe(true);
     act(() => {
       items[1]?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
@@ -455,7 +460,7 @@ describe('high-frequency HUD interactions', () => {
     });
     const { container, root } = mount(<StackBand controller={controller} />);
 
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-expanded')).toBe('true');
     act(() => root.unmount());
   });
 
@@ -463,17 +468,29 @@ describe('high-frequency HUD interactions', () => {
     const initial = buildVisualFixture('stack').snapshot.state;
     const controller = controllerFor(initial);
     const { container, root } = mount(<StackBand controller={controller} />);
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
+    const band = () => container.querySelector('[data-testid="stack-band"]');
 
-    act(() => container.querySelector<HTMLButtonElement>('.stack-workspace__close')?.click());
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+    // デフォルトは折り畳み。
+    expect(band()?.getAttribute('data-expanded')).toBeNull();
     expect(container.querySelector('[data-testid="stack-compact-trigger"]')).not.toBeNull();
 
+    // trigger クリックで展開。
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="stack-compact-trigger"]')?.click());
+    expect(band()?.getAttribute('data-expanded')).toBe('true');
+
+    // Escape で折り畳み。
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(band()?.getAttribute('data-expanded')).toBeNull();
+
+    // 同一セッションにアイテムを追加しても折り畳み維持。
     const sourceId = initial.zones.stack.find((id) => !initial.cards[id].isAbility)!;
     const withAnotherItem = applyCommand(initial, { type: 'copyStackItem', cardId: sourceId }).state;
     act(() => root.render(<StackBand controller={controllerFor(withAnotherItem)} />));
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+    expect(band()?.getAttribute('data-expanded')).toBeNull();
 
+    // スタックが空になり新セッションが始まってもデフォルト折り畳み。
     const empty = {
       ...withAnotherItem,
       zones: { ...withAnotherItem.zones, stack: [] },
@@ -491,12 +508,15 @@ describe('high-frequency HUD interactions', () => {
     };
     act(() => root.render(<StackBand controller={controllerFor(empty)} />));
     act(() => root.render(<StackBand controller={controllerFor(newSession)} />));
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBe('true');
+    expect(band()?.getAttribute('data-expanded')).toBeNull();
 
+    // 新セッションでも trigger で展開→Escape で折り畳みが機能する。
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="stack-compact-trigger"]')?.click());
+    expect(band()?.getAttribute('data-expanded')).toBe('true');
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
-    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-mobile-open')).toBeNull();
+    expect(band()?.getAttribute('data-expanded')).toBeNull();
     act(() => root.unmount());
   });
 
@@ -775,7 +795,7 @@ describe('high-frequency HUD interactions', () => {
 
     expect(primary?.dataset.kind).toBe('triggers');
     expect(primary?.getAttribute('aria-label')).toBe('誘発を処理 (1)');
-    expect(primary?.querySelector('.thumb-zone__primary-compact')?.textContent).toBe('誘発 1');
+    expect(primary?.querySelector('.thumb-zone__primary-compact')?.textContent).toBe('誘発');
     act(() => primary?.click());
     expect(processTriggers).toHaveBeenCalledTimes(1);
     expect(openFeed).not.toHaveBeenCalled();
