@@ -15,7 +15,7 @@ import type { GameController } from '../gameController';
 
 afterEach(() => {
   document.body.replaceChildren();
-  useGameStore.setState({ state: null });
+  useGameStore.setState({ state: null, resolutionSession: null });
 });
 
 function mountPile(controller: GameController) {
@@ -71,12 +71,122 @@ describe('S1 stack pile contract', () => {
     act(() => root.unmount());
   });
 
-  it('keeps manual target/remove reachable via overflow (⋯) menu', () => {
+  it('keeps manual target/remove wired through the overflow (⋯) menu', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const controller = controllerFor(state);
+    const removeStackItem = vi.spyOn(controller.store, 'removeStackItem').mockImplementation(() => {});
+    const { container, root } = mountPile(controller);
+    // ⋯メニューのトリガーが存在(aria-label に「その他」系の名詞を許容)
+    const overflow = container.querySelector<HTMLButtonElement>('[data-testid^="stack-overflow-"]');
+    expect(overflow).not.toBeNull();
+    // 展開トリガーは見出しボタンが担う。カード面を別の button role にして
+    // ⋯ボタンをインタラクティブ要素内へネストしない。
+    expect(overflow?.closest('[role="button"]')).toBeNull();
+
+    // 対象の手動記録はダイアログを経て controller へ届く。
+    act(() => overflow?.click());
+    const manualTarget = container.querySelector<HTMLButtonElement>('[data-testid^="stack-manual-target-"]');
+    const stackItemId = manualTarget?.dataset.testid?.replace('stack-manual-target-', '');
+    expect(stackItemId).toBeTruthy();
+    act(() => manualTarget?.click());
+    expect(container.querySelector('[data-testid="manual-target-dialog"]')).not.toBeNull();
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="manual-target-confirm"]')?.click();
+    });
+    expect(controller.setManualTargets).toHaveBeenCalledWith(stackItemId, [], []);
+
+    // 手動打ち消し／能力除去は store の専用経路へ届く。
+    act(() => overflow?.click());
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid^="stack-manual-remove-"]')?.click();
+    });
+    expect(removeStackItem).toHaveBeenCalledWith(stackItemId);
+    act(() => root.unmount());
+  });
+
+  it('keeps required manual completion visible instead of hiding it in overflow', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const base = controllerFor(state);
+    const completeManualResolution = vi.fn();
+    const controller = {
+      ...base,
+      store: {
+        ...base.store,
+        resolutionSession: {
+          mode: 'top',
+          sourceId: state.zones.stack[0],
+          baseline: state,
+          stage: 'manual-required',
+          reason: 'unsupported',
+          tasks: [{ id: 'manual-task', message: 'カードの指示に従ってください。' }],
+          stepPast: [],
+          stepFuture: [],
+        },
+        completeManualResolution,
+      },
+    } as GameController;
+    const { container, root } = mountPile(controller);
+
+    const task = container.querySelector('[data-testid="stack-manual-task"]');
+    expect(task).not.toBeNull();
+    expect(task?.textContent).toContain('完了');
+    expect(container.querySelector('[data-testid="stack-board-peek"]')).toBeNull();
+    act(() => task?.querySelector<HTMLButtonElement>('button')?.click());
+    expect(completeManualResolution).toHaveBeenCalledOnce();
+    act(() => root.unmount());
+  });
+
+  it('lets the user clear the board view and return to the same stack context', () => {
     const state = buildVisualFixture('stack').snapshot.state;
     const { container, root } = mountPile(controllerFor(state));
-    // ⋯メニューのトリガーが存在(aria-label に「その他」系の名詞を許容)
-    const overflow = container.querySelector('[data-testid^="stack-overflow-"], [data-testid^="stack-item-menu-"]');
-    expect(overflow).not.toBeNull();
+    const band = () => container.querySelector('[data-testid="stack-band"]');
+
+    // 複数項目を展開して確認する。
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="stack-compact-trigger"]')?.click();
+    });
+    expect(container.querySelectorAll('.stack-pile__list [data-stack-item-id]')).toHaveLength(
+      state.zones.stack.length,
+    );
+
+    // 盤面を見る間はパイル/一覧を退避し、最小の復帰タブだけ残す。
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="stack-board-peek"]')?.click();
+    });
+    expect(band()?.getAttribute('data-board-peek')).toBe('true');
+    expect(container.querySelector('.stack-pile__cards')).toBeNull();
+    expect(container.querySelector('.stack-pile__list')).toBeNull();
+    expect(container.querySelector('[data-testid="stack-board-return"]')).not.toBeNull();
+
+    // 復帰すると、盤面を見る前の展開状態へ戻る。
+    act(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="stack-board-return"]')?.click();
+    });
+    expect(band()?.getAttribute('data-board-peek')).toBeNull();
+    expect(container.querySelectorAll('.stack-pile__list [data-stack-item-id]')).toHaveLength(
+      state.zones.stack.length,
+    );
+    act(() => root.unmount());
+  });
+
+  it('does not offer board peek while a stack target decision requires the pile', () => {
+    const state = buildVisualFixture('stack').snapshot.state;
+    const stackCardId = state.zones.stack[0];
+    const controller = {
+      ...controllerFor(state),
+      decisionFocus: {
+        kind: 'target',
+        title: '対象',
+        instruction: 'スタック上の対象を選ぶ',
+        candidateIds: [stackCardId],
+        selectedIds: [],
+        requiredCount: 1,
+      },
+    } as unknown as GameController;
+    const { container, root } = mountPile(controller);
+
+    expect(container.querySelector('[data-testid="stack-band"]')?.getAttribute('data-expanded')).toBe('true');
+    expect(container.querySelector('[data-testid="stack-board-peek"]')).toBeNull();
     act(() => root.unmount());
   });
 

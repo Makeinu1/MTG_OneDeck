@@ -3631,7 +3631,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const cur = get().state;
       if (!cur) return 'ok';
       if (get().resolutionSession) {
-        set({ warnings: ['手動処理を完了してから、スタックへ対応を追加してください。'] });
+        set({ warnings: ['手動処理を完了してから、この操作を行ってください。'] });
         return 'error';
       }
       const card = cur.cards[cardId];
@@ -3782,7 +3782,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     addAbilityToStack(sourceId, kind, abilityLineIndex) {
       if (get().resolutionSession) {
-        set({ warnings: ['手動処理を完了してから、スタックへ対応を追加してください。'] });
+        set({ warnings: ['手動処理を完了してから、この操作を行ってください。'] });
         return;
       }
       const before = get().state;
@@ -4314,7 +4314,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const cur = get().state;
       if (!cur) return;
       if (get().resolutionSession) {
-        set({ warnings: ['手動処理を完了してからスタックへ対応を追加してください。'] });
+        set({ warnings: ['手動処理を完了してから、この操作を行ってください。'] });
         return;
       }
       try {

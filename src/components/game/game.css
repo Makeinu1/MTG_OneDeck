@@ -584,21 +584,39 @@ body:has(.commander-cutin) .celebration-layer { opacity: 0; transition: opacity 
 .game-screen__stack .modal-backdrop { pointer-events: auto; }
 /* ---------- Stack pile (S1: 中央ワークスペース→盤面右中央のカードパイル) ----------
    解決順は位置で示す: 最前面=次に解決(完全表示+発光)。2枚目以降は右下へずらし重ね・縮小・減光。
-   「上から順に解決」等の説明文は廃止。scrim なし=盤面常時操作可能。 */
+   操作説明の常設文は廃止。scrim なし=盤面常時操作可能。 */
 .stack-pile {
   position: fixed; right: var(--space-3); top: 50%; transform: translateY(-50%); z-index: 82;
   display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2);
   pointer-events: auto;
 }
+.stack-pile--board-peek { right: 0; }
 .stack-pile--manual { filter: drop-shadow(0 0 14px color-mix(in srgb, var(--warn) 45%, transparent)); }
+.stack-pile__toolbar { display: flex; align-items: stretch; justify-content: flex-end; gap: var(--space-1); }
 .stack-pile__trigger {
   display: flex; align-items: center; gap: var(--space-2);
-  min-height: 36px; padding: var(--space-1) var(--space-2);
+  min-height: var(--touch-target); padding: var(--space-1) var(--space-2);
   color: var(--text); background: color-mix(in srgb, var(--surface-2) 94%, transparent);
   border: 1px solid var(--stack-glow-c); border-radius: var(--radius-md); box-shadow: var(--stack-glow);
   cursor: pointer; max-width: min(280px, calc(100vw - 24px));
 }
 .stack-pile__trigger strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-xs); }
+.stack-pile__board-peek,
+.stack-pile__return {
+  min-width: var(--touch-target); min-height: var(--touch-target); padding: 0 var(--space-2);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  color: var(--text); background: color-mix(in srgb, var(--surface-2) 94%, transparent);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card); cursor: pointer;
+  font-size: var(--font-size-xs); font-weight: 800;
+}
+.stack-pile__board-peek:hover,
+.stack-pile__return:hover { border-color: var(--stack-glow-c); }
+.stack-pile__return {
+  padding-left: var(--space-3); border-right: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  box-shadow: var(--shadow-card), var(--stack-glow);
+}
 .stack-pile__count {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
@@ -615,13 +633,14 @@ body:has(.commander-cutin) .celebration-layer { opacity: 0; transition: opacity 
 .stack-pile__card--front .card-view__face { box-shadow: var(--stack-glow), var(--shadow-card); }
 .stack-pile__overflow { position: absolute; top: var(--space-1); left: var(--space-1); z-index: 5; }
 .stack-pile__overflow-trigger {
-  min-width: 30px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  min-width: var(--touch-target); min-height: var(--touch-target);
+  display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-h); background: color-mix(in srgb, var(--surface-2) 92%, transparent);
   border: 1px solid var(--line-strong); border-radius: var(--radius-sm); cursor: pointer;
   font-size: var(--font-size-md); line-height: 1;
 }
 .stack-pile__overflow-menu {
-  position: absolute; top: 34px; left: 0; z-index: 10;
+  position: absolute; top: calc(var(--touch-target) + var(--space-1)); right: 0; z-index: 10;
   display: flex; flex-direction: column; min-width: 168px; padding: var(--space-1);
   background: color-mix(in srgb, var(--surface-2) 96%, transparent);
   border: 1px solid var(--line-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);

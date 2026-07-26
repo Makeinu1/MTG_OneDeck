@@ -1,4 +1,4 @@
-/** StackBand — board-stable centered overlay with a compact closed-state trigger. */
+/** StackBand — right-side stack pile with reversible board-peek and detail states. */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GameCard } from './GameCard';
@@ -161,6 +161,8 @@ export function StackBand({ controller }: StackBandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [manualTargetSourceId, setManualTargetSourceId] = useState<string | null>(null);
   const [openOverflowId, setOpenOverflowId] = useState<string | null>(null);
+  const [boardPeekSessionId, setBoardPeekSessionId] = useState<string | null>(null);
+  const [restoreExpandedAfterPeek, setRestoreExpandedAfterPeek] = useState(false);
 
   useEffect(() => {
     const previous = previousStackLenRef.current;
@@ -175,6 +177,8 @@ export function StackBand({ controller }: StackBandProps) {
     (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
   ) ?? false;
   const expanded = expandedSessionId === sessionId || hasStackCandidate;
+  const resolutionLocked = controller.store.resolutionSession !== null;
+  const boardPeek = boardPeekSessionId === sessionId && !hasStackCandidate && !resolutionLocked;
 
   useEffect(() => {
     if (!expanded) return;
@@ -196,136 +200,167 @@ export function StackBand({ controller }: StackBandProps) {
     if (hasStackCandidate) return;
     setExpandedSessionId(expanded ? null : sessionId);
   };
+  const enterBoardPeek = () => {
+    if (hasStackCandidate || resolutionLocked) return;
+    setRestoreExpandedAfterPeek(expanded);
+    setExpandedSessionId(null);
+    setOpenOverflowId(null);
+    setBoardPeekSessionId(sessionId);
+  };
+  const exitBoardPeek = () => {
+    setBoardPeekSessionId(null);
+    if (restoreExpandedAfterPeek) setExpandedSessionId(sessionId);
+  };
   return (
     <>
-      {expanded && <StackTargetLines item={selectedItem} />}
+      {expanded && !boardPeek && <StackTargetLines item={selectedItem} />}
       <section
         id="stack-pile"
         className={`stack-band stack-pile${flash ? ' stack-band--flash' : ''}${
           controller.store.resolutionSession ? ' stack-pile--manual' : ''
-        }`}
+        }${boardPeek ? ' stack-pile--board-peek' : ''}`}
         data-testid="stack-band"
         data-expanded={expanded || undefined}
+        data-board-peek={boardPeek || undefined}
         aria-label={`スタック ${items.length}件`}
       >
-        <button
-          type="button"
-          className="stack-pile__trigger"
-          data-testid="stack-compact-trigger"
-          aria-expanded={expanded}
-          onClick={toggleExpanded}
-        >
-          <strong>{items[0]?.name}</strong>
-          <span className="stack-pile__count">{items.length}</span>
-        </button>
-
-        {!expanded ? (
-          <div
-            className="stack-pile__cards"
-            role="button"
-            tabIndex={0}
-            aria-label={`スタック ${items.length}件。展開する`}
-            onClick={toggleExpanded}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                toggleExpanded();
-              }
-            }}
+        {boardPeek ? (
+          <button
+            type="button"
+            className="stack-pile__return"
+            data-testid="stack-board-return"
+            aria-label={`スタックに戻る ${items.length}件`}
+            onClick={exitBoardPeek}
           >
-            {items.map((item, index) => (
-              <div
-                key={item.cardId}
-                className={`stack-pile__card${index === 0 ? ' stack-pile__card--front' : ''}`}
-                data-stack-item-id={item.cardId}
-                data-testid={`stack-workspace-item-${item.cardId}`}
-                style={{
-                  zIndex: items.length - index,
-                  transform: index === 0
-                    ? undefined
-                    : `translate(${index * 18}px, ${index * 18}px) scale(${Math.pow(0.92, index)})`,
-                  opacity: index === 0 ? undefined : Math.max(0.4, 1 - index * 0.2),
-                }}
-              >
-                {/* スタックからの移動は resolveTop/removeStackItem が解決時効果(CR608)を
-                    適用する専用経路を通す必要がある。汎用の D&D move-zone はそれを迂回して
-                    効果を無言で落とすため、ここではドラッグ自体を無効化する。 */}
-                <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
-                {index === 0 && (
-                  <StackOverflowMenu
-                    item={item}
-                    controller={controller}
-                    open={openOverflowId === item.cardId}
-                    onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
-                    onManualTarget={setManualTargetSourceId}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+            <span>スタック</span>
+            <span className="stack-pile__count">{items.length}</span>
+          </button>
         ) : (
-          <ol className="stack-pile__list">
-            {items.map((item) => (
-              <li
-                key={item.cardId}
-                className={item.cardId === selectedItem?.cardId ? 'is-selected' : ''}
-                data-stack-item-id={item.cardId}
-                data-testid={`stack-workspace-item-${item.cardId}`}
-                tabIndex={0}
-                onMouseEnter={() => setSelectedCardId(item.cardId)}
-                onFocus={() => setSelectedCardId(item.cardId)}
-                onClick={() => setSelectedCardId(item.cardId)}
+          <>
+            <div className="stack-pile__toolbar">
+              <button
+                type="button"
+                className="stack-pile__trigger"
+                data-testid="stack-compact-trigger"
+                aria-expanded={expanded}
+                onClick={toggleExpanded}
               >
-                <div className="stack-pile__card">
-                  <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
-                </div>
-                <div className="stack-pile__item-info">
-                  <span>{item.name}</span>
-                  {item.announcedX !== undefined && (
-                    <span className="stack-pile__x" data-testid={`stack-x-${item.cardId}`}>
-                      X = {item.announcedX}
-                    </span>
-                  )}
-                  {item.source && <span>発生源 {item.source}</span>}
-                  {item.abilityText && <span>{item.abilityText}</span>}
-                  {item.cardId === selectedItem?.cardId && (
-                    <span className="stack-pile__targets">
-                      対象{' '}
-                      {item.targets.length > 0
-                        ? item.targets.map((target, targetIndex) => (
-                          <span
-                            key={`${target.label}-${targetIndex}`}
-                            className="stack-pile__target-chip"
-                            data-target-player={target.playerId}
-                            data-legality={target.legalityMode}
-                          >
-                            {target.label}{target.legalityMode === 'checked' ? '' : '（未検証）'}
-                          </span>
-                        ))
-                        : 'なし／未記録'}
-                    </span>
-                  )}
-                </div>
-                <StackOverflowMenu
-                  item={item}
-                  controller={controller}
-                  open={openOverflowId === item.cardId}
-                  onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
-                  onManualTarget={setManualTargetSourceId}
-                />
-              </li>
-            ))}
-          </ol>
-        )}
+                <strong>{items[0]?.name}</strong>
+                <span className="stack-pile__count">{items.length}</span>
+              </button>
+              {!resolutionLocked && !hasStackCandidate && (
+                <button
+                  type="button"
+                  className="stack-pile__board-peek"
+                  data-testid="stack-board-peek"
+                  aria-label="盤面を見る"
+                  onClick={enterBoardPeek}
+                >
+                  盤面
+                </button>
+              )}
+            </div>
 
-        {controller.store.resolutionSession?.stage === 'manual-required' && (
-          <div className="stack-pile__manual-task" data-testid="stack-manual-task">
-            <strong>手動処理が必要です</strong>
-            <span>{controller.store.resolutionSession.tasks[0]?.message}</span>
-            <button type="button" onClick={() => controller.store.completeManualResolution()}>
-              完了
-            </button>
-          </div>
+            {!expanded ? (
+              <div
+                className="stack-pile__cards"
+                onClick={toggleExpanded}
+              >
+                {items.map((item, index) => (
+                  <div
+                    key={item.cardId}
+                    className={`stack-pile__card${index === 0 ? ' stack-pile__card--front' : ''}`}
+                    data-stack-item-id={item.cardId}
+                    data-testid={`stack-workspace-item-${item.cardId}`}
+                    style={{
+                      zIndex: items.length - index,
+                      transform: index === 0
+                        ? undefined
+                        : `translate(${index * 18}px, ${index * 18}px) scale(${Math.pow(0.92, index)})`,
+                      opacity: index === 0 ? undefined : Math.max(0.4, 1 - index * 0.2),
+                    }}
+                  >
+                    {/* スタックからの移動は resolveTop/removeStackItem が解決時効果(CR608)を
+                        適用する専用経路を通す必要がある。汎用の D&D move-zone はそれを迂回して
+                        効果を無言で落とすため、ここではドラッグ自体を無効化する。 */}
+                    <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
+                    {index === 0 && (
+                      <StackOverflowMenu
+                        item={item}
+                        controller={controller}
+                        open={openOverflowId === item.cardId}
+                        onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
+                        onManualTarget={setManualTargetSourceId}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ol className="stack-pile__list">
+                {items.map((item) => (
+                  <li
+                    key={item.cardId}
+                    className={item.cardId === selectedItem?.cardId ? 'is-selected' : ''}
+                    data-stack-item-id={item.cardId}
+                    data-testid={`stack-workspace-item-${item.cardId}`}
+                    tabIndex={0}
+                    onMouseEnter={() => setSelectedCardId(item.cardId)}
+                    onFocus={() => setSelectedCardId(item.cardId)}
+                    onClick={() => setSelectedCardId(item.cardId)}
+                  >
+                    <div className="stack-pile__card">
+                      <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
+                    </div>
+                    <div className="stack-pile__item-info">
+                      <span>{item.name}</span>
+                      {item.announcedX !== undefined && (
+                        <span className="stack-pile__x" data-testid={`stack-x-${item.cardId}`}>
+                          X = {item.announcedX}
+                        </span>
+                      )}
+                      {item.source && <span>発生源 {item.source}</span>}
+                      {item.abilityText && <span>{item.abilityText}</span>}
+                      {item.cardId === selectedItem?.cardId && (
+                        <span className="stack-pile__targets">
+                          対象{' '}
+                          {item.targets.length > 0
+                            ? item.targets.map((target, targetIndex) => (
+                              <span
+                                key={`${target.label}-${targetIndex}`}
+                                className="stack-pile__target-chip"
+                                data-target-player={target.playerId}
+                                data-legality={target.legalityMode}
+                              >
+                                {target.label}{target.legalityMode === 'checked' ? '' : '（未検証）'}
+                              </span>
+                            ))
+                            : 'なし／未記録'}
+                        </span>
+                      )}
+                    </div>
+                    <StackOverflowMenu
+                      item={item}
+                      controller={controller}
+                      open={openOverflowId === item.cardId}
+                      onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
+                      onManualTarget={setManualTargetSourceId}
+                    />
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {controller.store.resolutionSession?.stage === 'manual-required' && (
+              <div className="stack-pile__manual-task" data-testid="stack-manual-task">
+                <strong>手動処理が必要です</strong>
+                <span>{controller.store.resolutionSession.tasks[0]?.message}</span>
+                <button type="button" onClick={() => controller.store.completeManualResolution()}>
+                  完了
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
       {manualTargetSourceId && state.cards[manualTargetSourceId]?.zone === 'stack' && (
