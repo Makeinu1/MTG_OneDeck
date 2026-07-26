@@ -30,18 +30,21 @@ describe('sfxPatch layer counts', () => {
     }
   });
 
-  it('commander patch has at least 12 layers', () => {
-    expect(sfxPatch('commander-cast').layers.length).toBeGreaterThanOrEqual(12);
+  it('commander patch has at least 9 layers (3 hits × 3 layers)', () => {
+    expect(sfxPatch('commander-cast').layers.length).toBeGreaterThanOrEqual(9);
   });
 
-  it('commander patch has at least one sawtooth layer', () => {
+  it('commander patch uses land-style thud language (sine + triangle + noise per hit)', () => {
     const patch = sfxPatch('commander-cast');
-    expect(patch.layers.some((l) => l.kind === 'osc' && l.wave === 'sawtooth')).toBe(true);
-  });
-
-  it('commander patch has at least one noise layer (riser)', () => {
-    const patch = sfxPatch('commander-cast');
+    expect(patch.layers.some((l) => l.kind === 'osc' && l.wave === 'sine')).toBe(true);
+    expect(patch.layers.some((l) => l.kind === 'osc' && l.wave === 'triangle')).toBe(true);
     expect(patch.layers.some((l) => l.kind === 'noise')).toBe(true);
+  });
+
+  it('commander hits are spaced at 8th-note intervals (122 BPM)', () => {
+    const patch = sfxPatch('commander-cast');
+    const offsets = [...new Set(patch.layers.map((l) => l.offsetMs))].sort((a, b) => a - b);
+    expect(offsets).toEqual([0, 246, 492]);
   });
 });
 

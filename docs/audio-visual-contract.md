@@ -123,22 +123,21 @@
 
 4種の効果音(`spell-cast` / `land-played` / `turn-advanced` / `commander-cast`)は、
 外部音源ファイルを追加せず、**コードで定義したマルチレイヤーパッチを
-`OfflineAudioContext` で AudioBuffer へレンダリング**して再生する。BGM(テクノ)と
-同じ電子音響パレット(複数オシレーター + フィルター + ノイズ + コンボリューション
-リバーブ)で合成し、「同じ空間にいる」一体感を出す。
+`OfflineAudioContext` で AudioBuffer へレンダリング**して再生する。全4種は
+同一の「物理打撃音(thud)」言語で統一する: sine の pitch-drop(sub) + triangle の
+body + ノイズのトランジェント。全パッチ dry(リバーブなし)。空間は BGM だけが持つ。
+
 
 固定するもの(§3 の「楽器の役割・相対音量・基本エンベロープ」の実体):
 
 - パッチデータ(レイヤー構成・周波数・エンベロープ・リバーブ)は純粋データとして
   `sfxPatches.ts` に固定する。同じ kind は毎回同一バッファを再生する。
 - 各 kind の音色意図:
-  - `spell-cast`: crystalline ping + フィルターノイズの whoosh(スタックへ飛ぶ抜け感)
-  - `land-played`: sub thud + ノイズアタック(地面に置く着地感)。リバーブは dry
-  - `turn-advanced`: soft tick + 5度の短い chime(小節線を引く区切り)
-  - `commander-cast`: 既存3音モチーフ(G4/B4/D5)のリズム・音程・650ms枠を維持し、
-    各音を sub(sine)/body(sawtooth+lowpass sweep)/shimmer(triangle) でレイヤー化 +
-    低域 pad(sawtooth+lowpass) + ノイズ riser + 最も広いリバーブ(登場の重み)。
-    sine 単体は sub 層だけに使い、倍音豊かな波形で「着信音」感を排除する。
+  - `spell-cast`: sine 200→100Hz pitch-drop thud + triangle 400Hz body + highpass noise。dry(空中打撃)
+  - `land-played`: sine 120→60Hz pitch-drop thud + triangle 240Hz body + lowpass noise。dry(地面着地)
+  - `turn-advanced`: sine 160→80Hz pitch-drop + highpass noise tick。dry(最小の区切り)
+  - `commander-cast`: land-played と同一の thud を 122BPM 8分音符間隔(0/246/492ms)で
+    3発。3発目は pitch を下げて「着地」。dry。BGM duck(-4dB)を伴う。
 許される TUNABLE(1箇所集約):
 
 ```ts

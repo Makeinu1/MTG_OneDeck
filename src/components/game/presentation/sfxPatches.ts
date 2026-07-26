@@ -54,14 +54,14 @@ const SPELL_CAST: SfxPatch = {
   durationMs: 200,
   outputGainDb: SFX_LEVELS_DB['spell-cast'],
   layers: [
-    // L1: sine sweep 880→1320Hz (stack launch)
-    { kind: 'osc', wave: 'sine', freqStart: 880, freqEnd: 1320, attackMs: 5, releaseMs: 140, gain: 0.35, offsetMs: 0 },
-    // L2: detuned sine shimmer
-    { kind: 'osc', wave: 'sine', freqStart: 884, attackMs: 5, releaseMs: 160, gain: 0.08, offsetMs: 0 },
-    // L3: bandpass noise whoosh
-    { kind: 'noise', freqStart: 0, filterType: 'bandpass', filterFreqStart: 600, filterFreqEnd: 2400, filterQ: 2, attackMs: 8, releaseMs: 90, gain: 0.12, offsetMs: 0 },
+    // L1: sine pitch drop 200→100Hz (air thud — higher than land)
+    { kind: 'osc', wave: 'sine', freqStart: 200, freqEnd: 100, attackMs: 3, releaseMs: 140, gain: 0.38, offsetMs: 0 },
+    // L2: triangle body (mid presence)
+    { kind: 'osc', wave: 'triangle', freqStart: 400, attackMs: 3, releaseMs: 80, gain: 0.14, offsetMs: 0 },
+    // L3: highpass noise burst (impact texture, brighter than land)
+    { kind: 'noise', freqStart: 0, filterType: 'highpass', filterFreqStart: 1200, attackMs: 2, releaseMs: 50, gain: 0.10, offsetMs: 0 },
   ],
-  reverb: { wetGain: 0.25, decaySec: 0.7 },
+  // No reverb: dry = physical impact language.
 };
 
 /* ------------------------------------------------------------------ */
@@ -89,48 +89,43 @@ const LAND_PLAYED: SfxPatch = {
 
 const TURN_ADVANCED: SfxPatch = {
   id: 'turn-advanced',
-  durationMs: 250,
+  durationMs: 180,
   outputGainDb: SFX_LEVELS_DB['turn-advanced'],
   layers: [
-    // L1: highpass noise tick (barline)
-    { kind: 'noise', freqStart: 0, filterType: 'highpass', filterFreqStart: 4000, attackMs: 1, releaseMs: 20, gain: 0.08, offsetMs: 0 },
-    // L2: sine 660Hz (root)
-    { kind: 'osc', wave: 'sine', freqStart: 660, attackMs: 3, releaseMs: 200, gain: 0.25, offsetMs: 0 },
-    // L3: sine 990Hz (5th, lower gain)
-    { kind: 'osc', wave: 'sine', freqStart: 990, attackMs: 3, releaseMs: 200, gain: 0.12, offsetMs: 0 },
+    // L1: sine pitch drop 160→80Hz (smallest thud — barline marker)
+    { kind: 'osc', wave: 'sine', freqStart: 160, freqEnd: 80, attackMs: 2, releaseMs: 120, gain: 0.30, offsetMs: 0 },
+    // L2: highpass noise tick (transient definition)
+    { kind: 'noise', freqStart: 0, filterType: 'highpass', filterFreqStart: 2000, attackMs: 1, releaseMs: 30, gain: 0.08, offsetMs: 0 },
   ],
-  reverb: { wetGain: 0.15, decaySec: 0.5 },
+  // No reverb: dry = smallest physical marker.
 };
 
 /* ------------------------------------------------------------------ */
-/*  commander-cast: three-note motif G4/B4/D5, rich timbres (≤650ms)   */
+/*  commander-cast: three land-style thuds at 122 BPM 8th notes (≤650ms)  */
 /* ------------------------------------------------------------------ */
+
+/* 122 BPM 8th note = 60000 / 122.000736 / 2 ≈ 245.9ms */
+const EIGHTH_NOTE_MS = 246;
 
 const COMMANDER_CAST: SfxPatch = {
   id: 'commander-cast',
   durationMs: 650,
   outputGainDb: SFX_LEVELS_DB['commander-cast'],
   layers: [
-    // Note 1: G4 (392Hz), offset 0ms — sub + body(saw→LP) + shimmer(tri)
-    { kind: 'osc', wave: 'sine', freqStart: 196, attackMs: 5, releaseMs: 200, gain: 0.22, offsetMs: 0 },
-    { kind: 'osc', wave: 'sawtooth', freqStart: 392, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 220, gain: 0.30, offsetMs: 0 },
-    { kind: 'osc', wave: 'triangle', freqStart: 784, attackMs: 5, releaseMs: 180, gain: 0.07, offsetMs: 0 },
-    // Note 2: B4 (493.88Hz), offset 120ms — sub + body(saw→LP) + shimmer(tri)
-    { kind: 'osc', wave: 'sine', freqStart: 246.94, attackMs: 5, releaseMs: 200, gain: 0.20, offsetMs: 120 },
-    { kind: 'osc', wave: 'sawtooth', freqStart: 493.88, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 220, gain: 0.28, offsetMs: 120 },
-    { kind: 'osc', wave: 'triangle', freqStart: 987.77, attackMs: 5, releaseMs: 180, gain: 0.06, offsetMs: 120 },
-    // Note 3: D5 (587.33Hz), offset 260ms — sub + body(saw→LP) + shimmer(tri)
-    { kind: 'osc', wave: 'sine', freqStart: 293.665, attackMs: 5, releaseMs: 250, gain: 0.18, offsetMs: 260 },
-    { kind: 'osc', wave: 'sawtooth', freqStart: 587.33, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 280, gain: 0.26, offsetMs: 260 },
-    { kind: 'osc', wave: 'triangle', freqStart: 1174.66, attackMs: 5, releaseMs: 240, gain: 0.05, offsetMs: 260 },
-    // Low pad: sawtooth G2 (98Hz) through lowpass 400Hz, long release
-    { kind: 'osc', wave: 'sawtooth', freqStart: 98, filterType: 'lowpass', filterFreqStart: 400, filterQ: 0.7, attackMs: 20, releaseMs: 500, gain: 0.10, offsetMs: 0 },
-    // Pad sub: sine G1 (49Hz) for weight
-    { kind: 'osc', wave: 'sine', freqStart: 49, attackMs: 30, releaseMs: 450, gain: 0.08, offsetMs: 0 },
-    // Noise riser: bandpass 1000→4000Hz sweep over 0–300ms
-    { kind: 'noise', freqStart: 0, filterType: 'bandpass', filterFreqStart: 1000, filterFreqEnd: 4000, filterQ: 2, attackMs: 10, releaseMs: 290, gain: 0.06, offsetMs: 0 },
+    // Hit 1 (offset 0ms): land-style thud
+    { kind: 'osc', wave: 'sine', freqStart: 120, freqEnd: 60, attackMs: 3, releaseMs: 150, gain: 0.40, offsetMs: 0 },
+    { kind: 'osc', wave: 'triangle', freqStart: 240, attackMs: 3, releaseMs: 90, gain: 0.15, offsetMs: 0 },
+    { kind: 'noise', freqStart: 0, filterType: 'lowpass', filterFreqStart: 800, attackMs: 2, releaseMs: 60, gain: 0.10, offsetMs: 0 },
+    // Hit 2 (offset 246ms = 8th note at 122 BPM): same thud
+    { kind: 'osc', wave: 'sine', freqStart: 120, freqEnd: 60, attackMs: 3, releaseMs: 150, gain: 0.40, offsetMs: EIGHTH_NOTE_MS },
+    { kind: 'osc', wave: 'triangle', freqStart: 240, attackMs: 3, releaseMs: 90, gain: 0.15, offsetMs: EIGHTH_NOTE_MS },
+    { kind: 'noise', freqStart: 0, filterType: 'lowpass', filterFreqStart: 800, attackMs: 2, releaseMs: 60, gain: 0.10, offsetMs: EIGHTH_NOTE_MS },
+    // Hit 3 (offset 492ms = 2 × 8th note): deeper thud (landing)
+    { kind: 'osc', wave: 'sine', freqStart: 100, freqEnd: 50, attackMs: 3, releaseMs: 160, gain: 0.45, offsetMs: EIGHTH_NOTE_MS * 2 },
+    { kind: 'osc', wave: 'triangle', freqStart: 200, attackMs: 3, releaseMs: 100, gain: 0.18, offsetMs: EIGHTH_NOTE_MS * 2 },
+    { kind: 'noise', freqStart: 0, filterType: 'lowpass', filterFreqStart: 600, attackMs: 2, releaseMs: 70, gain: 0.12, offsetMs: EIGHTH_NOTE_MS * 2 },
   ],
-  reverb: { wetGain: 0.4, decaySec: 1.0 },
+  // No reverb: dry = same physical language as land. Weight comes from rhythm + duck.
 };
 
 const PATCHES: Record<SfxKind, SfxPatch> = {
