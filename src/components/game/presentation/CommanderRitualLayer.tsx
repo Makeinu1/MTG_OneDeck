@@ -7,7 +7,8 @@
  * already-committed store state. Renders CommanderCutIn for exactly
  * COMMANDER_RITUAL_DURATION_MS and replaces/restarts on recast.
  *
- * Audio: fixed motif through CommanderBus (only when eventsAudible),
+ * Audio: pre-rendered commander patch via sfxRenderer through CommanderBus
+ * (only when eventsAudible),
  * MusicBus duck (only when both eventsAudible and musicAudible).
  * Motif and duck share a single beat-snap delay computed once per event.
  * Cleanup on policy-off, unmount, or replacement. No randomness, no state
@@ -26,27 +27,13 @@ import {
 } from './audioVisualSession';
 import {
   COMMANDER_RITUAL_DURATION_MS,
-  commanderMotifSpec,
   commanderDuckEnvelope,
   shouldDuckMusic,
 } from './commanderRitual';
+import { playSfx } from './sfxRenderer';
 import { presentationSoundDelayMs } from './semanticSound';
 import { useGameStore } from '../../../store/gameStore';
 import { CommanderCutIn, type CommanderCutInData } from '../CommanderCutIn';
-
-interface MotifNodes {
-  osc: OscillatorNode;
-  env: GainNode;
-}
-
-function disposeMotifNodes(nodes: MotifNodes[]): void {
-  for (const { osc, env } of nodes) {
-    try { osc.onended = null; } catch { /* noop */ }
-    try { osc.stop(); } catch { /* already stopped */ }
-    try { osc.disconnect(); } catch { /* noop */ }
-    try { env.disconnect(); } catch { /* noop */ }
-  }
-}
 
 interface ActiveRitual {
   id: string;
@@ -57,7 +44,7 @@ export function CommanderRitualLayer() {
   const { policy } = useAudioVisual();
   const [ritual, setRitual] = useState<ActiveRitual | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const motifNodesRef = useRef<MotifNodes[]>([]);
+  const motifSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const duckCancelRef = useRef<(() => void) | null>(null);
   const policyRef = useRef(policy);
 
@@ -67,9 +54,13 @@ export function CommanderRitualLayer() {
 
   useEffect(() => {
     function stopMotif(): void {
-      const nodes = motifNodesRef.current;
-      motifNodesRef.current = [];
-      disposeMotifNodes(nodes);
+      const source = motifSourceRef.current;
+      motifSourceRef.current = null;
+      if (source) {
+        try { source.onended = null; } catch { /* noop */ }
+        try { source.stop(); } catch { /* already stopped */ }
+        try { source.disconnect(); } catch { /* noop */ }
+      }
     }
 
     function cancelDuck(): void {
@@ -88,43 +79,24 @@ export function CommanderRitualLayer() {
       cancelDuck();
     }
 
-    function playMotif(startAtSec: number): void {
+    function playMotif(audioStartAtSec: number): void {
       const ctx = getSessionAudioContext();
       const lane = getSessionCommanderLane();
       if (!ctx || !lane) return;
       if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
 
       stopMotif();
-      const spec = commanderMotifSpec();
-      const nodes: MotifNodes[] = [];
-
-      for (const note of spec) {
-        const osc = ctx.createOscillator();
-        const env = ctx.createGain();
-        osc.type = note.type;
-        osc.frequency.value = note.freq;
-
-        const startAt = startAtSec + note.offsetMs / 1000;
-        const endAt = startAt + note.durationMs / 1000;
-        env.gain.setValueAtTime(0, startAt);
-        env.gain.linearRampToValueAtTime(note.gain, startAt + 0.01);
-        env.gain.setValueAtTime(note.gain, endAt - 0.04);
-        env.gain.linearRampToValueAtTime(0, endAt);
-
-        osc.connect(env).connect(lane);
-        osc.start(startAt);
-        osc.stop(endAt + 0.02);
-
-        osc.onended = () => {
-          try { osc.disconnect(); } catch { /* noop */ }
-          try { env.disconnect(); } catch { /* noop */ }
-          const idx = motifNodesRef.current.findIndex((n) => n.osc === osc);
-          if (idx !== -1) motifNodesRef.current.splice(idx, 1);
+      const delaySec = audioStartAtSec - ctx.currentTime;
+      const source = playSfx('commander-cast', lane, ctx, Math.max(0, delaySec));
+      if (source) {
+        motifSourceRef.current = source;
+        source.onended = () => {
+          if (motifSourceRef.current === source) {
+            motifSourceRef.current = null;
+          }
+          try { source.disconnect(); } catch { /* noop */ }
         };
-
-        nodes.push({ osc, env });
       }
-      motifNodesRef.current = nodes;
     }
 
     function scheduleDuck(startAtSec: number): void {
@@ -215,9 +187,13 @@ export function CommanderRitualLayer() {
 
   useEffect(() => {
     if (!policy.eventsAudible || !policy.transportRunning) {
-      const nodes = motifNodesRef.current;
-      motifNodesRef.current = [];
-      disposeMotifNodes(nodes);
+      const source = motifSourceRef.current;
+      motifSourceRef.current = null;
+      if (source) {
+        try { source.onended = null; } catch { /* noop */ }
+        try { source.stop(); } catch { /* already stopped */ }
+        try { source.disconnect(); } catch { /* noop */ }
+      }
     }
     if (
       !policy.transportRunning ||

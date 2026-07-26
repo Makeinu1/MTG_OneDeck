@@ -1,23 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { presentationSoundDelayMs, semanticSoundSpec } from './semanticSound';
+import { presentationSoundDelayMs } from './semanticSound';
 import { getNextGridDelayMs } from './audioVisualTransport';
 import { AUDIO_VISUAL_TUNING } from './presentationTuning';
 import { DARK_GAME_TRACK } from './trackManifest';
-
-describe('semanticSoundSpec', () => {
-  it('returns deterministic specs for ordinary kinds', () => {
-    const spell = semanticSoundSpec('spell-cast');
-    expect(spell).toEqual({ freq: 440, type: 'sine', durationMs: 90, gain: 0.06 });
-    const land = semanticSoundSpec('land-played');
-    expect(land).toEqual({ freq: 330, type: 'triangle', durationMs: 80, gain: 0.055 });
-    const turn = semanticSoundSpec('turn-advanced');
-    expect(turn).toEqual({ freq: 550, type: 'sine', durationMs: 70, gain: 0.05 });
-  });
-
-  it('returns null for commander-cast', () => {
-    expect(semanticSoundSpec('commander-cast')).toBeNull();
-  });
-});
 
 describe('presentationSoundDelayMs', () => {
   it('delegates to getNextGridDelayMs for all positions', () => {

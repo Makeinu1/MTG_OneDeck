@@ -11,9 +11,9 @@ import { useGameStore } from '../../../store/gameStore';
 import {
   COMMANDER_RITUAL_DURATION_MS,
   commanderDuckEnvelope,
-  commanderMotifSpec,
   shouldDuckMusic,
 } from '../presentation/commanderRitual';
+import { sfxPatch, SFX_LEVELS_DB } from '../presentation/sfxPatches';
 
 const ROOT = process.cwd();
 
@@ -43,10 +43,11 @@ describe('AV4 commander ritual contract', () => {
 
   it('freezes the 650ms ritual, fixed motif and -4dB duck envelope', () => {
     expect(COMMANDER_RITUAL_DURATION_MS).toBe(650);
-    expect(commanderMotifSpec()).toEqual(commanderMotifSpec());
-    expect(commanderMotifSpec().length).toBeGreaterThan(0);
-    expect(Math.max(...commanderMotifSpec().map((note) => note.offsetMs + note.durationMs)))
-      .toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
+    const patch = sfxPatch('commander-cast');
+    expect(patch).toEqual(sfxPatch('commander-cast'));
+    expect(patch.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
+    expect(patch.layers.length).toBeGreaterThanOrEqual(4);
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
 
     const envelope = commanderDuckEnvelope(10, 1);
     expect(envelope.attackEndSec).toBeCloseTo(10.04, 6);
@@ -97,6 +98,8 @@ describe('AV4 commander ritual contract', () => {
     expect(ritual).toContain('presentationSoundDelayMs');
     expect(ritual).toContain('shouldDuckMusic(');
     expect(ritual).toContain('audioStartAtSec');
+    expect(ritual).toContain('sfxRenderer');
+    expect(ritual).not.toContain('createOscillator');
     expect(ritual).toContain('key={ritual.id}');
     expect(ritual).not.toContain('Date.now');
     expect(ritual).not.toContain('Math.random');

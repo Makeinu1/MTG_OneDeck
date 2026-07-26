@@ -13,8 +13,8 @@ import {
 } from '../presentation/presentationRuntime';
 import {
   presentationSoundDelayMs,
-  semanticSoundSpec,
 } from '../presentation/semanticSound';
+import { sfxPatch, SFX_LEVELS_DB } from '../presentation/sfxPatches';
 import { getNextGridDelayMs } from '../presentation/audioVisualTransport';
 import { AUDIO_VISUAL_TUNING } from '../presentation/presentationTuning';
 import { DARK_GAME_TRACK } from '../presentation/trackManifest';
@@ -75,10 +75,19 @@ describe('AV3 semantic presentation runtime', () => {
   });
 
   it('uses one fixed, non-commander voice per ordinary semantic event', () => {
-    expect(semanticSoundSpec('spell-cast')).toEqual(semanticSoundSpec('spell-cast'));
-    expect(semanticSoundSpec('land-played')).toEqual(semanticSoundSpec('land-played'));
-    expect(semanticSoundSpec('turn-advanced')).toEqual(semanticSoundSpec('turn-advanced'));
-    expect(semanticSoundSpec('commander-cast')).toBeNull();
+    const spell = sfxPatch('spell-cast');
+    const land = sfxPatch('land-played');
+    const turn = sfxPatch('turn-advanced');
+    expect(spell).toEqual(sfxPatch('spell-cast'));
+    expect(land).toEqual(sfxPatch('land-played'));
+    expect(turn).toEqual(sfxPatch('turn-advanced'));
+    expect(spell.layers.length).toBeGreaterThanOrEqual(2);
+    expect(land.layers.length).toBeGreaterThanOrEqual(2);
+    expect(turn.layers.length).toBeGreaterThanOrEqual(2);
+    expect(SFX_LEVELS_DB['spell-cast']).toBe(-13);
+    expect(SFX_LEVELS_DB['land-played']).toBe(-11);
+    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-15);
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
   });
 
   it('never schedules an ordinary event sound beyond the 80ms contract', () => {
@@ -97,6 +106,7 @@ describe('AV3 semantic presentation runtime', () => {
     const screen = read('src/components/game/GameScreen.tsx');
     const sound = read('src/components/game/presentation/semanticSound.ts');
     const layer = read('src/components/game/presentation/SemanticPresentationLayer.tsx');
+    const renderer = read('src/components/game/presentation/sfxRenderer.ts');
     const session = read('src/components/game/presentation/audioVisualSession.ts');
     const runtime = read('src/components/game/presentation/presentationRuntime.ts');
 
@@ -110,6 +120,10 @@ describe('AV3 semantic presentation runtime', () => {
     expect(layer).toContain('getSessionTransportPositionSec');
     expect(layer).toContain('getBoundingClientRect');
     expect(layer).not.toContain('setTimeout(() => playVoice');
+    expect(layer).toContain('sfxRenderer');
+    expect(layer).not.toContain('createOscillator');
+    expect(renderer).toContain('OfflineAudioContext');
+    expect(renderer).not.toContain('Math.random');
     expect(session).toContain('getSessionTransportPositionSec');
     expect(sound).not.toContain('Math.random');
     expect(sound).not.toMatch(/\bchain\b|\bdraw\b|\bresolve\b|\btap\b|\bmana\b/i);

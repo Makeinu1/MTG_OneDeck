@@ -1,37 +1,36 @@
 /**
- * av4-commander-ritual — ordinary tests for AV4 motif, envelope,
+ * av4-commander-ritual — ordinary tests for AV4 patch, envelope,
  * duck policy, subscription filtering, cleanup, and repeated ritual behavior.
  */
 
 import { describe, expect, it } from 'vitest';
 import {
   COMMANDER_RITUAL_DURATION_MS,
-  commanderMotifSpec,
   commanderDuckEnvelope,
   shouldDuckMusic,
 } from '../commanderRitual';
+import { sfxPatch, SFX_LEVELS_DB } from '../sfxPatches';
 import { presentationSoundDelayMs } from '../semanticSound';
 
-describe('AV4 commanderRitual pure functions', () => {
+describe('AV4 commander patch and ritual constants', () => {
   it('freezes ritual duration at 650ms', () => {
     expect(COMMANDER_RITUAL_DURATION_MS).toBe(650);
   });
 
-  it('returns a deterministic fixed motif (same output every call)', () => {
-    const first = commanderMotifSpec();
-    const second = commanderMotifSpec();
+  it('returns a deterministic commander patch (same output every call)', () => {
+    const first = sfxPatch('commander-cast');
+    const second = sfxPatch('commander-cast');
     expect(first).toEqual(second);
-    expect(first.length).toBeGreaterThan(0);
+    expect(first.layers.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('keeps every motif note within the ritual duration', () => {
-    const spec = commanderMotifSpec();
-    for (const note of spec) {
-      expect(note.offsetMs + note.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
-      expect(note.freq).toBeGreaterThan(0);
-      expect(note.gain).toBeGreaterThan(0);
-      expect(note.gain).toBeLessThanOrEqual(1);
-    }
+  it('commander patch duration fits within the ritual duration', () => {
+    const patch = sfxPatch('commander-cast');
+    expect(patch.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
+  });
+
+  it('commander level matches contract', () => {
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
   });
 
   it('computes the duck envelope from COMMANDER_MIX_TUNING', () => {
@@ -115,13 +114,12 @@ describe('AV4 CommanderRitualLayer source contract', () => {
     expect(source).toContain('cleanup');
   });
 
-  it('disconnects oscillator nodes on onended for bounded cleanup', async () => {
+  it('disconnects source nodes on onended for bounded cleanup', async () => {
     const source = await import('node:fs').then((fs) =>
       fs.readFileSync('src/components/game/presentation/CommanderRitualLayer.tsx', 'utf8'),
     );
-    expect(source).toContain('osc.onended');
-    expect(source).toContain('osc.disconnect()');
-    expect(source).toContain('env.disconnect()');
+    expect(source).toContain('source.onended');
+    expect(source).toContain('source.disconnect()');
   });
 
   it('keys CommanderCutIn by sequenced event id for CSS restart', async () => {
@@ -149,5 +147,13 @@ describe('AV4 CommanderRitualLayer source contract', () => {
     );
     expect(source).toContain('clearTimeout');
     expect(source).toContain('COMMANDER_RITUAL_DURATION_MS');
+  });
+
+  it('uses sfxRenderer for playback instead of inline oscillators', async () => {
+    const source = await import('node:fs').then((fs) =>
+      fs.readFileSync('src/components/game/presentation/CommanderRitualLayer.tsx', 'utf8'),
+    );
+    expect(source).toContain('sfxRenderer');
+    expect(source).not.toContain('createOscillator');
   });
 });

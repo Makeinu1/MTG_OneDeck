@@ -43,6 +43,7 @@ import {
 import { getTransportCssTiming } from './audioVisualTransport';
 import { setSessionRuntime, clearSessionRuntime, setSessionTransportPositionGetter } from './audioVisualSession';
 import { DARK_GAME_TRACK } from './trackManifest';
+import { renderAllPatches } from './sfxRenderer';
 
 const SILENT_POLICY: AudioVisualRuntimePolicy = {
   transportRunning: false,
@@ -89,6 +90,8 @@ function ensureSessionRuntime(): void {
   } else {
     sessionRuntime = runtime;
     setSessionTransportPositionGetter(() => runtime.currentPositionSec());
+    // Pre-render SFX patches (fire-and-forget; errors are swallowed per-patch).
+    renderAllPatches().catch(() => {});
   }
 }
 

@@ -119,6 +119,43 @@
 
 違う効果音や強度に聞こえるランダム化は不可。連続キャストでも一件ずつ同じ attack を返し、前音の長い tail だけを choke して濁りを抑えてよい。イベントを黙って捨てたり、履歴依存で高揚へ変換したりしない。
 
+### 3.1 効果音の合成方式と音色設計
+
+4種の効果音(`spell-cast` / `land-played` / `turn-advanced` / `commander-cast`)は、
+外部音源ファイルを追加せず、**コードで定義したマルチレイヤーパッチを
+`OfflineAudioContext` で AudioBuffer へレンダリング**して再生する。BGM(テクノ)と
+同じ電子音響パレット(複数オシレーター + フィルター + ノイズ + コンボリューション
+リバーブ)で合成し、「同じ空間にいる」一体感を出す。
+
+固定するもの(§3 の「楽器の役割・相対音量・基本エンベロープ」の実体):
+
+- パッチデータ(レイヤー構成・周波数・エンベロープ・リバーブ)は純粋データとして
+  `sfxPatches.ts` に固定する。同じ kind は毎回同一バッファを再生する。
+- 各 kind の音色意図:
+  - `spell-cast`: crystalline ping + フィルターノイズの whoosh(スタックへ飛ぶ抜け感)
+  - `land-played`: sub thud + ノイズアタック(地面に置く着地感)。リバーブは dry
+  - `turn-advanced`: soft tick + 5度の短い chime(小節線を引く区切り)
+  - `commander-cast`: 既存3音モチーフ(G4/B4/D5)のリズム・音程・650ms枠を維持し、
+    各音を sub/body/shimmer でレイヤー化 + 低域 pad + 最も広いリバーブ(登場の重み)
+
+許される TUNABLE(1箇所集約):
+
+```ts
+const SFX_LEVELS_DB = {
+  'spell-cast': -13,
+  'land-played': -11,
+  'turn-advanced': -15,
+  'commander-cast': -8,
+} as const; // BGM(-4.5dB固定)相対。耳疲れで調整する唯一の音量値。
+```
+
+- レンダリングは 48kHz・2ch。AudioContext 生成直後に非同期で4パッチをレンダリングし
+  キャッシュする。完了前のイベントは音をスキップする(GameState は待たない)。
+- レンダリング失敗・再生失敗は音をスキップし、ゲームを止めない(§4 手順7)。
+- 通常3音は EventBus、`commander-cast` は CommanderBus へ出力する(バス分離は維持)。
+- 拍スナップ(`presentationSoundDelayMs`)・同種 choke・「失敗は GameState を待たせない」
+  はすべて維持する。
+
 ---
 
 ## 4. 即時応答と拍同期

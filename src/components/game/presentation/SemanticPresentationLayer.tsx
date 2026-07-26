@@ -8,8 +8,8 @@
  * Same-kind feedback restarts/replaces. No particles, no frame-clock arrays.
  * Reduced motion: fade-only.
  *
- * Sound: scheduled with Web Audio time (osc.start(ctx.currentTime + delay)).
- * Chokes prior same-kind voice. Cleanup stops/disconnects all voices on
+ * Sound: pre-rendered multi-layer patches played via sfxRenderer.
+ * Chokes prior same-kind voice. Cleanup stops/disconnects all sources on
  * unmount or when events become inaudible.
  * State and visuals never wait for audio.
  */
@@ -18,12 +18,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAudioVisual } from './audioVisualContext';
 import { presentationRuntime } from './presentationRuntime';
 import type { SequencedPresentationEvent } from './presentationSequencer';
-import { semanticSoundSpec, presentationSoundDelayMs } from './semanticSound';
+import { presentationSoundDelayMs } from './semanticSound';
+import { playSfx } from './sfxRenderer';
 import {
   getSessionAudioContext,
   getSessionEventLane,
   getSessionTransportPositionSec,
 } from './audioVisualSession';
+import type { SfxKind } from './sfxPatches';
 
 interface SpellPulse {
   id: string;
@@ -48,55 +50,44 @@ export function SemanticPresentationLayer() {
   const settleRef = useRef<HTMLDivElement>(null);
   const spellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeVoicesRef = useRef<Map<string, { osc: OscillatorNode; env: GainNode }>>(new Map());
+  const activeSourcesRef = useRef<Map<string, AudioBufferSourceNode>>(new Map());
   const policyRef = useRef(policy);
 
   useEffect(() => {
     policyRef.current = policy;
   }, [policy]);
 
-  function stopAllVoices(): void {
-    for (const [, voice] of activeVoicesRef.current) {
-      try { voice.osc.stop(); } catch { /* already stopped */ }
-      try { voice.env.disconnect(); } catch { /* noop */ }
+  function stopAllSources(): void {
+    for (const [, source] of activeSourcesRef.current) {
+      try { source.stop(); } catch { /* already stopped */ }
+      try { source.disconnect(); } catch { /* noop */ }
     }
-    activeVoicesRef.current.clear();
+    activeSourcesRef.current.clear();
   }
 
-  function scheduleVoice(kind: string, freq: number, type: OscillatorType, durationMs: number, gain: number, delayMs: number): void {
+  function scheduleSfx(kind: SfxKind, delayMs: number): void {
     const ctx = getSessionAudioContext();
     const lane = getSessionEventLane();
     if (!ctx || !lane) return;
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
 
-    const previous = activeVoicesRef.current.get(kind);
+    const previous = activeSourcesRef.current.get(kind);
     if (previous) {
-      try { previous.osc.stop(); } catch { /* already stopped */ }
-      try { previous.env.disconnect(); } catch { /* noop */ }
-      activeVoicesRef.current.delete(kind);
+      try { previous.stop(); } catch { /* already stopped */ }
+      try { previous.disconnect(); } catch { /* noop */ }
+      activeSourcesRef.current.delete(kind);
     }
 
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-
-    const startAt = ctx.currentTime + delayMs / 1000;
-    env.gain.setValueAtTime(0, startAt);
-    env.gain.linearRampToValueAtTime(gain, startAt + 0.008);
-    env.gain.exponentialRampToValueAtTime(0.0001, startAt + durationMs / 1000);
-
-    osc.connect(env).connect(lane);
-    osc.start(startAt);
-    osc.stop(startAt + durationMs / 1000 + 0.02);
-    activeVoicesRef.current.set(kind, { osc, env });
-
-    osc.onended = () => {
-      if (activeVoicesRef.current.get(kind)?.osc === osc) {
-        activeVoicesRef.current.delete(kind);
+    const source = playSfx(kind, lane, ctx, delayMs / 1000);
+    if (source) {
+      activeSourcesRef.current.set(kind, source);
+      source.onended = () => {
+        if (activeSourcesRef.current.get(kind) === source) {
+          activeSourcesRef.current.delete(kind);
+        }
+        try { source.disconnect(); } catch { /* noop */ }
       }
-      env.disconnect();
-    };
+    }
   }
 
   useEffect(() => {
@@ -119,13 +110,13 @@ export function SemanticPresentationLayer() {
       }
 
       if (!policyRef.current.eventsAudible || !policyRef.current.transportRunning) return;
-      const spec = semanticSoundSpec(event.kind);
-      if (!spec) return;
+      // Commander sound is owned by CommanderRitualLayer (AV4).
+      if (event.kind === 'commander-cast') return;
 
       try {
         const positionSec = getSessionTransportPositionSec();
         const delayMs = presentationSoundDelayMs(positionSec);
-        scheduleVoice(event.kind, spec.freq, spec.type, spec.durationMs, spec.gain, delayMs);
+        scheduleSfx(event.kind, delayMs);
       } catch {
         // Sound failure never blocks game state or visuals.
       }
@@ -135,13 +126,13 @@ export function SemanticPresentationLayer() {
       unsubscribe();
       if (spellTimerRef.current) clearTimeout(spellTimerRef.current);
       if (landTimerRef.current) clearTimeout(landTimerRef.current);
-      stopAllVoices();
+      stopAllSources();
     };
   }, []);
 
   useEffect(() => {
     if (!policy.eventsAudible || !policy.transportRunning) {
-      stopAllVoices();
+      stopAllSources();
     }
   }, [policy.eventsAudible, policy.transportRunning]);
 
