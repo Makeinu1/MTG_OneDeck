@@ -70,6 +70,19 @@ function GameMenuSheet({
             BGM: {preferences.bgmEnabled ? 'ON' : 'OFF'}
             {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
           </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={preferences.bgmVolume ?? 70}
+            className="game-menu__volume-slider"
+            data-testid="menu-bgm-volume"
+            onChange={(e) => {
+              const next = { ...preferences, bgmVolume: Number(e.target.value) };
+              setPreferences(next);
+              saveAudioPreferences(next);
+            }}
+          />
           <button
             type="button"
             className="game-menu__action"
@@ -83,6 +96,19 @@ function GameMenuSheet({
             ゲーム進行音: {preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
             {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
           </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={preferences.sfxVolume ?? 80}
+            className="game-menu__volume-slider"
+            data-testid="menu-sfx-volume"
+            onChange={(e) => {
+              const next = { ...preferences, sfxVolume: Number(e.target.value) };
+              setPreferences(next);
+              saveAudioPreferences(next);
+            }}
+          />
           <button
             type="button"
             className="game-menu__action"

@@ -1421,6 +1421,12 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
   color: var(--text); cursor: pointer;
 }
 .game-menu__action--warn { color: var(--warn); }
+.game-menu__volume-slider {
+  width: 100%;
+  accent-color: var(--gold-bright);
+  height: 20px;
+  padding: 0 var(--space-3);
+}
 
 /* ---------- opponent training setup (independent full screen) ---------- */
 .opponent-setup {

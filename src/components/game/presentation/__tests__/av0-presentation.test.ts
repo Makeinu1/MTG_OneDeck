@@ -116,6 +116,8 @@ describe('audioVisualPreferences (storage 失敗・parse 失敗)', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: true,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
@@ -127,6 +129,8 @@ describe('audioVisualPreferences (storage 失敗・parse 失敗)', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: true,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
@@ -136,6 +140,8 @@ describe('audioVisualPreferences (storage 失敗・parse 失敗)', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: false,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
@@ -146,6 +152,8 @@ describe('audioVisualPreferences (storage 失敗・parse 失敗)', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: true,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 

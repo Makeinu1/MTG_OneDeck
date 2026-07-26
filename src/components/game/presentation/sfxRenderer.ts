@@ -108,7 +108,21 @@ function scheduleLayer(
     if (layer.detuneCents !== undefined) {
       osc.detune.value = layer.detuneCents;
     }
-    osc.connect(env);
+    if (layer.filterType) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = layer.filterType;
+      filter.frequency.setValueAtTime(layer.filterFreqStart ?? 1000, startSec);
+      if (layer.filterFreqEnd !== undefined) {
+        filter.frequency.linearRampToValueAtTime(layer.filterFreqEnd, endSec);
+      }
+      if (layer.filterQ !== undefined) {
+        filter.Q.value = layer.filterQ;
+      }
+      osc.connect(filter);
+      filter.connect(env);
+    } else {
+      osc.connect(env);
+    }
     osc.start(startSec);
     osc.stop(endSec + 0.01);
   } else {

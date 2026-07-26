@@ -30,7 +30,7 @@ describe('AV4 commander patch and ritual constants', () => {
   });
 
   it('commander level matches contract', () => {
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
   });
 
   it('computes the duck envelope from COMMANDER_MIX_TUNING', () => {

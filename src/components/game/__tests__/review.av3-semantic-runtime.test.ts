@@ -84,10 +84,10 @@ describe('AV3 semantic presentation runtime', () => {
     expect(spell.layers.length).toBeGreaterThanOrEqual(2);
     expect(land.layers.length).toBeGreaterThanOrEqual(2);
     expect(turn.layers.length).toBeGreaterThanOrEqual(2);
-    expect(SFX_LEVELS_DB['spell-cast']).toBe(-13);
-    expect(SFX_LEVELS_DB['land-played']).toBe(-11);
-    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-15);
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
+    expect(SFX_LEVELS_DB['spell-cast']).toBe(-8);
+    expect(SFX_LEVELS_DB['land-played']).toBe(-6);
+    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-10);
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
   });
 
   it('never schedules an ordinary event sound beyond the 80ms contract', () => {

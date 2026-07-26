@@ -143,6 +143,7 @@ export interface MusicRuntime {
   resume(): Promise<boolean>;
   currentPositionSec(): number;
   setMusicAudible(audible: boolean): void;
+  setMusicVolume(volume0to100: number): void;
   dispose(): void;
 }
 
@@ -187,6 +188,7 @@ export function createMusicRuntime(
       resume: () => Promise.resolve(false),
       currentPositionSec: () => rememberedPositionSec,
       setMusicAudible: () => {},
+      setMusicVolume: () => {},
       dispose: () => {},
     };
   }
@@ -335,8 +337,18 @@ export function createMusicRuntime(
     return Number.isFinite(position) ? position : rememberedPositionSec;
   }
 
+  let musicVolumeScale = 1;
+
   function setMusicAudible(audible: boolean): void {
-    lanes.music.gain.value = audible ? dbToLinear(BGM_GAIN_DB) : 0;
+    lanes.music.gain.value = audible ? dbToLinear(BGM_GAIN_DB) * musicVolumeScale : 0;
+  }
+
+  function setMusicVolume(volume0to100: number): void {
+    musicVolumeScale = Math.min(100, Math.max(0, volume0to100)) / 100;
+    // Re-apply if currently audible (gain > 0 means audible).
+    if (lanes.music.gain.value > 0) {
+      lanes.music.gain.value = dbToLinear(BGM_GAIN_DB) * musicVolumeScale;
+    }
   }
 
   function dispose(): void {
@@ -363,6 +375,7 @@ export function createMusicRuntime(
     resume,
     currentPositionSec,
     setMusicAudible,
+    setMusicVolume,
     dispose,
   };
 }

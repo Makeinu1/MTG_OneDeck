@@ -30,8 +30,18 @@ describe('sfxPatch layer counts', () => {
     }
   });
 
-  it('commander patch has at least 4 layers', () => {
-    expect(sfxPatch('commander-cast').layers.length).toBeGreaterThanOrEqual(4);
+  it('commander patch has at least 12 layers', () => {
+    expect(sfxPatch('commander-cast').layers.length).toBeGreaterThanOrEqual(12);
+  });
+
+  it('commander patch has at least one sawtooth layer', () => {
+    const patch = sfxPatch('commander-cast');
+    expect(patch.layers.some((l) => l.kind === 'osc' && l.wave === 'sawtooth')).toBe(true);
+  });
+
+  it('commander patch has at least one noise layer (riser)', () => {
+    const patch = sfxPatch('commander-cast');
+    expect(patch.layers.some((l) => l.kind === 'noise')).toBe(true);
   });
 });
 
@@ -42,20 +52,20 @@ describe('sfxPatch commander duration', () => {
 });
 
 describe('SFX_LEVELS_DB contract values', () => {
-  it('spell-cast is -13 dB', () => {
-    expect(SFX_LEVELS_DB['spell-cast']).toBe(-13);
+  it('spell-cast is -8 dB', () => {
+    expect(SFX_LEVELS_DB['spell-cast']).toBe(-8);
   });
 
-  it('land-played is -11 dB', () => {
-    expect(SFX_LEVELS_DB['land-played']).toBe(-11);
+  it('land-played is -6 dB', () => {
+    expect(SFX_LEVELS_DB['land-played']).toBe(-6);
   });
 
-  it('turn-advanced is -15 dB', () => {
-    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-15);
+  it('turn-advanced is -10 dB', () => {
+    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-10);
   });
 
-  it('commander-cast is -8 dB', () => {
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
+  it('commander-cast is -3 dB', () => {
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
   });
 });
 

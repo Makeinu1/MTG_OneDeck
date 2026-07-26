@@ -170,4 +170,36 @@ describe('sfxRenderer', () => {
     expect(mockSource.connect).toHaveBeenCalledWith(lane);
     expect(mockSource.start).toHaveBeenCalledWith(1.52);
   });
+
+  it('renders commander-cast patch (with osc filters) without throwing', async () => {
+    const { renderAllPatches, isSfxReady } = await import('../sfxRenderer');
+    await renderAllPatches();
+    expect(isSfxReady()).toBe(true);
+  });
+
+  it('osc layer with filterType routes through BiquadFilter', async () => {
+    // The commander-cast patch has sawtooth layers with filterType='lowpass'.
+    // If the renderer correctly inserts a BiquadFilterNode, createBiquadFilter
+    // will be called during rendering. We verify indirectly: render succeeds
+    // and the mock context's createBiquadFilter is exercised.
+    const filterSpy = vi.fn(() => ({
+      type: 'lowpass' as const,
+      frequency: { value: 1000, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
+      Q: { value: 1 },
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    }));
+
+    class SpyOfflineAudioContext extends MockOfflineAudioContext {
+      createBiquadFilter() { return filterSpy(); }
+    }
+    (globalThis as Record<string, unknown>).OfflineAudioContext = SpyOfflineAudioContext;
+
+    vi.resetModules();
+    const { renderAllPatches } = await import('../sfxRenderer');
+    await renderAllPatches();
+
+    // Commander patch has 4 osc layers with filterType + 1 noise with filterType = at least 5
+    expect(filterSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
+  });
 });

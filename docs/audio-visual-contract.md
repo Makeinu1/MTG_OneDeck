@@ -136,16 +136,17 @@
   - `land-played`: sub thud + ノイズアタック(地面に置く着地感)。リバーブは dry
   - `turn-advanced`: soft tick + 5度の短い chime(小節線を引く区切り)
   - `commander-cast`: 既存3音モチーフ(G4/B4/D5)のリズム・音程・650ms枠を維持し、
-    各音を sub/body/shimmer でレイヤー化 + 低域 pad + 最も広いリバーブ(登場の重み)
-
+    各音を sub(sine)/body(sawtooth+lowpass sweep)/shimmer(triangle) でレイヤー化 +
+    低域 pad(sawtooth+lowpass) + ノイズ riser + 最も広いリバーブ(登場の重み)。
+    sine 単体は sub 層だけに使い、倍音豊かな波形で「着信音」感を排除する。
 許される TUNABLE(1箇所集約):
 
 ```ts
 const SFX_LEVELS_DB = {
-  'spell-cast': -13,
-  'land-played': -11,
-  'turn-advanced': -15,
-  'commander-cast': -8,
+  'spell-cast': -8,
+  'land-played': -6,
+  'turn-advanced': -10,
+  'commander-cast': -3,
 } as const; // BGM(-4.5dB固定)相対。耳疲れで調整する唯一の音量値。
 ```
 
@@ -155,6 +156,21 @@ const SFX_LEVELS_DB = {
 - 通常3音は EventBus、`commander-cast` は CommanderBus へ出力する(バス分離は維持)。
 - 拍スナップ(`presentationSoundDelayMs`)・同種 choke・「失敗は GameState を待たせない」
   はすべて維持する。
+
+ユーザー音量スライダー(2026-07-26 ユーザー裁定で追加):
+
+- BGM と SFX(効果音全体)の音量スライダーを、各 ON/OFF ボタンの隣に配置する。
+- 範囲は 0〜100(%)。既定値: BGM=70、SFX=80。
+- スライダー値は `AudioPreferences` に `bgmVolume` / `sfxVolume` として保存する。
+- 実効 gain = バス既定値 × (slider / 100)。スライダーは保存設定を書き換えず、
+  実効出力だけに影響する(テーマ・route の実効無音は維持)。
+- スライダーはライトテーマ中でも操作可能(保存値は維持される)。
+
+osc レイヤーのフィルター:
+
+- `SfxLayer` の `filterType` / `filterFreqStart` / `filterFreqEnd` / `filterQ` は
+  noise レイヤーだけでなく **osc レイヤーにも適用できる**。レンダラーは osc の
+  出力を指定フィルターへ通してから envelope へ接続する。
 
 ---
 

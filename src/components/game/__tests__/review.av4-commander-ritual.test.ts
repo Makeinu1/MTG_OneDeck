@@ -46,8 +46,8 @@ describe('AV4 commander ritual contract', () => {
     const patch = sfxPatch('commander-cast');
     expect(patch).toEqual(sfxPatch('commander-cast'));
     expect(patch.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
-    expect(patch.layers.length).toBeGreaterThanOrEqual(4);
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-8);
+    expect(patch.layers.length).toBeGreaterThanOrEqual(12);
+    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
 
     const envelope = commanderDuckEnvelope(10, 1);
     expect(envelope.attackEndSec).toBeCloseTo(10.04, 6);

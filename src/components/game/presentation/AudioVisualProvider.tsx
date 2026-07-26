@@ -42,6 +42,7 @@ import {
 } from './musicBus';
 import { getTransportCssTiming } from './audioVisualTransport';
 import { setSessionRuntime, clearSessionRuntime, setSessionTransportPositionGetter } from './audioVisualSession';
+import { setSessionSfxVolume } from './audioVisualSession';
 import { DARK_GAME_TRACK } from './trackManifest';
 import { renderAllPatches } from './sfxRenderer';
 
@@ -217,6 +218,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
         ctx.resume().catch(() => {});
       }
       activeRuntime.setMusicAudible(policy.musicAudible);
+      activeRuntime.setMusicVolume(preferences.bgmVolume ?? 70);
       void activeRuntime.resume().then((ok) => {
         if (!cancelled) setPlayStatus(ok ? 'playing' : 'error');
       });
@@ -257,6 +259,11 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [policy]);
+
+  // Apply SFX volume whenever preferences change.
+  useEffect(() => {
+    setSessionSfxVolume(preferences.sfxVolume ?? 80);
+  }, [preferences.sfxVolume]);
 
   // On unmount: pause and remember position (do NOT dispose).
   useEffect(() => {

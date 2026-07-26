@@ -12,6 +12,8 @@
 export interface AudioPreferences {
   bgmEnabled: boolean;
   eventSoundsEnabled: boolean;
+  bgmVolume?: number;   // 0-100, default 70
+  sfxVolume?: number;   // 0-100, default 80
 }
 
 export interface AudioContextFlags {
@@ -33,6 +35,8 @@ const LEGACY_SOUND_STORAGE_KEY = 'mtg-onedeck:sound-enabled';
 const DEFAULT_PREFERENCES: AudioPreferences = {
   bgmEnabled: true,
   eventSoundsEnabled: true,
+  bgmVolume: 70,
+  sfxVolume: 80,
 };
 
 function readRaw(key: string): string | null {
@@ -52,9 +56,17 @@ function parseStored(raw: string | null): AudioPreferences | null {
     if (typeof record.bgmEnabled !== 'boolean' || typeof record.eventSoundsEnabled !== 'boolean') {
       return null;
     }
+    const bgmVolume = typeof record.bgmVolume === 'number' && record.bgmVolume >= 0 && record.bgmVolume <= 100
+      ? record.bgmVolume
+      : 70;
+    const sfxVolume = typeof record.sfxVolume === 'number' && record.sfxVolume >= 0 && record.sfxVolume <= 100
+      ? record.sfxVolume
+      : 80;
     return {
       bgmEnabled: record.bgmEnabled,
       eventSoundsEnabled: record.eventSoundsEnabled,
+      bgmVolume,
+      sfxVolume,
     };
   } catch {
     return null; // 壊れた JSON は既定へ倒す。
@@ -74,10 +86,23 @@ export function loadAudioPreferences(): AudioPreferences {
     return {
       bgmEnabled: true,
       eventSoundsEnabled: legacy === 'on',
+      bgmVolume: 70,
+      sfxVolume: 80,
     };
   }
 
   return { ...DEFAULT_PREFERENCES };
+}
+
+/** Effective linear gains derived from preferences and audibility flags. */
+export function getEffectiveGains(
+  preferences: AudioPreferences,
+  flags: { musicAudible: boolean; eventsAudible: boolean },
+): { musicGain: number; sfxGain: number } {
+  return {
+    musicGain: flags.musicAudible ? (preferences.bgmVolume ?? 70) / 100 : 0,
+    sfxGain: flags.eventsAudible ? (preferences.sfxVolume ?? 80) / 100 : 0,
+  };
 }
 
 /** 独立した Music / musical-event 設定を永続する。legacy キーは触らない。 */

@@ -36,6 +36,19 @@ export function getSessionCommanderLane(): GainNode | null {
   return sessionLanes?.commander ?? null;
 }
 
+/**
+ * Scale the events and commander lane gains by sfxVolume (0-100).
+ * Called by the provider when preferences change. Patches are rendered
+ * at full level; the bus gain scales output.
+ */
+export function setSessionSfxVolume(volume0to100: number): void {
+  const scale = Math.min(100, Math.max(0, volume0to100)) / 100;
+  if (sessionLanes) {
+    sessionLanes.events.gain.value = scale;
+    sessionLanes.commander.gain.value = scale;
+  }
+}
+
 export function setSessionTransportPositionGetter(getter: (() => number) | null): void {
   transportPositionGetter = getter;
 }

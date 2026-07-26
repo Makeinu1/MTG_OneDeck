@@ -39,10 +39,10 @@ export type SfxKind = 'spell-cast' | 'land-played' | 'turn-advanced' | 'commande
 
 /** BGM(-4.5dB) relative levels. The single tunable volume set (contract §3.1). */
 export const SFX_LEVELS_DB: Record<SfxKind, number> = {
-  'spell-cast': -13,
-  'land-played': -11,
-  'turn-advanced': -15,
-  'commander-cast': -8,
+  'spell-cast': -8,
+  'land-played': -6,
+  'turn-advanced': -10,
+  'commander-cast': -3,
 };
 
 /* ------------------------------------------------------------------ */
@@ -103,7 +103,7 @@ const TURN_ADVANCED: SfxPatch = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  commander-cast: three-note motif G4/B4/D5, layered (≤650ms)        */
+/*  commander-cast: three-note motif G4/B4/D5, rich timbres (≤650ms)   */
 /* ------------------------------------------------------------------ */
 
 const COMMANDER_CAST: SfxPatch = {
@@ -111,22 +111,26 @@ const COMMANDER_CAST: SfxPatch = {
   durationMs: 650,
   outputGainDb: SFX_LEVELS_DB['commander-cast'],
   layers: [
-    // Note 1: G4 (392Hz), offset 0ms
-    { kind: 'osc', wave: 'sine', freqStart: 196, attackMs: 5, releaseMs: 200, gain: 0.25, offsetMs: 0 },       // sub (1oct down)
-    { kind: 'osc', wave: 'sine', freqStart: 392, attackMs: 5, releaseMs: 220, gain: 0.35, offsetMs: 0 },       // body
-    { kind: 'osc', wave: 'sine', freqStart: 784, attackMs: 5, releaseMs: 180, gain: 0.08, offsetMs: 0 },       // shimmer (1oct up)
-    // Note 2: B4 (493.88Hz), offset 120ms
-    { kind: 'osc', wave: 'sine', freqStart: 246.94, attackMs: 5, releaseMs: 200, gain: 0.22, offsetMs: 120 },  // sub
-    { kind: 'osc', wave: 'sine', freqStart: 493.88, attackMs: 5, releaseMs: 220, gain: 0.32, offsetMs: 120 },  // body
-    { kind: 'osc', wave: 'sine', freqStart: 987.77, attackMs: 5, releaseMs: 180, gain: 0.07, offsetMs: 120 },  // shimmer
-    // Note 3: D5 (587.33Hz), offset 260ms
-    { kind: 'osc', wave: 'sine', freqStart: 293.665, attackMs: 5, releaseMs: 250, gain: 0.20, offsetMs: 260 }, // sub
-    { kind: 'osc', wave: 'sine', freqStart: 587.33, attackMs: 5, releaseMs: 280, gain: 0.30, offsetMs: 260 },  // body
-    { kind: 'osc', wave: 'sine', freqStart: 1174.66, attackMs: 5, releaseMs: 240, gain: 0.06, offsetMs: 260 }, // shimmer
-    // Low-frequency pad (G2)
-    { kind: 'osc', wave: 'sine', freqStart: 98, attackMs: 20, releaseMs: 500, gain: 0.12, offsetMs: 0 },
+    // Note 1: G4 (392Hz), offset 0ms — sub + body(saw→LP) + shimmer(tri)
+    { kind: 'osc', wave: 'sine', freqStart: 196, attackMs: 5, releaseMs: 200, gain: 0.22, offsetMs: 0 },
+    { kind: 'osc', wave: 'sawtooth', freqStart: 392, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 220, gain: 0.30, offsetMs: 0 },
+    { kind: 'osc', wave: 'triangle', freqStart: 784, attackMs: 5, releaseMs: 180, gain: 0.07, offsetMs: 0 },
+    // Note 2: B4 (493.88Hz), offset 120ms — sub + body(saw→LP) + shimmer(tri)
+    { kind: 'osc', wave: 'sine', freqStart: 246.94, attackMs: 5, releaseMs: 200, gain: 0.20, offsetMs: 120 },
+    { kind: 'osc', wave: 'sawtooth', freqStart: 493.88, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 220, gain: 0.28, offsetMs: 120 },
+    { kind: 'osc', wave: 'triangle', freqStart: 987.77, attackMs: 5, releaseMs: 180, gain: 0.06, offsetMs: 120 },
+    // Note 3: D5 (587.33Hz), offset 260ms — sub + body(saw→LP) + shimmer(tri)
+    { kind: 'osc', wave: 'sine', freqStart: 293.665, attackMs: 5, releaseMs: 250, gain: 0.18, offsetMs: 260 },
+    { kind: 'osc', wave: 'sawtooth', freqStart: 587.33, filterType: 'lowpass', filterFreqStart: 800, filterFreqEnd: 2000, filterQ: 1.5, attackMs: 5, releaseMs: 280, gain: 0.26, offsetMs: 260 },
+    { kind: 'osc', wave: 'triangle', freqStart: 1174.66, attackMs: 5, releaseMs: 240, gain: 0.05, offsetMs: 260 },
+    // Low pad: sawtooth G2 (98Hz) through lowpass 400Hz, long release
+    { kind: 'osc', wave: 'sawtooth', freqStart: 98, filterType: 'lowpass', filterFreqStart: 400, filterQ: 0.7, attackMs: 20, releaseMs: 500, gain: 0.10, offsetMs: 0 },
+    // Pad sub: sine G1 (49Hz) for weight
+    { kind: 'osc', wave: 'sine', freqStart: 49, attackMs: 30, releaseMs: 450, gain: 0.08, offsetMs: 0 },
+    // Noise riser: bandpass 1000→4000Hz sweep over 0–300ms
+    { kind: 'noise', freqStart: 0, filterType: 'bandpass', filterFreqStart: 1000, filterFreqEnd: 4000, filterQ: 2, attackMs: 10, releaseMs: 290, gain: 0.06, offsetMs: 0 },
   ],
-  reverb: { wetGain: 0.35, decaySec: 0.9 },
+  reverb: { wetGain: 0.4, decaySec: 1.0 },
 };
 
 const PATCHES: Record<SfxKind, SfxPatch> = {

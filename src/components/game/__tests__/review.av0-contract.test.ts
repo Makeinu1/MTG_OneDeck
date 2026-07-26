@@ -102,6 +102,8 @@ describe('audio preference and effective-silence boundary', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: true,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
@@ -110,6 +112,8 @@ describe('audio preference and effective-silence boundary', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: true,
       eventSoundsEnabled: false,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
@@ -122,6 +126,8 @@ describe('audio preference and effective-silence boundary', () => {
     expect(loadAudioPreferences()).toEqual({
       bgmEnabled: false,
       eventSoundsEnabled: true,
+      bgmVolume: 70,
+      sfxVolume: 80,
     });
   });
 
