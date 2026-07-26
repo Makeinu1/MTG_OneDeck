@@ -70,7 +70,6 @@
      二スキン(ダーク=脈動する星雲 / ライト=墨の世界)の値をここに集約し、
      game.css は var() 参照のみ(トークンガード: game.css 生カラー禁止)。 */
   --ambient-beat: 700ms; /* 鼓動(ダークのペースアンカー) */
-  --ambient-beat-combat: 525ms; /* 戦闘中の鼓動 */
   /* ダーク = 脈動する星雲(冬のクオリティ) */
   --ambient-gas-ice: rgba(96, 150, 255, 0.20);
   --ambient-gas-ice-2: rgba(130, 195, 255, 0.13);
@@ -89,8 +88,6 @@
   --ambient-shoot-tail: rgba(160, 200, 255, 0.35);
   --ambient-shoot-glow: rgba(190, 220, 255, 0.8);
   --ambient-core: rgba(170, 205, 255, 0.15);
-  --ambient-core-combat: rgba(255, 180, 140, 0.16);
-  --ambient-edge-heat: rgba(255, 110, 70, 0.17);
   --ambient-vignette-dark: rgba(0, 0, 5, 0.6);
   /* ライト = 墨の世界(ペースアンカー: 液态呼吸 3400ms)。
      墨の3原色(藍黒/セピア/インディゴ)は alpha 混色ごとトークン化する
@@ -194,7 +191,7 @@
   --dur-fast: 120ms; /* L1: ホバー・押下・タップ・ハイライト */
   --dur-move: 240ms; /* L2: シート開閉・カード移動・ドロー */
   --dur-hero: 420ms; /* L3: 着地・キャスト・解決 */
-  --dur-ritual: 650ms; /* L3+/L4: 統率者登場・連鎖 */
+  --dur-ritual: 650ms; /* L3+/L4: 統率者登場の固有儀式 */
 }
 
 :root[data-theme='light'] {

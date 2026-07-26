@@ -20,8 +20,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { GameCard } from './GameCard';
 import { CardView } from '../CardView';
 import { playableHandCardIds } from './affordability';
-import { celebrate } from './sound';
-import { shouldCompress } from './motion';
+
 import {
   appendedLocalDraws,
   drawFlightDestinationKind,
@@ -99,7 +98,6 @@ export function HandRibbon({
     () => (state ? playableHandCardIds(state) : new Set<string>()),
     [state],
   );
-  const lastDrawRef = useRef<number | null>(null);
   const flatControl = useMemo(
     () => new URLSearchParams(window.location.search).get('hand') === 'flat',
     [],
@@ -278,11 +276,6 @@ export function HandRibbon({
   }
 
   function drawOne(): void {
-    const now = Date.now();
-    // 連続ドロー(圧縮)はハプティクスを畳んで疲れさせない・空ライブラリでは鳴らさない(§7・Tier-1 #3/#5)。
-    const compressed = shouldCompress(lastDrawRef.current, now);
-    lastDrawRef.current = now;
-    if (state!.zones.library.length > 0 && !compressed) celebrate('draw');
     store.draw(1);
   }
 

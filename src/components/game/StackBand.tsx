@@ -1,6 +1,6 @@
 /** StackBand — right-side stack pile with reversible board-peek and detail states. */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { GameCard } from './GameCard';
 import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
 import type { GameController } from './gameController';
@@ -149,9 +149,6 @@ function StackOverflowMenu({ item, controller, open, onToggle, onManualTarget }:
 }
 
 export function StackBand({ controller }: StackBandProps) {
-  const stackLen = controller.state?.zones.stack.length ?? 0;
-  const previousStackLenRef = useRef(stackLen);
-  const [flash, setFlash] = useState(false);
   const bottomStackId = controller.state?.zones.stack[0];
   const bottomStackCard = bottomStackId ? controller.state?.cards[bottomStackId] : undefined;
   const sessionId = bottomStackCard
@@ -163,15 +160,6 @@ export function StackBand({ controller }: StackBandProps) {
   const [openOverflowId, setOpenOverflowId] = useState<string | null>(null);
   const [boardPeekSessionId, setBoardPeekSessionId] = useState<string | null>(null);
   const [restoreExpandedAfterPeek, setRestoreExpandedAfterPeek] = useState(false);
-
-  useEffect(() => {
-    const previous = previousStackLenRef.current;
-    previousStackLenRef.current = stackLen;
-    if (stackLen >= previous || stackLen === 0) return;
-    setFlash(true);
-    const timer = window.setTimeout(() => setFlash(false), 720);
-    return () => window.clearTimeout(timer);
-  }, [stackLen]);
 
   const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
     (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
@@ -216,7 +204,7 @@ export function StackBand({ controller }: StackBandProps) {
       {expanded && !boardPeek && <StackTargetLines item={selectedItem} />}
       <section
         id="stack-pile"
-        className={`stack-band stack-pile${flash ? ' stack-band--flash' : ''}${
+        className={`stack-band stack-pile${
           controller.store.resolutionSession ? ' stack-pile--manual' : ''
         }${boardPeek ? ' stack-pile--board-peek' : ''}`}
         data-testid="stack-band"

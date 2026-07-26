@@ -9,8 +9,6 @@
 
 import { useState } from 'react';
 import { primaryActionModel } from './primaryAction';
-import { celebrate } from './sound';
-import { isSoundEnabled, setSoundEnabled } from './motion';
 import {
   AMBIENT_CHANGE_EVENT,
   isAmbientEnabled,
@@ -20,6 +18,8 @@ import { primaryActionLanguage } from './primaryActionDisplay';
 import type { GameController } from './gameController';
 import { ThemeToggle } from '../ThemeToggle';
 import { Icon } from '../../ui/icons';
+import { useAudioVisual } from './presentation/audioVisualContext';
+import { saveAudioPreferences } from './presentation/audioVisualPreferences';
 
 export interface ThumbZoneProps {
   controller: GameController;
@@ -36,12 +36,13 @@ function GameMenuSheet({
   onOpenOpponentSetup?: () => void;
 }) {
   const { store } = controller;
-  const [sound, setSound] = useState(isSoundEnabled());
+  const { preferences, setPreferences, audioStatus, policy } = useAudioVisual();
   const [ambient, setAmbient] = useState(isAmbientEnabled());
   const act = (fn: () => void) => () => {
     fn();
     onClose();
   };
+  const isLight = document.documentElement.dataset.theme === 'light';
   return (
     <div className="game-sheet-overlay" data-testid="game-menu-overlay" onClick={onClose}>
       <div className="game-sheet" data-testid="game-menu-sheet" onClick={(e) => e.stopPropagation()}>
@@ -56,6 +57,51 @@ function GameMenuSheet({
             <span>表示テーマ</span>
             <ThemeToggle compact />
           </div>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-bgm"
+            onClick={() => {
+              const next = { ...preferences, bgmEnabled: !preferences.bgmEnabled };
+              setPreferences(next);
+              saveAudioPreferences(next);
+            }}
+          >
+            BGM: {preferences.bgmEnabled ? 'ON' : 'OFF'}
+            {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
+          </button>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-event-sounds"
+            onClick={() => {
+              const next = { ...preferences, eventSoundsEnabled: !preferences.eventSoundsEnabled };
+              setPreferences(next);
+              saveAudioPreferences(next);
+            }}
+          >
+            ゲーム進行音: {preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
+            {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
+          </button>
+          <button
+            type="button"
+            className="game-menu__action"
+            data-testid="menu-ambient"
+            onClick={() => {
+              const next = !ambient;
+              setAmbientEnabled(next);
+              setAmbient(next);
+              document.dispatchEvent(new Event(AMBIENT_CHANGE_EVENT));
+            }}
+          >
+            背景モーション: {ambient ? 'ON' : 'OFF'}
+          </button>
+          {audioStatus === 'idle' && !policy.transportRunning && (
+            <span className="game-menu__audio-status">最初の操作で再生</span>
+          )}
+          {audioStatus === 'error' && (
+            <span className="game-menu__audio-status game-menu__audio-status--error">音を開始できませんでした</span>
+          )}
           <button type="button" className="game-menu__action" data-testid="menu-token" onClick={act(controller.openTokenDialog)}>
             トークン生成
           </button>
@@ -103,31 +149,7 @@ function GameMenuSheet({
           >
             ターン開始: {store.autoAdvanceToMain ? '自動でメイン1まで' : 'フェイズごとに進む'}
           </button>
-          <button
-            type="button"
-            className="game-menu__action"
-            data-testid="menu-sound"
-            onClick={() => {
-              const next = !sound;
-              setSoundEnabled(next);
-              setSound(next);
-            }}
-          >
-            音(演出): {sound ? 'ON' : 'OFF'}
-          </button>
-          <button
-            type="button"
-            className="game-menu__action"
-            data-testid="menu-ambient"
-            onClick={() => {
-              const next = !ambient;
-              setAmbientEnabled(next);
-              setAmbient(next);
-              document.dispatchEvent(new Event(AMBIENT_CHANGE_EVENT));
-            }}
-          >
-            背景モーション: {ambient ? 'ON' : 'OFF'}
-          </button>
+
           <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-restart" onClick={act(() => controller.requestConfirm('restart'))}>
             最初からやり直す
           </button>
@@ -166,19 +188,15 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         controller.requestResolveTop();
         break;
       case 'triggers':
-        celebrate('primary');
         controller.processTriggers?.();
         break;
       case 'attack':
-        celebrate('primary');
         controller.openAttackDialog();
         break;
       case 'skip-combat':
-        celebrate('primary');
         controller.advancePhase();
         break;
       case 'next-phase':
-        celebrate('primary');
         controller.advancePhase();
         break;
     }

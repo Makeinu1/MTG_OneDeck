@@ -1,4 +1,18 @@
-import type { CommanderCutInData } from './gameController';
+/**
+ * CommanderCutIn — AV4 restrained white-platinum halo ritual visual.
+ * docs/audio-visual-contract.md §5.
+ *
+ * Duration is driven by --dur-ritual (650ms). Reduced motion = fade/static.
+ * No slash, no explosion, no landed state.
+ */
+
+export interface CommanderCutInData {
+  cardId: string;
+  faceIndex: number;
+  name: string;
+  typeLine: string;
+  imageUrl?: string;
+}
 
 export function CommanderCutIn({ cue }: { cue: CommanderCutInData }) {
   const style = cue.imageUrl
@@ -9,15 +23,13 @@ export function CommanderCutIn({ cue }: { cue: CommanderCutInData }) {
     <div
       className="commander-cutin"
       data-testid="commander-cutin"
-      data-landed={cue.landed || undefined}
       style={style}
       role="status"
       aria-live="polite"
       aria-atomic="true"
     >
       <div className="commander-cutin__shade" aria-hidden="true" />
-      <div className="commander-cutin__slash commander-cutin__slash--left" aria-hidden="true" />
-      <div className="commander-cutin__slash commander-cutin__slash--right" aria-hidden="true" />
+      <div className="commander-cutin__halo" aria-hidden="true" />
       <div className="commander-cutin__band">
         <div className="commander-cutin__art" aria-hidden="true" />
         <div className="commander-cutin__card" aria-hidden="true">
@@ -29,7 +41,6 @@ export function CommanderCutIn({ cue }: { cue: CommanderCutInData }) {
           <span>{cue.typeLine}</span>
         </div>
       </div>
-      <div className="commander-cutin__impact" aria-hidden="true" />
     </div>
   );
 }

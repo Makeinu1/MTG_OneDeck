@@ -1,0 +1,38 @@
+{
+  "candidates": [
+    {
+      "file": "research/audio/bgm-loop-candidates/masters/candidate-a-natural-full-cycle.wav",
+      "sha256": "9962bd02fefebd5bc444e1524b7dc5acfe54682b217fce8fe0625e5304a1d047",
+      "sizeBytes": 73084890,
+      "sampleRate": 48000,
+      "channels": 2,
+      "durationSeconds": 253.766,
+      "tempoReferenceBpm": 122.00233452280457,
+      "beatCount": 516.0007403752337,
+      "nearestIntegerBeats": 516,
+      "beatLengthErrorMilliseconds": 0.36411199995472926,
+      "boundarySampleJumpDbfs": -90.9058399864686,
+      "typicalP999SampleDifferenceDbfs": -14.892591068744048,
+      "boundaryJumpRelativeToP999Db": -76.01324891772455,
+      "first50msRmsDbfs": -6.773660398974619,
+      "last50msRmsDbfs": -56.74200269231025
+    },
+    {
+      "file": "research/audio/bgm-loop-candidates/masters/candidate-b-tight-128-bars.wav",
+      "sha256": "911f12e72ca32319cfca101e75a39085cd2167ed5ed714a197dee43fe27eedb4",
+      "sizeBytes": 72518238,
+      "sampleRate": 48000,
+      "channels": 2,
+      "durationSeconds": 251.79845833333334,
+      "tempoReferenceBpm": 122.00233452280457,
+      "beatCount": 511.9999957651634,
+      "nearestIntegerBeats": 512,
+      "beatLengthErrorMilliseconds": -0.0020826666624996987,
+      "boundarySampleJumpDbfs": -59.09760372717418,
+      "typicalP999SampleDifferenceDbfs": -14.8831643159566,
+      "boundaryJumpRelativeToP999Db": -44.21443941121758,
+      "first50msRmsDbfs": -18.065243256125562,
+      "last50msRmsDbfs": -16.31913604427413
+    }
+  ]
+}

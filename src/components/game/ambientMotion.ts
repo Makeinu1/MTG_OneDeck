@@ -3,7 +3,7 @@
  *
  * 視覚正本 = research/design/mockups/ambient-motion.html(v4.3 最終確定)。
  * アンビエント層は GameScreen 背後への注入のみ(既存 UI は不変)。二スキン:
- * ダーク = 脈動する星雲(鼓動 700ms・戦闘 525ms)/ ライト = 墨の世界(液态呼吸 3400ms)。
+ * ダーク = 脈動する星雲(鼓動 700ms)/ ライト = 墨の世界(液态呼吸 3400ms)。
  *
  * 純粋性: DOM/時刻に依存しない(reduced 判定は引数で受ける)。localStorage 関数のみ副作用
  * (motion.ts と同じ流儀)。テンポはトークン固定値——モックの速度スライダー(×0.4-3)は
@@ -12,8 +12,6 @@
 
 /** 鼓動のペースアンカー(ダーク)。design-system §8a。 */
 export const AMBIENT_BEAT_MS = 700;
-/** 戦闘中の鼓動(§8a: 700ms → 525ms)。 */
-export const AMBIENT_BEAT_COMBAT_MS = 525;
 
 /** トグルの永続化キー(§8a・§7b 音トグルと同パターン)。 */
 export const AMBIENT_STORAGE_KEY = 'mtg-onedeck:ambient-motion';
@@ -21,9 +19,9 @@ export const AMBIENT_STORAGE_KEY = 'mtg-onedeck:ambient-motion';
 export const AMBIENT_CHANGE_EVENT = 'mtg-onedeck:ambient-change';
 
 /** 鼓動周期(ms)。reduced-motion 時は 0(全静止)。 */
-export function ambientBeatMs(options: { combat?: boolean; reduced?: boolean } = {}): number {
+export function ambientBeatMs(options: { reduced?: boolean } = {}): number {
   if (options.reduced === true) return 0;
-  return options.combat === true ? AMBIENT_BEAT_COMBAT_MS : AMBIENT_BEAT_MS;
+  return AMBIENT_BEAT_MS;
 }
 
 /** 背景モーションの opt-in 状態(§8a: 既定 ON・'off' のみ無効)。 */

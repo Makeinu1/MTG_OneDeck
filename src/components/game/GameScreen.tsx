@@ -31,9 +31,9 @@ import { ThumbZone } from './ThumbZone';
 import { Feed } from './Feed';
 import { TriggerSheet } from './TriggerSheet';
 import { PresentationLayer } from './PresentationLayer';
-import { CelebrationLayer } from './CelebrationLayer';
+import { SemanticPresentationLayer } from './presentation/SemanticPresentationLayer';
 import { AmbientBackdrop } from './AmbientBackdrop';
-import { CommanderCutIn } from './CommanderCutIn';
+import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { Toast } from './Toast';
 import type { KeybindingsMap } from '../../data/keybindings';
 import type { CardInstance } from '../../engine/types';
@@ -44,6 +44,7 @@ import { resolveDropIntent, type DropTarget } from './dragIntent';
 import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import './game.css';
+import { AudioVisualProvider } from './presentation/AudioVisualProvider';
 
 const ResearchRecorder = import.meta.env.DEV
   ? lazy(async () => {
@@ -183,6 +184,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
   }
 
   return (
+    <AudioVisualProvider>
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
@@ -196,10 +198,8 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         data-drag-active={activeDragId || undefined}
         data-stack-active={controller.state.zones.stack.length > 0 || undefined}
         data-combat={controller.state.phase === 'combat' || undefined}
-        data-resolution-locked={controller.resolutionLocked || undefined}
         data-decision-active={controller.decisionFocus ? controller.decisionFocus.kind : undefined}
         data-mulligan-active={controller.mulliganActive || undefined}
-        aria-busy={controller.resolutionLocked || undefined}
       >
         <div className="game-screen__status">
           <StatusBand controller={controller} />
@@ -218,8 +218,8 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <PresentationLayer controller={controller} />
-        <CelebrationLayer controller={controller} />
-        {controller.commanderCutIn && <CommanderCutIn cue={controller.commanderCutIn} />}
+        <SemanticPresentationLayer />
+        <CommanderRitualLayer />
         <Toast />
         <div className="game-screen__support">
           <SupportRow controller={controller} activeDragId={activeDragId} />
@@ -292,5 +292,6 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         ) : null}
       </DragOverlay>
     </DndContext>
+    </AudioVisualProvider>
   );
 }

@@ -122,9 +122,9 @@
       "dependsOn": [
         "d5-celebration"
       ],
-      "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
-      "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
+      "userGate": "SUPERSEDED 2026-07-26 ユーザー裁定。連鎖・履歴で通常操作を盛る方針を明示撤回。解除不可・実行禁止。新規AVはdocs/audio-visual-contract.mdのAV0〜AV4として別スライス化する。",
+      "specStatus": "superseded",
+      "note": "**[SUPERSEDED 2026-07-26]** 旧D6 chain heuristicは北極星②と衝突。現行CelebrationLayer/celebrationTimelineModelに残るchain表示・音も新AVスライスの撤去対象。status=deferredは台帳既存status語彙との互換のためで、再開待ちを意味しない。",
       "status": "deferred"
     },
     {
@@ -132,11 +132,11 @@
       "domainId": "d7-sound-session",
       "track": "design",
       "dependsOn": [
-        "d6-chain-feel"
+        "d5-celebration"
       ],
-      "userGate": "D5完了時にユーザーへ着手goを確認(STOP・docs/design-playbook.md §7)。契約ドラフト=playbook §5(Fable先払い済み・着手時にJ3がdrafted昇格)",
-      "specStatus": "vision-only",
-      "note": "**[2026-07-12 ChatGPT UI/UXトラックへ移管・autoloop消費対象外]** UI/UXはChatGPT 5.6が並行・別主体で全面見直し中(ユーザー裁定)。 [2026-07-20 ユーザー裁定] UI/UXトラックのオーナーをqwen統治へ統合(ChatGPT 5.6並行トラック体制の終了)。deferredの解除・スコ―プ再評価はqwen判定者。ただしD6/D7の着手goはuserGate(ユーザー確認)のまま不変。並行ブランチ編集(out-of-band)前提のship規律は不要化できる。",
+      "userGate": "SUPERSEDED 2026-07-26 ユーザー裁定。旧『ループBGMは作らない』『UI/カード/状態音』契約を撤回。解除不可・実行禁止。新正本=docs/audio-visual-contract.md。",
+      "specStatus": "superseded",
+      "note": "**[SUPERSEDED 2026-07-26]** 全曲周期ループBGM+意味イベント音へ改版。通常cast/land/turnは一定、commander-castだけ固有儀式。status=deferredは台帳既存status語彙との互換のためで、再開待ちを意味しない。",
       "status": "deferred"
     },
     {
@@ -147,8 +147,8 @@
         "d5-celebration"
       ],
       "status": "shipped",
-      "userGate": "2026-07-20 ユーザー裁定: v4.3最終モック確定。D4/D6/D7の停止と無関係の単独トラック。",
-      "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: 生きた背景(AmbientLayer)。ダーク=脈動する星雲(鼓動700ms/戦闘525ms/星156/流れ星)、ライト=墨の世界(液态呼吸3400ms/自描筆致/墨の滴/盤面上の光源90s公転)。パフォーマンス: feTurbulence/will-change/mix-blend-mode全廃(有機border-radius代替)。ターン交代: Cinzelスタンプ+スウィープ+描き線(光輪撤去)。ライフ♥脈動。スタック同期脈動。台形盤面透明化。ThumbZone「背景モーション」トグル(既定ON)。契約=design-system §8a。視覚正本=research/design/mockups/ambient-motion.html(v4.3)。cleanup-discard解決後のターン演出補完(announceTransition)。"
+      "userGate": "2026-07-20 ユーザー裁定: v4.3形状を確定。2026-07-26追加裁定: 形状は維持するが固定700msは音OFF fallbackへ、戦闘525msは撤去、BGM再生中はTrackManifest transportへ移行。",
+      "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: 生きた背景(AmbientLayer)。ダーク=脈動する星雲(鼓動700ms/戦闘525ms/星156/流れ星)、ライト=墨の世界(液态呼吸3400ms/自描筆致/墨の滴/盤面上の光源90s公転)。パフォーマンス: feTurbulence/will-change/mix-blend-mode全廃(有機border-radius代替)。ターン交代: Cinzelスタンプ+スウィープ+描き線(光輪撤去)。ライフ♥脈動。スタック同期脈動。台形盤面透明化。ThumbZone「背景モーション」トグル(既定ON)。契約=design-system §8a。形状参照=research/design/mockups/ambient-motion.html(v4.3)。cleanup-discard解決後のターン演出補完(announceTransition)。**[2026-07-26 contract supersession]** shippedは旧実装状態を表す。固定700ms/戦闘525ms/旧イベント強度は新AV契約への移行対象で、現行正本=docs/audio-visual-contract.md。"
     },
     {
       "type": "engine-fix",

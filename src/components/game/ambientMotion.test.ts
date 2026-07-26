@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  AMBIENT_BEAT_COMBAT_MS,
   AMBIENT_BEAT_MS,
   AMBIENT_STORAGE_KEY,
   BLOOM_SPOTS,
@@ -16,16 +15,13 @@ import {
 } from './ambientMotion';
 
 describe('ambientBeatMs', () => {
-  it('returns the dark pace anchor by default and the combat value in combat', () => {
+  it('returns the dark pace anchor by default', () => {
     expect(AMBIENT_BEAT_MS).toBe(700);
-    expect(AMBIENT_BEAT_COMBAT_MS).toBe(525);
     expect(ambientBeatMs()).toBe(700);
-    expect(ambientBeatMs({ combat: true })).toBe(525);
   });
 
   it('collapses to 0 under reduced-motion (full stillness)', () => {
     expect(ambientBeatMs({ reduced: true })).toBe(0);
-    expect(ambientBeatMs({ combat: true, reduced: true })).toBe(0);
   });
 });
 

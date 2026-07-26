@@ -17,7 +17,7 @@ function commander(name: string) {
   });
 }
 
-describe('commander resolution presentation gate', () => {
+describe('commander resolution (AV4 immediate, no presentation gate)', () => {
   beforeEach(() => {
     useGameStore.setState({
       state: null,
@@ -31,25 +31,18 @@ describe('commander resolution presentation gate', () => {
     });
   });
 
-  it('holds the commander on the stack until the matching presentation token commits', () => {
+  it('resolves a commander to the battlefield immediately in one store call', () => {
     useGameStore.getState().newGame(makeDeck(4, [commander('Gate Commander')]), 1);
     const id = state().commanders[0].cardId;
     useGameStore.getState().castToStack(id, { force: true });
+    expect(state().cards[id].zone).toBe('stack');
 
     useGameStore.getState().resolveTop();
-    const pending = useGameStore.getState().pendingCommanderResolution;
-    expect(pending).toMatchObject({ cardId: id, faceIndex: 0, name: 'Gate Commander' });
-    expect(state().cards[id].zone).toBe('stack');
-
-    useGameStore.getState().commitCommanderResolution(pending!.token + 1);
-    expect(state().cards[id].zone).toBe('stack');
-    expect(useGameStore.getState().pendingCommanderResolution?.token).toBe(pending!.token);
-
-    useGameStore.getState().commitCommanderResolution(pending!.token);
     expect(state().cards[id]).toMatchObject({ zone: 'battlefield', faceIndex: 0 });
+    expect(useGameStore.getState().pendingCommanderResolution).toBeNull();
   });
 
-  it('cuts in for each commander during resolve-all and preserves one-step undo', () => {
+  it('resolves all commanders immediately and preserves one-step undo', () => {
     useGameStore.getState().newGame(
       makeDeck(4, [commander('Alpha Commander'), commander('Beta Commander')]),
       2,
@@ -60,13 +53,7 @@ describe('commander resolution presentation gate', () => {
     const beforeResolve = state().zones.stack.slice();
 
     useGameStore.getState().resolveAll();
-    const first = useGameStore.getState().pendingCommanderResolution;
-    expect(first?.cardId).toBe(beta);
-    useGameStore.getState().commitCommanderResolution(first!.token);
-
-    const second = useGameStore.getState().pendingCommanderResolution;
-    expect(second?.cardId).toBe(alpha);
-    useGameStore.getState().commitCommanderResolution(second!.token);
+    expect(useGameStore.getState().pendingCommanderResolution).toBeNull();
     expect(state().zones.stack).toEqual([]);
     expect(state().zones.battlefield).toEqual(expect.arrayContaining([alpha, beta]));
 

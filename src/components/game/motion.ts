@@ -64,14 +64,21 @@ export function lifeFlashDirection(delta: number): 'gain' | 'loss' | 'none' {
   return 'none';
 }
 
-/** 音の opt-in 状態(既定 OFF・localStorage 永続)。§7b 音は任意 ON/OFF・既定 OFF。 */
+/**
+ * musical-event 層の opt-out 状態(新規既定 ON・localStorage 永続)。
+ * docs/audio-visual-contract.md §6: 保存値が存在しない新規利用者は ON。明示的に
+ * 保存された値('on'/'off')のみが設定を覆す。AV0 の audioVisualPreferences が
+ * この legacy キーを musical-event 設定へ移行する(移行元・同一キー)。
+ */
 export const SOUND_STORAGE_KEY = 'mtg-onedeck:sound-enabled';
 
 export function isSoundEnabled(): boolean {
   try {
-    return localStorage.getItem(SOUND_STORAGE_KEY) === 'on';
+    const stored = localStorage.getItem(SOUND_STORAGE_KEY);
+    if (stored === 'off') return false;
+    return true; // 未設定(新規既定 ON)・'on'・legacy 空値は ON。
   } catch {
-    return false; // localStorage 不可(private mode 等)は OFF 扱い。
+    return true; // localStorage 不可(private mode 等)は既定 ON へ倒す。
   }
 }
 
@@ -79,6 +86,6 @@ export function setSoundEnabled(on: boolean): void {
   try {
     localStorage.setItem(SOUND_STORAGE_KEY, on ? 'on' : 'off');
   } catch {
-    // localStorage 不可時は無視(次回も既定 OFF)。
+    // localStorage 不可時は無視(次回も既定 ON)。
   }
 }

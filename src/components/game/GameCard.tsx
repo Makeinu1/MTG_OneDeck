@@ -46,9 +46,6 @@ export function GameCard({
   arriving = false,
 }: GameCardProps) {
   const { state } = controller;
-  // マウント時点の motionArmed を捕捉(以降 arm が変わっても再演出しない・D5 Tier-1 #1)。
-  // 初期マウント/再開のカードは armed=false → 演出せず。以降に入るカードだけ celebrate クラス付与。
-  const [celebrateOnMount] = useState(() => controller.motionArmed);
   const [previewAnchor, setPreviewAnchor] = useState<CardPreviewAnchor | null>(null);
   const [previewPinned, setPreviewPinned] = useState(false);
   const [quickPickerOpen, setQuickPickerOpen] = useState(false);
@@ -147,8 +144,6 @@ export function GameCard({
   );
 
   const cls = `game-card game-card--${size}${playable ? ' game-card--playable' : ''}${
-    celebrateOnMount && instance.zone === 'battlefield' ? ' game-card--celebrate' : ''
-  }${
     arriving ? ' game-card--draw-arriving' : ''
   }${decisionRole ? ` game-card--decision-${decisionRole}` : ''
   }${combatAttacker ? ' game-card--combat-attacker' : ''

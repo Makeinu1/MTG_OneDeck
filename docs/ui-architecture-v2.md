@@ -1,6 +1,6 @@
 # UIアーキテクチャ v2 — Playmat解体と移行戦略
 
-**status**: 契約(判定者専有)。`docs/design-vision.md` のIAを実装可能な構造に落としたもの。D0〜D5 スライスの実装分解の正本。
+**status**: 契約(判定者専有)。`docs/design-vision.md` のIAを実装可能な構造に落としたもの。D0〜D5とAVスライスの実装分解の正本。
 **前提**: エンジン(`src/engine/`)と store の公開 API(`GameStore` interface, `src/store/gameStore.ts:713-812`)は**変更しない**。UI刷新はエンジン契約に触れない(必要が生じたら spec 変更承認フロー)。
 
 > **実装状態(2026-07-19 更新)**: D2/D3の新treeは稼働中。**旧 Playmat とその周辺12ファイルは
@@ -108,3 +108,126 @@ interface ViewStore {
 - **旧UI 死CSS の一掃(2026-07-19 完了)**: 旧 Playmat + 12ファイル削除で死んだ `App.css` の旧盤面CSSを到達性解析で一掃した。除去ファミリ = `.playmat*`・`.hand`(bare)/`.hand__*`・`.stack`(bare)/`.stack__*`・`.mobile-zone-swap*`・`.mobile-controls-drawer*`・`.battlefield*`・`.zones*`・`.zone-card*`・`.game-log*`・`.other-actions*`・`.match-controls*`(**245ルール・約2,254行・CSSバンドル −26KB**)。新UI盤面CSSは `src/components/game/game.css` の別名前空間(`hand-ribbon*`/`stack-band`/`stack-workspace*`)で App.css とは別ファイルゆえ無傷。生存する `.card-view--hand`(hand を含むが `.hand` パターンに掛からない)・`.hand-card`(game.css)等は温存。手法 = ブレース深度パーサで「実セレクタ(`:not()`等の内側を除く)に死クラスを含むルール」を whole-rule 削除(コンマ混在の部分書換は発生せず)。カスタムプロパティの越境参照ゼロ・両テーマ実機で視覚退行ゼロを確認。`review.d0-dead-css-scan.test.ts` の pin を全死ファミリの恒久不在 + over-purge 反証アサートへ拡張済み。
 - **D1 実装の負債(2026-07-19 回収済み・旧 Tier-1 findings #5/#7 由来)**: (1) `actionCatalog.ts` は `buildMenuItems` の「抽出+re-export」でなく独立重複実装だったが、`buildMenuItems` を抱えていた旧 Playmat.tsx の削除により **`actionCatalog` + `gameController.handlerFor`(=bindAction 相当)が唯一の正本**になった。golden id テスト(review.d1/review.m64)は引き続き actionCatalog を叩く。(2) `game/actionCatalog.ts` の `playmat/ruleActionCandidates` 隠れ依存は、**`ruleActionCandidates.ts` を `src/components/game/` へ移設して解消**(同時に `dialogs.tsx` も移設)。旧 `playmat/` は空になり削除。
 - **D3 実装の乖離(2026-07-10・J2・Tier-1 findings #3 由来)**: (1) **viewStore(§3)は D3 では未配線**——`feedOpen` は `gameController` のローカル `useState`、フィード投影は `feedProjection`(純関数)を各コンポーネントが直接呼ぶ構成にした。理由=D3 の投影は state 非依存の純導出ゆえ Zustand store を挟む必要が薄く、局所 state で十分機能する。viewStore の `feedItems`/`activeSheet`/`toggleFeed` の本配線は、複数パネルの同時制御が必要になる D4(デスクトップ常設フィード)へ延期する。(2) **ベルバッジ = 未処理件数(`feedUnseenCount` = warnings + triggerCandidates)**とし、契約の「既読は markSeen」(read 追跡でバッジを消す)は**未実装**。判定者裁定=バッジは「まだ対応していない項目数」を示す方が一人回しでは有用(誘発をスタックへ/無視、警告をクリアすると自然に 0 へ)。read 追跡の markSeen は viewStore 本配線(D4)と同時に再評価する。
+
+## 7. AudioVisualTransport と意味イベント境界
+
+**意味の正本** = `docs/audio-visual-contract.md`。本節はHOWだけを定め、イベント追加・音色・強度を裁定しない。
+
+### 7.1 目標構造
+
+```text
+successful game action
+        │
+        ▼
+PresentationEventProjector  ── semantic normalization
+        │
+        ├──────────────► CausalVisual      即時・拍待ちなし
+        │
+        ▼
+PresentationEventSequencer ── exactly-once / browser-session monotonic id
+        │
+        ▼
+AudioVisualTransport        AudioContext.currentTime + TrackManifest
+        │
+        ├──────────────► MusicalEventBus   bounded quantization
+        └──────────────► SyncedVisual      CSS custom properties / reused layers
+
+commander-cast ──► CommanderRitual ──► MusicBus duck
+```
+
+候補ファイル境界:
+
+```text
+src/components/game/presentation/
+  presentationEvents.ts     型・決定表の純関数投影
+  presentationSequencer.ts  session単調増加ID・配信済み管理
+  presentationTuning.ts     snap / mix / visual のTUNABLE初期値
+  AudioVisualProvider.tsx   transport lifetime と購読境界
+  audioVisualTransport.ts   AudioContext時計・manifest補間・schedule
+  musicBus.ts               長尺stream・loop・duck
+  musicalEventBus.ts        短音buffer・voice choke
+```
+
+ファイル名は実装時に既存構造へ合わせて変更してよいが、責務を `gameController.tsx`、`sound.ts`、`AmbientBackdrop.tsx` の一か所へ再混在させない。
+
+### 7.2 PresentationEvent
+
+```ts
+type PresentationEvent =
+  | { id: string; sourceEventId?: string; kind: 'spell-cast'; cardId: string }
+  | { id: string; sourceEventId?: string; kind: 'commander-cast'; cardId: string }
+  | { id: string; kind: 'land-played'; cardId: string }
+  | { id: string; kind: 'turn-advanced'; turn: number };
+```
+
+- view層だけのephemeral event。GameState、snapshot、save data、undo historyへ保存しない。
+- `PresentationEventProjector` は成功したforward actionのbefore / result / afterからkindとpayloadを純粋に導出する。ID採番は行わない。
+- `PresentationEventSequencer` はゲームセッションnonce + 単調増加sequenceから全kind共通の`id`を割り当てる。`GameEvent.eventId`、cardId、turn番号、`Date.now()`を一意性の代用にしない。
+- `GameEvent.eventId` は因果確認用の `sourceEventId` にだけ使う。undo後の履歴分岐で同じ値が再利用されても、新しいforward actionには新しい`id`を発行する。
+- sequencerと配信済み集合はゲーム画面内の子コンポーネントより長く生存し、React remountでリセットしない。reload後は新しいsessionとして現在状態をbaselineにし、既存イベントを投影しない。
+- `kind` の追加は `audio-visual-contract` 決定表の更新を先に行う。
+- pointer/touch/keyboard/DnD/menuをkindの根拠にしない。
+- UI文言・ログ文言のregexから推測しない。
+
+### 7.3 発火源
+
+発火の優先順位:
+
+1. forward semantic actionの成功完了境界で、新しくappendされた `GameEvent` が意味を一意に証明できる場合、そのeventを因果の証拠として投影する（cast系）。eventId自体はpresentationの一意性に使わない。
+2. `GameEvent`だけで区別できない場合、`gameController` の単一semantic action境界で、store actionの**成功結果とbefore/after差分**を確認して投影する（land / turn）。
+3. どちらでも一意に証明できなければ発火しない。ログregexや各ボタンへの個別`playSound()`で補わない。
+
+`PresentationEventProjector` と sequencer は、最低限次をテスト可能にする。
+
+- commander castがgeneric castへも一致しても、出力は`commander-cast`一件。
+- failed / needs-confirm / needs-payment / cancel / thrown actionは0件。
+- turn end/startは`turn-advanced`一件。
+- undo/redo/reload/history divergenceは0件。
+- cast → undo → 別の新規castでエンジン側eventIdが再利用されても、後者へ新しいpresentation idを一件だけ発行する。
+- redo / reload / React remount / 初回購読は現在状態をbaselineにするだけで0件。
+- 入力経路が異なっても同じbefore/action result/afterなら同じkind。
+
+### 7.4 Transport lifetime
+
+- `AudioVisualTransport` はゲーム画面のprovider lifetimeで一つ。renderごとに`AudioContext`やmedia elementを作らない。
+- MusicTransportの時計とMusicBusの可聴gainを分離する。MusicBusだけがOFFでも、musical-eventまたは背景motionがONならmanifest時計を維持してよい。
+- frame clockをReact state/Zustandへ書かない。必要な視覚値はCSS custom propertiesまたはimperativeな単一描画境界へ渡す。
+- BGMは`HTMLMediaElement`+`MediaElementAudioSourceNode`等のstreamを第一候補、短音だけ`AudioBuffer`。
+- autoplay制限の解除は、ダークのゲーム画面内で最初に起きた `pointerdown` または
+  keyboard操作で行う。解除失敗をゲームエラーにせず、次の明示gestureまたは音設定操作まで待つ。
+- Music / musical eventの保存設定は独立させ、保存値がない新規利用者は両方ON。
+  既存の明示的な音設定はmusical eventへ移行する。テーマやrouteは保存値を書き換えず、
+  ダークのゲーム画面以外では可聴出力だけを停止する。
+- 同一ページセッション内のroute・テーマ往復ではmedia位置をmemoryに保持する。
+  reload後は新sessionとして先頭へ戻り、再びgestureを待つ。
+- 次グリッドは、隣接anchorの `beatIndex` 差を `beatSpan` として `beatSpan * quantizeStepsPerBeat`（初期4）区間へ等分して求める。疎なanchor間全体を4区間だけに分けない。ready transportで次グリッドがsnap window外の場合だけmusical eventを即時再生してよい。
+- musical-event OFFはevent soundと同期用の装飾的余韻だけを止め、MusicTransport・MusicBus・背景の時計を変更しない。
+- master audio OFF、manifest未準備、load/decode/resume errorではmusical eventと同期用の装飾的余韻を発火しない。因果視覚は即時、背景だけ独立アンビエント周期へfallbackし、GameStateを止めない。
+- hidden復帰時は現在media timeからanchorを再計算し、欠落イベントを再生しない。
+
+### 7.5 既存コードの移行
+
+| 現行箇所 | AVスライスで行うこと |
+|---|---|
+| `sound.ts` | opt-in保存と既存音を分離。`primary/draw/resolve/chain`の直接musical soundを廃止しbusへ移す |
+| `gameController.tsx` | 全PrimaryActionの`celebrate('primary')`と解決成功の`celebrate('resolve')`を削除。successful semantic actionを一か所でproject |
+| `ThumbZone.tsx` | 全PrimaryActionの`celebrate('primary')`を削除。hapticsを残すなら音と分離し、意味イベントに偽装しない |
+| `HandRibbon.tsx` | `celebrate('draw')`を削除。drawはmusical eventへ投影しない |
+| `CelebrationLayer.tsx` / `celebrationTimelineModel.ts` | chain heuristic・chain visual・chain soundを撤去 |
+| `CommanderCutIn.tsx` | 視覚資産を再利用。発火をcast時へ移し、演出をnonblockingにする |
+| `pendingCommanderResolution` | AV側から新規依存しない。即時commitでpresentation gateを外せる範囲はUIで行い、store API削除はspec変更としてSTOP |
+| `ambientMotion.ts` | 固定700msはfallbackへ。combat 525ms分岐を削除 |
+| `AmbientBackdrop.tsx` | transportの位相をCSS変数へ受ける。毎frame React setStateは禁止 |
+
+AV3の構造ゲートでは production code 全体を検索し、`celebrate('primary')` / `celebrate('draw')` / `celebrate('resolve')` / `celebrate('chain')` の直接呼出しが0件であることを固定する。移行表にない新しいcallerへ残すことも不合格。
+
+### 7.6 実装スライス境界
+
+1. **AV0**: `candidate-b-tight-128-bars.mp3` とTrackManifestを凍結。公開権確認済みの
+   MP3だけを `public/audio/bgm/` へ同梱する。
+2. **AV1**: event projector、tuning、transport fixture。まだ本番音源・新規演出を出さない。
+3. **AV2**: ダークAmbientLayerをtransportへ接続。性能ゲートを先に通す。
+4. **AV3**: cast / land / turnの通常反応と旧直接音・chainの撤去。
+5. **AV4**: commander cast専用音、既存cut-in移行、BGM duck。
+
+一つの実装タスクでAV1〜AV4をまとめない。各sliceで `docs/acceptance.md` M-AVの該当ケースをreview pinへ落とし、実機ユーザーゲートを通す。

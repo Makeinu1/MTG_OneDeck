@@ -14,14 +14,12 @@ import { Board } from './Board';
 import { SupportRow } from './SupportRow';
 import { StackBand } from './StackBand';
 import { RecentCue } from './RecentCue';
-import { CelebrationLayer } from './CelebrationLayer';
 import { PresentationLayer } from './PresentationLayer';
 import { CommanderCutIn } from './CommanderCutIn';
 import { ThumbZone } from './ThumbZone';
 import type { GameController } from './gameController';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
-vi.mock('./sound', () => ({ celebrate: vi.fn() }));
 
 function controllerFor(
   state: ReturnType<typeof buildVisualFixture>['snapshot']['state'],
@@ -72,8 +70,6 @@ function controllerFor(
     shortcutsBlocked: false,
     transitionCue: null,
     dismissTransitionCue: vi.fn(),
-    commanderCutIn: null,
-    resolutionLocked: false,
     performDrop: vi.fn(),
     closeTransientUi: vi.fn(),
     ...overrides,
@@ -576,40 +572,19 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
-  it('keeps chain ambience but exposes no evaluative chain wording or announcement', () => {
-    vi.useFakeTimers();
-    const state = buildVisualFixture('hand7').snapshot.state;
-    const controller = controllerFor(state, { motionArmed: true });
-    const { container, root } = mount(<CelebrationLayer controller={controller} />);
-
-    act(() => useGameStore.getState().draw(5));
-    const nextState = useGameStore.getState().state;
-    act(() => root.render(<CelebrationLayer controller={{ ...controller, state: nextState, store: useGameStore.getState() }} />));
-    const ambience = container.querySelector('[data-testid="chain-celebration"]');
-    expect(ambience).not.toBeNull();
-    expect(ambience?.textContent).toBe('');
-    expect(ambience?.getAttribute('aria-hidden')).toBe('true');
-    expect(container.textContent).not.toContain('連鎖中');
-    expect(container.textContent).not.toContain('手札が回り始めました');
-    act(() => root.unmount());
-  });
-
   it('renders the resolved commander face in the cinematic cut-in', () => {
     const { container, root } = mount(
       <CommanderCutIn cue={{
-        token: 7,
         cardId: 'commander-1',
         faceIndex: 1,
         name: '裏面の統率者',
         typeLine: '伝説のプレインズウォーカー',
         imageUrl: 'https://example.com/back.jpg',
-        landed: false,
       }} />,
     );
     const cutIn = container.querySelector('[data-testid="commander-cutin"]');
     expect(cutIn?.textContent).toContain('《裏面の統率者》');
     expect(cutIn?.querySelector('img')?.getAttribute('src')).toBe('https://example.com/back.jpg');
-    expect(cutIn?.hasAttribute('data-landed')).toBe(false);
     act(() => root.unmount());
   });
 

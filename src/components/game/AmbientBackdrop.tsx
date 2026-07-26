@@ -110,7 +110,6 @@ export function AmbientBackdrop() {
         <div className="ambient-shoot ambient-shoot--a" />
         <div className="ambient-shoot ambient-shoot--b" />
         <div className="ambient-core" />
-        <div className="ambient-combat-edge" />
       </div>
 
       {/* ---------- ライト = 墨の世界(液态呼吸 3400ms) ---------- */}

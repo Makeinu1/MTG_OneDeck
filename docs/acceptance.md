@@ -675,6 +675,71 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | MMD-7 | 1440×900 PCで対局 | カード寸法・盤面構成・右クリック操作が変更前と同じ。モバイル用操作ボタンは表示しない |
 | MMD-8 | 全4モバイル寸法とPCで一連操作 | ページスクロールや到達不能カードがなく、console warning/error 0 |
 
+## M-AV 思考を支えるオーディオビジュアル(2026-07-26・ユーザー裁定)
+
+**status**: pre-implementation contract。以下は将来のAVスライスの合格条件であり、現行実装がPASSしたという主張ではない。意味・DEFER・TUNABLEの正本 = `docs/audio-visual-contract.md`。旧D6/D7、旧モック、現行`celebrate()`の挙動で期待値を上書きしない。
+
+一件でも失敗したら、修正後に該当sliceのM-AVシナリオ全体を最初から再実行する。
+
+### M-AV1 意味イベントと無音境界
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| AV-1 | 同じ通常呪文をpointer / touch / keyboard / DnD / action sheetからそれぞれキャスト | 各成功commitにつき`spell-cast`が一件。知覚上同じ音・同じ強さ・同じ視覚。入力経路固有音なし |
+| AV-2 | 対象、面、X、支払いの途中でcancel、または支払い不能・runtime error | success event 0、成功音0、GameState不変または既存契約どおり。警告は可視 |
+| AV-3 | 通常土地をプレイ、2枚目確認をcancel、forcedで成功 | 成功した各land playだけ`land-played`一件。cancelは0件。forcedでも罰音・強度変更なし |
+| AV-4 | ターンを正常に進める | `turn-advanced`一件。ターン終了音と次ターン開始音の二重発火なし |
+| AV-5 | スタック未解決等でターン進行を拒否 | `turn-advanced` 0件、成功音0、既存警告を維持 |
+| AV-6 | スタックtopをauto / partial / manualで解決 | 新しいmusical soundなし。結果理解に必要な既存の因果視覚は残る |
+| AV-7 | draw、tap/untap、mana支払い、life/counter変更、token生成、カード整理 | 新しいmusical eventなし。機能的UIフィードバックだけ |
+| AV-8 | phase/step進行、ability起動、game start | DEFER中は新しいmusical eventなし。実装者判断で追加しない |
+| AV-9 | 攻撃宣言から戦闘ダメージまでを操作 | 戦闘を理由に音、背景速度、色、強度を変えない。既存の機能表示だけ |
+| AV-10 | undo、redo、reload、snapshot復元、React remount | 過去のPresentationEventを再演しない |
+| AV-31 | 通常cast → undo → 履歴分岐上の新規castを行い、エンジン側eventId/sequenceが再利用されるfixtureを通す | 新規castだけに新しいsession単調増加`PresentationEvent.id`を一件発行。engine eventIdは`sourceEventId`にしか使わない。続くredo / reload / React remountでは0件 |
+| AV-32 | hover、focus、preview、scroll、drag開始、並べ替え、対象探索を連続操作 | musical event 0、同期用の装飾的イベント視覚0。選択・drag ghost・focus ringなど機能的な即時フィードバックは維持 |
+
+### M-AV2 反復と統率者
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| AV-11 | 複数の通常呪文を連続キャスト | 各castは同じ知覚上の反応。回数により音量、光量、長さ、粒子、背景速度が増えない |
+| AV-12 | 短時間に大量draw/token/mana/resolve/triggerを発生 | chain表示・chain音・自動高揚なし。DOM/メモリがイベント数に比例して増えない |
+| AV-13 | 統率者をキャスト | `commander-cast`一件、`spell-cast` 0件。既存cut-inのアイデンティティを持つ専用儀式がcast時に開始 |
+| AV-14 | 統率者演出中に次の盤面操作 | 操作可能。GameState、stack resolution、undoを演出完了まで待たせない |
+| AV-15 | 統率者を複数回キャスト | 毎回同じ専用表現。統率者税・cast回数で増幅しない |
+| AV-16 | 統率者専用音を再生 | BGMは停止・seek・テンポ変更せず短時間duck。clippingなし。generic cast音との二重発火なし |
+| AV-33 | AV3完了時にproduction codeを構造検査 | `celebrate('primary')` / `celebrate('draw')` / `celebrate('resolve')` / `celebrate('chain')` の直接呼出し0件。`gameController.tsx`、`ThumbZone.tsx`、`HandRibbon.tsx`、`CelebrationLayer.tsx`を含み、新規callerも不可 |
+
+### M-AV3 transport・設定・失敗時
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| AV-17 | `candidate-b-tight-128-bars.mp3`（251.798458秒・512拍・128小節・122.000736 BPM）を3周期再生 | TrackManifestのloop点と40ms等電力crossfadeで周期復帰し、末尾無音・click・音量段差・リズムの躓きなし |
+| AV-18 | 曲のgroove / break / rejoinを通過 | beat anchor補間で同期を維持。runtime FFTを使わない |
+| AV-19 | `beatIndex`差16以上の疎な隣接anchor fixtureを用意し、anchor間を`beatSpan * quantizeStepsPerBeat`（初期4）区間へ補間して各拍内の細分境界直前/直後/中間でcast | 16拍・初期値4なら64区間になる。anchor間全体を4区間にしない。GameStateと即時因果は待たず、音は設定グリッドのsnap window内だけ吸着。操作→音p95 80ms以下 |
+| AV-20 | master audio OFF、manifest未読込、media load/decode error、AudioContext resume失敗 | ゲーム操作は成功。成功音・同期用装飾余韻なし。背景は独立アンビエント周期へfallbackし、例外で画面を壊さない |
+| AV-21 | Music / musical event / background motionを個別に切替 | 状態を相互に書き換えない。Music ON + musical-event OFF + motion ONでは、BGMと背景がTrackManifest同期を維持し、event sound/同期用装飾余韻だけ0件。MusicBusだけOFFでも他consumerがONならtransport時計は維持可。reduced-motionと音設定も相互に書き換えない |
+| AV-22 | タブを非表示にして復帰 | visual loopは停止後、現在のaudio timeへ再同期。非表示中イベントのcatch-up再生なし |
+| AV-23 | `prefers-reduced-motion: reduce` | 連続背景は静止、イベント移動はフェード。音はユーザーの音設定に従う |
+| AV-34 | 保存設定なしでダークのゲーム画面を開き、gesture前後を確認 | BGM / musical event設定はON。gesture前は無音、最初のpointerdownまたはkeyboard操作後にBGM開始。最初のゲーム操作は失われない |
+| AV-35 | 音設定ONのままダーク→ライト→ダーク、ゲーム画面→ゲーム外→ゲーム画面を往復し、その後reload | ライトとゲーム外は実効無音だが保存値はONのまま。同一ページセッションでは位置を保持して復帰し、reload後は先頭・gesture待ち。二重再生なし |
+| AV-36 | 375×812でメニューを開く | テーマ直後の最初の表示範囲に`BGM` / `ゲーム進行音` / `背景モーション`があり、ライトでは「ライトテーマでは音は流れません」と表示 |
+| AV-37 | 統率者モチーフのmixを計測 | MusicBusは停止・seekせず `-4dB / attack 40ms / hold 360ms / release 320ms` でduckし、generic cast音と重ならない |
+
+### M-AV4 ブラウザ性能・人間判定
+
+対象viewportは375×812、812×375、1440×900。ダーク、BGM ON、musical event ON、background motion ONで10分間、cast / land / turn / commander / break / visibility復帰を含む同一シナリオを実行する。
+
+| ID | 計測/試聴 | 合格条件 |
+|---|---|---|
+| AV-24 | foreground frame計測 | 60fps目標、frame interval p95 20ms以下、app起因50ms超long task 0 |
+| AV-25 | 操作・同期計測 | 即時因果p95 100ms以下、操作→音p95 80ms以下、音↔同期余韻p95 50ms以下 |
+| AV-26 | audio計測/試聴 | click、pop、dropout、clipping、二重発火 0 |
+| AV-27 | DOM / memory観察 | 経過時間・イベント数に比例して増えない。イベントごとのReact/DOM粒子追加なし |
+| AV-28 | 全viewport操作 | 盤面可読性・主要操作到達性を維持、console warning/error 0 |
+| AV-29 | ユーザーが10分試聴 | 同じ反応を予測でき、思考が中断されず、耳・目が疲れない。数値が緑でも違和感があれば不合格 |
+| AV-30 | ユーザーがloop/commanderを試聴 | 肩で取るリズムがloopで途切れず、commanderは特別だが大げさ・不自然でない |
+
 ## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)
 S-EVENTS/S-TURN/S-ZONES 実装前に、CRを検査器として使うための固定ゲート。既存の M-CONTRACT FROZEN は、この節が満たされるまで実装着手の根拠にしない。
 

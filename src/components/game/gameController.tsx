@@ -32,7 +32,7 @@ import { ContextMenu, type MenuItem } from '../ContextMenu';
 import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
-import { celebrate } from './sound';
+import { presentationRuntime } from './presentation/presentationRuntime';
 import { primaryActionModel, eligibleAttackerIds } from './primaryAction';
 import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
@@ -58,7 +58,7 @@ import {
 } from './dialogs';
 import { MulliganStage } from './MulliganStage';
 import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
-import { completedAutomaticTopResolution } from './resolutionCueModel';
+
 import type { DropIntent } from './dragIntent';
 import { requestInteractionHistory } from './historyUiEvents';
 import type { DecisionFocusModel } from './decisionFocus';
@@ -102,15 +102,7 @@ type CountDialogState = { kind: 'draw' | 'mill' | 'peek' | 'discard-random'; def
 type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
 type PendingRuleTargetAction = { kind: string; sourceCardId: string };
 
-export interface CommanderCutInData {
-  token: number;
-  cardId: string;
-  faceIndex: number;
-  name: string;
-  typeLine: string;
-  imageUrl?: string;
-  landed: boolean;
-}
+
 
 function isCommanderZoneChoiceDestination(zone: ZoneId): boolean {
   return zone === 'graveyard' || zone === 'exile' || zone === 'hand' || zone === 'library';
@@ -187,9 +179,7 @@ export interface GameController {
   performDrop: (intent: DropIntent) => void;
   /** ドラッグ開始時にhover以外の一時UIも閉じる。 */
   closeTransientUi: () => void;
-  /** 解決直前の統率者演出。旧レイアウト／テスト用controllerでは省略可能。 */
-  commanderCutIn?: CommanderCutInData | null;
-  resolutionLocked?: boolean;
+
   decisionFocus?: DecisionFocusModel | null;
   chooseDecisionCard?: (cardId: string) => void;
   chooseDecisionPlayer?: (playerId: PlayerId) => void;
@@ -209,10 +199,7 @@ export function useGameController({
 }): GameController {
   const store = useGameStore();
   const { state, mulliganDecisionPending } = store;
-  const pendingCommanderResolution = store.pendingCommanderResolution;
-  const commitCommanderResolution = useCallback((token: number) => {
-    useGameStore.getState().commitCommanderResolution(token);
-  }, []);
+
 
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [libraryMenu, setLibraryMenu] = useState<{
@@ -245,8 +232,7 @@ export function useGameController({
   const [feedOpen, setFeedOpen] = useState(false);
   const [triggerSheetOpen, setTriggerSheetOpen] = useState(false);
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
-  const [commanderCutIn, setCommanderCutIn] = useState<CommanderCutInData | null>(null);
-  const commanderTimersRef = useRef<number[]>([]);
+
   const transitionCueIdRef = useRef(0);
   const dismissTransitionCue = useCallback((id: number) => {
     setTransitionCue((current) => current?.id === id ? null : current);
@@ -260,32 +246,7 @@ export function useGameController({
     return () => clearTimeout(id);
   }, []);
 
-  useEffect(() => {
-    const pending = pendingCommanderResolution;
-    if (!pending) return;
-    commanderTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    commanderTimersRef.current = [];
-    const cue: CommanderCutInData = { ...pending, landed: false };
-    const showTimer = window.setTimeout(() => setCommanderCutIn(cue), 0);
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const commitDelay = reducedMotion ? 80 : 780;
-    const finishDelay = reducedMotion ? 240 : 1050;
-    const commitTimer = window.setTimeout(() => {
-      setCommanderCutIn((current) => current?.token === pending.token
-        ? { ...current, landed: true }
-        : current);
-      commitCommanderResolution(pending.token);
-      celebrate('commander');
-    }, commitDelay);
-    const finishTimer = window.setTimeout(() => {
-      setCommanderCutIn((current) => current?.token === pending.token ? null : current);
-    }, finishDelay);
-    commanderTimersRef.current = [showTimer, commitTimer, finishTimer];
-  }, [commitCommanderResolution, pendingCommanderResolution]);
 
-  useEffect(() => () => {
-    commanderTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-  }, []);
 
   const isDialogOpen =
     (state?.pendingRuleChoices.some((choice) => choice.kind === 'cleanup-discard') ?? false) ||
@@ -313,7 +274,6 @@ export function useGameController({
     attackDialogOpen ||
     mulliganBottomCount !== null ||
     confirmAction !== null;
-  const resolutionLocked = store.pendingCommanderResolution !== null;
   const shortcutsBlocked =
     mulliganDecisionPending ||
     isDialogOpen ||
@@ -321,7 +281,6 @@ export function useGameController({
     libraryMenu !== null ||
     feedOpen ||
     triggerSheetOpen ||
-    resolutionLocked ||
     externalShortcutsBlocked;
 
   function processTriggers(): void {
@@ -384,7 +343,11 @@ export function useGameController({
     const previous = useGameStore.getState().state;
     if (!previous) return;
     store.nextTurn();
-    announceTransition(previous, useGameStore.getState().state);
+    const next = useGameStore.getState().state;
+    announceTransition(previous, next);
+    if (next && next.turn > previous.turn) {
+      publishTurnAdvance(previous.turn, next.turn);
+    }
   }
 
   /**
@@ -410,20 +373,20 @@ export function useGameController({
         requestResolveTop();
         break;
       case 'triggers':
-        celebrate('primary');
+
         processTriggers();
         break;
       case 'attack':
-        celebrate('primary');
+
         setPendingAttackPreselect(eligibleAttackerIds(s));
         setAttackDialogOpen(true);
         break;
       case 'skip-combat':
-        celebrate('primary');
+
         advancePhase();
         break;
       case 'next-phase':
-        celebrate('primary');
+
         advancePhase();
         break;
     }
@@ -520,9 +483,68 @@ export function useGameController({
     return ids;
   }
 
+
+  function publishCastCommit(cardId: string, beforeEventCount: number): void {
+    const currentState = useGameStore.getState().state;
+    if (!currentState) return;
+    const newEvents = currentState.eventLog.slice(beforeEventCount);
+    for (const event of newEvents) {
+      if (
+        event.type === 'zoneChange'
+        && event.reason === 'cast'
+        && event.toZone === 'stack'
+        && event.physicalCardId === cardId
+      ) {
+        const card = currentState.cards[cardId];
+        presentationRuntime.publish({
+          action: 'cast',
+          status: 'committed',
+          cardId,
+          sourceZone: event.fromZone,
+          destinationZone: 'stack',
+          isCommander: card?.isCommander ?? event.before.isCommander,
+          sourceEventId: event.eventId,
+        });
+        return;
+      }
+    }
+  }
+
+  function publishLandCommit(cardId: string, beforeEventCount: number): void {
+    const currentState = useGameStore.getState().state;
+    if (!currentState) return;
+    const newEvents = currentState.eventLog.slice(beforeEventCount);
+    for (const event of newEvents) {
+      if (
+        event.type === 'zoneChange'
+        && event.toZone === 'battlefield'
+        && event.physicalCardId === cardId
+      ) {
+        presentationRuntime.publish({
+          action: 'play-land',
+          status: 'committed',
+          cardId,
+          sourceZone: event.fromZone,
+          destinationZone: 'battlefield',
+        });
+        return;
+      }
+    }
+  }
+
+  function publishTurnAdvance(previousTurn: number, nextTurn: number): void {
+    presentationRuntime.publish({
+      action: 'advance-turn',
+      status: 'committed',
+      previousTurn,
+      nextTurn,
+    });
+  }
   function requestPlayLand(cardId: string, opts?: { force?: boolean; entersTapped?: boolean }): void {
+    const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
     const result = store.playLand(cardId, opts);
-    if (result === 'needs-confirm') setPendingLandPlay({ cardId });
+    if (result === 'ok') publishLandCommit(cardId, beforeEventCount);
+    else if (result === 'needs-confirm') setPendingLandPlay({ cardId });
     else if (result === 'needs-tap-choice') setPendingLandTapChoice({ cardId, force: opts?.force });
   }
   function requestCastToStack(cardId: string, xValue?: number, faceIndex?: number): void {
@@ -538,8 +560,10 @@ export function useGameController({
       return;
     }
     const chosenXValue = xValue ?? 0;
+    const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
     const result = store.castToStack(cardId, { xValue: chosenXValue, faceIndex: chosenFaceIndex });
-    if (typeof result === 'object') {
+    if (result === 'ok') publishCastCommit(cardId, beforeEventCount);
+    else if (typeof result === 'object') {
       setPendingPayment({
         kind: 'stack',
         cardId,
@@ -572,10 +596,6 @@ export function useGameController({
       return;
     }
     store.resolveTop();
-    const after = useGameStore.getState();
-    if (completedAutomaticTopResolution(before, after)) {
-      celebrate('resolve');
-    }
   }
   function requestResolveAll(): void {
     store.resolveAll();
@@ -1156,8 +1176,13 @@ export function useGameController({
   function chooseDecisionCard(cardId: string): void {
     if (!decisionFocus?.candidateIds.includes(cardId)) return;
     if (castPrompt?.kind === 'target') {
+      const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
       store.answerPendingCastTarget(cardId);
+      const pendingCardId = useGameStore.getState().pendingCast?.cardId;
       useGameStore.getState().confirmPendingCast();
+      if (pendingCardId && !useGameStore.getState().pendingCast) {
+        publishCastCommit(pendingCardId, beforeEventCount);
+      }
     }
     else if (guidedPrompt?.kind === 'target') store.confirmGuidedTarget(cardId);
     else if (guidedPrompt?.kind === 'discard') store.confirmGuidedDiscard(cardId);
@@ -1395,11 +1420,15 @@ export function useGameController({
         <ShortfallDialog
           shortfall={pendingPayment.shortfall}
           onForce={() => {
-            if (pendingPayment.kind === 'stack') store.castToStack(pendingPayment.cardId, {
-              force: true,
-              xValue: pendingPayment.xValue,
-              faceIndex: pendingPayment.faceIndex,
-            });
+            if (pendingPayment.kind === 'stack') {
+              const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
+              store.castToStack(pendingPayment.cardId, {
+                force: true,
+                xValue: pendingPayment.xValue,
+                faceIndex: pendingPayment.faceIndex,
+              });
+              publishCastCommit(pendingPayment.cardId, beforeEventCount);
+            }
             else store.cycle(pendingPayment.cardId, { force: true });
             setPendingPayment(null);
           }}
@@ -1659,8 +1688,7 @@ export function useGameController({
     shortcutsBlocked,
     transitionCue,
     dismissTransitionCue,
-    commanderCutIn,
-    resolutionLocked,
+
     decisionFocus,
     chooseDecisionCard,
     chooseDecisionPlayer,

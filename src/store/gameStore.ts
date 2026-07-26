@@ -1603,7 +1603,6 @@ export const useGameStore = create<GameStore>((set, get) => {
     continueResolveAll: boolean;
     groupedHistory: boolean;
   } | null = null;
-  let commanderResolutionToken = 0;
   let requestedResolutionMode: ResolutionSession['mode'] = 'top';
 
   /** Drop any staged commander-resolution commit and close the grouped-history window. */
@@ -1874,63 +1873,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     };
   }
 
-  function commanderLandingFrom(
-    sourceState: GameState,
-    nextState: GameState,
-  ): PendingCommanderResolution | null {
-    const appended = nextState.eventLog.slice(sourceState.eventLog.length);
-    const event = [...appended].reverse().find((candidate) => (
-      candidate.type === 'zoneChange'
-      && candidate.reason === 'resolve'
-      && candidate.fromZone === 'stack'
-      && candidate.toZone === 'battlefield'
-      && candidate.before.isCommander
-    ));
-    if (!event || event.type !== 'zoneChange') return null;
-    const landed = nextState.cards[event.physicalCardId];
-    if (!landed || landed.zone !== 'battlefield' || landed.faceIndex !== event.before.faceIndex) {
-      return null;
-    }
-    const def = sourceState.defs[event.before.defId];
-    const face = def?.faces[event.before.faceIndex];
-    if (!def || !face) return null;
-    return {
-      token: ++commanderResolutionToken,
-      cardId: event.physicalCardId,
-      objectId: event.before.objectId,
-      defId: event.before.defId,
-      faceIndex: event.before.faceIndex,
-      name: face.printedName ?? face.name ?? def.printedName ?? def.name,
-      typeLine: face.printedTypeLine ?? face.typeLine ?? def.typeLine,
-      ...(face.imageUrl ? { imageUrl: face.imageUrl } : {}),
-    };
-  }
 
-  function prepareCommanderResolution(
-    sourceState: GameState,
-    nextState: GameState,
-    warnings: string[],
-    options: { continueResolveAll?: boolean; groupedHistory?: boolean } = {},
-  ): boolean {
-    const cue = commanderLandingFrom(sourceState, nextState);
-    if (!cue) return false;
-    pendingCommanderCommit = {
-      token: cue.token,
-      sourceState,
-      nextState,
-      warnings,
-      continueResolveAll: options.continueResolveAll ?? false,
-      groupedHistory: options.groupedHistory ?? false,
-    };
-    clearPendingInteractionHistory();
-    set({
-      pendingGuided: null,
-      canUndoInteraction: false,
-      canRedoInteraction: false,
-      pendingCommanderResolution: cue,
-    });
-    return true;
-  }
 
   function continueResolveAll(): void {
     while (true) {
@@ -1956,7 +1899,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       get().resolveTop();
       requestedResolutionMode = 'top';
       const next = get();
-      if (next.resolutionSession || next.pendingGuided || next.pendingCommanderResolution) return;
+      if (next.resolutionSession || next.pendingGuided) return;
       if (next.state === cur) {
         internal.resolutionGroupAnchor = null;
         internal.resolutionGroupPast = null;
@@ -2019,13 +1962,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       );
       const warnings = [...(pending.warnings ?? []), ...result.warnings];
       const resolvingAll = pending.resolutionMode === 'all';
-      if (!prepareCommanderResolution(cur, logged, warnings, {
-        continueResolveAll: resolvingAll,
-        groupedHistory: resolvingAll,
-      })) {
-        commit(logged, warnings, { groupedHistory: resolvingAll });
-        if (resolvingAll) continueResolveAll();
-      }
+      commit(logged, warnings, { groupedHistory: resolvingAll });
+      if (resolvingAll) continueResolveAll();
     } catch (err) {
       reportActionError(err);
       discardPendingGuided();
@@ -4337,7 +4275,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     resolveTop(to) {
       const cur = get().state;
-      if (!cur || get().pendingCommanderResolution || get().resolutionSession) return;
+      if (!cur || get().resolutionSession) return;
       const resolutionMode = requestedResolutionMode;
       const topId = cur.zones.stack.at(-1);
       if (!topId) return;
@@ -4454,12 +4392,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       try {
         const result = applyCommand(cur, resolveStackTopCommandForState(cur, to));
         const resolvingAll = resolutionMode === 'all';
-        if (!prepareCommanderResolution(cur, result.state, result.warnings, {
-          continueResolveAll: resolvingAll,
-          groupedHistory: resolvingAll,
-        })) {
-          commit(result.state, result.warnings, { groupedHistory: resolvingAll });
-        }
+        commit(result.state, result.warnings, { groupedHistory: resolvingAll });
       } catch {
         startManualResolutionSession(
           cur,
@@ -5047,7 +4980,6 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (
         !cur
         || cur.zones.stack.length === 0
-        || get().pendingCommanderResolution
         || get().resolutionSession
       ) return;
       internal.resolutionGroupAnchor = null;

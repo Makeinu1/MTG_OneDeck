@@ -7,7 +7,6 @@ import { CommanderAltar } from './CommanderAltar';
 import type { GameController } from './gameController';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
-vi.mock('./sound', () => ({ celebrate: vi.fn() }));
 
 function controllerForAway(): { controller: GameController; openCardMenu: ReturnType<typeof vi.fn> } {
   const state = buildVisualFixture('partner-away').snapshot.state;

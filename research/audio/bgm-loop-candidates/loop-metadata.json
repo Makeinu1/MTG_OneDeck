@@ -1,0 +1,120 @@
+{
+  "status": "user-selected",
+  "source": {
+    "fileName": "お気に入りテクノ.mp3",
+    "sha256": "edc7ea1ac5111b999151115fb752ac9845e7efd1c2db62074a940547a624e16a",
+    "durationSeconds": 255.879979,
+    "sampleRate": 48000,
+    "channels": 2,
+    "integratedLufs": -13.7,
+    "truePeakDbfs": -0.02,
+    "silenceStartSecondsAtMinus45Db": 253.687542
+  },
+  "tempo": {
+    "globalBpm": 122.000736,
+    "referenceBeatPeriodSeconds": 0.491793868,
+    "observedThirtySecondWindowBpmRange": [
+      121.873355,
+      122.213791
+    ]
+  },
+  "mixRecommendation": {
+    "runtimeMusicGainDb": -4.5,
+    "reason": "イベント音と統率者モチーフ用のヘッドルームを確保する。マスター自体は非破壊のまま保持する。",
+    "expectedIntegratedLufs": {
+      "candidateA": -18.26,
+      "candidateB": -18.22
+    },
+    "expectedTruePeakDbfs": -4.52
+  },
+  "candidates": [
+    {
+      "id": "candidate-a-natural-full-cycle",
+      "label": "候補A: 自然終端129小節",
+      "master": "masters/candidate-a-natural-full-cycle.wav",
+      "preview": "previews/candidate-a-natural-full-cycle.mp3",
+      "seamAudition": "validation/candidate-a-natural-full-cycle-seam-audition.mp3",
+      "threeCycleValidation": "validation/candidate-a-natural-full-cycle-three-cycles.mp3",
+      "sourceStartSeconds": 0,
+      "sourceEndSeconds": 253.766,
+      "durationSeconds": 253.766,
+      "beatCount": 516,
+      "barCountAtFourFour": 129,
+      "crossfadeSeconds": 0,
+      "safetyFadeMillisecondsAtEachEdge": 2,
+      "integratedLufs": -13.76,
+      "truePeakDbfs": -0.02,
+      "boundarySampleJumpDbfs": -90.91,
+      "boundaryEnergyNote": "末尾50msは-56.74 dBFS、冒頭50msは-6.77 dBFS。クリックはないが、静かな終端から強い冒頭へ戻ること自体は知覚しやすい。",
+      "sha256": "9962bd02fefebd5bc444e1524b7dc5acfe54682b217fce8fe0625e5304a1d047",
+      "beatAnchors": [
+        { "beatIndex": 0, "atSeconds": 0 },
+        { "beatIndex": 32, "atSeconds": 15.737404 },
+        { "beatIndex": 64, "atSeconds": 31.474808 },
+        { "beatIndex": 96, "atSeconds": 47.212211 },
+        { "beatIndex": 128, "atSeconds": 62.949615 },
+        { "beatIndex": 160, "atSeconds": 78.687019 },
+        { "beatIndex": 192, "atSeconds": 94.424423 },
+        { "beatIndex": 224, "atSeconds": 110.161826 },
+        { "beatIndex": 256, "atSeconds": 125.89923 },
+        { "beatIndex": 288, "atSeconds": 141.636634 },
+        { "beatIndex": 320, "atSeconds": 157.374038 },
+        { "beatIndex": 352, "atSeconds": 173.111442 },
+        { "beatIndex": 384, "atSeconds": 188.848845 },
+        { "beatIndex": 416, "atSeconds": 204.586249 },
+        { "beatIndex": 448, "atSeconds": 220.323653 },
+        { "beatIndex": 480, "atSeconds": 236.061057 },
+        { "beatIndex": 512, "atSeconds": 251.79846 },
+        { "beatIndex": 516, "atSeconds": 253.766 }
+      ]
+    },
+    {
+      "id": "candidate-b-tight-128-bars",
+      "label": "候補B: タイト128小節",
+      "master": "masters/candidate-b-tight-128-bars.wav",
+      "preview": "previews/candidate-b-tight-128-bars.mp3",
+      "previewSha256": "6307839cab73c84265023ce2a8cdb489355f3f48a3ef9c94d8cdb6b6190dde0c",
+      "seamAudition": "validation/candidate-b-tight-128-bars-seam-audition.mp3",
+      "threeCycleValidation": "validation/candidate-b-tight-128-bars-three-cycles.mp3",
+      "sourceStartSeconds": 0.458667,
+      "sourceEndSeconds": 252.257128,
+      "durationSeconds": 251.798458,
+      "beatCount": 512,
+      "barCountAtFourFour": 128,
+      "crossfadeSeconds": 0,
+      "safetyFadeMillisecondsAtEachEdge": 2,
+      "integratedLufs": -13.72,
+      "truePeakDbfs": -0.02,
+      "boundarySampleJumpDbfs": -59.1,
+      "boundaryEnergyNote": "末尾50msは-16.32 dBFS、冒頭50msは-18.07 dBFS。512拍に対する周期誤差は-0.002msで、波形上は一定のキック列として継続する。",
+      "sha256": "911f12e72ca32319cfca101e75a39085cd2167ed5ed714a197dee43fe27eedb4",
+      "beatAnchors": [
+        { "beatIndex": 0, "atSeconds": 0 },
+        { "beatIndex": 32, "atSeconds": 15.737404 },
+        { "beatIndex": 64, "atSeconds": 31.474808 },
+        { "beatIndex": 96, "atSeconds": 47.212211 },
+        { "beatIndex": 128, "atSeconds": 62.949615 },
+        { "beatIndex": 160, "atSeconds": 78.687019 },
+        { "beatIndex": 192, "atSeconds": 94.424423 },
+        { "beatIndex": 224, "atSeconds": 110.161826 },
+        { "beatIndex": 256, "atSeconds": 125.89923 },
+        { "beatIndex": 288, "atSeconds": 141.636634 },
+        { "beatIndex": 320, "atSeconds": 157.374038 },
+        { "beatIndex": 352, "atSeconds": 173.111442 },
+        { "beatIndex": 384, "atSeconds": 188.848845 },
+        { "beatIndex": 416, "atSeconds": 204.586249 },
+        { "beatIndex": 448, "atSeconds": 220.323653 },
+        { "beatIndex": 480, "atSeconds": 236.061057 },
+        { "beatIndex": 512, "atSeconds": 251.798458 }
+      ]
+    }
+  ],
+  "userAcceptance": {
+    "selectedCandidateId": "candidate-b-tight-128-bars",
+    "seamIsNoticeable": null,
+    "shoulderRhythmBreaks": null,
+    "comfortableForFifteenMinutes": null,
+    "breakReturnFeelsNatural": null,
+    "notes": "2026-07-26: ユーザーが候補Bを選択。個別評価項目は実機組み込み後に再確認する。"
+  }
+}

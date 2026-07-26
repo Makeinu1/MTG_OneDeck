@@ -60,12 +60,12 @@ describe('lifeFlashDirection', () => {
   });
 });
 
-describe('sound opt-in (§7b・既定 OFF・localStorage 永続)', () => {
+describe('legacy musical-event preference migration (§7b・新規既定 ON・localStorage 永続)', () => {
   beforeEach(() => {
     localStorage.removeItem(SOUND_STORAGE_KEY);
   });
-  it('未設定は OFF(既定)', () => {
-    expect(isSoundEnabled()).toBe(false);
+  it('未設定は ON(新規既定)', () => {
+    expect(isSoundEnabled()).toBe(true);
   });
   it('setSoundEnabled(true) で ON が永続する', () => {
     setSoundEnabled(true);
