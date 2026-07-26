@@ -8,11 +8,13 @@ export function CleanupDiscardDialog({
   choice,
   onConfirm,
   onManualHandled,
+  onUndo,
 }: {
   state: GameState;
   choice: CleanupDiscardRuleChoice;
   onConfirm: (cardIds: string[]) => void;
   onManualHandled: () => void;
+  onUndo: () => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const hand = state.zonesByPlayer[choice.playerId]?.hand ?? [];
@@ -58,6 +60,9 @@ export function CleanupDiscardDialog({
         })}
       </ul>
       <div className="dialog__actions">
+        <button type="button" className="btn" onClick={onUndo} data-testid="cleanup-undo">
+          戻る
+        </button>
         <button type="button" className="btn" onClick={onManualHandled} data-testid="cleanup-manual-handled">
           手動処理済みとして続行
         </button>

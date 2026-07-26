@@ -33,7 +33,7 @@ import type { MenuTarget } from '../types';
 import { CardActionSheet } from './CardActionSheet';
 import { buildCardActionCatalog, rankActions } from './actionCatalog';
 import { presentationRuntime } from './presentation/presentationRuntime';
-import { primaryActionModel, eligibleAttackerIds } from './primaryAction';
+import { primaryActionModel } from './primaryAction';
 import { triggerDirectAction } from './triggerDirectAction';
 import { ManualKeywordsDialog } from './ManualKeywordsDialog';
 import { CleanupDiscardDialog } from './CleanupDiscardDialog';
@@ -378,7 +378,7 @@ export function useGameController({
         break;
       case 'attack':
 
-        setPendingAttackPreselect(eligibleAttackerIds(s));
+        setPendingAttackPreselect([]);
         setAttackDialogOpen(true);
         break;
       case 'skip-combat':
@@ -1230,6 +1230,7 @@ export function useGameController({
           <CleanupDiscardDialog
             state={state}
             choice={cleanupChoice}
+            onUndo={() => undo()}
             onConfirm={(cardIds) => {
               // cleanup-discard 解決後はエンジンが cleanup 完了→次ターン開始まで
               // 同一 dispatch で進行するが、その経路は announceTransition を通らない

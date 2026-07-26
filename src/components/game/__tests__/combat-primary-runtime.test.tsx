@@ -119,7 +119,7 @@ describe('combat handled by the primary "Next" action (runtime wiring)', () => {
     expect(store().state?.phase).toBe('main2');
   });
 
-  it('one ready attacker: button opens the attack dialog preselected; confirm taps and resolves; next → main2', () => {
+  it('one ready attacker: button opens the attack dialog unselected; select then confirm taps and resolves; next → main2', () => {
     const id = setupGame('c-ready');
     store().nextTurn();
     advanceToCombat();
@@ -134,6 +134,9 @@ describe('combat handled by the primary "Next" action (runtime wiring)', () => {
     const checkbox = container.querySelector<HTMLInputElement>(
       `[data-testid="attack-select-${id}"]`,
     );
+    expect(checkbox?.checked).toBe(false);
+
+    act(() => checkbox?.click());
     expect(checkbox?.checked).toBe(true);
 
     const confirm = container.querySelector<HTMLButtonElement>('[data-testid="attack-confirm"]');
@@ -148,7 +151,7 @@ describe('combat handled by the primary "Next" action (runtime wiring)', () => {
     expect(store().state?.phase).toBe('main2');
   });
 
-  it('one ready attacker: ArrowUp shortcut opens the same preselected dialog', () => {
+  it('one ready attacker: ArrowUp shortcut opens the attack dialog unselected', () => {
     const id = setupGame('c-ready-kb');
     store().nextTurn();
     advanceToCombat();
@@ -159,7 +162,7 @@ describe('combat handled by the primary "Next" action (runtime wiring)', () => {
     const checkbox = container.querySelector<HTMLInputElement>(
       `[data-testid="attack-select-${id}"]`,
     );
-    expect(checkbox?.checked).toBe(true);
+    expect(checkbox?.checked).toBe(false);
   });
 });
 
