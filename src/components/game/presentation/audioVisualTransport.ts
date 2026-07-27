@@ -147,10 +147,10 @@ export function getNextGridDelayMs(
 export function getTransportCssTiming(
   currentSec: number,
   manifest: TrackManifest,
-): { beatMs: number; phaseDelayMs: number } {
+): { beatMs: number; phaseDelayMs: number; barMs: number; barPhaseDelayMs: number } {
   const loopDuration = manifest.loopEndSec - manifest.loopStartSec;
   if (!Number.isFinite(currentSec) || loopDuration <= 0) {
-    return { beatMs: 700, phaseDelayMs: 0 };
+    return { beatMs: 700, phaseDelayMs: 0, barMs: 2800, barPhaseDelayMs: 0 };
   }
 
   const relative =
@@ -174,7 +174,7 @@ export function getTransportCssTiming(
   const beatSpan = b.beatIndex - a.beatIndex;
   const spanDuration = b.atSeconds - a.atSeconds;
   if (!Number.isInteger(beatSpan) || beatSpan <= 0 || spanDuration <= 0) {
-    return { beatMs: 700, phaseDelayMs: 0 };
+    return { beatMs: 700, phaseDelayMs: 0, barMs: 2800, barPhaseDelayMs: 0 };
   }
 
   const beatDurationSec = spanDuration / beatSpan;
@@ -185,5 +185,16 @@ export function getTransportCssTiming(
   if (offsetInBeat < EPSILON) offsetInBeat = 0;
   const phaseDelayMs = -(offsetInBeat * 1000);
 
-  return { beatMs, phaseDelayMs };
+  // Bar timing: 4 beats per bar. Bar boundary = absolute beatIndex % 4 === 0.
+  const barMs = beatMs * 4;
+  const absoluteBeat = a.beatIndex + offsetInSpan / beatDurationSec;
+  const beatsIntoBar = ((absoluteBeat % 4) + 4) % 4;
+  let barOffsetSec = beatsIntoBar * beatDurationSec;
+  // Snap to zero if within epsilon of a bar boundary.
+  const barDurationSec = beatDurationSec * 4;
+  if (barDurationSec - barOffsetSec < EPSILON) barOffsetSec = 0;
+  if (barOffsetSec < EPSILON) barOffsetSec = 0;
+  const barPhaseDelayMs = -(barOffsetSec * 1000);
+
+  return { beatMs, phaseDelayMs, barMs, barPhaseDelayMs };
 }

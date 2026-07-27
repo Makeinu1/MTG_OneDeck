@@ -148,6 +148,7 @@ export function GameCard({
   }${decisionRole ? ` game-card--decision-${decisionRole}` : ''
   }${combatAttacker ? ' game-card--combat-attacker' : ''
   }${combatBlocker ? ' game-card--combat-blocker' : ''
+  }${commander && instance.zone === 'battlefield' ? ' game-card--commander' : ''
   }`;
 
   function schedulePreview(anchor: CardPreviewAnchor): void {

@@ -151,6 +151,17 @@
       "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: 生きた背景(AmbientLayer)。ダーク=脈動する星雲(鼓動700ms/戦闘525ms/星156/流れ星)、ライト=墨の世界(液态呼吸3400ms/自描筆致/墨の滴/盤面上の光源90s公転)。パフォーマンス: feTurbulence/will-change/mix-blend-mode全廃(有機border-radius代替)。ターン交代: Cinzelスタンプ+スウィープ+描き線(光輪撤去)。ライフ♥脈動。スタック同期脈動。台形盤面透明化。ThumbZone「背景モーション」トグル(既定ON)。契約=design-system §8a。形状参照=research/design/mockups/ambient-motion.html(v4.3)。cleanup-discard解決後のターン演出補完(announceTransition)。**[2026-07-26 contract supersession]** shippedは旧実装状態を表す。固定700ms/戦闘525ms/旧イベント強度は新AV契約への移行対象で、現行正本=docs/audio-visual-contract.md。"
     },
     {
+      "type": "design-slice",
+      "domainId": "av5-permanent-beat",
+      "track": "design",
+      "dependsOn": [
+        "d8-ambient-layer"
+      ],
+      "status": "shipped",
+      "userGate": "2026-07-27 ユーザー裁定: 統率者4拍ダンス/土地ベースラインのモック(beat-motion.html)承認。束ね重ね・密度減衰・タップミュート・位相オフセットを実機確認済。",
+      "note": "**出荷完了(2026-07-27・判定者=Codex・実装=サブエージェントRaman・冷監査=サブエージェントCarson 019fa3e5)**: パーマネント・アンビエントビート(AV5)。背景層のBPM鼓動を戦場パーマネントへ拡張。土地=リズム隊(4拍ベースライン・奇偶交互浮上・左→右位相オフセット)、統率者=ソリスト(4拍ダンス・戦場でのみ)、非土地=土地と同パターン。ambient motion拡張(無音・PresentationEvent不追加)。transport小節位相(--transport-bar-ms/--transport-bar-phase-delay)。密度減衰(6=full/12=影のみ・束=1スロット)。タップ=ミュート(位置固定・影+明度のみ)。ライトテーマ無演出・reduced-motion全静止。契約=audio-visual-contract §10。受け入れ=acceptance M-AV5(AV-40〜52)。冷監査: BLOCKER/HIGH=0・MEDIUM=2(ライトテーマゲート欠落・TUNABLE3フィールドdead code)→判定者が外科修正済(再監査不要・MEDIUMは修正後昇格)。機械チェック全緑(302 files/2472 tests)。"
+    },
+    {
       "type": "engine-fix",
       "domainId": "nextturn-cleanup-stale-design",
       "track": "engine",

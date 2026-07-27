@@ -6,7 +6,7 @@
  */
 
 import { useDroppable } from '@dnd-kit/core';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { GameCard } from './GameCard';
 import { Modal } from '../Modal';
 import {
@@ -22,6 +22,8 @@ import {
   type AttachmentCluster,
   type VisualTokenBundle,
 } from './battlefieldProjection';
+import { beatDensity } from './presentation/permanentBeat';
+import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentation/presentationTuning';
 
 function AttachmentFan({
   controller,
@@ -56,19 +58,25 @@ function VisualBundle({
   controller,
   bundle,
   attachment,
+  index,
 }: {
   controller: GameController;
   bundle: VisualTokenBundle;
   attachment?: AttachmentCluster;
+  index: number;
 }) {
   const [open, setOpen] = useState(false);
   const isBundle = bundle.cardIds.length > 1;
+  const repTapped = controller.state?.cards[bundle.representativeId]?.tapped ?? false;
   return (
     <div
       className="visual-card-bundle"
       data-expanded={open || undefined}
       data-count={bundle.cardIds.length}
       data-testid={`visual-bundle-${bundle.representativeId}`}
+      data-beat-index={index}
+      {...(repTapped ? { 'data-beat-tapped': '' } : {})}
+      style={{ '--beat-index': index } as CSSProperties}
     >
       <div className="visual-card-bundle__cards">
         {(open ? bundle.cardIds : [bundle.representativeId]).map((cardId) => (
@@ -157,13 +165,17 @@ export function BattlefieldShelf({
           ['--lane-rows' as string]: rows,
         }}
       >
-        <div className="board-shelf__lane">
-          {visualBundles.map((bundle) => (
+        <div
+          className="board-shelf__lane"
+          style={{ '--beat-density': beatDensity(visualBundles.length, DEFAULT_AUDIO_VISUAL_TUNING) } as CSSProperties}
+        >
+          {visualBundles.map((bundle, index) => (
             <VisualBundle
               key={bundle.key}
               controller={controller}
               bundle={bundle}
               attachment={attachmentsByHost?.get(bundle.representativeId)}
+              index={index}
             />
           ))}
         </div>

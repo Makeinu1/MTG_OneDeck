@@ -16,6 +16,8 @@
      transport ready 時は --transport-beat-ms / --transport-phase-delay が
      JS から設定され、700ms fallback を上書きする。 */
   --beat: var(--transport-beat-ms, var(--ambient-beat));
+  /* AV5 小節周期(4拍)。transport 非 ready 時は ambient-beat × 4 fallback。 */
+  --bar: var(--transport-bar-ms, calc(var(--ambient-beat) * 4));
   --tabletop-edge: color-mix(in srgb, var(--gold-dim) 58%, var(--line));
   --tabletop-glow: color-mix(in srgb, var(--gold) 10%, transparent);
   /* 盤面の塗りは透明(2026-07-21 ユーザー指示): アンビエント背景を殺さず透かす。
@@ -2578,6 +2580,12 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   .turn-sweep { animation: turn-sweep-fade 420ms linear both !important; }
   .turn-stamp__num,
   .turn-stamp__rule { animation: none !important; }
+  /* AV5 land-beat / commander-dance: permanent beat full stop */
+  .land-bundle,
+  .visual-card-bundle,
+  .game-card--commander,
+  .game-card--commander::after,
+  .game-card--commander::before { animation: none !important; }
 }
 
 /* AV3 semantic presentation — restrained, transform/opacity only */
@@ -2633,4 +2641,165 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 @keyframes semantic-land-fade {
   0% { opacity: 0.5; }
   100% { opacity: 0; }
+}
+
+/* ============================================================
+   AV5 — Permanent ambient beat (docs/audio-visual-contract.md §10)
+   Pure CSS transform/opacity animations gated behind :root[data-ambient='on'].
+   No JS per-frame loops. Bar period = --bar. Phase = --transport-bar-phase-delay.
+   ============================================================ */
+
+/* --- Keyframes: land beat (odd slots) --- */
+@keyframes land-beat-odd {
+  0%   { transform: translateY(0); }
+  10%  { transform: translateY(calc(1px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  25%  { transform: translateY(0); }
+  36%  { transform: translateY(calc(-2px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  50%  { transform: translateY(0); }
+  60%  { transform: translateY(calc(0.5px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  75%  { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+/* --- Keyframes: land beat (even slots) --- */
+@keyframes land-beat-even {
+  0%   { transform: translateY(0); }
+  10%  { transform: translateY(calc(1px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  25%  { transform: translateY(0); }
+  50%  { transform: translateY(0); }
+  60%  { transform: translateY(calc(0.5px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  75%  { transform: translateY(0); }
+  86%  { transform: translateY(calc(-2px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  100% { transform: translateY(0); }
+}
+
+/* --- Keyframes: land beat muted (tapped — opacity pulse only, no transform) --- */
+@keyframes land-beat-muted {
+  0%   { opacity: 1; }
+  10%  { opacity: 0.82; }
+  25%  { opacity: 1; }
+  50%  { opacity: 1; }
+  60%  { opacity: 0.88; }
+  75%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* --- Keyframes: commander dance (4-beat phrase) --- */
+@keyframes commander-dance {
+  0%    { transform: translateY(0) rotate(0deg); }
+  7%    { transform: translateY(calc(1.6px * var(--commander-amp, 1))) rotate(0deg); }
+  19%   { transform: translateY(calc(-3px * var(--commander-amp, 1))) rotate(0deg); }
+  25%   { transform: translateY(calc(-1.8px * var(--commander-amp, 1))) rotate(calc(0.12deg * var(--commander-amp, 1))); }
+  37.5% { transform: translateY(calc(-0.6px * var(--commander-amp, 1))) rotate(calc(0.5deg * var(--commander-amp, 1))); }
+  50%   { transform: translateY(0) rotate(calc(0.1deg * var(--commander-amp, 1))); }
+  62%   { transform: translateY(calc(-2px * var(--commander-amp, 1))) rotate(0deg); }
+  75%   { transform: translateY(calc(-0.8px * var(--commander-amp, 1))) rotate(calc(-0.12deg * var(--commander-amp, 1))); }
+  87.5% { transform: translateY(0) rotate(calc(-0.5deg * var(--commander-amp, 1))); }
+  100%  { transform: translateY(0) rotate(0deg); }
+}
+
+/* --- Keyframes: commander frame pulse (gold border opacity) --- */
+@keyframes commander-frame-pulse {
+  0%    { opacity: 0.14; }
+  7%    { opacity: 0.12; }
+  19%   { opacity: 1.0; }
+  25%   { opacity: 0.55; }
+  37.5% { opacity: 0.28; }
+  50%   { opacity: 0.18; }
+  62%   { opacity: 0.60; }
+  75%   { opacity: 0.30; }
+  87.5% { opacity: 0.18; }
+  100%  { opacity: 0.14; }
+}
+
+/* --- Keyframes: commander shadow pulse (ground shadow opacity + scaleX) --- */
+@keyframes commander-shadow-pulse {
+  0%    { opacity: 0.25; transform: translateX(-50%) scaleX(1); }
+  7%    { opacity: 0.34; transform: translateX(-50%) scaleX(1.06); }
+  19%   { opacity: 0.09; transform: translateX(-50%) scaleX(0.79); }
+  25%   { opacity: 0.14; transform: translateX(-50%) scaleX(0.84); }
+  37.5% { opacity: 0.21; transform: translateX(-50%) scaleX(0.90); }
+  50%   { opacity: 0.25; transform: translateX(-50%) scaleX(1); }
+  62%   { opacity: 0.13; transform: translateX(-50%) scaleX(0.83); }
+  75%   { opacity: 0.20; transform: translateX(-50%) scaleX(0.89); }
+  87.5% { opacity: 0.25; transform: translateX(-50%) scaleX(1); }
+  100%  { opacity: 0.25; transform: translateX(-50%) scaleX(1); }
+}
+
+/* --- Application: land bundles (odd index → land-beat-odd, even → land-beat-even) --- */
+:root[data-ambient='on'] .land-bundle[data-beat-index] /* land-beat */ {
+  animation: land-beat-odd var(--bar) linear infinite;
+  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
+  will-change: transform;
+}
+:root[data-ambient='on'] .land-bundle[data-beat-index]:nth-child(even) {
+  animation-name: land-beat-even;
+}
+
+/* --- Application: visual card bundles (non-land permanents, same pattern) --- */
+:root[data-ambient='on'] .visual-card-bundle[data-beat-index] /* land-beat */ {
+  animation: land-beat-odd var(--bar) linear infinite;
+  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
+  will-change: transform;
+}
+:root[data-ambient='on'] .visual-card-bundle[data-beat-index]:nth-child(even) {
+  animation-name: land-beat-even;
+}
+
+/* --- Tap mute: position frozen, opacity pulse only --- */
+:root[data-ambient='on'] .land-bundle[data-beat-tapped],
+:root[data-ambient='on'] .visual-card-bundle[data-beat-tapped] {
+  animation-name: land-beat-muted;
+}
+
+/* --- Application: commander-dance --- */
+:root[data-ambient='on'] .game-card--commander /* commander-dance */ {
+  animation: commander-dance var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: transform;
+}
+
+/* --- Commander gold frame pulse (::after) --- */
+:root[data-ambient='on'] .game-card--commander::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--gold-bright) 70%, transparent), inset 0 0 14px color-mix(in srgb, var(--gold-bright) 32%, transparent);
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 9;
+  animation: commander-frame-pulse var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: opacity;
+}
+
+/* --- Commander ground shadow (::before) --- */
+:root[data-ambient='on'] .game-card--commander::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 78%;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--ink-0) 72%, transparent), transparent 70%);
+  opacity: 0.25;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: -1;
+  animation: commander-shadow-pulse var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+/* AV5: light theme = effectively no permanent-beat choreography (contract §10).
+   The dark-only gate is structural, not just a preference. */
+html[data-theme='light'] .land-bundle[data-beat-index],
+html[data-theme='light'] .visual-card-bundle[data-beat-index],
+html[data-theme='light'] .game-card--commander,
+html[data-theme='light'] .game-card--commander::after,
+html[data-theme='light'] .game-card--commander::before {
+  animation: none !important;
 }

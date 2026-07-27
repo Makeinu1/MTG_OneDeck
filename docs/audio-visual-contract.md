@@ -413,3 +413,88 @@ const DARK_GAME_TRACK: TrackManifest = {
 | ダーク固定700ms | TrackManifest transport ready中は置換。master audio OFF / transport失敗時のfallbackとしてのみ暫定維持 |
 
 この表は実装を完了したという主張ではない。AV3完了時は production code に `celebrate('primary')` / `celebrate('draw')` / `celebrate('resolve')` / `celebrate('chain')` の直接呼出しを0件にし、構造検査で固定する。次のUIスライスが回収し、`docs/acceptance.md` M-AVで検証する。
+
+---
+
+## 10. パーマネント・アンビエントビート(AV5・2026-07-27 ユーザー裁定)
+
+> 背景層が「ホールの空気」なら、戦場のパーマネントは「その空気の中で息づく身体」である。
+> 土地はリズム隊として拍を刻み、統率者はソリストとして4拍で踊る。
+
+本節は **ambient motion の拡張**であり、意味イベントではない。
+
+### 分類と非目標
+
+- `PresentationEvent.kind` の追加は**ない**。音は**ない**。
+- §2 の意味イベント決定表・§3 の予測可能性・§4 の拍同期・§7 の性能契約・§8a のゲートを**継承**する。
+- §1 の MUST NOT(操作回数・連鎖・カード強度からの高揚推測)はそのまま適用される。
+- 戦闘でテンポ・色・強度を変えない(§9 の `ambientMotion.ts` 戦闘時 525ms は初期対象外)。
+
+### ゲート
+
+- 既存の「背景モーション」トグル(`:root[data-ambient='on']`)で制御する。個別トグルは追加しない。
+- `prefers-reduced-motion: reduce` で全静止(既存の `@media` ブロックに追加)。
+- transport 非 ready 時は `--ambient-beat`(700ms)×4 = 2800ms を小節周期の fallback とする。
+- ダークテーマのゲーム画面でのみ可視(ライトテーマでは実効無演出)。
+
+### 役割と振付
+
+| 役割 | 対象 | 周期 | 振付 |
+|---|---|---|---|
+| リズム隊 | 土地スロット(束=1スロット) | 小節(4拍) | 拍1: 全スロット沈み(1px) · 拍2: 奇数番浮上(2px)+発光 · 拍3: 全スロット弱沈み(0.5px) · 拍4: 偶数番浮上(2px)+発光 |
+| ソリスト | 戦場の統率者(`isCommander && zone==='battlefield'`) | 小節(4拍) | 拍1: 一瞬沈み→3px浮上+金枠発光ピーク · 拍2: 右0.5° · 拍3: 2px浮上 · 拍4: 左0.5°→中央復帰。接地影(opacity+scaleX)連動 |
+| 同期 | 非土地パーマネント(クリーチャー等) | 小節(4拍) | 土地と同じパターン(奇偶交互)。トグルで無効化可能 |
+
+- 統率者は**統率領域では静止**(ソリストは舞台に上がって初めて踊る)。
+- 拍1で土地が沈み統率者が浮上する**逆向き対位法**を意図的に維持する。
+- 統率者の枠脈動は**金**(既存の統率者金枠を継承)。白金は AV4 キャスト儀式専用として温存。
+
+### 位相と波
+
+- 各スロットに左→右の位相オフセットを付与する。`animation-delay = barPhaseDelay + slotIndex × beatWaveStepMs`。
+- `beatWaveStepMs` = 25ms(初期値)。0 = 同時発火(定在波)、大きくすると進行波寄り。
+- 波は左→右に流れる(横書きの時間軸と一致)。
+
+### 密度減衰
+
+- スロット数が増えるほど1スロットあたりの変位を連続的に絞る。
+- `density = clamp((beatDensityZeroSlots - slotCount) / (beatDensityZeroSlots - beatDensityFullSlots))`。
+- 初期値: `beatDensityFullSlots = 6`(full)・`beatDensityZeroSlots = 12`(影のみ)。
+- 束は**1スロット**として数える。
+- 密度0では位置の動きを止め、影(opacity)+明度(overlay opacity)だけの脈動に切替。
+
+### タップミュート
+
+- タップ済みパーマネントは**位置を動かさない**(弦を押さえつけられた楽器)。
+- 影と明度だけが拍に合わせて脈動する(ミュートされたベースノート)。
+- ベースラインの連続性は途切れない(タップ済みで波が止まらない)。
+- 「今どの土地が使えるか」が動きの立体感の差として盤面に滲む(チャネル①=位置・光・動き)。
+
+### 実装方式
+
+- **純粋 CSS アニメーション**(transform/opacity のみ)。JS ループ・React state・毎フレームの DOM 操作は使わない。
+- 小節周期 = `--bar: var(--transport-bar-ms, calc(var(--ambient-beat) * 4))`。
+- 小節位相 = `--transport-bar-phase-delay`(AudioVisualProvider が 250ms interval で更新)。
+- カード1枚あたり疑似要素/追加要素は最大3枚(glow + bright/dark overlay + commander shadow)。
+- `will-change: transform, opacity` はアニメーション対象要素のみに付与。
+
+### TUNABLE(一か所集約 = `presentationTuning.ts`)
+
+```ts
+interface AudioVisualTuning {
+  // ... 既存フィールド ...
+  beatWaveStepMs: number;        // initial: 25
+  beatDensityFullSlots: number;  // initial: 6
+  beatDensityZeroSlots: number;  // initial: 12
+  commanderAmpScale: number;     // initial: 1.0
+  landAmpScale: number;          // initial: 1.0
+}
+```
+
+### STOP 条件(実装者が越えてはならない)
+
+- 音の追加(本節は無音)。
+- `PresentationEvent.kind` の追加。
+- 戦闘・スタック・連鎖で強度を変える。
+- 個別トグルの追加(既存 `data-ambient` を再利用)。
+- ライトテーマでの演出(ダークのみ)。

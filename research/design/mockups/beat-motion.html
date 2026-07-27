@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTG OneDeck — パーマネント・ビートモーション・モック v0.1(統率者4拍ダンス / 土地ベースライン)</title>
+<!-- 議論用草稿(2026-07-26・視覚正本ではない・裁定待ち):
+     現状は背景層(AmbientBackdrop)だけが持つ BPM 鼓動を、戦場のパーマネントへ拡張する検討モック。
+     - 背景 = ホールの空気(拍を持たない連続テクスチャ・既存アンビエントの縮約版)
+     - 土地 = リズム隊: 1/3拍目に全沈み・2拍目に奇数番・4拍目に偶数番が浮く。
+       左→右の位相オフセット(0 = 同時発火/定在波・大きくすると進行波寄り・モック専用スライダー)。
+       密度減衰(枚数増で移動が連続減衰→12枚で影のみ)。タップ = ミュート(位置固定・影+明度だけ脈動)。
+     - 統率者 = ソリスト: 4拍1フレーズ(①一瞬沈んで3px浮上+金枠発光 ②右0.5° ③2px浮上 ④左0.5°→中央復帰)。
+       1拍目で土地が沈み統率者が浮上する対位法(逆向きモーション)を意図的に維持。
+     - 非土地パーマネントも土地と同じパターンで同期(トグル可)。
+     - 下部のスコア(シーケンサー)= 振付の可視化。クリックでその拍位置へジャンプ・スペースで一時停止。
+     - .chrome / .panel / .note / .sequencer はモック専用。製品に持ち込まない。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================ トークン(design-system §2 準拠) */
+:root {
+  --ink-0:#0a0e14; --ink-1:#0d1320; --ink-2:#111a2a;
+  --surface-0:var(--ink-0); --surface-1:#141d2e; --surface-2:#1c2a42;
+  --line: rgba(150,185,235,.10); --line-strong: rgba(150,185,235,.24);
+  --text:#c9d6e8; --text-dim:#7f94b0; --text-h:#f0f5fd;
+  --mana-w:#f8e7b9; --mana-u:#6cc3e8; --mana-b:#b48be0; --mana-r:#ff8c6b; --mana-g:#8fd99a; --mana-c:#c7cdd6;
+  --gold:#d8b06a; --gold-bright:#f0cf8c; --gold-dim: rgba(216,176,106,.18);
+  --commander-platinum:#e9eef6;
+  --display:'Cinzel','Hiragino Mincho ProN',serif;
+  --sans:'Manrope','Hiragino Sans','Yu Gothic',sans-serif;
+  --mono:'Space Mono',ui-monospace,Consolas,monospace;
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  /* カード寸法(短辺ビューポートで縮小) */
+  --w-land: 82px; --w-cre: 96px; --w-cmd: 132px;
+}
+@media (max-height: 700px) { :root { --w-land:70px; --w-cre:84px; --w-cmd:112px; } }
+
+* { box-sizing:border-box; margin:0; }
+html,body { height:100%; }
+body { font:15px/1.5 var(--sans); background:#04060b; color:var(--text); overflow:hidden; -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; }
+button { font-family:var(--sans); cursor:pointer; }
+
+/* ============================================================ chrome(モック専用) */
+.chrome { flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:9px 16px; background:linear-gradient(180deg, rgba(6,9,15,.97), rgba(6,9,15,.84)); border-bottom:1px solid var(--line); z-index:30; }
+.chrome__brand { display:flex; align-items:center; gap:8px; font-family:var(--display); font-size:14px; font-weight:600; letter-spacing:.12em; color:var(--gold-bright); white-space:nowrap; }
+.chrome__brand::before { content:'◆'; font-size:9px; color:var(--gold); }
+.chrome__title { font:600 13px/1 var(--sans); color:var(--text); letter-spacing:.02em; white-space:nowrap; }
+.chrome__tag { font:700 10px/1 var(--mono); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:4px; padding:3px 7px; letter-spacing:.05em; white-space:nowrap; }
+.chrome__spacer { flex:1; }
+.chrome__btn { appearance:none; border:1px solid var(--line-strong); background:transparent; color:var(--text-dim); font:600 12px/1 var(--sans); letter-spacing:.06em; padding:7px 12px; border-radius:8px; transition:color .15s var(--ease-out), border-color .15s var(--ease-out), background .15s var(--ease-out), transform .1s var(--ease-out); }
+.chrome__btn:hover { color:var(--gold-bright); border-color:rgba(216,176,106,.5); background:var(--gold-dim); }
+.chrome__btn:active { transform:scale(.96); }
+.chrome__btn.is-on { color:var(--gold-bright); background:var(--gold-dim); border-color:rgba(216,176,106,.45); }
+
+/* ============================================================ レイアウト */
+.layout { flex:1 1 auto; display:flex; min-height:0; }
+.stage { flex:1 1 auto; position:relative; overflow:hidden; user-select:none; }
+.panel { flex:0 0 296px; overflow-y:auto; border-left:1px solid var(--line); background:rgba(8,12,20,.78); }
+@media (max-width: 960px) {
+  .layout { flex-wrap:wrap; }
+  .panel { flex:1 1 100%; border-left:none; border-top:1px solid var(--line); max-height:38vh; }
+}
+
+/* ============================================================ 背景(ホールの空気・拍を持たない層) */
+.backdrop { position:absolute; inset:0; z-index:1; overflow:hidden; background:radial-gradient(120% 80% at 50% 18%, #0e1626 0%, #070b13 55%, #04060b 100%); }
+.backdrop::before { content:''; position:absolute; inset:0; background:radial-gradient(90% 46% at 50% 74%, rgba(160,200,255,.055), transparent 62%); }
+.backdrop::after { content:''; position:absolute; inset:0; background:radial-gradient(140% 105% at 50% 44%, transparent 58%, rgba(0,0,5,.55) 100%); }
+.gas { position:absolute; border-radius:50%; background:radial-gradient(50% 50% at 50% 50%, var(--gc), transparent 70%); opacity:var(--go,.09); animation:gas-drift var(--d,120s) ease-in-out var(--dl,0s) infinite alternate; will-change:transform; }
+@keyframes gas-drift { from { transform:translate3d(-4%,-2%,0) scale(1); } to { transform:translate3d(5%,3%,0) scale(1.16); } }
+.star { position:absolute; border-radius:50%; background:var(--tint); box-shadow:0 0 calc(var(--sz) * 2.6) var(--tint); opacity:var(--o); animation:twinkle var(--d) ease-in-out var(--dl) infinite alternate; will-change:transform,opacity; }
+@keyframes twinkle { from { opacity:calc(var(--o) * .3); transform:scale(.82); } to { opacity:var(--o); transform:scale(1); } }
+
+/* ============================================================ 盤面 */
+.board { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; justify-content:safe center; gap:26px; padding:24px 40px 60px; overflow-y:auto; }
+.zone { position:relative; display:flex; align-items:flex-end; gap:14px; padding-top:20px; flex:0 0 auto; }
+.zone::before { content:attr(data-label); position:absolute; top:0; left:2px; font:600 10px/1 var(--sans); letter-spacing:.3em; color:var(--text-dim); opacity:.5; }
+.zone--battle { gap:16px; padding-bottom:18px; }
+.zone--lands { padding-bottom:14px; flex-wrap:wrap; }
+
+/* ---------- パーマネント共通 */
+.pcard { position:relative; }
+.pcard__move { position:relative; z-index:2; will-change:transform; }
+.pcard__glow { position:absolute; z-index:1; left:-16%; right:-16%; bottom:-9px; height:26px; border-radius:50%; background:radial-gradient(50% 50% at 50% 50%, var(--gc), transparent 72%); opacity:.28; pointer-events:none; will-change:opacity; }
+.pcard__bright, .pcard__dark { position:absolute; inset:0; border-radius:6px; pointer-events:none; opacity:0; will-change:opacity; }
+.pcard__bright { background:#fff; }
+.pcard__dark { background:#02040a; }
+
+/* ---------- カード本体(CSS 描画) */
+.card { position:relative; aspect-ratio:488/680; border-radius:6px; border:1px solid rgba(150,185,235,.15); background:linear-gradient(165deg,#1a2334,#0c1220); box-shadow:0 4px 14px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.5); overflow:hidden; transition:transform .35s var(--ease-out); }
+.card__art { position:absolute; inset:4px 4px 32% 4px; border-radius:4px; background:linear-gradient(160deg, var(--a1), var(--a2)); }
+.card__art::after { content:''; position:absolute; inset:0; background:radial-gradient(80% 62% at 30% 18%, rgba(255,255,255,.15), transparent 62%); }
+.card__pip { position:absolute; top:5px; right:5px; width:9px; height:9px; border-radius:50%; background:var(--pip); box-shadow:0 0 6px var(--pip); }
+.card__pips { position:absolute; top:5px; right:5px; display:flex; gap:2px; }
+.card__pips i { width:7px; height:7px; border-radius:50%; background:var(--pip); box-shadow:0 0 4px var(--pip); }
+.card__name { position:absolute; left:6px; right:6px; bottom:15%; font:600 10px/1.25 var(--sans); color:var(--text-h); letter-spacing:.01em; }
+.card__type { position:absolute; left:6px; right:6px; bottom:4.5%; font:500 8px/1.25 var(--sans); color:var(--text-dim); }
+
+.pcard--land .card { width:var(--w-land); }
+.pcard--cre .card { width:var(--w-cre); }
+.pcard--cre .card__name { font-size:10.5px; }
+
+/* ---------- 土地の束(同名基本土地の物理スタック・design-vision §3「紙EDHの机上再現」)
+   束 = ベースライン上の1スロット。位相オフセット・密度減衰・タップは束単位。
+   実装(LandRow.tsx / game.css)に準拠: 各カードは position:absolute + left:index×6px、
+   zIndex = 枚数-index で先頭カードが最上位。束の幅 = カード幅 + 28px。 */
+.pcard--land.is-stack .pcard__move { position:relative; width:calc(var(--w-land) + 28px); }
+.pcard--land.is-stack .card { position:absolute; left:var(--land-peek, 0px); top:0; width:var(--w-land); }
+.pcard--land.is-stack .card.is-under { box-shadow:-3px 0 0 rgba(3,6,12,.55), 0 4px 14px rgba(0,0,0,.5); }
+.pcard--land.is-stack .card.is-under .card__name,
+.pcard--land.is-stack .card.is-under .card__type { display:none; }
+.pcard--land.is-stack .card.is-under-a { transform:translateY(-3px) rotate(-.7deg); }
+.pcard--land.is-stack .card.is-under-b { transform:translateY(-2px) rotate(.6deg); }
+.pcard--land.is-stack.is-tapped .card { transform:translateY(-2px); }
+.pcard__badge { position:absolute; z-index:4; left:4px; bottom:4px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:var(--surface-2); border:1px solid var(--line-strong); color:var(--gold-bright); font:700 10.5px/18px var(--mono); text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.55); pointer-events:none; }
+
+/* ---------- 統率者(金枠・ソリスト) */
+.pcard--cmd { width:var(--w-cmd); margin-right:30px; }
+.pcard--cmd .card { width:100%; border:2px solid var(--gold); }
+.pcard--cmd .card__name { font-size:12.5px; }
+.pcard--cmd .card__type { font-size:9px; }
+.card__crown { position:absolute; top:5px; left:6px; font-size:9px; color:var(--gold-bright); text-shadow:0 0 6px rgba(240,207,140,.8); }
+.pcard__aura { position:absolute; z-index:0; inset:-20px; border-radius:16px; background:radial-gradient(58% 58% at 50% 44%, rgba(240,207,140,.5), transparent 70%); opacity:.16; pointer-events:none; will-change:opacity; }
+.pcard__frame { position:absolute; z-index:3; inset:0; border-radius:6px; border:2px solid var(--gold-bright); box-shadow:0 0 20px rgba(240,207,140,.7), inset 0 0 14px rgba(240,207,140,.32); opacity:.14; pointer-events:none; will-change:opacity; }
+.pcard__shadow { position:absolute; z-index:0; left:50%; bottom:-17px; width:78%; height:13px; border-radius:50%; background:radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.72), transparent 70%); opacity:.3; transform:translateX(-50%); will-change:transform,opacity; }
+
+/* ---------- タップ = ミュート(位置固定・影と明度だけ) */
+.pcard.is-tapped .card { transform:rotate(90deg) scale(.8); }
+.pcard.is-tapped .card::after { content:''; position:absolute; inset:0; border-radius:inherit; background:#04060b; opacity:.34; }
+
+/* ============================================================ キャプション + ビートドット */
+.caption { position:absolute; left:40px; bottom:14px; z-index:4; display:flex; align-items:center; gap:12px; }
+.beat-dots { display:flex; gap:6px; }
+.beat-dots span { width:9px; height:9px; border-radius:50%; background:rgba(150,185,235,.16); transition:transform .12s var(--ease-out), background .12s, box-shadow .12s; }
+.beat-dots span.is-on { background:var(--gold-bright); transform:scale(1.4); box-shadow:0 0 10px rgba(240,207,140,.75); }
+.caption__text { font:500 12.5px/1.4 var(--sans); color:var(--text-dim); letter-spacing:.02em; }
+
+/* ============================================================ 注釈(モック専用) */
+.note { position:absolute; z-index:6; max-width:262px; padding:9px 11px; border:1px dashed rgba(159,212,255,.42); border-radius:8px; background:rgba(8,13,22,.9); font:500 11px/1.6 var(--sans); color:#a8cbe8; letter-spacing:.01em; pointer-events:none; }
+.note b { color:var(--gold-bright); font-weight:700; }
+body:not(.show-notes) .note { display:none; }
+#noteCmd { left:calc(var(--w-cmd) + 66px); top:-6px; }
+#noteLand { right:2px; top:-8px; max-width:300px; }
+#noteTap { left:36%; bottom:-20px; }
+body:not(.tapped-on) #noteTap { display:none; }
+
+/* ============================================================ コントロールパネル(モック専用) */
+.panel__inner { padding:16px 18px 20px; display:flex; flex-direction:column; gap:13px; }
+.panel h2 { font:700 10.5px/1 var(--sans); letter-spacing:.26em; color:var(--text-dim); padding-bottom:2px; }
+.panel hr { border:none; border-top:1px solid var(--line); margin:2px 0; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl__head { display:flex; justify-content:space-between; align-items:baseline; font:600 12.5px/1 var(--sans); color:var(--text); }
+.ctl__head output { font:700 12px/1 var(--mono); color:var(--gold-bright); }
+.ctl__hint { font:500 10px/1.4 var(--sans); color:var(--text-dim); }
+input[type="range"] { width:100%; accent-color:var(--gold-bright); cursor:pointer; }
+.presets { display:flex; gap:6px; margin-top:2px; }
+.presets button { flex:1; padding:5px 0; border-radius:6px; border:1px solid var(--line-strong); background:transparent; color:var(--text-dim); font:700 11px/1 var(--mono); transition:color .15s, border-color .15s, background .15s; }
+.presets button:hover { color:var(--gold-bright); border-color:rgba(216,176,106,.5); }
+.presets button.is-active { color:var(--gold-bright); background:var(--gold-dim); border-color:rgba(216,176,106,.5); }
+.tgl { display:flex; justify-content:space-between; align-items:center; font:600 12.5px/1.3 var(--sans); color:var(--text); }
+.switch { position:relative; width:34px; height:20px; flex:0 0 auto; }
+.switch input { position:absolute; inset:0; opacity:0; cursor:pointer; z-index:1; }
+.switch .knob { position:absolute; inset:0; border-radius:20px; background:rgba(150,185,235,.15); transition:background .18s; }
+.switch .knob::after { content:''; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--text-dim); transition:transform .18s var(--ease-out), background .18s; }
+.switch input:checked + .knob { background:var(--gold-dim); }
+.switch input:checked + .knob::after { transform:translateX(14px); background:var(--gold-bright); }
+.readouts { display:grid; grid-template-columns:1fr auto; gap:5px 12px; font:11.5px/1.3 var(--mono); color:var(--text-dim); }
+.readouts b { color:var(--gold-bright); font-weight:700; text-align:right; white-space:nowrap; }
+.panel__hint { font:500 10.5px/1.6 var(--sans); color:var(--text-dim); }
+
+/* ============================================================ スコア(シーケンサー・モック専用) */
+.sequencer { flex:0 0 auto; display:grid; grid-template-columns:118px 1fr; grid-template-rows:auto auto; column-gap:0; padding:10px 16px 13px; border-top:1px solid var(--line); background:rgba(6,9,15,.88); user-select:none; }
+.seq-corner { font:700 9.5px/1.6 var(--mono); color:var(--text-dim); letter-spacing:.08em; align-self:end; padding-bottom:2px; }
+.seq-head { display:flex; }
+.seq-head span { flex:1; font:600 12px/1 var(--display); letter-spacing:.1em; color:var(--text-dim); padding:0 0 5px 6px; }
+.seq-head span.is-down { color:var(--gold-bright); }
+.seq-labels { display:flex; flex-direction:column; }
+.seq-labels span { height:21px; font:600 10.5px/21px var(--sans); letter-spacing:.06em; color:var(--text-dim); white-space:nowrap; }
+.seq-area { position:relative; cursor:pointer; }
+.seq-grid { position:absolute; inset:0; display:grid; grid-template-columns:repeat(4,1fr); pointer-events:none; }
+.seq-grid i { border-left:1px solid var(--line); }
+.seq-grid i:first-child { border-left:none; }
+.seq-grid i.is-down { background:rgba(240,207,140,.045); }
+.seq-row { position:relative; height:21px; }
+.chip { position:absolute; top:3px; padding:2px 7px; border-radius:20px; font:600 9.5px/1.5 var(--sans); white-space:nowrap; letter-spacing:.02em; pointer-events:none; }
+.chip--cmd { background:var(--gold-dim); color:var(--gold-bright); border:1px solid rgba(216,176,106,.42); }
+.chip--land { background:rgba(143,217,154,.09); color:#9fd9a8; border:1px solid rgba(143,217,154,.3); }
+.chip--dim { background:rgba(150,185,235,.05); color:var(--text-dim); border:1px solid var(--line-strong); }
+.seq-flash { position:absolute; top:0; bottom:0; width:25%; background:rgba(240,207,140,.07); pointer-events:none; }
+.playhead { position:absolute; top:-2px; bottom:-2px; width:2px; margin-left:-1px; background:var(--gold-bright); box-shadow:0 0 9px rgba(240,207,140,.85); pointer-events:none; z-index:3; }
+.playhead::before { content:''; position:absolute; top:0; bottom:0; right:2px; width:26px; background:linear-gradient(90deg, transparent, rgba(240,207,140,.16)); }
+</style>
+</head>
+<body class="show-notes">
+
+<!-- ---------- chrome(モック専用) ---------- -->
+<header class="chrome">
+  <div class="chrome__brand">MTG OneDeck</div>
+  <div class="chrome__title">パーマネント・ビートモーション・モック</div>
+  <div class="chrome__tag">v0.1 · 議論用草稿(視覚正本ではない)</div>
+  <div class="chrome__spacer"></div>
+  <button class="chrome__btn is-on" id="bNotes">注釈 ON</button>
+  <button class="chrome__btn" id="bPause">⏸ 一時停止</button>
+</header>
+
+<div class="layout">
+  <!-- ---------- ステージ ---------- -->
+  <section class="stage">
+    <div class="backdrop" id="backdrop" aria-hidden="true">
+      <div class="gas" style="--gc:rgba(108,195,232,.5); --go:.085; --d:150s; left:-18%; top:-14%; width:72%; height:64%;"></div>
+      <div class="gas" style="--gc:rgba(216,176,106,.42); --go:.06; --d:190s; --dl:-60s; right:-22%; top:16%; width:64%; height:56%;"></div>
+      <div class="gas" style="--gc:rgba(143,217,154,.4); --go:.055; --d:230s; --dl:-120s; left:6%; bottom:-24%; width:58%; height:52%;"></div>
+      <div id="stars"></div>
+    </div>
+
+    <div class="board">
+      <!-- 戦場: 統率者(ソリスト) + クリーチャー(リズム隊と同じパターン) -->
+      <div class="zone zone--battle" data-label="戦 場">
+        <div class="pcard pcard--cmd" id="cmd">
+          <div class="pcard__shadow" id="cmdShadow"></div>
+          <div class="pcard__move" id="cmdMove">
+            <div class="pcard__aura" id="cmdAura"></div>
+            <div class="card">
+              <div class="card__art" style="--a1:#16323a; --a2:#1d3a24;"></div>
+              <span class="card__crown">◆</span>
+              <div class="card__name">《墓潮のムルドローサ》</div>
+              <div class="card__type">伝説のクリーチャー — エレメンタル</div>
+            </div>
+            <div class="pcard__frame" id="cmdFrame"></div>
+          </div>
+          <div class="note" id="noteCmd"><b>統率者 = ソリスト</b> — 4拍で1フレーズ: ①一瞬沈んで3px浮上+金枠発光 ②右へ0.5° ③2px軽く浮く ④左へ0.5°→中央へ戻る。縦=強拍・揺れ=弱拍。1拍目で土地が沈み統率者が浮上する逆向き対位法。</div>
+        </div>
+        <div id="creRow" style="display:flex; gap:16px; align-items:flex-end;"></div>
+      </div>
+
+      <!-- 土地行: ベースライン -->
+      <div class="zone zone--lands" data-label="土 地">
+        <div id="landRow" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;"></div>
+        <div class="note" id="noteLand"><b>土地 = リズム隊</b> — 1/3拍目に全土地が沈み、2拍目に奇数番・4拍目に偶数番が浮く。位相オフセットでエネルギーが左→右へ流れる(0 = 同時発火の定在波・提案そのまま)。</div>
+        <div class="note" id="noteTap"><b>タップ = ミュート</b> — 位置は動かず、影と明度だけが拍に合わせて脈動する。ベースラインは途切れず、使える土地は立体的な動きの差で読める。</div>
+      </div>
+    </div>
+
+    <div class="caption">
+      <div class="beat-dots" id="dots"><span></span><span></span><span></span><span></span></div>
+      <span class="caption__text" id="caption">強拍 — 全土地が沈む · 統率者は沈み→3px浮上、金枠が光る</span>
+    </div>
+  </section>
+
+  <!-- ---------- コントロール(モック専用) ---------- -->
+  <aside class="panel">
+    <div class="panel__inner">
+      <h2>コントロール(モック専用)</h2>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rBpm">BPM</label><output id="oBpm">122</output></div>
+        <input type="range" id="rBpm" min="80" max="160" step="1" value="122">
+        <div class="presets" id="presets">
+          <button data-bpm="100">100</button>
+          <button data-bpm="122" class="is-active">122(基準曲)</button>
+          <button data-bpm="140">140</button>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rLands">土地枚数</label><output id="oLands">7</output></div>
+        <input type="range" id="rLands" min="3" max="20" step="1" value="7">
+        <div class="ctl__hint">多いほど1スロットあたりの移動が減衰 → 12スロットで影だけ</div>
+      </div>
+      <label class="tgl">同名基本土地を束ねる
+        <span class="switch"><input type="checkbox" id="tStack"><span class="knob"></span></span>
+      </label>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rPhase">位相オフセット</label><output id="oPhase">25ms/枚</output></div>
+        <input type="range" id="rPhase" min="0" max="60" step="5" value="25">
+        <div class="ctl__hint">0 = 同時発火(定在波・提案のまま) · 大きくすると左→右の進行波寄り</div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rCamp">統率者 振幅</label><output id="oCamp">×1.0</output></div>
+        <input type="range" id="rCamp" min="0.4" max="2" step="0.1" value="1">
+      </div>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rLamp">土地 振幅</label><output id="oLamp">×1.0</output></div>
+        <input type="range" id="rLamp" min="0.4" max="2" step="0.1" value="1">
+      </div>
+
+      <div class="ctl">
+        <div class="ctl__head"><label for="rCres">クリーチャー数</label><output id="oCres">3</output></div>
+        <input type="range" id="rCres" min="0" max="14" step="1" value="3">
+        <div class="ctl__hint">0 = 統率者だけ · 14 = トークン大量展開のストレス確認</div>
+      </div>
+
+      <hr>
+
+      <label class="tgl">非土地パーマネントも同期
+        <span class="switch"><input type="checkbox" id="tPerma" checked><span class="knob"></span></span>
+      </label>
+      <label class="tgl">一部をタップ(3枚に1枚)
+        <span class="switch"><input type="checkbox" id="tTap"><span class="knob"></span></span>
+      </label>
+      <label class="tgl">reduced-motion(全静止)
+        <span class="switch"><input type="checkbox" id="tReduced"><span class="knob"></span></span>
+      </label>
+
+      <hr>
+
+      <div class="readouts">
+        <span>拍長</span><b id="roBeat">492ms</b>
+        <span>小節(4拍)</span><b id="roMeas">1.97s</b>
+        <span>土地 密度減衰</span><b id="roDensity">×0.83</b>
+        <span>波 全走破</span><b id="roWave">150ms</b>
+        <span>土地スロット</span><b id="roSlots">7</b>
+        <span>盤面 DOM</span><b id="roNodes">—</b>
+      </div>
+
+      <div class="panel__hint">下部のスコア = 振付の図解。クリック/ドラッグでその拍位置へジャンプ · スペースキーで一時停止。</div>
+    </div>
+  </aside>
+</div>
+
+<!-- ---------- スコア(シーケンサー・モック専用) ---------- -->
+<footer class="sequencer">
+  <div class="seq-corner">SCORE<br>4拍 = 1小節</div>
+  <div class="seq-head">
+    <span class="is-down">1</span><span>2</span><span class="is-down">3</span><span>4</span>
+  </div>
+  <div class="seq-labels" id="seqLabels"></div>
+  <div class="seq-area" id="seqArea">
+    <div class="seq-grid"><i class="is-down"></i><i></i><i class="is-down"></i><i></i></div>
+    <div class="seq-flash" id="seqFlash"></div>
+    <div class="playhead" id="playhead"></div>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============================================================ 状態 */
+const S = {
+  bpm: 122,          // 基準曲 candidate-b-tight-128-bars の実測 BPM
+  lands: 7,
+  phaseMs: 25,       // 1枚あたりの左→右位相オフセット(0 = 同時発火)
+  cmdAmp: 1,
+  landAmp: 1,
+  stacked: false,    // 同名基本土地を束ねる(束 = 1スロット)
+  cres: 3,
+  permaSync: true,
+  tappedAlt: false,
+  reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
+  paused: false,
+};
+
+const $ = (sel) => document.querySelector(sel);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+/* ============================================================ 振付キーフレーム
+   t = 小節内位置 [0,1]。4拍 = 0 / .25 / .5 / .75 が各拍の頭。
+   y = 上下(px・+が沈み / -が浮上)・rot = 傾き(deg)・glow / g = 発光強度・
+   sh = 接地影・br = ビートアクセント(明度) */
+const CMD = [
+  { t: 0.000, y: 0,    rot: 0,    glow: 0.18, sh: 0.45 },
+  { t: 0.070, y: 1.6,  rot: 0,    glow: 0.12, sh: 0.62 },  // 拍1: 一瞬沈む(プリエ)
+  { t: 0.190, y: -3.0, rot: 0,    glow: 1.00, sh: 0.16 },  // 拍1: 3px浮上 + 金枠ピーク
+  { t: 0.250, y: -1.8, rot: 0.12, glow: 0.55, sh: 0.26 },
+  { t: 0.375, y: -0.6, rot: 0.50, glow: 0.28, sh: 0.38 },  // 拍2: 右へ0.5°
+  { t: 0.500, y: 0,    rot: 0.10, glow: 0.18, sh: 0.45 },
+  { t: 0.620, y: -2.0, rot: 0,    glow: 0.60, sh: 0.24 },  // 拍3: 2px軽く浮く
+  { t: 0.750, y: -0.8, rot: -0.12,glow: 0.30, sh: 0.36 },
+  { t: 0.875, y: 0,    rot: -0.50,glow: 0.18, sh: 0.45 },  // 拍4: 左へ0.5°
+  { t: 1.000, y: 0,    rot: 0,    glow: 0.18, sh: 0.45 },  // 中央へ戻ってフレーズ閉じ
+];
+
+/* 土地・奇数番(1,3,5…): 拍2に浮く */
+const LAND_ODD = [
+  { t: 0.000, y: 0,    g: 0.30, br: 0 },
+  { t: 0.100, y: 1.0,  g: 0.14, br: 0.045 },  // 拍1: 全沈み
+  { t: 0.250, y: 0,    g: 0.30, br: 0 },
+  { t: 0.360, y: -2.0, g: 0.78, br: 0.080 },  // 拍2: 浮く(奇数番)
+  { t: 0.500, y: 0,    g: 0.30, br: 0 },
+  { t: 0.600, y: 0.5,  g: 0.22, br: 0.035 },  // 拍3: 弱く沈む
+  { t: 0.750, y: 0,    g: 0.30, br: 0 },
+  { t: 1.000, y: 0,    g: 0.30, br: 0 },
+];
+
+/* 土地・偶数番(2,4,6…): 拍4に浮く */
+const LAND_EVEN = [
+  { t: 0.000, y: 0,    g: 0.30, br: 0 },
+  { t: 0.100, y: 1.0,  g: 0.14, br: 0.045 },
+  { t: 0.250, y: 0,    g: 0.30, br: 0 },
+  { t: 0.500, y: 0,    g: 0.30, br: 0 },
+  { t: 0.600, y: 0.5,  g: 0.22, br: 0.035 },
+  { t: 0.750, y: 0,    g: 0.30, br: 0 },
+  { t: 0.860, y: -2.0, g: 0.78, br: 0.080 },  // 拍4: 浮く(偶数番)
+  { t: 1.000, y: 0,    g: 0.30, br: 0 },
+];
+
+/* セグメント間を smoothstep で補間 */
+function sample(kf, t) {
+  let i = 0;
+  while (i < kf.length - 2 && t > kf[i + 1].t) i += 1;
+  const a = kf[i], b = kf[i + 1];
+  const span = (b.t - a.t) || 1;
+  let u = clamp01((t - a.t) / span);
+  u = u * u * (3 - 2 * u);
+  const out = {};
+  for (const k in a) if (k !== 't') out[k] = a[k] + (b[k] - a[k]) * u;
+  return out;
+}
+
+/* ============================================================ カードデータ */
+const LAND_POOL = [
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+  { name: '島',         type: '基本土地 — 島',   a1: '#16324a', a2: '#0a1626', pip: '#6cc3e8', gc: 'rgba(108,195,232,.55)' },
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+  { name: '沼',         type: '基本土地 — 沼',   a1: '#2a1f3d', a2: '#150f22', pip: '#b48be0', gc: 'rgba(180,139,224,.55)' },
+  { name: '山',         type: '基本土地 — 山',   a1: '#3d231a', a2: '#1e100a', pip: '#ff8c6b', gc: 'rgba(255,140,107,.55)' },
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+  { name: '繁殖池',     type: '土地 — 島・森',   a1: '#16323a', a2: '#0e2418', pip: '#6cc3e8', gc: 'rgba(110,210,200,.5)' },
+  { name: '島',         type: '基本土地 — 島',   a1: '#16324a', a2: '#0a1626', pip: '#6cc3e8', gc: 'rgba(108,195,232,.55)' },
+  { name: '沼',         type: '基本土地 — 沼',   a1: '#2a1f3d', a2: '#150f22', pip: '#b48be0', gc: 'rgba(180,139,224,.55)' },
+  { name: '平地',       type: '基本土地 — 平地', a1: '#38331f', a2: '#1c1a10', pip: '#f8e7b9', gc: 'rgba(248,231,185,.5)' },
+  { name: '山',         type: '基本土地 — 山',   a1: '#3d231a', a2: '#1e100a', pip: '#ff8c6b', gc: 'rgba(255,140,107,.55)' },
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+  { name: '島',         type: '基本土地 — 島',   a1: '#16324a', a2: '#0a1626', pip: '#6cc3e8', gc: 'rgba(108,195,232,.55)' },
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+  { name: '沼',         type: '基本土地 — 沼',   a1: '#2a1f3d', a2: '#150f22', pip: '#b48be0', gc: 'rgba(180,139,224,.55)' },
+  { name: '平地',       type: '基本土地 — 平地', a1: '#38331f', a2: '#1c1a10', pip: '#f8e7b9', gc: 'rgba(248,231,185,.5)' },
+  { name: '寺院の庭',   type: '土地 — 森・平地', a1: '#2c3a22', a2: '#16200f', pip: '#f8e7b9', gc: 'rgba(200,225,160,.5)' },
+  { name: '山',         type: '基本土地 — 山',   a1: '#3d231a', a2: '#1e100a', pip: '#ff8c6b', gc: 'rgba(255,140,107,.55)' },
+  { name: '島',         type: '基本土地 — 島',   a1: '#16324a', a2: '#0a1626', pip: '#6cc3e8', gc: 'rgba(108,195,232,.55)' },
+  { name: '森',         type: '基本土地 — 森',   a1: '#1d3a24', a2: '#0c1a10', pip: '#8fd99a', gc: 'rgba(143,217,154,.55)' },
+];
+
+const CRE_POOL = [
+  { name: 'ルーン爪の熊',       type: 'クリーチャー — 熊',                 pips: ['#c7cdd6', '#8fd99a'], a1: '#1d3a24', a2: '#0c1a10', gc: 'rgba(143,217,154,.5)' },
+  { name: '瞬唱の魔道士',       type: 'クリーチャー — 人間・ウィザード',   pips: ['#c7cdd6', '#6cc3e8'], a1: '#16324a', a2: '#0a1626', gc: 'rgba(108,195,232,.5)' },
+  { name: '太陽のタイタン',     type: 'クリーチャー — ジャイアント',       pips: ['#c7cdd6', '#f8e7b9', '#f8e7b9'], a1: '#3a3527', a2: '#1f1c13', gc: 'rgba(248,231,185,.5)' },
+  { name: 'ビースト・トークン', type: 'トークン・クリーチャー — ビースト', pips: ['#8fd99a'], a1: '#24402a', a2: '#101f13', gc: 'rgba(143,217,154,.5)' },
+  { name: '兵士・トークン',     type: 'トークン・クリーチャー — 兵士',     pips: ['#f8e7b9'], a1: '#3a3527', a2: '#1f1c13', gc: 'rgba(248,231,185,.5)' },
+  { name: 'エルフの神秘家',     type: 'クリーチャー — エルフ・ドルイド',   pips: ['#8fd99a'], a1: '#1d3a24', a2: '#0c1a10', gc: 'rgba(143,217,154,.5)' },
+  { name: 'スピリット・トークン', type: 'トークン・クリーチャー — スピリット', pips: ['#c7cdd6'], a1: '#2a3342', a2: '#141a24', gc: 'rgba(199,205,214,.5)' },
+  { name: 'ゾンビ・トークン',   type: 'トークン・クリーチャー — ゾンビ',   pips: ['#b48be0'], a1: '#2a1f3d', a2: '#150f22', gc: 'rgba(180,139,224,.5)' },
+  { name: 'ゴブリン・トークン', type: 'トークン・クリーチャー — ゴブリン', pips: ['#ff8c6b'], a1: '#3d231a', a2: '#1e100a', gc: 'rgba(255,140,107,.5)' },
+  { name: '苗木・トークン',     type: 'トークン・クリーチャー — 苗木',     pips: ['#8fd99a'], a1: '#24402a', a2: '#101f13', gc: 'rgba(143,217,154,.5)' },
+  { name: '鳥・トークン',       type: 'トークン・クリーチャー — 鳥',       pips: ['#6cc3e8'], a1: '#16324a', a2: '#0a1626', gc: 'rgba(108,195,232,.5)' },
+  { name: 'エレメンタル・トークン', type: 'トークン・クリーチャー — エレメンタル', pips: ['#ff8c6b', '#ff8c6b'], a1: '#3d231a', a2: '#1e100a', gc: 'rgba(255,140,107,.5)' },
+  { name: 'スラル・トークン',   type: 'トークン・クリーチャー — スラル',   pips: ['#8fd99a'], a1: '#24402a', a2: '#101f13', gc: 'rgba(143,217,154,.5)' },
+  { name: '手掛かり・トークン', type: 'トークン・アーティファクト — 手掛かり', pips: ['#c7cdd6'], a1: '#2a3342', a2: '#141a24', gc: 'rgba(199,205,214,.5)' },
+];
+
+const CAPTIONS = [
+  '強拍 — 全土地が沈む · 統率者は沈み→3px浮上、金枠が光る',
+  '弱拍 — 奇数番の土地が浮く · 統率者は右へ0.5°',
+  '強拍 — 全土地が弱く沈む · 統率者は2px軽く浮く',
+  '弱拍 — 偶数番の土地が浮く · 統率者は左へ傾き中央へ戻る',
+];
+const CAP_REDUCED = 'reduced-motion — 全静止(世界は静止画として残る)';
+const CAP_PAUSED = '一時停止中 — スペースキーまたは ▶ で再開';
+
+/* ============================================================ DOM 生成 */
+const landRow = $('#landRow');
+const creRow = $('#creRow');
+let landEls = [];
+let creEls = [];
+
+function makePcard(cls, spec, pips) {
+  const el = document.createElement('div');
+  el.className = 'pcard ' + cls;
+  const pipHtml = pips
+    ? '<span class="card__pips">' + pips.map((p) => '<i style="--pip:' + p + '"></i>').join('') + '</span>'
+    : '<span class="card__pip" style="--pip:' + spec.pip + '"></span>';
+  el.innerHTML =
+    '<div class="pcard__glow" style="--gc:' + spec.gc + '"></div>' +
+    '<div class="pcard__move">' +
+      '<div class="card" style="--a1:' + spec.a1 + '; --a2:' + spec.a2 + '">' +
+        '<div class="card__art"></div>' + pipHtml +
+        '<div class="card__name">《' + spec.name + '》</div>' +
+        '<div class="card__type">' + spec.type + '</div>' +
+      '</div>' +
+      '<div class="pcard__bright"></div>' +
+      '<div class="pcard__dark"></div>' +
+    '</div>';
+  return {
+    root: el,
+    move: el.querySelector('.pcard__move'),
+    glow: el.querySelector('.pcard__glow'),
+    bright: el.querySelector('.pcard__bright'),
+    dark: el.querySelector('.pcard__dark'),
+  };
+}
+
+function buildLands() {
+  landRow.innerHTML = '';
+  landEls = [];
+  if (S.stacked) {
+    // 同名土地を束ねる(基本・多色問わず同名なら束)。束 = 1スロット。
+    const groups = [];
+    for (let i = 0; i < S.lands; i += 1) {
+      const spec = LAND_POOL[i % LAND_POOL.length];
+      const existing = groups.find((g) => g.name === spec.name);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        groups.push({ name: spec.name, spec, count: 1 });
+      }
+    }
+    groups.forEach((g) => {
+      const L = makePcard('pcard--land', g.spec, null);
+      L.root.classList.add('is-stack');
+      const topCard = L.move.querySelector('.card');
+      // 実装準拠: index 0 = 先頭(peek 0・最上位z)、後続は peek 6px ずつ・z 降順。
+      const total = Math.min(g.count, 3);  // 描画は最大3枚(peek は min(index,3)×6)
+      const cards = [topCard];
+      for (let u = 1; u < total; u += 1) {
+        const under = topCard.cloneNode(true);
+        under.classList.add('is-under', u === 1 ? 'is-under-a' : 'is-under-b');
+        cards.push(under);
+      }
+      cards.forEach((card, index) => {
+        card.style.setProperty('--land-peek', (Math.min(index, 3) * 6) + 'px');
+        card.style.zIndex = String(total - index);
+        if (index > 0) L.move.appendChild(card);
+      });
+      if (g.count > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'pcard__badge';
+        badge.textContent = '×' + g.count;
+        L.root.appendChild(badge);
+      }
+      landRow.appendChild(L.root);
+      landEls.push(L);
+    });
+  } else {
+    for (let i = 0; i < S.lands; i += 1) {
+      const spec = LAND_POOL[i % LAND_POOL.length];
+      const L = makePcard('pcard--land', spec, null);
+      landRow.appendChild(L.root);
+      landEls.push(L);
+    }
+  }
+  applyTapped();
+}
+
+function buildCreatures() {
+  creRow.innerHTML = '';
+  creEls = [];
+  for (let i = 0; i < S.cres; i += 1) {
+    const spec = CRE_POOL[i % CRE_POOL.length];
+    const C = makePcard('pcard--cre', spec, spec.pips);
+    creRow.appendChild(C.root);
+    creEls.push(C);
+  }
+}
+
+function applyTapped() {
+  landEls.forEach((L, i) => L.root.classList.toggle('is-tapped', S.tappedAlt && i % 3 === 1));
+  document.body.classList.toggle('tapped-on', S.tappedAlt);
+}
+
+/* ---------- 背景の星(決定的配置) */
+(function buildStars() {
+  const host = $('#stars');
+  const TINTS = ['rgba(201,222,245,.9)', 'rgba(159,212,255,.85)', 'rgba(240,207,140,.8)', 'rgba(143,217,154,.7)', 'rgba(233,238,246,.9)'];
+  let seed = 42;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 72; i += 1) {
+    const s = document.createElement('span');
+    s.className = 'star';
+    const sz = 1 + rnd() * 1.7;
+    s.style.cssText =
+      'left:' + (rnd() * 100).toFixed(1) + '%; top:' + (rnd() * 100).toFixed(1) + '%;' +
+      '--sz:' + sz.toFixed(1) + 'px; width:' + sz.toFixed(1) + 'px; height:' + sz.toFixed(1) + 'px;' +
+      '--tint:' + TINTS[i % TINTS.length] + ';' +
+      '--d:' + (1.6 + rnd() * 3.4).toFixed(2) + 's; --dl:' + (-rnd() * 4).toFixed(2) + 's;' +
+      '--o:' + (0.3 + rnd() * 0.55).toFixed(2) + ';';
+    frag.appendChild(s);
+  }
+  host.appendChild(frag);
+})();
+
+/* ---------- スコア(シーケンサー) */
+const SEQ = [
+  { label: '統率者',       cls: 'chip--cmd',  marks: [[0, '沈→浮・金枠'], [1, '右傾'], [2, '浮2px'], [3, '左傾・戻る']] },
+  { label: '土地・全',     cls: 'chip--land', marks: [[0, '沈1px'], [2, '弱沈']] },
+  { label: '土地・奇数番', cls: 'chip--land', marks: [[1, '浮']] },
+  { label: '土地・偶数番', cls: 'chip--land', marks: [[3, '浮']] },
+  { label: 'タップ済',     cls: 'chip--dim',  marks: [[0, '影'], [1, '影'], [2, '影'], [3, '影']] },
+];
+(function buildSequencer() {
+  const labels = $('#seqLabels');
+  const area = $('#seqArea');
+  SEQ.forEach((row) => {
+    const lab = document.createElement('span');
+    lab.textContent = row.label;
+    labels.appendChild(lab);
+    const rowEl = document.createElement('div');
+    rowEl.className = 'seq-row';
+    row.marks.forEach((m) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip ' + row.cls;
+      chip.style.left = 'calc(' + m[0] + ' * 25% + 5px)';
+      chip.textContent = m[1];
+      rowEl.appendChild(chip);
+    });
+    area.appendChild(rowEl);
+  });
+})();
+
+/* ============================================================ 時計 + 描画 */
+const cmdMove = $('#cmdMove'), cmdAura = $('#cmdAura'), cmdFrame = $('#cmdFrame'), cmdShadow = $('#cmdShadow');
+const dots = Array.from($('#dots').children);
+const caption = $('#caption');
+const playhead = $('#playhead');
+const seqFlash = $('#seqFlash');
+
+let phase = 0;                 // 小節内位置 [0,1)
+let last = performance.now();
+let curBeat = -1;
+let rested = false;
+
+const density = () => clamp01((12 - landEls.length) / 6);   // 6スロット以下=full ・ 12スロット=0(影のみ)
+
+function applyRest() {
+  cmdMove.style.transform = 'translateY(0) rotate(0deg)';
+  cmdAura.style.opacity = 0.16;
+  cmdFrame.style.opacity = 0.14;
+  cmdShadow.style.opacity = 0.28;
+  cmdShadow.style.transform = 'translateX(-50%) scaleX(1)';
+  landEls.concat(creEls).forEach((E) => {
+    E.move.style.transform = 'translateY(0)';
+    E.glow.style.opacity = 0.26;
+    E.bright.style.opacity = 0;
+    E.dark.style.opacity = 0;
+  });
+}
+
+function render() {
+  if (S.reduced) {
+    if (!rested) {
+      applyRest();
+      rested = true;
+      dots.forEach((d) => d.classList.remove('is-on'));
+      caption.textContent = CAP_REDUCED;
+    }
+    return;
+  }
+  rested = false;
+
+  const measMs = 240000 / S.bpm;
+  const beat = Math.floor(phase * 4) % 4;
+
+  /* --- 統率者(ソリスト・グリッド直結) --- */
+  const c = sample(CMD, phase);
+  const ca = S.cmdAmp;
+  cmdMove.style.transform = 'translateY(' + (c.y * ca).toFixed(2) + 'px) rotate(' + (c.rot * ca).toFixed(3) + 'deg)';
+  cmdAura.style.opacity = (c.glow * Math.min(ca, 1.2)).toFixed(3);
+  cmdFrame.style.opacity = (c.glow * ca).toFixed(3);
+  cmdShadow.style.opacity = (c.sh * 0.55).toFixed(3);
+  cmdShadow.style.transform = 'translateX(-50%) scaleX(' + (0.72 + c.sh * 0.46).toFixed(3) + ')';
+
+  /* --- 土地(ベースライン・左→右位相オフセット) --- */
+  const amp = S.landAmp * density();
+  landEls.forEach((L, i) => {
+    const off = (i * S.phaseMs) / measMs;
+    const lp = ((phase - off) % 1 + 1) % 1;
+    const v = sample(i % 2 === 0 ? LAND_ODD : LAND_EVEN, lp);
+    const tapped = S.tappedAlt && i % 3 === 1;
+    if (tapped) {
+      /* ミュート: 位置固定・影と明度だけ脈動 */
+      L.move.style.transform = 'translateY(0)';
+      L.glow.style.opacity = (0.10 + v.g * 0.22).toFixed(3);
+      L.bright.style.opacity = 0;
+      L.dark.style.opacity = (v.br * 1.5).toFixed(3);
+    } else {
+      L.move.style.transform = 'translateY(' + (v.y * amp).toFixed(2) + 'px)';
+      L.glow.style.opacity = v.g.toFixed(3);
+      L.bright.style.opacity = (v.br * S.landAmp).toFixed(3);
+      L.dark.style.opacity = 0;
+    }
+  });
+
+  /* --- 非土地パーマネント(土地と同じパターン) --- */
+  creEls.forEach((C, i) => {
+    if (!S.permaSync) {
+      C.move.style.transform = 'translateY(0)';
+      C.glow.style.opacity = 0.22;
+      C.bright.style.opacity = 0;
+      C.dark.style.opacity = 0;
+      return;
+    }
+    const off = (i * S.phaseMs) / measMs;
+    const lp = ((phase - off) % 1 + 1) % 1;
+    const v = sample(i % 2 === 0 ? LAND_ODD : LAND_EVEN, lp);
+    C.move.style.transform = 'translateY(' + (v.y * S.landAmp).toFixed(2) + 'px)';
+    C.glow.style.opacity = v.g.toFixed(3);
+    C.bright.style.opacity = (v.br * S.landAmp).toFixed(3);
+    C.dark.style.opacity = 0;
+  });
+
+  /* --- ビート UI --- */
+  playhead.style.left = (phase * 100).toFixed(2) + '%';
+  if (beat !== curBeat) {
+    curBeat = beat;
+    dots.forEach((d, i) => d.classList.toggle('is-on', i === beat));
+    seqFlash.style.left = (beat * 25) + '%';
+    if (!S.paused) caption.textContent = CAPTIONS[beat];
+  }
+}
+
+function frame(now) {
+  const dt = Math.min(now - last, 100);
+  last = now;
+  if (!S.paused && !S.reduced) {
+    phase = (phase + dt / (240000 / S.bpm)) % 1;
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================ 配線 */
+function updateReadouts() {
+  const beatMs = Math.round(60000 / S.bpm);
+  $('#oBpm').textContent = S.bpm;
+  $('#oLands').textContent = S.lands;
+  $('#oPhase').textContent = S.phaseMs + 'ms/枚';
+  $('#oCamp').textContent = '×' + S.cmdAmp.toFixed(1);
+  $('#oLamp').textContent = '×' + S.landAmp.toFixed(1);
+  $('#oCres').textContent = S.cres;
+  $('#roBeat').textContent = beatMs + 'ms';
+  $('#roMeas').textContent = (beatMs * 4 / 1000).toFixed(2) + 's';
+  const d = density();
+  $('#roDensity').textContent = '×' + d.toFixed(2) + (d < 0.34 ? '(影のみ)' : d < 0.75 ? '(減衰)' : '');
+  $('#roWave').textContent = (S.phaseMs * Math.max(0, landEls.length - 1)) + 'ms';
+  $('#roSlots').textContent = landEls.length + (S.stacked ? '(束)' : '');
+  $('#roNodes').textContent = document.querySelectorAll('.pcard').length + ' cards';
+  document.querySelectorAll('#presets button').forEach((b) => {
+    b.classList.toggle('is-active', Number(b.dataset.bpm) === S.bpm);
+  });
+}
+
+$('#rBpm').addEventListener('input', (e) => { S.bpm = Number(e.target.value); updateReadouts(); });
+$('#rLands').addEventListener('input', (e) => { S.lands = Number(e.target.value); buildLands(); rested = false; updateReadouts(); });
+$('#rCres').addEventListener('input', (e) => { S.cres = Number(e.target.value); buildCreatures(); rested = false; updateReadouts(); });
+$('#tStack').addEventListener('change', (e) => { S.stacked = e.target.checked; buildLands(); rested = false; updateReadouts(); });
+$('#rPhase').addEventListener('input', (e) => { S.phaseMs = Number(e.target.value); updateReadouts(); });
+$('#rCamp').addEventListener('input', (e) => { S.cmdAmp = Number(e.target.value); updateReadouts(); });
+$('#rLamp').addEventListener('input', (e) => { S.landAmp = Number(e.target.value); updateReadouts(); });
+$('#presets').addEventListener('click', (e) => {
+  const bpm = e.target && e.target.dataset && e.target.dataset.bpm;
+  if (!bpm) return;
+  S.bpm = Number(bpm);
+  $('#rBpm').value = S.bpm;
+  updateReadouts();
+});
+
+$('#tPerma').addEventListener('change', (e) => { S.permaSync = e.target.checked; });
+$('#tTap').addEventListener('change', (e) => { S.tappedAlt = e.target.checked; applyTapped(); });
+$('#tReduced').addEventListener('change', (e) => { S.reduced = e.target.checked; });
+$('#tReduced').checked = S.reduced;
+
+const bPause = $('#bPause');
+function setPaused(p) {
+  S.paused = p;
+  bPause.textContent = p ? '▶ 再開' : '⏸ 一時停止';
+  bPause.classList.toggle('is-on', p);
+  if (p) caption.textContent = CAP_PAUSED;
+  else { curBeat = -1; }  // キャプションを次フレームで再同期
+}
+bPause.addEventListener('click', () => setPaused(!S.paused));
+
+const bNotes = $('#bNotes');
+bNotes.addEventListener('click', () => {
+  const on = document.body.classList.toggle('show-notes');
+  bNotes.textContent = on ? '注釈 ON' : '注釈 OFF';
+  bNotes.classList.toggle('is-on', on);
+});
+
+/* スコア操作: クリック/ドラッグでジャンプ */
+const seqArea = $('#seqArea');
+function jumpTo(e) {
+  const r = seqArea.getBoundingClientRect();
+  phase = Math.min(0.999, Math.max(0, (e.clientX - r.left) / r.width));
+  curBeat = -1;
+}
+seqArea.addEventListener('pointerdown', (e) => { jumpTo(e); });
+seqArea.addEventListener('pointermove', (e) => { if (e.buttons & 1) jumpTo(e); });
+
+/* スペースで一時停止 */
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space') return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'BUTTON') return;
+  e.preventDefault();
+  setPaused(!S.paused);
+});
+
+/* ============================================================ 起動 */
+buildLands();
+buildCreatures();
+updateReadouts();
+requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+</script>
+</body>
+</html>

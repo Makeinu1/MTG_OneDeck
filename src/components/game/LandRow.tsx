@@ -18,8 +18,10 @@ import {
 import type { GameController } from './gameController';
 import { isLandCard, type DropTarget } from './dragIntent';
 import { useElementSize } from './adaptiveLaneLayout';
+import { beatDensity } from './presentation/permanentBeat';
+import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentation/presentationTuning';
 
-function Bundle({ controller, bundle }: { controller: GameController; bundle: LandBundle }) {
+function Bundle({ controller, bundle, bundleIndex }: { controller: GameController; bundle: LandBundle; bundleIndex: number }) {
   const multi = bundle.cardIds.length > 1;
   const [expanded, setExpanded] = useState(false);
   return (
@@ -28,6 +30,9 @@ function Bundle({ controller, bundle }: { controller: GameController; bundle: La
       data-testid={`land-bundle-${bundle.key}`}
       data-tapped={bundle.tappedCount > 0}
       data-expanded={expanded}
+      data-beat-index={bundleIndex}
+      {...(bundle.tappedCount > 0 ? { 'data-beat-tapped': '' } : {})}
+      style={{ '--beat-index': bundleIndex } as CSSProperties}
     >
       <div className="land-bundle__cards">
         {bundle.cardIds.map((cardId, index) => (
@@ -152,9 +157,12 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
         } as CSSProperties : undefined}
         onScroll={updateScrollState}
       >
-        <div className="land-row__lands">
-          {bundles.map((bundle) => (
-            <Bundle key={bundle.key} controller={controller} bundle={bundle} />
+        <div
+          className="land-row__lands"
+          style={{ '--beat-density': beatDensity(bundles.length, DEFAULT_AUDIO_VISUAL_TUNING) } as CSSProperties}
+        >
+          {bundles.map((bundle, index) => (
+            <Bundle key={bundle.key} controller={controller} bundle={bundle} bundleIndex={index} />
           ))}
         </div>
       </div>

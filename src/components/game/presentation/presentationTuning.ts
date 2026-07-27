@@ -10,6 +10,20 @@ export interface AudioVisualTuning {
   maxInteractionAudioDelayMs: number;
 }
 
+/** AV5 permanent beat tuning (docs/audio-visual-contract.md §10). */
+export interface PermanentBeatTuning {
+  /** Left-to-right phase offset per slot (ms). 0 = standing wave. */
+  beatWaveStepMs: number;
+  /** Slot count at or below which density = 1.0 (full amplitude). */
+  beatDensityFullSlots: number;
+  /** Slot count at or above which density = 0.0 (shadow only). */
+  beatDensityZeroSlots: number;
+  /** Commander dance amplitude multiplier. */
+  commanderAmpScale: number;
+  /** Land/permanent beat amplitude multiplier. */
+  landAmpScale: number;
+}
+
 export interface CommanderMixTuning {
   duckDb: number;
   attackMs: number;
@@ -17,10 +31,24 @@ export interface CommanderMixTuning {
   releaseMs: number;
 }
 
+/** AV0 frozen constant — do not add fields (review.av0 uses toEqual). */
 export const AUDIO_VISUAL_TUNING: AudioVisualTuning = {
   quantizeStepsPerBeat: 4,
   snapWindowMs: 60,
   maxInteractionAudioDelayMs: 80,
+};
+
+/**
+ * AV5 extended tuning (superset of AudioVisualTuning + PermanentBeatTuning).
+ * Used by beatDensity, LandRow, Board, and review.av5 tests.
+ */
+export const DEFAULT_AUDIO_VISUAL_TUNING: AudioVisualTuning & PermanentBeatTuning = {
+  ...AUDIO_VISUAL_TUNING,
+  beatWaveStepMs: 25,
+  beatDensityFullSlots: 6,
+  beatDensityZeroSlots: 12,
+  commanderAmpScale: 1.0,
+  landAmpScale: 1.0,
 };
 
 export const COMMANDER_MIX_TUNING: CommanderMixTuning = {

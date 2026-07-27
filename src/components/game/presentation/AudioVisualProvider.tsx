@@ -45,6 +45,7 @@ import { setSessionRuntime, clearSessionRuntime, setSessionTransportPositionGett
 import { setSessionSfxVolume } from './audioVisualSession';
 import { DARK_GAME_TRACK } from './trackManifest';
 import { renderAllPatches } from './sfxRenderer';
+import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentationTuning';
 
 const SILENT_POLICY: AudioVisualRuntimePolicy = {
   transportRunning: false,
@@ -238,6 +239,11 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
             '--transport-phase-delay',
             `${timing.phaseDelayMs.toFixed(3)}ms`,
           );
+          root.style.setProperty('--transport-bar-ms', `${timing.barMs.toFixed(3)}ms`);
+          root.style.setProperty(
+            '--transport-bar-phase-delay',
+            `${timing.barPhaseDelayMs.toFixed(3)}ms`,
+          );
           previousBeatMs = timing.beatMs;
         }
       }
@@ -248,6 +254,8 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
       if (root) {
         root.style.removeProperty('--transport-beat-ms');
         root.style.removeProperty('--transport-phase-delay');
+        root.style.removeProperty('--transport-bar-ms');
+        root.style.removeProperty('--transport-bar-phase-delay');
       }
     }
 
@@ -264,6 +272,17 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setSessionSfxVolume(preferences.sfxVolume ?? 80);
   }, [preferences.sfxVolume]);
+
+  // AV5: wire permanent-beat TUNABLEs to CSS custom properties on the game
+  // root (contract §10 "一か所集約"). Independent of transport state — the
+  // permanent beat runs on the fallback clock when transport is not ready.
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('[data-testid="game-screen"]');
+    if (!root) return;
+    root.style.setProperty('--beat-wave-step', `${DEFAULT_AUDIO_VISUAL_TUNING.beatWaveStepMs}ms`);
+    root.style.setProperty('--land-amp', `${DEFAULT_AUDIO_VISUAL_TUNING.landAmpScale}`);
+    root.style.setProperty('--commander-amp', `${DEFAULT_AUDIO_VISUAL_TUNING.commanderAmpScale}`);
+  }, []);
 
   // On unmount: pause and remember position (do NOT dispose).
   useEffect(() => {
