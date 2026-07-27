@@ -2726,32 +2726,6 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   100%  { opacity: 0.25; transform: translateX(-50%) scaleX(1); }
 }
 
-/* --- Application: land bundles (odd index → land-beat-odd, even → land-beat-even) --- */
-:root[data-ambient='on'] .land-bundle[data-beat-index] /* land-beat */ {
-  animation: land-beat-odd var(--bar) linear infinite;
-  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
-  will-change: transform;
-}
-:root[data-ambient='on'] .land-bundle[data-beat-index]:nth-child(even) {
-  animation-name: land-beat-even;
-}
-
-/* --- Application: visual card bundles (non-land permanents, same pattern) --- */
-:root[data-ambient='on'] .visual-card-bundle[data-beat-index] /* land-beat */ {
-  animation: land-beat-odd var(--bar) linear infinite;
-  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
-  will-change: transform;
-}
-:root[data-ambient='on'] .visual-card-bundle[data-beat-index]:nth-child(even) {
-  animation-name: land-beat-even;
-}
-
-/* --- Tap mute: position frozen, opacity pulse only --- */
-:root[data-ambient='on'] .land-bundle[data-beat-tapped],
-:root[data-ambient='on'] .visual-card-bundle[data-beat-tapped] {
-  animation-name: land-beat-muted;
-}
-
 /* --- Application: commander-dance --- */
 :root[data-ambient='on'] .game-card--commander /* commander-dance */ {
   animation: commander-dance var(--bar) linear infinite;
@@ -2802,4 +2776,187 @@ html[data-theme='light'] .game-card--commander,
 html[data-theme='light'] .game-card--commander::after,
 html[data-theme='light'] .game-card--commander::before {
   animation: none !important;
+}
+
+/* ============================================================
+   AV6 — Two-phase rhythm + dance-floor lighting
+   (docs/audio-visual-contract.md §11)
+   Phase: heartbeat (pre-cast) → stamp (landing) → groove (post-cast).
+   ============================================================ */
+
+/* --- Keyframes: land heartbeat (beats 1 & 3 sink, no float) --- */
+@keyframes land-heartbeat {
+  0%   { transform: translateY(0); }
+  10%  { transform: translateY(calc(1px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  25%  { transform: translateY(0); }
+  50%  { transform: translateY(0); }
+  60%  { transform: translateY(calc(0.5px * var(--beat-density, 1) * var(--land-amp, 1))); }
+  75%  { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+/* --- Keyframes: land stamp (one-shot unified stomp) --- */
+@keyframes land-stamp {
+  0%   { transform: translateY(0); }
+  6%   { transform: translateY(calc(var(--stamp-sink, 2.5) * 1px * var(--beat-density, 1))); }
+  14%  { transform: translateY(calc(-1.5px * var(--beat-density, 1))); }
+  25%  { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+/* --- Keyframes: commander idle breathe (opacity only, no transform) --- */
+@keyframes commander-idle-breathe {
+  0%    { opacity: 0.10; }
+  10%   { opacity: var(--commander-idle-peak, 0.35); }
+  25%   { opacity: 0.14; }
+  50%   { opacity: 0.10; }
+  60%   { opacity: calc(var(--commander-idle-peak, 0.35) * 0.63); }
+  75%   { opacity: 0.14; }
+  100%  { opacity: 0.10; }
+}
+
+/* --- Keyframes: light pool heartbeat (beats 1 & 3 breathe) --- */
+@keyframes light-pool-heartbeat {
+  0%    { opacity: var(--light-base, 0.04); }
+  10%   { opacity: var(--light-peak-pre, 0.10); }
+  25%   { opacity: var(--light-base, 0.04); }
+  50%   { opacity: var(--light-base, 0.04); }
+  60%   { opacity: calc(var(--light-peak-pre, 0.10) * 0.7); }
+  75%   { opacity: var(--light-base, 0.04); }
+  100%  { opacity: var(--light-base, 0.04); }
+}
+
+/* --- Keyframes: light pool groove (backbeat emphasis on 2 & 4) --- */
+@keyframes light-pool-groove {
+  0%    { opacity: var(--light-base, 0.04); }
+  10%   { opacity: calc(var(--light-peak-post, 0.22) * 0.6); }
+  25%   { opacity: var(--light-base, 0.04); }
+  36%   { opacity: var(--light-peak-post, 0.22); }
+  50%   { opacity: var(--light-base, 0.04); }
+  60%   { opacity: calc(var(--light-peak-post, 0.22) * 0.5); }
+  75%   { opacity: var(--light-base, 0.04); }
+  86%   { opacity: var(--light-peak-post, 0.22); }
+  100%  { opacity: var(--light-base, 0.04); }
+}
+
+/* --- Keyframes: light pool stamp (one-shot flash) --- */
+@keyframes light-pool-stamp {
+  0%    { opacity: var(--light-base, 0.04); }
+  6%    { opacity: calc(var(--light-peak-post, 0.22) * 1.5); }
+  25%   { opacity: var(--light-peak-post, 0.22); }
+  50%   { opacity: var(--light-base, 0.04); }
+  100%  { opacity: var(--light-base, 0.04); }
+}
+
+/* --- Dance-floor layer (between backdrop z:-1 and board z:1) --- */
+.dance-floor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dance-floor__pool {
+  position: absolute;
+  width: var(--light-pool-size, 55%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--pool-color, var(--gold-bright)) 60%, transparent), transparent 70%);
+  transform: translate(-50%, -50%);
+  opacity: var(--light-base, 0.04);
+  mix-blend-mode: screen;
+  will-change: opacity;
+}
+
+/* --- Phase selectors: HEARTBEAT (commander NOT on battlefield) --- */
+:root[data-ambient='on'] .game-screen:not([data-commander-on-battlefield]) .land-bundle[data-beat-index] /* land-heartbeat */ {
+  animation: land-heartbeat var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: transform;
+}
+:root[data-ambient='on'] .game-screen:not([data-commander-on-battlefield]) .visual-card-bundle[data-beat-index] /* land-heartbeat */ {
+  animation: land-heartbeat var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: transform;
+}
+
+/* --- Phase selectors: GROOVE (commander on battlefield) --- */
+:root[data-ambient='on'] .game-screen[data-commander-on-battlefield] .land-bundle[data-beat-index] /* groove */ {
+  animation: land-beat-odd var(--bar) linear infinite;
+  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
+  will-change: transform;
+}
+:root[data-ambient='on'] .game-screen[data-commander-on-battlefield] .land-bundle[data-beat-index]:nth-child(even) {
+  animation-name: land-beat-even;
+}
+:root[data-ambient='on'] .game-screen[data-commander-on-battlefield] .visual-card-bundle[data-beat-index] /* groove */ {
+  animation: land-beat-odd var(--bar) linear infinite;
+  animation-delay: calc(var(--transport-bar-phase-delay, 0ms) + var(--beat-index, 0) * var(--beat-wave-step, 25ms));
+  will-change: transform;
+}
+:root[data-ambient='on'] .game-screen[data-commander-on-battlefield] .visual-card-bundle[data-beat-index]:nth-child(even) {
+  animation-name: land-beat-even;
+}
+
+/* --- Phase selectors: STAMP (just arrived, one-shot, overrides groove) --- */
+:root[data-ambient='on'] .game-screen[data-just-arrived] .land-bundle[data-beat-index] /* stamp */ {
+  animation: land-stamp var(--bar) linear 1;
+  animation-delay: 0ms;
+}
+:root[data-ambient='on'] .game-screen[data-just-arrived] .visual-card-bundle[data-beat-index] /* stamp */ {
+  animation: land-stamp var(--bar) linear 1;
+  animation-delay: 0ms;
+}
+
+/* --- Tap mute: wins over ALL phases (specificity matched, declared last) --- */
+:root[data-ambient='on'] .game-screen .land-bundle[data-beat-tapped][data-beat-index],
+:root[data-ambient='on'] .game-screen .visual-card-bundle[data-beat-tapped][data-beat-index] {
+  animation-name: land-beat-muted;
+}
+
+/* --- Commander idle breathe (command zone) --- */
+:root[data-ambient='on'] .game-card--commander-idle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  border: 2px solid var(--gold-bright);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--gold-bright) 40%, transparent);
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 9;
+  animation: commander-idle-breathe var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+  will-change: opacity;
+}
+
+/* --- Light pool phase selectors --- */
+:root[data-ambient='on'] .game-screen:not([data-commander-on-battlefield]) .dance-floor__pool /* light-pool heartbeat */ {
+  animation: light-pool-heartbeat var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+}
+:root[data-ambient='on'] .game-screen[data-commander-on-battlefield] .dance-floor__pool /* light-pool groove */ {
+  animation: light-pool-groove var(--bar) linear infinite;
+  animation-delay: var(--transport-bar-phase-delay, 0ms);
+}
+:root[data-ambient='on'] .game-screen[data-just-arrived] .dance-floor__pool /* light-pool stamp */ {
+  animation: light-pool-stamp var(--bar) linear 1;
+  animation-delay: 0ms;
+}
+
+/* AV6: light theme disables dance-floor + commander-idle choreography */
+html[data-theme='light'] .dance-floor__pool,
+html[data-theme='light'] .game-card--commander-idle::after {
+  animation: none !important;
+}
+
+/* AV6: reduced-motion full stop */
+@media (prefers-reduced-motion: reduce) {
+  .land-bundle[data-beat-index],
+  .visual-card-bundle[data-beat-index],
+  .game-card--commander-idle::after,
+  .dance-floor__pool {
+    animation: none !important;
+  }
 }

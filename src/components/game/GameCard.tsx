@@ -149,6 +149,7 @@ export function GameCard({
   }${combatAttacker ? ' game-card--combat-attacker' : ''
   }${combatBlocker ? ' game-card--combat-blocker' : ''
   }${commander && instance.zone === 'battlefield' ? ' game-card--commander' : ''
+  }${commander && instance.zone === 'command' ? ' game-card--commander-idle' : ''
   }`;
 
   function schedulePreview(anchor: CardPreviewAnchor): void {

@@ -17,7 +17,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGameController } from './gameController';
 import { StatusBand } from './StatusBand';
 import { StackBand } from './StackBand';
@@ -33,6 +33,7 @@ import { TriggerSheet } from './TriggerSheet';
 import { PresentationLayer } from './PresentationLayer';
 import { SemanticPresentationLayer } from './presentation/SemanticPresentationLayer';
 import { AmbientBackdrop } from './AmbientBackdrop';
+import { DanceFloorLights } from './DanceFloorLights';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { Toast } from './Toast';
 import type { KeybindingsMap } from '../../data/keybindings';
@@ -45,6 +46,7 @@ import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverl
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import './game.css';
 import { AudioVisualProvider } from './presentation/AudioVisualProvider';
+import { commanderOnBattlefield } from './presentation/twoPhaseBeat';
 
 const ResearchRecorder = import.meta.env.DEV
   ? lazy(async () => {
@@ -127,6 +129,23 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
     setHandWorkspaceOpen(true);
   }
 
+  const cmdOnBattlefield = controller.state ? commanderOnBattlefield(controller.state) : false;
+  const [justArrived, setJustArrived] = useState(false);
+  const prevCmdOnBattlefield = useRef(false);
+
+  useEffect(() => {
+    if (cmdOnBattlefield && !prevCmdOnBattlefield.current) {
+      setJustArrived(true);
+      const barMs = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--transport-bar-ms') || '2800',
+      ) || 2800;
+      const timer = setTimeout(() => setJustArrived(false), barMs);
+      prevCmdOnBattlefield.current = cmdOnBattlefield;
+      return () => clearTimeout(timer);
+    }
+    prevCmdOnBattlefield.current = cmdOnBattlefield;
+  }, [cmdOnBattlefield]);
+
   if (!controller.state) return null;
   const activeDragId = activeDrag?.cardId ?? null;
 
@@ -198,6 +217,8 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         data-drag-active={activeDragId || undefined}
         data-stack-active={controller.state.zones.stack.length > 0 || undefined}
         data-combat={controller.state.phase === 'combat' || undefined}
+        data-commander-on-battlefield={cmdOnBattlefield || undefined}
+        data-just-arrived={justArrived || undefined}
         data-decision-active={controller.decisionFocus ? controller.decisionFocus.kind : undefined}
         data-mulligan-active={controller.mulliganActive || undefined}
       >
@@ -211,6 +232,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         {/* §8a 生きた背景(アンビエント層)。既存 UI は不変——TabletopSurface 直後・
             .game-screen の isolation 内 z-index:-1 に積層し全クロムの下に置く。 */}
         <AmbientBackdrop />
+        <DanceFloorLights controller={controller} />
         {/* 盤面セルの子は Board だけ。相手盤面を兄として差し込むと Board(height:100%)が
             セルからはみ出し、自分の盤面が画面外へ消える(7b2c5c1 の回帰)。
             相手盤面はメニュー「相手盤面を見る」のモーダルで出す=design-vision:80 原則7。 */}

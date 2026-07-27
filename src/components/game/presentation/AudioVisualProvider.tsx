@@ -244,6 +244,12 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
             '--transport-bar-phase-delay',
             `${timing.barPhaseDelayMs.toFixed(3)}ms`,
           );
+          root.style.setProperty('--light-peak-pre', String(DEFAULT_AUDIO_VISUAL_TUNING.lightPeakPre));
+          root.style.setProperty('--light-peak-post', String(DEFAULT_AUDIO_VISUAL_TUNING.lightPeakPost));
+          root.style.setProperty('--light-base', String(DEFAULT_AUDIO_VISUAL_TUNING.lightBase));
+          root.style.setProperty('--commander-idle-peak', String(DEFAULT_AUDIO_VISUAL_TUNING.commanderIdlePeak));
+          root.style.setProperty('--stamp-sink', String(DEFAULT_AUDIO_VISUAL_TUNING.stampSinkPx));
+          root.style.setProperty('--light-pool-size', `${DEFAULT_AUDIO_VISUAL_TUNING.lightPoolSizePct}%`);
           previousBeatMs = timing.beatMs;
         }
       }
@@ -256,6 +262,12 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
         root.style.removeProperty('--transport-phase-delay');
         root.style.removeProperty('--transport-bar-ms');
         root.style.removeProperty('--transport-bar-phase-delay');
+        root.style.removeProperty('--light-peak-pre');
+        root.style.removeProperty('--light-peak-post');
+        root.style.removeProperty('--light-base');
+        root.style.removeProperty('--commander-idle-peak');
+        root.style.removeProperty('--stamp-sink');
+        root.style.removeProperty('--light-pool-size');
       }
     }
 

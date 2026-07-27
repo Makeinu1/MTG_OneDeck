@@ -164,8 +164,9 @@ Arena は対戦ゲーム。本作は**自分のデッキとの対話**——回�
 | AV3 | 通常の手触り | cast/land/turnの一定音・一定視覚 | AV1+AV2 | 10分反復で不快なし |
 | AV4 | 統率者の儀式 | 既存cut-inをキャスト時へ、専用音、BGM duck、nonblocking | AV1+AV2 | generic二重発火なし、ユーザー体感 |
 | AV5 | パーマネント・ビート | 土地=リズム隊(4拍ベースライン)・統率者=ソリスト(4拍ダンス)・非土地同期。ambient motion 拡張(無音) | AV2 | 束ね重ね/高密度/タップミュート、3 viewport性能、H1/H3/H6 |
+| AV6 | 2フェーズリズム+照明 | 心拍(キャスト前)→スタンプ(着地)→フルグルーヴ。ダンスフロア照明(統率者色)。BGM不変 | AV5 | キャスト前完成度、reversible遷移、3 viewport性能、H1/H3/H6 |
 
-AV0〜AV5の詳細とSTOP境界は `docs/audio-visual-contract.md` を正本とする。表だけから推測実装しない。
+AV0〜AV6の詳細とSTOP境界は `docs/audio-visual-contract.md` を正本とする。表だけから推測実装しない。
 
 **スライス規律**: 各スライスは単独で ship 可能(strangler 方式、`docs/ui-architecture-v2.md` §移行戦略)。エンジン(`src/engine/`)と store の公開 API は変更しない(必要になったら spec 変更承認フロー=J2 召喚)。
 

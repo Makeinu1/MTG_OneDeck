@@ -38,17 +38,39 @@ export const AUDIO_VISUAL_TUNING: AudioVisualTuning = {
   maxInteractionAudioDelayMs: 80,
 };
 
+/** AV6 two-phase beat + dance-floor lighting tuning (docs/audio-visual-contract.md §11). */
+export interface TwoPhaseBeatTuning {
+  /** Light pool opacity at peak during heartbeat phase. */
+  lightPeakPre: number;
+  /** Light pool opacity at peak during groove phase. */
+  lightPeakPost: number;
+  /** Light pool base opacity (trough). */
+  lightBase: number;
+  /** Commander idle breathe peak opacity. */
+  commanderIdlePeak: number;
+  /** Stamp sink depth in px. */
+  stampSinkPx: number;
+  /** Light pool size as percentage of viewport. */
+  lightPoolSizePct: number;
+}
+
 /**
- * AV5 extended tuning (superset of AudioVisualTuning + PermanentBeatTuning).
- * Used by beatDensity, LandRow, Board, and review.av5 tests.
+ * AV5+AV6 extended tuning (superset of AudioVisualTuning + PermanentBeatTuning + TwoPhaseBeatTuning).
+ * Used by beatDensity, LandRow, Board, and review.av5/av6 tests.
  */
-export const DEFAULT_AUDIO_VISUAL_TUNING: AudioVisualTuning & PermanentBeatTuning = {
+export const DEFAULT_AUDIO_VISUAL_TUNING: AudioVisualTuning & PermanentBeatTuning & TwoPhaseBeatTuning = {
   ...AUDIO_VISUAL_TUNING,
   beatWaveStepMs: 25,
   beatDensityFullSlots: 6,
   beatDensityZeroSlots: 12,
   commanderAmpScale: 1.0,
   landAmpScale: 1.0,
+  lightPeakPre: 0.10,
+  lightPeakPost: 0.22,
+  lightBase: 0.04,
+  commanderIdlePeak: 0.35,
+  stampSinkPx: 2.5,
+  lightPoolSizePct: 55,
 };
 
 export const COMMANDER_MIX_TUNING: CommanderMixTuning = {

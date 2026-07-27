@@ -498,3 +498,97 @@ interface AudioVisualTuning {
 - 戦闘・スタック・連鎖で強度を変える。
 - 個別トグルの追加(既存 `data-ambient` を再利用)。
 - ライトテーマでの演出(ダークのみ)。
+
+## 11. 2フェーズリズム + ダンスフロア照明(AV6・2026-07-28 ユーザー裁定)
+
+> 統率者キャストは「リーチ」の瞬間である。世界の手触りが変わる。
+> しかしキャスト前も完成した編成でなければならない——待ち部屋ではない。
+
+本節は §10(パーマネント・アンビエントビート)の拡張であり、ambient motion の再構成である。
+
+### 分類と非目標
+
+- `PresentationEvent.kind` の追加は**ない**。音は**ない**。BGM・BPM・フィルタは**一切不変**(聖域)。
+- §2/§3/§4/§7/§8a を継承。§1 の MUST NOT をそのまま適用。
+- 戦闘・スタック・連鎖で強度を変えない。
+
+### ゲート
+
+- 既存の「背景モーション」トグル(`:root[data-ambient='on']`)で制御。個別トグルは追加しない。
+- `prefers-reduced-motion: reduce` で全静止。
+- transport 非 ready 時は `--ambient-beat`(700ms)×4 = 2800ms を小節周期の fallback。
+- ダークテーマのゲーム画面でのみ可視(ライトテーマでは実効無演出)。
+
+### フェーズ定義
+
+フェーズは「統率者が今戦場にいるか」という GameState の事実から導出する。
+
+| フェーズ | 条件 | 土地・パーマネント | 統率者 | 照明 |
+|---|---|---|---|---|
+| 心拍(Heartbeat) | 統率者が戦場にいない | 拍1・3で全員ユニゾンに沈む(浮上無し・バックビート無し) | 統率領域で金枠が呼吸(opacity のみ) | 拍1・3で呼吸(peak-pre) |
+| スタンプ(Stamp) | 戦場着地の瞬間から1小節 | 全スロットが位相0で拍1を同時にスタンプ(1回再生) | 着地と同時にスタンプ | 一拍だけ閃いて減衰(1回再生) |
+| フルグルーヴ(Groove) | 統率者が戦場にいる(スタンプ後) | §10 の奇偶ウェーブ+拍2・4バックビート | §10 のダンス | 拍2・4強調(peak-post) |
+
+- フェーズは reversible: 統率者の死亡/バウンス/追放で心拍に戻る。カウンターされたらグルーヴは解放されない。
+- 「パーマネント増加で盤面が賑わう」は §10 の密度減衰(可読性維持)と「スロット増=踊り手増」の両立で実現。新規軸は追加しない。
+
+### スタンプ(着地演出)
+
+- 統率者の戦場着地(false→true の反転)を検知して発火。次の拍1を待たない(イベントへの即時反応)。
+- `data-just-arrived` 属性を `.game-screen` に付与し、1小節後(`--transport-bar-ms` を computed style から読み取り・fallback 2800ms)に解除。
+- イベント駆動の1回きり。毎フレームループは禁止。
+- 全スロットが `animation-delay: 0ms` で同時発火(位相オフセット0=バンド全員で入る)。
+
+### 統率者の_idle_呼吸(キャスト前)
+
+- 統率領域(`zone === 'command'`)にいる統率者に `game-card--commander-idle` クラスを付与。
+- 金枠の opacity だけが拍1・3で脈動(transform は無し)。ソリストが舞台袖で息をしている。
+- 戦場では既存 `game-card--commander`(§10 ダンス)が適用される。
+
+### ダンスフロア照明
+
+- `AmbientBackdrop` の兄弟レイヤ(`.dance-floor`)として描画。z-index: 0(backdrop=-1 と board=1 の間=カードの背後・卓の上)。
+- プール数 = 全統率者の `colorIdentity` の和集合(WUBRG 順・dedupe・上限5)。無色なら金1灯(`--gold-bright`)。
+- 各プールは `--pool-color: var(--mana-X)` を inline style で持つ(トークン参照のみ・生カラー禁止)。
+- 配置: N個を盤面横幅に均等分散(`left: ((i+0.5)/N)*100%`・上下は交互に 40%/60%)。
+- `mix-blend-mode: screen`(光の加算合成)。M-AV4 性能ゲートを超える場合は通常合成+opacity 微増に退避。
+- 移動/走査はしない。「光のプール」の脈動のみ(盤面可読性・性能のため)。
+- キーフレーム:
+  - `light-pool-heartbeat`: 拍1・3で呼吸(`--light-peak-pre`)。
+  - `light-pool-groove`: 拍2・4を最も明るく(`--light-peak-post`)・拍1は60%・拍3は50%。
+  - `light-pool-stamp`: 着地で peak-post×1.5 に閃いて減衰(1回再生)。
+
+### 実装方式
+
+- **純粋 CSS アニメーション**(transform/opacity のみ)。JS ループ・React state(スタンプ検出の1回きり useEffect を除く)・毎フレームの DOM 操作は使わない。
+- 小節周期 = `--bar: var(--transport-bar-ms, calc(var(--ambient-beat) * 4))`。
+- 小節位相 = `--transport-bar-phase-delay`(AudioVisualProvider が 250ms interval で更新)。
+- フェーズ選択子は `.game-screen[data-commander-on-battlefield]` / `:not(...)` / `[data-just-arrived]` で制御。
+- タップミュートは全フェーズで勝つ(specificity を揃え・最後に記載)。
+- カード1枚あたり疑似要素/追加要素は最大3枚(glow + bright/dark overlay + commander shadow)。
+- `will-change: transform, opacity` はアニメーション対象要素のみに付与。
+
+### TUNABLE(一か所集約 = `presentationTuning.ts`)
+
+```ts
+interface AudioVisualTuning {
+  // ... 既存フィールド(AV5) ...
+  lightPeakPre: number;          // initial: 0.10
+  lightPeakPost: number;         // initial: 0.22
+  lightBase: number;             // initial: 0.04
+  commanderIdlePeak: number;     // initial: 0.35
+  stampSinkPx: number;           // initial: 2.5
+  lightPoolSizePct: number;      // initial: 55
+}
+```
+
+### STOP 条件(実装者が越えてはならない)
+
+- 音の追加(本節は無音)。
+- `PresentationEvent.kind` の追加。
+- BGM・BPM・フィルタの変更(聖域)。
+- 戦闘・スタック・連鎖で強度を変える。
+- 個別トグルの追加(既存 `data-ambient` を再利用)。
+- ライトテーマでの演出(ダークのみ)。
+- 毎フレームの JS ループ。
+- 照明の移動/走査(脈動のみ)。
