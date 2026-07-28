@@ -1920,7 +1920,7 @@
       ],
       "lane": "late-backbone",
       "edhValue": "high",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-602-activated-abilities"
@@ -1930,11 +1930,16 @@
         "activationEnvelope",
         "turnActivationHistory"
       ],
-      "boundary": "忠誠度cost・sorcery timing・permanentごとの1ターン1回を構造化する。",
-      "evidence": [],
+      "boundary": "CR606.2/606.3/606.4/606.6の忠誠度cost、忠誠度不足block、permanentごとの1ターン1回を構造化して出荷済み。sorcery timingの強制はsandbox方針に従い将来の警告へdefer。",
+      "evidence": [
+        "src/store/__tests__/review.cr606-loyalty-activation.test.ts",
+        "docs/engine-spec.md §33.11",
+        "docs/acceptance.md G7"
+      ],
       "manualBoundary": "3条件を完全に検証できない忠誠度能力を一般CR602起動として自動支払いしない。",
-      "nextGate": "CR605選択UI出荷後のCR606 slice。",
-      "judge": "deterministic-cr"
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
+      "judge": "deterministic-cr",
+      "note": "出荷完了(2026-07-25・判定者=Codex・冷監査=Nash 019f967a)。plannedSequenceだけがshippedでdomainsがpendingのまま残ったstale statusをM-OPS-TOKEN-EFFICIENCYで再整合した。"
     },
     {
       "id": "cr-609-one-shot-mass",

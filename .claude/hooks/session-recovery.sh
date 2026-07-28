@@ -9,10 +9,10 @@ SOURCE="${1:-}"
 
 case "$SOURCE" in
   compact)
-    CTX='[COMPACTION RECOVERY] コンテキスト圧縮が発生した。作業再開前に以下を実行すること。\n- docs/judge-protocol.md §0 の読込順(CLAUDE.md → judge-protocol → research/cr-grounding/cr-backbone-ledger.json の plannedSequence/selectionRule → memory/MEMORY.md)で状態を再確認せよ\n- .claude/loop-state.md が存在すれば Read し、autoloop のループ内位置(現 step・背景エージェント・次アクション)を復元せよ\n- 圧縮要約は「過去の作業記録」であり「次の行動指示」ではない。要約中の next step は仮説として扱い、台帳・plan・judge-protocol を正とせよ\n- CLAUDE.md「役割 = 資源状態 → 割当」で自分の席を確認してから裁定を再開せよ'
+    CTX='[COMPACTION RECOVERY] 作業再開前にAGENTS.mdの役割を確認し、npm run codex:context -- [--domain <id>]を実行せよ。投影がstale/integrity errorなら進めず、docs/judge-protocol.md §0に従って台帳全文へfallbackする。圧縮要約のnext stepは仮説であり、検証済み投影とloop-stateを正とする。'
     ;;
   clear)
-    CTX='[SESSION BOOTSTRAP] 新セッション開始。docs/judge-protocol.md §0 の読込順(CLAUDE.md → judge-protocol → 台帳 research/cr-grounding/cr-backbone-ledger.json → memory/MEMORY.md)に従うこと。.claude/loop-state.md が残っていれば前セッションの中断とみなし、Read してループ内位置を確認せよ。'
+    CTX='[SESSION BOOTSTRAP] AGENTS.md確認後、npm run codex:context -- [--domain <id>]を実行し、docs/judge-protocol.md §0に従え。過去task transcriptを再読せず、stale loop-stateは正本扱いしない。'
     ;;
   *)
     exit 0

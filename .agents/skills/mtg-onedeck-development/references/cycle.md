@@ -6,18 +6,18 @@
 - **Implementer**: change implementation and ordinary tests only; provide exact verification evidence and honest deferrals; do not use git or edit protected judge-owned files.
 - **Cold auditor**: start without implementation reasoning, compare the frozen change with the contract, CR, real Oracle fixtures, and machine checks; return findings only.
 
-All three roles may use ChatGPT. Claude may advise but is never a release gate.
+各席は利用可能なモデルを能力で選ぶ。モデル名をrelease gateや統治へ固定しない。
 
 ## Milestone sequence
 
-1. Resolve fake-green, broken automation, and unaudited implementation before adding coverage; otherwise select the earliest eligible in-scope CR section.
+1. Run `npm run codex:context -- [--domain <id>]`. Resolve integrity errors, fake-green, broken automation, and unaudited implementation before adding coverage; otherwise select its unique eligible CR section.
 2. Verify normal Commander reachability and relevant English Oracle text before designing a parser or state substrate. Use MyDeck cards as strong acceptance fixtures and same-CR tie-breaks, not as permission to skip earlier CR sections.
 3. Freeze public types, state transitions, failure behavior, CR references, and golden cases before implementation.
-4. Give the implementer a narrow brief containing only milestone-specific scope, boundaries, and acceptance cases.
+4. Give one `fork_context: false` implementer a narrow brief path containing only milestone-specific scope, boundaries, and acceptance cases. Reuse that agent for at most two corrections; do not spawn generic explorers by default.
 5. Iterate with targeted tests. Do not run or rewrite judge-owned review tests to manufacture green.
-6. Freeze the tree. Run the full machine check and UI evidence once.
-7. Give the frozen artifact to a cold auditor. Classify each finding as implementation, compiler, substrate, contract, or ambiguity before changing anything.
-8. Re-run only the checks invalidated by a correction, then perform the final full check and ship from the judge lane.
+6. Freeze the tree. Run the full machine check and UI evidence once, and record the exact tree fingerprint.
+7. Give only the audit brief path to one `fork_context: false` cold auditor. A same-fingerprint full-check record may be reused; the auditor still runs targeted review/adversarial evidence. Classify each finding as implementation, compiler, substrate, contract, or ambiguity before changing anything.
+8. Re-run only checks invalidated by a correction, then perform at most one final full check and ship from the judge lane. Reset loop-state, archive the packet, and end the task.
 
 ## Automation priority
 

@@ -4,7 +4,7 @@
 
 ## 0. 判断が来たら最初にやること(コールドスタート手順)
 
-新しい判定者セッションの読込順(**本節が読込順の唯一の正本**): `AGENTS.md`(Codex CLI が自動読込) → 本文書 → 台帳 `research/cr-grounding/cr-backbone-ledger.json`(plannedSequence / selectionRule / judgePolicy。履歴の深掘りが要るときだけ `cr-backbone-ledger-history.json`)→ `.agents/skills/mtg-onedeck-development/references/`(cycle / token-economy / codex-autoloop)。**圧縮(auto-compact)後の復旧にも同じ読込順を適用**し、`.claude/loop-state.md` が存在すればループ内位置(autoloop の現 step・背景作業)の正とする(gitignore 対象ゆえ存在しないことがある。その場合は台帳と skill references から再構築)。その上で:
+新しい判定者セッションの読込順（**本節が唯一の正本**）: `AGENTS.md`（自動読込）→ `npm run codex:context -- [--domain <id>]` の検証済み投影 → 本文書の該当節 → `.agents/skills/mtg-onedeck-development/references/{cycle,token-economy}.md`。投影は台帳SHA、健全性、選定domain、依存、`.claude/loop-state.md`整合性だけを返す。通常はこの投影を使い、**台帳全文**を読むのは次の場合だけとする: コマンドがintegrity error/真の同点を返した、scope/北極星/契約原則を変える、履歴上の裁定を再確認する、または指定domainが投影不能。履歴は必要時だけ`cr-backbone-ledger-history.json`を読む。圧縮後も同じ順で復旧し、staleと判定されたloop-stateや圧縮要約のnext stepを正本扱いしない。その上で:
 
 1. その判断は**決定論的か**? → §1 の3問テスト
 2. 決定論的 → **CR を引いて終了**(条番号を成果物に併記)。prompt 再走・再考・多数決をしない

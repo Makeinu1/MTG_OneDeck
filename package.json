@@ -34,6 +34,8 @@
     "test": "vitest run",
     "check": "node scripts/checks/machine-checks.mjs",
     "check:forbidden": "node scripts/checks/forbidden-files.mjs",
+    "codex:usage": "node scripts/codex-usage.mjs",
+    "codex:context": "node scripts/codex-context.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

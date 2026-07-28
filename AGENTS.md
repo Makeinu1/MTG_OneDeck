@@ -1,139 +1,104 @@
-# MTG_OneDeck 開発統治(モデル非依存の正本・常設)
+# MTG_OneDeck 開発統治（モデル非依存の正本）
 
-統率者戦(EDH)一人回しWebアプリ。React + TypeScript + Vite のサーバーレスSPA。
-正体は二重: **自分のデッキで遊び「理解と発見の快感」を得る道具**であると同時に、**MTG総合ルール(CR)を検査可能な GameState と可逆な GameCommand 列へ落とし込み、oracle 文を段階的にコンパイルしていく実験場**(北極星②③の対象)。
-カードデータは Scryfall API(日本語版優先・IndexedDBキャッシュ)。公開先: https://makeinu1.github.io/MTG_OneDeck/ (main への push で GitHub Actions が test→build→Pages デプロイ)。
+統率者戦（EDH）一人回しWebアプリ。React + TypeScript + Vite のサーバーレスSPA。
+目的は二つある。自分のデッキで遊び「理解と発見の快感」を得ること、そしてMTG総合ルール（CR）を検査可能な`GameState`と可逆な`GameCommand`列へ落とし、英語Oracle文を段階的にコンパイルすること。
+カードデータはScryfall API（日本語版優先・IndexedDB cache）、公開先は https://makeinu1.github.io/MTG_OneDeck/ 。
 
-> **このファイルが統治の正本**。ChatGPT/Codex は起動時に本ファイルを読む。手順の詳細は各正本へ委譲し**散文で再定義しない**。`CLAUDE.md` は Claude を使う場合の互換入口で、本ファイルを参照するだけ(独自の優先順位・モデル表・復帰待ち条件を持たない)。
+> 本ファイルが常設統治の正本。詳細手順は下記の各正本へ委譲し、ここで再定義しない。`CLAUDE.md`は歴史的な互換入口にすぎない。
 
-## 統治の読み方(単一正本の地図)
+## 正本の地図
 
-- 裁定準則・優先度式・コールドスタート読込順 = `docs/judge-protocol.md`(読込順の正本は §0)
-- 反復ワークフロー = `.agents/skills/mtg-onedeck-development/`(SKILL.md + references/{cycle,token-economy}.md)。`.claude/commands/{milestone,audit,ship,autoloop}.md` は同 Skill への薄い互換参照(STOP条件・委譲規律の正本 = autoloop.md、/ship 手順の正本 = ship.md)。
-- Tier-1 監査の常設規約 = `.claude/audit-standing.md`
-- スライス状態・次スライス = `research/cr-grounding/cr-backbone-ledger.json`(退避済み履歴 = 同 `cr-backbone-ledger-history.json`)
-- 機械チェック = `npm run check` / 禁止ファイル走査 = `npm run check:forbidden`(`scripts/checks/` が正本。散文で再定義しない)
-- M0(モデリング・サイクル)の分担・相関遮断 = `docs/engine-design-method.md` §7–8
+- 裁定・優先度・コールドスタート: `docs/judge-protocol.md`
+- 反復手順・役割別cycle・token economy: `.agents/skills/mtg-onedeck-development/`
+- Tier-1監査: `.claude/audit-standing.md`
+- 状態と次スライス: `research/cr-grounding/cr-backbone-ledger.json`（履歴は同`-history.json`）
+- エンジン契約: `docs/engine-spec.md`、受け入れ: `docs/acceptance.md`
+- 音響・演出契約: `docs/audio-visual-contract.md`
+- 機械チェック: `npm run check`、禁止ファイル走査: `npm run check:forbidden`
+- M0の分担・相関遮断: `docs/engine-design-method.md` §7–8
 
-## 役割 = 能力で定義(モデル名でなく席で。ChatGPT だけで完結できる)
+## 役割と品質境界
 
-プロジェクトは3席で回る。**どの席も Codex(qwen3.8-max-preview 経由)で担当可**。Claude は解約済み(2026-07-22)——歴史的互換として `CLAUDE.md` は残すが、監査・助言・green のいずれにも使わない:
+役割はモデル名でなく能力で定義する。
 
-- **判定者(judge / orchestrator)**: 契約(spec)の承認・CR 裁定・`review.*`・台帳・`docs/`・git commit/push/出荷を所有。決定・再オーナー化を保持する。
-- **実装者(implementer)**: ソースと通常テスト・機械チェック・契約や決定論的判断の**草稿**を担う。git・`review.*`・統治ファイルは触らない(下記不可侵)。
-- **冷監査者(cold auditor)**: 実装文脈を持たない別セッション。**findings only** で監査し、契約・盤面を変えない。
+- **判定者（judge/orchestrator）**: 契約承認、CR裁定、`review.*`、台帳、`docs/`、git、出荷を所有する。
+- **実装者（implementer）**: ソース、通常テスト、機械作業、契約草稿を担う。判定者専有物とgitを触らない。
+- **冷監査者（cold auditor）**: 実装文脈を持たず、凍結成果物を敵対的に監査してfindingsだけを返す。
 
-**相関遮断は全状態で不変の要石**: 実装者と受け入れ基準の作者・監査者が同一だと循環(ゴールポストが動く)。ゆえに凍結・信頼・最終コミットの前に必ず**実装文脈を持たない別主体による独立監査を1回**通す。**同一セッションが判定と実装を兼ねた場合は、実装文脈を持たない別主体が監査するまで `implemented-not-audited` とし正式出荷しない**(fake-green 禁止——通らない条件を通ったことにするより FROZEN 撤回を維持して正直に報告する方が正しい・M-CR-RECONCILE の precedent)。
+実装者と受け入れ基準作者・監査者を同一にしない。実装と判定を同じタスクで行った場合も、別主体の冷監査までは`implemented-not-audited`であり、正式出荷しない。別主体は次のいずれかとする。
 
-**「別主体」の満たし方(2026-07-22 明文化・precedent=Wave 0-2 冷監査 Gibbs)**: 以下のいずれかで「実装文脈を持たない別主体」を満たす:
-- **サブエージェント(`fork_context: false`)**: 親セッションの会話履歴を継承しないサブエージェントを spawn し、監査ブリーフ(ファイル)だけ渡す。親はブリーフに実装の正当化を書かない(「この domain は shipped 相当か確認して」ではなく「この status 主張を敵対的に検証せよ」と書く)。findings は親が裁定するが、findings の生成自体は親の文脈から独立している。
-- **別 Codex タスク**: 完全に別のタスク/セッションで、監査ブリーフのファイルパスだけ渡して実行する。
-- いずれの場合も、監査者は**ファイルの編集禁止・findings only**。親セッションが findings を裁定し、HIGH 以上は修正後に再昇格する。
+- `fork_context: false`のサブエージェントへ、実装理由を含まない監査ブリーフのパスだけ渡す。
+- 実装履歴を持たない別Codexタスクへ、同じブリーフのパスだけ渡す。
 
-**shipped 昇格の機械的条件(2026-07-22 裁定強化・precedent=Wave 0-2 冷監査スキップ事故)**: 台帳 domain の status を `shipped` へ昇格するには、以下の**全て**が揃っていなければならない。1つでも欠ければ `shipped` への書換は fake-green として差し戻す:
-1. 冷監査(実装文脈を持たない別セッション)が findings only で通過し、BLOCKER/HIGH = 0 であること
-2. 冷監査の findings 記録が台帳 note か `research/cr-grounding/archive/` に存在すること
-3. `npm run check` 全緑であること
-4. 該当 domain の evidence(review.* / golden)が緑であること
-5. 判定者が commit メッセージに冷監査のセッション識別子を記載すること
+冷監査者はファイルを編集しない。判定者がfindingsを裁定し、BLOCKER/HIGH = 0になるまで昇格しない。statusを`shipped`へ上げる条件は全て必須:
 
-**例外なし**: 「コード変更がない」「メタデータのみ」「既存テストが緑」は冷監査スキップの正当化にならない。status 昇格自体が「この domain は完了した」という主張であり、その主張の正当性は実装者と同じセッションが検証してはならない(相関遮断)。
+1. 独立冷監査がBLOCKER/HIGH 0。
+2. findings記録が台帳noteまたは`research/cr-grounding/archive/`に存在。
+3. `npm run check`が全緑。
+4. 該当`review.*` / golden evidenceが緑。
+5. commitメッセージに冷監査の識別子を記載。
 
-## 1セッション完結の監査ループ(2026-07-22 確立)
+「コード変更なし」「メタデータのみ」「既存テスト緑」は冷監査省略理由にならない。詳細な監査ループとprecedentはSkillおよび`research/cr-grounding/archive/governance/`を参照する。
 
-判定者セッション内で実装→監査→ship を完結させる標準手順。サブエージェントの `fork_context: false` により、1セッション内で相関遮断を満たす。
+## 1タスク=1マイルストーン
 
-1. **判定者**: 実装・evidence テスト確認・台帳更新を行う
-2. **判定者**: 監査ブリーフを `research/cr-grounding/<key>-cold-audit-brief.draft.md` に書く。ブリーフには以下を含める:
-   - 監査対象(domain id・claimed status・evidence テスト一覧)
-   - 監査手順(テスト実行・boundary 検証・spot-check・adversarial check)
-   - 出力形式(domain ごとに verdict: SHIPPED-OK / BLOCKER / HIGH / MEDIUM / LOW)
-   - 制約(ファイル編集禁止・findings only・CR 参照先)
-   - **禁止**: 「shipped 相当か確認して」等の確認バイアスを誘発する文言。代わりに「status 主張を敵対的に検証せよ」と書く
-3. **判定者**: サブエージェントを `fork_context: false` で spawn し、ブリーフのファイルパスだけ渡す
-4. **冷監査者(サブエージェント)**: ブリーフを読み、テスト実行・boundary 検証・spot-check・adversarial check を実施。findings を返却
-5. **判定者**: findings を裁定する:
-   - SHIPPED-OK → shipped 昇格
-   - MEDIUM → boundary/note 修正後に shipped 昇格(修正内容を note に記載)
-   - HIGH → boundary/note 修正後に shipped 昇格(修正必須・修正内容を note に記載)
-   - BLOCKER → shipped 不可。実装修正→再監査
-6. **判定者**: commit メッセージに冷監査のセッション識別子(agent id)を記載し、push
+- 新しいトップレベルタスクにはmilestone ID、base SHA、ブリーフパス、Goal、Constraints、Done whenだけを渡す。過去タスク全文やReferenced chatを引き継がない。
+- 通常の上限は実装者1名と冷監査者1名。両者とも`fork_context: false`。一般探索だけのサブエージェントは作らず、独立読取は同一`functions.exec`内でbatch化する。
+- 修正は同じ実装者へ返し最大2回。2連敗し、判定者の有界な外科修正でも閉じられなければSTOPする。
+- UI・音・演出は専用worktree/dev fixtureの試作タスクと本実装タスクを分離し、人間承認した値とscreenshotを凍結してから新しい本実装タスクを始める。
+- 実装中の追加要望は、現受け入れ条件の失敗または致命回帰だけ割り込ませる。それ以外は台帳へ短く記録して次タスクへ送る。
+- 実装中は対象テストだけを回す。tree凍結後にフル`npm run check`を1回、監査修正時だけ無効化された対象テストと最終フルcheckを再実行する（上限2回）。
+- ship時に`.claude/loop-state.md`を`milestone: complete`へ戻し、完了packetをarchiveしてタスクを終了する。
 
-**ループの自動化**: 複数 domain の一括監査は、ブリーフに全 domain を列挙し、サブエージェント1回で全 domain の findings を返却させる。判定者は findings を一括裁定して1 commit にまとめる。
+## 不可侵
 
-**precedent**: Wave 0-2(2026-07-22・冷監査 Gibbs `019f86f2`)。13 domain 監査で 2 HIGH(boundary stale: cr-106-mana の 605.1b 実装済み未反映・cr-506-510-combat の trample 実装済み未反映)+ 2 MEDIUM(boundary stale + evidence 借用)を捕捉。実装者と同じセッションでは自己矛盾に気づけないことを実証。
+- 実装者はgit操作（add/commit/push/branch/stash）禁止。
+- 実装者は`review.*`を名に含むテストを変更しない。落ちたら実装を直す。
+- 実装者は`AGENTS.md`、`CLAUDE.md`、`eslint.config.js`、`CACHE_SCHEMA_VERSION`、`docs/`、台帳、`docs/judge-protocol.md`を変更しない。
+- 判定者在席時の草稿先は`research/cr-grounding/*.draft`。契約=`<key>.draft.md`、順序候補=`planned-sequence-batch*.draft.md`、台帳提案=`ledger-update.draft.json`。
+- 決定論的CR裁定は固定CRを引いて終了し、prompt再走・多数決をしない。
+- 北極星・契約原則の変更、依存追加/更新、データ削除、通常Pages push以外の外部書込、秘密情報はユーザー裁定。
 
-**現在値**(割当更新はこの行だけ編集): 判定者・実装者・冷監査者すべて **Codex(qwen3.8-max-preview 経由)** で担当可。親セッション=判定者、サブエージェント(`fork_context: false`)=実装者または冷監査者。冷監査は上記「1セッション完結の監査ループ」で回す。`CLAUDE.md` は歴史的互換のみ(Claude 解約済み・2026-07-22)。反復手順の正本 = `.agents/skills/mtg-onedeck-development/`。
+## 自律境界
 
-**原則**(全席共通):
-- **トークン経済**: 高能力モデルのトークンは「判断」(裁定・承認・go/no-go)にだけ使い、機械化できるもの(実装・草稿・計測・機械チェック)は全部実装者・サブタスク・スクリプトへ寄せる。判定者が raw ソース精読・diff 行読み・契約/テスト初稿の自筆をしたら委譲漏れのシグナル(正本 = token-economy.md)。
-- **助言≠決定**: 照合に還元できない生の分析(アーキ・真に曖昧な CR 解釈・spec 変更)は別の冷たいセッションへ助言照会してよい。ただし助言者は盤面・契約・`docs/`・`review.*` を変えず、決定・commit・再オーナー化は判定者が保持する。
-- 判定の大半は外部権威(CR 真理テーブル・`review.*`・機械チェック・非LLM物差し)への**照合**に還元済みで判定者の地力に依存しない。照合に還元できない判断は `docs/judge-protocol.md` の lookup へ、それでも確信が持てなければ STOP→ユーザー。
-- 契約(spec)の初稿・決定論的判断の**草稿**は実装者に書かせてよい(根拠 CR 条番号併記・自分のレーン `research/cr-grounding/*.draft` へ)。`docs/`・`review.*` への反映と commit は判定者。
-- **例外**: 監査中に見つけた数行規模の外科的修正のみ、判定者が直接行ってよい。
+STOPしてユーザーに聞くのは4類だけ:
 
-## 不可侵(常時・違反は監査で差し戻し。機械検出 = `npm run check:forbidden`)
+1. 優先度式でも解けないロードマップ上の真の価値判断。
+2. CRで一意に解けない真の曖昧。
+3. 北極星/契約原則変更または不可逆・通常Pages pushを超える外部書込。
+4. 実装者2連敗かつ有界な外科修正で閉じられない。
 
-- **実装者は git 操作禁止**(add/commit/push/branch/stash すべて。コミットは監査合格後に判定者が行う)。
-- **実装者は `review.*` を名に含むテストを変更しない**(判定者専有。これが落ちたら実装側のコードを直す)。
-- **実装者は `CLAUDE.md`・`AGENTS.md`(本ファイル)・`eslint.config.js`・`CACHE_SCHEMA_VERSION` を変更しない**。判定者在席時は `docs/` の直接変更も禁止(草稿は `research/cr-grounding/*.draft` へ・根拠 CR 条番号併記)。
-  - 草稿レーンの定型: 契約草稿=`<key>.draft.md` / plannedSequence 補充候補=`planned-sequence-batch*.draft.md`(CR 条番号+通常Commander/EDHのscope判定+依存関係必須・MyDeck実プレイは受け入れfixture/同CR順位のtie-breakとして記録・順序の最終判断はしない)/ 台帳更新の提案=`ledger-update.draft.json`(台帳本体は触らない)。
-- 台帳 `research/cr-grounding/cr-backbone-ledger.json` と `docs/judge-protocol.md` は判定者専有(実装者は読み参照のみ)。
-- 凍結・信頼・最終コミットの前に必ず**独立監査を1回**通す(上記の要石)。
-- ルールが一意に答える決定論的 CR 裁定は **CR を引いて終了**する(prompt 再走・多数決で希少トークンを浪費しない)。
-- **北極星・契約原則の変更、不可逆な外部書込(依存追加/更新・データ削除・外部API書込・秘密)はユーザー裁定**。
+公開・外部送信・戻せない決定は確認が既定。例外は`/ship`で、監査合格と全check緑を認可としてpush、CI、Pages確認まで自走してよい。手順は`.claude/commands/ship.md`を参照する。
 
-## 自律境界(何を確認なしで進めてよいか)
+## エンジン規律
 
-- 公開・外部送信・戻せない決定は確認が既定。**唯一の例外 = `/ship`**: 監査合格(`npm run check` 全緑 + `review.*` 緑)を認可とみなし、人間確認なしで push/Pages 公開まで自走してよい。/ship は機械的手順ゆえ別タスクへ**最大1回だけ**委譲可(手順・検証の正本 = `.claude/commands/ship.md`)。
-- 止まってユーザーに聞くのは4類のみ(正本 = autoloop.md の STOP 条件): ①ロードマップ分岐の価値判断 ②CR 解釈の真の曖昧 ③不可逆・外部書込(通常の Pages push を除く)④実装者2連敗かつ有界な外科修正で直らない。
-- **セッション運用**: 既定は「1タスク=1マイルストーン。終わったら文脈を切る」(長大セッションは文脈再読でトークンを最も浪費する)。継続が要る場合は loop-state と台帳が継続性を担保する。定型ワークフローは milestone/audit/ship を呼ぶ(手順の再生成を避ける)。
+- `src/engine/`は純粋関数のみ。React/DOM/Zustandに依存しない。
+- `GameState`はイミュータブル（構造共有）。`applyCommand`は決定的で、乱数はコマンド生成時にpayloadへ固定する。
+- undo/redoはstoreのsnapshot方式、上限200。GameStateへzone/fieldを追加したら`restoreGame`で旧snapshotをbackfillする。
+- 文法コンパイラはGameStateを直接書かず、拡張`GameCommand`列だけを生成する。LLM judgeは助言のみで盤面を変えない。
+- サンドボックスは警告・確認を示してもユーザーの強行を許す。ただしstack未解決中のphase/turn移動はCR準拠で禁止する。
+- D&D・ダブルクリック専用操作を作らず、すべてに右クリックメニューの代替を用意する。
 
-## 契約ドキュメント
+## 北極星
 
-- `docs/engine-spec.md` — エンジンAPI契約。型名・関数名・挙動の変更は**実装前に**判定者の承認が必要。仕様変更はまず spec を更新してから実装する。
-- `docs/acceptance.md` — 受け入れシナリオ(判定者が維持)。受け入れゲートでは**1項目でも失敗したら修正後にシナリオ全体を最初から再実行**する。
-- `docs/audio-visual-contract.md` — 音楽・意味イベント音・イベント視覚・BPM同期の契約。旧 D6/D7 や現行コードより優先する。
+- **北極星①「CR を検査器にする」**: 決定論的な問いは`rule/Magic_The_Gathering_Comprehensive_Rules.txt`（2026-06-19固定）を一次権威とし、真理表/不変条件で検査する。権威順はCR > 人間gold > LLM（解釈のみ）。
+- **北極星②「理解と発見の快感を、身体に馴染むリズムで支える」**: 同じ意味操作へ同じ手触りを返す。通常操作を連鎖・履歴・カード強度で採点せず、成功済みの意味イベントだけを鳴らす。GameStateを演出待ちさせない。明示的な儀式は統率者castだけ。
+- **北極星③「メタは遊びに従属する」**: メタは実プレイ摩擦、state手戻り、compiler着地先のいずれかを改善しなければ作らない。通常Commander/EDH scope内をCR章・節順で進め、必要最小substrateだけ先行する。MyDeckはgolden/replayと同CR順位のtie-breakに使う。
 
-## エンジン規律(`src/engine/`)と設計原則
+## 検証
 
-- **純粋関数のみ**。React/DOM/Zustand に依存しない。**GameState はイミュータブル**(構造共有)。`applyCommand` は決定的——乱数はコマンド生成時に確定しペイロードへ順列を埋め込む。
-- undo/redo はスナップショット方式(ストア層が履歴を保持・上限200)。**GameState に zone/フィールドを追加したら `restoreGame` で backfill 必須**(旧 snapshot 復元でクラッシュする。前方互換 I16)。
-- 文法コンパイラは GameState を直接書かない——**拡張 `GameCommand` 列のみ生成**(誤訳も undo で戻る)。LLM ジャッジは助言のみで盤面を変更しない。設計 = `docs/architecture-substrate-compiler.md`、手法 = `docs/engine-design-method.md`、契約 = engine-spec §34。
-- **サンドボックス哲学**: ルールは強制しない(警告・確認は出すがユーザーは常に強行できる)。**例外**: スタック未解決中のフェイズ/ターン移動は MTG ルール準拠で禁止(強行不可・先にスタックを解決)。
-- すべての操作に右クリックメニューの代替を用意する(D&D・ダブルクリック専用の操作を作らない)。
+- 実装者の合格自己申告を判定に使わない。判定者が`review.*`を所有し、冷監査者が独立検証する。
+- fast-checkの`docs/engine-spec.md` I系列を維持し、状態追加時は対応不変条件も追加する。
+- `npm run check`はlint、vitest、`tsc -b`を含むbuildの単一正本。素の`tsc --noEmit`はno-opなので使わない。
+- 受け入れシナリオは1項目でも失敗したら、修正後にそのシナリオ全体を最初から再実行する。
+- UI変更は安定後の同一browser sessionで一度だけ、375×812、812×375、1440×900の実機とconsole error 0を確認する。
+- Scryfall変更は実APIで確認してから仕様化し、ルール解析は英語`oracleText`を正本、`printedText`は表示専用とする。
+- 最終GameState差分まで確認する実行可能replayがない効果を「自動化済み」と表示しない。未対応複合挙動はguided/manualへ誠実に縮退する。
 
-## 🧭 北極星は3本(①正しさ ②気持ちよさ ③作り方。いずれの変更もユーザー裁定)
+## コーディング・報告・出荷
 
-- **北極星①「CR を検査器にする」(決定論は予測せず照合する)**: ルールが一意に答える問い(ゾーン遷移・owner/controller・キーワード定義・SBA[CR704]・ターン構造[CR500]等)は総合ルール(`rule/Magic_The_Gathering_Comprehensive_Rules.txt`・**2026-06-19 版に固定**)を一次の決定論的権威とし、CR から抽出した**真理テーブル/不変条件で成果物を叩く**。LLM(物差し・ジャッジ)は解釈・認識・相関遮断にのみ使う。**権威順序 = CR > 人間 gold > LLM-oracle(解釈のみ)**。本体 = `docs/engine-design-method.md` §3。
-- **北極星②「理解と発見の快感を、身体に馴染むリズムで支える」**: 音楽と光は操作を採点せず、**同じ意味の操作へ同じ手触り**を返して思考を支える。通常操作を連鎖・履歴・カード強度で盛らない。入力でなく成功済みの意味イベントだけを鳴らし、GameStateを拍待ちさせず、性能超過時は演出を減らす。唯一の明示的な儀式は**統率者のキャスト**。本体 = `docs/design-vision.md` §2、実装契約 = `docs/audio-visual-contract.md`。
-- **北極星③「メタは遊びに従属する」**: 型・契約・台帳・運用はすべてメタであり、①実プレイの困りごと削減 ②state 設計の手戻り削減 ③コンパイラ着地先の明確化のどれかに答えられなければ**作らない・削る**。新しい抽象の昇格判定 = 通常Commanderでの到達可能性 × CR根拠 × 既存プリミティブへの分解可能性。**スライス優先度 = 通常Commander/EDH scope 内で CR 章・節番号順、ただし不足substrateだけ先行**(2026-07-23ユーザー裁定・正本 = judge-protocol §2)。MyDeck実プレイ需要はgolden/replayの強いfixtureと同CR順位のtie-breakであり、章順を飛び越える主因にはしない。本体 = `docs/engine-design-method.md` §9。
-
-## 検証プロトコル
-
-- 実装側の「テスト通過」報告は合否判定に**使わない**。判定者が独立に敵対的テストを書いて判定する(`review.*` = 判定者専有)。
-- fast-check プロパティテストの不変条件(`docs/engine-spec.md` の I 系列すべて)を維持する。GameState に状態を追加したら対応する不変条件も追加する。
-- 機械チェックは `npm run check`(lint / vitest / build を個別実行。build の `tsc -b` が型検査——素の `tsc --noEmit` は本リポでは no-op)。生成した `dist/` は確認後に削除する。
-- UI に見える変更はブラウザ実機(`.claude/launch.json` の `mtg-onedeck`)で確認。**コンソールエラー0件**が合格条件。実機確認は要所のUIだけ(eval往復はトークン高)。
-- Scryfall 連携の変更は**実 API で裏取りしてから**仕様化する(API ドキュメントと実挙動の差で重大バグが複数出た実績)。カードのルール解析は英語 `oracleText` を正本とする(`printedText`(日本語)は表示専用)。
-- **効果を「自動化済み」と表示してよいのは、最終 GameState 差分まで確認する実行可能 replay がある場合のみ**。未対応の複合挙動は可視的に guided/manual に留め、部分効果を「解決済み」と偽らない。
-
-## コーディング規約
-
-- TypeScript strict。**`any` 禁止**(やむを得なければ `unknown`+型ガード)。
-- UI 文言は日本語、コード・コメント・識別子は英語。カード名表示は `printedName ?? name` を《》で囲む。
-- conventional commits(`feat:` / `fix:` / `docs:` / `chore:` 等)。署名は付けない。
-- `git add` は変更ファイルを明示指定する(`-A` 禁止)。ファイルを「無関係」として除外する前に `git grep -n "<name>" -- docs/ research/` で契約参照の有無を確認(参照ありなら除外禁止)。
-- 主要 UI 要素には `data-testid` を付与する(レビューのブラウザ自動操作で使用)。
-
-## 受け入れ標準・報告様式(実装者向け)
-
-- **機械チェック全通過**: `npm run check`(正本 = `scripts/checks/machine-checks.mjs`)。既存テストの回帰なし。ブリーフ指定の golden ケースが実行可能テストに配線されていること。UI に見える変更はコンソールエラー0件。
-- **優先順位(矛盾時)**: 本ファイル(統治)> ブリーフ(タスク固有・判定者発行)> 個別の慣習。ブリーフは本ファイルの共通則を再掲しない前提で書かれる——ここに書いてあることはブリーフに無くても常に有効。
-- **完了報告**: ①変更ファイル一覧 ②各受け入れ条件の実結果(コマンド出力の要点) ③defer した事項 ④未解決点・自信のない箇所。**あなたの「テスト通過」自己申告は合否判定に使われない**(別セッションの独立監査が敵対的に検証する)——粉飾せず未完・懸念を正直に書くことが最も価値がある。
-- **中断報告**: 「実装済み/残作業」を明示して終了(判定者が再実行を判断する。再実行は最大2回、以後は判定者が仕上げる)。
-
-## デプロイ
-
-- main へ push すると GitHub Actions が `npm test` → ビルド(`--base=/MTG_OneDeck/`)→ Pages デプロイを実行する(テストが落ちるとデプロイされない)。デプロイ後は https://makeinu1.github.io/MTG_OneDeck/ が 200 を返すことを確認する。
-- Hugging Face Spaces(Static)へは `npm run build` の `dist/` をそのままアップロード可能。
+- TypeScript strict、`any`禁止（`unknown`+型guard）。UI文言は日本語、コード/コメント/識別子は英語。
+- カード名は`printedName ?? name`を《》で表示。主要UIに`data-testid`を付ける。
+- conventional commits、署名なし。`git add -A`は禁止し変更ファイルを明示する。除外前に`git grep -n "<name>" -- docs/ research/`で契約参照を確認する。
+- 実装者報告は変更ファイル、受け入れ結果、defer、未解決点を含める。中断時は実装済み/残作業を分ける。
+- `main` pushでActionsがtest→build→Pagesを実行する。出荷後はCI success、公開URL 200、worktree cleanを確認する。
