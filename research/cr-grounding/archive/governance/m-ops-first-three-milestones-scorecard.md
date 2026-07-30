@@ -13,7 +13,7 @@ prompts or tool output into this file.
 | context compactions | 0 |
 | inherited-context subagents | 0 |
 | total subagents | at most 2 (one implementer, one cold auditor) |
-| full `npm run check` | normally 1; at most 2 after an audit correction |
+| full `npm run check` | normally 1 after audit closure; at most 2 only when the release check itself fails |
 | scope additions during implementation | 0 |
 
 After milestone 3, compare model cycles, cached and uncached input, compactions,

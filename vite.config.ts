@@ -5,14 +5,32 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    // Several visual-fixture suites build large jsdom trees. Parallel files compete for
-    // enough CPU that assertion timeouts become machine-load dependent; serial files keep
-    // the assertions and their timeout budgets strict in both local checks and CI.
-    fileParallelism: false,
     // Worktree checkouts under .claude/ would otherwise be collected as duplicate test files.
     exclude: [...configDefaults.exclude, '.claude/**'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'core',
+          include: ['src/engine/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+          environment: 'node',
+          fileParallelism: true,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          include: configDefaults.include,
+          environment: 'jsdom',
+          // Visual-fixture suites build large jsdom trees. Keep this lane serial so their
+          // assertion timeouts do not become machine-load dependent.
+          fileParallelism: false,
+          exclude: [...configDefaults.exclude, '.claude/**', 'src/engine/**'],
+        },
+      },
+    ],
   },
 });

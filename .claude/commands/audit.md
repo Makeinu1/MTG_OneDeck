@@ -6,4 +6,4 @@ description: 凍結成果物を独立cold auditする互換入口
 
 - 判定者の一次照合後にtreeを凍結する。
 - `fork_context: false`の冷監査者1名へ監査ブリーフのパスだけを渡す。
-- 監査者はfindings only。判定者が赤旗を分類し、BLOCKER/HIGH = 0までshipしない。
+- 監査者はfindings onlyで、通常はrelease full checkを重複実行しない。判定者が赤旗を分類し、`AUDIT-OK-PENDING-FULL-CHECK`後に同一fingerprintのフルcheckを通すまでshipしない。

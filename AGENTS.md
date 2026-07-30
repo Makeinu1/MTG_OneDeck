@@ -47,7 +47,7 @@
 - 修正は同じ実装者へ返し最大2回。2連敗し、判定者の有界な外科修正でも閉じられなければSTOPする。
 - UI・音・演出は専用worktree/dev fixtureの試作タスクと本実装タスクを分離し、人間承認した値とscreenshotを凍結してから新しい本実装タスクを始める。
 - 実装中の追加要望は、現受け入れ条件の失敗または致命回帰だけ割り込ませる。それ以外は台帳へ短く記録して次タスクへ送る。
-- 実装中は対象テストだけを回す。tree凍結後にフル`npm run check`を1回、監査修正時だけ無効化された対象テストと最終フルcheckを再実行する（上限2回）。
+- 実装中は対象テストだけを回す。候補treeを凍結して対象`review.*`と実機証拠を揃えた後、フルcheckより先に冷監査を行う。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`とし、監査修正と対象再監査を閉じてからrelease treeを再凍結し、同一fingerprintでフル`npm run check`を1回だけ行う。フルcheck自身が欠陥を検出した場合だけ、修正・無効化された対象検証・必要な再監査後に最終フルcheckを再実行する（上限2回）。
 - ship時に`.claude/loop-state.md`を`milestone: complete`へ戻し、完了packetをarchiveしてタスクを終了する。
 
 ## 不可侵

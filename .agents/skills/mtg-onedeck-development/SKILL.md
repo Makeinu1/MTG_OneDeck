@@ -21,9 +21,9 @@ Run exactly one milestone at a time. Preserve role separation even when every ro
 - Confirm card-specific behavior against English Oracle text; pin verified text in offline tests.
 - Treat an effect as automated only when an executable replay proves the final `GameState` result.
 - Keep unsupported compound behavior visibly guided or manual; never report a partial effect as resolved.
-- Freeze the tree before one cold audit. The auditor returns findings only and does not rewrite the contract.
+- Freeze a candidate tree before one cold audit. The auditor returns findings only and does not rewrite the contract. Close findings before the release full check.
 - If implementation and judgment occurred in one task, retain `implemented-not-audited` until a different cold ChatGPT task audits it.
 
 ## Finish
 
-Run the milestone-specific tests while iterating, then run the full machine check once on the frozen tree. For visible UI changes, verify the required viewports and zero new browser-console errors. Use the completion report required by `AGENTS.md`.
+Run milestone-specific tests while iterating, cold-audit the candidate tree, then run the full machine check once on the same release fingerprint after findings are closed. A clean pre-release audit is `AUDIT-OK-PENDING-FULL-CHECK`, never ship approval by itself. For visible UI changes, verify the required viewports and zero new browser-console errors. Use the completion report required by `AGENTS.md`.

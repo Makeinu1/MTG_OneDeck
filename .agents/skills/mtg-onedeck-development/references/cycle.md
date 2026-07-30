@@ -15,9 +15,9 @@
 3. Freeze public types, state transitions, failure behavior, CR references, and golden cases before implementation.
 4. Give one `fork_context: false` implementer a narrow brief path containing only milestone-specific scope, boundaries, and acceptance cases. Reuse that agent for at most two corrections; do not spawn generic explorers by default.
 5. Iterate with targeted tests. Do not run or rewrite judge-owned review tests to manufacture green.
-6. Freeze the tree. Run the full machine check and UI evidence once, and record the exact tree fingerprint.
-7. Give only the audit brief path to one `fork_context: false` cold auditor. A same-fingerprint full-check record may be reused; the auditor still runs targeted review/adversarial evidence. Classify each finding as implementation, compiler, substrate, contract, or ambiguity before changing anything.
-8. Re-run only checks invalidated by a correction, then perform at most one final full check and ship from the judge lane. Reset loop-state, archive the packet, and end the task.
+6. Freeze a candidate tree. Run targeted judge evidence and UI evidence once, and record the exact candidate fingerprint. Do not run the full machine check yet.
+7. Give only the audit brief path to one `fork_context: false` cold auditor. The auditor runs the target-domain review/adversarial evidence without duplicating the full check. A clean semantic verdict is `AUDIT-OK-PENDING-FULL-CHECK`, not ship approval. Classify each finding as implementation, compiler, substrate, contract, or ambiguity before changing anything.
+8. Re-run only checks invalidated by a correction and re-audit affected claims. After findings close, freeze the release tree and run `npm run check` once on that exact fingerprint. Only if this release check itself fails may the judge correct it and run one final full check. Ship from the judge lane, reset loop-state, archive the packet, and end the task.
 
 ## Automation priority
 
@@ -27,5 +27,5 @@ Use CR chapter/section order for new normal-Commander coverage, with only the mi
 
 - `drafted`: contract exists but is not judge-owned.
 - `implemented-not-audited`: implementation and ordinary checks exist, but no independent cold audit has passed.
-- `audited`: a cold auditor found no release-blocking issue on the frozen tree.
+- `audited`: a cold auditor returned `AUDIT-OK-PENDING-FULL-CHECK` on the frozen candidate; release full-check evidence is still pending.
 - `shipped`: judge-owned audit, commit, CI, and deployment evidence are complete.

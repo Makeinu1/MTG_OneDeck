@@ -13,9 +13,9 @@
 
 ## 必ず実行し「実出力」で報告する(自己申告禁止)
 
-1. 機械チェック証跡: 監査ブリーフに凍結tree fingerprintと同一fingerprintの`npm run check`実出力があれば、fingerprint一致を確認して再利用する。欠落・不一致なら監査者が`npm run check`を実行する。`dist/`を生成した場合は終了前に元のbyte状態へ戻す。
+1. **監査モードと機械チェック証跡**: 標準はrelease full check前のsemantic cold audit。ブリーフの候補tree fingerprintを確認し、監査者自身は`npm run check`を実行しない。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`を返すが、これはship承認ではない。判定者はfindingsを閉じた同一fingerprintで後からフルcheckを通す。監査後の変更でfingerprintが変われば、影響claimを再監査する。例外的にブリーフへ同一fingerprintの既存フルcheck実出力がある場合は一致だけを確認して再利用し、重複実行しない。
 2. **禁止ファイル走査**: `npm run check:forbidden`(単一正本 = `scripts/checks/forbidden-files.mjs`。FORBIDDEN 検出=赤旗、NEEDS-REAUTH 表示=判定者の再オーナー化対象として報告に含める。`review.` 部分一致の誤検出対策はスクリプト内に固定済み——散文で regex を再定義しない)。
-3. **`review.*` テストの実行**(FP/FN ガード込みで壊れていないか)。
+3. **対象domain/claimの`review.*` テスト実行**(FP/FN ガード込みで壊れていないか)。全`review.*`の網羅はrelease full checkが担い、監査者はブリーフ指定の関連証拠を敵対的に再実行する。
 4. **weakening 検出**: テスト diff の**削除行**を精査。アサーション削除・`skip` 化・閾値緩和・期待値の緩みを敵対的に探す。
 5. **scope 漏れ**: ブリーフの defer/隔離を破っていないか。UI 差分に見せかけてエンジンの意味論を変えていないか。
 6. **vacuity 検査**: 新規テストが実装を実際に拘束しているか。実装を一時的に壊して red になるか確かめる(**必ず復元**)。

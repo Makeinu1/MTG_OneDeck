@@ -20,25 +20,32 @@ One invocation handles exactly one milestone. Project continuity lives in the le
 - The implementer batches independent reads, edits source/ordinary tests, and runs targeted checks.
 - Return corrections to the same agent, at most twice. Do not start the next milestone in parallel and do not create generic explorer agents.
 
-## 3. Freeze and verify
+## 3. Candidate freeze and pre-audit evidence
 
 - Confirm scope and protected-file ownership.
-- Run targeted judge evidence, then `npm run check` once on the frozen tree.
+- Run targeted judge evidence; do not run the release full check yet.
 - For visible UI, verify 375×812, 812×375, 1440×900 and zero console errors in one stable browser session.
-- Record the frozen tree fingerprint and check evidence in the audit brief.
+- Record the candidate fingerprint and targeted evidence in the audit brief.
 
 ## 4. Cold audit
 
 - Spawn one different auditor with `fork_context: false`; pass only the audit brief path.
 - The auditor follows `.claude/audit-standing.md`, edits nothing, and returns findings only.
-- A full check from the exact frozen fingerprint is reusable. The auditor still runs the specified `review.*`, boundary, vacuity, spot-check, and adversarial evidence.
+- The auditor runs the specified target-domain `review.*`, boundary, vacuity, spot-check, and adversarial evidence without running the full check.
+- With BLOCKER/HIGH = 0, record `AUDIT-OK-PENDING-FULL-CHECK`; this is not ship approval.
 
 ## 5. Correct
 
 - Classify red findings with `docs/judge-protocol.md`.
-- Reuse the implementer for implementation defects. Run invalidated targeted checks, then one final full check. If the frozen tree changes materially, re-audit the affected claim.
+- Reuse the implementer for implementation defects. Run invalidated targeted checks and re-audit every affected claim before release freeze.
 
-## 6. Ship
+## 6. Release freeze and full check
+
+- Freeze the release tree after audit findings close and record its fingerprint.
+- Require the release fingerprint to equal the latest audited fingerprint.
+- Run `npm run check` once. If it fails, correct only the defect, rerun invalidated targeted evidence and any affected semantic audit, then run one final full check. Never exceed two full-check invocations.
+
+## 7. Ship
 
 After BLOCKER/HIGH = 0, review evidence green, and full check green:
 
@@ -48,7 +55,7 @@ After BLOCKER/HIGH = 0, review evidence green, and full check green:
 4. Push, verify `HEAD == origin/main`, watch the matching-SHA CI run to success, and verify Pages HTTP 200.
 5. Confirm a clean worktree.
 
-## 7. Close
+## 8. Close
 
 Reset loop-state to:
 

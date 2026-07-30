@@ -31,7 +31,7 @@
     "cr-conformance": "tsx scripts/cr-conformance.ts",
     "m-contract-gate": "tsx scripts/m-contract-gate.ts",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",
     "check:forbidden": "node scripts/checks/forbidden-files.mjs",
     "codex:usage": "node scripts/codex-usage.mjs",
