@@ -13,7 +13,7 @@ import {
   commanderDuckEnvelope,
   shouldDuckMusic,
 } from '../presentation/commanderRitual';
-import { sfxPatch, SFX_LEVELS_DB } from '../presentation/sfxPatches';
+import { sfxLayersFor } from '../presentation/sfxManifest';
 
 const ROOT = process.cwd();
 
@@ -41,13 +41,15 @@ describe('AV4 commander ritual contract', () => {
     });
   });
 
-  it('freezes the 650ms ritual, fixed motif and -4dB duck envelope', () => {
+  it('freezes the 650ms visual ritual, fixed AV7 motif and -4dB duck envelope', () => {
     expect(COMMANDER_RITUAL_DURATION_MS).toBe(650);
-    const patch = sfxPatch('commander-cast');
-    expect(patch).toEqual(sfxPatch('commander-cast'));
-    expect(patch.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
-    expect(patch.layers.length).toBeGreaterThanOrEqual(9);
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
+    const [contact, thud, portal] = sfxLayersFor('commander-cast');
+    expect(contact?.src).toMatch(/commander-contact\.wav$/);
+    expect(contact).toMatchObject({ gainDb: -7.13, chokeGroup: 'commander' });
+    expect(thud?.src).toMatch(/low-thud\.wav$/);
+    expect(thud).toMatchObject({ gainDb: -6.02, chokeGroup: 'commander' });
+    expect(portal?.src).toMatch(/commander-portal-open\.wav$/);
+    expect(portal).toMatchObject({ gainDb: -6.74, chokeGroup: 'commander' });
 
     const envelope = commanderDuckEnvelope(10, 1);
     expect(envelope.attackEndSec).toBeCloseTo(10.04, 6);

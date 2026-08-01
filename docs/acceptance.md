@@ -677,7 +677,7 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 
 ## M-AV 思考を支えるオーディオビジュアル(2026-07-26・ユーザー裁定)
 
-**status**: pre-implementation contract。以下は将来のAVスライスの合格条件であり、現行実装がPASSしたという主張ではない。意味・DEFER・TUNABLEの正本 = `docs/audio-visual-contract.md`。旧D6/D7、旧モック、現行`celebrate()`の挙動で期待値を上書きしない。
+**status**: active acceptance。AV0–AV6は出荷済み、AV7 production integrationは2026-08-01ユーザー承認済み。意味・DEFER・TUNABLEの正本 = `docs/audio-visual-contract.md`。旧D6/D7、旧モック、現行コードの旧音響挙動で期待値を上書きしない。
 
 一件でも失敗したら、修正後に該当sliceのM-AVシナリオ全体を最初から再実行する。
 
@@ -690,8 +690,8 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | AV-3 | 通常土地をプレイ、2枚目確認をcancel、forcedで成功 | 成功した各land playだけ`land-played`一件。cancelは0件。forcedでも罰音・強度変更なし |
 | AV-4 | ターンを正常に進める | `turn-advanced`一件。ターン終了音と次ターン開始音の二重発火なし |
 | AV-5 | スタック未解決等でターン進行を拒否 | `turn-advanced` 0件、成功音0、既存警告を維持 |
-| AV-6 | スタックtopをauto / partial / manualで解決 | 新しいmusical soundなし。結果理解に必要な既存の因果視覚は残る |
-| AV-7 | draw、tap/untap、mana支払い、life/counter変更、token生成、カード整理 | 新しいmusical eventなし。機能的UIフィードバックだけ |
+| AV-6 | スタックtop / allをauto / partial / manualで解決 | 1件以上がstackから解決完了したユーザー操作だけ`stack-resolved`一件。確認待ち・manual-required到達時点・cancel・空stackは0件。resolve-allも一操作一音 |
+| AV-7 | UIから1枚/複数枚draw、tap/untap、bulk tap/untap、library shuffle | 実際に成功した一操作につき`draw-completed` / `tap-changed` / `shuffle-completed`が一件。枚数・permanent数で連打や増幅をしない |
 | AV-8 | phase/step進行、ability起動、game start | DEFER中は新しいmusical eventなし。実装者判断で追加しない |
 | AV-9 | 攻撃宣言から戦闘ダメージまでを操作 | 戦闘を理由に音、背景速度、色、強度を変えない。既存の機能表示だけ |
 | AV-10 | undo、redo、reload、snapshot復元、React remount | 過去のPresentationEventを再演しない |
@@ -703,7 +703,7 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | ID | 操作 | 期待結果 |
 |---|---|---|
 | AV-11 | 複数の通常呪文を連続キャスト | 各castは同じ知覚上の反応。回数により音量、光量、長さ、粒子、背景速度が増えない |
-| AV-12 | 短時間に大量draw/token/mana/resolve/triggerを発生 | chain表示・chain音・自動高揚なし。DOM/メモリがイベント数に比例して増えない |
+| AV-12 | 短時間に大量draw/token/mana/resolve/triggerを発生 | user操作のAV7 allowlistだけ一操作一音。自動マナ支払い・効果内部のdraw/shuffle/tapは追加音なし。chain表示・chain音・自動高揚なし。DOM/メモリがイベント数に比例して増えない |
 | AV-13 | 統率者をキャスト | `commander-cast`一件、`spell-cast` 0件。既存cut-inのアイデンティティを持つ専用儀式がcast時に開始 |
 | AV-14 | 統率者演出中に次の盤面操作 | 操作可能。GameState、stack resolution、undoを演出完了まで待たせない |
 | AV-15 | 統率者を複数回キャスト | 毎回同じ専用表現。統率者税・cast回数で増幅しない |
@@ -714,7 +714,7 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 
 | ID | 操作 | 期待結果 |
 |---|---|---|
-| AV-17 | `candidate-b-tight-128-bars.mp3`（251.798458秒・512拍・128小節・122.000736 BPM）を3周期再生 | TrackManifestのloop点と40ms等電力crossfadeで周期復帰し、末尾無音・click・音量段差・リズムの躓きなし |
+| AV-17 | `candidate-b-tight-128-bars.mp3`（251.798458秒・512拍・128小節・122.000736 BPM）をChrome / Safariで3周期再生 | 単一`HTMLMediaElement`のnative `loop=true`で周期復帰。二本目・crossfade処理0件。末尾無音・click・二重kick・音量段差・リズムの躓きなし |
 | AV-18 | 曲のgroove / break / rejoinを通過 | beat anchor補間で同期を維持。runtime FFTを使わない |
 | AV-19 | `beatIndex`差16以上の疎な隣接anchor fixtureを用意し、anchor間を`beatSpan * quantizeStepsPerBeat`（初期4）区間へ補間して各拍内の細分境界直前/直後/中間でcast | 16拍・初期値4なら64区間になる。anchor間全体を4区間にしない。GameStateと即時因果は待たず、音は設定グリッドのsnap window内だけ吸着。操作→音p95 80ms以下 |
 | AV-20 | master audio OFF、manifest未読込、media load/decode error、AudioContext resume失敗 | ゲーム操作は成功。成功音・同期用装飾余韻なし。背景は独立アンビエント周期へfallbackし、例外で画面を壊さない |
@@ -724,11 +724,13 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | AV-34 | 保存設定なしでダークのゲーム画面を開き、gesture前後を確認 | BGM / musical event設定はON。gesture前は無音、最初のpointerdownまたはkeyboard操作後にBGM開始。最初のゲーム操作は失われない |
 | AV-35 | 音設定ONのままダーク→ライト→ダーク、ゲーム画面→ゲーム外→ゲーム画面を往復し、その後reload | ライトとゲーム外は実効無音だが保存値はONのまま。同一ページセッションでは位置を保持して復帰し、reload後は先頭・gesture待ち。二重再生なし |
 | AV-36 | 375×812でメニューを開く | テーマ直後の最初の表示範囲に`BGM` / `ゲーム進行音` / `背景モーション`があり、ライトでは「ライトテーマでは音は流れません」と表示 |
-| AV-37 | 統率者モチーフのmixを計測 | MusicBusは停止・seekせず `-4dB / attack 40ms / hold 360ms / release 320ms` でduckし、generic cast音と重ならない |
+| AV-37 | 統率者モチーフのmixを計測 | `commander-contact + low-thud + commander-portal-open`の固定mix。MusicBusは停止・seekせず `-4dB / attack 40ms / hold 360ms / release 320ms` でduckし、generic cast音と重ならない |
+| AV-38 | production SFX assetとmanifestを構造検査 | `public/audio/sfx/`は採用済みCC0 / project-originalの48kHz stereo PCM16 WAVだけ。通常音1秒以内、commander 1.6秒以内、true peak -3dBFS以下。comparison-only、Cockatrice、`sound/spells/`、archiveを含まない |
+| AV-39 | 同じcueを短時間に反復し、別cueも重ねる | 同じchokeGroupの前tailだけを停止し、新attackは毎回聞こえる。通常cueはBGMをduckせず、ランダム音色・履歴依存mix・二重発火なし |
 
 ### M-AV4 ブラウザ性能・人間判定
 
-対象viewportは375×812、812×375、1440×900。ダーク、BGM ON、musical event ON、background motion ONで10分間、cast / land / turn / commander / break / visibility復帰を含む同一シナリオを実行する。
+対象viewportは375×812、812×375、1440×900。ダーク、BGM ON、musical event ON、background motion ONで10分間、draw / land / spell / tap / untap / resolve / shuffle / turn / commander / break / visibility復帰を含む同一シナリオを実行する。
 
 | ID | 計測/試聴 | 合格条件 |
 |---|---|---|

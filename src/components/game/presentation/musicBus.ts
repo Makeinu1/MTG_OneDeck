@@ -1,74 +1,34 @@
 /**
- * musicBus — AV2 streaming dual-media runtime.
- * docs/audio-visual-contract.md §6 (streaming, dual-element boundary).
+ * musicBus — AV7 single-element streaming runtime.
  *
- * Uses exactly two HTMLMediaElement instances connected through
- * MediaElementAudioSourceNode. Never decodes the full MP3 — no
- * full-file decode or buffer-source nodes. Never sets native loop=true.
- * Crossfade boundary: 40ms equal-power.
- *
- * Module-level position memory survives same-page unmount/remount.
- * A fresh page load starts at track start.
+ * The approved full-length MP3 is streamed through one HTMLMediaElement and
+ * uses its native loop flag. Module-level position memory survives game-screen
+ * unmount/remount within the same page session.
  */
 
 import type { TrackManifest } from './trackManifest';
 
-/* ------------------------------------------------------------------ */
-/*  Pure helpers (testable without DOM)                                */
-/* ------------------------------------------------------------------ */
-
-export interface DualMediaPlanItem {
+export interface NativeMediaPlan {
   src: string;
-  nativeLoop: false;
+  nativeLoop: true;
   loopStartSec: number;
   loopEndSec: number;
-  crossfadeMs: number;
 }
 
-/**
- * Build the two-element streaming plan from a frozen TrackManifest.
- * Both elements share the same src; native loop is never used.
- */
-export function createDualMediaPlan(manifest: TrackManifest): DualMediaPlanItem[] {
-  const base = {
+export function createNativeMediaPlan(manifest: TrackManifest): NativeMediaPlan {
+  return {
     src: manifest.src,
-    nativeLoop: false as const,
+    nativeLoop: true,
     loopStartSec: manifest.loopStartSec,
     loopEndSec: manifest.loopEndSec,
-    crossfadeMs: manifest.crossfadeMs,
-  };
-  return [{ ...base }, { ...base }];
-}
-
-/**
- * Equal-power crossfade gains at progress t ∈ [0, 1].
- * outgoing = cos(t·π/2), incoming = sin(t·π/2).
- */
-export function equalPowerCrossfadeGains(
-  t: number,
-): { outgoing: number; incoming: number } {
-  const clamped = Math.min(1, Math.max(0, t));
-  const angle = (clamped * Math.PI) / 2;
-  return {
-    outgoing: Math.cos(angle),
-    incoming: Math.sin(angle),
   };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Gain lane constants                                                */
-/* ------------------------------------------------------------------ */
-
-/** BGM gain in dB (contract §6: -4.5 dB). */
 export const BGM_GAIN_DB = -4.5;
 
 function dbToLinear(db: number): number {
-  return Math.pow(10, db / 20);
+  return 10 ** (db / 20);
 }
-
-/* ------------------------------------------------------------------ */
-/*  Bus topology (four separate gain lanes)                            */
-/* ------------------------------------------------------------------ */
 
 export interface MusicBusLanes {
   master: GainNode;
@@ -77,11 +37,6 @@ export interface MusicBusLanes {
   commander: GainNode;
 }
 
-/**
- * Create the four independent gain lanes. AV2 only drives the music
- * lane; events/commander/master exist so later milestones can wire
- * them without topology changes.
- */
 export function createBusLanes(context: AudioContext): MusicBusLanes {
   const master = context.createGain();
   const music = context.createGain();
@@ -101,10 +56,6 @@ export function createBusLanes(context: AudioContext): MusicBusLanes {
   return { master, music, events, commander };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Module-level position memory (survives unmount/remount same page)  */
-/* ------------------------------------------------------------------ */
-
 let rememberedPositionSec = 0;
 
 export function getRememberedPosition(): number {
@@ -115,25 +66,12 @@ export function resetRememberedPosition(): void {
   rememberedPositionSec = 0;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Media element source factory                                       */
-/* ------------------------------------------------------------------ */
-
-/**
- * Create a MediaElementAudioSourceNode from an HTMLMediaElement.
- * Named `createMediaElementSource` so the review pin can verify the
- * streaming approach (media-element source, not buffer decode).
- */
 export function createMediaElementSource(
   context: AudioContext,
   element: HTMLMediaElement,
 ): MediaElementAudioSourceNode {
   return context.createMediaElementSource(element);
 }
-
-/* ------------------------------------------------------------------ */
-/*  Streaming runtime (imperative, guarded for jsdom / no Web Audio)   */
-/* ------------------------------------------------------------------ */
 
 export type AudioStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -147,10 +85,18 @@ export interface MusicRuntime {
   dispose(): void;
 }
 
-/**
- * Attempt to build the dual-element streaming runtime.
- * Returns null when Web Audio or media playback is unavailable (jsdom).
- */
+function errorRuntime(): MusicRuntime {
+  return {
+    status: 'error',
+    pause: () => {},
+    resume: () => Promise.resolve(false),
+    currentPositionSec: () => rememberedPositionSec,
+    setMusicAudible: () => {},
+    setMusicVolume: () => {},
+    dispose: () => {},
+  };
+}
+
 export function createMusicRuntime(
   manifest: TrackManifest,
   lanes: MusicBusLanes,
@@ -158,167 +104,57 @@ export function createMusicRuntime(
 ): MusicRuntime | null {
   if (typeof document === 'undefined') return null;
 
-  let status: AudioStatus = 'idle';
-  const elements: HTMLMediaElement[] = [];
-  const sources: MediaElementAudioSourceNode[] = [];
-  const gains: GainNode[] = [];
-
+  const plan = createNativeMediaPlan(manifest);
+  let element: HTMLMediaElement;
+  let source: MediaElementAudioSourceNode;
   try {
-    const plan = createDualMediaPlan(manifest);
-    for (const item of plan) {
-      const el = document.createElement('audio');
-      el.src = item.src;
-      el.preload = 'auto';
-      el.volume = 1;
-      elements.push(el);
-
-      const source = createMediaElementSource(context, el);
-      const gain = context.createGain();
-      gain.gain.value = 0;
-      source.connect(gain);
-      gain.connect(lanes.music);
-      sources.push(source);
-      gains.push(gain);
-    }
+    element = document.createElement('audio');
+    element.src = plan.src;
+    element.preload = 'auto';
+    element.volume = 1;
+    element.loop = plan.nativeLoop;
+    source = createMediaElementSource(context, element);
+    source.connect(lanes.music);
   } catch {
-    status = 'error';
-    return {
-      status,
-      pause: () => {},
-      resume: () => Promise.resolve(false),
-      currentPositionSec: () => rememberedPositionSec,
-      setMusicAudible: () => {},
-      setMusicVolume: () => {},
-      dispose: () => {},
-    };
+    return errorRuntime();
   }
 
-  let activeIndex = 0;
-  let crossfadeTimer: ReturnType<typeof setTimeout> | null = null;
-  let crossfadeInProgress = false;
-  let crossfadeInterval: ReturnType<typeof setInterval> | null = null;
+  let status: AudioStatus = 'idle';
   let resumePromise: Promise<boolean> | null = null;
-  let crossfadeGeneration = 0;
   let playbackGeneration = 0;
+  let musicVolumeScale = 1;
+  let musicAudible = true;
 
-  function currentElement(): HTMLMediaElement {
-    return elements[activeIndex];
-  }
-
-  function cancelCrossfadeWork(): void {
-    crossfadeGeneration += 1;
-    if (crossfadeTimer !== null) {
-      clearTimeout(crossfadeTimer);
-      crossfadeTimer = null;
-    }
-    if (crossfadeInterval !== null) {
-      clearInterval(crossfadeInterval);
-      crossfadeInterval = null;
-    }
-    crossfadeInProgress = false;
-  }
-
-  function scheduleLoopCrossfade(): void {
-    if (crossfadeInProgress) return;
-    const el = currentElement();
-    const remaining = manifest.loopEndSec - el.currentTime;
-    const crossfadeSec = manifest.crossfadeMs / 1000;
-    const triggerMs = Math.max(0, (remaining - crossfadeSec) * 1000);
-
-    if (crossfadeTimer !== null) clearTimeout(crossfadeTimer);
-    crossfadeTimer = setTimeout(() => {
-      crossfadeTimer = null;
-      performCrossfade();
-    }, triggerMs);
-  }
-
-  function performCrossfade(): void {
-    if (crossfadeInProgress) return;
-    crossfadeInProgress = true;
-    const generation = crossfadeGeneration;
-
-    const outgoingIndex = activeIndex;
-    const incomingIndex = 1 - activeIndex;
-    const incoming = elements[incomingIndex];
-    const outgoingGain = gains[outgoingIndex];
-    const incomingGain = gains[incomingIndex];
-
-    incoming.currentTime = manifest.loopStartSec;
-    void incoming.play().then(() => {
-      if (generation !== crossfadeGeneration) {
-        incoming.pause();
-        return;
-      }
-      const steps = 8;
-      const stepMs = manifest.crossfadeMs / steps;
-      let step = 0;
-
-      crossfadeInterval = setInterval(() => {
-        step += 1;
-        const t = step / steps;
-        const { outgoing: og, incoming: ig } = equalPowerCrossfadeGains(t);
-        outgoingGain.gain.value = og;
-        incomingGain.gain.value = ig;
-        if (step >= steps) {
-          if (crossfadeInterval !== null) {
-            clearInterval(crossfadeInterval);
-            crossfadeInterval = null;
-          }
-          elements[outgoingIndex].pause();
-          activeIndex = incomingIndex;
-          rememberedPositionSec = incoming.currentTime;
-          crossfadeInProgress = false;
-          scheduleLoopCrossfade();
-        }
-      }, stepMs);
-    }).catch(() => {
-      if (generation === crossfadeGeneration) {
-        crossfadeInProgress = false;
-        status = 'error';
-      }
-    });
-  }
-
-  function onTimeUpdate(event: Event): void {
-    const el = event.target as HTMLMediaElement;
-    if (el !== currentElement()) return;
-    rememberedPositionSec = el.currentTime;
-    if (!crossfadeInProgress && el.currentTime >= manifest.loopEndSec) {
-      performCrossfade();
+  function rememberPosition(): void {
+    if (Number.isFinite(element.currentTime)) {
+      rememberedPositionSec = element.currentTime;
     }
   }
 
-  for (const el of elements) {
-    el.addEventListener('timeupdate', onTimeUpdate);
-  }
+  element.addEventListener('timeupdate', rememberPosition);
 
   function pause(): void {
-    cancelCrossfadeWork();
     playbackGeneration += 1;
     resumePromise = null;
-    const el = currentElement();
-    rememberedPositionSec = el.currentTime;
-    el.pause();
+    rememberPosition();
+    element.pause();
     status = 'paused';
   }
 
   function resume(): Promise<boolean> {
-    const el = currentElement();
-    if (status === 'playing' && !el.paused) return Promise.resolve(true);
+    if (status === 'playing' && !element.paused) return Promise.resolve(true);
     if (resumePromise !== null) return resumePromise;
 
     const generation = playbackGeneration;
-    el.currentTime = rememberedPositionSec;
-    const pending = el
+    element.currentTime = rememberedPositionSec;
+    const pending = element
       .play()
       .then(() => {
         if (generation !== playbackGeneration) {
-          el.pause();
+          element.pause();
           return false;
         }
         status = 'playing';
-        gains[activeIndex].gain.value = 1;
-        scheduleLoopCrossfade();
         return true;
       })
       .catch(() => {
@@ -333,37 +169,33 @@ export function createMusicRuntime(
   }
 
   function currentPositionSec(): number {
-    const position = currentElement().currentTime;
-    return Number.isFinite(position) ? position : rememberedPositionSec;
+    return Number.isFinite(element.currentTime) ? element.currentTime : rememberedPositionSec;
   }
 
-  let musicVolumeScale = 1;
+  function applyMusicGain(): void {
+    lanes.music.gain.value = musicAudible ? dbToLinear(BGM_GAIN_DB) * musicVolumeScale : 0;
+  }
 
   function setMusicAudible(audible: boolean): void {
-    lanes.music.gain.value = audible ? dbToLinear(BGM_GAIN_DB) * musicVolumeScale : 0;
+    musicAudible = audible;
+    applyMusicGain();
   }
 
   function setMusicVolume(volume0to100: number): void {
     musicVolumeScale = Math.min(100, Math.max(0, volume0to100)) / 100;
-    // Re-apply if currently audible (gain > 0 means audible).
-    if (lanes.music.gain.value > 0) {
-      lanes.music.gain.value = dbToLinear(BGM_GAIN_DB) * musicVolumeScale;
-    }
+    applyMusicGain();
   }
 
   function dispose(): void {
-    cancelCrossfadeWork();
     resumePromise = null;
-    for (const el of elements) {
-      el.pause();
-      el.removeEventListener('timeupdate', onTimeUpdate);
-      el.src = '';
-    }
-    for (const gain of gains) {
-      gain.disconnect();
-    }
-    for (const source of sources) {
+    rememberPosition();
+    element.pause();
+    element.removeEventListener('timeupdate', rememberPosition);
+    element.src = '';
+    try {
       source.disconnect();
+    } catch {
+      /* already disconnected */
     }
   }
 

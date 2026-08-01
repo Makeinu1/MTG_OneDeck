@@ -19,6 +19,7 @@
  */
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -44,7 +45,7 @@ import { getTransportCssTiming } from './audioVisualTransport';
 import { setSessionRuntime, clearSessionRuntime, setSessionTransportPositionGetter } from './audioVisualSession';
 import { setSessionSfxVolume } from './audioVisualSession';
 import { DARK_GAME_TRACK } from './trackManifest';
-import { renderAllPatches } from './sfxRenderer';
+import { loadAllSfx } from './sfxRenderer';
 import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentationTuning';
 
 const SILENT_POLICY: AudioVisualRuntimePolicy = {
@@ -62,6 +63,7 @@ let sessionContext: AudioContext | null = null;
 let sessionLanes: MusicBusLanes | null = null;
 let sessionRuntime: MusicRuntime | null = null;
 let sessionFailed = false;
+let sessionSfxLoadFailed = false;
 
 function tryCreateAudioContext(): AudioContext | null {
   try {
@@ -92,8 +94,6 @@ function ensureSessionRuntime(): void {
   } else {
     sessionRuntime = runtime;
     setSessionTransportPositionGetter(() => runtime.currentPositionSec());
-    // Pre-render SFX patches (fire-and-forget; errors are swallowed per-patch).
-    renderAllPatches().catch(() => {});
   }
 }
 
@@ -122,27 +122,45 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferencesState] = useState<AudioPreferences>(loadAudioPreferences);
   const [unlocked, setUnlocked] = useState(sessionGestureUnlocked);
   const [failed, setFailed] = useState(sessionFailed);
+  const [sfxLoadFailed, setSfxLoadFailed] = useState(sessionSfxLoadFailed);
   const [themeNonce, setThemeNonce] = useState(0);
   const [ambientNonce, setAmbientNonce] = useState(0);
   const [playStatus, setPlayStatus] = useState<'idle' | 'playing' | 'paused' | 'error'>('idle');
 
   const cssTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function setPreferences(next: AudioPreferences): void {
+  const retrySfxLoad = useCallback((): void => {
+    const ctx = sessionContext;
+    if (!ctx) return;
+    void loadAllSfx(ctx)
+      .then((ready) => {
+        sessionSfxLoadFailed = !ready;
+        setSfxLoadFailed(!ready);
+      })
+      .catch(() => {
+        sessionSfxLoadFailed = true;
+        setSfxLoadFailed(true);
+      });
+  }, []);
+
+  const setPreferences = useCallback((next: AudioPreferences): void => {
     setPreferencesState(next);
-  }
+    retrySfxLoad();
+  }, [retrySfxLoad]);
 
   // Gesture unlock + lazy session runtime creation.
   useEffect(() => {
     function unlock(): void {
       if (sessionGestureUnlocked) {
         if (!unlocked) setUnlocked(true);
+        retrySfxLoad();
         return;
       }
       sessionGestureUnlocked = true;
       ensureSessionRuntime();
       if (sessionFailed) setFailed(true);
       setUnlocked(true);
+      retrySfxLoad();
     }
 
     function onPointerDown(): void {
@@ -160,7 +178,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [unlocked]);
+  }, [unlocked, retrySfxLoad]);
 
   // Page teardown: dispose session runtime.
   useEffect(() => {
@@ -171,6 +189,12 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
+  }, []);
+
+  // Leaving the game scope must be silent while retaining the page-session
+  // position for a later game-screen remount.
+  useEffect(() => () => {
+    sessionRuntime?.pause();
   }, []);
 
   // Track theme/ambient changes so effective output (not saved prefs) updates.
@@ -278,12 +302,13 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
         cssTimerRef.current = null;
       }
     };
-  }, [policy]);
+  }, [policy, preferences.bgmVolume]);
 
   // Apply SFX volume whenever preferences change.
   useEffect(() => {
+    if (!unlocked) return;
     setSessionSfxVolume(preferences.sfxVolume ?? 80);
-  }, [preferences.sfxVolume]);
+  }, [preferences.sfxVolume, unlocked]);
 
   // AV5: wire permanent-beat TUNABLEs to CSS custom properties on the game
   // root (contract §10 "一か所集約"). Independent of transport state — the
@@ -303,7 +328,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const audioStatus: AudioStatus = failed
+  const audioStatus: AudioStatus = failed || sfxLoadFailed
     ? 'error'
     : playStatus === 'error'
       ? 'error'
@@ -317,7 +342,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AudioVisualContextValue>(
     () => ({ audioStatus, preferences, policy, setPreferences }),
-    [audioStatus, preferences, policy],
+    [audioStatus, preferences, policy, setPreferences],
   );
 
   return (

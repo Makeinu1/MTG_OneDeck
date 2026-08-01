@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "defaults": {
+    "palette": "hybrid",
+    "bgmVolume": 70,
+    "sfxVolume": 80
+  },
+  "paletteIds": [
+    "tabletop",
+    "hybrid",
+    "arcane"
+  ],
+  "cueIds": [
+    "draw-completed",
+    "land-played",
+    "spell-cast",
+    "tap",
+    "untap",
+    "stack-resolved",
+    "shuffle-completed",
+    "turn-advanced",
+    "commander-cast"
+  ],
+  "generatedBy": "node research/audio/sfx-palette/render-previews.mjs",
+  "notes": "Spell and commander magical layers are fixed-seed project-original synthesis. Voice and long-invocation candidates are comparison-only and absent from playable fixture paths.",
+  "assets": [
+    {
+      "id": "draw-slide",
+      "file": "previews/draw-slide.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-slide-1.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.601s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "8878c9205195e508af1b897f037c1681d6a4e7085da138a289e7605834512e26",
+      "durationSec": 0.600792,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.07
+    },
+    {
+      "id": "draw-fan",
+      "file": "previews/draw-fan.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-fan-1.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.721s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "50830621220f6892ee46ca895a48c9cf97ee0b4a6ff1003946bf2702cb0e138f",
+      "durationSec": 0.720833,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.13
+    },
+    {
+      "id": "land-place",
+      "file": "previews/land-place.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-place-1.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.689s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "298f5d3f503f6fa8764ecf3783622d7e12d450346be67c496a4b0f893d0aa390",
+      "durationSec": 0.689125,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.11
+    },
+    {
+      "id": "spell-place",
+      "file": "previews/spell-place.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-place-2.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.459s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "94375f268ef135cf28975bbfe5a28f6cdfb13d9cda75b99779ef8bf951752f8a",
+      "durationSec": 0.4565,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.19
+    },
+    {
+      "id": "spell-arcane-snap",
+      "file": "previews/spell-arcane-snap.wav",
+      "source": "research/audio/sfx-palette/synthesize-originals.mjs#spell-arcane-snap",
+      "license": "project-original",
+      "transform": "fixed-seed bounded synthesis; 2 ms edge fades; 48 kHz stereo PCM s16le; target RMS -27.3 dBFS; sample peak ceiling 0.38",
+      "sha256": "b01e048510bd7675ebb452dde85a24df303ac1fff73d98820c30fe4f8d2ab545",
+      "durationSec": 0.48,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -7.63
+    },
+    {
+      "id": "spell-summon",
+      "file": "previews/spell-summon.wav",
+      "source": "sound/召喚.ogg",
+      "license": "user-supplied-prototype-only",
+      "transform": "trim 0-0.940s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "d46eb332166063c56633af5f34c9b375072ba90d77a6a973cf509a162dae5b20",
+      "durationSec": 0.937521,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.58,
+      "comparisonOnly": true
+    },
+    {
+      "id": "tap-shove",
+      "file": "previews/tap-shove.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-shove-1.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.766s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "5f4f440a1d4ceb7f92d64cb7cec3b2965f3ed33b8ccacd8b5ac3569d8ec6b42a",
+      "durationSec": 0.765875,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.19
+    },
+    {
+      "id": "untap-slide",
+      "file": "previews/untap-slide.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-slide-3.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.598s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "e20036776d6f3f9fa25dd83c5f7a33b71e52ba9e17823f7c8e5bc6af7110955f",
+      "durationSec": 0.598125,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.77
+    },
+    {
+      "id": "resolve-shove",
+      "file": "previews/resolve-shove.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-shove-3.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.620s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "93debe8eac4c112b9d19668081e734dcdbaf1ea6caa19772a695f7492281293b",
+      "durationSec": 0.62,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.07
+    },
+    {
+      "id": "shuffle",
+      "file": "previews/shuffle.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-shuffle.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.900s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "e044131952f79aaf7d9d33a1f9c4d05385b7255fac3c7772c357d683134fe8b0",
+      "durationSec": 0.9,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.75
+    },
+    {
+      "id": "turn-chip",
+      "file": "previews/turn-chip.wav",
+      "source": "sound/kenney_casino-audio/Audio/chip-lay-1.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.172s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "49fa385676db5e29542d15326e49a102ca0102af93e66a8d7c6880f070d7f727",
+      "durationSec": 0.169604,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -5.19
+    },
+    {
+      "id": "commander-contact",
+      "file": "previews/commander-contact.wav",
+      "source": "sound/kenney_casino-audio/Audio/card-place-4.ogg",
+      "license": "CC0-1.0",
+      "transform": "trim 0-0.601s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "a2ee82f494ce9d062020631dfabd31cc3b7ffe86f827818ae6a0d169f5197a2c",
+      "durationSec": 0.600792,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.96
+    },
+    {
+      "id": "commander-portal-open",
+      "file": "previews/commander-portal-open.wav",
+      "source": "research/audio/sfx-palette/synthesize-originals.mjs#commander-portal-open",
+      "license": "project-original",
+      "transform": "fixed-seed bounded synthesis; 2 ms edge fades; 48 kHz stereo PCM s16le; target RMS -25.4 dBFS; sample peak ceiling 0.4",
+      "sha256": "ee2ea64487642f5a9ab63f33df577096db15857e2eb449fd7f935bf78fe2eccb",
+      "durationSec": 1.24,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -7.96
+    },
+    {
+      "id": "commander-short",
+      "file": "previews/commander-short.wav",
+      "source": "sound/統率者召喚.mp3",
+      "license": "user-supplied-prototype-only",
+      "transform": "trim 0-1.541s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "dba774cbbc9de0cc238183b20fb92a3b35ee79073701e12954f7ff171dab9fa3",
+      "durationSec": 1.541229,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.4,
+      "comparisonOnly": true
+    },
+    {
+      "id": "comparison-long",
+      "file": "previews/comparison-long-invocation.wav",
+      "source": "sound/統率者、召喚.mp3",
+      "license": "user-supplied-prototype-only",
+      "transform": "trim 0-9.560s; 2 ms edge fades; 48 kHz stereo PCM s16le; limiter ceiling 0.55",
+      "sha256": "a49007f94d74e85272a3dc6ce95dda03078705403520243fd26b6e696cbff16e",
+      "durationSec": 9.559979,
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "truePeakDbfs": -4.51,
+      "comparisonOnly": true
+    }
+  ]
+}

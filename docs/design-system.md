@@ -200,8 +200,8 @@ manual resolution の「完了」は見落とせない例外UIとして表示し
 | 層 | 目的 | 音楽イベントか | 視覚 |
 |---|---|---|---|
 | 即時UI | 操作可能・選択中・失敗を理解する | いいえ | hover/focus/pressed、警告。音楽拍を待たない |
-| 機能的因果 | 状態がどこからどこへ変わったか理解する | 原則いいえ | draw、resolve、ETB、墓地移動等の短い因果 |
-| 通常意味イベント | 自分がゲームを進めた手応え | はい | `spell-cast` / `land-played` / `turn-advanced` の一定反応 |
+| 機能的因果 | 状態がどこからどこへ変わったか理解する | 原則いいえ | ETB、墓地移動等の短い因果 |
+| 通常意味イベント | 自分がゲームを進めた手応え | はい | `draw-completed` / `land-played` / `spell-cast` / `tap-changed` / `stack-resolved` / `shuffle-completed` / `turn-advanced` の一定反応 |
 | 固有儀式 | デッキを象徴する一枚を迎える | はい | `commander-cast` の専用cut-in |
 
 **因果の可視化**: カード移動は「出発点→到着点」を理解できること。機能的因果は残してよいが、`audio-visual-contract` のallowlist外では背景パルス、音、粒子バーストを追加しない。
@@ -224,12 +224,12 @@ manual resolution の「完了」は見落とせない例外UIとして表示し
 ```text
 Master
 ├─ Music bus             全曲周期ループBGM
-├─ Musical-event bus     spell / land / turn / commander
+├─ Musical-event bus     draw / land / spell / tap / resolve / shuffle / turn / commander
 └─ UI-feedback bus       非音楽的なアクセシビリティ補助（既定無音）
 ```
 
 - 入力イベントを直接鳴らさない。発火kindの正本は `audio-visual-contract` §2。
-- `stack-resolved`、draw、tap、mana、life、counter、chain、combat は初期musical-event対象外。
+- `draw-completed`、`tap-changed`、`stack-resolved`、`shuffle-completed`はAV7 allowlist。mana、life、counter、chain、combatと効果内部の副作用は対象外。
 - `commander-cast` はgeneric castを置換し、Music busを短時間duckする。
 - Masterの保護は安全用limiter/dynamicsを一つまで。大音量化に使わない。
 - Music / Musical event / 背景motionは内部状態を分離する。公開設定UIの粒度は実装時に最小化してよい。
@@ -245,7 +245,7 @@ Master
 - **手札=カードレスト**: 画面手前に緩い温光のレスト。「手札を抱えている」感覚。
 - **スタック=緊張帯**: 空の時はほぼ不可視。呪文/能力が乗った瞬間だけ青白光(`--stack-glow`)で浮上=「処理待ちの緊張空間」(§ PrimaryAction/StackBand と連動)。
 - **ゾーンの空気感**: 墓地=沈む/冷たい・追放=断絶/乾いた空白・ライブラリ=閉じた山・統率領域=特別な祭壇(白金)。面でなく空気で意味を分ける。
-- **イベント反応**: 通常キャスト、土地プレイ、ターン進行は短く一定。解決時の行き先への流れは機能的因果に留め、音楽イベント化しない。連鎖時の戦術ライン活性は廃止。統率者はキャスト時の固有儀式として別扱い。
+- **イベント反応**: AV7 allowlistの成功操作は短く一定。draw枚数、tap枚数、resolve件数で反応を増幅・連打しない。連鎖時の戦術ライン活性は廃止。統率者はキャスト時の固有儀式として別扱い。
 
 ### 8a. AmbientLayer(生きた背景・2026-07-20 ユーザー裁定・v4.3 最終モック確定)
 ユーザー要望(2026-07-20): 静止背景を廃止し、アイドル時間にも盤面が呼吸する。参照 tetra-nova の本質(音楽同期で脈動するネビュラ背景+多層星+中心脈動)を **CSS 近似+減衰**——"a whisper, never a wave"。**常に抽象表現・具象物体を置かない**(星座線・月・太陽円盤・ルーンリング・フロアグリッド等はすべてユーザー裁定で却下)。本層は `GameScreen` 背後への注入のみ(`pointer-events:none`・`aria-hidden`)。視覚形状の参照 = `research/design/mockups/ambient-motion.html`(v4.3)だが、同モックの固定テンポ・戦闘加速・旧イベント強度は `audio-visual-contract` によりsuperseded。背景は二層: **アンビエント層**(常時・本節)+ **意味イベント層**。

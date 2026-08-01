@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MTG OneDeck — AV7-P SFXパレット試聴</title>
+  <style>
+    :root { color-scheme:dark; --bg:#09101a; --panel:#111d2d; --panel2:#17263a; --line:#2d435e; --text:#e9f0fa; --muted:#aebfd4; --gold:#f0c978; --focus:#79d7ff; --danger:#ff9c9c; }
+    * { box-sizing:border-box; } html,body { margin:0; min-height:100%; background:radial-gradient(circle at 50% 0,#18304a 0,var(--bg) 48rem); color:var(--text); font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; }
+    body { overflow-x:hidden; } main { width:min(1100px,100%); margin:auto; padding:20px max(16px,env(safe-area-inset-right)) 36px max(16px,env(safe-area-inset-left)); }
+    h1 { font-size:clamp(1.4rem,4vw,2.1rem); margin:0; color:var(--gold); } h2 { font-size:1.05rem; margin:0; } p { margin:.35rem 0; } .sub { color:var(--muted); max-width:72ch; }
+    .panel { background:color-mix(in srgb,var(--panel) 93%,transparent); border:1px solid var(--line); border-radius:14px; padding:14px; margin-top:14px; box-shadow:0 12px 30px #0004; }
+    .toolbar,.palettes,.sliders,.row-head { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .toolbar { justify-content:space-between; }
+    button,a.download { min-height:44px; padding:9px 13px; border-radius:9px; border:1px solid #506c8e; background:#1c314b; color:var(--text); font:inherit; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    button:hover,a.download:hover { background:#29496d; } button[aria-pressed="true"] { color:#18202c; background:var(--gold); border-color:#ffe4a5; } button.stop { border-color:#874c55; color:#ffd8d8; } button:focus-visible,a.download:focus-visible,input:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+    .sliders { display:grid; grid-template-columns:minmax(130px,1fr) 3fr auto; } label { font-weight:700; } input[type="range"] { min-height:44px; width:100%; accent-color:var(--gold); } output { min-width:3.2em; font-variant-numeric:tabular-nums; color:var(--gold); }
+    .status { color:var(--muted); font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; }
+    .cue-list { display:grid; gap:9px; margin-top:12px; } .cue { background:var(--panel2); border:1px solid #2c415b; border-radius:11px; padding:10px; display:grid; grid-template-columns:minmax(125px,1fr) minmax(180px,2.2fr) auto; gap:10px; align-items:center; }
+    .cue b { display:block; } .layers { color:var(--muted); font-size:13px; } .layers code { color:#d4e7ff; } .note { font-size:13px; color:var(--muted); } .warn { color:#ffd39b; } .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    @media (max-width:700px) { main { padding-top:14px; } .cue { grid-template-columns:1fr auto; } .layers { grid-column:1 / -1; order:3; } .sliders { grid-template-columns:1fr auto; } .sliders input { grid-column:1 / -1; grid-row:2; } }
+    @media (max-width:440px) { .cue { grid-template-columns:1fr; } .cue .layers { grid-column:1; } .cue > button { width:100%; } }
+    @media (max-height:500px) and (orientation:landscape) { main { width:min(1180px,100%); padding-top:10px; } .panel { margin-top:8px; padding:10px; } .cue-list { grid-template-columns:repeat(2,minmax(0,1fr)); } .cue { grid-template-columns:1fr auto; } .layers { grid-column:1 / -1; } }
+  </style>
+</head>
+<body>
+  <main data-testid="av7-audio-palette">
+    <header><h1>AV7-P SFX パレット試聴</h1><p class="sub">プロトタイプ専用。製品設定には保存しません。承認済みBGMは1つのメディア要素がネイティブループします。</p></header>
+    <section class="panel" aria-label="再生設定">
+      <div class="toolbar" data-testid="transport-controls"><div><h2>BGMトランスポート</h2><p class="note">音は明示操作でのみ開始します。</p></div><div><button id="bgm-toggle" data-testid="bgm-toggle" type="button">BGMを再生</button> <button id="stop-all" class="stop" type="button" data-testid="stop-all">すべて停止</button></div></div>
+      <div class="sliders"><label for="bgm-volume">BGM 音量</label><input id="bgm-volume" data-testid="bgm-volume" type="range" min="0" max="100" value="70"><output id="bgm-value">70</output><label for="sfx-volume">SFX 音量</label><input id="sfx-volume" data-testid="sfx-volume" type="range" min="0" max="100" value="80"><output id="sfx-value">80</output></div>
+      <p id="audio-status" class="status" data-testid="audio-status" role="status">AudioContext: 未開始 / BGM: 停止 / <span id="track-position" data-testid="track-position">位置: 0:00 / ループ: 0</span></p>
+    </section>
+    <section class="panel"><h2>固定パレット</h2><p class="note">レイヤーとゲインは各プリセットで固定です。ランダム化や連鎖評価は行いません。</p><div id="palette-controls" class="palettes" data-testid="palette-controls" role="group" aria-label="SFXパレット"><button type="button" data-palette="tabletop" data-testid="palette-tabletop" aria-pressed="false">卓上音のみ</button><button type="button" data-palette="hybrid" data-testid="palette-hybrid" aria-pressed="true">卓上＋魔法</button><button type="button" data-palette="arcane" data-testid="palette-arcane" aria-pressed="false">魔法強め</button></div></section>
+    <section class="panel"><div class="toolbar"><div><h2>意味イベント</h2><p class="note">同じ行を再生すると前の余韻を止めて新しいアタックを鳴らします。</p></div><div><button id="continuous" type="button" data-testid="continuous-demo">連続デモ</button> <button id="export" type="button" data-testid="export-selection">現在のJSONを書き出す</button></div></div><div id="cue-list" class="cue-list"></div></section>
+    <section class="panel" data-testid="av7p2-design-decision"><h2>AV7-P2 の判断</h2><p class="note warn">声・長い詠唱候補は不採用です。呪文と統率者の魔法レイヤーは、物理カード音を主役に保つプロジェクト制作音へ置き換えました。</p></section>
+  </main>
+  <script>
+    (() => {
+      const ASSET = '/research/audio/sfx-palette/previews/';
+      const bgm = new Audio('/audio/bgm/candidate-b-tight-128-bars.mp3'); bgm.loop = true; bgm.preload = 'metadata';
+      const rows = [
+        ['draw','ドロー','draw-completed'], ['land','土地を置く','land-played'], ['spell','呪文を唱える','spell-cast'], ['tap','タップ','tap'], ['untap','アンタップ','untap'], ['resolve','スタック解決','stack-resolved'], ['shuffle','ライブラリーを切り直す','shuffle-completed'], ['turn','ターンを進める','turn-advanced'], ['commander','統率者を唱える','commander-cast']
+      ];
+      const cueTestIds = { draw:'cue-draw-completed', land:'cue-land-played', spell:'cue-spell-cast', tap:'cue-tap', untap:'cue-untap', resolve:'cue-stack-resolved', shuffle:'cue-shuffle-completed', turn:'cue-turn-advanced', commander:'cue-commander-cast' };
+      const palettes = {
+        tabletop: { label:'卓上音のみ', layers:{ draw:[['draw-slide',.76],['draw-fan',.32]], land:[['land-place',.85],['thud',.42]], spell:[['spell-place',.8]], tap:[['tap-shove',.75]], untap:[['untap-slide',.72]], resolve:[['resolve-shove',.64]], shuffle:[['shuffle',.8]], turn:[['turn-chip',.8],['thud',.35]], commander:[['commander-contact',.55],['thud',.5]] } },
+        hybrid: { label:'卓上＋魔法', layers:{ draw:[['draw-slide',.76],['draw-fan',.32]], land:[['land-place',.85],['thud',.42]], spell:[['spell-place',.72],['spell-arcane-snap',.3]], tap:[['tap-shove',.75]], untap:[['untap-slide',.72]], resolve:[['resolve-shove',.64]], shuffle:[['shuffle',.8]], turn:[['turn-chip',.8],['thud',.35]], commander:[['commander-contact',.44],['thud',.5],['commander-portal-open',.46]] } },
+        arcane: { label:'魔法強め', layers:{ draw:[['draw-slide',.5],['draw-fan',.48]], land:[['land-place',.65],['thud',.38]], spell:[['spell-place',.52],['spell-arcane-snap',.56]], tap:[['tap-shove',.55]], untap:[['untap-slide',.52]], resolve:[['resolve-shove',.52]], shuffle:[['shuffle',.64]], turn:[['turn-chip',.5],['thud',.48]], commander:[['commander-contact',.32],['thud',.42],['commander-portal-open',.68]] } }
+      };
+      const sources = { 'draw-slide':'draw-slide.wav','draw-fan':'draw-fan.wav','land-place':'land-place.wav','spell-place':'spell-place.wav','spell-arcane-snap':'spell-arcane-snap.wav','tap-shove':'tap-shove.wav','untap-slide':'untap-slide.wav','resolve-shove':'resolve-shove.wav','shuffle':'shuffle.wav','turn-chip':'turn-chip.wav','commander-contact':'commander-contact.wav','commander-portal-open':'commander-portal-open.wav' };
+      let palette = 'hybrid', context, bgmGain, mediaSource, loopCount = 0, lastPosition = 0, demoTimers = [], ducked = false, commanderFailsafe = 0;
+      const active = new Map(); const cueList = document.querySelector('#cue-list'); const status = document.querySelector('#audio-status'); const trackPosition = document.querySelector('#track-position');
+      const volume = () => Number(document.querySelector('#sfx-volume').value) / 100;
+      const ensureAudio = async () => { try { if (!context) { const nextContext = new AudioContext(), nextMediaSource = nextContext.createMediaElementSource(bgm), nextBgmGain = nextContext.createGain(); nextBgmGain.gain.value = Number(document.querySelector('#bgm-volume').value) / 100; nextMediaSource.connect(nextBgmGain).connect(nextContext.destination); context = nextContext; mediaSource = nextMediaSource; bgmGain = nextBgmGain; } if (context.state !== 'running') await context.resume(); updateStatus(); return true; } catch { updateStatus('音声出力を開始できませんでした'); return false; } };
+      const fileLabel = (layer) => layer === 'thud' ? 'dry low thud (Web Audio)' : `${sources[layer]} (WAV)`;
+      const layerText = (event) => palettes[palette].layers[event].map(([name,gain]) => `${fileLabel(name)} × ${gain.toFixed(2)}`).join(' / ');
+      const renderRows = () => { cueList.innerHTML = ''; rows.forEach(([event,label]) => { const node = document.createElement('article'); node.className = 'cue'; node.innerHTML = `<div><b>${label}</b><span class="note">${event === 'commander' ? 'BGMダックあり' : 'BGMダックなし'}</span></div><div class="layers"><code>${layerText(event)}</code></div><button type="button" data-testid="${cueTestIds[event]}" data-event="${event}">${label}を再生</button>`; cueList.append(node); }); };
+      const duck = (on) => { if (!bgmGain) return; const now = context.currentTime; bgmGain.gain.cancelScheduledValues(now); bgmGain.gain.linearRampToValueAtTime((Number(document.querySelector('#bgm-volume').value)/100) * (on ? .42 : 1), now + .045); ducked = on; };
+      const restoreCommanderDuck = () => { if (commanderFailsafe) { clearTimeout(commanderFailsafe); commanderFailsafe = 0; } if (ducked) duck(false); };
+      const removeVoice = (event, voice) => { const remaining=(active.get(event)||[]).filter(item=>item!==voice); if (remaining.length) active.set(event,remaining); else { active.delete(event); if (event === 'commander') restoreCommanderDuck(); } };
+      const stopRow = (event) => { (active.get(event) || []).forEach(voice => voice.stop()); active.delete(event); if (event === 'commander') restoreCommanderDuck(); };
+      const playThud = (event,gain) => { const oscillator = context.createOscillator(), amp = context.createGain(); let stopped = false; const voice = { stop: () => { if (stopped) return; stopped = true; const now = context.currentTime; amp.gain.cancelScheduledValues(now); amp.gain.setValueAtTime(Math.max(.0001,amp.gain.value),now); amp.gain.exponentialRampToValueAtTime(.0001,now+.002); try { oscillator.stop(now+.003); } catch {} } }; oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(92,context.currentTime); oscillator.frequency.exponentialRampToValueAtTime(47,context.currentTime+.11); amp.gain.setValueAtTime(.0001,context.currentTime); amp.gain.exponentialRampToValueAtTime(.24 * gain * volume(),context.currentTime+.008); amp.gain.exponentialRampToValueAtTime(.0001,context.currentTime+.15); oscillator.addEventListener('ended', () => removeVoice(event,voice)); oscillator.connect(amp).connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime+.16); return voice; };
+      const playEvent = async (event) => { if (!await ensureAudio()) return; stopRow(event); if (event === 'commander') { duck(true); commanderFailsafe = window.setTimeout(() => restoreCommanderDuck(), 2200); } const playing=[]; palettes[palette].layers[event].forEach(([name,gain]) => { if (name === 'thud') { playing.push(playThud(event,gain)); return; } const audio = new Audio(ASSET + sources[name]); const voice = { stop: () => { audio.pause(); audio.currentTime = 0; } }; audio.volume = Math.min(1,gain * volume()); audio.addEventListener('ended', () => removeVoice(event,voice)); playing.push(voice); audio.play().catch(() => { removeVoice(event,voice); updateStatus('SFX再生を開始できませんでした'); }); }); if (playing.length) active.set(event,playing); updateStatus(); };
+      const updateStatus = (extra='') => { const seconds = Math.floor(bgm.currentTime || 0), position = `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`; status.firstChild.textContent = `AudioContext: ${context ? context.state : '未開始'} / BGM: ${bgm.paused ? '停止' : '再生'} / `; trackPosition.textContent = `位置: ${position} / ループ: ${loopCount}${extra ? ' / ' + extra : ''}`; };
+      bgm.addEventListener('timeupdate', () => { if (bgm.currentTime + .25 < lastPosition) loopCount += 1; lastPosition = bgm.currentTime; updateStatus(); });
+      const startBgm = async () => { if (!await ensureAudio()) return false; if (!bgm.paused) return true; try { await bgm.play(); document.querySelector('#bgm-toggle').textContent='BGMを一時停止'; updateStatus(); return true; } catch { document.querySelector('#bgm-toggle').textContent='BGMを再生'; updateStatus('BGM再生を開始できませんでした'); return false; } };
+      document.querySelector('#bgm-toggle').addEventListener('click', async () => { if (bgm.paused) await startBgm(); else { bgm.pause(); document.querySelector('#bgm-toggle').textContent='BGMを再生'; updateStatus(); } });
+      document.querySelector('#bgm-volume').addEventListener('input', event => { document.querySelector('#bgm-value').value=event.target.value; if (bgmGain) duck(ducked); });
+      document.querySelector('#sfx-volume').addEventListener('input', event => document.querySelector('#sfx-value').value=event.target.value);
+      document.querySelector('#palette-controls').addEventListener('click', event => { const button=event.target.closest('button[data-palette]'); if (!button) return; stopSfx(); palette=button.dataset.palette; document.querySelectorAll('[data-palette]').forEach(item=>item.setAttribute('aria-pressed',String(item===button))); renderRows(); });
+      cueList.addEventListener('click', event => { const button=event.target.closest('button[data-event]'); if (button) void playEvent(button.dataset.event); });
+      const stopSfx = () => { demoTimers.forEach(clearTimeout); demoTimers=[]; [...active.keys()].forEach(stopRow); if (ducked) duck(false); };
+      const stopAll = () => { stopSfx(); bgm.pause(); document.querySelector('#bgm-toggle').textContent='BGMを再生'; updateStatus('すべて停止'); };
+      document.querySelector('#stop-all').addEventListener('click', stopAll);
+      document.querySelector('#continuous').addEventListener('click', async () => { stopSfx(); if (!await ensureAudio()) return; if (!await startBgm()) return; rows.forEach(([event], index) => demoTimers.push(setTimeout(() => { void playEvent(event); }, index * 900))); updateStatus('連続デモを予約'); });
+      document.querySelector('#export').addEventListener('click', () => { const data={ palette, label:palettes[palette].label, bgmVolume:Number(document.querySelector('#bgm-volume').value), sfxVolume:Number(document.querySelector('#sfx-volume').value), layers:palettes[palette].layers }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const link=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`av7-${palette}-palette.json`}); link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),0); });
+      renderRows(); updateStatus();
+    })();
+  </script>
+</body>
+</html>

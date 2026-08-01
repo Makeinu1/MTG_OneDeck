@@ -109,6 +109,47 @@ describe('AV1 pure semantic projection', () => {
     })).toBeNull();
   });
 
+  it('projects each AV7 operation only after positive committed evidence', () => {
+    expect(projectPresentationEvent({
+      action: 'draw', status: 'committed', requestedCount: 4, completedCount: 3,
+    })).toEqual({ kind: 'draw-completed', count: 3 });
+    expect(projectPresentationEvent({
+      action: 'change-tap', status: 'committed', cardIds: ['a', 'b'], tapped: true,
+    })).toEqual({ kind: 'tap-changed', cardIds: ['a', 'b'], tapped: true });
+    expect(projectPresentationEvent({
+      action: 'resolve-stack', status: 'committed', resolvedCount: 2,
+    })).toEqual({ kind: 'stack-resolved', count: 2 });
+    expect(projectPresentationEvent({
+      action: 'shuffle-library', status: 'committed',
+    })).toEqual({ kind: 'shuffle-completed' });
+
+    expect(projectPresentationEvent({
+      action: 'draw', status: 'committed', requestedCount: 2, completedCount: 0,
+    })).toBeNull();
+    expect(projectPresentationEvent({
+      action: 'change-tap', status: 'committed', cardIds: [], tapped: false,
+    })).toBeNull();
+    expect(projectPresentationEvent({
+      action: 'resolve-stack', status: 'committed', resolvedCount: 0,
+    })).toBeNull();
+  });
+
+  it.each(['failed', 'cancelled', 'needs-confirm', 'needs-payment'] as const)(
+    'projects %s AV7 operations as no success event',
+    (status) => {
+      expect(projectPresentationEvent({
+        action: 'draw', status, requestedCount: 2, completedCount: 2,
+      })).toBeNull();
+      expect(projectPresentationEvent({
+        action: 'change-tap', status, cardIds: ['a'], tapped: true,
+      })).toBeNull();
+      expect(projectPresentationEvent({
+        action: 'resolve-stack', status, resolvedCount: 1,
+      })).toBeNull();
+      expect(projectPresentationEvent({ action: 'shuffle-library', status })).toBeNull();
+    },
+  );
+
   it.each(['undo', 'redo', 'restore', 'baseline'] as const)(
     'never projects history action %s',
     (action) => {

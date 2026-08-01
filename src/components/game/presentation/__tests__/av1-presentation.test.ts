@@ -180,6 +180,59 @@ describe('projectPresentationEvent — turn boundaries', () => {
   );
 });
 
+describe('projectPresentationEvent — AV7 success boundaries', () => {
+  it('projects one event for a positive manual draw operation', () => {
+    expect(projectPresentationEvent({
+      action: 'draw',
+      status: 'committed',
+      requestedCount: 4,
+      completedCount: 2,
+    })).toEqual({ kind: 'draw-completed', count: 2 });
+    expect(projectPresentationEvent({
+      action: 'draw',
+      status: 'committed',
+      requestedCount: 1,
+      completedCount: 0,
+    })).toBeNull();
+  });
+
+  it('projects bulk tap, stack resolution, and shuffle exactly once per input', () => {
+    expect(projectPresentationEvent({
+      action: 'change-tap',
+      status: 'committed',
+      cardIds: ['a', 'b'],
+      tapped: false,
+    })).toEqual({ kind: 'tap-changed', cardIds: ['a', 'b'], tapped: false });
+    expect(projectPresentationEvent({
+      action: 'resolve-stack',
+      status: 'committed',
+      resolvedCount: 3,
+    })).toEqual({ kind: 'stack-resolved', count: 3 });
+    expect(projectPresentationEvent({
+      action: 'shuffle-library',
+      status: 'committed',
+    })).toEqual({ kind: 'shuffle-completed' });
+  });
+
+  it('keeps failures, empty changes, and unresolved attempts silent', () => {
+    expect(projectPresentationEvent({
+      action: 'change-tap',
+      status: 'committed',
+      cardIds: [],
+      tapped: true,
+    })).toBeNull();
+    expect(projectPresentationEvent({
+      action: 'resolve-stack',
+      status: 'committed',
+      resolvedCount: 0,
+    })).toBeNull();
+    expect(projectPresentationEvent({
+      action: 'shuffle-library',
+      status: 'cancelled',
+    })).toBeNull();
+  });
+});
+
 describe('projectPresentationEvent — history actions', () => {
   it.each(['undo', 'redo', 'restore', 'baseline'] as const)(
     'never projects %s',

@@ -30,7 +30,7 @@ import {
   commanderDuckEnvelope,
   shouldDuckMusic,
 } from './commanderRitual';
-import { playSfx } from './sfxRenderer';
+import { playSfx, type SfxPlaybackHandle } from './sfxRenderer';
 import { presentationSoundDelayMs } from './semanticSound';
 import { useGameStore } from '../../../store/gameStore';
 import { CommanderCutIn, type CommanderCutInData } from '../CommanderCutIn';
@@ -44,7 +44,7 @@ export function CommanderRitualLayer() {
   const { policy } = useAudioVisual();
   const [ritual, setRitual] = useState<ActiveRitual | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const motifSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const motifSourceRef = useRef<SfxPlaybackHandle | null>(null);
   const duckCancelRef = useRef<(() => void) | null>(null);
   const policyRef = useRef(policy);
 

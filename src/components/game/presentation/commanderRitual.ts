@@ -2,7 +2,7 @@
  * commanderRitual — AV4 duck envelope and ritual duration (pure, no React/DOM).
  * docs/audio-visual-contract.md §5 (commander cast ritual).
  *
- * Motif patch data lives in sfxPatches.ts; rendering/playback in sfxRenderer.ts.
+ * Motif samples live in sfxManifest.ts; loading/playback in sfxRenderer.ts.
  * The duck envelope temporarily attenuates MusicBus by −4 dB
  * using the frozen COMMANDER_MIX_TUNING timing.
  */

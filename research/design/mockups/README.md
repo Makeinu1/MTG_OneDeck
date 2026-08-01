@@ -11,3 +11,5 @@
 設計判断の根拠は `docs/design-vision.md`(診断・6原則・IA)、実装分解は `docs/ui-architecture-v2.md`。
 
 `ambient-motion.html` = **生きた背景の視覚正本**(2026-07-20 ユーザー裁定・design-system §7 L0/§8/§8a・**v4.3 最終確定**)。4場面: ①ダーク・脈動する星雲(星雲ガス300s旋回+156星の個別きらめき+流れ星+鼓動700ms・戦闘/スタック/速度シミュレーション)②ライト・墨の世界(液态呼吸3400msアンカー+自描筆致+墨の滴+盤面上の光源90s公転)③ターン交代(スウィープ+スタンプ)+フェイズ(既存 TransitionCue)④reduced-motion 比較。ブラウザで直接開いて確認する(自己完結・依存なし・カードは Scryfall 実画像)。
+
+`av7-audio-palette.html` = **AV7-P SFX試聴fixture（プロトタイプ専用、製品未実装）**。Vite dev server 起動中に http://localhost:5173/research/design/mockups/av7-audio-palette.html で開く。承認済みBGMを単一のネイティブループで流しつつ、卓上/ハイブリッド/魔法強めの固定SFXレイヤーを比較するための人間向け設計ツールであり、アプリのルート、設定、公開アセットではない。

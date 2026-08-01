@@ -48,10 +48,6 @@ export function validateTrackManifest(manifest: TrackManifest): string[] {
   if (!Number.isFinite(manifest.gainDb)) {
     errors.push('gainDb must be finite');
   }
-  if (!Number.isFinite(manifest.crossfadeMs) || manifest.crossfadeMs < 0) {
-    errors.push('crossfadeMs must be a non-negative finite number');
-  }
-
   const anchors = manifest.beatAnchors;
   if (!Array.isArray(anchors) || anchors.length < 2) {
     errors.push('beatAnchors must contain at least two anchors');

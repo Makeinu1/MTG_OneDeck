@@ -19,13 +19,13 @@ import { useAudioVisual } from './audioVisualContext';
 import { presentationRuntime } from './presentationRuntime';
 import type { SequencedPresentationEvent } from './presentationSequencer';
 import { presentationSoundDelayMs } from './semanticSound';
-import { playSfx } from './sfxRenderer';
+import { playSfx, type SfxPlaybackHandle } from './sfxRenderer';
 import {
   getSessionAudioContext,
   getSessionEventLane,
   getSessionTransportPositionSec,
 } from './audioVisualSession';
-import type { SfxKind } from './sfxPatches';
+import type { SfxKind } from './sfxManifest';
 
 interface SpellPulse {
   id: string;
@@ -50,7 +50,7 @@ export function SemanticPresentationLayer() {
   const settleRef = useRef<HTMLDivElement>(null);
   const spellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeSourcesRef = useRef<Map<string, AudioBufferSourceNode>>(new Map());
+  const activeSourcesRef = useRef<Map<string, SfxPlaybackHandle>>(new Map());
   const policyRef = useRef(policy);
 
   useEffect(() => {
@@ -65,7 +65,11 @@ export function SemanticPresentationLayer() {
     activeSourcesRef.current.clear();
   }
 
-  function scheduleSfx(kind: SfxKind, delayMs: number): void {
+  function scheduleSfx(
+    kind: SfxKind,
+    delayMs: number,
+    options: { tapped?: boolean } = {},
+  ): void {
     const ctx = getSessionAudioContext();
     const lane = getSessionEventLane();
     if (!ctx || !lane) return;
@@ -78,7 +82,7 @@ export function SemanticPresentationLayer() {
       activeSourcesRef.current.delete(kind);
     }
 
-    const source = playSfx(kind, lane, ctx, delayMs / 1000);
+    const source = playSfx(kind, lane, ctx, delayMs / 1000, options);
     if (source) {
       activeSourcesRef.current.set(kind, source);
       source.onended = () => {
@@ -116,7 +120,11 @@ export function SemanticPresentationLayer() {
       try {
         const positionSec = getSessionTransportPositionSec();
         const delayMs = presentationSoundDelayMs(positionSec);
-        scheduleSfx(event.kind, delayMs);
+        scheduleSfx(
+          event.kind,
+          delayMs,
+          event.kind === 'tap-changed' ? { tapped: event.tapped } : {},
+        );
       } catch {
         // Sound failure never blocks game state or visuals.
       }

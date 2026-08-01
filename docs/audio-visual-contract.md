@@ -1,7 +1,8 @@
 # オーディオビジュアル体験契約 — 思考を支える身体的リズム
 
 **status**: active contract（判定者専有・ユーザー裁定 2026-07-26）  
-**implementation status**: approved for AV0–AV4 implementation。現行 D5/D8 実装には本契約と衝突する旧挙動が残る。  
+**implementation status**: AV0–AV6 shipped。AV7 production integrationは2026-08-01ユーザー承認済み。
+
 **役割**: 音楽・意味イベント音・イベント視覚・BPM同期についての単一正本。  
 **非対象**: カードルール自動化、戦闘ルール実装、ライトモード用楽曲。
 **contract cold audit**: 2026-07-26 `qwen3.8-max-preview` cold session `019f9c54-af6d-75c3-9634-94aaf500c38e` — CONTRACT-FROZEN-OK、BLOCKER/HIGH 0。記録=`research/cr-grounding/archive/av-contract-r2-cold-audit-2026-07-26.md`。
@@ -33,11 +34,11 @@
 - **DEFER**: ユーザー未裁定。推測実装せず、現在挙動を維持するか無音・無演出へ落とす。
 - **TUNABLE**: 初期値は実装してよいが、ユーザー体感で変更できる一か所の設定値にする。
 
-迷った場合の既定は「鳴らさない・増やさない・GameStateを待たせない」。新しい意味イベント、音、演出強度、依存、音源公開はユーザー裁定なしに追加しない。
+迷った場合の既定は「鳴らさない・増やさない・GameStateを待たせない」。本契約に列挙したAV7イベント以外の新しい意味イベント、音、演出強度、依存、音源公開はユーザー裁定なしに追加しない。
 
 次は実装者判断で越えてはならないSTOP:
 
-- `PresentationEvent.kind` の追加
+- §2に列挙していない `PresentationEvent.kind` の追加
 - DEFER項目の実装
 - 音・motionの既定値変更
 - npm依存・音源ライブラリの追加
@@ -75,13 +76,16 @@
 | `commander-cast` | 統率者が実際にキャストされ、スタックへの zone change が commit 済み | 専用モチーフ。BGM duck を伴ってよい | 既存 CommanderCutIn を基礎にした固有の儀式 | **MUST / 特例** |
 | `land-played` | `playLand` が成功し、土地が戦場へ commit 済み | キャストと区別できる安定した短音 | カード周辺だけの安定した着地反応 | **MUST** |
 | `turn-advanced` | ターン番号が次へ進む操作が成功 | 小節線に相当する一定の短音 | 現行ターン交代cueを一回 | **MUST** |
-| `stack-resolved` | スタック項目の解決 | なし | 結果理解に必要な既存の因果表示だけ。音楽的強調なし | **MUST NOT sound** |
+| `draw-completed` | UIから開始したdraw操作で実際に1枚以上が手札へcommit済み | 紙を滑らせる一定の短音。枚数で増幅しない | 既存のカード到着表示だけ | **MUST** |
+| `tap-changed` | UIから開始したtap/untap操作で1枚以上の状態が実際に変化 | tapとuntapを区別する一定の卓上短音 | 既存のカード回転だけ | **MUST** |
+| `stack-resolved` | UIから開始したresolve top/allで1件以上がstackから解決完了 | 短いcard-shove。一操作一音 | 結果理解に必要な既存の因果表示だけ | **MUST** |
+| `shuffle-completed` | UIから開始したlibrary shuffleがcommit済み | 0.9秒以内の一定のshuffle音 | 新規イベント視覚なし | **MUST** |
 | `phase-advanced` | フェイズ/ステップだけ進む | なし | 現在必要な遷移表示のみ。新規音楽演出なし | **DEFER** |
 | `ability-activated` | 起動型能力を起動 | なし | 現行の機能表示のみ | **DEFER** |
 | `game-start` | ゲームを開始/キープ | BGM開始以外はなし | 現行UIを維持 | **DEFER** |
 | combat family | 攻撃宣言、ブロック、戦闘ダメージ等 | なし | 新規演出なし。既存の機能表示だけ | **DEFER / 初期対象外** |
 | manipulation | hover、focus、preview、scroll、drag開始、並べ替え、対象探索 | なし | 即時UIフィードバックだけ | **MUST NOT musical event** |
-| resource/result | draw、tap/untap、マナ支払い、life/counter変更、墓地移動、token生成 | なし | 状態理解に必要な既存の因果表示だけ | **MUST NOT musical event** |
+| resource/result | 自動マナ支払い、効果内draw/shuffle、life/counter変更、墓地移動、token生成 | それ自身の追加音なし | 状態理解に必要な既存の因果表示だけ | **MUST NOT separate musical event** |
 | failure | cancel、不正操作、支払い不能、manual-required、runtime error | 成功音なし | 既存の警告・失敗表示 | **MUST NOT success event** |
 | history | undo、redo、reload、snapshot復元 | なし。過去イベントを再演しない | 既存の履歴表示 | **MUST NOT replay** |
 
@@ -89,6 +93,8 @@
 
 - `commander-cast` は `spell-cast` を**置換**する。二音・二重エフェクトにしない。
 - ターン終了と次ターン開始は `turn-advanced` 一件に正規化する。
+- 複数枚draw、bulk tap/untap、resolve-allは、枚数やstack件数にかかわらずユーザーの一操作を一件へ集約する。
+- 自動マナ支払い、cast/resolve内のdraw・shuffle・tap、通常のturn進行に内包されたuntapは別の音を重ねない。明示操作の主意味だけを鳴らす。
 - 対象・面・X・支払い・確認が未完の間はキャスト成立ではない。最後の成功 commit 後にだけ発火する。
 - forced cast / forced land play も、成功した意味イベントなら通常と同じ反応を返す。強行したことを音で罰しない。
 - 入力経路が pointer / touch / keyboard / DnD / action sheet のどれでも結果は同じ一件にする。
@@ -119,42 +125,38 @@
 
 違う効果音や強度に聞こえるランダム化は不可。連続キャストでも一件ずつ同じ attack を返し、前音の長い tail だけを choke して濁りを抑えてよい。イベントを黙って捨てたり、履歴依存で高揚へ変換したりしない。
 
-### 3.1 効果音の合成方式と音色設計
+### 3.1 効果音のsample manifestと音色設計
 
-4種の効果音(`spell-cast` / `land-played` / `turn-advanced` / `commander-cast`)は、
-外部音源ファイルを追加せず、**コードで定義したマルチレイヤーパッチを
-`OfflineAudioContext` で AudioBuffer へレンダリング**して再生する。全4種は
-同一の「物理打撃音(thud)」言語で統一する: sine の pitch-drop(sub) + triangle の
-body + ノイズのトランジェント。全パッチ dry(リバーブなし)。空間は BGM だけが持つ。
-
-
-固定するもの(§3 の「楽器の役割・相対音量・基本エンベロープ」の実体):
-
-- パッチデータ(レイヤー構成・周波数・エンベロープ・リバーブ)は純粋データとして
-  `sfxPatches.ts` に固定する。同じ kind は毎回同一バッファを再生する。
-- 各 kind の音色意図:
-  - `spell-cast`: sine 200→100Hz pitch-drop thud + triangle 400Hz body + highpass noise。dry(空中打撃)
-  - `land-played`: sine 120→60Hz pitch-drop thud + triangle 240Hz body + lowpass noise。dry(地面着地)
-  - `turn-advanced`: sine 160→80Hz pitch-drop + highpass noise tick。dry(最小の区切り)
-  - `commander-cast`: land-played と同一の thud を 122BPM 8分音符間隔(0/246/492ms)で
-    3発。3発目は pitch を下げて「着地」。dry。BGM duck(-4dB)を伴う。
-許される TUNABLE(1箇所集約):
+AV7-P / AV7-P2の比較試聴で承認された`hybrid`パレットを本番の唯一のmixとする。本番UIへpalette selectorを追加しない。各layerは次の固定データで宣言し、同じ意味には毎回同じsampleとmixを返す。
 
 ```ts
-const SFX_LEVELS_DB = {
-  'spell-cast': -8,
-  'land-played': -6,
-  'turn-advanced': -10,
-  'commander-cast': -3,
-} as const; // BGM(-4.5dB固定)相対。耳疲れで調整する唯一の音量値。
+interface SfxSampleLayer {
+  src: string;
+  gainDb: number;
+  offsetMs: number;
+  chokeGroup: string;
+}
 ```
 
-- レンダリングは 48kHz・2ch。AudioContext 生成直後に非同期で4パッチをレンダリングし
-  キャッシュする。完了前のイベントは音をスキップする(GameState は待たない)。
-- レンダリング失敗・再生失敗は音をスキップし、ゲームを止めない(§4 手順7)。
-- 通常3音は EventBus、`commander-cast` は CommanderBus へ出力する(バス分離は維持)。
-- 拍スナップ(`presentationSoundDelayMs`)・同種 choke・「失敗は GameState を待たせない」
-  はすべて維持する。
+| cue | 固定layer (`gainDb`) |
+|---|---|
+| `draw-completed` | `draw-slide -2.38` + `draw-fan -9.90` |
+| `land-played` | `land-place -1.41` + `low-thud -7.54` |
+| `spell-cast` | `spell-place -2.85` + `spell-arcane-snap -10.46` |
+| `tap-changed` tapped | `tap-shove -2.50` |
+| `tap-changed` untapped | `untap-slide -2.85` |
+| `stack-resolved` | `resolve-shove -3.88` |
+| `shuffle-completed` | `shuffle -1.94` |
+| `turn-advanced` | `turn-chip -1.94` + `low-thud -9.12` |
+| `commander-cast` | `commander-contact -7.13` + `low-thud -6.02` + `commander-portal-open -6.74` |
+
+- 全layerの初期`offsetMs`は0。同cueのlayerは同じ`chokeGroup`へ属し、再発火では前cueのtail全体だけを止めて新しいattackを開始する。
+- `spell-arcane-snap`と`commander-portal-open`と`low-thud`は固定seedまたは固定式のproject-original。ほかの採用sampleはKenney Casino AudioのCC0素材を加工したもの。
+- `public/audio/sfx/`へ置くのは採用済み48kHz・2ch・PCM16 WAVと権利根拠だけ。通常音は1秒以内、commander音は1.6秒以内、true peakは-3dBFS以下、端に2ms fadeを持つ。
+- comparison-onlyの音声素材、Cockatrice、`sound/spells/`、zip/7z、`sound/`全体は公開しない。ユーザーの`sound/`原本を変更しない。
+- AudioContext生成後にsampleを非同期fetch/decodeしてcacheする。完了前のevent、load/decode/play失敗は無音へ縮退し、GameStateを待たせない。
+- 通常7音はEventBus、`commander-cast`はCommanderBusへ出力する。通常音でBGMをduckしない。
+- 拍スナップ(`presentationSoundDelayMs`)と「失敗はGameStateを待たせない」を維持する。`OfflineAudioContext`による旧patch生成は撤去する。
 
 ユーザー音量スライダー(2026-07-26 ユーザー裁定で追加):
 
@@ -164,12 +166,6 @@ const SFX_LEVELS_DB = {
 - 実効 gain = バス既定値 × (slider / 100)。スライダーは保存設定を書き換えず、
   実効出力だけに影響する(テーマ・route の実効無音は維持)。
 - スライダーはライトテーマ中でも操作可能(保存値は維持される)。
-
-osc レイヤーのフィルター:
-
-- `SfxLayer` の `filterType` / `filterFreqStart` / `filterFreqEnd` / `filterQ` は
-  noise レイヤーだけでなく **osc レイヤーにも適用できる**。レンダラーは osc の
-  出力を指定フィルターへ通してから envelope へ接続する。
 
 ---
 
@@ -221,6 +217,7 @@ interface AudioVisualTuning {
 - BGMを短時間だけ duck し、専用モチーフへ場所を譲る。
 - 二回目以降も同じ儀式。統率者税・キャスト回数で増幅しない。
 - 演出完了を待たずにゲーム操作を続けられる。
+- 視覚cut-inは現行650msを維持し、専用sample全体は1.6秒以内で自然に減衰してよい。
 
 TUNABLE:
 
@@ -259,12 +256,11 @@ const COMMANDER_MIX_TUNING: CommanderMixTuning = {
 確定事項:
 
 - 短いフレーズだけを反復せず、**曲全体が流れながら周期的に戻る**。
-- 元MP3の単純 `loop=true` は使わない。
+- 音源自体が128小節・crossfade 0秒でループ用に調整済みなので、単一media elementのnative `loop=true`を使う。
 - 曲中の groove / break / rejoin を保持する。
 - ループ点、beat anchor、gain、実測BPMは下記TrackManifestへ凍結する。
 - 実行時FFTで拍を推定しない。
-- 長尺BGMはstreamし、二つのmedia elementを使った40msの等電力crossfadeで
-  128小節全体の境界だけを接続する。通常再生中に曲を組み替えない。
+- 長尺BGMは単一`HTMLMediaElement`でstreamする。二本再生、crossfade timer、等電力gain計算、手動seekによる境界接続を行わない。
 
 ```ts
 interface TrackManifest {
@@ -275,7 +271,6 @@ interface TrackManifest {
   loopStartSec: number;
   loopEndSec: number;
   gainDb: number;
-  crossfadeMs: number;
   beatAnchors: Array<{ beatIndex: number; atSeconds: number }>;
   sections: Array<{
     kind: 'groove' | 'break' | 'rejoin';
@@ -298,7 +293,6 @@ const DARK_GAME_TRACK: TrackManifest = {
   loopStartSec: 0,
   loopEndSec: 251.798458,
   gainDb: -4.5,
-  crossfadeMs: 40,
   beatAnchors: [
     { beatIndex: 0, atSeconds: 0 },
     { beatIndex: 32, atSeconds: 15.737404 },
@@ -387,7 +381,7 @@ const DARK_GAME_TRACK: TrackManifest = {
 | Gate | ユーザーが判定する問い |
 |---|---|
 | H1 transport | 曲と盤面が同じ時間を持つか。単なる点滅に見えないか |
-| H2 cast / land / turn | 自分がゲームを進めた手応えがあるか。音が遅くないか |
+| H2 semantic palette | draw / land / spell / tap / untap / resolve / shuffle / turnが、カードに触れた手応えとして自然か。音が遅くないか |
 | H3 repetition | 同じ反応を予測できるか。10分で耳・目が疲れないか |
 | H4 break / loop | 肩で取っていたリズムが途切れないか。継ぎ目が分からないか |
 | H5 commander | 特別な一枚だと感じるか。BGM duckが不自然・大げさでないか |
@@ -404,10 +398,10 @@ const DARK_GAME_TRACK: TrackManifest = {
 | 現行 | 本契約での扱い |
 |---|---|
 | `CelebrationLayer.tsx` の chain heuristic / `chain` 音 | 削除または無効化。履歴依存の高揚は禁止 |
-| `gameController.tsx` のPrimaryAction `celebrate('primary')` と解決成功 `celebrate('resolve')` | 直接呼出しを削除。成功したcast / land / turnだけをprojectし、解決は必要な因果視覚だけ残す |
+| `gameController.tsx` のPrimaryAction `celebrate('primary')` と解決成功 `celebrate('resolve')` | 直接呼出しを削除。成功済み意味操作をAV7 allowlistへprojectする |
 | `ThumbZone.tsx` の全PrimaryAction `celebrate('primary')` | 直接呼出しを削除。入力/ボタンを直接鳴らさない |
-| `HandRibbon.tsx` の `celebrate('draw')` | 直接呼出しを削除。drawはmusical event allowlist外 |
-| `sound.ts` の `draw` / `resolve` / `chain` 音 | musical event allowlist外。新routerへ移行するまで鳴らさない |
+| `HandRibbon.tsx` の `celebrate('draw')` | 直接音呼出しを削除。成功commitをcontrollerの`draw-completed`経路へ正規化する |
+| `sound.ts` の `draw` / `resolve` / `chain` 音 | `chain`は廃止。draw/resolveはAV7 sample routerだけから鳴らす |
 | commander cut-in の解決時gate | キャスト時の非blocking演出へ移す。store契約変更は別STOP |
 | `ambientMotion.ts` の戦闘時 525ms | 初期対象外。戦闘でテンポ・色・強度を変えない |
 | ダーク固定700ms | TrackManifest transport ready中は置換。master audio OFF / transport失敗時のfallbackとしてのみ暫定維持 |
@@ -592,3 +586,14 @@ interface AudioVisualTuning {
 - ライトテーマでの演出(ダークのみ)。
 - 毎フレームの JS ループ。
 - 照明の移動/走査(脈動のみ)。
+
+---
+
+## 12. AV7 production integration（2026-08-01 ユーザー裁定）
+
+AV7-P / AV7-P2の試聴を経て、ユーザーはゲーム画面への一旦の組み込みと、その後の実プレイによる最終使用感judgeを承認した。§2–§6のAV7記述が旧AV3/AV4のpatch/crossfade記述を置き換える。
+
+- production mixは§3.1の固定`hybrid`一種。公開設定は既存BGM/SFX ON/OFFと70/80 sliderだけ。
+- BGMは単一native loop。音源`candidate-b-tight-128-bars.mp3`自体を変更しない。
+- production assetは採用済みCC0 / project-originalだけ。比較試聴音声と`sound/`原本は本番範囲外。
+- 本マイルストーンの完了はローカル実プレイ可能・cold audit・機械checkまで。commit / push / Pages公開は、ユーザーの使用感judgeより前には行わない。

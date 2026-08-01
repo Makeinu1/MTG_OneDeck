@@ -99,8 +99,17 @@ type PendingXAbility = {
 };
 type PendingLandTapChoice = { cardId: string; force?: boolean };
 type CountDialogState = { kind: 'draw' | 'mill' | 'peek' | 'discard-random'; defaultValue: number };
-type FetchDialogState = { abilityId: string; sourceId: string; ability: FetchAbility };
+type FetchDialogState = {
+  abilityId: string;
+  sourceId: string;
+  ability: FetchAbility;
+  publishResolveSound: boolean;
+};
 type PendingRuleTargetAction = { kind: string; sourceCardId: string };
+type PendingResolvePresentation = {
+  stackIds: string[];
+  inSynchronousCall: boolean;
+};
 
 
 
@@ -122,6 +131,10 @@ export interface GameController {
   /** CR 305.6/producedMana の安全な土地クリックを色選択つきで実行する。 */
   requestTapForMana?: (cardId: string) => void;
   requestActivateAbility?: (cardId: string, abilityLineIndex?: number) => void;
+  requestDraw: (count: number) => void;
+  requestShuffleLibrary: () => void;
+  requestToggleTap: (cardId: string) => void;
+  requestSetAllTapped: (tapped: boolean) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
   requestResolveTop: () => void;
   requestResolveAll: () => void;
@@ -234,6 +247,7 @@ export function useGameController({
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
 
   const transitionCueIdRef = useRef(0);
+  const pendingResolvePresentationRef = useRef<PendingResolvePresentation | null>(null);
   const dismissTransitionCue = useCallback((id: number) => {
     setTransitionCue((current) => current?.id === id ? null : current);
   }, []);
@@ -245,6 +259,35 @@ export function useGameController({
     const id = setTimeout(() => setMotionArmed(true), 0);
     return () => clearTimeout(id);
   }, []);
+
+  const settlePendingResolvePresentation = useCallback((): void => {
+    const pending = pendingResolvePresentationRef.current;
+    if (!pending || pending.inSynchronousCall) return;
+    const current = useGameStore.getState();
+    const currentState = current.state;
+    if (!currentState) {
+      pendingResolvePresentationRef.current = null;
+      return;
+    }
+    const stackIds = new Set(currentState.zones.stack);
+    const resolvedCount = pending.stackIds.filter((id) => !stackIds.has(id)).length;
+    if (resolvedCount > 0) {
+      presentationRuntime.publish({
+        action: 'resolve-stack',
+        status: 'committed',
+        resolvedCount,
+      });
+      pendingResolvePresentationRef.current = null;
+      return;
+    }
+    if (!current.pendingGuided && !current.resolutionSession) {
+      pendingResolvePresentationRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => useGameStore.subscribe(() => {
+    settlePendingResolvePresentation();
+  }), [settlePendingResolvePresentation]);
 
 
 
@@ -306,7 +349,7 @@ export function useGameController({
     onUndo: () => undo(),
     onRedo: () => redo(),
     onRestart: () => setConfirmAction('restart'),
-    onDraw: () => store.draw(1),
+    onDraw: () => requestDraw(1),
     isDialogOpen: shortcutsBlocked,
     keybindings,
   });
@@ -394,6 +437,7 @@ export function useGameController({
 
   function undo(): void {
     setTransitionCue(null);
+    pendingResolvePresentationRef.current = null;
     if (requestInteractionHistory('undo')) return;
     if (closeTopmostInteraction()) return;
     store.undo();
@@ -401,6 +445,7 @@ export function useGameController({
 
   function redo(): void {
     setTransitionCue(null);
+    pendingResolvePresentationRef.current = null;
     if (requestInteractionHistory('redo')) return;
     store.redo();
   }
@@ -540,6 +585,88 @@ export function useGameController({
       nextTurn,
     });
   }
+
+  function requestDraw(count: number): void {
+    const before = useGameStore.getState().state;
+    if (!before || count <= 0) return;
+    const beforeHandCount = before.zones.hand.length;
+    store.draw(count);
+    const after = useGameStore.getState().state;
+    const completedCount = after
+      ? Math.max(0, after.zones.hand.length - beforeHandCount)
+      : 0;
+    presentationRuntime.publish({
+      action: 'draw',
+      status: 'committed',
+      requestedCount: count,
+      completedCount,
+    });
+  }
+
+  function requestShuffleLibrary(): void {
+    const before = useGameStore.getState().state;
+    if (!before) return;
+    store.shuffleLibrary();
+    if (useGameStore.getState().state === before) return;
+    presentationRuntime.publish({
+      action: 'shuffle-library',
+      status: 'committed',
+    });
+  }
+
+  function publishTapChange(
+    before: GameState | null,
+    requestedCardIds: readonly string[],
+    tapped: boolean,
+  ): void {
+    const after = useGameStore.getState().state;
+    if (!before || !after) return;
+    const changedIds = requestedCardIds.filter((cardId) => {
+      const previous = before.cards[cardId];
+      const current = after.cards[cardId];
+      return previous && current
+        && previous.tapped !== current.tapped
+        && current.tapped === tapped;
+    });
+    presentationRuntime.publish({
+      action: 'change-tap',
+      status: 'committed',
+      cardIds: changedIds,
+      tapped,
+    });
+  }
+
+  function requestToggleTap(cardId: string): void {
+    const before = useGameStore.getState().state;
+    const tapped = !(before?.cards[cardId]?.tapped ?? false);
+    store.toggleTap(cardId);
+    publishTapChange(before, [cardId], tapped);
+  }
+
+  function requestSetAllTapped(tapped: boolean): void {
+    const before = useGameStore.getState().state;
+    if (!before) return;
+    const candidateIds = before.zones.battlefield.filter((cardId) => {
+      const card = before.cards[cardId];
+      return card && card.tapped !== tapped;
+    });
+    if (tapped) store.tapAllPermanents();
+    else store.untapAllPermanents();
+    publishTapChange(before, candidateIds, tapped);
+  }
+
+  function beginResolvePresentation(stackIds: string[]): void {
+    pendingResolvePresentationRef.current = stackIds.length > 0
+      ? { stackIds, inSynchronousCall: true }
+      : null;
+  }
+
+  function finishResolveCall(): void {
+    const pending = pendingResolvePresentationRef.current;
+    if (pending) pending.inSynchronousCall = false;
+    settlePendingResolvePresentation();
+  }
+
   function requestPlayLand(cardId: string, opts?: { force?: boolean; entersTapped?: boolean }): void {
     const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
     const result = store.playLand(cardId, opts);
@@ -577,7 +704,9 @@ export function useGameController({
     const result = store.cycle(cardId);
     if (result !== 'ok') setPendingPayment({ kind: 'cycle', cardId, shortfall: result.shortfall });
   }
-  function fetchDialogForTop(currentState: GameState | null): FetchDialogState | null {
+  function fetchDialogForTop(
+    currentState: GameState | null,
+  ): Omit<FetchDialogState, 'publishResolveSound'> | null {
     if (!currentState || currentState.zones.stack.length === 0) return null;
     const abilityId = currentState.zones.stack[currentState.zones.stack.length - 1];
     const abilityCard = currentState.cards[abilityId];
@@ -592,16 +721,30 @@ export function useGameController({
     const before = useGameStore.getState().state;
     const dialog = fetchDialogForTop(before);
     if (dialog) {
-      setFetchDialog(dialog); // フェッチはダイアログ経由=まだ解決していないので祝祭しない(Tier-1 #2)。
+      setFetchDialog({ ...dialog, publishResolveSound: true });
       return;
     }
+    const topId = before?.zones.stack.at(-1);
+    beginResolvePresentation(topId ? [topId] : []);
     store.resolveTop();
+    finishResolveCall();
   }
   function requestResolveAll(): void {
+    const before = useGameStore.getState().state;
+    beginResolvePresentation(before ? [...before.zones.stack] : []);
     store.resolveAll();
+    finishResolveCall();
     const s = useGameStore.getState().state;
     const dialog = s ? fetchDialogForTop(s) : null;
-    if (dialog) setFetchDialog(dialog);
+    if (dialog) {
+      const resolvedBeforeDialog = before
+        ? before.zones.stack.some((id) => !s?.zones.stack.includes(id))
+        : false;
+      setFetchDialog({
+        ...dialog,
+        publishResolveSound: !resolvedBeforeDialog,
+      });
+    }
   }
   function moveStackItem(cardId: string, to: ZoneId): void {
     if (!state) return;
@@ -679,7 +822,7 @@ export function useGameController({
         setCountDialog({ kind: 'discard-random', defaultValue: 1 });
         break;
       case 'shuffle':
-        store.shuffleLibrary();
+        requestShuffleLibrary();
         break;
       case 'search-library':
         setZoneViewer('library');
@@ -744,19 +887,9 @@ export function useGameController({
 
     switch (id) {
       case 'tap':
-        return () => store.toggleTap(cardId);
+        return () => requestToggleTap(cardId);
       case 'tapForMana':
-        return () => {
-          const result = store.tapForMana(cardId);
-          if (result === 'needs-choice') {
-            setManaChoice({ kind: 'tap', cardId, options: def?.producedMana ?? [] });
-          }
-          if (def && isPartiallyImplemented(def)) {
-            useViewStore.getState().showToast(
-              `《${def.printedName ?? def.name}》は一部の効果が未実装です。手動処理が必要な能力があります。`,
-            );
-          }
-        };
+        return () => requestTapForMana(cardId);
       case 'crack-treasure':
         return () => requestTreasureCrack(cardId);
       case 'crack-clue':
@@ -888,9 +1021,9 @@ export function useGameController({
 
   function buildLibraryMenuItems(): MenuItem[] {
     return [
-      { key: 'library-draw', label: '引く', testId: 'library-draw', onSelect: () => store.draw(1) },
+      { key: 'library-draw', label: '引く', testId: 'library-draw', onSelect: () => requestDraw(1) },
       { key: 'library-draw-n', label: 'N枚引く', testId: 'library-draw-n', onSelect: () => setCountDialog({ kind: 'draw', defaultValue: 1 }) },
-      { key: 'library-shuffle', label: 'シャッフル', testId: 'library-shuffle', onSelect: () => store.shuffleLibrary() },
+      { key: 'library-shuffle', label: 'シャッフル', testId: 'library-shuffle', onSelect: requestShuffleLibrary },
       { key: 'mill', label: '切削', testId: 'mill', onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }) },
       { key: 'scry-surveil', label: '占術 / 諜報', testId: 'scry-surveil', onSelect: () => setArrangeTopOpen(true) },
       { key: 'peek', label: '上を見る', testId: 'peek', onSelect: () => setCountDialog({ kind: 'peek', defaultValue: 3 }) },
@@ -948,30 +1081,26 @@ export function useGameController({
       }
       const produced = def?.producedMana ?? [];
       if (!card.tapped && produced.length > 0) {
-        const result = store.tapForMana(cardId);
-        if (result === 'needs-choice') setManaChoice({ kind: 'tap', cardId, options: produced });
-        if (def && isPartiallyImplemented(def)) {
-          useViewStore.getState().showToast(
-            `《${def.printedName ?? def.name}》は一部の効果が未実装です。手動処理が必要な能力があります。`,
-          );
-        }
+        requestTapForMana(cardId);
         return;
       }
-      store.toggleTap(cardId);
+      requestToggleTap(cardId);
       return;
     }
     if (card.zone === 'command' && isCommander(state, cardId)) {
       requestCastToStack(cardId);
       return;
     }
-    if (card.zone === 'library') store.draw(1);
+    if (card.zone === 'library') requestDraw(1);
   }
 
-  function requestTapForMana(cardId: string): void {
+  function requestTapForMana(cardId: string, color?: ManaColor): void {
     if (!state) return;
     const card = state.cards[cardId];
     const def = card ? state.defs[card.defId] : undefined;
-    const result = store.tapForMana(cardId);
+    const before = useGameStore.getState().state;
+    const result = store.tapForMana(cardId, color);
+    publishTapChange(before, [cardId], true);
     if (result === 'needs-choice') {
       setManaChoice({ kind: 'tap', cardId, options: naiveTapManaColors(def) });
     }
@@ -1209,6 +1338,7 @@ export function useGameController({
   }
 
   function cancelDecision(): void {
+    pendingResolvePresentationRef.current = null;
     if (store.pendingCast) store.cancelPendingCast();
     else if (store.pendingGuided) store.cancelGuidedPrompt();
     else if (pendingRuleTarget) setPendingRuleTarget(null);
@@ -1345,7 +1475,7 @@ export function useGameController({
           options={manaChoice.options}
           onChoose={(color) => {
             if (manaChoice.kind === 'treasure') store.crackTreasure(manaChoice.cardId, color);
-            else store.tapForMana(manaChoice.cardId, color);
+            else requestTapForMana(manaChoice.cardId, color);
             setManaChoice(null);
           }}
           onCancel={() => setManaChoice(null)}
@@ -1477,7 +1607,11 @@ export function useGameController({
           sourceId={fetchDialog.sourceId}
           ability={fetchDialog.ability}
           onConfirm={(targetId, opts) => {
+            if (fetchDialog.publishResolveSound) {
+              beginResolvePresentation([fetchDialog.abilityId]);
+            }
             store.resolveFetch(fetchDialog.abilityId, targetId, opts);
+            if (fetchDialog.publishResolveSound) finishResolveCall();
             setFetchDialog(null);
           }}
           onClose={() => setFetchDialog(null)}
@@ -1574,7 +1708,7 @@ export function useGameController({
           inputTestId={countDialogConfig.inputTestId}
           confirmTestId={countDialogConfig.confirmTestId}
           onConfirm={(count) => {
-            if (countDialog.kind === 'draw') store.draw(count);
+            if (countDialog.kind === 'draw') requestDraw(count);
             else if (countDialog.kind === 'mill') store.mill(count);
             else if (countDialog.kind === 'peek') setPeekCount(count);
             else store.discardRandom(count);
@@ -1651,6 +1785,10 @@ export function useGameController({
     handleCardDoubleClick,
     requestTapForMana,
     requestActivateAbility,
+    requestDraw,
+    requestShuffleLibrary,
+    requestToggleTap,
+    requestSetAllTapped,
     requestResolveTop,
     requestResolveAll,
     advancePhase,

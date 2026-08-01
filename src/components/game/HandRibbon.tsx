@@ -276,7 +276,7 @@ export function HandRibbon({
   }
 
   function drawOne(): void {
-    store.draw(1);
+    controller.requestDraw(1);
   }
 
   return (

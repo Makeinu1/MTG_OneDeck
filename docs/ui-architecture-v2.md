@@ -157,6 +157,10 @@ type PresentationEvent =
   | { id: string; sourceEventId?: string; kind: 'spell-cast'; cardId: string }
   | { id: string; sourceEventId?: string; kind: 'commander-cast'; cardId: string }
   | { id: string; kind: 'land-played'; cardId: string }
+  | { id: string; kind: 'draw-completed'; count: number }
+  | { id: string; kind: 'tap-changed'; cardIds: string[]; tapped: boolean }
+  | { id: string; kind: 'stack-resolved'; count: number }
+  | { id: string; kind: 'shuffle-completed' }
   | { id: string; kind: 'turn-advanced'; turn: number };
 ```
 
@@ -174,7 +178,7 @@ type PresentationEvent =
 発火の優先順位:
 
 1. forward semantic actionの成功完了境界で、新しくappendされた `GameEvent` が意味を一意に証明できる場合、そのeventを因果の証拠として投影する（cast系）。eventId自体はpresentationの一意性に使わない。
-2. `GameEvent`だけで区別できない場合、`gameController` の単一semantic action境界で、store actionの**成功結果とbefore/after差分**を確認して投影する（land / turn）。
+2. `GameEvent`だけで区別できない場合、`gameController` の単一semantic action境界で、store actionの**成功結果とbefore/after差分**を確認して投影する（land / draw / tap / resolve / shuffle / turn）。遅延resolveは開始intentをephemeral refへ保持し、stack itemが実際に離れた時だけ一度完了させる。
 3. どちらでも一意に証明できなければ発火しない。ログregexや各ボタンへの個別`playSound()`で補わない。
 
 `PresentationEventProjector` と sequencer は、最低限次をテスト可能にする。
@@ -182,6 +186,8 @@ type PresentationEvent =
 - commander castがgeneric castへも一致しても、出力は`commander-cast`一件。
 - failed / needs-confirm / needs-payment / cancel / thrown actionは0件。
 - turn end/startは`turn-advanced`一件。
+- multi-draw、bulk tap/untap、resolve-allは一操作一件。内部の自動mana tapや効果内draw/shuffleは別eventへ分裂させない。
+- manual-required / guided / fetchの確認待ちは0件で、stack itemが実際に離れた成功時だけ`stack-resolved`一件。
 - undo/redo/reload/history divergenceは0件。
 - cast → undo → 別の新規castでエンジン側eventIdが再利用されても、後者へ新しいpresentation idを一件だけ発行する。
 - redo / reload / React remount / 初回購読は現在状態をbaselineにするだけで0件。
@@ -209,10 +215,10 @@ type PresentationEvent =
 
 | 現行箇所 | AVスライスで行うこと |
 |---|---|
-| `sound.ts` | opt-in保存と既存音を分離。`primary/draw/resolve/chain`の直接musical soundを廃止しbusへ移す |
-| `gameController.tsx` | 全PrimaryActionの`celebrate('primary')`と解決成功の`celebrate('resolve')`を削除。successful semantic actionを一か所でproject |
+| `sound.ts` | opt-in保存と既存音を分離。`primary/chain`を廃止し、draw/resolveを含むAV7 allowlistはsample busへ移す |
+| `gameController.tsx` | 入力別の直接音を持たず、successful semantic actionを一か所でproject。draw/tap/resolve/shuffleの全UI入口を同じwrapperへ合流させる |
 | `ThumbZone.tsx` | 全PrimaryActionの`celebrate('primary')`を削除。hapticsを残すなら音と分離し、意味イベントに偽装しない |
-| `HandRibbon.tsx` | `celebrate('draw')`を削除。drawはmusical eventへ投影しない |
+| `HandRibbon.tsx` | `celebrate('draw')`を削除。controllerの成功済み`draw-completed`経路だけを使う |
 | `CelebrationLayer.tsx` / `celebrationTimelineModel.ts` | chain heuristic・chain visual・chain soundを撤去 |
 | `CommanderCutIn.tsx` | 視覚資産を再利用。発火をcast時へ移し、演出をnonblockingにする |
 | `pendingCommanderResolution` | AV側から新規依存しない。即時commitでpresentation gateを外せる範囲はUIで行い、store API削除はspec変更としてSTOP |

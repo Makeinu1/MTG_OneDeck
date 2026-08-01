@@ -2,7 +2,7 @@
  * semanticSound — AV3 beat-snap delay for ordinary event sounds.
  * docs/audio-visual-contract.md §3 (predictability), §4 (snap scheduling).
  *
- * Patch data lives in sfxPatches.ts; rendering/playback in sfxRenderer.ts.
+ * Sample data lives in sfxManifest.ts; loading/playback in sfxRenderer.ts.
  * No randomness, no history-dependent variation.
  */
 

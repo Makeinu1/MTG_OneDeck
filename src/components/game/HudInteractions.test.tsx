@@ -40,6 +40,13 @@ function controllerFor(
     store,
     openCardMenu: vi.fn(),
     handleCardDoubleClick: vi.fn(),
+    requestDraw: (count) => useGameStore.getState().draw(count),
+    requestShuffleLibrary: () => useGameStore.getState().shuffleLibrary(),
+    requestToggleTap: (cardId) => useGameStore.getState().toggleTap(cardId),
+    requestSetAllTapped: (tapped) => {
+      if (tapped) useGameStore.getState().tapAllPermanents();
+      else useGameStore.getState().untapAllPermanents();
+    },
     requestResolveTop: vi.fn(),
     requestResolveAll: vi.fn(),
     advancePhase: vi.fn(),

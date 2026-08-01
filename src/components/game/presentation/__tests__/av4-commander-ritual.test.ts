@@ -9,7 +9,7 @@ import {
   commanderDuckEnvelope,
   shouldDuckMusic,
 } from '../commanderRitual';
-import { sfxPatch, SFX_LEVELS_DB } from '../sfxPatches';
+import { sfxLayersFor } from '../sfxManifest';
 import { presentationSoundDelayMs } from '../semanticSound';
 
 describe('AV4 commander patch and ritual constants', () => {
@@ -17,20 +17,12 @@ describe('AV4 commander patch and ritual constants', () => {
     expect(COMMANDER_RITUAL_DURATION_MS).toBe(650);
   });
 
-  it('returns a deterministic commander patch (same output every call)', () => {
-    const first = sfxPatch('commander-cast');
-    const second = sfxPatch('commander-cast');
+  it('returns a deterministic commander sample motif', () => {
+    const first = sfxLayersFor('commander-cast');
+    const second = sfxLayersFor('commander-cast');
     expect(first).toEqual(second);
-    expect(first.layers.length).toBeGreaterThanOrEqual(4);
-  });
-
-  it('commander patch duration fits within the ritual duration', () => {
-    const patch = sfxPatch('commander-cast');
-    expect(patch.durationMs).toBeLessThanOrEqual(COMMANDER_RITUAL_DURATION_MS);
-  });
-
-  it('commander level matches contract', () => {
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
+    expect(first).toHaveLength(3);
+    expect(first.every((layer) => layer.chokeGroup === 'commander')).toBe(true);
   });
 
   it('computes the duck envelope from COMMANDER_MIX_TUNING', () => {

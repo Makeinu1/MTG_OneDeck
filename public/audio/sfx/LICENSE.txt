@@ -1,0 +1,13 @@
+AV7 production sound assets
+
+The physical card and chip recordings in this directory are derived from
+Kenney Casino Audio, released under Creative Commons Zero (CC0 1.0):
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Covered files:
+commander-contact.wav, draw-fan.wav, draw-slide.wav, land-place.wav,
+resolve-shove.wav, shuffle.wav, spell-place.wav, tap-shove.wav,
+turn-chip.wav, untap-slide.wav.
+
+low-thud.wav, spell-arcane-snap.wav, and commander-portal-open.wav are
+project-original deterministic synthesis created for MTG OneDeck.

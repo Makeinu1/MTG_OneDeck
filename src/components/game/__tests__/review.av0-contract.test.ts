@@ -39,9 +39,9 @@ describe('AV0 frozen track and tuning', () => {
       loopStartSec: 0,
       loopEndSec: 251.798458,
       gainDb: -4.5,
-      crossfadeMs: 40,
       sections: [],
     });
+    expect(DARK_GAME_TRACK).not.toHaveProperty('crossfadeMs');
     expect(DARK_GAME_TRACK.beatAnchors).toHaveLength(17);
     expect(DARK_GAME_TRACK.beatAnchors.at(0)).toEqual({
       beatIndex: 0,

@@ -194,7 +194,7 @@ export function GameCard({
       }
       return;
     }
-    controller.store.toggleTap(cardId);
+    controller.requestToggleTap(cardId);
   }
 
   function handleDoubleClick(event: React.MouseEvent): void {

@@ -14,7 +14,10 @@ import {
 import {
   presentationSoundDelayMs,
 } from '../presentation/semanticSound';
-import { sfxPatch, SFX_LEVELS_DB } from '../presentation/sfxPatches';
+import {
+  ALL_SFX_KINDS,
+  sfxLayersFor,
+} from '../presentation/sfxManifest';
 import { getNextGridDelayMs } from '../presentation/audioVisualTransport';
 import { AUDIO_VISUAL_TUNING } from '../presentation/presentationTuning';
 import { DARK_GAME_TRACK } from '../presentation/trackManifest';
@@ -74,20 +77,29 @@ describe('AV3 semantic presentation runtime', () => {
     });
   });
 
-  it('uses one fixed, non-commander voice per ordinary semantic event', () => {
-    const spell = sfxPatch('spell-cast');
-    const land = sfxPatch('land-played');
-    const turn = sfxPatch('turn-advanced');
-    expect(spell).toEqual(sfxPatch('spell-cast'));
-    expect(land).toEqual(sfxPatch('land-played'));
-    expect(turn).toEqual(sfxPatch('turn-advanced'));
-    expect(spell.layers.length).toBeGreaterThanOrEqual(2);
-    expect(land.layers.length).toBeGreaterThanOrEqual(2);
-    expect(turn.layers.length).toBeGreaterThanOrEqual(2);
-    expect(SFX_LEVELS_DB['spell-cast']).toBe(-8);
-    expect(SFX_LEVELS_DB['land-played']).toBe(-6);
-    expect(SFX_LEVELS_DB['turn-advanced']).toBe(-10);
-    expect(SFX_LEVELS_DB['commander-cast']).toBe(-3);
+  it('uses the frozen hybrid sample palette with tap/untap variants', () => {
+    expect(ALL_SFX_KINDS).toEqual([
+      'draw-completed',
+      'land-played',
+      'spell-cast',
+      'tap-changed',
+      'stack-resolved',
+      'shuffle-completed',
+      'turn-advanced',
+      'commander-cast',
+    ]);
+    const [spellPlace, spellSnap] = sfxLayersFor('spell-cast');
+    expect(spellPlace?.src).toMatch(/spell-place\.wav$/);
+    expect(spellPlace).toMatchObject({ gainDb: -2.85, offsetMs: 0, chokeGroup: 'spell' });
+    expect(spellSnap?.src).toMatch(/spell-arcane-snap\.wav$/);
+    expect(spellSnap).toMatchObject({ gainDb: -10.46, offsetMs: 0, chokeGroup: 'spell' });
+    const [tap] = sfxLayersFor('tap-changed', { tapped: true });
+    expect(tap?.src).toMatch(/tap-shove\.wav$/);
+    expect(tap).toMatchObject({ gainDb: -2.5, chokeGroup: 'tap-change' });
+    const [untap] = sfxLayersFor('tap-changed', { tapped: false });
+    expect(untap?.src).toMatch(/untap-slide\.wav$/);
+    expect(untap).toMatchObject({ gainDb: -2.85, chokeGroup: 'tap-change' });
+    expect(sfxLayersFor('commander-cast')).toHaveLength(3);
   });
 
   it('never schedules an ordinary event sound beyond the 80ms contract', () => {
@@ -122,11 +134,13 @@ describe('AV3 semantic presentation runtime', () => {
     expect(layer).not.toContain('setTimeout(() => playVoice');
     expect(layer).toContain('sfxRenderer');
     expect(layer).not.toContain('createOscillator');
-    expect(renderer).toContain('OfflineAudioContext');
+    expect(renderer).toContain('decodeAudioData');
+    expect(renderer).toContain('fetch(');
+    expect(renderer).not.toContain('OfflineAudioContext');
     expect(renderer).not.toContain('Math.random');
     expect(session).toContain('getSessionTransportPositionSec');
     expect(sound).not.toContain('Math.random');
-    expect(sound).not.toMatch(/\bchain\b|\bdraw\b|\bresolve\b|\btap\b|\bmana\b/i);
+    expect(sound).not.toMatch(/\bchain\b|Math\.random/i);
     expect(runtime).not.toContain('Date.now');
   });
 });

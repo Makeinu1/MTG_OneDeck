@@ -22,7 +22,6 @@ export interface TrackManifest {
   loopStartSec: number;
   loopEndSec: number;
   gainDb: number;
-  crossfadeMs: number;
   beatAnchors: BeatAnchor[];
   sections: TrackSection[];
 }
@@ -35,7 +34,6 @@ export const DARK_GAME_TRACK: TrackManifest = {
   loopStartSec: 0,
   loopEndSec: 251.798458,
   gainDb: -4.5,
-  crossfadeMs: 40,
   beatAnchors: [
     { beatIndex: 0, atSeconds: 0 },
     { beatIndex: 32, atSeconds: 15.737404 },

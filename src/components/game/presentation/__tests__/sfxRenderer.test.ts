@@ -1,205 +1,109 @@
-/**
- * sfxRenderer — ordinary tests for OfflineAudioContext rendering and playback.
- * jsdom lacks OfflineAudioContext, so we mock it for render tests.
- */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-
-/* ------------------------------------------------------------------ */
-/*  Mock OfflineAudioContext for jsdom                                 */
-/* ------------------------------------------------------------------ */
-
-function createMockAudioBuffer() {
-  const data = new Float32Array(4800);
+function sourceNode() {
   return {
-    length: 4800,
-    duration: 0.1,
-    sampleRate: 48000,
-    numberOfChannels: 2,
-    getChannelData: () => data,
-    copyFromChannel: () => {},
-    copyToChannel: () => {},
-  };
-}
-
-function createMockGainNode() {
-  return {
-    gain: { value: 1, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), cancelScheduledValues: vi.fn() },
+    buffer: null as AudioBuffer | null,
     connect: vi.fn(),
     disconnect: vi.fn(),
-  };
-}
-
-function createMockOscillatorNode() {
-  return {
-    type: 'sine' as const,
-    frequency: { value: 440, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
-    detune: { value: 0 },
-    connect: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
-    disconnect: vi.fn(),
-    onended: null,
-  };
-}
-
-function createMockBufferSourceNode() {
-  return {
-    buffer: null as unknown,
-    connect: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    disconnect: vi.fn(),
     onended: null as (() => void) | null,
   };
 }
 
-class MockOfflineAudioContext {
-  numberOfChannels: number;
-  length: number;
-  sampleRate: number;
-  destination = { connect: vi.fn() };
-
-  constructor(numberOfChannels: number, length: number, sampleRate: number) {
-    this.numberOfChannels = numberOfChannels;
-    this.length = length;
-    this.sampleRate = sampleRate;
-  }
-
-  createGain() { return createMockGainNode(); }
-  createOscillator() { return createMockOscillatorNode(); }
-  createBufferSource() { return createMockBufferSourceNode(); }
-  createBiquadFilter() {
-    return {
-      type: 'lowpass' as const,
-      frequency: { value: 1000, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
-      Q: { value: 1 },
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    };
-  }
-  createConvolver() {
-    return {
-      buffer: null as unknown,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    };
-  }
-  createBuffer(channels: number, bufLength: number, bufSampleRate: number) {
-    const data = new Float32Array(bufLength);
-    return {
-      length: bufLength,
-      duration: bufLength / bufSampleRate,
-      sampleRate: bufSampleRate,
-      numberOfChannels: channels,
-      getChannelData: () => data,
-      copyFromChannel: () => {},
-      copyToChannel: () => {},
-    };
-  }
-  startRendering(): Promise<ReturnType<typeof createMockAudioBuffer>> {
-    return Promise.resolve(createMockAudioBuffer());
-  }
+function gainNode() {
+  return {
+    gain: { value: 1 },
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+  };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Tests                                                              */
-/* ------------------------------------------------------------------ */
-
-describe('sfxRenderer', () => {
-  let originalOAC: typeof globalThis.OfflineAudioContext;
-
+describe('production SFX renderer', () => {
   beforeEach(() => {
-    originalOAC = globalThis.OfflineAudioContext;
-    // Install mock
-    (globalThis as Record<string, unknown>).OfflineAudioContext = MockOfflineAudioContext;
-    // Reset module cache between tests
     vi.resetModules();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        }),
+      ),
+    );
   });
 
   afterEach(() => {
-    (globalThis as Record<string, unknown>).OfflineAudioContext = originalOAC;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('renderAllPatches resolves without throwing', async () => {
-    const { renderAllPatches } = await import('../sfxRenderer');
-    await expect(renderAllPatches()).resolves.toBeUndefined();
+  it('degrades to silence before buffers are ready', async () => {
+    const { playSfx } = await import('../sfxRenderer');
+    const context = { currentTime: 0 } as AudioContext;
+    expect(playSfx('spell-cast', gainNode() as unknown as GainNode, context, 0)).toBeNull();
   });
 
-  it('isSfxReady is false before render and true after', async () => {
-    const { isSfxReady, renderAllPatches } = await import('../sfxRenderer');
+  it('fetches and decodes the fixed samples asynchronously', async () => {
+    const buffer = {} as AudioBuffer;
+    const decodeAudioData = vi.fn(() => Promise.resolve(buffer));
+    const context = {
+      decodeAudioData,
+    } as unknown as AudioContext;
+    const { isSfxReady, loadAllSfx } = await import('../sfxRenderer');
     expect(isSfxReady()).toBe(false);
-    await renderAllPatches();
+    await loadAllSfx(context);
+    expect(fetch).toHaveBeenCalled();
+    expect(decodeAudioData).toHaveBeenCalled();
     expect(isSfxReady()).toBe(true);
   });
 
-  it('playSfx with missing buffer does not throw', async () => {
-    const { playSfx } = await import('../sfxRenderer');
-    const lane = createMockGainNode();
-    const ctx = {
+  it('keeps the whole cue silent when one declared layer fails to load', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((src: string) =>
+        Promise.resolve({
+          ok: !src.endsWith('/spell-arcane-snap.wav'),
+          status: 503,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        }),
+      ),
+    );
+    const decodeAudioData = vi.fn(() => Promise.resolve({} as AudioBuffer));
+    const createBufferSource = vi.fn(sourceNode);
+    const context = {
       currentTime: 0,
-      createBufferSource: () => createMockBufferSourceNode(),
-    };
-    // No buffers cached yet — should not throw
-    expect(() => playSfx('spell-cast', lane as unknown as GainNode, ctx as unknown as AudioContext, 0)).not.toThrow();
+      decodeAudioData,
+      createBufferSource,
+      createGain: vi.fn(gainNode),
+    } as unknown as AudioContext;
+    const { loadAllSfx, playSfx } = await import('../sfxRenderer');
+
+    await loadAllSfx(context);
+
+    expect(
+      playSfx('spell-cast', gainNode() as unknown as GainNode, context, 0),
+    ).toBeNull();
+    expect(createBufferSource).not.toHaveBeenCalled();
   });
 
-  it('playSfx returns null when no buffer is cached', async () => {
-    const { playSfx } = await import('../sfxRenderer');
-    const lane = createMockGainNode();
-    const ctx = {
-      currentTime: 0,
-      createBufferSource: () => createMockBufferSourceNode(),
-    };
-    const result = playSfx('land-played', lane as unknown as GainNode, ctx as unknown as AudioContext, 0);
-    expect(result).toBeNull();
-  });
-
-  it('playSfx returns a source node after render', async () => {
-    const { renderAllPatches, playSfx } = await import('../sfxRenderer');
-    await renderAllPatches();
-    const lane = createMockGainNode();
-    const mockSource = createMockBufferSourceNode();
-    const ctx = {
+  it('plays every layer when the complete fixed cue is ready', async () => {
+    const sources = [sourceNode(), sourceNode()];
+    const decodeAudioData = vi.fn(() => Promise.resolve({} as AudioBuffer));
+    const createBufferSource = vi.fn(() => sources.shift() ?? sourceNode());
+    const createGain = vi.fn(gainNode);
+    const context = {
       currentTime: 1.5,
-      createBufferSource: () => mockSource,
-    };
-    const result = playSfx('turn-advanced', lane as unknown as GainNode, ctx as unknown as AudioContext, 0.02);
-    expect(result).toBe(mockSource);
-    expect(mockSource.connect).toHaveBeenCalledWith(lane);
-    expect(mockSource.start).toHaveBeenCalledWith(1.52);
-  });
-
-  it('renders commander-cast patch (with osc filters) without throwing', async () => {
-    const { renderAllPatches, isSfxReady } = await import('../sfxRenderer');
-    await renderAllPatches();
-    expect(isSfxReady()).toBe(true);
-  });
-
-  it('osc layer with filterType routes through BiquadFilter', async () => {
-    // The commander-cast patch has sawtooth layers with filterType='lowpass'.
-    // If the renderer correctly inserts a BiquadFilterNode, createBiquadFilter
-    // will be called during rendering. We verify indirectly: render succeeds
-    // and the mock context's createBiquadFilter is exercised.
-    const filterSpy = vi.fn(() => ({
-      type: 'lowpass' as const,
-      frequency: { value: 1000, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
-      Q: { value: 1 },
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    }));
-
-    class SpyOfflineAudioContext extends MockOfflineAudioContext {
-      createBiquadFilter() { return filterSpy(); }
-    }
-    (globalThis as Record<string, unknown>).OfflineAudioContext = SpyOfflineAudioContext;
-
-    vi.resetModules();
-    const { renderAllPatches } = await import('../sfxRenderer');
-    await renderAllPatches();
-
-    // Commander patch has 4 osc layers with filterType + 1 noise with filterType = at least 5
-    expect(filterSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
+      decodeAudioData,
+      createBufferSource,
+      createGain,
+    } as unknown as AudioContext;
+    const lane = gainNode() as unknown as GainNode;
+    const { loadAllSfx, playSfx } = await import('../sfxRenderer');
+    await loadAllSfx(context);
+    const handle = playSfx('spell-cast', lane, context, 0.02);
+    expect(handle).not.toBeNull();
+    expect(createBufferSource).toHaveBeenCalledTimes(2);
+    expect(createGain).toHaveBeenCalledTimes(2);
   });
 });

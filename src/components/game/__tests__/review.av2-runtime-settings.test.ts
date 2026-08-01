@@ -1,6 +1,6 @@
 /**
  * review.av2-runtime-settings — M-AV AV2 の判定者専有ピン。
- * 長尺BGMのdual-stream境界、実効状態、背景時計、設定のfirst viewport配置を固定する。
+ * 長尺BGMのsingle native-loop境界、実効状態、背景時計、設定のfirst viewport配置を固定する。
  */
 
 import { readFileSync } from 'node:fs';
@@ -13,42 +13,32 @@ import {
   getTransportCssTiming,
 } from '../presentation/audioVisualTransport';
 import {
-  createDualMediaPlan,
-  equalPowerCrossfadeGains,
+  createNativeMediaPlan,
 } from '../presentation/musicBus';
 import { DARK_GAME_TRACK } from '../presentation/trackManifest';
 
 const ROOT = process.cwd();
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
 
-describe('AV2 dual streaming music boundary', () => {
-  it('plans exactly two non-looping streams for the full approved track', () => {
-    const plan = createDualMediaPlan(DARK_GAME_TRACK);
-    expect(plan).toHaveLength(2);
-    expect(plan.map((item) => item.src)).toEqual([
-      DARK_GAME_TRACK.src,
-      DARK_GAME_TRACK.src,
-    ]);
-    expect(plan.every((item) => item.nativeLoop === false)).toBe(true);
-    expect(plan.every((item) => item.loopStartSec === 0)).toBe(true);
-    expect(plan.every((item) => item.loopEndSec === 251.798458)).toBe(true);
-    expect(plan.every((item) => item.crossfadeMs === 40)).toBe(true);
+describe('AV2 single native-loop music boundary', () => {
+  it('plans exactly one native-loop stream for the full approved track', () => {
+    expect(createNativeMediaPlan(DARK_GAME_TRACK)).toEqual({
+      src: DARK_GAME_TRACK.src,
+      nativeLoop: true,
+      loopStartSec: 0,
+      loopEndSec: 251.798458,
+    });
   });
 
-  it('uses an equal-power envelope at the only runtime crossfade boundary', () => {
-    expect(equalPowerCrossfadeGains(0)).toEqual({ outgoing: 1, incoming: 0 });
-    expect(equalPowerCrossfadeGains(0.5).outgoing).toBeCloseTo(Math.SQRT1_2, 8);
-    expect(equalPowerCrossfadeGains(0.5).incoming).toBeCloseTo(Math.SQRT1_2, 8);
-    expect(equalPowerCrossfadeGains(1).outgoing).toBeCloseTo(0, 8);
-    expect(equalPowerCrossfadeGains(1).incoming).toBe(1);
-
+  it('uses one media element with native loop and no crossfade machinery', () => {
     const source = read('src/components/game/presentation/musicBus.ts');
-    expect(source).toContain('createDualMediaPlan');
+    expect(source).toContain('createNativeMediaPlan');
     expect(source).toContain('createMediaElementSource');
-    expect(source).toContain('crossfadeInProgress');
+    expect(source).toMatch(/\.loop\s*=\s*(?:plan\.nativeLoop|true)/);
     expect(source).toContain('resume(): Promise<boolean>');
     expect(source).not.toMatch(/decodeAudioData|AudioBufferSourceNode/);
-    expect(source).not.toMatch(/\.loop\s*=\s*true/);
+    expect(source).not.toMatch(/createDualMediaPlan|equalPowerCrossfadeGains|crossfade/i);
+    expect((source.match(/createElement\(['"]audio['"]\)/g) ?? [])).toHaveLength(1);
   });
 
   it('derives CSS beat duration and negative phase from sparse anchors across loops', () => {

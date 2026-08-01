@@ -152,10 +152,10 @@ function GameMenuSheet({
           <button type="button" className="game-menu__action" data-testid="menu-opponent-board" onClick={act(controller.openOpponentBoard)}>
             相手盤面を見る
           </button>
-          <button type="button" className="game-menu__action" data-testid="menu-tap-all" onClick={act(() => store.tapAllPermanents())}>
+          <button type="button" className="game-menu__action" data-testid="menu-tap-all" onClick={act(() => controller.requestSetAllTapped(true))}>
             全てタップ
           </button>
-          <button type="button" className="game-menu__action" data-testid="menu-untap-all" onClick={act(() => store.untapAllPermanents())}>
+          <button type="button" className="game-menu__action" data-testid="menu-untap-all" onClick={act(() => controller.requestSetAllTapped(false))}>
             全てアンタップ
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-proliferate" onClick={act(() => store.proliferateAll())}>
