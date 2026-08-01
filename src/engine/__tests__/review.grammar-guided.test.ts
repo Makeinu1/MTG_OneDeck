@@ -198,7 +198,7 @@ describe('§32.2/§32.3 modal: choose-modal', () => {
 });
 
 describe('§32.4 buildGuidedCommands(純写像)', () => {
-  it('target/destroy + cardId → moveCard graveyard', () => {
+  it('target/destroy + cardId → destroyPermanents explicit selector', () => {
     const prompt: EffectPrompt = {
       atom: 'effect.destroy',
       kind: 'target',
@@ -207,7 +207,7 @@ describe('§32.4 buildGuidedCommands(純写像)', () => {
       raw: 'Destroy target creature.',
     };
     expect(buildGuidedCommands(prompt, { kind: 'target', cardIds: ['x'] }, ctx())).toEqual([
-      { type: 'moveCard', cardId: 'x', to: 'graveyard', position: 'bottom' },
+      { type: 'destroyPermanents', selector: { kind: 'cards', cardIds: ['x'] } },
     ]);
   });
 

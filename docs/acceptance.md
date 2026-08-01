@@ -561,6 +561,21 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G7-6 | 同一PWの2つ目の忠誠度能力を同ターンに起動 | ブロック、警告発行(CR 606.3) |
 | G7-7 | 忠誠度起動後に undo → redo | 忠誠度が原子復元・再適用 |
 
+### G8 CR609 one-shot mass destroy core 検証ピン(engine-spec §34.52)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| G8-1 | `Destroy all creatures.`をcompile | autoかつ`destroyPermanents(battlefield-filter, typesAnyOf:['creature'])` 1件 |
+| G8-2 | 4人盤面でP1の《Ruinous Ultimatum》を解決 | P1以外がcontrolするnonland permanentだけ同時破壊。土地・P1 permanent・破壊不能は残る |
+| G8-3 | 《Pernicious Deed》を保存済みX=0 / X=3で解決 | artifact/creature/enchantmentのmana value上限以下だけ破壊。複合型は1回だけ |
+| G8-4 | 同一command対象に破壊不能・hexproofを含める | 破壊不能だけ残る。非対象破壊はhexproofを無視する |
+| G8-5 | destroy sourceが型/破壊不能/replacementを与えており自身も候補 | 全判定は開始stateから凍結。battlefield順を反転しても最終stateとdestroy event集合が一致 |
+| G8-6 | 破壊不能creatureへ致死/接死damage | 704.5g/hで破壊されず戦場に残る。toughness 0以下なら704.5fで墓地へ置かれる |
+| G8-7 | target destroy + `You lose life equal to its mana value` | target destroyも新commandを使い、破壊不能でも保存snapshot値ぶんlifeを失う |
+| G8-8 | Culling Ritual / Blasphemous Act / Toxic Deluge / X未保存 / regeneration suffixをcompile | manual、commands/prompts空、対応subsetの部分実行0 |
+| G8-9 | mass destroyがtoken/death trigger/commander/owner graveyardへ到達 | destroy eventは単一group、token ceaseは別SBA group、既存trigger/zone-choice/player-zone意味を保持 |
+| G8-10 | guidedまたはautoのstack解決をundo/redo | 全効果節+stack除去が単一history stepで可逆。途中SBA/priorityを観測しない |
+
 ### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
 
 | ID | 操作 | 期待結果 |

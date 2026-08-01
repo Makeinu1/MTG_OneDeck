@@ -1486,6 +1486,53 @@
       ]
     },
     {
+      "id": "cr-609-ruinous-ultimatum-mass-destroy",
+      "title": "CR 608.2f/609.1/701.8: Ruinous Ultimatum型は相手のnonland permanentを同時に破壊する",
+      "crRefs": ["608.2f", "608.2h", "609.1", "609.3", "701.8a", "702.12b"],
+      "scope": "cr-609-one-shot-mass",
+      "initialFixture": {
+        "oracleText": "Destroy all nonland permanents your opponents control.",
+        "players": 4
+      },
+      "steps": [
+        "P1と3人の対戦相手がpermanentをcontrolする盤面を作る。",
+        "Ruinous Ultimatumの英語Oracle文をcompileし、生成commandを実行する。"
+      ],
+      "requiredObservations": [
+        "P1以外がcontrolするnonland permanentだけowner墓地へ移る。",
+        "hexproofは非対象破壊を妨げず、indestructibleは戦場に残る。",
+        "実際に破壊された全permanentのzoneChange eventが同じsimultaneousGroupIdを持つ。"
+      ],
+      "mustNot": ["土地やP1のpermanentを動かさない。", "破壊不能を墓地へ送らない。"],
+      "implementationRefs": [
+        "src/engine/commands.ts destroyPermanents",
+        "src/engine/grammar/compile.ts mass destroy exact gate"
+      ]
+    },
+    {
+      "id": "cr-609-pernicious-deed-announced-x",
+      "title": "CR 608.2h/609.1: Pernicious Deed型は保存済みXで一度だけ集合を確定する",
+      "crRefs": ["608.2c", "608.2f", "608.2h", "609.1", "701.8a"],
+      "scope": "cr-609-one-shot-mass",
+      "initialFixture": {
+        "oracleText": "{X}, Sacrifice this enchantment: Destroy each artifact, creature, and enchantment with mana value X or less.",
+        "announcedX": 2
+      },
+      "steps": [
+        "起動コストとしてPernicious Deed自身を墓地へ置く。",
+        "保存済みX=2をCompileContextへ渡して効果をcompileし、生成commandを実行する。"
+      ],
+      "requiredObservations": [
+        "mana value 2以下のartifact/creature/enchantmentだけ破壊される。",
+        "複数型を持つpermanentにもzoneChange eventは1件だけ発生する。"
+      ],
+      "mustNot": ["X欠落時にautoにしない。", "mana value 3以上を破壊しない。"],
+      "implementationRefs": [
+        "src/engine/grammar/compile.ts CompileContext.announcedX",
+        "src/engine/commands.ts destroyPermanents"
+      ]
+    },
+    {
       "id": "cr-20260619-new-mechanics-boundary",
       "title": "2026-06-19 新規/更新メカニズムは未対応でもCR語彙として認識し、covered扱いにしない",
       "crRefs": ["701.69", "702.193", "702.194", "722"],

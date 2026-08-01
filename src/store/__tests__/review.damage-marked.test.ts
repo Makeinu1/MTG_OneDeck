@@ -10,6 +10,7 @@
 //   5. clearMarkedDamage (CR 514.2) zeroes damage AND the deathtouch flag -> no destroy.
 //   6. markDamage clamps negative amounts -> damageMarked never goes below 0 (CR 120.3).
 //   7. A 0-toughness damaged creature is destroyed exactly once (704.5f, no double with g/h).
+//   8. Indestructible ignores 704.5g/h destroy, but not 704.5f put-into-graveyard.
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -132,5 +133,28 @@ describe('review.damage-marked: CR 704.5g/h SBA + marked-damage state', () => {
     );
     expect(toGraveyard.length).toBe(1);
     expect(toGraveyard[0]?.sbaApplied).toBe('704.5f');
+  });
+
+  it('702.12b: indestructible ignores lethal and deathtouch SBA destruction', () => {
+    const id = spawnCreatureOnBattlefield('rev-indestructible-lethal', '3', '3');
+    store().dispatch({ type: 'setManualKeywords', cardId: id, keywords: ['indestructible'] });
+    store().dispatch({ type: 'markDamage', cardId: id, amount: 3, deathtouch: true });
+    expect(store().state?.cards[id]?.zone).toBe('battlefield');
+    expect(store().state?.cards[id]?.damageMarked).toBe(3);
+  });
+
+  it('704.5f: indestructible does not stop toughness 0 from being put into the graveyard', () => {
+    const zero = creatureDef('rev-indestructible-zero', '0', '0');
+    store().newGame([{ def: zero, isCommander: false }, ...makeDeck(12)], 1);
+    const id = findInstanceId(zero.scryfallId);
+    store().dispatch({ type: 'setManualKeywords', cardId: id, keywords: ['indestructible'] });
+    store().moveCard(id, 'battlefield');
+    expect(store().state?.cards[id]?.zone).toBe('graveyard');
+    const event = store().state?.eventLog.find(
+      (candidate) => candidate.type === 'zoneChange'
+        && candidate.physicalCardId === id
+        && candidate.sbaApplied === '704.5f',
+    );
+    expect(event).toBeTruthy();
   });
 });

@@ -22,6 +22,7 @@ const ZONE_IDS: readonly ZoneId[] = [
 ];
 
 const COMMAND_TYPES = new Set<GameCommand['type']>([
+  'destroyPermanents',
   'moveCard',
   'setTapped',
   'setFace',

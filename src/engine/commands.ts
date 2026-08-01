@@ -90,6 +90,18 @@ export { EngineError } from './types';
 
 export type GameCommand =
   | {
+      type: 'destroyPermanents';
+      selector:
+        | { kind: 'cards'; cardIds: string[] }
+        | {
+            kind: 'battlefield-filter';
+            typesAnyOf?: string[];
+            excludedTypesAnyOf?: string[];
+            controller?: { kind: 'is' | 'is-not'; playerId: PlayerId };
+            maxManaValue?: number;
+          };
+    }
+  | {
       type: 'moveCard';
       cardId: string;
       to: ZoneId;
@@ -1410,6 +1422,59 @@ function applyMoveCardCommand(draft: Draft, cmd: MoveCardCommand): void {
   }
 }
 
+function destroyCandidateIds(
+  draft: Draft,
+  selector: Extract<GameCommand, { type: 'destroyPermanents' }>['selector'],
+): string[] {
+  const candidates = selector.kind === 'cards'
+    ? [...new Set(selector.cardIds)]
+    : Object.keys(draft.state.cards);
+  const maxManaValue = selector.kind === 'battlefield-filter' ? selector.maxManaValue : undefined;
+  if (maxManaValue !== undefined && (!Number.isInteger(maxManaValue) || maxManaValue < 0)) {
+    return [];
+  }
+  return candidates.filter((cardId) => {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') return false;
+    if (selector.kind === 'cards') return true;
+    const typeWords = new Set(typeLineOf(draft, card).toLowerCase().split(/[\s—]+/));
+    const types = selector.typesAnyOf?.map((type) => type.toLowerCase());
+    const excluded = selector.excludedTypesAnyOf?.map((type) => type.toLowerCase()) ?? [];
+    if (types && (types.length === 0 || !types.some((type) => typeWords.has(type)))) return false;
+    if (excluded.some((type) => typeWords.has(type))) return false;
+    if (
+      selector.controller
+      && (selector.controller.kind === 'is'
+        ? card.controllerId !== selector.controller.playerId
+        : card.controllerId === selector.controller.playerId)
+    ) return false;
+    return maxManaValue === undefined || (objectSnapshotOf(draft, card).manaValue ?? 0) <= maxManaValue;
+  }).sort((left, right) => left.localeCompare(right));
+}
+
+function applyDestroyPermanents(
+  draft: Draft,
+  selector: Extract<GameCommand, { type: 'destroyPermanents' }>['selector'],
+): void {
+  // Freeze all eligibility and replacement decisions before the first zone change.
+  const destroyed = destroyCandidateIds(draft, selector).flatMap((cardId) => {
+    const card = draft.state.cards[cardId];
+    if (!card || effectiveKeywords(draft.state, cardId).includes('indestructible')) return [];
+    const to = graveyardToExileReplacementActive(draft.state, card.ownerId ?? 'P1') && !isCommander(draft.state, cardId)
+      ? 'exile' as const
+      : 'graveyard' as const;
+    return [{ cardId, to }];
+  });
+  const simultaneousGroupId = `destroy-${draft.nextEventSeq}`;
+  for (const { cardId, to } of destroyed) {
+    moveCardInternal(draft, cardId, to, 'bottom', false, 'destroy', {
+      simultaneousGroupId,
+      ...(to === 'exile' ? { replacementApplied: '614.6:grave-to-exile' } : {}),
+    });
+    pushLog(draft, `${nameOf(draft, cardId)}を破壊しました。`);
+  }
+}
+
 function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouch?: boolean): void {
   const card = requireCard(draft, cardId);
   const markedAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
@@ -2087,7 +2152,9 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
       return [];
     }
     const toughness = effectiveToughnessForSba(draft, card);
-    return toughness !== null && toughness > 0 && markedDamageOf(card) >= toughness
+    return toughness !== null && toughness > 0 &&
+      !effectiveKeywords(draft.state, card.id).includes('indestructible') &&
+      markedDamageOf(card) >= toughness
       ? [card.id]
       : [];
   });
@@ -2099,6 +2166,7 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     return toughness !== null &&
       toughness > 0 &&
       hasDeathtouchDamage(card) &&
+      !effectiveKeywords(draft.state, card.id).includes('indestructible') &&
       markedDamageOf(card) >= 1
       ? [card.id]
       : [];
@@ -4081,6 +4149,7 @@ export function guidedPlanForStackTop(
       def: effectLine.def,
       controllerId: card.controllerId,
       commanderColorIdentity,
+      ...(card.announcedX === undefined ? {} : { announcedX: card.announcedX }),
     });
     if (compiled.decision === 'manual') {
       const counterAssist = guidedCounterLeafForManualComposite(ir);
@@ -4451,6 +4520,7 @@ export function activatedManaAbilityPlanForSource(
     def,
     controllerId: source.controllerId,
     commanderColorIdentity,
+    ...(announcedX === undefined ? {} : { announcedX }),
   });
   const baseCostCommands: GameCommand[] = autoCost?.sacrificesSelf
     ? withSelfSacrificeReason(compiledCost.commands, sourceId)
@@ -4877,6 +4947,10 @@ function applyMaximumHandSizeOverride(
 
 function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
+    case 'destroyPermanents': {
+      applyDestroyPermanents(draft, cmd.selector);
+      break;
+    }
     case 'moveCard': {
       applyMoveCardCommand(draft, cmd);
       break;
@@ -5255,6 +5329,7 @@ function applyCompiledEffectsForStackItem(
       def: effectLine.def,
       controllerId: card.controllerId,
       commanderColorIdentity,
+      ...(card.announcedX === undefined ? {} : { announcedX: card.announcedX }),
       ...(isPureSelfLibraryShuffleLine(effectLine.line.text) && libraryShuffleOrder
         ? { libraryShuffleOrder }
         : {}),
@@ -5800,10 +5875,18 @@ export function consumeLinkedExileForSource(
 // applyCommand
 // ---------------------------------------------------------------------------
 
-export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
+function applyCommandInternal(
+  state: GameState,
+  cmd: GameCommand,
+  stabilize: boolean,
+): ApplyResult {
   const draft = makeDraft(state);
 
   switch (cmd.type) {
+    case 'destroyPermanents': {
+      applyDestroyPermanents(draft, cmd.selector);
+      break;
+    }
     case 'moveCard': {
       applyMoveCardCommand(draft, cmd);
       break;
@@ -6152,7 +6235,25 @@ export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
     }
   }
 
-  stabilizeBeforePriority(draft);
+  if (stabilize) {
+    stabilizeBeforePriority(draft);
+  }
   flushCounterChangeEvents(draft);
   return { state: syncDerivedViews(draft.state), warnings: draft.warnings };
+}
+
+export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {
+  return applyCommandInternal(state, cmd, true);
+}
+
+/** Applies a resolution command list without inserting an SBA/priority boundary between items. */
+export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {
+  let next = state;
+  const warnings: string[] = [];
+  for (const [index, command] of commands.entries()) {
+    const result = applyCommandInternal(next, command, index === commands.length - 1);
+    next = result.state;
+    warnings.push(...result.warnings);
+  }
+  return { state: next, warnings };
 }

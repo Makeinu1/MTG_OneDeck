@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
-import { objectIdOf } from '../../engine/types';
+import { compileAbilityIR } from '../../engine/grammar/compile';
+import { parseAbilityIR } from '../../engine/grammar/ir';
+import { objectIdOf, playerIdForLifeLabel } from '../../engine/types';
 import type {
   CounterChangeEvent,
   DefeatAdvisoryEvent,
@@ -107,6 +109,101 @@ function startCombatFixture(defs: ReturnType<typeof makeCombatCreature>[]): void
 describe('CR grounding golden cases executable subset (Z5)', () => {
   beforeEach(() => {
     resetStore();
+  });
+
+  it('cr-609-ruinous-ultimatum-mass-destroy reaches the final four-player GameState', () => {
+    goldenCase('cr-609-ruinous-ultimatum-mass-destroy', [
+      '608.2f', '608.2h', '609.1', '609.3', '701.8a', '702.12b',
+    ]);
+    const text = 'Destroy all nonland permanents your opponents control.';
+    const ruinous = makeDef({
+      scryfallId: 'gold-cr609-ruinous',
+      name: 'Ruinous Ultimatum',
+      typeLine: 'Sorcery',
+      faces: [{ name: 'Ruinous Ultimatum', typeLine: 'Sorcery', oracleText: text }],
+    });
+    store().newGame([{ def: ruinous, isCommander: false }, ...makeDeck(12)], 1);
+    store().adjustOpponentLife('Amy', 0);
+    store().adjustOpponentLife('Bob', 0);
+    const amy = playerIdForLifeLabel('Amy');
+    const bob = playerIdForLifeLabel('Bob');
+    for (const [cardId, playerId, typeLine, keywords] of [
+      ['gold-cr609-mine', 'P1', 'Creature', []],
+      ['gold-cr609-a', 'OPPONENT_A', 'Artifact', []],
+      ['gold-cr609-amy', amy, 'Creature', ['hexproof']],
+      ['gold-cr609-bob-land', bob, 'Land Creature', []],
+      ['gold-cr609-bob-indestructible', bob, 'Enchantment', ['indestructible']],
+    ] as const) {
+      store().dispatch({
+        type: 'createScenarioDummy', cardId, defId: `${cardId}-def`, playerId,
+        name: cardId, typeLine, power: typeLine.includes('Creature') ? '2' : undefined,
+        toughness: typeLine.includes('Creature') ? '2' : undefined, tapped: false,
+        counters: {}, keywords: [...keywords], isToken: false,
+      });
+    }
+    const compiled = compileAbilityIR(parseAbilityIR(text, 'Sorcery'), {
+      sourceId: findInstanceId(ruinous.scryfallId), controllerId: 'P1', def: ruinous,
+    });
+    expect(compiled.decision).toBe('auto');
+    for (const command of compiled.commands) store().dispatch(command);
+
+    const state = store().state;
+    expect(state?.cards['gold-cr609-mine'].zone).toBe('battlefield');
+    expect(state?.cards['gold-cr609-a'].zone).toBe('graveyard');
+    expect(state?.cards['gold-cr609-amy'].zone).toBe('graveyard');
+    expect(state?.cards['gold-cr609-bob-land'].zone).toBe('battlefield');
+    expect(state?.cards['gold-cr609-bob-indestructible'].zone).toBe('battlefield');
+    const events = (state?.eventLog ?? []).filter(
+      (event) => event.type === 'zoneChange' && event.reason === 'destroy'
+        && ['gold-cr609-a', 'gold-cr609-amy'].includes(event.physicalCardId),
+    );
+    expect(events).toHaveLength(2);
+    expect(new Set(events.map((event) => event.simultaneousGroupId)).size).toBe(1);
+  });
+
+  it('cr-609-pernicious-deed-announced-x reaches the final filtered GameState', () => {
+    goldenCase('cr-609-pernicious-deed-announced-x', [
+      '608.2c', '608.2f', '608.2h', '609.1', '701.8a',
+    ]);
+    const text = '{X}, Sacrifice this enchantment: Destroy each artifact, creature, and enchantment with mana value X or less.';
+    const deed = makeDef({
+      scryfallId: 'gold-cr609-deed', name: 'Pernicious Deed', typeLine: 'Enchantment', cmc: 3,
+      faces: [{ name: 'Pernicious Deed', typeLine: 'Enchantment', oracleText: text }],
+    });
+    const multi = makeDef({
+      scryfallId: 'gold-cr609-multi', typeLine: 'Artifact Creature', cmc: 2,
+      faces: [{ name: 'gold-cr609-multi', typeLine: 'Artifact Creature', power: '2', toughness: '2' }],
+    });
+    const expensive = makeDef({
+      scryfallId: 'gold-cr609-expensive', typeLine: 'Enchantment', cmc: 3,
+      faces: [{ name: 'gold-cr609-expensive', typeLine: 'Enchantment' }],
+    });
+    store().newGame([
+      { def: deed, isCommander: false },
+      { def: multi, isCommander: false },
+      { def: expensive, isCommander: false },
+      ...makeDeck(12),
+    ], 1);
+    const deedId = findInstanceId(deed.scryfallId);
+    const multiId = findInstanceId(multi.scryfallId);
+    const expensiveId = findInstanceId(expensive.scryfallId);
+    store().moveCard(deedId, 'battlefield');
+    store().moveCard(multiId, 'battlefield');
+    store().moveCard(expensiveId, 'battlefield');
+    store().moveCard(deedId, 'graveyard');
+
+    const compiled = compileAbilityIR(parseAbilityIR(text, 'Enchantment'), {
+      sourceId: deedId, controllerId: 'P1', def: deed, announcedX: 2,
+    });
+    expect(compiled.decision).toBe('auto');
+    for (const command of compiled.commands) store().dispatch(command);
+    expect(store().state?.cards[multiId].zone).toBe('graveyard');
+    expect(store().state?.cards[expensiveId].zone).toBe('battlefield');
+    const multiEvents = (store().state?.eventLog ?? []).filter(
+      (event) => event.type === 'zoneChange' && event.reason === 'destroy'
+        && event.physicalCardId === multiId,
+    );
+    expect(multiEvents).toHaveLength(1);
   });
 
   it('cr-triggered-mana-ability-no-stack: CR 605.1b resolves inside the mana transaction', () => {

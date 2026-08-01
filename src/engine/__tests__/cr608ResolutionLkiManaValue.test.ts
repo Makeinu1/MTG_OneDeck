@@ -154,7 +154,7 @@ describe('CR 608.2h resolution-time LKI for target mana value', () => {
       { sourceId: 'c1', def: source },
     );
     expect(commands).toEqual([
-      { type: 'moveCard', cardId: 'c2', to: 'graveyard', position: 'bottom' },
+      { type: 'destroyPermanents', selector: { kind: 'cards', cardIds: ['c2'] } },
       { type: 'adjustLife', delta: -0 },
     ]);
     expect(buildGuidedCommands(
@@ -167,7 +167,7 @@ describe('CR 608.2h resolution-time LKI for target mana value', () => {
       },
       { sourceId: 'c1', controllerId: 'OPPONENT_A', def: source },
     )).toEqual([
-      { type: 'moveCard', cardId: 'c2', to: 'graveyard', position: 'bottom' },
+      { type: 'destroyPermanents', selector: { kind: 'cards', cardIds: ['c2'] } },
       { type: 'adjustLife', delta: -0, playerId: 'OPPONENT_A' },
     ]);
 

@@ -2460,8 +2460,8 @@ interface PendingManaTrigger {                 // transaction-local のみ。sta
 
 **CR 根拠**:
 - CR 120.1 / 120.3 / 120.6: damage はオブジェクトにマークされ、creature の lethal damage = toughness 以上のマーク。
-- CR 704.5g: toughness > 0 の creature に toughness 以上の damage がマークされていれば破壊。
-- CR 704.5h: toughness > 0 の creature に deathtouch を持つ発生源からの damage が1点以上マークされていれば破壊。
+- CR 704.5g: toughness > 0 の creature に toughness 以上の damage がマークされていれば破壊。ただし破壊不能を持つ permanent は CR 702.12b によりこの破壊を無視する。
+- CR 704.5h: toughness > 0 の creature に deathtouch を持つ発生源からの damage が1点以上マークされていれば破壊。ただし破壊不能を持つ permanent は CR 702.12b によりこの破壊を無視する。
 - CR 704.5f: toughness ≤ 0 の creature は graveyard(既存)。704.5g/h は **toughness > 0 のみ**対象=二重破壊しない。
 - CR 514.2: cleanup で全オブジェクトのマーク damage を除去。
 
@@ -2479,7 +2479,7 @@ interface CardInstance {
 - `markDamage{ cardId; amount; deathtouch? }`: `damageMarked += max(0, amount)`(負を clamp=I3 維持)、`deathtouch===true` かつ正の amount で `hasDeathtouchDamage=true`。Oracle 文から deathtouch を推論しない(combat/compiler が後でセット)。
 - `clearMarkedDamage{ cardId? }`: 指定カード(無指定なら全 battlefield creature)を 0/false へ(CR 514.2 の除去プリミティブ)。
 
-**3. SBA(`performStateBasedActionsOnce`・既存 704.5f/i/d/e と同枠)**: 704.5g(effective toughness>0 かつ `damageMarked>=toughness` → owner's graveyard・`sbaApplied:'704.5g'`)・704.5h(effective toughness>0 かつ `hasDeathtouchDamage` かつ `damageMarked>=1` → owner's graveyard・`sbaApplied:'704.5h'`)。effective toughness は 704.5f と同一ヘルパ(counter 込み)=分岐なし。704.5f が toughness≤0 を専有するので 0-toughness は g/h 非該当=二重破壊なし。
+**3. SBA(`performStateBasedActionsOnce`・既存 704.5f/i/d/e と同枠)**: 704.5g(effective toughness>0 かつ `damageMarked>=toughness` かつ effective keyword に `indestructible` が無い → destroy・owner's graveyard・`sbaApplied:'704.5g'`)・704.5h(effective toughness>0 かつ `hasDeathtouchDamage` かつ `damageMarked>=1` かつ effective keyword に `indestructible` が無い → destroy・owner's graveyard・`sbaApplied:'704.5h'`)。effective toughness は 704.5f と同一ヘルパ(counter 込み)=分岐なし。704.5f は destroy ではないので、toughness≤0 を専有し、破壊不能でも owner's graveyard へ置く。0-toughness は g/h 非該当=二重破壊なし。
 
 **4. cleanup 配線判断(§34.5)**: ~~現エンジンに standalone CR 514 cleanup step は未モデル。turn 遷移 `nextPhase(end→untap)`/`nextTurn` へ `clearMarkedDamage` 相当を配線=現状の cleanup surrogate。~~ **【2026-07-19 更新=§34.50 で置換】**: standalone `cleanup` phase を `PHASE_ORDER` に追加し実モデル化した。`clearMarkedDamage`(514.2)は `completeCleanupStateActions` 内で cleanup step の turn-based action として実行される。**contract 予告どおり** cleanup step 導入は `clearMarkedDamage` を呼ぶだけで済み、damage-marked substrate の挙動は不変(手札上限を満たすターンは end→cleanup→untap が単一 `nextPhase` で貫通するため surrogate と同一エッジで damage が消える)。**2026-07-04: end-to-end reviewer-pin**(`review.cr500-514-turn-structure.test.ts`)= 実 `nextPhase()`/`nextTurn()` でダメージが消えること・中間フェイズ移行では消えないこと・スタック非空時は部分実行されないことを確認。**2026-07-19: 同 pin を実 cleanup phase へ再ピン**(cleanup step が挟まっても no-discard パスの end→untap 貫通と damage クリアが保たれる)。
 
@@ -3341,6 +3341,56 @@ trigger/ETB 前置き(When enters/Whenever.../At the beginning...)とは合成�
 - shortcutはinput/textarea/select/contenteditableだけ標準編集へ譲る。button/link/menuitemはEnter/Spaceのみcontrolへ譲り、割当済みArrow/文字キーとCmd/Ctrl historyはフォーカスが残っていても発火する。dialog中のphase/turn/restart blockは維持。
 
 **スコープ外**: full CR117 priority、全counter構文、相手が行うtoken生成の自動化、manual注記からの合法性推論、quick-cast強制廃止。これらを本マイルストーンのPASSに混ぜない。
+
+### 34.52 CR609 one-shot mass destroy core(CR 608.2c/f/h, 609.1/609.3, 701.8, 702.12b)— この節も契約である
+
+**目的と境界**: `cr-609-one-shot-mass` は、既存の単体 destroy が単なる `moveCard` になっている誤りを修復し、有界な `Destroy all/each ...` を一回的効果として原子的に実行する。対応するのは完全一致した非対象 destroy 節だけで、型の和集合、`nonland`、`you control` / `your opponents control`、固定 mana value 上限、stack object に保存済みの X を扱う。《Ruinous Ultimatum》と《Pernicious Deed》を実カードgoldenとする。《Culling Ritual》の結果依存マナ、《Blasphemous Act》の全体damage、《Toxic Deluge》の一時的 -X/-X、regeneration shield、複数置換選択(CR 616)は全体をmanualに保ち、対応subsetを部分実行しない。
+
+**CR根拠**: CR 608.2c(書かれた順に全命令を実行)、608.2f(複数objectへの同一actionは通常同時)、608.2h(必要なgame情報は効果適用時に一度決定)、609.1(one-shot effect)、609.3(不可能な部分だけ行わず可能な限り行う)、701.8a-b(destroyはbattlefieldからowner's graveyardへの移動でありdestroy語または704.5g/hだけ)、702.12b(indestructibleはdestroy不能)。
+
+#### 34.52.1 公開型と分解不能性
+
+- `GameCommand`へ次の一コマンドをadditive追加する。既存`moveCard`列では (a) destroyと任意移動を区別できず破壊不能を表せない、(b) 各move後にSBAが走る、(c) static sourceやreplacement sourceを先に動かすと後続判定が変わるため、既存primitive列へ意味を保って分解できない。
+
+```ts
+type DestroyPermanentSelector =
+  | { kind: 'cards'; cardIds: string[] }
+  | {
+      kind: 'battlefield-filter';
+      typesAnyOf?: string[];
+      excludedTypesAnyOf?: string[];
+      controller?: { kind: 'is' | 'is-not'; playerId: PlayerId };
+      maxManaValue?: number;
+    };
+
+type GameCommand =
+  | { type: 'destroyPermanents'; selector: DestroyPermanentSelector }
+  | /* existing commands */;
+```
+
+- `ZoneChangeReason`へ`'destroy'`を追加する。`CompileContext`へ`announcedX?: number`を追加し、spell/ability stack objectの保存値だけを渡す。`GameState`、snapshot version、cache schema、依存パッケージは変更しない。
+- `cardIds`は呼出時の順序や重複に依存しない集合として扱う。現在battlefieldに無いidは不可能な部分として無視する。filterの型・controller・mana valueは変更前stateのeffective characteristicsから読む。`typesAnyOf`欠落は任意permanent、空配列は一致なし。mana value上限は有限の0以上の整数だけを受理する。
+
+#### 34.52.2 原子destroy遷移
+
+- command開始時のstateから候補集合、effective type、controller、mana value、effective `indestructible`、既存graveyard-to-exile replacementの適用結果を一度だけ凍結する。途中でsource自身が移動しても残りの判定を再計算しない。
+- 破壊不能の候補は戦場に残す。破壊できる全候補はowner's graveyard、または開始時に適用が確定した既存graveyard-to-exile replacementの行先へ移す。全zone-change eventは`reason:'destroy'`かつ同じ`simultaneousGroupId`を持つ。battlefield配列順の反転で最終stateと意味event集合が変わらない決定順を用いる。
+- destroy command内部ではpriority boundary/SBAを走らせない。全候補の移動後、公開`applyCommand`の既存末尾境界でSBA固定点を一度だけ実行する。destroyにより生じるdeath trigger、token cease、commander zone choice bridge、owner private-zone routingは既存基盤を再利用し、後続SBA eventはdestroy groupとは別groupを持つ。
+- 既存のguided target destroyも`{type:'destroyPermanents',selector:{kind:'cards',cardIds:[...]}}`へ統一する。hexproofは非対象全体破壊には影響しない。Feed the Swarm型の後続life lossは対象選択時snapshotのmana valueを従来どおり使い、対象が破壊不能でもCR 609.3により後続命令を実行する。
+- resolution-time guided処理は効果command列とstack objectの通常着地を単一draftで適用する専用内部batchを使う。batch途中ではSBA/priorityを挟まず、全効果節とstack除去完了後に一度だけ安定化する。一般の`applyCommands`は既存の「各command後に安定化」意味を維持する。
+
+#### 34.52.3 compiler fail-closed gate
+
+- `effect.destroy`のうち、正規化後の節全体が `Destroy all ...` または `Destroy each ...` に一致する場合だけmass selectorへcompileする。permanent型の単数/複数と`artifact, creature, and enchantment`型の列挙、`nonland permanent(s)`、`you control`、`your opponents control`、`with mana value N or less`、`with mana value X or less`をallow-listする。
+- X形は`CompileContext.announcedX`が有限の0以上の整数として保存済みの場合だけauto。欠落・不正ならmanual。`all/each`をtargetへ誤誘導しない。
+- IRがpartial、optional、unknown atom/construct、未対応choice/variable composite、または全節を順に実行できない場合は`decision:'manual'`, `commands:[]`, `prompts:[]`とする。`They can't be regenerated`、結果数を読む`for each permanent destroyed this way`、複数replacementの選択をautoへ含めない。
+- compile呼出箇所はstack objectの`announcedX`をresolution/unsupported判定/guided planへ一貫して渡す。compiler decision snapshotの意図的差分は判定者が遷移一覧を確認後に更新する。
+
+#### 34.52.4 review/golden/出荷証拠
+
+- 判定者専有=`src/engine/__tests__/review.cr609-one-shot-mass.test.ts`、既存target destroy/LKI pin、`src/store/__tests__/review.damage-marked.test.ts`の破壊不能回帰pin。通常テストはcompiler、command atomicity、guided resolution/store undo-redo、commander/replacement/token/death-triggerを補う。
+- 実行可能goldenは《Ruinous Ultimatum》《Pernicious Deed》の最終`GameState`まで検査する。未対応fixtureはmanualかつ盤面差分0を検査する。
+- UIは既存解決UIの配線のみを使い、新規表示契約を追加しない。375x812、812x375、1440x900でmanual dialogなし、盤面差分、単一undo、console error 0を確認する。
 
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 

@@ -13,8 +13,8 @@
 // - CR 400.7: オブジェクトが移動すると別オブジェクトになる。破壊後にmana valueを
 //   再読すれば別オブジェクト(墓地のカード)の特性を読むことになり誤り。
 // 契約の要石 = ObjectSnapshot.manaValue は additive(def.cmcから取得)。
-// persistent GameState.resolutionContext は導入しない。新規GameCommand型も
-// 追加しない(既存 moveCard + adjustLife の組み合わせ)。
+// persistent GameState.resolutionContext は導入しない。CR609以後は target destroy
+// も destroyPermanents + adjustLife の組み合わせへ統一する。
 import { describe, expect, it } from 'vitest';
 
 import type { CardDef } from '../../types/card';
@@ -86,7 +86,10 @@ describe('cr-608-resolution Slice B: resolution-time LKI for mana value (CR 608.
       { kind: 'target', cardIds: ['whatever'], targetSnapshots: [{ manaValue: 7 } as never] },
       { sourceId: 'source-1', def: cardDef('r-cr608b-src3', 'Sorcery', 2) },
     );
-    expect(commands).toEqual([{ type: 'moveCard', cardId: 'whatever', to: 'graveyard', position: 'bottom' }]);
+    expect(commands).toEqual([{
+      type: 'destroyPermanents',
+      selector: { kind: 'cards', cardIds: ['whatever'] },
+    }]);
   });
 
   it('CR 608.2h: life loss uses the mana value captured at target-selection time, not a post-mutation re-read', () => {
@@ -141,7 +144,7 @@ describe('cr-608-resolution Slice B: resolution-time LKI for mana value (CR 608.
     );
     // A naive `if (manaValue)` gate would wrongly omit the adjustLife command for 0.
     expect(commands).toEqual([
-      { type: 'moveCard', cardId: 'c2', to: 'graveyard', position: 'bottom' },
+      { type: 'destroyPermanents', selector: { kind: 'cards', cardIds: ['c2'] } },
       { type: 'adjustLife', delta: -0 },
     ]);
 
@@ -166,7 +169,10 @@ describe('cr-608-resolution Slice B: resolution-time LKI for mana value (CR 608.
       { kind: 'target', cardIds: ['whatever'], targetSnapshots: [] },
       { sourceId: 'source-1', def: cardDef('r-cr608b-src4', 'Sorcery', 2) },
     );
-    expect(commands).toEqual([{ type: 'moveCard', cardId: 'whatever', to: 'graveyard', position: 'bottom' }]);
+    expect(commands).toEqual([{
+      type: 'destroyPermanents',
+      selector: { kind: 'cards', cardIds: ['whatever'] },
+    }]);
   });
 
   it('guided plan for the new leaf still exposes a single effect.destroy target prompt (compile shape)', () => {

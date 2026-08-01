@@ -14,6 +14,7 @@ export interface CompileContext {
   commanderColorIdentity?: readonly ManaColor[];
   libraryShuffleOrder?: readonly string[];
   allowLibrarySearchComposite?: boolean;
+  announcedX?: number;
 }
 
 export type AutoDecision = 'auto' | 'guided' | 'manual';
@@ -410,6 +411,38 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     reasons.add('no-effect');
   }
 
+  const massEffect = ir.effects.find((effect) => effect.atom === 'effect.destroy');
+  if (massEffect && /^(?:destroy)\s+(?:all|each)\b/i.test(normalizedEffectText(massEffect.raw))) {
+    const massDestroy = compileMassDestroy({ ...ir, effects: [massEffect], effectClauses: [massEffect.raw] }, ctx);
+    if (!massDestroy || massDestroy.decision !== 'auto' || ir.effectClauses.length !== ir.effects.length) {
+      return manualMassDestroy();
+    }
+    const commands: GameCommand[] = [];
+    for (const clauseRaw of ir.effectClauses) {
+      const effect = ir.effects.find((candidate) => candidate.raw === clauseRaw);
+      if (!effect) return manualMassDestroy();
+      if (effect === massEffect) {
+        commands.push(...massDestroy.commands);
+        continue;
+      }
+      const clause = normalizedEffectText(clauseRaw);
+      if (
+        effect.atom === 'effect.draw'
+        && !/^(?:(?:you\s+)?draw|each\s+player\s+draws?)\s+(?:a|one|two|three|four|five|six|seven|\d+)\s+cards?$/i.test(clause)
+      ) {
+        return manualMassDestroy();
+      }
+      const companion = compileAbilityIR({
+        ...ir,
+        effects: [{ ...effect, raw: clauseRaw }],
+        effectClauses: [clauseRaw],
+      }, ctx);
+      if (companion.decision !== 'auto') return manualMassDestroy();
+      commands.push(...companion.commands);
+    }
+    return { ...massDestroy, commands };
+  }
+
   if (ctx.allowLibrarySearchComposite !== false) {
     const librarySearchPrompt = guidedLibrarySearchPrompt(ir);
     if (librarySearchPrompt) {
@@ -530,6 +563,55 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     risk: decision === 'auto' ? 'low' : 'medium',
     reasons: sortedReasons,
   };
+}
+
+function compileMassDestroy(ir: AbilityIR, ctx: CompileContext): CompiledEffect | null {
+  if (ir.effects.length !== 1 || ir.effects[0]?.atom !== 'effect.destroy' || ir.effects[0].optional) {
+    return null;
+  }
+  const raw = normalizedEffectText(ir.effects[0].raw).toLowerCase();
+  const match = /^(?:destroy)\s+(?:all|each)\s+(.+)$/.exec(raw);
+  if (!match) return null;
+  let subject = match[1];
+  let controller: { kind: 'is' | 'is-not'; playerId: PlayerId } | undefined;
+  if (/\s+you control$/.test(subject)) {
+    controller = { kind: 'is', playerId: ctx.controllerId ?? 'P1' };
+    subject = subject.replace(/\s+you control$/, '');
+  } else if (/\s+your opponents control$/.test(subject)) {
+    controller = { kind: 'is-not', playerId: ctx.controllerId ?? 'P1' };
+    subject = subject.replace(/\s+your opponents control$/, '');
+  }
+  let maxManaValue: number | undefined;
+  const manaMatch = /\s+with mana value (x|\d+) or less$/.exec(subject);
+  if (manaMatch) {
+    if (manaMatch[1] === 'x') {
+      if (!Number.isInteger(ctx.announcedX) || (ctx.announcedX ?? -1) < 0) return manualMassDestroy();
+      maxManaValue = ctx.announcedX;
+    } else {
+      maxManaValue = Number(manaMatch[1]);
+    }
+    subject = subject.slice(0, manaMatch.index);
+  }
+  const selector: Extract<GameCommand, { type: 'destroyPermanents' }>['selector'] = {
+    kind: 'battlefield-filter',
+    ...(controller ? { controller } : {}),
+    ...(maxManaValue === undefined ? {} : { maxManaValue }),
+  };
+  if (subject === 'nonland permanent' || subject === 'nonland permanents') {
+    selector.excludedTypesAnyOf = ['land'];
+  } else if (subject === 'permanent' || subject === 'permanents') {
+    // No type filter.
+  } else {
+    const types = subject.split(/,|\band\b/).map((part) => part.trim().replace(/s$/, '')).filter(Boolean);
+    const supported = new Set(['artifact', 'creature', 'enchantment', 'land', 'planeswalker']);
+    if (types.length === 0 || types.some((type) => !supported.has(type))) return manualMassDestroy();
+    selector.typesAnyOf = types;
+  }
+  return { commands: [{ type: 'destroyPermanents', selector }], decision: 'auto', prompts: [], confidence: 0.95, risk: 'low', reasons: [] };
+}
+
+function manualMassDestroy(): CompiledEffect {
+  return { commands: [], decision: 'manual', prompts: [], confidence: 0.5, risk: 'medium', reasons: ['needs-parse'] };
 }
 
 function constructCapturedByGuidedTarget(construct: string, ir: AbilityIR): boolean {
@@ -1987,7 +2069,7 @@ export function buildGuidedCommands(
     switch (prompt.atom) {
       case 'effect.destroy': {
         const commands: GameCommand[] = [
-          { type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' },
+          { type: 'destroyPermanents', selector: { kind: 'cards', cardIds: [cardId] } },
         ];
         const manaValue = manaValueForDestroyThenLoseLifePrompt(prompt, targetSnapshot);
         if (manaValue !== null) {

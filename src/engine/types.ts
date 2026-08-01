@@ -244,7 +244,8 @@ export type ZoneChangeReason =
   | 'token-cease'
   | 'copy-cease'
   | 'discard'
-  | 'sacrifice';
+  | 'sacrifice'
+  | 'destroy';
 
 export interface ZoneChangeEvent {
   type: 'zoneChange';

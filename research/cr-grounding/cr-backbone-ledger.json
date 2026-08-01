@@ -610,14 +610,23 @@
       "type": "domain-slice",
       "domainId": "cr-609-one-shot-mass",
       "crOrder": 609,
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "cr-608-resolution",
         "cr-player-specific-zones"
       ],
-      "evidence": [],
-      "manualBoundary": "destroy all/eachのうち置換・選択・可変集合を要求する複合形は、対応subsetだけ部分実行しない。",
-      "note": "CR609一回的全体効果。Blasphemous Act/Toxic Deluge/Pernicious Deed/Culling Ritual/Ruinous Ultimatum等の通常Commander実カードを受け入れfixtureにする。"
+      "evidence": [
+        "docs/engine-spec.md §34.52",
+        "docs/acceptance.md G8",
+        "src/engine/__tests__/review.cr609-one-shot-mass.test.ts",
+        "src/store/__tests__/review.cr609-one-shot-mass.test.ts",
+        "src/store/__tests__/review.damage-marked.test.ts",
+        "research/cr-grounding/golden-cases.json#cr-609-ruinous-ultimatum-mass-destroy",
+        "research/cr-grounding/golden-cases.json#cr-609-pernicious-deed-announced-x",
+        "research/cr-grounding/archive/cr-609-one-shot-mass/cold-audit-findings.md"
+      ],
+      "manualBoundary": "Culling Ritualの結果依存マナ、全体damage、一時的-X/-X、regeneration節、未保存X、条件付きcompanion、複数置換選択は文全体manualとし、対応subsetだけ部分実行しない。",
+      "note": "[2026-08-01 audited・判定者=Codex・冷監査=/root/cr609_cold_auditor] CR608.2c/f/h・609.1/609.3・701.8・702.12bに従う原子的destroyPermanentsを追加。対象集合・有効型/controller/MV・破壊不能・置換先を変更前stateで固定し、同一simultaneousGroupIdでowner墓地または既存置換先へ移動する。Ruinous UltimatumとPernicious Deed(保存済みX=0/X>0)をauto化し、既存対象破壊とresolution-time guided batchを統一。初回冷監査HIGH 1件(Shatter the Sky/Depopulateの条件付きdraw部分実行)をfail-closed化し、再監査はBLOCKER/HIGH/MEDIUM/LOW=0、AUDIT-OK-PENDING-FULL-CHECK。decision snapshot最終差分は旧base比m→a 17件、g→m 1件で、条件付き2件はmanualへ復帰。"
     },
     {
       "type": "domain-slice",
@@ -1950,7 +1959,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "cr-608-resolution",
         "cr-player-specific-zones"
@@ -1960,11 +1969,21 @@
         "simultaneousGroupId",
         "zoneChangeEvents"
       ],
-      "boundary": "有界なdestroy all/each subsetを同時処理として実行する。",
-      "evidence": [],
-      "manualBoundary": "置換・選択・可変集合を含む複合形は対応subsetだけ部分実行しない。",
-      "nextGate": "CR606出荷後のCR609 slice。",
-      "judge": "deterministic-cr"
+      "boundary": "有界なdestroy all/each subsetを変更前stateから一度だけ確定し、同一simultaneousGroupIdの原子的destroyPermanentsとして実行する。",
+      "evidence": [
+        "docs/engine-spec.md §34.52",
+        "docs/acceptance.md G8",
+        "src/engine/__tests__/review.cr609-one-shot-mass.test.ts",
+        "src/store/__tests__/review.cr609-one-shot-mass.test.ts",
+        "src/store/__tests__/review.damage-marked.test.ts",
+        "research/cr-grounding/golden-cases.json#cr-609-ruinous-ultimatum-mass-destroy",
+        "research/cr-grounding/golden-cases.json#cr-609-pernicious-deed-announced-x",
+        "research/cr-grounding/archive/cr-609-one-shot-mass/cold-audit-findings.md"
+      ],
+      "manualBoundary": "Culling Ritualの結果依存マナ、全体damage、一時的-X/-X、regeneration節、未保存X、条件付きcompanion、複数置換選択は文全体manualとし、対応subsetだけ部分実行しない。",
+      "nextGate": "全check、明示commit、CI、Pages確認後にshippedへ昇格する。次スライスは再選定のみで着手しない。",
+      "judge": "deterministic-cr",
+      "note": "監査完了(2026-08-01・判定者=Codex・冷監査=/root/cr609_cold_auditor)。初回HIGH 1件を修正後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。出荷証跡待ち。"
     },
     {
       "id": "cr-701-cross-player-actions",

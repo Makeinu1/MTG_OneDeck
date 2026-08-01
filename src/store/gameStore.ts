@@ -9,6 +9,7 @@ import type { CardDef, ManaColor } from '../types/card';
 import { applyCommands } from '../engine/batch';
 import {
   applyCommand,
+  applyResolutionCommands,
   activatedManaAbilityPlanForSource,
   activationPlanForSource,
   activationTargetPromptsForSource,
@@ -53,6 +54,7 @@ import {
   LOCAL_PLAYER_ID,
   playerIdForLifeLabel,
   playerPrivateZonesFromFlatZones,
+  objectIdOf,
   syncDerivedViews,
   type CardInstance,
   type ActivationCostComponent,
@@ -854,6 +856,19 @@ function commanderZoneSbaChoiceFromMove(
   };
 }
 
+function appendCommanderZoneChoicesFromTransition(previous: GameState, next: GameState): GameState {
+  let result = next;
+  for (const event of next.eventLog.slice(previous.eventLog.length)) {
+    if (event.type !== 'zoneChange' || (event.toZone !== 'graveyard' && event.toZone !== 'exile')) continue;
+    if (!isCommander(previous, event.physicalCardId)) continue;
+    const current = result.cards[event.physicalCardId];
+    if (!current || current.zone !== event.toZone || !event.after || objectIdOf(current) !== event.after.objectId) continue;
+    const choice = commanderZoneSbaChoiceFromMove(result, event.physicalCardId, event.toZone);
+    if (choice) result = appendPendingRuleChoice(result, choice);
+  }
+  return result;
+}
+
 function commandForPendingTrigger(pending: PendingTrigger): GameCommand {
   return {
     type: 'addAbilityToStack',
@@ -1184,6 +1199,7 @@ function stackItemIsWhollyUnsupported(state: GameState, cardId: string): boolean
     sourceId: card.sourceId ?? cardId,
     def: rules.def,
     controllerId: card.controllerId,
+    ...(card.announcedX === undefined ? {} : { announcedX: card.announcedX }),
   });
   return compiled.decision === 'manual';
 }
@@ -1691,6 +1707,9 @@ export const useGameStore = create<GameStore>((set, get) => {
     const shouldCollectPending = options.collectPending ?? true;
     let nextWithPending =
       cur && shouldCollectPending ? appendCollectedPendingTriggers(cur, next) : next;
+    if (cur) {
+      nextWithPending = appendCommanderZoneChoicesFromTransition(cur, nextWithPending);
+    }
     let commitWarnings = warnings;
     if (
       nextWithPending.phase === 'cleanup'
@@ -1955,7 +1974,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     const resolveCommand = resolveStackTopCommandForState(cur, pending.to);
     try {
-      const result = applyCommands(cur, [...commands, resolveCommand]);
+      const result = applyResolutionCommands(cur, [...commands, resolveCommand]);
       const logged = appendLog(
         result.state,
         `${cardLabel(cur, pending.sourceId)}の効果を誘導実行した。`,
