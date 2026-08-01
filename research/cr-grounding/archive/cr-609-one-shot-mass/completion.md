@@ -43,3 +43,14 @@ dependency was changed.
 
 The release judge records the one final full-check, commit, push, CI, Pages,
 served-asset, and clean-worktree evidence in the shipping task handoff.
+
+## Shipping evidence
+
+- Final `npm run check`: PASS after one fail-fast lint repair permitted by the
+  two-run cap. Lint, core 102 files / 1,067 tests, DOM 215 files / 1,519 tests,
+  TypeScript, and production build all passed.
+- Implementation commit `c0a0b89` includes the cold-auditor identifier and is
+  pushed to `main`.
+- GitHub Actions run `30700958018`: build/test/deploy success.
+- GitHub Pages: HTTP 200; served `assets/index-BrymT3AG.js` includes the
+  `destroyPermanents` marker; the real page loaded with console error 0.

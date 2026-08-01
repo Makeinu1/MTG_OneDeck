@@ -610,7 +610,7 @@
       "type": "domain-slice",
       "domainId": "cr-609-one-shot-mass",
       "crOrder": 609,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-608-resolution",
         "cr-player-specific-zones"
@@ -626,7 +626,7 @@
         "research/cr-grounding/archive/cr-609-one-shot-mass/cold-audit-findings.md"
       ],
       "manualBoundary": "Culling Ritualの結果依存マナ、全体damage、一時的-X/-X、regeneration節、未保存X、条件付きcompanion、複数置換選択は文全体manualとし、対応subsetだけ部分実行しない。",
-      "note": "[2026-08-01 audited・判定者=Codex・冷監査=/root/cr609_cold_auditor] CR608.2c/f/h・609.1/609.3・701.8・702.12bに従う原子的destroyPermanentsを追加。対象集合・有効型/controller/MV・破壊不能・置換先を変更前stateで固定し、同一simultaneousGroupIdでowner墓地または既存置換先へ移動する。Ruinous UltimatumとPernicious Deed(保存済みX=0/X>0)をauto化し、既存対象破壊とresolution-time guided batchを統一。初回冷監査HIGH 1件(Shatter the Sky/Depopulateの条件付きdraw部分実行)をfail-closed化し、再監査はBLOCKER/HIGH/MEDIUM/LOW=0、AUDIT-OK-PENDING-FULL-CHECK。decision snapshot最終差分は旧base比m→a 17件、g→m 1件で、条件付き2件はmanualへ復帰。"
+      "note": "[2026-08-01 shipped・判定者=Codex・冷監査=/root/cr609_cold_auditor] CR608.2c/f/h・609.1/609.3・701.8・702.12bに従う原子的destroyPermanentsを追加。対象集合・有効型/controller/MV・破壊不能・置換先を変更前stateで固定し、同一simultaneousGroupIdでowner墓地または既存置換先へ移動する。Ruinous UltimatumとPernicious Deed(保存済みX=0/X>0)をauto化し、既存対象破壊とresolution-time guided batchを統一。初回冷監査HIGH 1件(Shatter the Sky/Depopulateの条件付きdraw部分実行)をfail-closed化し、再監査はBLOCKER/HIGH/MEDIUM/LOW=0。最終npm run check緑、監査ID入りcommit c0a0b89、Actions 30700958018緑、Pages HTTP 200・配信asset確認済み。decision snapshot最終差分は旧base比m→a 17件、g→m 1件で、条件付き2件はmanualへ復帰。"
     },
     {
       "type": "domain-slice",
@@ -1959,7 +1959,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-608-resolution",
         "cr-player-specific-zones"
@@ -1981,9 +1981,9 @@
         "research/cr-grounding/archive/cr-609-one-shot-mass/cold-audit-findings.md"
       ],
       "manualBoundary": "Culling Ritualの結果依存マナ、全体damage、一時的-X/-X、regeneration節、未保存X、条件付きcompanion、複数置換選択は文全体manualとし、対応subsetだけ部分実行しない。",
-      "nextGate": "全check、明示commit、CI、Pages確認後にshippedへ昇格する。次スライスは再選定のみで着手しない。",
+      "nextGate": "shipped。次のCR章順スライスは再選定のみ行い、このタスクでは着手しない。",
       "judge": "deterministic-cr",
-      "note": "監査完了(2026-08-01・判定者=Codex・冷監査=/root/cr609_cold_auditor)。初回HIGH 1件を修正後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。出荷証跡待ち。"
+      "note": "出荷完了(2026-08-01・判定者=Codex・冷監査=/root/cr609_cold_auditor・commit=c0a0b89・Actions=30700958018)。初回HIGH 1件を修正後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。全check、CI、Pages、配信asset、実画面console error 0を確認済み。"
     },
     {
       "id": "cr-701-cross-player-actions",

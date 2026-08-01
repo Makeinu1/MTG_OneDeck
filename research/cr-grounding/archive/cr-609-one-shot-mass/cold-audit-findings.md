@@ -35,3 +35,19 @@ snapshot. Exactly those two entries changed from `auto` back to `manual`.
 
 The independent auditor did not run the full `npm run check`; the release
 judge runs that gate once on the final metadata-complete fingerprint.
+
+## Release gate evidence
+
+- The first full-check attempt failed fast on one redundant test-only
+  non-null assertion. The judge removed that single assertion, reran affected
+  ESLint and the 4-test ordinary file, and obtained an affected re-audit with
+  all finding severities at zero.
+- The second and final `npm run check` passed: lint; core 102 files / 1,067
+  tests; DOM 215 files / 1,519 tests; TypeScript and production build.
+- Audited implementation commit: `c0a0b89` with
+  `Cold-Audit: /root/cr609_cold_auditor`.
+- GitHub Actions run `30700958018` passed build, test, artifact, and Pages
+  deployment.
+- Pages returned HTTP 200; served asset `assets/index-BrymT3AG.js` contained
+  the `destroyPermanents` runtime marker; the deployed app loaded with console
+  error 0.
