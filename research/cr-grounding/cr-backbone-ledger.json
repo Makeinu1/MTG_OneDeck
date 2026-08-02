@@ -2669,7 +2669,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "low",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-601-casting-stack"
@@ -2680,12 +2680,16 @@
         "compiledCommands",
         "manualFallbacks"
       ],
-      "boundary": "Teamworkの任意追加コスト・合計power判定・using-teamwork記録は未認識・未実装。",
+      "boundary": "Teamwork Nの任意追加コスト(クリーチャータップ・合計パワー閾値)を認識し、castToStack transaction上で原子実行。usingTeamworkフラグをstack itemに記録。効果本体の条件分岐はmanualのまま。",
       "evidence": [
-        "cr-20260619-new-mechanics-boundary"
+        "review.cr702-194-teamwork",
+        "src/engine/__tests__/teamworkKeyword.test.ts",
+        "src/store/__tests__/teamworkCast.test.ts",
+        "cold-audit:Beauvoir:BLOCKER0-HIGH0",
+        "35ba521"
       ],
       "manualBoundary": "クリーチャーtapだけを部分実行せず、宣言・対象選択・支払いを一つのcast transactionとして扱う。",
-      "nextGate": "CR702.194順でCR118 ACT-4とcasting transaction上にgolden replayを作る。",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr"
     },
     {
