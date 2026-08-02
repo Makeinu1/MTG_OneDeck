@@ -692,6 +692,7 @@ export interface GameState {
   eventLog: GameEvent[];
   pendingTriggers: PendingTrigger[];
   oncePerTurnTriggerLedger: OncePerTurnTriggerLedger;
+  powerUpActivated: Record<string, true>;
   pendingRuleChoices: PendingRuleChoice[];
   pendingSbaChoices: PendingSbaChoice[];
   linkedExiles: Record<string, LinkedExileRecord>;

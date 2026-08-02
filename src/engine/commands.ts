@@ -14,7 +14,7 @@ import {
 } from './grammar/compile';
 import { splitAbilityLines, type AbilityLine } from './grammar/index';
 import { parseAbilityIR, type AbilityCost } from './grammar/ir';
-import { parseManaCost } from './mana';
+import { parseManaCost, reduceManaCost } from './mana';
 import { effectiveMaximumHandSize } from './handSize';
 import {
   effectiveKeywords,
@@ -4924,8 +4924,21 @@ export function activationPlanForSource(
     ? withSelfSacrificeReason(compiledCost.commands, sourceId)
     : compiledCost.commands.slice();
   let manaShortfall = 0;
-  if (compiledCost.manaCost !== null) {
-    const plan = planAutoTap(state, parseManaCost(compiledCost.manaCost), 0, source.controllerId);
+  // CR 702.193a: Power-up cost reduction when permanent entered this turn.
+  let effectiveManaCost = compiledCost.manaCost;
+  if (
+    effectiveManaCost !== null
+    && line.keywordId === 'power-up'
+    && source.enteredTurn === state.turn
+  ) {
+    const face = def.faces[source.faceIndex];
+    const permanentManaCost = face?.manaCost ?? '';
+    if (permanentManaCost) {
+      effectiveManaCost = reduceManaCost(effectiveManaCost, permanentManaCost);
+    }
+  }
+  if (effectiveManaCost !== null) {
+    const plan = planAutoTap(state, parseManaCost(effectiveManaCost), 0, source.controllerId);
     commands.push(
       ...autoTapCommands(plan, source.controllerId),
       {
@@ -4958,7 +4971,7 @@ export function activationPlanForSource(
             sourceId,
             sourceSnapshot,
             ir.cost?.raw ?? '',
-            compiledCost.manaCost,
+            effectiveManaCost,
             commands,
             'auto',
           ),

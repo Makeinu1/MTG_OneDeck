@@ -130,6 +130,7 @@ function stateWithPendingTriggers(
     eventLog: [],
     pendingTriggers,
     oncePerTurnTriggerLedger: { turn: 1, consumedKeys: [] },
+    powerUpActivated: {},
     pendingRuleChoices,
     pendingSbaChoices: [],
     linkedExiles: {},

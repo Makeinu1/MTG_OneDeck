@@ -101,6 +101,85 @@ export interface PaymentSolution {
   shortfall: number; // 不足点数(ok=true なら 0)
 }
 
+/**
+ * CR 118.7: Reduce a mana cost string by a reduction string (e.g. permanent's mana cost).
+ * - Generic in reduction reduces generic in cost.
+ * - Colored in reduction reduces same color in cost; excess reduces generic.
+ * - Colorless in reduction reduces colorless in cost; excess reduces generic.
+ * Returns the reduced cost as a mana string (e.g. '{3}{W}').
+ */
+export function reduceManaCost(cost: string, reduction: string): string {
+  const parsedCost = parseManaCost(cost);
+  const parsedReduction = parseManaCost(reduction);
+
+  // Start with mutable counters for the cost.
+  let generic = parsedCost.generic;
+  // Count colored pips in cost by color.
+  const colorPips: Record<string, number> = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+  let colorlessPips = 0;
+  for (const pip of parsedCost.pips) {
+    if (pip.kind === 'color') {
+      colorPips[pip.color] += 1;
+    } else if (pip.kind === 'colorless') {
+      colorlessPips += 1;
+    }
+    // hybrid, monoHybrid, phyrexian, snow: treat as generic for reduction purposes
+    else {
+      generic += 1;
+    }
+  }
+
+  // Apply reduction: generic reduces generic directly.
+  generic = Math.max(0, generic - parsedReduction.generic);
+
+  // Colored/colorless pips in reduction reduce same type first, excess reduces generic.
+  const reductionColorCounts: Record<string, number> = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+  let reductionColorless = 0;
+  for (const pip of parsedReduction.pips) {
+    if (pip.kind === 'color') {
+      reductionColorCounts[pip.color] += 1;
+    } else if (pip.kind === 'colorless') {
+      reductionColorless += 1;
+    } else {
+      // hybrid, monoHybrid, phyrexian, snow in reduction: treat as generic reduction
+      generic = Math.max(0, generic - 1);
+    }
+  }
+
+  // Apply colored reductions.
+  for (const color of ['W', 'U', 'B', 'R', 'G'] as const) {
+    const reduceAmount = reductionColorCounts[color];
+    const matched = Math.min(colorPips[color], reduceAmount);
+    colorPips[color] -= matched;
+    const excess = reduceAmount - matched;
+    generic = Math.max(0, generic - excess);
+  }
+
+  // Apply colorless reduction.
+  const colorlessMatched = Math.min(colorlessPips, reductionColorless);
+  colorlessPips -= colorlessMatched;
+  const colorlessExcess = reductionColorless - colorlessMatched;
+  generic = Math.max(0, generic - colorlessExcess);
+
+  // Build result string.
+  const parts: string[] = [];
+  if (generic > 0) {
+    parts.push(`{${generic}}`);
+  }
+  for (const color of ['W', 'U', 'B', 'R', 'G'] as const) {
+    for (let i = 0; i < colorPips[color]; i++) {
+      parts.push(`{${color}}`);
+    }
+  }
+  for (let i = 0; i < colorlessPips; i++) {
+    parts.push('{C}');
+  }
+  if (parts.length === 0) {
+    return '{0}';
+  }
+  return parts.join('');
+}
+
 const ALL_COLORS: ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 
 function emptyPool(): ManaPool {

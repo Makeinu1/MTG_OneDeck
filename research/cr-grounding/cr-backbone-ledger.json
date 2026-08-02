@@ -735,12 +735,14 @@
       "type": "domain-slice",
       "domainId": "cr-702-193-power-up",
       "crOrder": 702.193,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-602-activated-abilities"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr702-193-power-up"
+      ],
       "manualBoundary": "通常のactivated ability部分だけを実行してPower-up条件を成功扱いにしない。",
       "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
     },
@@ -2634,7 +2636,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "low",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-602-activated-abilities"
@@ -2645,9 +2647,11 @@
         "compiledCommands",
         "manualFallbacks"
       ],
-      "boundary": "Power-upのコスト軽減・entered-this-turn条件・activate-only-onceは未認識・未実装。",
+      "boundary": "Power-up keyword認識・entered-this-turn条件付きコスト軽減(CR118.7)・activate-only-once(objectId keyed)を実装。hybrid/phyrexian/snow pipの軽減はgeneric簡略化(corpus需要なし)。",
       "evidence": [
-        "cr-20260619-new-mechanics-boundary"
+        "review.cr702-193-power-up",
+        "reduceManaCost",
+        "cold-audit-Lovelace-BLOCKER/HIGH=0"
       ],
       "manualBoundary": "通常のactivated ability部分だけを実行してPower-up条件を成功扱いにしない。",
       "nextGate": "CR702.193順でCR118 ACT-4とactivated-ability substrate上に原子的支払いreplayを作る。",

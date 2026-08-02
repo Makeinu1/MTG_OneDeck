@@ -114,5 +114,19 @@ export function canonicalizeActivatedKeyword(core: string): CanonicalKeywordActi
     ];
   }
 
+  // CR 702.193: Power-up — {COST}: [EFFECT]
+  const powerUpMatch = /^power-up\s*[—―-]\s*(.+?):\s*(.+)$/i.exec(text);
+  if (powerUpMatch?.[1] && powerUpMatch[2]) {
+    const cost = powerUpMatch[1].trim();
+    const effect = powerUpMatch[2].trim();
+    return [{
+      keywordId: 'power-up',
+      keywordLabel: 'パワーアップ',
+      keywordCost: cost,
+      activationZones: ['battlefield'],
+      text: `${cost}: ${effect} Activate this ability only once.`,
+    }];
+  }
+
   return null;
 }

@@ -681,6 +681,7 @@ function normalizeSnapshotState(state: GameState): GameState {
     linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
     dungeonDefs: snapshot.dungeonDefs ?? {},
     dungeons: snapshot.dungeons ?? {},
+    powerUpActivated: snapshot.powerUpActivated ?? {},
   });
   const withValidActivePlayer = normalized.players[normalized.activePlayerId]
     ? normalized
@@ -955,6 +956,7 @@ export interface GameStore {
 
   newGame(cards: InitDeckCard[], seed?: number): void;
   restoreGame(snapshot: GameSnapshot): void;
+  takeSnapshot(): GameSnapshot;
   restart(): void;
   mulligan(): void;
   beginFirstTurn(): void;
@@ -2722,15 +2724,30 @@ export const useGameStore = create<GameStore>((set, get) => {
             },
           }
         : result.state;
+      // CR 702.193a: mark power-up ability as activated for this battlefield object.
+      const committedSource = withLedger.cards[pending.sourceId];
+      const committedDef = committedSource ? withLedger.defs[committedSource.defId] : undefined;
+      const committedLine = committedDef && pending.abilityLineIndex !== undefined
+        ? splitAbilityLines(committedDef)[pending.abilityLineIndex]
+        : undefined;
+      const withPowerUp = committedLine?.keywordId === 'power-up' && committedSource
+        ? {
+            ...withLedger,
+            powerUpActivated: {
+              ...withLedger.powerUpActivated,
+              [objectIdOf(committedSource)]: true as const,
+            },
+          }
+        : withLedger;
       const next =
         pending.costDecision === 'auto'
           ? appendLog(
-              withLedger,
+              withPowerUp,
               forced
                 ? `${cardLabel(cur, pending.sourceId)}の能力を強行起動(コスト精算)。`
                 : `${cardLabel(cur, pending.sourceId)}の能力を起動(コスト精算)。`,
             )
-          : withLedger;
+          : withPowerUp;
       const manualWarning =
         pending.costDecision === 'auto'
           ? []
@@ -2917,6 +2934,19 @@ export const useGameStore = create<GameStore>((set, get) => {
         autoAdvanceToMain: snapshot.autoAdvanceToMain,
         mulliganDecisionPending: false,
       });
+    },
+
+    takeSnapshot() {
+      const s = get().state;
+      if (!s) {
+        throw new EngineError('ゲームが開始されていません。');
+      }
+      return {
+        version: SNAPSHOT_VERSION,
+        state: JSON.parse(JSON.stringify(s)) as GameState,
+        deck: internal.deck ?? [],
+        autoAdvanceToMain: get().autoAdvanceToMain,
+      };
     },
 
     restart() {
@@ -4207,6 +4237,21 @@ export const useGameStore = create<GameStore>((set, get) => {
           pendingGuided: null,
         });
         return;
+      }
+
+      // CR 702.193a: Power-up abilities can only be activated once per battlefield object.
+      if (abilityLine?.keywordId === 'power-up' && source && !opts?.force) {
+        const objId = objectIdOf(source);
+        if (cur.powerUpActivated[objId]) {
+          set({
+            warnings: [
+              ...get().warnings,
+              `${cardLabel(cur, sourceId)}のパワーアップ能力はすでに起動済みです（1回のみ）。`,
+            ],
+            pendingGuided: null,
+          });
+          return;
+        }
       }
 
       const paymentMode: ActivationPaymentMode = opts?.force === true ? 'forced' : 'rules-legal';
