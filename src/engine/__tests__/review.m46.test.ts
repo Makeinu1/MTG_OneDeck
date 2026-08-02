@@ -137,8 +137,13 @@ describe('turn-1 draw & ETB hooks (spec §7.3-§7.5)', () => {
     expect(s.cards[sagaId].counters.lore).toBe(1);
     expect(s.cards[pwId].enteredTurn).toBe(s.turn);
 
-    // saga advances at the start of each turn
-    s = applyCommand(s, { type: 'nextTurn' }).state;
+    // CR 714.3c: saga lore counter advances at precombat main phase, not untap
+    s = applyCommand(s, { type: 'nextTurn' }).state; // → untap
+    expect(s.cards[sagaId].counters.lore).toBe(1); // still 1 at untap
+    s = applyCommand(s, { type: 'nextPhase' }).state; // → upkeep
+    s = applyCommand(s, { type: 'nextPhase' }).state; // → draw
+    s = applyCommand(s, { type: 'nextPhase' }).state; // → main1
+    expect(s.phase).toBe('main1');
     expect(s.cards[sagaId].counters.lore).toBe(2);
 
     // leaving the battlefield clears enteredTurn

@@ -1,6 +1,7 @@
 import type { CardDef, ManaColor } from '../types/card';
 import { autoTapCommands, planAutoTap } from './autotap';
 import { isCommander } from './commander';
+import { finalChapterNumber, numberToRoman, parseSagaChapters } from './sagaGrammar';
 import {
   buildGuidedCommands,
   compileAbilityCost,
@@ -1140,6 +1141,12 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
     }
   }
 
+  // CR 714.2b: a Saga entering the battlefield gets a lore counter (set above),
+  // which may trigger chapter abilities.
+  if (typeLine.includes('Saga')) {
+    emitSagaChapterTriggers(draft, updated, 0, 1);
+  }
+
   return updated;
 }
 
@@ -1622,6 +1629,59 @@ function pushSiegeDefeatedTrigger(draft: Draft, card: CardInstance): void {
   };
   appendPendingTrigger(draft, pending);
   pushLog(draft, `${nameOfCard(draft, card)}の最後の防御カウンターが取り除かれた。誘発型能力がスタックに置かれる。`);
+}
+
+// ---------------------------------------------------------------------------
+// CR 714.2b: Saga chapter ability triggers
+// ---------------------------------------------------------------------------
+
+/** Resolve the oracle text for a card's current face. */
+function oracleTextOf(draft: Draft, card: CardInstance): string | undefined {
+  const face = currentFaceOf(draft, card);
+  return face?.oracleText;
+}
+
+/**
+ * CR 714.2b: after lore counters are put on a Saga, emit chapter ability
+ * triggers for each ability whose chapter numbers fall within
+ * (previousLore, newLore].
+ */
+function emitSagaChapterTriggers(
+  draft: Draft,
+  card: CardInstance,
+  previousLore: number,
+  newLore: number,
+): void {
+  const oracleText = oracleTextOf(draft, card);
+  const abilities = parseSagaChapters(oracleText);
+  if (abilities.length === 0) return;
+
+  const snapshot = objectSnapshotOf(draft, card);
+  const eventId = `e${draft.nextEventSeq}`;
+  const simultaneousGroupId = `saga-chapter-${draft.nextEventSeq}`;
+
+  for (const [abilityIndex, ability] of abilities.entries()) {
+    const crossed = ability.chapters.some((n) => previousLore < n && newLore >= n);
+    if (!crossed) continue;
+
+    const displayChapter = numberToRoman(ability.chapters[0]);
+    const pending: PendingTrigger = {
+      pendingTriggerId: `${eventId}:saga-chapter:${snapshot.objectId}:${abilityIndex}`,
+      eventId,
+      simultaneousGroupId,
+      triggerId: `saga-chapter-${card.id}-${abilityIndex}`,
+      sourceId: card.id,
+      sourceObjectId: snapshot.objectId,
+      sourceSnapshot: snapshot,
+      controllerId: card.controllerId,
+      label: `${nameOfCard(draft, card)}の第${displayChapter}章`,
+      abilityLineIndex: abilityIndex,
+      stackPlacementBucket: 'ability-triggered',
+      resolutionText: ability.effectText,
+    };
+    appendPendingTrigger(draft, pending);
+    pushLog(draft, `${nameOfCard(draft, card)}の第${displayChapter}章が誘発した。`);
+  }
 }
 
 function normalizedDamageAmount(amount: number): number {
@@ -2663,6 +2723,37 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     return [card.id];
   });
 
+  // CR 714.4: a Saga whose lore counters >= final chapter number is sacrificed
+  // unless it has a chapter ability that has triggered but not yet left the stack.
+  const sagaSacrificeIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (card.zone !== 'battlefield') return [];
+    if (!typeLineOf(draft, card).includes('Saga')) return [];
+    const oracleText = oracleTextOf(draft, card);
+    const abilities = parseSagaChapters(oracleText);
+    const finalChapter = finalChapterNumber(abilities);
+    if (finalChapter === 0) return []; // 714.2d: no chapter abilities
+    const lore = card.counters.lore ?? 0;
+    if (lore < finalChapter) return [];
+    // CR 714.4: skip if a chapter ability from this Saga has triggered but not
+    // yet left the stack. Check both pending triggers (awaiting placement) and
+    // ability objects already on the stack zone. Per CR 714.2, all triggered
+    // abilities of a Saga are chapter abilities.
+    const hasPendingChapter = draft.state.pendingTriggers.some(
+      (t) => t.sourceId === card.id && t.triggerId.startsWith('saga-chapter-'),
+    );
+    if (hasPendingChapter) return [];
+    const hasStackedChapter = draft.state.zones.stack.some((stackId) => {
+      const obj = draft.state.cards[stackId];
+      return (
+        obj !== undefined &&
+        obj.isAbility === true &&
+        obj.abilityKind === 'triggered' &&
+        obj.sourceId === card.id
+      );
+    });
+    return hasStackedChapter ? [] : [card.id];
+  });
+
   if (
     zeroToughnessCreatureIds.length === 0 &&
     lethalDamageCreatureIds.length === 0 &&
@@ -2675,7 +2766,8 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     completedDungeonPlayerIds.length === 0 &&
     zeroDefenseBattleIds.length === 0 &&
     noProtectorBattleIds.length === 0 &&
-    siegeControllerProtectorIds.length === 0
+    siegeControllerProtectorIds.length === 0 &&
+    sagaSacrificeIds.length === 0
   ) {
     if (defeatAdvisoryAdded) {
       return true;
@@ -2866,6 +2958,18 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     pushLog(draft, `${nameOf(draft, cardId)}は防御カウンターが0のため状況起因処理で墓地に置かれました。`);
   }
 
+  // CR 714.4: Sagas at final chapter with no pending chapter triggers are sacrificed.
+  for (const cardId of sagaSacrificeIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '714.4',
+    });
+    pushLog(draft, `${nameOf(draft, cardId)}は最終章に達したため生贄に捧げられた(状況起因処理714.4)。`);
+  }
+
   return true;
 }
 
@@ -3049,7 +3153,13 @@ function handleUntapEntry(draft: Draft): void {
   untapControlledPermanents(draft, draft.state.activePlayerId);
   resetActivePlayerTurnCounters(draft);
   draft.state.combatDamagePreventedUntilEndOfTurn = false;
+}
 
+/**
+ * CR 714.3c: "As a player's precombat main phase begins, that player puts a
+ * lore counter on each Saga they control." This fires at main1 entry, not untap.
+ */
+function handlePrecombatMainEntry(draft: Draft): void {
   const cards = { ...draft.state.cards };
   let changed = false;
 
@@ -3060,16 +3170,19 @@ function handleUntapEntry(draft: Draft): void {
       card.controllerId !== draft.state.activePlayerId ||
       !typeLineOf(draft, card).includes('Saga')
     ) continue;
-    const nextLore = (card.counters.lore ?? 0) + 1;
-    cards[id] = {
+    const previousLore = card.counters.lore ?? 0;
+    const nextLore = previousLore + 1;
+    const updated = {
       ...card,
       counters: {
         ...card.counters,
         lore: nextLore,
       },
     };
+    cards[id] = updated;
     changed = true;
     pushLog(draft, `${nameOf(draft, id)}の章カウンターが${nextLore}になった。`);
+    emitSagaChapterTriggers(draft, updated, previousLore, nextLore);
   }
 
   if (changed) {
@@ -3237,6 +3350,9 @@ function enterPhase(draft: Draft, phase: Phase, drawnHandled: boolean): void {
   }
   if (phase === 'untap') {
     handleUntapEntry(draft);
+  }
+  if (phase === 'main1') {
+    handlePrecombatMainEntry(draft);
   }
   if (phase === 'draw' && !drawnHandled) {
     const drawn = drawCards(draft, 1, commandCause('nextPhase'), draft.state.activePlayerId);

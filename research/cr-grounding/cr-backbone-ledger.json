@@ -750,28 +750,39 @@
       "type": "domain-slice",
       "domainId": "cr-702-194-teamwork",
       "crOrder": 702.194,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-118-costs-act4",
         "cr-601-casting-stack"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr702-194-teamwork",
+        "cold-audit:Beauvoir:BLOCKER0-HIGH0",
+        "35ba521"
+      ],
       "manualBoundary": "クリーチャーtapだけを部分実行せず、宣言・対象選択・支払いを一つのcast transactionとして扱う。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "shipped 2026-08-03: cast-time additional cost, usingTeamwork flag. Synced from domains."
     },
     {
       "type": "domain-slice",
       "domainId": "cr-714-sagas-deferred-by-demand",
       "crOrder": 714,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-122-counters",
         "cr-603-triggers-apnap",
         "cr-703-704-sba-turn-based"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr714-saga-chapter-sba",
+        "src/engine/__tests__/sagaGrammar.test.ts",
+        "src/engine/__tests__/sagaChapterTriggers.test.ts",
+        "src/engine/__tests__/sagaSba.test.ts",
+        "cold-audit:Gauss:BLOCKER0-HIGH1→fixed",
+        "cold-audit:Franklin:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
       "manualBoundary": "lore counter/chapter/final chapter sacrificeを部分自動化しない。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "shipped 2026-08-03: chapter triggers, SBA 714.4, lore timing fix (714.3c)."
     },
     {
       "type": "domain-slice",
@@ -2537,17 +2548,29 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-122-counters",
         "cr-603-triggers-apnap",
         "cr-703-704-sba-turn-based"
       ],
-      "landingState": [],
-      "boundary": "golden未定義。Sagaは通常Commanderで到達可能。lore counters/chapter abilities/final chapter pending-stack判定が必要で、依存未充足。",
-      "evidence": [],
-      "manualBoundary": "lore counter/chapter/final chapter sacrificeを部分自動化しない。",
-      "nextGate": "CR714順でcounter+triggered ability+stack pending判定を統合して実装する。",
+      "landingState": [
+        "pendingTriggers",
+        "counters",
+        "eventLog",
+        "log"
+      ],
+      "boundary": "CR714.2b/2c/2d/3a/3c/4: chapter ability parser(sagaGrammar.ts), ETB+precombat-main lore trigger, SBA 714.4 sacrifice(pending+stacked exception). Chapter effects remain guided/manual.",
+      "evidence": [
+        "review.cr714-saga-chapter-sba",
+        "src/engine/__tests__/sagaGrammar.test.ts",
+        "src/engine/__tests__/sagaChapterTriggers.test.ts",
+        "src/engine/__tests__/sagaSba.test.ts",
+        "cold-audit:Gauss:BLOCKER0-HIGH1→fixed",
+        "cold-audit:Franklin:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
+      "manualBoundary": "chapter ability効果本体の解決はmanual/guidedのまま。addCounters経路のlore追加はdefer(proliferate等将来スライス)。",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr"
     },
     {

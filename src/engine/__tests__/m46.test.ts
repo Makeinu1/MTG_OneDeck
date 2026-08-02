@@ -125,7 +125,7 @@ describe('M4.6 draw step', () => {
 });
 
 describe('M4.6 ETB hooks', () => {
-  it('initializes planeswalker loyalty and saga lore, then advances lore on untap', () => {
+  it('initializes planeswalker loyalty and saga lore, then advances lore at precombat main (CR 714.3c)', () => {
     const planeswalker = makeDef({
       scryfallId: 'walker',
       typeLine: 'Legendary Planeswalker — Test',
@@ -150,8 +150,14 @@ describe('M4.6 ETB hooks', () => {
     expect(state.cards[walkerId].enteredTurn).toBe(1);
     expect(state.cards[sagaId].counters.lore).toBe(1);
 
-    const nextTurn = applyCommand(state, { type: 'nextTurn' }).state;
-    expect(nextTurn.cards[sagaId].counters.lore).toBe(2);
+    // CR 714.3c: lore advances at precombat main phase, not untap.
+    // nextTurn enters untap; advance through upkeep → draw → main1.
+    let next = applyCommand(state, { type: 'nextTurn' }).state;
+    expect(next.cards[sagaId].counters.lore).toBe(1); // still 1 at untap
+    next = applyCommand(next, { type: 'nextPhase' }).state; // upkeep
+    next = applyCommand(next, { type: 'nextPhase' }).state; // draw
+    next = applyCommand(next, { type: 'nextPhase' }).state; // main1
+    expect(next.cards[sagaId].counters.lore).toBe(2);
   });
 
   it('clears enteredTurn when a battlefield card leaves the battlefield', () => {
