@@ -1062,7 +1062,7 @@ export interface GameStore {
     qty?: number,
     opts?: {
       producedMana?: ManaColor[];
-      tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+      tokenKind?: CardDef['tokenKind'];
     },
   ): void;
   announce(message: string): void;

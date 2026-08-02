@@ -38,6 +38,17 @@ export interface CardDef {
   edhrecRank?: number;
   keywords?: string[];
   producedMana?: ManaColor[]; // Scryfall produced_mana filtered to WUBRGC
-  tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+  tokenKind?:
+    | 'treasure'
+    | 'clue'
+    | 'food'
+    | 'blood'
+    | 'cursed-role'
+    | 'monster-role'
+    | 'royal-role'
+    | 'sorcerer-role'
+    | 'virtuous-role'
+    | 'wicked-role'
+    | 'young-hero-role';
   faces: CardFace[]; // length 1 for normal layout
 }

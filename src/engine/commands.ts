@@ -262,7 +262,7 @@ export type GameCommand =
       toughness?: string;
       quantity: number;
       producedMana?: ManaColor[];
-      tokenKind?: 'treasure' | 'clue' | 'food' | 'blood';
+      tokenKind?: CardDef['tokenKind'];
       createdBy?: PlayerId;
     }
   | {
@@ -2138,6 +2138,53 @@ function applyDefeatStateBasedActions(draft: Draft, simultaneousGroupId: string)
   return added;
 }
 
+/**
+ * CR 704.5y / 303.7a: collect Role token ids that must be put into the
+ * graveyard because a permanent has more than one Role controlled by the
+ * same player attached to it. The Role with the most recent timestamp
+ * (highest (enteredTurn, zoneChangeCounter) tuple) is kept; the rest are
+ * returned for removal.
+ */
+function collectDuplicateRoleIds(draft: Draft): string[] {
+  // Group battlefield Role tokens by (attachedTo, controllerId).
+  const groups = new Map<string, CardInstance[]>();
+  for (const card of Object.values(draft.state.cards)) {
+    if (card.zone !== 'battlefield' || !card.isToken || !card.attachedTo) continue;
+    const def = draft.state.defs[card.defId];
+    if (!def || !def.typeLine.includes('Role')) continue;
+    const key = `${card.attachedTo}|${card.controllerId}`;
+    const group = groups.get(key);
+    if (group) {
+      group.push(card);
+    } else {
+      groups.set(key, [card]);
+    }
+  }
+
+  const toRemove: string[] = [];
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    // Keep the one with the highest (enteredTurn, zoneChangeCounter) tuple.
+    let newest = group[0];
+    for (let i = 1; i < group.length; i++) {
+      const candidate = group[i];
+      if (
+        candidate.enteredTurn > newest.enteredTurn ||
+        (candidate.enteredTurn === newest.enteredTurn &&
+          candidate.zoneChangeCounter > newest.zoneChangeCounter)
+      ) {
+        newest = candidate;
+      }
+    }
+    for (const card of group) {
+      if (card.id !== newest.id) {
+        toRemove.push(card.id);
+      }
+    }
+  }
+  return toRemove;
+}
+
 function performStateBasedActionsOnce(draft: Draft): boolean {
   if (draft.state.pendingRuleChoices.length > 0) {
     return false;
@@ -2194,6 +2241,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     return card.zone === 'battlefield' && plus > 0 && minus > 0 ? [card.id] : [];
   });
 
+  // CR 704.5y / 303.7a: duplicate Role tokens controlled by the same player
+  // attached to the same permanent — keep only the most recent timestamp.
+  const duplicateRoleIds = collectDuplicateRoleIds(draft);
+
   if (
     zeroToughnessCreatureIds.length === 0 &&
     lethalDamageCreatureIds.length === 0 &&
@@ -2201,7 +2252,8 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     zeroLoyaltyPlaneswalkerIds.length === 0 &&
     invalidCopyIds.length === 0 &&
     offBattlefieldTokenIds.length === 0 &&
-    counterPairIds.length === 0
+    counterPairIds.length === 0 &&
+    duplicateRoleIds.length === 0
   ) {
     if (defeatAdvisoryAdded) {
       return true;
@@ -2322,6 +2374,21 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     pushLog(
       draft,
       `${nameOf(draft, cardId)}の+1/+1カウンターと-1/-1カウンターを${removeCount}個ずつ取り除きました。`,
+    );
+  }
+
+  // CR 704.5y: move older duplicate Roles to graveyard.
+  for (const cardId of duplicateRoleIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5y',
+    });
+    pushLog(
+      draft,
+      `${nameOf(draft, cardId)}は同じプレイヤーがコントロールする役割トークンが同一パーマネントに複数付いているため状況起因処理で墓地に置かれました。`,
     );
   }
 
@@ -5769,6 +5836,46 @@ function applyCreateScenarioDummy(draft: Draft, cmd: CreateScenarioDummyCommand)
   pushLog(draft, `${requirePlayer(draft.state, cmd.playerId).label}のダミー《${name}》を作成した。`);
 }
 
+// CR 111.10j–r: predefined Role token definitions.
+const ROLE_TOKEN_DEFS: Record<
+  string,
+  { name: string; oracleText: string }
+> = {
+  'cursed-role': {
+    name: 'Cursed Role',
+    oracleText: 'Enchanted creature has base power and toughness 1/1.',
+  },
+  'monster-role': {
+    name: 'Monster Role',
+    oracleText: 'Enchanted creature gets +1/+1 and has trample.',
+  },
+  'royal-role': {
+    name: 'Royal Role',
+    oracleText: 'Enchanted creature gets +1/+1 and has ward {1}.',
+  },
+  'sorcerer-role': {
+    name: 'Sorcerer Role',
+    oracleText:
+      "Enchanted creature gets +1/+1 and has 'Whenever this creature attacks, scry 1.'",
+  },
+  'virtuous-role': {
+    name: 'Virtuous Role',
+    oracleText: 'Enchanted creature gets +1/+1 for each enchantment you control.',
+  },
+  'wicked-role': {
+    name: 'Wicked Role',
+    oracleText:
+      'Enchanted creature gets +1/+1\nWhen this token is put into a graveyard from the battlefield, each opponent loses 1 life.',
+  },
+  'young-hero-role': {
+    name: 'Young Hero Role',
+    oracleText:
+      "Enchanted creature has 'Whenever this creature attacks, if its toughness is 3 or less, put a +1/+1 counter on it.'",
+  },
+};
+
+const ROLE_TYPE_LINE = 'Enchantment Token — Aura Role';
+
 function applyCreateToken(
   draft: Draft,
   name: string,
@@ -5787,21 +5894,25 @@ function applyCreateToken(
   const initialTapped = options.initialTapped ?? false;
 
   const defId = nextTokenDefId(draft.state);
+  const roleDef = tokenKind ? ROLE_TOKEN_DEFS[tokenKind] : undefined;
+  const effectiveName = roleDef ? roleDef.name : name;
+  const effectiveTypeLine = roleDef ? ROLE_TYPE_LINE : typeLine;
   const def: CardDef = {
     scryfallId: defId,
     oracleId: defId,
-    name,
+    name: effectiveName,
     lang: 'en',
     layout: 'token',
     cmc: 0,
     colorIdentity: [],
-    typeLine,
+    typeLine: effectiveTypeLine,
     producedMana,
     tokenKind,
     faces: [
       {
-        name,
-        typeLine,
+        name: effectiveName,
+        typeLine: effectiveTypeLine,
+        oracleText: roleDef?.oracleText,
         power,
         toughness,
       },

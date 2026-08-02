@@ -37,13 +37,17 @@
     "cr-targeted-add-mana-trigger-is-normal-trigger",
     "cr-701-ruin-crab-each-opponent-mill",
     "cr-701-burglar-rat-each-opponent-discard",
-    "cr-701-accursed-marauder-each-player-sacrifice"
+    "cr-701-accursed-marauder-each-player-sacrifice",
+    "cr-303-704-roles-duplicate-sba"
   ],
   "cases": [
     {
       "id": "cr-commander-tax-cast-not-return",
       "title": "統率者税は戻し時ではなく統率領域からのキャスト完了時に増える",
-      "crRefs": ["903.8", "601.2i"],
+      "crRefs": [
+        "903.8",
+        "601.2i"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "command",
@@ -76,7 +80,13 @@
     {
       "id": "cr-commander-graveyard-exile-sba-not-replacement",
       "title": "統率者が墓地/追放へ行く場合は一度その領域へ置かれ、死亡/離脱誘発を保持してからSBAで統率領域へ移せる",
-      "crRefs": ["903.9a", "704.6d", "603.6c", "603.10a", "117.5"],
+      "crRefs": [
+        "903.9a",
+        "704.6d",
+        "603.6c",
+        "603.10a",
+        "117.5"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -116,7 +126,13 @@
     {
       "id": "cr-commander-9039a-rule-choice",
       "title": "統率者903.9aの墓地/追放SBA選択は汎用pendingRuleChoicesで表現される",
-      "crRefs": ["903.9a", "704.6d", "603.6c", "603.10a", "117.5"],
+      "crRefs": [
+        "903.9a",
+        "704.6d",
+        "603.6c",
+        "603.10a",
+        "117.5"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -158,7 +174,11 @@
     {
       "id": "cr-legend-rule-choice",
       "title": "同一controllerの同名legendary permanentは704.5jのlegend-rule choiceで残す1つを選ぶ",
-      "crRefs": ["704.5j", "117.5", "704.3"],
+      "crRefs": [
+        "704.5j",
+        "117.5",
+        "704.3"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "controllerId": "P1",
@@ -209,7 +229,12 @@
     {
       "id": "cr-sba-copy-ceases-outside-stack",
       "title": "スタック以外の領域にある呪文コピーはSBAで消滅する",
-      "crRefs": ["704.3", "704.5e", "707.10a", "117.5"],
+      "crRefs": [
+        "704.3",
+        "704.5e",
+        "707.10a",
+        "117.5"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "hand",
@@ -237,7 +262,11 @@
     {
       "id": "cr-commander-hand-library-replacement",
       "title": "統率者が手札/ライブラリーへ行く場合は置換効果として統率領域へ行ける",
-      "crRefs": ["903.9b", "614.5", "400.7"],
+      "crRefs": [
+        "903.9b",
+        "614.5",
+        "400.7"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -266,7 +295,11 @@
     {
       "id": "cr-mana-ability-no-stack",
       "title": "起動型マナ能力はスタックに置かれず即解決する",
-      "crRefs": ["605.1a", "605.3b", "405.6c"],
+      "crRefs": [
+        "605.1a",
+        "605.3b",
+        "405.6c"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -274,7 +307,9 @@
         "tapped": false,
         "manaPool": {}
       },
-      "steps": ["対象を取らず、解決時にマナを加え、忠誠度能力でない起動型能力を起動する。"],
+      "steps": [
+        "対象を取らず、解決時にマナを加え、忠誠度能力でない起動型能力を起動する。"
+      ],
       "requiredObservations": [
         "コストとして source は tapped=true になる。",
         "能力オブジェクトは stack に追加されない。",
@@ -297,7 +332,12 @@
     {
       "id": "cr-token-dies-before-ceases",
       "title": "トークンは battlefield 外へ移動した後、誘発確認を経てSBAで消滅する",
-      "crRefs": ["111.7", "704.5d", "603.6c", "117.5"],
+      "crRefs": [
+        "111.7",
+        "704.5d",
+        "603.6c",
+        "117.5"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -333,7 +373,15 @@
     {
       "id": "cr-trigger-sba-priority-loop",
       "title": "誘発は即スタックではなく、優先権前のSBA/誘発ループで積まれる",
-      "crRefs": ["117.5", "603.3", "603.3b", "704.3", "704.5f", "704.5i", "704.5q"],
+      "crRefs": [
+        "117.5",
+        "603.3",
+        "603.3b",
+        "704.3",
+        "704.5f",
+        "704.5i",
+        "704.5q"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "activePlayer": "P1",
@@ -370,7 +418,10 @@
     {
       "id": "cr-trigger-6033b-two-bucket-order",
       "title": "603.3bのsecond bucketは同一controllerの明示順序より上位で正規化される",
-      "crRefs": ["603.3b", "101.4"],
+      "crRefs": [
+        "603.3b",
+        "101.4"
+      ],
       "scope": "q5-phase-2-s-events-priority",
       "initialFixture": {
         "activePlayer": "P1",
@@ -410,7 +461,10 @@
     {
       "id": "cr-trigger-6033b-apnap-per-bucket",
       "title": "603.3bの各bucket内でAPNAP順を個別に適用する",
-      "crRefs": ["603.3b", "101.4"],
+      "crRefs": [
+        "603.3b",
+        "101.4"
+      ],
       "scope": "q5-phase-2-s-events-priority",
       "initialFixture": {
         "activePlayer": "P1",
@@ -460,10 +514,17 @@
     {
       "id": "cr-priority-loop-trigger-placement-rechecks-sba",
       "title": "優先権境界はtrigger placement後にSBAへ戻る固定点として処理する",
-      "crRefs": ["117.5", "603.3", "603.3b", "704.3"],
+      "crRefs": [
+        "117.5",
+        "603.3",
+        "603.3b",
+        "704.3"
+      ],
       "scope": "q5-phase-2-s-events-priority",
       "initialFixture": {
-        "pendingTriggers": ["initial-trigger"],
+        "pendingTriggers": [
+          "initial-trigger"
+        ],
         "sbaCanCreateAdditionalPendingTrigger": true
       },
       "steps": [
@@ -491,7 +552,12 @@
     {
       "id": "cr-sba-zero-loyalty-planeswalker",
       "title": "忠誠度0のプレインズウォーカーはSBAで墓地へ置かれる",
-      "crRefs": ["704.3", "704.5i", "117.5", "122.1e"],
+      "crRefs": [
+        "704.3",
+        "704.5i",
+        "117.5",
+        "122.1e"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -520,7 +586,12 @@
     {
       "id": "cr-sba-lethal-damage-destroys-creature",
       "title": "致死ダメージがマークされたクリーチャーはSBAで墓地へ置かれる",
-      "crRefs": ["704.3", "704.5g", "120.6", "117.5"],
+      "crRefs": [
+        "704.3",
+        "704.5g",
+        "120.6",
+        "117.5"
+      ],
       "scope": "s-sba-damage-marked-substrate",
       "initialFixture": {
         "zone": "battlefield",
@@ -556,7 +627,12 @@
     {
       "id": "cr-sba-sublethal-damage-survives",
       "title": "致死未満のダメージがマークされたクリーチャーは704.5gでは墓地へ置かれない",
-      "crRefs": ["704.3", "704.5g", "120.6", "117.5"],
+      "crRefs": [
+        "704.3",
+        "704.5g",
+        "120.6",
+        "117.5"
+      ],
       "scope": "s-sba-damage-marked-substrate",
       "initialFixture": {
         "zone": "battlefield",
@@ -586,7 +662,12 @@
     {
       "id": "cr-sba-deathtouch-any-damage-destroys",
       "title": "接死を持つ発生源からダメージを受けたクリーチャーはSBAで墓地へ置かれる",
-      "crRefs": ["704.3", "704.5h", "120.6", "117.5"],
+      "crRefs": [
+        "704.3",
+        "704.5h",
+        "120.6",
+        "117.5"
+      ],
       "scope": "s-sba-damage-marked-substrate",
       "initialFixture": {
         "zone": "battlefield",
@@ -620,7 +701,11 @@
     {
       "id": "cr-cleanup-clears-marked-damage",
       "title": "クリンナップではクリーチャーからマーク済みダメージが取り除かれる",
-      "crRefs": ["514.2", "120.6", "704.3"],
+      "crRefs": [
+        "514.2",
+        "120.6",
+        "704.3"
+      ],
       "scope": "s-sba-damage-marked-substrate",
       "initialFixture": {
         "zone": "battlefield",
@@ -706,7 +791,13 @@
     {
       "id": "cr-combat-single-block-sublethal-survives",
       "title": "単一ブロックの致死未満戦闘ダメージはマークされるが704.5gでは破壊されない",
-      "crRefs": ["510.1c", "510.1d", "510.2", "704.5g", "120.6"],
+      "crRefs": [
+        "510.1c",
+        "510.1d",
+        "510.2",
+        "704.5g",
+        "120.6"
+      ],
       "scope": "s-combat-structure-first-slice",
       "initialFixture": {
         "attacker": {
@@ -744,7 +835,14 @@
     {
       "id": "cr-combat-unblocked-attacker-damages-defending-player",
       "title": "未ブロック攻撃クリーチャーは防御プレイヤーへ戦闘ダメージを与える",
-      "crRefs": ["509.1h", "510.1a", "510.1b", "510.2", "120.3a", "120.8"],
+      "crRefs": [
+        "509.1h",
+        "510.1a",
+        "510.1b",
+        "510.2",
+        "120.3a",
+        "120.8"
+      ],
       "scope": "s-combat-slice2-player-damage",
       "initialFixture": {
         "attacker": {
@@ -781,7 +879,13 @@
     {
       "id": "cr-combat-blocked-attacker-does-not-damage-player",
       "title": "ブロックされた攻撃クリーチャーは通常、防御プレイヤーへ戦闘ダメージを与えない",
-      "crRefs": ["509.1h", "510.1c", "510.1d", "510.2", "120.3a"],
+      "crRefs": [
+        "509.1h",
+        "510.1c",
+        "510.1d",
+        "510.2",
+        "120.3a"
+      ],
       "scope": "s-combat-slice2-player-damage",
       "initialFixture": {
         "attacker": {
@@ -822,7 +926,13 @@
     {
       "id": "cr-combat-multiple-unblocked-attackers-aggregate-player-damage",
       "title": "複数の未ブロック攻撃クリーチャーのプレイヤー戦闘ダメージは集計して適用される",
-      "crRefs": ["510.1a", "510.1b", "510.2", "120.3a", "120.8"],
+      "crRefs": [
+        "510.1a",
+        "510.1b",
+        "510.2",
+        "120.3a",
+        "120.8"
+      ],
       "scope": "s-combat-slice2-player-damage",
       "initialFixture": {
         "attackers": [
@@ -866,7 +976,11 @@
     {
       "id": "cr-combat-multiple-blockers-deferred",
       "title": "複数ブロッカーへの戦闘ダメージ割当は選択を捏造せず手動へ延期する",
-      "crRefs": ["509.1g", "509.1h", "510.1c"],
+      "crRefs": [
+        "509.1g",
+        "509.1h",
+        "510.1c"
+      ],
       "scope": "s-combat-structure-first-slice",
       "initialFixture": {
         "attacker": {
@@ -912,7 +1026,12 @@
     {
       "id": "cr-sba-plus-minus-counter-annihilation",
       "title": "+1/+1カウンターと-1/-1カウンターはSBAで同数相殺される",
-      "crRefs": ["704.3", "704.5q", "117.5", "122.3"],
+      "crRefs": [
+        "704.3",
+        "704.5q",
+        "117.5",
+        "122.3"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "zone": "battlefield",
@@ -943,7 +1062,10 @@
     {
       "id": "cr-zone-change-new-object-lki",
       "title": "領域移動は原則として新オブジェクトになり、LKIが必要な誘発は移動前情報を読む",
-      "crRefs": ["400.7", "603.10a"],
+      "crRefs": [
+        "400.7",
+        "603.10a"
+      ],
       "scope": "in-scope-before-s-events",
       "initialFixture": {
         "physicalCardId": "c1",
@@ -981,7 +1103,11 @@
     {
       "id": "cr-triggered-mana-ability-no-stack",
       "title": "誘発型マナ能力はpendingTriggers/stackに入らずマナ能力transaction内で即時解決される",
-      "crRefs": ["605.1b", "605.4a", "405.6c"],
+      "crRefs": [
+        "605.1b",
+        "605.4a",
+        "405.6c"
+      ],
       "scope": "s-events-mana-ability-substrate",
       "initialFixture": {
         "permanents": [
@@ -1024,7 +1150,11 @@
     {
       "id": "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
       "title": "mana-related event由来でないadd-mana誘発はCR 605.1bではなく通常誘発としてpendingTriggersに入る",
-      "crRefs": ["605.1b", "603.3", "117.5"],
+      "crRefs": [
+        "605.1b",
+        "603.3",
+        "117.5"
+      ],
       "scope": "s-events-mana-ability-substrate",
       "initialFixture": {
         "permanents": [
@@ -1063,7 +1193,11 @@
     {
       "id": "cr-targeted-add-mana-trigger-is-normal-trigger",
       "title": "対象を取るadd-mana誘発はCR 605.1bではなく通常誘発としてpendingTriggersに入る",
-      "crRefs": ["605.1b", "603.3", "117.5"],
+      "crRefs": [
+        "605.1b",
+        "603.3",
+        "117.5"
+      ],
       "scope": "s-events-mana-ability-substrate",
       "initialFixture": {
         "permanents": [
@@ -1101,10 +1235,22 @@
     {
       "id": "cr-sba-defeat-life-zero-p1",
       "title": "CR 704.5a: 自分のライフが0以下なら敗北advisoryを記録する",
-      "crRefs": ["704.5a", "104.3b", "117.5", "704.3", "104.5"],
+      "crRefs": [
+        "704.5a",
+        "104.3b",
+        "117.5",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "player": "P1", "life": 40 },
-      "steps": ["P1のライフを0にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "player": "P1",
+        "life": 40
+      },
+      "steps": [
+        "P1のライフを0にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat.P1.reasons に lifeZero が追加される。",
         "defeatAdvisory event は sbaApplied 704.5a / playerRef P1 / advisory true を持つ。",
@@ -1122,10 +1268,23 @@
     {
       "id": "cr-sba-defeat-life-zero-opponent-label",
       "title": "CR 704.5a: opponentLifeの各ラベルを独立に敗北advisory化する",
-      "crRefs": ["704.5a", "104.3b", "117.5", "704.3", "104.5"],
+      "crRefs": [
+        "704.5a",
+        "104.3b",
+        "117.5",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "opponentLife": { "対戦相手A": 40 } },
-      "steps": ["対戦相手Aのライフを0にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "opponentLife": {
+          "対戦相手A": 40
+        }
+      },
+      "steps": [
+        "対戦相手Aのライフを0にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat['opponent:対戦相手A'].reasons に lifeZero が追加される。",
         "P1の lifeZero advisory は追加されない。",
@@ -1143,9 +1302,20 @@
     {
       "id": "cr-sba-defeat-empty-library-draw",
       "title": "CR 704.5b: 空ライブラリからdrawを企図したら敗北advisoryを記録しinterval flagを消費する",
-      "crRefs": ["704.5b", "121.1", "121.2", "121.4", "104.3c", "117.5", "704.3", "104.5"],
+      "crRefs": [
+        "704.5b",
+        "121.1",
+        "121.2",
+        "121.4",
+        "104.3c",
+        "117.5",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "library": [] },
+      "initialFixture": {
+        "library": []
+      },
       "steps": [
         "空ライブラリでdraw 1を実行する。",
         "draw hook が emptyLibraryDrawAttemptedSinceLastSba.P1 を立てる。",
@@ -1169,9 +1339,18 @@
     {
       "id": "cr-sba-defeat-empty-library-draw-partial-multidraw",
       "title": "CR 704.5b: multi-draw途中でライブラリが尽きても敗北advisoryを記録する",
-      "crRefs": ["704.5b", "121.2", "121.4", "104.3c", "704.3"],
+      "crRefs": [
+        "704.5b",
+        "121.2",
+        "121.4",
+        "104.3c",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "librarySize": 1, "drawCount": 2 },
+      "initialFixture": {
+        "librarySize": 1,
+        "drawCount": 2
+      },
       "steps": [
         "ライブラリ1枚の状態でdraw 2を実行する。",
         "1枚目を正常に引く。",
@@ -1182,7 +1361,9 @@
         "state.defeat.P1.reasons に emptyLibraryDraw が追加される。",
         "704.5b event が記録される。"
       ],
-      "mustNot": ["draw開始時のlibrary.lengthだけで判定して途中で尽きるケースを見逃さない。"],
+      "mustNot": [
+        "draw開始時のlibrary.lengthだけで判定して途中で尽きるケースを見逃さない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts drawCards checks each individual draw attempt",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1191,16 +1372,30 @@
     {
       "id": "cr-sba-defeat-poison-threshold",
       "title": "CR 704.5c: 毒カウンター10個で敗北advisoryを記録する",
-      "crRefs": ["704.5c", "122.1f", "104.3d", "117.5", "704.3", "104.5"],
+      "crRefs": [
+        "704.5c",
+        "122.1f",
+        "104.3d",
+        "117.5",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "poison": 0 },
-      "steps": ["P1の毒カウンターを10にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "poison": 0
+      },
+      "steps": [
+        "P1の毒カウンターを10にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat.P1.reasons に poison が追加される。",
         "defeatAdvisory event は sbaApplied 704.5c / playerRef P1 / advisory true を持つ。",
         "毒カウンターは消されずgameも終了しない。"
       ],
-      "mustNot": ["2HGやopponent poisonをこのsliceのPASSとして扱わない。"],
+      "mustNot": [
+        "2HGやopponent poisonをこのsliceのPASSとして扱わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts performs CR 704.5c poison threshold advisory",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1209,15 +1404,26 @@
     {
       "id": "cr-sba-defeat-poison-nine-boundary",
       "title": "CR 704.5c: 毒カウンター9個では敗北advisoryを作らない",
-      "crRefs": ["704.5c", "122.1f", "704.3"],
+      "crRefs": [
+        "704.5c",
+        "122.1f",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "poison": 0 },
-      "steps": ["P1の毒カウンターを9にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "poison": 0
+      },
+      "steps": [
+        "P1の毒カウンターを9にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "poison defeat advisory は追加されない。",
         "704.5c event は記録されない。"
       ],
-      "mustNot": ["10未満の毒カウンターを敗北条件として扱わない。"],
+      "mustNot": [
+        "10未満の毒カウンターを敗北条件として扱わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts checks state.poison >= 10 for CR 704.5c",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1226,15 +1432,28 @@
     {
       "id": "cr-sba-defeat-simultaneous-reasons-share-group",
       "title": "CR 704.3: 同一SBA passの複数敗北advisoryは同じsimultaneousGroupIdを共有する",
-      "crRefs": ["704.3", "704.5a", "704.5c", "104.3b", "104.3d"],
+      "crRefs": [
+        "704.3",
+        "704.5a",
+        "704.5c",
+        "104.3b",
+        "104.3d"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "life": 0, "poison": 10 },
-      "steps": ["P1のlifeを0、poisonを10にした状態でSBAチェックを実行する。"],
+      "initialFixture": {
+        "life": 0,
+        "poison": 10
+      },
+      "steps": [
+        "P1のlifeを0、poisonを10にした状態でSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "lifeZero と poison の両reasonがP1に記録される。",
         "704.5a event と704.5c event は同じ simultaneousGroupId を持つ。"
       ],
-      "mustNot": ["片方の敗北reasonだけを記録してもう片方を隠さない。"],
+      "mustNot": [
+        "片方の敗北reasonだけを記録してもう片方を隠さない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts uses one sba-* simultaneousGroupId per SBA pass",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1243,16 +1462,29 @@
     {
       "id": "cr-sba-defeat-advisory-does-not-hard-enforce",
       "title": "CR 104.5との差分: 敗北advisoryはgame終了やコマンド封鎖をしない",
-      "crRefs": ["104.1", "104.5", "704.5a", "704.5b", "704.5c"],
+      "crRefs": [
+        "104.1",
+        "104.5",
+        "704.5a",
+        "704.5b",
+        "704.5c"
+      ],
       "scope": "s-sba-defeat-state-advisory-boundary",
-      "initialFixture": { "life": 40 },
-      "steps": ["P1のlifeZero advisoryを作る。", "nextPhaseと後続コマンドを実行する。"],
+      "initialFixture": {
+        "life": 40
+      },
+      "steps": [
+        "P1のlifeZero advisoryを作る。",
+        "nextPhaseと後続コマンドを実行する。"
+      ],
       "requiredObservations": [
         "stateはnullにならない。",
         "phase移動と後続コマンドが成功する。",
         "advisory履歴は残る。"
       ],
-      "mustNot": ["敗北advisoryを理由にgame終了、player離脱、phase/turn/command封鎖を行わない。"],
+      "mustNot": [
+        "敗北advisoryを理由にgame終了、player離脱、phase/turn/command封鎖を行わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts records defeat as advisory-only metadata",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1261,15 +1493,26 @@
     {
       "id": "cr-sba-defeat-no-duplicate-event-fixed-point",
       "title": "CR 704.3: advisory-only敗北は固定点ループで重複eventを出さない",
-      "crRefs": ["704.3", "704.5a", "104.5"],
+      "crRefs": [
+        "704.3",
+        "704.5a",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "life": 0 },
-      "steps": ["lifeZero advisoryを1回作る。", "lifeが0以下のまま再度SBAチェックを実行する。"],
+      "initialFixture": {
+        "life": 0
+      },
+      "steps": [
+        "lifeZero advisoryを1回作る。",
+        "lifeが0以下のまま再度SBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "704.5a defeatAdvisory event は1件だけで増えない。",
         "固定点ループは停止する。"
       ],
-      "mustNot": ["既登録reasonを毎回emitして無限ループにしない。"],
+      "mustNot": [
+        "既登録reasonを毎回emitして無限ループにしない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts skips already-recorded defeat reasons",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1278,15 +1521,26 @@
     {
       "id": "cr-sba-defeat-nondraw-empty-library-does-not-trigger",
       "title": "CR 121.5: 空ライブラリへのmillはdrawではなく704.5b敗北advisoryを作らない",
-      "crRefs": ["121.1", "121.5", "704.5b"],
+      "crRefs": [
+        "121.1",
+        "121.5",
+        "704.5b"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "library": [] },
-      "steps": ["空ライブラリでmill 1を実行する。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "library": []
+      },
+      "steps": [
+        "空ライブラリでmill 1を実行する。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "emptyLibraryDraw advisory は追加されない。",
         "704.5b event は記録されない。"
       ],
-      "mustNot": ["libraryが空である事実だけを根拠に704.5bを発火しない。"],
+      "mustNot": [
+        "libraryが空である事実だけを根拠に704.5bを発火しない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts applyMill does not set the draw-attempt interval flag",
         "src/store/__tests__/crGroundingGoldenCases.test.ts executes this case"
@@ -1295,10 +1549,22 @@
     {
       "id": "cr-sba-defeat-snapshot-forward-compat",
       "title": "snapshot forward-compat: 新defeatフィールド欠落を空stateへbackfillする",
-      "crRefs": ["704.5a", "704.5b", "704.5c"],
+      "crRefs": [
+        "704.5a",
+        "704.5b",
+        "704.5c"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "snapshotMissing": ["defeat", "emptyLibraryDrawAttemptedSinceLastSba"] },
-      "steps": ["旧snapshot相当からdefeat関連フィールドを削除する。", "restoreGameで復元する。"],
+      "initialFixture": {
+        "snapshotMissing": [
+          "defeat",
+          "emptyLibraryDrawAttemptedSinceLastSba"
+        ]
+      },
+      "steps": [
+        "旧snapshot相当からdefeat関連フィールドを削除する。",
+        "restoreGameで復元する。"
+      ],
       "requiredObservations": [
         "復元はthrowしない。",
         "defeat は空のadvisory stateへbackfillされる。",
@@ -1316,16 +1582,29 @@
     {
       "id": "cr-sba-defeat-commander-damage-20-boundary",
       "title": "CR 903.10a: 同一commander labelの統率者ダメージ20点では敗北advisoryを作らない",
-      "crRefs": ["903.10a", "104.3j", "704.3"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 20 } },
-      "steps": ["統率者ダメージlabel Aを20にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "commanderDamage": {
+          "対戦相手統率者A": 20
+        }
+      },
+      "steps": [
+        "統率者ダメージlabel Aを20にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "commanderDamage値20は記録される。",
         "state.defeat.P1.reasons に commanderDamage は追加されない。",
         "903.10a defeatAdvisory event は記録されない。"
       ],
-      "mustNot": ["20点を903.10aの21点以上閾値として扱わない。"],
+      "mustNot": [
+        "20点を903.10aの21点以上閾値として扱わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts checks each commanderDamage label independently for CR 903.10a"
       ]
@@ -1333,10 +1612,23 @@
     {
       "id": "cr-sba-defeat-commander-damage-threshold",
       "title": "CR 903.10a: 同一commander labelの統率者ダメージ21点でP1敗北advisoryを記録する",
-      "crRefs": ["903.10a", "104.3j", "117.5", "704.3", "104.5"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "117.5",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 21 } },
-      "steps": ["統率者ダメージlabel Aを21にする。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "commanderDamage": {
+          "対戦相手統率者A": 21
+        }
+      },
+      "steps": [
+        "統率者ダメージlabel Aを21にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat.P1.reasons に commanderDamage が追加される。",
         "state.defeat.P1.ruleRefs.commanderDamage は 903.10a を持つ。",
@@ -1355,9 +1647,17 @@
     {
       "id": "cr-sba-defeat-commander-damage-transition-once",
       "title": "CR 903.10a/704.3: 20点から21点到達時にcommanderDamage advisoryを1回だけ記録する",
-      "crRefs": ["903.10a", "104.3j", "704.3"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 20 } },
+      "initialFixture": {
+        "commanderDamage": {
+          "対戦相手統率者A": 20
+        }
+      },
       "steps": [
         "統率者ダメージlabel Aを20にする。",
         "priority前のSBAチェックを実行し、advisoryが無いことを確認する。",
@@ -1368,7 +1668,9 @@
         "21到達時に state.defeat.P1.reasons に commanderDamage が追加される。",
         "903.10a defeatAdvisory event は1件だけ記録される。"
       ],
-      "mustNot": ["20点時点で先行してadvisoryを作らない。"],
+      "mustNot": [
+        "20点時点で先行してadvisoryを作らない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts addDefeatAdvisory suppresses already-recorded defeat reasons"
       ]
@@ -1376,17 +1678,30 @@
     {
       "id": "cr-sba-defeat-commander-damage-labels-not-summed",
       "title": "CR 702.124d: 複数commander labelの統率者ダメージは合算しない",
-      "crRefs": ["903.10a", "104.3j", "702.124d", "704.3"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "702.124d",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
       "initialFixture": {
-        "commanderDamage": { "対戦相手統率者A": 10, "対戦相手統率者B": 11 }
+        "commanderDamage": {
+          "対戦相手統率者A": 10,
+          "対戦相手統率者B": 11
+        }
       },
-      "steps": ["label Aを10、label Bを11にする。", "priority前のSBAチェックを実行する。"],
+      "steps": [
+        "label Aを10、label Bを11にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat.P1.reasons に commanderDamage は追加されない。",
         "903.10a defeatAdvisory event は記録されない。"
       ],
-      "mustNot": ["異なるlabelの10点と11点を合算して21点として扱わない。"],
+      "mustNot": [
+        "異なるlabelの10点と11点を合算して21点として扱わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts observes Object.values(commanderDamage) per label and stops after one qualifying label"
       ]
@@ -1394,17 +1709,30 @@
     {
       "id": "cr-sba-defeat-commander-damage-independent-threshold",
       "title": "CR 702.124d/903.10a: 片方のcommander labelが21点なら他labelが20点でも敗北advisoryを記録する",
-      "crRefs": ["903.10a", "104.3j", "702.124d", "704.3"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "702.124d",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
       "initialFixture": {
-        "commanderDamage": { "対戦相手統率者A": 20, "対戦相手統率者B": 21 }
+        "commanderDamage": {
+          "対戦相手統率者A": 20,
+          "対戦相手統率者B": 21
+        }
       },
-      "steps": ["label Aを20、label Bを21にする。", "priority前のSBAチェックを実行する。"],
+      "steps": [
+        "label Aを20、label Bを21にする。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "state.defeat.P1.reasons に commanderDamage が追加される。",
         "903.10a defeatAdvisory event は1件だけ記録される。"
       ],
-      "mustNot": ["複数labelがあることを理由に21点到達labelを無視しない。"],
+      "mustNot": [
+        "複数labelがあることを理由に21点到達labelを無視しない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts creates one P1 commanderDamage advisory for any qualifying label"
       ]
@@ -1412,9 +1740,18 @@
     {
       "id": "cr-sba-defeat-commander-damage-no-duplicate-event-fixed-point",
       "title": "CR 704.3: commanderDamage advisoryは固定点ループで重複eventを出さない",
-      "crRefs": ["903.10a", "104.3j", "704.3", "104.5"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "704.3",
+        "104.5"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "commanderDamage": { "対戦相手統率者A": 21 } },
+      "initialFixture": {
+        "commanderDamage": {
+          "対戦相手統率者A": 21
+        }
+      },
       "steps": [
         "commanderDamage advisoryを1回作る。",
         "同じlabelが21点以上のまま再度SBAチェックを実行する。"
@@ -1423,7 +1760,9 @@
         "903.10a defeatAdvisory event は1件だけで増えない。",
         "固定点ループは停止する。"
       ],
-      "mustNot": ["既登録commanderDamage reasonを毎回emitして無限ループにしない。"],
+      "mustNot": [
+        "既登録commanderDamage reasonを毎回emitして無限ループにしない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts addDefeatAdvisory skips already-recorded defeat reasons"
       ]
@@ -1431,9 +1770,20 @@
     {
       "id": "cr-sba-defeat-commander-damage-simultaneous-life-zero",
       "title": "CR 704.3: commanderDamageとlifeZeroが同一SBA passで見つかる場合はsimultaneousGroupIdを共有する",
-      "crRefs": ["903.10a", "104.3j", "704.5a", "104.3b", "704.3"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "704.5a",
+        "104.3b",
+        "704.3"
+      ],
       "scope": "s-sba-defeat-state",
-      "initialFixture": { "life": 0, "commanderDamage": { "対戦相手統率者A": 21 } },
+      "initialFixture": {
+        "life": 0,
+        "commanderDamage": {
+          "対戦相手統率者A": 21
+        }
+      },
       "steps": [
         "P1のlifeを0、commanderDamage label Aを21にした状態でSBAチェックを実行する。"
       ],
@@ -1441,7 +1791,9 @@
         "lifeZero と commanderDamage の両reasonがP1に記録される。",
         "704.5a event と903.10a event は同じ simultaneousGroupId を持つ。"
       ],
-      "mustNot": ["片方の敗北reasonだけを記録してもう片方を隠さない。"],
+      "mustNot": [
+        "片方の敗北reasonだけを記録してもう片方を隠さない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts uses one sba-* simultaneousGroupId per SBA pass"
       ]
@@ -1449,16 +1801,28 @@
     {
       "id": "cr-sba-defeat-commander-damage-life-loss-does-not-synthesize",
       "title": "CR 903.10a: 通常のlife lossはcommanderDamage advisoryを合成しない",
-      "crRefs": ["903.10a", "104.3j", "704.5a"],
+      "crRefs": [
+        "903.10a",
+        "104.3j",
+        "704.5a"
+      ],
       "scope": "s-sba-defeat-state-boundary",
-      "initialFixture": { "life": 40, "commanderDamage": {} },
-      "steps": ["P1のlifeを21点失わせる。", "priority前のSBAチェックを実行する。"],
+      "initialFixture": {
+        "life": 40,
+        "commanderDamage": {}
+      },
+      "steps": [
+        "P1のlifeを21点失わせる。",
+        "priority前のSBAチェックを実行する。"
+      ],
       "requiredObservations": [
         "commanderDamage値は増えない。",
         "state.defeat.P1.reasons に commanderDamage は追加されない。",
         "903.10a defeatAdvisory event は記録されない。"
       ],
-      "mustNot": ["通常のlife lossを統率者戦闘ダメージとして扱わない。"],
+      "mustNot": [
+        "通常のlife lossを統率者戦闘ダメージとして扱わない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts only observes explicit commanderDamage counters for CR 903.10a"
       ]
@@ -1466,24 +1830,35 @@
     {
       "id": "cr-sba-defeat-commander-damage-snapshot-forward-compat",
       "title": "snapshot forward-compat: commanderDamage defeat reasonは903.10a ref付きで復元できる",
-      "crRefs": ["903.10a", "104.3j"],
+      "crRefs": [
+        "903.10a",
+        "104.3j"
+      ],
       "scope": "s-sba-defeat-state",
       "initialFixture": {
         "defeat": {
           "P1": {
-            "reasons": ["commanderDamage"],
-            "ruleRefs": { "commanderDamage": "903.10a" },
+            "reasons": [
+              "commanderDamage"
+            ],
+            "ruleRefs": {
+              "commanderDamage": "903.10a"
+            },
             "advisory": true
           }
         }
       },
-      "steps": ["commanderDamage advisoryを含むsnapshotをrestoreGameで復元する。"],
+      "steps": [
+        "commanderDamage advisoryを含むsnapshotをrestoreGameで復元する。"
+      ],
       "requiredObservations": [
         "復元はthrowしない。",
         "state.defeat.P1.reasons に commanderDamage が保持される。",
         "state.defeat.P1.ruleRefs.commanderDamage は 903.10a として復元される。"
       ],
-      "mustNot": ["commanderDamage reasonを不正reasonとして捨てない。"],
+      "mustNot": [
+        "commanderDamage reasonを不正reasonとして捨てない。"
+      ],
       "implementationRefs": [
         "src/store/gameStore.ts normalizeSnapshotDefeat accepts commanderDamage as a known reason"
       ]
@@ -1491,12 +1866,21 @@
     {
       "id": "cr-701-ruin-crab-each-opponent-mill",
       "title": "CR 701.17: Ruin Crabは各対戦相手のlibraryだけを可能な枚数まで同時に切削する",
-      "crRefs": ["101.3", "608.2f", "701.17a", "701.17b"],
+      "crRefs": [
+        "101.3",
+        "608.2f",
+        "701.17a",
+        "701.17b"
+      ],
       "scope": "cr-701-cross-player-actions",
       "initialFixture": {
         "oracleText": "Landfall — Whenever a land you control enters, each opponent mills three cards.",
         "controller": "P1",
-        "opponentLibraryCounts": [3, 2, 0]
+        "opponentLibraryCounts": [
+          3,
+          2,
+          0
+        ]
       },
       "steps": [
         "Ruin Crabの英語Oracleをcompileする。",
@@ -1507,7 +1891,10 @@
         "全mill zoneChange eventはreason=millかつ同じsimultaneousGroupIdを持つ。",
         "空library draw defeat advisoryは生成しない。"
       ],
-      "mustNot": ["P1 private zoneを変更しない。", "不足を理由にaction全体を止めない。"],
+      "mustNot": [
+        "P1 private zoneを変更しない。",
+        "不足を理由にaction全体を止めない。"
+      ],
       "implementationRefs": [
         "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
         "src/engine/commands.ts applyPlayerEffect/applyMill"
@@ -1516,7 +1903,13 @@
     {
       "id": "cr-701-burglar-rat-each-opponent-discard",
       "title": "CR 101.4/701.9: Burglar Rat型はAPNAP選択後に各対戦相手の手札を同時discardする",
-      "crRefs": ["101.4", "101.4a", "608.2e", "701.9a", "701.9b"],
+      "crRefs": [
+        "101.4",
+        "101.4a",
+        "608.2e",
+        "701.9a",
+        "701.9b"
+      ],
       "scope": "cr-701-cross-player-actions",
       "initialFixture": {
         "oracleText": "When this creature enters, each opponent discards a card.",
@@ -1532,7 +1925,10 @@
         "affected cardだけowner graveyardへ移り、reason=discardと同一simultaneousGroupIdを持つ。",
         "stack着地を含めて単一undo/redoである。"
       ],
-      "mustNot": ["source controllerにdiscardさせない。", "前のplayerの選択直後に盤面へ適用しない。"],
+      "mustNot": [
+        "source controllerにdiscardさせない。",
+        "前のplayerの選択直後に盤面へ適用しない。"
+      ],
       "implementationRefs": [
         "src/store/__tests__/review.cr701-cross-player-actions.test.ts",
         "src/store/gameStore.ts pending guided resolution"
@@ -1541,7 +1937,12 @@
     {
       "id": "cr-701-accursed-marauder-each-player-sacrifice",
       "title": "CR 101.4/701.21: Accursed Marauder型は各playerのnontoken creatureをAPNAP選択後に同時sacrificeする",
-      "crRefs": ["101.3", "101.4", "608.2e", "701.21a"],
+      "crRefs": [
+        "101.3",
+        "101.4",
+        "608.2e",
+        "701.21a"
+      ],
       "scope": "cr-701-cross-player-actions",
       "initialFixture": {
         "oracleText": "When this creature enters, each player sacrifices a nontoken creature of their choice.",
@@ -1556,7 +1957,10 @@
         "全eventはreason=sacrificeかつ同じsimultaneousGroupIdを持つ。",
         "destroy/indestructible/regeneration経路を通らない。"
       ],
-      "mustNot": ["選択途中でbattlefieldを変更しない。", "選べないplayerを理由に解決を停止しない。"],
+      "mustNot": [
+        "選択途中でbattlefieldを変更しない。",
+        "選べないplayerを理由に解決を停止しない。"
+      ],
       "implementationRefs": [
         "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
         "src/store/__tests__/review.cr701-cross-player-actions.test.ts"
@@ -1565,7 +1969,14 @@
     {
       "id": "cr-609-ruinous-ultimatum-mass-destroy",
       "title": "CR 608.2f/609.1/701.8: Ruinous Ultimatum型は相手のnonland permanentを同時に破壊する",
-      "crRefs": ["608.2f", "608.2h", "609.1", "609.3", "701.8a", "702.12b"],
+      "crRefs": [
+        "608.2f",
+        "608.2h",
+        "609.1",
+        "609.3",
+        "701.8a",
+        "702.12b"
+      ],
       "scope": "cr-609-one-shot-mass",
       "initialFixture": {
         "oracleText": "Destroy all nonland permanents your opponents control.",
@@ -1580,7 +1991,10 @@
         "hexproofは非対象破壊を妨げず、indestructibleは戦場に残る。",
         "実際に破壊された全permanentのzoneChange eventが同じsimultaneousGroupIdを持つ。"
       ],
-      "mustNot": ["土地やP1のpermanentを動かさない。", "破壊不能を墓地へ送らない。"],
+      "mustNot": [
+        "土地やP1のpermanentを動かさない。",
+        "破壊不能を墓地へ送らない。"
+      ],
       "implementationRefs": [
         "src/engine/commands.ts destroyPermanents",
         "src/engine/grammar/compile.ts mass destroy exact gate"
@@ -1589,7 +2003,13 @@
     {
       "id": "cr-609-pernicious-deed-announced-x",
       "title": "CR 608.2h/609.1: Pernicious Deed型は保存済みXで一度だけ集合を確定する",
-      "crRefs": ["608.2c", "608.2f", "608.2h", "609.1", "701.8a"],
+      "crRefs": [
+        "608.2c",
+        "608.2f",
+        "608.2h",
+        "609.1",
+        "701.8a"
+      ],
       "scope": "cr-609-one-shot-mass",
       "initialFixture": {
         "oracleText": "{X}, Sacrifice this enchantment: Destroy each artifact, creature, and enchantment with mana value X or less.",
@@ -1603,7 +2023,10 @@
         "mana value 2以下のartifact/creature/enchantmentだけ破壊される。",
         "複数型を持つpermanentにもzoneChange eventは1件だけ発生する。"
       ],
-      "mustNot": ["X欠落時にautoにしない。", "mana value 3以上を破壊しない。"],
+      "mustNot": [
+        "X欠落時にautoにしない。",
+        "mana value 3以上を破壊しない。"
+      ],
       "implementationRefs": [
         "src/engine/grammar/compile.ts CompileContext.announcedX",
         "src/engine/commands.ts destroyPermanents"
@@ -1612,7 +2035,12 @@
     {
       "id": "cr-20260619-new-mechanics-boundary",
       "title": "2026-06-19 新規/更新メカニズムは未対応でもCR語彙として認識し、covered扱いにしない",
-      "crRefs": ["701.69", "702.193", "702.194", "722"],
+      "crRefs": [
+        "701.69",
+        "702.193",
+        "702.194",
+        "722"
+      ],
       "scope": "classification-and-boundary",
       "initialFixture": {
         "oracleTextExamples": [
@@ -1641,6 +2069,44 @@
       "currentImplementationGapRefs": [
         "src/engine/grammar/rule-refs.ts now includes 701.69",
         "docs/engine-spec.md §33.4 was corrected to treat Power-up as CR 702.193"
+      ]
+    },
+    {
+      "id": "cr-303-704-roles-duplicate-sba",
+      "title": "CR 303.7a/704.5y: 同一コントローラーの重複Roleは最新timestamp以外が墓地へ置かれる",
+      "crRefs": [
+        "303.7",
+        "303.7a",
+        "704.5y",
+        "111.10k",
+        "111.10m"
+      ],
+      "scope": "cr-303-704-roles",
+      "initialFixture": {
+        "creature": "P1 control, battlefield",
+        "roleA": "Royal Role, attached to creature, controller=P1, enteredTurn=1",
+        "roleB": "Monster Role, to be created and attached, controller=P1, enteredTurn=2"
+      },
+      "steps": [
+        "Royal Role tokenを生成しcreatureにattachする。",
+        "Monster Role tokenを生成し同じcreatureにattachする。",
+        "SBA (704.5y) を実行する。"
+      ],
+      "requiredObservations": [
+        "Royal Role (古いtimestamp) はowner graveyardへ移動する。",
+        "Monster Role (新しいtimestamp) はbattlefieldにattachedのまま残る。",
+        "zoneChange eventはreason=sba, sbaApplied=704.5yを持つ。",
+        "両Roleの移動は同一simultaneousGroupIdを持つ(単一SBAイベント)。"
+      ],
+      "mustNot": [
+        "異なるコントローラーのRoleをSBAで除去しない。",
+        "異なるpermanentに付いたRoleをSBAで除去しない。",
+        "unattached RoleをSBAで除去しない。"
+      ],
+      "implementationRefs": [
+        "src/engine/__tests__/review.cr303-704-roles.test.ts",
+        "src/store/__tests__/review.cr303-704-roles.test.ts",
+        "src/engine/commands.ts performStateBasedActionsOnce"
       ]
     }
   ]

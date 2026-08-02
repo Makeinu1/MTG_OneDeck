@@ -16,6 +16,13 @@ const BUILTIN_TOKEN_VISUALS: Record<NonNullable<CardDef['tokenKind']>, TokenVisu
   clue: { key: 'clue', imageUrl: clueUrl, label: '手掛かりトークン' },
   food: { key: 'food', imageUrl: foodUrl, label: '食物トークン' },
   blood: { key: 'blood', imageUrl: bloodUrl, label: '血トークン' },
+  'cursed-role': { key: 'generic', imageUrl: genericUrl, label: '呪いの役割トークン' },
+  'monster-role': { key: 'generic', imageUrl: genericUrl, label: '怪物の役割トークン' },
+  'royal-role': { key: 'generic', imageUrl: genericUrl, label: '王家の役割トークン' },
+  'sorcerer-role': { key: 'generic', imageUrl: genericUrl, label: '魔術師の役割トークン' },
+  'virtuous-role': { key: 'generic', imageUrl: genericUrl, label: '美徳の役割トークン' },
+  'wicked-role': { key: 'generic', imageUrl: genericUrl, label: '邪悪な役割トークン' },
+  'young-hero-role': { key: 'generic', imageUrl: genericUrl, label: '若き英雄の役割トークン' },
 };
 
 /** UI-only token art resolution. It never mutates CardDef or game state. */

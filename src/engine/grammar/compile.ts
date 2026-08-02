@@ -282,6 +282,41 @@ const PREDEFINED_TOKEN_SPECS: Record<SupportedPredefinedTokenKind, PredefinedTok
     typeLine: 'Token Artifact — Blood',
     tokenKind: 'blood',
   },
+  'cursed-role': {
+    name: 'Cursed Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'cursed-role',
+  },
+  'monster-role': {
+    name: 'Monster Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'monster-role',
+  },
+  'royal-role': {
+    name: 'Royal Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'royal-role',
+  },
+  'sorcerer-role': {
+    name: 'Sorcerer Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'sorcerer-role',
+  },
+  'virtuous-role': {
+    name: 'Virtuous Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'virtuous-role',
+  },
+  'wicked-role': {
+    name: 'Wicked Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'wicked-role',
+  },
+  'young-hero-role': {
+    name: 'Young Hero Role',
+    typeLine: 'Enchantment Token — Aura Role',
+    tokenKind: 'young-hero-role',
+  },
 };
 
 export function compileAbilityCost(cost: AbilityCost | null, ctx: CompileContext): CompiledCost {
