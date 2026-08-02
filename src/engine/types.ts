@@ -57,6 +57,8 @@ export interface CardInstance {
   targetSelections?: TargetSelection[];
   /** CR 107.3a/601.2b: X announced while this object is a spell on the stack. */
   announcedX?: number;
+  /** CR 702.194b: true when this spell was cast using its teamwork cost. */
+  usingTeamwork?: boolean;
   activationEnvelope?: ActivationEnvelope;
   /** CR 603.4 intervening-if condition copied from the pending trigger. */
   triggerCondition?: TriggerCondition;

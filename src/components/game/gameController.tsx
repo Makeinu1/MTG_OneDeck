@@ -23,7 +23,7 @@ import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
 import { isPartiallyImplemented } from '../../engine/grammar/partialImplementation';
 import { useViewStore } from '../../store/viewStore';
 import { activatedAbilityLines } from '../../engine/grammar';
-import { fetchAbility, type FetchAbility } from '../../engine/status';
+import { fetchAbility, effectivePower, type FetchAbility } from '../../engine/status';
 import type { RuleActionCandidateKind } from './ruleActionCandidates';
 import type { ManaColor } from '../../types/card';
 import type { KeybindingsMap } from '../../data/keybindings';
@@ -198,6 +198,16 @@ export interface GameController {
   chooseDecisionPlayer?: (playerId: PlayerId) => void;
   cancelDecision?: () => void;
   mulliganActive?: boolean;
+  /** CR 702.194 teamwork cost-tap multi-select state (present only during teamwork prompt). */
+  teamworkInfo?: {
+    threshold: number;
+    selectedIds: readonly string[];
+    totalPower: number;
+    canConfirm: boolean;
+  } | null;
+  toggleTeamworkCreature?: (cardId: string) => void;
+  confirmTeamwork?: () => void;
+  declineTeamwork?: () => void;
 }
 
 /**
@@ -245,6 +255,7 @@ export function useGameController({
   const [feedOpen, setFeedOpen] = useState(false);
   const [triggerSheetOpen, setTriggerSheetOpen] = useState(false);
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
+  const [teamworkSelectedIds, setTeamworkSelectedIds] = useState<string[]>([]);
 
   const transitionCueIdRef = useRef(0);
   const pendingResolvePresentationRef = useRef<PendingResolvePresentation | null>(null);
@@ -1250,6 +1261,25 @@ export function useGameController({
       kind: 'target', title: '対象', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
       sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
     };
+    // CR 702.194 teamwork cost-tap multi-select from pendingCast.
+    if (castPrompt?.kind === 'cost-tap' && store.pendingCast?.teamworkThreshold !== undefined) {
+      const threshold = store.pendingCast.teamworkThreshold;
+      const candidateIds = state.zones.battlefield.filter((id) => {
+        const card = state.cards[id];
+        if (!card || card.tapped || card.controllerId !== state.localPlayerId) return false;
+        const def = state.defs[card.defId];
+        const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+        return face?.typeLine?.includes('Creature') ?? false;
+      });
+      return {
+        kind: 'cost',
+        title: 'チームワーク',
+        instruction: `合計パワー${threshold}以上になるようにクリーチャーをタップしてください。`,
+        sourceId,
+        candidateIds,
+        selectedIds: teamworkSelectedIds,
+      };
+    }
     if (guidedPrompt?.kind === 'discard') return {
       kind: 'discard',
       title: guidedPrompt.playerId ? `${guidedPlayerLabel}：捨てる` : '捨てる',
@@ -1327,6 +1357,13 @@ export function useGameController({
 
   function chooseDecisionCard(cardId: string): void {
     if (!decisionFocus?.candidateIds.includes(cardId)) return;
+    // CR 702.194 teamwork: toggle creature selection.
+    if (castPrompt?.kind === 'cost-tap' && store.pendingCast?.teamworkThreshold !== undefined) {
+      setTeamworkSelectedIds((prev) =>
+        prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+      );
+      return;
+    }
     if (castPrompt?.kind === 'target') {
       const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
       store.answerPendingCastTarget(cardId);
@@ -1362,6 +1399,7 @@ export function useGameController({
 
   function cancelDecision(): void {
     pendingResolvePresentationRef.current = null;
+    setTeamworkSelectedIds([]);
     if (store.pendingCast) store.cancelPendingCast();
     else if (store.pendingGuided) store.cancelGuidedPrompt();
     else if (pendingRuleTarget) setPendingRuleTarget(null);
@@ -1371,6 +1409,50 @@ export function useGameController({
     else if (pendingXAbility) setPendingXAbility(null);
     else if (pendingPayment) setPendingPayment(null);
     else if (pendingLandTapChoice) setPendingLandTapChoice(null);
+  }
+
+  // CR 702.194 teamwork multi-select helpers.
+  const isTeamworkActive = castPrompt?.kind === 'cost-tap'
+    && store.pendingCast?.teamworkThreshold !== undefined;
+  const teamworkThreshold = store.pendingCast?.teamworkThreshold ?? 0;
+  const teamworkTotalPower = state
+    ? teamworkSelectedIds.reduce((sum, id) => sum + effectivePower(state, id), 0)
+    : 0;
+  const teamworkInfo = isTeamworkActive
+    ? {
+        threshold: teamworkThreshold,
+        selectedIds: teamworkSelectedIds as readonly string[],
+        totalPower: teamworkTotalPower,
+        canConfirm: teamworkTotalPower >= teamworkThreshold,
+      }
+    : null;
+
+  function toggleTeamworkCreature(cardId: string): void {
+    chooseDecisionCard(cardId);
+  }
+
+  function confirmTeamwork(): void {
+    if (!isTeamworkActive || teamworkTotalPower < teamworkThreshold) return;
+    const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
+    store.answerPendingCastTeamwork(teamworkSelectedIds);
+    const pendingCardId = useGameStore.getState().pendingCast?.cardId;
+    useGameStore.getState().confirmPendingCast();
+    setTeamworkSelectedIds([]);
+    if (pendingCardId && !useGameStore.getState().pendingCast) {
+      publishCastCommit(pendingCardId, beforeEventCount);
+    }
+  }
+
+  function declineTeamwork(): void {
+    if (!isTeamworkActive) return;
+    const beforeEventCount = useGameStore.getState().state?.eventLog.length ?? 0;
+    store.answerPendingCastTeamwork([]);
+    const pendingCardId = useGameStore.getState().pendingCast?.cardId;
+    useGameStore.getState().confirmPendingCast();
+    setTeamworkSelectedIds([]);
+    if (pendingCardId && !useGameStore.getState().pendingCast) {
+      publishCastCommit(pendingCardId, beforeEventCount);
+    }
   }
 
   const overlays: ReactNode = !state ? null : (
@@ -1855,6 +1937,10 @@ export function useGameController({
     chooseDecisionCard,
     chooseDecisionPlayer,
     cancelDecision,
+    teamworkInfo,
+    toggleTeamworkCreature,
+    confirmTeamwork,
+    declineTeamwork,
     mulliganActive: mulliganDecisionPending || mulliganBottomCount !== null,
     performDrop,
     closeTransientUi: closeMenu,

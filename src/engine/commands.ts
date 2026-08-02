@@ -231,6 +231,8 @@ export type GameCommand =
       xValue?: number;
       playerId?: PlayerId;
       targetSelections?: TargetSelection[];
+      /** CR 702.194a: creature ids tapped to pay the optional teamwork additional cost. */
+      teamworkTappedIds?: string[];
     }
   | {
       type: 'addAbilityToStack';
@@ -3593,6 +3595,7 @@ function applyCastToStack(
   xValue?: number,
   requestedPlayerId?: PlayerId,
   targetSelections: readonly TargetSelection[] = [],
+  teamworkTappedIds: readonly string[] = [],
 ): void {
   let card = requireCard(draft, cardId);
   const def = draft.state.defs[card.defId];
@@ -3631,6 +3634,29 @@ function applyCastToStack(
         ? {}
         : { targetSelections: targetSelections.map((selection) => ({ ...selection })) }),
     });
+  }
+  // CR 702.194a: tap creatures chosen for the optional teamwork additional cost.
+  if (teamworkTappedIds.length > 0) {
+    for (const tapId of teamworkTappedIds) {
+      const creature = requireCard(draft, tapId);
+      if (creature.zone !== 'battlefield') {
+        throw new EngineError(`チームワークの対象が戦場にありません: ${tapId}`);
+      }
+      if (creature.controllerId !== playerId) {
+        throw new EngineError(`チームワークの対象をコントロールしていません: ${tapId}`);
+      }
+      if (creature.tapped) {
+        throw new EngineError(`チームワークの対象が既にタップされています: ${tapId}`);
+      }
+      const tapDef = draft.state.defs[creature.defId];
+      const tapFace = tapDef?.faces[creature.faceIndex] ?? tapDef?.faces[0];
+      if (!tapFace?.typeLine?.includes('Creature')) {
+        throw new EngineError(`チームワークの対象がクリーチャーではありません: ${tapId}`);
+      }
+      setCard(draft, { ...creature, tapped: true });
+    }
+    const stackedSpell = requireCard(draft, cardId);
+    setCard(draft, { ...stackedSpell, usingTeamwork: true });
   }
   if (fromCommand) {
     incrementCommanderCastCount(draft, cardId);
@@ -6849,6 +6875,7 @@ function applyCommandInternal(
         cmd.xValue,
         cmd.playerId,
         cmd.targetSelections,
+        cmd.teamworkTappedIds,
       );
       break;
     }

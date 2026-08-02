@@ -96,7 +96,9 @@ import {
   landEntersTapped,
   cyclingInfo,
   normalizeKeywords,
+  effectivePower,
 } from '../engine/status';
+import { parseTeamworkThreshold } from '../engine/keywordGrammar';
 
 const HISTORY_LIMIT = 200;
 const SNAPSHOT_SAVE_DELAY_MS = 400;
@@ -212,6 +214,10 @@ export interface PendingCastTransaction {
   targetSelections: TargetSelection[];
   warnings: string[];
   autoTapPlan?: AutoTapPlan;
+  /** CR 702.194a: creature ids tapped for the optional teamwork additional cost. */
+  teamworkTappedIds?: string[];
+  /** CR 702.194a: teamwork threshold N parsed from oracle text. */
+  teamworkThreshold?: number;
 }
 
 export interface ResolutionTask {
@@ -1009,6 +1015,7 @@ export interface GameStore {
     opts?: { xValue?: number; force?: boolean; faceIndex?: number },
   ): 'ok' | 'error' | 'needs-choice' | { shortfall: number };
   answerPendingCastTarget(cardId: string): void;
+  answerPendingCastTeamwork(cardIds: string[]): void;
   confirmPendingCast(): void;
   cancelPendingCast(): void;
   addAbilityToStack(
@@ -3687,9 +3694,18 @@ export const useGameStore = create<GameStore>((set, get) => {
       const xValue = opts?.xValue ?? 0;
       const directPayment = solvePayment(cur.manaPool, taxedCost, xValue);
       const counterPlan = counterCastPlanForCard(cur, cardId, faceIndex);
+      const teamworkThreshold = parseTeamworkThreshold(face?.oracleText ?? '');
+      const teamworkPrompt: EffectPrompt | null = teamworkThreshold !== null
+        ? {
+            atom: null,
+            kind: 'cost-tap',
+            count: 0,
+            raw: `チームワーク — 合計パワー${teamworkThreshold}以上のクリーチャーをタップしてもよい`,
+          }
+        : null;
 
       if (directPayment.ok) {
-        if (counterPlan) {
+        if (teamworkPrompt || counterPlan) {
           set({
             pendingCast: {
               cardId,
@@ -3697,9 +3713,13 @@ export const useGameStore = create<GameStore>((set, get) => {
               xValue,
               forced: false,
               payment: directPayment.payment,
-              prompts: [counterPlan.prompt],
+              prompts: [
+                ...(teamworkPrompt ? [teamworkPrompt] : []),
+                ...(counterPlan ? [counterPlan.prompt] : []),
+              ],
               targetSelections: [],
-              warnings: counterPlan.warnings,
+              warnings: counterPlan?.warnings ?? [],
+              ...(teamworkThreshold !== null ? { teamworkThreshold } : {}),
             },
             canUndoInteraction: true,
             canRedoInteraction: false,
@@ -3722,7 +3742,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return { shortfall: plan.shortfall };
       }
 
-      if (counterPlan) {
+      if (teamworkPrompt || counterPlan) {
         set({
           pendingCast: {
             cardId,
@@ -3730,10 +3750,14 @@ export const useGameStore = create<GameStore>((set, get) => {
             xValue,
             forced: !plan.ok,
             payment: plan.payment,
-            prompts: [counterPlan.prompt],
+            prompts: [
+              ...(teamworkPrompt ? [teamworkPrompt] : []),
+              ...(counterPlan ? [counterPlan.prompt] : []),
+            ],
             targetSelections: [],
-            warnings: counterPlan.warnings,
+            warnings: counterPlan?.warnings ?? [],
             autoTapPlan: plan,
+            ...(teamworkThreshold !== null ? { teamworkThreshold } : {}),
           },
           canUndoInteraction: true,
           canRedoInteraction: false,
@@ -3790,6 +3814,75 @@ export const useGameStore = create<GameStore>((set, get) => {
       });
     },
 
+    answerPendingCastTeamwork(cardIds) {
+      const cur = get().state;
+      const pending = get().pendingCast;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || prompt?.kind !== 'cost-tap') return;
+      const threshold = pending.teamworkThreshold ?? 0;
+
+      // Empty selection = decline teamwork (always legal).
+      if (cardIds.length === 0) {
+        set({
+          pendingCast: {
+            ...pending,
+            teamworkTappedIds: [],
+            prompts: pending.prompts.slice(1),
+          },
+        });
+        return;
+      }
+
+      // Validate each selected card.
+      const warnings: string[] = [];
+      let totalPower = 0;
+      for (const id of cardIds) {
+        const card = cur.cards[id];
+        if (!card || card.zone !== 'battlefield') {
+          warnings.push(`${id}は戦場にありません。`);
+          continue;
+        }
+        if (card.controllerId !== cur.localPlayerId) {
+          warnings.push(`${id}はあなたがコントロールしていません。`);
+          continue;
+        }
+        if (card.tapped) {
+          warnings.push(`${id}は既にタップされています。`);
+          continue;
+        }
+        const def = cur.defs[card.defId];
+        const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+        if (!face?.typeLine?.includes('Creature')) {
+          warnings.push(`${id}はクリーチャーではありません。`);
+          continue;
+        }
+        totalPower += effectivePower(cur, id);
+      }
+
+      if (warnings.length > 0) {
+        set({ warnings: [...get().warnings, ...warnings] });
+        return;
+      }
+
+      if (totalPower < threshold) {
+        set({
+          warnings: [
+            ...get().warnings,
+            `合計パワー${totalPower}はチームワークの閾値${threshold}未満です。`,
+          ],
+        });
+        return;
+      }
+
+      set({
+        pendingCast: {
+          ...pending,
+          teamworkTappedIds: cardIds,
+          prompts: pending.prompts.slice(1),
+        },
+      });
+    },
+
     confirmPendingCast() {
       const cur = get().state;
       const pending = get().pendingCast;
@@ -3804,6 +3897,9 @@ export const useGameStore = create<GameStore>((set, get) => {
           cur.defs[cur.cards[pending.cardId]?.defId ?? '']?.faces[pending.faceIndex]?.manaCost ?? '',
         ).x > 0 ? { xValue: pending.xValue } : {}),
         targetSelections: pending.targetSelections.map((selection) => ({ ...selection })),
+        ...(pending.teamworkTappedIds && pending.teamworkTappedIds.length > 0
+          ? { teamworkTappedIds: pending.teamworkTappedIds }
+          : {}),
       };
       try {
         const result = pending.autoTapPlan

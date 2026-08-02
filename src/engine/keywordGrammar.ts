@@ -203,6 +203,7 @@ export const KEYWORD_DEFINITIONS: readonly KeywordDefinition[] = [
   { id: 'station', name: 'station', label: '配備', ruleRef: '702.184' },
   { id: 'warp', name: 'warp', label: 'ワープ', ruleRef: '702.185' },
   { id: 'sneak', name: 'sneak', label: '奇襲潜入', ruleRef: '702.190' },
+  { id: 'teamwork', name: 'teamwork', label: 'チームワーク', ruleRef: '702.194' },
 ];
 
 const KEYWORD_DEFINITIONS_BY_LONGEST_NAME = [...KEYWORD_DEFINITIONS].sort(
@@ -232,6 +233,17 @@ for (const definition of KEYWORD_DEFINITIONS) {
       new RegExp(`^${escapeRegex(name)}(?:\\s|\\{|\\d|x\\b|n\\b|[-:])`),
     );
   }
+}
+
+/**
+ * CR 702.194a: Extract the threshold N from "Teamwork N" at the start of oracle text.
+ * Reminder text in parentheses is stripped before matching.
+ * Returns null when the text does not begin with a Teamwork keyword.
+ */
+export function parseTeamworkThreshold(oracleText: string): number | null {
+  const withoutReminder = removeReminderAndQuotes(oracleText);
+  const match = /^teamwork\s+(\d+)\b/i.exec(withoutReminder.trim());
+  return match ? Number.parseInt(match[1], 10) : null;
 }
 
 export function cardOracleTexts(def: CardDef | undefined): string[] {
