@@ -89,6 +89,7 @@ export const EFFECT_ATOM_DEFINITIONS: readonly EffectAtomDefinition[] = [
     probe:
       /\bgain(?:s|ed|ing)?\b[^.]*\b(?:deathtouch|defender|double strike|first strike|flying|haste|hexproof|indestructible|lifelink|menace|protection|reach|trample|vigilance|ward)\b/i,
   },
+  { id: 'effect.heal', label: 'ダメージを癒やす', ruleRef: '701.69', probe: /\bheal(?:s|ed|ing)?\b/i },
   { id: 'effect.lose-life', label: 'ライフを失う', ruleRef: '119', probe: /\blose(?:s|t|ing)?\b[^.]*\blife\b/i },
   { id: 'effect.loyalty', label: '忠誠度', ruleRef: '122', probe: /\bloyalty\b/i },
   { id: 'effect.mill', label: '切削する', ruleRef: '701.17', probe: /\bmill(?:s|ed|ing)?\b/i },

@@ -701,27 +701,35 @@
       "type": "domain-slice",
       "domainId": "cr-310-battles-deferred-by-demand",
       "crOrder": 310,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-506-510-combat",
         "cr-player-specific-zones",
         "cr-703-704-sba-turn-based"
       ],
-      "evidence": [],
-      "manualBoundary": "battle protector/defense/attacked battle stateを追加せず、Battle操作はmanualに留める。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "evidence": [
+        "src/engine/__tests__/review.cr310-battles.test.ts",
+        "src/engine/__tests__/cr310-battles.test.ts",
+        "research/cr-grounding/cr-310-audit-brief.md"
+      ],
+      "manualBoundary": "Attacking-battles UI, blocking for battle-attackers, N-player protector choice, trample-over-planeswalkers/battles, cast-transform自動化は後期境界。",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Parfit)。BLOCKER/HIGH=0。MEDIUM 2件(310.8b guard, 704.5w attacked-guard)を出荷前に外科修正。npm run check全緑(lint+1528 tests+build)。"
     },
     {
       "type": "domain-slice",
       "domainId": "cr-701-69-heal",
       "crOrder": 701.69,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-120-damage"
       ],
-      "evidence": [],
+      "evidence": [
+        "src/engine/__tests__/review.cr701-69-heal.test.ts",
+        "src/engine/grammar/__tests__/cr701Heal.test.ts",
+        "src/engine/__tests__/cr701Heal.test.ts"
+      ],
       "manualBoundary": "heal対象と量を推測せず、final GameState replayが揃うまでmanualに留める。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Volta)。BLOCKER/HIGH=0。npm run check全緑。"
     },
     {
       "type": "domain-slice",
@@ -2595,7 +2603,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "low",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-120-damage"
       ],
@@ -2604,13 +2612,17 @@
         "compiledCommands",
         "manualFallbacks"
       ],
-      "boundary": "runtime rule-ref registryは701.69を認識するが、heal command/compiler/golden replayは未実装。",
+      "boundary": "Heal compiler leaf shipped: effect.heal atom (701.69) → guided target prompt → clearMarkedDamage. Single-target typed heal is guided; mass/variable heal stays manual.",
       "evidence": [
-        "cr-20260619-new-mechanics-boundary"
+        "src/engine/__tests__/review.cr701-69-heal.test.ts",
+        "src/engine/grammar/__tests__/cr701Heal.test.ts",
+        "src/engine/__tests__/cr701Heal.test.ts",
+        "npm run check all-green 2026-08-02"
       ],
-      "manualBoundary": "heal対象と量を推測せず、final GameState replayが揃うまでmanualに留める。",
-      "nextGate": "CR701.69順で既存marked-damage primitiveへ分解できる契約とreplayを作る。",
-      "judge": "deterministic-cr"
+      "manualBoundary": "mass heal (\"Heal all damage...\"), partial heal, compound abilities with unresolved clauses はmanualに留める。",
+      "nextGate": "heal需要はMyDeckに皆無。次CR順スライスへ進む。",
+      "judge": "deterministic-cr",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Volta)。BLOCKER/HIGH=0。MEDIUM-1(mass-heal guard fragility)は現状正しい挙動+テストでpin済みのためaccept。LOW-1(契約文書修正)は修正済み。npm run check全緑(lint+1528 tests+build)。"
     },
     {
       "id": "cr-702-193-power-up",

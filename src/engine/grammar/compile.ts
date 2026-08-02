@@ -208,6 +208,7 @@ const TARGET_REQUIRED_ATOMS = new Set([
   'effect.exile',
   'effect.gain-control',
   'effect.grant-keyword',
+  'effect.heal',
   'effect.pump',
   'effect.put-onto-battlefield',
   'effect.restriction',
@@ -246,6 +247,7 @@ const GUIDED_TARGET_ATOMS = new Set([
   'effect.counter-spell',
   'effect.destroy',
   'effect.exile',
+  'effect.heal',
   'effect.return',
   'effect.sacrifice',
   'effect.tap',
@@ -2315,6 +2317,8 @@ export function buildGuidedCommands(
         return [{ type: 'setTapped', cardId, tapped: true }];
       case 'effect.untap':
         return [{ type: 'setTapped', cardId, tapped: false }];
+      case 'effect.heal':
+        return [{ type: 'clearMarkedDamage', cardId }];
       case 'effect.counter-plus': {
         // CR 122.1a: a signed P/T counter's own sign/magnitude determines the effect
         // (a -1/-1 counter is not a +1/+1 counter). The prompt is only ever offered
