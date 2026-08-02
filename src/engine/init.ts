@@ -131,6 +131,8 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     pendingSbaChoices: [],
     linkedExiles: {},
     log,
+    dungeonDefs: {},
+    dungeons: {},
   };
   return syncDerivedViews(base);
 }

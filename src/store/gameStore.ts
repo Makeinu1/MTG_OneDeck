@@ -679,6 +679,8 @@ function normalizeSnapshotState(state: GameState): GameState {
     pendingRuleChoices: normalizePendingRuleChoices(state),
     pendingSbaChoices: [],
     linkedExiles: normalizeLinkedExiles(snapshot.linkedExiles),
+    dungeonDefs: snapshot.dungeonDefs ?? {},
+    dungeons: snapshot.dungeons ?? {},
   });
   const withValidActivePlayer = normalized.players[normalized.activePlayerId]
     ? normalized

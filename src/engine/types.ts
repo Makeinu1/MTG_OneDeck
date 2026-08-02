@@ -477,6 +477,53 @@ export interface DefeatAdvisoryEvent {
   preventionApplied?: never;
 }
 
+/** A single room in a dungeon (CR 309.4). */
+export interface DungeonRoom {
+  name: string; // room name (flavor, 309.4b)
+  oracleText: string; // room ability effect text (309.4c)
+  nextRooms: number[]; // indices of rooms reachable via arrows; empty = bottommost
+}
+
+/** Definition of a dungeon card (nontraditional, CR 309.1). */
+export interface DungeonDef {
+  id: string; // unique dungeon def id
+  name: string; // English name
+  printedName?: string; // Japanese name
+  rooms: DungeonRoom[]; // room 0 = topmost (309.4a)
+}
+
+/** Per-player dungeon state in the command zone (CR 309.2). */
+export interface DungeonState {
+  dungeonDefId: string; // which DungeonDef is active
+  currentRoomIndex: number; // venture marker position (0-based, 309.4)
+  completedCount: number; // number of dungeons completed this game (309.7)
+}
+
+/** Logged when a player ventures into a dungeon (CR 701.49). */
+export interface VentureEvent {
+  type: 'venture';
+  eventId: string;
+  sequence: number;
+  playerId: PlayerId;
+  dungeonDefId: string;
+  roomIndex: number;
+  completedDungeonDefId?: string; // set when 309.5b completes the old dungeon
+  // Fields unused by venture events; declared as optional never so the GameEvent
+  // union keeps a coherent common-property surface for existing consumers.
+  simultaneousGroupId?: never;
+  physicalCardId?: never;
+  oldObjectId?: never;
+  newObjectId?: never;
+  fromZone?: never;
+  toZone?: never;
+  before?: never;
+  after?: never;
+  reason?: never;
+  sbaApplied?: never;
+  replacementApplied?: never;
+  preventionApplied?: never;
+}
+
 export type GameEvent =
   | ZoneChangeEvent
   | DefeatAdvisoryEvent
@@ -484,7 +531,8 @@ export type GameEvent =
   | LifeChangeEvent
   | DrawEvent
   | AttackDeclarationEvent
-  | CounterChangeEvent;
+  | CounterChangeEvent
+  | VentureEvent;
 
 export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';
 
@@ -645,6 +693,8 @@ export interface GameState {
   pendingSbaChoices: PendingSbaChoice[];
   linkedExiles: Record<string, LinkedExileRecord>;
   log: LogEntry[];
+  dungeonDefs?: Record<string, DungeonDef>; // dungeonDefId -> DungeonDef (game-invariant)
+  dungeons?: Partial<Record<PlayerId, DungeonState>>; // per-player active dungeon
 }
 
 export function emptyPlayerPrivateZones(): PlayerPrivateZones {

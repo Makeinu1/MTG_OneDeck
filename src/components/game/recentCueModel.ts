@@ -124,6 +124,9 @@ function candidateForEvent(
       };
     case 'attackDeclaration':
       return null;
+    case 'venture':
+      // Dungeons are surfaced via the log; no separate recent cue is needed.
+      return null;
   }
 }
 

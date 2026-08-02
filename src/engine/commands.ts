@@ -49,6 +49,7 @@ import type {
   DefeatReason,
   DefeatRuleRef,
   DrawEvent,
+  DungeonDef,
   EventCause,
   EventSourceRef,
   EventTargetRef,
@@ -70,6 +71,7 @@ import type {
   TargetSelection,
   TargetSelectionKind,
   TriggerCondition,
+  VentureEvent,
   ZoneChangeEvent,
   ZoneChangeReason,
   ZoneId,
@@ -293,7 +295,13 @@ export type GameCommand =
   | { type: 'nextPhase'; drawnHandled?: boolean; manualCleanupHandled?: boolean }
   | { type: 'nextTurn'; advanceTurnOrder?: boolean }
   | { type: 'completeCleanupStateActions' }
-  | { type: 'mulligan'; order: string[]; playerId?: PlayerId };
+  | { type: 'mulligan'; order: string[]; playerId?: PlayerId }
+  | {
+      type: 'ventureIntoDungeon';
+      playerId: PlayerId;
+      dungeonDefId?: string; // required when no active dungeon (309.2a choice)
+      roomChoice?: number; // required when current room has multiple nextRooms (309.5a)
+    };
 
 export interface ApplyResult {
   state: GameState;
@@ -328,7 +336,8 @@ type GameEventPayload =
   | Omit<DamageEvent, 'eventId' | 'sequence'>
   | Omit<DrawEvent, 'eventId' | 'sequence'>
   | Omit<CounterChangeEvent, 'eventId' | 'sequence'>
-  | Omit<AttackDeclarationEvent, 'eventId' | 'sequence'>;
+  | Omit<AttackDeclarationEvent, 'eventId' | 'sequence'>
+  | Omit<VentureEvent, 'eventId' | 'sequence'>;
 
 const ZONE_LABELS: Record<ZoneId, string> = {
   library: 'ライブラリ',
@@ -447,6 +456,8 @@ function makeDraft(state: GameState): Draft {
         : [],
       linkedExiles: { ...(state.linkedExiles ?? {}) },
       log: state.log.slice(),
+      dungeonDefs: { ...(state.dungeonDefs ?? {}) },
+      dungeons: { ...(state.dungeons ?? {}) },
     },
     warnings: [],
     nextSeq: maxSeq + 1,
@@ -558,6 +569,15 @@ function pushEvent(draft: Draft, event: GameEventPayload): GameEvent {
     }
     case 'counterChange': {
       const fullEvent: CounterChangeEvent = {
+        ...event,
+        eventId,
+        sequence,
+      };
+      draft.state.eventLog = [...draft.state.eventLog, fullEvent];
+      return fullEvent;
+    }
+    case 'venture': {
+      const fullEvent: VentureEvent = {
         ...event,
         eventId,
         sequence,
@@ -2185,6 +2205,240 @@ function collectDuplicateRoleIds(draft: Draft): string[] {
   return toRemove;
 }
 
+// ---------------------------------------------------------------------------
+// Dungeons (CR 309) — venture substrate.
+//
+// Dungeons are nontraditional cards that live outside the normal card/zone
+// system (309.2c: not permanents, can't be cast, can't leave the command zone
+// except by leaving the game). Their state is tracked in `state.dungeons`
+// rather than as CardInstances.
+// ---------------------------------------------------------------------------
+
+const DUNGEON_ROOM_TRIGGER_ID = 'trigger.dungeon-room';
+
+function dungeonDefOf(state: GameState, dungeonDefId: string): DungeonDef | undefined {
+  return state.dungeonDefs?.[dungeonDefId];
+}
+
+function dungeonName(def: DungeonDef | undefined): string {
+  if (!def) return '不明なダンジョン';
+  return `《${def.printedName ?? def.name}》`;
+}
+
+function playerVentureLabel(playerId: PlayerId): string {
+  return playerId === 'P1' ? 'あなた' : `プレイヤー${playerId}`;
+}
+
+/** True when the given room index is a bottommost room (no outgoing arrows). */
+function isBottommostRoom(def: DungeonDef, roomIndex: number): boolean {
+  const room = def.rooms[roomIndex];
+  return room !== undefined && room.nextRooms.length === 0;
+}
+
+/**
+ * Build a synthetic ObjectSnapshot representing a dungeon room ability source.
+ * Dungeons are not CardInstances, so we fabricate stable identifiers from the
+ * dungeon def id and the owning player (309.4c: controlled by the dungeon owner).
+ */
+function dungeonRoomSnapshot(dungeonDefId: string, ownerId: PlayerId): ObjectSnapshot {
+  const physicalCardId = `dungeon:${dungeonDefId}`;
+  return {
+    physicalCardId,
+    objectId: physicalCardId,
+    defId: dungeonDefId,
+    zone: 'command',
+    ownerId,
+    controllerId: ownerId,
+    isToken: false,
+    isCommander: false,
+    faceIndex: 0,
+    tapped: false,
+    counters: {},
+    typeLine: 'Dungeon',
+  };
+}
+
+/** Create and append the PendingTrigger for a room ability (309.4c). */
+function appendDungeonRoomTrigger(
+  draft: Draft,
+  playerId: PlayerId,
+  def: DungeonDef,
+  roomIndex: number,
+): void {
+  const room = def.rooms[roomIndex];
+  if (!room) return;
+  const sourceSnapshot = dungeonRoomSnapshot(def.id, playerId);
+  const eventId = `e${draft.nextEventSeq}`;
+  const pending: PendingTrigger = {
+    pendingTriggerId: `${eventId}:${DUNGEON_ROOM_TRIGGER_ID}:${sourceSnapshot.objectId}:room-${roomIndex}`,
+    eventId,
+    simultaneousGroupId: eventId,
+    triggerId: DUNGEON_ROOM_TRIGGER_ID,
+    sourceId: sourceSnapshot.physicalCardId,
+    sourceObjectId: sourceSnapshot.objectId,
+    sourceSnapshot,
+    controllerId: playerId,
+    label: `${dungeonName(def)}「${room.name}」の部屋能力`,
+    stackPlacementBucket: 'ability-triggered',
+    resolutionText: room.oracleText,
+  };
+  appendPendingTrigger(draft, pending);
+}
+
+/** Whether a pending room ability from this player's specific dungeon exists (CR 309.6: "that dungeon card"). */
+function hasPendingDungeonRoomTrigger(state: GameState, playerId: PlayerId, dungeonDefId: string): boolean {
+  return state.pendingTriggers.some(
+    (trigger) =>
+      trigger.triggerId === DUNGEON_ROOM_TRIGGER_ID &&
+      trigger.controllerId === playerId &&
+      trigger.sourceSnapshot?.defId === dungeonDefId,
+  );
+}
+
+/** Players whose active dungeon is completed and ready for SBA removal (704.5t). */
+function collectCompletedDungeonPlayerIds(draft: Draft): PlayerId[] {
+  const result: PlayerId[] = [];
+  for (const [playerId, dungeon] of Object.entries(draft.state.dungeons ?? {})) {
+    if (!dungeon) continue;
+    const def = dungeonDefOf(draft.state, dungeon.dungeonDefId);
+    if (!def) continue;
+    if (!isBottommostRoom(def, dungeon.currentRoomIndex)) continue;
+    if (hasPendingDungeonRoomTrigger(draft.state, playerId, dungeon.dungeonDefId)) continue;
+    result.push(playerId);
+  }
+  return result;
+}
+
+/** Remove a completed dungeon from the game, preserving completedCount (309.7). */
+function removeDungeon(draft: Draft, playerId: PlayerId): void {
+  const existing = draft.state.dungeons?.[playerId];
+  const completedCount = (existing?.completedCount ?? 0) + 1;
+  draft.state.dungeons = {
+    ...draft.state.dungeons,
+    [playerId]: { dungeonDefId: '', currentRoomIndex: 0, completedCount },
+  };
+}
+
+/** SBA 704.5t: complete a dungeon whose marker is on the bottommost room. */
+function completeDungeonBySba(draft: Draft, playerId: PlayerId): void {
+  const dungeon = draft.state.dungeons?.[playerId];
+  if (!dungeon) return;
+  const def = dungeonDefOf(draft.state, dungeon.dungeonDefId);
+  removeDungeon(draft, playerId);
+  pushLog(
+    draft,
+    `${playerVentureLabel(playerId)}は${dungeonName(def)}を踏破しました(状況起因処理704.5t)。`,
+  );
+}
+
+function applyVentureIntoDungeon(
+  draft: Draft,
+  playerId: PlayerId,
+  dungeonDefId: string | undefined,
+  roomChoice: number | undefined,
+): void {
+  const existing = draft.state.dungeons?.[playerId];
+  // An entry whose def is missing (e.g. cleared by SBA 704.5t) behaves like no
+  // active dungeon, but its completedCount must carry over.
+  const existingDef = existing ? dungeonDefOf(draft.state, existing.dungeonDefId) : undefined;
+  const priorCompletedCount = existing?.completedCount ?? 0;
+
+  // Case 1: no active dungeon — choose and enter a new dungeon (309.2a).
+  if (!existing || !existingDef) {
+    if (!dungeonDefId) {
+      draft.warnings.push('ダンジョンが選択されていません(309.2a)。');
+      return;
+    }
+    const def = dungeonDefOf(draft.state, dungeonDefId);
+    if (!def) {
+      draft.warnings.push(`不明なダンジョンです: ${dungeonDefId}`);
+      return;
+    }
+    draft.state.dungeons = {
+      ...draft.state.dungeons,
+      [playerId]: { dungeonDefId: def.id, currentRoomIndex: 0, completedCount: priorCompletedCount },
+    };
+    pushVentureEvent(draft, playerId, def.id, 0);
+    appendDungeonRoomTrigger(draft, playerId, def, 0);
+    pushLog(draft, `${playerVentureLabel(playerId)}は${dungeonName(def)}にベンチャーしました。`);
+    return;
+  }
+
+  const def = existingDef;
+  const currentRoom = def.rooms[existing.currentRoomIndex];
+  if (!currentRoom) {
+    draft.warnings.push(`ダンジョンの部屋が無効です: ${existing.dungeonDefId}`);
+    return;
+  }
+
+  // Case 2: marker not on bottommost — advance along an arrow (309.5a).
+  if (currentRoom.nextRooms.length > 0) {
+    if (currentRoom.nextRooms.length > 1) {
+      if (roomChoice === undefined) {
+        draft.warnings.push('進む部屋を選択してください(309.5a)。');
+        return;
+      }
+      if (!currentRoom.nextRooms.includes(roomChoice)) {
+        draft.warnings.push(`選べない部屋です: ${roomChoice}`);
+        return;
+      }
+    }
+    const nextRoomIndex =
+      currentRoom.nextRooms.length === 1 ? currentRoom.nextRooms[0] : (roomChoice as number);
+    draft.state.dungeons = {
+      ...draft.state.dungeons,
+      [playerId]: { ...existing, currentRoomIndex: nextRoomIndex },
+    };
+    pushVentureEvent(draft, playerId, def.id, nextRoomIndex);
+    appendDungeonRoomTrigger(draft, playerId, def, nextRoomIndex);
+    const nextRoom = def.rooms[nextRoomIndex];
+    pushLog(
+      draft,
+      `${playerVentureLabel(playerId)}は${dungeonName(def)}の「${nextRoom?.name ?? ''}」へ進みました。`,
+    );
+    return;
+  }
+
+  // Case 3: marker on bottommost — complete old dungeon, start a new one (309.5b).
+  if (!dungeonDefId) {
+    draft.warnings.push('次のダンジョンが選択されていません(309.5b)。');
+    return;
+  }
+  const newDef = dungeonDefOf(draft.state, dungeonDefId);
+  if (!newDef) {
+    draft.warnings.push(`不明なダンジョンです: ${dungeonDefId}`);
+    return;
+  }
+  const completedCount = existing.completedCount + 1; // 309.7 completes the old dungeon
+  removeDungeon(draft, playerId);
+  draft.state.dungeons = {
+    ...draft.state.dungeons,
+    [playerId]: { dungeonDefId: newDef.id, currentRoomIndex: 0, completedCount },
+  };
+  pushVentureEvent(draft, playerId, newDef.id, 0, def.id);
+  appendDungeonRoomTrigger(draft, playerId, newDef, 0);
+  pushLog(
+    draft,
+    `${playerVentureLabel(playerId)}は${dungeonName(def)}を踏破し、${dungeonName(newDef)}にベンチャーしました(309.5b)。`,
+  );
+}
+
+function pushVentureEvent(
+  draft: Draft,
+  playerId: PlayerId,
+  dungeonDefId: string,
+  roomIndex: number,
+  completedDungeonDefId?: string,
+): void {
+  pushEvent(draft, {
+    type: 'venture',
+    playerId,
+    dungeonDefId,
+    roomIndex,
+    ...(completedDungeonDefId !== undefined ? { completedDungeonDefId } : {}),
+  } satisfies Omit<VentureEvent, 'eventId' | 'sequence'>);
+}
+
 function performStateBasedActionsOnce(draft: Draft): boolean {
   if (draft.state.pendingRuleChoices.length > 0) {
     return false;
@@ -2245,6 +2499,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
   // attached to the same permanent — keep only the most recent timestamp.
   const duplicateRoleIds = collectDuplicateRoleIds(draft);
 
+  // CR 704.5t / 309.6: a dungeon whose venture marker is on its bottommost room
+  // and has no pending room ability is completed (removed from the game).
+  const completedDungeonPlayerIds = collectCompletedDungeonPlayerIds(draft);
+
   if (
     zeroToughnessCreatureIds.length === 0 &&
     lethalDamageCreatureIds.length === 0 &&
@@ -2253,7 +2511,8 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     invalidCopyIds.length === 0 &&
     offBattlefieldTokenIds.length === 0 &&
     counterPairIds.length === 0 &&
-    duplicateRoleIds.length === 0
+    duplicateRoleIds.length === 0 &&
+    completedDungeonPlayerIds.length === 0
   ) {
     if (defeatAdvisoryAdded) {
       return true;
@@ -2390,6 +2649,12 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
       draft,
       `${nameOf(draft, cardId)}は同じプレイヤーがコントロールする役割トークンが同一パーマネントに複数付いているため状況起因処理で墓地に置かれました。`,
     );
+  }
+
+  // CR 704.5t: complete dungeons whose marker rests on the bottommost room with
+  // no pending room ability left to resolve.
+  for (const playerId of completedDungeonPlayerIds) {
+    completeDungeonBySba(draft, playerId);
   }
 
   return true;
@@ -6412,6 +6677,10 @@ function applyCommandInternal(
     }
     case 'mulligan': {
       applyMulligan(draft, cmd.order, cmd.playerId);
+      break;
+    }
+    case 'ventureIntoDungeon': {
+      applyVentureIntoDungeon(draft, cmd.playerId, cmd.dungeonDefId, cmd.roomChoice);
       break;
     }
   }

@@ -655,15 +655,19 @@
       "type": "domain-slice",
       "domainId": "cr-712-face-characteristics",
       "crOrder": 712,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-108-cards",
         "cr-603-triggers-apnap",
         "cr-602-activated-abilities"
       ],
-      "evidence": [],
+      "evidence": [
+        "src/engine/__tests__/review.cr712-8d-dfc-face-filter.test.ts",
+        "src/engine/__tests__/doubleFacedCommanderResolution.test.ts",
+        "research/cr-grounding/archive/cr-712-face-characteristics/cold-audit-findings.md"
+      ],
       "manualBoundary": "表示面以外の能力を候補化・自動実行しない。DFC/MDFCの変身・唱え分け全体は既存境界を維持する。",
-      "note": "旧carry②をCR712.8dへ分割。誘発型・起動型の面フィルタを同じfaceIndex規律へ統合する。"
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Peirce)。snapshotHasRuleTagでcollectZoneChangePendingTriggersのface filter修正。全check緑。commit=4c68375。"
     },
     {
       "type": "maintenance",
@@ -674,6 +678,183 @@
       "evidence": [],
       "manualBoundary": "ルール実行・右クリック代替の到達性を削除前に実証する。",
       "note": "旧carry③の到達不能UI撤去。CR queue外で、ルールマイルストーンへ混在させない。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-309-dungeons",
+      "crOrder": 309,
+      "status": "shipped",
+      "dependsOn": [
+        "cr-player-specific-zones",
+        "cr-603-triggers-apnap",
+        "cr-703-704-sba-turn-based"
+      ],
+      "evidence": [
+        "src/engine/__tests__/review.cr309-dungeons.test.ts",
+        "src/engine/__tests__/cr309-dungeons.test.ts",
+        "research/cr-grounding/archive/cr-309-dungeons/cold-audit-findings.md"
+      ],
+      "manualBoundary": "dungeon/venture/initiativeを自動進行せず、選択と進行はmanualに留める。",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Gibbs 019fc0b8)。HIGH-1(SBA removeDungeon completedCount破壊)+MEDIUM-1(hasPendingDungeonRoomTrigger dungeonDefIdスコープ)を修正。LOW-2は文書のみ。全check緑。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-310-battles-deferred-by-demand",
+      "crOrder": 310,
+      "status": "pending",
+      "dependsOn": [
+        "cr-506-510-combat",
+        "cr-player-specific-zones",
+        "cr-703-704-sba-turn-based"
+      ],
+      "evidence": [],
+      "manualBoundary": "battle protector/defense/attacked battle stateを追加せず、Battle操作はmanualに留める。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-701-69-heal",
+      "crOrder": 701.69,
+      "status": "pending",
+      "dependsOn": [
+        "cr-120-damage"
+      ],
+      "evidence": [],
+      "manualBoundary": "heal対象と量を推測せず、final GameState replayが揃うまでmanualに留める。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-702-193-power-up",
+      "crOrder": 702.193,
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-602-activated-abilities"
+      ],
+      "evidence": [],
+      "manualBoundary": "通常のactivated ability部分だけを実行してPower-up条件を成功扱いにしない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-702-194-teamwork",
+      "crOrder": 702.194,
+      "status": "pending",
+      "dependsOn": [
+        "cr-118-costs-act4",
+        "cr-601-casting-stack"
+      ],
+      "evidence": [],
+      "manualBoundary": "クリーチャーtapだけを部分実行せず、宣言・対象選択・支払いを一つのcast transactionとして扱う。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-714-sagas-deferred-by-demand",
+      "crOrder": 714,
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-603-triggers-apnap",
+        "cr-703-704-sba-turn-based"
+      ],
+      "evidence": [],
+      "manualBoundary": "lore counter/chapter/final chapter sacrificeを部分自動化しない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-716-class-cards",
+      "crOrder": 716,
+      "status": "pending",
+      "dependsOn": [
+        "cr-602-activated-abilities",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "level counterとClass levelを混同せず、level能力を部分適用しない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-719-case-cards",
+      "crOrder": 719,
+      "status": "pending",
+      "dependsOn": [
+        "cr-603-triggers-apnap",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "条件検査だけ、designationだけ、能力有効化だけを部分自動化しない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-720-omen-cards",
+      "crOrder": 720,
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-601-casting-stack"
+      ],
+      "evidence": [],
+      "manualBoundary": "通常面で唱えてOmenとして解決済みと扱わず、cast choice全体をmanualに留める。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-721-station-cards",
+      "crOrder": 721,
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "charge counter表示だけでStation能力やcreature化を自動化済みとしない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-722-preparation-cards",
+      "crOrder": 722,
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards",
+        "cr-400-408-zones-lki",
+        "cr-601-casting-stack",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "designation付与、copy生成、castの一部だけを行わず、全体replayが揃うまでmanualに留める。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-728-rad-counters-deferred-by-demand",
+      "crOrder": 728,
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-500-514-turn-structure",
+        "cr-701-keyword-actions-frequent"
+      ],
+      "evidence": [],
+      "manualBoundary": "Rad upkeep mill/life loss loopをcounter表示だけで自動化済みとしない。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-731-day-night-deferred-by-demand",
+      "crOrder": 731,
+      "status": "pending",
+      "dependsOn": [
+        "cr-500-514-turn-structure"
+      ],
+      "evidence": [],
+      "manualBoundary": "day/night designationとspell-count turn historyを推測せずmanualに留める。",
+      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。",
@@ -2090,7 +2271,7 @@
       ],
       "lane": "late-backbone",
       "edhValue": "low",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-player-specific-zones",
         "cr-603-triggers-apnap",
@@ -2098,10 +2279,15 @@
       ],
       "landingState": [],
       "boundary": "golden未定義。dungeon/venture/initiative連動の専用stateが必要。通常Commanderで到達可能なためscope内だが、依存未充足。",
-      "evidence": [],
+      "evidence": [
+        "src/engine/__tests__/review.cr309-dungeons.test.ts",
+        "src/engine/__tests__/cr309-dungeons.test.ts",
+        "research/cr-grounding/archive/cr-309-dungeons/cold-audit-findings.md"
+      ],
       "manualBoundary": "dungeon/venture/initiativeを自動進行せず、選択と進行はmanualに留める。",
       "nextGate": "CR309順で、player-specific zone・trigger/APNAP・SBA依存を満たして専用stateを契約化する。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Gibbs 019fc0b8)。HIGH-1(SBA removeDungeon completedCount破壊)+MEDIUM-1(hasPendingDungeonRoomTrigger dungeonDefIdスコープ)を修正。LOW-2は文書のみ。全check緑。"
     },
     {
       "id": "cr-311-315-variant-objects",
