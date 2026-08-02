@@ -2040,7 +2040,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-108-cards",
         "cr-603-triggers-apnap",
@@ -2050,11 +2050,16 @@
         "faceIndex",
         "abilityCandidates"
       ],
-      "boundary": "現在の表向き面の特性だけを誘発・起動候補へ使う。",
-      "evidence": [],
-      "manualBoundary": "変身・唱える面・DFC/MDFC全規則をこのfilter修正だけで自動化済みとしない。",
+      "boundary": "CR712.8d/8f: 表向き面の特性だけを誘発・起動候補へ使う。faceIndex filter は triggers.ts(detectTriggerCandidates/abilityLineIndexForKind/abilityLineIndexForTriggerDef)・grammar/index.ts(activatedAbilityLines)・actionCatalog.ts の3層に適用済み。変身・MDFC cast choice は既存の doubleFacedCommanderResolution で担保。",
+      "evidence": [
+        "src/engine/__tests__/review.cr712-8d-dfc-face-filter.test.ts",
+        "src/engine/__tests__/doubleFacedCommanderResolution.test.ts",
+        "research/cr-grounding/archive/cr-712-face-characteristics/cold-audit-findings.md"
+      ],
+      "manualBoundary": "変身(transform/convert)の自動トリガー・DFC全規則の完全自動化はこのfilter修正だけでは行わない。Meld cards(712.4)はscope外。",
       "nextGate": "CR701/702の先行slice後に実装する。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=Peirce 019fc08a)。BLOCKER-1(collectZoneChangePendingTriggersのdefHasRuleTagがfaceIndex無視)をsnapshotHasRuleTagで修正。MEDIUM-1(cast gate)も同時修正。LOW-2は文書のみ。全check緑(core 1082/dom 1528 tests)。"
     },
     {
       "id": "cr-123-stickers",

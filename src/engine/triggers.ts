@@ -141,6 +141,16 @@ function defHasRuleTag(state: GameState, defId: string, tagId: string): boolean 
   return classifyCardRules(def).some((tag) => tag.id === tagId);
 }
 
+/** CR 712.8d/8f: face-aware rule-tag check for ObjectSnapshots (zone-change events). */
+function snapshotHasRuleTag(state: GameState, snapshot: { defId: string; faceIndex: number }, tagId: string): boolean {
+  if (!defHasRuleTag(state, snapshot.defId, tagId)) return false;
+  const def = state.defs[snapshot.defId];
+  if (!def || def.faces.length <= 1) return true;
+  return splitAbilityLines(def)
+    .filter((line) => line.faceIndex === snapshot.faceIndex)
+    .some((line) => matchesTriggerTagId(line.text, tagId, def));
+}
+
 function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -1546,7 +1556,7 @@ function collectZoneChangePendingTriggers(
       event.toZone !== 'battlefield';
 
     if (died) {
-      if (defHasRuleTag(next, event.before.defId, 'trigger.death')) {
+      if (snapshotHasRuleTag(next, event.before, 'trigger.death')) {
         addPendingTrigger(
           context,
           next,
@@ -1589,7 +1599,7 @@ function collectZoneChangePendingTriggers(
     }
 
     if (leftBattlefield) {
-      if (defHasRuleTag(next, event.before.defId, 'trigger.leaves')) {
+      if (snapshotHasRuleTag(next, event.before, 'trigger.leaves')) {
         addPendingTrigger(
           context,
           next,
@@ -1623,7 +1633,7 @@ function collectZoneChangePendingTriggers(
       event.after &&
       !next.cards[event.physicalCardId]?.isAbility
     ) {
-      if (defHasRuleTag(next, event.after.defId, 'trigger.cast') && !defHasRuleTag(next, event.after.defId, 'trigger.cast-watcher')) {
+      if (snapshotHasRuleTag(next, event.after, 'trigger.cast') && !snapshotHasRuleTag(next, event.after, 'trigger.cast-watcher')) {
         addPendingTrigger(
           context,
           next,
