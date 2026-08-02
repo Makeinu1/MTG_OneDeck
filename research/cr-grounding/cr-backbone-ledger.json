@@ -632,7 +632,7 @@
       "type": "domain-slice",
       "domainId": "cr-701-cross-player-actions",
       "crOrder": 701,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-player-specific-zones",
         "cr-701-keyword-actions-frequent"
@@ -649,7 +649,7 @@
         "research/cr-grounding/archive/cr-701-cross-player-actions/cold-audit-findings.md"
       ],
       "manualBoundary": "cross-player sacrifice/discard/millを各CR701 actionごとに閉じ、未対応actionを同じ文から部分実行しない。",
-      "note": "[2026-08-02 audited・判定者=Codex・冷監査=/root/cr701_cold_auditor] CR101.4/608.2e-f/701.9/701.17/701.21に従い、固定数each-player/opponentのdiscard/mill/sacrificeをAPNAP順のplayer-aware guided解決へ接続。選択完了までGameStateを変更せず、semantic reasonとsimultaneousGroupIdを保持する。冷監査HIGH 4件(部分command漏れ3系統・Social Snub誤束縛)を2回の実装者修正と判定者の有界修正で閉鎖し、最終BLOCKER/HIGH/MEDIUM/LOW=0。snapshot旧base比m→a 2・m→g 45・安全なm→m 104。最終full checkと出荷証跡待ち。"
+      "note": "[2026-08-02 shipped・判定者=Codex・冷監査=/root/cr701_cold_auditor_v2] CR101.4/608.2e-f/701.9/701.17/701.21に従い、固定数each-player/opponentのdiscard/mill/sacrificeをAPNAP順のplayer-aware guided解決へ接続。選択完了までGameStateを変更せず、semantic reasonとsimultaneousGroupIdを保持する。冷監査HIGH 4件(部分command漏れ3系統・Social Snub誤束縛)を2回の実装者修正と判定者の有界修正で閉鎖し、最終BLOCKER/HIGH/MEDIUM/LOW=0。snapshot旧base比m→a 2・m→g 45・安全なm→m 104。commit 966f85f、Actions 30728318654 success、Pages HTTP 200・配信assetにsimultaneousGroupId/decision-bar確認済み。"
     },
     {
       "type": "domain-slice",
@@ -2005,7 +2005,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-player-specific-zones",
         "cr-701-keyword-actions-frequent"
@@ -2028,9 +2028,9 @@
         "research/cr-grounding/archive/cr-701-cross-player-actions/cold-audit-findings.md"
       ],
       "manualBoundary": "選択者・対象player・複数actionのいずれかが未モデルなら全体manualへ落とす。",
-      "nextGate": "全check、明示commit、CI、Pages確認後にshippedへ昇格する。次スライスは再選定のみで着手しない。",
+      "nextGate": "出荷完了。次スライスは再選定のみで着手しない。",
       "judge": "deterministic-cr",
-      "note": "監査完了(2026-08-02・判定者=Codex・冷監査=/root/cr701_cold_auditor)。HIGH 4件を閉鎖後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。出荷証跡待ち。"
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=/root/cr701_cold_auditor_v2・commit=966f85f・Actions=30728318654)。HIGH 4件を閉鎖後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。全check、CI、Pages、配信asset確認済み。"
     },
     {
       "id": "cr-712-face-characteristics",
