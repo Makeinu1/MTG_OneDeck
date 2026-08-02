@@ -2294,17 +2294,27 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-111-tokens",
         "cr-703-704-sba-turn-based"
       ],
-      "landingState": [],
-      "boundary": "golden未定義。Role token duplicate SBA は通常Commanderで到達可能。attachment grouping/timestamp/role subtypeが必要で、依存未充足。",
-      "evidence": [],
-      "manualBoundary": "Role attachment grouping/timestamp/duplicate SBAを自動適用しない。",
-      "nextGate": "CR303.7順でattachment legality・timestamp・token・SBA依存を満たして実装する。",
-      "judge": "deterministic-cr"
+      "landingState": [
+        "tokenKind",
+        "attachedTo",
+        "performStateBasedActionsOnce"
+      ],
+      "boundary": "Role tokenの生成・attach・704.5y duplicate SBAを実装。Role static ability grants (+1/+1, trample, ward等)はcontinuous effects system未実装のためdeferred。",
+      "evidence": [
+        "src/engine/__tests__/review.cr303-704-roles.test.ts",
+        "src/store/__tests__/review.cr303-704-roles.test.ts",
+        "research/cr-grounding/golden-cases.json#cr-303-704-roles-duplicate-sba",
+        "research/cr-grounding/archive/cr-303-704-roles/cold-audit-findings.md"
+      ],
+      "manualBoundary": "Role static ability grants (+1/+1, trample, ward, base P/T, triggered abilities)はmanual。Wicked Role LTB triggerはtrigger system未接続のためdeferred。",
+      "nextGate": "continuous effects / layer system実装時にRole ability grantsを接続。timestamp tiebreaker (MEDIUM-1) もその際に解決。",
+      "judge": "deterministic-cr",
+      "note": "出荷完了(2026-08-02・判定者=Codex・冷監査=/root/cr303_cold_auditor・commit=fffa123・Actions=30730530314)。BLOCKER/HIGH=0、MEDIUM=1(timestamp tiebreaker・gameplay impact zero)、LOW=3。全check緑(core 1082/DOM 1528 tests)、CI success、Pages HTTP 200・配信assetに704.5y/Aura Role/marker確認済み。"
     },
     {
       "id": "cr-714-sagas-deferred-by-demand",
