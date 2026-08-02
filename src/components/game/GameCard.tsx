@@ -363,7 +363,9 @@ export function GameCard({
       )}
       {combatAttacker && (
         <span className="game-card__combat-marker" data-role="attacker">
-          攻撃 → {combatAttacker.target.lifeLabel ?? state.players[combatAttacker.target.playerId]?.label ?? combatAttacker.target.playerId}
+          攻撃 → {combatAttacker.target.type === 'battle'
+            ? (state.cards[combatAttacker.target.cardId] ? 'バトル' : combatAttacker.target.cardId)
+            : (combatAttacker.target.lifeLabel ?? state.players[combatAttacker.target.playerId]?.label ?? combatAttacker.target.playerId)}
         </span>
       )}
       {combatBlocker && <span className="game-card__combat-marker" data-role="blocker">ブロック</span>}

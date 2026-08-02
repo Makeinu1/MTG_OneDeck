@@ -48,6 +48,7 @@ export interface CardInstance {
   manualKeywords?: string[]; // manually granted status Keyword ids
   effectsAuto?: boolean; // undefined = inherit global effectsAuto
   attachedTo?: string; // 装備/オーラの付与先 instance id
+  protectorId?: PlayerId; // CR 310.8: designated protector (battles only)
   isAbility?: boolean;
   sourceId?: string;
   sourceSnapshot?: ObjectSnapshot;
@@ -99,7 +100,9 @@ export type CombatStep =
   | 'combatDamage'
   | 'endOfCombat';
 
-export type CombatTarget = { type: 'player'; playerId: PlayerId; lifeLabel?: string };
+export type CombatTarget =
+  | { type: 'player'; playerId: PlayerId; lifeLabel?: string }
+  | { type: 'battle'; playerId: PlayerId; cardId: string; objectId: ObjectId };
 
 export interface CombatAttacker {
   cardId: string;

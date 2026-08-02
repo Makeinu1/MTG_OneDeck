@@ -301,7 +301,8 @@ export type GameCommand =
       playerId: PlayerId;
       dungeonDefId?: string; // required when no active dungeon (309.2a choice)
       roomChoice?: number; // required when current room has multiple nextRooms (309.5a)
-    };
+    }
+  | { type: 'chooseBattleProtector'; cardId: string; protectorId: PlayerId };
 
 export interface ApplyResult {
   state: GameState;
@@ -1102,6 +1103,14 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
     }
   }
 
+  // CR 310.4b: a Battle enters with defense counters equal to its printed defense.
+  if (typeLine.includes('Battle') && typeof face?.defense === 'string') {
+    const defense = Number.parseInt(face.defense, 10);
+    if (!Number.isNaN(defense) && defense > 0) {
+      counters.defense = defense;
+    }
+  }
+
   if (typeLine.includes('Saga')) {
     counters.lore = 1;
     pushLog(draft, `${nameOfCard(draft, card)}は第I章で戦場に出た。`);
@@ -1114,11 +1123,35 @@ function applyBattlefieldEntryEffects(draft: Draft, card: CardInstance): CardIns
     }
   }
 
-  return {
+  let updated: CardInstance = {
     ...card,
     enteredTurn: draft.state.turn,
     counters,
   };
+
+  // CR 310.8a / 310.11a: a Siege's protector must be an opponent of its controller.
+  // In the current 2-player model the protector is deterministic (the opponent).
+  if (typeLine.includes('Battle')) {
+    const protectorId = defaultBattleProtector(draft.state, updated.controllerId);
+    if (protectorId !== undefined) {
+      updated = { ...updated, protectorId };
+    }
+  }
+
+  return updated;
+}
+
+/**
+ * CR 310.8a: default protector for a battle — the next player in turn order
+ * after the controller (the opponent in a 2-player game). Returns undefined
+ * when no other player exists.
+ */
+function defaultBattleProtector(state: GameState, controllerId: PlayerId): PlayerId | undefined {
+  const index = state.turnOrder.indexOf(controllerId);
+  if (index < 0 || state.turnOrder.length < 2) {
+    return undefined;
+  }
+  return state.turnOrder[(index + 1) % state.turnOrder.length];
 }
 
 function nameForLegendRule(draft: Draft, card: CardInstance): string {
@@ -1503,6 +1536,15 @@ function applyDestroyPermanents(
 function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouch?: boolean): void {
   const card = requireCard(draft, cardId);
   const markedAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+
+  // CR 310.6: damage to a battle removes defense counters, not damageMarked.
+  if (isBattlefieldBattle(draft, card)) {
+    if (markedAmount > 0) {
+      applyBattleDamage(draft, card, markedAmount);
+    }
+    return;
+  }
+
   const nextDamage = markedDamageOf(card) + markedAmount;
   const nextHasDeathtouchDamage =
     hasDeathtouchDamage(card) || (deathtouch === true && markedAmount > 0);
@@ -1524,6 +1566,60 @@ function applyMarkDamage(draft: Draft, cardId: string, amount: number, deathtouc
       `${nameOf(draft, cardId)}に${markedAmount}点のダメージ${deathtouchLabel}を記録しました。`,
     );
   }
+}
+
+const SIEGE_DEFEATED_TRIGGER_ID = 'trigger.siege-defeated';
+
+/**
+ * CR 310.6: damage dealt to a battle removes that many defense counters.
+ * CR 310.11b: when the last defense counter is removed from a Siege, its
+ * intrinsic triggered ability fires ("exile it, then you may cast it
+ * transformed without paying its mana cost").
+ */
+function applyBattleDamage(draft: Draft, card: CardInstance, amount: number): void {
+  const current = draft.state.cards[card.id];
+  if (!current || current.zone !== 'battlefield') return;
+
+  const before = current.counters.defense ?? 0;
+  const after = Math.max(0, before - amount);
+  if (after === before) return;
+
+  recordCounterChangeIntent(draft, current, 'defense', before);
+  setCard(draft, {
+    ...current,
+    counters: { ...current.counters, defense: after },
+  });
+
+  pushLog(
+    draft,
+    `${nameOf(draft, card.id)}から防御カウンター${before - after}個を取り除いた（残り${after}）。`,
+  );
+
+  // CR 310.11b: last defense counter removed from a Siege → intrinsic trigger.
+  if (after === 0 && before > 0 && isSiege(draft, current)) {
+    pushSiegeDefeatedTrigger(draft, current);
+  }
+}
+
+function pushSiegeDefeatedTrigger(draft: Draft, card: CardInstance): void {
+  const snapshot = objectSnapshotOf(draft, card);
+  const eventId = `e${draft.nextEventSeq}`;
+  const pending: PendingTrigger = {
+    pendingTriggerId: `${eventId}:${SIEGE_DEFEATED_TRIGGER_ID}:${snapshot.objectId}`,
+    eventId,
+    simultaneousGroupId: `siege-${draft.nextEventSeq}`,
+    triggerId: SIEGE_DEFEATED_TRIGGER_ID,
+    sourceId: card.id,
+    sourceObjectId: snapshot.objectId,
+    sourceSnapshot: snapshot,
+    controllerId: card.controllerId,
+    label: `${nameOfCard(draft, card)}の包囲陥落誘発`,
+    stackPlacementBucket: 'ability-triggered',
+    resolutionText:
+      'Exile this permanent, then you may cast it transformed without paying its mana cost.',
+  };
+  appendPendingTrigger(draft, pending);
+  pushLog(draft, `${nameOfCard(draft, card)}の最後の防御カウンターが取り除かれた。誘発型能力がスタックに置かれる。`);
 }
 
 function normalizedDamageAmount(amount: number): number {
@@ -1764,6 +1860,14 @@ function isBattlefieldCreature(draft: Draft, card: CardInstance): boolean {
   return card.zone === 'battlefield' && typeLineOf(draft, card).includes('Creature');
 }
 
+function isBattlefieldBattle(draft: Draft, card: CardInstance): boolean {
+  return card.zone === 'battlefield' && typeLineOf(draft, card).includes('Battle');
+}
+
+function isSiege(draft: Draft, card: CardInstance): boolean {
+  return typeLineOf(draft, card).includes('Siege');
+}
+
 function warnIfNotBattlefieldCreature(draft: Draft, card: CardInstance): void {
   if (isBattlefieldCreature(draft, card)) return;
   draft.warnings.push(`${nameOfCard(draft, card)}は戦場のクリーチャーではありません。`);
@@ -1786,13 +1890,13 @@ function sourceHasDeathtouch(draft: Draft, cardId: string): boolean {
 }
 
 interface CombatPlayerDamageTotal {
-  target: CombatTarget;
+  target: Extract<CombatTarget, { type: 'player' }>;
   amount: number;
 }
 
 function addCombatPlayerDamage(
   totals: Map<string, CombatPlayerDamageTotal>,
-  target: CombatTarget,
+  target: Extract<CombatTarget, { type: 'player' }>,
   amount: number,
 ): void {
   if (amount <= 0) return;
@@ -1866,9 +1970,21 @@ function applyDeclareAttackers(
     const card = requireCard(draft, attacker.cardId);
     warnIfNotBattlefieldCreature(draft, card);
     const target = attacker.target ?? defaultCombatTarget(combat.defendingPlayerId);
-    requirePlayer(draft.state, target.playerId);
-    if (target.playerId === card.controllerId) {
-      throw new EngineError('自分自身を攻撃先プレイヤーにはできません。');
+    if (target.type === 'player') {
+      requirePlayer(draft.state, target.playerId);
+      if (target.playerId === card.controllerId) {
+        throw new EngineError('自分自身を攻撃先プレイヤーにはできません。');
+      }
+    } else {
+      // CR 310.8b: validate battle target exists on battlefield
+      const battleCard = draft.state.cards[target.cardId];
+      if (!battleCard || battleCard.zone !== 'battlefield') {
+        throw new EngineError('攻撃先のバトルが戦場に存在しません。');
+      }
+      // CR 310.8b: a battle's protector can never attack it.
+      if (battleCard.protectorId === card.controllerId) {
+        throw new EngineError('バトルの保護者はそのバトルを攻撃できません。');
+      }
     }
     if (isBattlefieldCreature(draft, card) && !hasVigilance(draft.state, card.id) && !card.tapped) {
       setCard(draft, { ...card, tapped: true });
@@ -2017,10 +2133,15 @@ function applyResolveCombatDamage(draft: Draft): void {
   for (const attacker of attackers) {
     if (attacker.blockedBy.length === 0) {
       const attackerCard = liveCombatCreature(draft, attacker.cardId, attacker.objectId);
-      if (attackerCard && attacker.target.type === 'player') {
+      if (attackerCard) {
         const power = Math.max(0, effectivePower(draft.state, attackerCard.id));
         if (!combatDamagePrevented) {
-          addCombatPlayerDamage(playerDamageTotals, attacker.target, power);
+          if (attacker.target.type === 'battle') {
+            // CR 310.6: unblocked attacker deals damage to the battle (remove defense counters).
+            applyBattleDamage(draft, requireCard(draft, attacker.target.cardId), power);
+          } else {
+            addCombatPlayerDamage(playerDamageTotals, attacker.target, power);
+          }
           if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
             gainLifeForController(draft, attacker.controllerId, power);
           }
@@ -2056,7 +2177,7 @@ function applyResolveCombatDamage(draft: Draft): void {
 
     let toBlocker = attackerPower;
     let overflow = 0;
-    if (attackerHasTrample && attacker.target.type === 'player') {
+    if (attackerHasTrample) {
       ({ toBlocker, overflow } = trampleLethalAssignment(
         draft,
         blockerCard,
@@ -2074,7 +2195,12 @@ function applyResolveCombatDamage(draft: Draft): void {
         toBlocker,
       );
       if (overflow > 0) {
-        addCombatPlayerDamage(playerDamageTotals, attacker.target, overflow);
+        if (attacker.target.type === 'battle') {
+          // CR 310.6: trample overflow to a battle removes defense counters.
+          applyBattleDamage(draft, requireCard(draft, attacker.target.cardId), overflow);
+        } else {
+          addCombatPlayerDamage(playerDamageTotals, attacker.target, overflow);
+        }
         if (effectiveKeywords(draft.state, attackerCard.id).includes('lifelink')) {
           gainLifeForController(draft, attacker.controllerId, overflow);
         }
@@ -2503,6 +2629,38 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
   // and has no pending room ability is completed (removed from the game).
   const completedDungeonPlayerIds = collectCompletedDungeonPlayerIds(draft);
 
+  // CR 704.5v: a battle with 0 defense counters is put into its owner's graveyard
+  // unless a triggered ability from it is on the stack (Siege defeated trigger).
+  const zeroDefenseBattleIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (!isBattlefieldBattle(draft, card)) return [];
+    if ((card.counters.defense ?? 0) !== 0) return [];
+    const hasPendingTrigger = draft.state.pendingTriggers.some(
+      (trigger) => trigger.sourceId === card.id,
+    );
+    return hasPendingTrigger ? [] : [card.id];
+  });
+
+  // CR 704.5w: a battle with no protector (or protector not in the game) needs
+  // a new protector. In 2-player this auto-resolves; otherwise graveyard.
+  const noProtectorBattleIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (!isBattlefieldBattle(draft, card)) return [];
+    if (card.protectorId && draft.state.players[card.protectorId]) return [];
+    // CR 704.5w: skip battles currently being attacked.
+    const isAttacked = draft.state.combat?.attackers.some(
+      (a) => a.target.type === 'battle' && a.target.cardId === card.id,
+    );
+    if (isAttacked) return [];
+    return [card.id];
+  });
+
+  // CR 704.5x: a Siege whose protector is also its controller needs a new
+  // protector who is an opponent. In 2-player this auto-resolves.
+  const siegeControllerProtectorIds = Object.values(draft.state.cards).flatMap((card) => {
+    if (!isBattlefieldBattle(draft, card) || !isSiege(draft, card)) return [];
+    if (card.protectorId !== card.controllerId) return [];
+    return [card.id];
+  });
+
   if (
     zeroToughnessCreatureIds.length === 0 &&
     lethalDamageCreatureIds.length === 0 &&
@@ -2512,7 +2670,10 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
     offBattlefieldTokenIds.length === 0 &&
     counterPairIds.length === 0 &&
     duplicateRoleIds.length === 0 &&
-    completedDungeonPlayerIds.length === 0
+    completedDungeonPlayerIds.length === 0 &&
+    zeroDefenseBattleIds.length === 0 &&
+    noProtectorBattleIds.length === 0 &&
+    siegeControllerProtectorIds.length === 0
   ) {
     if (defeatAdvisoryAdded) {
       return true;
@@ -2655,6 +2816,52 @@ function performStateBasedActionsOnce(draft: Draft): boolean {
   // no pending room ability left to resolve.
   for (const playerId of completedDungeonPlayerIds) {
     completeDungeonBySba(draft, playerId);
+  }
+
+  // CR 704.5w: auto-assign protector for battles without one.
+  for (const cardId of noProtectorBattleIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || !isBattlefieldBattle(draft, card)) continue;
+    const protector = defaultBattleProtector(draft.state, card.controllerId);
+    if (protector && draft.state.players[protector]) {
+      setCard(draft, { ...card, protectorId: protector });
+      pushLog(draft, `${nameOf(draft, cardId)}の保護者に${protector}を指定しました。`);
+    } else {
+      moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+        simultaneousGroupId,
+        sbaApplied: '704.5w',
+      });
+      pushLog(draft, `${nameOf(draft, cardId)}は保護者がいないため状況起因処理で墓地に置かれました。`);
+    }
+  }
+
+  // CR 704.5x: auto-reassign protector for Sieges whose controller is the protector.
+  for (const cardId of siegeControllerProtectorIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || !isBattlefieldBattle(draft, card)) continue;
+    const opponent = draft.state.turnOrder.find((id) => id !== card.controllerId);
+    if (opponent && draft.state.players[opponent]) {
+      setCard(draft, { ...card, protectorId: opponent });
+      pushLog(draft, `${nameOf(draft, cardId)}の保護者に${opponent}を再指定しました。`);
+    } else {
+      moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+        simultaneousGroupId,
+        sbaApplied: '704.5x',
+      });
+      pushLog(draft, `${nameOf(draft, cardId)}は適正な保護者がいないため状況起因処理で墓地に置かれました。`);
+    }
+  }
+
+  // CR 704.5v: battles with 0 defense counters go to owner's graveyard.
+  for (const cardId of zeroDefenseBattleIds) {
+    const card = draft.state.cards[cardId];
+    if (!card || card.zone !== 'battlefield') continue;
+
+    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false, 'sba', {
+      simultaneousGroupId,
+      sbaApplied: '704.5v',
+    });
+    pushLog(draft, `${nameOf(draft, cardId)}は防御カウンターが0のため状況起因処理で墓地に置かれました。`);
   }
 
   return true;
@@ -5786,6 +5993,33 @@ function isPureSelfLibraryShuffleLine(raw: string): boolean {
   );
 }
 
+/**
+ * CR 310.11b: resolve a Siege's defeated trigger — exile the battle permanent,
+ * then emit a guided warning for the "may cast transformed" part (honest defer
+ * for this slice; the exile is fully automated).
+ */
+function applySiegeDefeatedResolution(draft: Draft, abilityCard: CardInstance): void {
+  const sourceId = abilityCard.sourceId;
+  const sourceName = sourceId ? nameOf(draft, sourceId) : 'バトル';
+  pushLog(draft, `${sourceName}の包囲陥落能力を解決した。`);
+
+  if (!sourceId) return;
+  const battle = draft.state.cards[sourceId];
+  if (!battle || battle.zone !== 'battlefield') {
+    pushLog(draft, `${sourceName}はすでに戦場にないため追放できない。`);
+    return;
+  }
+
+  moveCardInternal(draft, sourceId, 'exile', 'bottom', false, 'move', {
+    replacementApplied: '310.11b:siege-defeated',
+  });
+  pushLog(draft, `${sourceName}を追放した。変身して唱えるかどうかは手動で処理してください。`);
+  draft.warnings.push(
+    `siege-defeated: ${sourceId} を追放しました。` +
+    '変身してマナ・コストを支払わずに唱えるかどうかは手動で処理してください。',
+  );
+}
+
 function applyResolveStackTop(
   draft: Draft,
   to?: ZoneId,
@@ -5802,6 +6036,12 @@ function applyResolveStackTop(
     deleteCardFromState(draft, topId);
     if (card.triggerCondition && !triggerConditionSatisfied(draft.state, card.triggerCondition)) {
       pushLog(draft, `${stackNameOf(draft, card)}の能力は解決時の条件を満たさず効果を発生しなかった。`);
+      return;
+    }
+    // CR 310.11b: Siege defeated trigger — exile the battle, then the controller
+    // may cast it transformed without paying its mana cost (guided/manual defer).
+    if (card.abilityResolutionText?.includes('Exile this permanent')) {
+      applySiegeDefeatedResolution(draft, card);
       return;
     }
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
@@ -6681,6 +6921,16 @@ function applyCommandInternal(
     }
     case 'ventureIntoDungeon': {
       applyVentureIntoDungeon(draft, cmd.playerId, cmd.dungeonDefId, cmd.roomChoice);
+      break;
+    }
+    case 'chooseBattleProtector': {
+      const card = requireCard(draft, cmd.cardId);
+      if (!isBattlefieldBattle(draft, card)) {
+        throw new EngineError('バトルではないパーマネントの保護者は指定できません。');
+      }
+      requirePlayer(draft.state, cmd.protectorId);
+      setCard(draft, { ...card, protectorId: cmd.protectorId });
+      pushLog(draft, `${nameOf(draft, cmd.cardId)}の保護者に${cmd.protectorId}を指定しました。`);
       break;
     }
   }

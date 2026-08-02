@@ -13,6 +13,7 @@ export interface CardFace {
   power?: string;
   toughness?: string;
   loyalty?: string;
+  defense?: string; // printed defense number (battles only, CR 310.4b)
 }
 
 export interface TokenArtRef {

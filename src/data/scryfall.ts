@@ -37,6 +37,7 @@ interface ScryfallCardFace {
   power?: string;
   toughness?: string;
   loyalty?: string;
+  defense?: string;
   image_uris?: ScryfallImageUris;
 }
 
@@ -57,6 +58,7 @@ export interface ScryfallCard {
   power?: string;
   toughness?: string;
   loyalty?: string;
+  defense?: string;
   edhrec_rank?: number;
   keywords?: string[];
   produced_mana?: string[];
@@ -169,6 +171,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
       power: face.power,
       toughness: face.toughness,
       loyalty: face.loyalty,
+      defense: face.defense,
     }));
   } else {
     faces = [
@@ -185,6 +188,7 @@ export function mapScryfallCardToCardDef(card: ScryfallCard): CardDef {
         power: card.power,
         toughness: card.toughness,
         loyalty: card.loyalty,
+        defense: card.defense,
       },
     ];
   }

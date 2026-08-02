@@ -2412,17 +2412,27 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-506-510-combat",
         "cr-player-specific-zones",
         "cr-703-704-sba-turn-based"
       ],
-      "landingState": [],
-      "boundary": "golden未定義。通常Commanderで到達可能。battle protector/defense/attacked battle stateが必要で、依存未充足。",
-      "evidence": [],
+      "landingState": [
+        "counters.defense",
+        "protectorId",
+        "CombatTarget battle variant",
+        "SBA 704.5v/w/x",
+        "Siege defeated trigger"
+      ],
+      "boundary": "Battle substrate shipped: defense counters, protector, combat damage to battles, Siege trigger (exile only; cast-transform is guided/manual), SBA 704.5v/w/x. Attacking-battles UI, blocking for battle-attackers, N-player protector choice, trample-over-planeswalkers/battles は後期境界。",
+      "evidence": [
+        "review.cr310-battles.test.ts",
+        "cr310-battles.test.ts",
+        "npm run check all-green 2026-08-02"
+      ],
       "manualBoundary": "battle protector/defense/attacked battle stateを追加せず、Battle操作はmanualに留める。",
-      "nextGate": "CR310順でprotector/opponent model・combat・SBA依存を満たして実装する。",
+      "nextGate": "Battle UI (declare-attackers dialog extension) と cast-transform 自動化は需要次第。",
       "judge": "deterministic-cr"
     },
     {
