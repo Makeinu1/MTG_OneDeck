@@ -16,6 +16,7 @@ import {
   consumeLinkedExileForSource as consumeLinkedExileForSourceInState,
   EngineError,
   eligibleTargets,
+  expandPlayerRecipientPrompt,
   guidedPlanForStackTop,
   objectSnapshotForCard,
   returnLinkedExileToBattlefield,
@@ -242,9 +243,10 @@ export interface PendingCommanderResolution {
 
 export function guidedControllerId(
   state: GameState,
-  pending: Pick<PendingGuidedResolution, 'sourceId' | 'activation'>,
+  pending: Pick<PendingGuidedResolution, 'sourceId' | 'activation' | 'prompts'>,
 ): PlayerId {
-  return pending.activation?.sourceSnapshot.controllerId
+  return pending.prompts[0]?.playerId
+    ?? pending.activation?.sourceSnapshot.controllerId
     ?? state.cards[pending.sourceId]?.controllerId
     ?? state.localPlayerId;
 }
@@ -1585,13 +1587,38 @@ function variableLootDiscardedCardIds(commands: readonly GameCommand[]): string[
   return commands.flatMap((command) => (command.type === 'discard' ? command.cardIds : []));
 }
 
+function selectedCrossPlayerCardIds(
+  commands: readonly GameCommand[],
+  prompt: EffectPrompt,
+): string[] {
+  if (!prompt.simultaneousGroupId || !prompt.playerId) return [];
+  return commands.flatMap((command) => {
+    if (
+      command.type === 'discard'
+      && command.simultaneousGroupId === prompt.simultaneousGroupId
+      && command.playerId === prompt.playerId
+    ) return command.cardIds;
+    if (
+      command.type === 'moveCard'
+      && command.simultaneousGroupId === prompt.simultaneousGroupId
+      && command.reason === 'sacrifice'
+    ) return [command.cardId];
+    return [];
+  });
+}
+
 function guidedCommandsWithSemanticReasons(
   prompt: EffectPrompt,
   commands: readonly GameCommand[],
 ): GameCommand[] {
-  return prompt.kind === 'sacrifice' || prompt.atom === 'effect.sacrifice'
-    ? withMoveReason(commands, 'sacrifice')
-    : commands.slice();
+  if (prompt.kind === 'sacrifice' || prompt.atom === 'effect.sacrifice') {
+    return withMoveReason(commands, 'sacrifice').map((command) =>
+      command.type === 'moveCard' && prompt.simultaneousGroupId
+        ? { ...command, simultaneousGroupId: prompt.simultaneousGroupId }
+        : command,
+    );
+  }
+  return commands.slice();
 }
 
 export function freeMulliganBottomCount(mulliganCount: number): number {
@@ -1637,8 +1664,15 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   function startPendingGuided(pending: PendingGuidedResolution): void {
     clearPendingInteractionHistory();
+    const prompts = pending.prompts.filter(
+      (prompt) => !(prompt.playerId && prompt.simultaneousGroupId && prompt.count === 0),
+    );
+    if (prompts.length === 0) {
+      finishGuidedResolution({ ...pending, prompts }, pending.commands);
+      return;
+    }
     set({
-      pendingGuided: pending,
+      pendingGuided: { ...pending, prompts },
       canUndoInteraction: true,
       canRedoInteraction: false,
     });
@@ -1651,8 +1685,15 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (internal.pendingPast.length > HISTORY_LIMIT) internal.pendingPast.shift();
     }
     internal.pendingFuture = [];
+    const prompts = next.prompts.filter(
+      (prompt) => !(prompt.playerId && prompt.simultaneousGroupId && prompt.count === 0),
+    );
+    if (prompts.length === 0) {
+      finishGuidedResolution({ ...next, prompts }, next.commands);
+      return;
+    }
     set({
-      pendingGuided: next,
+      pendingGuided: { ...next, prompts },
       canUndoInteraction: true,
       canRedoInteraction: false,
     });
@@ -2048,7 +2089,16 @@ export const useGameStore = create<GameStore>((set, get) => {
         commands.push(...compiled.commands);
       } else if (compiled.decision === 'guided') {
         commands.push(...compiled.commands);
-        prompts.push(...compiled.prompts);
+        const controllerId = cur.cards[pending.sourceId]?.controllerId ?? 'P1';
+        for (const [promptIndex, prompt] of compiled.prompts.entries()) {
+          prompts.push(...expandPlayerRecipientPrompt(
+            cur,
+            pending.sourceId,
+            controllerId,
+            prompt,
+            `guided-${pending.sourceId}-${cur.eventLog.length}-modal-${option.index}-${promptIndex}`,
+          ));
+        }
       }
     }
 
@@ -4550,7 +4600,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Only computed (non-empty) for a variableLoot prompt — every pre-existing single-shot
       // discard prompt has no `variableLoot`, so `alreadyDiscarded` stays `[]` and the guard
       // below collapses to the original hand-membership check unchanged.
-      const alreadyDiscarded = variableLoot ? variableLootDiscardedCardIds(pending.commands) : [];
+      const alreadyDiscarded = variableLoot
+        ? variableLootDiscardedCardIds(pending.commands)
+        : selectedCrossPlayerCardIds(pending.commands, prompt);
       if (!cur.zonesByPlayer[controllerId].hand.includes(cardId) || alreadyDiscarded.includes(cardId)) {
         set({
           warnings: [...get().warnings, `${cardLabel(cur, cardId)}は現在の手札にありません。`],
@@ -4568,7 +4620,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         { sourceId: pending.sourceId, controllerId, def },
       );
       if (!variableLoot) {
-        advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, discardCommands));
+        const commands = guidedCommandsWithSemanticReasons(prompt, discardCommands);
+        advanceGuidedResolution(
+          commands,
+          prompt.count > 1 ? [{ ...prompt, count: prompt.count - 1 }] : [],
+        );
         return;
       }
 
@@ -4662,9 +4718,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         eligibleTargets(
           cur,
           prompt.filter ?? { types: ['permanent'], controller: 'you' },
-          { sourceId: pending.sourceId },
+          { sourceId: pending.sourceId, controllerId: prompt.playerId },
         ),
       );
+      if (selectedCrossPlayerCardIds(pending.commands, prompt).includes(cardId)) {
+        set({ warnings: [...get().warnings, `${cardLabel(cur, cardId)}はすでに選ばれています。`] });
+        return;
+      }
       if (!legalIds.has(cardId)) {
         set({
           warnings: [...get().warnings, `${cardLabel(cur, cardId)}は生け贄の候補にありません。`],
@@ -4681,7 +4741,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         { kind: 'sacrifice', cardIds: [cardId] },
         { sourceId: pending.sourceId, controllerId: guidedControllerId(cur, pending), def },
       );
-      advanceGuidedResolution(guidedCommandsWithSemanticReasons(prompt, commands));
+      const semanticCommands = guidedCommandsWithSemanticReasons(prompt, commands);
+      advanceGuidedResolution(
+        semanticCommands,
+        prompt.count > 1 ? [{ ...prompt, count: prompt.count - 1 }] : [],
+      );
     },
 
     confirmGuidedCostSubject(cardId) {

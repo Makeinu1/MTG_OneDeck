@@ -3,7 +3,7 @@ import type { GameCommand } from '../commands';
 import type { LinkedExilePurpose, ObjectSnapshot, PlayerId, TargetSelectionKind } from '../types';
 import type { AbilityCost, AbilityIR, CountSpec, EffectClause } from './ir';
 import type { EffectAtomId } from './index';
-import { hasAbilityWordLabel } from './abilityText';
+import { hasAbilityWordLabel, stripAbilityWordLabel } from './abilityText';
 
 export interface CompileContext {
   sourceId: string;
@@ -97,6 +97,9 @@ export interface EffectPrompt {
   manaOptions?: ManaColor[];
   linkedExile?: { purpose: LinkedExilePurpose };
   counterCost?: CounterCostPrompt;
+  recipients?: 'eachOpponent' | 'eachPlayer';
+  playerId?: PlayerId;
+  simultaneousGroupId?: string;
   /**
    * CR608.2h variable loot ("discard up to N / any number of cards, then draw that many
    * [plus/minus K] cards"): present only on the guided `discard` prompt emitted by
@@ -411,6 +414,17 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     reasons.add('no-effect');
   }
 
+  if (hasUnsupportedCrossPlayerActionComposite(ir)) {
+    return {
+      commands: [],
+      decision: 'manual',
+      prompts: [],
+      confidence: 0.5,
+      risk: 'medium',
+      reasons: ['needs-parse'],
+    };
+  }
+
   const massEffect = ir.effects.find((effect) => effect.atom === 'effect.destroy');
   if (massEffect && /^(?:destroy)\s+(?:all|each)\b/i.test(normalizedEffectText(massEffect.raw))) {
     const massDestroy = compileMassDestroy({ ...ir, effects: [massEffect], effectClauses: [massEffect.raw] }, ctx);
@@ -504,6 +518,16 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
       continue;
     }
     if (
+      construct === 'construct.you-control'
+      && ir.effects.some((effect) =>
+        effect.atom === 'effect.mill'
+        && playerActionInstruction(effect.raw) !== normalizedEffectText(effect.raw)
+        && isExactCrossPlayerMillInstruction(playerActionInstruction(effect.raw)),
+      )
+    ) {
+      continue;
+    }
+    if (
       construct === 'construct.each-player'
       && ir.effects.some((effect) => playerRecipientForRaw(effect.raw) !== null)
     ) {
@@ -554,9 +578,12 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
   const sortedReasons = [...reasons].sort((a, b) => a.localeCompare(b));
   const decision: AutoDecision =
     sortedReasons.length > 0 ? 'manual' : prompts.length > 0 ? 'guided' : 'auto';
+  const failClosedCommands = decision === 'manual' && hasCrossPlayerAction(ir)
+    ? []
+    : commands;
 
   return {
-    commands,
+    commands: failClosedCommands,
     decision,
     prompts: decision === 'guided' ? prompts : [],
     confidence: decision === 'auto' ? 0.95 : decision === 'guided' ? 0.75 : 0.5,
@@ -1435,9 +1462,14 @@ function drawClauseIsExclusiveSelfFixed(raw: string): boolean {
 }
 
 function hasSupportedPlayerSubject(effect: EffectClause): boolean {
-  const raw = effect.raw.trim();
+  const originalRaw = effect.raw.trim();
+  const raw = effect.atom === 'effect.mill' && playerRecipientForRaw(originalRaw)
+    ? playerActionInstruction(originalRaw)
+    : originalRaw;
   if (playerRecipientForRaw(raw)) {
-    return /^(?:each (?:of your )?opponents?|each player)\b/i.test(raw);
+    return effect.atom === 'effect.mill'
+      ? isExactCrossPlayerMillInstruction(raw)
+      : /^(?:each (?:of your )?opponents?|each player)\b/i.test(raw);
   }
   switch (effect.atom) {
     case 'effect.draw':
@@ -1464,17 +1496,61 @@ function hasSupportedPlayerSubject(effect: EffectClause): boolean {
   }
 }
 
+function isExactCrossPlayerMillInstruction(raw: string): boolean {
+  return new RegExp(
+    `^each\\s+(?:player|opponent)\\s+mills\\s+${FIXED_ACTION_COUNT_PATTERN}\\s+cards?$`,
+    'i',
+  ).test(raw);
+}
+
 function guidedDiscardPrompt(effect: EffectClause): EffectPrompt | null {
-  const count = resolveCount(effect.count);
-  if (count !== 1 || !isSelfDiscardOneCardClause(effect.raw)) {
-    return null;
+  const crossPlayer = crossPlayerDiscardPrompt(effect);
+  if (crossPlayer) {
+    return crossPlayer;
   }
+  const count = resolveCount(effect.count);
+  if (count !== 1 || !isSelfDiscardOneCardClause(effect.raw)) return null;
   return {
     atom: effect.atom,
     kind: 'discard',
     count: 1,
     raw: effect.raw,
   };
+}
+
+const FIXED_ACTION_COUNT_PATTERN = '(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d+)';
+
+function parseFixedActionCount(token: string): number | null {
+  const normalized = token.toLowerCase();
+  const value = /^\d+$/.test(normalized)
+    ? Number.parseInt(normalized, 10)
+    : MANA_AMOUNT_WORDS.get(normalized);
+  return value !== undefined && value > 0 ? value : null;
+}
+
+function playerActionInstruction(raw: string): string {
+  return stripAbilityWordLabel(normalizedEffectText(raw))
+    .replace(/^\s*(?:when(?:ever)?|at)\b[^,]*,\s*/i, '')
+    .trim();
+}
+
+function crossPlayerRecipients(raw: string): 'eachOpponent' | 'eachPlayer' | null {
+  if (/^each\s+(?:opponent|other player)\b/i.test(raw)) return 'eachOpponent';
+  if (/^each\s+player\b/i.test(raw)) return 'eachPlayer';
+  return null;
+}
+
+function crossPlayerDiscardPrompt(effect: EffectClause): EffectPrompt | null {
+  const raw = playerActionInstruction(effect.raw);
+  const match = new RegExp(
+    `^each\\s+(player|opponent|other\\s+player)\\s+discards\\s+(${FIXED_ACTION_COUNT_PATTERN})\\s+cards?$`,
+    'i',
+  ).exec(raw);
+  if (!match) return null;
+  const count = parseFixedActionCount(match[2]);
+  const recipients = crossPlayerRecipients(raw);
+  if (count === null || !recipients) return null;
+  return { atom: effect.atom, kind: 'discard', count, recipients, raw: effect.raw };
 }
 
 function isSelfDiscardOneCardClause(raw: string): boolean {
@@ -1494,6 +1570,11 @@ function compileSacrificeEffect(
   effect: EffectClause,
   ctx: CompileContext,
 ): { commands: GameCommand[]; prompts: EffectPrompt[]; reasons: ManualReason[] } {
+  const crossPlayer = crossPlayerSacrificePrompt(effect);
+  if (crossPlayer) {
+    return { commands: [], prompts: [crossPlayer], reasons: [] };
+  }
+
   if (hasUnsupportedSacrificeClause(effect.raw)) {
     return { commands: [], prompts: [], reasons: ['needs-parse'] };
   }
@@ -1577,6 +1658,73 @@ function sacrificeEffectFilter(objectPhrase: string): TargetFilter | null {
     return { types: [normalized], controller: 'you' };
   }
   return null;
+}
+
+function crossPlayerSacrificePrompt(effect: EffectClause): EffectPrompt | null {
+  const raw = playerActionInstruction(effect.raw);
+  const match = new RegExp(
+    `^each\\s+(player|opponent|other\\s+player)\\s+sacrifices\\s+(${FIXED_ACTION_COUNT_PATTERN})\\s+(.+?)(?:\\s+of\\s+their\\s+choice)?$`,
+    'i',
+  ).exec(raw);
+  if (!match) return null;
+  const count = parseFixedActionCount(match[2]);
+  const recipients = crossPlayerRecipients(raw);
+  const filter = count === null ? null : simpleCrossPlayerSacrificeFilter(match[3]);
+  if (count === null || !recipients || !filter) return null;
+  return { atom: effect.atom, kind: 'sacrifice', count, recipients, filter, raw: effect.raw };
+}
+
+function simpleCrossPlayerSacrificeFilter(raw: string): TargetFilter | null {
+  let phrase = raw.toLowerCase().replace(/\s+/g, ' ').trim();
+  const excludeTokens = /^nontoken\s+/.test(phrase);
+  const tokenOnly = /^creature\s+tokens?$/.test(phrase);
+  phrase = phrase.replace(/^nontoken\s+/, '').replace(/^creature\s+tokens?$/, 'creature');
+  const types = phrase
+    .split(/\s+or\s+/)
+    .map((part) => part.trim().replace(/s$/, ''));
+  const supported = new Set(['creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent']);
+  if (types.length === 0 || types.some((type) => !supported.has(type))) return null;
+  return {
+    types,
+    controller: 'you',
+    ...(excludeTokens ? { excludeTokens: true } : {}),
+    ...(tokenOnly ? { tokenOnly: true } : {}),
+  };
+}
+
+function hasUnsupportedCrossPlayerActionComposite(ir: AbilityIR): boolean {
+  return ir.effectClauses.some((raw) => {
+    const instruction = playerActionInstruction(raw);
+    if (!/\beach\s+(?:(?:of\s+your\s+)?opponents?|player|other\s+player)\b/i.test(instruction)) {
+      return false;
+    }
+    const effects = ir.effects.filter((effect) => effect.raw === raw);
+    if (
+      /\b(?:you|your)\b/i.test(instruction)
+      && effects.length > 1
+      && hasCrossPlayerAction(ir)
+    ) {
+      return true;
+    }
+    const crossActions = effects.filter((effect) =>
+      effect.atom === 'effect.discard'
+      || effect.atom === 'effect.mill'
+      || effect.atom === 'effect.sacrifice',
+    );
+    return crossActions.length > 0 && new Set(effects.map((effect) => effect.atom)).size > 1;
+  });
+}
+
+function hasCrossPlayerAction(ir: AbilityIR): boolean {
+  return ir.effects.some((effect) => {
+    const instruction = playerActionInstruction(effect.raw);
+    return /\b(?:each\s+(?:(?:of\s+your\s+)?opponents?|player|other\s+player)|target\s+(?:player|opponent)|that\s+player|defending\s+player|chosen\s+player)\b/i.test(instruction)
+      && (
+        effect.atom === 'effect.discard'
+        || effect.atom === 'effect.mill'
+        || effect.atom === 'effect.sacrifice'
+      );
+  });
 }
 
 function sacrificeManualReasons(effect: EffectClause): ManualReason[] {
@@ -2041,12 +2189,16 @@ export function buildGuidedCommands(
   }
 
   if (answer.kind === 'discard') {
+    const playerId = prompt.playerId ?? ctx.controllerId;
     return prompt.atom === 'effect.discard' && answer.cardIds.length > 0
       ? [{
           type: 'discard',
           cardIds: answer.cardIds.slice(0, prompt.count),
-          ...(ctx.controllerId && ctx.controllerId !== 'P1'
-            ? { playerId: ctx.controllerId }
+          ...(playerId && (prompt.playerId !== undefined || playerId !== 'P1')
+            ? { playerId }
+            : {}),
+          ...(prompt.simultaneousGroupId
+            ? { simultaneousGroupId: prompt.simultaneousGroupId }
             : {}),
         }]
       : [];
@@ -2056,7 +2208,15 @@ export function buildGuidedCommands(
     return prompt.atom === 'effect.sacrifice' && answer.cardIds.length > 0
       ? answer.cardIds
           .slice(0, prompt.count)
-          .map((cardId) => ({ type: 'moveCard', cardId, to: 'graveyard', position: 'bottom' }))
+          .map((cardId) => ({
+            type: 'moveCard' as const,
+            cardId,
+            to: 'graveyard' as const,
+            position: 'bottom' as const,
+            ...(prompt.simultaneousGroupId
+              ? { simultaneousGroupId: prompt.simultaneousGroupId }
+              : {}),
+          }))
       : [];
   }
 

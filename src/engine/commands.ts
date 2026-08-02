@@ -202,7 +202,12 @@ export type GameCommand =
   | { type: 'mill'; count: number; playerId?: PlayerId }
   | { type: 'shuffle'; order: string[]; playerId?: PlayerId }
   | { type: 'untapAll' }
-  | { type: 'discard'; cardIds: string[]; playerId?: PlayerId }
+  | {
+      type: 'discard';
+      cardIds: string[];
+      playerId?: PlayerId;
+      simultaneousGroupId?: string;
+    }
   | { type: 'putOnBottom'; cardIds: string[]; playerId?: PlayerId }
   | { type: 'playLand'; cardId: string; forced: boolean; entersTapped?: boolean; playerId?: PlayerId }
   | {
@@ -2574,7 +2579,12 @@ function drawCards(draft: Draft, count: number, cause: EventCause, playerId: Pla
   return drawn;
 }
 
-function applyMill(draft: Draft, count: number, playerId: PlayerId): void {
+function applyMill(
+  draft: Draft,
+  count: number,
+  playerId: PlayerId,
+  simultaneousGroupId = `mill-${draft.nextEventSeq}`,
+): void {
   requirePlayer(draft.state, playerId);
   const requested = Math.max(0, Math.floor(count));
   if (requested <= 0) return;
@@ -2585,7 +2595,15 @@ function applyMill(draft: Draft, count: number, playerId: PlayerId): void {
   const topIds = library.slice(0, milled);
 
   for (const cardId of topIds) {
-    moveCardInternal(draft, cardId, 'graveyard', 'bottom', false);
+    moveCardInternal(
+      draft,
+      cardId,
+      'graveyard',
+      'bottom',
+      false,
+      'mill',
+      { simultaneousGroupId },
+    );
   }
 
   pushLog(draft, `切削: ライブラリの上から${milled}枚を墓地に置いた。`);
@@ -2594,7 +2612,12 @@ function applyMill(draft: Draft, count: number, playerId: PlayerId): void {
   }
 }
 
-function applyDiscard(draft: Draft, cardIds: string[], playerId?: PlayerId): void {
+function applyDiscard(
+  draft: Draft,
+  cardIds: string[],
+  playerId?: PlayerId,
+  simultaneousGroupId?: string,
+): void {
   const subjectHand = playerId === undefined ? undefined : new Set(readZone(draft, 'hand', playerId));
   let discarded = 0;
 
@@ -2609,6 +2632,7 @@ function applyDiscard(draft: Draft, cardIds: string[], playerId?: PlayerId): voi
       'bottom',
       false,
       card.zone === 'hand' ? 'discard' : 'move',
+      simultaneousGroupId ? { simultaneousGroupId } : undefined,
     );
     discarded += 1;
   }
@@ -2640,6 +2664,7 @@ function orderedRecipients(
 }
 
 function applyPlayerEffect(draft: Draft, cmd: ApplyPlayerEffectCommand): void {
+  const simultaneousGroupId = cmd.effect === 'mill' ? `mill-${draft.nextEventSeq}` : undefined;
   for (const playerId of orderedRecipients(draft, cmd.controllerId, cmd.recipients)) {
     switch (cmd.effect) {
       case 'draw': {
@@ -2649,7 +2674,7 @@ function applyPlayerEffect(draft: Draft, cmd: ApplyPlayerEffectCommand): void {
         break;
       }
       case 'mill':
-        applyMill(draft, cmd.amount, playerId);
+        applyMill(draft, cmd.amount, playerId, simultaneousGroupId);
         break;
       case 'life':
         applyLifeDeltaForPlayer(draft, playerId, cmd.amount, commandCause(cmd.type));
@@ -4111,6 +4136,40 @@ function targetSlotId(prompt: EffectPrompt, targetIndex: number): string {
   return prompt.slotId ?? `target-${targetIndex}`;
 }
 
+export function expandPlayerRecipientPrompt(
+  state: GameState,
+  sourceId: string,
+  controllerId: PlayerId,
+  prompt: EffectPrompt,
+  simultaneousGroupId: string,
+): EffectPrompt[] {
+  if (!prompt.recipients) return [prompt];
+  const activeIndex = state.turnOrder.indexOf(state.activePlayerId);
+  const apnap = activeIndex < 0
+    ? state.turnOrder.slice()
+    : [...state.turnOrder.slice(activeIndex), ...state.turnOrder.slice(0, activeIndex)];
+  const recipients = prompt.recipients === 'eachPlayer'
+    ? apnap
+    : apnap.filter((playerId) => playerId !== controllerId);
+  return recipients.map((playerId) => {
+    const available = prompt.kind === 'discard'
+      ? state.zonesByPlayer[playerId]?.hand.length ?? 0
+      : prompt.kind === 'sacrifice'
+        ? eligibleTargets(
+            state,
+            prompt.filter ?? { types: ['permanent'], controller: 'you' },
+            { sourceId, controllerId: playerId },
+          ).length
+        : prompt.count;
+    return {
+      ...prompt,
+      count: Math.min(prompt.count, available),
+      playerId,
+      simultaneousGroupId,
+    };
+  });
+}
+
 function storedTargetSelectionFor(
   card: CardInstance,
   prompt: EffectPrompt,
@@ -4176,7 +4235,18 @@ export function guidedPlanForStackTop(
         ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
         : compiled.commands),
     );
-    for (const prompt of compiled.prompts) {
+    for (const [promptIndex, prompt] of compiled.prompts.entries()) {
+      if (prompt.recipients) {
+        const simultaneousGroupId = `guided-${topId}-${state.eventLog.length}-${promptIndex}`;
+        prompts.push(...expandPlayerRecipientPrompt(
+          state,
+          effectLine.sourceId,
+          card.controllerId,
+          prompt,
+          simultaneousGroupId,
+        ));
+        continue;
+      }
       if (prompt.kind === 'target') {
         const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
         if (!storedTargetSelectionFor(card, normalizedPrompt, targetIndex)) {
@@ -4711,11 +4781,11 @@ function stackObjectIsManaAbility(state: GameState, card: CardInstance): boolean
 export function eligibleTargets(
   state: GameState,
   filter: TargetFilter,
-  context: { sourceId?: string } = {},
+  context: { sourceId?: string; controllerId?: PlayerId } = {},
 ): string[] {
-  const sourceControllerId = context.sourceId
+  const sourceControllerId = context.controllerId ?? (context.sourceId
     ? state.cards[context.sourceId]?.controllerId ?? state.localPlayerId
-    : state.localPlayerId;
+    : state.localPlayerId);
   const zone = filter.zone ?? 'battlefield';
   const types = filter.types ?? (zone === 'stack' ? [] : ['permanent']);
   const excludedTypes = filter.excludedTypes ?? [];
@@ -6113,7 +6183,7 @@ function applyCommandInternal(
       break;
     }
     case 'discard': {
-      applyDiscard(draft, cmd.cardIds, cmd.playerId);
+      applyDiscard(draft, cmd.cardIds, cmd.playerId, cmd.simultaneousGroupId);
       break;
     }
     case 'putOnBottom': {

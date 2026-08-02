@@ -34,7 +34,10 @@
     "cr-zone-change-new-object-lki",
     "cr-triggered-mana-ability-no-stack",
     "cr-add-mana-trigger-from-non-mana-event-is-normal-trigger",
-    "cr-targeted-add-mana-trigger-is-normal-trigger"
+    "cr-targeted-add-mana-trigger-is-normal-trigger",
+    "cr-701-ruin-crab-each-opponent-mill",
+    "cr-701-burglar-rat-each-opponent-discard",
+    "cr-701-accursed-marauder-each-player-sacrifice"
   ],
   "cases": [
     {
@@ -1483,6 +1486,80 @@
       "mustNot": ["commanderDamage reasonを不正reasonとして捨てない。"],
       "implementationRefs": [
         "src/store/gameStore.ts normalizeSnapshotDefeat accepts commanderDamage as a known reason"
+      ]
+    },
+    {
+      "id": "cr-701-ruin-crab-each-opponent-mill",
+      "title": "CR 701.17: Ruin Crabは各対戦相手のlibraryだけを可能な枚数まで同時に切削する",
+      "crRefs": ["101.3", "608.2f", "701.17a", "701.17b"],
+      "scope": "cr-701-cross-player-actions",
+      "initialFixture": {
+        "oracleText": "Landfall — Whenever a land you control enters, each opponent mills three cards.",
+        "controller": "P1",
+        "opponentLibraryCounts": [3, 2, 0]
+      },
+      "steps": [
+        "Ruin Crabの英語Oracleをcompileする。",
+        "各対戦相手のlibraryを3/2/0枚にして生成commandを実行する。"
+      ],
+      "requiredObservations": [
+        "P1を除外し、各対戦相手は3/2/0枚をowner graveyardへ移す。",
+        "全mill zoneChange eventはreason=millかつ同じsimultaneousGroupIdを持つ。",
+        "空library draw defeat advisoryは生成しない。"
+      ],
+      "mustNot": ["P1 private zoneを変更しない。", "不足を理由にaction全体を止めない。"],
+      "implementationRefs": [
+        "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/engine/commands.ts applyPlayerEffect/applyMill"
+      ]
+    },
+    {
+      "id": "cr-701-burglar-rat-each-opponent-discard",
+      "title": "CR 101.4/701.9: Burglar Rat型はAPNAP選択後に各対戦相手の手札を同時discardする",
+      "crRefs": ["101.4", "101.4a", "608.2e", "701.9a", "701.9b"],
+      "scope": "cr-701-cross-player-actions",
+      "initialFixture": {
+        "oracleText": "When this creature enters, each opponent discards a card.",
+        "activePlayer": "OPPONENT_A",
+        "controller": "P1"
+      },
+      "steps": [
+        "active playerからAPNAP順にaffected playerのhand cardを1枚ずつ選ぶ。",
+        "全選択後にstack itemを解決する。"
+      ],
+      "requiredObservations": [
+        "選択中のGameStateは変わらない。",
+        "affected cardだけowner graveyardへ移り、reason=discardと同一simultaneousGroupIdを持つ。",
+        "stack着地を含めて単一undo/redoである。"
+      ],
+      "mustNot": ["source controllerにdiscardさせない。", "前のplayerの選択直後に盤面へ適用しない。"],
+      "implementationRefs": [
+        "src/store/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/store/gameStore.ts pending guided resolution"
+      ]
+    },
+    {
+      "id": "cr-701-accursed-marauder-each-player-sacrifice",
+      "title": "CR 101.4/701.21: Accursed Marauder型は各playerのnontoken creatureをAPNAP選択後に同時sacrificeする",
+      "crRefs": ["101.3", "101.4", "608.2e", "701.21a"],
+      "scope": "cr-701-cross-player-actions",
+      "initialFixture": {
+        "oracleText": "When this creature enters, each player sacrifices a nontoken creature of their choice.",
+        "activePlayer": "OPPONENT_A"
+      },
+      "steps": [
+        "active playerからAPNAP順に各playerがcontrolするnontoken creatureを選ぶ。",
+        "全選択後に選ばれたpermanentをowner graveyardへ移す。"
+      ],
+      "requiredObservations": [
+        "tokenと他player controlのpermanentは候補外である。",
+        "全eventはreason=sacrificeかつ同じsimultaneousGroupIdを持つ。",
+        "destroy/indestructible/regeneration経路を通らない。"
+      ],
+      "mustNot": ["選択途中でbattlefieldを変更しない。", "選べないplayerを理由に解決を停止しない。"],
+      "implementationRefs": [
+        "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/store/__tests__/review.cr701-cross-player-actions.test.ts"
       ]
     },
     {

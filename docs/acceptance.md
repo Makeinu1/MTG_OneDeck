@@ -576,6 +576,24 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | G8-9 | mass destroyがtoken/death trigger/commander/owner graveyardへ到達 | destroy eventは単一group、token ceaseは別SBA group、既存trigger/zone-choice/player-zone意味を保持 |
 | G8-10 | guidedまたはautoのstack解決をundo/redo | 全効果節+stack除去が単一history stepで可逆。途中SBA/priorityを観測しない |
 
+### G9 CR701 cross-player actions 検証ピン(engine-spec §34.53)
+
+| ID | 操作 | 期待結果 |
+|---|---|---|
+| G9-1 | 《Ruin Crab》exact Oracleをcompileし、相手3人のlibraryが3/2/0枚の盤面で解決 | `eachOpponent` mill 3。各相手は3/2/0枚をowner graveyardへ移し、P1 private zone不変。empty-library draw defeatなし |
+| G9-2 | 一つのcross-player mill actionのzoneChange events | 全eventが`reason:'mill'`かつ同じ非空`simultaneousGroupId`。入力stateは不変 |
+| G9-3 | active player=OPPONENT_Aで `Each player discards a card.` を解決 | promptの`playerId`順はOPPONENT_A→P1。最初の回答後もGameState不変、全回答後に両方同時discard |
+| G9-4 | `Each opponent discards two cards.` を3人対戦で解決 | controllerを除外し、APNAP順に各playerが手札から最大2枚を重複なく選ぶ。手札1枚のplayerは1枚だけ、0枚はpromptで停止しない |
+| G9-5 | cross-player discard完了後 | affected cardだけowner graveyard。eventsは`reason:'discard'`と同一group。stack着地を含む単一undo/redo |
+| G9-6 | 《Accursed Marauder》exact Oracleを解決 | 各playerのnontoken creatureだけ候補。token、他player control、非creatureは拒否。APNAP選択後に同時sacrifice |
+| G9-7 | 《Liliana, Dreadhorde General》`−4: Each player sacrifices two creatures ...` を解決 | 同じplayerが2体を重複なく選んでから次playerへ進む。不足playerは可能な体数だけ。全回答まで盤面不変 |
+| G9-8 | cross-player sacrifice完了後 | owner graveyardへ直接移動し`reason:'sacrifice'`、destroy置換/regenerationを通らず同一group。単一undo/redo |
+| G9-9 | `target/that/defending player`、random discard、greatest/half/all/X、unless/may/if/insteadをcompile | manual、commands/prompts空。player/chooserを推測しない |
+| G9-10 | 《Dusk Mangler》型の同一clause sacrifice+discard+lifeをcompile | 文全体manual。life等の対応subsetを部分実行しない |
+| G9-11 | 《Overwhelmed Apprentice》型 `each opponent mills two. Then you scry 2.` | 記述順のmill command + self scry promptを保持し、両actionを単一resolutionで完遂 |
+| G9-12 | 既存self discard/sacrifice、cross-player draw、player-zone review群 | 無改変で緑。新GameState/snapshot/cache schemaなし |
+| G9-13 | 375×812、812×375、1440×900でdiscard/sacrifice promptを操作 | 選択player labelと候補が一致し、右クリック専用でなく、undo到達可能、console error 0 |
+
 ### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)
 
 | ID | 操作 | 期待結果 |

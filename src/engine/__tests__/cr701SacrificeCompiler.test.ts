@@ -74,9 +74,19 @@ describe('CR 701.21 sacrifice compiler leaf', () => {
     });
   });
 
-  it('keeps multi-player, multi-object, target-player, and unless clauses manual', () => {
+  it('guides exact each-player sacrifice while keeping unsupported clauses manual', () => {
+    expect(compile('Each player sacrifices a creature.')).toMatchObject({
+      decision: 'guided',
+      commands: [],
+      prompts: [{
+        atom: 'effect.sacrifice',
+        kind: 'sacrifice',
+        count: 1,
+        recipients: 'eachPlayer',
+        filter: { types: ['creature'], controller: 'you' },
+      }],
+    });
     expect(compile('Sacrifice two creatures.').decision).toBe('manual');
-    expect(compile('Each player sacrifices a creature.').decision).toBe('manual');
     expect(compile('Target player sacrifices a creature.').decision).toBe('manual');
     expect(compile('Sacrifice a creature unless you pay {1}.').decision).toBe('manual');
   });

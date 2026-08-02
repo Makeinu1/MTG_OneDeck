@@ -42,11 +42,11 @@ describe('engineCoverageTags — demand計器を実compilerにアンカーする
     ).toBe(true);
   });
 
-  it('過補正防止: cross-player の本物のgap(each opponent sacrifices)は依然 missing(§4)', () => {
+  it('CR701出荷後: cross-player each-opponent sacrifice は covered(§4更新)', () => {
     const tags = engineCoverageTags(
       cardWithText('gap', 'Sorcery', 'Each opponent sacrifices a creature.'),
     );
-    expect(tags.has('action:sacrifice')).toBe(false);
+    expect(tags.has('action:sacrifice')).toBe(true);
   });
 
   it('fetch土地(cost-form sacrifice + search + shuffle): cost/effect両側を covered にする(§3b-1/2)', () => {

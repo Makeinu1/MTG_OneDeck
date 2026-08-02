@@ -1139,6 +1139,22 @@ export function useGameController({
   const guidedPlayerId = state && store.pendingGuided
     ? guidedControllerId(state, store.pendingGuided)
     : state?.localPlayerId;
+  const guidedPlayerLabel = state && guidedPlayerId
+    ? state.players[guidedPlayerId]?.label ?? guidedPlayerId
+    : '';
+  const guidedSelectedIds = (store.pendingGuided?.commands ?? []).flatMap((command) => {
+    if (
+      command.type === 'discard'
+      && command.simultaneousGroupId === guidedPrompt?.simultaneousGroupId
+      && command.playerId === guidedPrompt?.playerId
+    ) return command.cardIds;
+    if (
+      command.type === 'moveCard'
+      && command.simultaneousGroupId === guidedPrompt?.simultaneousGroupId
+      && command.reason === 'sacrifice'
+    ) return [command.cardId];
+    return [];
+  });
   const guidedTargetIds =
     state && targetPrompt?.kind === 'target' && targetPrompt.targetKind !== 'player'
       ? eligibleTargets(state, targetPrompt.filter ?? {}, { sourceId: targetSourceId })
@@ -1153,8 +1169,8 @@ export function useGameController({
       ? eligibleTargets(
           state,
           guidedPrompt.filter ?? { types: ['permanent'], controller: 'you' },
-          { sourceId: store.pendingGuided?.sourceId },
-        )
+          { sourceId: store.pendingGuided?.sourceId, controllerId: guidedPrompt.playerId },
+        ).filter((id) => !guidedSelectedIds.includes(id))
       : [];
   const guidedCostSelectedIds = new Set(
     (store.pendingGuided?.activation?.costComponents ?? []).flatMap((component) => [
@@ -1235,12 +1251,19 @@ export function useGameController({
       sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
     };
     if (guidedPrompt?.kind === 'discard') return {
-      kind: 'discard', title: '捨てる', instruction: '手札の候補から1枚選んでください。',
-      sourceId, candidateIds: state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand, selectedIds: [],
+      kind: 'discard',
+      title: guidedPrompt.playerId ? `${guidedPlayerLabel}：捨てる` : '捨てる',
+      instruction: `${guidedPlayerLabel}：手札の候補から1枚選んでください。`,
+      sourceId,
+      candidateIds: state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand
+        .filter((id) => !guidedSelectedIds.includes(id)),
+      selectedIds: guidedSelectedIds,
     };
     if (guidedPrompt?.kind === 'sacrifice') return {
-      kind: 'sacrifice', title: '生け贄', instruction: '戦場の候補から1枚選んでください。',
-      sourceId, candidateIds: guidedSacrificeIds, selectedIds: [],
+      kind: 'sacrifice',
+      title: guidedPrompt.playerId ? `${guidedPlayerLabel}：生け贄` : '生け贄',
+      instruction: `${guidedPlayerLabel}：戦場の候補から1枚選んでください。`,
+      sourceId, candidateIds: guidedSacrificeIds, selectedIds: guidedSelectedIds,
     };
     if (
       guidedPrompt?.kind === 'cost-discard'

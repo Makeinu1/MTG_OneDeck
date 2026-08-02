@@ -57,8 +57,8 @@
   "unverifiable": [
     {
       "kind": "scope-boundary",
-      "reason": "Ruin Crab mills each opponent, but opponent libraries and graveyards are not represented by GameState.",
-      "ref": "engine-spec §34.5 (opponent zones are unmodeled)"
+      "reason": "This legacy replay fixture stops after landfall trigger detection and does not seed or resolve opponent libraries; executable cross-player mill is pinned separately through the CR701 final-GameState review.",
+      "ref": "engine-spec §34.53 / review.cr701-cross-player-actions"
     }
   ]
 }

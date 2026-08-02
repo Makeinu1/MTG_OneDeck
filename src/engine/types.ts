@@ -244,6 +244,7 @@ export type ZoneChangeReason =
   | 'token-cease'
   | 'copy-cease'
   | 'discard'
+  | 'mill'
   | 'sacrifice'
   | 'destroy';
 

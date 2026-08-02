@@ -632,14 +632,24 @@
       "type": "domain-slice",
       "domainId": "cr-701-cross-player-actions",
       "crOrder": 701,
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "cr-player-specific-zones",
         "cr-701-keyword-actions-frequent"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/engine-spec.md §34.53",
+        "docs/acceptance.md G9",
+        "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/store/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/components/game/__tests__/review.cr701-cross-player-actions-ui.test.tsx",
+        "research/cr-grounding/golden-cases.json#cr-701-ruin-crab-each-opponent-mill",
+        "research/cr-grounding/golden-cases.json#cr-701-burglar-rat-each-opponent-discard",
+        "research/cr-grounding/golden-cases.json#cr-701-accursed-marauder-each-player-sacrifice",
+        "research/cr-grounding/archive/cr-701-cross-player-actions/cold-audit-findings.md"
+      ],
       "manualBoundary": "cross-player sacrifice/discard/millを各CR701 actionごとに閉じ、未対応actionを同じ文から部分実行しない。",
-      "note": "旧cross-player clusterからCR701.9/701.17/701.21を分離。CR121 drawとは別マイルストーンにする。"
+      "note": "[2026-08-02 audited・判定者=Codex・冷監査=/root/cr701_cold_auditor] CR101.4/608.2e-f/701.9/701.17/701.21に従い、固定数each-player/opponentのdiscard/mill/sacrificeをAPNAP順のplayer-aware guided解決へ接続。選択完了までGameStateを変更せず、semantic reasonとsimultaneousGroupIdを保持する。冷監査HIGH 4件(部分command漏れ3系統・Social Snub誤束縛)を2回の実装者修正と判定者の有界修正で閉鎖し、最終BLOCKER/HIGH/MEDIUM/LOW=0。snapshot旧base比m→a 2・m→g 45・安全なm→m 104。最終full checkと出荷証跡待ち。"
     },
     {
       "type": "domain-slice",
@@ -1995,7 +2005,7 @@
       ],
       "lane": "leaf-compiler",
       "edhValue": "high",
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "cr-player-specific-zones",
         "cr-701-keyword-actions-frequent"
@@ -2006,10 +2016,21 @@
         "guidedPrompts"
       ],
       "boundary": "cross-player discard/mill/sacrificeをactionごとのplayer-aware command列へ落とす。",
-      "evidence": [],
+      "evidence": [
+        "docs/engine-spec.md §34.53",
+        "docs/acceptance.md G9",
+        "src/engine/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/store/__tests__/review.cr701-cross-player-actions.test.ts",
+        "src/components/game/__tests__/review.cr701-cross-player-actions-ui.test.tsx",
+        "research/cr-grounding/golden-cases.json#cr-701-ruin-crab-each-opponent-mill",
+        "research/cr-grounding/golden-cases.json#cr-701-burglar-rat-each-opponent-discard",
+        "research/cr-grounding/golden-cases.json#cr-701-accursed-marauder-each-player-sacrifice",
+        "research/cr-grounding/archive/cr-701-cross-player-actions/cold-audit-findings.md"
+      ],
       "manualBoundary": "選択者・対象player・複数actionのいずれかが未モデルなら全体manualへ落とす。",
-      "nextGate": "CR609出荷後、CR701節順に子sliceへ分割して実装する。",
-      "judge": "deterministic-cr"
+      "nextGate": "全check、明示commit、CI、Pages確認後にshippedへ昇格する。次スライスは再選定のみで着手しない。",
+      "judge": "deterministic-cr",
+      "note": "監査完了(2026-08-02・判定者=Codex・冷監査=/root/cr701_cold_auditor)。HIGH 4件を閉鎖後、再監査BLOCKER/HIGH/MEDIUM/LOW=0。出荷証跡待ち。"
     },
     {
       "id": "cr-712-face-characteristics",

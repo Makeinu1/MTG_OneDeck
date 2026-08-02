@@ -3392,6 +3392,45 @@ type GameCommand =
 - 実行可能goldenは《Ruinous Ultimatum》《Pernicious Deed》の最終`GameState`まで検査する。未対応fixtureはmanualかつ盤面差分0を検査する。
 - UIは既存解決UIの配線のみを使い、新規表示契約を追加しない。375x812、812x375、1440x900でmanual dialogなし、盤面差分、単一undo、console error 0を確認する。
 
+### 34.53 CR701 cross-player discard / mill / sacrifice(CR 101.3/101.4, 608.2e-f, 701.9/701.17/701.21)— この節も契約である
+
+**目的と実需要**: `cr-701-cross-player-actions` は、既に player-aware な private zone と core command を、英語 Oracle の `each player` / `each opponent` action leaf へ接続する。2026-06-19 固定 Scryfall corpus では、固定数の each-opponent mill 9行、each-player/opponent discard 43行、each-player/opponent sacrifice 77行を確認した。実カードgoldenは《Ruin Crab》《Burglar Rat》《Accursed Marauder》《Liliana, Dreadhorde General》とする。新 `GameState`、snapshot version、cache schema、依存パッケージは追加しない。
+
+**CR根拠**:
+- CR 701.9a-b: discard は affected player が既定で選び、その player の hand から owner graveyard へ移す。random discard や別playerが選ぶ形は別意味なので本節へ含めない。
+- CR 701.17a-b: mill は指定playerのlibrary先頭からgraveyardへ移し、不足時は可能な枚数だけ行う。空library draw advisoryは立てない。
+- CR 701.21a: sacrifice は選択playerがcontrolするbattlefield permanentだけをowner graveyardへ移し、destroyではない。
+- CR 101.4 / 608.2e-f: 複数playerの選択はactive playerからturn orderのAPNAP順で行い、同じactionの選択結果は全員分を揃えてから同時に適用する。複数actionの文ではactionごとに選択・適用を完了する。
+- CR 101.3: 必要数に満たない場合は選べる分だけ処理し、不可能部分を理由に解決全体を止めない。
+
+#### 34.53.1 public prompt / command envelope
+
+- `EffectPrompt` に additive な `recipients?: 'eachOpponent' | 'eachPlayer'`、`playerId?: PlayerId`、`simultaneousGroupId?: string` を追加する。compiler は roster 非依存を保ち、cross-player choice leaf を `recipients` 付き抽象promptとして返す。state-aware `guidedPlanForStackTop` / modal 展開が、その時点の `activePlayerId` と `turnOrder` からAPNAP順の concrete promptへ展開し、各promptへ選択者 `playerId` と同一action内で共有する非空 `simultaneousGroupId` を付ける。self promptは三field未指定の既存形を維持する。
+- `guidedControllerId` は先頭promptに `playerId` があればそれを選択主体として最優先する。`eligibleTargets` のcontextには additive な `controllerId?: PlayerId` overrideを許し、sacrificeの `controller:'you'` をsource controllerでなく現在の選択playerへ束縛する。UIは既存Decision Focusを再利用し、表示instructionに選択playerのlabelを含める。
+- 既存 `discard` commandへ `simultaneousGroupId?: string` をadditive追加し、対象playerのhand所属を再検査してから `reason:'discard'` で移動する。cross-player sacrificeは既存 `moveCard(to:'graveyard', reason:'sacrifice', simultaneousGroupId)` 列へ写す。選択中はGameStateを書かず、最後のpromptまでcommandを蓄積し、stack itemの通常着地と合わせて単一resolution batch / 単一undoで適用する。
+- `ZoneChangeReason`へ additive な `'mill'` を追加する。`mill` / `applyPlayerEffect(effect:'mill')` は一つのactionで移る全cardへ同じ非空 `simultaneousGroupId` と `reason:'mill'` を付ける。cross-player millはcontrollerを除外する `eachOpponent` または全員の `eachPlayer` を既存player-aware zoneへ適用し、他playerのprivate zoneを変更しない。
+
+#### 34.53.2 exact compiler allow-list
+
+- mill: fixed positive count の `Each player mills N cards.` / `Each opponent mills N cards.` を既存 `applyPlayerEffect` へauto compileする。CR 207.2cの ability-word labelと先頭trigger条件はrecipientではないため、《Ruin Crab》の exact Oracle `Landfall — Whenever a land you control enters, each opponent mills three cards.` も同じcommandへ到達する。
+- discard: fixed positive count の完全な単独action `Each player discards N card(s).` / `Each opponent discards N card(s).` / `Each other player discards N card(s).` だけをguidedにする。各affected playerは `min(N, current hand size)` 枚を重複なく選び、同じplayerの複数選択を終えてから次のAPNAP playerへ進む。
+- sacrifice: fixed positive count の完全な単独action `Each player|opponent|other player sacrifices N <simple permanent phrase> [of their choice].` だけをguidedにする。simple phraseは単一 permanent type(`creature/artifact/enchantment/land/planeswalker/permanent`)、その単純な `or` 和集合、`nontoken`、`creature token`に限定する。《Accursed Marauder》の `a nontoken creature` と《Liliana, Dreadhorde General》の `two creatures` を必須goldenとする。各playerは `min(N, eligible controlled permanents)` 枚を重複なく選ぶ。
+- number tokenは既存固定数語彙(`a/an/one`、two-ten、decimal integer)だけを使う。0、X、half、any number、all、hand全体、random、greatest/least、色・P/T・mana value等の修飾、unless/may/if/instead、別playerが選ぶ形はmanual。
+
+#### 34.53.3 fail-closed / action ordering
+
+- `target player/opponent`、`that/defending/chosen player` はtarget bindingを本節で追加しないため文全体manual。選択者を一意に束縛できないpromptを出さない。
+- 一つのeffect clauseに複数actionが連結された形(例《Dusk Mangler》の sacrifice + discard + life)は、action境界と結果依存 carry を本節で一般化しないため文全体manualとし、対応して見えるlife/discard/sacrifice subsetも `commands:[]`, `prompts:[]` にする。別sentenceとして既存compilerが全actionを完全に表現できる場合だけ、CR 608.2eの記述順を維持して既存 mixed auto+guided carryを許す(例《Overwhelmed Apprentice》の each-opponent mill → self scry)。
+- optional/conditional、対象player、random、choice owner不明、unsupported qualifier、variable/result-dependent countのいずれかを検出したらmanualへ落とす。manual判定時は生成済みsubsetを外部へ返さない。
+- 選択候補が0、または宣言数未満でも、そのplayerの可能な選択を終えたら次へ進み、全員0ならno-op actionとしてstack解決を完了する。cancelは既存sandboxの明示的skipとして残すが、通常の必須選択経路で自動cancel扱いにしない。
+
+#### 34.53.4 review / golden / visible evidence
+
+- 判定者専有=`src/engine/__tests__/review.cr701-cross-player-actions.test.ts`、`src/store/__tests__/review.cr701-cross-player-actions.test.ts`。既存 `review.cr121-cross-player-draw`、`review.mp-zones-commands`、`review.leaf-discard-token`、`review.leaf-sacrifice`、`review.cr603-triggers-sliceC` は無改変回帰床とする。
+- 最終`GameState`までの実行可能goldenは、(a)《Ruin Crab》で全opponentのlibrary→owner graveyard、(b)《Burglar Rat》型でAPNAP hand選択→同時discard、(c)《Accursed Marauder》/《Liliana》型でAPNAP battlefield選択→同時sacrificeを検査する。各actionのevent reason、player isolation、共有`simultaneousGroupId`、単一undo/redoを観測する。
+- compiler decision snapshotの意図的な manual→guided/auto だけを判定者がカード名・Oracle単独action形と照合して承認する。既存auto/guided→manual、未対応compoundのauto化、無関係actionの指紋変化はstop-the-line。
+- 新dialogは作らず既存Decision Focusを使う。ただし選択player labelの表示と候補切替は可視挙動なので、安定後の同一browser sessionで375×812、812×375、1440×900、単一undo、console error 0を確認する。
+
 ## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である
 
 **位置づけ(判定者裁定 2026-07-18)**: コンパイラの decision(auto/guided/manual)+生成コマンド指紋をコーパス全行(17,491枚・21,896効果行)でスナップショット化し、新パターン追加が既存 auto/guided の挙動を無言で変える回帰(candidate 汚染)を vitest が機械検出する。**現行検証プロトコル(fail-closed・独立 Tier-1 監査)の*補完*であり代替ではない**——残置ブランチ 69ecc88 が主張した fail-open 高速レーン(冷監査の既定廃止)はユーザー裁定 2026-07-18 で不採用。本計器は監査を置き換えず、Tier-1 の corpus flip 実測を常設ゲート化するもの。
