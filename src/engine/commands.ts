@@ -221,7 +221,18 @@ export type GameCommand =
       playerId?: PlayerId;
     }
   | { type: 'crackTreasure'; cardId: string; color: ManaColor }
-  | { type: 'castSpell'; cardId: string; payment: ManaPool; forced: boolean; faceIndex?: number; playerId?: PlayerId }
+  | {
+      type: 'castSpell';
+      cardId: string;
+      payment: ManaPool;
+      forced: boolean;
+      faceIndex?: number;
+      playerId?: PlayerId;
+      /** CR 720.3: cast the card using its Omen characteristics (face 1). */
+      castAsOmen?: boolean;
+      /** CR 720.3d: shuffle permutation of the owner library including the card. */
+      libraryShuffleOrder?: string[];
+    }
   | { type: 'castCommander'; cardId: string; payment: ManaPool; forced: boolean; faceIndex?: number; playerId?: PlayerId }
   | {
       type: 'castToStack';
@@ -234,6 +245,8 @@ export type GameCommand =
       targetSelections?: TargetSelection[];
       /** CR 702.194a: creature ids tapped to pay the optional teamwork additional cost. */
       teamworkTappedIds?: string[];
+      /** CR 720.3: cast the card using its Omen characteristics (face 1). */
+      castAsOmen?: boolean;
     }
   | {
       type: 'addAbilityToStack';
@@ -724,6 +737,10 @@ function resetCardForZoneChange(
     // unchecked manual stack annotations must not reappear after resolve/recast.
     targetSelections: undefined,
     announcedX: undefined,
+    // CR 720.4 / 720.2: off the stack, only the normal characteristics apply.
+    // The Omen cast choice does not survive leaving the stack — a countered or
+    // bounced card reverts to its front face without the castAsOmen flag.
+    castAsOmen: undefined,
   };
 }
 
@@ -3574,6 +3591,35 @@ function applyArrangeTop(
   pushLog(draft, `ライブラリの上から${count}枚を並べ替えました。`);
 }
 
+/**
+ * CR 720.3: validate a castAsOmen request. Only a card with the omen layout
+ * can be cast using its Omen characteristics, and the chosen face must be the
+ * Omen face (face index 1).
+ */
+function validateCastAsOmen(def: CardDef | undefined, chosenFaceIndex: number): void {
+  if (def?.layout !== 'omen' || chosenFaceIndex !== 1) {
+    throw new EngineError('オメンとして唱えられるカードではありません。');
+  }
+}
+
+/**
+ * CR 720.3d: after moving an Omen spell into its owner's library, apply the
+ * provided shuffle permutation (which must include the card) or honestly
+ * degrade to top-of-library with a warning.
+ */
+function applyOmenLibraryPlacement(
+  draft: Draft,
+  cardId: string,
+  libraryShuffleOrder?: readonly string[],
+): void {
+  const card = requireCard(draft, cardId);
+  if (libraryShuffleOrder && libraryShuffleOrder.length > 0) {
+    applyShuffle(draft, [...libraryShuffleOrder], card.ownerId);
+    return;
+  }
+  draft.warnings.push('オメン呪文の解決にはライブラリのシャッフル順列が必要です(一番上に配置)。');
+}
+
 function applyCast(
   draft: Draft,
   cardId: string,
@@ -3582,12 +3628,18 @@ function applyCast(
   commander: boolean,
   faceIndex?: number,
   requestedPlayerId?: PlayerId,
+  castAsOmen?: boolean,
+  libraryShuffleOrder?: readonly string[],
 ): void {
   let card = requireCard(draft, cardId);
   const def = draft.state.defs[card.defId];
   const chosenFaceIndex = faceIndex ?? 0;
   if (!Number.isInteger(chosenFaceIndex) || !def?.faces[chosenFaceIndex]) {
     throw new EngineError(`唱える面が存在しません: ${cardId} face=${chosenFaceIndex}`);
+  }
+  // CR 720.3: casting as an Omen requires the omen layout and the Omen face.
+  if (castAsOmen === true) {
+    validateCastAsOmen(def, chosenFaceIndex);
   }
   if (card.faceIndex !== chosenFaceIndex) {
     card = { ...card, faceIndex: chosenFaceIndex };
@@ -3634,11 +3686,22 @@ function applyCast(
     moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
     incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
     pushLog(draft, `統率者${name}をキャストしました(支払い: ${payStr})。`);
-  } else {
-    moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
-    incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
-    pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
+    return;
   }
+
+  // CR 720.3d: an Omen spell that resolves immediately shuffles into its
+  // owner's library instead of going to its usual resolution zone.
+  if (castAsOmen === true) {
+    moveCardInternal(draft, cardId, 'library', 'top', false, 'resolve');
+    applyOmenLibraryPlacement(draft, cardId, libraryShuffleOrder);
+    incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
+    pushLog(draft, `${name}をキャストし解決しました(オメン: ライブラリへシャッフル)。`);
+    return;
+  }
+
+  moveCardInternal(draft, cardId, dest, 'bottom', false, 'cast');
+  incrementPlayerTurnCounter(draft, playerId, 'spellsCastThisTurn');
+  pushLog(draft, `${name}をキャストしました(支払い: ${payStr})。`);
 }
 
 function nextAbilityId(state: GameState): string {
@@ -3721,12 +3784,17 @@ function applyCastToStack(
   requestedPlayerId?: PlayerId,
   targetSelections: readonly TargetSelection[] = [],
   teamworkTappedIds: readonly string[] = [],
+  castAsOmen?: boolean,
 ): void {
   let card = requireCard(draft, cardId);
   const def = draft.state.defs[card.defId];
   const chosenFaceIndex = faceIndex ?? 0;
   if (!Number.isInteger(chosenFaceIndex) || !def?.faces[chosenFaceIndex]) {
     throw new EngineError(`唱える面が存在しません: ${cardId} face=${chosenFaceIndex}`);
+  }
+  // CR 720.3: casting as an Omen requires the omen layout and the Omen face.
+  if (castAsOmen === true) {
+    validateCastAsOmen(def, chosenFaceIndex);
   }
   if (card.faceIndex !== chosenFaceIndex) {
     card = { ...card, faceIndex: chosenFaceIndex };
@@ -3759,6 +3827,11 @@ function applyCastToStack(
         ? {}
         : { targetSelections: targetSelections.map((selection) => ({ ...selection })) }),
     });
+  }
+  // CR 720.3b: mark the stack object as cast using Omen characteristics.
+  if (castAsOmen === true) {
+    const stackedOmen = requireCard(draft, cardId);
+    setCard(draft, { ...stackedOmen, castAsOmen: true });
   }
   // CR 702.194a: tap creatures chosen for the optional teamwork additional cost.
   if (teamworkTappedIds.length > 0) {
@@ -3974,8 +4047,12 @@ function effectLinesForStackItemState(
     ];
   }
 
+  // CR 712.8f / 720.3b: a spell on the stack has ONLY the characteristics of
+  // its chosen face (for Omen spells, the alternative face). Without this
+  // filter a resolving face-1 spell would also compile every other face's
+  // lines (e.g. an Omen spell would additionally apply its normal face text).
   return lines
-    .filter((line) => line.shape === 'spell')
+    .filter((line) => line.shape === 'spell' && line.faceIndex === card.faceIndex)
     .map((line) => ({
       sourceId,
       def,
@@ -6213,6 +6290,27 @@ function applyResolveStackTop(
     return;
   }
 
+  // CR 720.3d: as an Omen spell resolves, its controller shuffles it into its
+  // owner's library instead of putting it into its usual resolution zone.
+  if (card.castAsOmen === true) {
+    const name = stackNameOf(draft, card);
+    if (card.isCopy === true) {
+      // CR 707.10a: a copy of a spell can never exist outside the stack, so
+      // the 720.3d shuffle has no physical card to move. The resolving Omen
+      // copy applies its effects and then ceases to exist (moveCardInternal's
+      // copy branch performs the deletion).
+      moveCardInternal(draft, topId, 'library', 'top', false, 'resolve');
+      pushLog(draft, `${name}(コピー)を解決した(オメン: コピーは消滅する)。`);
+      applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+      return;
+    }
+    moveCardInternal(draft, topId, 'library', 'top', false, 'resolve');
+    applyOmenLibraryPlacement(draft, topId, libraryShuffleOrder);
+    pushLog(draft, `${name}を解決した(オメン: ライブラリへシャッフル)。`);
+    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+    return;
+  }
+
   const destination = to ?? defaultStackResolveDestination(draft, card);
   moveCardInternal(draft, topId, destination, 'bottom', false, 'resolve');
   pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
@@ -6302,6 +6400,9 @@ function applyCopyStackItemOnce(draft: Draft, cardId: string): void {
     targetSelections: source.targetSelections?.map((selection) => ({ ...selection })),
     // CR 707.10: the announced value of X is one of the copied choices.
     announcedX: source.announcedX,
+    // CR 720.3c: a copy of a spell cast as an Omen is an Omen with the
+    // alternative characteristics.
+    castAsOmen: source.castAsOmen,
   };
   draft.state.cards = cards;
   stack.push(copyId);
@@ -6983,7 +7084,17 @@ function applyCommandInternal(
       break;
     }
     case 'castSpell': {
-      applyCast(draft, cmd.cardId, cmd.payment, cmd.forced, false, cmd.faceIndex, cmd.playerId);
+      applyCast(
+        draft,
+        cmd.cardId,
+        cmd.payment,
+        cmd.forced,
+        false,
+        cmd.faceIndex,
+        cmd.playerId,
+        cmd.castAsOmen,
+        cmd.libraryShuffleOrder,
+      );
       break;
     }
     case 'castCommander': {
@@ -7001,6 +7112,7 @@ function applyCommandInternal(
         cmd.playerId,
         cmd.targetSelections,
         cmd.teamworkTappedIds,
+        cmd.castAsOmen,
       );
       break;
     }

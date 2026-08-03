@@ -823,14 +823,18 @@
       "type": "domain-slice",
       "domainId": "cr-720-omen-cards",
       "crOrder": 720,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-108-cards",
         "cr-601-casting-stack"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr720-omen-cards",
+        "src/engine/__tests__/omenCards.test.ts",
+        "cold-audit:Laplace:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
       "manualBoundary": "通常面で唱えてOmenとして解決済みと扱わず、cast choice全体をmanualに留める。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "shipped 2026-08-04: castAsOmen cast choice, 720.3d library shuffle resolve, face-scoped effect lines, 707.10a copy ruling."
     },
     {
       "type": "domain-slice",
@@ -2789,7 +2793,7 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-108-cards",
         "cr-601-casting-stack"
@@ -2799,10 +2803,14 @@
         "castChoices",
         "spellObjects"
       ],
-      "boundary": "Omen alternative characteristics・cast choice・stack/leave-stack characteristicsは未実装。",
-      "evidence": [],
+      "boundary": "CR720.2-720.4: castAsOmen cast choice(CardInstance), stack object flag・face-scoped effect lines(720.3b), 720.3d resolve → owner library shuffle(libraryShuffleOrder/無指定時はtop+warningの誠実縮退), copy伝播+707.10aコピー消滅, zone changeでflag/face reset. store cast-choice UI・720.2a/720.5はdefer.",
+      "evidence": [
+        "review.cr720-omen-cards",
+        "src/engine/__tests__/omenCards.test.ts",
+        "cold-audit:Laplace:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
       "manualBoundary": "通常面で唱えてOmenとして解決済みと扱わず、cast choice全体をmanualに留める。",
-      "nextGate": "CR720順でcast choiceからstack object、解決後zoneまでreplay化する。",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr"
     },
     {

@@ -63,6 +63,21 @@ function makeDeck(size: number): InitDeckCard[] {
       deck.push({ def: def(`Dragon ${i}`), isCommander: false });
     }
   }
+  // I57 (CR720 §34.53): the last slot is an omen-layout card so the walk can
+  // exercise the castAsOmen stack-only cast choice (cold-audit FINDING-1,
+  // 2026-08-04). Replacing an existing slot keeps the card count at deckSize.
+  const omenSlot: InitDeckCard = {
+    def: def('Omen Card', {
+      layout: 'omen',
+      typeLine: 'Instant',
+      faces: [
+        { name: 'Omen Card', typeLine: 'Instant', manaCost: '{1}' },
+        { name: 'Omen Card — Omen', typeLine: 'Instant', manaCost: '{1}' },
+      ],
+    }),
+    isCommander: false,
+  };
+  deck[deck.length - 1] = omenSlot;
   return deck;
 }
 
@@ -107,6 +122,7 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'discard',
     'createScenarioDummy',
     'setClassLevel',
+    'castOmen',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -121,6 +137,20 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
       return { type: 'setTapped', cardId: pick(allIds), tapped: rng() < 0.5 };
     case 'setClassLevel':
       return { type: 'setClassLevel', cardId: pick(allIds), level: Math.floor(rng() * 3) + 1 };
+    case 'castOmen': {
+      const omenId = state.zones.hand.find(
+        (id) => state.defs[state.cards[id]?.defId ?? '']?.layout === 'omen',
+      );
+      if (!omenId) return { type: 'nextPhase' };
+      return {
+        type: 'castToStack',
+        cardId: omenId,
+        payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+        forced: true,
+        faceIndex: 1,
+        castAsOmen: true,
+      };
+    }
     case 'addCounters':
       return {
         type: 'addCounters',
@@ -508,6 +538,12 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
     // I55 (CR719 §34.52): solved is boolean or undefined for every card.
     if (card.solved !== undefined) {
       expect(typeof card.solved, `${label}: solved not boolean`).toBe('boolean');
+    }
+    // I57 (CR720 §34.53): castAsOmen is a stack-only cast choice (720.3b).
+    // Off the stack, only normal characteristics apply (720.4), so the flag
+    // must never survive onto a non-stack object.
+    if (card.castAsOmen === true) {
+      expect(card.zone, `${label}: castAsOmen off the stack`).toBe('stack');
     }
   }
 }

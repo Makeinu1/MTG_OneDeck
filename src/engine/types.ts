@@ -59,6 +59,8 @@ export interface CardInstance {
   announcedX?: number;
   /** CR 702.194b: true when this spell was cast using its teamwork cost. */
   usingTeamwork?: boolean;
+  /** CR 720.3: true when this spell was cast using its Omen characteristics. */
+  castAsOmen?: boolean;
   activationEnvelope?: ActivationEnvelope;
   /** CR 603.4 intervening-if condition copied from the pending trigger. */
   triggerCondition?: TriggerCondition;
