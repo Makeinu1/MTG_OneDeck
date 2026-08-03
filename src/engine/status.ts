@@ -2,6 +2,7 @@ import type { CardDef } from '../types/card';
 import type { CardInstance, GameState, PlayerId } from './types';
 import { classifyAbilityShape, splitAbilityLines } from './grammar/index';
 import { KEYWORD_DEFINITIONS, possessedKeywords } from './keywordGrammar';
+import { parseClassLevelBars, classLevelBarKeywords } from './classGrammar';
 
 export type Keyword =
   | 'flying'
@@ -43,6 +44,11 @@ const TYPE_WORD_PATTERN = /^[A-Za-z][A-Za-z'-]*$/;
 
 export function isKeyword(value: string): value is Keyword {
   return STATUS_KEYWORD_IDS.has(value);
+}
+
+/** CR 716.2d: a permanent without a level is treated as level 1. */
+export function classLevelOf(state: GameState, cardId: string): number {
+  return state.cards[cardId]?.classLevel ?? 1;
 }
 
 export function normalizeKeywords(values: readonly unknown[] | undefined): Keyword[] {
@@ -422,6 +428,22 @@ export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
       granted.push(...effect.keywords);
     }
   });
+  // CR 716.2a static half: Class level bars grant keywords to the Class itself
+  // when classLevel >= bar.level. Self-only; attached-object Class grants are
+  // out of scope (no known cards do this).
+  const def = state.defs[card.defId];
+  if (card.zone === 'battlefield' && currentTypeLine(def, card).includes('Class')) {
+    const face = currentFace(def, card);
+    const bars = parseClassLevelBars(face?.oracleText);
+    const level = classLevelOf(state, cardId);
+    // classLevelBarKeywords already skips bars above `level`; no pre-filter needed.
+    const barKeywords = classLevelBarKeywords(bars, level);
+    for (const kw of barKeywords) {
+      if (isKeyword(kw)) {
+        granted.push(kw);
+      }
+    }
+  }
   return normalizeKeywords([
     ...keywords(state.defs[card.defId]),
     ...(card.manualKeywords ?? []),

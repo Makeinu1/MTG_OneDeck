@@ -65,6 +65,8 @@ export interface CardInstance {
   /** Isolated effect body for a delayed trigger embedded in another ability. */
   abilityResolutionText?: string;
   isCopy?: boolean;
+  /** CR 716.2b: class level designation (not a counter). Defaults to 1 via classLevelOf. */
+  classLevel?: number;
 }
 
 export function objectIdOf(card: Pick<CardInstance, 'id' | 'zoneChangeCounter'>): string {

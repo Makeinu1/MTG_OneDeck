@@ -106,6 +106,7 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     'untapAll',
     'discard',
     'createScenarioDummy',
+    'setClassLevel',
   ] as const;
   const kind = pick([...kinds]);
 
@@ -118,6 +119,8 @@ function genCommand(state: GameState, rng: () => number): GameCommand {
     }
     case 'setTapped':
       return { type: 'setTapped', cardId: pick(allIds), tapped: rng() < 0.5 };
+    case 'setClassLevel':
+      return { type: 'setClassLevel', cardId: pick(allIds), level: Math.floor(rng() * 3) + 1 };
     case 'addCounters':
       return {
         type: 'addCounters',
@@ -492,6 +495,15 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
     }
     for (const blocker of state.combat.blockers) {
       expect(state.players[blocker.controllerId]).toBeDefined();
+    }
+  }
+  // I51/I53 (CR716 §34.51): classLevel is either undefined or an integer >= 1,
+  // and is independent of counters (CR 716.4). classLevelOf default 1 keeps the
+  // effective level >= 1 for every card.
+  for (const card of Object.values(state.cards)) {
+    if (card.classLevel !== undefined) {
+      expect(Number.isInteger(card.classLevel), `${label}: non-integer classLevel`).toBe(true);
+      expect(card.classLevel, `${label}: classLevel < 1`).toBeGreaterThanOrEqual(1);
     }
   }
 }

@@ -305,6 +305,7 @@ export type GameCommand =
       dungeonDefId?: string; // required when no active dungeon (309.2a choice)
       roomChoice?: number; // required when current room has multiple nextRooms (309.5a)
     }
+  | { type: 'setClassLevel'; cardId: string; level: number }
   | { type: 'chooseBattleProtector'; cardId: string; protectorId: PlayerId };
 
 export interface ApplyResult {
@@ -710,6 +711,10 @@ function resetCardForZoneChange(
     hasDeathtouchDamage: false,
     attachedTo: undefined,
     enteredTurn: 0,
+    // CR 400.7 / 716.2d (cold-audit FINDING-2): a zone change creates a new
+    // object with no memory of its previous level designation. A bounced,
+    // blinked, or re-cast Class re-enters the battlefield at level 1.
+    classLevel: undefined,
     // CR 400.7: a true zone change creates a new object with no memory of
     // targets chosen for the spell/object in its previous zone. In particular,
     // unchecked manual stack annotations must not reappear after resolve/recast.
@@ -7087,6 +7092,20 @@ function applyCommandInternal(
       requirePlayer(draft.state, cmd.protectorId);
       setCard(draft, { ...card, protectorId: cmd.protectorId });
       pushLog(draft, `${nameOf(draft, cmd.cardId)}の保護者に${cmd.protectorId}を指定しました。`);
+      break;
+    }
+    case 'setClassLevel': {
+      // Cold-audit FINDING-3: reject invalid levels before any state change
+      // (invariant I51: classLevelOf >= 1).
+      if (!Number.isInteger(cmd.level) || cmd.level < 1) {
+        throw new EngineError('クラスレベルは1以上の整数である必要があります。');
+      }
+      const card = requireCard(draft, cmd.cardId);
+      if (card.classLevel === cmd.level) {
+        break;
+      }
+      setCard(draft, { ...card, classLevel: cmd.level });
+      pushLog(draft, `${nameOf(draft, cmd.cardId)}のクラスレベルを${cmd.level}にしました。`);
       break;
     }
   }

@@ -788,14 +788,19 @@
       "type": "domain-slice",
       "domainId": "cr-716-class-cards",
       "crOrder": 716,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-602-activated-abilities",
         "cr-604-611-612-613-layers-continuous"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr716-class-cards",
+        "src/engine/__tests__/classGrammar.test.ts",
+        "cold-audit:Boole:BLOCKED-2HIGH",
+        "cold-audit:Mill:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
       "manualBoundary": "level counterとClass levelを混同せず、level能力を部分適用しない。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "shipped 2026-08-03: class level designation, Layer 6 keyword grants, zone-change reset."
     },
     {
       "type": "domain-slice",
@@ -2723,7 +2728,7 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-602-activated-abilities",
         "cr-604-611-612-613-layers-continuous"
@@ -2733,10 +2738,15 @@
         "continuousEffects",
         "activationCosts"
       ],
-      "boundary": "Class level designation・sorcery-speed activation・level-gated abilitiesは未実装。",
-      "evidence": [],
-      "manualBoundary": "level counterとClass levelを混同せず、level能力を部分適用しない。",
-      "nextGate": "CR716順でdesignationとLayer 6能力付与を一つのreplayにする。",
+      "boundary": "CR716.2a-2d/716.3/716.4: classLevel designation(CardInstance.classLevel), setClassLevel command(validation付き), Layer6 keyword付与(strict sentence-level self-grant), zone change reset(CR 400.7), level counters独立(716.4).",
+      "evidence": [
+        "review.cr716-class-cards",
+        "src/engine/__tests__/classGrammar.test.ts",
+        "cold-audit:Boole:BLOCKED-2HIGH",
+        "cold-audit:Mill:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
+      "manualBoundary": "level barの非keyword能力付与・\"becomes level N\" trigger・store integration(activation gate/sorcery speed)はdefer.",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr"
     },
     {
