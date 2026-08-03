@@ -806,14 +806,18 @@
       "type": "domain-slice",
       "domainId": "cr-719-case-cards",
       "crOrder": 719,
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-603-triggers-apnap",
         "cr-604-611-612-613-layers-continuous"
       ],
-      "evidence": [],
+      "evidence": [
+        "review.cr719-case-cards",
+        "src/engine/__tests__/caseGrammar.test.ts",
+        "cold-audit:Gauss:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
       "manualBoundary": "条件検査だけ、designationだけ、能力有効化だけを部分自動化しない。",
-      "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+      "note": "shipped 2026-08-03: solved designation, Solved static gate, zone-change reset."
     },
     {
       "type": "domain-slice",
@@ -2757,20 +2761,23 @@
       ],
       "lane": "late-backbone",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "cr-603-triggers-apnap",
         "cr-604-611-612-613-layers-continuous"
       ],
       "landingState": [
         "solvedDesignation",
-        "triggeredAbilities",
         "continuousEffects"
       ],
-      "boundary": "To solve条件・solved designation・Solved能力の有効化は未実装。",
-      "evidence": [],
-      "manualBoundary": "条件検査だけ、designationだけ、能力有効化だけを部分自動化しない。",
-      "nextGate": "CR719順でend-step triggerからSolved能力到達までreplay化する。",
+      "boundary": "CR719.3b/719.3c/702.169b: solved designation(CardInstance.solved), setSolved command(idempotent), Solved — static gate Layer6(keywordのみ), zone change reset(CR 400.7), same-zone reorder保持.",
+      "evidence": [
+        "review.cr719-case-cards",
+        "src/engine/__tests__/caseGrammar.test.ts",
+        "cold-audit:Gauss:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
+      ],
+      "manualBoundary": "To solve条件の自動評価(719.3a)はguided/manual。Solved triggered(702.169c)/activated(702.169d) gatingとstore統合はdefer.",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr"
     },
     {

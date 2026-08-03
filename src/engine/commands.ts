@@ -306,6 +306,7 @@ export type GameCommand =
       roomChoice?: number; // required when current room has multiple nextRooms (309.5a)
     }
   | { type: 'setClassLevel'; cardId: string; level: number }
+  | { type: 'setSolved'; cardId: string; solved: boolean }
   | { type: 'chooseBattleProtector'; cardId: string; protectorId: PlayerId };
 
 export interface ApplyResult {
@@ -715,6 +716,9 @@ function resetCardForZoneChange(
     // object with no memory of its previous level designation. A bounced,
     // blinked, or re-cast Class re-enters the battlefield at level 1.
     classLevel: undefined,
+    // CR 400.7 / 719.3b: the solved designation does not survive a zone
+    // change. A Case that leaves the battlefield and returns is unsolved.
+    solved: undefined,
     // CR 400.7: a true zone change creates a new object with no memory of
     // targets chosen for the spell/object in its previous zone. In particular,
     // unchecked manual stack annotations must not reappear after resolve/recast.
@@ -7106,6 +7110,25 @@ function applyCommandInternal(
       }
       setCard(draft, { ...card, classLevel: cmd.level });
       pushLog(draft, `${nameOf(draft, cmd.cardId)}のクラスレベルを${cmd.level}にしました。`);
+      break;
+    }
+    case 'setSolved': {
+      // CR 719.3b: solved is a designation, not a counter. Idempotent: the
+      // same value (undefined treated as false) makes no state change and
+      // emits no log. setSolved(false) is a sandbox/setup correction escape
+      // hatch; CR 719.3b itself only loses the designation by leaving the
+      // battlefield (handled by resetCardForZoneChange).
+      const card = requireCard(draft, cmd.cardId);
+      if ((card.solved ?? false) === cmd.solved) {
+        break;
+      }
+      setCard(draft, { ...card, solved: cmd.solved });
+      pushLog(
+        draft,
+        cmd.solved
+          ? `${nameOf(draft, cmd.cardId)}は解決された。`
+          : `${nameOf(draft, cmd.cardId)}の解決状態を取り消した。`,
+      );
       break;
     }
   }

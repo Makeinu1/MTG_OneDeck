@@ -67,6 +67,12 @@ export interface CardInstance {
   isCopy?: boolean;
   /** CR 716.2b: class level designation (not a counter). Defaults to 1 via classLevelOf. */
   classLevel?: number;
+  /**
+   * CR 719.3b: solved designation for Case cards (not a counter, not an ability,
+   * not copiable). Persists until the card leaves the battlefield (CR 400.7 via
+   * resetCardForZoneChange). undefined/false = not solved.
+   */
+  solved?: boolean;
 }
 
 export function objectIdOf(card: Pick<CardInstance, 'id' | 'zoneChangeCounter'>): string {

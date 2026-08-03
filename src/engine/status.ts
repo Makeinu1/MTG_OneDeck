@@ -3,6 +3,7 @@ import type { CardInstance, GameState, PlayerId } from './types';
 import { classifyAbilityShape, splitAbilityLines } from './grammar/index';
 import { KEYWORD_DEFINITIONS, possessedKeywords } from './keywordGrammar';
 import { parseClassLevelBars, classLevelBarKeywords } from './classGrammar';
+import { isSolvedGatedLine, parseCaseSections } from './caseGrammar';
 
 export type Keyword =
   | 'flying'
@@ -225,6 +226,12 @@ function staticAbilityLinesForCurrentFace(def: CardDef | undefined, card: CardIn
   // silently defeat its capture group.
   return splitAbilityLines(def)
     .filter((line) => line.faceIndex === faceIndex)
+    // CR 719.3c / 702.169b: a "Solved —" line is "As long as this Case is
+    // solved, [ability]". It never enters the generic Layer 4/6 static pool —
+    // the solved half is granted exclusively by the Case extension in
+    // effectiveKeywords, gated on the source card's own solved designation.
+    // Off-battlefield sources never reach here.
+    .filter((line) => !isSolvedGatedLine(line.text))
     .flatMap((line) => (classifyAbilityShape(line.text, typeLine) === 'static' ? splitRulesText(line.text) : []));
 }
 
@@ -441,6 +448,26 @@ export function effectiveKeywords(state: GameState, cardId: string): Keyword[] {
     for (const kw of barKeywords) {
       if (isKeyword(kw)) {
         granted.push(kw);
+      }
+    }
+  }
+  // CR 719.3c / 702.169b static half: a solved Case grants the abilities after
+  // its "Solved —" prefixes ("As long as this Case is solved, [ability]").
+  // The prefix is stripped and each sentence is fed through the same additive
+  // keyword parser discipline as the pool above (self-only; STATUS keyword
+  // vocabulary; all-or-nothing per sentence). Non-keyword static text inside
+  // solved lines is honestly ignored (deferred), same as Class bars.
+  if (card.zone === 'battlefield' && card.solved === true) {
+    const face = currentFace(def, card);
+    const { solvedAbilities } = parseCaseSections(face?.oracleText);
+    for (const ability of solvedAbilities) {
+      for (const rawSentence of ability.split('.')) {
+        const sentence = rawSentence.trim();
+        if (!sentence) continue;
+        const effect = parseLayer6AdditiveKeywordLine(sentence);
+        if (effect?.kind === 'self') {
+          granted.push(...effect.keywords);
+        }
       }
     }
   }

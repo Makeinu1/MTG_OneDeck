@@ -505,6 +505,10 @@ function checkInvariants(state: GameState, deckSize: number, label: string): voi
       expect(Number.isInteger(card.classLevel), `${label}: non-integer classLevel`).toBe(true);
       expect(card.classLevel, `${label}: classLevel < 1`).toBeGreaterThanOrEqual(1);
     }
+    // I55 (CR719 §34.52): solved is boolean or undefined for every card.
+    if (card.solved !== undefined) {
+      expect(typeof card.solved, `${label}: solved not boolean`).toBe('boolean');
+    }
   }
 }
 
