@@ -116,7 +116,7 @@
         "src/engine/commands.ts supports moveCard event metadata so the command-zone follow-up move is recorded as reason='sba' with sbaApplied='903.9a'",
         "src/engine/triggers.ts collects pending death/leaves triggers from ZoneChangeEvent before the commander is moved to command",
         "src/store/__tests__/ruleChoices.test.ts covers cr-commander-9039a-rule-choice pendingRuleChoices migration and the 903.9a SBA follow-up event when command is chosen",
-        "src/components/playmat/Playmat.test.tsx covers the CR 903.9a commander dialog path"
+        "src/components/game/dialogs.tsx (commander zone choice dialog, §735) covers the CR 903.9a commander dialog path; store coverage in src/store/__tests__/review.903-10a.test.ts"
       ],
       "currentImplementationGapRefs": [
         "Generic priority-boundary choice substrate (pendingRuleChoices) is implemented, including legacy pendingSbaChoices snapshot migration and resolveRuleChoiceInState resolution",
@@ -287,7 +287,7 @@
       ],
       "implementationRefs": [
         "src/store/gameStore.ts moveCommanderWithZoneChoice sends hand/library choices directly to command when command is chosen",
-        "src/components/playmat/Playmat.tsx only opens commander zone choices for graveyard/exile/hand/library destinations, not generic battlefield/stack movement",
+        "src/store/gameStore.ts only opens commander zone choices for graveyard/exile/hand/library destinations, not generic battlefield/stack movement (UI moved from legacy Playmat to src/components/game/dialogs.tsx)",
         "src/store/__tests__/crGrounding.test.ts covers hand replacement without an intermediate hand zone move",
         "src/store/__tests__/crGrounding.test.ts covers absence of an intermediate hand ZoneChangeEvent"
       ]

@@ -25,7 +25,7 @@
     ],
     "userRuling": "2026-07-23"
   },
-  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。",
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。 2026-08-04: Codex判定者が未登録CR7XX節(705/706/707/708/709/710/711/713/715/718/723/724/730/732/733)を14 domainとして登録(pending 11+pruned 3)。716/719/720のplannedSequence note/evidenceをdomainsと同期(statusは元々shipped)。pending 11件をplannedSequenceへcrOrder順補充。base SHA=2f30dba。全体査察brief=research/cr-grounding/cr-coverage-audit-brief-2026-08-04.md。 2026-08-04(続): 全体査察Sagan(BLOCKER/HIGH=0・AUDIT-OK-PENDING-FULL-CHECK)のfindings裁定を適用。F1=cr-114-emblems登録(userGate: 7XXバッチ完了まで選定しない)。F2=evidence再マッピングはmaintenance送り(F2-F5 hygieneエントリ)。F3=golden-cases.json廃Playmat参照修正。F4=cr-121-drawing重複マージ。F5=草稿パスarchive追従。F6=本provenance文言是正。F7=cr-733 nextGate尊重注記。findings全文=research/cr-grounding/archive/coverage-audit-2026-08-04/findings.md。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -168,12 +168,6 @@
       "status": "shipped",
       "userGate": "2026-07-21 ユーザー裁定: nextTurnの設計意味陳腐化を是正。cleanup-discardをスキップせずCR 514.1準拠で停止。",
       "note": "**出荷完了(2026-07-21・qwen判定者席・実装=qwen)**: applyNextTurnのcleanup-discardスキップロジックを撤去。nextTurnの本来の意図「各フェイズを自動パスして次ターンへ」に対し、cleanup実装後に「cleanup-discardをスキップして続行」が設計として固着していた(陳腐化)。CR 514.1準拠: cleanupの手札調整はプレイヤーの選択が必要。nextTurnはcleanup-discardが生成されていればそこで停止し、UIがダイアログを表示。review.* 2件を更新(判定者裁定: 是正に伴う必然的更新。冷監査で後検証)。"
-    },
-    {
-      "type": "domain-slice",
-      "domainId": "cr-121-drawing",
-      "note": "**出荷完了(2026-07-12・J2 Opus 判定者席・実装=Sonnet サブエージェント[ユーザー指示『Codex/ChatGPT リソースでなく Sonnet を使う』])**: CR121.2c 誠実性ガード。",
-      "status": "shipped"
     },
     {
       "type": "domain-slice",
@@ -800,7 +794,7 @@
         "cold-audit:Mill:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
       ],
       "manualBoundary": "level counterとClass levelを混同せず、level能力を部分適用しない。",
-      "note": "shipped 2026-08-03: class level designation, Layer 6 keyword grants, zone-change reset."
+      "note": "shipped 2026-08-03: class level designation, Layer 6 keyword grants, zone-change reset. (2026-08-04 domains同期)"
     },
     {
       "type": "domain-slice",
@@ -817,7 +811,7 @@
         "cold-audit:Gauss:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
       ],
       "manualBoundary": "条件検査だけ、designationだけ、能力有効化だけを部分自動化しない。",
-      "note": "shipped 2026-08-03: solved designation, Solved static gate, zone-change reset."
+      "note": "shipped 2026-08-03: solved designation, Solved static gate, zone-change reset. (2026-08-04 domains同期)"
     },
     {
       "type": "domain-slice",
@@ -834,7 +828,7 @@
         "cold-audit:Laplace:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK"
       ],
       "manualBoundary": "通常面で唱えてOmenとして解決済みと扱わず、cast choice全体をmanualに留める。",
-      "note": "shipped 2026-08-04: castAsOmen cast choice, 720.3d library shuffle resolve, face-scoped effect lines, 707.10a copy ruling."
+      "note": "shipped 2026-08-04: castAsOmen cast choice, 720.3d library shuffle resolve, 707.10a copy消滅. (2026-08-04 domains同期)"
     },
     {
       "type": "domain-slice",
@@ -889,6 +883,167 @@
       "evidence": [],
       "manualBoundary": "day/night designationとspell-count turn historyを推測せずmanualに留める。",
       "note": "補充(2026-08-02 Codex判定者): plannedSequence枯渇に伴うCR順補充。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-705-706-random-events",
+      "crOrder": 705,
+      "status": "pending",
+      "dependsOn": [
+        "cr-608-resolution"
+      ],
+      "evidence": [],
+      "manualBoundary": "乱数はエンジンruntime生成でなくコマンドpayloadに固定する。results tableの未対応分岐・modifier選択はmanualに留める。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-707-copying-objects",
+      "crOrder": 707,
+      "status": "pending",
+      "dependsOn": [
+        "cr-111-tokens",
+        "cr-400-408-zones-lki",
+        "cr-614-615-616-replacement-prevention",
+        "cr-601-casting-stack"
+      ],
+      "evidence": [],
+      "manualBoundary": "copiable values導出(何をcopyし何をしないか)を伴わないcopyをauto扱いしない。copy元の後からの変更がcopyに波及しない(707.2b)ことを検証してから昇格する。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-708-face-down-spells-permanents",
+      "crOrder": 708,
+      "status": "pending",
+      "dependsOn": [
+        "cr-707-copying-objects",
+        "cr-601-casting-stack"
+      ],
+      "evidence": [],
+      "manualBoundary": "face-down objectの真の特性を対戦相手側表示に漏らさない。morphコスト支払い・face-upを自動化済みとしない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-709-split-cards",
+      "crOrder": 709,
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "half選択・Fuse選択をcast choice記録なしにauto扱いしない。unlock cost支払いを部分実行しない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-710-flip-cards",
+      "crOrder": 710,
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards"
+      ],
+      "evidence": [],
+      "manualBoundary": "flip条件の自動評価をtrigger/条件parserなしにauto扱いしない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-711-leveler-cards",
+      "crOrder": 711,
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "evidence": [],
+      "manualBoundary": "level counter範囲条件のP/T・ability付与をstored continuous-effect ledgerなしにauto扱いしない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-715-adventurer-cards",
+      "crOrder": 715,
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards"
+      ],
+      "evidence": [],
+      "manualBoundary": "Adventure解決をgraveyard行きと扱わない。exileからのcastをchoice/許可記録なしに実行しない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-718-prototype-cards",
+      "crOrder": 718,
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards"
+      ],
+      "evidence": [],
+      "manualBoundary": "prototyped designation記録なしにalternative P/T・costを適用しない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-724-ending-turns-and-phases",
+      "crOrder": 724,
+      "status": "pending",
+      "dependsOn": [
+        "cr-500-514-turn-structure",
+        "cr-608-resolution",
+        "cr-117-priority"
+      ],
+      "evidence": [],
+      "manualBoundary": "「ターンを終了する」を通常nextPhase経路で部分実行しない。724.1a-fの全手順を原子実行する。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-730-merging-with-permanents",
+      "crOrder": 730,
+      "status": "pending",
+      "dependsOn": [
+        "cr-707-copying-objects",
+        "cr-110-permanents",
+        "cr-614-615-616-replacement-prevention"
+      ],
+      "evidence": [],
+      "manualBoundary": "merged permanentをzone移動時の分解なしで表現しない。最上位以外componentの特性を有効扱いしない。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-733-illegal-actions",
+      "crOrder": 733,
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-118-costs-act4"
+      ],
+      "evidence": [],
+      "manualBoundary": "違法castを開始してからrewindする経路を作らず、予防第一を維持する。",
+      "note": "補充(2026-08-04 Codex判定者): 未登録だったCR7XX節の台帳登録。"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "cr-114-emblems",
+      "crOrder": 114,
+      "status": "pending",
+      "dependsOn": [
+        "cr-113-abilities",
+        "cr-player-specific-zones",
+        "cr-606-loyalty-activation"
+      ],
+      "evidence": [],
+      "manualBoundary": "emblem生成を黙って欠落させず、GameState表現なしに解決済み扱いしない。",
+      "userGate": "2026-08-04 ユーザー指示「7XX台を順番に着手」= 現行7XXバッチ(721/722/725-726/728/731+新登録7XX群)の完了前に本エントリを選定しない。CR順(114<705)よりユーザーのバッチ指示を優先するstanding。",
+      "note": "登録(2026-08-04 Codex判定者): 全体査察Sagan F1(MEDIUM)裁定。CR114 Emblemは通常Commander到達可能・未登録・未実装だった。"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。",
@@ -915,12 +1070,12 @@
       "edhValue": "meta",
       "status": "shipped",
       "landingState": [],
-      "boundary": "**demand 計器修復出荷**(2026-07-12・spec=research/cr-grounding/score-ts-demand-catalog-repair.draft.md §2-4+§3b・Codex実装2ラウンド+冷Sonnet Tier-1)。",
+      "boundary": "**demand 計器修復出荷**(2026-07-12・spec=research/cr-grounding/archive/replenishment-2026-07-20/score-ts-demand-catalog-repair.draft.md §2-4+§3b・Codex実装2ラウンド+冷Sonnet Tier-1)。",
       "evidence": [
         "scripts/mydeck-scoring/engineCoverage.ts (engineCoverageTags/engineCoverageTagsForLine)",
         "scripts/mydeck-scoring/score.ts (per-line union)",
         "scripts/mydeck-scoring/__tests__/review.score-engine-coverage.test.ts (7 pin・両方向)",
-        "research/cr-grounding/score-ts-demand-catalog-repair.draft.md §3b",
+        "research/cr-grounding/archive/replenishment-2026-07-20/score-ts-demand-catalog-repair.draft.md §3b",
         "docs/engine-spec.md §34.7 demand coverage anchoring",
         "research/mydeck-scoring/{summary,report,gaps}.md/.json (再生成)"
       ],
@@ -1445,7 +1600,7 @@
       "evidence": [
         "cr-zone-change-new-object-lki",
         "docs/engine-spec.md §34.21",
-        "research/cr-grounding/cr-400-408-linked-exile.draft.md",
+        "research/cr-grounding/archive/replenishment-2026-07-20/cr-400-408-linked-exile.draft.md",
         "src/engine/__tests__/review.cr400-linked-exile.test.ts",
         "src/store/__tests__/review.cr400-linked-exile.test.ts",
         "src/engine/__tests__/review.cr400-408-return.test.ts",
@@ -2610,7 +2765,8 @@
       ],
       "manualBoundary": "designation/alternative characteristics/level/station/door stateを推測せず各card frameをmanualに留める。",
       "nextGate": "このbundle自体は選定せず、CR716/719/720/721/722子domainをcrOrder順に選ぶ。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "[SUPERSEDED 2026-08-04] 子domainへ分割済み: 716/719/720=shipped、721/722=専用pending domain、709.5j(Room door)=cr-709-split-cardsへ移管。本bundleは選定しない(既存nextGateどおり)。"
     },
     {
       "id": "cr-728-rad-counters-deferred-by-demand",
@@ -2867,6 +3023,308 @@
       ],
       "manualBoundary": "designation付与、copy生成、castの一部だけを行わず、全体replayが揃うまでmanualに留める。",
       "nextGate": "CR722順でprepared化からcopy cast、designation消失までreplay化する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-705-706-random-events",
+      "crOrder": 705,
+      "crRefs": [
+        "705",
+        "706"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-608-resolution"
+      ],
+      "landingState": [],
+      "boundary": "CR705.2 コイン投げ(win/lose型+結果参照型)とCR706 ダイス(706.2 modifier・706.3 results table)をcommand生成時payload乱数で固定しguided分岐する。706.7 planar die・706.8 stored results(Centaur of Attention)・705.3 結果固定効果は個別需要確認までdefer。",
+      "evidence": [],
+      "manualBoundary": "乱数はエンジンruntime生成でなくコマンドpayloadに固定する。results tableの未対応分岐・modifier選択はmanualに留める。",
+      "nextGate": "CR705/706順でcoinFlip/dieRoll command+results table guided promptを1 replayにする。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-707-copying-objects",
+      "crOrder": 707,
+      "crRefs": [
+        "707",
+        "613.2a"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-111-tokens",
+        "cr-400-408-zones-lki",
+        "cr-614-615-616-replacement-prevention",
+        "cr-601-casting-stack"
+      ],
+      "landingState": [],
+      "boundary": "CR707.2 copiable values(印刷面+他のcopy効果+face-down+as-enters P/Tのみ。counter/status/非copy効果はcopyしない)、707.5 enter-as-copyのETB置換・誘発、707.10 spell copy、707.10a SBA消滅が中核。707.10aはcr-720 Omen copy消滅で部分先例あり。707.9 exceptions・707.12 cast-a-copy・707.13/707.14単カード特異はmanual/defer。",
+      "evidence": [],
+      "manualBoundary": "copiable values導出(何をcopyし何をしないか)を伴わないcopyをauto扱いしない。copy元の後からの変更がcopyに波及しない(707.2b)ことを検証してから昇格する。",
+      "nextGate": "CR707順でpermanent copy(Clone型)+spell copyのreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-708-face-down-spells-permanents",
+      "crOrder": 708,
+      "crRefs": [
+        "708"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-707-copying-objects",
+        "cr-601-casting-stack"
+      ],
+      "landingState": [],
+      "boundary": "CR708.2a face-down 2/2無特性creature、708.3/708.4 ETB/stack特性の非適用、708.8 face-up時のcopiable values復帰(ETB再誘発なし)、708.9 zone移動時reveal。Morph/Disguise/Manifestのkeywordコスト・face-up special actionは同一domain内の別replay。既存のfaceDownフィールド/setFaceDown commandは最低限のみで体系未実装。",
+      "evidence": [],
+      "manualBoundary": "face-down objectの真の特性を対戦相手側表示に漏らさない。morphコスト支払い・face-upを自動化済みとしない。",
+      "nextGate": "CR708順でface-down cast/manifest→face-up special actionのreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-709-split-cards",
+      "crOrder": 709,
+      "crRefs": [
+        "709",
+        "702.102"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [],
+      "boundary": "CR709.2-709.4 half選択cast・stack上は選択halfのみ・stack外はcombined特性・Fuse(702.102)。CR709.5 shared type line(Room): unlocked designation・unlock cost special action(709.5e)・unlocked trigger。709.5j door語彙はこのdomainが所有する(旧bundle cr-716-...-new-card-framesの709.5j参照を移管)。",
+      "evidence": [],
+      "manualBoundary": "half選択・Fuse選択をcast choice記録なしにauto扱いしない。unlock cost支払いを部分実行しない。",
+      "nextGate": "CR709順でhalf cast choice→Room unlock designationのreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-710-flip-cards",
+      "crOrder": 710,
+      "crRefs": [
+        "710"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-108-cards"
+      ],
+      "landingState": [],
+      "boundary": "CR710.1b/710.2 flipped時のalternative characteristics(battlefield上のみ有効)、710.4 一方向・zone移動で記憶喪失、710.1c 色/マナコスト不変。",
+      "evidence": [],
+      "manualBoundary": "flip条件の自動評価をtrigger/条件parserなしにauto扱いしない。",
+      "nextGate": "CR710順でflipped designation+特性切替のreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-711-leveler-cards",
+      "crOrder": 711,
+      "crRefs": [
+        "711"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-122-counters",
+        "cr-604-611-612-613-layers-continuous"
+      ],
+      "landingState": [],
+      "boundary": "CR711.2a-2b level symbol static ability: level counterの範囲→base P/T(Layer 7b)+abilities(Layer 6)。716 Classとは独立(716.4: level counters≠class levels)。",
+      "evidence": [],
+      "manualBoundary": "level counter範囲条件のP/T・ability付与をstored continuous-effect ledgerなしにauto扱いしない。",
+      "nextGate": "CR711順でlevel counter範囲→特性のreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-713-substitute-cards",
+      "crOrder": 713,
+      "crRefs": [
+        "713"
+      ],
+      "lane": "pruned",
+      "edhValue": "low",
+      "status": "deferred",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "Substitute cardは物理サプライ(チェックリストカード)の規則。本アプリはDFC/meldをScryfallカードデータで直接表現し、モデルすべきGameStateが存在しない。",
+      "evidence": [],
+      "manualBoundary": "substitute cardの表現層を追加しない。",
+      "nextGate": "通常Commander scopeで実装不要(デジタル表現が既に直接)。",
+      "judge": "user-stop"
+    },
+    {
+      "id": "cr-715-adventurer-cards",
+      "crOrder": 715,
+      "crRefs": [
+        "715"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards"
+      ],
+      "landingState": [],
+      "boundary": "CR715.3 Adventure cast choice・715.3a/3b stack上はalternative characteristicsのみ、715.3d 解決時graveyardの代わりにexile・exileから通常cast可能(Adventureとしては不可)、715.2b alternative characteristicsはcopiable values。cr-720 Omenのcast choice/alternative characteristics基盤を再利用する。",
+      "evidence": [],
+      "manualBoundary": "Adventure解決をgraveyard行きと扱わない。exileからのcastをchoice/許可記録なしに実行しない。",
+      "nextGate": "CR715順でAdventure cast choice→exile→再castのreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-718-prototype-cards",
+      "crOrder": 718,
+      "crRefs": [
+        "718",
+        "702.160"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-108-cards"
+      ],
+      "landingState": [],
+      "boundary": "CR718.3 prototyped cast choice: alternative cost/P/T(718.3a/3b・色はalternative costから派生)、718.3c/3d copy伝播、718.5 他特性不変。cr-720 Omenのcast choice基盤を再利用する。",
+      "evidence": [],
+      "manualBoundary": "prototyped designation記録なしにalternative P/T・costを適用しない。",
+      "nextGate": "CR718順でprototyped cast choiceのreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-723-controlling-another-player",
+      "crOrder": 723,
+      "crRefs": [
+        "723"
+      ],
+      "lane": "pruned",
+      "edhValue": "low",
+      "status": "deferred",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "一人回しではユーザーが全席の意思決定を既に行う(synthetic opponent模型)。723の意思決定権移転は観察可能な差分を生まない。",
+      "evidence": [],
+      "manualBoundary": "controllingPlayer designationを追加しない。",
+      "nextGate": "AIがユーザーに代わってプレイする形態を導入する場合のみ再分類する。",
+      "judge": "user-stop"
+    },
+    {
+      "id": "cr-724-ending-turns-and-phases",
+      "crOrder": 724,
+      "crRefs": [
+        "724"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-500-514-turn-structure",
+        "cr-608-resolution",
+        "cr-117-priority"
+      ],
+      "landingState": [],
+      "boundary": "CR724.1 end the turn: 未stack誘発の消滅(724.1a)・stack全exile(724.1b)・SBAチェック(724.1c)・cleanupへ直行(724.1d)・処理中のpriorityなし(724.1f)。CR724.2 end the combat phaseは同型。",
+      "evidence": [],
+      "manualBoundary": "「ターンを終了する」を通常nextPhase経路で部分実行しない。724.1a-fの全手順を原子実行する。",
+      "nextGate": "CR724順でend-the-turn/end-the-combatのatomic command replayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-730-merging-with-permanents",
+      "crOrder": 730,
+      "crRefs": [
+        "730",
+        "702.140"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-707-copying-objects",
+        "cr-110-permanents",
+        "cr-614-615-616-replacement-prevention"
+      ],
+      "landingState": [],
+      "boundary": "CR730.2 merge: component stack・最上位componentの特性(730.2a copiable effect+timestamp)・730.2b ETB扱いなし・730.2c 継続効果維持、730.3 zone移動時のcomponent分解。Mutate(702.140)のcast choiceを含む。",
+      "evidence": [],
+      "manualBoundary": "merged permanentをzone移動時の分解なしで表現しない。最上位以外componentの特性を有効扱いしない。",
+      "nextGate": "CR730順でmutate cast choice→merge→分解のreplayを作る。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-732-shortcuts",
+      "crOrder": 732,
+      "crRefs": [
+        "732"
+      ],
+      "lane": "pruned",
+      "edhValue": "low",
+      "status": "deferred",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "Shortcut取り決めは人間間の通信規則(732.1a)。本アプリは明示的なGameCommand列+決定的エンジン+undo(上限200)で操作するため732の状態は不要。無限ループはコマンドの明示生成により構造的に回避される。",
+      "evidence": [],
+      "manualBoundary": "shortcut交渉・loop fragmentationの状態を追加しない。",
+      "nextGate": "AI駆動の自動プレイを導入する場合のみ再分類する。",
+      "judge": "user-stop"
+    },
+    {
+      "id": "cr-733-illegal-actions",
+      "crOrder": 733,
+      "crRefs": [
+        "733"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "low",
+      "status": "pending",
+      "dependsOn": [
+        "cr-601-casting-stack",
+        "cr-118-costs-act4"
+      ],
+      "landingState": [],
+      "boundary": "CR733.1 非法actionのrewind(マナ能力rewind含む)。現行方針=予防第一: コマンド生成時のfail-closed検証(cast/起動は合法でなければ開始されない)+guided cancelが代替。ACT-4起動封筒が733.1を部分参照済み。完全rewindは部分支払いが可能になった場合のみ必要。",
+      "evidence": [],
+      "manualBoundary": "違法castを開始してからrewindする経路を作らず、予防第一を維持する。",
+      "nextGate": "部分支払い経路が導入された時点で733.1 rewind replayを作る。それまでは予防第一で充足。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "cr-114-emblems",
+      "crOrder": 114,
+      "crRefs": [
+        "114",
+        "602",
+        "704"
+      ],
+      "lane": "late-backbone",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "cr-113-abilities",
+        "cr-player-specific-zones",
+        "cr-606-loyalty-activation"
+      ],
+      "landingState": [],
+      "boundary": "CR114.1-114.4: emblem marker(command zone・114.1/114.2 owner+control)・abilityのみを持つ(114.3)・command zoneで機能するability(114.4)。114.5 emblemはcardでもpermanentでもない。PW ultimate(606)が主生成経路。現行srcにemblem表現は0件(監査Sagan実証)。",
+      "evidence": [],
+      "manualBoundary": "emblem生成をPW能力解決の副作用として黙って欠落させない。emblemのabilityをGameState表現なしに解決済み扱いしない。",
+      "nextGate": "CR114順でemblem marker+command zone abilityのreplayを作る。",
       "judge": "deterministic-cr"
     }
   ],
