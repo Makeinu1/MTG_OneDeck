@@ -1,6 +1,6 @@
 # MyDeck Playability Census (static compiler coverage)
 
-Generated: 2026-07-20T05:27:21.754Z
+Generated: 2026-08-04T13:40:54.624Z
 
 ## Re-run
 
@@ -19,11 +19,11 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 | deck | entries | resolved | unresolved | auto cards | guided cards | manual cards | auto lines | guided lines | manual lines |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Celes | 99 | 95 | 4 | 10 | 7 | 78 | 30/180 | 17/180 | 133/180 |
+| Celes | 99 | 95 | 4 | 11 | 8 | 76 | 33/180 | 19/180 | 128/180 |
 | Gogo | 83 | 76 | 7 | 6 | 8 | 62 | 20/144 | 20/144 | 104/144 |
-| Kefka | 103 | 99 | 4 | 12 | 6 | 81 | 31/192 | 14/192 | 147/192 |
-| Muldrotha | 96 | 93 | 3 | 11 | 11 | 71 | 21/148 | 15/148 | 112/148 |
-| ALL | 381 | 363 | 18 | 39 | 32 | 292 | 102/664 | 66/664 | 496/664 |
+| Kefka | 103 | 99 | 4 | 12 | 6 | 81 | 34/192 | 14/192 | 144/192 |
+| Muldrotha | 96 | 93 | 3 | 12 | 12 | 69 | 22/148 | 16/148 | 110/148 |
+| ALL | 381 | 363 | 18 | 41 | 34 | 288 | 109/664 | 69/664 | 486/664 |
 
 ## Cross-deck recurring gaps
 
@@ -32,7 +32,6 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 | key | decks affected | occurrences |
 |---|---|---:|
 | `Fabled Passage` | Celes, Gogo, Kefka, Muldrotha | 4 |
-| `Accursed Marauder` | Celes, Muldrotha | 2 |
 | `Blasphemous Act` | Celes, Kefka | 2 |
 | `Blasphemous Edict` | Kefka, Muldrotha | 2 |
 | `Blood Crypt` | Celes, Kefka | 2 |
@@ -60,6 +59,7 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 |---|---|---:|
 | `Arcane Signet` | Celes, Gogo, Kefka, Muldrotha | 4 |
 | `Command Tower` | Celes, Kefka, Muldrotha | 3 |
+| `Accursed Marauder` | Celes, Muldrotha | 2 |
 | `Displacer Kitten` | Gogo, Muldrotha | 2 |
 | `Exotic Orchard` | Celes, Kefka | 2 |
 | `Fellwar Stone` | Gogo, Kefka | 2 |
@@ -101,7 +101,6 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 ## Celes — unsupported cards (UNSUPPORTED)
 
-- Accursed Marauder
 - Advanced Reconstruction
 - Alesha, Who Laughs at Fate
 - Alesha, Who Smiles at Death
@@ -155,7 +154,6 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 - Rite of Oblivion
 - Rogue's Passage
 - Rugged Prairie
-- Ruinous Ultimatum
 - Sacred Foundry
 - Selfless Spirit
 - Serra Paragon
@@ -182,6 +180,7 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 ## Celes — needs-click cards (NEEDS-CLICK)
 
+- Accursed Marauder
 - Akroma's Will
 - Arcane Signet
 - Command Tower
@@ -361,7 +360,6 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 ## Muldrotha — unsupported cards (UNSUPPORTED)
 
-- Accursed Marauder
 - Aftermath Analyst
 - Aminatou's Augury
 - Baleful Strix
@@ -407,7 +405,6 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 - Planar Genesis
 - Polluted Delta
 - Rimewood Falls
-- Ruin Crab
 - Shifting Woodland
 - Simic Growth Chamber
 - Spelunking
@@ -435,6 +432,7 @@ CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIden
 
 ## Muldrotha — needs-click cards (NEEDS-CLICK)
 
+- Accursed Marauder
 - Aether Spellbomb
 - Arcane Signet
 - Command Tower

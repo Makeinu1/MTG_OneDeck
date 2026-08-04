@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-20T05:27:21.754Z",
+  "generatedAt": "2026-08-04T13:40:54.624Z",
   "inputSnapshotPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "optionalFallbackPath": "research/mydeck-scoring/scryfall-fallback.cards.json",
   "ctxNote": "CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIdentity: <deck commander colorIdentity intersected with WUBRG> }. No live GameState exists in this static census, so commanderColorIdentity is derived directly from the deck entry file's Commander card (line 2 of each Mydeck/<deck>.txt), matching commanderColorIdentityForState() in src/engine/commands.ts. allowLibrarySearchComposite/libraryShuffleOrder left at defaults (undefined).",
@@ -16,14 +16,13 @@
       "resolvedEntries": 95,
       "unresolvedEntries": 4,
       "totalLines": 180,
-      "autoLines": 30,
-      "guidedLines": 17,
-      "manualLines": 133,
-      "autoCards": 10,
-      "guidedCards": 7,
-      "manualCards": 78,
+      "autoLines": 33,
+      "guidedLines": 19,
+      "manualLines": 128,
+      "autoCards": 11,
+      "guidedCards": 8,
+      "manualCards": 76,
       "unsupportedCards": [
-        "Accursed Marauder",
         "Advanced Reconstruction",
         "Alesha, Who Laughs at Fate",
         "Alesha, Who Smiles at Death",
@@ -77,7 +76,6 @@
         "Rite of Oblivion",
         "Rogue's Passage",
         "Rugged Prairie",
-        "Ruinous Ultimatum",
         "Sacred Foundry",
         "Selfless Spirit",
         "Serra Paragon",
@@ -103,6 +101,7 @@
         "Vault of Champions"
       ],
       "needsClickCards": [
+        "Accursed Marauder",
         "Akroma's Will",
         "Arcane Signet",
         "Command Tower",
@@ -205,9 +204,9 @@
       "resolvedEntries": 99,
       "unresolvedEntries": 4,
       "totalLines": 192,
-      "autoLines": 31,
+      "autoLines": 34,
       "guidedLines": 14,
-      "manualLines": 147,
+      "manualLines": 144,
       "autoCards": 12,
       "guidedCards": 6,
       "manualCards": 81,
@@ -309,14 +308,13 @@
       "resolvedEntries": 93,
       "unresolvedEntries": 3,
       "totalLines": 148,
-      "autoLines": 21,
-      "guidedLines": 15,
-      "manualLines": 112,
-      "autoCards": 11,
-      "guidedCards": 11,
-      "manualCards": 71,
+      "autoLines": 22,
+      "guidedLines": 16,
+      "manualLines": 110,
+      "autoCards": 12,
+      "guidedCards": 12,
+      "manualCards": 69,
       "unsupportedCards": [
-        "Accursed Marauder",
         "Aftermath Analyst",
         "Aminatou's Augury",
         "Baleful Strix",
@@ -362,7 +360,6 @@
         "Planar Genesis",
         "Polluted Delta",
         "Rimewood Falls",
-        "Ruin Crab",
         "Shifting Woodland",
         "Simic Growth Chamber",
         "Spelunking",
@@ -389,6 +386,7 @@
         "Yavimaya, Cradle of Growth"
       ],
       "needsClickCards": [
+        "Accursed Marauder",
         "Aether Spellbomb",
         "Arcane Signet",
         "Command Tower",
@@ -409,15 +407,13 @@
     "resolvedEntries": 363,
     "unresolvedEntries": 18,
     "totalLines": 664,
-    "autoLines": 102,
-    "guidedLines": 66,
-    "manualLines": 496,
-    "autoCards": 39,
-    "guidedCards": 32,
-    "manualCards": 292,
+    "autoLines": 109,
+    "guidedLines": 69,
+    "manualLines": 486,
+    "autoCards": 41,
+    "guidedCards": 34,
+    "manualCards": 288,
     "unsupportedCards": [
-      "Accursed Marauder",
-      "Accursed Marauder",
       "Advanced Reconstruction",
       "Aftermath Analyst",
       "Alesha, Who Laughs at Fate",
@@ -612,8 +608,6 @@
       "Rogue's Passage",
       "Rousing Refrain",
       "Rugged Prairie",
-      "Ruin Crab",
-      "Ruinous Ultimatum",
       "Sacred Foundry",
       "Sapphire Medallion",
       "Scalding Tarn",
@@ -710,6 +704,8 @@
       "Yavimaya, Cradle of Growth"
     ],
     "needsClickCards": [
+      "Accursed Marauder",
+      "Accursed Marauder",
       "Aether Spellbomb",
       "Akroma's Will",
       "Arcane Signet",
@@ -755,15 +751,6 @@
         "Muldrotha"
       ],
       "occurrences": 4
-    },
-    {
-      "key": "Accursed Marauder",
-      "kind": "card",
-      "decksAffected": [
-        "Celes",
-        "Muldrotha"
-      ],
-      "occurrences": 2
     },
     {
       "key": "Blasphemous Act",
@@ -967,6 +954,15 @@
         "Muldrotha"
       ],
       "occurrences": 3
+    },
+    {
+      "key": "Accursed Marauder",
+      "kind": "card",
+      "decksAffected": [
+        "Celes",
+        "Muldrotha"
+      ],
+      "occurrences": 2
     },
     {
       "key": "Displacer Kitten",
@@ -1514,19 +1510,15 @@
           "lineIndex": 0,
           "shape": "triggered",
           "text": "When this creature enters, each player sacrifices a nontoken creature of their choice.",
-          "decision": "manual",
-          "reasons": [
-            "needs-parse"
-          ]
+          "decision": "guided",
+          "reasons": []
         }
       ],
-      "worstDecision": "manual",
+      "worstDecision": "guided",
       "autoLines": 0,
-      "guidedLines": 0,
-      "manualLines": 1,
-      "manualReasons": [
-        "needs-parse"
-      ]
+      "guidedLines": 1,
+      "manualLines": 0,
+      "manualReasons": []
     },
     {
       "deck": "Celes",
@@ -1813,9 +1805,7 @@
           "text": "Dance — At the beginning of your end step, each player may discard a card. Each player who discarded a card this way draws a card. If a creature card was discarded this way, you create a 1/2 white Moogle creature token with lifelink. Then if a noncreature card was discarded this way, put a +1/+1 counter on each Moogle you control.",
           "decision": "manual",
           "reasons": [
-            "needs-choice",
-            "needs-parse",
-            "needs-target"
+            "needs-parse"
           ]
         }
       ],
@@ -1824,9 +1814,7 @@
       "guidedLines": 0,
       "manualLines": 2,
       "manualReasons": [
-        "needs-choice",
         "needs-parse",
-        "needs-target",
         "no-effect"
       ]
     },
@@ -2862,19 +2850,15 @@
           "lineIndex": 0,
           "shape": "spell",
           "text": "Destroy all nonland permanents your opponents control.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "auto",
+          "reasons": []
         }
       ],
-      "worstDecision": "manual",
-      "autoLines": 0,
+      "worstDecision": "auto",
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 1,
-      "manualReasons": [
-        "needs-target"
-      ]
+      "manualLines": 0,
+      "manualReasons": []
     },
     {
       "deck": "Celes",
@@ -3116,10 +3100,8 @@
           "lineIndex": 2,
           "shape": "triggered",
           "text": "Whenever one or more cards leave your graveyard, this Class deals 2 damage to each opponent.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "auto",
+          "reasons": []
         },
         {
           "faceIndex": 0,
@@ -3143,9 +3125,9 @@
         }
       ],
       "worstDecision": "manual",
-      "autoLines": 0,
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 5,
+      "manualLines": 4,
       "manualReasons": [
         "needs-target",
         "no-effect",
@@ -3463,27 +3445,23 @@
         {
           "faceIndex": 0,
           "lineIndex": 1,
-          "shape": "static",
+          "shape": "activated",
           "text": "+1: Create a 2/2 black Zombie creature token.",
-          "decision": "manual",
-          "reasons": [
-            "needs-parse"
-          ]
+          "decision": "auto",
+          "reasons": []
         },
         {
           "faceIndex": 0,
           "lineIndex": 2,
-          "shape": "static",
+          "shape": "activated",
           "text": "−4: Each player sacrifices two creatures of their choice.",
-          "decision": "manual",
-          "reasons": [
-            "needs-parse"
-          ]
+          "decision": "guided",
+          "reasons": []
         },
         {
           "faceIndex": 0,
           "lineIndex": 3,
-          "shape": "static",
+          "shape": "activated",
           "text": "−9: Each opponent chooses a permanent they control of each permanent type and sacrifices the rest.",
           "decision": "manual",
           "reasons": [
@@ -3492,9 +3470,9 @@
         }
       ],
       "worstDecision": "manual",
-      "autoLines": 1,
-      "guidedLines": 0,
-      "manualLines": 3,
+      "autoLines": 2,
+      "guidedLines": 1,
+      "manualLines": 1,
       "manualReasons": [
         "needs-parse"
       ]
@@ -6844,7 +6822,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 0,
-          "shape": "static",
+          "shape": "activated",
           "text": "+1: Untap up to two target artifacts.",
           "decision": "manual",
           "reasons": [
@@ -6867,7 +6845,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 2,
-          "shape": "static",
+          "shape": "activated",
           "text": "−5: Artifacts you control become artifact creatures with base power and toughness 5/5 until end of turn.",
           "decision": "manual",
           "reasons": [
@@ -6900,7 +6878,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 0,
-          "shape": "static",
+          "shape": "activated",
           "text": "+1: Look at the top two cards of your library. Put one of them into your hand and the other on the bottom of your library.",
           "decision": "manual",
           "reasons": [
@@ -6910,7 +6888,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 1,
-          "shape": "static",
+          "shape": "activated",
           "text": "−1: Untap up to four target permanents.",
           "decision": "manual",
           "reasons": [
@@ -6920,7 +6898,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 2,
-          "shape": "static",
+          "shape": "activated",
           "text": "−10: You get an emblem with",
           "decision": "manual",
           "reasons": [
@@ -7948,20 +7926,17 @@
           "lineIndex": 1,
           "shape": "triggered",
           "text": "Whenever you cast a noncreature spell, put a +1/+1 counter on Vivi Ornitier and it deals 1 damage to each opponent.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "auto",
+          "reasons": []
         }
       ],
       "worstDecision": "manual",
-      "autoLines": 0,
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 2,
+      "manualLines": 1,
       "manualReasons": [
         "needs-choice",
         "needs-parse",
-        "needs-target",
         "variable-count"
       ]
     },
@@ -8969,8 +8944,7 @@
           "text": "Each player may discard their hand and draw five cards. Then Snort deals 5 damage to each opponent who discarded their hand this way.",
           "decision": "manual",
           "reasons": [
-            "needs-choice",
-            "needs-target"
+            "needs-parse"
           ]
         },
         {
@@ -8989,8 +8963,7 @@
       "guidedLines": 0,
       "manualLines": 2,
       "manualReasons": [
-        "needs-choice",
-        "needs-target",
+        "needs-parse",
         "no-effect"
       ]
     },
@@ -9314,10 +9287,8 @@
           "lineIndex": 2,
           "shape": "triggered",
           "text": "Whenever you discard a card, this Class deals 2 damage to each opponent.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "auto",
+          "reasons": []
         },
         {
           "faceIndex": 0,
@@ -9342,13 +9313,12 @@
         }
       ],
       "worstDecision": "manual",
-      "autoLines": 0,
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 5,
+      "manualLines": 4,
       "manualReasons": [
         "needs-choice",
         "needs-parse",
-        "needs-target",
         "no-effect",
         "optional"
       ]
@@ -10587,10 +10557,8 @@
           "lineIndex": 1,
           "shape": "activated",
           "text": "{1}{B}{R}, {T}: Mount Doom deals 1 damage to each opponent.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "auto",
+          "reasons": []
         },
         {
           "faceIndex": 0,
@@ -10606,9 +10574,9 @@
         }
       ],
       "worstDecision": "manual",
-      "autoLines": 0,
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 3,
+      "manualLines": 2,
       "manualReasons": [
         "ambiguous-mana",
         "needs-choice",
@@ -11228,19 +11196,15 @@
           "lineIndex": 0,
           "shape": "static",
           "text": "Landfall — Whenever a land you control enters, each opponent mills three cards.",
-          "decision": "manual",
-          "reasons": [
-            "needs-parse"
-          ]
+          "decision": "auto",
+          "reasons": []
         }
       ],
-      "worstDecision": "manual",
-      "autoLines": 0,
+      "worstDecision": "auto",
+      "autoLines": 1,
       "guidedLines": 0,
-      "manualLines": 1,
-      "manualReasons": [
-        "needs-parse"
-      ]
+      "manualLines": 0,
+      "manualReasons": []
     },
     {
       "deck": "Muldrotha",
@@ -11430,19 +11394,15 @@
           "lineIndex": 0,
           "shape": "triggered",
           "text": "When this creature enters, each player sacrifices a nontoken creature of their choice.",
-          "decision": "manual",
-          "reasons": [
-            "needs-parse"
-          ]
+          "decision": "guided",
+          "reasons": []
         }
       ],
-      "worstDecision": "manual",
+      "worstDecision": "guided",
       "autoLines": 0,
-      "guidedLines": 0,
-      "manualLines": 1,
-      "manualReasons": [
-        "needs-parse"
-      ]
+      "guidedLines": 1,
+      "manualLines": 0,
+      "manualReasons": []
     },
     {
       "deck": "Muldrotha",
@@ -12536,9 +12496,7 @@
           "text": "Destroy each nonland permanent with mana value 2 or less. Add {B} or {G} for each permanent destroyed this way.",
           "decision": "manual",
           "reasons": [
-            "needs-parse",
-            "needs-target",
-            "variable-count"
+            "needs-parse"
           ]
         }
       ],
@@ -12547,9 +12505,7 @@
       "guidedLines": 0,
       "manualLines": 1,
       "manualReasons": [
-        "needs-parse",
-        "needs-target",
-        "variable-count"
+        "needs-parse"
       ]
     },
     {
@@ -12835,9 +12791,7 @@
           "text": "When this enchantment enters, each opponent sacrifices a creature or Vehicle of their choice. Each opponent who can't discards a card.",
           "decision": "manual",
           "reasons": [
-            "needs-choice",
-            "needs-parse",
-            "needs-target"
+            "needs-parse"
           ]
         },
         {
@@ -12856,9 +12810,7 @@
       "guidedLines": 0,
       "manualLines": 3,
       "manualReasons": [
-        "needs-choice",
         "needs-parse",
-        "needs-target",
         "no-effect",
         "variable-count"
       ]
@@ -12878,8 +12830,7 @@
           "text": "{X}, Sacrifice this enchantment: Destroy each artifact, creature, and enchantment with mana value X or less.",
           "decision": "manual",
           "reasons": [
-            "needs-target",
-            "variable-count"
+            "needs-parse"
           ]
         }
       ],
@@ -12888,8 +12839,7 @@
       "guidedLines": 0,
       "manualLines": 1,
       "manualReasons": [
-        "needs-target",
-        "variable-count"
+        "needs-parse"
       ]
     },
     {
@@ -13277,7 +13227,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 0,
-          "shape": "static",
+          "shape": "activated",
           "text": "+2: Ugin deals 3 damage to any target.",
           "decision": "manual",
           "reasons": [
@@ -13298,7 +13248,7 @@
         {
           "faceIndex": 0,
           "lineIndex": 2,
-          "shape": "static",
+          "shape": "activated",
           "text": "−10: You gain 7 life, draw seven cards, then put up to seven permanent cards from your hand onto the battlefield.",
           "decision": "manual",
           "reasons": [
