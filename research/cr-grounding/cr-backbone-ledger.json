@@ -6,7 +6,7 @@
   "purpose": "通常Commander/EDH scopeのCR章を 背骨/後期背骨/葉/剪定 に分類し、検査可能なGameStateと可逆なGameCommandへ章順に落とす。autoloopのnext判断をlookup化する単一正本。",
   "goalPolicy": {
     "scope": "normal-commander-edh",
-    "ordering": "cr-chapter-section-ascending-with-minimal-dependency-detours",
+    "ordering": "feel-queue-first-with-cr-batch-in-parallel",
     "precedence": [
       "fake-green-or-broken-automation",
       "unaudited-implementation",
@@ -23,9 +23,10 @@
       "planechase-archenemy-conspiracy-draft",
       "other existing variant/pruned boundaries"
     ],
-    "userRuling": "2026-07-23"
+    "userRuling": "2026-08-04",
+    "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。"
   },
-  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。 2026-08-04: Codex判定者が未登録CR7XX節(705/706/707/708/709/710/711/713/715/718/723/724/730/732/733)を14 domainとして登録(pending 11+pruned 3)。716/719/720のplannedSequence note/evidenceをdomainsと同期(statusは元々shipped)。pending 11件をplannedSequenceへcrOrder順補充。base SHA=2f30dba。全体査察brief=research/cr-grounding/cr-coverage-audit-brief-2026-08-04.md。 2026-08-04(続): 全体査察Sagan(BLOCKER/HIGH=0・AUDIT-OK-PENDING-FULL-CHECK)のfindings裁定を適用。F1=cr-114-emblems登録(userGate: 7XXバッチ完了まで選定しない)。F2=evidence再マッピングはmaintenance送り(F2-F5 hygieneエントリ)。F3=golden-cases.json廃Playmat参照修正。F4=cr-121-drawing重複マージ。F5=草稿パスarchive追従。F6=本provenance文言是正。F7=cr-733 nextGate尊重注記。findings全文=research/cr-grounding/archive/coverage-audit-2026-08-04/findings.md。",
+  "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。 2026-08-04: Codex判定者が未登録CR7XX節(705/706/707/708/709/710/711/713/715/718/723/724/730/732/733)を14 domainとして登録(pending 11+pruned 3)。716/719/720のplannedSequence note/evidenceをdomainsと同期(statusは元々shipped)。pending 11件をplannedSequenceへcrOrder順補充。base SHA=2f30dba。全体査察brief=research/cr-grounding/cr-coverage-audit-brief-2026-08-04.md。 2026-08-04(続): 全体査察Sagan(BLOCKER/HIGH=0・AUDIT-OK-PENDING-FULL-CHECK)のfindings裁定を適用。F1=cr-114-emblems登録(userGate: 7XXバッチ完了まで選定しない)。F2=evidence再マッピングはmaintenance送り(F2-F5 hygieneエントリ)。F3=golden-cases.json廃Playmat参照修正。F4=cr-121-drawing重複マージ。F5=草稿パスarchive追従。F6=本provenance文言是正。F7=cr-733 nextGate尊重注記。findings全文=research/cr-grounding/archive/coverage-audit-2026-08-04/findings.md。 2026-08-04(続2): ユーザー裁定「気持ちよさキュー優先」を適用。feelレーン新設(laneDefinitions.feel)。feel-1〜4を登録(guided深化/silent skip誠実化/PC退行回復/AV7統合)。selectionRule改定=feelキュー優先消費+CRバッチ並行。goalPolicy.userRuling=2026-08-04。",
   "plannedSequence": [
     {
       "type": "design-slice",
@@ -1044,14 +1045,58 @@
       "manualBoundary": "emblem生成を黙って欠落させず、GameState表現なしに解決済み扱いしない。",
       "userGate": "2026-08-04 ユーザー指示「7XX台を順番に着手」= 現行7XXバッチ(721/722/725-726/728/731+新登録7XX群)の完了前に本エントリを選定しない。CR順(114<705)よりユーザーのバッチ指示を優先するstanding。",
       "note": "登録(2026-08-04 Codex判定者): 全体査察Sagan F1(MEDIUM)裁定。CR114 Emblemは通常Commander到達可能・未登録・未実装だった。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-1-guided-target-sweep",
+      "status": "pending",
+      "dependsOn": [
+        "cr-115-targets",
+        "cr-modal-target-optional-variable"
+      ],
+      "evidence": [],
+      "manualBoundary": "対象選択を推測でauto化しない。guided promptは必ずユーザーが対象を選ぶ。フィルタに適合しない対象を合法扱いしない。文法不一致はmanualへfail-closed。",
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): needs-target 239行のguided化。既存filter文法拡張のみ。最大UX改善源。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-2-silent-skip-honesty",
+      "status": "pending",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "選択を必要とする効果をユーザー選択なしに解決済み扱いしない。",
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): silent skipを誠実な分岐UIへ。信頼の土台。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-3-pc-affordance-recovery",
+      "status": "pending",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "ルール実行・右クリック代替の到達性を回復前に実証する。",
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): PC退行回復(d4a)。失われた分の回収。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-4-av7-production-integration",
+      "status": "pending",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): AV7本番統合。演出の気持ちよさ。"
     }
   ],
-  "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。",
+  "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
   "laneDefinitions": {
     "backbone": "GameStateの形/状態遷移/event/priority/SBA/compiler着地先を決める。CR依存順に実装。",
     "late-backbone": "重要だが前提stateが重い。設計を先に凍結し実装は段階化。",
     "leaf-compiler": "oracle text→command変換の個別文法/能力。substrate完成後に増やす。",
-    "pruned": "EDH一人回しの主価値に直結しない or 手動/助言で十分。実装しないが可視に残す。"
+    "pruned": "EDH一人回しの主価値に直結しない or 手動/助言で十分。実装しないが可視に残す。",
+    "feel": "UX/信頼/演出の深化レーン。CR章順ではなくcensus実測の摩擦順で選ぶ。manual→guided/auto変換、silent skipの誠実化、既知退行の回復、AV統合を扱う。GameStateの新規追加はjudge-protocol §5.1抽象昇格テストに従う。"
   },
   "statusDefinitions": {
     "pending": "選定可能だが契約未凍結",
@@ -3326,6 +3371,76 @@
       "manualBoundary": "emblem生成をPW能力解決の副作用として黙って欠落させない。emblemのabilityをGameState表現なしに解決済み扱いしない。",
       "nextGate": "CR114順でemblem marker+command zone abilityのreplayを作る。",
       "judge": "deterministic-cr"
+    },
+    {
+      "id": "feel-1-guided-target-sweep",
+      "crOrder": null,
+      "crRefs": [
+        "115",
+        "601.2b",
+        "608.2h"
+      ],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "cr-115-targets",
+        "cr-modal-target-optional-variable"
+      ],
+      "landingState": [],
+      "boundary": "needs-target 239行(2026-07-20 census)のguided化スイープ。対象=you-control系(53行)・from-graveyard系(25行)・type-filter系(15行)・up-to-N(12行)・plain単対象(132行のうち文法拡張で届く分)をguidedTargetPromptのfilter文法拡張でmanual→guided化する。新CR知識不要。対象の合法性判定(115)は既存targetFilterForRawの拡張。mass系(20行)は本スライスの対象外(no-effect/mass domainの管轄)。",
+      "evidence": [],
+      "manualBoundary": "対象選択を推測でauto化しない。guided promptは必ずユーザーが対象を選ぶ。フィルタに適合しない対象を合法扱いしない。文法不一致はmanualへfail-closed。",
+      "nextGate": "census再走でneeds-target行数の実減少を実測してshipped昇格する。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "feel-2-silent-skip-honesty",
+      "crOrder": null,
+      "crRefs": [
+        "608.2h",
+        "101.3"
+      ],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "guided/選択要求の効果がpromptなしでsilent skipされる経路(playthrough interventions)を、「手動処理/スキップ」の誠実な分岐UIへ変える。北極星②fake-green禁止と一致。",
+      "evidence": [],
+      "manualBoundary": "選択を必要とする効果をユーザー選択なしに解決済み扱いしない。",
+      "nextGate": "playthrough再走でinterventions=0、または全interventionが明示ダイアログになる。",
+      "judge": "deterministic-cr"
+    },
+    {
+      "id": "feel-3-pc-affordance-recovery",
+      "crOrder": null,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "既存d4a-pc-affordance-recoveryの実行。hover preview/DnD喪失・8枚手札・フェーズ可読性・盤面幅のユーザー確認済み退行を回復する。research/design/d4a-pc-affordance-recovery.draft.mdが契約草稿。旧Playmat復活ではなくD4 grid-area路線で実施。",
+      "evidence": [],
+      "manualBoundary": "ルール実行・右クリック代替の到達性を回復前に実証する。",
+      "nextGate": "375×812/812×375/1440×900実機+console error 0+ユーザー退行確認の解消。",
+      "judge": "user-stop"
+    },
+    {
+      "id": "feel-4-av7-production-integration",
+      "crOrder": null,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "AV7 production integration(2026-08-01ユーザー承認済み)の本番組み込み完了。docs/audio-visual-contract.md §12が契約。AV0〜AV6 shipped・AV7は試聴承認済みの部分実装あり。",
+      "evidence": [],
+      "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
+      "nextGate": "acceptance M-AVの人間ゲート(H1〜H7)完了。",
+      "judge": "user-stop"
     }
   ],
   "judgePolicy": {
