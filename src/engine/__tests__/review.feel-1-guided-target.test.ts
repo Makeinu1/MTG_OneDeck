@@ -20,8 +20,6 @@ import type { GameState } from '../types';
 import { makeDeck, makeDef } from './helpers';
 import type { CardDef } from '../../types/card';
 
-const SOURCE_DEF = makeDef({ scryfallId: 'feel1-source', typeLine: 'Instant' });
-
 function compile(text: string, typeLine = 'Instant') {
   const def = makeDef({ scryfallId: 'feel1-source', typeLine });
   return compileAbilityIR(parseAbilityIR(text, typeLine), {

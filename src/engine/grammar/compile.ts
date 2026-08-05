@@ -2619,7 +2619,7 @@ export function buildGuidedCommands(
           ];
         }
         return [{ type: 'moveCard', cardId, to: 'exile', position: 'bottom' }];
-      case 'effect.return':
+      case 'effect.return': {
         // CR 701.9a: the destination zone is fixed by the clause text ("...to the
         // battlefield" vs "...to your/its owner's hand"), not by the filter's source
         // zone — a graveyard-source return can go to either. Fail closed (no command)
@@ -2636,6 +2636,7 @@ export function buildGuidedCommands(
             position: 'bottom',
           },
         ];
+      }
       case 'effect.tap':
         return [{ type: 'setTapped', cardId, tapped: true }];
       case 'effect.untap':
