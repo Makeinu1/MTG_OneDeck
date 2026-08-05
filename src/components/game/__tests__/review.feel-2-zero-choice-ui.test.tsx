@@ -156,10 +156,16 @@ describe('review.feel-2-zero-choice-ui: explicit legal-zero affordance', () => {
       },
     });
 
-    await act(async () => root.render(<Harness />));
+    await act(async () => {
+      root.render(<Harness />);
+      await Promise.resolve();
+    });
     const zero = container.querySelector<HTMLElement>('[data-testid="guided-zero-confirm"]');
     expect(zero).not.toBeNull();
-    await act(async () => zero?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await act(async () => {
+      zero?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
     expect(store().pendingGuided).toBeNull();
   });
 });
