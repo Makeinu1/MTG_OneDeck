@@ -2810,7 +2810,8 @@
       ],
       "manualBoundary": "chapter ability効果本体の解決はmanual/guidedのまま。addCounters経路のlore追加はdefer(proliferate等将来スライス)。",
       "nextGate": "shipped。次のCR章順スライスへ進む。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "2026-08-05 ユーザー報告「ウルザの物語がうまく発動しない」受領。判定者 probe: substrate健全(ETB lore=1+chapter I trigger・playLand・turn-based lore increment+chapter II trigger まで再現)。chapter effect は本domainの manualBoundary(chapter ability効... guided/manual)による既知境界=ユーザーの観察は境界挙動と整合。再現できない追加症状(具体的手順)があれば要報告。"
     },
     {
       "id": "cr-716-719-720-721-722-new-card-frames-deferred-by-demand",
@@ -3441,14 +3442,28 @@
       ],
       "lane": "feel",
       "edhValue": "high",
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [],
-      "landingState": [],
+      "landingState": [
+        "guidedHandled",
+        "abandonedRequiredPrompt",
+        "confirmGuidedZeroChoice",
+        "DecisionBar zero-choice",
+        "warnings dedup"
+      ],
       "boundary": "guided/選択要求の効果がpromptなしでsilent skipされる経路(playthrough interventions)を、「手動処理/スキップ」の誠実な分岐UIへ変える。北極星②fake-green禁止と一致。",
-      "evidence": [],
+      "evidence": [
+        "docs/engine-spec.md §34.55",
+        "src/store/__tests__/review.feel-2-silent-skip-honesty.test.ts (R1-R8+R7a/R7b)",
+        "src/components/game/__tests__/review.feel-2-zero-choice-ui.test.tsx (4件)",
+        "cold-audit:Aristotle:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK",
+        "cold-audit:Aristotle:F1-MEDIUM→判定者裁定(dedup全経路追認・§34.55.1追記)",
+        "UI evidence 375x812/812x375/1440x900 target+loot console error 0 (2026-08-05)"
+      ],
       "manualBoundary": "選択を必要とする効果をユーザー選択なしに解決済み扱いしない。",
       "nextGate": "playthrough再走でinterventions=0、または全interventionが明示ダイアログになる。",
-      "judge": "deterministic-cr"
+      "judge": "deterministic-cr",
+      "note": "2026-08-05 候補凍結 2c07351。cold-audit Aristotle BLOCKER0/HIGH0→AUDIT-OK-PENDING-FULL-CHECK。F1(MEDIUM)=§34.55.1「完全不変」と§34.55.2無条件dedupの矛盾→(a)追認で閉塞: dedupは全経路の意図、§34.55.1にcarve-out追記、コード変更なし。F2/F3=brief記載修正のみ。release full check待ち。"
     },
     {
       "id": "feel-3-pc-affordance-recovery",

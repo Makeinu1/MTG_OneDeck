@@ -3479,7 +3479,7 @@ type GameCommand =
 
 - `resolveStackTop` に任意 payload `guidedHandled?: boolean` を追加する。store の guided plan が提示した prompt を**全て合法回答**したときだけ `true`。乱数なし・payload 固定=決定論維持。GameState 不変のため undo/snapshot/restoreGame への影響なし。
 - **合法回答**の定義: (a) confirm 系アクションで prompt の count/minCount を満たす回答、(b) `minCount === 0` の prompt のゼロ選択(CR 115.6)、(c) variableLoot prompt の「捨て止め」確定(CR 608.2h・§34.47 の cancel 最終化と同一意味)、(d) 提示前に除外された prompt(count 0 の simultaneous 受信者なし)。**合法でない cancel**(`variableLoot` 無しかつ `minCount ?? count >= 1` の prompt の放棄)= abandonment として記録する。
-- 生エンジン利用(golden replay・playthrough harness・`guidedHandled` なし呼び出し)の挙動は完全不変。
+- 生エンジン利用(golden replay・playthrough harness・`guidedHandled` なし呼び出し)の挙動は、§34.55.2 の重複排除を除き不変。manual remainder 警告の重複排除は全経路で無条件に適用される(1 item 1 警告)。よって manual 行が複数の item の解決は警告が N 件→1件に減る。これは全経路の意図である(2026-08-05 判定者追認・冷監査 Aristotle F1 裁定。「重複警告 実測 2 件」の問題意識は guided/raw を問わず成立し、方向に不誠実さはない)。
 
 #### 34.55.2 エンジン挙動(`applyCompiledEffectsForStackItem`)
 

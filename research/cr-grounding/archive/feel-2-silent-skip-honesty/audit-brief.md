@@ -38,7 +38,7 @@
 
 1. `CI=1 npx vitest run src/store/__tests__/review.feel-2-silent-skip-honesty.test.ts --reporter=verbose`(R1-R8)
 2. `CI=1 npx vitest run src/components/game/__tests__/review.feel-2-zero-choice-ui.test.tsx --reporter=verbose`(4件)
-3. 回帰床: `CI=1 npx vitest run src/engine/__tests__/review.cr121-loot-variable-count.test.ts src/components/game/__tests__/review.s4-decision-bar.test.tsx --reporter=dot`
+3. 回帰床: `CI=1 npx vitest run src/store/__tests__/review.cr121-loot-variable-count.test.ts src/components/game/__tests__/review.s4-decision-bar.test.tsx --reporter=dot`
    および `CI=1 npx vitest run src/engine/__tests__/review.cr608-resolution-sliceA.test.ts src/engine/__tests__/review.cr608-resolution-sliceB.test.ts --reporter=dot`
 4. `git diff --name-only 53a3432..2c07351` に `src/engine/grammar/`・`research/grammar-compile/` が無いことを確認
    (decision 不変の機械証拠)。
@@ -51,7 +51,8 @@
    - required prompt(minCount ?? count >= 1)を cancel して finish → guidedHandled=false 相当で警告維持。
    - minCount 0 prompt を cancel して finish → 警告なし(abandonment ではない)。
    - `confirmGuidedZeroChoice()` を required prompt / activation pending / mana-ability pending で呼ぶ → 全て no-op。
-   - variableLoot で 2枚捨て→zero-confirm → ちょうど2枚引く(playerId は prompt controller)。
+   - variableLoot(max ≥ 3)で 2枚捨て→zero-confirm → ちょうど2枚引く(playerId は prompt controller)。
+     (max=2 は2枚目で reachedMax 自動最終化のため zero-confirm 到達は max≥3 の場合のみ — Aristotle F3 補足)
 7. UI wiring 読み取り検証: `zeroChoice` が `guidedIsStackResolution`(mode undefined|'resolution')かつ
    該当 prompt 種別のときのみ付くこと。teamwork/cast/activation フォーカスに漏れないこと。
 
@@ -59,3 +60,11 @@
 
 各 finding に深刻度(BLOCKER/HIGH/MEDIUM/LOW)+ 分類(implementation/contract/ambiguity)+
 証拠(再現手順・ファイル行)を付ける。BLOCKER/HIGH=0 なら `AUDIT-OK-PENDING-FULL-CHECK` と明記。
+## 追記(2026-08-05 判定者裁定)
+
+- 冷監査 Aristotle(019fd278)の結果: BLOCKER=0 / HIGH=0 → `AUDIT-OK-PENDING-FULL-CHECK`。
+- F1(MEDIUM・contract/ambiguity)は option (a) で裁定: manual remainder 警告の重複排除は全経路で
+  無条件に適用する実装を追認(「重複警告 実測 2 件」の問題意識は guided/raw を問わず成立)。
+  §34.55.1 に carve-out を追記し「完全不変」→「重複排除を除き不変」へ修正。コード変更なし。
+- F2(LOW)=本ブリーフ §3 の cr121 pin パス記載誤り(正しくは `src/store/__tests__/`。上に修正済み)。
+- F3(LOW)=variableLoot zero-confirm 到達条件の補足(上に追記済み)。欠陥なし。
