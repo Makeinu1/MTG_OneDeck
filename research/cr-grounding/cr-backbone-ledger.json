@@ -3442,7 +3442,7 @@
       ],
       "lane": "feel",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [],
       "landingState": [
         "guidedHandled",
@@ -3458,12 +3458,13 @@
         "src/components/game/__tests__/review.feel-2-zero-choice-ui.test.tsx (4件)",
         "cold-audit:Aristotle:BLOCKER0-HIGH0:AUDIT-OK-PENDING-FULL-CHECK",
         "cold-audit:Aristotle:F1-MEDIUM→判定者裁定(dedup全経路追認・§34.55.1追記)",
-        "UI evidence 375x812/812x375/1440x900 target+loot console error 0 (2026-08-05)"
+        "UI evidence 375x812/812x375/1440x900 target+loot console error 0 (2026-08-05)",
+        "full npm run check green @2b4a192 (lint+1554 tests+build, 2026-08-05)"
       ],
       "manualBoundary": "選択を必要とする効果をユーザー選択なしに解決済み扱いしない。",
-      "nextGate": "playthrough再走でinterventions=0、または全interventionが明示ダイアログになる。",
+      "nextGate": null,
       "judge": "deterministic-cr",
-      "note": "2026-08-05 候補凍結 2c07351。cold-audit Aristotle BLOCKER0/HIGH0→AUDIT-OK-PENDING-FULL-CHECK。F1(MEDIUM)=§34.55.1「完全不変」と§34.55.2無条件dedupの矛盾→(a)追認で閉塞: dedupは全経路の意図、§34.55.1にcarve-out追記、コード変更なし。F2/F3=brief記載修正のみ。release full check待ち。"
+      "note": "2026-08-05 shipped。候補 2c07351→監査 Aristotle BLOCKER0/HIGH0(AUDIT-OK-PENDING-FULL-CHECK)→F1(MEDIUM)追認(ad9adb9: §34.55.1 dedup carve-out・コード変更不要)→フルcheck初回で review pin の floating-promise lint 欠陥検出(7042adc/2b4a192 で機械的 await-act 修正・assertion 無変更)→最終フルcheck全緑。release chain: ad9adb9→7042adc→2b4a192。UI実機: 375x812/812x375/1440x900 x target/loot 全 console error 0。"
     },
     {
       "id": "feel-3-pc-affordance-recovery",
