@@ -136,7 +136,7 @@ describe('review.feel-2-zero-choice-ui: explicit legal-zero affordance', () => {
     expect(container.querySelector('.decision-bar__cancel')).not.toBeNull();
   });
 
-  it('clicking the zero-target confirm calls confirmGuidedZeroChoice (store integration)', () => {
+  it('clicking the zero-target confirm calls confirmGuidedZeroChoice (store integration)', async () => {
     const state = store().state;
     if (!state) throw new Error('missing state');
     const sourceId = state.zonesByPlayer.P1.library[0];
@@ -156,10 +156,10 @@ describe('review.feel-2-zero-choice-ui: explicit legal-zero affordance', () => {
       },
     });
 
-    act(() => root.render(<Harness />));
+    await act(async () => root.render(<Harness />));
     const zero = container.querySelector<HTMLElement>('[data-testid="guided-zero-confirm"]');
     expect(zero).not.toBeNull();
-    act(() => zero?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await act(async () => zero?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(store().pendingGuided).toBeNull();
   });
 });
