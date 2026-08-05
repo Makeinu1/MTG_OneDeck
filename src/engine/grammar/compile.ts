@@ -595,7 +595,21 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
   // ir.effectClauses is the full split-clause list independent of atom matching, so we
   // walk that instead and look up each clause's (possibly empty) matched effects.
   const precedingRaws: string[] = ir.trigger ? [ir.trigger.raw] : [];
+  // CR 608.2c clause-order guard (feel-1 audit F1): the guided runtime applies immediate
+  // commands (pending.commands) before any prompt-derived commands. For lines whose guided
+  // prompts include a TARGET prompt produced by feel-1's filter grammar, an immediate-
+  // command clause at or after the target prompt's clause would execute out of oracle
+  // order (e.g. "Tap up to one target creature. Scry 1, then draw a card." — the
+  // immediate draw would run before the target/scry prompts resolve). Fail such lines
+  // closed to manual. Non-target prompt interleavings (e.g. "Scry 2. Draw a card.") are a
+  // pre-existing runtime-order concern outside feel-1's scope, recorded separately in the
+  // ledger (feel-runtime-clause-order), and are not re-classified here.
+  const targetPromptClauseIndexes: number[] = [];
+  const immediateCommandClauseIndexes: number[] = [];
+  let clauseIndex = 0;
   for (const clauseRaw of ir.effectClauses) {
+    let clauseEmitsTargetPrompt = false;
+    let clauseEmitsImmediateCommand = false;
     for (const effect of ir.effects.filter((candidate) => candidate.raw === clauseRaw)) {
       const compiled = compileEffect(
         effect,
@@ -603,13 +617,33 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
         ctx,
         precedingRaws.slice(),
       );
+      if (compiled.prompts.some((prompt) => prompt.kind === 'target')) {
+        clauseEmitsTargetPrompt = true;
+      }
+      if (compiled.commands.length > 0) {
+        clauseEmitsImmediateCommand = true;
+      }
       commands.push(...compiled.commands);
       prompts.push(...compiled.prompts);
       for (const reason of compiled.reasons) {
         reasons.add(reason);
       }
     }
+    if (clauseEmitsTargetPrompt) {
+      targetPromptClauseIndexes.push(clauseIndex);
+    }
+    if (clauseEmitsImmediateCommand) {
+      immediateCommandClauseIndexes.push(clauseIndex);
+    }
     precedingRaws.push(clauseRaw);
+    clauseIndex += 1;
+  }
+  if (
+    targetPromptClauseIndexes.length > 0
+    && immediateCommandClauseIndexes.length > 0
+    && Math.max(...immediateCommandClauseIndexes) >= Math.min(...targetPromptClauseIndexes)
+  ) {
+    reasons.add('needs-parse');
   }
 
   // Fail-closed coverage (CR 608.2h): a clause that matched zero effect atoms would
@@ -2056,7 +2090,7 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
     return null;
   }
   // R5 up-to: only "up to one target" is supported — a bounded single-object choice
-  // whose zero-target option is legal (CR 115.7). Higher counts stay manual via
+  // whose zero-target option is legal (CR 115.6). Higher counts stay manual via
   // isSingleTargetClause.
   return {
     atom: effect.atom,
@@ -2129,7 +2163,7 @@ function isSingleTargetClause(raw: string): boolean {
   if (!/\btarget\b/i.test(raw)) {
     return false;
   }
-  // CR 115.7: "up to one target <noun>" is still a single regulated target whose legal
+  // CR 115.6: "up to one target <noun>" is still a single regulated target whose legal
   // minimum count is zero. Higher up-to counts ("up to two/three ...") remain manual
   // because the resolution flow still handles one target card at a time.
   if (/\bup to\b/i.test(raw) && !/\bup to one target\b/i.test(raw)) {
@@ -2195,7 +2229,7 @@ export function graveyardReturnFilterForRaw(raw: string): TargetFilter | null {
 }
 
 /**
- * CR 115.7 "up to one target": the single-object up-to form is still one regulated
+ * CR 115.6 "up to one target": the single-object up-to form is still one regulated
  * target whose legal minimum count is zero. Any other "up to ..." declaration ("up to
  * two/three targets", "up to two target creatures") stays manual — presenting multiple
  * target choices one card at a time would only execute the clause partially
@@ -2298,9 +2332,11 @@ function hasUnsupportedTargetClauseText(raw: string): boolean {
     // "an opponent controls" resolves to controller='opponent' (see A7/A8 below and
     // targetFilterForRaw), so its words are part of the supported clause vocabulary.
     'an', 'opponent', 'opponents', 'controls', 'controlled',
-    // "noncreature artifact/enchantment" maps to excludedTypes=['creature'] in
-    // targetFilterForRaw (Haywire Mite shape) and is therefore supported vocabulary.
-    'noncreature',
+    // "noncreature artifact/enchantment" (Haywire Mite), "nonartifact creature"
+    // (Go for the Throat / Shriekmaw), and "nonenchantment creature" (Coeurl / Bone
+    // Shredder) all map to excludedTypes in targetFilterForRaw (feel-1 audit F2), so
+    // their words are part of the supported clause vocabulary.
+    'noncreature', 'nonartifact', 'nonenchantment',
     'or',
   ]);
   if (nounWords.some((word) => !supportedNouns.has(word))) {

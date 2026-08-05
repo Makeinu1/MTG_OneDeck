@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T02:02:24.682Z",
+  "generatedAt": "2026-08-05T05:10:13.676Z",
   "inputSnapshotPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "optionalFallbackPath": "research/mydeck-scoring/scryfall-fallback.cards.json",
   "ctxNote": "CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIdentity: <deck commander colorIdentity intersected with WUBRG> }. No live GameState exists in this static census, so commanderColorIdentity is derived directly from the deck entry file's Commander card (line 2 of each Mydeck/<deck>.txt), matching commanderColorIdentityForState() in src/engine/commands.ts. allowLibrarySearchComposite/libraryShuffleOrder left at defaults (undefined).",

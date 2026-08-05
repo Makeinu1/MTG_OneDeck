@@ -4,7 +4,7 @@
  *
  * CR grounding (pinned CR 2026-06-19):
  * - 115.1/115.2: targets must be legal; guided prompts must never offer illegal targets.
- * - 115.7: choosing zero targets when "up to" allows is legal.
+ * - 115.6: choosing zero targets when "up to" allows is legal.
  * - 608.2h: honest execution; no guessing.
  *
  * Contract: research/cr-grounding/feel-1-guided-target-sweep.draft.md
@@ -164,5 +164,25 @@ describe('review feel-1: guided target filter grammar sweep', () => {
   it('R11: unrecognizable target phrase stays manual', () => {
     const r = compile('Target player reveals their hand. You choose a card from it.');
     expect(r.decision).toBe('manual');
+  });
+
+  // --- R12: CR 608.2c clause-order fail-closed guard (cold-audit finding F1) ---
+
+  it('R12: target clause followed by an immediate-command clause stays manual (order fidelity)', () => {
+    // The guided runtime applies immediate commands before prompt-derived commands, so a
+    // target clause with any later immediate-command clause would execute out of oracle
+    // order (Plunge into Winter shape: the immediate draw ran before the target/scry
+    // prompts resolved). Fail closed to manual (cold-audit F1, CR 608.2c).
+    const r = compile('Tap up to one target creature. Scry 1, then draw a card.');
+    expect(r.decision).toBe('manual');
+    expect(r.reasons).toContain('needs-parse');
+    const r2 = compile('Destroy target artifact. Create two Treasure tokens.');
+    expect(r2.decision).toBe('manual');
+  });
+
+  it('R12b: prompt-only compounds stay guided (no immediate commands to reorder)', () => {
+    const r = compile('Destroy up to one target artifact. Put a +1/+1 counter on up to one target creature.');
+    expect(r.decision).toBe('guided');
+    expect(r.prompts.filter((p) => p.kind === 'target')).toHaveLength(2);
   });
 });

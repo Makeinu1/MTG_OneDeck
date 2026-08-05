@@ -33,13 +33,13 @@ needs-target 229行を「効果が実装済みか」で分離した真の内訳:
 2. **filter正確性**: 各新構文形はCR 115(対象の合法性)に従い、**exact-phrase gateパターン**(Slice A/B慣行)で文単位マッチ。誤マッチで非法対象を提示しない。
 2b. **maxManaValue必修**: controller修飾と同居してもmv上限が脱落しない。脱落する複合文はguided化せずmanualへfail-closed(非法提示禁止)。
 3. **fail-closed**: 文法不一致・複合未対応はmanualへ落ちる(silent auto化禁止・北極星②)。
-4. **up-to-Nの誠実性**: 0個選択は合法確定=効果解決(115.8相当)。推測で最大個数を選ばない。
+4. **up-to-Nの誠実性**: 0個選択は合法確定=効果解決(115.6)。推測で最大個数を選ばない。
 5. 既存`review.*`全緑。対象テストは`npx vitest run src/engine/__tests__/ src/engine/grammar/__tests__/`の範囲。
 6. review pin = `src/engine/__tests__/review.feel-1-guided-target.test.ts`(新規・判定者所有)。各構文クラスタ最低2ケース+fail-closedケース+回帰pin(既存guided行の決定不変)。
 
 ## CR grounding
 
-- 115.1/115.2 対象選択と合法性・115.8 対象変更の合法性
+- 115.1/115.2 対象選択と合法性・115.6 ゼロ対象選択の合法性
 - 601.2c 対象選択はcastの一部(起動/解決のguided promptはUI補助であり選択自体はユーザー)
 - 608.2h 解決時の誠実実行(推測禁止)
 

@@ -8,7 +8,7 @@
 - id: `feel-1-guided-target-sweep` / base SHA: `8d33c97`(judge freeze commit of contract+brief+review pin+census)
 - 契約: `research/cr-grounding/feel-1-guided-target-sweep.draft.md`(先に完全に読む)
 - review pin(変更禁止): `src/engine/__tests__/review.feel-1-guided-target.test.ts` — 現在 6 passed / 5 failed。5 failed を全て緑にするのが主目標。
-- CR正本: `rule/Magic_The_Gathering_Comprehensive_Rules.txt`(2026-06-19版)。対象合法性=115、up-to 0個選択の合法性=115.7、誠実実行=608.2h。
+- CR正本: `rule/Magic_The_Gathering_Comprehensive_Rules.txt`(2026-06-19版)。対象合法性=115、up-to 0個選択の合法性=115.6、誠実実行=608.2h。
 
 ## やること(5つの実装項目)
 
