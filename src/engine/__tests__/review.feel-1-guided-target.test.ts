@@ -7,7 +7,7 @@
  * - 115.6: choosing zero targets when "up to" allows is legal.
  * - 608.2h: honest execution; no guessing.
  *
- * Contract: research/cr-grounding/feel-1-guided-target-sweep.draft.md
+ * Contract: research/cr-grounding/archive/feel-1-guided-target-sweep/contract.draft.md
  * Implementer agents do NOT modify this file. Fix the implementation instead.
  */
 import { describe, expect, it } from 'vitest';

@@ -1050,7 +1050,7 @@
       "type": "design-slice",
       "track": "feel",
       "domainId": "feel-1-guided-target-sweep",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-115-targets",
         "cr-modal-target-optional-variable"
@@ -1058,10 +1058,10 @@
       "evidence": [
         "src/engine/__tests__/review.feel-1-guided-target.test.ts",
         "research/grammar-compile/decision-snapshot.json",
-        "research/cr-grounding/feel-1-reaudit-brief.md"
+        "research/cr-grounding/archive/feel-1-guided-target-sweep/reaudit-brief.md"
       ],
       "manualBoundary": "対象選択を推測でauto化しない。guided promptは必ずユーザーが対象を選ぶ。フィルタに適合しない対象を合法扱いしない。文法不一致はmanualへfail-closed。",
-      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): needs-target行のguided化。既存filter文法拡張のみ。最大UX改善源。2026-08-05完了監査(F1-F5裁定・Arendt初回+Fermat再監査=AUDIT-OK-PENDING-FULL-CHECK)。base比実測(F5確定値): m→g +52 / g→m -342(guided 2125→1835・manual 17510→17800)。g→mは全件が旧guidedのfake-green是正(制約silent drop)またはCR608.2c target節順序ガード降格で、過剰拒否ゼロを判定者が全件分類。MyDeck censusは行数不変(69/486)・質のみ改善=残needs-targetの新規guided化にはTargetFilter新軸が必要(future slice)。implementer: Helmholtz(round1・セッション消失)+判定者外科修正(AGENTS.md 2連敗権限)。"
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): needs-target行のguided化。既存filter文法拡張のみ。最大UX改善源。[2026-08-05 shipped・5184754・判定者=Codex] 完了監査(F1-F5裁定・Arendt初回+Fermat再監査=AUDIT-OK-PENDING-FULL-CHECK)。base比実測(F5確定値): m→g +52 / g→m -342(guided 2125→1835・manual 17510→17800)。g→mは全件が旧guidedのfake-green是正(制約silent drop)またはCR608.2c target節順序ガード降格で、過剰拒否ゼロを判定者が全件分類。MyDeck censusは行数不変(69/486)・質のみ改善=残needs-targetの新規guided化にはTargetFilter新軸が必要(future slice)。implementer: Helmholtz(round1・セッション消失)+判定者外科修正(AGENTS.md 2連敗権限)。packet=archive/feel-1-guided-target-sweep/。"
     },
     {
       "type": "design-slice",
@@ -3400,7 +3400,7 @@
       ],
       "lane": "feel",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-115-targets",
         "cr-modal-target-optional-variable"
@@ -3415,10 +3415,11 @@
         "src/engine/__tests__/review.feel-1-guided-target.test.ts (R1-R12b 13/13)",
         "research/grammar-compile/decision-snapshot.json (guided 1835 / manual 17800)",
         "research/mydeck-scoring/playability/census.json (guided 69 / manual 486 = ベースライン行数不変・質のみ改善)",
-        "research/cr-grounding/feel-1-audit-brief.md + feel-1-reaudit-brief.md (Arendt→Fermat: AUDIT-OK-PENDING-FULL-CHECK)"
+        "research/cr-grounding/archive/feel-1-guided-target-sweep/audit-brief.md + reaudit-brief.md (Arendt→Fermat: AUDIT-OK-PENDING-FULL-CHECK)",
+        "cold-audit:Arendt(1H/2M/2L→a8483d3外科修正)+Fermat(BLOCKER/HIGH 0)・npm run check緑(168s)・5184754"
       ],
       "manualBoundary": "対象選択を推測でauto化しない。guided promptは必ずユーザーが対象を選ぶ。フィルタに適合しない対象を合法扱いしない。文法不一致はmanualへfail-closed。",
-      "nextGate": "同一fingerprintのフルcheck緑→ship→Pages確認でshipped昇格。",
+      "nextGate": "shipped(5184754)。残件はfeel-runtime-clause-order(非target promptのCR608.2c順序)とfeel-2(F3ゼロ選択affordance繰入)。",
       "judge": "deterministic-cr"
     },
     {
