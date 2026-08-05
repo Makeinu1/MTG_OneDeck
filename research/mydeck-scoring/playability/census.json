@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T13:40:54.624Z",
+  "generatedAt": "2026-08-05T02:02:24.682Z",
   "inputSnapshotPath": "research/scryfall-rules/2026-06-19/raw/scryfall-search-game-paper-date-2021-06-19-unique-cards.cards.json",
   "optionalFallbackPath": "research/mydeck-scoring/scryfall-fallback.cards.json",
   "ctxNote": "CompileContext per card: { sourceId: <instance-like id>, def, commanderColorIdentity: <deck commander colorIdentity intersected with WUBRG> }. No live GameState exists in this static census, so commanderColorIdentity is derived directly from the deck entry file's Commander card (line 2 of each Mydeck/<deck>.txt), matching commanderColorIdentityForState() in src/engine/commands.ts. allowLibrarySearchComposite/libraryShuffleOrder left at defaults (undefined).",
@@ -1289,6 +1289,7 @@
           "text": "{T}: Target creature you control gains protection from the color of your choice until end of turn.",
           "decision": "manual",
           "reasons": [
+            "needs-parse",
             "needs-target"
           ]
         }
@@ -1298,6 +1299,7 @@
       "guidedLines": 0,
       "manualLines": 1,
       "manualReasons": [
+        "needs-parse",
         "needs-target"
       ]
     },
@@ -1716,7 +1718,6 @@
           "text": "When this creature enters, return target creature card with mana value 2 or less from your graveyard to the battlefield. That creature can't attack or block for as long as you control this creature.",
           "decision": "manual",
           "reasons": [
-            "needs-parse",
             "needs-target"
           ]
         }
@@ -1726,7 +1727,6 @@
       "guidedLines": 0,
       "manualLines": 2,
       "manualReasons": [
-        "needs-parse",
         "needs-target",
         "no-effect"
       ]
@@ -1831,10 +1831,8 @@
           "lineIndex": 0,
           "shape": "triggered",
           "text": "When this creature enters, exile up to one target nonland, nontoken permanent you don't control with mana value 4 or less.",
-          "decision": "manual",
-          "reasons": [
-            "needs-target"
-          ]
+          "decision": "guided",
+          "reasons": []
         },
         {
           "faceIndex": 0,
@@ -1850,8 +1848,8 @@
       ],
       "worstDecision": "manual",
       "autoLines": 0,
-      "guidedLines": 0,
-      "manualLines": 2,
+      "guidedLines": 1,
+      "manualLines": 1,
       "manualReasons": [
         "needs-target",
         "variable-count"
@@ -2209,8 +2207,10 @@
           "lineIndex": 1,
           "shape": "triggered",
           "text": "When Carnage enters, return target creature card with mana value 3 or less from your graveyard to the battlefield. It gains and",
-          "decision": "guided",
-          "reasons": []
+          "decision": "manual",
+          "reasons": [
+            "needs-parse"
+          ]
         },
         {
           "faceIndex": 0,
@@ -2225,9 +2225,10 @@
       ],
       "worstDecision": "manual",
       "autoLines": 0,
-      "guidedLines": 1,
-      "manualLines": 2,
+      "guidedLines": 0,
+      "manualLines": 3,
       "manualReasons": [
+        "needs-parse",
         "no-effect"
       ]
     },
@@ -2371,7 +2372,6 @@
           "text": "When General Leo Cristophe enters, return up to one target creature card with mana value 3 or less from your graveyard to the battlefield. Then put a +1/+1 counter on General Leo Cristophe for each creature you control.",
           "decision": "manual",
           "reasons": [
-            "needs-parse",
             "needs-target",
             "variable-count"
           ]
@@ -2382,7 +2382,6 @@
       "guidedLines": 0,
       "manualLines": 1,
       "manualReasons": [
-        "needs-parse",
         "needs-target",
         "variable-count"
       ]

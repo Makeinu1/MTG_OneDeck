@@ -612,6 +612,25 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     precedingRaws.push(clauseRaw);
   }
 
+  // Fail-closed coverage (CR 608.2h): a clause that matched zero effect atoms would
+  // otherwise be silently dropped while a sibling clause still emits a guided target
+  // prompt (e.g. "That creature becomes an artifact in addition to its other types."
+  // — "becomes" fires no atom probe). Executing only the covered half is partial
+  // execution, forbidden by the feel-1 contract. If the ability would be guided, every
+  // effect-span clause must have produced at least one matched effect. An effect's raw
+  // text can be a proper substring of its clause when the clause still carries an
+  // unstripped ability-word/trigger prefix ("Landfall — Whenever ..., put a +1/+1
+  // counter on target creature."), so inclusion — not equality — is the covered signal;
+  // residual clause text matched by no effect still fails closed.
+  const hasUncoveredClause = ir.effectClauses.some(
+    (clauseRaw) =>
+      !ir.effects.some((effect) => clauseRaw.includes(effect.raw))
+      && !isClauseCoveredByPrompt(clauseRaw, prompts),
+  );
+  if (prompts.length > 0 && hasUncoveredClause) {
+    reasons.add('needs-parse');
+  }
+
   const sortedReasons = [...reasons].sort((a, b) => a.localeCompare(b));
   const decision: AutoDecision =
     sortedReasons.length > 0 ? 'manual' : prompts.length > 0 ? 'guided' : 'auto';
@@ -627,6 +646,20 @@ export function compileAbilityIR(ir: AbilityIR, ctx: CompileContext): CompiledEf
     risk: decision === 'auto' ? 'low' : 'medium',
     reasons: sortedReasons,
   };
+}
+
+/**
+ * Bounded exception to the fail-closed clause-coverage check: some clauses are executed
+ * by a guided prompt rather than by an effect-atom command. "Choose a color." is covered
+ * when a mana prompt (guidedManaPrompt) presents the color choice, so the clause must not
+ * drag the ability to manual (CR 608.2h — the choice is honestly presented, not dropped).
+ */
+function isClauseCoveredByPrompt(clauseRaw: string, prompts: readonly EffectPrompt[]): boolean {
+  const normalized = clauseRaw.replace(/[.。]\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (/^choose a color$/i.test(normalized)) {
+    return prompts.some((prompt) => prompt.kind === 'mana' && (prompt.manaOptions?.length ?? 0) > 0);
+  }
+  return false;
 }
 
 function compileMassDestroy(ir: AbilityIR, ctx: CompileContext): CompiledEffect | null {
@@ -682,7 +715,28 @@ function constructCapturedByGuidedTarget(construct: string, ir: AbilityIR): bool
   if (construct !== 'construct.you-control') {
     return false;
   }
-  return ir.effects.some((effect) => guidedTargetPrompt(effect)?.filter?.controller === 'you');
+  if (ir.effects.some((effect) => guidedTargetPrompt(effect)?.filter?.controller === 'you')) {
+    return true;
+  }
+  // "you control" that never appears inside a target clause's own scope (trigger
+  // conditions and comparison text preceding "target", e.g. "Landfall — Whenever a land
+  // you control enters, put a +1/+1 counter on target creature.") cannot constrain
+  // target legality; targetFilterForRaw is scoped the same way, so the construct needs
+  // no parse work (CR 115.1/115.2). Any occurrence inside a target clause scope that the
+  // prompt did not capture keeps the ability manual (fail-closed).
+  const hasTargetEffect = ir.effects.some((effect) => /\btarget\b/i.test(effect.raw));
+  if (!hasTargetEffect) {
+    return false;
+  }
+  return ir.effects.every((effect) => {
+    if (!/\btarget\b/i.test(effect.raw)) {
+      return true;
+    }
+    const index = effect.raw.toLowerCase().indexOf('target');
+    const afterTarget = effect.raw.toLowerCase().slice(index);
+    const clauseScope = afterTarget.split(/[.。]/)[0];
+    return !/\byou (?:don['’]t|do not) control\b|\byou control\b/i.test(clauseScope);
+  });
 }
 
 function guidedTemporaryReturnPrompt(ir: AbilityIR): EffectPrompt | null {
@@ -1983,6 +2037,14 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
   if (!isSingleTargetClause(effect.raw)) {
     return null;
   }
+  // Fail-closed discipline (CR 115.1/115.2, CR 608.2h): a target clause carrying any
+  // constraint, qualifier, or follow-on text that targetFilterForRaw / the resolution
+  // runtime cannot faithfully express must stay manual as a whole. Dropping such text
+  // while still offering candidates would present illegal targets and execute the clause
+  // only partially (silent-drop is forbidden by the feel-1 contract).
+  if (hasUnsupportedTargetClauseText(effect.raw)) {
+    return null;
+  }
   if (
     effect.atom === 'effect.return' &&
     !/\bto (?:its owner's|their|your|the owner's) hand\b/i.test(effect.raw)
@@ -1993,10 +2055,14 @@ function guidedTargetPrompt(effect: EffectClause): EffectPrompt | null {
   if (!filter.types || filter.types.length === 0) {
     return null;
   }
+  // R5 up-to: only "up to one target" is supported — a bounded single-object choice
+  // whose zero-target option is legal (CR 115.7). Higher counts stay manual via
+  // isSingleTargetClause.
   return {
     atom: effect.atom,
     kind: 'target',
     count: 1,
+    ...(isUpToOneTarget(effect.raw) ? { minCount: 0 } : {}),
     filter,
     raw: effect.raw,
   };
@@ -2063,7 +2129,10 @@ function isSingleTargetClause(raw: string): boolean {
   if (!/\btarget\b/i.test(raw)) {
     return false;
   }
-  if (/\bup to\b/i.test(raw)) {
+  // CR 115.7: "up to one target <noun>" is still a single regulated target whose legal
+  // minimum count is zero. Higher up-to counts ("up to two/three ...") remain manual
+  // because the resolution flow still handles one target card at a time.
+  if (/\bup to\b/i.test(raw) && !/\bup to one target\b/i.test(raw)) {
     return false;
   }
   if (/\b(?:two|three|four|five|six|seven|eight|nine|ten|\d+)\s+target\b/i.test(raw)) {
@@ -2116,7 +2185,186 @@ export function graveyardReturnFilterForRaw(raw: string): TargetFilter | null {
       maxManaValue: Number.parseInt(mv, 10),
     };
   }
+  // CR 701.9a / CR 109.2a: "Return target card from your graveyard to your hand." — the
+  // untyped noun "card" in a graveyard zone matches any card (CR 108.2's permanent-card
+  // notion only binds battlefield presence, not hand returns).
+  if (/^return target card from your graveyard to your hand$/i.test(normalized)) {
+    return { types: ['card'], zone: 'graveyard', owner: 'you' };
+  }
   return null;
+}
+
+/**
+ * CR 115.7 "up to one target": the single-object up-to form is still one regulated
+ * target whose legal minimum count is zero. Any other "up to ..." declaration ("up to
+ * two/three targets", "up to two target creatures") stays manual — presenting multiple
+ * target choices one card at a time would only execute the clause partially
+ * (CR 608.2h), and shrinking the declared count would misrepresent the effect.
+ */
+function isUpToOneTarget(raw: string): boolean {
+  return /\bup to one target\b/i.test(raw);
+}
+
+/**
+ * Fail-closed pre-flight for a guided target clause (CR 115.1/115.2 + CR 608.2h).
+ * Returns true when the clause carries any constraint, qualifier, or follow-on text that
+ * targetFilterForRaw / the guided resolution runtime cannot faithfully express, so the
+ * whole clause stays manual instead of silently dropping the unrecognized part.
+ *
+ * Rejection categories (feel-1 correction brief, findings A/B):
+ * - A1 tapped/untapped modifier on the target noun phrase;
+ * - A2 mana-value constraints other than the fixed ceiling "with mana value N or less"
+ *   (dynamic comparisons, "X or less", "N or greater", "lesser/greater/equal to");
+ * - A3 toughness/power constraints;
+ * - A4 color-membership constraints;
+ * - A5 keyword constraints ("with flying/trample/haste");
+ * - A6 relational / history / subtype qualifiers ("that crewed it this turn",
+ *   "commander creature", "non-Spirit creature");
+ * - A7/A8 controller phrases that do not resolve to exactly you/opponent ("that player
+ *   controls", "an opponent controls"), and controller phrases lifted from outside the
+ *   target clause (trigger conditions / comparison clauses);
+ * - B follow-on clauses and additional sentences about or after the target clause
+ *   ("and put a +1/+1 counter on this creature", "and that creature doesn't untap",
+ *   "This creature phases out.", "It loses all abilities for as long as ...", stun
+ *   counter placement — no stun runtime exists, "until this creature leaves the
+ *   battlefield" temporary exile — no leaves-the-battlefield watcher exists).
+ *
+ * The guards are deliberately over-restrictive: rejecting a clause whose meaning the
+ * engine cannot prove it understands is acceptable; offering an illegal candidate or
+ * executing half a clause is not.
+ */
+function hasUnsupportedTargetClauseText(raw: string): boolean {
+  const normalized = raw.replace(/\s+/g, ' ').trim();
+  const lower = normalized.toLowerCase();
+  const targetIndex = lower.indexOf('target');
+  // Everything after the first "target" sits inside the target clause scope; text before
+  // it (trigger conditions, "When you do," links) must never contribute modifiers.
+  const afterTarget = targetIndex >= 0 ? lower.slice(targetIndex) : lower;
+  const nounPhrase = afterTarget.split(
+    /\b(?:to|with|from|until|gets?|gains?|loses?|can't|cannot|deals?)\b|[.;]/i,
+  )[0];
+  // Constraint checks apply to the target clause's own sentence only: text before
+  // "target" (trigger conditions, ability words, comparison clauses) and text after the
+  // clause's period (sibling sentences handled by the sentence-count check) must not
+  // fail the clause. "Whenever a creature you control with flying attacks, tap target
+  // creature." must not be rejected because of the trigger's "with flying".
+  const clausePeriod = afterTarget.indexOf('.');
+  const clauseScope = clausePeriod >= 0 ? afterTarget.slice(0, clausePeriod) : afterTarget;
+
+  // A1: tapped/untapped status — TargetFilter has no tappedness axis (CR 115.1).
+  if (/\b(?:un)?tapped\b/.test(nounPhrase)) {
+    return true;
+  }
+
+  // A2: mana-value constraints — only the fixed-integer ceiling "with mana value N or
+  // less" is expressible (R6/R7). Any other mana-value wording is unenforceable.
+  if (/\bmana value\b/.test(clauseScope) && manaValueCeilingForRaw(clauseScope) === undefined) {
+    return true;
+  }
+
+  // A3/A4/A5: characteristic constraints on the target object itself — toughness, power,
+  // color membership, and keyword requirements have no TargetFilter representation.
+  if (
+    /\btoughness\b|\bpower\b|\bone or more colors?\b|\bcolorless\b|\bmonocolored\b|\bmulticolored\b/.test(
+      clauseScope,
+    ) ||
+    /\bwith\s+(?:[a-z-]+(?:\s+or\s+[a-z-]+)?\s+(?:ability|keyword)|flying|trample|haste|deathtouch|lifelink|menace|first strike|double strike|vigilance|hexproof|indestructible)\b/.test(
+      clauseScope,
+    )
+  ) {
+    return true;
+  }
+
+  // A6: relational / history / subtype qualifiers beyond the supported noun vocabulary.
+  // Only negation of the supported nouns ("nonland", "nontoken") is recognized; any
+  // other subtype word (Spirit/Assassin/...) or a relative clause ("that ...", "which
+  // ...") or "commander"/"legendary"/"snow" keeps the clause manual.
+  if (
+    /\bthat\b|\bwhich\b|\bcommander\b|\blegendary\b|\bsnow\b/.test(clauseScope) ||
+    /\bof (?:the )?(?:chosen|named|guessed) type\b/.test(clauseScope)
+  ) {
+    return true;
+  }
+  // Subtype words inside the noun phrase that are not the supported type vocabulary
+  // (creature/artifact/enchantment/land/planeswalker/permanent plus nonland/nontoken).
+  // A controller phrase may sit between the noun and the next modifier ("target permanent
+  // you don't control with mana value 2 or less."), so the controller words belong to the
+  // supported vocabulary too.
+  const nounWords = nounPhrase.split(/[^a-z]+/).filter(Boolean);
+  const supportedNouns = new Set([
+    'up', 'to', 'one', 'another', 'other', 'target', 'nonland', 'nontoken',
+    'creature', 'artifact', 'enchantment', 'land', 'planeswalker', 'permanent',
+    'you', 'do', 'not', 'don', 't', 'control',
+    // "an opponent controls" resolves to controller='opponent' (see A7/A8 below and
+    // targetFilterForRaw), so its words are part of the supported clause vocabulary.
+    'an', 'opponent', 'opponents', 'controls', 'controlled',
+    // "noncreature artifact/enchantment" maps to excludedTypes=['creature'] in
+    // targetFilterForRaw (Haywire Mite shape) and is therefore supported vocabulary.
+    'noncreature',
+    'or',
+  ]);
+  if (nounWords.some((word) => !supportedNouns.has(word))) {
+    return true;
+  }
+
+  // A7/A8: controller phrases that do not resolve to exactly "you" or "opponent" stay
+  // manual. "an opponent controls" is NOT rejected: every non-source-controller
+  // permanent is a legal candidate (CR 115.1/115.2) and targetFilterForRaw maps the
+  // phrase to controller='opponent'. Controller text outside the target clause (trigger
+  // conditions, comparison clauses) is already outside clauseScope, so it can neither
+  // fail this guard nor pollute the filter (targetFilterForRaw is scoped the same way).
+  if (
+    /\bthat (?:player|creature|permanent|artifact|enchantment|vehicle|planeswalker)'?s?\b/.test(clauseScope) ||
+    /\b(?:its|their|his|her) (?:owner|controller)'?s? (?:controls?|controlled)\b/.test(clauseScope) ||
+    /\ba player (?:controls?|controlled)\b/.test(clauseScope)
+  ) {
+    return true;
+  }
+
+  // B: follow-on clauses and additional sentences — the guided runtime executes exactly
+  // the target action of this clause; anything attached ("and ...", "then ...", "until
+  // ...", "doesn't untap", "put a +1/+1 counter on it/this creature", "this creature
+  // phases out", "it connives") or any second sentence means partial execution.
+  if (
+    /\band\b|\bthen\b|\bafterward\b|\buntil\b|\bfor as long as\b|\bdoesn't\b|\bdoes not\b/.test(
+      clauseScope,
+    ) ||
+    /\bthis creature\b|\bthis artifact\b|\bthis enchantment\b|\bthis vehicle\b/.test(clauseScope) ||
+    /\b(?:it|they) (?:gains?|loses?|gets?|becomes?|phases?|connives?|fights?|deals?|doesn't|does not)\b/.test(
+      clauseScope,
+    )
+  ) {
+    return true;
+  }
+  const sentenceCount = normalized
+    .replace(/[.。]\s*$/, '')
+    .split(/[.。]/)
+    .filter((sentence) => sentence.trim().length > 0).length;
+  if (sentenceCount > 1) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * CR 202.3/202.3b: fixed-integer mana-value ceiling ("with mana value N or less"). The
+ * match is searched over the whole clause rather than the noun phrase so it survives any
+ * modifier order (a controller phrase may come between the noun and the ceiling — the
+ * R6/R7 regression). Variable or non-integer ceilings return undefined so the clause
+ * fails closed to manual instead of presenting targets whose legality cannot be verified
+ * (CR 115.1/115.2).
+ */
+function manaValueCeilingForRaw(raw: string): number | undefined {
+  const match = /\bwith mana value (\d+) or less\b/i.exec(raw);
+  if (!match) {
+    return undefined;
+  }
+  const value = Number.parseInt(match[1], 10);
+  if (!Number.isInteger(value) || value < 0) {
+    return undefined;
+  }
+  return value;
 }
 
 function targetFilterForRaw(raw: string): TargetFilter {
@@ -2135,10 +2383,23 @@ function targetFilterForRaw(raw: string): TargetFilter {
     ...(/\bnontoken\b/i.test(nounPhrase) ? { excludeTokens: true } : {}),
     ...(/\banother\s+target\b|\bother\s+target\b/i.test(raw) ? { excludeSource: true } : {}),
   };
-  if (/\byou control\b/i.test(raw)) {
+  // Controller and mana-value modifiers are read from the target clause's own sentence
+  // only: trigger-condition text still attached to the clause raw ("Whenever a land you
+  // control enters, ...") must not invent a controller restriction on the target
+  // (CR 115.1/115.2 — an over-restricted prompt misrepresents legal choices).
+  const targetClauseSentence = afterTarget.split(/[.。]/)[0] || afterTarget;
+  if (/\byou control\b/i.test(targetClauseSentence)) {
     filter.controller = 'you';
-  } else if (/\byou (?:don['’]t|do not) control\b|\bopponents? controls?\b/i.test(raw)) {
+  } else if (
+    /\byou (?:don['’]t|do not) control\b|\bopponents? controls?\b/i.test(targetClauseSentence)
+  ) {
     filter.controller = 'opponent';
+  }
+  // CR 202.3/202.3b + CR 115: the ceiling must coexist with the controller modifier —
+  // searched over the whole clause, independent of noun-phrase split order.
+  const maxManaValue = manaValueCeilingForRaw(targetClauseSentence);
+  if (maxManaValue !== undefined) {
+    filter.maxManaValue = maxManaValue;
   }
   return filter;
 }
@@ -2149,6 +2410,24 @@ function stableTextHash(text: string): string {
     hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   }
   return hash.toString(36);
+}
+
+/**
+ * CR 701.9a: resolves the destination zone of a guided `effect.return` prompt from the
+ * clause's own text. Both recognized shapes are anchored phrase gates ("...to the
+ * battlefield" for graveyard reanimation leaves; the owner's-hand phrase family for the
+ * battlefield/exile bounce leaf). Returns null when neither matches so the prompt fails
+ * closed instead of guessing a destination (CR 608.2h).
+ */
+function returnDestinationForPrompt(prompt: EffectPrompt): 'battlefield' | 'hand' | null {
+  const raw = prompt.raw;
+  if (/\bto the battlefield\b/i.test(raw)) {
+    return 'battlefield';
+  }
+  if (/\bto (?:its owner's|their|your|the owner's) hand\b/i.test(raw)) {
+    return 'hand';
+  }
+  return null;
 }
 
 function linkedExileLinkId(prompt: EffectPrompt, cardId: string, ctx: CompileContext): string {
@@ -2305,11 +2584,19 @@ export function buildGuidedCommands(
         }
         return [{ type: 'moveCard', cardId, to: 'exile', position: 'bottom' }];
       case 'effect.return':
+        // CR 701.9a: the destination zone is fixed by the clause text ("...to the
+        // battlefield" vs "...to your/its owner's hand"), not by the filter's source
+        // zone — a graveyard-source return can go to either. Fail closed (no command)
+        // when neither verified destination phrase matches instead of guessing.
+        const returnTo = returnDestinationForPrompt(prompt);
+        if (returnTo === null) {
+          return [];
+        }
         return [
           {
             type: 'moveCard',
             cardId,
-            to: prompt.filter?.zone === 'graveyard' ? 'battlefield' : 'hand',
+            to: returnTo,
             position: 'bottom',
           },
         ];

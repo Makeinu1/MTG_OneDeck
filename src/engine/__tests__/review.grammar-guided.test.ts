@@ -85,9 +85,14 @@ describe('§32.3 guided-target: 単一対象パーマネント効果', () => {
     expect(p.filter?.types).toEqual(['creature']);
   });
 
-  it('修飾語つき「Destroy target tapped creature.」も型のみ抽出して guided', () => {
-    const p = onlyPrompt('Destroy target tapped creature.');
-    expect(p.filter?.types).toEqual(['creature']);
+  it('修飾語つき「Destroy target tapped creature.」は manual へ fail-closed(2026-08-05 feel-1裁定)', () => {
+    // Judge ruling (feel-1, CR 115.1/115.2): TargetFilter has no tappedness axis, so
+    // extracting only the type would present untapped creatures as legal candidates —
+    // an illegal-target offer. The clause stays manual instead of silently dropping
+    // the tapped constraint. Replaces the pre-2026-08-05 "type-only guided" pin.
+    const r = compile('Destroy target tapped creature.');
+    expect(r.decision).toBe('manual');
+    expect(r.reasons).toContain('needs-target');
   });
 });
 

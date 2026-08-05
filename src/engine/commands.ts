@@ -5634,6 +5634,9 @@ export function eligibleTargets(
     // additive alongside the pre-existing creature-only path so unfiltered/creature
     // filters are unaffected.
     const supportsPermanentCard = types.includes('permanent');
+    // CR 109.2a: the untyped noun "card" ("Return target card from your graveyard to
+    // your hand.") matches any card in the zone — no type-line restriction applies.
+    const supportsAnyCard = types.includes('card');
     const graveyardIds = state.turnOrder.flatMap(
       (playerId) => state.zonesByPlayer[playerId]?.graveyard ?? [],
     );
@@ -5657,7 +5660,7 @@ export function eligibleTargets(
       if (filter.tokenOnly && !card.isToken) {
         return false;
       }
-      if (!supportsCreatureCard && !supportsPermanentCard) {
+      if (!supportsCreatureCard && !supportsPermanentCard && !supportsAnyCard) {
         return false;
       }
       const def = state.defs[card.defId];
@@ -5674,9 +5677,11 @@ export function eligibleTargets(
       if (excludedTypes.some((type) => typeLine.includes(type.toLowerCase()))) {
         return false;
       }
-      const matchesRequestedCard = supportsCreatureCard
-        ? typeLine.includes('creature')
-        : GRAVEYARD_PERMANENT_CARD_TYPES.some((type) => typeLine.includes(type));
+      const matchesRequestedCard = supportsAnyCard
+        ? true
+        : supportsCreatureCard
+          ? typeLine.includes('creature')
+          : GRAVEYARD_PERMANENT_CARD_TYPES.some((type) => typeLine.includes(type));
       if (!matchesRequestedCard) {
         return false;
       }
@@ -5726,6 +5731,19 @@ export function eligibleTargets(
     }
     if (excludedTypes.some((type) => typeLineHasType(typeLine, type))) {
       return false;
+    }
+    // CR 115.1/115.2: a mana-value ceiling ("with mana value N or less") is part of the
+    // target legality check — candidates above the ceiling must never be offered. Mana
+    // value comes from the card definition (faces' mana cost falling back to the printed
+    // mana value, CR 202.3); undefined mana value (e.g. face-down / uncosted objects)
+    // fails closed and is excluded, matching the graveyard branch above.
+    if (filter.maxManaValue !== undefined) {
+      const def = state.defs[card.defId];
+      const face = def?.faces[card.faceIndex] ?? def?.faces[0];
+      const manaValue = manaValueOfStackObject(card, face?.manaCost, def?.cmc);
+      if (manaValue === undefined || manaValue > filter.maxManaValue) {
+        return false;
+      }
     }
     if (acceptsAnyPermanent) {
       return true;
