@@ -117,3 +117,14 @@ standing 裁定(2026-07-08・北極星③「メタは遊びに従属する」): 
 ## 9. モデル×役割の既定
 
 `AGENTS.md`「役割 = 能力で定義」節が正本(本文書では重複させない)。機械作業(抽出・草稿・Tier-1・ship)+難草稿+助言は実装者・別セッションへ。委譲漏れシグナルの正本 = `.agents/skills/mtg-onedeck-development/references/codex-autoloop.md`。
+
+## 10. grammar レーン裁定準則(fail-closed 常設・2026-08-05 feel-1 教訓)
+
+grammar レーン(oracle 文→command 変換)の選定・契約・監査で常時適用する:
+
+1. **カバレッジゲートは decision 横断で完全か**: 節カバレッジ検査(engine-spec §34.54.2)が auto/guided 両経路で無条件に発動することを確認する。片方の decision だけ守るゲートは「緑に見える危険」を生む。
+2. **g→m 遷移は fake-green 是正と分類する**: manual への降格は回帰ではなく信頼の回復。判定者は全件を「制約 silent drop 是正」「順序違反是正」「過剰拒否」の三類に分類し、過剰拒否ゼロを evidence に残す。
+3. **allowlist 昇格は CR 対応付き**: engine 外メカニクス節の昇格には構文+CR 対応の明記と snapshot 遷移承認が要る。GameState 変更節は allowlist 不可。
+4. **構文カバレッジと意味の正しさを混同しない**: カバレッジゲートは必要だが十分ではない。意味誤りは review.* テスト・冷監査・snapshot 遷移承認の三層で検出する。構文層を厚くしてもこの三層は省略できない。
+5. **汎用英語パーサの提案は STOP①相当**: grammar レーンへの汎用パーサ(正規表現ベース・ライブラリベース問わず)導入提案は、北極星①と engine-spec §34.54.4 の standing に反する。ユーザー裁定(AGENTS.md 自律境界3類)へ格上げする。
+6. **計器は流用優先**: 行レベル(`partialImplementation.ts`)・文節レベル(§34.54.2 カバレッジ)・カードレベル(行レベル派生)は同軸の別粒度。重複計器を追加せず、既存計器を流用する。

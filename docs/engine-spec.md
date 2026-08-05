@@ -3441,3 +3441,32 @@ type GameCommand =
 - vitest ゲート(`src/engine/grammar/__tests__/decisionSnapshot.test.ts`): extract が存在する環境(=リポジトリ checkout 全部。両ファイル tracked)で常時実行。現行コードとスナップショットの差分=fail。**意図的な decision 変化は `npm run snapshot:update` で再生成し、遷移サマリ(a↔g↔m 件数+実例)を ship diff に同梱して判定者が承認する**。検出力自体は fixture corpus の実パイプラインデモテスト(decision 反転・指紋変化・行増減を fail として検出)で常時証明。
 
 **不変**: 本計器は読み取り専用(GameState/GameCommand に触れない)。review.* 不可侵・機械4点・独立 Tier-1 監査の既定は変わらない。
+
+### 34.54 文法レーン不変条件: 節単位カバレッジゲート(CR 608.2c/608.2h)— この節も契約である
+
+**位置づけ(判定者裁定 2026-08-05・feel-1 監査教訓の凍結)**: grammar レーンの決定(auto/guided/manual)は「構文カバレッジの検査」であり「CR 意味論の証明」ではない。feel-1 監査(Arendt/Fermat)が実証した3教訓を常設契約とする。
+
+#### 34.54.1 教訓(frozen)
+
+1. **危険は構文爆発ではなく意味の silent drop**。文法不一致は manual 縮退として可視化され安全。危険なのは「マッチした半分だけ実行」= CR 608.2h 違反の fake-green。
+2. **fail-closed ガードは decision 横断で完全なときだけ信頼できる**。feel-1 で追加した節カバレッジゲートは guided 判定時(`prompts.length > 0`)のみ発動し、auto 行には同等の無条件ゲートが存在しない(既知ギャップ=34.54.3)。
+3. **構文カバレッジは必要だが十分ではない**。意味誤り(制約の silent drop・608.2c 順序)は構文ゲートでは検出されず、review.* テスト・冷監査・snapshot 遷移承認が担う。構文層を厚くしてもこの三層は省略できない。
+
+#### 34.54.2 不変条件(grammar レーン)
+
+- **全節カバレッジ**: `ir.effectClauses`(oracle 文の記述順節リスト・CR 608.2c「順序通りに指示を実行」の検査単位)の全節が、(a) 少なくとも1つの effect atom に include される、または (b) `isClauseCoveredByPrompt` 型の明示 allowlist エントリに該当する場合に限り、その行は auto/guided であってよい。カバレッジ不十分の行は manual(fail-closed)。ゲートは decision 横断(auto 行を含む)で無条件に適用することを目指す。
+- **許容例外(allowlist)の昇格条件**: 節の構文自体が engine 外メカニクスである場合のみ("This ability triggers only once each turn."・reminder 文の残骸等)。昇格は判定者が構文と CR 対応を検査し、decision snapshot 遷移サマリ(§35)で承認する。**GameState 変更を伴う節("until end of turn, you don't lose this mana as steps and phases end." 型)は allowlist 昇格不可**——該当 state 実装までその行は manual。
+- **順序不変**: auto/guided の実行は oracle の節順を維持する。prompt 導出コマンドの実行順序問題は CR 608.2c の問題であり、feel-1 のガードは target prompt 経路のみ閉じる。非 target 混在は `feel-runtime-clause-order`(台帳)が管轄する。
+- **制約の無言放棄禁止**: target filter/constraint が runtime で表現できないとき、制約を落として guided 化せず文全体 manual(feel-1 契約の継続)。
+
+#### 34.54.3 既知ギャップ(登録済み・`grammar-auto-clause-coverage`)
+
+- 現行 `compile.ts` のカバレッジゲートは `prompts.length > 0` のときのみ発動する。auto 行には無条件ゲートがない。判定者実測(2026-08-05・corpus-extract 経由・scripts/tmp-coverage-probe.ts 一時計測): auto 2,784 行中 127 行に無マッチ節。内訳は混在: engine 外メカニクス節(allowlist 昇格候補)と GameState 変更節(要 manual: draw-then-library-top・「The Ring tempts you」・Investigate・roll a d20・「It has …」複数行能力の切断・look/put 複合・duration 節)。
+- 対策は台帳 `grammar-auto-clause-coverage`。ゲート無条件化前に FingerprintEntry へ uncovered 節情報を追加し、遷移を機械検出可能にすること(§35 計器への追記は当該スライスの契約で行う)。auto→manual 遷移の全件分類は feel-1 F5 流(過剰拒否ゼロの証明)を前提とする。
+
+#### 34.54.4 構文層の道具立て方針(standing)
+
+- **英語 oracle 汎用パーサ(正規表現ベース・ライブラリベース問わず)不採用**。oracleText は Wizards が厳格にテンプレート化した有界言語であり、正しい道具はテンプレートに対する段階的な probe+IR 蓄積である。汎用パーサは構文の爆発を防いでも CR 意味論の正しさには寄与せず、誤構文木が「誤った GameState」という最悪形態で顕在化する。
+- 現行構造(`src/engine/grammar/`)を維持: 広網 probe → `AbilityIR`(節リスト・trigger/cost/effect/constructs)→ `compileAbilityIR` の fail-closed 決定 → manual 縮退。
+- 将来ネスト構文(引用能力・モード内ネスト)が必要になった段階で、構文解析層(小型パーサコンビネータ等)の**設計のみ**を検討する。依存追加は AGENTS.md 不可侵によりユーザー裁定。
+- **行レベル混合**は別計器(`partialImplementation.ts`・tapForMana トースト)が検出済み。**文節レベル**は本節のカバレッジゲートが検出する。**カードレベル**は行レベル計器の派生。三者は同軸の別粒度であり、新計器を重複追加しない(§35 計器の流用優先)。

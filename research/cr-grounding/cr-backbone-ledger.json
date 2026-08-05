@@ -1104,6 +1104,16 @@
       "evidence": [],
       "manualBoundary": "実行順序の是正はoracle clause順の証明付きのみ。順序不確定の複合はmanual維持。",
       "note": "feel-1監査OBS-1登録(2026-08-05判定者・Fermat再監査推奨): 非target prompt混在行(例 Scry 2. Draw a card.・discard-then-draw)は base 出荷済み挙動だが、guided runtime が pending.commands を prompt 由来コマンドより先に適用するため CR 608.2c 順序の潜在違反が残る。feel-1 の target 節順序ガードは本件の一部(target節混在)を fail-closed で閉じた。残る非 target 混在は deferred-commands 等の clause 順実行機構で解く(compile.ts:606 コメントが本エントリを参照)。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "grammar-auto-clause-coverage",
+      "status": "pending",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "auto 行の無マッチ節を現状のまま許容しない。allowlist 昇格に CR 対応のない節を入れない。",
+      "note": "登録(2026-08-05判定者・feel-1教訓凍結): compile.ts の節カバレッジゲートは prompts.length > 0 のときのみ発動し、auto 行には無条件ゲートがない。実測 auto 2,784 行中 127 行に無マッチ節(engine外メカニクス節と GameState 変更節が混在)。契約=engine-spec §34.54・judge-protocol §10。行レベル計器(partialImplementation.ts)・カードレベルはその派生で流用し、重複計器は作らない。"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3469,6 +3479,24 @@
       "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
       "nextGate": "acceptance M-AVの人間ゲート(H1〜H7)完了。",
       "judge": "user-stop"
+    },
+    {
+      "id": "grammar-auto-clause-coverage",
+      "crOrder": null,
+      "crRefs": [
+        "608.2c",
+        "608.2h"
+      ],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "compile.ts の節カバレッジゲート(CR 608.2h fail-closed)を decision 横断(auto 行含む)で無条件化し、既知ギャップを閉じる。判定者実測(2026-08-05・corpus-extract 17,491枚): auto 2,784 行中 127 行に無マッチ節あり。ゲート無条件化の前に FingerprintEntry へ uncovered 節情報を追加し遷移を機械検出可能にする。auto→manual 遷移の全件分類(feel-1 F5 流・過剰拒否ゼロ証明)が前提。allowlist 昇格は engine 外メカニクス節のみ(judge-protocol §10-3・CR対応+snapshot遷移承認必須)。GameState 変更節は昇格不可。",
+      "evidence": [],
+      "manualBoundary": "auto 行の無マッチ節を現状のまま許容しない(現行ギャップ)。allowlist 昇格に CR 対応のない節を入れない。遷移全件分類なしにゲートを無条件化しない。",
+      "nextGate": "uncovered 節計測の FingerprintEntry 反映→ゲート無条件化→snapshot 遷移サマリ全件分類の判定者承認。",
+      "judge": "deterministic-cr"
     }
   ],
   "judgePolicy": {
