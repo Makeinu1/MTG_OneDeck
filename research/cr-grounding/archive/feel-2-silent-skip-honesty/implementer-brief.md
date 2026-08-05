@@ -5,7 +5,7 @@
 
 ## Milestone
 
-- id: `feel-2-silent-skip-honesty` / base SHA: `BASE_SHA`(judge freeze commit of contract+brief+review pin)
+- id: `feel-2-silent-skip-honesty` / base SHA: `53a3432`(judge freeze commit of contract §34.55+review pins)
 - 契約: `research/cr-grounding/archive/feel-2-silent-skip-honesty/contract.md`(先に完全に読む)と
   `docs/engine-spec.md` §34.55(正本)。
 - review pin(変更禁止・現状 red):
