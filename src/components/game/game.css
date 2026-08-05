@@ -156,6 +156,12 @@ html[data-theme='light'] .game-screen {
   min-height: 44px; padding: 0 var(--space-3); color: var(--text-h); background: var(--surface-1);
   border: 1px solid var(--line-strong); border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap;
 }
+/* feel-2 §34.55.3: legal-zero confirm shares the decision-bar button grammar; the gold
+   border marks it as a positive confirmation, not an abandonment like cancel. */
+.decision-bar__zero {
+  min-height: 44px; padding: 0 var(--space-3); color: var(--text-h); background: var(--surface-1);
+  border: 1px solid var(--gold-dim); border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap;
+}
 .decision-bar__count { color: var(--text-dim); font-size: var(--font-size-xs); white-space: nowrap; }
 .decision-bar__warning { color: var(--warn); font-size: var(--font-size-xs); }
 .game-card[data-decision-role='unrelated'] { opacity: .38; filter: saturate(.35); }

@@ -202,6 +202,13 @@ export interface PendingGuidedResolution {
   to?: ZoneId;
   activation?: PendingActivation;
   manaAbility?: PendingManaAbility;
+  /**
+   * engine-spec §34.55.1 (feel-2): sticky flag set when cancelGuidedPrompt abandons a
+   * prompt whose legal minimum is >= 1. finishGuidedResolution translates it into
+   * `guidedHandled: false` on the resolve command so the honest manual-remainder
+   * warning survives; a fully-legal guided answer leaves it unset (guidedHandled: true).
+   */
+  abandonedRequiredPrompt?: boolean;
 }
 
 export interface PendingCastTransaction {
@@ -1046,6 +1053,7 @@ export interface GameStore {
   confirmGuidedScrySurveil(topOrder: string[], toBottom: string[], toGraveyard: string[]): void;
   confirmGuidedModal(chosen: number[]): void;
   confirmGuidedMana(color: ManaColor): void;
+  confirmGuidedZeroChoice(): void;
   cancelGuidedPrompt(): void;
   resolveAll(): void;
   removeStackItem(id: string, to?: ZoneId): void;
@@ -1927,9 +1935,18 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
-  function resolveStackTopCommandForState(cur: GameState, to?: ZoneId): GameCommand {
-    const base: GameCommand =
-      to === undefined ? { type: 'resolveStackTop' } : { type: 'resolveStackTop', to };
+  function resolveStackTopCommandForState(
+    cur: GameState,
+    to?: ZoneId,
+    guidedHandled?: boolean,
+  ): GameCommand {
+    const base: GameCommand = {
+      type: 'resolveStackTop',
+      ...(to === undefined ? {} : { to }),
+      // engine-spec §34.55.1 (feel-2): only the guided-plan finish path sets this; raw
+      // resolvers leave it undefined, preserving pre-feel-2 warning behavior exactly.
+      ...(guidedHandled === undefined ? {} : { guidedHandled }),
+    };
     if (!stackTopHasPureSelfLibraryShuffle(cur)) {
       return base;
     }
@@ -2024,7 +2041,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     const cur = get().state;
     if (!cur) return;
 
-    const resolveCommand = resolveStackTopCommandForState(cur, pending.to);
+    // engine-spec §34.55.1/§34.55.3 (feel-2): the guided stack-resolution finish carries the
+    // honesty payload — true only when no required prompt was abandoned. Activation and
+    // mana-ability pendings keep the pre-feel-2 command shape (they commit elsewhere).
+    const guidedHandled = isActivationPending(pending) || isManaAbilityPending(pending)
+      ? undefined
+      : !pending.abandonedRequiredPrompt;
+    const resolveCommand = resolveStackTopCommandForState(cur, pending.to, guidedHandled);
     try {
       const result = applyResolutionCommands(cur, [...commands, resolveCommand]);
       const logged = appendLog(
@@ -5198,7 +5221,41 @@ export const useGameStore = create<GameStore>((set, get) => {
         }]);
         return;
       }
+      // engine-spec §34.55.1 (feel-2): abandoning a prompt whose legal minimum is >= 1 is
+      // an abandonment — stamp it so finishGuidedResolution sends guidedHandled: false and
+      // the honest manual-remainder warning survives. Cancelling a minCount 0 prompt stays
+      // a legal zero choice (CR 115.6) and must not set the flag.
+      const prompt = pending?.prompts[0];
+      if (pending && prompt && (prompt.minCount ?? prompt.count) >= 1) {
+        set({ pendingGuided: { ...pending, abandonedRequiredPrompt: true } });
+      }
       advanceGuidedResolution([]);
+    },
+
+    confirmGuidedZeroChoice() {
+      const cur = get().state;
+      const pending = get().pendingGuided;
+      const prompt = pending?.prompts[0];
+      if (!cur || !pending || !prompt) return;
+      if (isActivationPending(pending) || isManaAbilityPending(pending)) return;
+      // CR608.2h (§34.55.3): variable-loot "stop discarding" finalization — identical to
+      // the cancelGuidedPrompt branch: draw exactly the number actually discarded (+ delta).
+      if (prompt.variableLoot) {
+        const drawCount = Math.max(0, prompt.variableLoot.discarded + prompt.variableLoot.drawDelta);
+        advanceGuidedResolution([{
+          type: 'draw',
+          count: drawCount,
+          // MP: the finalizing draw belongs to the prompt's controller (CR121.2).
+          playerId: guidedControllerId(cur, pending),
+        }]);
+        return;
+      }
+      // CR 115.6 (§34.55.3): explicit legal zero choice for an up-to-N target prompt.
+      if (prompt.kind === 'target' && prompt.minCount === 0) {
+        advanceGuidedResolution([]);
+        return;
+      }
+      // Required prompts (and every other prompt shape): zero choice is illegal — no-op.
     },
 
     resolveAll() {

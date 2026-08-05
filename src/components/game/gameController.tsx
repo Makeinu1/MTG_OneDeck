@@ -1257,9 +1257,22 @@ export function useGameController({
   const decisionFocus: DecisionFocusModel | null = (() => {
     if (!state) return null;
     const sourceId = targetSourceId;
+    // engine-spec §34.55.3 (feel-2): the legal-zero affordance belongs to guided stack
+    // resolution only; activation/mana-ability cost prompts keep their existing controls
+    // (confirmGuidedZeroChoice is a no-op there).
+    const guidedIsStackResolution = store.pendingGuided !== null
+      && (store.pendingGuided.mode === undefined || store.pendingGuided.mode === 'resolution');
     if (targetPrompt?.kind === 'target') return {
       kind: 'target', title: '対象', instruction: '金色のカードを選んでください。長押しで内容を確認できます。',
       sourceId, candidateIds: guidedTargetIds, selectedIds: [], playerIds: guidedTargetPlayerIds,
+      // engine-spec §34.55.3 (feel-2): CR 115.6 — an up-to-N target prompt makes zero a
+      // legal choice; surface it as an explicit confirm, not only via cancel.
+      ...(guidedIsStackResolution
+        && guidedPrompt?.kind === 'target'
+        && targetPrompt === guidedPrompt
+        && guidedPrompt.minCount === 0
+        ? { zeroChoice: { label: '対象を選ばない' } }
+        : {}),
     };
     // CR 702.194 teamwork cost-tap multi-select from pendingCast.
     if (castPrompt?.kind === 'cost-tap' && store.pendingCast?.teamworkThreshold !== undefined) {
@@ -1288,6 +1301,11 @@ export function useGameController({
       candidateIds: state.zonesByPlayer[guidedPlayerId ?? state.localPlayerId].hand
         .filter((id) => !guidedSelectedIds.includes(id)),
       selectedIds: guidedSelectedIds,
+      // engine-spec §34.55.3 (feel-2): CR 608.2h — variable-loot "stop discarding" is a
+      // legal finalization, not an abandonment; give it an explicit confirm affordance.
+      ...(guidedIsStackResolution && guidedPrompt.variableLoot
+        ? { zeroChoice: { label: '捨てるのをやめる' } }
+        : {}),
     };
     if (guidedPrompt?.kind === 'sacrifice') return {
       kind: 'sacrifice',

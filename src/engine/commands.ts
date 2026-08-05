@@ -260,7 +260,18 @@ export type GameCommand =
       resolutionText?: string;
       announcedX?: number;
     }
-  | { type: 'resolveStackTop'; to?: ZoneId; libraryShuffleOrder?: string[] }
+  | {
+      type: 'resolveStackTop';
+      to?: ZoneId;
+      libraryShuffleOrder?: string[];
+      /**
+       * engine-spec §34.55.1 (feel-2): present only when the store's guided plan
+       * presented every prompt and each was answered legally. True suppresses the
+       * generic manual-remainder warning for guided lines at resolution (§34.55.2).
+       * Raw-engine callers leave it undefined, preserving existing behavior.
+       */
+      guidedHandled?: boolean;
+    }
   | { type: 'removeStackItem'; id: string; to?: ZoneId }
   | {
       type: 'setManualTargets';
@@ -6182,9 +6193,14 @@ function applyCompiledEffectsForStackItem(
   card: CardInstance,
   effectLines: readonly ResolvableEffectLine[],
   libraryShuffleOrder?: readonly string[],
+  guidedHandled?: boolean,
 ): void {
   if (applyModeledStackCopyEffect(draft, card)) return;
   const commanderColorIdentity = commanderColorIdentityForState(draft.state);
+  // §34.55.2: one generic manual-remainder warning per resolving item. When the guided
+  // plan was fully answered (guidedHandled === true), guided lines contribute no warning
+  // at all — only manual lines still may, deduplicated to a single occurrence.
+  let manualRemainderWarningEmitted = false;
   for (const [lineIndex, effectLine] of effectLines.entries()) {
     const delayed = scheduleDelayedTriggerForEffectLine(draft, card, effectLine, lineIndex);
     if (delayed && (!delayed.scheduled || delayed.immediateText === undefined)) continue;
@@ -6229,10 +6245,16 @@ function applyCompiledEffectsForStackItem(
         !delayed?.scheduled
         && !appliedStoredTargets
         && draft.warnings.length === warningCountBeforeManualHandling
+        // §34.55.2: a guided line whose prompts were all answered legally leaves no
+        // remainder, so the generic "please handle parts manually" warning is a false
+        // positive there and must not fire. Manual lines keep their honest warning.
+        && !(guidedHandled === true && compiled.decision === 'guided')
+        && !manualRemainderWarningEmitted
       ) {
         draft.warnings.push(
           `${stackNameOf(draft, card)}の効果には自動化未対応部分があります。一部手動で処理してください。`,
         );
+        manualRemainderWarningEmitted = true;
       }
       continue;
     }
@@ -6283,6 +6305,7 @@ function applyResolveStackTop(
   draft: Draft,
   to?: ZoneId,
   libraryShuffleOrder?: readonly string[],
+  guidedHandled?: boolean,
 ): void {
   const stack = draft.state.zones.stack;
   if (stack.length === 0) return;
@@ -6304,7 +6327,7 @@ function applyResolveStackTop(
       return;
     }
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
-    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
     return;
   }
 
@@ -6319,20 +6342,20 @@ function applyResolveStackTop(
       // copy branch performs the deletion).
       moveCardInternal(draft, topId, 'library', 'top', false, 'resolve');
       pushLog(draft, `${name}(コピー)を解決した(オメン: コピーは消滅する)。`);
-      applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+      applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
       return;
     }
     moveCardInternal(draft, topId, 'library', 'top', false, 'resolve');
     applyOmenLibraryPlacement(draft, topId, libraryShuffleOrder);
     pushLog(draft, `${name}を解決した(オメン: ライブラリへシャッフル)。`);
-    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+    applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
     return;
   }
 
   const destination = to ?? defaultStackResolveDestination(draft, card);
   moveCardInternal(draft, topId, destination, 'bottom', false, 'resolve');
   pushLog(draft, `${stackNameOf(draft, card)}を解決した(→${ZONE_LABELS[destination]})。`);
-  applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder);
+  applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
 }
 
 function applyRemoveStackItem(draft: Draft, id: string, to?: ZoneId): void {
@@ -7150,7 +7173,7 @@ function applyCommandInternal(
       break;
     }
     case 'resolveStackTop': {
-      applyResolveStackTop(draft, cmd.to, cmd.libraryShuffleOrder);
+      applyResolveStackTop(draft, cmd.to, cmd.libraryShuffleOrder, cmd.guidedHandled);
       break;
     }
     case 'removeStackItem': {

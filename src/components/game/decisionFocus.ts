@@ -21,6 +21,12 @@ export interface DecisionFocusModel {
   canForce?: boolean;
   playerIds?: readonly PlayerId[];
   warning?: string;
+  /**
+   * engine-spec §34.55.3 (feel-2): explicit legal-zero confirmation affordance for the
+   * current guided prompt (CR 115.6 zero targets / CR 608.2h stop discarding). Present
+   * only when choosing zero is legal; the plain cancel keeps its existing meaning.
+   */
+  zeroChoice?: { label: string };
 }
 
 export type DecisionCardRole = 'source' | 'candidate' | 'selected' | 'force' | 'unrelated';

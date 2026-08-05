@@ -31,6 +31,16 @@ export function DecisionBar({ controller }: { controller: GameController }) {
             : `候補 ${focus.candidateIds.length}`}
         </span>
       )}
+      {!teamwork && focus.zeroChoice && (
+        <button
+          type="button"
+          className="decision-bar__zero"
+          data-testid="guided-zero-confirm"
+          onClick={() => controller.store.confirmGuidedZeroChoice()}
+        >
+          {focus.zeroChoice.label}
+        </button>
+      )}
       {focus.warning && <span className="decision-bar__warning">{focus.warning}</span>}
       {teamwork && (
         <div className="decision-bar__teamwork" role="group" aria-label="チームワーク">
