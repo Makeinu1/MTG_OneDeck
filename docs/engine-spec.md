@@ -3470,3 +3470,31 @@ type GameCommand =
 - 現行構造(`src/engine/grammar/`)を維持: 広網 probe → `AbilityIR`(節リスト・trigger/cost/effect/constructs)→ `compileAbilityIR` の fail-closed 決定 → manual 縮退。
 - 将来ネスト構文(引用能力・モード内ネスト)が必要になった段階で、構文解析層(小型パーサコンビネータ等)の**設計のみ**を検討する。依存追加は AGENTS.md 不可侵によりユーザー裁定。
 - **行レベル混合**は別計器(`partialImplementation.ts`・tapForMana トースト)が検出済み。**文節レベル**は本節のカバレッジゲートが検出する。**カードレベル**は行レベル計器の派生。三者は同軸の別粒度であり、新計器を重複追加しない(§35 計器の流用優先)。
+
+### 34.55 feel-2 サイレントスキップ誠実化: guided 解決の誠実シグナルとゼロ選択 affordance(CR 115.6/608.2h/101.3・2026-08-05 判定者承認)— この節も契約である
+
+**位置づけ**: `feel-2-silent-skip-honesty` スライス(feel レーン・feel-1 F3 繰入含む)。判定者 probe 実測(2026-08-05)で確認した二つの不誠実を閉じる: (1) guided 解決の**全件**で「効果には自動化未対応部分があります。一部手動で処理してください。」という manual remainder 警告が出る偽陽性(ユーザーが全 prompt に合法回答しても出る=警告ノイズ化=北極星② fake-green 禁止に抵触)。(2) up-to-N のゼロ選択が合法(CR 115.6)なのに「キャンセル」ボタンにしか載らず放棄に見える affordance 欠陥(feel-1 F3)。grammar/compiler の decision は一切変更しない(decision-snapshot 不変)。GameState フィールド追加なし。**スコープ外**: auto 行の節無マッチ silent drop は `grammar-auto-clause-coverage`(34.54.3)の管轄であり本スライスで触らない。
+
+#### 34.55.1 公開契約(GameCommand 拡張・§5.1 判定済み)
+
+- `resolveStackTop` に任意 payload `guidedHandled?: boolean` を追加する。store の guided plan が提示した prompt を**全て合法回答**したときだけ `true`。乱数なし・payload 固定=決定論維持。GameState 不変のため undo/snapshot/restoreGame への影響なし。
+- **合法回答**の定義: (a) confirm 系アクションで prompt の count/minCount を満たす回答、(b) `minCount === 0` の prompt のゼロ選択(CR 115.6)、(c) variableLoot prompt の「捨て止め」確定(CR 608.2h・§34.47 の cancel 最終化と同一意味)、(d) 提示前に除外された prompt(count 0 の simultaneous 受信者なし)。**合法でない cancel**(`variableLoot` 無しかつ `minCount ?? count >= 1` の prompt の放棄)= abandonment として記録する。
+- 生エンジン利用(golden replay・playthrough harness・`guidedHandled` なし呼び出し)の挙動は完全不変。
+
+#### 34.55.2 エンジン挙動(`applyCompiledEffectsForStackItem`)
+
+- `guidedHandled === true` の解決では、`guided` decision 行に対する汎用 manual remainder 警告を出さない(prompt は提示済み・回答済み= remainder なし)。同一 item 内の `manual` decision 行の警告は維持する(これらは plan 外の真の remainder)。遅延誘発 partial 警告・counter-scaled 経路・保存済み対象経路は不変。
+- 同一解決内の同一 manual remainder 警告は重複排除する(1 item 1 回。複数 manual 行でも 1 件)。
+- `guidedHandled` が false/undefined のときは現行どおり警告する(required prompt 放棄の誠実シグナルを維持)。
+
+#### 34.55.3 Store/UI 契約
+
+- `PendingGuidedResolution` は `abandonedRequiredPrompt?: boolean`(sticky)を持つ。`cancelGuidedPrompt` は §34.55.1 の規則で設定する(variableLoot・minCount 0 の cancel は abandonment にしない)。`finishGuidedResolution` は `guidedHandled: !abandonedRequiredPrompt` を解決コマンドに付与する。
+- 新 store アクション `confirmGuidedZeroChoice()`: 明示的な合法ゼロ選択。target prompt で `minCount === 0` → ゼロ選択で advance。variableLoot → 捨て止め最終化(cancel の variableLoot 分岐と同一)。required prompt では **no-op**(fail-closed: 非法ゼロ選択の禁止)。
+- Decision Focus はゼロ選択が合法のとき明示的な確定ボタン(`data-testid="guided-zero-confirm"`)を表示する: target minCount 0 → ラベル「対象を選ばない」、variableLoot → ラベル「捨てるのをやめる」。cancel は既存の合法意味を保つ(affordance を追加するのであり置換しない)。
+
+#### 34.55.4 証拠・回帰床
+
+- 判定者専有 review pin: `src/store/__tests__/review.feel-2-silent-skip-honesty.test.ts`(R1-R8)、`src/components/game/__tests__/review.feel-2-zero-choice-ui.test.tsx`。
+- 無改変回帰床: `review.cr121-loot-variable-count`(cancel 意味維持)、`review.s4-decision-bar`(通常表示=count+cancel のまま)、`review.cr608-resolution-sliceA/B`、`research/grammar-compile/decision-snapshot.json` byte 一致、census 行数不変。
+- UI 変更を含むため、受け入れは 375×812 / 812×375 / 1440×900 実機 + console error 0(安定後の同一 browser session)。
