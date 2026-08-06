@@ -290,16 +290,36 @@ const FETCH_SUBTYPE_SPECS = [
   { english: 'Forest', pattern: /\bForest\b/i },
 ] as const;
 
+// §11.1: a clause is a fetch clause only when a single clause carries all three
+// markers AND the searched-for target is a land. Matching the whole-face joined
+// text (the old behavior) false-positived on Urza's Saga chapter III, whose
+// artifact search also contains all three markers.
+const FETCH_TARGET_PATTERN = /search your library for ([^,]+?) cards?\b/i;
+
+function isFetchTargetClause(clause: string): boolean {
+  const target = clause.match(FETCH_TARGET_PATTERN)?.[1]?.toLowerCase();
+  if (!target) {
+    return false;
+  }
+  return /\bland\b/.test(target)
+    || FETCH_SUBTYPE_SPECS.some((spec) => spec.pattern.test(target));
+}
+
+function isFetchClause(clause: string): boolean {
+  return /search your library for/i.test(clause)
+    && /onto the battlefield/i.test(clause)
+    && /shuffle/i.test(clause)
+    && isFetchTargetClause(clause);
+}
+
 function detectFetchClause(def: CardDef | undefined): string | null {
   for (const text of cardTexts(def)) {
     const clauses = splitRulesText(text);
-    const haystack = clauses.join(' ');
-    const hasEnglishFetch =
-      /Search your library for/i.test(haystack) &&
-      /onto the battlefield/i.test(haystack) &&
-      /shuffle/i.test(haystack);
-    if (hasEnglishFetch) {
-      return haystack;
+    if (clauses.some(isFetchClause)) {
+      // Return the whole face join: fetchLifeCost / fetchFilter /
+      // fetchConditionalUntap scan the entire face (the Fabled Passage
+      // conditional untap clause lives in a separate sentence).
+      return clauses.join(' ');
     }
   }
 
