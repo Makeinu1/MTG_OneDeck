@@ -293,8 +293,11 @@ const FETCH_SUBTYPE_SPECS = [
 // §11.1: a clause is a fetch clause only when a single clause carries all three
 // markers AND the searched-for target is a land. Matching the whole-face joined
 // text (the old behavior) false-positived on Urza's Saga chapter III, whose
-// artifact search also contains all three markers.
-const FETCH_TARGET_PATTERN = /search your library for ([^,]+?) cards?\b/i;
+// artifact search also contains all three markers. The capture window runs up to
+// the first " card(s)" terminator (not the first comma): comma-separated subtype
+// lists like "a basic Forest, Plains, or Island card" (Panorama cycle) must stay
+// inside the target window (cold-audit Boyle F1, 2026-08-06).
+const FETCH_TARGET_PATTERN = /search your library for (.+?) cards?\b/i;
 
 function isFetchTargetClause(clause: string): boolean {
   const target = clause.match(FETCH_TARGET_PATTERN)?.[1]?.toLowerCase();

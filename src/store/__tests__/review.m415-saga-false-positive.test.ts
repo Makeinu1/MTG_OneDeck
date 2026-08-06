@@ -120,4 +120,23 @@ describe('review.m415-saga-false-positive: fetch detection must not match non-la
     expect(passage!.entersTapped).toBe(true);
     expect(passage!.untapIfControlLandsAtLeast).toBe(4);
   });
+
+  it('R4: comma-separated subtype fetch targets still parse (Panorama cycle, cold-audit Boyle F1)', () => {
+    const bantPanorama = makeDef({
+      scryfallId: 'bant-panorama',
+      typeLine: 'Land',
+      faces: [{
+        name: 'Bant Panorama',
+        typeLine: 'Land',
+        oracleText: '{T}, Sacrifice this land: Search your library for a basic Forest, Plains, or Island card, put it onto the battlefield tapped, then shuffle.',
+      }],
+    });
+    const panorama = fetchAbility(bantPanorama);
+    expect(panorama).not.toBeNull();
+    expect(panorama!.entersTapped).toBe(true);
+    expect(panorama!.lifeCost).toBe(0);
+    expect(typeof panorama!.filter === 'object'
+      ? [...panorama!.filter.subtypes].sort()
+      : null).toEqual(['Forest', 'Island', 'Plains']);
+  });
 });
