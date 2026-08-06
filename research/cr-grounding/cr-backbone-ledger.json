@@ -1188,10 +1188,12 @@
         "src/store/__tests__/review.cr701-fabled-passage-untap.test.ts",
         "src/engine/status.ts (fetchAbility/fetchEntersTapped/fetchConditionalUntap/countControlledLands)",
         "docs/engine-spec.md §11.1",
-        "research/mydeck-scoring/playability/top-10-v1-gaps.md (#1 gap・premise stale判定の出所)"
+        "research/mydeck-scoring/playability/top-10-v1-gaps.md (#1 gap・premise stale判定の出所)",
+        "src/store/__tests__/review.m415-saga-false-positive.test.ts (R1-R4)",
+        "docs/engine-spec.md §11.1 2026-08-06スコープ追記(節単位の土地対象照合)"
       ],
       "nextGate": "fetchland自動化は本スライスで完結(V1最頻gap #1充足)。将来のfetchland variant(条件付ETB置換のより一般化・非基本fetch等)はdemand実測次第で別スライス。Fabled Passageのconditional untapは本スライスで着地。",
-      "note": "2026-07-12 判定者(Opus 4.8=J2 tier)裁定: batch5-1は『新規実装スライス』でなく『既存実装の検証 + 誠実残渣の外科着地』だった。"
+      "note": "2026-07-12 判定者(Opus 4.8=J2 tier)裁定: batch5-1は『新規実装スライス』でなく『既存実装の検証 + 誠実残渣の外科着地』だった。 2026-08-06 ユーザー報告「ウルザの物語 第I/II章で土地フェッチ」を修正(fix-fetch-saga-false-positive)。根因=detectFetchClause が search 対象を見ずに face 全文 join へ三断片を照合→第III章 artifact search がフェッチと誤判定し、fetch-activate/resolveAll停止/FetchDialog横取りが全能力で発火。修正=節単位の土地対象照合(§11.1追記)。冷監査 Boyle(F1 HIGH=Panorama capture window退化)→判定者外科修正→再監査 Hypatia BLOCKER0/HIGH0(corpus新旧退化0件・Panorama系20枚正常)。フルcheck緑。既知残境界(LOW・台帳note): 非土地Sagaの土地対象フェッチ章(Binding the Old Gods等4枚)は store 消費経路に型行ガードなし・fetchFilter の face 全文走査・非基本サブタイプ(Gate/Cave等)対象は whitelist 外で null。"
     },
     {
       "id": "cr-102-players",
@@ -2811,7 +2813,7 @@
       "manualBoundary": "chapter ability効果本体の解決はmanual/guidedのまま。addCounters経路のlore追加はdefer(proliferate等将来スライス)。",
       "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "deterministic-cr",
-      "note": "2026-08-05 ユーザー報告「ウルザの物語がうまく発動しない」受領。判定者 probe: substrate健全(ETB lore=1+chapter I trigger・playLand・turn-based lore increment+chapter II trigger まで再現)。chapter effect は本domainの manualBoundary(chapter ability効... guided/manual)による既知境界=ユーザーの観察は境界挙動と整合。再現できない追加症状(具体的手順)があれば要報告。"
+      "note": "2026-08-05 ユーザー報告「ウルザの物語がうまく発動しない」受領。判定者 probe: substrate健全(ETB lore=1+chapter I trigger・playLand・turn-based lore increment+chapter II trigger まで再現)。chapter effect は本domainの manualBoundary(chapter ability効... guided/manual)による既知境界=ユーザーの観察は境界挙動と整合。再現できない追加症状(具体的手順)があれば要報告。 2026-08-06 追記: 先の「ウルザの物語」ユーザー報告は cr-714 境界ではなく cr-701-fetchland-search の fetchAbility 誤検出が根因と確定・修正済み(fix-fetch-saga-false-positive)。章 substrate は probe で健全(ETB lore=1+第I章誘発・lore増減+第II章誘発)。"
     },
     {
       "id": "cr-716-719-720-721-722-new-card-frames-deferred-by-demand",
