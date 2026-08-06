@@ -3,6 +3,8 @@
 **status**: active contract（判定者専有・ユーザー裁定 2026-07-26）  
 **implementation status**: AV0–AV6 shipped。AV7 production integrationは2026-08-01ユーザー承認済み。
 
+**revision 2026-08-07(ユーザー裁定・feel-4拡張「音の空白閉塞」)**: §2/§2.1/§3.1を改訂。`phase-advanced`をDEFER→MUST(小tick)へ、`game-start`行からマリガン/キープを分離し`shuffle-completed`拡張(マリガン)・`hand-kept`新設(キープ)、`draw-completed`をdraw-step自動ドローへ拡張、`turn-advanced`の発火経路をcleanup越え・自動進行まで明文化(ターンまたぎ無音は実装漏れとして修正対象)。初回7枚配牌はgesture制約により無音のまま。
+
 **役割**: 音楽・意味イベント音・イベント視覚・BPM同期についての単一正本。  
 **非対象**: カードルール自動化、戦闘ルール実装、ライトモード用楽曲。
 **contract cold audit**: 2026-07-26 `qwen3.8-max-preview` cold session `019f9c54-af6d-75c3-9634-94aaf500c38e` — CONTRACT-FROZEN-OK、BLOCKER/HIGH 0。記録=`research/cr-grounding/archive/av-contract-r2-cold-audit-2026-07-26.md`。
@@ -75,14 +77,15 @@
 | `spell-cast` | 非統率者の呪文が実際にキャストされ、スタックへの zone change が commit 済み | 毎回同じ知覚上の楽器・強さ・長さ | 手札/元領域からスタックへの短い因果表現 | **MUST** |
 | `commander-cast` | 統率者が実際にキャストされ、スタックへの zone change が commit 済み | 専用モチーフ。BGM duck を伴ってよい | 既存 CommanderCutIn を基礎にした固有の儀式 | **MUST / 特例** |
 | `land-played` | `playLand` が成功し、土地が戦場へ commit 済み | キャストと区別できる安定した短音 | カード周辺だけの安定した着地反応 | **MUST** |
-| `turn-advanced` | ターン番号が次へ進む操作が成功 | 小節線に相当する一定の短音 | 現行ターン交代cueを一回 | **MUST** |
-| `draw-completed` | UIから開始したdraw操作で実際に1枚以上が手札へcommit済み | 紙を滑らせる一定の短音。枚数で増幅しない | 既存のカード到着表示だけ | **MUST** |
+| `turn-advanced` | ターン番号が次へ進む成功commit(明示の「次のターン」・フェイズ進行によるcleanup越え・解決一掃後の自動進行、経路を問わない) | 小節線に相当する一定の短音 | 現行ターン交代cueを一回 | **MUST** |
+| `draw-completed` | UIから開始したdraw操作、またはターン進行によるdraw-stepの自動ドローで実際に1枚以上が手札へcommit済み | 紙を滑らせる一定の短音。枚数で増幅しない | 既存のカード到着表示だけ | **MUST** |
 | `tap-changed` | UIから開始したtap/untap操作で1枚以上の状態が実際に変化 | tapとuntapを区別する一定の卓上短音 | 既存のカード回転だけ | **MUST** |
 | `stack-resolved` | UIから開始したresolve top/allで1件以上がstackから解決完了 | 短いcard-shove。一操作一音 | 結果理解に必要な既存の因果表示だけ | **MUST** |
-| `shuffle-completed` | UIから開始したlibrary shuffleがcommit済み | 0.9秒以内の一定のshuffle音 | 新規イベント視覚なし | **MUST** |
-| `phase-advanced` | フェイズ/ステップだけ進む | なし | 現在必要な遷移表示のみ。新規音楽演出なし | **DEFER** |
+| `shuffle-completed` | UIから開始したlibrary shuffle、またはマリガン確定(手札引き直し)がcommit済み | 0.9秒以内の一定のshuffle音 | 新規イベント視覚なし | **MUST** |
+| `phase-advanced` | ターン番号を変えずにフェイズ/ステップだけ進む成功commit | turn-chipより明確に小さい一定のtick。リズムの拍ではなく区切りだけ示す | 現在必要な遷移表示のみ。新規視覚演出なし | **MUST**(2026-08-07 ユーザー裁定でDEFERから昇格) |
+| `hand-kept` | キープ確定(初手決定)がcommit済み | 一定の小さい確定音。枚数・マリガン回数で増幅しない | 現行UIを維持 | **MUST**(2026-08-07 ユーザー裁定で追加) |
 | `ability-activated` | 起動型能力を起動 | なし | 現行の機能表示のみ | **DEFER** |
-| `game-start` | ゲームを開始/キープ | BGM開始以外はなし | 現行UIを維持 | **DEFER** |
+| `game-start` | ゲーム開始・初回7枚の配牌 | BGM開始以外はなし。初回配牌はブラウザのgesture制約で物理的に無音(実装しない) | 現行UIを維持 | **DEFER** |
 | combat family | 攻撃宣言、ブロック、戦闘ダメージ等 | なし | 新規演出なし。既存の機能表示だけ | **DEFER / 初期対象外** |
 | manipulation | hover、focus、preview、scroll、drag開始、並べ替え、対象探索 | なし | 即時UIフィードバックだけ | **MUST NOT musical event** |
 | resource/result | 自動マナ支払い、効果内draw/shuffle、life/counter変更、墓地移動、token生成 | それ自身の追加音なし | 状態理解に必要な既存の因果表示だけ | **MUST NOT separate musical event** |
@@ -93,6 +96,9 @@
 
 - `commander-cast` は `spell-cast` を**置換**する。二音・二重エフェクトにしない。
 - ターン終了と次ターン開始は `turn-advanced` 一件に正規化する。
+- フェイズ進行がターン増加を伴う場合(「次のフェイズ」によるcleanup越え等)は `phase-advanced` を発火せず、`turn-advanced` 一件のみとする。経路(明示の「次のターン」・cleanup越え・解決一掃後の自動進行)を問わず、ターン番号が増加した成功commit一件につき `turn-advanced` は一件だけ。
+- draw-stepの自動ドローは `draw-completed` 一件を発火する(2026-08-07 ユーザー裁定。「通常のturn進行に内包されたdrawは無音」の例外)。同一のターン進行で `turn-advanced` と両方鳴ってよいが、それ以上の音を重ねない。
+- マリガン確定は `shuffle-completed` へ、キープ確定は `hand-kept` へ正規化する。同一の初手決定操作から両方は発火しない。
 - 複数枚draw、bulk tap/untap、resolve-allは、枚数やstack件数にかかわらずユーザーの一操作を一件へ集約する。
 - 自動マナ支払い、cast/resolve内のdraw・shuffle・tap、通常のturn進行に内包されたuntapは別の音を重ねない。明示操作の主意味だけを鳴らす。
 - 対象・面・X・支払い・確認が未完の間はキャスト成立ではない。最後の成功 commit 後にだけ発火する。
@@ -148,14 +154,16 @@ interface SfxSampleLayer {
 | `stack-resolved` | `resolve-shove -3.88` |
 | `shuffle-completed` | `shuffle -1.94` |
 | `turn-advanced` | `turn-chip -1.94` + `low-thud -9.12` |
+| `phase-advanced` | `phase-tick -8.20` |
+| `hand-kept` | `keep-confirm -6.00` |
 | `commander-cast` | `commander-contact -7.13` + `low-thud -6.02` + `commander-portal-open -6.74` |
 
 - 全layerの初期`offsetMs`は0。同cueのlayerは同じ`chokeGroup`へ属し、再発火では前cueのtail全体だけを止めて新しいattackを開始する。
-- `spell-arcane-snap`と`commander-portal-open`と`low-thud`は固定seedまたは固定式のproject-original。ほかの採用sampleはKenney Casino AudioのCC0素材を加工したもの。
+- `spell-arcane-snap`と`commander-portal-open`と`low-thud`と`phase-tick`と`keep-confirm`は固定seedまたは固定式のproject-original。ほかの採用sampleはKenney Casino AudioのCC0素材を加工したもの。`phase-tick`はdry・1秒以内・turn-chipより明確に小さい。`keep-confirm`はdry・1秒以内。
 - `public/audio/sfx/`へ置くのは採用済み48kHz・2ch・PCM16 WAVと権利根拠だけ。通常音は1秒以内、commander音は1.6秒以内、true peakは-3dBFS以下、端に2ms fadeを持つ。
 - comparison-onlyの音声素材、Cockatrice、`sound/spells/`、zip/7z、`sound/`全体は公開しない。ユーザーの`sound/`原本を変更しない。
 - AudioContext生成後にsampleを非同期fetch/decodeしてcacheする。完了前のevent、load/decode/play失敗は無音へ縮退し、GameStateを待たせない。
-- 通常7音はEventBus、`commander-cast`はCommanderBusへ出力する。通常音でBGMをduckしない。
+- 通常9音(`phase-advanced`・`hand-kept`を含む)はEventBus、`commander-cast`はCommanderBusへ出力する。通常音でBGMをduckしない。
 - 拍スナップ(`presentationSoundDelayMs`)と「失敗はGameStateを待たせない」を維持する。`OfflineAudioContext`による旧patch生成は撤去する。
 
 ユーザー音量スライダー(2026-07-26 ユーザー裁定で追加):

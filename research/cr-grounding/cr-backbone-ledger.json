@@ -1067,11 +1067,13 @@
       "type": "design-slice",
       "track": "feel",
       "domainId": "feel-2-silent-skip-honesty",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [],
-      "evidence": [],
+      "evidence": [
+        "feel-2 shipped 2026-08-05 @2b4a192 (domainsエントリ参照): cold-audit Aristotle BLOCKER0/HIGH0・full check green"
+      ],
       "manualBoundary": "選択を必要とする効果をユーザー選択なしに解決済み扱いしない。",
-      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): silent skipを誠実な分岐UIへ。信頼の土台。feel-1 F3繰入(2026-08-05判定者裁定): up-to-Nのゼロ選択はcancel→advanceGuidedResolution([])で合法実行されるがaffordanceが放棄に見える。ゼロ選択の明示UI(合法な確定としての0個選択)を本スライスの範囲に含める。"
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): silent skipを誠実な分岐UIへ。信頼の土台。feel-1 F3繰入(2026-08-05判定者裁定): up-to-Nのゼロ選択はcancel→advanceGuidedResolution([])で合法実行されるがaffordanceが放棄に見える。ゼロ選択の明示UI(合法な確定としての0個選択)を本スライスの範囲に含める。 2026-08-07判定者整合修正: domains shipped(2b4a192)とplannedSequenceのSTATUS_MISMATCH解消。"
     },
     {
       "type": "design-slice",
@@ -1091,7 +1093,7 @@
       "dependsOn": [],
       "evidence": [],
       "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
-      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): AV7本番統合。演出の気持ちよさ。"
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): AV7本番統合。演出の気持ちよさ。 2026-08-07判定者: ユーザー裁定で音の空白閉塞(phase tick/自動ドロー音/マリガンshuffle/キープ新音/ターンまたぎ発火漏れ修正)を本スライスへ組入れ。契約改訂済み。"
     },
     {
       "type": "design-slice",
@@ -1114,6 +1116,28 @@
       "evidence": [],
       "manualBoundary": "auto 行の無マッチ節を現状のまま許容しない。allowlist 昇格に CR 対応のない節を入れない。",
       "note": "登録(2026-08-05判定者・feel-1教訓凍結): compile.ts の節カバレッジゲートは prompts.length > 0 のときのみ発動し、auto 行には無条件ゲートがない。実測 auto 2,784 行中 127 行に無マッチ節(engine外メカニクス節と GameState 変更節が混在)。契約=engine-spec §34.54・judge-protocol §10。行レベル計器(partialImplementation.ts)・カードレベルはその派生で流用し、重複計器は作らない。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-5-land-bundle-bulk-tap",
+      "status": "pending",
+      "dependsOn": [],
+      "evidence": [],
+      "manualBoundary": "束トグルでマナを産出しない。個別カード操作の退路(展開/メニュー)を消さない。",
+      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-5-land-bundle-bulk-tap"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-6-stack-spatial-presence",
+      "status": "pending",
+      "dependsOn": [
+        "feel-5-land-bundle-bulk-tap"
+      ],
+      "evidence": [],
+      "manualBoundary": "C1承認なしに本実装へ進まない。カードサイズ文法とモバイルレイアウトを変更しない。",
+      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-6-stack-spatial-presence"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3492,11 +3516,12 @@
       "status": "pending",
       "dependsOn": [],
       "landingState": [],
-      "boundary": "AV7 production integration(2026-08-01ユーザー承認済み)の本番組み込み完了。docs/audio-visual-contract.md §12が契約。AV0〜AV6 shipped・AV7は試聴承認済みの部分実装あり。",
+      "boundary": "AV7 production integration(2026-08-01ユーザー承認済み)の本番組み込み完了。docs/audio-visual-contract.md §12が契約。AV0〜AV6 shipped・AV7は試聴承認済みの部分実装あり。2026-08-07 ユーザー裁定「音の空白閉塞」拡張: phase-advanced小tick追加(DEFER→MUST)、マリガン=shuffle-completed・キープ=hand-kept新設、draw-completedをdraw-step自動ドローへ拡張、turn-advancedのcleanup越え/解決後自動進行経路の発火漏れ修正(バグ)。初回7枚配牌はgesture制約で無音維持。新sample(phase-tick/keep-confirm)はproject-original。実装順: 音の空白閉塞(本拡張)→feel-5→feel-6。",
       "evidence": [],
       "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
       "nextGate": "acceptance M-AVの人間ゲート(H1〜H7)完了。",
-      "judge": "user-stop"
+      "judge": "user-stop",
+      "note": " 2026-08-07判定者: ユーザー実機不満3件のうち音部分を本エントリへ統合。ターンまたぎ無音はnextPhaseのcleanup越えでpublishTurnAdvance未発火の実装漏れと特定。ドロー音は手動経路のみ実装済みであった事実をユーザーへ説明済み。契約改訂=docs/audio-visual-contract.md revision 2026-08-07(§2/§2.1/§3.1)。"
     },
     {
       "id": "grammar-auto-clause-coverage",
@@ -3515,6 +3540,38 @@
       "manualBoundary": "auto 行の無マッチ節を現状のまま許容しない(現行ギャップ)。allowlist 昇格に CR 対応のない節を入れない。遷移全件分類なしにゲートを無条件化しない。",
       "nextGate": "uncovered 節計測の FingerprintEntry 反映→ゲート無条件化→snapshot 遷移サマリ全件分類の判定者承認。",
       "judge": "deterministic-cr"
+    },
+    {
+      "id": "feel-5-land-bundle-bulk-tap",
+      "crOrder": null,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [],
+      "landingState": [],
+      "boundary": "LandRowの同名基本地形束クリックを束単位のタップトグルへ。アンタップが1枚でもあれば全枚タップ、全てタップ済みなら全枚アンタップ。applyCommandsでsetTapped一括を1 commit=undo1段。publishTapChangeへ全cardIdsを渡し契約§2.1どおり1操作1音。マナ産出はしない。展開(×n)からの個別操作・右クリックメニューは維持。feel-4音拡張の後。",
+      "evidence": [],
+      "manualBoundary": "束トグルでマナを産出しない。個別カード操作の退路(展開/メニュー)を消さない。",
+      "nextGate": "束トグルの状態遷移・undo1段・1イベント化のreview緑+3viewport UI証拠+コールド監査。",
+      "judge": "user-stop"
+    },
+    {
+      "id": "feel-6-stack-spatial-presence",
+      "crOrder": null,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "medium",
+      "status": "pending",
+      "dependsOn": [
+        "feel-5-land-bundle-bulk-tap"
+      ],
+      "landingState": [],
+      "boundary": "スタック呪文の立体感・注目感。現状は土地束と同一の視覚文法(ずらし重ね+グローのみ)で浮遊感・注目感がなく、契約§2が約束するキャスト到着演出(手札/元領域→スタックの短い因果表現)が未実装。2段構成: C1=専用worktree/dev fixtureで落影+前面カード浮上+浅いbob+到着ゴースト飛行を試作し、375×812/812×375/1440×900のscreenshot凍結+ユーザー承認。C2=凍結値のみで本実装。カード実サイズは変更しない。ライトテーマは輪郭+影。reduced-motionはbob/飛行を静止退避。",
+      "evidence": [],
+      "manualBoundary": "C1承認なしに本実装へ進まない。カードサイズ文法とモバイルレイアウトを変更しない。",
+      "nextGate": "C1試作の3viewport screenshot凍結+ユーザー承認。",
+      "judge": "user-stop"
     }
   ],
   "judgePolicy": {
