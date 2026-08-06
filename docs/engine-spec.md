@@ -560,6 +560,7 @@ export function fetchEntersTapped(state: GameState, ability: FetchAbility, contr
   - 英: `/Search your library for .* (land|basic land) .*/i` かつ put 句 `/onto the battlefield/i` かつ `/shuffle/i`。
   - 日: `あなたのライブラリー` を含み `.*探[しす].*` かつ `戦場に出` かつ `切り直す`。
   - いずれも満たさなければ `null`。
+- **スコープ(2026-08-06 追記・ユーザー報告「ウルザの物語」誤検出)**: 上記三断片の照合は**同一の起動文・同一文**に限定する。カード全文の join や章効果・別文との混在を許さない。search の対象語は**土地**でなければならず、`artifact card` など非土地対象の search を含むカード(典型例: ウルザの物語第III章「Search your library for an artifact card … put it onto the battlefield, then shuffle」)は `null` を返すこと。この誤検出はカタログの `fetch-activate`・`resolveAll` のフェッチ停止・解決時の FetchSearchDialog 横取りを**章 I/II の誘発含め全能力**で引き起こしていた。ピン: `src/store/__tests__/review.m415-saga-false-positive.test.ts`。
 - **entersTapped**: put 句に 英 `onto the battlefield tapped` / 日 `タップ状態で(戦場に)出` を含めば `true`、無ければ `false`。
 - **untapIfControlLandsAtLeast**(2026-07-12 追加・寓話の小道型): 英 `/if you control (\w+) or more lands,\s*untap (?:that land|it)/i` を検出したら、その閾値 N を格納(数詞→整数化・最小 one〜ten + 直接数字)。**これは entersTapped=true と共起する条件付きアンタップ**を意味する(`entersTapped=false` のときは付与しない)。検出できなければ `undefined`(欠落)。**読み取りは英語 oracleText を正本**とする(CLAUDE.md 規約。日本語 printedText は表示専用ゆえ本句は英語のみ解析)。日本語のみの文面は `undefined` にフォールバック=常に tapped(誤自動化しない安全側)。
   - `fetchEntersTapped(state, ability, controllerId)`: `entersTapped=false`→常に `false`。`untapIfControlLandsAtLeast` 欠落→`entersTapped` をそのまま。有り時→**解決後の支配土地数**(現在 controller が支配する battlefield の土地数 + フェッチ土地自身の 1)が閾値 N 以上なら `false`(=アンタップして出す)、未満なら `true`。CR: 条件はフェッチ土地が戦場に出た後に評価され、その土地自身も数える。
