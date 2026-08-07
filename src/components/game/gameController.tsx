@@ -133,6 +133,10 @@ export interface GameController {
   requestActivateAbility?: (cardId: string, abilityLineIndex?: number) => void;
   requestDraw: (count: number) => void;
   requestShuffleLibrary: () => void;
+  /** Mulligan confirmation (one shuffle-completed; contract §2.1). */
+  requestMulligan: () => void;
+  /** Keep confirmation (one hand-kept; contract §2.1). */
+  requestKeepHand: () => void;
   requestToggleTap: (cardId: string) => void;
   requestSetAllTapped: (tapped: boolean) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
@@ -390,6 +394,7 @@ export function useGameController({
     const previous = useGameStore.getState().state;
     if (!previous) return;
     store.nextPhase();
+    publishTransitionPresentation(previous);
     announceTransition(previous, useGameStore.getState().state);
   }
 
@@ -399,9 +404,7 @@ export function useGameController({
     store.nextTurn();
     const next = useGameStore.getState().state;
     announceTransition(previous, next);
-    if (next && next.turn > previous.turn) {
-      publishTurnAdvance(previous.turn, next.turn);
-    }
+    publishTransitionPresentation(previous);
   }
 
   /**
@@ -420,9 +423,12 @@ export function useGameController({
       current.resolutionSession?.stage === 'manual-required',
     );
     switch (primary.kind) {
-      case 'manual-resolution':
+      case 'manual-resolution': {
+        const beforeManual = current.state;
         current.completeManualResolution();
+        publishTransitionPresentation(beforeManual);
         break;
+      }
       case 'resolve':
         requestResolveTop();
         break;
@@ -597,6 +603,39 @@ export function useGameController({
     });
   }
 
+  /**
+   * AV7b gap closure (docs/audio-visual-contract.md §2/§2.1, revision 2026-08-07).
+   * Single chokepoint for turn/phase/auto-draw semantics after a transition
+   * commit. Compares before/after state snapshots — no UI log parsing.
+   * Turn increment normalizes to exactly one turn-advanced; otherwise a
+   * phase-only change is one phase-advanced. A hand growth (draw-step auto
+   * draw) adds exactly one draw-completed regardless of path.
+   */
+  function publishTransitionPresentation(before: GameState | null): void {
+    const after = useGameStore.getState().state;
+    if (!before || !after) return;
+    if (after.turn > before.turn) {
+      publishTurnAdvance(before.turn, after.turn);
+    } else if (after.phase !== before.phase) {
+      presentationRuntime.publish({
+        action: 'advance-phase',
+        status: 'committed',
+        previousPhase: before.phase,
+        nextPhase: after.phase,
+        turnChanged: false,
+      });
+    }
+    const drawnCount = after.zones.hand.length - before.zones.hand.length;
+    if (drawnCount > 0) {
+      presentationRuntime.publish({
+        action: 'draw',
+        status: 'committed',
+        requestedCount: drawnCount,
+        completedCount: drawnCount,
+      });
+    }
+  }
+
   function requestDraw(count: number): void {
     const before = useGameStore.getState().state;
     if (!before || count <= 0) return;
@@ -621,6 +660,28 @@ export function useGameController({
     if (useGameStore.getState().state === before) return;
     presentationRuntime.publish({
       action: 'shuffle-library',
+      status: 'committed',
+    });
+  }
+
+  /** Mulligan confirmation normalizes to one shuffle-completed (§2.1). */
+  function requestMulligan(): void {
+    const before = useGameStore.getState().state;
+    if (!before) return;
+    store.mulligan();
+    // A successful commit replaces the state object; a no-op stays silent.
+    if (useGameStore.getState().state === before) return;
+    presentationRuntime.publish({
+      action: 'shuffle-library',
+      status: 'committed',
+    });
+  }
+
+  /** Keep confirmation (initial-hand decision) emits exactly one hand-kept. */
+  function requestKeepHand(): void {
+    store.keepOpeningHand();
+    presentationRuntime.publish({
+      action: 'keep-hand',
       status: 'committed',
     });
   }
@@ -739,12 +800,14 @@ export function useGameController({
     beginResolvePresentation(topId ? [topId] : []);
     store.resolveTop();
     finishResolveCall();
+    publishTransitionPresentation(before);
   }
   function requestResolveAll(): void {
     const before = useGameStore.getState().state;
     beginResolvePresentation(before ? [...before.zones.stack] : []);
     store.resolveAll();
     finishResolveCall();
+    publishTransitionPresentation(before);
     const s = useGameStore.getState().state;
     const dialog = s ? fetchDialogForTop(s) : null;
     if (dialog) {
@@ -1567,12 +1630,14 @@ export function useGameController({
           mode="decision"
           onKeep={() => {
             const count = useGameStore.getState().state?.mulliganCount ?? 0;
-            store.keepOpeningHand();
+            // Keep decision is finalized before any bottom selection, so the
+            // hand-kept event publishes exactly once at the top of this branch.
+            requestKeepHand();
             const bottom = freeMulliganBottomCount(count);
             if (bottom > 0) setMulliganBottomCount(bottom);
             else beginFirstTurn();
           }}
-          onMulligan={() => store.mulligan()}
+          onMulligan={() => requestMulligan()}
         />
       )}
 
@@ -1910,6 +1975,8 @@ export function useGameController({
     requestActivateAbility,
     requestDraw,
     requestShuffleLibrary,
+    requestMulligan,
+    requestKeepHand,
     requestToggleTap,
     requestSetAllTapped,
     requestResolveTop,

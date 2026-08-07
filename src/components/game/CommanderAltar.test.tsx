@@ -22,6 +22,8 @@ function controllerForAway(): { controller: GameController; openCardMenu: Return
       handleCardDoubleClick: vi.fn(),
       requestDraw: vi.fn(),
       requestShuffleLibrary: vi.fn(),
+      requestMulligan: vi.fn(),
+      requestKeepHand: vi.fn(),
       requestToggleTap: vi.fn(),
       requestSetAllTapped: vi.fn(),
       requestResolveTop: vi.fn(),

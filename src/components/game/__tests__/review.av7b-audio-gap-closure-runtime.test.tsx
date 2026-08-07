@@ -94,6 +94,10 @@ afterEach(() => {
 function startFreshGame(): GameController {
   store().newGame(makeDeck(40), 9011);
   store().keepOpeningHand();
+  // Mirror the production onKeep flow: a 0-mulligan keep begins the first
+  // turn immediately, so the game is already at main1 when the controller
+  // mounts. (No mount-time auto-start belongs in the controller itself.)
+  store().beginFirstTurn();
   act(() => root.render(<Harness ref={controllerRef} />));
   return controller();
 }
@@ -163,6 +167,16 @@ describe('AV7b audio-gap closure boundaries', () => {
 
   it('R4: explicit turn advance fires turn-advanced once and auto draw once', () => {
     const game = startFreshGame();
+    // The mounted harness already advanced to main1 through the draw step,
+    // leaving 8 in hand; trim to 7 so nextTurn's cleanup can complete
+    // (CR 514.1 blocks the transition while a discard is required).
+    let hand = store().state?.zones.hand ?? [];
+    while (hand.length > 7) {
+      const dropId = hand[hand.length - 1];
+      if (!dropId) break;
+      store().moveCard(dropId, 'graveyard');
+      hand = store().state?.zones.hand ?? [];
+    }
     const turnBefore = store().state?.turn ?? 0;
 
     const { events, unsubscribe } = captureEvents();

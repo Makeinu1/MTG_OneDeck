@@ -8,6 +8,8 @@ export type SfxKind =
   | 'stack-resolved'
   | 'shuffle-completed'
   | 'turn-advanced'
+  | 'phase-advanced'
+  | 'hand-kept'
   | 'commander-cast';
 
 export interface SfxLayer {
@@ -26,6 +28,8 @@ export const ALL_SFX_KINDS: readonly SfxKind[] = [
   'shuffle-completed',
   'turn-advanced',
   'commander-cast',
+  'phase-advanced',
+  'hand-kept',
 ];
 
 const asset = (file: string): string => `${import.meta.env.BASE_URL}audio/sfx/${file}`;
@@ -47,6 +51,8 @@ const FIXED_LAYERS: Record<Exclude<SfxKind, 'tap-changed'>, readonly SfxLayer[]>
   'stack-resolved': [layer('resolve-shove.wav', -3.88, 'resolve')],
   'shuffle-completed': [layer('shuffle.wav', -1.94, 'shuffle')],
   'turn-advanced': [layer('turn-chip.wav', -1.94, 'turn'), layer('low-thud.wav', -9.12, 'turn')],
+  'phase-advanced': [layer('phase-tick.wav', -8.2, 'phase-tick')],
+  'hand-kept': [layer('keep-confirm.wav', -6, 'hand-kept')],
   'commander-cast': [
     layer('commander-contact.wav', -7.13, 'commander'),
     layer('low-thud.wav', -6.02, 'commander'),

@@ -181,6 +181,54 @@ describe('projectPresentationEvent — turn boundaries', () => {
 });
 
 describe('projectPresentationEvent — AV7 success boundaries', () => {
+  it('projects a phase-only advance to one phase-advanced event', () => {
+    expect(projectPresentationEvent({
+      action: 'advance-phase',
+      status: 'committed',
+      previousPhase: 'main1',
+      nextPhase: 'combat',
+      turnChanged: false,
+    })).toEqual({ kind: 'phase-advanced' });
+  });
+
+  it('normalizes turn-crossing phase progress to null (turn-advanced owns it)', () => {
+    expect(projectPresentationEvent({
+      action: 'advance-phase',
+      status: 'committed',
+      previousPhase: 'end',
+      nextPhase: 'main1',
+      turnChanged: true,
+    })).toBeNull();
+  });
+
+  it('rejects unchanged phases and non-committed phase progress', () => {
+    expect(projectPresentationEvent({
+      action: 'advance-phase',
+      status: 'committed',
+      previousPhase: 'combat',
+      nextPhase: 'combat',
+      turnChanged: false,
+    })).toBeNull();
+    expect(projectPresentationEvent({
+      action: 'advance-phase',
+      status: 'failed',
+      previousPhase: 'main1',
+      nextPhase: 'combat',
+      turnChanged: false,
+    })).toBeNull();
+  });
+
+  it('projects committed keep confirmations to one hand-kept event', () => {
+    expect(projectPresentationEvent({
+      action: 'keep-hand',
+      status: 'committed',
+    })).toEqual({ kind: 'hand-kept' });
+    expect(projectPresentationEvent({
+      action: 'keep-hand',
+      status: 'cancelled',
+    })).toBeNull();
+  });
+
   it('projects one event for a positive manual draw operation', () => {
     expect(projectPresentationEvent({
       action: 'draw',

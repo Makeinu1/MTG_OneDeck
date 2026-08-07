@@ -9,5 +9,6 @@ commander-contact.wav, draw-fan.wav, draw-slide.wav, land-place.wav,
 resolve-shove.wav, shuffle.wav, spell-place.wav, tap-shove.wav,
 turn-chip.wav, untap-slide.wav.
 
-low-thud.wav, spell-arcane-snap.wav, and commander-portal-open.wav are
-project-original deterministic synthesis created for MTG OneDeck.
+low-thud.wav, spell-arcane-snap.wav, commander-portal-open.wav,
+phase-tick.wav, and keep-confirm.wav are project-original deterministic
+synthesis created for MTG OneDeck.

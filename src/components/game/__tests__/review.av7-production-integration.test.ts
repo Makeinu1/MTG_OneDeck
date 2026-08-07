@@ -17,8 +17,11 @@ const EXPECTED_WAVS = [
   'commander-portal-open.wav',
   'draw-fan.wav',
   'draw-slide.wav',
+  // feel-4-audio-gap-closure (contract revision 2026-08-07): gap-closure cues.
+  'keep-confirm.wav',
   'land-place.wav',
   'low-thud.wav',
+  'phase-tick.wav',
   'resolve-shove.wav',
   'shuffle.wav',
   'spell-arcane-snap.wav',

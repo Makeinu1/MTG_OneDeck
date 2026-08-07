@@ -87,6 +87,9 @@ describe('AV3 semantic presentation runtime', () => {
       'shuffle-completed',
       'turn-advanced',
       'commander-cast',
+      // feel-4-audio-gap-closure (contract revision 2026-08-07): gap-closure cues.
+      'phase-advanced',
+      'hand-kept',
     ]);
     const [spellPlace, spellSnap] = sfxLayersFor('spell-cast');
     expect(spellPlace?.src).toMatch(/spell-place\.wav$/);

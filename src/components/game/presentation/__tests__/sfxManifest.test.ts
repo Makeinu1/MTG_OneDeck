@@ -3,7 +3,7 @@ import { ALL_SFX_KINDS, sfxLayersFor } from '../sfxManifest';
 
 describe('AV7 fixed SFX manifest', () => {
   it('defines all semantic kinds deterministically', () => {
-    expect(ALL_SFX_KINDS).toHaveLength(8);
+    expect(ALL_SFX_KINDS).toHaveLength(10);
     for (const kind of ALL_SFX_KINDS) {
       expect(sfxLayersFor(kind)).toEqual(sfxLayersFor(kind));
     }

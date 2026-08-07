@@ -37,6 +37,19 @@ interface AdvanceTurnInput {
   nextTurn: number;
 }
 
+interface AdvancePhaseInput {
+  action: 'advance-phase';
+  status: PresentationActionStatus;
+  previousPhase: string;
+  nextPhase: string;
+  turnChanged: boolean;
+}
+
+interface KeepHandInput {
+  action: 'keep-hand';
+  status: PresentationActionStatus;
+}
+
 interface DrawInput {
   action: 'draw';
   status: PresentationActionStatus;
@@ -70,6 +83,8 @@ export type PresentationProjectionInput =
   | CastInput
   | PlayLandInput
   | AdvanceTurnInput
+  | AdvancePhaseInput
+  | KeepHandInput
   | DrawInput
   | ChangeTapInput
   | ResolveStackInput
@@ -104,6 +119,14 @@ export interface TurnAdvancedEvent {
   turn: number;
 }
 
+export interface PhaseAdvancedEvent {
+  kind: 'phase-advanced';
+}
+
+export interface HandKeptEvent {
+  kind: 'hand-kept';
+}
+
 export interface DrawCompletedEvent {
   kind: 'draw-completed';
   count: number;
@@ -129,6 +152,8 @@ export type PresentationEvent =
   | CommanderCastEvent
   | LandPlayedEvent
   | TurnAdvancedEvent
+  | PhaseAdvancedEvent
+  | HandKeptEvent
   | DrawCompletedEvent
   | TapChangedEvent
   | StackResolvedEvent
@@ -172,6 +197,17 @@ export function projectPresentationEvent(
       if (input.status !== 'committed') return null;
       if (input.nextTurn <= input.previousTurn) return null;
       return { kind: 'turn-advanced', turn: input.nextTurn };
+    }
+    case 'advance-phase': {
+      if (input.status !== 'committed') return null;
+      // Turn-crossing phase progress normalizes to turn-advanced only (§2.1).
+      if (input.turnChanged) return null;
+      if (input.nextPhase === input.previousPhase) return null;
+      return { kind: 'phase-advanced' };
+    }
+    case 'keep-hand': {
+      if (input.status !== 'committed') return null;
+      return { kind: 'hand-kept' };
     }
     case 'draw': {
       if (input.status !== 'committed' || input.completedCount <= 0) return null;
