@@ -638,8 +638,22 @@ body:has(.commander-cutin) .presentation-layer,
   transition: transform var(--dur-move) ease, opacity var(--dur-move) ease;
 }
 .stack-pile__card .game-card { width: 150px; }
-.stack-pile__card--front { box-shadow: var(--stack-glow); border-radius: var(--radius-md); }
+.stack-pile__card--front {
+  /* C1 frozen focal presence: shallow ±2px bob, without changing card layout dimensions. */
+  box-shadow: var(--stack-glow), var(--shadow-card);
+  border-radius: var(--radius-md);
+  transform: scale(1.06);
+  transform-origin: center center;
+  animation: stack-front-bob 2600ms ease-in-out infinite;
+  will-change: transform;
+}
 .stack-pile__card--front .card-view__face { box-shadow: var(--stack-glow), var(--shadow-card); }
+@keyframes stack-front-bob {
+  0%, 100% { transform: translateY(0) scale(1.06); }
+  25% { transform: translateY(-2px) scale(1.06); }
+  50% { transform: translateY(0) scale(1.06); }
+  75% { transform: translateY(2px) scale(1.06); }
+}
 .stack-pile__overflow { position: absolute; top: var(--space-1); left: var(--space-1); z-index: 5; }
 .stack-pile__overflow-trigger {
   min-width: var(--touch-target); min-height: var(--touch-target);
@@ -2592,6 +2606,50 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   .game-card--commander,
   .game-card--commander::after,
   .game-card--commander::before { animation: none !important; }
+}
+
+/* Feel-6 stack arrival — one non-interactive causal ghost from source zone to stack. */
+.stack-arrival-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 72px;
+  height: 100px;
+  border: 1px solid color-mix(in srgb, var(--stack-glow-c) 70%, var(--line-strong));
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 94%, transparent), color-mix(in srgb, var(--stack-glow-c) 14%, transparent));
+  box-shadow: var(--shadow-card), 0 0 16px color-mix(in srgb, var(--stack-glow-c) 26%, transparent);
+  pointer-events: none;
+  z-index: 81;
+  opacity: 0;
+  transform-origin: center center;
+  animation: stack-arrival-ghost-flight 300ms var(--ease-out) both;
+  will-change: transform, opacity;
+}
+.stack-arrival-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 10%;
+  border: 1px solid color-mix(in srgb, var(--stack-glow-c) 34%, transparent);
+  border-radius: calc(var(--radius-md) - 2px);
+}
+@keyframes stack-arrival-ghost-flight {
+  0% { opacity: 0; transform: translate(0, 0) scale(.92); }
+  18% { opacity: .72; transform: translate(0, 0) scale(.96); }
+  76% { opacity: .48; transform: translate(var(--stack-arrival-dx), var(--stack-arrival-dy)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--stack-arrival-dx), var(--stack-arrival-dy)) scale(1.02); }
+}
+.stack-arrival-ghost[data-reduced] {
+  animation: none;
+  opacity: .34;
+  transform: translate(var(--stack-arrival-dx), var(--stack-arrival-dy));
+}
+@media (prefers-reduced-motion: reduce) {
+  .stack-pile__card--front {
+    animation: none !important;
+    transform: scale(1.06);
+    will-change: auto;
+  }
 }
 
 /* AV3 semantic presentation — restrained, transform/opacity only */

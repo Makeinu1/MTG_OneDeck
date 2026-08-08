@@ -1145,13 +1145,21 @@
       "type": "design-slice",
       "track": "feel",
       "domainId": "feel-6-stack-spatial-presence",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "feel-5-land-bundle-bulk-tap"
       ],
-      "evidence": [],
-      "manualBoundary": "C1承認なしに本実装へ進まない。カードサイズ文法とモバイルレイアウトを変更しない。",
-      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-6-stack-spatial-presence"
+      "evidence": [
+        "review.feel-6-stack-spatial-presence (2/2)",
+        "review.s1-stack-pile + review.av3-semantic-runtime (11/11)",
+        "cold re-audit /root/feel6_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "targeted UI/presentation tests 67/67 + additional stack/UI/presentation tests 71/71",
+        "npm run check PASS: core 126 files/1323 tests, dom 226 files/1577 tests, build PASS",
+        "npx tsc -b, scoped ESLint, git diff --check PASS",
+        "browser spell-cast ghost and front-card geometry at 375x812, 812x375, 1440x900; viewport equality and console 0"
+      ],
+      "manualBoundary": "C1凍結値(前面scale 1.06、±2px/2600ms bob、300ms到着ghost)を実装。カードサイズ、既存stack操作、reduced-motion静止退避は維持。",
+      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-6-stack-spatial-presence。2026-08-08 ユーザーの継続指示をC1値の承認として実装、独立コールド監査・再監査・フルcheck完了。"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3590,15 +3598,23 @@
       "crRefs": [],
       "lane": "feel",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [
         "feel-5-land-bundle-bulk-tap"
       ],
       "landingState": [],
-      "boundary": "スタック呪文の立体感・注目感。現状は土地束と同一の視覚文法(ずらし重ね+グローのみ)で浮遊感・注目感がなく、契約§2が約束するキャスト到着演出(手札/元領域→スタックの短い因果表現)が未実装。2段構成: C1=専用worktree/dev fixtureで落影+前面カード浮上+浅いbob+到着ゴースト飛行を試作し、375×812/812×375/1440×900のscreenshot凍結+ユーザー承認。C2=凍結値のみで本実装。カード実サイズは変更しない。ライトテーマは輪郭+影。reduced-motionはbob/飛行を静止退避。",
-      "evidence": [],
-      "manualBoundary": "C1承認なしに本実装へ進まない。カードサイズ文法とモバイルレイアウトを変更しない。",
-      "nextGate": "C1試作の3viewport screenshot凍結+ユーザー承認。",
+      "boundary": "スタック呪文の立体感・注目感。前面カードへscale 1.06・box-shadow・2600msの浅い±2px bobを加え、spell-cast成功時に元領域からスタックへ300msの非対話到着ghostを表示する。カード実サイズ、既存stack操作、AV3 pulse/audio、reduced-motion静止退避は維持。",
+      "evidence": [
+        "review.feel-6-stack-spatial-presence (2/2)",
+        "review.s1-stack-pile + review.av3-semantic-runtime (11/11)",
+        "cold re-audit /root/feel6_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "targeted UI/presentation tests 67/67 + additional stack/UI/presentation tests 71/71",
+        "npm run check PASS: core 126 files/1323 tests, dom 226 files/1577 tests, build PASS",
+        "npx tsc -b, scoped ESLint, git diff --check PASS",
+        "browser spell-cast ghost and front-card geometry at 375x812, 812x375, 1440x900; viewport equality and console 0"
+      ],
+      "manualBoundary": "カードサイズ文法とモバイルレイアウトを変更しない。ghostはpointer-events:noneでGameStateを待たせず、展開リストは前面bobを継承しない。",
+      "nextGate": "feel-6実装は監査・フルcheck済み。次のfeelキューへ進む。",
       "judge": "user-stop"
     }
   ],

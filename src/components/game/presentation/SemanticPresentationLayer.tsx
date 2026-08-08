@@ -31,9 +31,30 @@ interface SpellPulse {
   id: string;
 }
 
+interface StackArrival {
+  id: string;
+  cardId: string;
+  sourceZone: string;
+}
+
 interface LandSettle {
   id: string;
   cardId: string;
+}
+
+function sourceAnchorFor(zone: string): HTMLElement | null {
+  const testId = zone === 'hand'
+    ? 'hand-ribbon'
+    : zone === 'library'
+      ? 'library-tile'
+      : zone === 'graveyard'
+        ? 'graveyard-tile'
+        : zone === 'exile'
+          ? 'exile-tile'
+          : zone === 'command'
+            ? 'commander-altar'
+            : null;
+  return testId ? document.querySelector<HTMLElement>(`[data-testid="${testId}"]`) : null;
 }
 
 function prefersReducedMotion(): boolean {
@@ -45,10 +66,13 @@ function prefersReducedMotion(): boolean {
 export function SemanticPresentationLayer() {
   const { policy } = useAudioVisual();
   const [spellPulse, setSpellPulse] = useState<SpellPulse | null>(null);
+  const [stackArrival, setStackArrival] = useState<StackArrival | null>(null);
   const [landSettle, setLandSettle] = useState<LandSettle | null>(null);
   const pulseRef = useRef<HTMLDivElement>(null);
+  const stackArrivalRef = useRef<HTMLDivElement>(null);
   const settleRef = useRef<HTMLDivElement>(null);
   const spellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stackArrivalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSourcesRef = useRef<Map<string, SfxPlaybackHandle>>(new Map());
   const policyRef = useRef(policy);
@@ -98,12 +122,18 @@ export function SemanticPresentationLayer() {
     const unsubscribe = presentationRuntime.subscribe((event: SequencedPresentationEvent) => {
       if (event.kind === 'spell-cast') {
         if (spellTimerRef.current) clearTimeout(spellTimerRef.current);
+        if (stackArrivalTimerRef.current) clearTimeout(stackArrivalTimerRef.current);
         setSpellPulse({ id: event.id });
-        const durationMs = prefersReducedMotion() ? 200 : 280;
+        setStackArrival({ id: event.id, cardId: event.cardId, sourceZone: event.sourceZone });
+        const pulseDurationMs = prefersReducedMotion() ? 200 : 280;
         spellTimerRef.current = setTimeout(() => {
           setSpellPulse(null);
           spellTimerRef.current = null;
-        }, durationMs);
+        }, pulseDurationMs);
+        stackArrivalTimerRef.current = setTimeout(() => {
+          setStackArrival(null);
+          stackArrivalTimerRef.current = null;
+        }, 300);
       } else if (event.kind === 'land-played') {
         if (landTimerRef.current) clearTimeout(landTimerRef.current);
         setLandSettle({ id: event.id, cardId: event.cardId });
@@ -133,10 +163,43 @@ export function SemanticPresentationLayer() {
     return () => {
       unsubscribe();
       if (spellTimerRef.current) clearTimeout(spellTimerRef.current);
+      if (stackArrivalTimerRef.current) clearTimeout(stackArrivalTimerRef.current);
       if (landTimerRef.current) clearTimeout(landTimerRef.current);
       stopAllSources();
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const el = stackArrivalRef.current;
+    if (!el || !stackArrival) return;
+    const root = document.querySelector<HTMLElement>('[data-testid="game-screen"]');
+    const stackBand = document.querySelector<HTMLElement>('[data-testid="stack-band"]');
+    if (!root) return;
+
+    const rootRect = root.getBoundingClientRect();
+    const stackRect = stackBand?.getBoundingClientRect();
+    const sourceRect = sourceAnchorFor(stackArrival.sourceZone)?.getBoundingClientRect();
+    const sourceX = sourceRect
+      ? sourceRect.left + sourceRect.width / 2
+      : rootRect.left + rootRect.width / 2;
+    const sourceY = sourceRect
+      ? sourceRect.top + sourceRect.height / 2
+      : rootRect.top + rootRect.height * 0.72;
+    const targetX = stackRect
+      ? stackRect.left + stackRect.width / 2
+      : rootRect.left + rootRect.width * 0.82;
+    const targetY = stackRect
+      ? stackRect.top + stackRect.height / 2
+      : rootRect.top + rootRect.height * 0.34;
+    const width = 72;
+    const height = 100;
+    el.style.left = `${sourceX - rootRect.left - width / 2}px`;
+    el.style.top = `${sourceY - rootRect.top - height / 2}px`;
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    el.style.setProperty('--stack-arrival-dx', `${targetX - sourceX}px`);
+    el.style.setProperty('--stack-arrival-dy', `${targetY - sourceY}px`);
+  }, [stackArrival]);
 
   useEffect(() => {
     if (!policy.eventsAudible || !policy.transportRunning) {
@@ -199,6 +262,19 @@ export function SemanticPresentationLayer() {
 
   return (
     <>
+      {stackArrival && (
+        <div
+          ref={stackArrivalRef}
+          key={stackArrival.id}
+          className="stack-arrival-ghost"
+          data-testid="stack-arrival-ghost"
+          data-card-id={stackArrival.cardId}
+          data-source-zone={stackArrival.sourceZone}
+          data-reduced={reducedMotion || undefined}
+          aria-hidden="true"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
       {spellPulse && (
         <div
           ref={pulseRef}
