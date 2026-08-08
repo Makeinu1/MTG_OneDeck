@@ -1,0 +1,14 @@
+{
+  "operation": "add-domain",
+  "domain": {
+    "type": "design-slice",
+    "domainId": "feel-9-light-theme-audio-wiring",
+    "track": "feel",
+    "status": "shipped",
+    "dependsOn": ["feel-7-audio-start-on-game-start"],
+    "boundary": "ライトテーマのゲーム進行音を既存AV7 SFXで有効化し、ライトBGMは未選択(null TrackManifest)のまま、将来のテーマ別BGM差し替えとTrack固有拍同期へ接続できる配線を作る。ダークの既存音響・設定・視覚演出は不変。",
+    "manualBoundary": "ライト用BGMの選定・生成・公開・人間試聴は本スライスの外。ライトBGM未選択中のSEは即時再生し、ダーク曲を代替時計にしない。",
+    "nextGate": "shipped。feel-10がライトBGM選定をsupersedeする。",
+    "judge": "user-ruling-2026-08-08"
+  }
+}

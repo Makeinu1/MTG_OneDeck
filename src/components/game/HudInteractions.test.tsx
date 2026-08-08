@@ -765,6 +765,24 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 
+  it('does not show the obsolete unselected-light-track hint', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const controller = controllerFor(state);
+    document.documentElement.dataset.theme = 'light';
+    const { container, root } = mount(<ThumbZone controller={controller} />);
+
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="game-menu"]')?.click());
+
+    expect(container.querySelector('[data-testid="menu-bgm"]')?.textContent)
+      .not.toContain('ライト用BGMは未選択');
+    expect(container.querySelector('[data-testid="menu-event-sounds"]')?.textContent)
+      .not.toContain('ライトテーマでは音は流れません');
+    expect(container.querySelector('[data-testid="menu-event-sounds"] .game-menu__hint'))
+      .toBeNull();
+    act(() => root.unmount());
+    delete document.documentElement.dataset.theme;
+  });
+
   it('routes the trigger PrimaryAction directly instead of opening Feed', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const processTriggers = vi.fn();

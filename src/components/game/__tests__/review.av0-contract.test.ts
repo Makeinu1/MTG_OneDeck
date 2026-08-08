@@ -131,7 +131,7 @@ describe('audio preference and effective-silence boundary', () => {
     });
   });
 
-  it('keeps preferences but makes light, non-game, and pre-gesture output silent', () => {
+  it('keeps preferences and makes the selected light BGM and SFX audible', () => {
     const preferences = { bgmEnabled: true, eventSoundsEnabled: true };
     expect(getEffectiveAudioState(preferences, {
       theme: 'dark',
@@ -142,7 +142,7 @@ describe('audio preference and effective-silence boundary', () => {
       theme: 'light',
       isGameScreen: true,
       userGestureUnlocked: true,
-    })).toEqual({ musicAudible: false, eventsAudible: false });
+    })).toEqual({ musicAudible: true, eventsAudible: true });
     expect(getEffectiveAudioState(preferences, {
       theme: 'dark',
       isGameScreen: false,

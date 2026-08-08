@@ -21,7 +21,7 @@ describe('AV8 game-start audio gesture ordering', () => {
     const provider = read('src/components/game/presentation/AudioVisualProvider.tsx');
     expect(provider).toContain('export function startAudioForGameGesture');
     expect(provider).toContain('sessionGestureUnlocked = true');
-    expect(provider).toContain('ensureSessionRuntime();');
+    expect(provider).toContain('ensureSessionRuntime(getThemeTrack(resolvedTheme()));');
     expect(provider).toContain('context.resume()');
     expect(provider).toContain('sessionRuntime?.resume()');
     expect(provider).toContain('loadAllSfx(context)');

@@ -15,7 +15,7 @@ import {
 import {
   createNativeMediaPlan,
 } from '../presentation/musicBus';
-import { DARK_GAME_TRACK } from '../presentation/trackManifest';
+import { DARK_GAME_TRACK, LIGHT_GAME_TRACK } from '../presentation/trackManifest';
 
 const ROOT = process.cwd();
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
@@ -75,19 +75,21 @@ describe('AV2 runtime policy', () => {
       transportRunning: true,
       musicAudible: false,
       eventsAudible: false,
+      track: DARK_GAME_TRACK,
     });
   });
 
-  it('is completely silent and stops the music transport outside dark game scope', () => {
+  it('uses the selected light BGM and its transport track for game SFX', () => {
     expect(getAudioVisualRuntimePolicy(preferences, {
       theme: 'light',
       isGameScreen: true,
       userGestureUnlocked: true,
       ambientMotionEnabled: true,
     })).toEqual({
-      transportRunning: false,
-      musicAudible: false,
-      eventsAudible: false,
+      transportRunning: true,
+      musicAudible: true,
+      eventsAudible: true,
+      track: LIGHT_GAME_TRACK,
     });
     expect(getAudioVisualRuntimePolicy(preferences, {
       theme: 'dark',
@@ -98,6 +100,7 @@ describe('AV2 runtime policy', () => {
       transportRunning: false,
       musicAudible: false,
       eventsAudible: false,
+      track: null,
     });
   });
 
@@ -145,7 +148,8 @@ describe('AV2 production placement and background regression removal', () => {
     expect(bgm).toBeLessThan(events);
     expect(events).toBeLessThan(ambient);
     expect(ambient).toBeLessThan(firstAction);
-    expect(menu).toContain('ライトテーマでは音は流れません');
+    expect(menu).not.toContain('ライト用BGMは未選択');
+    expect(menu).not.toContain('ライトテーマでは音は流れません');
     expect(menu).toContain('最初の操作で再生');
     expect(menu).toContain('音を開始できませんでした');
   });

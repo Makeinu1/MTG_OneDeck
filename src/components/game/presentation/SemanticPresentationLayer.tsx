@@ -128,19 +128,25 @@ export function SemanticPresentationLayer({ openingDealCount }: { openingDealCou
       const context = getSessionAudioContext();
       if (!context || pendingDrawRetries.size === 0) return;
       void loadAllSfx(context).then((ready) => {
-        if (!ready || !mountedRef.current || !policyRef.current.eventsAudible || !policyRef.current.transportRunning) {
+        if (!ready || !mountedRef.current || !policyRef.current.eventsAudible) {
+          pendingDrawRetries.clear();
           return;
         }
-        const pendingIds = [...pendingDrawRetries];
+        if (pendingDrawRetries.size === 0) return;
         pendingDrawRetries.clear();
-        for (let index = 0; index < pendingIds.length; index += 1) {
-          try {
-            scheduleSfx('draw-completed', presentationSoundDelayMs(getSessionTransportPositionSec()));
-          } catch {
-            // Sound failure never blocks game state or visuals.
-          }
+        try {
+          scheduleSfx(
+            'draw-completed',
+            presentationSoundDelayMs(
+              getSessionTransportPositionSec(),
+              policyRef.current.track,
+            ),
+          );
+        } catch {
+          // Sound failure never blocks game state or visuals.
         }
       }).catch(() => {
+        pendingDrawRetries.clear();
         // Missing/undecodable assets remain silent without affecting game state.
       });
     }
@@ -168,13 +174,13 @@ export function SemanticPresentationLayer({ openingDealCount }: { openingDealCou
         }, 240);
       }
 
-      if (!policyRef.current.eventsAudible || !policyRef.current.transportRunning) return;
+      if (!policyRef.current.eventsAudible) return;
       // Commander sound is owned by CommanderRitualLayer (AV4).
       if (event.kind === 'commander-cast') return;
 
       try {
         const positionSec = getSessionTransportPositionSec();
-        const delayMs = presentationSoundDelayMs(positionSec);
+        const delayMs = presentationSoundDelayMs(positionSec, policyRef.current.track);
         const played = scheduleSfx(
           event.kind,
           delayMs,
@@ -244,10 +250,10 @@ export function SemanticPresentationLayer({ openingDealCount }: { openingDealCou
   }, [stackArrival]);
 
   useEffect(() => {
-    if (!policy.eventsAudible || !policy.transportRunning) {
+    if (!policy.eventsAudible) {
       stopAllSources();
     }
-  }, [policy.eventsAudible, policy.transportRunning]);
+  }, [policy.eventsAudible]);
 
   useLayoutEffect(() => {
     const el = pulseRef.current;

@@ -16,7 +16,7 @@ export interface AudioVisualContextValue {
 export const AudioVisualContext = createContext<AudioVisualContextValue>({
   audioStatus: 'idle',
   preferences: { bgmEnabled: true, eventSoundsEnabled: true, bgmVolume: 70, sfxVolume: 80 },
-  policy: { transportRunning: false, musicAudible: false, eventsAudible: false },
+  policy: { transportRunning: false, musicAudible: false, eventsAudible: false, track: null },
   setPreferences: () => {},
 });
 

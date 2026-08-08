@@ -8,7 +8,8 @@
  * root via CSS custom properties (--transport-beat-ms, --transport-phase-delay).
  *
  * Theme/route/settings only alter effective output, not saved preferences.
- * Pauses outside dark game scope; resumes remembered position on return.
+ * Pauses the optional BGM runtime outside its active game/theme scope while
+ * retaining remembered position; event SFX follow eventsAudible independently.
  * Failure is contained as audio status — never throws to the game.
  *
  * Session persistence: the AudioContext, bus lanes, and MusicRuntime are
@@ -44,7 +45,7 @@ import {
 import { getTransportCssTiming } from './audioVisualTransport';
 import { setSessionRuntime, clearSessionRuntime, setSessionTransportPositionGetter } from './audioVisualSession';
 import { setSessionSfxVolume } from './audioVisualSession';
-import { DARK_GAME_TRACK } from './trackManifest';
+import { getThemeTrack, type TrackManifest } from './trackManifest';
 import { loadAllSfx } from './sfxRenderer';
 import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentationTuning';
 
@@ -52,6 +53,7 @@ const SILENT_POLICY: AudioVisualRuntimePolicy = {
   transportRunning: false,
   musicAudible: false,
   eventsAudible: false,
+  track: null,
 };
 
 /* ------------------------------------------------------------------ */
@@ -62,6 +64,7 @@ let sessionGestureUnlocked = false;
 let sessionContext: AudioContext | null = null;
 let sessionLanes: MusicBusLanes | null = null;
 let sessionRuntime: MusicRuntime | null = null;
+let sessionTrackId: string | null = null;
 let sessionFailed = false;
 let sessionSfxLoadFailed = false;
 let pendingOpeningDealCue = false;
@@ -79,28 +82,44 @@ function tryCreateAudioContext(): AudioContext | null {
   }
 }
 
-function ensureSessionRuntime(): void {
-  if (sessionContext || sessionFailed) return;
-  const ctx = tryCreateAudioContext();
-  if (!ctx) {
-    sessionFailed = true;
+function disposeSessionMusicRuntime(): void {
+  sessionRuntime?.dispose();
+  sessionRuntime = null;
+  sessionTrackId = null;
+  setSessionTransportPositionGetter(null);
+}
+
+function ensureSessionRuntime(track: TrackManifest | null): void {
+  if (sessionFailed) return;
+  if (!sessionContext) {
+    const ctx = tryCreateAudioContext();
+    if (!ctx) {
+      sessionFailed = true;
+      return;
+    }
+    sessionContext = ctx;
+    sessionLanes = createBusLanes(ctx);
+    setSessionRuntime(ctx, sessionLanes);
+  }
+
+  if (track === null) {
+    disposeSessionMusicRuntime();
     return;
   }
-  sessionContext = ctx;
-  sessionLanes = createBusLanes(ctx);
-  setSessionRuntime(ctx, sessionLanes);
-  const runtime = createMusicRuntime(DARK_GAME_TRACK, sessionLanes, ctx);
+  if (sessionRuntime && sessionTrackId === track.id) return;
+
+  disposeSessionMusicRuntime();
+  const runtime = createMusicRuntime(track, sessionLanes!, sessionContext);
   if (!runtime) {
-    sessionFailed = true;
-  } else {
-    sessionRuntime = runtime;
-    setSessionTransportPositionGetter(() => runtime.currentPositionSec());
+    return;
   }
+  sessionRuntime = runtime;
+  sessionTrackId = track.id;
+  setSessionTransportPositionGetter(() => runtime.currentPositionSec());
 }
 
 function disposeSessionRuntime(): void {
-  sessionRuntime?.dispose();
-  sessionRuntime = null;
+  disposeSessionMusicRuntime();
   sessionLanes = null;
   clearSessionRuntime();
   const ctx = sessionContext;
@@ -125,7 +144,7 @@ export function startAudioForGameGesture(): void {
   pendingOpeningDealCue = true;
   sessionGestureUnlocked = true;
   try {
-    ensureSessionRuntime();
+    ensureSessionRuntime(getThemeTrack(resolvedTheme()));
 
     const context = sessionContext;
     if (!context) return;
@@ -208,7 +227,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
     // mounts. Reuse that session and bind the async preload result to React
     // state instead of waiting for another gesture.
     if (sessionGestureUnlocked) {
-      ensureSessionRuntime();
+      ensureSessionRuntime(getThemeTrack(resolvedTheme()));
       retrySfxLoad();
     }
 
@@ -219,7 +238,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
         return;
       }
       sessionGestureUnlocked = true;
-      ensureSessionRuntime();
+      ensureSessionRuntime(getThemeTrack(resolvedTheme()));
       if (sessionFailed) setFailed(true);
       setUnlocked(true);
       retrySfxLoad();
@@ -289,6 +308,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
 
   // Drive the runtime + CSS transport variables based on the derived policy.
   useEffect(() => {
+    ensureSessionRuntime(policy.track);
     const runtime = sessionRuntime;
     const ctx = sessionContext;
     const root = document.querySelector<HTMLElement>('[data-testid="game-screen"]');
@@ -314,7 +334,7 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
       function updateCssTiming(force = false): void {
         if (!root) return;
         const currentSec = activeRuntime.currentPositionSec();
-        const timing = getTransportCssTiming(currentSec, DARK_GAME_TRACK);
+        const timing = getTransportCssTiming(currentSec, policy.track!);
         if (
           force
           || previousBeatMs === null

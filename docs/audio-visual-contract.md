@@ -3,10 +3,12 @@
 **status**: active contract（判定者専有・ユーザー裁定 2026-07-26）  
 **implementation status**: AV0–AV6 shipped。AV7 production integrationは2026-08-01ユーザー承認済み。
 
-**revision 2026-08-08(ユーザー裁定・ゲーム開始音の同期)**: §2/§2.1/§3.1を改訂。`ゲーム開始`クリック自体を初回の明示gestureとして扱い、`newGame`による初期7枚配牌より前にAudioContext/BGM/SFXの開始を試みる。初回配牌は新しいイベント種別を追加せず、既存の`draw-completed`を一操作一件だけ発火する。ライトテーマ・音設定OFF・音声ロード失敗では無音へ縮退し、GameStateは音声準備を待たない。
+**revision 2026-08-08(ユーザー裁定・ゲーム開始音の同期)**: §2/§2.1/§3.1を改訂。`ゲーム開始`クリック自体を初回の明示gestureとして扱い、`newGame`による初期7枚配牌より前にAudioContext/BGM/SFXの開始を試みる。初回配牌は新しいイベント種別を追加せず、既存の`draw-completed`を一操作一件だけ発火する。音設定OFF・音声ロード失敗では無音へ縮退し、GameStateは音声準備を待たない。
+**revision 2026-08-08(ユーザー裁定・ライトテーマ音響配線; feel-10でBGM境界を更新)**: ライトテーマのゲーム画面でも既存の意味イベントSEを有効化する。初期状態ではライト用BGMを未選択の任意Trackとして`null`で保持し、選択前はBGMを鳴らさずSEを即時再生した。ダーク曲をライトの代替BGM・代替拍時計に使わない境界、背景motionとAV5/AV6のライト無演出ゲートは維持する。
+**revision 2026-08-08(ユーザー裁定・ライトBGM選定)**: ユーザー選定の`sound/ライトテーマ.mp3`を原本非変更のまま`public/audio/bgm/light-theme.mp3`へ同梱し、ライトの有効Trackとして採用する。ライトでもBGM、既存SE、Track固有の拍同期、commander duckを有効化する。権利はユーザー選定・公開指示として記録し、外部ライセンスは推測しない。ダークTrack、SE素材、視覚演出、reduced-motionは変更しない。
 
 **役割**: 音楽・意味イベント音・イベント視覚・BPM同期についての単一正本。  
-**非対象**: カードルール自動化、戦闘ルール実装、ライトモード用楽曲。
+**非対象**: カードルール自動化、戦闘ルール実装、追加の楽曲選定・生成。
 **contract cold audit**: 2026-07-26 `qwen3.8-max-preview` cold session `019f9c54-af6d-75c3-9634-94aaf500c38e` — CONTRACT-FROZEN-OK、BLOCKER/HIGH 0。記録=`research/cr-grounding/archive/av-contract-r2-cold-audit-2026-07-26.md`。
 
 関連文書の責務:
@@ -161,7 +163,7 @@ interface SfxSampleLayer {
 - 全layerの初期`offsetMs`は0。同cueのlayerは同じ`chokeGroup`へ属し、再発火では前cueのtail全体だけを止めて新しいattackを開始する。
 - `spell-arcane-snap`と`commander-portal-open`と`low-thud`と`phase-tick`と`keep-confirm`は固定seedまたは固定式のproject-original。ほかの採用sampleはKenney Casino AudioのCC0素材を加工したもの。`phase-tick`はdry・1秒以内・turn-chipより明確に小さい。`keep-confirm`はdry・1秒以内。
 - `public/audio/sfx/`へ置くのは採用済み48kHz・2ch・PCM16 WAVと権利根拠だけ。通常音は1秒以内、commander音は1.6秒以内、true peakは-3dBFS以下、端に2ms fadeを持つ。
-- comparison-onlyの音声素材、Cockatrice、`sound/spells/`、zip/7z、`sound/`全体は公開しない。ユーザーの`sound/`原本を変更しない。
+- comparison-onlyの音声素材、Cockatrice、`sound/spells/`、zip/7z、`sound/`全体は公開しない。ユーザー選定済み音源だけを明示的なproduction assetへ複製し、ユーザーの`sound/`原本は変更しない。
 - AudioContext生成後にsampleを非同期fetch/decodeしてcacheする。完了前のevent、load/decode/play失敗は無音へ縮退し、GameStateを待たせない。
 - 通常9音(`phase-advanced`・`hand-kept`を含む)はEventBus、`commander-cast`はCommanderBusへ出力する。通常音でBGMをduckしない。
 - 拍スナップ(`presentationSoundDelayMs`)と「失敗はGameStateを待たせない」を維持する。`OfflineAudioContext`による旧patch生成は撤去する。
@@ -172,7 +174,7 @@ interface SfxSampleLayer {
 - 範囲は 0〜100(%)。既定値: BGM=70、SFX=80。
 - スライダー値は `AudioPreferences` に `bgmVolume` / `sfxVolume` として保存する。
 - 実効 gain = バス既定値 × (slider / 100)。スライダーは保存設定を書き換えず、
-  実効出力だけに影響する(テーマ・route の実効無音は維持)。
+  実効出力だけに影響する(テーマ・route・有効Trackの実効可聴境界は維持)。
 - スライダーはライトテーマ中でも操作可能(保存値は維持される)。
 
 ---
@@ -188,8 +190,13 @@ GameState と操作の因果表示は即時。音楽的な音と余韻だけを�
 3. musical-event層がONかつ `MusicTransport` が ready の場合、隣接beat anchorの `beatIndex` 差を含めて各拍を `quantizeStepsPerBeat` 分割し、現在位置から次の細分グリッドまでの距離を求める。
 4. ready かつ距離が `snapWindowMs` 以下なら、その境界へ音と同期用の装飾的余韻を schedule する。
 5. ready だが距離が上限を超える場合だけ、音と同期用の装飾的余韻を即時発火する。
-6. master audio OFF、manifest未準備、media load/decode error、`AudioContext.resume()`失敗など `MusicTransport` が ready でない場合は、成功音も同期用の装飾的余韻も発火しない。手順1の因果表示と、独立アンビエント周期へ落ちる背景fallbackだけを維持する。
-7. schedule後に音源エラーが起きても遅れて成功音を鳴らし直さない。GameState はこの判定を await しない。
+6. 有効なTrackManifestがあるのにmaster audio OFF、manifest未準備、media load/decode error、
+   `AudioContext.resume()`失敗などで `MusicTransport` がreadyでない場合は、成功音も
+   同期用の装飾的余韻も発火しない。手順1の因果表示と、独立アンビエント周期へ落ちる
+   背景fallbackだけを維持する。テーマのTrackが明示的に`null`である場合は失敗ではなく、
+   同期を使わない即時SE経路を使用する。
+7. schedule後やload retry後の音源エラーで、過去の成功操作の音を遅れて鳴らし直さない。
+   GameState はこの判定を await しない。
 
 `MusicTransport` の時計と、MusicBusの可聴gainは別状態とする。MusicBusだけをOFFにしても、musical-eventまたは背景motionがONならmanifest時計を維持してよい。musical-eventだけをOFFにしたことで背景を700ms fallbackへ切り替えてはならない。
 
@@ -322,6 +329,43 @@ const DARK_GAME_TRACK: TrackManifest = {
   ],
   sections: [],
 };
+
+const LIGHT_GAME_TRACK: TrackManifest = {
+  id: 'light-theme-organic-techno',
+  src: `${import.meta.env.BASE_URL}audio/bgm/light-theme.mp3`,
+  sha256: 'd73ab88a9a665dd684376d9e167f66297d909a6a63a6de195dcc455023c15148',
+  bpmNominal: 117.829641,
+  loopStartSec: 0,
+  loopEndSec: 362.879979,
+  gainDb: -4.5,
+  beatAnchors: [
+    { beatIndex: 0, atSeconds: 0 },
+    { beatIndex: 32, atSeconds: 16.286338 },
+    { beatIndex: 64, atSeconds: 32.572677 },
+    { beatIndex: 96, atSeconds: 48.859015 },
+    { beatIndex: 128, atSeconds: 65.145354 },
+    { beatIndex: 160, atSeconds: 81.431692 },
+    { beatIndex: 192, atSeconds: 97.718031 },
+    { beatIndex: 224, atSeconds: 114.004369 },
+    { beatIndex: 256, atSeconds: 130.290708 },
+    { beatIndex: 288, atSeconds: 146.577046 },
+    { beatIndex: 320, atSeconds: 162.863385 },
+    { beatIndex: 352, atSeconds: 179.149723 },
+    { beatIndex: 384, atSeconds: 195.436062 },
+    { beatIndex: 416, atSeconds: 211.7224 },
+    { beatIndex: 448, atSeconds: 228.008739 },
+    { beatIndex: 480, atSeconds: 244.295077 },
+    { beatIndex: 512, atSeconds: 260.581415 },
+    { beatIndex: 544, atSeconds: 276.867754 },
+    { beatIndex: 576, atSeconds: 293.154092 },
+    { beatIndex: 608, atSeconds: 309.440431 },
+    { beatIndex: 640, atSeconds: 325.726769 },
+    { beatIndex: 672, atSeconds: 342.013108 },
+    { beatIndex: 704, atSeconds: 358.299446 },
+    { beatIndex: 713, atSeconds: 362.879979 },
+  ],
+  sections: [],
+};
 ```
 
 `sections` は未計測値を捏造せず空配列とする。groove / break / rejoinは音源自体の
@@ -331,19 +375,25 @@ const DARK_GAME_TRACK: TrackManifest = {
 
 - Musicとmusical eventは独立したユーザー設定とし、保存値が存在しない新規利用者は
   どちらも既定ON。既存の明示的な音設定はmusical event設定へ移行して上書きしない。
-- 可聴出力は **ダークテーマのゲーム画面だけ**。ライトテーマ・ゲーム外画面では
-  保存設定を書き換えずMusicとmusical eventを実効無音にする。
+- 可聴出力の範囲はゲーム画面かつ明示gesture解除済みとする。両テーマで
+  musical eventは保存設定に従って可聴化し、Musicはそのテーマに有効なTrackManifestが
+  ある場合だけ可聴化する。ゲーム外・gesture前では保存設定を書き換えず両レーンを
+  実効無音にする。
 - ゲーム画面内の最初の `pointerdown` またはkeyboard操作、または`ゲーム開始`クリックを
-  明示gestureとして`AudioContext.resume()` とBGM開始を試みる。gesture前は再生しない。
-- 同一ページセッション内のゲーム画面離脱・テーマ切替では再生位置をmemoryに保持し、
-  ダークのゲーム画面へ戻った時に続きから再開する。reloadは新sessionとして先頭へ戻り、
-  再び明示gestureを待つ。
+  明示gestureとして`AudioContext.resume()`、有効なBGMの開始、SFX preloadを試みる。
+  gesture前は再生しない。
+- 同一ページセッション内のゲーム画面離脱・テーマ切替では有効Trackごとの再生位置を
+  memoryに保持し、Trackがあるテーマへ戻った時に続きから再開する。Trackが`null`の
+  将来テーマではMediaElementを生成せず、利用可能なmusical eventだけを即時再生する。
+  reloadは新sessionとして先頭へ戻り、再び明示gestureを待つ。
 - resume/load/decode失敗はゲームエラーにせず、設定メニュー内だけに状態を表示する。
   再試行は次の明示gestureまたは音設定操作で行う。
-- MusicBusだけがOFFでもmusical eventまたは背景motionがONなら、無音transport時計を
-  維持してよい。master audioまたはmanifestが利用不能な場合だけダーク背景を現行700msへ
-  フォールバックする。
-- ライトモード用の楽曲は追加しない。
+- MusicBusだけがOFFでも有効Track上のmusical eventまたは背景motionがONなら、無音
+  transport時計を維持してよい。有効Trackが`null`の将来テーマではtransportを起動せず、
+  musical eventは即時再生する。master audioまたはmanifestが利用不能な場合だけ、
+  対応する背景を既存fallbackへ縮退する。
+- ライトテーマの現行Trackはユーザー選定の`LIGHT_GAME_TRACK`。テンポは音源解析値、
+  `sections`は未計測のため空配列とし、runtime FFTや毎フレームBPM推定は行わない。
 
 ---
 

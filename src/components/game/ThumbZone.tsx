@@ -42,7 +42,6 @@ function GameMenuSheet({
     fn();
     onClose();
   };
-  const isLight = document.documentElement.dataset.theme === 'light';
   return (
     <div className="game-sheet-overlay" data-testid="game-menu-overlay" onClick={onClose}>
       <div className="game-sheet" data-testid="game-menu-sheet" onClick={(e) => e.stopPropagation()}>
@@ -68,7 +67,6 @@ function GameMenuSheet({
             }}
           >
             BGM: {preferences.bgmEnabled ? 'ON' : 'OFF'}
-            {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
           </button>
           <input
             type="range"
@@ -94,7 +92,6 @@ function GameMenuSheet({
             }}
           >
             ゲーム進行音: {preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
-            {isLight && <span className="game-menu__hint">ライトテーマでは音は流れません</span>}
           </button>
           <input
             type="range"

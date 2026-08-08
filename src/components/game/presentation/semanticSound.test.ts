@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { presentationSoundDelayMs } from './semanticSound';
 import { getNextGridDelayMs } from './audioVisualTransport';
 import { AUDIO_VISUAL_TUNING } from './presentationTuning';
-import { DARK_GAME_TRACK } from './trackManifest';
+import { DARK_GAME_TRACK, LIGHT_GAME_TRACK } from './trackManifest';
 
 describe('presentationSoundDelayMs', () => {
   it('delegates to getNextGridDelayMs for all positions', () => {
@@ -25,5 +25,17 @@ describe('presentationSoundDelayMs', () => {
     expect(presentationSoundDelayMs(beyond)).toBe(
       getNextGridDelayMs(beyond, DARK_GAME_TRACK, AUDIO_VISUAL_TUNING),
     );
+  });
+
+  it('plays immediately when no theme track is selected', () => {
+    expect(presentationSoundDelayMs(123.45, null)).toBe(0);
+  });
+
+  it('uses the selected light track grid instead of the null-track fallback', () => {
+    const position = LIGHT_GAME_TRACK.beatAnchors[1].atSeconds - 0.01;
+    expect(presentationSoundDelayMs(position, LIGHT_GAME_TRACK)).toBe(
+      getNextGridDelayMs(position, LIGHT_GAME_TRACK, AUDIO_VISUAL_TUNING),
+    );
+    expect(presentationSoundDelayMs(position, LIGHT_GAME_TRACK)).toBeCloseTo(10, 1);
   });
 });

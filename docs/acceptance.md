@@ -755,8 +755,8 @@ manual のうち needs-target/scry-surveil/choose-modal を解決時の対話で
 | AV-22 | タブを非表示にして復帰 | visual loopは停止後、現在のaudio timeへ再同期。非表示中イベントのcatch-up再生なし |
 | AV-23 | `prefers-reduced-motion: reduce` | 連続背景は静止、イベント移動はフェード。音はユーザーの音設定に従う |
 | AV-34 | 保存設定なしでダークのゲーム画面を開き、gesture前後を確認 | BGM / musical event設定はON。gesture前は無音、最初のpointerdownまたはkeyboard操作後にBGM開始。最初のゲーム操作は失われない |
-| AV-35 | 音設定ONのままダーク→ライト→ダーク、ゲーム画面→ゲーム外→ゲーム画面を往復し、その後reload | ライトとゲーム外は実効無音だが保存値はONのまま。同一ページセッションでは位置を保持して復帰し、reload後は先頭・gesture待ち。二重再生なし |
-| AV-36 | 375×812でメニューを開く | テーマ直後の最初の表示範囲に`BGM` / `ゲーム進行音` / `背景モーション`があり、ライトでは「ライトテーマでは音は流れません」と表示 |
+| AV-35 | 音設定ONのままダーク→ライト→ダーク、ゲーム画面→ゲーム外→ゲーム画面を往復し、その後reload | ライトでは選択済みBGMと既存のゲーム進行音を実効可聴化し、ゲーム外は全音を実効無音にする。保存値はONのまま。同一ページセッションでは各Track位置を保持して復帰し、reload後は先頭・gesture待ち。二重再生なし |
+| AV-36 | 375×812でメニューを開く | テーマ直後の最初の表示範囲に`BGM` / `ゲーム進行音` / `背景モーション`があり、ライトでもBGM/SFXの独立設定・音量スライダーを表示する。未選択BGMの注記は表示しない |
 | AV-37 | 統率者モチーフのmixを計測 | `commander-contact + low-thud + commander-portal-open`の固定mix。MusicBusは停止・seekせず `-4dB / attack 40ms / hold 360ms / release 320ms` でduckし、generic cast音と重ならない |
 | AV-38 | production SFX assetとmanifestを構造検査 | `public/audio/sfx/`は採用済みCC0 / project-originalの48kHz stereo PCM16 WAVだけ。通常音1秒以内、commander 1.6秒以内、true peak -3dBFS以下。comparison-only、Cockatrice、`sound/spells/`、archiveを含まない |
 | AV-39 | 同じcueを短時間に反復し、別cueも重ねる | 同じchokeGroupの前tailだけを停止し、新attackは毎回聞こえる。通常cueはBGMをduckせず、ランダム音色・履歴依存mix・二重発火なし |

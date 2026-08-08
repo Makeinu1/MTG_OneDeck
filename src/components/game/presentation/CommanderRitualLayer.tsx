@@ -154,15 +154,17 @@ export function CommanderRitualLayer() {
       }, COMMANDER_RITUAL_DURATION_MS);
 
       const audioContext = getSessionAudioContext();
-      const delaySec = presentationSoundDelayMs(getSessionTransportPositionSec()) / 1000;
+      const delaySec = presentationSoundDelayMs(
+        getSessionTransportPositionSec(),
+        policyRef.current.track,
+      ) / 1000;
       const audioStartAtSec = audioContext
         ? audioContext.currentTime + delaySec
         : null;
 
       if (
         audioStartAtSec !== null &&
-        policyRef.current.eventsAudible &&
-        policyRef.current.transportRunning
+        policyRef.current.eventsAudible
       ) {
         try { playMotif(audioStartAtSec); } catch { /* sound failure never blocks */ }
       }
@@ -171,8 +173,7 @@ export function CommanderRitualLayer() {
         shouldDuckMusic(
           policyRef.current.eventsAudible,
           policyRef.current.musicAudible,
-        ) &&
-        policyRef.current.transportRunning
+        )
       ) {
         try { scheduleDuck(audioStartAtSec); } catch { /* sound failure never blocks */ }
       }
@@ -186,7 +187,7 @@ export function CommanderRitualLayer() {
   }, []);
 
   useEffect(() => {
-    if (!policy.eventsAudible || !policy.transportRunning) {
+    if (!policy.eventsAudible) {
       const source = motifSourceRef.current;
       motifSourceRef.current = null;
       if (source) {
@@ -196,14 +197,13 @@ export function CommanderRitualLayer() {
       }
     }
     if (
-      !policy.transportRunning ||
       !shouldDuckMusic(policy.eventsAudible, policy.musicAudible)
     ) {
       if (duckCancelRef.current) {
         duckCancelRef.current();
         duckCancelRef.current = null;
       }
-      if (!policy.musicAudible || !policy.transportRunning) {
+      if (!policy.musicAudible) {
         const ctx = getSessionAudioContext();
         const musicLane = getSessionMusicLane();
         if (ctx && musicLane) {
@@ -214,7 +214,7 @@ export function CommanderRitualLayer() {
         }
       }
     }
-  }, [policy.eventsAudible, policy.musicAudible, policy.transportRunning]);
+  }, [policy.eventsAudible, policy.musicAudible]);
 
   if (!ritual) return null;
   return <CommanderCutIn key={ritual.id} cue={ritual.cue} />;

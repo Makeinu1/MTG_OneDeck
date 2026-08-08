@@ -6,7 +6,7 @@
  * unmount/remount within the same page session.
  */
 
-import type { TrackManifest } from './trackManifest';
+import { DARK_GAME_TRACK, type TrackManifest } from './trackManifest';
 
 export interface NativeMediaPlan {
   src: string;
@@ -56,14 +56,14 @@ export function createBusLanes(context: AudioContext): MusicBusLanes {
   return { master, music, events, commander };
 }
 
-let rememberedPositionSec = 0;
+const rememberedPositions = new Map<string, number>();
 
-export function getRememberedPosition(): number {
-  return rememberedPositionSec;
+export function getRememberedPosition(trackId = DARK_GAME_TRACK.id): number {
+  return rememberedPositions.get(trackId) ?? 0;
 }
 
 export function resetRememberedPosition(): void {
-  rememberedPositionSec = 0;
+  rememberedPositions.clear();
 }
 
 export function createMediaElementSource(
@@ -85,12 +85,12 @@ export interface MusicRuntime {
   dispose(): void;
 }
 
-function errorRuntime(): MusicRuntime {
+function errorRuntime(trackId: string): MusicRuntime {
   return {
     status: 'error',
     pause: () => {},
     resume: () => Promise.resolve(false),
-    currentPositionSec: () => rememberedPositionSec,
+    currentPositionSec: () => getRememberedPosition(trackId),
     setMusicAudible: () => {},
     setMusicVolume: () => {},
     dispose: () => {},
@@ -98,13 +98,15 @@ function errorRuntime(): MusicRuntime {
 }
 
 export function createMusicRuntime(
-  manifest: TrackManifest,
+  manifest: TrackManifest | null,
   lanes: MusicBusLanes,
   context: AudioContext,
 ): MusicRuntime | null {
+  if (manifest === null) return null;
   if (typeof document === 'undefined') return null;
 
   const plan = createNativeMediaPlan(manifest);
+  const trackId = manifest.id;
   let element: HTMLMediaElement;
   let source: MediaElementAudioSourceNode;
   try {
@@ -116,7 +118,7 @@ export function createMusicRuntime(
     source = createMediaElementSource(context, element);
     source.connect(lanes.music);
   } catch {
-    return errorRuntime();
+    return errorRuntime(trackId);
   }
 
   let status: AudioStatus = 'idle';
@@ -127,7 +129,7 @@ export function createMusicRuntime(
 
   function rememberPosition(): void {
     if (Number.isFinite(element.currentTime)) {
-      rememberedPositionSec = element.currentTime;
+      rememberedPositions.set(trackId, element.currentTime);
     }
   }
 
@@ -146,7 +148,7 @@ export function createMusicRuntime(
     if (resumePromise !== null) return resumePromise;
 
     const generation = playbackGeneration;
-    element.currentTime = rememberedPositionSec;
+    element.currentTime = getRememberedPosition(trackId);
     const pending = element
       .play()
       .then(() => {
@@ -169,7 +171,9 @@ export function createMusicRuntime(
   }
 
   function currentPositionSec(): number {
-    return Number.isFinite(element.currentTime) ? element.currentTime : rememberedPositionSec;
+    return Number.isFinite(element.currentTime)
+      ? element.currentTime
+      : getRememberedPosition(trackId);
   }
 
   function applyMusicGain(): void {

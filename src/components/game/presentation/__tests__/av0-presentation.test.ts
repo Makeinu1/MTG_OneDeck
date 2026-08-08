@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AUDIO_PREFERENCES_STORAGE_KEY,
   getEffectiveAudioState,
+  getAudioVisualRuntimePolicy,
   loadAudioPreferences,
   saveAudioPreferences,
 } from '../audioVisualPreferences';
@@ -16,13 +17,26 @@ import {
   validateTrackManifest,
 } from '../audioVisualTransport';
 import { AUDIO_VISUAL_TUNING } from '../presentationTuning';
-import { DARK_GAME_TRACK, type TrackManifest } from '../trackManifest';
+import {
+  DARK_GAME_TRACK,
+  LIGHT_GAME_TRACK,
+  getThemeTrack,
+  type TrackManifest,
+} from '../trackManifest';
 
 const LEGACY_SOUND_STORAGE_KEY = 'mtg-onedeck:sound-enabled';
 
 describe('validateTrackManifest (不正 manifest)', () => {
-  it('合格 manifest はエラー0件', () => {
+  it('dark/light の合格 manifest はエラー0件', () => {
     expect(validateTrackManifest(DARK_GAME_TRACK)).toEqual([]);
+    expect(validateTrackManifest(LIGHT_GAME_TRACK)).toEqual([]);
+  });
+
+  it('pins the selected light production asset', () => {
+    expect(LIGHT_GAME_TRACK.src).toContain('audio/bgm/light-theme.mp3');
+    expect(LIGHT_GAME_TRACK.sha256).toBe(
+      'd73ab88a9a665dd684376d9e167f66297d909a6a63a6de195dcc455023c15148',
+    );
   });
 
   it('不正 sha256 を検出する', () => {
@@ -170,14 +184,14 @@ describe('audioVisualPreferences (storage 失敗・parse 失敗)', () => {
 describe('getEffectiveAudioState (実効無音の境界)', () => {
   const on = { bgmEnabled: true, eventSoundsEnabled: true };
 
-  it('ライトテーマは実効無音', () => {
+  it('ライトテーマは選択済みBGMとゲーム進行音が可聴', () => {
     expect(
       getEffectiveAudioState(on, {
         theme: 'light',
         isGameScreen: true,
         userGestureUnlocked: true,
       }),
-    ).toEqual({ musicAudible: false, eventsAudible: false });
+    ).toEqual({ musicAudible: true, eventsAudible: true });
   });
 
   it('ゲーム外画面は実効無音', () => {
@@ -207,5 +221,59 @@ describe('getEffectiveAudioState (実効無音の境界)', () => {
         { theme: 'dark', isGameScreen: true, userGestureUnlocked: true },
       ),
     ).toEqual({ musicAudible: false, eventsAudible: false });
+  });
+});
+
+describe('theme track profile and runtime policy', () => {
+  const on = { bgmEnabled: true, eventSoundsEnabled: true };
+
+  it('keeps the dark track and activates the selected light track', () => {
+    expect(getThemeTrack('dark')).toBe(DARK_GAME_TRACK);
+    expect(getThemeTrack('light')).toBe(LIGHT_GAME_TRACK);
+  });
+
+  it('uses the light track for BGM, SFX, and transport timing', () => {
+    expect(getAudioVisualRuntimePolicy(on, {
+      theme: 'light',
+      isGameScreen: true,
+      userGestureUnlocked: true,
+      ambientMotionEnabled: true,
+    })).toEqual({
+      transportRunning: true,
+      musicAudible: true,
+      eventsAudible: true,
+      track: LIGHT_GAME_TRACK,
+    });
+  });
+
+  it('does not activate a theme track before gesture unlock', () => {
+    expect(getAudioVisualRuntimePolicy(on, {
+      theme: 'dark',
+      isGameScreen: true,
+      userGestureUnlocked: false,
+      ambientMotionEnabled: true,
+    })).toEqual({
+      transportRunning: false,
+      musicAudible: false,
+      eventsAudible: false,
+      track: null,
+    });
+  });
+
+  it('keeps dark BGM transport alive when event SFX is enabled', () => {
+    expect(getAudioVisualRuntimePolicy(
+      { bgmEnabled: false, eventSoundsEnabled: true },
+      {
+        theme: 'dark',
+        isGameScreen: true,
+        userGestureUnlocked: true,
+        ambientMotionEnabled: false,
+      },
+    )).toMatchObject({
+      transportRunning: true,
+      musicAudible: false,
+      eventsAudible: true,
+      track: DARK_GAME_TRACK,
+    });
   });
 });

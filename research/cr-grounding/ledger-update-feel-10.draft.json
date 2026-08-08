@@ -1,0 +1,14 @@
+{
+  "operation": "add-domain",
+  "domain": {
+    "type": "design-slice",
+    "domainId": "feel-10-light-theme-bgm-selection",
+    "track": "feel",
+    "status": "shipped",
+    "dependsOn": ["feel-9-light-theme-audio-wiring"],
+    "boundary": "ユーザー選定のライトテーマBGMをpublic/audio/bgmへ配信し、テーマ別TrackManifestの拍同期・BGM duck・設定配線へ接続する。ダーク音響、既存SE、視覚演出は不変。",
+    "manualBoundary": "音源の外部ライセンスを推測しない。sound原本は変更しない。人間試聴、公開、Pages出荷は別ゲート。",
+    "nextGate": "shipped。人間試聴(音量・遅延・ループ疲労)は別ゲート。",
+    "judge": "user-ruling-2026-08-08"
+  }
+}

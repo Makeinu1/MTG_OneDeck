@@ -5,9 +5,11 @@
  * - 保存値が存在しない新規利用者は Music・musical-event とも既定 ON。
  * - 既存の明示的な音設定(legacy `mtg-onedeck:sound-enabled`)は musical-event へ
  *   移行するだけで、上書きしない。新しい保存設定は legacy キーより優先する。
- * - テーマ・route は保存値を書き換えず、可聴出力だけを停止する(実効無音)。
+ * - テーマ・route は保存値を書き換えず、テーマ別Trackと可聴出力だけを切り替える。
  * - localStorage 不可(private mode)・parse 失敗は既定 ON へ安全に倒す。
  */
+
+import { getThemeTrackProfile, type AudioTheme, type TrackManifest } from './trackManifest';
 
 export interface AudioPreferences {
   bgmEnabled: boolean;
@@ -17,7 +19,7 @@ export interface AudioPreferences {
 }
 
 export interface AudioContextFlags {
-  theme: 'dark' | 'light';
+  theme: AudioTheme;
   isGameScreen: boolean;
   userGestureUnlocked: boolean;
 }
@@ -115,19 +117,19 @@ export function saveAudioPreferences(preferences: AudioPreferences): void {
 }
 
 /**
- * 実効可聴状態。保存設定は書き換えず、ダークのゲーム画面で gesture 解除済みの
- * ときだけ各レーンの設定を可聴へ反映する。それ以外(ライト・ゲーム外・gesture前)
- * は両レーンを実効無音にする。
+ * 実効可聴状態。SFXはテーマにかかわらず、ゲーム画面でgesture解除済みなら
+ * eventSoundsEnabledへ従う。BGMだけはテーマの有効Trackが必要になる。
  */
 export function getEffectiveAudioState(
   preferences: AudioPreferences,
   flags: AudioContextFlags,
 ): EffectiveAudioState {
   const outputAllowed =
-    flags.theme === 'dark' && flags.isGameScreen && flags.userGestureUnlocked;
+    flags.isGameScreen && flags.userGestureUnlocked;
+  const track = getThemeTrackProfile(flags.theme).track;
 
   return {
-    musicAudible: outputAllowed && preferences.bgmEnabled,
+    musicAudible: outputAllowed && track !== null && preferences.bgmEnabled,
     eventsAudible: outputAllowed && preferences.eventSoundsEnabled,
   };
 }
@@ -137,7 +139,7 @@ export function getEffectiveAudioState(
 /* ------------------------------------------------------------------ */
 
 export interface AudioVisualRuntimeFlags {
-  theme: 'dark' | 'light';
+  theme: AudioTheme;
   isGameScreen: boolean;
   userGestureUnlocked: boolean;
   ambientMotionEnabled: boolean;
@@ -147,33 +149,34 @@ export interface AudioVisualRuntimePolicy {
   transportRunning: boolean;
   musicAudible: boolean;
   eventsAudible: boolean;
+  track: TrackManifest | null;
 }
 
 /**
- * AV2 runtime policy: decides whether the transport clock runs and
- * which lanes are audible. The transport stays alive (inaudible) when
- * dark-game ambient motion is ON even if BGM and event sounds are OFF,
- * so the background clock can drive CSS animations.
+ * AV2 runtime policy: decides whether the real-track transport clock runs,
+ * which lanes are audible, and which theme track supplies timing. Ambient
+ * motion may keep an active theme track clock alive even when both audio lanes are off.
  */
 export function getAudioVisualRuntimePolicy(
   preferences: AudioPreferences,
   flags: AudioVisualRuntimeFlags,
 ): AudioVisualRuntimePolicy {
-  const inDarkGame =
-    flags.theme === 'dark' && flags.isGameScreen && flags.userGestureUnlocked;
+  const inGame = flags.isGameScreen && flags.userGestureUnlocked;
+  const track = inGame ? getThemeTrackProfile(flags.theme).track : null;
 
-  if (!inDarkGame) {
-    return { transportRunning: false, musicAudible: false, eventsAudible: false };
+  if (!inGame) {
+    return { transportRunning: false, musicAudible: false, eventsAudible: false, track };
   }
 
-  const musicAudible = preferences.bgmEnabled;
+  const musicAudible = track !== null && preferences.bgmEnabled;
   const eventsAudible = preferences.eventSoundsEnabled;
-  const anyLaneActive =
-    musicAudible || eventsAudible || flags.ambientMotionEnabled;
+  const transportRunning =
+    track !== null && (musicAudible || eventsAudible || flags.ambientMotionEnabled);
 
   return {
-    transportRunning: anyLaneActive,
+    transportRunning,
     musicAudible,
     eventsAudible,
+    track,
   };
 }
