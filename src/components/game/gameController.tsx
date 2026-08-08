@@ -138,6 +138,7 @@ export interface GameController {
   /** Keep confirmation (one hand-kept; contract §2.1). */
   requestKeepHand: () => void;
   requestToggleTap: (cardId: string) => void;
+  requestToggleTapMany?: (cardIds: readonly string[]) => void;
   requestSetAllTapped: (tapped: boolean) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
   requestResolveTop: () => void;
@@ -696,6 +697,7 @@ export function useGameController({
     before: GameState | null,
     requestedCardIds: readonly string[],
     tapped: boolean,
+    options: { includeRequestedIds?: boolean } = {},
   ): void {
     const after = useGameStore.getState().state;
     if (!before || !after) return;
@@ -706,10 +708,13 @@ export function useGameController({
         && previous.tapped !== current.tapped
         && current.tapped === tapped;
     });
+    const eventCardIds = options.includeRequestedIds && changedIds.length > 0
+      ? requestedCardIds.filter((cardId) => before.cards[cardId] && after.cards[cardId])
+      : changedIds;
     presentationRuntime.publish({
       action: 'change-tap',
       status: 'committed',
-      cardIds: changedIds,
+      cardIds: eventCardIds,
       tapped,
     });
   }
@@ -719,6 +724,14 @@ export function useGameController({
     const tapped = !(before?.cards[cardId]?.tapped ?? false);
     store.toggleTap(cardId);
     publishTapChange(before, [cardId], tapped);
+  }
+
+  function requestToggleTapMany(cardIds: readonly string[]): void {
+    const before = useGameStore.getState().state;
+    if (!before || cardIds.length === 0) return;
+    const tapped = cardIds.some((cardId) => !before.cards[cardId]?.tapped);
+    store.setTappedBatch(cardIds, tapped);
+    publishTapChange(before, cardIds, tapped, { includeRequestedIds: true });
   }
 
   function requestSetAllTapped(tapped: boolean): void {
@@ -1990,6 +2003,7 @@ export function useGameController({
     requestMulligan,
     requestKeepHand,
     requestToggleTap,
+    requestToggleTapMany,
     requestSetAllTapped,
     requestResolveTop,
     requestResolveAll,

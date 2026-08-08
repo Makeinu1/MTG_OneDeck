@@ -1128,11 +1128,18 @@
       "type": "design-slice",
       "track": "feel",
       "domainId": "feel-5-land-bundle-bulk-tap",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [],
-      "evidence": [],
+      "evidence": [
+        "review.feel-5-land-bundle-bulk-tap (2/2)",
+        "HudInteractions (45/45) + review.d2-layout-model (6/6)",
+        "cold re-audit /root/feel5_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "targeted ESLint, tsc -b, git diff --check",
+        "npm run check completed on fingerprint 1a3e737408692f3e3263c6f18aa817f54a8f3f489e273741ba539cef8a73c8d4",
+        "browser collapsed bulk tap/undo/expanded route/drag guard at 375x812, 812x375, 1440x900; console 0"
+      ],
       "manualBoundary": "束トグルでマナを産出しない。個別カード操作の退路(展開/メニュー)を消さない。",
-      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-5-land-bundle-bulk-tap"
+      "note": "feelキュー登録(2026-08-07 ユーザー実機不満・Codex判定者): feel-5-land-bundle-bulk-tap。2026-08-08一括tap実装・再監査完了。"
     },
     {
       "type": "design-slice",
@@ -3561,11 +3568,18 @@
       "crRefs": [],
       "lane": "feel",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [],
       "landingState": [],
       "boundary": "LandRowの同名基本地形束クリックを束単位のタップトグルへ。アンタップが1枚でもあれば全枚タップ、全てタップ済みなら全枚アンタップ。applyCommandsでsetTapped一括を1 commit=undo1段。publishTapChangeへ全cardIdsを渡し契約§2.1どおり1操作1音。マナ産出はしない。展開(×n)からの個別操作・右クリックメニューは維持。feel-4音拡張の後。",
-      "evidence": [],
+      "evidence": [
+        "review.feel-5-land-bundle-bulk-tap (2/2)",
+        "HudInteractions (45/45) + review.d2-layout-model (6/6)",
+        "cold re-audit /root/feel5_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "targeted ESLint, tsc -b, git diff --check",
+        "npm run check completed on fingerprint 1a3e737408692f3e3263c6f18aa817f54a8f3f489e273741ba539cef8a73c8d4",
+        "browser collapsed bulk tap/undo/expanded route/drag guard at 375x812, 812x375, 1440x900; console 0"
+      ],
       "manualBoundary": "束トグルでマナを産出しない。個別カード操作の退路(展開/メニュー)を消さない。",
       "nextGate": "束トグルの状態遷移・undo1段・1イベント化のreview緑+3viewport UI証拠+コールド監査。",
       "judge": "user-stop"

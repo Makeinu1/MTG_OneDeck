@@ -2,12 +2,12 @@
  * LandRow — 土地行(盤面下・手札上の横スクロール1行)。docs/design-system.md §8。
  * 同名の基本地形はずらし重ね(×n)、特殊地形は個別、統率者は左端に金枠で常駐。
  *
- * 乖離記録(D2): §206 の「束シート(一括タップ)」は本スライスでは未実装。束内の各カードは
- * 重ねたまま個別に右クリック/タップで操作可能(情報の非破壊は保つ)。一括タップの利便は D3/D4 へ。
+ * §206 の「束シート(一括タップ)」は、折り畳み中の基本地形束クリックへ実装済み。
+ * 展開時は束内の各カードを重ねたまま個別に右クリック/タップで操作できる(情報の非破壊を保つ)。
  */
 
 import { useDroppable } from '@dnd-kit/core';
-import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { GameCard } from './GameCard';
 import {
   bundleLands,
@@ -20,10 +20,34 @@ import { isLandCard, type DropTarget } from './dragIntent';
 import { useElementSize } from './adaptiveLaneLayout';
 import { beatDensity } from './presentation/permanentBeat';
 import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentation/presentationTuning';
+import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
 function Bundle({ controller, bundle, bundleIndex }: { controller: GameController; bundle: LandBundle; bundleIndex: number }) {
   const multi = bundle.cardIds.length > 1;
   const [expanded, setExpanded] = useState(false);
+  const dragActiveRef = useRef(false);
+  const dragEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const handleDragStart = () => {
+      if (dragEndTimerRef.current) clearTimeout(dragEndTimerRef.current);
+      dragEndTimerRef.current = null;
+      dragActiveRef.current = true;
+    };
+    const handleDragEnd = () => {
+      if (dragEndTimerRef.current) clearTimeout(dragEndTimerRef.current);
+      dragEndTimerRef.current = setTimeout(() => {
+        dragActiveRef.current = false;
+        dragEndTimerRef.current = null;
+      }, 0);
+    };
+    document.addEventListener(DRAG_UI_START_EVENT, handleDragStart);
+    document.addEventListener(DRAG_UI_END_EVENT, handleDragEnd);
+    return () => {
+      document.removeEventListener(DRAG_UI_START_EVENT, handleDragStart);
+      document.removeEventListener(DRAG_UI_END_EVENT, handleDragEnd);
+      if (dragEndTimerRef.current) clearTimeout(dragEndTimerRef.current);
+    };
+  }, []);
   return (
     <div
       className="land-bundle"
@@ -34,7 +58,17 @@ function Bundle({ controller, bundle, bundleIndex }: { controller: GameControlle
       {...(bundle.tappedCount > 0 ? { 'data-beat-tapped': '' } : {})}
       style={{ '--beat-index': bundleIndex } as CSSProperties}
     >
-      <div className="land-bundle__cards">
+      <div
+        className="land-bundle__cards"
+        onClickCapture={(event) => {
+          if (dragActiveRef.current || !multi || expanded || event.detail !== 1 || !controller.requestToggleTapMany) return;
+          if (event.target instanceof Element
+            && event.target.closest('.game-card__quick-ability-marker')) return;
+          event.preventDefault();
+          event.stopPropagation();
+          controller.requestToggleTapMany(bundle.cardIds);
+        }}
+      >
         {bundle.cardIds.map((cardId, index) => (
           <div
             className="land-bundle__slot"

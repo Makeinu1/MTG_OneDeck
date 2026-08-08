@@ -995,6 +995,7 @@ export interface GameStore {
   consumeLinkedExileForSource(linkId: string, sourcePhysicalId: string): void;
   setManualKeywords(cardId: string, keywords: string[]): void;
   tapAllPermanents(): void;
+  setTappedBatch(cardIds: readonly string[], tapped: boolean): void;
   untapAllPermanents(): void;
   proliferateAll(): void;
   discard(cardIds: string[]): void;
@@ -3348,6 +3349,27 @@ export const useGameStore = create<GameStore>((set, get) => {
         const card = cur.cards[cardId];
         return card && !card.tapped
           ? [{ type: 'setTapped', cardId, tapped: true } satisfies GameCommand]
+          : [];
+      });
+
+      if (commands.length === 0) return;
+
+      try {
+        const result = applyCommands(cur, commands);
+        commit(result.state, result.warnings);
+      } catch (err) {
+        reportActionError(err);
+      }
+    },
+
+    setTappedBatch(cardIds, tapped) {
+      const cur = get().state;
+      if (!cur) return;
+
+      const commands: GameCommand[] = cardIds.flatMap((cardId) => {
+        const card = cur.cards[cardId];
+        return card && card.tapped !== tapped
+          ? [{ type: 'setTapped', cardId, tapped } satisfies GameCommand]
           : [];
       });
 
