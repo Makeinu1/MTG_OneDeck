@@ -169,7 +169,9 @@ describe('AV7 semantic integration boundaries', () => {
     const renderer = read('src/components/game/presentation/sfxRenderer.ts');
     expect(provider).toContain('sfxLoadFailed');
     expect(provider).toContain('failed || sfxLoadFailed');
-    expect(provider.match(/retrySfxLoad\(\);/g)).toHaveLength(3);
+    // AV8: a pre-unlocked game-start session retries once on provider mount,
+    // in addition to gesture/settings retries.
+    expect(provider.match(/retrySfxLoad\(\);/g)).toHaveLength(4);
     expect(renderer).toContain('loadCache.delete(src)');
   });
 });

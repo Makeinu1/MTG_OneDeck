@@ -64,6 +64,7 @@ let sessionLanes: MusicBusLanes | null = null;
 let sessionRuntime: MusicRuntime | null = null;
 let sessionFailed = false;
 let sessionSfxLoadFailed = false;
+let pendingOpeningDealCue = false;
 
 function tryCreateAudioContext(): AudioContext | null {
   try {
@@ -114,6 +115,59 @@ function resolvedTheme(): 'dark' | 'light' {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
+/**
+ * Starts the page-session audio runtime from the same user gesture as the
+ * game's start action. The caller must not await this helper: game state
+ * initialization remains synchronous and independent from audio I/O.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function startAudioForGameGesture(): void {
+  pendingOpeningDealCue = true;
+  sessionGestureUnlocked = true;
+  try {
+    ensureSessionRuntime();
+
+    const context = sessionContext;
+    if (!context) return;
+
+    const preferences = loadAudioPreferences();
+    const policy = getAudioVisualRuntimePolicy(preferences, {
+      theme: resolvedTheme(),
+      isGameScreen: true,
+      userGestureUnlocked: true,
+      ambientMotionEnabled: isAmbientEnabled(),
+    });
+    setSessionSfxVolume(preferences.sfxVolume ?? 80);
+    sessionRuntime?.setMusicAudible(policy.musicAudible);
+    sessionRuntime?.setMusicVolume(preferences.bgmVolume ?? 70);
+
+    if (context.state === 'suspended') void context.resume().catch(() => {});
+    if (policy.transportRunning) {
+      void sessionRuntime?.resume();
+    } else {
+      sessionRuntime?.pause();
+    }
+
+    void loadAllSfx(context)
+      .then((ready) => {
+        sessionSfxLoadFailed = !ready;
+      })
+      .catch(() => {
+        sessionSfxLoadFailed = true;
+      });
+  } catch {
+    // Audio startup is best-effort and never blocks game initialization.
+  }
+}
+
+/** Consume the one opening-deal cue armed by the game-start gesture. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function consumePendingOpeningDealCue(): boolean {
+  if (!pendingOpeningDealCue) return false;
+  pendingOpeningDealCue = false;
+  return true;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -150,6 +204,14 @@ export function AudioVisualProvider({ children }: { children: ReactNode }) {
 
   // Gesture unlock + lazy session runtime creation.
   useEffect(() => {
+    // The game-start handler may unlock and begin preload before this provider
+    // mounts. Reuse that session and bind the async preload result to React
+    // state instead of waiting for another gesture.
+    if (sessionGestureUnlocked) {
+      ensureSessionRuntime();
+      retrySfxLoad();
+    }
+
     function unlock(): void {
       if (sessionGestureUnlocked) {
         if (!unlocked) setUnlocked(true);

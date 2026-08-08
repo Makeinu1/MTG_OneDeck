@@ -240,7 +240,11 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
         <PresentationLayer controller={controller} />
-        <SemanticPresentationLayer />
+        <SemanticPresentationLayer
+          openingDealCount={controller.store.mulliganDecisionPending
+            ? controller.state.zones.hand.length
+            : undefined}
+        />
         <CommanderRitualLayer />
         <Toast />
         <div className="game-screen__support">

@@ -16,10 +16,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAudioVisual } from './audioVisualContext';
+import { consumePendingOpeningDealCue } from './AudioVisualProvider';
 import { presentationRuntime } from './presentationRuntime';
 import type { SequencedPresentationEvent } from './presentationSequencer';
 import { presentationSoundDelayMs } from './semanticSound';
-import { playSfx, type SfxPlaybackHandle } from './sfxRenderer';
+import { loadAllSfx, playSfx, type SfxPlaybackHandle } from './sfxRenderer';
 import {
   getSessionAudioContext,
   getSessionEventLane,
@@ -63,7 +64,7 @@ function prefersReducedMotion(): boolean {
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function SemanticPresentationLayer() {
+export function SemanticPresentationLayer({ openingDealCount }: { openingDealCount?: number }) {
   const { policy } = useAudioVisual();
   const [spellPulse, setSpellPulse] = useState<SpellPulse | null>(null);
   const [stackArrival, setStackArrival] = useState<StackArrival | null>(null);
@@ -75,6 +76,8 @@ export function SemanticPresentationLayer() {
   const stackArrivalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const landTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSourcesRef = useRef<Map<string, SfxPlaybackHandle>>(new Map());
+  const pendingDrawRetriesRef = useRef<Set<string>>(new Set());
+  const mountedRef = useRef(false);
   const policyRef = useRef(policy);
 
   useEffect(() => {
@@ -93,10 +96,10 @@ export function SemanticPresentationLayer() {
     kind: SfxKind,
     delayMs: number,
     options: { tapped?: boolean } = {},
-  ): void {
+  ): boolean {
     const ctx = getSessionAudioContext();
     const lane = getSessionEventLane();
-    if (!ctx || !lane) return;
+    if (!ctx || !lane) return false;
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
 
     const previous = activeSourcesRef.current.get(kind);
@@ -107,18 +110,40 @@ export function SemanticPresentationLayer() {
     }
 
     const source = playSfx(kind, lane, ctx, delayMs / 1000, options);
-    if (source) {
-      activeSourcesRef.current.set(kind, source);
-      source.onended = () => {
-        if (activeSourcesRef.current.get(kind) === source) {
-          activeSourcesRef.current.delete(kind);
-        }
-        try { source.disconnect(); } catch { /* noop */ }
+    if (!source) return false;
+    activeSourcesRef.current.set(kind, source);
+    source.onended = () => {
+      if (activeSourcesRef.current.get(kind) === source) {
+        activeSourcesRef.current.delete(kind);
       }
-    }
+      try { source.disconnect(); } catch { /* noop */ }
+    };
+    return true;
   }
 
   useEffect(() => {
+    mountedRef.current = true;
+    const pendingDrawRetries = pendingDrawRetriesRef.current;
+    function retryDrawSoundsAfterLoad(): void {
+      const context = getSessionAudioContext();
+      if (!context || pendingDrawRetries.size === 0) return;
+      void loadAllSfx(context).then((ready) => {
+        if (!ready || !mountedRef.current || !policyRef.current.eventsAudible || !policyRef.current.transportRunning) {
+          return;
+        }
+        const pendingIds = [...pendingDrawRetries];
+        pendingDrawRetries.clear();
+        for (let index = 0; index < pendingIds.length; index += 1) {
+          try {
+            scheduleSfx('draw-completed', presentationSoundDelayMs(getSessionTransportPositionSec()));
+          } catch {
+            // Sound failure never blocks game state or visuals.
+          }
+        }
+      }).catch(() => {
+        // Missing/undecodable assets remain silent without affecting game state.
+      });
+    }
     const unsubscribe = presentationRuntime.subscribe((event: SequencedPresentationEvent) => {
       if (event.kind === 'spell-cast') {
         if (spellTimerRef.current) clearTimeout(spellTimerRef.current);
@@ -150,11 +175,15 @@ export function SemanticPresentationLayer() {
       try {
         const positionSec = getSessionTransportPositionSec();
         const delayMs = presentationSoundDelayMs(positionSec);
-        scheduleSfx(
+        const played = scheduleSfx(
           event.kind,
           delayMs,
           event.kind === 'tap-changed' ? { tapped: event.tapped } : {},
         );
+        if (!played && event.kind === 'draw-completed') {
+          pendingDrawRetriesRef.current.add(event.id);
+          retryDrawSoundsAfterLoad();
+        }
       } catch {
         // Sound failure never blocks game state or visuals.
       }
@@ -165,9 +194,22 @@ export function SemanticPresentationLayer() {
       if (spellTimerRef.current) clearTimeout(spellTimerRef.current);
       if (stackArrivalTimerRef.current) clearTimeout(stackArrivalTimerRef.current);
       if (landTimerRef.current) clearTimeout(landTimerRef.current);
+      mountedRef.current = false;
+      pendingDrawRetries.clear();
       stopAllSources();
     };
   }, []);
+
+  useEffect(() => {
+    const pending = consumePendingOpeningDealCue();
+    if (!pending || openingDealCount !== 7) return;
+    presentationRuntime.publish({
+      action: 'draw',
+      status: 'committed',
+      requestedCount: 7,
+      completedCount: 7,
+    });
+  }, [openingDealCount]);
 
   useLayoutEffect(() => {
     const el = stackArrivalRef.current;

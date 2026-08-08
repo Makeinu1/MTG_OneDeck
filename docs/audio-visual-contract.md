@@ -3,7 +3,7 @@
 **status**: active contract（判定者専有・ユーザー裁定 2026-07-26）  
 **implementation status**: AV0–AV6 shipped。AV7 production integrationは2026-08-01ユーザー承認済み。
 
-**revision 2026-08-07(ユーザー裁定・feel-4拡張「音の空白閉塞」)**: §2/§2.1/§3.1を改訂。`phase-advanced`をDEFER→MUST(小tick)へ、`game-start`行からマリガン/キープを分離し`shuffle-completed`拡張(マリガン)・`hand-kept`新設(キープ)、`draw-completed`をdraw-step自動ドローへ拡張、`turn-advanced`の発火経路をcleanup越え・自動進行まで明文化(ターンまたぎ無音は実装漏れとして修正対象)。初回7枚配牌はgesture制約により無音のまま。
+**revision 2026-08-08(ユーザー裁定・ゲーム開始音の同期)**: §2/§2.1/§3.1を改訂。`ゲーム開始`クリック自体を初回の明示gestureとして扱い、`newGame`による初期7枚配牌より前にAudioContext/BGM/SFXの開始を試みる。初回配牌は新しいイベント種別を追加せず、既存の`draw-completed`を一操作一件だけ発火する。ライトテーマ・音設定OFF・音声ロード失敗では無音へ縮退し、GameStateは音声準備を待たない。
 
 **役割**: 音楽・意味イベント音・イベント視覚・BPM同期についての単一正本。  
 **非対象**: カードルール自動化、戦闘ルール実装、ライトモード用楽曲。
@@ -85,7 +85,7 @@
 | `phase-advanced` | ターン番号を変えずにフェイズ/ステップだけ進む成功commit | turn-chipより明確に小さい一定のtick。リズムの拍ではなく区切りだけ示す | 現在必要な遷移表示のみ。新規視覚演出なし | **MUST**(2026-08-07 ユーザー裁定でDEFERから昇格) |
 | `hand-kept` | キープ確定(初手決定)がcommit済み | 一定の小さい確定音。枚数・マリガン回数で増幅しない | 現行UIを維持 | **MUST**(2026-08-07 ユーザー裁定で追加) |
 | `ability-activated` | 起動型能力を起動 | なし | 現行の機能表示のみ | **DEFER** |
-| `game-start` | ゲーム開始・初回7枚の配牌 | BGM開始以外はなし。初回配牌はブラウザのgesture制約で物理的に無音(実装しない) | 現行UIを維持 | **DEFER** |
+| `game-start` | ゲーム開始クリックと初回7枚の配牌 | 同じクリックでBGM開始を試み、初回配牌は既存`draw-completed`を一操作一件。音設定・テーマに従い無音へ縮退 | 現行UIを維持 | **MUST**(2026-08-08 ユーザー裁定) |
 | combat family | 攻撃宣言、ブロック、戦闘ダメージ等 | なし | 新規演出なし。既存の機能表示だけ | **DEFER / 初期対象外** |
 | manipulation | hover、focus、preview、scroll、drag開始、並べ替え、対象探索 | なし | 即時UIフィードバックだけ | **MUST NOT musical event** |
 | resource/result | 自動マナ支払い、効果内draw/shuffle、life/counter変更、墓地移動、token生成 | それ自身の追加音なし | 状態理解に必要な既存の因果表示だけ | **MUST NOT separate musical event** |
@@ -333,8 +333,8 @@ const DARK_GAME_TRACK: TrackManifest = {
   どちらも既定ON。既存の明示的な音設定はmusical event設定へ移行して上書きしない。
 - 可聴出力は **ダークテーマのゲーム画面だけ**。ライトテーマ・ゲーム外画面では
   保存設定を書き換えずMusicとmusical eventを実効無音にする。
-- ゲーム画面内の最初の `pointerdown` またはkeyboard操作を明示gestureとして
-  `AudioContext.resume()` とBGM開始を試みる。gesture前は再生しない。
+- ゲーム画面内の最初の `pointerdown` またはkeyboard操作、または`ゲーム開始`クリックを
+  明示gestureとして`AudioContext.resume()` とBGM開始を試みる。gesture前は再生しない。
 - 同一ページセッション内のゲーム画面離脱・テーマ切替では再生位置をmemoryに保持し、
   ダークのゲーム画面へ戻った時に続きから再開する。reloadは新sessionとして先頭へ戻り、
   再び明示gestureを待つ。

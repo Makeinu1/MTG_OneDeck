@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { ImportScreen } from './components/ImportScreen';
 import { GameScreen } from './components/game/GameScreen';
+import { startAudioForGameGesture } from './components/game/presentation/AudioVisualProvider';
 import { OpponentSetupScreen } from './components/game/OpponentSetupScreen';
 import { Modal } from './components/Modal';
 import { SavedDeckLibrary } from './components/SavedDeckLibrary';
@@ -163,6 +164,7 @@ function App() {
   }, [libraryReady, savedDecks]);
 
   const handleStart = (deck: InitDeckCard[]): void => {
+    startAudioForGameGesture();
     useGameStore.getState().newGame(deck);
   };
 
@@ -251,7 +253,10 @@ function App() {
                 type="button"
                 className="btn btn--ghost"
                 data-testid="resume-game"
-                onClick={() => useGameStore.getState().newGame(legacyDeck)}
+                onClick={() => {
+                  startAudioForGameGesture();
+                  useGameStore.getState().newGame(legacyDeck);
+                }}
               >
                 このデッキで開始
               </button>
