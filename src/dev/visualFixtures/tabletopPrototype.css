@@ -14,3 +14,400 @@ html[data-tabletop-prototype='baseline'] .game-screen__board > .board {
 html[data-tabletop-prototype='baseline'] .game-screen__support > .support-row {
   margin-inline: 0;
 }
+
+/* ============================================================
+   UXUI-AMBIENT-P1 — dev-only long-cycle comparison fixture
+
+   The fixture never adds an ambient child. These selectors address the
+   existing AmbientBackdrop layers by their current class names. The copied
+   baseline transforms below keep the existing short/medium motion running;
+   the added macro values are only translate/scale/opacity.
+   ============================================================ */
+
+html[data-fixture-scenario='ambient-macro'],
+html[data-fixture-scenario='ambient-macro'] body {
+  overflow: hidden;
+}
+
+.ambient-macro-fixture {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--text-h);
+  background: var(--surface-0);
+}
+
+.ambient-macro-fixture__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.ambient-macro-controls {
+  position: absolute;
+  z-index: 30;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  width: min(310px, calc(100vw - 20px));
+  max-height: min(430px, calc(100dvh - 20px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
+  box-shadow: var(--shadow-pop);
+  font-size: 12px;
+  line-height: 1.35;
+  overscroll-behavior: contain;
+}
+
+.ambient-macro-controls__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ambient-macro-controls__header h1 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.ambient-macro-controls__eyebrow {
+  margin: 0 0 3px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.ambient-macro-controls__phase-readout {
+  flex: 0 0 auto;
+  color: var(--gold-bright);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ambient-macro-controls__hint {
+  margin: 8px 0 10px;
+  color: var(--text);
+}
+
+.ambient-macro-controls__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ambient-macro-controls__group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ambient-macro-controls__group legend,
+.ambient-macro-controls__slider-label {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ambient-macro-controls__slider-label {
+  margin-top: 11px;
+}
+
+.ambient-macro-controls__slider-label span {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.ambient-macro-controls__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ambient-macro-controls__choice {
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-1);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ambient-macro-controls__choice[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  color: var(--text-h);
+}
+
+.ambient-macro-controls__choice:focus-visible,
+.ambient-macro-controls__slider:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.ambient-macro-controls__slider {
+  display: block;
+  width: 100%;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
+.ambient-macro-controls__phase-marks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ambient-macro-controls__phase-marks button {
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ambient-macro-controls__phase-marks button:hover,
+.ambient-macro-controls__phase-marks button:focus-visible {
+  color: var(--gold-bright);
+}
+
+.ambient-macro-controls__meta {
+  display: grid;
+  gap: 3px;
+  margin: 11px 0 0;
+  color: var(--text);
+}
+
+.ambient-macro-controls__meta > div,
+.ambient-macro-controls__limits > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.ambient-macro-controls__meta dt,
+.ambient-macro-controls__meta dd {
+  margin: 0;
+}
+
+.ambient-macro-controls__meta dd {
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ambient-macro-controls__limits {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ambient-macro-controls__limits > div {
+  grid-template-columns: 24px repeat(3, auto);
+}
+
+.ambient-macro-controls__limits strong {
+  color: var(--text);
+}
+
+@media (max-width: 899px) {
+  .ambient-macro-controls {
+    width: min(344px, calc(100vw - 16px));
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    max-height: min(46dvh, 390px);
+    padding: 10px;
+  }
+
+  .ambient-macro-controls__hint {
+    display: none;
+  }
+
+  .ambient-macro-controls__header h1 {
+    font-size: 14px;
+  }
+}
+
+/* OFF follows the existing production switch: no ambient layer is visible. */
+.ambient-macro-fixture[data-motion='OFF'] .ambient-backdrop {
+  display: none;
+}
+
+/* REDUCED keeps the world but freezes every ambient short/medium animation. */
+.ambient-macro-fixture[data-motion='REDUCED'] .ambient-backdrop * {
+  animation: none !important;
+}
+
+.ambient-macro-fixture[data-motion='REDUCED'] .ambient-backdrop .ambient-star {
+  opacity: .6;
+}
+
+.ambient-macro-fixture[data-motion='REDUCED'] .ambient-backdrop .ambient-core {
+  opacity: .6;
+}
+
+.ambient-macro-fixture[data-motion='REDUCED'] .ambient-backdrop .ambient-gas {
+  opacity: .8;
+}
+
+/* Macro rules are excluded from BASELINE, OFF, and REDUCED. */
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .game-screen__tabletop-surface,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-stars--far,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-vignette--light {
+  transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  opacity: calc(1 + var(--ambient-macro-g1-opacity));
+}
+
+@keyframes ambient-macro-vignette-beat {
+  0%, 100% {
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+    opacity: calc(1 + var(--ambient-macro-g1-opacity));
+  }
+  50% {
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+    opacity: calc(.7 + var(--ambient-macro-g1-opacity));
+  }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-vignette {
+  animation: ambient-macro-vignette-beat var(--beat) ease-in-out infinite;
+  animation-delay: var(--transport-phase-delay, 0ms);
+}
+
+@keyframes ambient-macro-light-vignette {
+  0%, 100% { transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale)); opacity: calc(.72 + var(--ambient-macro-g1-opacity)); }
+  50% { transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale)); opacity: calc(1 + var(--ambient-macro-g1-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-vignette--light {
+  animation: ambient-macro-light-vignette 30s ease-in-out infinite;
+}
+
+/* G2: nebula/ink field, middle stars, brush/current/bloom/drip containers. */
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-stars--mid,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-blooms,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-drips,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-brushlayer--write {
+  transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale));
+  opacity: calc(1 + var(--ambient-macro-g2-opacity));
+}
+
+@keyframes ambient-macro-nebula-rotate {
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(0deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(360deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-nebula {
+  animation: ambient-macro-nebula-rotate 300s linear infinite;
+}
+
+@keyframes ambient-macro-inkfield-rotate {
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(0deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(360deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-inkfield {
+  animation: ambient-macro-inkfield-rotate 180s linear infinite;
+}
+
+@keyframes ambient-macro-brush-drift {
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) translate(0, 0) rotate(0deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) translate(-3vmax, 2vmax) rotate(-1.6deg); opacity: calc(1 + var(--ambient-macro-g2-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-brushlayer:not(.ambient-brushlayer--write) {
+  animation: ambient-macro-brush-drift 90s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-macro-current-run {
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(var(--r)) translateX(-14%); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(var(--r)) translateX(14%); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-current {
+  animation: ambient-macro-current-run var(--d) ease-in-out infinite alternate;
+}
+
+/* G3: near stars, aurora/core/shoots, light/scene and gold-leaf containers. */
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-stars--near,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-flecks {
+  transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale));
+  opacity: calc(1 + var(--ambient-macro-g3-opacity));
+}
+
+@keyframes ambient-macro-aurora-sway {
+  from { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(-7deg) translateX(-4%); opacity: calc(.65 + var(--ambient-macro-g3-opacity)); }
+  to { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(-4.5deg) translateX(4%); opacity: calc(1 + var(--ambient-macro-g3-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-aurora {
+  animation: ambient-macro-aurora-sway 17s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-macro-core-beat {
+  0%, 100% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) translate(-50%, -50%) scale(var(--ambient-macro-g3-scale)); opacity: calc(.4 + var(--ambient-macro-g3-opacity)); }
+  50% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) translate(-50%, -50%) scale(calc(var(--ambient-macro-g3-scale) * 1.05)); opacity: calc(.92 + var(--ambient-macro-g3-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-core {
+  animation: ambient-macro-core-beat var(--beat) ease-in-out infinite;
+  animation-delay: var(--transport-phase-delay, 0ms);
+}
+
+@keyframes ambient-macro-shoot-run {
+  0% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(0); opacity: 0; }
+  2% { opacity: 1; }
+  8% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+  100% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__dark > .ambient-shoot {
+  animation: ambient-macro-shoot-run var(--sd) linear infinite;
+  animation-delay: var(--sdl);
+}
+
+@keyframes ambient-macro-sun-orbit {
+  from { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(0deg); opacity: calc(1 + var(--ambient-macro-g3-opacity)); }
+  to { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(360deg); opacity: calc(1 + var(--ambient-macro-g3-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-sun-arm,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-shade-arm,
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-sheen-arm {
+  animation: ambient-macro-sun-orbit 90s linear infinite;
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-sun-arm { animation-delay: -22s; }
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-shade-arm { animation-delay: -67s; }
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-sheen-arm { animation-delay: -22s; }
+
+@keyframes ambient-macro-light-pool {
+  0%, 100% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)); opacity: calc(.8 + var(--ambient-macro-g3-opacity)); }
+  50% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)); opacity: calc(1 + var(--ambient-macro-g3-opacity)); }
+}
+
+.ambient-macro-fixture[data-motion='ON']:not([data-candidate='BASELINE']) .ambient-backdrop__light > .ambient-pool {
+  animation: ambient-macro-light-pool 3.6s ease-in-out infinite;
+}

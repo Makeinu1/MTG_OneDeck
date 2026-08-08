@@ -1,3 +1,5 @@
+import { getThemeTrack, type AudioTheme } from './presentation/trackManifest';
+
 /**
  * ambientMotion — 生きた背景(D8)の純関数層。docs/design-system.md §8a。
  *
@@ -17,6 +19,35 @@ export const AMBIENT_BEAT_MS = 700;
 export const AMBIENT_STORAGE_KEY = 'mtg-onedeck:ambient-motion';
 /** トグル変更の通知イベント(document 発火・AmbientBackdrop が購読)。 */
 export const AMBIENT_CHANGE_EVENT = 'mtg-onedeck:ambient-change';
+
+/** Long-cycle groups approved by UXUI-AMBIENT-P1. */
+export const AMBIENT_MACRO_GROUPS = ['G1', 'G2', 'G3'] as const;
+export type AmbientMacroGroup = (typeof AMBIENT_MACRO_GROUPS)[number];
+
+export interface AmbientMacroLimits {
+  movementPx: number;
+  scaleIncrease: number;
+  opacityDelta: number;
+}
+
+/** Approved production values: P1 Candidate C only. */
+export const AMBIENT_MACRO_LIMITS: Record<AmbientMacroGroup, AmbientMacroLimits> = {
+  G1: { movementPx: 4, scaleIncrease: 0.004, opacityDelta: 0.025 },
+  G2: { movementPx: 8, scaleIncrease: 0.008, opacityDelta: 0.050 },
+  G3: { movementPx: 12, scaleIncrease: 0.012, opacityDelta: 0.070 },
+};
+
+export const AMBIENT_MACRO_PHASE_OFFSETS: Record<AmbientMacroGroup, number> = {
+  G1: 0,
+  G2: 1 / 3,
+  G3: 2 / 3,
+};
+
+/** The macro loop follows the selected theme manifest, never the audio playhead. */
+export function ambientMacroLoopDurationSec(theme: AudioTheme): number {
+  const track = getThemeTrack(theme);
+  return track ? track.loopEndSec - track.loopStartSec : 0;
+}
 
 /** 鼓動周期(ms)。reduced-motion 時は 0(全静止)。 */
 export function ambientBeatMs(options: { reduced?: boolean } = {}): number {

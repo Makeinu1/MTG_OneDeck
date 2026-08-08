@@ -1,18 +1,44 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AMBIENT_BEAT_MS,
+  AMBIENT_MACRO_GROUPS,
+  AMBIENT_MACRO_LIMITS,
+  AMBIENT_MACRO_PHASE_OFFSETS,
   AMBIENT_STORAGE_KEY,
   BLOOM_SPOTS,
   CURRENT_SPECS,
   DRIP_SPOTS,
   STAR_COUNTS,
   ambientBeatMs,
+  ambientMacroLoopDurationSec,
   buildFlecks,
   buildStarField,
   buildStarLayer,
   isAmbientEnabled,
   setAmbientEnabled,
 } from './ambientMotion';
+
+describe('approved ambient macro motion', () => {
+  it('pins the three production group limits and phase offsets', () => {
+    expect(AMBIENT_MACRO_GROUPS).toEqual(['G1', 'G2', 'G3']);
+    expect(AMBIENT_MACRO_LIMITS).toEqual({
+      G1: { movementPx: 4, scaleIncrease: 0.004, opacityDelta: 0.025 },
+      G2: { movementPx: 8, scaleIncrease: 0.008, opacityDelta: 0.050 },
+      G3: { movementPx: 12, scaleIncrease: 0.012, opacityDelta: 0.070 },
+    });
+    expect(AMBIENT_MACRO_PHASE_OFFSETS).toEqual({ G1: 0, G2: 1 / 3, G3: 2 / 3 });
+  });
+
+  it('derives both macro loop durations from TrackManifest', async () => {
+    const { DARK_GAME_TRACK, LIGHT_GAME_TRACK } = await import('./presentation/trackManifest');
+    expect(ambientMacroLoopDurationSec('dark')).toBe(
+      DARK_GAME_TRACK.loopEndSec - DARK_GAME_TRACK.loopStartSec,
+    );
+    expect(ambientMacroLoopDurationSec('light')).toBe(
+      LIGHT_GAME_TRACK.loopEndSec - LIGHT_GAME_TRACK.loopStartSec,
+    );
+  });
+});
 
 describe('ambientBeatMs', () => {
   it('returns the dark pace anchor by default', () => {

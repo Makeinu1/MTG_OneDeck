@@ -62,6 +62,24 @@ describe('D4a visual fixture builder', () => {
     expect(graveyard.life).toBe(31);
   });
 
+  it('pins the ambient macro EMPTY and DENSE board cardinalities', () => {
+    const empty = buildVisualFixture('ambient-macro-empty').snapshot.state;
+    expect(empty.zones.hand).toHaveLength(0);
+    expect(empty.zones.battlefield).toHaveLength(0);
+    expect(empty.zones.stack).toHaveLength(0);
+    expect(empty.zones.command).toHaveLength(1);
+
+    const dense = buildVisualFixture('ambient-macro-dense').snapshot.state;
+    const battlefieldTypes = dense.zones.battlefield.map((cardId) =>
+      dense.defs[dense.cards[cardId].defId].typeLine);
+    expect(dense.zones.hand).toHaveLength(7);
+    expect(battlefieldTypes.filter((typeLine) => typeLine.includes('Land'))).toHaveLength(8);
+    expect(battlefieldTypes.filter((typeLine) => !typeLine.includes('Land'))).toHaveLength(12);
+    expect(dense.zones.battlefield).toHaveLength(20);
+    expect(dense.zones.stack).toHaveLength(2);
+    expect(dense.zones.command).toHaveLength(1);
+  });
+
   it('pins partner and full-chrome board density scenes without changing existing fixtures', () => {
     const partner = buildVisualFixture('partner');
     expect(partner.snapshot.state.commanders).toHaveLength(2);

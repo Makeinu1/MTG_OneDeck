@@ -30,6 +30,7 @@
     "parity-reconcile": "tsx scripts/parity-reconcile.ts",
     "cr-conformance": "tsx scripts/cr-conformance.ts",
     "m-contract-gate": "tsx scripts/m-contract-gate.ts",
+    "verify:cr": "node scripts/checks/verify-cr-ruleset.mjs",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

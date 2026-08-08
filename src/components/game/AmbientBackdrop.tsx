@@ -20,9 +20,11 @@ import {
   DRIP_SPOTS,
   buildFlecks,
   buildStarField,
+  ambientMacroLoopDurationSec,
   isAmbientEnabled,
   type StarKind,
 } from './ambientMotion';
+import type { AudioTheme } from './presentation/trackManifest';
 
 const STAR_LAYER_KINDS: readonly StarKind[] = ['far', 'mid', 'near'];
 
@@ -42,12 +44,33 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
+function resolvedTheme(): AudioTheme {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function useResolvedTheme(): AudioTheme {
+  const [theme, setTheme] = useState<AudioTheme>(() => resolvedTheme());
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setTheme(resolvedTheme()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return theme;
+}
+
 export function AmbientBackdrop() {
   const [enabled, setEnabled] = useState(isAmbientEnabled);
   const [paused, setPaused] = useState(() => typeof document !== 'undefined' && document.visibilityState === 'hidden');
   const reduced = usePrefersReducedMotion();
+  const theme = useResolvedTheme();
   const starField = useMemo(() => buildStarField(), []);
   const flecks = useMemo(() => buildFlecks(), []);
+  const macroLoopDurationSec = ambientMacroLoopDurationSec(theme);
 
   useEffect(() => {
     const onToggle = () => setEnabled(isAmbientEnabled());
@@ -67,6 +90,18 @@ export function AmbientBackdrop() {
       delete document.documentElement.dataset.ambient;
     };
   }, [enabled]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!enabled || macroLoopDurationSec <= 0) {
+      root.style.removeProperty('--ambient-macro-loop-duration');
+      return undefined;
+    }
+    root.style.setProperty('--ambient-macro-loop-duration', `${macroLoopDurationSec}s`);
+    return () => {
+      root.style.removeProperty('--ambient-macro-loop-duration');
+    };
+  }, [enabled, macroLoopDurationSec]);
 
   if (!enabled) return null;
 

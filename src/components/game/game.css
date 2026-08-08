@@ -51,6 +51,24 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* Production macro defaults stay out of the approved dev fixture so its
+   phase/candidate controls remain an independent visual reference. */
+:root:not([data-fixture-scenario]) .game-screen {
+  --ambient-macro-width-scale: 1;
+  --ambient-macro-g1-x: 0px;
+  --ambient-macro-g1-y: 0px;
+  --ambient-macro-g1-scale: 1;
+  --ambient-macro-g1-opacity: 0;
+  --ambient-macro-g2-x: 0px;
+  --ambient-macro-g2-y: 0px;
+  --ambient-macro-g2-scale: 1;
+  --ambient-macro-g2-opacity: 0;
+  --ambient-macro-g3-x: 0px;
+  --ambient-macro-g3-y: 0px;
+  --ambient-macro-g3-scale: 1;
+  --ambient-macro-g3-opacity: 0;
+}
+
 html[data-theme='light'] .game-screen {
   --tabletop-edge: color-mix(in srgb, var(--gold-dim) 70%, var(--line-strong));
   --tabletop-glow: color-mix(in srgb, var(--gold) 16%, transparent);
@@ -2184,6 +2202,66 @@ html[data-theme='dark'] .game-screen__support .game-card--board > .card-view > .
    「やりすぎ」のため撤去。文字スタンプ+描き線+横切るスウィープのみ残す。
    ============================================================ */
 
+@property --ambient-macro-g1-x {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g1-y {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g1-scale {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+@property --ambient-macro-g1-opacity {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ambient-macro-g2-x {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g2-y {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g2-scale {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+@property --ambient-macro-g2-opacity {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ambient-macro-g3-x {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g3-y {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --ambient-macro-g3-scale {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+@property --ambient-macro-g3-opacity {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
 
 .ambient-backdrop {
   position: absolute; inset: 0; z-index: -1;
@@ -2200,6 +2278,138 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 /* タブ非表示で一時停止(省電力・別タブでの無駄な合成を止める)。 */
 .ambient-backdrop[data-paused] * { animation-play-state: paused !important; }
 
+/* ---------- UXUI-AMBIENT-P2: approved long-cycle macro clock ---------- */
+/*
+   The clock lives on the existing GameScreen so the tabletop surface and both
+   existing AmbientBackdrop skins share one phase without adding wrappers.
+   The clock animates registered custom values; rendered motion remains only
+   transform/opacity, and existing element animations consume these values.
+*/
+:root[data-ambient='on']:not([data-fixture-scenario]) .game-screen {
+  animation-name: ambient-macro-g1, ambient-macro-g2, ambient-macro-g3;
+  animation-duration: var(--ambient-macro-loop-duration, 0s), var(--ambient-macro-loop-duration, 0s), var(--ambient-macro-loop-duration, 0s);
+  animation-timing-function: cubic-bezier(.3333333333, 0, .6666666667, 1), cubic-bezier(.3333333333, 0, .6666666667, 1), cubic-bezier(.3333333333, 0, .6666666667, 1);
+  animation-iteration-count: infinite;
+  animation-delay: 0s, calc(var(--ambient-macro-loop-duration, 0s) * -0.3333333333333333), calc(var(--ambient-macro-loop-duration, 0s) * -0.6666666666666667);
+}
+
+@keyframes ambient-macro-g1 {
+  0%, 100% {
+    --ambient-macro-g1-x: 0px;
+    --ambient-macro-g1-y: 0px;
+    --ambient-macro-g1-scale: 1;
+    --ambient-macro-g1-opacity: 0;
+  }
+  25% {
+    --ambient-macro-g1-x: calc(4px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-y: calc(-2px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-scale: 1.004;
+    --ambient-macro-g1-opacity: 0.025;
+  }
+  50% {
+    --ambient-macro-g1-x: calc(-1.6px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-y: calc(4px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-scale: 1.0016;
+    --ambient-macro-g1-opacity: -0.0075;
+  }
+  75% {
+    --ambient-macro-g1-x: calc(-4px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-y: calc(-1.2px * var(--ambient-macro-width-scale));
+    --ambient-macro-g1-scale: 1.0028;
+    --ambient-macro-g1-opacity: 0.010;
+  }
+}
+
+@keyframes ambient-macro-g2 {
+  0%, 100% {
+    --ambient-macro-g2-x: 0px;
+    --ambient-macro-g2-y: 0px;
+    --ambient-macro-g2-scale: 1;
+    --ambient-macro-g2-opacity: 0;
+  }
+  25% {
+    --ambient-macro-g2-x: calc(8px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-y: calc(-4px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-scale: 1.008;
+    --ambient-macro-g2-opacity: 0.050;
+  }
+  50% {
+    --ambient-macro-g2-x: calc(-3.2px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-y: calc(8px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-scale: 1.0032;
+    --ambient-macro-g2-opacity: -0.015;
+  }
+  75% {
+    --ambient-macro-g2-x: calc(-8px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-y: calc(-2.4px * var(--ambient-macro-width-scale));
+    --ambient-macro-g2-scale: 1.0056;
+    --ambient-macro-g2-opacity: 0.020;
+  }
+}
+
+@keyframes ambient-macro-g3 {
+  0%, 100% {
+    --ambient-macro-g3-x: 0px;
+    --ambient-macro-g3-y: 0px;
+    --ambient-macro-g3-scale: 1;
+    --ambient-macro-g3-opacity: 0;
+  }
+  25% {
+    --ambient-macro-g3-x: calc(12px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-y: calc(-6px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-scale: 1.012;
+    --ambient-macro-g3-opacity: 0.070;
+  }
+  50% {
+    --ambient-macro-g3-x: calc(-4.8px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-y: calc(12px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-scale: 1.0048;
+    --ambient-macro-g3-opacity: -0.021;
+  }
+  75% {
+    --ambient-macro-g3-x: calc(-12px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-y: calc(-3.6px * var(--ambient-macro-width-scale));
+    --ambient-macro-g3-scale: 1.0084;
+    --ambient-macro-g3-opacity: 0.028;
+  }
+}
+
+@media (max-width: 899.999px) {
+  :root:not([data-fixture-scenario]) .game-screen { --ambient-macro-width-scale: 0.7; }
+}
+
+/* Existing visibility/reduced gates also control the shared macro clock. */
+:root[data-ambient='on']:not([data-fixture-scenario]) .game-screen:has(.ambient-backdrop[data-paused]) {
+  animation-play-state: paused !important;
+}
+:root[data-ambient='on']:not([data-fixture-scenario]) .game-screen:has(.ambient-backdrop[data-reduced]) {
+  animation: none !important;
+}
+
+/* G1 far: tabletop surface, far stars, and each theme's vignette. */
+:root[data-ambient='on']:not([data-fixture-scenario]) .game-screen__tabletop-surface,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__dark > .ambient-stars--far,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__light > .ambient-vignette--light {
+  transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  opacity: clamp(0, calc(1 + var(--ambient-macro-g1-opacity)), 1);
+}
+
+/* G2 mid: nebula/ink field, middle stars, blooms/drips, brush and currents. */
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__dark > .ambient-stars--mid,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__light > .ambient-blooms,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__light > .ambient-drips,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__light > .ambient-brushlayer--write {
+  transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale));
+  opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1);
+}
+
+/* G3 near: near stars, aurora/core/shoots, light sources, pool and flecks. */
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__dark > .ambient-stars--near,
+:root[data-ambient='on']:not([data-fixture-scenario]) .ambient-backdrop__light > .ambient-flecks {
+  transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale));
+  opacity: clamp(0, calc(1 + var(--ambient-macro-g3-opacity)), 1);
+}
+
 /* ---------- ダーク = 脈動する星雲(冬のクオリティ: 冷たく・透き通り・鋭い) ---------- */
 .ambient-vignette {
   inset: 0;
@@ -2207,10 +2417,28 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   animation: ambient-vignette-beat var(--beat) ease-in-out infinite;
   animation-delay: var(--transport-phase-delay, 0ms);
 }
-@keyframes ambient-vignette-beat { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+@keyframes ambient-vignette-beat {
+  0%, 100% {
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g1-opacity)), 1);
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  }
+  50% {
+    opacity: clamp(0, calc(.7 + var(--ambient-macro-g1-opacity)), 1);
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  }
+}
 
 .ambient-nebula { inset: -14%; animation: ambient-neb-rotate 300s linear infinite; }
-@keyframes ambient-neb-rotate { to { transform: rotate(360deg); } }
+@keyframes ambient-neb-rotate {
+  from {
+    transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(0deg);
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1);
+  }
+  to {
+    transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(360deg);
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1);
+  }
+}
 .ambient-gas {
   position: absolute;
   /* 不定形の縁: feTurbulence の代わりに有機的 border-radius(パフォーマンス優先)。 */
@@ -2256,8 +2484,14 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   will-change: transform, opacity;
 }
 @keyframes ambient-aurora-sway {
-  from { transform: rotate(-7deg) translateX(-4%); opacity: .65; }
-  to { transform: rotate(-4.5deg) translateX(4%); opacity: 1; }
+  from {
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(-7deg) translateX(-4%);
+    opacity: clamp(0, calc(.65 + var(--ambient-macro-g3-opacity)), 1);
+  }
+  to {
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(-4.5deg) translateX(4%);
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g3-opacity)), 1);
+  }
 }
 
 /* 星3層・計156(遠84/中46/近26)。個別周波数/位相/色の深いきらめき。
@@ -2288,10 +2522,10 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-shoot--a { left: 12%; top: 15%; --ang: -24deg; --dx: 64vw; --sd: 11s; --sdl: -3s; }
 .ambient-shoot--b { left: 56%; top: 9%; --ang: -31deg; --dx: 52vw; --sd: 17s; --sdl: -9s; }
 @keyframes ambient-shoot-run {
-  0% { transform: rotate(var(--ang)) translateX(0); opacity: 0; }
+  0% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(0); opacity: 0; }
   2% { opacity: 1; }
-  8% { transform: rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
-  100% { transform: rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+  8% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
+  100% { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(var(--ang)) translateX(var(--dx)); opacity: 0; }
 }
 
 /* 鼓動: 中心コア光 700ms——"a whisper, never a wave"。 */
@@ -2302,8 +2536,14 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   animation-delay: var(--transport-phase-delay, 0ms);
 }
 @keyframes ambient-core-beat {
-  0%, 100% { opacity: .4; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: .92; transform: translate(-50%, -50%) scale(1.05); }
+  0%, 100% {
+    opacity: clamp(0, calc(.4 + var(--ambient-macro-g3-opacity)), 1);
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) translate(-50%, -50%) scale(var(--ambient-macro-g3-scale));
+  }
+  50% {
+    opacity: clamp(0, calc(.92 + var(--ambient-macro-g3-opacity)), 1);
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) translate(-50%, -50%) scale(calc(var(--ambient-macro-g3-scale) * 1.05));
+  }
 }
 
 
@@ -2313,15 +2553,42 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   background: radial-gradient(140% 105% at 50% 44%, transparent 62%, var(--ambient-vignette-light) 100%);
   animation: ambient-light-vignette 30s ease-in-out infinite;
 }
-@keyframes ambient-light-vignette { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
+@keyframes ambient-light-vignette {
+  0%, 100% {
+    opacity: clamp(0, calc(.72 + var(--ambient-macro-g1-opacity)), 1);
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  }
+  50% {
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g1-opacity)), 1);
+    transform: translate(var(--ambient-macro-g1-x), var(--ambient-macro-g1-y)) scale(var(--ambient-macro-g1-scale));
+  }
+}
 .ambient-pool {
   inset: 0;
   background: radial-gradient(120% 55% at 50% 26%, var(--ambient-paper-pool), transparent 62%);
   animation: ambient-light-pool 3.6s ease-in-out infinite;
 }
-@keyframes ambient-light-pool { 0%, 100% { opacity: .8; } 50% { opacity: 1; } }
+@keyframes ambient-light-pool {
+  0%, 100% {
+    opacity: clamp(0, calc(.8 + var(--ambient-macro-g3-opacity)), 1);
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale));
+  }
+  50% {
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g3-opacity)), 1);
+    transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale));
+  }
+}
 .ambient-inkfield { inset: -10%; animation: ambient-ink-rotate 180s linear infinite; }
-@keyframes ambient-ink-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ambient-ink-rotate {
+  from {
+    transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(0deg);
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1);
+  }
+  to {
+    transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(360deg);
+    opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1);
+  }
+}
 .ambient-inkcloud {
   position: absolute;
   border-radius: 48% 52% 45% 55% / 51% 47% 53% 49%;
@@ -2393,14 +2660,14 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-current--2 { --cc: var(--ambient-current-2); --cc-2: var(--ambient-current-2-2); }
 .ambient-current--3 { --cc: var(--ambient-current-3); --cc-2: var(--ambient-current-3-2); }
 @keyframes ambient-current-run {
-  from { transform: rotate(var(--r)) translateX(-14%); }
-  to { transform: rotate(var(--r)) translateX(14%); }
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(var(--r)) translateX(-14%); opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) rotate(var(--r)) translateX(14%); opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1); }
 }
 
 .ambient-brushlayer { inset: 0; animation: ambient-brush-drift 90s ease-in-out infinite alternate; will-change: transform; }
 @keyframes ambient-brush-drift {
-  from { transform: translate(0, 0) rotate(0deg); }
-  to { transform: translate(-3vmax, 2vmax) rotate(-1.6deg); }
+  from { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) translate(0, 0) rotate(0deg); opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1); }
+  to { transform: translate(var(--ambient-macro-g2-x), var(--ambient-macro-g2-y)) scale(var(--ambient-macro-g2-scale)) translate(-3vmax, 2vmax) rotate(-1.6deg); opacity: clamp(0, calc(1 + var(--ambient-macro-g2-opacity)), 1); }
 }
 .ambient-brush { fill: none; stroke-linecap: round; }
 .ambient-brush--a { stroke: var(--ambient-brush-blue); stroke-width: 92; }
@@ -2466,7 +2733,10 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-sun-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }
 .ambient-shade-arm { animation: ambient-sun-orbit 90s linear infinite; animation-delay: -67s; }
 .ambient-sheen-arm { left: 50%; top: 50%; animation: ambient-sun-orbit 90s linear infinite; animation-delay: -22s; }
-@keyframes ambient-sun-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ambient-sun-orbit {
+  from { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(0deg); opacity: clamp(0, calc(1 + var(--ambient-macro-g3-opacity)), 1); }
+  to { transform: translate(var(--ambient-macro-g3-x), var(--ambient-macro-g3-y)) scale(var(--ambient-macro-g3-scale)) rotate(360deg); opacity: clamp(0, calc(1 + var(--ambient-macro-g3-opacity)), 1); }
+}
 .ambient-sun-wash {
   position: absolute; left: -50vmax; top: calc(-74vmin - 50vmax); width: 100vmax; height: 100vmax;
   background: radial-gradient(closest-side, var(--ambient-sun-wash), var(--ambient-sun-wash-edge) 44%, transparent 70%);
@@ -2582,6 +2852,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 @keyframes turn-sweep-fade { 0% { opacity: 0; } 30% { opacity: .45; } 100% { opacity: 0; } }
 
 /* ---------- reduced-motion: アンビエント全静止(世界観は静止画として残す)+イベント層はフェードのみ ---------- */
+.game-screen:has(.ambient-backdrop[data-reduced]) { animation: none !important; }
 .ambient-backdrop[data-reduced] * { animation: none !important; }
 .ambient-backdrop[data-reduced] .ambient-shoot { display: none; }
 .ambient-backdrop[data-reduced] .ambient-star { opacity: .6; }
@@ -2589,6 +2860,7 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
 .ambient-backdrop[data-reduced] .ambient-gas { opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   /* OS 設定側の二重安全網(JS の data-reduced と併用)。 */
+  .game-screen:has(.ambient-backdrop) { animation: none !important; }
   .ambient-backdrop * { animation: none !important; }
   .ambient-backdrop .ambient-shoot { display: none !important; }
   .ambient-backdrop .ambient-star { opacity: .6 !important; }

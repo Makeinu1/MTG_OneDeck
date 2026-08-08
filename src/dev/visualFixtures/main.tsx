@@ -19,6 +19,7 @@ import {
   applyTabletopPrototypeMode,
   resolveTabletopPrototypeMode,
 } from './tabletopPrototype';
+import { AmbientMacroFixture } from './AmbientMacroFixture';
 import './tabletopPrototype.css';
 
 function queryValue(name: string): string | null {
@@ -30,6 +31,8 @@ function fixtureScenario(): VisualFixtureScenario {
   return isVisualFixtureScenario(value) ? value : 'battlefield';
 }
 
+const requestedScenario = queryValue('scenario');
+const isAmbientMacroFixture = requestedScenario === 'ambient-macro';
 const scenario = fixtureScenario();
 const tabletopMode = resolveTabletopPrototypeMode(queryValue('tabletop'));
 applyTabletopPrototypeMode(document.documentElement, tabletopMode);
@@ -46,7 +49,11 @@ function queryTheme(): 'light' | 'dark' | null {
 }
 
 const explicitTheme = queryTheme();
-if (explicitTheme) {
+if (isAmbientMacroFixture) {
+  const theme = explicitTheme ?? 'dark';
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+} else if (explicitTheme) {
   // **保存される**(localStorage `mtg-onedeck:theme`)。dev harness は実アプリと同一
   // オリジンなので、この後アプリを開くと同じテーマで起動する。
   // なぜ dataset 直書きでないか: ThemeToggle(useTheme)がマウント時に
@@ -106,8 +113,14 @@ async function renderFixture(): Promise<void> {
   createRoot(rootElement).render(<GameScreen keybindings={DEFAULT_KEYBINDINGS} />);
 }
 
-void renderFixture().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : 'fixtureの表示に失敗しました。';
-  root.textContent = message;
-  console.error(message, error);
-});
+if (isAmbientMacroFixture) {
+  document.documentElement.dataset.fixtureScenario = 'ambient-macro';
+  document.title = 'MTG OneDeck — 長周期アンビエント比較fixture';
+  createRoot(rootElement).render(<AmbientMacroFixture />);
+} else {
+  void renderFixture().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : 'fixtureの表示に失敗しました。';
+    root.textContent = message;
+    console.error(message, error);
+  });
+}

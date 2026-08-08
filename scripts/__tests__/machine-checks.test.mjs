@@ -109,6 +109,7 @@ describe('machine-check execution', () => {
     });
 
     expect(calls).toEqual([
+      ['npm', ['run', 'verify:cr']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],

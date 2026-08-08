@@ -37,6 +37,8 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'lands-overflow',
   'stack-deep',
   'graveyard-deep',
+  'ambient-macro-empty',
+  'ambient-macro-dense',
   'token-showcase',
   'token-image-missing',
   'card-facedown',
@@ -73,6 +75,7 @@ function isCompactCardScenario(scenario: VisualFixtureScenario | undefined): boo
 function fixtureFamily(scenario: VisualFixtureScenario): string {
   if (scenario === 'partner' || scenario === 'partner-away') return 'partner';
   if (scenario === 'board-dense') return 'board-dense';
+  if (scenario === 'ambient-macro-empty' || scenario === 'ambient-macro-dense') return 'ambient-macro';
   if (scenario === 'lands-overflow') return 'lands-overflow';
   if (scenario === 'stack-deep') return 'stack-deep';
   if (scenario === 'card-facedown') return 'card-facedown';
@@ -210,6 +213,23 @@ function fixtureDeck(scenario?: VisualFixtureScenario): InitDeckCard[] {
   for (let index = 1; index <= 4; index += 1) {
     deck.push(entry(makeCard(`fixture-permanent-${index}`, `置物 ${index}`, index % 2 === 0 ? 'Enchantment' : 'Artifact', '#56506f')));
   }
+  if (scenario === 'ambient-macro-empty' || scenario === 'ambient-macro-dense') {
+    for (let index = 1; index <= 2; index += 1) {
+      deck.push(entry(makeCard(
+        `fixture-macro-land-${index}`,
+        `比較土地 ${index}`,
+        'Land',
+        '#49684d',
+        { producedMana: ['G'] },
+      )));
+      deck.push(entry(makeCard(
+        `fixture-macro-permanent-${index}`,
+        `比較置物 ${index}`,
+        index === 1 ? 'Enchantment' : 'Artifact',
+        '#625479',
+      )));
+    }
+  }
   for (let index = 1; index <= 2; index += 1) {
     deck.push(entry(makeCard(`fixture-stack-${index}`, `スタック ${index}`, index === 1 ? 'Instant' : 'Sorcery', '#334f88')));
   }
@@ -329,6 +349,10 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
   const handIds = idsWithPrefix(state, 'fixture-hand-');
   const handCount = scenario === 'mulligan' || scenario === 'hand7'
     ? 7
+    : scenario === 'ambient-macro-empty'
+      ? 0
+      : scenario === 'ambient-macro-dense'
+        ? 7
     : scenario === 'hand10'
       ? 10
       : scenario === 'hand15'
@@ -343,6 +367,28 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
                 ? 5
                 : 8;
   state = moveCards(state, handIds.slice(0, handCount), 'hand');
+
+  if (scenario === 'ambient-macro-empty') {
+    return { ...state, phase: 'main1', turn: 4 };
+  }
+
+  if (scenario === 'ambient-macro-dense') {
+    const macroLandIds = idsWithPrefix(state, 'fixture-macro-land-');
+    const landIds = [
+      ...idsWithPrefix(state, 'fixture-basic-'),
+      ...idsWithPrefix(state, 'fixture-special-'),
+      ...macroLandIds,
+    ];
+    const permanentIds = [
+      ...idsWithPrefix(state, 'fixture-creature-'),
+      ...idsWithPrefix(state, 'fixture-permanent-'),
+      ...idsWithPrefix(state, 'fixture-macro-permanent-'),
+    ];
+    state = moveCards(state, landIds, 'battlefield');
+    state = moveCards(state, permanentIds, 'battlefield');
+    state = moveCards(state, idsWithPrefix(state, 'fixture-stack-'), 'stack');
+    return { ...state, phase: 'main2', turn: 4 };
+  }
 
   if (scenario === 'land-drop-empty') {
     state = moveCards(state, idsWithPrefix(state, 'fixture-basic-').slice(0, 1), 'hand');
