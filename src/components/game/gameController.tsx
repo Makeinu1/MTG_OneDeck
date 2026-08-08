@@ -611,7 +611,10 @@ export function useGameController({
    * phase-only change is one phase-advanced. A hand growth (draw-step auto
    * draw) adds exactly one draw-completed regardless of path.
    */
-  function publishTransitionPresentation(before: GameState | null): void {
+  function publishTransitionPresentation(
+    before: GameState | null,
+    options: { emitAutoDraw?: boolean } = {},
+  ): void {
     const after = useGameStore.getState().state;
     if (!before || !after) return;
     if (after.turn > before.turn) {
@@ -625,8 +628,11 @@ export function useGameController({
         turnChanged: false,
       });
     }
+    // A stack resolution may itself draw cards; those are result feedback, not
+    // the draw-step transition cue. Only known phase/turn transition chokepoints
+    // opt into this hand-delta projection.
     const drawnCount = after.zones.hand.length - before.zones.hand.length;
-    if (drawnCount > 0) {
+    if (options.emitAutoDraw !== false && drawnCount > 0) {
       presentationRuntime.publish({
         action: 'draw',
         status: 'committed',
@@ -800,14 +806,14 @@ export function useGameController({
     beginResolvePresentation(topId ? [topId] : []);
     store.resolveTop();
     finishResolveCall();
-    publishTransitionPresentation(before);
+    publishTransitionPresentation(before, { emitAutoDraw: false });
   }
   function requestResolveAll(): void {
     const before = useGameStore.getState().state;
     beginResolvePresentation(before ? [...before.zones.stack] : []);
     store.resolveAll();
     finishResolveCall();
-    publishTransitionPresentation(before);
+    publishTransitionPresentation(before, { emitAutoDraw: false });
     const s = useGameStore.getState().state;
     const dialog = s ? fetchDialogForTop(s) : null;
     if (dialog) {
@@ -1556,7 +1562,10 @@ export function useGameController({
                 kind: 'cleanup-discard',
                 cardIds,
               });
-              if (previous) announceTransition(previous, useGameStore.getState().state);
+              if (previous) {
+                publishTransitionPresentation(previous);
+                announceTransition(previous, useGameStore.getState().state);
+              }
             }}
             onManualHandled={() => {
               const previous = useGameStore.getState().state;
@@ -1565,7 +1574,10 @@ export function useGameController({
                 cardIds: [],
                 manualHandled: true,
               });
-              if (previous) announceTransition(previous, useGameStore.getState().state);
+              if (previous) {
+                publishTransitionPresentation(previous);
+                announceTransition(previous, useGameStore.getState().state);
+              }
             }}
           />
         ) : null;

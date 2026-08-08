@@ -1089,11 +1089,18 @@
       "type": "design-slice",
       "track": "feel",
       "domainId": "feel-4-av7-production-integration",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [],
-      "evidence": [],
+      "evidence": [
+        "review.av7b-audio-gap-closure-runtime (R1-R10)",
+        "review.av7-production-events-runtime",
+        "review.cleanup-hand-size",
+        "cold re-audit /root/feel4_cold_auditor: BLOCKER 0 / HIGH 0",
+        "npm run check (lint, core 1323, dom 1573, build)",
+        "browser 375x812, 812x375, 1440x900; console errors 0"
+      ],
       "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
-      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): AV7本番統合。演出の気持ちよさ。 2026-08-07判定者: ユーザー裁定で音の空白閉塞(phase tick/自動ドロー音/マリガンshuffle/キープ新音/ターンまたぎ発火漏れ修正)を本スライスへ組入れ。契約改訂済み。"
+      "note": "feelキュー登録(2026-08-04 ユーザー裁定・Codex判定者): AV7本番統合。演出の気持ちよさ。 2026-08-07判定者: ユーザー裁定で音の空白閉塞(phase tick/自動ドロー音/マリガンshuffle/キープ新音/ターンまたぎ発火漏れ修正)を本スライスへ組入れ。契約改訂済み。2026-08-08監査・フルcheck・実機3 viewportを完了し、cleanup越え発火漏れと解決時draw誤投影を閉鎖。人間試聴H1-H7は次ゲート。"
     },
     {
       "type": "design-slice",
@@ -3513,15 +3520,22 @@
       "crRefs": [],
       "lane": "feel",
       "edhValue": "medium",
-      "status": "pending",
+      "status": "shipped",
       "dependsOn": [],
       "landingState": [],
       "boundary": "AV7 production integration(2026-08-01ユーザー承認済み)の本番組み込み完了。docs/audio-visual-contract.md §12が契約。AV0〜AV6 shipped・AV7は試聴承認済みの部分実装あり。2026-08-07 ユーザー裁定「音の空白閉塞」拡張: phase-advanced小tick追加(DEFER→MUST)、マリガン=shuffle-completed・キープ=hand-kept新設、draw-completedをdraw-step自動ドローへ拡張、turn-advancedのcleanup越え/解決後自動進行経路の発火漏れ修正(バグ)。初回7枚配牌はgesture制約で無音維持。新sample(phase-tick/keep-confirm)はproject-original。実装順: 音の空白閉塞(本拡張)→feel-5→feel-6。",
-      "evidence": [],
+      "evidence": [
+        "review.av7b-audio-gap-closure-runtime (R1-R10)",
+        "review.av7-production-events-runtime",
+        "review.cleanup-hand-size",
+        "cold re-audit /root/feel4_cold_auditor: BLOCKER 0 / HIGH 0",
+        "npm run check (lint, core 1323, dom 1573, build)",
+        "browser 375x812, 812x375, 1440x900; console errors 0"
+      ],
       "manualBoundary": "AV契約のallowlist外イベントを勝手に追加しない。",
       "nextGate": "acceptance M-AVの人間ゲート(H1〜H7)完了。",
       "judge": "user-stop",
-      "note": " 2026-08-07判定者: ユーザー実機不満3件のうち音部分を本エントリへ統合。ターンまたぎ無音はnextPhaseのcleanup越えでpublishTurnAdvance未発火の実装漏れと特定。ドロー音は手動経路のみ実装済みであった事実をユーザーへ説明済み。契約改訂=docs/audio-visual-contract.md revision 2026-08-07(§2/§2.1/§3.1)。"
+      "note": " 2026-08-07判定者: ユーザー実機不満3件のうち音部分を本エントリへ統合。ターンまたぎ無音はnextPhaseのcleanup越えでpublishTurnAdvance未発火の実装漏れと特定。ドロー音は手動経路のみ実装済みであった事実をユーザーへ説明済み。契約改訂=docs/audio-visual-contract.md revision 2026-08-07(§2/§2.1/§3.1)。2026-08-08 /root/feel4_cold_auditor再監査HIGH 0、フルcheck緑、実機3 viewport緑。H1-H7人間試聴は未実施。"
     },
     {
       "id": "grammar-auto-clause-coverage",

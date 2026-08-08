@@ -12,6 +12,7 @@
  *  R7 undo/redo never replay gap-closure events.
  *  R8 manifest completeness + asset constraints for the two new samples.
  *  R9 first-turn start (beginFirstTurn) stays silent (game-start DEFER).
+ *  R10 cleanup-discard confirmation also closes the turn/draw event gap.
  *
  * Implementers must NOT edit this file. If it fails, fix the implementation.
  */
@@ -240,6 +241,37 @@ describe('AV7b audio-gap closure boundaries', () => {
     unsubscribe();
 
     expect(events).toEqual([]);
+  });
+
+  it('R10: resolving the cleanup-discard dialog emits the normalized turn and draw cues', () => {
+    const game = startFreshGame();
+    advanceToEndPhase(game);
+    const before = store().state;
+    if (!before) throw new Error('state missing');
+    expect(before.zones.hand.length).toBeGreaterThan(7);
+
+    const { events, unsubscribe } = captureEvents();
+    act(() => game.advancePhase());
+    const pending = store().state?.pendingRuleChoices.find((choice) => choice.kind === 'cleanup-discard');
+    expect(pending).toBeDefined();
+    // The end→cleanup phase transition is a separate successful action; the
+    // assertion below covers only the dialog's cleanup→turn commit.
+    events.length = 0;
+
+    const discardInput = container.querySelector<HTMLInputElement>('input[data-testid^="cleanup-discard-"]');
+    const confirm = container.querySelector<HTMLButtonElement>('[data-testid="cleanup-discard-confirm"]');
+    expect(discardInput).not.toBeNull();
+    expect(confirm).not.toBeNull();
+    act(() => discardInput?.click());
+    act(() => confirm?.click());
+
+    expect(store().state?.turn).toBe(before.turn + 1);
+    expect(count(events, 'turn-advanced')).toBe(1);
+    // Cleanup resolution lands at the next turn's untap; its draw step has
+    // not happened yet, so no draw cue belongs to this commit.
+    expect(count(events, 'draw-completed')).toBe(0);
+    expect(count(events, 'phase-advanced')).toBe(0);
+    unsubscribe();
   });
 });
 
