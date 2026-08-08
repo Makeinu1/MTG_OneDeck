@@ -1176,6 +1176,26 @@
       ],
       "manualBoundary": "ゲーム開始音を別イベント種別へ増やさない。初期配牌のcueをReact remount・restore・mulligan・undo/redoで再演しない。",
       "note": "feelキュー登録(2026-08-08 ユーザー裁定): ゲーム開始クリックと音声開始のずれを解消し、初回配牌音を取りこぼさない。2026-08-08 shipped。"
+    },
+    {
+      "type": "design-slice",
+      "track": "feel",
+      "domainId": "feel-8-land-bundle-tap-for-mana",
+      "status": "shipped",
+      "dependsOn": [
+        "feel-5-land-bundle-bulk-tap"
+      ],
+      "evidence": [
+        "review.feel-5-land-bundle-bulk-tap (2/2)",
+        "ordinary land-bundle-capture (1/1) + gameStore (28/28) + manaTransaction (3/3)",
+        "cold re-audit /root/feel5_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "cold-audit fingerprint 5b2b91e452f48e774ee4001ad2e9a1fc5bf08a619782446cfd38a114887a785a",
+        "targeted ESLint, tsc -b, git diff --check",
+        "browser standard-land behavior at 375x812, 812x375, 1440x900; console error/warn 0 (internal correction later verified by ordinary capture test)",
+        "npm run check PASS: lint, core 1327 tests, dom 1581 tests, build"
+      ],
+      "manualBoundary": "束クリックは同名基本地形だけを対象に、今回新たにタップされる土地ごとに1回分のマナを同一コミットへ加える。全タップ済みの束をアンタップするときはマナを減らさない。展開・右クリック・特殊土地の個別退路を維持する。",
+      "note": "feel-5の『マナ産出なし』仕様をユーザー裁定(2026-08-08)で改訂。束操作を『全土地を使ってマナを出す』知覚に合わせる。独立冷監査・全check完了。"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3658,6 +3678,32 @@
       "nextGate": null,
       "judge": "user-stop",
       "note": "feelキュー登録(2026-08-08 ユーザー裁定): ゲーム開始クリックと音声開始のずれを解消し、初回配牌音を取りこぼさない。2026-08-08 shipped: pre-unlocked Provider retry/state同期を含む実装、独立冷監査・再監査・フルcheck完了。"
+    },
+    {
+      "id": "feel-8-land-bundle-tap-for-mana",
+      "crOrder": null,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "medium",
+      "status": "shipped",
+      "dependsOn": [
+        "feel-5-land-bundle-bulk-tap"
+      ],
+      "landingState": [],
+      "boundary": "feel-5のcollapsed同名基本地形束トグルを改訂し、アンタップが1枚でもあれば全枚タップ+今回タップ分の基本地形マナを一括生成、全タップ済みなら全枚アンタップ(マナ不変)。一操作一commit/undo、一tap-changedイベント。展開・個別クリック/右クリック・drag guard・特殊土地の個別経路は維持。",
+      "evidence": [
+        "review.feel-5-land-bundle-bulk-tap (2/2)",
+        "ordinary land-bundle-capture (1/1) + gameStore (28/28) + manaTransaction (3/3)",
+        "cold re-audit /root/feel5_cold_auditor: BLOCKER/HIGH/MEDIUM/LOW 0",
+        "cold-audit fingerprint 5b2b91e452f48e774ee4001ad2e9a1fc5bf08a619782446cfd38a114887a785a",
+        "targeted ESLint, tsc -b, git diff --check",
+        "browser standard-land behavior at 375x812, 812x375, 1440x900; console error/warn 0 (internal correction later verified by ordinary capture test)",
+        "npm run check PASS: lint, core 1327 tests, dom 1581 tests, build"
+      ],
+      "manualBoundary": "特殊土地・色選択・追加コスト付き能力を束の自動マナ経路へ流さない。",
+      "nextGate": null,
+      "judge": "user-stop",
+      "note": "ユーザー裁定(2026-08-08): 束クリックでも各土地分のマナを増やす。feel-5の旧acceptanceを本sliceがsupersedeする。独立冷監査・全check完了。"
     }
   ],
   "judgePolicy": {

@@ -64,9 +64,10 @@ function Bundle({ controller, bundle, bundleIndex }: { controller: GameControlle
           if (dragActiveRef.current || !multi || expanded || event.detail !== 1 || !controller.requestToggleTapMany) return;
           if (event.target instanceof Element
             && event.target.closest('.game-card__quick-ability-marker')) return;
+          const handled = controller.requestToggleTapMany(bundle.cardIds);
+          if (!handled) return;
           event.preventDefault();
           event.stopPropagation();
-          controller.requestToggleTapMany(bundle.cardIds);
         }}
       >
         {bundle.cardIds.map((cardId, index) => (

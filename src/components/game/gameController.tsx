@@ -19,7 +19,7 @@ import type { GameState, ManualTargetZone, PlayerId, ZoneId } from '../../engine
 import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { parseManaCost } from '../../engine/mana';
-import { naiveTapManaColors } from '../../engine/grammar/manaShortcut';
+import { hasActivatedAddManaLine, naiveTapManaColors } from '../../engine/grammar/manaShortcut';
 import { isPartiallyImplemented } from '../../engine/grammar/partialImplementation';
 import { useViewStore } from '../../store/viewStore';
 import { activatedAbilityLines } from '../../engine/grammar';
@@ -138,7 +138,7 @@ export interface GameController {
   /** Keep confirmation (one hand-kept; contract §2.1). */
   requestKeepHand: () => void;
   requestToggleTap: (cardId: string) => void;
-  requestToggleTapMany?: (cardIds: readonly string[]) => void;
+  requestToggleTapMany?: (cardIds: readonly string[]) => boolean;
   requestSetAllTapped: (tapped: boolean) => void;
   /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
   requestResolveTop: () => void;
@@ -726,12 +726,30 @@ export function useGameController({
     publishTapChange(before, [cardId], tapped);
   }
 
-  function requestToggleTapMany(cardIds: readonly string[]): void {
+  function requestToggleTapMany(cardIds: readonly string[]): boolean {
     const before = useGameStore.getState().state;
-    if (!before || cardIds.length === 0) return;
+    if (!before || cardIds.length === 0) return false;
     const tapped = cardIds.some((cardId) => !before.cards[cardId]?.tapped);
-    store.setTappedBatch(cardIds, tapped);
+    const bundleNames = cardIds.map((cardId) => {
+      const card = before.cards[cardId];
+      const def = card ? before.defs[card.defId] : undefined;
+      const face = def?.faces[card?.faceIndex ?? 0] ?? def?.faces[0];
+      return {
+        name: face?.name ?? def?.name ?? '',
+        typeLine: face?.typeLine ?? def?.typeLine ?? '',
+        intrinsicShortcutSafe: def ? !hasActivatedAddManaLine(def) : false,
+      };
+    });
+    const basicLandBundle = cardIds.length > 1
+      && bundleNames.every(({ name, typeLine, intrinsicShortcutSafe }) => name !== ''
+        && /\bBasic\b/i.test(typeLine)
+        && /\bLand\b/i.test(typeLine)
+        && intrinsicShortcutSafe)
+      && bundleNames.every(({ name }) => name === bundleNames[0]?.name);
+    if (!basicLandBundle) return false;
+    store.tapForManaBatch(cardIds);
     publishTapChange(before, cardIds, tapped, { includeRequestedIds: true });
+    return true;
   }
 
   function requestSetAllTapped(tapped: boolean): void {

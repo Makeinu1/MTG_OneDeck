@@ -122,6 +122,127 @@ describe('GameStore', () => {
     expect(s.manaPool.G).toBe(1);
   });
 
+  it('tapForManaBatch atomically taps basic lands, adds per-card mana, and undoes as one step', () => {
+    const forest = makeDef({
+      scryfallId: 'forest-batch',
+      typeLine: 'Basic Land — Forest',
+      producedMana: ['G'],
+    });
+    const deck = [
+      { def: forest, isCommander: false },
+      { def: forest, isCommander: false },
+      ...makeDeck(5),
+    ];
+    store().newGame(deck, 1);
+    const ids = Object.values(store().state!.cards)
+      .filter((card) => card.defId === 'forest-batch')
+      .map((card) => card.id);
+    ids.forEach((id) => store().moveCard(id, 'battlefield', 'bottom'));
+    const canUndoBeforeBatch = store().canUndo;
+
+    store().tapForManaBatch(ids);
+    expect(ids.every((id) => store().state?.cards[id]?.tapped)).toBe(true);
+    expect(store().state?.manaPool.G).toBe(2);
+    expect(store().canUndo).toBe(true);
+
+    store().undo();
+    expect(ids.every((id) => !store().state?.cards[id]?.tapped)).toBe(true);
+    expect(store().state?.manaPool.G).toBe(0);
+    expect(store().canUndo).toBe(canUndoBeforeBatch);
+  });
+
+  it('tapForManaBatch untaps an all-tapped basic bundle without changing mana', () => {
+    const forest = makeDef({
+      scryfallId: 'forest-batch-untap',
+      typeLine: 'Basic Land — Forest',
+      producedMana: ['G'],
+    });
+    const deck = [
+      { def: forest, isCommander: false },
+      { def: forest, isCommander: false },
+      ...makeDeck(5),
+    ];
+    store().newGame(deck, 1);
+    const ids = Object.values(store().state!.cards)
+      .filter((card) => card.defId === 'forest-batch-untap')
+      .map((card) => card.id);
+    ids.forEach((id) => store().moveCard(id, 'battlefield', 'bottom'));
+
+    store().tapForManaBatch(ids);
+    const manaAfterTap = store().state?.manaPool.G;
+    store().tapForManaBatch(ids);
+    expect(ids.every((id) => !store().state?.cards[id]?.tapped)).toBe(true);
+    expect(store().state?.manaPool.G).toBe(manaAfterTap);
+  });
+
+  it('tapForManaBatch leaves a basic land with a costed mana line on the fallback route', () => {
+    const customBasic = makeDef({
+      scryfallId: 'forest-batch-costed',
+      typeLine: 'Basic Land — Forest',
+      producedMana: ['G'],
+      faces: [{
+        name: 'forest-batch-costed',
+        typeLine: 'Basic Land — Forest',
+        oracleText: '{T}, Sacrifice this land: Add {G}.',
+      }],
+    });
+    const deck = [
+      { def: customBasic, isCommander: false },
+      { def: customBasic, isCommander: false },
+      ...makeDeck(5),
+    ];
+    store().newGame(deck, 1);
+    const ids = Object.values(store().state!.cards)
+      .filter((card) => card.defId === 'forest-batch-costed')
+      .map((card) => card.id);
+    ids.forEach((id) => store().moveCard(id, 'battlefield', 'bottom'));
+
+    store().tapForManaBatch(ids);
+    expect(ids.every((id) => !store().state?.cards[id]?.tapped)).toBe(true);
+    expect(store().state?.manaPool.G).toBe(0);
+  });
+
+  it('tapForManaBatch resolves mana-added watchers for each newly tapped basic land', () => {
+    const forest = makeDef({
+      scryfallId: 'forest-batch-watcher',
+      typeLine: 'Basic Land — Forest',
+      producedMana: ['G'],
+    });
+    const watcher = makeDef({
+      scryfallId: 'forest-batch-mana-watcher',
+      typeLine: 'Enchantment',
+      faces: [
+        {
+          name: 'forest-batch-mana-watcher',
+          typeLine: 'Enchantment',
+          oracleText:
+            'Whenever a player taps a land for mana, that player adds one mana of any type that land produced.',
+        },
+      ],
+    });
+    const deck = [
+      { def: forest, isCommander: false },
+      { def: forest, isCommander: false },
+      { def: watcher, isCommander: false },
+      ...makeDeck(8),
+    ];
+    store().newGame(deck, 1);
+    const forestIds = Object.values(store().state!.cards)
+      .filter((card) => card.defId === 'forest-batch-watcher')
+      .map((card) => card.id);
+    const watcherId = Object.values(store().state!.cards).find(
+      (card) => card.defId === 'forest-batch-mana-watcher',
+    )!.id;
+    [...forestIds, watcherId].forEach((id) => store().moveCard(id, 'battlefield', 'bottom'));
+
+    store().tapForManaBatch(forestIds);
+
+    expect(forestIds.every((id) => store().state?.cards[id]?.tapped)).toBe(true);
+    expect(store().state?.manaPool.G).toBe(4);
+    expect(store().state?.pendingTriggers).toEqual([]);
+    expect(store().state?.zones.stack).toHaveLength(0);
+  });
+
   it('activateAbility resolves activated mana abilities without using the stack', () => {
     const dork = makeDef({
       scryfallId: 'llanowar',

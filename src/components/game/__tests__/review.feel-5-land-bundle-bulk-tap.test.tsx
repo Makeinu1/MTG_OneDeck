@@ -68,7 +68,7 @@ function bundleCards(): string[] {
     .filter((id): id is string => Boolean(id));
 }
 
-describe('feel-5 land bundle bulk tap', () => {
+describe('feel-5/8 land bundle bulk tap-for-mana', () => {
   beforeEach(setup);
 
   afterEach(() => {
@@ -77,12 +77,14 @@ describe('feel-5 land bundle bulk tap', () => {
     useGameStore.setState({ state: null });
   });
 
-  it('toggles the collapsed bundle atomically, emits one event, preserves mana, and undoes as one step', () => {
+  it('taps the collapsed bundle atomically, adds mana for newly tapped cards, and undoes as one step', () => {
     const ids = bundleCards();
     expect(ids.length).toBeGreaterThan(1);
     const before = store().state;
     if (!before) throw new Error('state unavailable');
     const manaBefore = before.manaPool;
+    const newlyTappedCount = ids.filter((id) => !before.cards[id]?.tapped).length;
+    expect(newlyTappedCount).toBeGreaterThan(0);
     const { events, unsubscribe } = captureEvents();
     const card = container.querySelector<HTMLElement>(`[data-layout-card-id="${ids[0]}"]`);
     void act(() => { card?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })); });
@@ -90,7 +92,7 @@ describe('feel-5 land bundle bulk tap', () => {
     const afterTap = store().state;
     expect(afterTap).not.toBeNull();
     expect(ids.every((id) => afterTap?.cards[id]?.tapped)).toBe(true);
-    expect(afterTap?.manaPool).toEqual(manaBefore);
+    expect(afterTap?.manaPool.G).toBe(manaBefore.G + newlyTappedCount);
     expect(events.filter((event) => event.kind === 'tap-changed')).toHaveLength(1);
     expect(events[0]).toMatchObject({ kind: 'tap-changed', cardIds: ids, tapped: true });
 
@@ -98,6 +100,7 @@ describe('feel-5 land bundle bulk tap', () => {
     const afterUndo = store().state;
     expect(ids.some((id) => afterUndo?.cards[id]?.tapped)).toBe(true);
     expect(afterUndo?.cards[ids[0]]?.tapped).toBe(before.cards[ids[0]]?.tapped);
+    expect(afterUndo?.manaPool).toEqual(manaBefore);
     unsubscribe();
   });
 
@@ -121,6 +124,7 @@ describe('feel-5 land bundle bulk tap', () => {
     for (const id of ids) {
       if (!store().state?.cards[id]?.tapped) store().dispatch({ type: 'setTapped', cardId: id, tapped: true });
     }
+    const manaBeforeUntap = store().state?.manaPool;
     void act(() => { count?.click(); });
     expect(bundle?.dataset.expanded).toBe('false');
     const { events, unsubscribe } = captureEvents();
@@ -131,6 +135,7 @@ describe('feel-5 land bundle bulk tap', () => {
     });
     expect(store().state?.cards[ids[0]]?.tapped).toBe(false);
     expect(store().state?.cards[ids[1]]?.tapped).toBe(false);
+    expect(store().state?.manaPool).toEqual(manaBeforeUntap);
     expect(events.find((event) => event.kind === 'tap-changed')).toMatchObject({ tapped: false, cardIds: ids });
     unsubscribe();
   });

@@ -1006,6 +1006,7 @@ export interface GameStore {
   ): 'ok' | 'needs-confirm' | 'needs-tap-choice';
   toggleTap(cardId: string): void;
   tapForMana(cardId: string, color?: ManaColor): 'ok' | 'needs-choice';
+  tapForManaBatch(cardIds: readonly string[]): void;
   crackTreasure(cardId: string, color: ManaColor): void;
   crackClue(cardId: string): void;
   crackFood(cardId: string): void;
@@ -1548,6 +1549,33 @@ function manaProductionAmount(def: CardDef | undefined, color: ManaColor): numbe
   }
 
   return 1;
+}
+
+interface BasicLandBundleManaSource {
+  card: CardInstance;
+  color: ManaColor;
+  amount: number;
+  name: string;
+}
+
+function basicLandBundleManaSource(state: GameState, cardId: string): BasicLandBundleManaSource | null {
+  const card = state.cards[cardId];
+  const def = card ? state.defs[card.defId] : undefined;
+  const face = def?.faces[card?.faceIndex ?? 0] ?? def?.faces[0];
+  const typeLine = face?.typeLine ?? def?.typeLine ?? '';
+  if (!card || !def || !/\bBasic\b/i.test(typeLine) || !/\bLand\b/i.test(typeLine)) return null;
+  // A custom activated add-mana line may carry costs or choices. Keep those
+  // cards on the ordinary individual/guided route instead of collapsing them
+  // into the intrinsic basic-land shortcut.
+  if (hasActivatedAddManaLine(def)) return null;
+  const colors = naiveTapManaColors(def);
+  if (colors.length !== 1) return null;
+  return {
+    card,
+    color: colors[0],
+    amount: Math.max(1, manaProductionAmount(def, colors[0])),
+    name: face?.name ?? def.name,
+  };
 }
 
 function applyAutoManaPaymentAndCommands(
@@ -3475,6 +3503,61 @@ export const useGameStore = create<GameStore>((set, get) => {
       try {
         const result = applyCommand(cur, { type: 'setTapped', cardId, tapped: !card.tapped });
         commit(result.state, [...result.warnings, ...warningForSummoningSickness(cur, cardId)]);
+      } catch (err) {
+        reportActionError(err);
+      }
+    },
+
+    tapForManaBatch(cardIds) {
+      const cur = get().state;
+      if (!cur) return;
+      const uniqueCardIds = [...new Set(cardIds)];
+      if (uniqueCardIds.length === 0) return;
+      const sources = uniqueCardIds.map((cardId) => basicLandBundleManaSource(cur, cardId));
+      if (sources.some((source) => source === null)) return;
+      const resolvedSources = sources as BasicLandBundleManaSource[];
+      const bundleName = resolvedSources[0]?.name;
+      if (!bundleName || resolvedSources.some((source) => source.name !== bundleName)) return;
+
+      const untapped = resolvedSources.filter((source) => !source.card.tapped);
+      if (untapped.length === 0) {
+        const commands = resolvedSources.map((source) => (
+          { type: 'setTapped', cardId: source.card.id, tapped: false } satisfies GameCommand
+        ));
+        try {
+          const result = applyCommands(cur, commands);
+          commit(result.state, result.warnings);
+        } catch (err) {
+          reportActionError(err);
+        }
+        return;
+      }
+
+      let workingState = cur;
+      const warnings: string[] = [];
+      try {
+        for (const source of untapped) {
+          const result = resolveManaAbilityTransaction(workingState, {
+            sourceId: source.card.id,
+            commands: [
+              { type: 'setTapped', cardId: source.card.id, tapped: true },
+              {
+                type: 'addMana',
+                color: source.color,
+                amount: source.amount,
+                ...(source.card.controllerId !== cur.localPlayerId
+                  ? { playerId: source.card.controllerId }
+                  : {}),
+              },
+            ],
+          });
+          workingState = result.state;
+          warnings.push(...result.warnings);
+        }
+        warnings.push(...untapped.flatMap((source) => warningForSummoningSickness(cur, source.card.id)));
+        // All source transactions are folded into one history commit so one
+        // undo restores both every tap and the complete mana delta.
+        commit(workingState, warnings);
       } catch (err) {
         reportActionError(err);
       }
