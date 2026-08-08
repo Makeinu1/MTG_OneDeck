@@ -31,6 +31,7 @@
     "cr-conformance": "tsx scripts/cr-conformance.ts",
     "m-contract-gate": "tsx scripts/m-contract-gate.ts",
     "verify:cr": "node scripts/checks/verify-cr-ruleset.mjs",
+    "verify:versions": "tsx scripts/checks/verify-contract-versions.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",
