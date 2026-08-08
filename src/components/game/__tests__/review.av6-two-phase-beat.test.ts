@@ -232,8 +232,10 @@ describe('AV6 CSS choreography structure', () => {
     expect(reducedBlock).toMatch(/land-heartbeat|dance-floor|light-pool/);
   });
 
-  it('light theme disables AV6 elements', () => {
-    expect(css).toMatch(/html\[data-theme='light'\][^}]*dance-floor/);
+  it('keeps AV6 choreography available to both themes', () => {
+    expect(css).toContain(":root[data-ambient='on'] .game-screen:not([data-commander-on-battlefield]) .dance-floor__pool");
+    expect(css).not.toMatch(/html\[data-theme='light'\] \.dance-floor__pool/);
+    expect(css).not.toMatch(/html\[data-theme='light'\] \.game-card--commander-idle::after/);
   });
 
   it('dance-floor layer has pointer-events: none', () => {

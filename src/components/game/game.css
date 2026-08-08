@@ -2832,16 +2832,6 @@ html[data-theme='light'] .ambient-backdrop__light { display: block; }
   will-change: transform, opacity;
 }
 
-/* AV5: light theme = effectively no permanent-beat choreography (contract §10).
-   The dark-only gate is structural, not just a preference. */
-html[data-theme='light'] .land-bundle[data-beat-index],
-html[data-theme='light'] .visual-card-bundle[data-beat-index],
-html[data-theme='light'] .game-card--commander,
-html[data-theme='light'] .game-card--commander::after,
-html[data-theme='light'] .game-card--commander::before {
-  animation: none !important;
-}
-
 /* ============================================================
    AV6 — Two-phase rhythm + dance-floor lighting
    (docs/audio-visual-contract.md §11)
@@ -3007,12 +2997,6 @@ html[data-theme='light'] .game-card--commander::before {
 :root[data-ambient='on'] .game-screen[data-just-arrived] .dance-floor__pool /* light-pool stamp */ {
   animation: light-pool-stamp var(--bar) linear 1;
   animation-delay: 0ms;
-}
-
-/* AV6: light theme disables dance-floor + commander-idle choreography */
-html[data-theme='light'] .dance-floor__pool,
-html[data-theme='light'] .game-card--commander-idle::after {
-  animation: none !important;
 }
 
 /* AV6: reduced-motion full stop */

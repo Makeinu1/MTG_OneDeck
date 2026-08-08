@@ -6,6 +6,7 @@
 **revision 2026-08-08(ユーザー裁定・ゲーム開始音の同期)**: §2/§2.1/§3.1を改訂。`ゲーム開始`クリック自体を初回の明示gestureとして扱い、`newGame`による初期7枚配牌より前にAudioContext/BGM/SFXの開始を試みる。初回配牌は新しいイベント種別を追加せず、既存の`draw-completed`を一操作一件だけ発火する。音設定OFF・音声ロード失敗では無音へ縮退し、GameStateは音声準備を待たない。
 **revision 2026-08-08(ユーザー裁定・ライトテーマ音響配線; feel-10でBGM境界を更新)**: ライトテーマのゲーム画面でも既存の意味イベントSEを有効化する。初期状態ではライト用BGMを未選択の任意Trackとして`null`で保持し、選択前はBGMを鳴らさずSEを即時再生した。ダーク曲をライトの代替BGM・代替拍時計に使わない境界、背景motionとAV5/AV6のライト無演出ゲートは維持する。
 **revision 2026-08-08(ユーザー裁定・ライトBGM選定)**: ユーザー選定の`sound/ライトテーマ.mp3`を原本非変更のまま`public/audio/bgm/light-theme.mp3`へ同梱し、ライトの有効Trackとして採用する。ライトでもBGM、既存SE、Track固有の拍同期、commander duckを有効化する。権利はユーザー選定・公開指示として記録し、外部ライセンスは推測しない。ダークTrack、SE素材、視覚演出、reduced-motionは変更しない。
+**revision 2026-08-08(ユーザー裁定・ライトテーマ視覚演出 parity; feel-11)**: 既存AV5/AV6のパーマネントビート、カード/土地/統率者の振付、統率者idle、ダンスフロア照明をライトテーマでも有効化する。ライトの墨スキン・トークン、既存の拍時計、背景モーション設定、reduced-motion、音響は維持する。feel-9/10で記録したライト視覚無演出境界は本revisionでsupersedeする。
 
 **役割**: 音楽・意味イベント音・イベント視覚・BPM同期についての単一正本。  
 **非対象**: カードルール自動化、戦闘ルール実装、追加の楽曲選定・生成。
@@ -487,7 +488,7 @@ const LIGHT_GAME_TRACK: TrackManifest = {
 - 既存の「背景モーション」トグル(`:root[data-ambient='on']`)で制御する。個別トグルは追加しない。
 - `prefers-reduced-motion: reduce` で全静止(既存の `@media` ブロックに追加)。
 - transport 非 ready 時は `--ambient-beat`(700ms)×4 = 2800ms を小節周期の fallback とする。
-- ダークテーマのゲーム画面でのみ可視(ライトテーマでは実効無演出)。
+- ダーク/ライト双方のゲーム画面で可視。各テーマの既存スキン/トークンを使い、ライトでも実効無演出にしない。
 
 ### 役割と振付
 
@@ -549,7 +550,7 @@ interface AudioVisualTuning {
 - `PresentationEvent.kind` の追加。
 - 戦闘・スタック・連鎖で強度を変える。
 - 個別トグルの追加(既存 `data-ambient` を再利用)。
-- ライトテーマでの演出(ダークのみ)。
+- ライトテーマで既存AV5演出を無効化すること(本revisionでsupersede)。
 
 ## 11. 2フェーズリズム + ダンスフロア照明(AV6・2026-07-28 ユーザー裁定)
 
@@ -569,7 +570,7 @@ interface AudioVisualTuning {
 - 既存の「背景モーション」トグル(`:root[data-ambient='on']`)で制御。個別トグルは追加しない。
 - `prefers-reduced-motion: reduce` で全静止。
 - transport 非 ready 時は `--ambient-beat`(700ms)×4 = 2800ms を小節周期の fallback。
-- ダークテーマのゲーム画面でのみ可視(ライトテーマでは実効無演出)。
+- ダーク/ライト双方のゲーム画面で可視。各テーマの既存スキン/トークンを使い、ライトでも実効無演出にしない。
 
 ### フェーズ定義
 
@@ -641,7 +642,7 @@ interface AudioVisualTuning {
 - BGM・BPM・フィルタの変更(聖域)。
 - 戦闘・スタック・連鎖で強度を変える。
 - 個別トグルの追加(既存 `data-ambient` を再利用)。
-- ライトテーマでの演出(ダークのみ)。
+- ライトテーマで既存AV6演出を無効化すること(本revisionでsupersede)。
 - 毎フレームの JS ループ。
 - 照明の移動/走査(脈動のみ)。
 

@@ -136,6 +136,12 @@ describe('AV5 CSS choreography structure', () => {
     expect(reducedBlock).toMatch(/land-beat|beat-slot|permanent-beat/);
   });
 
+  it('keeps the existing permanent-beat choreography available to both themes', () => {
+    expect(css).toContain(":root[data-ambient='on'] .game-card--commander");
+    expect(css).not.toMatch(/html\[data-theme='light'\] \.land-bundle\[data-beat-index\]/);
+    expect(css).not.toMatch(/html\[data-theme='light'\] \.visual-card-bundle\[data-beat-index\]/);
+  });
+
   it('does not animate filter or box-shadow on beat elements (transform/opacity only)', () => {
     // Extract keyframe blocks for land-beat and commander-dance
     const beatKeyframes = css.match(/@keyframes (?:land-beat-(?:odd|even)|commander-dance)[^}]*\{[^}]*(?:\{[^}]*\}[^}]*)*\}/g) ?? [];

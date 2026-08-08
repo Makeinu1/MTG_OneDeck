@@ -1,0 +1,20 @@
+{
+  "operation": "add-domain",
+  "domain": {
+    "type": "design-slice",
+    "domainId": "feel-11-light-theme-motion-parity",
+    "track": "feel",
+    "status": "audited",
+    "dependsOn": ["feel-10-light-theme-bgm-selection"],
+    "boundary": "既存AV5/AV6のカード・土地・統率者・ダンスフロア視覚演出をライトテーマでも有効化する。ライトの配色、背景スキン、音響、reduced-motion、設定ゲートは維持する。",
+    "manualBoundary": "新しい演出・音・PresentationEvent・入力直接発音を追加しない。人間の見た目/疲労判定と公開は別ゲート。",
+    "evidence": [
+      "research/cr-grounding/archive/feel-11-light-theme-motion-parity-cold-audit-2026-08-08.md (cold auditor 019fe121-d421-7d20-bcaa-2f25602ffdad; BLOCKER/HIGH/MEDIUM/LOW 0)",
+      "AV5/AV6 review + ordinary motion/presentation tests",
+      "browser light/dark 375x812, 812x375, 1440x900; console warn/error 0; no horizontal overflow",
+      "treeFingerprint d8a9c0bca6e6d4e3f02fb423f27a1d8bbd61073c0346eeb0d9c0f129ec0e9f25"
+    ],
+    "nextGate": "同一fingerprintでnpm run check→ユーザー公開承認",
+    "judge": "user-ruling-2026-08-08"
+  }
+}
