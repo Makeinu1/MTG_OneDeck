@@ -1,0 +1,105 @@
+{
+  "kind": "mode-neutral-core-card-runtime-slice-v1",
+  "byObject": {
+    "PC1:0": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": false,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "charge", "count": 2 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    },
+    "PC2:0": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": false,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "+1/+1", "count": 1 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    },
+    "PC3:0": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": false,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "quest", "count": 3 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    },
+    "PC4:1": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": false,
+        "tapped": true,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "shield", "count": 1 }],
+        "markedDamage": 3
+      },
+      "attachment": {
+        "attachedTo": { "kind": "object", "objectId": "PC1:0" }
+      }
+    },
+    "PC5:1": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": true,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "time", "count": 4 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    },
+    "PC6:0": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": true,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "age", "count": 5 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    },
+    "PC7:0": {
+      "orientation": {
+        "faceIndex": 0,
+        "faceDown": false,
+        "tapped": false,
+        "flipped": false,
+        "phasedOut": false
+      },
+      "counterDamage": {
+        "counters": [{ "kind": "lore", "count": 6 }],
+        "markedDamage": 0
+      },
+      "attachment": { "attachedTo": null }
+    }
+  }
+}

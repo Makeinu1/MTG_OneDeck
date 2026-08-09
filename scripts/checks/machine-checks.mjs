@@ -2,7 +2,7 @@
 // 機械チェックの単一正本(旧「機械チェック4点」)。npm run check で起動する。
 // 各ステップは個別実行する(&& 連結だと失敗ステップの帰属が曖昧になるため)。
 // 素の `npx tsc --noEmit` は root tsconfig が files:[] のため no-op — 型検査の正は
-// `npm run build`(tsc -b)に内蔵されている。CR・契約・Solo保全・lint・test・buildで完全。
+// `npm run build`(tsc -b)に内蔵されている。CR・契約・Solo保全・Core・lint・test・buildで完全。
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -14,6 +14,7 @@ const machineCheckSteps = [
   { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
   { name: 'Online状態アーキテクチャ検証', cmd: 'npm', args: ['run', 'verify:online-state-architecture'] },
   { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-identity-zone'] },
+  { name: 'Mode-Neutral Core Card Runtime検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-card-runtime'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
