@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CoreObjectRegistryAdapterErrorV2,
+  canonicalizeModeNeutralCoreObjectRegistryStateV2,
+  upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2,
+} from "../objectRegistryCanonicalizationV2";
+import {
   validateModeNeutralCoreObjectRegistryStateV2,
 } from "../objectRegistryValidationV2";
 
@@ -112,5 +117,30 @@ describe("O4P-01H-G strict registry validation", () => {
     const result = validateModeNeutralCoreObjectRegistryStateV2(value);
     expect(result.ok).toBe(true);
   });
-});
 
+  it("keeps nested revoked Proxy failures inside the V2 boundary", () => {
+    const nested = fixture();
+    const revokedPlayers = Proxy.revocable(nested.players as object, {});
+    nested.players = revokedPlayers.proxy;
+    revokedPlayers.revoke();
+    expect(() => validateModeNeutralCoreObjectRegistryStateV2(nested)).not.toThrow();
+    expect(validateModeNeutralCoreObjectRegistryStateV2(nested).ok).toBe(false);
+
+    const revokedRegistry = Proxy.revocable(fixture(), {});
+    revokedRegistry.revoke();
+    expect(() => canonicalizeModeNeutralCoreObjectRegistryStateV2(
+      revokedRegistry.proxy as never,
+    )).toThrow(CoreObjectRegistryAdapterErrorV2);
+
+    const v1 = fixture();
+    v1.kind = "mode-neutral-core-identity-zone-slice-v1";
+    v1.cardObjects = v1.objects;
+    delete v1.objects;
+    const revokedV1Players = Proxy.revocable(v1.players as object, {});
+    v1.players = revokedV1Players.proxy;
+    revokedV1Players.revoke();
+    expect(() => upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2(v1)).toThrow(
+      CoreObjectRegistryAdapterErrorV2,
+    );
+  });
+});

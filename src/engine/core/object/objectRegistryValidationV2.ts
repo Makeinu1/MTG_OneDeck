@@ -843,8 +843,20 @@ export function validateModeNeutralCoreObjectRegistryStateV2(
   }
 
   const v1Projection = projectRegistryToV1(root, objectEntries);
-  const v1Validation = validateModeNeutralCoreIdentityZoneSliceV1(v1Projection);
-  if (!v1Validation.ok) appendV1Issues(issues, v1Validation.issues);
+  let v1Validation: ReturnType<typeof validateModeNeutralCoreIdentityZoneSliceV1> | null;
+  try {
+    v1Validation = validateModeNeutralCoreIdentityZoneSliceV1(v1Projection);
+  } catch {
+    v1Validation = null;
+    issues.add(
+      "INVALID_TYPE",
+      "/",
+      "V1 projection could not be validated safely",
+    );
+  }
+  if (v1Validation !== null && !v1Validation.ok) {
+    appendV1Issues(issues, v1Validation.issues);
+  }
 
   const references = validateZones(root.zones, objectIds, issues);
   const locationCounts = new Map<string, number>();
@@ -862,7 +874,7 @@ export function validateModeNeutralCoreObjectRegistryStateV2(
   }
 
   const sortedIssues = issues.sorted();
-  if (sortedIssues.length > 0 || !v1Validation.ok) {
+  if (sortedIssues.length > 0 || v1Validation === null || !v1Validation.ok) {
     return Object.freeze({ ok: false, issues: sortedIssues });
   }
 

@@ -239,7 +239,7 @@ function canonicalizeObjectIdentity(
   }
 }
 
-export function canonicalizeModeNeutralCoreObjectRegistryStateV2(
+function canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(
   value: ModeNeutralCoreObjectRegistryStateV2,
 ): ModeNeutralCoreObjectRegistryStateV2 {
   const v1 = canonicalizeModeNeutralCoreIdentityZoneSliceV1(projectRegistryToV1(value));
@@ -274,12 +274,25 @@ export function canonicalizeModeNeutralCoreObjectRegistryStateV2(
   return deepFreeze(canonical);
 }
 
+export function canonicalizeModeNeutralCoreObjectRegistryStateV2(
+  value: ModeNeutralCoreObjectRegistryStateV2,
+): ModeNeutralCoreObjectRegistryStateV2 {
+  try {
+    return canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(value);
+  } catch {
+    return throwAdapterError(
+      "Object registry canonicalization could not inspect input safely",
+      unsafeInspectionIssues(),
+    );
+  }
+}
+
 export const canonicalizeModeNeutralCoreObjectRegistrySliceV2 =
   canonicalizeModeNeutralCoreObjectRegistryStateV2;
 export const canonicalizeCoreObjectRegistryStateV2 =
   canonicalizeModeNeutralCoreObjectRegistryStateV2;
 
-export function canonicalizeModeNeutralCoreObjectRuntimeStateV2(
+function canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(
   value: ModeNeutralCoreObjectRuntimeStateV2,
 ): ModeNeutralCoreObjectRuntimeStateV2 {
   const byObject = value.byObject as Readonly<Record<string, unknown>>;
@@ -294,6 +307,19 @@ export function canonicalizeModeNeutralCoreObjectRuntimeStateV2(
       ),
   );
   return deepFreeze(canonical);
+}
+
+export function canonicalizeModeNeutralCoreObjectRuntimeStateV2(
+  value: ModeNeutralCoreObjectRuntimeStateV2,
+): ModeNeutralCoreObjectRuntimeStateV2 {
+  try {
+    return canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(value);
+  } catch {
+    return throwAdapterError(
+      "Object runtime canonicalization could not inspect input safely",
+      unsafeInspectionIssues(),
+    );
+  }
 }
 
 export const canonicalizeModeNeutralCoreObjectRuntimeSliceV2 =
@@ -321,10 +347,27 @@ function throwAdapterError(
   throw new CoreObjectRegistryAdapterErrorV2(message, issues);
 }
 
+function unsafeInspectionIssues(): readonly {
+  readonly code: string;
+  readonly path: string;
+  readonly message: string;
+}[] {
+  return Object.freeze([Object.freeze({
+    code: "INVALID_TYPE",
+    path: "",
+    message: "Input descriptors are not readable",
+  })]);
+}
+
 export function upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2(
   input: unknown,
 ): ModeNeutralCoreObjectRegistryStateV2 {
-  const validation = validateModeNeutralCoreIdentityZoneSliceV1(input);
+  let validation: ReturnType<typeof validateModeNeutralCoreIdentityZoneSliceV1>;
+  try {
+    validation = validateModeNeutralCoreIdentityZoneSliceV1(input);
+  } catch {
+    return throwAdapterError("Invalid V1 identity/zone slice", unsafeInspectionIssues());
+  }
   if (!validation.ok) {
     return throwAdapterError(
       "Invalid V1 identity/zone slice",
@@ -359,11 +402,21 @@ export function upgradeModeNeutralCoreCardRuntimeSliceV1ToObjectRuntimeV2(
   identityInput: unknown,
   runtimeInput: unknown,
 ): ModeNeutralCoreObjectRuntimeStateV2 {
-  const identity = validateModeNeutralCoreIdentityZoneSliceV1(identityInput);
+  let identity: ReturnType<typeof validateModeNeutralCoreIdentityZoneSliceV1>;
+  try {
+    identity = validateModeNeutralCoreIdentityZoneSliceV1(identityInput);
+  } catch {
+    return throwAdapterError("Invalid V1 identity/zone slice", unsafeInspectionIssues());
+  }
   if (!identity.ok) {
     return throwAdapterError("Invalid V1 identity/zone slice", identity.issues);
   }
-  const runtime = validateModeNeutralCoreCardRuntimeSliceV1(identity.value, runtimeInput);
+  let runtime: ReturnType<typeof validateModeNeutralCoreCardRuntimeSliceV1>;
+  try {
+    runtime = validateModeNeutralCoreCardRuntimeSliceV1(identity.value, runtimeInput);
+  } catch {
+    return throwAdapterError("Invalid V1 card runtime slice", unsafeInspectionIssues());
+  }
   if (!runtime.ok) {
     return throwAdapterError("Invalid V1 card runtime slice", runtime.issues);
   }
@@ -376,4 +429,3 @@ export function upgradeModeNeutralCoreCardRuntimeSliceV1ToObjectRuntimeV2(
 
 export const upgradeModeNeutralCoreCardRuntimeSliceV1ToObjectRuntimeStateV2 =
   upgradeModeNeutralCoreCardRuntimeSliceV1ToObjectRuntimeV2;
-
