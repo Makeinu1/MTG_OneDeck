@@ -2,7 +2,7 @@
 // 機械チェックの単一正本(旧「機械チェック4点」)。npm run check で起動する。
 // 各ステップは個別実行する(&& 連結だと失敗ステップの帰属が曖昧になるため)。
 // 素の `npx tsc --noEmit` は root tsconfig が files:[] のため no-op — 型検査の正は
-// `npm run build`(tsc -b)に内蔵されている。CR・契約・lint・test・buildの5ステップで完全。
+// `npm run build`(tsc -b)に内蔵されている。CR・契約・Solo保全・lint・test・buildで完全。
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 const machineCheckSteps = [
   { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
+  { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
@@ -84,7 +85,7 @@ function runCli() {
     return;
   }
 
-  process.exitCode = runMachineChecks(options).exitCode;
+  process.exitCode = runMachineChecks({ ...options, steps: machineCheckSteps }).exitCode;
 }
 
 const isCli = process.argv[1]

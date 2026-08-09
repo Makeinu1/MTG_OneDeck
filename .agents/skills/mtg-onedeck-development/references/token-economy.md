@@ -7,7 +7,7 @@
 - Batch independent reads in one bounded `functions.exec` stage. Keep dependencies, approvals, waits, adaptive investigation, and conflicting writes sequential.
 - Reject zero-demand or net-negative parser work before implementation with a small real-corpus probe.
 - Run narrow tests during implementation. Run the complete check only after the semantic cold audit is clean and the release tree is stable.
-- Launch a cold audit after candidate freeze but before the release full check. Do not poll raw transcripts; wait for the concise findings result.
+- Launch a cold audit after candidate freeze but before the release full check. Select an explicit `NARROW`/`STANDARD`/`BROAD` timing profile and use one wait for its hard budget (15/30/45 minutes). Do not poll raw transcripts or use repeated 30/60/120-second waits. A wait timeout is not a verdict: preserve `implemented-not-audited` until a final findings result exists.
 - Use at most one implementer and one cold auditor per milestone, both with `fork_context: false`; corrections reuse the implementer instead of spawning replacements.
 - Archive completed reasoning packets after the ledger records their evidence. Keep only live contracts, golden cases, and current drafts in the active lane.
 - Default implementation, search, and targeted-test work to Medium reasoning; default contracts, CR adjudication, architecture, and cold audit to High. Reserve XHigh/Ultra for decisions unresolved by CR and canonical lookup. Avoid hard-coding model names in governance.

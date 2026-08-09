@@ -34,6 +34,32 @@ One invocation handles exactly one milestone. Project continuity lives in the le
 - The auditor runs the specified target-domain `review.*`, boundary, vacuity, spot-check, and adversarial evidence without running the full check.
 - With BLOCKER/HIGH = 0, record `AUDIT-OK-PENDING-FULL-CHECK`; this is not ship approval.
 
+### Audit timing and timeout contract
+
+Select one timing profile from the audit scope before spawning the auditor. The
+profile is a planning budget, not a quality shortcut.
+
+| Profile | Use when | Expected result | Hard wait |
+| --- | --- | ---: | ---: |
+| `NARROW` | one focused claim, at most five changed paths, and at most 20 specified tests | 5 minutes | 15 minutes (`900000` ms) |
+| `STANDARD` | one normal CR/engine/UI milestone or one project test lane | 15 minutes | 30 minutes (`1800000` ms) |
+| `BROAD` | governance, architecture, coverage, multiple test lanes, or more than 10 changed paths | 25 minutes | 45 minutes (`2700000` ms) |
+
+The audit brief must state the selected profile. If an older brief does not
+state one, use `STANDARD`; never infer `NARROW` from a small test count alone.
+The orchestrator should make one `wait_agent` call using the profile's hard
+wait. Do not replace it with repeated 30/60/120-second waits or raw transcript
+polling. `wait_agent` returning `timed_out` is not an audit verdict and does
+not authorize a second auditor while the first auditor is still running.
+
+If the hard wait expires without a final findings result, keep the candidate
+frozen and retain `implemented-not-audited`. Do not infer Green from targeted
+tests, partial progress, or an absent error. After the auditor reaches a
+terminal status, report `AUDIT-TIMEOUT` with the completed evidence and the
+unverified claims; do not run the release full check. Any retry is a new,
+sequential audit turn with the same frozen candidate and an explicit timing
+profile, never an overlapping audit.
+
 ## 5. Correct
 
 - Classify red findings with `docs/judge-protocol.md`.
