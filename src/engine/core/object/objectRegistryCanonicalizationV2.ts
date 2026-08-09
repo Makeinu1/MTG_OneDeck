@@ -238,14 +238,13 @@ function projectRegistryToV1(
 
 function canonicalizeZones(
   value: CoreZonesV1,
-  turnOrder: readonly CorePlayerId[],
 ): CoreZonesV1 {
   const byPlayer = value.byPlayer as Readonly<Record<string, CorePlayerZonesV1>>;
   const shared = value.shared;
   return canonicalRecord<CoreZonesV1>(["byPlayer", "shared"], (key) => {
     if (key === "byPlayer") {
       return canonicalRecord<Readonly<Record<string, CorePlayerZonesV1>>>(
-        turnOrder,
+        sortedKeys(byPlayer),
         (playerId) => {
           const source = byPlayer[playerId];
           return canonicalRecord<CorePlayerZonesV1>(
@@ -317,7 +316,10 @@ function canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(
         case "kind":
           return "mode-neutral-core-object-registry-slice-v2";
         case "players":
-          return v1.players;
+          return canonicalRecord<ModeNeutralCoreObjectRegistryStateV2["players"]>(
+            sortedKeys(v1.players),
+            (playerId) => cloneDataValue(dataValue(v1.players, playerId)),
+          );
         case "turnOrder":
           return cloneArray(v1.turnOrder);
         case "activePlayerId":
@@ -332,7 +334,7 @@ function canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(
             (objectId) => canonicalizeObjectIdentity(objects[objectId]),
           );
         case "zones":
-          return canonicalizeZones(value.zones, v1.turnOrder);
+          return canonicalizeZones(value.zones);
       }
     },
   );

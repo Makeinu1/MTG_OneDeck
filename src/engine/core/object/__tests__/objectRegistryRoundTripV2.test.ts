@@ -45,4 +45,16 @@ describe("O4P-01H-T canonical fixture round trip", () => {
     expect(Object.isFrozen(first.value)).toBe(true);
     expect(JSON.stringify(firstInput)).toBe(JSON.stringify(readFixture()));
   });
+
+  it("keeps turn order semantic while sorting player records canonically", () => {
+    const input = readFixture();
+    input.turnOrder = [...(input.turnOrder as string[])].reverse();
+    const result = validateModeNeutralCoreObjectRegistrySliceV2(input);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(JSON.stringify(result.issues));
+    expect(result.value.turnOrder).toEqual(["P4", "P3", "P2", "P1"]);
+    expect(Object.keys(result.value.players)).toEqual(["P1", "P2", "P3", "P4"]);
+    expect(Object.keys(result.value.zones.byPlayer)).toEqual(["P1", "P2", "P3", "P4"]);
+  });
 });

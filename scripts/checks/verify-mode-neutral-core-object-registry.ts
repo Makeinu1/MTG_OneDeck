@@ -16,7 +16,10 @@ import {
   validateModeNeutralCoreObjectRegistrySliceV2,
   validateModeNeutralCoreObjectRuntimeSliceV2,
 } from "../../src/engine/core";
-import type { ModeNeutralCoreObjectRegistrySliceV2 } from "../../src/engine/core";
+import type {
+  CorePhysicalCardId,
+  ModeNeutralCoreObjectRegistrySliceV2,
+} from "../../src/engine/core";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const fixturePath = resolve(
@@ -149,7 +152,7 @@ const syntheticIds = [
   coreSpellCopyObjectIdOfV2("seed"),
   coreActivatedAbilityObjectIdOfV2("seed"),
   coreTriggeredAbilityObjectIdOfV2("seed"),
-  coreCardObjectIdOf("PC1", 0),
+  coreCardObjectIdOf("PC1" as CorePhysicalCardId, 0),
 ];
 assert.equal(new Set(syntheticIds).size, syntheticIds.length);
 for (const objectId of syntheticIds) {
