@@ -119,6 +119,20 @@ describe("O4P-01H-G strict registry validation", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("requires the object ID family to match the identity kind", () => {
+    const value = fixture();
+    const objects = value.objects as Record<string, unknown>;
+    const token = objects["@token:t1:0"];
+    delete objects["@token:t1:0"];
+    objects["@spell-copy:t1"] = token;
+    const shared = (value.zones as Record<string, unknown>).shared as Record<string, unknown>;
+    shared.battlefield = ["pc1:0"];
+    shared.stack = ["@activated-ability:a1", "@spell-copy:t1"];
+
+    const issues = issuesOf(value);
+    expect(issues.some((issue) => issue.code === "OBJECT_ID_KIND_MISMATCH")).toBe(true);
+  });
+
   it("keeps nested revoked Proxy failures inside the V2 boundary", () => {
     const nested = fixture();
     const revokedPlayers = Proxy.revocable(nested.players as object, {});
@@ -181,5 +195,25 @@ describe("O4P-01H-G strict registry validation", () => {
     expect(() => canonicalizeModeNeutralCoreObjectRuntimeStateV2(invalid as never)).toThrow(
       CoreObjectRegistryAdapterErrorV2,
     );
+  });
+
+  it("canonicalizes descriptor values without following semantic get traps", () => {
+    const value = fixture();
+    const players = value.players as Record<string, unknown>;
+    const divergentPlayers = new Proxy(players, {
+      get(target, key) {
+        if (key === "p1") {
+          const player = target.p1 as Record<string, unknown>;
+          return { ...player, life: 7 };
+        }
+        if (typeof key !== "string") return undefined;
+        return target[key];
+      },
+    });
+    value.players = divergentPlayers;
+
+    const output = canonicalizeModeNeutralCoreObjectRegistryStateV2(value as never);
+    const outputPlayer = (output.players as Record<string, unknown>).p1 as Record<string, unknown>;
+    expect(outputPlayer.life).toBe(40);
   });
 });

@@ -50,6 +50,7 @@ import type {
 } from "./objectRegistryStateV2";
 import {
   isCanonicalCoreObjectIdV2,
+  parseCoreObjectIdV2,
   validateCoreGameObjectIdentityV2,
 } from "./tokenObjectV2";
 import type {
@@ -538,6 +539,46 @@ function validateObjectIdKey(
   }
 }
 
+function validateObjectIdMatchesIdentityKind(
+  objectId: string,
+  object: CoreGameObjectIdentityV2,
+  path: string,
+  issues: IssueCollector,
+): void {
+  const parsed = parseCoreObjectIdV2(objectId);
+  if (parsed === null || parsed.kind !== object.kind) {
+    issues.add(
+      "OBJECT_ID_KIND_MISMATCH",
+      path,
+      `Object ID family must match identity kind ${object.kind}`,
+    );
+    return;
+  }
+  if (object.kind === "card" && parsed.kind === "card") {
+    if (parsed.physicalCardId !== object.physicalCardId) {
+      issues.add(
+        "OBJECT_ID_PHYSICAL_CARD_MISMATCH",
+        `${path}/physicalCardId`,
+        "Card object ID physical card does not match identity",
+      );
+    }
+    if (parsed.incarnation !== object.incarnation) {
+      issues.add(
+        "OBJECT_ID_INCARNATION_MISMATCH",
+        `${path}/incarnation`,
+        "Card object ID incarnation does not match identity",
+      );
+    }
+  }
+  if (object.kind === "token" && parsed.kind === "token" && parsed.incarnation !== object.incarnation) {
+    issues.add(
+      "OBJECT_ID_INCARNATION_MISMATCH",
+      `${path}/incarnation`,
+      "Token object ID incarnation does not match identity",
+    );
+  }
+}
+
 function validateBaseIdKey(
   key: string,
   path: string,
@@ -902,6 +943,12 @@ function validateModeNeutralCoreObjectRegistryStateV2Internal(
     }
   }
   for (const [objectId, object] of canonicalObjects) {
+    validateObjectIdMatchesIdentityKind(
+      objectId,
+      object,
+      `/objects/${escapePointerSegment(objectId)}`,
+      issues,
+    );
     validateObjectSemantics(objectId, object, references, playerIds, definitionIds, issues);
   }
 

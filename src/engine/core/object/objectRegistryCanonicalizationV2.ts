@@ -126,6 +126,42 @@ function readCanonicalRecord(
   return result;
 }
 
+function descriptorSnapshot(
+  value: unknown,
+  seen = new Map<object, unknown>(),
+): unknown {
+  if (value === null || typeof value !== "object") return value;
+  const object = value;
+  const existing = seen.get(object);
+  if (existing !== undefined) return existing;
+
+  const prototype = Reflect.getPrototypeOf(object);
+  const snapshot = Array.isArray(object)
+    ? []
+    : Object.create(prototype) as Record<string | symbol, unknown>;
+  seen.set(object, snapshot);
+  for (const key of Reflect.ownKeys(object)) {
+    const descriptor = Object.getOwnPropertyDescriptor(object, key);
+    if (descriptor === undefined) throw new TypeError("Descriptor is not readable");
+    if (Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      Object.defineProperty(snapshot, key, {
+        value: descriptorSnapshot(descriptor.value, seen),
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+        writable: descriptor.writable,
+      });
+    } else {
+      Object.defineProperty(snapshot, key, {
+        get: descriptor.get === undefined ? undefined : () => undefined,
+        set: descriptor.set === undefined ? undefined : () => undefined,
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+      });
+    }
+  }
+  return snapshot;
+}
+
 function canonicalRecord<T>(
   keys: readonly string[],
   valueForKey: (key: string) => unknown,
@@ -345,11 +381,12 @@ export function canonicalizeModeNeutralCoreObjectRegistryStateV2(
   value: ModeNeutralCoreObjectRegistryStateV2,
 ): ModeNeutralCoreObjectRegistryStateV2 {
   try {
-    const validation = validateModeNeutralCoreObjectRegistryForCanonicalization(value);
+    const snapshot = descriptorSnapshot(value);
+    const validation = validateModeNeutralCoreObjectRegistryForCanonicalization(snapshot);
     if (!validation.ok) {
       return throwAdapterError("Invalid object registry canonicalization input", validation.issues);
     }
-    return canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation(value);
+    return canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation(validation.value);
   } catch (error) {
     if (error instanceof CoreObjectRegistryAdapterErrorV2) throw error;
     return throwAdapterError(
@@ -422,8 +459,11 @@ export function canonicalizeModeNeutralCoreObjectRuntimeStateV2(
   value: ModeNeutralCoreObjectRuntimeStateV2,
 ): ModeNeutralCoreObjectRuntimeStateV2 {
   try {
-    validateRuntimeCanonicalizationInput(value);
-    return canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(value);
+    const snapshot = descriptorSnapshot(value);
+    validateRuntimeCanonicalizationInput(snapshot);
+    return canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(
+      snapshot as ModeNeutralCoreObjectRuntimeStateV2,
+    );
   } catch (error) {
     if (error instanceof CoreObjectRegistryAdapterErrorV2) throw error;
     return throwAdapterError(
