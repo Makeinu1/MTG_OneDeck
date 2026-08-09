@@ -168,7 +168,14 @@ function inspectPlainRecord(
   path: string,
   issues: CoreValidationIssueV2[],
 ): DataRecord | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  let arrayValue: boolean;
+  try {
+    arrayValue = Array.isArray(value);
+  } catch {
+    issues.push(makeIssue(path, "unsafe-record", "record descriptors are not readable"));
+    return null;
+  }
+  if (typeof value !== "object" || value === null || arrayValue) {
     issues.push(makeIssue(path, "invalid-record", "expected a plain record"));
     return null;
   }
@@ -358,6 +365,7 @@ export function validateCoreGameObjectIdentityV2(
   if (record === null) return failedResult(issues);
 
   if (!isCoreObjectIdKindV2(record.kind)) {
+    validateExactKeys(record, ["kind"], "$", issues);
     issues.push(makeIssue("$.kind", "invalid-discriminant", "unknown object identity kind"));
     return failedResult(issues);
   }

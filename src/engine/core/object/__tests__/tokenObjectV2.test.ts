@@ -6,6 +6,7 @@ import {
   coreTokenObjectIdOfV2,
   coreTokenObjectIdentityOfV2,
   coreTriggeredAbilityObjectIdOfV2,
+  createCoreGameObjectIdentityV2,
   isCanonicalCoreObjectIdV2,
   parseCoreObjectIdV2,
   validateCoreGameObjectIdentityV2,
@@ -203,5 +204,25 @@ describe("O4P-01H-E token object V2", () => {
         origin,
       }).ok,
     ).toBe(false);
+  });
+
+  it("fails closed for revoked proxies and reports unknown discriminant fields", () => {
+    const revokedPair = Proxy.revocable({}, {});
+    revokedPair.revoke();
+    expect(() => validateCoreGameObjectIdentityV2(revokedPair.proxy)).not.toThrow();
+    expect(validateCoreGameObjectIdentityV2(revokedPair.proxy).ok).toBe(false);
+
+    const unknown = validateCoreGameObjectIdentityV2({
+      kind: "future",
+      extra: true,
+    });
+    expect(unknown.ok).toBe(false);
+    if (!unknown.ok) {
+      expect(unknown.issues.map((issue) => issue.path)).toEqual(["$.extra", "$.kind"]);
+    }
+
+    const revokedFactoryPair = Proxy.revocable({}, {});
+    revokedFactoryPair.revoke();
+    expect(() => createCoreGameObjectIdentityV2(revokedFactoryPair.proxy)).toThrow(TypeError);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CoreObjectRegistryCreationErrorV2,
   createModeNeutralCoreObjectRegistryStateV2,
 } from "../objectRegistryStateV2";
 import {
@@ -177,5 +178,20 @@ describe("O4P-01H-G object registry state V2", () => {
     expect(upgraded.zones.shared.battlefield).toEqual(["pc1:0"]);
     expect(Object.isFrozen(upgraded)).toBe(true);
   });
-});
 
+  it("fails closed for revoked registry inputs and factory ownKeys traps", () => {
+    const revokedPair = Proxy.revocable({}, {});
+    revokedPair.revoke();
+    expect(() => validateModeNeutralCoreObjectRegistryStateV2(revokedPair.proxy)).not.toThrow();
+    expect(validateModeNeutralCoreObjectRegistryStateV2(revokedPair.proxy).ok).toBe(false);
+
+    const hostile = new Proxy({}, {
+      ownKeys: () => {
+        throw new Error("hostile ownKeys trap");
+      },
+    });
+    expect(() => createModeNeutralCoreObjectRegistryStateV2(hostile as never)).toThrow(
+      CoreObjectRegistryCreationErrorV2,
+    );
+  });
+});

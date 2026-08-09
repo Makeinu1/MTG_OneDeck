@@ -99,7 +99,13 @@ export type CreateModeNeutralCoreObjectRuntimeSliceV2Input =
   CreateModeNeutralCoreObjectRuntimeStateV2Input;
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  let arrayValue: boolean;
+  try {
+    arrayValue = Array.isArray(value);
+  } catch {
+    return false;
+  }
+  if (value === null || typeof value !== "object" || arrayValue) {
     return false;
   }
   try {
@@ -110,25 +116,49 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   }
 }
 
-function factoryCandidate(input: unknown, kind: string): unknown {
+function factoryCandidate(
+  input: unknown,
+  kind: string,
+  createError: (issues: readonly { readonly code: string; readonly path: string; readonly message: string }[]) => Error,
+): unknown {
   if (!isPlainRecord(input)) return input;
-  const candidate = Object.create(null) as Record<string | symbol, unknown>;
-  for (const key of Reflect.ownKeys(input)) {
-    const descriptor = Object.getOwnPropertyDescriptor(input, key);
-    if (descriptor !== undefined) Object.defineProperty(candidate, key, descriptor);
+  try {
+    const candidate = Object.create(null) as Record<string | symbol, unknown>;
+    for (const key of Reflect.ownKeys(input)) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (descriptor !== undefined) Object.defineProperty(candidate, key, descriptor);
+    }
+    Object.defineProperty(candidate, "kind", {
+      value: kind,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+    return candidate;
+  } catch {
+    throw createError([factoryInspectionIssue()]);
   }
-  Object.defineProperty(candidate, "kind", {
-    value: kind,
-    enumerable: true,
-    configurable: true,
-    writable: true,
-  });
-  return candidate;
 }
 
 function factoryInputHasKind(input: unknown): boolean {
   if (!isPlainRecord(input)) return false;
-  return Object.prototype.hasOwnProperty.call(input, "kind");
+  try {
+    return Object.prototype.hasOwnProperty.call(input, "kind");
+  } catch {
+    return false;
+  }
+}
+
+function factoryInspectionIssue(): {
+  readonly code: "INVALID_TYPE";
+  readonly path: "";
+  readonly message: string;
+} {
+  return {
+    code: "INVALID_TYPE",
+    path: "",
+    message: "Factory input descriptors are not readable",
+  };
 }
 
 function kindIssue(path: "/kind"): {
@@ -150,7 +180,11 @@ export function createModeNeutralCoreObjectRegistryStateV2(
     throw new CoreObjectRegistryCreationErrorV2([kindIssue("/kind")]);
   }
   const result = validateModeNeutralCoreObjectRegistryStateV2(
-    factoryCandidate(input, "mode-neutral-core-object-registry-slice-v2"),
+    factoryCandidate(
+      input,
+      "mode-neutral-core-object-registry-slice-v2",
+      (issues) => new CoreObjectRegistryCreationErrorV2(issues),
+    ),
   );
   if (!result.ok) throw new CoreObjectRegistryCreationErrorV2(result.issues);
   return result.value;
@@ -170,7 +204,11 @@ export function createModeNeutralCoreObjectRuntimeStateV2(
   }
   const result = validateModeNeutralCoreObjectRuntimeStateV2(
     identity,
-    factoryCandidate(input, "mode-neutral-core-object-runtime-slice-v2"),
+    factoryCandidate(
+      input,
+      "mode-neutral-core-object-runtime-slice-v2",
+      (issues) => new CoreObjectRuntimeCreationErrorV2(issues),
+    ),
   );
   if (!result.ok) throw new CoreObjectRuntimeCreationErrorV2(result.issues);
   return result.value;
@@ -185,4 +223,3 @@ export type {
   CoreCardObjectIdentityV1,
   ModeNeutralCoreIdentityZoneSliceV1,
 };
-

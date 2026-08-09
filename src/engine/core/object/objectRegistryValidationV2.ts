@@ -158,7 +158,13 @@ function pointer(path: string, segment: string): string {
 }
 
 function isPlainRecord(value: unknown): value is RawRecord {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  let arrayValue: boolean;
+  try {
+    arrayValue = Array.isArray(value);
+  } catch {
+    return false;
+  }
+  if (value === null || typeof value !== "object" || arrayValue) return false;
   try {
     const prototype = Reflect.getPrototypeOf(value);
     return prototype === Object.prototype || prototype === null;
@@ -983,4 +989,3 @@ export type {
   CoreCounterDamageValidationIssue,
   CoreAttachmentValidationIssue,
 };
-

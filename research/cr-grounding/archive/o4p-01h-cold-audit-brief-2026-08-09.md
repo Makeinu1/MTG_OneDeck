@@ -9,6 +9,13 @@ ledger entry, review test, or generated artifact. Return findings only.
 Do not infer implementation intent from history. Evaluate the frozen tree
 against the O4P-01H contract and the committed acceptance pins.
 
+The strict fail-closed requirement in this brief applies to the additive V2
+validators, factories, adapters, and canonicalizers. V1 public validators,
+factories, fixtures, and runtime behavior are preservation boundaries and must
+not be changed or scored as a new V2 finding merely because their historical
+hostile-input behavior is unchanged. Audit V1 only for byte/semantic
+preservation and accidental modification.
+
 Audit the following:
 
 1. Universal ID namespace collision and canonical decimal rules.
@@ -22,8 +29,8 @@ Audit the following:
 9. Runtime V2 exact card/token key set and V1 runtime-shape reuse.
 10. Canonicalization determinism without semantic array reordering.
 11. Deep freezing, fresh outputs, input non-mutation.
-12. Fail-closed descriptor, accessor, symbol, non-enumerable, unsafe-key,
-    unknown-field, and non-plain-record validation.
+12. V2 fail-closed descriptor, accessor, symbol, non-enumerable, unsafe-key,
+    unknown-field, non-plain-record, revoked-Proxy, and Proxy-trap handling.
 13. Complete deterministic validation issue behavior and property-test
     non-vacuity.
 14. V1 fixture immutability and Solo/Online/UI boundary.
