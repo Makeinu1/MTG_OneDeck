@@ -33,6 +33,7 @@
     "verify:cr": "node scripts/checks/verify-cr-ruleset.mjs",
     "verify:versions": "tsx scripts/checks/verify-contract-versions.ts",
     "verify:solo-preservation": "npx vitest run --project dom src/store/__tests__/soloPreservation.contract.test.ts src/test/architecture/soloOnlineBoundary.test.ts src/store/__tests__/snapshotPersistenceControl.test.ts",
+    "verify:online-state-architecture": "tsx scripts/checks/verify-online-state-architecture.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

@@ -330,8 +330,12 @@ function collectSourceUnits(root: string): SourceUnit[] {
 }
 
 describe('Solo/Online dependency boundary', () => {
-  it('passes for the current repository without creating an Online runtime', () => {
-    expect(existsSync(resolve(sourceRoot, 'online'))).toBe(false);
+  it('passes with only the architecture contract and without creating an Online runtime', () => {
+    expect(existsSync(resolve(sourceRoot, 'online/architecture/stateArchitecture.ts'))).toBe(true);
+    expect(existsSync(resolve(sourceRoot, 'online/index.ts'))).toBe(false);
+    for (const runtimeDirectory of ['domain', 'server', 'transport', 'ui']) {
+      expect(existsSync(resolve(sourceRoot, 'online', runtimeDirectory))).toBe(false);
+    }
     expect(analyzeSources(collectSourceUnits(repositoryRoot))).toEqual([]);
   });
 

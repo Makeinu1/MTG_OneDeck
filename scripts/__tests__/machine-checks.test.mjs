@@ -95,7 +95,7 @@ describe('machine-check execution', () => {
     expect(report.results.every((result) => !result.skipped && result.durationMs === 1)).toBe(true);
   });
 
-  it('uses the sequential npm test entrypoint in the canonical step order', () => {
+  it('uses the sequential npm entrypoints in the canonical seven-step order', () => {
     const calls = [];
     let tick = 0;
 
@@ -112,6 +112,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:cr']],
       ['npm', ['run', 'verify:versions']],
       ['npm', ['run', 'verify:solo-preservation']],
+      ['npm', ['run', 'verify:online-state-architecture']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],

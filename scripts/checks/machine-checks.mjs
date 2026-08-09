@@ -12,6 +12,7 @@ const machineCheckSteps = [
   { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
   { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
+  { name: 'Online状態アーキテクチャ検証', cmd: 'npm', args: ['run', 'verify:online-state-architecture'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

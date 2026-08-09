@@ -3,5 +3,5 @@
   "compilerOptions": {
     "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.verify-contract-versions.tsbuildinfo"
   },
-  "include": ["verify-contract-versions.ts"]
+  "include": ["verify-contract-versions.ts", "verify-online-state-architecture.ts"]
 }
