@@ -24,8 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm test
+      - run: npm run check
+      - run: npm run check:forbidden
       - run: npm run build -- --base=/MTG_OneDeck/
       - uses: actions/configure-pages@v6
         with:

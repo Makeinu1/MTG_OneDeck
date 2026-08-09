@@ -22,6 +22,30 @@ function playerState(): Record<string, unknown> {
   };
 }
 
+function definition(name: string): Record<string, unknown> {
+  return {
+    source: { kind: 'engine-synthetic' },
+    name,
+    layout: 'normal',
+    manaValue: 0,
+    colorIdentity: [],
+    typeLine: 'Artifact',
+    keywords: [],
+    producedMana: [],
+    tokenKind: null,
+    faces: [{
+      name,
+      manaCost: null,
+      typeLine: 'Artifact',
+      oracleText: '',
+      power: null,
+      toughness: null,
+      loyalty: null,
+      defense: null,
+    }],
+  };
+}
+
 function generatedRaw(
   playerCount: number,
   zoneChoices: readonly number[] = [],
@@ -75,27 +99,8 @@ function generatedRaw(
     turnOrder,
     activePlayerId: turnOrder[activeIndex % playerCount],
     cardDefinitions: {
-      'def.synthetic': {
-        source: { kind: 'engine-synthetic' },
-        name: 'Synthetic',
-        layout: 'normal',
-        manaValue: 0,
-        colorIdentity: [],
-        typeLine: 'Artifact',
-        keywords: [],
-        producedMana: [],
-        tokenKind: null,
-        faces: [{
-          name: 'Synthetic',
-          manaCost: null,
-          typeLine: 'Artifact',
-          oracleText: '',
-          power: null,
-          toughness: null,
-          loyalty: null,
-          defense: null,
-        }],
-      },
+      'def.synthetic': definition('Synthetic'),
+      'def.synthetic-unused': definition('Synthetic Unused'),
     },
     physicalCards,
     cardObjects,
@@ -134,6 +139,51 @@ function zones(raw: Record<string, unknown>): Record<string, unknown> {
   const value = raw.zones;
   if (!isRecord(value)) throw new Error('zones must be a record');
   return value;
+}
+
+function permutation<T>(values: readonly T[], ranks: readonly number[]): T[] {
+  return values
+    .map((value, index) => ({ value, index, rank: ranks[index] ?? index }))
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .map(({ value }) => value);
+}
+
+function nonIdentityPermutation(values: readonly string[], ranks: readonly number[]): string[] {
+  const candidate = permutation(values, ranks);
+  if (candidate.some((value, index) => value !== values[index])) return candidate;
+  return values.slice().reverse();
+}
+
+function reorderRecord(record: Record<string, unknown>, order: readonly string[]): void {
+  const values = new Map(order.map((key) => [key, record[key]]));
+  for (const key of Object.keys(record)) delete record[key];
+  for (const key of order) record[key] = values.get(key);
+}
+
+function arraySnapshot(raw: Record<string, unknown>): string {
+  const zonesValue = zones(raw);
+  const byPlayer = zonesValue.byPlayer;
+  if (!isRecord(byPlayer)) throw new Error('byPlayer must be a record');
+  const definitionsValue = raw.cardDefinitions;
+  if (!isRecord(definitionsValue)) throw new Error('cardDefinitions must be a record');
+  const playerZones = (raw.turnOrder as string[]).map((playerId) => {
+    const value = byPlayer[playerId];
+    if (!isRecord(value)) throw new Error('player zones must be a record');
+    return [playerId, { library: value.library, hand: value.hand, graveyard: value.graveyard }];
+  });
+  const definitions = Object.keys(definitionsValue)
+    .sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
+    .map((id) => {
+      const value = definitionsValue[id];
+      if (!isRecord(value)) throw new Error('definition must be a record');
+      return [id, { colorIdentity: value.colorIdentity, producedMana: value.producedMana, keywords: value.keywords, faces: value.faces }];
+    });
+  return JSON.stringify({
+    turnOrder: raw.turnOrder,
+    playerZones,
+    shared: zonesValue.shared,
+    definitions,
+  });
 }
 
 describe('Mode-Neutral Core identity/zone properties', () => {
@@ -263,6 +313,57 @@ describe('Mode-Neutral Core identity/zone properties', () => {
         },
       ),
       { numRuns: 30, seed: 20260814 },
+    );
+  });
+
+  it('canonicalizes every valid record permutation without changing arrays', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 6 }),
+        fc.array(fc.integer({ min: 0, max: 5 }), { minLength: 5, maxLength: 5 }),
+        (playerCount, rankRows) => {
+          const raw = generatedRaw(playerCount);
+          const baseline = validateModeNeutralCoreIdentityZoneSliceV1(raw);
+          expect(baseline.ok).toBe(true);
+          if (!baseline.ok) return;
+          const expectedJson = JSON.stringify(baseline.value);
+          const expectedArrays = arraySnapshot(raw);
+          const playerIds = raw.turnOrder as string[];
+          const players = raw.players;
+          const definitions = raw.cardDefinitions;
+          const physicalCards = raw.physicalCards;
+          const cardObjects = raw.cardObjects;
+          if (!isRecord(players) || !isRecord(definitions) || !isRecord(physicalCards) || !isRecord(cardObjects)) {
+            throw new Error('generated records must be records');
+          }
+          const recordOrders = [
+            permutation(playerIds, rankRows),
+            permutation(playerIds, rankRows),
+            nonIdentityPermutation(Object.keys(definitions), rankRows),
+            permutation(Object.keys(physicalCards), rankRows),
+            permutation(Object.keys(cardObjects), rankRows),
+          ];
+          reorderRecord(players, recordOrders[0] ?? playerIds);
+          const zoneRecord = zones(raw).byPlayer;
+          if (!isRecord(zoneRecord)) throw new Error('byPlayer must be a record');
+          reorderRecord(zoneRecord, recordOrders[1] ?? playerIds);
+          reorderRecord(definitions, recordOrders[2] ?? Object.keys(definitions));
+          reorderRecord(physicalCards, recordOrders[3] ?? Object.keys(physicalCards));
+          reorderRecord(cardObjects, recordOrders[4] ?? Object.keys(cardObjects));
+          const permuted = validateModeNeutralCoreIdentityZoneSliceV1(raw);
+          expect(permuted.ok).toBe(true);
+          if (!permuted.ok) return;
+          expect(JSON.stringify(permuted.value)).toBe(expectedJson);
+          expect(arraySnapshot(raw)).toBe(expectedArrays);
+          const repeated = validateModeNeutralCoreIdentityZoneSliceV1(permuted.value);
+          expect(repeated.ok).toBe(true);
+          if (repeated.ok) expect(JSON.stringify(repeated.value)).toBe(expectedJson);
+          const roundTrip = validateModeNeutralCoreIdentityZoneSliceV1(JSON.parse(JSON.stringify(permuted.value)));
+          expect(roundTrip.ok).toBe(true);
+          if (roundTrip.ok) expect(JSON.stringify(roundTrip.value)).toBe(expectedJson);
+        },
+      ),
+      { numRuns: 50, seed: 20260817 },
     );
   });
 });

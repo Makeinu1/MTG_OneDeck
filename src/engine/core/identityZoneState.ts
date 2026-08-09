@@ -12,7 +12,6 @@ import type {
 } from './ids';
 import {
   CoreIdentityZoneCreationError,
-  deepFreezeCoreValue,
   validateModeNeutralCoreIdentityZoneSliceV1,
 } from './identityZoneValidation';
 import type { CoreIdentityZoneValidationIssue } from './identityZoneValidation';
@@ -149,34 +148,6 @@ export function locateCoreObjectV1(
   return null;
 }
 
-function codeUnitCompare(left: string, right: string): number {
-  if (left < right) return -1;
-  if (left > right) return 1;
-  return 0;
-}
-
-function sortedKeys<T>(record: Readonly<Record<string, T>>): string[] {
-  return Object.keys(record).sort(codeUnitCompare);
-}
-
-function orderedRecord<T>(
-  record: Readonly<Record<string, T>>,
-  keys: readonly string[],
-): Record<string, T> {
-  const target: Record<string, T> = Object.create(null) as Record<string, T>;
-  for (const key of keys) {
-    Object.defineProperty(target, key, {
-      value: record[key],
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  }
-  return new Proxy(target, {
-    ownKeys: () => keys.slice(),
-  });
-}
-
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const prototype = Reflect.getPrototypeOf(value);
@@ -207,34 +178,6 @@ function candidateFromInput(input: unknown): unknown {
   return candidate;
 }
 
-function orderValidatedState(
-  value: ModeNeutralCoreIdentityZoneSliceV1,
-): ModeNeutralCoreIdentityZoneSliceV1 {
-  const playerKeys = value.turnOrder;
-  const definitionKeys = sortedKeys(value.cardDefinitions);
-  const physicalKeys = sortedKeys(value.physicalCards);
-  const objectKeys = sortedKeys(value.cardObjects);
-  const byPlayer = orderedRecord(value.zones.byPlayer, playerKeys);
-  return {
-    kind: 'mode-neutral-core-identity-zone-slice-v1',
-    players: orderedRecord(value.players, playerKeys),
-    turnOrder: value.turnOrder.slice(),
-    activePlayerId: value.activePlayerId,
-    cardDefinitions: orderedRecord(value.cardDefinitions, definitionKeys),
-    physicalCards: orderedRecord(value.physicalCards, physicalKeys),
-    cardObjects: orderedRecord(value.cardObjects, objectKeys),
-    zones: {
-      byPlayer,
-      shared: {
-        battlefield: value.zones.shared.battlefield.slice(),
-        stack: value.zones.shared.stack.slice(),
-        exile: value.zones.shared.exile.slice(),
-        command: value.zones.shared.command.slice(),
-      },
-    },
-  };
-}
-
 export function createModeNeutralCoreIdentityZoneSliceV1(
   input: CreateModeNeutralCoreIdentityZoneSliceV1Input,
 ): ModeNeutralCoreIdentityZoneSliceV1 {
@@ -245,7 +188,7 @@ export function createModeNeutralCoreIdentityZoneSliceV1(
   if (!validation.ok) {
     throw new CoreIdentityZoneCreationError(validation.issues);
   }
-  return deepFreezeCoreValue(orderValidatedState(validation.value));
+  return validation.value;
 }
 
 export type {

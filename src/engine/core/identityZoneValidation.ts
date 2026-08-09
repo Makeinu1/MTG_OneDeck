@@ -19,6 +19,7 @@ import type {
   CoreSharedZonesV1,
   ModeNeutralCoreIdentityZoneSliceV1,
 } from './identityZoneState';
+import { canonicalizeModeNeutralCoreIdentityZoneSliceV1 } from './identityZoneCanonicalization';
 
 export type CoreIdentityZoneValidationCode =
   | 'INVALID_ROOT'
@@ -834,7 +835,8 @@ export function validateModeNeutralCoreIdentityZoneSliceV1(value: unknown): Core
   const sortedIssues = issues.sorted();
   if (sortedIssues.length > 0) return { ok: false, issues: sortedIssues };
   const cloned = cloneData(root) as ModeNeutralCoreIdentityZoneSliceV1;
-  return { ok: true, value: deepFreezeCoreValue(cloned) };
+  const canonical = canonicalizeModeNeutralCoreIdentityZoneSliceV1(cloned);
+  return { ok: true, value: deepFreezeCoreValue(canonical) };
 }
 
 export type {
