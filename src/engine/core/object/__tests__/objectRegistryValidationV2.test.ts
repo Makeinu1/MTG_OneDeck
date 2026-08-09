@@ -216,4 +216,29 @@ describe("O4P-01H-G strict registry validation", () => {
     const outputPlayer = (output.players as Record<string, unknown>).p1 as Record<string, unknown>;
     expect(outputPlayer.life).toBe(40);
   });
+
+  it("keeps validated zones on descriptor values despite semantic get traps", () => {
+    const value = fixture();
+    const zones = value.zones as Record<string, unknown>;
+    const originalShared = zones.shared as Record<string, unknown>;
+    value.zones = new Proxy(zones, {
+      get(target, key) {
+        if (key === "shared") {
+          return {
+            ...originalShared,
+            battlefield: [],
+            stack: [],
+          };
+        }
+        if (typeof key !== "string") return undefined;
+        return target[key];
+      },
+    });
+
+    const result = validateModeNeutralCoreObjectRegistryStateV2(value);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(JSON.stringify(result.issues));
+    expect(result.value.zones.shared.battlefield).toEqual(["pc1:0", "@token:t1:0"]);
+    expect(result.value.zones.shared.stack).toEqual(["@activated-ability:a1"]);
+  });
 });

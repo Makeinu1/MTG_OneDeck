@@ -43,6 +43,7 @@ import type {
 import {
   canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation,
   canonicalizeModeNeutralCoreObjectRuntimeStateV2,
+  descriptorSnapshot,
 } from "./objectRegistryCanonicalizationV2";
 import type {
   ModeNeutralCoreObjectRegistryStateV2,
@@ -884,7 +885,14 @@ function validateModeNeutralCoreObjectRegistryStateV2Internal(
   canonicalizeOutput: boolean,
 ): CoreObjectRegistryValidationResult {
   const issues = new IssueCollector();
-  const root = readObject(input, "", ROOT_FIELDS, issues);
+  let descriptorInput: unknown;
+  try {
+    descriptorInput = descriptorSnapshot(input);
+  } catch {
+    issues.add("INVALID_TYPE", "", "Input descriptors are not readable");
+    return failedRegistry(issues);
+  }
+  const root = readObject(descriptorInput, "", ROOT_FIELDS, issues);
   if (root === null) return failedRegistry(issues);
   if (root.kind !== ROOT_KIND) issues.add("INVALID_LITERAL", "/kind", `Expected ${ROOT_KIND}`);
 

@@ -126,7 +126,7 @@ function readCanonicalRecord(
   return result;
 }
 
-function descriptorSnapshot(
+export function descriptorSnapshot(
   value: unknown,
   seen = new Map<object, unknown>(),
 ): unknown {
