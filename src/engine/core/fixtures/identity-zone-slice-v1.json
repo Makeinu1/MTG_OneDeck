@@ -1,0 +1,135 @@
+{
+  "kind": "mode-neutral-core-identity-zone-slice-v1",
+  "players": {
+    "P1": {
+      "life": 40,
+      "poison": 0,
+      "energy": 0,
+      "experience": 0,
+      "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+      "mulliganCount": 0,
+      "landsPlayedThisTurn": 0,
+      "spellsCastThisTurn": 0,
+      "drawnThisTurn": 0,
+      "maximumHandSizeOverride": null
+    },
+    "P2": {
+      "life": 40,
+      "poison": 0,
+      "energy": 0,
+      "experience": 0,
+      "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+      "mulliganCount": 0,
+      "landsPlayedThisTurn": 0,
+      "spellsCastThisTurn": 0,
+      "drawnThisTurn": 0,
+      "maximumHandSizeOverride": "none"
+    },
+    "P3": {
+      "life": 40,
+      "poison": 0,
+      "energy": 0,
+      "experience": 0,
+      "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+      "mulliganCount": 0,
+      "landsPlayedThisTurn": 0,
+      "spellsCastThisTurn": 0,
+      "drawnThisTurn": 0,
+      "maximumHandSizeOverride": 7
+    },
+    "P4": {
+      "life": 40,
+      "poison": 0,
+      "energy": 0,
+      "experience": 0,
+      "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+      "mulliganCount": 0,
+      "landsPlayedThisTurn": 0,
+      "spellsCastThisTurn": 0,
+      "drawnThisTurn": 0,
+      "maximumHandSizeOverride": null
+    }
+  },
+  "turnOrder": ["P1", "P2", "P3", "P4"],
+  "activePlayerId": "P2",
+  "cardDefinitions": {
+    "def.fixture-card": {
+      "source": { "kind": "engine-synthetic" },
+      "name": "Fixture Card",
+      "layout": "normal",
+      "manaValue": 1,
+      "colorIdentity": [],
+      "typeLine": "Artifact",
+      "keywords": [],
+      "producedMana": [],
+      "tokenKind": null,
+      "faces": [
+        {
+          "name": "Fixture Card",
+          "manaCost": "{1}",
+          "typeLine": "Artifact",
+          "oracleText": "Fixture effect.",
+          "power": null,
+          "toughness": null,
+          "loyalty": null,
+          "defense": null
+        }
+      ]
+    },
+    "def.unused": {
+      "source": { "kind": "engine-synthetic" },
+      "name": "Unused Definition",
+      "layout": "normal",
+      "manaValue": 0,
+      "colorIdentity": [],
+      "typeLine": "Artifact",
+      "keywords": [],
+      "producedMana": [],
+      "tokenKind": null,
+      "faces": [
+        {
+          "name": "Unused Definition",
+          "manaCost": null,
+          "typeLine": "Artifact",
+          "oracleText": "",
+          "power": null,
+          "toughness": null,
+          "loyalty": null,
+          "defense": null
+        }
+      ]
+    }
+  },
+  "physicalCards": {
+    "PC1": { "definitionId": "def.fixture-card", "ownerPlayerId": "P1", "isCommander": false },
+    "PC2": { "definitionId": "def.fixture-card", "ownerPlayerId": "P1", "isCommander": false },
+    "PC3": { "definitionId": "def.fixture-card", "ownerPlayerId": "P2", "isCommander": false },
+    "PC4": { "definitionId": "def.fixture-card", "ownerPlayerId": "P2", "isCommander": false },
+    "PC5": { "definitionId": "def.fixture-card", "ownerPlayerId": "P3", "isCommander": false },
+    "PC6": { "definitionId": "def.fixture-card", "ownerPlayerId": "P4", "isCommander": false },
+    "PC7": { "definitionId": "def.fixture-card", "ownerPlayerId": "P1", "isCommander": true }
+  },
+  "cardObjects": {
+    "PC1:0": { "kind": "card", "physicalCardId": "PC1", "incarnation": 0, "baseControllerPlayerId": null },
+    "PC2:0": { "kind": "card", "physicalCardId": "PC2", "incarnation": 0, "baseControllerPlayerId": null },
+    "PC3:0": { "kind": "card", "physicalCardId": "PC3", "incarnation": 0, "baseControllerPlayerId": null },
+    "PC4:1": { "kind": "card", "physicalCardId": "PC4", "incarnation": 1, "baseControllerPlayerId": "P1" },
+    "PC5:1": { "kind": "card", "physicalCardId": "PC5", "incarnation": 1, "baseControllerPlayerId": "P1" },
+    "PC6:0": { "kind": "card", "physicalCardId": "PC6", "incarnation": 0, "baseControllerPlayerId": null },
+    "PC7:0": { "kind": "card", "physicalCardId": "PC7", "incarnation": 0, "baseControllerPlayerId": null }
+  },
+  "zones": {
+    "byPlayer": {
+      "P1": { "library": ["PC1:0"], "hand": ["PC2:0"], "graveyard": [] },
+      "P2": { "library": [], "hand": [], "graveyard": ["PC3:0"] },
+      "P3": { "library": [], "hand": [], "graveyard": [] },
+      "P4": { "library": [], "hand": [], "graveyard": [] }
+    },
+    "shared": {
+      "battlefield": ["PC4:1"],
+      "stack": ["PC5:1"],
+      "exile": ["PC6:0"],
+      "command": ["PC7:0"]
+    }
+  }
+}

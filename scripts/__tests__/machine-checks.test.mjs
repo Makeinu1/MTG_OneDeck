@@ -95,7 +95,7 @@ describe('machine-check execution', () => {
     expect(report.results.every((result) => !result.skipped && result.durationMs === 1)).toBe(true);
   });
 
-  it('uses the sequential npm entrypoints in the canonical seven-step order', () => {
+  it('uses the sequential npm entrypoints in the canonical eight-step order', () => {
     const calls = [];
     let tick = 0;
 
@@ -113,10 +113,43 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:versions']],
       ['npm', ['run', 'verify:solo-preservation']],
       ['npm', ['run', 'verify:online-state-architecture']],
+      ['npm', ['run', 'verify:mode-neutral-core-identity-zone']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],
     ]);
     expect(report.exitCode).toBe(0);
+  });
+
+  it('attributes a Core verification failure while preserving later-step behavior', () => {
+    const coreSteps = [
+      { name: 'CR固定版検証', cmd: 'cr', args: [] },
+      { name: 'バージョン契約検証', cmd: 'versions', args: [] },
+      { name: 'Solo保全検証', cmd: 'solo', args: [] },
+      { name: 'Online状態アーキテクチャ検証', cmd: 'online', args: [] },
+      { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'core', args: [] },
+      { name: 'lint', cmd: 'lint', args: [] },
+      { name: 'test', cmd: 'test', args: [] },
+      { name: 'build (型検査内蔵)', cmd: 'build', args: [] },
+    ];
+    const statuses = [0, 0, 0, 0, 17, 0, 0, 0];
+    const calls = [];
+    const report = runMachineChecks({
+      steps: coreSteps,
+      continueOnError: true,
+      spawn: (cmd) => {
+        calls.push(cmd);
+        return { status: statuses.shift() };
+      },
+      now: () => 0,
+      write: () => {},
+    });
+    expect(report.exitCode).toBe(17);
+    expect(report.results[4]).toMatchObject({
+      name: 'Mode-Neutral Core Identity/Zone検証',
+      code: 17,
+      skipped: false,
+    });
+    expect(calls).toEqual(['cr', 'versions', 'solo', 'online', 'core', 'lint', 'test', 'build']);
   });
 });

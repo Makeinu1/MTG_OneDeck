@@ -13,6 +13,7 @@ const machineCheckSteps = [
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
   { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
   { name: 'Online状態アーキテクチャ検証', cmd: 'npm', args: ['run', 'verify:online-state-architecture'] },
+  { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-identity-zone'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
