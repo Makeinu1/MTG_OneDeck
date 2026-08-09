@@ -51,4 +51,3 @@ deferred.
 - Baseline `npm run check` passed: core 1540 tests, DOM 1709 tests, build.
 - `npm run check:forbidden` passed: `FORBIDDEN 変更なし(走査 0 ファイル)`.
 - Latest `deploy-pages.yml` on `main` succeeded: run `31319071093`.
-

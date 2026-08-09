@@ -25,5 +25,3 @@ Deferred by contract: integration exports and machine gate, object creation or
   commands, priority/resolution/targets/choices, CR 707 automation, token/copy
   cease rules and transitions, continuous effects, visibility, Online/Solo/UI,
   versions, dependencies, release, and independent cold audit.
-
-

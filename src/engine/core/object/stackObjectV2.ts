@@ -542,4 +542,3 @@ export const validateCoreTriggeredAbilityIdentityV2 = validateCoreTriggeredAbili
 export const createCoreSpellCopyIdentityV2 = createCoreSpellCopyObjectIdentityV2;
 export const createCoreActivatedAbilityIdentityV2 = createCoreActivatedAbilityObjectIdentityV2;
 export const createCoreTriggeredAbilityIdentityV2 = createCoreTriggeredAbilityObjectIdentityV2;
-

@@ -112,4 +112,3 @@ describe("O4P-01H-G runtime adapter and canonical stability", () => {
     expect(JSON.stringify(accepted.value)).toBe(JSON.stringify(accepted.value));
   });
 });
-

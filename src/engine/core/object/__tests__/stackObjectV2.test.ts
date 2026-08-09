@@ -169,4 +169,3 @@ describe('Core stack object identity V2', () => {
     })).toThrow(CoreTriggeredAbilityObjectCreationError);
   });
 });
-
