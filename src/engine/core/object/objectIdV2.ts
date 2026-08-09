@@ -121,7 +121,7 @@ function assertSeed(seed: string): void {
 }
 
 function assertIncarnation(incarnation: number): void {
-  if (!isCoreSafeIncarnation(incarnation)) {
+  if (Object.is(incarnation, -0) || !isCoreSafeIncarnation(incarnation)) {
     throw new TypeError('incarnation must be a non-negative safe integer');
   }
 }

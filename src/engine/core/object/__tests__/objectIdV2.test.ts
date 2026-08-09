@@ -112,6 +112,7 @@ describe('Core universal object ID V2', () => {
     expect(() => coreActivatedAbilityObjectIdOfV2(seed)).toThrow(TypeError);
     expect(() => coreTriggeredAbilityObjectIdOfV2(seed)).toThrow(TypeError);
     expect(() => coreTokenObjectIdOfV2('seed', -1)).toThrow(TypeError);
+    expect(() => coreTokenObjectIdOfV2('seed', -0)).toThrow(TypeError);
     expect(() => coreTokenObjectIdOfV2('seed', 1.5)).toThrow(TypeError);
     expect(() => coreTokenObjectIdOfV2('seed', Number.MAX_SAFE_INTEGER + 1)).toThrow(TypeError);
     expect(seed).toBe(' seed ');
