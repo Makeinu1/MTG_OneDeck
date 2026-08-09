@@ -1261,7 +1261,7 @@
       "type": "engine-fix",
       "domainId": "O4P-01H",
       "crOrder": 109,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01G",
         "cr-109-objects",
@@ -1288,10 +1288,16 @@
         "candidate-sha:fffcf2f2d2fea6c4faa50de6c0ea36363355becf",
         "candidate-fingerprint:194c5af0cc5e84fc8e3e4a7c869a5c2835e09699",
         "npm run check:PASS",
-        "npm run check:forbidden:PASS"
+        "npm run check:forbidden:PASS",
+        "GitHub Actions run:31331574059:Success",
+        "GitHub Actions steps:check/check:forbidden/build/Pages deploy:PASS",
+        "Pages URL:https://makeinu1.github.io/MTG_OneDeck/:HTTP 200",
+        "Pages asset:assets/index-CyZgN26K.js:HTTP 200",
+        "Pages asset:assets/index-JeU5vEot.css:HTTP 200",
+        "Pages served markers:JS MTG OneDeck+data-testid;CSS --board-card-w"
       ],
       "manualBoundary": "Universal object identity and zone/stack substrate only. No object-creation command, priority, resolution, target/mode/X announcement, cost payment, copyable-values derivation, CR707 automation, projection, online protocol, or UI.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01I Stack Announcement Payload & Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-09"
     }
   ],
@@ -3905,7 +3911,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01G",
         "cr-109-objects",
@@ -3943,10 +3949,16 @@
         "candidate-sha:fffcf2f2d2fea6c4faa50de6c0ea36363355becf",
         "candidate-fingerprint:194c5af0cc5e84fc8e3e4a7c869a5c2835e09699",
         "npm run check:PASS",
-        "npm run check:forbidden:PASS"
+        "npm run check:forbidden:PASS",
+        "GitHub Actions run:31331574059:Success",
+        "GitHub Actions steps:check/check:forbidden/build/Pages deploy:PASS",
+        "Pages URL:https://makeinu1.github.io/MTG_OneDeck/:HTTP 200",
+        "Pages asset:assets/index-CyZgN26K.js:HTTP 200",
+        "Pages asset:assets/index-JeU5vEot.css:HTTP 200",
+        "Pages served markers:JS MTG OneDeck+data-testid;CSS --board-card-w"
       ],
       "manualBoundary": "Structural substrate only. No creation command, copyable-values derivation, copy effect execution, priority, stack resolution, targeting, choices, cost payment, projection, online protocol, or UI.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01I Stack Announcement Payload & Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-09",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     }
