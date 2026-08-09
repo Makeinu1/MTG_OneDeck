@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CoreObjectRegistryAdapterErrorV2,
   canonicalizeModeNeutralCoreObjectRegistryStateV2,
+  canonicalizeModeNeutralCoreObjectRuntimeStateV2,
   upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2,
 } from "../objectRegistryCanonicalizationV2";
 import {
@@ -140,6 +141,44 @@ describe("O4P-01H-G strict registry validation", () => {
     v1.players = revokedV1Players.proxy;
     revokedV1Players.revoke();
     expect(() => upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2(v1)).toThrow(
+      CoreObjectRegistryAdapterErrorV2,
+    );
+  });
+
+  it("keeps direct V2 canonicalizers strict and fail closed", () => {
+    const wrongKind = fixture();
+    wrongKind.kind = "wrong-kind";
+    expect(() => canonicalizeModeNeutralCoreObjectRegistryStateV2(wrongKind as never)).toThrow(
+      CoreObjectRegistryAdapterErrorV2,
+    );
+
+    const runtime = {
+      kind: "mode-neutral-core-object-runtime-slice-v2",
+      byObject: {
+        "pc1:0": {
+          orientation: {
+            faceIndex: 0,
+            faceDown: false,
+            tapped: false,
+            flipped: false,
+            phasedOut: false,
+          },
+          counterDamage: { counters: [], markedDamage: 0 },
+          attachment: { attachedTo: null },
+        },
+      },
+    };
+    const extra = structuredClone(runtime) as Record<string, unknown>;
+    extra.extra = true;
+    expect(() => canonicalizeModeNeutralCoreObjectRuntimeStateV2(extra as never)).toThrow(
+      CoreObjectRegistryAdapterErrorV2,
+    );
+
+    const invalid = structuredClone(runtime) as {
+      byObject: Record<string, { orientation: { faceIndex: unknown } }>;
+    };
+    invalid.byObject["pc1:0"].orientation.faceIndex = "not-a-number";
+    expect(() => canonicalizeModeNeutralCoreObjectRuntimeStateV2(invalid as never)).toThrow(
       CoreObjectRegistryAdapterErrorV2,
     );
   });

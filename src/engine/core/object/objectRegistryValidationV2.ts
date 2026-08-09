@@ -41,7 +41,7 @@ import type {
   ModeNeutralCoreIdentityZoneSliceV1,
 } from "../identityZoneState";
 import {
-  canonicalizeModeNeutralCoreObjectRegistryStateV2,
+  canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation,
   canonicalizeModeNeutralCoreObjectRuntimeStateV2,
 } from "./objectRegistryCanonicalizationV2";
 import type {
@@ -838,8 +838,9 @@ function failedRuntime(
   return Object.freeze({ ok: false, issues: issues.sorted() });
 }
 
-export function validateModeNeutralCoreObjectRegistryStateV2(
+function validateModeNeutralCoreObjectRegistryStateV2Internal(
   input: unknown,
+  canonicalizeOutput: boolean,
 ): CoreObjectRegistryValidationResult {
   const issues = new IssueCollector();
   const root = readObject(input, "", ROOT_FIELDS, issues);
@@ -922,8 +923,22 @@ export function validateModeNeutralCoreObjectRegistryStateV2(
   };
   return Object.freeze({
     ok: true,
-    value: canonicalizeModeNeutralCoreObjectRegistryStateV2(canonicalInput),
+    value: canonicalizeOutput
+      ? canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation(canonicalInput)
+      : canonicalInput,
   });
+}
+
+export function validateModeNeutralCoreObjectRegistryStateV2(
+  input: unknown,
+): CoreObjectRegistryValidationResult {
+  return validateModeNeutralCoreObjectRegistryStateV2Internal(input, true);
+}
+
+export function validateModeNeutralCoreObjectRegistryForCanonicalization(
+  input: unknown,
+): CoreObjectRegistryValidationResult {
+  return validateModeNeutralCoreObjectRegistryStateV2Internal(input, false);
 }
 
 export const validateModeNeutralCoreObjectRegistrySliceV2 =

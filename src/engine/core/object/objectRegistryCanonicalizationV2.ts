@@ -5,6 +5,15 @@ import {
   validateModeNeutralCoreCardRuntimeSliceV1,
 } from "../runtime/cardRuntimeValidation";
 import {
+  validateCoreAttachmentStateV1,
+} from "../runtime/attachment";
+import {
+  validateCoreCardOrientationStateV1,
+} from "../runtime/cardOrientation";
+import {
+  validateCoreCounterDamageStateV1,
+} from "../runtime/counterDamage";
+import {
   validateModeNeutralCoreIdentityZoneSliceV1,
 } from "../identityZoneValidation";
 import type {
@@ -28,6 +37,12 @@ import type {
   ModeNeutralCoreObjectRegistryStateV2,
   ModeNeutralCoreObjectRuntimeStateV2,
 } from "./objectRegistryStateV2";
+import {
+  isCanonicalCoreObjectIdV2,
+} from "./objectIdV2";
+import {
+  validateModeNeutralCoreObjectRegistryForCanonicalization,
+} from "./objectRegistryValidationV2";
 
 const REGISTRY_ROOT_FIELDS = [
   "kind",
@@ -59,6 +74,56 @@ function dataValue(record: Readonly<Record<string, unknown>>, key: string): unkn
     throw new TypeError(`Canonicalization requires a data property: ${key}`);
   }
   return descriptor.value;
+}
+
+function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  let isArray: boolean;
+  try {
+    isArray = Array.isArray(value);
+  } catch {
+    return false;
+  }
+  if (value === null || typeof value !== "object" || isArray) return false;
+  try {
+    const prototype = Reflect.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
+}
+
+function readCanonicalRecord(
+  value: unknown,
+  fields: readonly string[],
+  path: string,
+): CanonicalRecord {
+  if (!isPlainRecord(value)) throw new TypeError(`Expected a plain record at ${path}`);
+  const expected = new Set(fields);
+  const result = Object.create(null) as CanonicalRecord;
+  let keys: readonly (string | symbol)[];
+  try {
+    keys = Reflect.ownKeys(value);
+  } catch {
+    throw new TypeError(`Cannot inspect record keys at ${path}`);
+  }
+  for (const key of keys) {
+    if (typeof key !== "string") throw new TypeError(`Symbol field at ${path}`);
+    if (fields.length > 0 && !expected.has(key)) {
+      throw new TypeError(`Unknown field at ${path}/${key}`);
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor === undefined || !descriptor.enumerable ||
+      !Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      throw new TypeError(`Unsafe descriptor at ${path}/${key}`);
+    }
+    result[key] = descriptor.value;
+  }
+  for (const field of fields) {
+    if (!Object.prototype.hasOwnProperty.call(result, field)) {
+      throw new TypeError(`Missing field at ${path}/${field}`);
+    }
+  }
+  return result;
 }
 
 function canonicalRecord<T>(
@@ -278,13 +343,24 @@ export function canonicalizeModeNeutralCoreObjectRegistryStateV2(
   value: ModeNeutralCoreObjectRegistryStateV2,
 ): ModeNeutralCoreObjectRegistryStateV2 {
   try {
-    return canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(value);
-  } catch {
+    const validation = validateModeNeutralCoreObjectRegistryForCanonicalization(value);
+    if (!validation.ok) {
+      return throwAdapterError("Invalid object registry canonicalization input", validation.issues);
+    }
+    return canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation(value);
+  } catch (error) {
+    if (error instanceof CoreObjectRegistryAdapterErrorV2) throw error;
     return throwAdapterError(
       "Object registry canonicalization could not inspect input safely",
       unsafeInspectionIssues(),
     );
   }
+}
+
+export function canonicalizeModeNeutralCoreObjectRegistryStateV2AfterValidation(
+  value: ModeNeutralCoreObjectRegistryStateV2,
+): ModeNeutralCoreObjectRegistryStateV2 {
+  return canonicalizeModeNeutralCoreObjectRegistryStateV2Internal(value);
 }
 
 export const canonicalizeModeNeutralCoreObjectRegistrySliceV2 =
@@ -309,12 +385,45 @@ function canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(
   return deepFreeze(canonical);
 }
 
+function validateRuntimeCanonicalizationInput(
+  value: unknown,
+): Readonly<Record<string, unknown>> {
+  const root = readCanonicalRecord(value, RUNTIME_ROOT_FIELDS, "");
+  if (root.kind !== "mode-neutral-core-object-runtime-slice-v2") {
+    throw new TypeError("Invalid runtime root kind");
+  }
+  const byObject = readCanonicalRecord(root.byObject, [], "/byObject");
+  for (const objectId of Object.keys(byObject)) {
+    if (!isCanonicalCoreObjectIdV2(objectId)) {
+      throw new TypeError(`Invalid runtime object key: ${objectId}`);
+    }
+    const state = readCanonicalRecord(byObject[objectId], [
+      "orientation",
+      "counterDamage",
+      "attachment",
+    ], `/byObject/${objectId}`);
+    try {
+      const orientation = validateCoreCardOrientationStateV1(state.orientation);
+      const counterDamage = validateCoreCounterDamageStateV1(state.counterDamage);
+      const attachment = validateCoreAttachmentStateV1(state.attachment);
+      if (!orientation.ok || !counterDamage.ok || !attachment.ok) {
+        throw new TypeError("Invalid runtime subobject");
+      }
+    } catch {
+      throw new TypeError(`Invalid runtime state at /byObject/${objectId}`);
+    }
+  }
+  return byObject;
+}
+
 export function canonicalizeModeNeutralCoreObjectRuntimeStateV2(
   value: ModeNeutralCoreObjectRuntimeStateV2,
 ): ModeNeutralCoreObjectRuntimeStateV2 {
   try {
+    validateRuntimeCanonicalizationInput(value);
     return canonicalizeModeNeutralCoreObjectRuntimeStateV2Internal(value);
-  } catch {
+  } catch (error) {
+    if (error instanceof CoreObjectRegistryAdapterErrorV2) throw error;
     return throwAdapterError(
       "Object runtime canonicalization could not inspect input safely",
       unsafeInspectionIssues(),
