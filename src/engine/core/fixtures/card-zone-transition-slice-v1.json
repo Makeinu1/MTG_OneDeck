@@ -1,0 +1,110 @@
+{
+  "kind": "mode-neutral-core-card-zone-transition-slice-v1",
+  "identityFixture": "identity-zone-slice-v1.json",
+  "identitySha256": "92c4f649fbb67685fb25c7ab135546c429634d14c9e0aadb57a1e00d11752501",
+  "runtimeFixture": "card-runtime-slice-v1.json",
+  "runtimeSha256": "c3f0589d97f78c33a08730583dba5655a151485ce9e267915af9bd82b572b116",
+  "placementSeed": {
+    "kind": "mode-neutral-core-card-zone-transition-placement-seed-v1",
+    "objectId": "PC4:1",
+    "ownerPlayerId": "P2",
+    "source": { "scope": "shared", "zone": "battlefield", "index": 0 },
+    "destination": { "scope": "player-scoped", "zone": "library", "index": 0 },
+    "runtime": {
+      "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": false },
+      "counterDamage": { "counters": [], "markedDamage": 0 },
+      "attachment": { "attachedTo": null }
+    }
+  },
+  "cases": [
+    {
+      "id": "owner-library-top",
+      "objectId": "PC3:0",
+      "destination": { "kind": "owner-library", "placement": { "kind": "top" } },
+      "expectedObjectId": "PC3:1",
+      "expectedZone": "library",
+      "expectedOwnerPlayerId": "P2",
+      "expectedControllerPlayerId": null,
+      "expectedLibrary": ["PC3:1", "PC4:1"]
+    },
+    {
+      "id": "owner-library-bottom",
+      "objectId": "PC3:0",
+      "destination": { "kind": "owner-library", "placement": { "kind": "bottom" } },
+      "expectedObjectId": "PC3:1",
+      "expectedZone": "library",
+      "expectedOwnerPlayerId": "P2",
+      "expectedControllerPlayerId": null,
+      "expectedLibrary": ["PC4:1", "PC3:1"]
+    },
+    {
+      "id": "owner-library-index",
+      "objectId": "PC3:0",
+      "destination": { "kind": "owner-library", "placement": { "kind": "index", "index": 0 } },
+      "expectedObjectId": "PC3:1",
+      "expectedZone": "library",
+      "expectedOwnerPlayerId": "P2",
+      "expectedControllerPlayerId": null,
+      "expectedLibrary": ["PC3:1", "PC4:1"]
+    },
+    {
+      "id": "owner-hand",
+      "objectId": "PC6:0",
+      "destination": { "kind": "owner-hand" },
+      "expectedObjectId": "PC6:1",
+      "expectedZone": "hand",
+      "expectedOwnerPlayerId": "P4",
+      "expectedControllerPlayerId": null
+    },
+    {
+      "id": "owner-graveyard",
+      "objectId": "PC6:0",
+      "destination": { "kind": "owner-graveyard" },
+      "expectedObjectId": "PC6:1",
+      "expectedZone": "graveyard",
+      "expectedOwnerPlayerId": "P4",
+      "expectedControllerPlayerId": null
+    },
+    {
+      "id": "battlefield-controller",
+      "objectId": "PC6:0",
+      "destination": { "kind": "battlefield", "baseControllerPlayerId": "P2" },
+      "expectedObjectId": "PC6:1",
+      "expectedZone": "battlefield",
+      "expectedOwnerPlayerId": "P4",
+      "expectedControllerPlayerId": "P2"
+    },
+    {
+      "id": "stack-controller",
+      "objectId": "PC6:0",
+      "destination": { "kind": "stack", "baseControllerPlayerId": "P3" },
+      "expectedObjectId": "PC6:1",
+      "expectedZone": "stack",
+      "expectedOwnerPlayerId": "P4",
+      "expectedControllerPlayerId": "P3"
+    },
+    {
+      "id": "exile",
+      "objectId": "PC3:0",
+      "destination": { "kind": "exile" },
+      "expectedObjectId": "PC3:1",
+      "expectedZone": "exile",
+      "expectedOwnerPlayerId": "P2",
+      "expectedControllerPlayerId": null
+    },
+    {
+      "id": "command",
+      "objectId": "PC3:0",
+      "destination": { "kind": "command" },
+      "expectedObjectId": "PC3:1",
+      "expectedZone": "command",
+      "expectedOwnerPlayerId": "P2",
+      "expectedControllerPlayerId": null
+    }
+  ],
+  "invalidCases": [
+    { "id": "wrong-object-id", "objectId": "PC1:99", "destination": { "kind": "exile" } },
+    { "id": "unknown-destination", "objectId": "PC1:0", "destination": { "kind": "future-zone" } },
+    { "id": "same-zone", "objectId": "PC1:0", "destination": { "kind": "owner-library", "placement": { "kind": "top" } } }
+  ]
+}

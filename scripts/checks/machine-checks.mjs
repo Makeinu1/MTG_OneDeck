@@ -15,6 +15,7 @@ const machineCheckSteps = [
   { name: 'Online状態アーキテクチャ検証', cmd: 'npm', args: ['run', 'verify:online-state-architecture'] },
   { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-identity-zone'] },
   { name: 'Mode-Neutral Core Card Runtime検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-card-runtime'] },
+  { name: 'Mode-Neutral Core Card Zone Transition検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-zone-transition'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

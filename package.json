@@ -36,6 +36,7 @@
     "verify:online-state-architecture": "tsx scripts/checks/verify-online-state-architecture.ts",
     "verify:mode-neutral-core-identity-zone": "tsx scripts/checks/verify-mode-neutral-core-identity-zone.ts",
     "verify:mode-neutral-core-card-runtime": "tsx scripts/checks/verify-mode-neutral-core-card-runtime.ts",
+    "verify:mode-neutral-core-zone-transition": "tsx scripts/checks/verify-mode-neutral-core-zone-transition.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",
