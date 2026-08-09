@@ -180,7 +180,8 @@ function isVerificationScript(path: string): boolean {
   const normalized = normalizePath(path);
   return normalized === 'scripts/checks/verify-mode-neutral-core-identity-zone.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-card-runtime.ts'
-    || normalized === 'scripts/checks/verify-mode-neutral-core-zone-transition.ts';
+    || normalized === 'scripts/checks/verify-mode-neutral-core-zone-transition.ts'
+    || normalized === 'scripts/checks/verify-mode-neutral-core-object-registry.ts';
 }
 
 function isExistingCardTypeModule(target: string | null): boolean {
