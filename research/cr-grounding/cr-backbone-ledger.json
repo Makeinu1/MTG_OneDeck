@@ -1238,7 +1238,7 @@
       "type": "engine-fix",
       "domainId": "O4P-01G",
       "crOrder": 400.7,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-400-408-zones-lki"
       ],
@@ -1249,10 +1249,12 @@
         "research/cr-grounding/o4p-01g-r-zone-transition-rule-matrix.draft.md",
         "research/cr-grounding/archive/o4p-01g-cold-reaudit-2026-08-09.md",
         "npm run check PASS on release candidate 63097981e7bfb9513bf37e66d05cf0276425a37e",
-        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)"
+        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)",
+        "GitHub Actions 31318515770: build/check/forbidden/build/deploy success",
+        "GitHub Pages https://makeinu1.github.io/MTG_OneDeck/: HTTP 200; JS/CSS assets HTTP 200"
       ],
       "manualBoundary": "Atomic card zone transition V1 only. Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
-      "nextGate": "CIとGitHub Pages公開証跡を取得後にshippedへ昇格する。",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "user-ruling-2026-08-09"
     }
   ],
@@ -3824,7 +3826,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "cr-400-408-zones-lki"
       ],
@@ -3843,10 +3845,12 @@
         "research/cr-grounding/o4p-01g-r-zone-transition-rule-matrix.draft.md",
         "research/cr-grounding/archive/o4p-01g-cold-reaudit-2026-08-09.md",
         "npm run check PASS on release candidate 63097981e7bfb9513bf37e66d05cf0276425a37e",
-        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)"
+        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)",
+        "GitHub Actions 31318515770: build/check/forbidden/build/deploy success",
+        "GitHub Pages https://makeinu1.github.io/MTG_OneDeck/: HTTP 200; JS/CSS assets HTTP 200"
       ],
       "manualBoundary": "Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
-      "nextGate": "CIとGitHub Pages公開証跡を取得後にshippedへ昇格する。",
+      "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "user-ruling-2026-08-09"
     }
   ],
