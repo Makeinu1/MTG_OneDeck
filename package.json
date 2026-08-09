@@ -37,6 +37,7 @@
     "verify:mode-neutral-core-identity-zone": "tsx scripts/checks/verify-mode-neutral-core-identity-zone.ts",
     "verify:mode-neutral-core-card-runtime": "tsx scripts/checks/verify-mode-neutral-core-card-runtime.ts",
     "verify:mode-neutral-core-zone-transition": "tsx scripts/checks/verify-mode-neutral-core-zone-transition.ts",
+    "verify:mode-neutral-core-object-registry": "tsx scripts/checks/verify-mode-neutral-core-object-registry.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

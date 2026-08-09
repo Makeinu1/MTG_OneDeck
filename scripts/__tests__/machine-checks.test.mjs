@@ -116,6 +116,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:mode-neutral-core-identity-zone']],
       ['npm', ['run', 'verify:mode-neutral-core-card-runtime']],
       ['npm', ['run', 'verify:mode-neutral-core-zone-transition']],
+      ['npm', ['run', 'verify:mode-neutral-core-object-registry']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],
@@ -132,11 +133,12 @@ describe('machine-check execution', () => {
       { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'core', args: [] },
       { name: 'Mode-Neutral Core Card Runtime検証', cmd: 'runtime', args: [] },
       { name: 'Mode-Neutral Core Card Zone Transition検証', cmd: 'transition', args: [] },
+      { name: 'Mode-Neutral Core Object Registry V2検証', cmd: 'object-registry', args: [] },
       { name: 'lint', cmd: 'lint', args: [] },
       { name: 'test', cmd: 'test', args: [] },
       { name: 'build (型検査内蔵)', cmd: 'build', args: [] },
     ];
-    const statuses = [0, 0, 0, 0, 0, 0, 17, 0, 0, 0];
+    const statuses = [0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0];
     const calls = [];
     const report = runMachineChecks({
       steps: coreSteps,
@@ -149,11 +151,11 @@ describe('machine-check execution', () => {
       write: () => {},
     });
     expect(report.exitCode).toBe(17);
-    expect(report.results[6]).toMatchObject({
-      name: 'Mode-Neutral Core Card Zone Transition検証',
+    expect(report.results[7]).toMatchObject({
+      name: 'Mode-Neutral Core Object Registry V2検証',
       code: 17,
       skipped: false,
     });
-    expect(calls).toEqual(['cr', 'versions', 'solo', 'online', 'core', 'runtime', 'transition', 'lint', 'test', 'build']);
+    expect(calls).toEqual(['cr', 'versions', 'solo', 'online', 'core', 'runtime', 'transition', 'object-registry', 'lint', 'test', 'build']);
   });
 });
