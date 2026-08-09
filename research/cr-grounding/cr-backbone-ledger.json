@@ -1256,6 +1256,27 @@
       "manualBoundary": "Atomic card zone transition V1 only. Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
       "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "user-ruling-2026-08-09"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01H",
+      "crOrder": 109,
+      "status": "pending",
+      "dependsOn": [
+        "O4P-01G",
+        "cr-109-objects",
+        "cr-110-permanents",
+        "cr-111-tokens",
+        "cr-112-spells",
+        "cr-113-abilities",
+        "cr-400-408-zones-lki"
+      ],
+      "evidence": [
+        "research/cr-grounding/o4p-01h-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "Universal object identity and zone/stack substrate only. No object-creation command, priority, resolution, target/mode/X announcement, cost payment, copyable-values derivation, CR707 automation, projection, online protocol, or UI.",
+      "nextGate": "Parallel grounding lanes, frozen contract, implementation waves, cold audit, full check, CI and Pages evidence.",
+      "judge": "user-ruling-2026-08-09"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3852,6 +3873,50 @@
       "manualBoundary": "Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
       "nextGate": "shipped。次のCR章順スライスへ進む。",
       "judge": "user-ruling-2026-08-09"
+    },
+    {
+      "id": "O4P-01H",
+      "crOrder": 109,
+      "crRefs": [
+        "109",
+        "110",
+        "111",
+        "112",
+        "113",
+        "400.7",
+        "405",
+        "707"
+      ],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "O4P-01G",
+        "cr-109-objects",
+        "cr-110-permanents",
+        "cr-111-tokens",
+        "cr-112-spells",
+        "cr-113-abilities",
+        "cr-400-408-zones-lki"
+      ],
+      "landingState": [
+        "universalObjectId",
+        "universalObjectRegistryV2",
+        "tokenObjectIdentity",
+        "spellCopyObjectIdentity",
+        "activatedAbilityStackObject",
+        "triggeredAbilityStackObject",
+        "identityZoneV1ToV2Adapter",
+        "runtimeV1ToV2Adapter"
+      ],
+      "boundary": "Introduce an additive V2 mode-neutral object registry capable of representing card objects, battlefield tokens, spell copies, activated abilities, and triggered abilities in the existing shared-zone model while preserving all V1 public contracts.",
+      "evidence": [
+        "research/cr-grounding/o4p-01h-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "Structural substrate only. No creation command, copyable-values derivation, copy effect execution, priority, stack resolution, targeting, choices, cost payment, projection, online protocol, or UI.",
+      "nextGate": "Complete O4P-01H parallel grounding, contract freeze, implementation, cold audit, full check, CI and Pages publication.",
+      "judge": "user-ruling-2026-08-09",
+      "note": "User-authorized one-milestone orchestration exception: bounded parallel subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     }
   ],
   "judgePolicy": {
