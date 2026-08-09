@@ -1233,6 +1233,27 @@
       "manualBoundary": "音源の外部ライセンスを推測しない。sound原本は変更しない。人間試聴、commit、CI、Pages公開は別ゲートだったが、今回ユーザー指示により公開ゲートを実行する。",
       "nextGate": "shipped。人間試聴(音量・遅延・ループ疲労)は別ゲート。",
       "judge": "user-ruling-2026-08-08"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01G",
+      "crOrder": 400.7,
+      "status": "audited",
+      "dependsOn": [
+        "cr-400-408-zones-lki"
+      ],
+      "evidence": [
+        "research/cr-grounding/o4p-01g-a-zone-destination.draft.md",
+        "research/cr-grounding/o4p-01g-b-card-reincarnation.draft.md",
+        "research/cr-grounding/o4p-01g-c-zone-order.draft.md",
+        "research/cr-grounding/o4p-01g-r-zone-transition-rule-matrix.draft.md",
+        "research/cr-grounding/archive/o4p-01g-cold-reaudit-2026-08-09.md",
+        "npm run check PASS on release candidate 63097981e7bfb9513bf37e66d05cf0276425a37e",
+        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)"
+      ],
+      "manualBoundary": "Atomic card zone transition V1 only. Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
+      "nextGate": "CIとGitHub Pages公開証跡を取得後にshippedへ昇格する。",
+      "judge": "user-ruling-2026-08-09"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3786,6 +3807,47 @@
       "manualBoundary": "音源の外部ライセンスを推測しない。sound原本は変更しない。人間試聴(音量・遅延・ループ疲労)は別ゲート。",
       "nextGate": "shipped。push/CI/Pages公開証跡は出荷後に追記する。",
       "judge": "user-ruling-2026-08-08"
+    },
+    {
+      "id": "O4P-01G",
+      "crOrder": 400.7,
+      "crRefs": [
+        "400.7",
+        "401",
+        "402",
+        "404",
+        "405",
+        "406",
+        "110",
+        "111",
+        "903"
+      ],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "audited",
+      "dependsOn": [
+        "cr-400-408-zones-lki"
+      ],
+      "landingState": [
+        "cardZoneDestination",
+        "cardReincarnation",
+        "cardRuntimeReset",
+        "immutableZoneOrder",
+        "atomicCardZoneTransition"
+      ],
+      "boundary": "O4P-01G implements the additive, mode-neutral V1 contract for card-originated zone transitions. It preserves PhysicalCard ownership, creates the next incarnation/ObjectId, resets standard runtime, and inserts into the destination zone atomically.",
+      "evidence": [
+        "research/cr-grounding/o4p-01g-a-zone-destination.draft.md",
+        "research/cr-grounding/o4p-01g-b-card-reincarnation.draft.md",
+        "research/cr-grounding/o4p-01g-c-zone-order.draft.md",
+        "research/cr-grounding/o4p-01g-r-zone-transition-rule-matrix.draft.md",
+        "research/cr-grounding/archive/o4p-01g-cold-reaudit-2026-08-09.md",
+        "npm run check PASS on release candidate 63097981e7bfb9513bf37e66d05cf0276425a37e",
+        "npm run check:forbidden PASS: FORBIDDEN 変更なし(走査 0 ファイル)"
+      ],
+      "manualBoundary": "Same-zone reorder, shuffle generation, control change, replacement effects, commander replacement, token/copy/ability objects, Domain Event, and Online Command remain deferred as recorded in the integration contract.",
+      "nextGate": "CIとGitHub Pages公開証跡を取得後にshippedへ昇格する。",
+      "judge": "user-ruling-2026-08-09"
     }
   ],
   "judgePolicy": {
