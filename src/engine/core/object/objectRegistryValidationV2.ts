@@ -781,9 +781,40 @@ function readRuntimeState(
 ): CoreCardObjectRuntimeStateV1 | null {
   const root = readObject(value, path, ["orientation", "counterDamage", "attachment"], issues);
   if (root === null) return null;
-  const orientation = validateCoreCardOrientationStateV1(root.orientation);
-  const counterDamage = validateCoreCounterDamageStateV1(root.counterDamage);
-  const attachment = validateCoreAttachmentStateV1(root.attachment);
+  let orientation: ReturnType<typeof validateCoreCardOrientationStateV1> | null;
+  let counterDamage: ReturnType<typeof validateCoreCounterDamageStateV1> | null;
+  let attachment: ReturnType<typeof validateCoreAttachmentStateV1> | null;
+  try {
+    orientation = validateCoreCardOrientationStateV1(root.orientation);
+  } catch {
+    orientation = null;
+    issues.add(
+      "INVALID_TYPE",
+      `${path}/orientation`,
+      "Runtime orientation could not be validated safely",
+    );
+  }
+  try {
+    counterDamage = validateCoreCounterDamageStateV1(root.counterDamage);
+  } catch {
+    counterDamage = null;
+    issues.add(
+      "INVALID_TYPE",
+      `${path}/counterDamage`,
+      "Runtime counter damage could not be validated safely",
+    );
+  }
+  try {
+    attachment = validateCoreAttachmentStateV1(root.attachment);
+  } catch {
+    attachment = null;
+    issues.add(
+      "INVALID_TYPE",
+      `${path}/attachment`,
+      "Runtime attachment could not be validated safely",
+    );
+  }
+  if (orientation === null || counterDamage === null || attachment === null) return null;
   if (!orientation.ok) appendNestedIssues(issues, `${path}/orientation`, orientation.issues);
   if (!counterDamage.ok) appendNestedIssues(issues, `${path}/counterDamage`, counterDamage.issues);
   if (!attachment.ok) appendNestedIssues(issues, `${path}/attachment`, attachment.issues);

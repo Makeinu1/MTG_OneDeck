@@ -51,4 +51,28 @@ describe("O4P-01H-H object runtime V2", () => {
     expect(Object.keys(result.value.byObject)).toHaveLength(7);
     expect(JSON.stringify(result.value)).toBe(JSON.stringify(runtime));
   });
+
+  it("rejects revoked runtime subobjects without leaking a V1 exception", () => {
+    const identityInput = fixture("../../fixtures/identity-zone-slice-v1.json");
+    const identity =
+      upgradeModeNeutralCoreIdentityZoneSliceV1ToObjectRegistryV2(identityInput);
+    const hostile = fixture("../../fixtures/card-runtime-slice-v1.json") as {
+      kind: string;
+      byObject: Record<string, {
+        orientation: object;
+        counterDamage: object;
+        attachment: object;
+      }>;
+    };
+    hostile.kind = "mode-neutral-core-object-runtime-slice-v2";
+    const revoked = Proxy.revocable(hostile.byObject["PC1:0"].orientation, {});
+    hostile.byObject["PC1:0"].orientation = revoked.proxy;
+    revoked.revoke();
+
+    const result = validateModeNeutralCoreObjectRuntimeSliceV2(identity, hostile);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.some((issue) => issue.path.endsWith("/orientation"))).toBe(true);
+    }
+  });
 });
