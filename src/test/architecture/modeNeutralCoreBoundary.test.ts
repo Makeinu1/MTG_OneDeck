@@ -179,7 +179,8 @@ function isTestPath(path: string): boolean {
 function isVerificationScript(path: string): boolean {
   const normalized = normalizePath(path);
   return normalized === 'scripts/checks/verify-mode-neutral-core-identity-zone.ts'
-    || normalized === 'scripts/checks/verify-mode-neutral-core-card-runtime.ts';
+    || normalized === 'scripts/checks/verify-mode-neutral-core-card-runtime.ts'
+    || normalized === 'scripts/checks/verify-mode-neutral-core-zone-transition.ts';
 }
 
 function isExistingCardTypeModule(target: string | null): boolean {
@@ -473,6 +474,10 @@ describe('mode-neutral Core dependency boundary', () => {
       {
         filePath: resolve(repositoryRoot, 'scripts/checks/verify-mode-neutral-core-card-runtime.ts'),
         sourceText: "import { validateModeNeutralCoreCardRuntimeSliceV1 } from '../../src/engine/core';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'scripts/checks/verify-mode-neutral-core-zone-transition.ts'),
+        sourceText: "import { applyCoreCardZoneTransitionV1 } from '../../src/engine/core/transition/cardZoneTransition';",
       },
     ];
     expect(analyzeBoundarySources(units)).toEqual([]);

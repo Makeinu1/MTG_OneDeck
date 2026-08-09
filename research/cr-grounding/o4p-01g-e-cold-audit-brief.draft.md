@@ -42,6 +42,7 @@ tsconfig.node.json
 scripts/checks/machine-checks.mjs
 scripts/__tests__/machine-checks.test.mjs
 scripts/checks/verify-mode-neutral-core-zone-transition.ts
+src/test/architecture/modeNeutralCoreBoundary.test.ts
 src/engine/core/transition/zoneDestination.ts
 src/engine/core/transition/__tests__/zoneDestination.test.ts
 src/engine/core/transition/cardReincarnation.ts
