@@ -107,6 +107,25 @@ describe('Core stack object identity V2', () => {
     expect(value).toHaveProperty('extra', true);
   });
 
+  it('turns a hostile prototype trap into a deterministic validation issue', () => {
+    const value = new Proxy({}, {
+      getPrototypeOf: () => {
+        throw new Error('hostile prototype trap');
+      },
+    });
+
+    expect(() => validateCoreStackObjectIdentityV2(value)).not.toThrow();
+    const result = validateCoreStackObjectIdentityV2(value);
+    expect(result).toEqual({
+      ok: false,
+      issues: [{
+        code: 'INVALID_ROOT',
+        path: '',
+        message: 'Expected a plain root object',
+      }],
+    });
+  });
+
   it('keeps factory input strict and reports kind-specific creation errors', () => {
     expect(() => createCoreSpellCopyObjectIdentityV2({
       kind: 'spell-copy',
@@ -126,3 +145,4 @@ describe('Core stack object identity V2', () => {
     })).toThrow(CoreTriggeredAbilityObjectCreationError);
   });
 });
+

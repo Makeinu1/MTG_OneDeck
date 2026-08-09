@@ -160,9 +160,14 @@ function pointer(path: string, segment: string): string {
 }
 
 function isPlainRecord(value: unknown): value is RawRecord {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  const prototype = Reflect.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  if (value === null || typeof value !== 'object') return false;
+  try {
+    if (Array.isArray(value)) return false;
+    const prototype = Reflect.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function dataDescriptorValue(descriptor: PropertyDescriptor | undefined): { readonly value: unknown } | null {
@@ -199,7 +204,15 @@ function readObject(
 
   const allowed = new Set(fields);
   const result: RawRecord = Object.create(null) as RawRecord;
-  for (const key of Reflect.ownKeys(value)) {
+  let keys: readonly PropertyKey[];
+  try {
+    keys = Reflect.ownKeys(value);
+  } catch {
+    issues.add('INVALID_ROOT', '', 'Input could not be inspected safely');
+    return null;
+  }
+
+  for (const key of keys) {
     if (typeof key !== 'string') {
       issues.add('UNKNOWN_FIELD', pointer('', String(key)), 'Symbol fields are not allowed');
       continue;
@@ -211,7 +224,13 @@ function readObject(
       continue;
     }
 
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(value, key);
+    } catch {
+      issues.add('INVALID_ROOT', '', 'Input could not be inspected safely');
+      return null;
+    }
     if (descriptor === undefined || !descriptor.enumerable) {
       issues.add('UNKNOWN_FIELD', fieldPath, 'Non-enumerable fields are not allowed');
       continue;
@@ -398,7 +417,14 @@ export function validateCoreStackObjectIdentityV2(
     return { ok: false, issues: issues.sorted() };
   }
 
-  const kindDescriptor = Object.getOwnPropertyDescriptor(value, 'kind');
+  let kindDescriptor: PropertyDescriptor | undefined;
+  try {
+    kindDescriptor = Object.getOwnPropertyDescriptor(value, 'kind');
+  } catch {
+    const issues = new IssueCollector();
+    issues.add('INVALID_ROOT', '', 'Input could not be inspected safely');
+    return { ok: false, issues: issues.sorted() };
+  }
   const kindValue = dataDescriptorValue(kindDescriptor)?.value;
   if (typeof kindValue === 'string') {
     if (kindValue === 'spell-copy') return validateSpellCopy(value);
@@ -496,3 +522,4 @@ export const validateCoreTriggeredAbilityIdentityV2 = validateCoreTriggeredAbili
 export const createCoreSpellCopyIdentityV2 = createCoreSpellCopyObjectIdentityV2;
 export const createCoreActivatedAbilityIdentityV2 = createCoreActivatedAbilityObjectIdentityV2;
 export const createCoreTriggeredAbilityIdentityV2 = createCoreTriggeredAbilityObjectIdentityV2;
+
