@@ -483,23 +483,33 @@ function factoryCandidate(
   createError: (issues: readonly CoreStackObjectValidationIssue[]) => CoreStackObjectCreationError,
 ): unknown {
   if (!isPlainRecord(input)) return input;
-  if (Object.prototype.hasOwnProperty.call(input, 'kind')) {
-    throw createError(factoryKindIssues());
+
+  let hasKind: boolean;
+  try {
+    hasKind = Object.prototype.hasOwnProperty.call(input, 'kind');
+  } catch {
+    throw createError(factoryInspectionIssues());
   }
-  const candidate: RawRecord = Object.create(null) as RawRecord;
-  for (const key of Reflect.ownKeys(input)) {
-    const descriptor = Object.getOwnPropertyDescriptor(input, key);
-    if (descriptor !== undefined) Object.defineProperty(candidate, key, descriptor);
+  if (hasKind) throw createError(factoryKindIssues());
+
+  try {
+    const candidate: RawRecord = Object.create(null) as RawRecord;
+    for (const key of Reflect.ownKeys(input)) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (descriptor !== undefined) Object.defineProperty(candidate, key, descriptor);
+    }
+    if (kind !== null) {
+      Object.defineProperty(candidate, 'kind', {
+        value: kind,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    return candidate;
+  } catch {
+    throw createError(factoryInspectionIssues());
   }
-  if (kind !== null) {
-    Object.defineProperty(candidate, 'kind', {
-      value: kind,
-      enumerable: true,
-      configurable: true,
-      writable: true,
-    });
-  }
-  return candidate;
 }
 
 function factoryKindIssues(): readonly CoreStackObjectValidationIssue[] {
@@ -508,6 +518,16 @@ function factoryKindIssues(): readonly CoreStackObjectValidationIssue[] {
       code: 'UNKNOWN_FIELD' as const,
       path: '/kind',
       message: 'Factory input must omit kind',
+    }),
+  ]);
+}
+
+function factoryInspectionIssues(): readonly CoreStackObjectValidationIssue[] {
+  return Object.freeze([
+    Object.freeze({
+      code: 'INVALID_ROOT' as const,
+      path: '',
+      message: 'Input could not be inspected safely',
     }),
   ]);
 }

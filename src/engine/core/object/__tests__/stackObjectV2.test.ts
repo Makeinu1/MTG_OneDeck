@@ -126,6 +126,30 @@ describe('Core stack object identity V2', () => {
     });
   });
 
+  it('turns a factory ownKeys trap into a typed deterministic creation error', () => {
+    const value = new Proxy({}, {
+      ownKeys: () => {
+        throw new Error('hostile ownKeys trap');
+      },
+    });
+
+    let thrown: unknown;
+    try {
+      createCoreSpellCopyObjectIdentityV2(value);
+    } catch (error: unknown) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(CoreSpellCopyObjectCreationError);
+    if (thrown instanceof CoreSpellCopyObjectCreationError) {
+      expect(thrown.issues).toEqual([{
+        code: 'INVALID_ROOT',
+        path: '',
+        message: 'Input could not be inspected safely',
+      }]);
+    }
+  });
+
   it('keeps factory input strict and reports kind-specific creation errors', () => {
     expect(() => createCoreSpellCopyObjectIdentityV2({
       kind: 'spell-copy',
