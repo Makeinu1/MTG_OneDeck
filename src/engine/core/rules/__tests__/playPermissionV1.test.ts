@@ -102,7 +102,11 @@ describe('playPermissionV1', () => {
     const faceDown = addCorePlayPermissionV1(
       empty(),
       'exile',
-      permission({ kind: 'face-down-exile', objectId }),
+      permission({
+        kind: 'object',
+        objectId,
+        expectedZone: { kind: 'shared-zone', zone: 'exile' },
+      }),
     ).value;
     const exileRegistry = {
       ...registry,

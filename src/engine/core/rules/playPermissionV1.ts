@@ -13,19 +13,20 @@ import { validateCoreRuleKeyV1, type CoreRuleKeyV1 } from './ruleKeyV1';
 import { validateCoreRuleZoneRefV1, type CoreRuleZoneRefV1 } from './ruleZoneRefV1';
 import { CoreRuleAuthorityOperationError } from './ruleAuthorityErrorV1';
 
-export type CorePlayPermissionActionV1 = 'play-card' | 'play-land';
+export type CorePlayPermissionActionV1 = 'cast-spell' | 'play-land' | 'play-card';
 export type CorePlayPermissionDurationV1 =
   | Readonly<{ readonly kind: 'indefinite' }>
   | Readonly<{ readonly kind: 'until-end-of-turn'; readonly turnNumber: number }>
-  | Readonly<{ readonly kind: 'single-use' }>;
+  | Readonly<{ readonly kind: 'while-source-exists'; readonly sourceObjectId: CoreObjectId }>
+  | Readonly<{ readonly kind: 'single-use' }>
+  | Readonly<{ readonly kind: 'manual' }>;
 export type CorePlayPermissionSubjectV1 =
   | Readonly<{
       readonly kind: 'object';
       readonly objectId: CoreObjectId;
       readonly expectedZone: CoreRuleZoneRefV1;
     }>
-  | Readonly<{ readonly kind: 'top-of-library'; readonly playerId: CorePlayerId }>
-  | Readonly<{ readonly kind: 'face-down-exile'; readonly objectId: CoreObjectId }>;
+  | Readonly<{ readonly kind: 'top-of-library'; readonly playerId: CorePlayerId }>;
 export type CorePlayPermissionV1 = Readonly<{
   readonly allowedPlayerId: CorePlayerId;
   readonly action: CorePlayPermissionActionV1;
@@ -60,11 +61,13 @@ function duration(
   value: unknown,
   path: string,
 ): CoreRuleValidationResultV1<CorePlayPermissionDurationV1> {
-  const read = readCoreRuleExactRecordV1(value, ['kind', 'turnNumber'], path, ['kind']);
+  const read = readCoreRuleExactRecordV1(value, ['kind', 'turnNumber', 'sourceObjectId'], path, [
+    'kind',
+  ]);
   const issues = [...read.issues];
   if (read.record === null) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   const kind = read.record.kind;
-  if (kind === 'indefinite' || kind === 'single-use') {
+  if (kind === 'indefinite' || kind === 'single-use' || kind === 'manual') {
     if (Object.keys(read.record).length !== 1)
       issues.push(
         makeCoreRuleIssueV1('UNKNOWN_FIELD', path, 'Duration has fields for another kind'),
@@ -82,6 +85,15 @@ function duration(
           'Turn number must be a non-negative safe integer',
         ),
       );
+  } else if (kind === 'while-source-exists') {
+    if (!isCanonicalCoreObjectIdV2(read.record.sourceObjectId))
+      issues.push(
+        makeCoreRuleIssueV1(
+          'INVALID_ID',
+          `${path}/sourceObjectId`,
+          'Source object ID must be a canonical object ID',
+        ),
+      );
   } else
     issues.push(
       makeCoreRuleIssueV1(
@@ -96,6 +108,7 @@ function duration(
     value: deepFreezeCoreRuleValueV1({
       kind,
       ...(kind === 'until-end-of-turn' ? { turnNumber: read.record.turnNumber } : {}),
+      ...(kind === 'while-source-exists' ? { sourceObjectId: read.record.sourceObjectId } : {}),
     }) as CorePlayPermissionDurationV1,
   };
 }
@@ -114,6 +127,10 @@ function subject(
   if (read.record === null) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   const kind = read.record.kind;
   if (kind === 'object') {
+    if (Object.keys(read.record).some((key) => !['kind', 'objectId', 'expectedZone'].includes(key)))
+      issues.push(
+        makeCoreRuleIssueV1('UNKNOWN_FIELD', path, 'Object subject has fields for another kind'),
+      );
     if (!isCanonicalCoreObjectIdV2(read.record.objectId))
       issues.push(makeCoreRuleIssueV1('INVALID_ID', `${path}/objectId`, 'Invalid object ID'));
     const zone = validateCoreRuleZoneRefV1(read.record.expectedZone);
@@ -133,14 +150,17 @@ function subject(
         },
       };
   } else if (kind === 'top-of-library') {
+    if (Object.keys(read.record).some((key) => !['kind', 'playerId'].includes(key)))
+      issues.push(
+        makeCoreRuleIssueV1(
+          'UNKNOWN_FIELD',
+          path,
+          'Top-library subject has fields for another kind',
+        ),
+      );
     player(read.record.playerId, `${path}/playerId`, issues);
     if (issues.length === 0)
       return { ok: true, value: { kind, playerId: read.record.playerId as CorePlayerId } };
-  } else if (kind === 'face-down-exile') {
-    if (!isCanonicalCoreObjectIdV2(read.record.objectId))
-      issues.push(makeCoreRuleIssueV1('INVALID_ID', `${path}/objectId`, 'Invalid object ID'));
-    if (issues.length === 0)
-      return { ok: true, value: { kind, objectId: read.record.objectId as CoreObjectId } };
   } else
     issues.push(
       makeCoreRuleIssueV1(
@@ -164,7 +184,11 @@ function permission(
   const issues = [...read.issues];
   if (read.record === null) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   player(read.record.allowedPlayerId, `${path}/allowedPlayerId`, issues);
-  if (read.record.action !== 'play-card' && read.record.action !== 'play-land')
+  if (
+    read.record.action !== 'cast-spell' &&
+    read.record.action !== 'play-land' &&
+    read.record.action !== 'play-card'
+  )
     issues.push(
       makeCoreRuleIssueV1('INVALID_LITERAL', `${path}/action`, 'Invalid play permission action'),
     );
@@ -442,22 +466,18 @@ export function coreCanPlayerAttemptPlayObjectV1(
   if (location === null) return false;
   for (let index = slice.permissionOrder.length - 1; index >= 0; index -= 1) {
     const grant = slice.byPermission[slice.permissionOrder[index]];
-    if (grant.allowedPlayerId !== playerId || grant.action !== 'play-card') continue;
+    if (grant.allowedPlayerId !== playerId) continue;
     const candidate = grant.subject;
     if (candidate.kind === 'object' && candidate.objectId === objectId) {
-      if (zoneMatches(location, candidate.expectedZone)) return true;
+      if (!zoneMatches(location, candidate.expectedZone)) continue;
+      if (location.zone === 'exile')
+        return hasFaceDownIdentityVisibility(visibility, playerId, objectId);
+      return true;
     } else if (
       candidate.kind === 'top-of-library' &&
       location.zone === 'library' &&
       location.playerId === candidate.playerId &&
       location.index === 0
-    )
-      return true;
-    else if (
-      candidate.kind === 'face-down-exile' &&
-      candidate.objectId === objectId &&
-      location.zone === 'exile' &&
-      hasFaceDownIdentityVisibility(visibility, playerId, objectId)
     )
       return true;
   }
