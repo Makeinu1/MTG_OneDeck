@@ -1,0 +1,127 @@
+{
+  "kind": "o4p-01k-j-turn-priority-lifecycle-fixture-v1",
+  "bundle": {
+    "stackBundle": {
+      "objectRegistry": {
+        "kind": "mode-neutral-core-object-registry-slice-v2",
+        "players": {
+          "P1": { "life": 40, "poison": 0, "energy": 0, "experience": 0, "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 }, "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0, "drawnThisTurn": 0, "maximumHandSizeOverride": "none" },
+          "P2": { "life": 40, "poison": 0, "energy": 0, "experience": 0, "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 }, "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0, "drawnThisTurn": 0, "maximumHandSizeOverride": "none" },
+          "P3": { "life": 40, "poison": 0, "energy": 0, "experience": 0, "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 }, "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0, "drawnThisTurn": 0, "maximumHandSizeOverride": "none" },
+          "P4": { "life": 40, "poison": 0, "energy": 0, "experience": 0, "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 }, "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0, "drawnThisTurn": 0, "maximumHandSizeOverride": "none" }
+        },
+        "turnOrder": ["P1", "P2", "P3", "P4"],
+        "activePlayerId": "P2",
+        "cardDefinitions": {
+          "def.fixture-card": {
+            "source": { "kind": "engine-synthetic" },
+            "name": "Fixture Card",
+            "layout": "normal",
+            "manaValue": 1,
+            "colorIdentity": [],
+            "typeLine": "Sorcery",
+            "keywords": [],
+            "producedMana": [],
+            "tokenKind": null,
+            "faces": [{ "name": "Fixture Card", "manaCost": "{1}", "typeLine": "Sorcery", "oracleText": "Fixture effect.", "power": null, "toughness": null, "loyalty": null, "defense": null }]
+          }
+        },
+        "physicalCards": {
+          "PC1": { "definitionId": "def.fixture-card", "ownerPlayerId": "P1", "isCommander": false },
+          "PC2": { "definitionId": "def.fixture-card", "ownerPlayerId": "P1", "isCommander": false },
+          "PC3": { "definitionId": "def.fixture-card", "ownerPlayerId": "P2", "isCommander": false },
+          "PC4": { "definitionId": "def.fixture-card", "ownerPlayerId": "P3", "isCommander": false },
+          "PC5": { "definitionId": "def.fixture-card", "ownerPlayerId": "P4", "isCommander": false },
+          "PC6": { "definitionId": "def.fixture-card", "ownerPlayerId": "P3", "isCommander": false }
+        },
+        "objects": {
+          "PC1:0": { "kind": "card", "physicalCardId": "PC1", "incarnation": 0, "baseControllerPlayerId": null },
+          "PC2:0": { "kind": "card", "physicalCardId": "PC2", "incarnation": 0, "baseControllerPlayerId": null },
+          "PC3:0": { "kind": "card", "physicalCardId": "PC3", "incarnation": 0, "baseControllerPlayerId": null },
+          "PC4:0": { "kind": "card", "physicalCardId": "PC4", "incarnation": 0, "baseControllerPlayerId": null },
+          "PC5:1": { "kind": "card", "physicalCardId": "PC5", "incarnation": 1, "baseControllerPlayerId": "P1" },
+          "PC6:0": { "kind": "card", "physicalCardId": "PC6", "incarnation": 0, "baseControllerPlayerId": "P3" },
+          "@spell-copy:fixture-copy": { "kind": "spell-copy", "definitionId": "def.fixture-card", "controllerPlayerId": "P2", "copiedFromObjectId": "@spell-copy:historic-copy" },
+          "@activated-ability:fixture-activation": { "kind": "activated-ability", "controllerPlayerId": "P3", "sourceObjectId": "PC6:0", "abilityKey": "ability.activate" },
+          "@triggered-ability:fixture-trigger": { "kind": "triggered-ability", "controllerPlayerId": "P4", "sourceObjectId": null, "abilityKey": "ability.trigger" }
+        },
+        "zones": {
+          "byPlayer": {
+            "P1": { "library": ["PC1:0"], "hand": ["PC2:0"], "graveyard": [] },
+            "P2": { "library": [], "hand": ["PC3:0"], "graveyard": [] },
+            "P3": { "library": [], "hand": [], "graveyard": [] },
+            "P4": { "library": [], "hand": [], "graveyard": [] }
+          },
+          "shared": {
+            "battlefield": ["PC6:0"],
+            "stack": ["@spell-copy:fixture-copy", "PC5:1", "@activated-ability:fixture-activation", "@triggered-ability:fixture-trigger"],
+            "exile": ["PC4:0"],
+            "command": []
+          }
+        }
+      },
+      "objectRuntime": {
+        "kind": "mode-neutral-core-object-runtime-slice-v2",
+        "byObject": {
+          "PC1:0": { "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": false }, "counterDamage": { "counters": [], "markedDamage": 0 }, "attachment": { "attachedTo": null } },
+          "PC2:0": { "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": false }, "counterDamage": { "counters": [], "markedDamage": 0 }, "attachment": { "attachedTo": null } },
+          "PC3:0": { "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": false }, "counterDamage": { "counters": [], "markedDamage": 0 }, "attachment": { "attachedTo": null } },
+          "PC4:0": { "orientation": { "faceIndex": 0, "faceDown": true, "tapped": false, "flipped": false, "phasedOut": false }, "counterDamage": { "counters": [], "markedDamage": 0 }, "attachment": { "attachedTo": null } },
+          "PC5:1": { "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": false }, "counterDamage": { "counters": [], "markedDamage": 0 }, "attachment": { "attachedTo": null } },
+          "PC6:0": { "orientation": { "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false, "phasedOut": true }, "counterDamage": { "counters": [{ "kind": "shield", "count": 1 }], "markedDamage": 3 }, "attachment": { "attachedTo": null } }
+        }
+      },
+      "stackAnnouncements": {
+        "kind": "mode-neutral-core-stack-announcement-slice-v1",
+        "byObject": {
+          "@spell-copy:fixture-copy": { "kind": "spell-copy", "abilityTextSnapshot": null, "chosenModeKeys": ["copy-mode"], "targetSelections": [{ "selectionId": "copy-target", "groupKey": "copy", "target": { "kind": "player", "playerId": "P4" } }], "announcedVariables": [{ "variableKey": "X", "value": 1 }], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } },
+          "PC5:1": { "kind": "card-spell", "abilityTextSnapshot": null, "chosenModeKeys": ["damage-mode"], "targetSelections": [{ "selectionId": "card-object", "groupKey": "primary", "target": { "kind": "object", "objectId": "PC6:0" } }], "announcedVariables": [{ "variableKey": "X", "value": 3 }], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } },
+          "@activated-ability:fixture-activation": { "kind": "activated-ability", "abilityTextSnapshot": "Fixture ability.", "chosenModeKeys": ["ability-mode"], "targetSelections": [{ "selectionId": "ability-target", "groupKey": "ability", "target": { "kind": "object", "objectId": "@spell-copy:historic-target" } }], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } },
+          "@triggered-ability:fixture-trigger": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } }
+        }
+      }
+    },
+    "pendingTriggers": {
+      "kind": "mode-neutral-core-pending-trigger-slice-v1",
+      "pendingObjectIds": [
+        "@triggered-ability:fixture-ordinary-p2-a",
+        "@triggered-ability:fixture-ordinary-p4",
+        "@triggered-ability:fixture-ordinary-p2-b",
+        "@triggered-ability:fixture-ability-p3",
+        "@triggered-ability:fixture-ability-p1"
+      ],
+      "byObject": {
+        "@triggered-ability:fixture-ordinary-p2-a": { "stackPlacementBucket": "ordinary", "object": { "kind": "triggered-ability", "controllerPlayerId": "P2", "sourceObjectId": "@triggered-ability:historic-p2-a", "abilityKey": "fixture.ordinary.p2.a" }, "announcement": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger ordinary P2 A.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } } },
+        "@triggered-ability:fixture-ordinary-p4": { "stackPlacementBucket": "ordinary", "object": { "kind": "triggered-ability", "controllerPlayerId": "P4", "sourceObjectId": "@triggered-ability:historic-p4", "abilityKey": "fixture.ordinary.p4" }, "announcement": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger ordinary P4.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } } },
+        "@triggered-ability:fixture-ordinary-p2-b": { "stackPlacementBucket": "ordinary", "object": { "kind": "triggered-ability", "controllerPlayerId": "P2", "sourceObjectId": "@triggered-ability:historic-p2-b", "abilityKey": "fixture.ordinary.p2.b" }, "announcement": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger ordinary P2 B.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } } },
+        "@triggered-ability:fixture-ability-p3": { "stackPlacementBucket": "ability-triggered", "object": { "kind": "triggered-ability", "controllerPlayerId": "P3", "sourceObjectId": "@triggered-ability:historic-p3", "abilityKey": "fixture.ability.p3" }, "announcement": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger ability P3.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } } },
+        "@triggered-ability:fixture-ability-p1": { "stackPlacementBucket": "ability-triggered", "object": { "kind": "triggered-ability", "controllerPlayerId": "P1", "sourceObjectId": "@triggered-ability:historic-p1", "abilityKey": "fixture.ability.p1" }, "announcement": { "kind": "triggered-ability", "abilityTextSnapshot": "Fixture trigger ability P1.", "chosenModeKeys": [], "targetSelections": [], "announcedVariables": [], "distributions": [], "costChoices": { "alternativeCost": null, "additionalCosts": [] } } }
+      }
+    },
+    "lifecycle": {
+      "kind": "mode-neutral-core-turn-lifecycle-slice-v1",
+      "turnNumber": 4,
+      "positionSequence": 7,
+      "position": { "phase": "beginning", "step": "upkeep" },
+      "window": { "kind": "sba-check-required", "priorityRecipientPlayerId": "P2", "grantPriorityIfStable": true }
+    }
+  },
+  "scenarios": {
+    "upkeepSbaBoundary": { "activePlayerId": "P2", "position": { "phase": "beginning", "step": "upkeep" }, "window": "sba-check-required" },
+    "mixedStack": ["@spell-copy:fixture-copy", "PC5:1", "@activated-ability:fixture-activation", "@triggered-ability:fixture-trigger"],
+    "triggerPlacement": {
+      "analysis": "manual-order-required",
+      "groups": [
+        { "stackPlacementBucket": "ordinary", "controllerPlayerId": "P2", "pendingObjectIds": ["@triggered-ability:fixture-ordinary-p2-a", "@triggered-ability:fixture-ordinary-p2-b"] },
+        { "stackPlacementBucket": "ordinary", "controllerPlayerId": "P4", "pendingObjectIds": ["@triggered-ability:fixture-ordinary-p4"] },
+        { "stackPlacementBucket": "ability-triggered", "controllerPlayerId": "P3", "pendingObjectIds": ["@triggered-ability:fixture-ability-p3"] },
+        { "stackPlacementBucket": "ability-triggered", "controllerPlayerId": "P1", "pendingObjectIds": ["@triggered-ability:fixture-ability-p1"] }
+      ],
+      "chosenBottomToTop": ["@triggered-ability:fixture-ordinary-p2-b", "@triggered-ability:fixture-ordinary-p2-a", "@triggered-ability:fixture-ordinary-p4", "@triggered-ability:fixture-ability-p3", "@triggered-ability:fixture-ability-p1"]
+    },
+    "deterministicOrder": { "objectId": "@triggered-ability:fixture-ordinary-p4", "analysis": "deterministic-order" },
+    "priority": { "cycleStartPlayerId": "P2", "resolutionReadyObjectId": "@triggered-ability:fixture-ability-p1", "emptyPositionWindow": "position-advance-ready" },
+    "cleanup": { "activePlayerId": "P2", "maximumHandSizeOverride": "none", "discardRequiredCount": 1, "markedDamageObjectId": "PC6:0", "exceptionalPriority": true, "repeatedCleanup": true },
+    "nextTurn": { "turnNumber": 5, "activePlayerId": "P3", "position": { "phase": "beginning", "step": "untap" }, "window": "turn-based-action-required" }
+  }
+}

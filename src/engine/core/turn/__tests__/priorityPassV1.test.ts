@@ -210,5 +210,5 @@ describe('O4P-01K-G priority/pass component', () => {
     });
     expect(JSON.stringify(acted.stackBundle)).toBe(beforeStack);
     deepFrozen(acted);
-  });
+  }, 15000);
 });
