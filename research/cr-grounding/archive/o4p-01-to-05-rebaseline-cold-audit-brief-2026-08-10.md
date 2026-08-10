@@ -1,8 +1,8 @@
 # O4P-01 to O4P-05 Re-baseline Cold Audit Brief
 
-Audit profile: STANDARD  
-Candidate before brief commit: `6c97bb6`  
-Parent shipped HEAD: `f101db83d71e998831309ec3d19be6ed690ea738`  
+Audit profile: STANDARD
+Candidate before brief commit: `6c97bb6`
+Parent shipped HEAD: `f101db83d71e998831309ec3d19be6ed690ea738`
 Authority: `user-ruling-2026-08-10`
 
 This is a ledger/roadmap-only audit. The cold auditor must not edit files,

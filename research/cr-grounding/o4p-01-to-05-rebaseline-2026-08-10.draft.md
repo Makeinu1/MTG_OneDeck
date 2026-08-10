@@ -1,7 +1,7 @@
 # O4P-01 to O4P-05 Re-baseline Plan
 
-Date: 2026-08-10  
-Authority: user-ruling-2026-08-10  
+Date: 2026-08-10
+Authority: user-ruling-2026-08-10
 Status: judge-owned roadmap registration draft
 
 ## Decision
