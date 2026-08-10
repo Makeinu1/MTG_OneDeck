@@ -1,40 +1,73 @@
 #!/usr/bin/env node
-import { execFileSync, spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
-const root = resolve(import.meta.dirname, '../..');
-const domains = new Map([
-  ['docs', { paths: [], command: process.execPath, args: ['scripts/checks/check-docs.mjs'] }],
-  ['solo-preservation', { paths: [], command: 'npm', args: ['run', 'verify:solo-preservation'] }],
-  ['engine-state', { paths: ['src/engine/types.ts', 'src/engine/init.ts', 'src/engine/__tests__/init.test.ts'], project: 'core' }],
-  ['engine-turn', { paths: ['src/engine/priority.ts', 'src/engine/__tests__/priority.test.ts'], project: 'core' }],
-  ['engine-zones', { paths: ['src/engine/__tests__/cr400LinkedExileSubstrate.test.ts', 'src/engine/__tests__/cr400ReanimationGuided.test.ts'], project: 'core' }],
-  ['engine-stack', { paths: ['src/engine/__tests__/m427.test.ts', 'src/engine/__tests__/m428.test.ts'], project: 'core' }],
-  ['engine-mana', { paths: ['src/engine/__tests__/mana.test.ts', 'src/engine/__tests__/manaTransaction.test.ts'], project: 'core' }],
-  ['engine-compiler', { paths: ['src/engine/__tests__/cr701DiscardCompiler.test.ts', 'src/engine/__tests__/cr701SearchShuffleCompiler.test.ts'], project: 'core' }],
-  ['ui-interaction', { paths: ['src/components/game/HudInteractions.test.tsx', 'src/components/game/CardActionSheet.test.tsx'], project: 'dom' }],
-  ['ui-responsive', { paths: ['src/components/game/adaptiveLaneLayout.test.ts', 'src/components/game/handFanLayout.test.ts'], project: 'dom' }],
-  ['audio-visual', { paths: ['src/components/game/__tests__/review.av0-contract.test.ts', 'src/components/game/__tests__/review.av6-two-phase-beat.test.ts'], project: 'dom' }],
-]);
+import { DEFAULT_ROOT, resolveNamedDomain } from './validation-domain-resolver.mjs';
+
+function parseArgs(argv) {
+  let domainId;
+  let list = false;
+  let dryRun = false;
+  for (const argument of argv) {
+    if (argument === '--list') list = true;
+    else if (argument === '--dry-run') dryRun = true;
+    else if (argument.startsWith('--')) throw new Error(`unknown argument: ${argument}`);
+    else if (domainId === undefined) domainId = argument;
+    else throw new Error(`unexpected argument: ${argument}`);
+  }
+  if (!domainId) throw new Error('usage: check:domain <domain> [--list|--dry-run]');
+  return { domainId, list, dryRun };
+}
+
+function printSelection(selection) {
+  console.log(`SELECTED DOMAIN: ${selection.domain.id}`);
+  console.log(`DEPENDENCY EXPANSION: ${selection.expandedDomains.join(', ')}`);
+  console.log(`CONTRACT IDS: ${selection.contractIds.join(', ') || '<none>'}`);
+  console.log(`ESCALATION: ${selection.expandedDomains.some((id) => id === selection.domain.id && selection.domain.escalationLevel === 'full') ? 'full' : selection.domain.escalationLevel}`);
+  console.log(`TEST FILE COUNT: ${selection.testFiles.length}`);
+  for (const file of selection.testFiles) console.log(`  ${file}`);
+  for (const reason of selection.reasons) console.log(`REASON: ${reason}`);
+}
+
+function runProject(project, paths) {
+  if (paths.length === 0) return 0;
+  return spawnSync('npx', ['vitest', 'run', '--project', project, ...paths], {
+    cwd: DEFAULT_ROOT,
+    stdio: 'inherit',
+    shell: false,
+  }).status ?? 1;
+}
 
 function run() {
-  const domain = process.argv[2];
-  const definition = domains.get(domain);
-  if (!definition) {
-    console.error(`Unknown domain ${domain ?? '<missing>'}. Valid domains: ${[...domains.keys()].join(', ')}`);
+  try {
+    const options = parseArgs(process.argv.slice(2));
+    const selection = resolveNamedDomain({ root: DEFAULT_ROOT, domainId: options.domainId });
+    printSelection(selection);
+    if (options.list || options.dryRun) return;
+
+    if (selection.domain.escalationLevel === 'full') {
+      process.exitCode = spawnSync('npm', ['run', 'check'], { cwd: DEFAULT_ROOT, stdio: 'inherit', shell: false }).status ?? 1;
+      return;
+    }
+
+    if (options.domainId === 'docs') {
+      const docsCode = spawnSync(process.execPath, ['scripts/checks/check-docs.mjs'], {
+        cwd: DEFAULT_ROOT,
+        stdio: 'inherit',
+        shell: false,
+      }).status ?? 1;
+      if (docsCode !== 0) {
+        process.exitCode = docsCode;
+        return;
+      }
+    }
+
+    let exitCode = runProject('core', selection.testFilesByProject.core);
+    if (exitCode === 0) exitCode = runProject('dom', selection.testFilesByProject.dom);
+    process.exitCode = exitCode;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 2;
-    return;
   }
-  for (const path of definition.paths ?? []) {
-    try { execFileSync('test', ['-f', path], { cwd: root, stdio: 'ignore' }); }
-    catch { console.error(`Missing domain evidence path: ${path}`); process.exitCode = 1; return; }
-  }
-  console.log(`\n=== check:domain: ${domain} ===`);
-  if (definition.command) {
-    process.exitCode = spawnSync(definition.command, definition.args, { cwd: root, stdio: 'inherit', shell: false }).status ?? 1;
-    return;
-  }
-  process.exitCode = spawnSync('npx', ['vitest', 'run', '--project', definition.project, ...(definition.paths ?? [])], { cwd: root, stdio: 'inherit', shell: false }).status ?? 1;
 }
 
 run();

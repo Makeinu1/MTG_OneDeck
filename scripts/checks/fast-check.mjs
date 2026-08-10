@@ -1,50 +1,127 @@
 #!/usr/bin/env node
-import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
-const root = resolve(import.meta.dirname, '../..');
+import { collectChangedFiles } from './change-detector.mjs';
+import { DEFAULT_ROOT, resolveDomainSelection } from './validation-domain-resolver.mjs';
 
-function changedFiles() {
-  const output = execFileSync('git', ['status', '--short'], { cwd: root, encoding: 'utf8' });
-  return output.split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).trim()).filter(Boolean);
+function parseArgs(argv) {
+  const options = { head: 'HEAD', base: undefined, dryRun: false, json: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === '--base' || argument === '--head') {
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith('--')) throw new Error(`${argument} requires a value`);
+      options[argument.slice(2)] = value;
+      index += 1;
+    } else if (argument === '--dry-run') options.dryRun = true;
+    else if (argument === '--json') options.json = true;
+    else throw new Error(`unknown argument: ${argument}`);
+  }
+  if (options.head !== 'HEAD' && options.base === undefined) throw new Error('--head requires --base');
+  return options;
+}
+
+function reportFor(options) {
+  const changes = collectChangedFiles({ cwd: DEFAULT_ROOT, base: options.base, head: options.head });
+  const selection = resolveDomainSelection({ root: DEFAULT_ROOT, files: changes.files });
+  return {
+    mode: changes.mode,
+    base: changes.base,
+    head: changes.head,
+    files: changes.files,
+    selectedDomains: selection.selectedDomains,
+    initialDomains: selection.initialDomains,
+    expandedDomains: selection.expandedDomains,
+    contractIds: selection.contractIds,
+    escalation: selection.escalation,
+    unknownFiles: selection.unknownFiles,
+    matchedBy: selection.matchedBy,
+    reasons: selection.reasons,
+    testFiles: selection.testFiles,
+    testFileCount: selection.testFiles.length,
+    testFilesByProject: selection.testFilesByProject,
+  };
+}
+
+function printReport(report) {
+  console.log(`MODE: ${report.mode}`);
+  if (report.base) console.log(`BASE: ${report.base}`);
+  console.log(`HEAD: ${report.head}`);
+  console.log(`CHANGED FILES: ${report.files.length}`);
+  for (const file of report.files) console.log(`  ${file}`);
+  console.log(`INITIAL DOMAINS: ${report.initialDomains.join(', ') || '<none>'}`);
+  console.log(`EXPANDED DOMAINS: ${report.expandedDomains.join(', ') || '<none>'}`);
+  console.log(`SELECTED DOMAINS: ${report.selectedDomains.join(', ') || '<none>'}`);
+  console.log(`CONTRACT IDS: ${report.contractIds.join(', ') || '<none>'}`);
+  console.log(`ESCALATION: ${report.escalation}`);
+  console.log(`TEST FILES: ${report.testFileCount}`);
+  for (const file of report.testFiles) console.log(`  ${file}`);
+  for (const reason of report.reasons) console.log(`REASON: ${reason}`);
+  for (const [file, domains] of Object.entries(report.matchedBy)) {
+    console.log(`MATCH: ${file} -> ${domains.join(', ')}`);
+  }
+  if (report.unknownFiles.length > 0) {
+    console.log(`UNKNOWN PATHS: ${report.unknownFiles.join(', ')}`);
+  }
 }
 
 function runStep(label, command, args) {
   console.log(`\n=== check:fast: ${label} ===`);
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', shell: false });
-  if ((result.status ?? 1) !== 0) process.exitCode = result.status ?? 1;
+  const result = spawnSync(command, args, { cwd: DEFAULT_ROOT, stdio: 'inherit', shell: false });
   return result.status ?? 1;
 }
 
-function testPlans(files) {
-  const plans = [];
-  if (files.some((file) => file.startsWith('src/engine/') || file.startsWith('src/store/'))) plans.push({ project: 'core', paths: ['src/engine', 'src/store'] });
-  if (files.some((file) => file.startsWith('src/data/'))) plans.push({ project: 'core', paths: ['src/data'] });
-  const domPaths = [];
-  if (files.some((file) => file.startsWith('src/store/'))) domPaths.push('src/store');
-  if (files.some((file) => file.startsWith('src/components/') || file.startsWith('src/App'))) domPaths.push('src/components', 'src/AppFanContentNotice.test.tsx');
-  const architectureTests = files.filter((file) => file.startsWith('src/test/') && /\.(?:test|spec)\.(?:ts|tsx|js|jsx|mjs)$/.test(file));
-  domPaths.push(...(architectureTests.length > 0 ? architectureTests : files.some((file) => file.startsWith('src/test/')) ? ['src/test'] : []));
-  if (domPaths.length > 0) plans.push({ project: 'dom', paths: [...new Set(domPaths)] });
-  if (files.some((file) => file.startsWith('scripts/'))) plans.push({ project: 'dom', paths: ['scripts/__tests__'] });
-  if (files.some((file) => file.startsWith('src/store/') || file === 'src/test/architecture/soloOnlineBoundary.test.ts')) plans.push({ command: 'npm', args: ['run', 'verify:solo-preservation'] });
-  return plans;
-}
+function runTargeted(report) {
+  let exitCode = 0;
+  const docsCode = runStep('docs', process.execPath, ['scripts/checks/check-docs.mjs']);
+  if (docsCode !== 0) exitCode = docsCode;
 
-function runFast() {
-  const files = changedFiles();
-  runStep('docs', process.execPath, ['scripts/checks/check-docs.mjs']);
-  const lintFiles = files.filter((file) => /\.(?:mjs|ts|tsx|js|jsx)$/.test(file) && existsSync(resolve(root, file)));
-  if (lintFiles.length > 0) runStep('affected lint', 'npx', ['eslint', ...lintFiles]);
-  else console.log('\n=== check:fast: affected lint ===\nSKIP: no changed lintable source');
-  runStep('incremental typecheck', 'npx', ['tsc', '-b', '--pretty', 'false']);
-  const plans = testPlans(files);
-  if (plans.length > 0) for (const plan of plans) {
-    if (plan.command) runStep('affected tests', plan.command, plan.args);
-    else runStep('affected tests', 'npx', ['vitest', 'run', '--project', plan.project, ...plan.paths]);
+  const lintFiles = report.files.filter((file) =>
+    /\.(?:mjs|ts|tsx|js|jsx)$/.test(file) && existsSync(resolve(DEFAULT_ROOT, file)),
+  );
+  if (lintFiles.length > 0) {
+    const lintCode = runStep('affected lint', 'npx', ['eslint', ...lintFiles]);
+    if (lintCode !== 0 && exitCode === 0) exitCode = lintCode;
+  } else {
+    console.log('\n=== check:fast: affected lint ===\nSKIP: no changed lintable source');
   }
-  else console.log('\n=== check:fast: affected tests ===\nSKIP: no source domain selected');
+
+  const typecheckCode = runStep('incremental typecheck', 'npx', ['tsc', '-b', '--pretty', 'false']);
+  if (typecheckCode !== 0 && exitCode === 0) exitCode = typecheckCode;
+
+  for (const project of ['core', 'dom']) {
+    const paths = report.testFilesByProject[project];
+    if (paths.length === 0) continue;
+    const testCode = runStep(`affected ${project} tests (${paths.length} files)`, 'npx', [
+      'vitest', 'run', '--project', project, ...paths,
+    ]);
+    if (testCode !== 0 && exitCode === 0) exitCode = testCode;
+  }
+  if (report.testFileCount === 0 && report.files.length > 0 && report.escalation !== 'full') {
+    console.error('No test files selected for a non-empty targeted change set');
+    if (exitCode === 0) exitCode = 1;
+  }
+  return exitCode;
 }
 
-runFast();
+function run() {
+  try {
+    const options = parseArgs(process.argv.slice(2));
+    const report = reportFor(options);
+    if (options.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    else printReport(report);
+    if (options.dryRun || options.json) return;
+    if (report.escalation === 'full') {
+      process.exitCode = runStep('full release check', 'npm', ['run', 'check']);
+      return;
+    }
+    process.exitCode = runTargeted(report);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 2;
+  }
+}
+
+run();

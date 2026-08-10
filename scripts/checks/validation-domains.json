@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "domains": [
+    {
+      "id": "docs",
+      "description": "契約文書、受け入れシナリオ、文書整合性検査",
+      "sourcePatterns": ["docs/**", "research/archive/document-reset-2026-08/**"],
+      "testPatterns": ["scripts/__tests__/machine-checks.test.mjs", "scripts/__tests__/vitest-projects.test.mjs"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ACCEPTANCE"],
+      "dependentDomains": [],
+      "escalationLevel": "targeted",
+      "reason": "文書・受け入れの参照整合性をcheck-docsと機械検査で確認する。"
+    },
+    {
+      "id": "engine-state",
+      "description": "GameState、オブジェクトidentity、runtime値、不変性",
+      "sourcePatterns": ["src/engine/**", "src/engine/types.ts", "src/engine/init.ts", "src/engine/core/object/**", "src/engine/core/runtime/**", "src/engine/core/rules/**"],
+      "testPatterns": ["src/engine/__tests__/init.test.ts", "src/engine/__tests__/commands.test.ts", "src/engine/__tests__/gameStore.test.ts", "src/engine/__tests__/review.properties.test.ts", "src/engine/core/object/**/*.test.ts", "src/engine/core/runtime/**/*.test.ts", "src/engine/core/rules/**/*.test.ts"],
+      "testProject": "core",
+      "relatedContractIds": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "dependentDomains": ["engine-zones", "engine-turn", "engine-stack", "engine-mana", "store"],
+      "escalationLevel": "targeted",
+      "reason": "状態表現とその不変条件を直接検査し、状態を消費する領域を依存domainとして展開する。"
+    },
+    {
+      "id": "engine-turn",
+      "description": "turn、phase、priority、draw、cleanup、pending choiceの境界",
+      "sourcePatterns": ["src/engine/priority.ts", "src/engine/core/turn/**", "src/store/turn.ts"],
+      "testPatterns": ["src/engine/__tests__/priority.test.ts", "src/engine/__tests__/review.cr50*.test.ts", "src/engine/__tests__/review.cr502*.test.ts", "src/engine/__tests__/review.cr503*.test.ts", "src/engine/core/turn/**/*.test.ts", "src/store/__tests__/review.cr500-514-turn-structure.test.ts", "src/store/__tests__/review.phaseC.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-TURN"],
+      "dependentDomains": ["engine-stack", "store"],
+      "escalationLevel": "targeted",
+      "reason": "turn進行のphase、priority、draw、cleanupとstack境界を同一domainで検証する。"
+    },
+    {
+      "id": "engine-zones",
+      "description": "zone transition、object identity、LKI、zone events",
+      "sourcePatterns": ["src/engine/core/transition/**", "src/engine/zoneChangeEvents.ts", "src/engine/zoneChangeIdentity.ts"],
+      "testPatterns": ["src/engine/__tests__/cr400*.test.ts", "src/engine/__tests__/review.cr400*.test.ts", "src/engine/__tests__/zoneChange*.test.ts", "src/engine/core/transition/**/*.test.ts", "src/store/__tests__/zonesByPlayer.test.ts", "src/store/__tests__/review.mp-zones-commands.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-ZONES", "CONTRACT-ENGINE-STATE"],
+      "dependentDomains": ["engine-state", "store"],
+      "escalationLevel": "targeted",
+      "reason": "zone移動とLKIの全transition試験に加え、storeのzone投影を確認する。"
+    },
+    {
+      "id": "engine-stack",
+      "description": "stack announcement、transaction、target、解決とcopyの現行範囲",
+      "sourcePatterns": ["src/engine/core/stack/**", "src/engine/manualStackTargets.ts", "src/store/stackControl.ts", "src/store/stackTrustHotfix.ts"],
+      "testPatterns": ["src/engine/__tests__/m427.test.ts", "src/engine/__tests__/m428.test.ts", "src/engine/__tests__/manualStackTargets.test.ts", "src/engine/__tests__/review.stack*.test.ts", "src/engine/__tests__/review.cr608*.test.ts", "src/engine/core/stack/**/*.test.ts", "src/store/__tests__/stackControl.test.ts", "src/store/__tests__/stackTrustHotfix.test.ts", "src/store/__tests__/review.stack*.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-COMMANDS", "CONTRACT-ENGINE-TURN"],
+      "dependentDomains": ["engine-state", "engine-turn", "store"],
+      "escalationLevel": "targeted",
+      "reason": "stack生成、transaction、target、解決境界をcoreとstoreの全該当試験から選択する。"
+    },
+    {
+      "id": "engine-mana",
+      "description": "mana pool、cost、payment、編集とmana関連の現行処理",
+      "sourcePatterns": ["src/engine/mana*.ts", "src/engine/*Mana*.ts", "src/engine/*Cost*.ts", "src/store/mana*.ts"],
+      "testPatterns": ["src/engine/__tests__/mana*.test.ts", "src/engine/__tests__/cr118*.test.ts", "src/engine/__tests__/review.counter-scaled-mana.test.ts", "src/engine/__tests__/manaWriteCompiler.test.ts", "src/store/__tests__/review.mana*.test.ts", "src/components/game/manaReadiness.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MANA"],
+      "dependentDomains": ["engine-state", "store"],
+      "escalationLevel": "targeted",
+      "reason": "manaの量・支払い・編集と既存のmana関連カード処理を全該当試験で確認する。"
+    },
+    {
+      "id": "engine-compiler",
+      "description": "Oracle grammar/compilerとcard dataからcommand列への変換",
+      "sourcePatterns": ["src/engine/grammar/**", "src/engine/*Compiler*.ts", "src/data/**"],
+      "testPatterns": ["src/engine/__tests__/*Compiler.test.ts", "src/engine/__tests__/caseGrammar.test.ts", "src/engine/__tests__/classGrammar.test.ts", "src/engine/__tests__/saga*.test.ts", "src/engine/__tests__/review.grammar*.test.ts", "src/engine/__tests__/review.cr11*.test.ts", "src/engine/__tests__/review.cr12*.test.ts", "src/engine/__tests__/review.cr70*.test.ts", "src/data/**/*.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-COMPILER", "CONTRACT-ENGINE-COMMANDS"],
+      "dependentDomains": ["engine-stack", "engine-mana"],
+      "escalationLevel": "targeted",
+      "reason": "compilerの構文・分類・card data・command着地を関連試験全体で検証する。"
+    },
+    {
+      "id": "multiplayer",
+      "description": "複数playerのpriority、zones、commands、状態分離",
+      "sourcePatterns": ["src/store/multiplayer.ts", "src/store/player*.ts", "src/engine/*CrossPlayer*.ts", "src/engine/*Player*.ts"],
+      "testPatterns": ["src/engine/__tests__/*CrossPlayer*.test.ts", "src/engine/__tests__/review.cr701-cross-player-actions.test.ts", "src/engine/__tests__/review.cr303-704-roles.test.ts", "src/store/__tests__/review.mp-*.test.ts", "src/store/__tests__/review.cr121-cross-player-draw.test.ts", "src/store/__tests__/review.cr701-cross-player-actions.test.ts", "src/store/__tests__/review.cr303-704-roles.test.ts", "src/store/__tests__/review.cr702-194-teamwork.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MULTIPLAYER", "CONTRACT-ENGINE-TURN", "CONTRACT-ENGINE-ZONES"],
+      "dependentDomains": ["engine-turn", "engine-zones", "store"],
+      "escalationLevel": "targeted",
+      "reason": "複数playerの状態・zone・priorityを専用reviewと全mp試験で確認する。"
+    },
+    {
+      "id": "store",
+      "description": "store、undo boundary、snapshot、UI command dispatch",
+      "sourcePatterns": ["src/store/**", "src/engine/gameStore.ts"],
+      "testPatterns": ["src/store/**/*.test.ts", "src/store/**/*.test.tsx"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": ["engine-state", "engine-turn", "engine-zones", "engine-stack", "engine-mana"],
+      "escalationLevel": "targeted",
+      "reason": "store領域に属する全試験を一度だけ実行し、snapshot/undoとcommand dispatchを確認する。"
+    },
+    {
+      "id": "ui-interaction",
+      "description": "カード操作、choice、combat、primary actionのUI契約",
+      "sourcePatterns": ["src/components/**", "src/App.tsx", "src/App.css"],
+      "testPatterns": ["src/AppFanContentNotice.test.tsx", "src/components/**/*.test.ts", "src/components/**/*.test.tsx"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": ["ui-responsive", "audio-visual", "store"],
+      "escalationLevel": "targeted",
+      "reason": "components配下の操作試験を省略せず、依存するlayout・AV・store試験を展開する。"
+    },
+    {
+      "id": "ui-responsive",
+      "description": "responsive geometry、mobile density、layout token",
+      "sourcePatterns": ["src/ui/**", "src/components/game/*Layout*.ts", "src/components/game/*Position*.ts", "src/components/game/handFanLayout.ts", "src/components/game/adaptiveLaneLayout.ts"],
+      "testPatterns": ["src/ui/**/*.test.ts", "src/components/game/adaptiveLaneLayout.test.ts", "src/components/game/handFanLayout.test.ts", "src/components/game/cardPreviewPosition.test.ts", "src/components/game/landRowModel.test.ts", "src/components/game/review.mobile*.test.tsx", "src/components/game/review.s5-compact-labels.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-UI-RESPONSIVE", "CONTRACT-UI-VISUAL"],
+      "dependentDomains": ["ui-interaction"],
+      "escalationLevel": "targeted",
+      "reason": "responsive UIの全layout/model試験とmobile/contrast guardを選択する。"
+    },
+    {
+      "id": "audio-visual",
+      "description": "presentation、motion、BGM/SFX、semantic eventのAV契約",
+      "sourcePatterns": ["src/components/game/presentation/**", "src/components/game/ambient*.ts", "src/components/game/motionParity.ts", "src/components/game/TransitionCue.tsx"],
+      "testPatterns": ["src/components/game/presentation/**/*.test.ts", "src/components/game/presentation/**/*.test.tsx", "src/components/game/__tests__/review.av*.test.ts", "src/components/game/__tests__/review.av*.test.tsx", "src/components/game/__tests__/av*.test.ts", "src/components/game/ambient*.test.ts", "src/components/game/motionParity.test.ts", "src/components/game/TransitionCue.test.tsx"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-AV", "CONTRACT-UI-VISUAL"],
+      "dependentDomains": ["ui-interaction"],
+      "escalationLevel": "targeted",
+      "reason": "presentation runtimeとAV reviewを全件選択し、interactionとの依存も確認する。"
+    },
+    {
+      "id": "build-tooling",
+      "description": "package/build/config、validation script、workflow、architecture gate",
+      "sourcePatterns": ["package.json", "package-lock.json", "tsconfig*.json", "vite*.ts", "vitest*.ts", "vitest*.mjs", "eslint*.js", "scripts/**", ".github/workflows/**", "src/main.*", "src/test/setup.*", "src/test/architecture/**"],
+      "testPatterns": ["scripts/__tests__/**/*.test.mjs", "scripts/__tests__/**/*.test.ts", "src/test/architecture/**/*.test.ts", "src/versioning/**/*.test.ts", "src/ui/__tests__/review.*.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ACCEPTANCE", "GENERATED-ENGINE-API"],
+      "dependentDomains": ["docs"],
+      "escalationLevel": "full",
+      "reason": "共有設定・検証基盤・workflowは限定testでは安全に評価できないためfull checkへ昇格する。"
+    }
+  ]
+}
