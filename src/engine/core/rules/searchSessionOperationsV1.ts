@@ -89,9 +89,7 @@ function authoritiesOf(value: unknown): ModeNeutralCoreDecisionAuthoritySliceV1 
 function replace(value: unknown, next: ModeNeutralCoreSearchSessionSliceV1): unknown {
   if (!isBundle(value)) return next;
   const root = record(value) as Raw;
-  const copy = structuredClone(root) as Raw;
-  copy.searchSessions = next;
-  return copy;
+  return { ...root, searchSessions: next };
 }
 function remove(
   slice: ModeNeutralCoreSearchSessionSliceV1,
