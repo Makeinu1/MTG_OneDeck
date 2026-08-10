@@ -53,24 +53,27 @@ export function computeTreeFingerprint(root, filePaths) {
   return hashTreeEntries(entries);
 }
 
-const compactDomain = (entry) => {
+const compactDomain = (entry, { dependency = false } = {}) => {
   if (!entry) return null;
   const result = {};
-  for (const key of [
-    'id',
-    'type',
-    'status',
-    'crOrder',
-    'lane',
-    'edhValue',
-    'dependsOn',
-    'evidence',
-    'landingState',
-    'boundary',
-    'manualBoundary',
-    'nextGate',
-    'judge',
-  ]) {
+  const keys = dependency
+    ? ['id', 'type', 'status', 'crOrder', 'dependsOn']
+    : [
+        'id',
+        'type',
+        'status',
+        'crOrder',
+        'lane',
+        'edhValue',
+        'dependsOn',
+        'evidence',
+        'landingState',
+        'boundary',
+        'manualBoundary',
+        'nextGate',
+        'judge',
+      ];
+  for (const key of keys) {
     if (entry[key] !== undefined) result[key] = entry[key];
   }
   return result;
@@ -399,7 +402,7 @@ export function buildContextProjection({
     health: { ok: errors.length === 0, errors },
     selection,
     domain: compactDomain(selected),
-    dependencies: dependencies.map(compactDomain),
+    dependencies: dependencies.map((entry) => compactDomain(entry, { dependency: true })),
     canonicalPaths: [
       'AGENTS.md',
       'docs/judge-protocol.md',
