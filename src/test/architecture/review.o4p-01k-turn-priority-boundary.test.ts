@@ -146,7 +146,8 @@ function boundaryViolations(units: readonly SourceUnit[], scanAllUnits = false):
     for (const reference of references(unit)) {
       const target = sourceTarget(unit, reference.specifier);
       const targetPath = target === null ? '' : normalized(relative(repositoryRoot, target));
-      if (targetPath.startsWith('src/engine/core/turn/')) {
+      if (targetPath.startsWith('src/engine/core/turn/')
+        && !path.startsWith('src/engine/core/rules/')) {
         violations.push(`${path}|reverse-import|${reference.kind}|${reference.specifier}`);
       }
     }

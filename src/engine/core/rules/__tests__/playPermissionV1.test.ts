@@ -57,7 +57,7 @@ describe('playPermissionV1', () => {
         kind: 'object',
         objectId,
         expectedZone: { kind: 'player-zone', playerId: 'P1', zone: 'library' },
-      } as never),
+      }),
     ).value;
     slice = addCorePlayPermissionV1(
       slice,
@@ -79,7 +79,7 @@ describe('playPermissionV1', () => {
         kind: 'object',
         objectId,
         expectedZone: { kind: 'player-zone', playerId: 'P1', zone: 'library' },
-      } as never),
+      }),
     ).value;
     expect(
       coreCanPlayerAttemptPlayObjectV1(

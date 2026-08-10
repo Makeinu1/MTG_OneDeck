@@ -29,7 +29,8 @@ export class CoreRuleAuthorityOperationError extends Error {
   constructor(
     issues: readonly CoreRuleAuthorityOperationErrorV1[] | CoreRuleAuthorityOperationErrorV1,
   ) {
-    const list = Array.isArray(issues) ? issues : [issues];
+    const list: readonly CoreRuleAuthorityOperationErrorV1[] =
+      issues instanceof Array ? issues : [issues];
     super(
       `${list[0]?.code ?? 'INVALID_OPERATION_INPUT'}: Core rule authority operation failed (${list.length} issue(s))`,
     );

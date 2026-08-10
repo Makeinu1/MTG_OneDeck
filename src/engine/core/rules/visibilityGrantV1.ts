@@ -79,8 +79,9 @@ function audience(
     return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   }
   const ids: string[] = [];
-  for (let n = 0; n < read.record.playerIds.length; n += 1) {
-    const valueAt = read.record.playerIds[n];
+  const playerIds = read.record.playerIds as readonly unknown[];
+  for (let n = 0; n < playerIds.length; n += 1) {
+    const valueAt = playerIds[n];
     if (player(valueAt, `${path}/playerIds/${n}`, issues)) {
       if (ids.includes(valueAt))
         issues.push(
@@ -261,7 +262,7 @@ export function validateModeNeutralCoreVisibilitySliceV1(
       );
   if (issues.length) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   const canonical = Object.create(null) as Record<string, CoreVisibilityGrantV1>;
-  for (const key of order) canonical[key] = by[key] as CoreVisibilityGrantV1;
+  for (const key of order) canonical[key] = by[key];
   return {
     ok: true,
     value: deepFreezeCoreRuleValueV1({ kind: KIND, grantOrder: [...order], byGrant: canonical }),

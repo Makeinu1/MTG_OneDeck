@@ -204,7 +204,7 @@ export function validateModeNeutralCoreDecisionAuthoritySliceV1(
     CoreDecisionAuthorityV1
   >;
   for (const key of order as readonly string[])
-    canonical[key] = checked[key] as CoreDecisionAuthorityV1;
+    canonical[key] = checked[key];
   return {
     ok: true,
     value: deepFreezeCoreRuleValueV1({

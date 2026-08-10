@@ -379,7 +379,7 @@ function withContinuity(
     const oldController = old?.controllerPlayerId ?? null;
     const nextController = effective(slice, objectId, oldController, turnNumber) ?? oldController;
     next[objectId] = Object.freeze({
-      controllerPlayerId: nextController as CorePlayerId,
+      controllerPlayerId: nextController,
       continuousSinceMostRecentTurnBegan:
         old !== undefined && oldController === nextController
           ? old.continuousSinceMostRecentTurnBegan

@@ -510,7 +510,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
 
   it('pins hostile input non-mutation, deterministic complete issues, canonical JSON, and deep freeze', () => {
     const input = root();
-    const hostile = clone(input) as Raw;
+    const hostile = clone(input);
     Object.defineProperty(hostile, 'unknown', { enumerable: true, value: 1 });
     const before = JSON.stringify(hostile);
     const validation = record(

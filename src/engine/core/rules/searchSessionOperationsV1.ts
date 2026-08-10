@@ -1,4 +1,5 @@
 import type { CoreObjectId, CorePlayerId } from '../ids';
+import { isCanonicalCoreObjectIdV2 } from '../object/objectIdV2';
 import type { ModeNeutralCoreObjectRegistryStateV2 } from '../object/objectRegistryStateV2';
 import {
   coreDecisionMakerForV1,
@@ -40,6 +41,7 @@ function fail(
     | 'SESSION_NOT_FOUND'
     | 'SEARCH_SNAPSHOT_STALE'
     | 'SEARCH_SELECTION_INVALID'
+    | 'CANDIDATE_INVALID'
     | 'DECISION_AUTHORITY_MISSING',
   path: string,
   message: string,
@@ -50,6 +52,9 @@ function record(value: unknown): Raw | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Raw)
     : null;
+}
+function isUnknownArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
 }
 function registryOf(value: unknown): ModeNeutralCoreObjectRegistryStateV2 | null {
   const root = record(value);
@@ -101,11 +106,11 @@ function remove(
   key: string,
 ): ModeNeutralCoreSearchSessionSliceV1 {
   const order = slice.sessionOrder.filter((entry) => entry !== key);
-  const by: Raw = Object.create(null);
+  const by = Object.create(null) as Record<string, CoreSearchSessionV1>;
   for (const entry of order) by[entry] = slice.bySession[entry];
   return createModeNeutralCoreSearchSessionSliceV1({
     sessionOrder: order,
-    bySession: by as ModeNeutralCoreSearchSessionSliceV1['bySession'],
+    bySession: by,
   });
 }
 function inputSession(
@@ -200,13 +205,13 @@ export function completeCoreSearchSessionV1(
 export function completeCoreSearchSessionV1(
   bundleOrSlice: unknown,
   sessionKey: string,
-  selectedIds: readonly CoreObjectId[],
+  selectedIds: unknown,
 ): OperationResult<unknown> {
   const slice = sliceOf(bundleOrSlice);
   if (!slice) fail('INVALID_OPERATION_INPUT', '/searchSessions', 'Invalid search session slice');
   const session = slice.bySession[sessionKey];
   if (!session) fail('SESSION_NOT_FOUND', `/bySession/${sessionKey}`, 'Search session not found');
-  if (!Array.isArray(selectedIds))
+  if (!isUnknownArray(selectedIds))
     fail('INVALID_OPERATION_INPUT', '/selectedObjectIds', 'Selected object IDs must be an array');
   const registry = registryOf(bundleOrSlice);
   if (registry) {
@@ -224,19 +229,24 @@ export function completeCoreSearchSessionV1(
         'Search snapshot is stale',
       );
   }
-  const seen = new Set<string>();
-  for (const id of selectedIds) {
+  const seen = new Set<CoreObjectId>();
+  const selectedObjectIdsInput: CoreObjectId[] = [];
+  for (const rawId of selectedIds) {
+    if (!isCanonicalCoreObjectIdV2(rawId))
+      fail('CANDIDATE_INVALID', '/selectedObjectIds', 'Selected object ID is invalid');
+    const id = rawId;
     if (seen.has(id))
       fail('SEARCH_SELECTION_INVALID', '/selectedObjectIds', 'Selected object IDs must be unique');
     seen.add(id);
     if (!session.candidateObjectIds.includes(id))
       fail('SEARCH_SELECTION_INVALID', '/selectedObjectIds', 'Selected object is not a candidate');
+    selectedObjectIdsInput.push(id);
   }
   const criteria = session.criteria;
   if (
-    selectedIds.length > criteria.maximum ||
+    selectedObjectIdsInput.length > criteria.maximum ||
     ((!('mayFailToFind' in criteria) || !criteria.mayFailToFind) &&
-      selectedIds.length < criteria.minimum)
+      selectedObjectIdsInput.length < criteria.minimum)
   )
     fail('SEARCH_SELECTION_INVALID', '/selectedObjectIds', 'Selection violates quantity bounds');
   const selectedObjectIds = session.candidateObjectIds.filter((id) => seen.has(id));

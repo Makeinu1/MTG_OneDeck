@@ -151,22 +151,27 @@ function criteria(value: unknown, path: string): CoreRuleValidationResultV1<Core
     issues.push(
       makeCoreRuleIssueV1('INVALID_LITERAL', `${path}/kind`, 'Invalid search criteria kind'),
     );
-  if (typeof read.record.criteriaKey !== 'string' || !idPattern.test(read.record.criteriaKey))
+  const criteriaKey =
+    typeof read.record.criteriaKey === 'string' && idPattern.test(read.record.criteriaKey)
+      ? read.record.criteriaKey
+      : null;
+  if (criteriaKey === null)
     issues.push(
       makeCoreRuleIssueV1('INVALID_STRING', `${path}/criteriaKey`, 'Invalid opaque criteria key'),
     );
   if (!boolean(read.record.mayFailToFind, `${path}/mayFailToFind`, issues))
     return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
+  if (criteriaKey === null) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   return issues.length
     ? { ok: false, issues: sortCoreRuleIssuesV1(issues) }
     : {
         ok: true,
         value: Object.freeze({
           kind: 'qualified',
-          criteriaKey: read.record.criteriaKey as CoreRuleKeyV1,
+          criteriaKey,
           minimum: read.record.minimum as number,
           maximum: read.record.maximum as number,
-          mayFailToFind: read.record.mayFailToFind as boolean,
+          mayFailToFind: read.record.mayFailToFind,
         }),
       };
 }
@@ -204,7 +209,7 @@ function session(value: unknown, path: string): CoreRuleValidationResultV1<CoreS
     );
   const candidates: CoreObjectId[] = [];
   if (Array.isArray(read.record.candidateObjectIds))
-    read.record.candidateObjectIds.forEach((value, index) => {
+    for (const [index, value] of (read.record.candidateObjectIds as readonly unknown[]).entries()) {
       if (objectId(value, `${path}/candidateObjectIds/${index}`, issues)) {
         if (candidates.includes(value))
           issues.push(
@@ -216,7 +221,7 @@ function session(value: unknown, path: string): CoreRuleValidationResultV1<CoreS
           );
         else candidates.push(value);
       }
-    });
+    }
   const checkedCriteria = criteria(read.record.criteria, `${path}/criteria`);
   if (!checkedCriteria.ok) issues.push(...checkedCriteria.issues);
   boolean(read.record.revealFound, `${path}/revealFound`, issues);
@@ -256,10 +261,10 @@ export function validateModeNeutralCoreSearchSessionSliceV1(
   const order: string[] = [];
   const seen = new Set<string>();
   if (Array.isArray(read.record.sessionOrder))
-    read.record.sessionOrder.forEach((value, index) => {
+    for (const [index, value] of (read.record.sessionOrder as readonly unknown[]).entries()) {
       const checked = validateCoreRuleKeyV1(value, `/sessionOrder/${index}`);
       if (checked.ok) {
-        if (seen.has(value))
+        if (seen.has(checked.value))
           issues.push(
             makeCoreRuleIssueV1(
               'DUPLICATE_VALUE',
@@ -268,11 +273,11 @@ export function validateModeNeutralCoreSearchSessionSliceV1(
             ),
           );
         else {
-          seen.add(value);
-          order.push(value);
+          seen.add(checked.value);
+          order.push(checked.value);
         }
       } else issues.push(...checked.issues);
-    });
+    }
   if (
     read.record.bySession === null ||
     typeof read.record.bySession !== 'object' ||

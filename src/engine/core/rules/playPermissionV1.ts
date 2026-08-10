@@ -294,7 +294,7 @@ export function validateModeNeutralCorePlayPermissionSliceV1(
     string,
     CorePlayPermissionV1
   >;
-  for (const key of order) byPermission[key] = checked[key] as CorePlayPermissionV1;
+  for (const key of order) byPermission[key] = checked[key];
   return {
     ok: true,
     value: deepFreezeCoreRuleValueV1({

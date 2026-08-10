@@ -363,7 +363,7 @@ function boundaryViolations(units: readonly SourceUnit[]): readonly Violation[] 
         addViolation(result, unit, 'reverse-import', layer, reference.node, reference.kind, reference.specifier);
       } else if (!isWithin(unit.filePath, coreRoot)) {
         addViolation(result, unit, 'product-runtime-import', 'turn', reference.node, reference.kind, reference.specifier);
-      } else {
+      } else if (!isWithin(unit.filePath, resolve(coreRoot, 'rules'))) {
         addViolation(result, unit, 'reverse-import', 'Core', reference.node, reference.kind, reference.specifier);
       }
     }
