@@ -7,6 +7,7 @@
     "verify-contract-versions.ts",
     "verify-online-state-architecture.ts",
     "verify-mode-neutral-core-identity-zone.ts",
-    "verify-mode-neutral-core-object-registry.ts"
+    "verify-mode-neutral-core-object-registry.ts",
+    "verify-mode-neutral-core-stack-announcement.ts"
   ]
 }

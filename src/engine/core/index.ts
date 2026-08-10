@@ -152,3 +152,26 @@ export type {
   CoreCardRuntimeValidationIssue,
   CoreCardRuntimeValidationResult,
 } from './runtime';
+
+export {
+  CoreStackAnnouncementCreationError,
+  createModeNeutralCoreStackAnnouncementSliceV1,
+  validateModeNeutralCoreStackAnnouncementSliceV1,
+} from './stack';
+export type {
+  CoreStackAlternativeCostChoiceV1,
+  CoreStackAdditionalCostChoiceV1,
+  CoreStackAnnouncementRecordV1,
+  CoreStackAnnouncementValidationCode,
+  CoreStackAnnouncementValidationIssue,
+  CoreStackAnnouncementValidationResult,
+  CoreStackChoiceKeyV1,
+  CoreStackCostChoiceSetV1,
+  CoreStackDistributionAssignmentV1,
+  CoreStackDistributionAnnouncementV1,
+  CoreStackTargetRefV1,
+  CoreStackTargetSelectionV1,
+  CoreStackVariableAnnouncementV1,
+  CreateModeNeutralCoreStackAnnouncementSliceV1Input,
+  ModeNeutralCoreStackAnnouncementSliceV1,
+} from './stack';
