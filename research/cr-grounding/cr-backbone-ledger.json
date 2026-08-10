@@ -1431,7 +1431,7 @@
       "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": ["O4P-01J"],
       "landingState": ["turnPhaseStep", "activePlayer", "priority", "passState", "apnap", "triggerPlacement", "sba", "cleanup", "resolutionReady"],
       "boundary": "Represent turn order, phases, steps, active player, priority, pass/APNAP, trigger placement, SBA, cleanup, end-of-turn expiry, and resolution-ready state.",
@@ -1453,10 +1453,19 @@
         "candidate-fingerprint: e5f71f2cdc91b5c1e593c9b7d870617d1ca9f1a31ae82f5e04166eebacf1200f",
         "npm run check: PASS",
         "npm run check:forbidden: PASS",
-        "git diff --check: PASS"
+        "git diff --check: PASS",
+        "GitHub Actions run ID: 31376694856",
+        "head SHA: 92eefdc75f66d3a79efdc043de1b9d76ad90f379",
+        "Actions Success",
+        "check PASS",
+        "check:forbidden PASS",
+        "Pages deploy PASS",
+        "Pages HTTP 200",
+        "JS HTTP 200",
+        "CSS HTTP 200"
       ],
       "manualBoundary": "No full effect resolution is required; after all players pass, controller/host may explicitly confirm resolution.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01L Control, Search, Visibility, Play Permission & Decision Authority V1へ進む。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized O4P-01K orchestration: bounded parallel Luna subagents under one judge/orchestrator. Concrete SBA condition evaluation, trigger detection, full resolution, Combat, Control/Permission, Command/Event, Online, Cloudflare, and UI remain outside this milestone."
     },
@@ -4564,7 +4573,7 @@
       "judge": "user-ruling-2026-08-10"
     },
     {
-      "id": "O4P-01K", "crOrder": 500, "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"], "lane": "backbone", "edhValue": "high", "status": "audited", "dependsOn": ["O4P-01J"],
+      "id": "O4P-01K", "crOrder": 500, "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"], "lane": "backbone", "edhValue": "high", "status": "shipped", "dependsOn": ["O4P-01J"],
       "landingState": ["turnPhaseStep", "activePlayer", "priority", "passState", "apnap", "triggerPlacement", "sba", "cleanup", "resolutionReady"],
       "boundary": "Turn, phase, step, active player, priority, pass/APNAP, trigger placement, SBA, cleanup, end-of-turn expiry, and resolution-ready state.",
       "evidence": [
@@ -4585,10 +4594,19 @@
         "candidate-fingerprint: e5f71f2cdc91b5c1e593c9b7d870617d1ca9f1a31ae82f5e04166eebacf1200f",
         "npm run check: PASS",
         "npm run check:forbidden: PASS",
-        "git diff --check: PASS"
+        "git diff --check: PASS",
+        "GitHub Actions run ID: 31376694856",
+        "head SHA: 92eefdc75f66d3a79efdc043de1b9d76ad90f379",
+        "Actions Success",
+        "check PASS",
+        "check:forbidden PASS",
+        "Pages deploy PASS",
+        "Pages HTTP 200",
+        "JS HTTP 200",
+        "CSS HTTP 200"
       ],
       "manualBoundary": "Full effect resolution is not required; explicit controller/host confirmation after all players pass is allowed.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01L Control, Search, Visibility, Play Permission & Decision Authority V1へ進む。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized O4P-01K orchestration: bounded parallel Luna subagents under one judge/orchestrator. Concrete SBA condition evaluation, trigger detection, full resolution, Combat, Control/Permission, Command/Event, Online, Cloudflare, and UI remain outside this milestone."
     },
