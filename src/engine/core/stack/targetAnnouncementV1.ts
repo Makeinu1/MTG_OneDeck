@@ -80,9 +80,14 @@ function sortedIssues(
 }
 
 function isPlainRecord(value: unknown): value is RawRecord {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  const prototype = Reflect.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  if (value === null || typeof value !== 'object') return false;
+  try {
+    if (Array.isArray(value)) return false;
+    const prototype = Reflect.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function hasOwn(record: RawRecord, key: string): boolean {
@@ -96,30 +101,34 @@ function readSelectionRecord(value: unknown, path: string): {
   if (!isPlainRecord(value)) {
     return { record: null, issues: [issue('INVALID_TYPE', path, 'Expected a plain object')] };
   }
-  const issues: CoreStackTargetSelectionValidationIssue[] = [];
-  const record: RawRecord = Object.create(null) as RawRecord;
-  for (const key of Reflect.ownKeys(value)) {
-    if (typeof key !== 'string') {
-      issues.push(issue('UNKNOWN_FIELD', pointer(path, String(key)), 'Symbol fields are not allowed'));
-      continue;
+  try {
+    const issues: CoreStackTargetSelectionValidationIssue[] = [];
+    const record: RawRecord = Object.create(null) as RawRecord;
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== 'string') {
+        issues.push(issue('UNKNOWN_FIELD', pointer(path, String(key)), 'Symbol fields are not allowed'));
+        continue;
+      }
+      const fieldPath = pointer(path, key);
+      if (!SELECTION_FIELDS.includes(key as (typeof SELECTION_FIELDS)[number])) {
+        issues.push(issue('UNKNOWN_FIELD', fieldPath, `Unknown field: ${key}`));
+        continue;
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor === undefined || !descriptor.enumerable) {
+        issues.push(issue('UNKNOWN_FIELD', fieldPath, 'Non-enumerable fields are not allowed'));
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        issues.push(issue('INVALID_TYPE', fieldPath, 'Accessor properties are not allowed'));
+        continue;
+      }
+      record[key] = descriptor.value;
     }
-    const fieldPath = pointer(path, key);
-    if (!SELECTION_FIELDS.includes(key as (typeof SELECTION_FIELDS)[number])) {
-      issues.push(issue('UNKNOWN_FIELD', fieldPath, `Unknown field: ${key}`));
-      continue;
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor === undefined || !descriptor.enumerable) {
-      issues.push(issue('UNKNOWN_FIELD', fieldPath, 'Non-enumerable fields are not allowed'));
-      continue;
-    }
-    if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
-      issues.push(issue('INVALID_TYPE', fieldPath, 'Accessor properties are not allowed'));
-      continue;
-    }
-    record[key] = descriptor.value;
+    return { record, issues };
+  } catch {
+    return { record: null, issues: [issue('INVALID_TYPE', path, 'Unable to inspect target selection')] };
   }
-  return { record, issues };
 }
 
 function prefixIssues(
@@ -141,30 +150,34 @@ export function validateCoreStackTargetSelectionV1(
   value: unknown,
   path = '',
 ): CoreStackTargetSelectionValidationResult {
-  const read = readSelectionRecord(value, path);
-  const issues = [...read.issues];
-  if (read.record === null) return { ok: false, issues: sortedIssues(issues) };
-  const record = read.record;
-  for (const field of SELECTION_FIELDS) {
-    if (!hasOwn(record, field)) issues.push(issue('UNKNOWN_FIELD', pointer(path, field), `Missing field: ${field}`));
+  try {
+    const read = readSelectionRecord(value, path);
+    const issues = [...read.issues];
+    if (read.record === null) return { ok: false, issues: sortedIssues(issues) };
+    const record = read.record;
+    for (const field of SELECTION_FIELDS) {
+      if (!hasOwn(record, field)) issues.push(issue('UNKNOWN_FIELD', pointer(path, field), `Missing field: ${field}`));
+    }
+    const selectionIdResult = validateCoreStackChoiceKeyV1(record.selectionId);
+    if (!selectionIdResult.ok) issues.push(...prefixIssues(selectionIdResult.issues, pointer(path, 'selectionId')));
+    const groupKeyResult = validateCoreStackChoiceKeyV1(record.groupKey);
+    if (!groupKeyResult.ok) issues.push(...prefixIssues(groupKeyResult.issues, pointer(path, 'groupKey')));
+    const targetResult = validateCoreStackTargetRefV1(record.target);
+    if (!targetResult.ok) issues.push(...prefixIssues(targetResult.issues, pointer(path, 'target')));
+    if (issues.length > 0 || !selectionIdResult.ok || !groupKeyResult.ok || !targetResult.ok) {
+      return { ok: false, issues: sortedIssues(issues) };
+    }
+    return {
+      ok: true,
+      value: Object.freeze({
+        selectionId: selectionIdResult.value,
+        groupKey: groupKeyResult.value,
+        target: targetResult.value,
+      }),
+    };
+  } catch {
+    return { ok: false, issues: [issue('INVALID_TYPE', path, 'Unable to validate target selection')] };
   }
-  const selectionIdResult = validateCoreStackChoiceKeyV1(record.selectionId);
-  if (!selectionIdResult.ok) issues.push(...prefixIssues(selectionIdResult.issues, pointer(path, 'selectionId')));
-  const groupKeyResult = validateCoreStackChoiceKeyV1(record.groupKey);
-  if (!groupKeyResult.ok) issues.push(...prefixIssues(groupKeyResult.issues, pointer(path, 'groupKey')));
-  const targetResult = validateCoreStackTargetRefV1(record.target);
-  if (!targetResult.ok) issues.push(...prefixIssues(targetResult.issues, pointer(path, 'target')));
-  if (issues.length > 0 || !selectionIdResult.ok || !groupKeyResult.ok || !targetResult.ok) {
-    return { ok: false, issues: sortedIssues(issues) };
-  }
-  return {
-    ok: true,
-    value: Object.freeze({
-      selectionId: selectionIdResult.value,
-      groupKey: groupKeyResult.value,
-      target: targetResult.value,
-    }),
-  };
 }
 
 export function createCoreStackTargetSelectionV1(value: unknown): CoreStackTargetSelectionV1 {
@@ -177,74 +190,88 @@ function readArray(value: unknown, path: string): {
   readonly values: readonly unknown[] | null;
   readonly issues: readonly CoreStackTargetSelectionValidationIssue[];
 } {
-  if (!Array.isArray(value)) return { values: null, issues: [issue('INVALID_ARRAY', path, 'Expected an array')] };
-  const issues: CoreStackTargetSelectionValidationIssue[] = [];
-  const values: unknown[] = [];
-  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
-  if (lengthDescriptor === undefined || !Object.prototype.hasOwnProperty.call(lengthDescriptor, 'value')) {
-    issues.push(issue('INVALID_ARRAY', pointer(path, 'length'), 'Array length must be a data property'));
+  try {
+    if (!Array.isArray(value)) return { values: null, issues: [issue('INVALID_ARRAY', path, 'Expected an array')] };
+    const issues: CoreStackTargetSelectionValidationIssue[] = [];
+    const values: unknown[] = [];
+    const presentIndices = new Set<number>();
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+    if (lengthDescriptor === undefined || !Object.prototype.hasOwnProperty.call(lengthDescriptor, 'value')) {
+      return { values: null, issues: [issue('INVALID_ARRAY', pointer(path, 'length'), 'Array length must be a data property')] };
+    }
+    const arrayLength: unknown = lengthDescriptor.value;
+    if (!Number.isSafeInteger(arrayLength) || arrayLength < 0) {
+      return { values: null, issues: [issue('INVALID_ARRAY', pointer(path, 'length'), 'Array length must be a nonnegative integer')] };
+    }
+    for (const key of Reflect.ownKeys(value)) {
+      if (key === 'length') continue;
+      if (typeof key !== 'string' || !/^(0|[1-9][0-9]*)$/.test(key)) {
+        issues.push(issue('UNKNOWN_FIELD', pointer(path, typeof key === 'string' ? key : String(key)), 'Array extra fields are not allowed'));
+        continue;
+      }
+      const index = Number(key);
+      if (!Number.isSafeInteger(index) || index >= arrayLength) {
+        issues.push(issue('UNKNOWN_FIELD', pointer(path, key), 'Array index is out of bounds'));
+        continue;
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor === undefined || !descriptor.enumerable) {
+        issues.push(issue('UNKNOWN_FIELD', pointer(path, key), 'Array entries must be enumerable'));
+      } else if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        issues.push(issue('INVALID_TYPE', pointer(path, key), 'Accessor array entries are not allowed'));
+      } else {
+        presentIndices.add(index);
+        values[index] = descriptor.value;
+      }
+    }
+    for (let index = 0; index < arrayLength; index += 1) {
+      if (!presentIndices.has(index)) {
+        issues.push(issue('INVALID_ARRAY', pointer(path, String(index)), 'Sparse arrays are not allowed'));
+      }
+    }
+    return { values: issues.length === 0 ? values : null, issues };
+  } catch {
+    return { values: null, issues: [issue('INVALID_ARRAY', path, 'Unable to inspect target selection array')] };
   }
-  for (const key of Reflect.ownKeys(value)) {
-    if (key === 'length') continue;
-    if (typeof key !== 'string' || !/^(0|[1-9][0-9]*)$/.test(key)) {
-      issues.push(issue('UNKNOWN_FIELD', pointer(path, typeof key === 'string' ? key : String(key)), 'Array extra fields are not allowed'));
-      continue;
-    }
-    const index = Number(key);
-    if (!Number.isSafeInteger(index) || index >= value.length) {
-      issues.push(issue('UNKNOWN_FIELD', pointer(path, key), 'Array index is out of bounds'));
-      continue;
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor === undefined || !descriptor.enumerable) {
-      issues.push(issue('UNKNOWN_FIELD', pointer(path, key), 'Array entries must be enumerable'));
-    } else if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
-      issues.push(issue('INVALID_TYPE', pointer(path, key), 'Accessor array entries are not allowed'));
-    } else {
-      values[index] = descriptor.value;
-    }
-  }
-  for (let index = 0; index < value.length; index += 1) {
-    if (!Object.prototype.hasOwnProperty.call(value, String(index))) {
-      issues.push(issue('INVALID_ARRAY', pointer(path, String(index)), 'Sparse arrays are not allowed'));
-    }
-  }
-  return { values: issues.length === 0 ? values : null, issues };
 }
 
 export function validateCoreStackTargetSelectionsV1(
   value: unknown,
   path = '',
 ): CoreStackTargetSelectionsValidationResult {
-  const read = readArray(value, path);
-  if (read.values === null) return { ok: false, issues: sortedIssues(read.issues) };
-  const issues = [...read.issues];
-  const selections: CoreStackTargetSelectionV1[] = [];
-  const selectionIds = new Set<string>();
-  const targetsByGroup = new Map<string, Set<string>>();
-  for (let index = 0; index < read.values.length; index += 1) {
-    const itemPath = pointer(path, String(index));
-    const result = validateCoreStackTargetSelectionV1(read.values[index], itemPath);
-    if (!result.ok) {
-      issues.push(...result.issues);
-      continue;
+  try {
+    const read = readArray(value, path);
+    if (read.values === null) return { ok: false, issues: sortedIssues(read.issues) };
+    const issues = [...read.issues];
+    const selections: CoreStackTargetSelectionV1[] = [];
+    const selectionIds = new Set<string>();
+    const targetsByGroup = new Map<string, Set<string>>();
+    for (let index = 0; index < read.values.length; index += 1) {
+      const itemPath = pointer(path, String(index));
+      const result = validateCoreStackTargetSelectionV1(read.values[index], itemPath);
+      if (!result.ok) {
+        issues.push(...result.issues);
+        continue;
+      }
+      const selection = result.value;
+      if (selectionIds.has(selection.selectionId)) {
+        issues.push(issue('DUPLICATE_TARGET_SELECTION_ID', pointer(itemPath, 'selectionId'), 'Duplicate selectionId'));
+      }
+      selectionIds.add(selection.selectionId);
+      const groupTargets = targetsByGroup.get(selection.groupKey) ?? new Set<string>();
+      const key = targetKey(selection.target);
+      if (groupTargets.has(key)) {
+        issues.push(issue('DUPLICATE_TARGET_IN_GROUP', pointer(itemPath, 'target'), 'Target is duplicated within its group'));
+      }
+      groupTargets.add(key);
+      targetsByGroup.set(selection.groupKey, groupTargets);
+      selections.push(selection);
     }
-    const selection = result.value;
-    if (selectionIds.has(selection.selectionId)) {
-      issues.push(issue('DUPLICATE_TARGET_SELECTION_ID', pointer(itemPath, 'selectionId'), 'Duplicate selectionId'));
-    }
-    selectionIds.add(selection.selectionId);
-    const groupTargets = targetsByGroup.get(selection.groupKey) ?? new Set<string>();
-    const key = targetKey(selection.target);
-    if (groupTargets.has(key)) {
-      issues.push(issue('DUPLICATE_TARGET_IN_GROUP', pointer(itemPath, 'target'), 'Target is duplicated within its group'));
-    }
-    groupTargets.add(key);
-    targetsByGroup.set(selection.groupKey, groupTargets);
-    selections.push(selection);
+    if (issues.length > 0) return { ok: false, issues: sortedIssues(issues) };
+    return { ok: true, value: Object.freeze(selections.map((selection) => Object.freeze(selection))) };
+  } catch {
+    return { ok: false, issues: [issue('INVALID_ARRAY', path, 'Unable to validate target selection array')] };
   }
-  if (issues.length > 0) return { ok: false, issues: sortedIssues(issues) };
-  return { ok: true, value: Object.freeze(selections.map((selection) => Object.freeze(selection))) };
 }
 
 export function createCoreStackTargetSelectionsV1(value: unknown): readonly CoreStackTargetSelectionV1[] {

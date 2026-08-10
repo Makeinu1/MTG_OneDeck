@@ -54,6 +54,31 @@ describe('O4P-01I-F target selection contract', () => {
     expect(validateCoreStackTargetSelectionsV1(extra).ok).toBe(false);
   });
 
+  it('fails closed without throwing for revoked and throwing proxies', () => {
+    const revokedArray = Proxy.revocable([selection('a', 'g')], {});
+    revokedArray.revoke();
+    expect(() => validateCoreStackTargetSelectionsV1(revokedArray.proxy)).not.toThrow();
+    expect(validateCoreStackTargetSelectionsV1(revokedArray.proxy).ok).toBe(false);
+
+    const throwingSelection = new Proxy(selection('a', 'g'), {
+      getPrototypeOf: () => { throw new Error('revoked prototype'); },
+    });
+    expect(() => validateCoreStackTargetSelectionsV1([throwingSelection])).not.toThrow();
+    expect(validateCoreStackTargetSelectionsV1([throwingSelection]).ok).toBe(false);
+
+    const throwingKeys = new Proxy(selection('a', 'g'), {
+      ownKeys: () => { throw new Error('hostile ownKeys'); },
+    });
+    expect(() => validateCoreStackTargetSelectionsV1([throwingKeys])).not.toThrow();
+    expect(validateCoreStackTargetSelectionsV1([throwingKeys]).ok).toBe(false);
+
+    const throwingArrayInspection = new Proxy([selection('a', 'g')], {
+      getOwnPropertyDescriptor: () => { throw new Error('hostile descriptor'); },
+    });
+    expect(() => validateCoreStackTargetSelectionsV1(throwingArrayInspection)).not.toThrow();
+    expect(validateCoreStackTargetSelectionsV1(throwingArrayInspection).ok).toBe(false);
+  });
+
   it('sorts issues, returns fresh deeply frozen values, and does not mutate input', () => {
     const input = [selection('a', 'g')];
     const before = JSON.stringify(input);
