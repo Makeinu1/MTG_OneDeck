@@ -9,12 +9,12 @@
 ## 正本の地図
 
 - 裁定・優先度・コールドスタート: `docs/judge-protocol.md`
-- 反復手順・役割別cycle・token economy: `.agents/skills/mtg-onedeck-development/`
+- 反復手順・役割別cycle・token economy: `.agents/skills/mtg-onedeck-development/references/document-governance.md`
 - Tier-1監査: `.claude/audit-standing.md`
 - 状態と次スライス: `research/cr-grounding/cr-backbone-ledger.json`（履歴は同`-history.json`）
-- エンジン契約: `docs/engine-spec.md`、受け入れ: `docs/acceptance.md`
-- 音響・演出契約: `docs/audio-visual-contract.md`
-- 機械チェック: `npm run check`、禁止ファイル走査: `npm run check:forbidden`
+- エンジン契約・受け入れ・UI/AV契約: `docs/contracts/manifest.json` と `docs/acceptance/scenarios.json`
+- 旧入口: `docs/engine-spec.md`、`docs/acceptance.md`、`docs/audio-visual-contract.md`
+- 機械チェック: `npm run check:docs` / `npm run check:fast` / `npm run check:domain` / `npm run check`、禁止ファイル走査: `npm run check:forbidden -- --diff <base>`
 - M0の分担・相関遮断: `docs/engine-design-method.md` §7–8
 
 ## 役割と品質境界
@@ -24,6 +24,8 @@
 - **判定者（judge/orchestrator）**: 契約承認、CR裁定、`review.*`、台帳、`docs/`、git、出荷を所有する。
 - **実装者（implementer）**: ソース、通常テスト、機械作業、契約草稿を担う。判定者専有物とgitを触らない。
 - **冷監査者（cold auditor）**: 実装文脈を持たず、凍結成果物を敵対的に監査してfindingsだけを返す。
+
+実行順、R0〜R3のリスク分類、affected/domain/release lane、BROAD監査予算、fingerprint規律は `document-governance.md` に一本化する。
 
 実装者と受け入れ基準作者・監査者を同一にしない。実装と判定を同じタスクで行った場合も、別主体の冷監査までは`implemented-not-audited`であり、正式出荷しない。別主体は次のいずれかとする。
 

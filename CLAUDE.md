@@ -4,7 +4,7 @@
 
 ## Claude 固有のブートストラップ
 
-- 反復ワークフローの正本 = `.agents/skills/mtg-onedeck-development/`(SKILL.md + references/{cycle,token-economy}.md)。`.claude/commands/{milestone,audit,ship,autoloop}.md` は同 Skill への薄い互換参照。
+- 反復ワークフローの正本 = `.agents/skills/mtg-onedeck-development/references/document-governance.md`。SKILL と旧 references、`.claude/commands/{milestone,audit,ship,autoloop}.md` は互換入口。
 - 裁定準則・優先度式・コールドスタート読込順 = `docs/judge-protocol.md`(読込順の正本は §0)。
 - Tier-1 監査の常設規約 = `.claude/audit-standing.md`。
 - 機械チェック = `npm run check` / 禁止ファイル走査 = `npm run check:forbidden`。

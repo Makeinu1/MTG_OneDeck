@@ -24,9 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run check
-      - run: npm run check:forbidden
-      - run: npm run build -- --base=/MTG_OneDeck/
+      - run: npm run check -- --build-base=/MTG_OneDeck/
+      - run: npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }}
       - uses: actions/configure-pages@v6
         with:
           enablement: true

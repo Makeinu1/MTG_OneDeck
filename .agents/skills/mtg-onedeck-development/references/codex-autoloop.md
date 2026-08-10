@@ -1,4 +1,6 @@
-# Codex milestone loop
+# Codex milestone loop compatibility pointer
+
+The sole operative workflow is [`document-governance.md`](document-governance.md). The material below is preserved for historical compatibility; do not add new rules here.
 
 One invocation handles exactly one milestone. Project continuity lives in the ledger and a validated loop-state record, not in an endless task transcript.
 

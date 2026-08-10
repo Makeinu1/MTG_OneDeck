@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 禁止ファイル走査の単一正本。npm run check:forbidden で起動する。
 // 既定は worktree の変更(git status --short)、--diff <ref> で ref との差分を走査。
+// DOC-GOV-RESET の judge lane は --policy governance-reset で承認済み統治領域だけを検査する。
 // `review.` の裸の部分一致は CardPreview.tsx 等を誤検出する(ee45cf6 の教訓)。
 // 一方 `Name.review.test.tsx`(ドット区切りの review テスト)も判定者専有ゆえ拾う必要がある。
 // ゆえに境界を「行頭・パス区切り・ドット」に固定する: `.review.` は拾い、`Preview.`(直前が
@@ -24,6 +25,27 @@ const NEEDS_REAUTH = [
   { re: /^package\.json$/, why: '依存・スクリプト定義' },
 ];
 
+const GOVERNANCE_RESET_ALLOWED = [
+  /^(?:AGENTS|CLAUDE|QWEN)\.md$/,
+  /^README\.md$/,
+  /^docs\//,
+  /^research\/archive\/document-reset-2026-08\//,
+  /^\.agents\/skills\/mtg-onedeck-development\//,
+  /^\.claude\//,
+  /^\.github\/workflows\//,
+  /^package\.json$/,
+  /^scripts\/checks\//,
+  /^scripts\/__tests__\/machine-checks\.test\.mjs$/,
+  /^src\/test\/architecture\/deployPagesGates\.test\.ts$/,
+];
+
+const policyIdx = process.argv.indexOf('--policy');
+const policy = policyIdx === -1 ? null : process.argv[policyIdx + 1];
+if (policy !== null && policy !== 'governance-reset') {
+  console.error('usage: forbidden-files.mjs [--diff <ref>] [--policy governance-reset]');
+  process.exit(2);
+}
+
 function changedFiles() {
   const diffIdx = process.argv.indexOf('--diff');
   if (diffIdx !== -1) {
@@ -32,9 +54,11 @@ function changedFiles() {
       console.error('usage: forbidden-files.mjs [--diff <ref>]');
       process.exit(2);
     }
-    return execFileSync('git', ['diff', '--name-only', ref], { encoding: 'utf8' })
-      .split('\n')
-      .filter(Boolean);
+    const diffFiles = execFileSync('git', ['diff', '--name-only', ref], { encoding: 'utf8' })
+      .split('\n').filter(Boolean);
+    const untrackedFiles = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
+      .split('\n').filter(Boolean);
+    return [...new Set([...diffFiles, ...untrackedFiles])].sort();
   }
   // git status --short: "XY path" / リネームは "R  old -> new"(新パスを採る)
   return execFileSync('git', ['status', '--short'], { encoding: 'utf8' })
@@ -51,6 +75,10 @@ const files = changedFiles();
 const forbidden = [];
 const reauth = [];
 for (const f of files) {
+  if (policy === 'governance-reset') {
+    if (!GOVERNANCE_RESET_ALLOWED.some((re) => re.test(f))) forbidden.push(`${f}  (DOC-GOV-RESET scope)`);
+    continue;
+  }
   const hit = FORBIDDEN.find((r) => r.re.test(f));
   if (hit) {
     forbidden.push(`${f}  (${hit.why})`);

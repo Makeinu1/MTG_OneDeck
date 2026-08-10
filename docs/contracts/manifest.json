@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "milestone": "DOC-GOV-RESET-2026-08",
+  "activeAllowlist": [],
+  "contracts": [
+    {
+      "id": "CONTRACT-ENGINE-STATE",
+      "status": "active",
+      "path": "docs/contracts/engine/state-and-invariants.md",
+      "authorityFor": ["engine-state", "immutability", "state-invariants"],
+      "owner": "judge",
+      "dependsOn": [],
+      "supersedes": ["legacy:docs/engine-spec.md#1"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/init.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-COMMANDS",
+      "status": "active",
+      "path": "docs/contracts/engine/commands-and-transactions.md",
+      "authorityFor": ["engine-commands", "transactions", "undo-boundary"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE"],
+      "supersedes": ["legacy:docs/engine-spec.md#2"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/commands.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-ZONES",
+      "status": "active",
+      "path": "docs/contracts/engine/zones-events-and-lki.md",
+      "authorityFor": ["zones", "events", "lki", "zone-change"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "supersedes": ["legacy:docs/engine-spec.md#zone-sections"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-TURN",
+      "status": "active",
+      "path": "docs/contracts/engine/turn-priority-and-stack.md",
+      "authorityFor": ["turn", "priority", "stack"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "supersedes": ["legacy:docs/engine-spec.md#turn-sections"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/priority.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-MANA",
+      "status": "active",
+      "path": "docs/contracts/engine/mana-costs-and-payment.md",
+      "authorityFor": ["mana", "costs", "payment"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "supersedes": ["legacy:docs/engine-spec.md#mana-sections"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/mana.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-MULTIPLAYER",
+      "status": "active",
+      "path": "docs/contracts/engine/multiplayer.md",
+      "authorityFor": ["multiplayer", "players", "player-zones"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-ZONES"],
+      "supersedes": ["legacy:docs/engine-spec.md#multiplayer-sections"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/test/architecture/soloOnlineBoundary.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ENGINE-COMPILER",
+      "status": "active",
+      "path": "docs/contracts/engine/oracle-compiler.md",
+      "authorityFor": ["oracle-compiler", "oracle-text", "guided-manual-boundary"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "supersedes": ["legacy:docs/engine-spec.md#compiler-sections"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/cr701DiscardCompiler.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-ACCEPTANCE",
+      "status": "active",
+      "path": "docs/acceptance/scenarios.json",
+      "authorityFor": ["acceptance-scenarios", "scenario-traceability"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-ENGINE-COMPILER"],
+      "supersedes": ["legacy:docs/acceptance.md"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-UI-DESIGN",
+      "status": "active",
+      "path": "docs/contracts/ui/design-principles.md",
+      "authorityFor": ["ui-why", "design-principles"],
+      "owner": "judge",
+      "dependsOn": [],
+      "supersedes": ["legacy:docs/design-vision.md"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-UI-VISUAL",
+      "status": "active",
+      "path": "docs/contracts/ui/visual-language.md",
+      "authorityFor": ["ui-visual-language", "design-tokens"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-UI-DESIGN"],
+      "supersedes": ["legacy:docs/design-system.md"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-UI-ARCHITECTURE",
+      "status": "active",
+      "path": "docs/contracts/ui/architecture.md",
+      "authorityFor": ["ui-how", "ui-architecture"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-VISUAL"],
+      "supersedes": ["legacy:docs/ui-architecture-v2.md"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-UI-RESPONSIVE",
+      "status": "active",
+      "path": "docs/contracts/ui/responsive.md",
+      "authorityFor": ["ui-responsive", "viewport-contract"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-UI-ARCHITECTURE"],
+      "supersedes": ["legacy:docs/acceptance.md#mobile"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/adaptiveLaneLayout.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "CONTRACT-AV",
+      "status": "active",
+      "path": "docs/contracts/ui/audio-visual.md",
+      "authorityFor": ["audio-visual", "semantic-audio", "motion-parity"],
+      "owner": "judge",
+      "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE"],
+      "supersedes": ["legacy:docs/audio-visual-contract.md"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/__tests__/review.av0-contract.test.ts"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    },
+    {
+      "id": "GENERATED-ENGINE-API",
+      "status": "generated",
+      "path": "docs/generated/engine-api.md",
+      "authorityFor": ["engine-export-index"],
+      "owner": "machine",
+      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "supersedes": [],
+      "verifiedBy": ["scripts/checks/generate-engine-api.mjs", "scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "7da637ba225cad8097686e261d1d1c92964ee16a"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "milestone": "DOC-GOV-RESET-2026-08",
+  "baseSha": "7da637ba225cad8097686e261d1d1c92964ee16a",
+  "entries": [
+    {
+      "id": "CONFLICT-TURN-DRAW-001",
+      "kind": "needs-decision",
+      "sources": ["docs/engine-spec.md", "docs/acceptance.md"],
+      "claim": "The legacy engine text contains both a turn-one draw skip rule and an older draw expectation; acceptance also describes automatic draw on a later turn.",
+      "evidence": "Current runtime and review tests must be treated as evidence, but the reset brief supplies no explicit ruling that resolves every wording variant.",
+      "decision": "Do not change runtime or assert a new semantic in an active contract. Preserve the conflict in the archive until an explicit ruling and current green evidence agree."
+    },
+    {
+      "id": "CONFLICT-HAND-SIZE-001",
+      "kind": "needs-decision",
+      "sources": ["docs/acceptance.md", "docs/engine-spec.md"],
+      "claim": "Opening hand, cleanup maximum, and older UI descriptions use 7/8-card language in different contexts.",
+      "evidence": "Opening setup is described as seven cards while cleanup behavior and older UI material mention eight; the reset brief forbids guessing between them.",
+      "decision": "Keep the contexts separate in migration data and do not rewrite runtime behavior. Any remaining ambiguous scenario is not active-green."
+    },
+    {
+      "id": "CONFLICT-UI-LINEAGE-001",
+      "kind": "needs-decision",
+      "sources": ["docs/README.md", "docs/acceptance.md", "docs/ui-architecture-v2.md"],
+      "claim": "Legacy Playmat and current GameScreen descriptions coexist with mobile/desktop acceptance language.",
+      "evidence": "The current README carries both deleted-file history and current UI claims; acceptance still contains legacy interaction wording.",
+      "decision": "Move lineage and audit material to archive/ADR. Active UI contracts describe only current principles and interfaces; no product UI change is made."
+    },
+    {
+      "id": "CONFLICT-SCRYFALL-LANE-001",
+      "kind": "resolved-by-milestone",
+      "sources": ["docs/acceptance.md"],
+      "claim": "Normal acceptance mixes fixed fixtures with live Scryfall verification.",
+      "evidence": "The brief explicitly assigns fixed fixture/snapshot data to normal acceptance and live Scryfall to online/periodic lanes.",
+      "decision": "Active scenarios use fixed fixtures; live API checks are periodic/online only."
+    },
+    {
+      "id": "CONFLICT-RETEST-LANE-001",
+      "kind": "resolved-by-milestone",
+      "sources": ["docs/acceptance.md", "AGENTS.md"],
+      "claim": "Older acceptance text requires full scenario replay after any failure.",
+      "evidence": "The reset brief supplies the replacement scenario/domain/wide-lane rules.",
+      "decision": "Use scenario-from-start, shared-fixture domain, shared-infrastructure wide-domain, and candidate-freeze release rules."
+    },
+    {
+      "id": "CONFLICT-RELEASE-BUILD-001",
+      "kind": "confirmed-defect",
+      "sources": ["scripts/checks/machine-checks.mjs", ".github/workflows/deploy-pages.yml"],
+      "claim": "The release workflow builds once inside check and once again for Pages.",
+      "evidence": "The workflow runs npm run check followed by npm run build -- --base=/MTG_OneDeck/.",
+      "decision": "Parameterize the single release build and upload that dist artifact."
+    },
+    {
+      "id": "CONFLICT-FORBIDDEN-SCAN-001",
+      "kind": "confirmed-defect",
+      "sources": ["scripts/checks/forbidden-files.mjs", ".github/workflows/deploy-pages.yml"],
+      "claim": "The default forbidden scan uses only a clean checkout's git status.",
+      "evidence": "The script defaults to git status --short and the workflow invokes it without a base/diff argument.",
+      "decision": "Require the workflow to pass an explicit base ref/diff while retaining status mode for local worktrees."
+    },
+    {
+      "id": "CONFLICT-SOLO-DUPLICATE-001",
+      "kind": "confirmed-defect",
+      "sources": ["scripts/checks/machine-checks.mjs", "scripts/checks/vitest-projects.mjs"],
+      "claim": "The same three Solo-preservation test files are run by a dedicated step and again by full DOM Vitest.",
+      "evidence": "The baseline output shows a dedicated 3-file run before the full core/dom suite.",
+      "decision": "Keep the dedicated check in fast/domain lanes; in release, let the full Vitest run own those files once."
+    }
+  ]
+}

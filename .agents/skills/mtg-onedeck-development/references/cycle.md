@@ -1,4 +1,6 @@
-# Development cycle
+# Development cycle compatibility pointer
+
+The sole operative workflow is [`document-governance.md`](document-governance.md). The material below is preserved for historical compatibility; do not add new rules here.
 
 ## Roles
 

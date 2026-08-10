@@ -2,7 +2,7 @@
 // 機械チェックの単一正本(旧「機械チェック4点」)。npm run check で起動する。
 // 各ステップは個別実行する(&& 連結だと失敗ステップの帰属が曖昧になるため)。
 // 素の `npx tsc --noEmit` は root tsconfig が files:[] のため no-op — 型検査の正は
-// `npm run build`(tsc -b)に内蔵されている。CR・契約・Solo保全・Core・lint・test・buildで完全。
+// `npm run build`(tsc -b)に内蔵されている。CR・契約・docs・Core・lint・test・buildで完全。
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url';
 const machineCheckSteps = [
   { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
-  { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
+  { name: 'docs契約検証', cmd: 'npm', args: ['run', 'check:docs'] },
   {
     name: 'Online状態アーキテクチャ検証',
     cmd: 'npm',
@@ -62,30 +62,48 @@ const machineCheckSteps = [
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
 ];
 
-const usage = 'Usage: npm run check -- [--continue-on-error]';
+export function machineCheckStepsFor({ buildBase } = {}) {
+  if (!buildBase) return machineCheckSteps;
+  return machineCheckSteps.map((step) => step.name === 'build (型検査内蔵)'
+    ? { ...step, args: ['run', 'build', '--', `--base=${buildBase}`] }
+    : step);
+}
+
+const usage = 'Usage: npm run check -- [--continue-on-error] [--build-base=<path>]';
 
 export function parseMachineCheckArgs(args) {
-  if (args.length === 0) return { continueOnError: false };
-  if (args.length === 1 && args[0] === '--continue-on-error') {
-    return { continueOnError: true };
+  const options = { continueOnError: false };
+  for (const arg of args) {
+    if (arg === '--continue-on-error') {
+      if (options.continueOnError) throw new Error(`Unknown argument: ${args.join(' ')}`);
+      options.continueOnError = true;
+      continue;
+    }
+    if (arg.startsWith('--build-base=')) {
+      if (options.buildBase !== undefined || arg.length === '--build-base='.length) throw new Error(`Unknown argument: ${args.join(' ')}`);
+      options.buildBase = arg.slice('--build-base='.length);
+      continue;
+    }
+    throw new Error(`Unknown argument: ${args.join(' ')}`);
   }
-
-  throw new Error(`Unknown argument: ${args.join(' ')}`);
+  return options;
 }
 
 export function runMachineChecks({
   steps = machineCheckSteps,
+  buildBase,
   continueOnError = false,
   spawn = spawnSync,
   now = () => performance.now(),
   write = (line) => console.log(line),
 } = {}) {
+  const effectiveSteps = steps === machineCheckSteps ? machineCheckStepsFor({ buildBase }) : steps;
   const results = [];
   const totalStartedAt = now();
   let nextStepStartedAt = totalStartedAt;
   let firstFailure = 0;
 
-  for (const [index, step] of steps.entries()) {
+  for (const [index, step] of effectiveSteps.entries()) {
     if (firstFailure !== 0 && !continueOnError) {
       results.push({ name: step.name, code: null, durationMs: 0, skipped: true });
       continue;
@@ -100,7 +118,7 @@ export function runMachineChecks({
     results.push({ name: step.name, code, durationMs, skipped: false });
 
     if (code !== 0 && firstFailure === 0) firstFailure = code;
-    const willRunAnotherStep = index < steps.length - 1 && (firstFailure === 0 || continueOnError);
+    const willRunAnotherStep = index < effectiveSteps.length - 1 && (firstFailure === 0 || continueOnError);
     if (willRunAnotherStep) nextStepStartedAt = now();
   }
 

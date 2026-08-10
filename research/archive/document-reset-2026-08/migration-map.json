@@ -1,0 +1,2477 @@
+{
+  "milestone": "DOC-GOV-RESET-2026-08",
+  "legacyIds": [
+    {
+      "id": "ACT3-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "ACT3-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "ACT3-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "ACT3-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "ACT3-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "ACT3-6",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-ABILITY-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-ABILITY-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-ABILITY-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-ABILITY-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-ABILITY-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-LANGUAGE-6",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-MANA-6",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-TRIGGER-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-TRIGGER-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-TRIGGER-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-TRIGGER-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UX-TRIGGER-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UXF-1",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UXF-2",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UXF-3",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UXF-4",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "id": "UXF-5",
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md"
+    }
+  ],
+  "sources": [
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 1,
+      "heading": "# G1/G2 受け入れシナリオ(E2E)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 2,
+      "heading": "## 前提",
+      "classification": "active manual scenario",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 3,
+      "heading": "## シナリオ",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 4,
+      "heading": "## M4.5 UI追加項目(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 5,
+      "heading": "## G2 追加項目(M5 ジャッジ実装後)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 6,
+      "heading": "### J3 の既知裁定(正答を事前確認済みの質問)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 7,
+      "heading": "## M4.6 ルール補助追加項目(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 8,
+      "heading": "## M4.7 一人回し体験の追加項目(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 9,
+      "heading": "## M4.8 A層プリミティブの追加項目(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 10,
+      "heading": "## M4.9 モバイル(横画面)対応の追加項目(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 11,
+      "heading": "## M4.10 日本語取りこぼし修正・PWAの追加項目(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 12,
+      "heading": "## M4.11 不具合修正の追加項目(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 13,
+      "heading": "## M4.12 Arena流UI+機能の追加項目(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 14,
+      "heading": "## M4.13 レイヤー型UIの追加項目(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 15,
+      "heading": "## M4.14 手札全表示・各領域の枚数連動縮小(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 16,
+      "heading": "## M4.15 フェッチ土地の自動化(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 17,
+      "heading": "## M4.16 開始時マリガン判定 + 操作ボタン位置 + キー操作(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 18,
+      "heading": "## M4.18 占術/諜報・ゾーンボタン整理・⋯拡充・多色マナ源(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 19,
+      "heading": "## M4.19 モバイルで盤面カードがオーバーレイに隠れない(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 20,
+      "heading": "## M4.20 モバイル盤面カードの比率維持縮小(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 21,
+      "heading": "## M4.21 モバイルのマナ/ターン縮小・右パネル幅縮小(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 22,
+      "heading": "## M4.22 モバイルのカードバッジ/カウンター縮小(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 23,
+      "heading": "## M4.23 信頼性ハードニング(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 24,
+      "heading": "## M4.24 進行中ゲームの永続化&復元(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 25,
+      "heading": "## M4.26 デッキ統計 + ゴールドフィッシュ補助(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 26,
+      "heading": "## M4.27 スタック表現 + 能力オブジェクト(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 27,
+      "heading": "### ST スタック",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 28,
+      "heading": "### DR ドラッグ / HS 手札スクロール",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 29,
+      "heading": "## M4.28 スタック拡張: コピー + フェッチのスタック化(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 30,
+      "heading": "### CP コピー",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 31,
+      "heading": "### FZ フェッチのスタック化",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 32,
+      "heading": "## M4.29 微修正(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 33,
+      "heading": "## M4.30 情報パネル + スタック拡張/移動(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 34,
+      "heading": "### IN 情報パネル",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 35,
+      "heading": "### SK スタック拡張/移動",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 36,
+      "heading": "## M4.31 統率税(CR 903.8 再整合) + ショートカット・リマップ(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 37,
+      "heading": "### CT 統率税",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 38,
+      "heading": "### KB キーボードショートカット・リマップ",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 39,
+      "heading": "## M4.32 モバイル画面レイアウト刷新(G2リグレッション時に再確認)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 40,
+      "heading": "## M6.1 ルール分類レポート(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 41,
+      "heading": "## M6.2a スタック中フェイズ移動禁止(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 42,
+      "heading": "## M6.2 安全な候補アクション(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 43,
+      "heading": "## M6.3 誘発候補キュー(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 44,
+      "heading": "## M6.10 誘発候補キューの精度向上(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 45,
+      "heading": "## M6.11 誘発ファミリー拡充(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 46,
+      "heading": "## M6.5 付与キーワードの手動オーバーライド(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 47,
+      "heading": "## M6.8 ゾーン外キャスト補助(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 48,
+      "heading": "## M6.9 リソーストークンの能力導線拡充(G2リグレッション時に再確認)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 49,
+      "heading": "## G2 効果の全自動実行(engine-spec §31)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 50,
+      "heading": "## G3 対象/モード誘導フロー(engine-spec §32)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 51,
+      "heading": "## G4 起動型コスト精算(engine-spec §33)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 52,
+      "heading": "### G5 CR121 cross-player draw 検証ピン(2026-07-24・engine-spec §33.9)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 53,
+      "heading": "### G6 CR605 mana choice UI 検証ピン(2026-07-25・engine-spec §33.10)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 54,
+      "heading": "### G7 CR606 loyalty ability activation 検証ピン(2026-07-25・engine-spec §33.11)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 55,
+      "heading": "### G8 CR609 one-shot mass destroy core 検証ピン(engine-spec §34.52)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 56,
+      "heading": "### G9 CR701 cross-player actions 検証ピン(engine-spec §34.53)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 57,
+      "heading": "### UX-MANA 自動支払い選択(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "active automated scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 58,
+      "heading": "### UX-TRIGGER 誘発の直接処理(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 59,
+      "heading": "### UX-ABILITY カード上の起動型能力(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 60,
+      "heading": "### UX-LANGUAGE レスポンシブ操作言語(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 61,
+      "heading": "### ACT-3 起動型キーワードの正規形展開(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 62,
+      "heading": "### UX-FIX4 スタック対象・統一Undo・制限マナ補助・日本語能力表示(2026-07-19・判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 63,
+      "heading": "### M-STACK-CONTROL 手動完遂可能なスタック体験(2026-07-20・ユーザー直接プレイ摩擦)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 64,
+      "heading": "## M-MOBILE-DENSITY モバイル盤面密度・操作導線(2026-07-22・ユーザー直接プレイ摩擦)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 65,
+      "heading": "## M-AV 思考を支えるオーディオビジュアル(2026-07-26・ユーザー裁定)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 66,
+      "heading": "### M-AV1 意味イベントと無音境界",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 67,
+      "heading": "### M-AV2 反復と統率者",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 68,
+      "heading": "### M-AV3 transport・設定・失敗時",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 69,
+      "heading": "### M-AV4 ブラウザ性能・人間判定",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 70,
+      "heading": "### M-AV5 パーマネント・アンビエントビート(2026-07-27 ユーザー裁定)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 71,
+      "heading": "### M-AV6 2フェーズリズム + ダンスフロア照明(2026-07-28 ユーザー裁定)",
+      "classification": "active manual scenario",
+      "destination": "docs/acceptance/scenarios.json"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-acceptance.md",
+      "ordinal": 72,
+      "heading": "## M-CR-RECONCILE CR 2026-06-19 地盤改良(engine-spec §34.0)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-acceptance.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 1,
+      "heading": "# MTG_OneDeck ゲームエンジン仕様(API契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 2,
+      "heading": "## 1. 型定義(src/engine/types.ts)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 3,
+      "heading": "### 不変条件(プロパティテストの対象。違反は実装バグ)",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 4,
+      "heading": "## 2. コマンド(src/engine/commands.ts)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 5,
+      "heading": "## 3. マナ(src/engine/mana.ts)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 6,
+      "heading": "## 4. 初期化(src/engine/init.ts)と乱数(src/engine/random.ts)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 7,
+      "heading": "## 5. ストア(src/store/gameStore.ts)— M3 が依存する操作面",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 8,
+      "heading": "## 6. M2 の完了条件",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 9,
+      "heading": "## 7. M4.6 追補(ルール補助強化)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 10,
+      "heading": "### 7.1 型の追加",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 11,
+      "heading": "### 7.2 新コマンド",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 12,
+      "heading": "### 7.3 ETB フック(moveCardInternal の battlefield 進入時。playLand/castSpell/castCommander/createToken 経由を含む)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 13,
+      "heading": "### 7.4 ターン開始処理(untap 進入時、全アンタップの後)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 14,
+      "heading": "### 7.5 enterPhase の変更",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 15,
+      "heading": "### 7.6 召喚酔いヘルパー(engine/commander.ts か新 engine/status.ts)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 16,
+      "heading": "### 7.7 自動マナタップソルバー(新 engine/autotap.ts、純粋関数)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 17,
+      "heading": "### 7.8 ストア追加・変更",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 18,
+      "heading": "#### 7.8a 誘発のPrimaryAction直接処理(2026-07-18・資源状態②追補→同日判定者監査済)",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 19,
+      "heading": "### 7.9 不変条件の追加(プロパティテスト対象)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 20,
+      "heading": "## 8. M4.7 追補(一人回し体験の仕上げ)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 21,
+      "heading": "### 8.1 型の追加",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 22,
+      "heading": "### 8.2 コマンドの追加・変更(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 23,
+      "heading": "### 8.3 status.ts への追加(純粋関数)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 24,
+      "heading": "### 8.4 有効パワー算出(`src/engine/status.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 25,
+      "heading": "### 8.5 不変条件の追加・更新",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 26,
+      "heading": "### 8.6 ストア(`src/store/gameStore.ts`)で実装する操作",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 27,
+      "heading": "## 9. M4.8 追補(A層プリミティブの拡充)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 28,
+      "heading": "### 9.1 コマンドの追加(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 29,
+      "heading": "### 9.2 ストア(`src/store/gameStore.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 30,
+      "heading": "## 10. M4.12 追補(マナ編集・サイクリング・マナ量)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 31,
+      "heading": "### 10.1 コマンド追加(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 32,
+      "heading": "### 10.2 status.ts へサイクリング検出を追加(純粋関数)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 33,
+      "heading": "### 10.3 ストア(`src/store/gameStore.ts`)で実装する操作",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 34,
+      "heading": "### 10.4 tapForMana の産出量改善(best-effort、`src/store/gameStore.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 35,
+      "heading": "## 11. M4.15 追補(フェッチ土地の自動化)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 36,
+      "heading": "### 11.1 status.ts へフェッチ検出を追加(純粋関数 `src/engine/status.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 37,
+      "heading": "### 11.2 ストア(`src/store/gameStore.ts`)で実装する操作",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 38,
+      "heading": "## 12. M4.27 追補(スタック表現 + 能力オブジェクト)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 39,
+      "heading": "### 12.1 型の変更・追加(`src/engine/types.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 40,
+      "heading": "### 12.2 コマンドの追加(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 41,
+      "heading": "### 12.3 moveCardInternal の補強(I9 維持)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 42,
+      "heading": "### 12.4 不変条件の更新・追加(プロパティテスト対象)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 43,
+      "heading": "### 12.5 ストア(`src/store/gameStore.ts`)で実装する操作",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 44,
+      "heading": "## 13. M4.28 追補(スタック拡張: コピー + フェッチのスタック化)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 45,
+      "heading": "### 13.1 型の追加(`src/engine/types.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 46,
+      "heading": "### 13.2 コマンドの追加(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 47,
+      "heading": "### 13.3 moveCardInternal の補強(I10 維持)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 48,
+      "heading": "### 13.4 不変条件の更新・追加(プロパティテスト対象)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 49,
+      "heading": "### 13.5 フェッチのスタック化(エンジン追加なし=既存コマンドの合成。`src/store/gameStore.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 50,
+      "heading": "## 14. M4.30 追補(per-turn カウンター: ストーム + ドロー数)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 51,
+      "heading": "### 14.1 型の追加(`src/engine/types.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 52,
+      "heading": "### 14.2 増減・リセット(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 53,
+      "heading": "### 14.3 不変条件(プロパティテスト対象)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 54,
+      "heading": "### 14.4 スナップショット前方互換(`src/store/gameStore.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 55,
+      "heading": "### 14.5 派生情報(`src/data/gameInfo.ts` 新規・純粋関数。エンジン外)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 56,
+      "heading": "## 15. M4.31 再整合(統率税)— この節も契約である。**CR 903.8 を正本とし、戻し時加算モデルを撤回する**",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 57,
+      "heading": "### 15.1 加算契機(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 58,
+      "heading": "### 15.2 税コスト・表示",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 59,
+      "heading": "### 15.3 不変条件・回帰",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 60,
+      "heading": "## 16. M6.1 ルール分類器 + デッキ別ルール補助レポート(データ層契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 61,
+      "heading": "### 16.1 CardDef の追加フィールド(`src/types/card.ts` / `src/data/scryfall.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 62,
+      "heading": "### 16.2 型(`src/data/ruleClassifier.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 63,
+      "heading": "### 16.3 classifyCardRules の挙動契約",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 64,
+      "heading": "### 16.4 デッキ別集計(`src/data/ruleDeckSummary.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 65,
+      "heading": "### 16.5 UI契約(`src/components/RuleAutomationReport.tsx`、`ImportScreen` の `DeckStats` 直後)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 66,
+      "heading": "## 17. M6.2a スタック中はフェイズ/ターン移動を禁止(ストア層契約)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 67,
+      "heading": "### 17.1 ゲート(`src/store/gameStore.ts` `dispatchTurnTransition`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 68,
+      "heading": "### 17.2 UI(`src/components/playmat/`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 69,
+      "heading": "### 17.3 cr-500-514-turn-structure(CR 500.2/500.3・S-TURN 前半)との関係",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 70,
+      "heading": "## 18. R下地/R1 バッチ適用ヘルパー(`src/engine/batch.ts`)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 71,
+      "heading": "## 19. M6.2 安全な候補アクション(データ層 + UI契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 72,
+      "heading": "### 19.1 分類タグの追加(`src/data/ruleClassifier.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 73,
+      "heading": "### 19.2 タグ→候補→既存store操作のマップ(`src/components/playmat/Playmat.tsx` `buildMenuItems`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 74,
+      "heading": "### 19.3 挙動契約",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 75,
+      "heading": "## 20. M6.3 誘発候補キュー(ストア層 + UI契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 76,
+      "heading": "### 20.1 分類タグの追加(`src/data/ruleClassifier.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 77,
+      "heading": "### 20.2 イベント検出(`src/store/gameStore.ts`・前進操作のみ)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 78,
+      "heading": "### 20.3 UI(`src/components/playmat/`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 79,
+      "heading": "### 20.4 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 80,
+      "heading": "## 21. M6.4 半自動アクション(対象選択を伴う候補・データ層 + UI契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 81,
+      "heading": "### 21.1 分類タグの追加(`src/data/ruleClassifier.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 82,
+      "heading": "### 21.2 候補システムの整理(`src/components/playmat/ruleActionCandidates.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 83,
+      "heading": "### 21.3 TargetPickerDialog(`src/components/playmat/`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 84,
+      "heading": "### 21.4 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 85,
+      "heading": "## 22. M6.5 付与キーワードの手動オーバーライド(エンジン契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 86,
+      "heading": "### 22.1 型(`src/engine/types.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 87,
+      "heading": "### 22.2 コマンド(`src/engine/commands.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 88,
+      "heading": "### 22.3 status.ts の統合(`src/engine/status.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 89,
+      "heading": "### 22.4 UI(`src/components/playmat/`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 90,
+      "heading": "### 22.5 不変・互換",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 91,
+      "heading": "## 23. M6.8 ゾーン外キャスト補助(データ層 + UI契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 92,
+      "heading": "### 23.1 分類タグの追加(`src/data/ruleClassifier.ts` `classifyAbilityText`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 93,
+      "heading": "### 23.2 ゾーン外キャストUI(`src/components/playmat/Playmat.tsx` `buildMenuItems`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 94,
+      "heading": "### 23.3 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 95,
+      "heading": "## 24. M6.9 リソーストークンの能力導線拡充(ストア + UI契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 96,
+      "heading": "### 24.1 ストアの新メソッド(`src/store/gameStore.ts`)— 全て単一 undo(`applyCommands(cur, [...]) → commit(result.state, ...)`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 97,
+      "heading": "### 24.2 UI(`src/components/playmat/Playmat.tsx` `buildMenuItems` 戦場枝)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 98,
+      "heading": "### 24.3 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 99,
+      "heading": "## 25. M6.10 誘発候補キューの精度向上(データ層 + ストア検出契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 100,
+      "heading": "### 25.1 分類タグの追加(`src/data/ruleClassifier.ts` `classifyAbilityText`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 101,
+      "heading": "### 25.2 検出の拡張(`src/store/gameStore.ts` `detectTriggerCandidates`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 102,
+      "heading": "### 25.3 攻撃誘発の検出(`src/store/gameStore.ts` `declareAttack`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 103,
+      "heading": "### 25.4 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 104,
+      "heading": "## 26. 分類精度ハーネスとコーパス回帰(計測基盤・この節も契約である)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 105,
+      "heading": "### 26.0 原則(統治)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 106,
+      "heading": "### 26.1 ハーネス本体(`scripts/classifier-accuracy.ts`)— A0",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 107,
+      "heading": "### 26.2 ハーネス磨き込み(A1)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 108,
+      "heading": "### 26.3 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 109,
+      "heading": "## 27. Phase B 分類精度向上: キーワード行文法の精緻化(`src/engine/keywordGrammar.ts`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 110,
+      "heading": "### 27.1 F1 セミコロン区切り",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 111,
+      "heading": "### 27.2 F2/F3 equip 専用パラメトリック解析",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 112,
+      "heading": "### 27.3 残置(本パスでは許容)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 113,
+      "heading": "### 27.4 既知差分(Scryfall 側の誤り)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 114,
+      "heading": "### 27.5 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 115,
+      "heading": "## 28. Phase C 分類精度向上: 誘発ファミリー拡充(`src/data/ruleClassifier.ts`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 116,
+      "heading": "### 28.0 最終ゴールと本マイルストーンの分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 117,
+      "heading": "### 28.1 検出規則(`classifyAbilityText` に追加・正本は挙動)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 118,
+      "heading": "### 28.2 ライブ誘発候補キュー(`src/store/gameStore.ts` `detectTriggerCandidates`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 119,
+      "heading": "### 28.3 ハーネス拡張(`scripts/classifier-accuracy.ts`)— 広網プローブ方式",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 120,
+      "heading": "### 28.4 コーパス回帰(正本ゲート・`src/data/__tests__/fixtures/classifier-corpus.ts`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 121,
+      "heading": "### 28.5 不変・非干渉",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 122,
+      "heading": "## 29. エンジン文法器トラック Phase G0: 文法カバレッジ分析ハーネス(`src/engine/grammar/` + `scripts/grammar-coverage.ts`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 123,
+      "heading": "### 29.0 目的と分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 124,
+      "heading": "### 29.1 新規モジュール `src/engine/grammar/`(純関数・計測専用)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 125,
+      "heading": "### 29.2 能力タイプ分類(`AbilityShape`・1行=1タイプ、優先順で先勝ち)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 126,
+      "heading": "### 29.3 効果アトム語彙(`EffectAtomId`・安定 id・probe は広網)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 127,
+      "heading": "### 29.4 構文(自動化の壁)語彙(`ConstructId`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 128,
+      "heading": "### 29.5 出力レポート(`research/grammar-coverage/report.md` + `report.json`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 129,
+      "heading": "### 29.6 裏取り(確定前必須)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 130,
+      "heading": "### 29.7 不変・非干渉(エンジン不変)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 131,
+      "heading": "## 30. エンジン文法器トラック Phase G1: 能力IR型 + targetless パーサ(`src/engine/grammar/ir.ts` + `rule-refs.ts` + `scripts/grammar-ir.ts`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 132,
+      "heading": "### 30.0 目的と分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 133,
+      "heading": "### 30.1 新規モジュール `src/engine/grammar/ir.ts`(純関数・計測/表現専用)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 134,
+      "heading": "### 30.2 分解ロジックと `status` 判定(決定的)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 135,
+      "heading": "### 30.3 効果アトムの `ruleRef` 錨付け(正本)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 136,
+      "heading": "### 30.4 CR ground-truth(`src/engine/grammar/rule-refs.ts`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 137,
+      "heading": "### 30.5 出力レポート(`research/grammar-ir/report.md` + `report.json`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 138,
+      "heading": "### 30.6 裏取り(確定前必須・§29.6 流)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 139,
+      "heading": "### 30.7 不変・非干渉(エンジン不変)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 140,
+      "heading": "## 31. エンジン文法器トラック Phase G2: インタプリタ + 全自動実行 — この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 141,
+      "heading": "### 31.0 目的と分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 142,
+      "heading": "### 31.1 新規モジュール `src/engine/grammar/compile.ts`(純関数・GameState 非依存)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 143,
+      "heading": "### 31.2 auto / manual ゲート規則(決定的)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 144,
+      "heading": "### 31.3 GameState 拡張(自動実行のスイッチ)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 145,
+      "heading": "### 31.4 解決時実行フック(`applyResolveStackTop`・既存挙動の上に加算)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 146,
+      "heading": "### 31.5 計測レポート(`research/grammar-compile/report.md` + `report.json`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 147,
+      "heading": "### 31.6 裏取り(確定前必須・§29.6 / §30.6 流)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 148,
+      "heading": "### 31.7 不変・非干渉(エンジン不変)+ 新不変条件 I8",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 149,
+      "heading": "## 32. エンジン文法器トラック Phase G3: 対象/モード誘導フロー(`compile.ts` guided ティア + ストア誘導 + `ModalChoiceDialog`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 150,
+      "heading": "### 32.0 目的と分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 151,
+      "heading": "### 32.1 スコープ(今スライス = G3 完成形)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 152,
+      "heading": "### 32.2 `compile.ts` 型拡張(契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 153,
+      "heading": "### 32.3 auto/guided/manual ゲート(決定的・§31.2 を拡張)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 154,
+      "heading": "### 32.4 純粋ビルダ `buildGuidedCommands`(契約・GameState 非依存)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 155,
+      "heading": "### 32.5 ストア解決フロー(`gameStore.ts`・オーケストレーション / `commands.ts` は純関数のまま)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 156,
+      "heading": "### 32.6 計測(`scripts/grammar-compile.ts` 拡張 + `research/grammar-compile/report.*`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 157,
+      "heading": "### 32.7 不変・非干渉(エンジン不変)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 158,
+      "heading": "### 32.8 leaf catalog 追補(cr-701 discard / cr-111 predefined token・2026-07-04)— この項も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 159,
+      "heading": "### 32.9 leaf catalog 追補(cr-701 sacrifice / draw / exile / search / shuffle・2026-07-04)— この項も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 160,
+      "heading": "### 32.10 leaf catalog 追補(cr-701 mill / scry / surveil・batch3-3・2026-07-06)— この項も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 161,
+      "heading": "## 33. エンジン文法器トラック Phase G4: 起動型コスト精算(`compile.ts` cost コンパイラ + ストア `activateAbility`)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 162,
+      "heading": "### 33.0 目的と分界(重要)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 163,
+      "heading": "### 33.1 コストコンパイラ `compileAbilityCost`(純粋・`compile.ts`・契約)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 164,
+      "heading": "### 33.2 純プランナ `activationPlanForSource`(`commands.ts`・state 読み取りのみ)+ ストア活性化フロー",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 165,
+      "heading": "### 33.3 UI 配線(`Playmat.tsx`)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 166,
+      "heading": "### 33.4 不変条件 I9(`review.g4-activate` が固定)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 167,
+      "heading": "### 33.5 計測(`scripts/grammar-compile.ts` に cost セクション追加 + `research/grammar-compile/report.*`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 168,
+      "heading": "### 33.6 裏取り(完了・§29.6 流)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 169,
+      "heading": "### 33.7 不変・非干渉(エンジン不変)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 170,
+      "heading": "### 33.8 ACT-4: 選択を伴う起動コスト(他パーマネントのタップ・カウンター除去・`{X}`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 171,
+      "heading": "#### 33.8.1 公開型・API",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 172,
+      "heading": "#### 33.8.2 他パーマネントをタップするコスト",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 173,
+      "heading": "#### 33.8.3 カウンターを取り除くコスト",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 174,
+      "heading": "#### 33.8.4 `{X}` の宣言・束縛",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 175,
+      "heading": "#### 33.8.5 原子性・順序・誠実な縮退",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 176,
+      "heading": "### 33.9 CR121 cross-player draw 検証ピン(契約)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/multiplayer.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 177,
+      "heading": "### 33.10 CR605 mana choice UI 検証ピン(契約)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 178,
+      "heading": "### 33.11 CR606 loyalty ability activation(契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 179,
+      "heading": "## 34. ルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキ契約 — この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 180,
+      "heading": "### 34.0 CR grounding policy(契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 181,
+      "heading": "### 34.1 拘束する設計原則(契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 182,
+      "heading": "### 34.2 計画モジュール(契約意図。具体型は各マイルストーン章で確定)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 183,
+      "heading": "### 34.3 前方互換規律(契約・全 substrate マイルストーン必須)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 184,
+      "heading": "### 34.4 新不変条件枠(I13〜。各実装マイルストーンで具体化し `review.*` で固定)",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 185,
+      "heading": "### 34.5 スコープ境界(契約=以下の未対応で実装を不合格としない)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 186,
+      "heading": "### 34.6 マイルストーン順(背骨)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 187,
+      "heading": "### 34.7 KPI と物差し(完全な物差しは無い前提)— 契約",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 188,
+      "heading": "### 34.7.1 M-CONTRACT 凍結ゲート(契約・7条件)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 189,
+      "heading": "### 34.7.2 M-CONTRACT ゲート・スコアカード(契約)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 190,
+      "heading": "### 34.7.3 parity 和解(M-GATE-2・条件6=研究⇄runtime 乖離 0 への手順)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 191,
+      "heading": "### 34.7.3.1 クラスタ裁定(Fable・2026-06-25・M-GATE-2 本体)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 192,
+      "heading": "### 34.7.4 ゴールデン再生 実デッキ加重(M-GATE-3・条件5=緑への手順)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 193,
+      "heading": "### 34.7.5 CR-conformance 物差し + post-yardstick churn(M-GATE-4・条件4+条件3=緑への手順)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 194,
+      "heading": "### 34.8 本マイルストーン(M-CONTRACT=凍結)の不変・スコープ",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 195,
+      "heading": "### 34.9 M0 進行(モデリング・サイクルの反復ログ)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 196,
+      "heading": "### 34.10 S-EVENTS / PRIORITY(Q5 Phase 2 実装契約)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 197,
+      "heading": "### 34.11 S-EVENTS / MANA(CR 605.1b 誘発型マナ能力)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 198,
+      "heading": "### 34.12 S-SBA: damage-marked substrate(CR 704.5g/h)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 199,
+      "heading": "### 34.13 S-COMBAT: combat structure(first slice・CR 506–510)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 200,
+      "heading": "### 34.14 S-COMBAT slice 2: 未ブロック player combat damage + `declareAttack` 統合 — この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/multiplayer.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 201,
+      "heading": "### 34.15 S-SBA defeat-state substrate(CR 704.5a/b/c loss conditions)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 202,
+      "heading": "### 34.16 S-SBA commander-damage defeat advisory(CR 903.10a)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 203,
+      "heading": "### 34.17 S-ZONES player-specific library/hand/graveyard(design-lock・CR 400.1/400.3)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 204,
+      "heading": "### 34.18 S-EVENTS: life/damage/draw event envelope(CR 119/120/121)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 205,
+      "heading": "### 34.19 S-ACTIVATED-ABILITY envelope(CR 602 + 115 + 118 + 605)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 206,
+      "heading": "### 34.20 cr-703-704-sba-turn-based: pendingRuleChoices と SBA 同時性の既知境界(CR 703/704)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 207,
+      "heading": "### 34.21 S-LINKED-EXILE / LKI substrate(design-lock・CR 400.7 + 406 + 607)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 208,
+      "heading": "### 34.22 S-DAMAGE: source-backed noncombat damage(`dealDamage`)(CR 120.1/120.3a/120.3e/120.8)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 209,
+      "heading": "### 34.23 cr-111-tokens: custom creature token leaf(`createDefinedToken`)(CR 110.5/111.2/111.3/111.4)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 210,
+      "heading": "### 34.24 cr-400-408-zones-lki: reanimation leaf(graveyard→battlefield return)(CR 109.2a/404.1/601.2c/602.2b/608.2b)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 211,
+      "heading": "### 34.25 cr-603-triggers-apnap Slice A: event-driven trigger subscription leaf + once-per-turn gate(CR 603.1/603.2/603.2h/603.3b)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 212,
+      "heading": "### 34.26 cr-603-triggers-apnap Slice B: delayed-trigger scheduling primitive(CR 603.7/603.7b/513.2)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 213,
+      "heading": "### 34.27 cr-603-triggers-apnap Slice C: discard/sacrifice/counter semantic event(CR 701.9/701.21a/122.1/704.5q)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 214,
+      "heading": "### 34.28 cr-608-resolution Slice A: stack-target filtering + 単純counter-spell(CR 608.2b/701.6a/701.6b)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 215,
+      "heading": "### 34.29 cr-608-resolution Slice B: 解決時LKI読み取り(Feed the Swarm型 mana value)(CR 608.2h/400.7)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 216,
+      "heading": "### 34.30 cr-122-counters batch3-4: counter-plus 符号バグ修正(CR 122.1a/122.3/704.5q)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 217,
+      "heading": "### 34.31 S-LAYERS Slice A: read-time additive Layer 4 type accessor(design-lock・CR 604/611/613)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 218,
+      "heading": "### 34.32 S-LAYERS Slice B: keyword-only Layer 6 additions(design-lock・CR 613.1f)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 219,
+      "heading": "### 34.33 cr-614-615-616-replacement-prevention: shockland ETB 実装ギャップなし確認(CR 614.1c/614.1d)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 220,
+      "heading": "### 34.34 cr-614-615-616-replacement-prevention Slice A: 単一ターン戦闘ダメージ防止shield(design-lock・CR 615.1/615.1a)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/zones-events-and-lki.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 221,
+      "heading": "### 34.35 cr-614-615-616 Slice B: graveyard→exile置換hook(design-lock・CR 614.1a/614.5/614.6・**Fable裁定**)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 222,
+      "heading": "### 34.36 cr-601-casting-stack Slice A: graveyardからの土地プレイ許可(design-lock・CR 601.2a/113.6e-f/400.7g-h)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 223,
+      "heading": "### 34.37 cr-modal-target-optional-variable: modal選択肢commandコンパイルは実装ギャップなし(CR 700.2)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 224,
+      "heading": "### 34.38 cr-702-keyword-abilities-frequent Slice A: lifelink + trample(単一blocker限定・CR 702.15/702.19)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 225,
+      "heading": "### 34.39 cr-122-counters candidate-4: 自己参照 +1/+1 counter leaf(CR 122.1/608.2 代名詞先行詞)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 226,
+      "heading": "### 34.40 手動スタック対象注記 `setManualTargets`(サンドボックス可視化・CR 115/400.7/707.10)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 227,
+      "heading": "### 34.41 cr-400-408 reanimation の mana value 上限フィルタ拡張(§34 exact-match reanimation leaf の additive 拡張)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 228,
+      "heading": "### 34.42 MP-STATE: N-player 正準 player state(design-lock・CR 102.1/103.1/103.4c/800.1)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 229,
+      "heading": "### 34.43 MP-ZONES/COMMANDS Slice A: owner-routed private zones + cross-player core commands (CR 102.1/121/400.1/400.3/701.9/701.24/704.5b-c)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 230,
+      "heading": "### 34.44 MP-IDENTITY / MP-DUMMY / MP-SETUP基盤(J0未監査・CR 102.1/110.2/111.1/400.1/400.3/400.7/704.5d)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 231,
+      "heading": "### 34.45 MP-COMMANDS Slice B / MP-BOARD / MP-FOUR-PLAYER-GATE(J0未監査・CR 101.4/102.1/103.1/110.2/121.2c/800.1)",
+      "classification": "historical release evidence",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 232,
+      "heading": "### 34.46 ACT-2 起動ラインの選択と強行(UI到達性・CR 602.1/602.2b/601.2c/601.2h/118.3/712.8d/712.8f)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 233,
+      "heading": "### 34.47 cr-121 可変数 loot: 「discard up to N / any number, then draw that many」の guided 誠実実行(CR121.1/121.2・CR701.9・CR608.2h)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 234,
+      "heading": "### 34.48 ACT-3 起動型キーワードの正規形展開(CR 702.6/49/67/84/87/107/122/128/129/151)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 235,
+      "heading": "### 34.49 誠実な部分自動化補助: 制限付き固定マナ `assisted` + manual複合カウンター葉(2026-07-19・判定者承認)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/mana-costs-and-payment.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 236,
+      "heading": "### 34.50 cleanup step + 手札上限 + プレイ信頼性スライス(CR 402.2/514.1–514.3a/207.2c/603.4)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 237,
+      "heading": "### 34.51 M-STACK-CONTROL: cast-time対象 + 手動完遂可能な解決セッション(2026-07-20・ユーザー直接プレイ摩擦)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 238,
+      "heading": "#### 34.51.1 Cast transaction(一時状態・GameState外)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 239,
+      "heading": "#### 34.51.2 解決セッションとsoft gate(GameState外)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 240,
+      "heading": "#### 34.51.3 Counter解決の決定境界",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 241,
+      "heading": "#### 34.51.4 UI/shortcut契約",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 242,
+      "heading": "### 34.52 CR609 one-shot mass destroy core(CR 608.2c/f/h, 609.1/609.3, 701.8, 702.12b)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 243,
+      "heading": "#### 34.52.1 公開型と分解不能性",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 244,
+      "heading": "#### 34.52.2 原子destroy遷移",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 245,
+      "heading": "#### 34.52.3 compiler fail-closed gate",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 246,
+      "heading": "#### 34.52.4 review/golden/出荷証拠",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 247,
+      "heading": "### 34.53 CR701 cross-player discard / mill / sacrifice(CR 101.3/101.4, 608.2e-f, 701.9/701.17/701.21)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/multiplayer.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 248,
+      "heading": "#### 34.53.1 public prompt / command envelope",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 249,
+      "heading": "#### 34.53.2 exact compiler allow-list",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 250,
+      "heading": "#### 34.53.3 fail-closed / action ordering",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 251,
+      "heading": "#### 34.53.4 review / golden / visible evidence",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 252,
+      "heading": "## 35. corpus 決定スナップショット回帰床(機械回帰計器)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 253,
+      "heading": "### 34.54 文法レーン不変条件: 節単位カバレッジゲート(CR 608.2c/608.2h)— この節も契約である",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 254,
+      "heading": "#### 34.54.1 教訓(frozen)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 255,
+      "heading": "#### 34.54.2 不変条件(grammar レーン)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/state-and-invariants.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 256,
+      "heading": "#### 34.54.3 既知ギャップ(登録済み・`grammar-auto-clause-coverage`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/oracle-compiler.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 257,
+      "heading": "#### 34.54.4 構文層の道具立て方針(standing)",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 258,
+      "heading": "### 34.55 feel-2 サイレントスキップ誠実化: guided 解決の誠実シグナルとゼロ選択 affordance(CR 115.6/608.2h/101.3・2026-08-05 判定者承認)— この節も契約である",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 259,
+      "heading": "#### 34.55.1 公開契約(GameCommand 拡張・§5.1 判定済み)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/commands-and-transactions.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 260,
+      "heading": "#### 34.55.2 エンジン挙動(`applyCompiledEffectsForStackItem`)",
+      "classification": "active automated scenario",
+      "destination": "docs/contracts/engine/turn-priority-and-stack.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 261,
+      "heading": "#### 34.55.3 Store/UI 契約",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    },
+    {
+      "source": "research/archive/document-reset-2026-08/original-engine-spec.md",
+      "ordinal": 262,
+      "heading": "#### 34.55.4 証拠・回帰床",
+      "classification": "historical release evidence",
+      "destination": "research/archive/document-reset-2026-08/original-engine-spec.md"
+    }
+  ]
+}

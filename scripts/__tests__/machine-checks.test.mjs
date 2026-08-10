@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseMachineCheckArgs, runMachineChecks } from '../checks/machine-checks.mjs';
+import { machineCheckStepsFor, parseMachineCheckArgs, runMachineChecks } from '../checks/machine-checks.mjs';
 
 const steps = [
   { name: 'lint', cmd: 'lint-command', args: ['--strict'] },
@@ -14,6 +14,18 @@ describe('machine-check argument parsing', () => {
     expect(parseMachineCheckArgs(['--continue-on-error'])).toEqual({ continueOnError: true });
     expect(() => parseMachineCheckArgs(['--unknown'])).toThrow(/unknown argument/i);
     expect(() => parseMachineCheckArgs(['--continue-on-error', '--continue-on-error'])).toThrow();
+  });
+
+  it('passes the Pages base path to the single release build', () => {
+    expect(parseMachineCheckArgs(['--build-base=/MTG_OneDeck/'])).toEqual({
+      continueOnError: false,
+      buildBase: '/MTG_OneDeck/',
+    });
+    expect(machineCheckStepsFor({ buildBase: '/MTG_OneDeck/' }).at(-1)).toEqual({
+      name: 'build (型検査内蔵)',
+      cmd: 'npm',
+      args: ['run', 'build', '--', '--base=/MTG_OneDeck/'],
+    });
   });
 });
 
@@ -108,7 +120,7 @@ describe('machine-check execution', () => {
     expect(calls).toEqual([
       ['npm', ['run', 'verify:cr']],
       ['npm', ['run', 'verify:versions']],
-      ['npm', ['run', 'verify:solo-preservation']],
+      ['npm', ['run', 'check:docs']],
       ['npm', ['run', 'verify:online-state-architecture']],
       ['npm', ['run', 'verify:mode-neutral-core-identity-zone']],
       ['npm', ['run', 'verify:mode-neutral-core-card-runtime']],
@@ -129,7 +141,7 @@ describe('machine-check execution', () => {
     const coreSteps = [
       { name: 'CR固定版検証', cmd: 'cr', args: [] },
       { name: 'バージョン契約検証', cmd: 'versions', args: [] },
-      { name: 'Solo保全検証', cmd: 'solo', args: [] },
+      { name: 'docs契約検証', cmd: 'docs', args: [] },
       { name: 'Online状態アーキテクチャ検証', cmd: 'online', args: [] },
       { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'core', args: [] },
       { name: 'Mode-Neutral Core Card Runtime検証', cmd: 'runtime', args: [] },
@@ -164,7 +176,7 @@ describe('machine-check execution', () => {
     expect(calls).toEqual([
       'cr',
       'versions',
-      'solo',
+      'docs',
       'online',
       'core',
       'runtime',

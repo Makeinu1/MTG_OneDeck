@@ -11,9 +11,9 @@ Run exactly one milestone at a time. Preserve role separation even when every ro
 
 1. Read the repository `AGENTS.md` (the model-independent governance canon as of 2026-07-20), the active brief, and the matching ledger entry. `CLAUDE.md` / `QWEN.md` are thin compat entries pointing here and at `AGENTS.md`.
 2. Classify the task as judge, implementer, or cold audit. Never silently combine roles.
-3. Read [references/cycle.md](references/cycle.md) for the selected role and phase.
-4. Read [references/token-economy.md](references/token-economy.md) before delegating, running broad checks, or reopening archived context.
-5. For Codex CLI sessions running the autoloop, read [references/codex-autoloop.md](references/codex-autoloop.md) for the session-based workflow (replaces Claude Code's background-agent pattern).
+3. Read [references/document-governance.md](references/document-governance.md) for the selected role, risk lane, and phase.
+4. Read [references/token-economy.md](references/token-economy.md) only as a compatibility pointer; its operative rules are in `document-governance.md`.
+5. For Codex CLI sessions running the autoloop, use [references/document-governance.md](references/document-governance.md); `references/codex-autoloop.md` is a compatibility pointer.
 
 ## Preserve the quality boundary
 

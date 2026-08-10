@@ -5,7 +5,7 @@
 ## Codex CLI 固有のブートストラップ
 
 - `AGENTS.md` は Codex CLI が起動時に自動読込する(手動で読む必要なし)。
-- 反復ワークフローの正本 = `.agents/skills/mtg-onedeck-development/`(SKILL.md + references/{cycle,token-economy,codex-autoloop}.md)。
+- 反復ワークフローの正本 = `.agents/skills/mtg-onedeck-development/references/document-governance.md`。SKILL と旧 references は互換入口。
 - `.claude/commands/{milestone,audit,ship,autoloop}.md` は Claude Code 固有の歴史的参照。Codex CLI では `references/codex-autoloop.md` が運用手順の正本。
 - 裁定準則・優先度式・コールドスタート読込順 = `docs/judge-protocol.md`(読込順の正本は §0)。
 - Tier-1 監査の常設規約 = `.claude/audit-standing.md`(モデル非依存・そのまま有効)。

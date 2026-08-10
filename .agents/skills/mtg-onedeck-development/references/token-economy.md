@@ -1,4 +1,6 @@
-# Token economy
+# Token economy compatibility pointer
+
+The sole operative workflow is [`document-governance.md`](document-governance.md). The material below is preserved for historical compatibility; do not add new rules here.
 
 - Keep one task and one contract focused on one milestone. Externalize continuation state to the ledger and a short loop-state record.
 - Start fresh from milestone id, base SHA, brief path, goal, constraints, and done-when. Do not import a prior thread transcript or Referenced chat.

@@ -1,41 +1,30 @@
 # MTG OneDeck
 
-統率者戦(EDH)のデッキを一人回し(ゴールドフィッシュ)するためのWebアプリです。
-サーバー不要の純フロントエンド(React + TypeScript + Vite)で、カードデータと画像は [Scryfall API](https://scryfall.com/docs/api) から取得します(日本語版カード優先)。
+MTG OneDeck is a React + TypeScript + Vite Commander sandbox. Engine transitions are deterministic and reversible; unsupported Oracle composites remain guided or manual.
 
-**Demo (GitHub Pages):** https://makeinu1.github.io/MTG_OneDeck/
+## Read the right source
 
-## 主な機能
+- Contracts and ownership: [`docs/contracts/manifest.json`](docs/contracts/manifest.json)
+- Acceptance scenarios: [`docs/acceptance/scenarios.json`](docs/acceptance/scenarios.json)
+- Document entry: [`docs/README.md`](docs/README.md)
+- Current roadmap/status: `research/cr-grounding/cr-backbone-ledger.json`
 
-- **デッキインポート**: Arena/Moxfield形式のテキスト(`1 Sol Ring (C21) 263` 等)、日本語カード名対応。IndexedDBにキャッシュ
-- **プレイマット**: 1画面完結レイアウト。戦場(非土地/土地)・手札・統率領域・ライブラリ/墓地/追放・折りたたみログ
-- **半自動ルール**: ターン/フェイズ進行(アンタップ・ドロー自動)、マナプールとコスト自動支払い(混成・ファイレクシア・X対応)、統率者税、各種カウンター。ルールを強制しないサンドボックス方針(不足時も強行可)
-- **操作**: 右クリック=全操作メニュー / ダブルクリック=クイック操作(土地プレイ・キャスト・マナ生成タップ等) / ドラッグ&ドロップ / キーボードショートカット(Space=次のフェイズ、Cmd+Z=undo、D=ドロー)
-- **その他**: ロンドンマリガン、undo/redo(スナップショット履歴)、トークン生成、ホバー拡大プレビュー、デッキのlocalStorage保存
+## Verification lanes
 
-## 開発
-
-```bash
-npm install
-npm run dev        # 開発サーバー (http://localhost:5173)
-npm test           # ユニットテスト + プロパティテスト (vitest + fast-check)
-npm run build      # 本番ビルド (dist/)
+```sh
+npm run check:docs
+npm run check:fast
+npm run check:domain -- docs
+npm run check
 ```
 
-## デプロイ
+`check:fast` is the affected, offline, no-build lane. `check:domain` selects one domain. `check` is the release gate and runs the complete static verification, docs verification, lint, Vitest projects, and one production build.
 
-- **GitHub Pages**: `main` への push で GitHub Actions が自動ビルド・デプロイ
-- **Hugging Face Spaces (Static)**: `npm run build` の `dist/` をそのままアップロード可能
+## Development
 
-## アーキテクチャ
-
-```
-src/
-├─ data/      Scryfallクライアント・デッキリストパーサ・IndexedDBキャッシュ
-├─ engine/    ゲームエンジン(純粋関数・イミュータブル。docs/engine-spec.md が仕様)
-├─ store/     Zustandストア(スナップショット undo/redo)
-├─ components/ プレイマットUI
-└─ hooks/     ショートカット・ホバープレビュー
+```sh
+npm ci
+npm run dev
 ```
 
-カードデータ・画像は Scryfall のAPIを利用しています。本プロジェクトは Wizards of the Coast 非公式のファンコンテンツです。
+The public Pages site is [makeinu1.github.io/MTG_OneDeck](https://makeinu1.github.io/MTG_OneDeck/).
