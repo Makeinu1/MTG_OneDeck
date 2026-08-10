@@ -182,7 +182,8 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-mode-neutral-core-card-runtime.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-zone-transition.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-object-registry.ts'
-    || normalized === 'scripts/checks/verify-mode-neutral-core-stack-announcement.ts';
+    || normalized === 'scripts/checks/verify-mode-neutral-core-stack-announcement.ts'
+    || normalized === 'scripts/checks/verify-mode-neutral-core-stack-transaction.ts';
 }
 
 function isExistingCardTypeModule(target: string | null): boolean {
