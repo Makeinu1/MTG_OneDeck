@@ -200,7 +200,7 @@ function readArray(value: unknown, path: string): {
       return { values: null, issues: [issue('INVALID_ARRAY', pointer(path, 'length'), 'Array length must be a data property')] };
     }
     const arrayLength: unknown = lengthDescriptor.value;
-    if (!Number.isSafeInteger(arrayLength) || arrayLength < 0) {
+    if (typeof arrayLength !== 'number' || !Number.isSafeInteger(arrayLength) || arrayLength < 0) {
       return { values: null, issues: [issue('INVALID_ARRAY', pointer(path, 'length'), 'Array length must be a nonnegative integer')] };
     }
     for (const key of Reflect.ownKeys(value)) {
