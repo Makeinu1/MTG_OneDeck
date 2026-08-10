@@ -1375,7 +1375,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01G",
         "O4P-01H",
@@ -1409,10 +1409,18 @@
         "candidate-fingerprint:29e377b31edb7b2b81a91dee288f818d1e1ac3c80464bdf4551702fb1f941001",
         "npm run check:PASS:final candidate",
         "npm run check:forbidden:PASS:FORBIDDEN 0",
-        "git diff --check:PASS"
+        "git diff --check:PASS",
+        "github-actions:31357802601:head:cee68c74ce6ef8ec736ecfcda455474ad44e3a6a:success",
+        "github-actions-check:PASS",
+        "github-actions-check-forbidden:PASS",
+        "pages-deploy:31357802601:success",
+        "pages-http:200:https://makeinu1.github.io/MTG_OneDeck/",
+        "pages-js-http:200:https://makeinu1.github.io/MTG_OneDeck/assets/index-CyZgN26K.js",
+        "pages-css-http:200:https://makeinu1.github.io/MTG_OneDeck/assets/index-JeU5vEot.css",
+        "head-equals-origin-main:PASS"
       ],
       "manualBoundary": "No proposal/payment state, timing or target legality, priority, APNAP, resolution effects, copyable-values derivation, command/event metadata, projection, protocol, or UI.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01K Turn, Phase, Priority, SBA & Trigger Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under one judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     },
@@ -4497,7 +4505,7 @@
     {
       "id": "O4P-01J",
       "crOrder": 405.2,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01G",
         "O4P-01H",
@@ -4521,10 +4529,18 @@
         "candidate-fingerprint:29e377b31edb7b2b81a91dee288f818d1e1ac3c80464bdf4551702fb1f941001",
         "npm run check:PASS:final candidate",
         "npm run check:forbidden:PASS:FORBIDDEN 0",
-        "git diff --check:PASS"
+        "git diff --check:PASS",
+        "github-actions:31357802601:head:cee68c74ce6ef8ec736ecfcda455474ad44e3a6a:success",
+        "github-actions-check:PASS",
+        "github-actions-check-forbidden:PASS",
+        "pages-deploy:31357802601:success",
+        "pages-http:200:https://makeinu1.github.io/MTG_OneDeck/",
+        "pages-js-http:200:https://makeinu1.github.io/MTG_OneDeck/assets/index-CyZgN26K.js",
+        "pages-css-http:200:https://makeinu1.github.io/MTG_OneDeck/assets/index-JeU5vEot.css",
+        "head-equals-origin-main:PASS"
       ],
       "manualBoundary": "Atomic structural transaction only. No cost payment, timing legality, target legality, priority, APNAP, resolution, copyable-values derivation, effect execution, command/event envelope, projection, online protocol, or UI.",
-      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
+      "nextGate": "shipped。O4P-01K Turn, Phase, Priority, SBA & Trigger Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-10"
     },
     {
