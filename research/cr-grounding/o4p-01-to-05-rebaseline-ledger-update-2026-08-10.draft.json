@@ -1,0 +1,14 @@
+{
+  "authority": "user-ruling-2026-08-10",
+  "preserveShipped": ["O4P-01H", "O4P-01I"],
+  "newPendingSequence": [
+    "O4P-01J", "O4P-01K", "O4P-01L", "O4P-01M", "O4P-01N",
+    "O4P-02A", "O4P-02B", "O4P-02C", "O4P-02D", "O4P-02E",
+    "O4P-03A", "O4P-03B", "O4P-03C", "O4P-03D",
+    "O4P-04A", "O4P-04B", "O4P-04C", "O4P-04D",
+    "O4P-05A", "O4P-05B", "O4P-05C", "O4P-05D"
+  ],
+  "dependencyPolicy": "Each new entry depends directly on the preceding entry.",
+  "coreClosure": "O4P-01N",
+  "userApprovalRequiredAfter": "O4P-01N"
+}

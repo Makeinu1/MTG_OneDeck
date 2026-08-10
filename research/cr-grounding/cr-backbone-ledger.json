@@ -1352,6 +1352,358 @@
       "manualBoundary": "Committed stack-announcement state only. No proposal/payment-in-progress state, cost payment, target legality, priority, resolution, retarget command, copy-effect execution, projection, online protocol, or UI.",
       "nextGate": "shipped。O4P-01J Atomic Stack Commit, Retarget & Removal Transaction V1へ進む。",
       "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01J",
+      "crOrder": 601.2,
+      "crRefs": ["601.2i", "608.2b", "707.10", "707.10c"],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01I"],
+      "landingState": ["atomicStackCommit", "announcementReplacement", "stackObjectRemoval", "registryRuntimeZoneParity"],
+      "boundary": "Atomically add, replace, and remove committed stack objects together with Stack Zone, Object Registry, Runtime, and Announcement state. Counter and resolution-start operations are transaction boundaries only; priority and resolution authority remain O4P-01K.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No priority, payment, legality, resolution, complete copyable-values derivation, or automatic Oracle copy execution.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Kへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01K",
+      "crOrder": 500,
+      "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01J"],
+      "landingState": ["turnPhaseStep", "activePlayer", "priority", "passState", "apnap", "triggerPlacement", "sba", "cleanup", "resolutionReady"],
+      "boundary": "Represent turn order, phases, steps, active player, priority, pass/APNAP, trigger placement, SBA, cleanup, end-of-turn expiry, and resolution-ready state.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No full effect resolution is required; after all players pass, controller/host may explicitly confirm resolution.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Lへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01L",
+      "crOrder": 611,
+      "crRefs": ["611", "609", "701.15", "702"],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01K"],
+      "landingState": ["controlEffect", "currentController", "searchPermission", "visibilityGrant", "playPermission", "decisionAuthority"],
+      "boundary": "Represent control effects, current controller derivation, search, rule visibility, play permission, action actor, selector, and opponent-turn Decision Authority.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Network delivery and projection allowlists remain O4P-02D; no UI or Cloudflare runtime.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Mへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01M",
+      "crOrder": 903,
+      "crRefs": ["104", "506", "507", "508", "903"],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01L"],
+      "landingState": ["commanderPhysicalCard", "commanderTax", "commanderDamage", "combatAssignments", "playerExit", "concession"],
+      "boundary": "Represent Commander physical-card identity, commander tax/cast count, commander replacement choice, commander damage, multiplayer attacks/blocks, and player defeat/concession boundaries.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Full automatic combat damage calculation is not required; guided/manual application is allowed. WebSocket disconnect remains distinct from player exit.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Nへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01N",
+      "crOrder": 999,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01M"],
+      "landingState": ["coreRoot", "typedCommands", "domainEvents", "commandResult", "actor", "decisionMaker", "deterministicRandomness", "replay", "fourPlayerHeadlessClosure"],
+      "boundary": "Close the Mode-Neutral Core with a typed command/event/replay substrate, deterministic randomness, typed manual correction, rules test vectors, and a four-player headless scenario.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No network, Cloudflare, Projection, or UI. O4P-01 closes only after deterministic single-process execute/save/replay is proven.",
+      "nextGate": "O4P-01N shipped後にO4P-02Aへ進む。O4P-01の新規親追加は明示的なユーザー再ベースラインを要する。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-02A",
+      "crOrder": 1001,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-01N"],
+      "landingState": ["soloCompatibilityAdapter", "differentialParityGate", "snapshotPreservation", "offlineSolo"],
+      "boundary": "Connect Mode-Neutral Core to the existing Solo facade with an explicit compatibility adapter, differential parity gate, and preserved Solo snapshots.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Do not rewrite Solo or merge SNAPSHOT_VERSION with Online stateSchemaVersion.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Bへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-02B",
+      "crOrder": 1002,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-02A"],
+      "landingState": ["fourSeatRoom", "roomId", "host", "player", "table", "spectator", "readyStartedActiveFinished", "rejoinConcession", "seatCapability"],
+      "boundary": "Define the four-seat Room envelope and participant lifecycle for Player, Table, Spectator, Host, ready/start/active/finished, rejoin, concession, and seat capability.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No Cloudflare transport and no Core state contamination with connection metadata.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Cへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-02C",
+      "crOrder": 1003,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-02B"],
+      "landingState": ["clientHello", "serverHello", "protocolVersion", "commandEnvelope", "commandId", "baseRevision", "ackReject", "deduplication", "resync"],
+      "boundary": "Define the in-memory application protocol with revision, ACK/reject, command deduplication, stale revision rejection, snapshot request, resync, and Build ID diagnostics.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Transport remains in-memory; no WebSocket or Cloudflare runtime.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Dへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-02D",
+      "crOrder": 1004,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-02C"],
+      "landingState": ["playerProjection", "tableProjection", "spectatorProjection", "allowlist", "searchSession", "visibilityGrant", "secretRedaction"],
+      "boundary": "Define Player, Table, and Spectator projections with allowlists, hidden-card protection, SearchSession, VisibilityGrant, PlayPermission, and secret-safe errors/logs.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Projection is an application contract only; no Cloudflare transport or UI implementation.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Eへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-02E",
+      "crOrder": 1005,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-02D"],
+      "landingState": ["p1", "p2", "p3", "p4", "tableDisplay", "localReconnect", "staleRevision", "duplicateCommand", "privacyGate"],
+      "boundary": "Run four local in-memory Players plus Table Display through the same room, command, revision, projection, reconnect, and privacy contracts.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No Cloudflare implementation until O4P-02E passes its headless room gate.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Aへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-03A",
+      "crOrder": 1006,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-02E"],
+      "landingState": ["worker", "durableObject", "sqlitePersistence", "roomApi", "websocketEntry", "serializedCommands"],
+      "boundary": "Deploy the completed local application contract onto Worker, Durable Object, and SQLite-backed Room persistence.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No production migration or recovery promise before later O4P-03 gates.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Bへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-03B",
+      "crOrder": 1007,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-03A"],
+      "landingState": ["websocket", "hibernation", "reconnect", "deploymentRecovery", "snapshotReload", "outbox", "commandDeduplication"],
+      "boundary": "Add WebSocket, hibernation, Durable Object recreation, deployment recovery, reconnect, session reauthentication, snapshot reload, outbox, and deduplication.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No capability abuse-control expansion before O4P-03C.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Cへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-03C",
+      "crOrder": 1008,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-03B"],
+      "landingState": ["capabilityToken", "hostCapability", "seatCapability", "tableCapability", "spectatorCapability", "controllerLease", "abuseControl", "roleCommandAllowlist"],
+      "boundary": "Define capability separation, token expiry, controller lease, role-based command allowlists, message limits, rate limits, malformed-payload rejection, and secret-safe audit logs.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No unbounded authorization or secret-bearing observability shortcuts.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Dへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-03D",
+      "crOrder": 1009,
+      "crRefs": [],
+      "lane": "late-backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-03C"],
+      "landingState": ["cloudflareHeadlessFourPlayer", "sqliteRecovery", "hibernationRecovery", "schemaMigration", "observability", "loadGate", "longRoom"],
+      "boundary": "Prove Cloudflare headless four-player operation, persistence recovery, hibernation recovery, deployment reconnect, schema migration, structured logging, load, and long-room behavior.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "UI remains outside O4P-03; migration failure must preserve prior state.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Aへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-04A",
+      "crOrder": 1010,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-03D"],
+      "landingState": ["personalWorkbench", "playerActionSurface", "privateInformationBoundary"],
+      "boundary": "Build the Personal Workbench against the completed application and Cloudflare contracts.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Viewport and browser-console evidence is required for UI changes; no contract bypass.",
+      "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Bへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-04B",
+      "crOrder": 1011,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-04A"],
+      "landingState": ["tableDisplayOverview", "publicStack", "turnPriorityDisplay", "projectionRendering"],
+      "boundary": "Build the Table Display overview using only the TableProjection contract.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No private-card leakage and no direct Core/Room mutation from display code.",
+      "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Cへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-04C",
+      "crOrder": 1012,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-04B"],
+      "landingState": ["opponentFocus", "displayPairing", "seatContext", "tablePersonalSync"],
+      "boundary": "Connect Personal and Table views through explicit display pairing and opponent focus without changing Projection semantics.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No hidden-information relaxation for paired displays.",
+      "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Dへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "domain-slice",
+      "domainId": "O4P-04D",
+      "crOrder": 1013,
+      "crRefs": [],
+      "lane": "feel",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-04C"],
+      "landingState": ["controlGuidedUI", "searchGuidedUI", "faceDownGuidedUI", "combatGuidedUI", "manualCorrectionUI"],
+      "boundary": "Provide guided UI for control, search, face-down information, combat, and typed/manual correction paths.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "Unsupported compound behavior remains guided/manual and is never displayed as fully automated.",
+      "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Aへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-05A",
+      "crOrder": 1014,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-04D"],
+      "landingState": ["pinnedReleaseRuleset", "o4p00b", "releaseContractVersion"],
+      "boundary": "Perform the deferred O4P-00B ruleset update and freeze the public release ruleset.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "O4P-00B remains a pre-publication release blocker and is not silently performed during Core work.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Bへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-05B",
+      "crOrder": 1015,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-05A"],
+      "landingState": ["fourPlayerCommanderScenario", "rulesUpdateScenario", "releaseReplayScenario"],
+      "boundary": "Run the complete four-player Commander release scenario across the finished Core, application, runtime, and UI layers.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "A scenario step without executable final-state evidence remains guided/manual and blocks release claims.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Cへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-05C",
+      "crOrder": 1016,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-05B"],
+      "landingState": ["privacyGate", "recoveryGate", "loadGate", "securityGate", "observabilityGate"],
+      "boundary": "Pass privacy, recovery, load, security, observability, information-leakage, and long-room release gates.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No production release while any required gate or secret-information audit is unresolved.",
+      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Dへ進む。",
+      "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-05D",
+      "crOrder": 1017,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-05C"],
+      "landingState": ["productionRelease", "githubPages", "cloudflareProduction", "releaseClosure"],
+      "boundary": "Publish the validated MVP release with final CI, Pages, Cloudflare, recovery, privacy, load, and security evidence.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "This is a future release gate; no current O4P-01I evidence is promoted to O4P-05D.",
+      "nextGate": "shipped。MVP Release closed.",
+      "judge": "user-ruling-2026-08-10"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -4094,6 +4446,101 @@
       "nextGate": "shipped。O4P-01J Atomic Stack Commit, Retarget & Removal Transaction V1へ進む。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
+    },
+    {
+      "id": "O4P-01J", "crOrder": 601.2, "crRefs": ["601.2i", "608.2b", "707.10", "707.10c"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01I"],
+      "landingState": ["atomicStackCommit", "announcementReplacement", "stackObjectRemoval", "registryRuntimeZoneParity"],
+      "boundary": "Atomic stack-object, stack-zone, registry, runtime, and announcement add/replace/remove transactions. Priority and resolution authority remain O4P-01K.",
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "manualBoundary": "No priority, payment, legality, resolution, complete copyable-values derivation, or automatic Oracle copy execution.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Kへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-01K", "crOrder": 500, "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01J"],
+      "landingState": ["turnPhaseStep", "activePlayer", "priority", "passState", "apnap", "triggerPlacement", "sba", "cleanup", "resolutionReady"],
+      "boundary": "Turn, phase, step, active player, priority, pass/APNAP, trigger placement, SBA, cleanup, end-of-turn expiry, and resolution-ready state.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Full effect resolution is not required; explicit controller/host confirmation after all players pass is allowed.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Lへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-01L", "crOrder": 611, "crRefs": ["611", "609", "701.15", "702"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01K"],
+      "landingState": ["controlEffect", "currentController", "searchPermission", "visibilityGrant", "playPermission", "decisionAuthority"],
+      "boundary": "Control effects, current-controller derivation, search, rule visibility, play permission, actor/selector separation, and opponent-turn Decision Authority.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Network delivery and projection allowlists remain O4P-02D; no UI or Cloudflare runtime.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Mへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-01M", "crOrder": 903, "crRefs": ["104", "506", "507", "508", "903"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01L"],
+      "landingState": ["commanderPhysicalCard", "commanderTax", "commanderDamage", "combatAssignments", "playerExit", "concession"],
+      "boundary": "Commander physical-card identity, commander tax/cast count, commander replacement, commander damage, multiplayer attacks/blocks, and player defeat/concession.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Full automatic combat damage is not required; guided/manual application is allowed. Disconnect remains distinct from player exit.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Nへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-01N", "crOrder": 999, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01M"],
+      "landingState": ["coreRoot", "typedCommands", "domainEvents", "commandResult", "actor", "decisionMaker", "deterministicRandomness", "replay", "fourPlayerHeadlessClosure"],
+      "boundary": "Typed Core commands/events, success/reject/warning, actor and decision maker, deterministic randomness, replay, typed correction, test vectors, and four-player headless Core closure.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No network, Cloudflare, Projection, or UI. O4P-01 closes only after deterministic single-process execute/save/replay is proven.", "nextGate": "O4P-01N shipped後にO4P-02Aへ進む。O4P-01の新規親追加は明示的なユーザー再ベースラインを要する。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-02A", "crOrder": 1001, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01N"],
+      "landingState": ["soloCompatibilityAdapter", "differentialParityGate", "snapshotPreservation", "offlineSolo"], "boundary": "Core/Solo compatibility adapter, differential parity gate, preserved snapshots, and offline Solo.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Do not rewrite Solo or merge SNAPSHOT_VERSION with Online stateSchemaVersion.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Bへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-02B", "crOrder": 1002, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-02A"],
+      "landingState": ["fourSeatRoom", "roomId", "host", "player", "table", "spectator", "readyStartedActiveFinished", "rejoinConcession", "seatCapability"], "boundary": "Four-seat Room envelope and participant lifecycle for Host, Player, Table, Spectator, ready/start/active/finished, rejoin, concession, and seat capability.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No Cloudflare transport and no Core state contamination with connection metadata.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Cへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-02C", "crOrder": 1003, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-02B"],
+      "landingState": ["clientHello", "serverHello", "protocolVersion", "commandEnvelope", "commandId", "baseRevision", "ackReject", "deduplication", "resync"], "boundary": "In-memory application protocol with revision, ACK/reject, deduplication, stale-revision rejection, snapshot request, resync, and Build ID diagnostics.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Transport remains in-memory; no WebSocket or Cloudflare runtime.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Dへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-02D", "crOrder": 1004, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-02C"],
+      "landingState": ["playerProjection", "tableProjection", "spectatorProjection", "allowlist", "searchSession", "visibilityGrant", "secretRedaction"], "boundary": "Player, Table, and Spectator projections with allowlists, hidden-card protection, SearchSession, VisibilityGrant, PlayPermission, and secret-safe errors/logs.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Projection is an application contract only; no Cloudflare transport or UI implementation.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-02Eへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-02E", "crOrder": 1005, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-02D"],
+      "landingState": ["p1", "p2", "p3", "p4", "tableDisplay", "localReconnect", "staleRevision", "duplicateCommand", "privacyGate"], "boundary": "Four local in-memory Players plus Table Display through the room, command, revision, projection, reconnect, and privacy contracts.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No Cloudflare implementation until O4P-02E passes the headless room gate.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Aへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-03A", "crOrder": 1006, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-02E"],
+      "landingState": ["worker", "durableObject", "sqlitePersistence", "roomApi", "websocketEntry", "serializedCommands"], "boundary": "Worker, Durable Object, and SQLite-backed Room persistence for the completed local application contract.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No production migration or recovery promise before later O4P-03 gates.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Bへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-03B", "crOrder": 1007, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-03A"],
+      "landingState": ["websocket", "hibernation", "reconnect", "deploymentRecovery", "snapshotReload", "outbox", "commandDeduplication"], "boundary": "WebSocket, hibernation, Durable Object recreation, deployment recovery, reconnect, reauthentication, snapshot reload, outbox, and deduplication.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No capability abuse-control expansion before O4P-03C.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Cへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-03C", "crOrder": 1008, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-03B"],
+      "landingState": ["capabilityToken", "hostCapability", "seatCapability", "tableCapability", "spectatorCapability", "controllerLease", "abuseControl", "roleCommandAllowlist"], "boundary": "Capability separation, token expiry, controller lease, role command allowlists, message/rate limits, malformed-payload rejection, and secret-safe audit logs.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No unbounded authorization or secret-bearing observability shortcuts.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-03Dへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-03D", "crOrder": 1009, "crRefs": [], "lane": "late-backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-03C"],
+      "landingState": ["cloudflareHeadlessFourPlayer", "sqliteRecovery", "hibernationRecovery", "schemaMigration", "observability", "loadGate", "longRoom"], "boundary": "Cloudflare headless four-player operation, persistence/hibernation recovery, deployment reconnect, schema migration, structured logging, load, and long-room behavior.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "UI remains outside O4P-03; migration failure must preserve prior state.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Aへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-04A", "crOrder": 1010, "crRefs": [], "lane": "feel", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-03D"],
+      "landingState": ["personalWorkbench", "playerActionSurface", "privateInformationBoundary"], "boundary": "Personal Workbench against the completed application and Cloudflare contracts.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Viewport and browser-console evidence is required for UI changes; no contract bypass.", "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Bへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-04B", "crOrder": 1011, "crRefs": [], "lane": "feel", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-04A"],
+      "landingState": ["tableDisplayOverview", "publicStack", "turnPriorityDisplay", "projectionRendering"], "boundary": "Table Display overview using only the TableProjection contract.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No private-card leakage and no direct Core/Room mutation from display code.", "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Cへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-04C", "crOrder": 1012, "crRefs": [], "lane": "feel", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-04B"],
+      "landingState": ["opponentFocus", "displayPairing", "seatContext", "tablePersonalSync"], "boundary": "Personal/Table display pairing and opponent focus without changing Projection semantics.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No hidden-information relaxation for paired displays.", "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-04Dへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-04D", "crOrder": 1013, "crRefs": [], "lane": "feel", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-04C"],
+      "landingState": ["controlGuidedUI", "searchGuidedUI", "faceDownGuidedUI", "combatGuidedUI", "manualCorrectionUI"], "boundary": "Guided UI for control, search, face-down information, combat, and typed/manual correction paths.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Unsupported compound behavior remains guided/manual and is never displayed as fully automated.", "nextGate": "契約凍結、実装、3viewport実機確認、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Aへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-05A", "crOrder": 1014, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-04D"],
+      "landingState": ["pinnedReleaseRuleset", "o4p00b", "releaseContractVersion"], "boundary": "Perform the deferred O4P-00B ruleset update and freeze the public release ruleset.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "O4P-00B remains a pre-publication release blocker and is not silently performed during Core work.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Bへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-05B", "crOrder": 1015, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-05A"],
+      "landingState": ["fourPlayerCommanderScenario", "rulesUpdateScenario", "releaseReplayScenario"], "boundary": "Complete four-player Commander release scenario across the finished Core, application, runtime, and UI layers.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "A scenario step without executable final-state evidence remains guided/manual and blocks release claims.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Cへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-05C", "crOrder": 1016, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-05B"],
+      "landingState": ["privacyGate", "recoveryGate", "loadGate", "securityGate", "observabilityGate"], "boundary": "Privacy, recovery, load, security, observability, information-leakage, and long-room release gates.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "No production release while any required gate or secret-information audit is unresolved.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-05Dへ進む。", "judge": "user-ruling-2026-08-10"
+    },
+    {
+      "id": "O4P-05D", "crOrder": 1017, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-05C"],
+      "landingState": ["productionRelease", "githubPages", "cloudflareProduction", "releaseClosure"], "boundary": "Publish the validated MVP release with final CI, Pages, Cloudflare, recovery, privacy, load, and security evidence.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Future release gate only; no current O4P-01I evidence is promoted to O4P-05D.", "nextGate": "shipped。MVP Release closed.", "judge": "user-ruling-2026-08-10"
     }
   ],
   "judgePolicy": {
@@ -4101,6 +4548,8 @@
     "values": {
       "deterministic-cr": "CR 照合で裁定可能。在席判定者が CR を引いて自走してよい(prompt 再走や推測は禁止=CR が一次権威)。",
       "user-stop": "式でも解けない真の同点、通常Commander scope変更、北極星/契約原則変更だけが選定STOP①。優先度はselectionRuleで自走し、需要0や旧ラベルだけでは停止しない。"
+      ,
+      "core-rebaseline": "ユーザー裁定2026-08-10によりO4P-01の終了点をO4P-01Nへ再ベースラインする。O4P-01N以降にCore親マイルストーンを追加する場合は自動追加せず、明示的なユーザー再ベースライン承認を必須とする。監査修正・追加テストは既存親内のsubtaskまたはrepair waveとして扱う。"
     },
     "principle": "照合に還元できない判断は (a) 台帳/docs の standing 裁定を lookup → (b) なければ STOP→ユーザー。在席判定者は役割表と STOP 条件に従う。"
   }
