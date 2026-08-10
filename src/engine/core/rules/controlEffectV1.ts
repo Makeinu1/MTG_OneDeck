@@ -430,17 +430,17 @@ export function applyCoreControlEffectV1(
     throwOperation('INVALID_OPERATION_INPUT', '/effectKey', 'Invalid effect key');
   if (Object.prototype.hasOwnProperty.call(before.byEffect, effectKey))
     throwOperation('ID_COLLISION', `/byEffect/${effectKey}`, 'Effect key already exists');
+  const checked = effect(effectValue, '/effect');
+  if (!checked.ok) throwOperation('INVALID_OPERATION_INPUT', '/effect', 'Invalid control effect');
   if (
-    effectValue.targetObjectId.startsWith('@activated-ability:') ||
-    effectValue.targetObjectId.startsWith('@triggered-ability:')
+    checked.value.targetObjectId.startsWith('@activated-ability:') ||
+    checked.value.targetObjectId.startsWith('@triggered-ability:')
   )
     throwOperation(
       'OBJECT_NOT_CONTROLLABLE',
       '/effect/targetObjectId',
       'Ability objects are not controllable',
     );
-  const checked = effect(effectValue, '/effect');
-  if (!checked.ok) throwOperation('INVALID_OPERATION_INPUT', '/effect', 'Invalid control effect');
   const nextRaw = {
     ...before,
     effectOrder: [...before.effectOrder, effectKey],

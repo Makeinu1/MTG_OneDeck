@@ -42,6 +42,15 @@ function fixtureBundle(): Raw {
   return clone(record(fixture.bundle, 'turn fixture bundle'));
 }
 
+function fixtureRegistry(): Raw {
+  const stack = record(fixtureBundle().stackBundle, 'stack bundle');
+  return record(stack.objectRegistry, 'object registry');
+}
+
+function fixtureZones(): Raw {
+  return record(fixtureRegistry().zones, 'zones');
+}
+
 function emptyControl(): Raw {
   return {
     kind: 'mode-neutral-core-control-slice-v1',
@@ -157,7 +166,6 @@ describe('O4P-01L rule authority acceptance pins', () => {
     let control = emptyControl();
     const effect = (
       targetObjectId: string,
-      key: string,
       controllerPlayerId = P2,
       duration: Raw = indefinite,
     ): Raw => ({
@@ -167,48 +175,27 @@ describe('O4P-01L rule authority acceptance pins', () => {
       duration,
     });
     control = resultValue(
-      call('applyCoreControlEffectV1', control, 'first', effect(CARD, 'first', P2)),
+      call('applyCoreControlEffectV1', control, 'first', effect(CARD, P2)),
       'first control',
     );
     control = resultValue(
-      call('applyCoreControlEffectV1', control, 'second', effect(CARD, 'second', P1, eot)),
+      call('applyCoreControlEffectV1', control, 'second', effect(CARD, P1, eot)),
       'second control',
     );
     control = resultValue(
-      call('applyCoreControlEffectV1', control, 'stack', effect(STACK_CARD, 'stack')),
+      call('applyCoreControlEffectV1', control, 'stack', effect(STACK_CARD)),
       'stack control',
     );
     control = resultValue(
-      call('applyCoreControlEffectV1', control, 'copy', effect(SPELL_COPY, 'copy')),
+      call('applyCoreControlEffectV1', control, 'copy', effect(SPELL_COPY)),
       'copy control',
     );
-    expect(
-      call(
-        'currentCoreObjectControllerV1',
-        fixtureBundle().stackBundle.objectRegistry,
-        control,
-        CARD,
-      ),
-    ).toBe(P1);
-    expect(
-      call(
-        'currentCoreObjectControllerV1',
-        fixtureBundle().stackBundle.objectRegistry,
-        control,
-        STACK_CARD,
-      ),
-    ).toBe(P2);
-    expect(
-      call(
-        'currentCoreObjectControllerV1',
-        fixtureBundle().stackBundle.objectRegistry,
-        control,
-        SPELL_COPY,
-      ),
-    ).toBe(P2);
+    expect(call('currentCoreObjectControllerV1', fixtureRegistry(), control, CARD)).toBe(P1);
+    expect(call('currentCoreObjectControllerV1', fixtureRegistry(), control, STACK_CARD)).toBe(P2);
+    expect(call('currentCoreObjectControllerV1', fixtureRegistry(), control, SPELL_COPY)).toBe(P2);
     const rejected = (() => {
       try {
-        call('applyCoreControlEffectV1', control, 'ability', effect(ABILITY, 'ability'));
+        call('applyCoreControlEffectV1', control, 'ability', effect(ABILITY));
         return null;
       } catch (error) {
         return error;
@@ -217,14 +204,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
     expect(rejected).toBeTruthy();
     expect(String(rejected)).toMatch(/OBJECT_NOT_CONTROLLABLE/);
     control = resultValue(call('removeCoreControlEffectV1', control, 'second'), 'remove latest');
-    expect(
-      call(
-        'currentCoreObjectControllerV1',
-        fixtureBundle().stackBundle.objectRegistry,
-        control,
-        CARD,
-      ),
-    ).toBe(P2);
+    expect(call('currentCoreObjectControllerV1', fixtureRegistry(), control, CARD)).toBe(P2);
     const reordered = resultValue(
       call('replaceCoreControlEffectOrderV1', control, ['copy', 'first', 'stack']),
       'replace order',
@@ -251,7 +231,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
       'turn start',
     );
     expect(
-      record(marked.continuityByObject, 'marked continuity')[CARD]
+      record(record(marked.continuityByObject, 'marked continuity')[CARD], 'marked row')
         .continuousSinceMostRecentTurnBegan,
     ).toBe(true);
     expect(call('coreHasContinuousControlSinceTurnStartV1', marked, CARD)).toBe(true);
@@ -271,12 +251,12 @@ describe('O4P-01L rule authority acceptance pins', () => {
       ),
       'expiry',
     );
-    expect(expired.control.effectOrder ?? expired.effectOrder).not.toContain('eot');
+    expect(expired.effectOrder).not.toContain('eot');
     const pruned = resultValue(
       call(
         'pruneCoreRuleAuthorityForMissingSourcesV1',
         root({ control: control }),
-        fixtureBundle().stackBundle.objectRegistry,
+        fixtureRegistry(),
       ),
       'source prune',
     );
@@ -284,7 +264,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
   });
 
   it('pins default and granted identity visibility across hand, library, public, face-down battlefield/stack/exile, top library, controlled player, and outside-game exclusion', () => {
-    const registry = record(fixtureBundle().stackBundle, 'turn priority').objectRegistry;
+    const registry = fixtureRegistry();
     const visibility = resultValue(
       call('createModeNeutralCoreVisibilitySliceV1', {
         grantOrder: ['exile', 'top'],
@@ -343,7 +323,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
   });
 
   it('pins search actor/selector separation, owner/opponent zones, quantity and qualified bounds, fail-to-find, stale snapshots, no reveal/movement/shuffle', () => {
-    const registry = fixtureBundle().stackBundle.objectRegistry;
+    const registry = fixtureRegistry();
     const input = root({
       decisionAuthorities: {
         ...emptyDecision(),
@@ -436,7 +416,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
     expect(
       call(
         'coreCanPlayerAttemptPlayObjectV1',
-        fixtureBundle().stackBundle.objectRegistry,
+        fixtureRegistry(),
         emptyVisibility(),
         slice,
         P2,
@@ -446,7 +426,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
     expect(
       call(
         'coreCanPlayerAttemptPlayObjectV1',
-        fixtureBundle().stackBundle.objectRegistry,
+        fixtureRegistry(),
         emptyVisibility(),
         slice,
         P1,
@@ -458,7 +438,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
       'consume permission',
     );
     expect(consumed.permissionOrder).not.toContain('top');
-    expect(JSON.stringify(fixtureBundle().stackBundle.objectRegistry.zones)).toContain(STACK_CARD);
+    expect(JSON.stringify(fixtureZones())).toContain(STACK_CARD);
   });
 
   it('pins pending/active/decision-specific/search authority, last-wins, skipped-turn activation, and non-authority boundaries', () => {
@@ -522,8 +502,8 @@ describe('O4P-01L rule authority acceptance pins', () => {
       call('expireCoreRuleAuthorityAtTurnBoundaryV1', input, 4),
       'root expiry',
     );
-    expect(expired.searchSessions.sessionOrder).toEqual(['s']);
-    expect(expired.turnPriorityBundle).toBe(input.turnPriorityBundle);
+    expect(record(expired.searchSessions, 'expired sessions')['sessionOrder']).toEqual(['s']);
+    expect(expired['turnPriorityBundle']).toBe(input['turnPriorityBundle']);
   });
 
   it('pins hostile input non-mutation, deterministic complete issues, canonical JSON, and deep freeze', () => {
