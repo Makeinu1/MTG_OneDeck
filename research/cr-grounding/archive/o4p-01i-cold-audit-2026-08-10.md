@@ -3,8 +3,8 @@
 - Milestone: O4P-01I Stack Announcement Payload & Lifecycle V1
 - Auditor: `019fe93e-0b66-71f0-b9fe-b6cfaf049e07` (Noether)
 - Initial BASE_SHA: `aad8b24b9a0fcfe0a8dad51dc28095d1a0348966`
-- Final audited candidate SHA: `0c7e58ad174a36332c68ac357dc6b55045676ac7`
-- Final audited candidate fingerprint: `b37b0e8f330be331a727193c820701c1cb38fda5f125126ace69dd8c1d6d8ae1`
+- Final audited candidate SHA: `9f7b582249ca6235f0b2ab846242e1286cb41f3e`
+- Final audited candidate fingerprint: `ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618`
 - Verdict: `AUDIT-OK-PENDING-FULL-CHECK`
 
 ## Severity counts
@@ -54,4 +54,23 @@ release full check.
   Online runtime were unchanged.
 
 Full `npm run check`, ledger audited transition, CI, Pages, and shipment were
-not part of this audit and remain judge-owned gates.
+not part of the cold audit and remain judge-owned gates.
+
+## Post-audit full-check attribution
+
+The first post-audit full-check attempt ran all preceding machine steps,
+including the new Stack Announcement verifier, lint, and the Core project
+(166 files / 1,659 tests), then failed in the DOM architecture project because
+`modeNeutralCoreBoundary.test.ts` did not yet allow the new verifier script.
+The judge added only that verification-script allowlist entry; the focused
+boundary test passed 7/7. This changed the candidate from
+`0c7e58ad174a36332c68ac357dc6b55045676ac7` /
+`b37b0e8f330be331a727193c820701c1cb38fda5f125126ace69dd8c1d6d8ae1` to
+`9f7b582249ca6235f0b2ab846242e1286cb41f3e` /
+`ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618`.
+A fresh cold re-audit is required before the final full check.
+
+The fresh re-audit of the boundary-corrected candidate recomputed the
+fingerprint and returned `AUDIT-OK-PENDING-FULL-CHECK` with
+BLOCKER/HIGH/MEDIUM/LOW counts of 0/0/0/0. The final full check is the next
+judge-owned gate.

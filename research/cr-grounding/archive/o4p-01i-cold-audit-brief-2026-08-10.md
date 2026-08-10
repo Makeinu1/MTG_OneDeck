@@ -19,17 +19,20 @@
 - Proxy-hardening candidate fingerprint: `73c27b37404f641749486863ee95dd2d46897860a326f92ff37df4b1a6c2ba01`
 - Type-corrected candidate SHA: `0c7e58ad174a36332c68ac357dc6b55045676ac7`
 - Type-corrected candidate fingerprint: `b37b0e8f330be331a727193c820701c1cb38fda5f125126ace69dd8c1d6d8ae1`
+- Boundary-corrected candidate SHA: `9f7b582249ca6235f0b2ab846242e1286cb41f3e`
+- Boundary-corrected candidate fingerprint: `ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618`
 
 ## Fingerprint procedure
 
 The candidate fingerprint is computed with the repository's
-`computeTreeFingerprint` helper over the sorted 45 paths listed below, which
-are exactly `git diff --name-only aad8b24b9a0fcfe0a8dad51dc28095d1a0348966 0c7e58ad174a36332c68ac357dc6b55045676ac7`.
-This audit brief and the later findings record are excluded from the hash.
+`computeTreeFingerprint` helper over the sorted 46 candidate paths listed
+below, which are the `git diff --name-only` paths from BASE_SHA to the
+boundary-corrected candidate with the audit brief and findings record removed.
+Those two archive records are excluded from the hash.
 Recompute from the repository root with:
 
 ```sh
-node --input-type=module -e "import {execFileSync} from 'node:child_process'; import {computeTreeFingerprint} from './scripts/codex-context.mjs'; const paths=execFileSync('git',['diff','--name-only','aad8b24b9a0fcfe0a8dad51dc28095d1a0348966','0c7e58ad174a36332c68ac357dc6b55045676ac7'],{encoding:'utf8'}).trim().split('\\n').filter(Boolean); console.log(computeTreeFingerprint(process.cwd(),paths));"
+node --input-type=module -e "import {execFileSync} from 'node:child_process'; import {computeTreeFingerprint} from './scripts/codex-context.mjs'; const paths=execFileSync('git',['diff','--name-only','aad8b24b9a0fcfe0a8dad51dc28095d1a0348966','9f7b582249ca6235f0b2ab846242e1286cb41f3e'],{encoding:'utf8'}).trim().split('\\n').filter(Boolean); for (const excluded of ['research/cr-grounding/archive/o4p-01i-cold-audit-brief-2026-08-10.md','research/cr-grounding/archive/o4p-01i-cold-audit-2026-08-10.md']) { const index=paths.indexOf(excluded); if(index>=0) paths.splice(index,1); } console.log(computeTreeFingerprint(process.cwd(),paths));"
 ```
 
 ## Initial audit and remediation
@@ -48,9 +51,12 @@ implementer added guarded prototype, own-key, descriptor, length, and index
 inspection with deterministic fail-closed issues and adversarial tests. The
 proxy-hardening candidate is the SHA and fingerprint listed above. The judge
 then narrowed the validated array length to `number` before the loop, closing a
-strict build/type-check failure without changing runtime semantics. The
-type-corrected candidate is the SHA and fingerprint listed above; a fresh cold
-re-audit is required before any full check.
+strict build/type-check failure without changing runtime semantics. The first
+post-audit full check then found that the existing Core boundary test did not
+allow the new verification script. The judge added that single verification
+script to the existing allowlist; the targeted gate passed. The
+boundary-corrected candidate is the SHA and fingerprint listed above; a fresh
+cold re-audit is required before the final full check.
 
 ## Candidate paths
 
@@ -98,6 +104,7 @@ src/engine/core/stack/stackAnnouncementRecordV1.ts
 src/engine/core/stack/stackAnnouncementSliceV1.ts
 src/engine/core/stack/stackAnnouncementValidationV1.ts
 src/engine/core/stack/targetAnnouncementV1.ts
+src/test/architecture/modeNeutralCoreBoundary.test.ts
 src/test/architecture/o4p01iStackAnnouncementBoundary.test.ts
 src/test/architecture/review.o4p-01i-stack-announcement-boundary.test.ts
 ```
