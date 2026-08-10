@@ -7,11 +7,9 @@
 - Required ancestor: `444f538221139dc31aeb8fcfa93f879a0fe3fd67`
 - Plan SHA: `3476e170124158da849dadb5a3031dfda4a28a3c`
 - Final contract SHA: `4c9ae2590875c273199f0fb5922efe5b9327b190`
-- Candidate implementation SHA before this brief: `8a800c5b1a3199f6d57aa3320fa8df127ef264e4`
-- Candidate tree fingerprint before this brief: `66dfac9c5210afb77a17718289f2c93aa172a1db36cdf3b71ba9a7e744cf48fe`
-- Candidate SHA including this brief: `4d1bb7d09f34e30146f6a8d530eeb76983535fd1`
-- Candidate tree fingerprint including this brief: `ec9d34ff3216f307b936468681b44dc8223bc3433391d813f7cd82331a95f52f`
-- The auditor must independently recompute and match the final candidate SHA and fingerprint before inspecting the candidate.
+- Candidate SHA: `20e089f5103326781e945f8a29c2df89531b1318`
+- Candidate tree fingerprint: `0a21b883e3453acec2a7bee3f7f6db48f6bb07e061cfad3daa51475575dc752f`
+- The fingerprint excludes this brief and the future findings record; the auditor must independently recompute and match both candidate SHA and fingerprint before inspecting the candidate.
 
 ## Auditor independence
 
@@ -30,6 +28,17 @@ change ledger/review/docs/source artifacts.
 - Architecture review: `src/test/architecture/review.o4p-01j-stack-transaction-boundary.test.ts`
 - Committed fixture: `src/engine/core/stack/transaction/fixtures/stack-transaction-v1.json`
 - Verification entrypoint: `npm run verify:mode-neutral-core-stack-transaction`
+
+## Fingerprint procedure
+
+The candidate fingerprint is computed with the repository's
+`computeTreeFingerprint` helper over the 45 paths changed from PLAN_SHA to the
+candidate SHA, excluding this brief and the future findings record. Recompute
+from the repository root with:
+
+```sh
+node --input-type=module -e "import {execFileSync} from 'node:child_process'; import {computeTreeFingerprint} from './scripts/codex-context.mjs'; const base='3476e170124158da849dadb5a3031dfda4a28a3c'; const head='20e089f5103326781e945f8a29c2df89531b1318'; const paths=execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\\n').filter(Boolean).filter((p)=>!['research/cr-grounding/archive/o4p-01j-cold-audit-brief-2026-08-10.md','research/cr-grounding/archive/o4p-01j-cold-audit-2026-08-10.md'].includes(p)); console.log(computeTreeFingerprint(process.cwd(),paths));"
+```
 
 ## Audit questions
 
