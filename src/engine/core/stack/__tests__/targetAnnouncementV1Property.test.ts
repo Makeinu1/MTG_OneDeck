@@ -16,7 +16,7 @@ describe('O4P-01I-F target selection properties', () => {
       (rows) => {
         const selections = rows.map(([selectionId, groupKey, selectedTarget], index) => ({
           selectionId: `${selectionId}-${index}`,
-          groupKey,
+          groupKey: `${groupKey}-${index}`,
           target: selectedTarget,
         }));
         expect(validateCoreStackTargetSelectionsV1(selections).ok).toBe(true);
