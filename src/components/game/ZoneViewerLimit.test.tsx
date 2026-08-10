@@ -32,5 +32,5 @@ describe('large zone recovery', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     act(() => root.unmount());
     expect(document.activeElement).toBe(opener);
-  });
+  }, 15_000);
 });

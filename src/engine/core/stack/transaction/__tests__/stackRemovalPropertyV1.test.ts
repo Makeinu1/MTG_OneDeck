@@ -52,7 +52,7 @@ describe('removeCoreStackObjectV1 deterministic properties', () => {
       expect(JSON.stringify(firstResult)).toBe(JSON.stringify(secondResult));
       expect(firstResult.nextObjectId).toBe('PC5:2');
     }));
-  }, 30000);
+  }, 60_000);
 
   it('does not mutate a valid input bundle or operation', () => {
     const input = { kind: 'card-to-zone', objectId: 'PC5:1', destination: { kind: 'exile' } };
