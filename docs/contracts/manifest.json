@@ -14,7 +14,7 @@
       "dependsOn": [],
       "supersedes": ["legacy:docs/engine-spec.md#1"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/init.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-COMMANDS",
@@ -25,7 +25,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE"],
       "supersedes": ["legacy:docs/engine-spec.md#2"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/commands.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-ZONES",
@@ -36,7 +36,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#zone-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-TURN",
@@ -47,7 +47,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#turn-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/priority.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-MANA",
@@ -58,7 +58,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#mana-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/mana.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-MULTIPLAYER",
@@ -69,7 +69,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-ZONES"],
       "supersedes": ["legacy:docs/engine-spec.md#multiplayer-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/test/architecture/soloOnlineBoundary.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ENGINE-COMPILER",
@@ -80,7 +80,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#compiler-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/cr701DiscardCompiler.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-ACCEPTANCE",
@@ -91,7 +91,7 @@
       "dependsOn": ["CONTRACT-ENGINE-COMPILER"],
       "supersedes": ["legacy:docs/acceptance.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-UI-DESIGN",
@@ -102,7 +102,7 @@
       "dependsOn": [],
       "supersedes": ["legacy:docs/design-vision.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-UI-VISUAL",
@@ -113,7 +113,7 @@
       "dependsOn": ["CONTRACT-UI-DESIGN"],
       "supersedes": ["legacy:docs/design-system.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-UI-ARCHITECTURE",
@@ -124,7 +124,7 @@
       "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-VISUAL"],
       "supersedes": ["legacy:docs/ui-architecture-v2.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-UI-RESPONSIVE",
@@ -135,7 +135,7 @@
       "dependsOn": ["CONTRACT-UI-ARCHITECTURE"],
       "supersedes": ["legacy:docs/acceptance.md#mobile"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/adaptiveLaneLayout.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "CONTRACT-AV",
@@ -146,7 +146,7 @@
       "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE"],
       "supersedes": ["legacy:docs/audio-visual-contract.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/__tests__/review.av0-contract.test.ts"],
-      "lastVerifiedCommit": "cdad530267a7286d16454cf376a825378c6b4cdd"
+      "lastVerifiedCommit": "c7fb7a258d43cec9fbb2c8c98c01163cb5465501"
     },
     {
       "id": "GENERATED-ENGINE-API",

@@ -532,7 +532,7 @@
       "failureBehavior": "Unindexed architecture evidence is not considered complete.",
       "invariant": "Traceability is checked offline.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/test/architecture/deployPagesGates.test.ts", "marker": "verifies: UI-ARCH-004", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/presentation/presentationRuntime.test.ts", "marker": "verifies: UI-ARCH-004", "kind": "automated"}],
       "acceptedBy": ["ACC-CR-REPLAY-001"]
     },
     {
