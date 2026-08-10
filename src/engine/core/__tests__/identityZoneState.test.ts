@@ -309,3 +309,4 @@ describe('Mode-Neutral Core identity/zone state', () => {
     expect(getterExecuted).toBe(false);
   });
 });
+// verifies: ENG-STATE-003

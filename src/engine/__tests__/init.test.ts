@@ -48,3 +48,4 @@ describe('initGame', () => {
     expect(state.zones.command).toHaveLength(2);
   });
 });
+// verifies: ENG-STATE-001

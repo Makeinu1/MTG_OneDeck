@@ -496,3 +496,4 @@ describe('MP-STATE: N-player canonical player state (I24-I28)', () => {
     });
   });
 });
+// verifies: ENG-MP-001

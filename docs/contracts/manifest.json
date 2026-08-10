@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
-  "milestone": "DOC-GOV-RESET-2026-08",
+  "milestone": "VALIDATION-HARDENING-2026-08",
+  "traceability": "docs/contracts/traceability.json",
+  "legacyInventory": "research/archive/document-reset-2026-08/legacy-contract-inventory.json",
   "activeAllowlist": [],
   "contracts": [
     {

@@ -147,3 +147,4 @@ describe('TransitionCue', () => {
     container.remove();
   });
 });
+// verifies: UI-ARCH-003

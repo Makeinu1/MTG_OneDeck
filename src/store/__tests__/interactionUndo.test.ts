@@ -94,3 +94,4 @@ describe('gameplay interaction undo', () => {
     expect(store().state?.cards[sourceId].zone).toBe('stack');
   });
 });
+// verifies: ENG-CMD-003

@@ -306,3 +306,4 @@ describe('AV6 no new events, sound, or BGM change', () => {
     expect(source).not.toContain('musicBus');
   });
 });
+// verifies: AV-003

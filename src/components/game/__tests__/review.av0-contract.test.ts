@@ -155,3 +155,4 @@ describe('audio preference and effective-silence boundary', () => {
     })).toEqual({ musicAudible: false, eventsAudible: false });
   });
 });
+// verifies: AV-001

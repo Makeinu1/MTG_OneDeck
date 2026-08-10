@@ -77,3 +77,4 @@ describe('createPresentationRuntime', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
+// verifies: UI-ARCH-004

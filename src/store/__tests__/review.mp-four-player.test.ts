@@ -407,3 +407,4 @@ describe('MP four-player gate', () => {
     });
   });
 });
+// verifies: ENG-MP-003

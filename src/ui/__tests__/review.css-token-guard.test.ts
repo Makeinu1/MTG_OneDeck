@@ -258,3 +258,4 @@ describe('color: inherit と固定背景の同居禁止(本当の失敗モード
     ).toEqual([]);
   });
 });
+// verifies: UI-VIS-003

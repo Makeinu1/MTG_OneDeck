@@ -639,3 +639,4 @@ describe('store history (snapshot undo/redo)', () => {
     );
   });
 });
+// verifies: ENG-STATE-002

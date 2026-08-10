@@ -13,6 +13,7 @@
       "automatedBy": ["src/data/__tests__/deckParser.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-COMPILER"],
+      "verifies": ["ENG-COMP-001", "ACC-ACCEPT-001"],
       "supersedes": []
     },
     {
@@ -26,6 +27,7 @@
       "automatedBy": ["src/components/game/MulliganStage.test.tsx"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "verifies": ["ENG-STATE-001", "ENG-CMD-003"],
       "supersedes": []
     },
     {
@@ -39,6 +41,7 @@
       "automatedBy": [],
       "manualOnly": true,
       "contractRefs": ["CONTRACT-ENGINE-TURN"],
+      "verifies": ["ENG-TURN-003"],
       "supersedes": []
     },
     {
@@ -52,6 +55,7 @@
       "automatedBy": ["src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-ZONES"],
+      "verifies": ["ENG-ZONES-001", "ENG-ZONES-004"],
       "supersedes": []
     },
     {
@@ -65,6 +69,7 @@
       "automatedBy": ["src/engine/__tests__/m427.test.ts", "src/engine/__tests__/priority.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-TURN"],
+      "verifies": ["ENG-TURN-001", "ENG-TURN-002"],
       "supersedes": []
     },
     {
@@ -78,6 +83,7 @@
       "automatedBy": ["src/engine/__tests__/mana.test.ts", "src/engine/__tests__/manaTransaction.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA"],
+      "verifies": ["ENG-MANA-001", "ENG-MANA-002"],
       "supersedes": []
     },
     {
@@ -91,6 +97,7 @@
       "automatedBy": ["src/engine/__tests__/mana.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA"],
+      "verifies": ["ENG-MANA-002"],
       "supersedes": ["UX-MANA-1"]
     },
     {
@@ -104,6 +111,7 @@
       "automatedBy": ["src/engine/__tests__/mana.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA"],
+      "verifies": ["ENG-MANA-001"],
       "supersedes": ["UX-MANA-2"]
     },
     {
@@ -117,6 +125,7 @@
       "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA"],
+      "verifies": ["ENG-MANA-002"],
       "supersedes": ["UX-MANA-3"]
     },
     {
@@ -130,6 +139,7 @@
       "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA"],
+      "verifies": ["ENG-MANA-002"],
       "supersedes": ["UX-MANA-4"]
     },
     {
@@ -143,6 +153,7 @@
       "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA", "CONTRACT-ENGINE-COMMANDS"],
+      "verifies": ["ENG-MANA-003", "ENG-CMD-003"],
       "supersedes": ["UX-MANA-5"]
     },
     {
@@ -156,6 +167,7 @@
       "automatedBy": ["src/engine/__tests__/act4CostVocabulary.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-MANA", "CONTRACT-ENGINE-COMPILER"],
+      "verifies": ["ENG-MANA-003", "ENG-COMP-002"],
       "supersedes": ["UX-MANA-6"]
     },
     {
@@ -169,6 +181,7 @@
       "automatedBy": ["src/engine/__tests__/cr701DiscardCompiler.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-COMPILER"],
+      "verifies": ["ENG-COMP-001", "ENG-COMP-002", "ENG-COMP-003"],
       "supersedes": []
     },
     {
@@ -182,6 +195,7 @@
       "automatedBy": ["src/store/__tests__/snapshotPersistenceControl.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "verifies": ["ENG-STATE-004", "ENG-CMD-003"],
       "supersedes": []
     },
     {
@@ -195,6 +209,7 @@
       "automatedBy": [],
       "manualOnly": true,
       "contractRefs": ["CONTRACT-ACCEPTANCE"],
+      "verifies": ["ACC-ACCEPT-002"],
       "supersedes": []
     },
     {
@@ -208,6 +223,7 @@
       "automatedBy": [],
       "manualOnly": true,
       "contractRefs": ["CONTRACT-UI-ARCHITECTURE", "CONTRACT-UI-RESPONSIVE"],
+      "verifies": ["UI-RESP-001", "UI-RESP-002", "UI-RESP-003"],
       "supersedes": []
     },
     {
@@ -221,6 +237,7 @@
       "automatedBy": [],
       "manualOnly": true,
       "contractRefs": ["CONTRACT-AV"],
+      "verifies": ["AV-004"],
       "supersedes": []
     },
     {
@@ -234,6 +251,7 @@
       "automatedBy": ["src/engine/__tests__/eventEnvelope.test.ts"],
       "manualOnly": false,
       "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMPILER"],
+      "verifies": ["ENG-STATE-005", "ENG-COMP-004", "ACC-ACCEPT-003"],
       "supersedes": []
     }
   ]

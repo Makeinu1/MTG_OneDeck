@@ -66,3 +66,4 @@ describe('computeResponsiveLaneLayout', () => {
     expect(layout.cardWidth * (680 / 488)).toBeLessThanOrEqual(58);
   });
 });
+// verifies: UI-RESP-001

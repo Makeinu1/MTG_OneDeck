@@ -142,3 +142,4 @@ describe('mana ability transaction (CR 605)', () => {
     expect(collectTriggeredManaAbilities(state, [manaEvent])).toEqual([]);
   });
 });
+// verifies: ENG-MANA-002

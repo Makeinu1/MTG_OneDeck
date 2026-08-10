@@ -75,3 +75,4 @@ describe('ContextMenu keyboard contract', () => {
     expect(document.activeElement).toBe(trigger);
   });
 });
+// verifies: UI-DESIGN-003

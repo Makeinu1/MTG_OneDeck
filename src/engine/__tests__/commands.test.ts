@@ -622,3 +622,5 @@ describe('logging', () => {
     expect(last.message).toContain('》');
   });
 });
+// verifies: ENG-CMD-001
+// verifies: ENG-CMD-002

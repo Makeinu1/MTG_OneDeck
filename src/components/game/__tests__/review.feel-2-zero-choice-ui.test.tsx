@@ -169,3 +169,4 @@ describe('review.feel-2-zero-choice-ui: explicit legal-zero affordance', () => {
     expect(store().pendingGuided).toBeNull();
   });
 });
+// verifies: UI-DESIGN-002

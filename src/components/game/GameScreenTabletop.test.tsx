@@ -11,3 +11,5 @@ describe('GameScreen tabletop surface', () => {
     expect(markup).not.toContain('tabindex');
   });
 });
+// verifies: UI-ARCH-001
+// verifies: UI-ARCH-002

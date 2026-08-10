@@ -62,3 +62,4 @@ describe('S5 compact labels are minimal', () => {
     expect(lang.compact).toBe('完了');
   });
 });
+// verifies: UI-VIS-002

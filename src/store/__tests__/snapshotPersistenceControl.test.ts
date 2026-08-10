@@ -32,3 +32,4 @@ describe('development fixture snapshot isolation', () => {
     expect((await loadSnapshot())?.deck).toHaveLength(1);
   });
 });
+// verifies: ENG-STATE-004

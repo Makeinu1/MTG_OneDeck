@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -8,6 +9,8 @@ const root = resolve(import.meta.dirname, '../..');
 const manifestPath = join(root, 'docs/contracts/manifest.json');
 const scenarioPath = join(root, 'docs/acceptance/scenarios.json');
 const migrationPath = join(root, 'research/archive/document-reset-2026-08/migration-map.json');
+const traceabilityPath = join(root, 'docs/contracts/traceability.json');
+const inventoryPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
 const errors = [];
 
 function readJson(path) {
@@ -94,7 +97,7 @@ function checkManifest(manifest) {
   }
 }
 
-function checkScenarios(scenarios, migration, contractIds) {
+function checkScenarios(scenarios, migration, contractIds, clauseIds = new Set()) {
   const seen = new Set();
   const legacyIds = new Set((migration?.legacyIds ?? []).map((entry) => entry.id));
   if (!Array.isArray(scenarios)) {
@@ -102,16 +105,171 @@ function checkScenarios(scenarios, migration, contractIds) {
     return;
   }
   for (const scenario of scenarios) {
-    for (const key of ['id', 'status', 'risk', 'tags', 'preconditions', 'steps', 'oracle', 'automatedBy', 'manualOnly', 'supersedes', 'contractRefs']) {
+    for (const key of ['id', 'status', 'risk', 'tags', 'preconditions', 'steps', 'oracle', 'automatedBy', 'manualOnly', 'supersedes', 'contractRefs', 'verifies']) {
       if (!(key in scenario)) errors.push(`scenario ${scenario.id ?? '<unknown>'}: missing ${key}`);
     }
     if (typeof scenario.id !== 'string') continue;
     if (seen.has(scenario.id)) errors.push(`scenario: duplicate id ${scenario.id}`);
     seen.add(scenario.id);
     for (const ref of scenario.contractRefs ?? []) if (!contractIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved contractRefs ${ref}`);
+    if (!Array.isArray(scenario.verifies) || scenario.verifies.length === 0) errors.push(`scenario ${scenario.id}: verifies must not be empty`);
+    for (const ref of scenario.verifies ?? []) if (!clauseIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
     for (const path of scenario.automatedBy ?? []) requireFile(join(root, path), `scenario ${scenario.id} automatedBy`);
     for (const ref of scenario.supersedes ?? []) {
       if (typeof ref === 'string' && !legacyIds.has(ref) && !seen.has(ref)) errors.push(`scenario ${scenario.id}: unresolved supersedes ${ref}`);
+    }
+  }
+}
+
+function fileText(path) {
+  return readFileSync(path, 'utf8');
+}
+
+function checkMarker(path, marker, clauseId) {
+  const absolutePath = join(root, path);
+  if (!existsSync(absolutePath)) {
+    errors.push(`traceability ${clauseId}: verifiedBy path missing ${path}`);
+    return;
+  }
+  const content = fileText(absolutePath);
+  if (marker.startsWith('scenario: ')) {
+    const scenarioId = marker.slice('scenario: '.length);
+    const scenarios = readJson(scenarioPath)?.scenarios ?? [];
+    if (!scenarios.some((scenario) => scenario.id === scenarioId)) errors.push(`traceability ${clauseId}: missing scenario marker ${marker}`);
+    return;
+  }
+  if (!content.includes(marker)) errors.push(`traceability ${clauseId}: missing marker ${marker} in ${path}`);
+  if (marker.startsWith('verifies: ') && marker.slice('verifies: '.length) !== clauseId) {
+    errors.push(`traceability ${clauseId}: marker points to ${marker}`);
+  }
+}
+
+function checkTraceability(traceability, manifest, scenarios) {
+  if (traceability === null || typeof traceability !== 'object' || !Array.isArray(traceability.clauses)) {
+    errors.push('traceability: expected clauses array');
+    return new Set();
+  }
+  const contractIds = new Set((manifest?.contracts ?? []).map((entry) => entry.id));
+  const scenarioIds = new Set((scenarios ?? []).map((scenario) => scenario.id));
+  const clauseIds = new Set();
+  for (const clause of traceability.clauses) {
+    if (clause === null || typeof clause !== 'object') {
+      errors.push('traceability: every clause must be an object');
+      continue;
+    }
+    for (const key of ['id', 'contractId', 'status', 'sourcePath', 'sourceMarker', 'verificationDisposition', 'verifiedBy', 'acceptedBy']) {
+      if (!(key in clause)) errors.push(`traceability ${clause.id ?? '<unknown>'}: missing ${key}`);
+    }
+    if (typeof clause.id !== 'string') continue;
+    if (clauseIds.has(clause.id)) errors.push(`traceability: duplicate clause id ${clause.id}`);
+    clauseIds.add(clause.id);
+    if (!contractIds.has(clause.contractId)) errors.push(`traceability ${clause.id}: unresolved contractId ${clause.contractId}`);
+    if (!['active', 'obsolete'].includes(clause.status)) errors.push(`traceability ${clause.id}: invalid status ${clause.status}`);
+    if (!['automated', 'acceptance', 'manual', 'deferred-needs-decision'].includes(clause.verificationDisposition)) {
+      errors.push(`traceability ${clause.id}: invalid verificationDisposition ${clause.verificationDisposition}`);
+    }
+    const source = join(root, clause.sourcePath ?? '');
+    requireFile(source, `traceability ${clause.id} source`);
+    if (existsSync(source)) {
+      const content = fileText(source);
+      if (clause.sourceMarker?.startsWith('scenario: ')) {
+        const sourceScenario = clause.sourceMarker.slice('scenario: '.length);
+        if (!scenarioIds.has(sourceScenario)) errors.push(`traceability ${clause.id}: unresolved source scenario ${sourceScenario}`);
+      } else if (!content.includes(clause.sourceMarker ?? '')) {
+        errors.push(`traceability ${clause.id}: source marker missing ${clause.sourceMarker}`);
+      }
+    }
+    if (!Array.isArray(clause.verifiedBy) || clause.verifiedBy.length === 0) errors.push(`traceability ${clause.id}: no verification evidence`);
+    for (const verifier of clause.verifiedBy ?? []) {
+      if (!verifier.path || !verifier.marker || !verifier.kind) errors.push(`traceability ${clause.id}: malformed verifiedBy entry`);
+      else checkMarker(verifier.path, verifier.marker, clause.id);
+    }
+    if (clause.verificationDisposition === 'manual' && typeof clause.manualProcedure !== 'string') errors.push(`traceability ${clause.id}: manualProcedure required`);
+    if (clause.verificationDisposition === 'deferred-needs-decision' && typeof clause.needsDecision !== 'string') errors.push(`traceability ${clause.id}: needsDecision required`);
+    for (const acceptedBy of clause.acceptedBy ?? []) if (!scenarioIds.has(acceptedBy)) errors.push(`traceability ${clause.id}: unresolved acceptedBy ${acceptedBy}`);
+  }
+
+  for (const entry of manifest?.contracts ?? []) {
+    if (entry.status !== 'active' || !entry.path.endsWith('.md') || !existsSync(join(root, entry.path))) continue;
+    const content = fileText(join(root, entry.path));
+    const inlineIds = [...content.matchAll(/<!--\s*clause:\s*([A-Z0-9-]+)\s*-->/g)].map((match) => match[1]);
+    if (inlineIds.length === 0) errors.push(`${entry.path}: no clause IDs`);
+    for (const id of inlineIds) {
+      if (!clauseIds.has(id)) errors.push(`${entry.path}: inline clause ${id} missing from traceability`);
+      const clause = traceability.clauses.find((item) => item.id === id);
+      if (clause?.sourcePath !== entry.path) errors.push(`${entry.path}: clause ${id} sourcePath mismatch`);
+    }
+  }
+  return clauseIds;
+}
+
+function checkLastVerifiedCommits(manifest) {
+  for (const entry of manifest?.contracts ?? []) {
+    if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) continue;
+    const sha = entry.lastVerifiedCommit;
+    try {
+      execFileSync('git', ['cat-file', '-e', `${sha}^{commit}`], { cwd: root, stdio: 'ignore' });
+    } catch {
+      errors.push(`manifest ${entry.id}: lastVerifiedCommit does not exist ${sha}`);
+      continue;
+    }
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', sha, 'HEAD'], { cwd: root, stdio: 'ignore' });
+    } catch {
+      errors.push(`manifest ${entry.id}: lastVerifiedCommit is not an ancestor of HEAD ${sha}`);
+    }
+    const paths = [entry.path, ...(entry.verifiedBy ?? [])].filter((path) => !['scripts/checks/check-docs.mjs', 'scripts/checks/generate-engine-api.mjs'].includes(path));
+    for (const path of paths) {
+      try {
+        execFileSync('git', ['diff', '--quiet', sha, '--', path], { cwd: root, stdio: 'ignore' });
+      } catch {
+        errors.push(`manifest ${entry.id}: verification stale after ${sha}: ${path}`);
+      }
+    }
+  }
+}
+
+function hashText(text) {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function checkLegacyInventory(inventory, clauseIds, scenarioIds) {
+  if (inventory === null || typeof inventory !== 'object' || !Array.isArray(inventory.items)) {
+    errors.push('legacy inventory: expected items array');
+    return;
+  }
+  const dispositions = new Set(['active-clause', 'active-acceptance', 'covered-by', 'archived-historical', 'duplicate-of', 'obsolete-by-explicit-decision', 'deferred-needs-decision']);
+  const ids = new Set();
+  const anchors = new Set();
+  const validTargets = new Set([...clauseIds, ...scenarioIds]);
+  for (const item of inventory.items) {
+    for (const key of ['legacyItemId', 'sourcePath', 'sourceAnchor', 'itemType', 'textHash', 'summary', 'disposition', 'targetIds', 'rationale']) {
+      if (!(key in item)) errors.push(`legacy inventory ${item.legacyItemId ?? '<unknown>'}: missing ${key}`);
+    }
+    if (typeof item.legacyItemId !== 'string') continue;
+    if (ids.has(item.legacyItemId)) errors.push(`legacy inventory: duplicate id ${item.legacyItemId}`);
+    ids.add(item.legacyItemId);
+    const anchorKey = `${item.sourcePath}:${JSON.stringify(item.sourceAnchor)}`;
+    if (anchors.has(anchorKey)) errors.push(`legacy inventory: duplicate source anchor ${anchorKey}`);
+    anchors.add(anchorKey);
+    if (!dispositions.has(item.disposition)) errors.push(`legacy inventory ${item.legacyItemId}: invalid disposition ${item.disposition}`);
+    const source = join(root, item.sourcePath ?? '');
+    requireFile(source, `legacy inventory ${item.legacyItemId} source`);
+    if (typeof item.sourceText !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: sourceText required for hash proof`);
+    else if (item.textHash !== hashText(item.sourceText)) errors.push(`legacy inventory ${item.legacyItemId}: textHash mismatch`);
+    if (existsSync(source) && item.sourceAnchor && Number.isInteger(item.sourceAnchor.lineStart) && Number.isInteger(item.sourceAnchor.lineEnd)) {
+      const sourceLines = fileText(source).split(/\r?\n/);
+      const anchoredText = sourceLines.slice(item.sourceAnchor.lineStart - 1, item.sourceAnchor.lineEnd).join('\n');
+      if (anchoredText !== item.sourceText) errors.push(`legacy inventory ${item.legacyItemId}: sourceAnchor text mismatch`);
+    } else {
+      errors.push(`legacy inventory ${item.legacyItemId}: sourceAnchor line range required`);
+    }
+    if (item.disposition === 'deferred-needs-decision' && typeof item.rationale !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: deferred rationale required`);
+    if (item.disposition === 'archived-historical' && typeof item.rationale !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: historical rationale required`);
+    if (item.disposition === 'duplicate-of' && (!Array.isArray(item.targetIds) || item.targetIds.length !== 1 || !ids.has(item.targetIds[0]))) errors.push(`legacy inventory ${item.legacyItemId}: duplicate-of target must exist`);
+    if (['active-clause', 'active-acceptance', 'covered-by'].includes(item.disposition)) {
+      if (!Array.isArray(item.targetIds) || item.targetIds.length === 0) errors.push(`legacy inventory ${item.legacyItemId}: targetIds required`);
+      for (const target of item.targetIds ?? []) if (!validTargets.has(target)) errors.push(`legacy inventory ${item.legacyItemId}: unresolved target ${target}`);
     }
   }
 }
@@ -140,12 +298,19 @@ function run() {
   requireFile(manifestPath, 'manifest');
   requireFile(scenarioPath, 'scenario registry');
   requireFile(migrationPath, 'migration map');
+  requireFile(traceabilityPath, 'traceability registry');
+  requireFile(inventoryPath, 'legacy contract inventory');
   const manifest = readJson(manifestPath);
   const migration = readJson(migrationPath);
   const scenarios = readJson(scenarioPath);
+  const traceability = readJson(traceabilityPath);
+  const inventory = readJson(inventoryPath);
   checkManifest(manifest);
-  checkScenarios(scenarios?.scenarios, migration, new Set((manifest?.contracts ?? []).map((entry) => entry.id)));
+  const clauseIds = checkTraceability(traceability, manifest, scenarios?.scenarios);
+  checkScenarios(scenarios?.scenarios, migration, new Set((manifest?.contracts ?? []).map((entry) => entry.id)), clauseIds);
   checkMigrationMap(migration);
+  checkLastVerifiedCommits(manifest);
+  checkLegacyInventory(inventory, clauseIds, new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id)));
   for (const path of [
     join(root, 'README.md'), join(root, 'docs/README.md'), join(root, 'docs/acceptance.md'), join(root, 'docs/engine-spec.md'),
     ...((manifest?.contracts ?? []).map((entry) => join(root, entry.path)).filter((path) => extname(path) === '.md')),

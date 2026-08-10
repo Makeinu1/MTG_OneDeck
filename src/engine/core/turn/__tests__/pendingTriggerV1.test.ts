@@ -169,3 +169,4 @@ describe('O4P-01K-F pending trigger slice', () => {
     expect(() => appendCorePendingTriggeredAbilitiesV1(registry, next, [addition])).toThrow(CorePendingTriggerOperationErrorV1);
   });
 });
+// verifies: ENG-TURN-004

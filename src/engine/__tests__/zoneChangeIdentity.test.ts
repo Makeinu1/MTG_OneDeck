@@ -82,3 +82,4 @@ describe('CR 400.7 zone-change object identity (Z1)', () => {
     expect(state.cards[id].counters['+1/+1']).toBe(2);
   });
 });
+// verifies: ENG-ZONES-002

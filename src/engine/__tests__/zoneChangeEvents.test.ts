@@ -203,3 +203,4 @@ describe('CR 400.7 zone-change events (Z2)', () => {
     expect(state.eventLog[state.eventLog.length - 1].fromZone).toBe('stack');
   });
 });
+// verifies: ENG-ZONES-003

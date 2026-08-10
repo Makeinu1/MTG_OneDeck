@@ -348,3 +348,4 @@ describe('CardView drag registration', () => {
     cleanupRender(root, container);
   });
 });
+// verifies: UI-VIS-001

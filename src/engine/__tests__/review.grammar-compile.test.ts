@@ -147,3 +147,4 @@ describe('§31.7 純粋性(同入力同出力・入力非破壊)', () => {
     expect(JSON.stringify(ir)).toBe(frozen);
   });
 });
+// verifies: ENG-COMP-002

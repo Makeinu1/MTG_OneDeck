@@ -952,3 +952,4 @@ describe('high-frequency HUD interactions', () => {
     act(() => root.unmount());
   });
 });
+// verifies: UI-DESIGN-001

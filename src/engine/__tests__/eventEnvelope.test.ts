@@ -248,3 +248,6 @@ describe('S-EVENTS life/draw event envelope', () => {
     expect(left).toEqual(right);
   });
 });
+// verifies: ENG-STATE-005
+// verifies: ENG-ZONES-003
+// verifies: ENG-COMP-004

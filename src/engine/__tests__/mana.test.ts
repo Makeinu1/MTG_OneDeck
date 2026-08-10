@@ -145,3 +145,4 @@ describe('solvePayment', () => {
     expect(sol.payment.C).toBe(1);
   });
 });
+// verifies: ENG-MANA-001

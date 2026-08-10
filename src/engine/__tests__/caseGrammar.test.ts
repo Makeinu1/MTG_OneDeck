@@ -221,3 +221,5 @@ describe('setSolved command', () => {
     expect(() => applyCommand(state, { type: 'setSolved', cardId: 'nope', solved: true })).toThrow();
   });
 });
+// verifies: ENG-CMD-004
+// verifies: ENG-COMP-003

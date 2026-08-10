@@ -73,3 +73,4 @@ describe('review: mobile density geometry', () => {
     expect(css).toMatch(/game-card-preview__menu-action[^}]*min-height:\s*var\(--touch-target\)/s);
   });
 });
+// verifies: UI-RESP-002

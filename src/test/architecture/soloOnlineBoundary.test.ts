@@ -457,3 +457,4 @@ describe('Solo/Online dependency boundary', () => {
     expect(normalizedPath('src/engine/allowed.ts')).toBe('src/engine/allowed.ts');
   });
 });
+// verifies: ENG-MP-004

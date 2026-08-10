@@ -186,3 +186,4 @@ describe('AV2 production placement and background regression removal', () => {
     expect(tokens).not.toContain('--ambient-edge-heat');
   });
 });
+// verifies: AV-002

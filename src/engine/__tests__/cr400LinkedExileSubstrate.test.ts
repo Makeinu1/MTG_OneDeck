@@ -217,3 +217,5 @@ describe('CR 400/406/607 linked exile substrate', () => {
     });
   });
 });
+// verifies: ENG-ZONES-001
+// verifies: ENG-ZONES-004
