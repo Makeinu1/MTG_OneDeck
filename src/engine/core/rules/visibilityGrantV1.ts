@@ -271,7 +271,9 @@ export function validateModeNeutralCoreVisibilitySliceV1(
 export class CoreVisibilitySliceCreationErrorV1 extends Error {
   readonly issues: readonly CoreRuleValidationIssueV1[];
   constructor(issues: readonly CoreRuleValidationIssueV1[]) {
-    super(`Invalid Core visibility slice (${issues.length} issue(s))`);
+    super(
+      `${issues.map((issue) => issue.code).join(',') || 'INVALID_TYPE'}: Invalid Core visibility slice (${issues.length} issue(s))`,
+    );
     this.name = 'CoreVisibilitySliceCreationErrorV1';
     this.issues = issues;
   }

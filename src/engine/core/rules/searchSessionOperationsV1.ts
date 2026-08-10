@@ -26,7 +26,6 @@ export type CoreSearchSessionInputV1 = Readonly<{
   readonly shuffleAfter: boolean;
   readonly rulesActorPlayerId?: CorePlayerId;
 }>;
-export type CoreRuleAuthorityBundleV1 = Readonly<Raw>;
 type OperationResult<T> = Readonly<{
   readonly value: T;
   readonly selectedObjectIds?: readonly CoreObjectId[];
@@ -60,7 +59,13 @@ function registryOf(value: unknown): ModeNeutralCoreObjectRegistryStateV2 | null
   if (direct?.zones) return direct as unknown as ModeNeutralCoreObjectRegistryStateV2;
   const stack = record(root.stackBundle);
   const nested = record(stack?.objectRegistry);
-  return nested?.zones ? (nested as unknown as ModeNeutralCoreObjectRegistryStateV2) : null;
+  if (nested?.zones) return nested as unknown as ModeNeutralCoreObjectRegistryStateV2;
+  const turn = record(root.turnPriorityBundle);
+  const turnStack = record(turn?.stackBundle);
+  const turnRegistry = record(turnStack?.objectRegistry);
+  return turnRegistry?.zones
+    ? (turnRegistry as unknown as ModeNeutralCoreObjectRegistryStateV2)
+    : null;
 }
 function zoneIds(
   registry: ModeNeutralCoreObjectRegistryStateV2,

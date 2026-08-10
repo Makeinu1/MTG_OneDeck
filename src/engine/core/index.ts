@@ -1,12 +1,5 @@
-export {
-  coreCardObjectIdOf,
-} from './ids';
-export type {
-  CoreCardDefinitionId,
-  CoreObjectId,
-  CorePhysicalCardId,
-  CorePlayerId,
-} from './ids';
+export { coreCardObjectIdOf } from './ids';
+export type { CoreCardDefinitionId, CoreObjectId, CorePhysicalCardId, CorePlayerId } from './ids';
 
 export type {
   CoreCardDefinitionRecordV1,
@@ -179,3 +172,5 @@ export type {
 export * from './stack/transaction';
 
 export * from './turn';
+
+export * from './rules';

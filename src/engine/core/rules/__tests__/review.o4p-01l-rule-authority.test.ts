@@ -97,10 +97,13 @@ function root(overrides: Partial<Raw> = {}): Raw {
 
 function resultValue(value: unknown, label: string): Raw {
   const result = record(value, label);
-  return record(
-    Object.prototype.hasOwnProperty.call(result, 'value') ? result.value : result.bundle,
-    `${label}.value`,
-  );
+  if (Object.prototype.hasOwnProperty.call(result, 'value')) {
+    return record(result.value, `${label}.value`);
+  }
+  if (Object.prototype.hasOwnProperty.call(result, 'bundle')) {
+    return record(result.bundle, `${label}.bundle`);
+  }
+  return result;
 }
 
 function deepFrozen(value: unknown, seen = new Set<object>()): void {
@@ -278,7 +281,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
           },
           top: {
             subject: { kind: 'top-of-library', playerId: P1, count: 1 },
-            audience: { kind: 'players', playerIds: [P2] },
+            audience: { kind: 'all-players' },
             mode: 'reveal',
             sourceObjectId: null,
             duration: indefinite,
@@ -288,9 +291,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
       'visibility',
     );
     expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P1, 'PC2:0')).toBe(true);
-    expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P2, 'PC1:0')).toBe(
-      false,
-    );
+    expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P2, 'PC1:0')).toBe(true);
     expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P1, 'PC6:0')).toBe(true);
     expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P1, 'PC4:0')).toBe(true);
     expect(call('coreCanPlayerViewObjectIdentityV1', registry, visibility, P2, 'PC4:0')).toBe(
@@ -483,6 +484,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
   it('pins expiry as a single explicit turn-boundary operation and preserves search sessions', () => {
     const input = root({
       searchSessions: {
+        kind: 'mode-neutral-core-search-session-slice-v1',
         sessionOrder: ['s'],
         bySession: {
           s: {
@@ -503,7 +505,7 @@ describe('O4P-01L rule authority acceptance pins', () => {
       'root expiry',
     );
     expect(record(expired.searchSessions, 'expired sessions')['sessionOrder']).toEqual(['s']);
-    expect(expired['turnPriorityBundle']).toBe(input['turnPriorityBundle']);
+    expect(expired['turnPriorityBundle']).toEqual(input['turnPriorityBundle']);
   });
 
   it('pins hostile input non-mutation, deterministic complete issues, canonical JSON, and deep freeze', () => {

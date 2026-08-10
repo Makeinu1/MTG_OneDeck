@@ -12,14 +12,51 @@ const machineCheckSteps = [
   { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
   { name: 'Solo保全検証', cmd: 'npm', args: ['run', 'verify:solo-preservation'] },
-  { name: 'Online状態アーキテクチャ検証', cmd: 'npm', args: ['run', 'verify:online-state-architecture'] },
-  { name: 'Mode-Neutral Core Identity/Zone検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-identity-zone'] },
-  { name: 'Mode-Neutral Core Card Runtime検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-card-runtime'] },
-  { name: 'Mode-Neutral Core Card Zone Transition検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-zone-transition'] },
-  { name: 'Mode-Neutral Core Object Registry V2検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-object-registry'] },
-  { name: 'Mode-Neutral Core Stack Announcement検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-stack-announcement'] },
-  { name: 'Mode-Neutral Core Stack Transaction検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-stack-transaction'] },
-  { name: 'Mode-Neutral Core Turn/Priority検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-turn-priority'] },
+  {
+    name: 'Online状態アーキテクチャ検証',
+    cmd: 'npm',
+    args: ['run', 'verify:online-state-architecture'],
+  },
+  {
+    name: 'Mode-Neutral Core Identity/Zone検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-identity-zone'],
+  },
+  {
+    name: 'Mode-Neutral Core Card Runtime検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-card-runtime'],
+  },
+  {
+    name: 'Mode-Neutral Core Card Zone Transition検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-zone-transition'],
+  },
+  {
+    name: 'Mode-Neutral Core Object Registry V2検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-object-registry'],
+  },
+  {
+    name: 'Mode-Neutral Core Stack Announcement検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-stack-announcement'],
+  },
+  {
+    name: 'Mode-Neutral Core Stack Transaction検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-stack-transaction'],
+  },
+  {
+    name: 'Mode-Neutral Core Turn/Priority検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-turn-priority'],
+  },
+  {
+    name: 'Mode-Neutral Core Rule Authority検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-rule-authority'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
@@ -63,8 +100,7 @@ export function runMachineChecks({
     results.push({ name: step.name, code, durationMs, skipped: false });
 
     if (code !== 0 && firstFailure === 0) firstFailure = code;
-    const willRunAnotherStep = index < steps.length - 1
-      && (firstFailure === 0 || continueOnError);
+    const willRunAnotherStep = index < steps.length - 1 && (firstFailure === 0 || continueOnError);
     if (willRunAnotherStep) nextStepStartedAt = now();
   }
 
@@ -74,7 +110,9 @@ export function runMachineChecks({
     if (result.skipped) {
       write(`SKIP  ${result.name}`);
     } else {
-      write(`${result.code === 0 ? 'PASS' : 'FAIL'}  ${result.name} (${result.durationMs.toFixed(0)} ms)`);
+      write(
+        `${result.code === 0 ? 'PASS' : 'FAIL'}  ${result.name} (${result.durationMs.toFixed(0)} ms)`,
+      );
     }
   }
   write(`TOTAL (${durationMs.toFixed(0)} ms)`);
@@ -96,7 +134,6 @@ function runCli() {
   process.exitCode = runMachineChecks({ ...options, steps: machineCheckSteps }).exitCode;
 }
 
-const isCli = process.argv[1]
-  && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+const isCli = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
 
 if (isCli) runCli();

@@ -30,7 +30,9 @@ export class CoreRuleAuthorityOperationError extends Error {
     issues: readonly CoreRuleAuthorityOperationErrorV1[] | CoreRuleAuthorityOperationErrorV1,
   ) {
     const list = Array.isArray(issues) ? issues : [issues];
-    super(`Core rule authority operation failed (${list.length} issue(s))`);
+    super(
+      `${list[0]?.code ?? 'INVALID_OPERATION_INPUT'}: Core rule authority operation failed (${list.length} issue(s))`,
+    );
     this.name = 'CoreRuleAuthorityOperationError';
     this.issues = Object.freeze(list.slice());
     this.code = list[0]?.code ?? 'INVALID_OPERATION_INPUT';
