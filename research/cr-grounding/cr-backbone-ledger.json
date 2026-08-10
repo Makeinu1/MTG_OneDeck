@@ -1314,7 +1314,7 @@
       "type": "engine-fix",
       "domainId": "O4P-01I",
       "crOrder": 601.2,
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01H",
         "cr-113-abilities",
@@ -1339,10 +1339,18 @@
         "candidate-fingerprint:ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618",
         "npm run check:PASS:final candidate",
         "npm run check:forbidden:PASS:FORBIDDEN 0",
-        "git diff --check:PASS"
+        "git diff --check:PASS",
+        "GitHub Actions run:31348307409:Success",
+        "head SHA:444f538221139dc31aeb8fcfa93f879a0fe3fd67",
+        "Actions check:PASS",
+        "check:forbidden:PASS",
+        "Pages deploy:PASS",
+        "Pages HTTP 200:PASS",
+        "Pages JS HTTP 200:PASS",
+        "Pages CSS HTTP 200:PASS"
       ],
       "manualBoundary": "Committed stack-announcement state only. No proposal/payment-in-progress state, cost payment, target legality, priority, resolution, retarget command, copy-effect execution, projection, online protocol, or UI.",
-      "nextGate": "GitHub Actions and Pages publication evidence, then shipped promotion.",
+      "nextGate": "shipped。O4P-01J Atomic Stack Commit, Retarget & Removal Transaction V1へ進む。",
       "judge": "user-ruling-2026-08-10"
     }
   ],
@@ -4036,7 +4044,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "audited",
+      "status": "shipped",
       "dependsOn": [
         "O4P-01H",
         "cr-113-abilities",
@@ -4072,10 +4080,18 @@
         "candidate-fingerprint:ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618",
         "npm run check:PASS:final candidate",
         "npm run check:forbidden:PASS:FORBIDDEN 0",
-        "git diff --check:PASS"
+        "git diff --check:PASS",
+        "GitHub Actions run:31348307409:Success",
+        "head SHA:444f538221139dc31aeb8fcfa93f879a0fe3fd67",
+        "Actions check:PASS",
+        "check:forbidden:PASS",
+        "Pages deploy:PASS",
+        "Pages HTTP 200:PASS",
+        "Pages JS HTTP 200:PASS",
+        "Pages CSS HTTP 200:PASS"
       ],
       "manualBoundary": "Announcement snapshots are structural records, not proof that choices, targets, costs, or payments are legal. Resolution-time legality and copy semantics remain explicit DEFER items.",
-      "nextGate": "GitHub Actions and Pages publication evidence, then shipped promotion.",
+      "nextGate": "shipped。O4P-01J Atomic Stack Commit, Retarget & Removal Transaction V1へ進む。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     }
