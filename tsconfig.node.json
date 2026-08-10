@@ -26,6 +26,7 @@
   "include": [
     "vite.config.ts",
     "scripts/checks/verify-mode-neutral-core-card-runtime.ts",
-    "scripts/checks/verify-mode-neutral-core-zone-transition.ts"
+    "scripts/checks/verify-mode-neutral-core-zone-transition.ts",
+    "scripts/checks/verify-mode-neutral-core-stack-transaction.ts"
   ]
 }

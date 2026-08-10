@@ -3,10 +3,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { CoreObjectId } from '../../../ids';
-import {
-  createCoreStackTransactionBundleV1,
-  type CoreStackTransactionBundleV1,
-} from '../stackTransactionBundleV1';
+import type { CoreStackTransactionBundleV1 } from '../stackTransactionBundleV1';
+import { validateCoreStackTransactionBundleV1 } from '../stackTransactionValidationV1';
 import { CoreStackTransactionErrorV1 } from '../stackTransactionErrorV1';
 import { retargetCoreStackObjectV1 } from '../stackRetargetV1';
 
@@ -28,11 +26,13 @@ function fixtureBundle(): CoreStackTransactionBundleV1 {
   const announcements = readJson('../../fixtures/stack-announcement-v1.json');
   announcements.kind = 'mode-neutral-core-stack-announcement-slice-v1';
 
-  return createCoreStackTransactionBundleV1({
+  const result = validateCoreStackTransactionBundleV1({
     objectRegistry: readJson('../../../object/fixtures/object-registry-v2.json'),
     objectRuntime: runtime,
     stackAnnouncements: announcements,
   });
+  if (!result.ok) throw new Error(JSON.stringify(result.issues));
+  return result.value;
 }
 
 function expectDeepFrozen(value: unknown, seen = new Set<object>()): void {
@@ -135,25 +135,21 @@ describe('retargetCoreStackObjectV1', () => {
     const cardRecord = (raw.byObject as RawRecord)[STACK_CARD] as RawRecord;
     const selections = cardRecord.targetSelections as RawRecord[];
     selections[1].groupKey = selections[0].groupKey;
+    selections[1].target = selections[0].target;
     const runtime = readJson('../../../fixtures/card-runtime-slice-v1.json');
     runtime.kind = 'mode-neutral-core-object-runtime-slice-v2';
     (runtime.byObject as RawRecord)['@token:fixture-token:0'] = structuredClone(
       (runtime.byObject as RawRecord)['PC4:1'],
     );
-    const bundle = createCoreStackTransactionBundleV1({
+    const result = validateCoreStackTransactionBundleV1({
       objectRegistry: readJson('../../../object/fixtures/object-registry-v2.json'),
       objectRuntime: runtime,
       stackAnnouncements: raw,
     });
-
-    expect(() =>
-      retargetCoreStackObjectV1(bundle, {
-        objectId: STACK_CARD,
-        replacements: [
-          { selectionId: 'card-player', target: { kind: 'object', objectId: 'PC4:1' } },
-        ],
-      }),
-    ).toThrowError(/RETARGET_STRUCTURE_MISMATCH/);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('duplicate target fixture was accepted');
+    expect(result.issues.some((issue) => issue.code === 'INVALID_TRANSACTION_BUNDLE')).toBe(true);
+    expect(result.issues.some((issue) => issue.nested?.some((nested) => nested.code === 'DUPLICATE_TARGET_IN_GROUP'))).toBe(true);
   });
 
   it('contains hostile operation inspection and validates the full bundle first', () => {

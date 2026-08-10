@@ -28,3 +28,5 @@ export type {
   CoreStackAnnouncementValidationIssue,
   CoreStackAnnouncementValidationResult,
 } from './stackAnnouncementValidationV1';
+
+export * from './transaction';

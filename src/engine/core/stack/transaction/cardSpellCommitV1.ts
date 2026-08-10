@@ -6,6 +6,8 @@ import {
   type CoreCardObjectIdentityV2,
 } from '../../object/tokenObjectV2';
 import {
+  CoreObjectRegistryCreationErrorV2,
+  CoreObjectRuntimeCreationErrorV2,
   createModeNeutralCoreObjectRegistryStateV2,
   createModeNeutralCoreObjectRuntimeStateV2,
   type ModeNeutralCoreObjectRegistrySliceV2,
@@ -17,6 +19,7 @@ import {
 } from '../../transition/cardReincarnation';
 import type { CoreZonesV1 } from '../../identityZoneState';
 import {
+  CoreStackAnnouncementCreationError,
   createModeNeutralCoreStackAnnouncementSliceV1,
 } from '../stackAnnouncementSliceV1';
 import type { CoreStackAnnouncementRecordV1 } from '../stackAnnouncementRecordV1';
@@ -27,6 +30,7 @@ import {
   rebuildArrayWithoutIndexV1,
   rebuildRecordWithKeyV1,
   rebuildRecordWithoutKeyV1,
+  rebuildRuntimeForCardObjectReplacementV1,
 } from './internalStackTransactionV1';
 import {
   CoreStackTransactionErrorV1,
@@ -351,7 +355,22 @@ function candidateNestedIssues(error: unknown): readonly { readonly code: string
       message: current.message,
     }]);
   }
-  return [{ code: 'CANDIDATE_ERROR', path: '', message: 'Candidate construction failed' }];
+  if (error instanceof CoreObjectRegistryCreationErrorV2
+    || error instanceof CoreObjectRuntimeCreationErrorV2
+    || error instanceof CoreStackAnnouncementCreationError) {
+    return error.issues.map((current) => ({
+      code: current.code,
+      path: current.path,
+      message: current.message,
+    }));
+  }
+  return [{
+    code: 'CANDIDATE_ERROR',
+    path: '',
+    message: error instanceof Error && error.message.length > 0
+      ? `Candidate construction failed: ${error.message}`
+      : 'Candidate construction failed',
+  }];
 }
 
 function replaceSourceInZones(
@@ -421,8 +440,9 @@ function buildCandidateBundle(
   const nextRuntime = createModeNeutralCoreObjectRuntimeStateV2(
     nextRegistry,
     {
-      byObject: rebuildRecordWithKeyV1(
-        rebuildRecordWithoutKeyV1(bundle.objectRuntime.byObject, input.sourceObjectId),
+      byObject: rebuildRuntimeForCardObjectReplacementV1(
+        bundle.objectRuntime.byObject,
+        input.sourceObjectId,
         committedObjectId,
         createDefaultCoreCardRuntimeAfterZoneChangeV1(),
       ),

@@ -175,3 +175,5 @@ export type {
   CreateModeNeutralCoreStackAnnouncementSliceV1Input,
   ModeNeutralCoreStackAnnouncementSliceV1,
 } from './stack';
+
+export * from './stack/transaction';

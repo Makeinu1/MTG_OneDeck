@@ -1,5 +1,7 @@
 import type { CoreObjectId, CorePlayerId } from '../../ids';
 import type { ModeNeutralCoreObjectRegistrySliceV2 } from '../../object/objectRegistryStateV2';
+import { createCoreAttachmentStateV1 } from '../../runtime/attachment';
+import type { CoreCardObjectRuntimeStateV1 } from '../../runtime/cardRuntimeState';
 import type {
   CoreStackTransactionValidationIssueV1,
   CoreStackTransactionValidationResultV1,
@@ -250,6 +252,28 @@ export function rebuildRecordWithKeyV1<T>(
     }
   }
   if (!replaced) result[key] = value;
+  return result;
+}
+
+export function rebuildRuntimeForCardObjectReplacementV1(
+  source: Readonly<Record<CoreObjectId, CoreCardObjectRuntimeStateV1>>,
+  removedObjectId: CoreObjectId,
+  nextObjectId: CoreObjectId,
+  nextRuntime: CoreCardObjectRuntimeStateV1,
+): Readonly<Record<CoreObjectId, CoreCardObjectRuntimeStateV1>> {
+  const result = Object.create(null) as Record<CoreObjectId, CoreCardObjectRuntimeStateV1>;
+  for (const objectId of Object.keys(source) as CoreObjectId[]) {
+    if (objectId === removedObjectId) continue;
+    const current = source[objectId];
+    const attachedTo = current.attachment.attachedTo;
+    result[objectId] = attachedTo?.kind === 'object' && attachedTo.objectId === removedObjectId
+      ? Object.freeze({
+        ...current,
+        attachment: createCoreAttachmentStateV1({ attachedTo: null }),
+      })
+      : current;
+  }
+  result[nextObjectId] = nextRuntime;
   return result;
 }
 

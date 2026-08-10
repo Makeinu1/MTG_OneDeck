@@ -164,7 +164,9 @@ describe('O4P-01J-G synthetic stack commit transaction V1', () => {
     })).toThrowError(CoreStackTransactionErrorV1);
     expect(() => commitCoreSyntheticStackObjectV1(bundle, {
       ...valid,
-      object: { ...valid.object, definitionId: 'def.missing' as CoreCardDefinitionId },
+      object: valid.object.kind === 'spell-copy'
+        ? { ...valid.object, definitionId: 'def.missing' as CoreCardDefinitionId }
+        : valid.object,
     })).toThrowError(CoreStackTransactionErrorV1);
     expect(JSON.stringify(bundle)).toBe(before);
   });

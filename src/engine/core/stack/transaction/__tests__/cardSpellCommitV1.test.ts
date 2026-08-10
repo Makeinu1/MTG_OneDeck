@@ -12,6 +12,7 @@ import type { CoreObjectId, CorePlayerId } from '../../../ids';
 
 const P2 = 'p2' as CorePlayerId;
 const SOURCE = 'pc1:0' as CoreObjectId;
+const COMMITTED = 'pc1:1' as CoreObjectId;
 const EXISTING_STACK = 'pc2:0' as CoreObjectId;
 
 function player(): Record<string, unknown> {
@@ -102,15 +103,15 @@ describe('commitCoreCardSpellToStackV1', () => {
       const result = commitCoreCardSpellToStackV1(original, input());
 
       expect(result.previousObjectId).toBe(SOURCE);
-      expect(result.committedObjectId).toBe('pc1:1');
+      expect(result.committedObjectId).toBe(COMMITTED);
       expect(result.bundle.objectRegistry.objects[SOURCE]).toBeUndefined();
-      expect(result.bundle.objectRegistry.objects['pc1:1']).toEqual({
+      expect(result.bundle.objectRegistry.objects[COMMITTED]).toEqual({
         kind: 'card', physicalCardId: 'pc1', incarnation: 1, baseControllerPlayerId: P2,
       });
-      expect(result.bundle.objectRegistry.zones.shared.stack).toEqual([EXISTING_STACK, 'pc1:1']);
+      expect(result.bundle.objectRegistry.zones.shared.stack).toEqual([EXISTING_STACK, COMMITTED]);
       expect(result.bundle.objectRuntime.byObject[SOURCE]).toBeUndefined();
-      expect(result.bundle.objectRuntime.byObject['pc1:1']).toEqual(runtimeRow());
-      expect(result.bundle.stackAnnouncements.byObject['pc1:1']).toEqual(announcement());
+      expect(result.bundle.objectRuntime.byObject[COMMITTED]).toEqual(runtimeRow());
+      expect(result.bundle.stackAnnouncements.byObject[COMMITTED]).toEqual(announcement());
       expect(result.bundle.stackAnnouncements.byObject[EXISTING_STACK]).toEqual(announcement());
       expect(JSON.stringify(original)).toBe(before);
       expectDeepFrozen(result);

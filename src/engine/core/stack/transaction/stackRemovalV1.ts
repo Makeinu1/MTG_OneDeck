@@ -30,6 +30,7 @@ import {
   rebuildArrayWithoutIndexV1,
   rebuildRecordWithKeyV1,
   rebuildRecordWithoutKeyV1,
+  rebuildRuntimeForCardObjectReplacementV1,
 } from './internalStackTransactionV1';
 import type { CoreStackTransactionBundleV1 } from './stackTransactionBundleV1';
 import { CoreStackTransactionErrorV1 } from './stackTransactionErrorV1';
@@ -381,8 +382,9 @@ function buildCandidate(
 
     const runtimeByObject = operation.kind === 'cease'
       ? rebuildRecordWithoutKeyV1(bundle.objectRuntime.byObject, '__no_runtime_removed__')
-      : rebuildRecordWithKeyV1(
-        rebuildRecordWithoutKeyV1(bundle.objectRuntime.byObject, operation.objectId),
+      : rebuildRuntimeForCardObjectReplacementV1(
+        bundle.objectRuntime.byObject,
+        operation.objectId,
         nextObjectId as CoreObjectId,
         createDefaultCoreCardRuntimeAfterZoneChangeV1(),
       );

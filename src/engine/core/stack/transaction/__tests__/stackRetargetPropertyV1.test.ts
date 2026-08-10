@@ -4,10 +4,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import type { CoreObjectId } from '../../../ids';
-import {
-  createCoreStackTransactionBundleV1,
-  type CoreStackTransactionBundleV1,
-} from '../stackTransactionBundleV1';
+import type { CoreStackTransactionBundleV1 } from '../stackTransactionBundleV1';
+import { validateCoreStackTransactionBundleV1 } from '../stackTransactionValidationV1';
 import { retargetCoreStackObjectV1 } from '../stackRetargetV1';
 
 type RawRecord = Record<string, unknown>;
@@ -30,11 +28,13 @@ function bundle(): CoreStackTransactionBundleV1 {
       'utf8',
     ),
   ) as RawRecord;
-  return createCoreStackTransactionBundleV1({
+  const result = validateCoreStackTransactionBundleV1({
     objectRegistry: registry,
     objectRuntime: runtime,
     stackAnnouncements: announcements,
   });
+  if (!result.ok) throw new Error(JSON.stringify(result.issues));
+  return result.value;
 }
 
 describe('retargetCoreStackObjectV1 properties', () => {

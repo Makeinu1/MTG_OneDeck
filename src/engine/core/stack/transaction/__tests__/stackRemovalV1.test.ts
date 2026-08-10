@@ -2,12 +2,14 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import type { CorePlayerId } from '../../../ids';
+import type { CoreObjectId, CorePlayerId } from '../../../ids';
 import { validateCoreStackTransactionBundleV1 } from '../stackTransactionBundleV1';
 import { CoreStackTransactionErrorV1 } from '../stackTransactionErrorV1';
 import { removeCoreStackObjectV1 } from '../stackRemovalV1';
 
 type Raw = Record<string, unknown>;
+const CARD_OLD = 'PC5:1' as CoreObjectId;
+const CARD_NEW = 'PC5:2' as CoreObjectId;
 
 function readJson(path: string): Raw {
   return JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')) as Raw;
@@ -61,39 +63,39 @@ describe('removeCoreStackObjectV1', () => {
     const bundle = bundleFrom();
     const result = removeCoreStackObjectV1(bundle, {
       kind: 'card-to-zone',
-      objectId: 'PC5:1',
+      objectId: CARD_OLD,
       destination: { kind: 'owner-graveyard' },
     });
 
-    expect(result.removedObjectId).toBe('PC5:1');
-    expect(result.nextObjectId).toBe('PC5:2');
-    expect(result.bundle.objectRegistry.objects['PC5:1']).toBeUndefined();
-    expect(result.bundle.objectRegistry.objects['PC5:2']).toEqual({
+    expect(result.removedObjectId).toBe(CARD_OLD);
+    expect(result.nextObjectId).toBe(CARD_NEW);
+    expect(result.bundle.objectRegistry.objects[CARD_OLD]).toBeUndefined();
+    expect(result.bundle.objectRegistry.objects[CARD_NEW]).toEqual({
       kind: 'card',
       physicalCardId: 'PC5',
       incarnation: 2,
       baseControllerPlayerId: null,
     });
-    expect(result.bundle.objectRegistry.zones.byPlayer['P3' as CorePlayerId].graveyard).toContain('PC5:2');
+    expect(result.bundle.objectRegistry.zones.byPlayer['P3' as CorePlayerId].graveyard).toContain(CARD_NEW);
     expect(result.bundle.objectRegistry.zones.shared.stack).toEqual([
       '@spell-copy:fixture-copy',
       '@activated-ability:fixture-activation',
       '@triggered-ability:fixture-trigger',
     ]);
-    expect(result.bundle.objectRuntime.byObject['PC5:1']).toBeUndefined();
-    expect(result.bundle.objectRuntime.byObject['PC5:2']).toEqual({
+    expect(result.bundle.objectRuntime.byObject[CARD_OLD]).toBeUndefined();
+    expect(result.bundle.objectRuntime.byObject[CARD_NEW]).toEqual({
       orientation: { faceIndex: 0, faceDown: false, tapped: false, flipped: false, phasedOut: false },
       counterDamage: { counters: [], markedDamage: 0 },
       attachment: { attachedTo: null },
     });
-    expect(result.bundle.stackAnnouncements.byObject['PC5:1']).toBeUndefined();
+    expect(result.bundle.stackAnnouncements.byObject[CARD_OLD]).toBeUndefined();
     expect(Object.isFrozen(result.bundle)).toBe(true);
   });
 
   it('preserves remaining stack order for a middle removal and honors battlefield controller', () => {
     const result = removeCoreStackObjectV1(middleBundle(), {
       kind: 'card-to-zone',
-      objectId: 'PC5:1',
+      objectId: CARD_OLD,
       destination: { kind: 'battlefield', baseControllerPlayerId: 'P4' },
     });
 
@@ -102,14 +104,14 @@ describe('removeCoreStackObjectV1', () => {
       '@activated-ability:fixture-activation',
       '@triggered-ability:fixture-trigger',
     ]);
-    expect(result.bundle.objectRegistry.zones.shared.battlefield).toContain('PC5:2');
-    expect(result.bundle.objectRegistry.objects['PC5:2']).toMatchObject({ baseControllerPlayerId: 'P4' });
+    expect(result.bundle.objectRegistry.zones.shared.battlefield).toContain(CARD_NEW);
+    expect(result.bundle.objectRegistry.objects[CARD_NEW]).toMatchObject({ baseControllerPlayerId: 'P4' });
   });
 
   it.each([
-    '@spell-copy:fixture-copy',
-    '@activated-ability:fixture-activation',
-    '@triggered-ability:fixture-trigger',
+    '@spell-copy:fixture-copy' as CoreObjectId,
+    '@activated-ability:fixture-activation' as CoreObjectId,
+    '@triggered-ability:fixture-trigger' as CoreObjectId,
   ])('ceases synthetic stack object %s without changing Runtime', (objectId) => {
     const bundle = bundleFrom();
     const runtimeBefore = JSON.stringify(bundle.objectRuntime);
@@ -126,15 +128,15 @@ describe('removeCoreStackObjectV1', () => {
     const bundle = bundleFrom();
     const before = JSON.stringify(bundle);
     const invalidOperations: unknown[] = [
-      { kind: 'cease', objectId: 'PC5:1' },
+      { kind: 'cease', objectId: CARD_OLD },
       { kind: 'card-to-zone', objectId: '@spell-copy:fixture-copy', destination: { kind: 'exile' } },
-      { kind: 'card-to-zone', objectId: 'PC5:1', destination: { kind: 'stack', baseControllerPlayerId: 'P1' } },
+      { kind: 'card-to-zone', objectId: CARD_OLD, destination: { kind: 'stack', baseControllerPlayerId: 'P1' } },
     ];
     for (const input of invalidOperations) {
       expect(() => removeCoreStackObjectV1(bundle, input)).toThrow(CoreStackTransactionErrorV1);
     }
-    const accessor: Raw = { kind: 'cease', objectId: 'PC5:1' };
-    Object.defineProperty(accessor, 'objectId', { enumerable: true, get: () => 'PC5:1' });
+    const accessor: Raw = { kind: 'cease', objectId: CARD_OLD };
+    Object.defineProperty(accessor, 'objectId', { enumerable: true, get: () => CARD_OLD });
     expect(() => removeCoreStackObjectV1(bundle, accessor)).toThrowError(/INVALID_OPERATION_INPUT/);
     expect(JSON.stringify(bundle)).toBe(before);
   });
