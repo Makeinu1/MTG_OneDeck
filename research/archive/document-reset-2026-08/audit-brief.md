@@ -2,9 +2,9 @@
 
 Profile: `BROAD` (governance, document migration, validation lanes, and CI workflow).
 
-Candidate fingerprint: `c0776c41e90045fcfdad88ae6dda3d47a43b204c349a979c09fee2196a6fa1ef`
+Candidate fingerprint: `43c0d655b0bb3f911e86a01f58cebbe26d36d7a1973aa5f52b7e63e9702ea259`
 
-The fingerprint is produced by `node scripts/checks/fingerprint.mjs`, which hashes sorted per-file SHA-256 entries for tracked diff files plus non-ignored untracked files, excluding this brief and `cold-audit-findings.md`. The base SHA is `7da637ba225cad8097686e261d1d1c92964ee16a`.
+The fingerprint is produced by `node scripts/checks/fingerprint.mjs`, which hashes sorted per-file SHA-256 entries for tracked diff files plus non-ignored untracked files, excluding this brief and `cold-audit-findings.md`. The base SHA is `cdad530267a7286d16454cf376a825378c6b4cdd`.
 
 ## Scope
 

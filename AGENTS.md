@@ -90,7 +90,7 @@ STOPしてユーザーに聞くのは4類だけ:
 ## 検証
 
 - 実装者の合格自己申告を判定に使わない。判定者が`review.*`を所有し、冷監査者が独立検証する。
-- fast-checkの`docs/engine-spec.md` I系列を維持し、状態追加時は対応不変条件も追加する。
+- fast-checkはactive engine contractに宣言された不変条件を維持し、状態追加時は対応不変条件も追加する。
 - `npm run check`はlint、vitest、`tsc -b`を含むbuildの単一正本。素の`tsc --noEmit`はno-opなので使わない。
 - 受け入れシナリオは1項目でも失敗したら、修正後にそのシナリオ全体を最初から再実行する。
 - UI変更は安定後の同一browser sessionで一度だけ、375×812、812×375、1440×900の実機とconsole error 0を確認する。

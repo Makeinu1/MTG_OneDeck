@@ -7,6 +7,7 @@
 // ゆえに境界を「行頭・パス区切り・ドット」に固定する: `.review.` は拾い、`Preview.`(直前が
 // 英字)は拾わない。
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 // FORBIDDEN: 実装エージェントが変更してはならないファイル(検出時 exit 1)
 const FORBIDDEN = [
@@ -28,13 +29,18 @@ const NEEDS_REAUTH = [
 const GOVERNANCE_RESET_ALLOWED = [
   /^(?:AGENTS|CLAUDE|QWEN)\.md$/,
   /^README\.md$/,
-  /^docs\//,
-  /^research\/archive\/document-reset-2026-08\//,
-  /^\.agents\/skills\/mtg-onedeck-development\//,
-  /^\.claude\//,
-  /^\.github\/workflows\//,
+  /^docs\/(?:README|acceptance|audio-visual-contract|design-system|design-vision|engine-spec|ui-architecture-v2)\.md$/,
+  /^docs\/acceptance\/scenarios\.json$/,
+  /^docs\/contracts\/manifest\.json$/,
+  /^docs\/contracts\/engine\/(?:commands-and-transactions|mana-costs-and-payment|multiplayer|oracle-compiler|state-and-invariants|turn-priority-and-stack|zones-events-and-lki)\.md$/,
+  /^docs\/contracts\/ui\/(?:architecture|audio-visual|design-principles|responsive|visual-language)\.md$/,
+  /^docs\/decisions\/(?:DOC-GOV-RESET-2026-08|audio-visual-contract)\.md$/,
+  /^docs\/generated\/engine-api\.md$/,
+  /^research\/archive\/document-reset-2026-08\/(?:audit-brief|baseline-report|cold-audit-findings|conflict-register|migration-map|original-(?:AGENTS|acceptance|audio-visual-contract|codex-autoloop|cycle|design-system|design-vision|docs-README|engine-spec|root-README|token-economy|ui-architecture-v2))\.(?:md|json)$/,
+  /^\.agents\/skills\/mtg-onedeck-development\/(?:SKILL\.md|references\/(?:codex-autoloop|cycle|document-governance|token-economy)\.md)$/,
+  /^\.github\/workflows\/deploy-pages\.yml$/,
   /^package\.json$/,
-  /^scripts\/checks\//,
+  /^scripts\/checks\/(?:check-docs|domain-check|fast-check|fingerprint|forbidden-files|generate-engine-api|generate-migration-map|machine-checks)\.mjs$/,
   /^scripts\/__tests__\/machine-checks\.test\.mjs$/,
   /^src\/test\/architecture\/deployPagesGates\.test\.ts$/,
 ];
@@ -46,14 +52,21 @@ if (policy !== null && policy !== 'governance-reset') {
   process.exit(2);
 }
 
+function diffRef() {
+  const diffIdx = process.argv.indexOf('--diff');
+  if (diffIdx === -1) return null;
+  const ref = process.argv[diffIdx + 1];
+  if (!ref) {
+    console.error('usage: forbidden-files.mjs [--diff <ref>]');
+    process.exit(2);
+  }
+  return ref;
+}
+
 function changedFiles() {
   const diffIdx = process.argv.indexOf('--diff');
   if (diffIdx !== -1) {
-    const ref = process.argv[diffIdx + 1];
-    if (!ref) {
-      console.error('usage: forbidden-files.mjs [--diff <ref>]');
-      process.exit(2);
-    }
+    const ref = diffRef();
     const diffFiles = execFileSync('git', ['diff', '--name-only', ref], { encoding: 'utf8' })
       .split('\n').filter(Boolean);
     const untrackedFiles = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
@@ -86,6 +99,22 @@ for (const f of files) {
   }
   const soft = NEEDS_REAUTH.find((r) => r.re.test(f));
   if (soft) reauth.push(`${f}  (${soft.why})`);
+}
+
+if (policy === 'governance-reset' && files.includes('package.json')) {
+  const ref = diffRef() ?? 'HEAD';
+  try {
+    const before = JSON.parse(execFileSync('git', ['show', `${ref}:package.json`], { encoding: 'utf8' }));
+    const after = JSON.parse(readFileSync('package.json', 'utf8'));
+    const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    for (const key of keys) {
+      if (key !== 'scripts' && JSON.stringify(before[key]) !== JSON.stringify(after[key])) {
+        forbidden.push(`package.json (${key} changed outside scripts)`);
+      }
+    }
+  } catch (error) {
+    forbidden.push(`package.json (cannot verify non-script changes: ${error instanceof Error ? error.message : String(error)})`);
+  }
 }
 
 if (reauth.length > 0) {

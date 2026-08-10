@@ -99,13 +99,13 @@ describe('GitHub Pages verification gates', () => {
     expect(labels[1]).toMatch(/^actions\/setup-node@/);
     expect(labels[2]).toBe('npm ci');
     expect(labels[3]).toBe('npm run check -- --build-base=/MTG_OneDeck/');
-    expect(labels[4]).toBe("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }}");
+    expect(labels[4]).toBe("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }} --policy governance-reset");
     expect(labels[5]).toMatch(/^actions\/configure-pages@/);
     expect(labels[6]).toMatch(/^actions\/upload-pages-artifact@/);
     expect(labels).toHaveLength(7);
 
     const checkIndex = labels.indexOf('npm run check -- --build-base=/MTG_OneDeck/');
-    const forbiddenIndex = labels.indexOf("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }}");
+    const forbiddenIndex = labels.indexOf("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }} --policy governance-reset");
     const uploadIndex = labels.findIndex((label) => label.startsWith('actions/upload-pages-artifact@'));
     expect(checkIndex).toBeGreaterThanOrEqual(0);
     expect(forbiddenIndex).toBeGreaterThan(checkIndex);
