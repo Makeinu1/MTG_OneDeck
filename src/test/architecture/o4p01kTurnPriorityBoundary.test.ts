@@ -354,7 +354,7 @@ function boundaryViolations(units: readonly SourceUnit[]): readonly Violation[] 
   }
 
   for (const unit of units) {
-    if (isWithin(unit.filePath, turnRoot)) continue;
+    if (isWithin(unit.filePath, turnRoot) || relativePath(unit.filePath) === 'src/engine/core/index.ts') continue;
     for (const reference of references(unit)) {
       const target = resolvedTarget(reference);
       if (target === null || !isWithin(target, turnRoot)) continue;

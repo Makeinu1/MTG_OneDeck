@@ -119,6 +119,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:mode-neutral-core-object-registry']],
       ['npm', ['run', 'verify:mode-neutral-core-stack-announcement']],
       ['npm', ['run', 'verify:mode-neutral-core-stack-transaction']],
+      ['npm', ['run', 'verify:mode-neutral-core-turn-priority']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],
@@ -138,11 +139,12 @@ describe('machine-check execution', () => {
       { name: 'Mode-Neutral Core Object Registry V2検証', cmd: 'object-registry', args: [] },
       { name: 'Mode-Neutral Core Stack Announcement検証', cmd: 'stack-announcement', args: [] },
       { name: 'Mode-Neutral Core Stack Transaction検証', cmd: 'stack-transaction', args: [] },
+      { name: 'Mode-Neutral Core Turn/Priority検証', cmd: 'turn-priority', args: [] },
       { name: 'lint', cmd: 'lint', args: [] },
       { name: 'test', cmd: 'test', args: [] },
       { name: 'build (型検査内蔵)', cmd: 'build', args: [] },
     ];
-    const statuses = [0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0];
+    const statuses = [0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0];
     const calls = [];
     const report = runMachineChecks({
       steps: coreSteps,
@@ -160,6 +162,6 @@ describe('machine-check execution', () => {
       code: 17,
       skipped: false,
     });
-    expect(calls).toEqual(['cr', 'versions', 'solo', 'online', 'core', 'runtime', 'transition', 'object-registry', 'stack-announcement', 'stack-transaction', 'lint', 'test', 'build']);
+    expect(calls).toEqual(['cr', 'versions', 'solo', 'online', 'core', 'runtime', 'transition', 'object-registry', 'stack-announcement', 'stack-transaction', 'turn-priority', 'lint', 'test', 'build']);
   });
 });

@@ -2,8 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { createCoreStackTransactionBundleV1 } from '../../stack/transaction/stackTransactionBundleV1';
-import { removeCoreStackObjectV1 } from '../../stack/transaction/stackRemovalV1';
+import { createCoreStackTransactionBundleV1, removeCoreStackObjectV1 } from '../../index';
 import type { CoreObjectId, CorePlayerId } from '../../ids';
 import { createModeNeutralCorePendingTriggerSliceV1 } from '../pendingTriggerV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turnLifecycleV1';

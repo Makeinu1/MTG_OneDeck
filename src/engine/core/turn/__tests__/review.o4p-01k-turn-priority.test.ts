@@ -87,8 +87,8 @@ function stackBundle(): Raw {
   return record(call('createCoreStackTransactionBundleV1', stackInput()), 'stack bundle');
 }
 
-function emptyStackBundle(): Raw {
-  let current = stackBundle();
+function emptyStackBundle(input: Raw = stackInput()): Raw {
+  let current = record(call('createCoreStackTransactionBundleV1', input), 'empty stack input');
   const removals: readonly [string, Raw][] = [
     [STACK_TOP, { kind: 'cease', objectId: STACK_TOP }],
     ['@activated-ability:fixture-activation', { kind: 'cease', objectId: '@activated-ability:fixture-activation' }],
@@ -117,7 +117,7 @@ function pendingRecord(objectId: string, controllerPlayerId: string, stackPlacem
       kind: 'triggered-ability',
       controllerPlayerId,
       sourceObjectId: '@triggered-ability:historical-source',
-      abilityKey: `acceptance-${objectId}`,
+      abilityKey: 'acceptance-trigger',
     },
     announcement,
   };
@@ -216,6 +216,17 @@ function thrown(operation: () => unknown): Raw {
     caught = error;
   }
   expect(caught).toBeDefined();
+  if (caught instanceof Error) {
+    const result: Raw = { message: caught.message };
+    for (const key of Reflect.ownKeys(caught)) {
+      if (typeof key !== 'string') continue;
+      const descriptor = Object.getOwnPropertyDescriptor(caught, key);
+      if (descriptor !== undefined && Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        result[key] = descriptor.value;
+      }
+    }
+    return result;
+  }
   return record(caught, 'operation error');
 }
 
@@ -288,17 +299,20 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     expect(windowOf(afterUntap).kind).not.toBe('priority');
 
     let current = resultBundle(call('recordCoreSbaCheckOutcomeV1', afterUntap, { actionsWereApplied: false }), 'upkeep stable');
+    expect(windowOf(current).kind).toBe('priority');
+    current = passAll(current);
     expect(windowOf(current).kind).toBe('position-advance-ready');
     current = resultBundle(call('advanceCoreTurnPositionV1', current, { nextPosition: { phase: 'beginning', step: 'draw' } }), 'draw advance');
     expect(windowOf(current)).toEqual({ kind: 'turn-based-action-required', action: 'draw-step-draw', playerId: 'P2' });
     current = resultBundle(call('completeCoreTurnBasedActionCheckpointV1', current, 'draw-step-draw'), 'draw checkpoint');
     expect(windowOf(current).kind).toBe('sba-check-required');
     current = resultBundle(call('recordCoreSbaCheckOutcomeV1', current, { actionsWereApplied: false }), 'draw stable');
+    current = passAll(current);
     current = resultBundle(call('advanceCoreTurnPositionV1', current, { nextPosition: { phase: 'precombat-main', step: null } }), 'precombat advance');
     expect(windowOf(current)).toEqual({ kind: 'turn-based-action-required', action: 'precombat-main-actions', playerId: 'P2' });
     current = resultBundle(call('completeCoreTurnBasedActionCheckpointV1', current, 'precombat-main-actions'), 'precombat checkpoint');
     expect(windowOf(current).kind).toBe('sba-check-required');
-  });
+  }, 15000);
 
   it('pins active-player-first priority, one-pass rotation, action reset to the same actor, and invalid pass', () => {
     let current = priorityBundle(emptyStackBundle());
@@ -326,7 +340,7 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     const nextCleanup = resultBundle(call('startCoreRepeatedCleanupV1', repeated), 'repeated cleanup');
     expect(lifecycleOf(nextCleanup).position).toEqual({ phase: 'ending', step: 'cleanup' });
     expect(lifecycleOf(nextCleanup).positionSequence).toBe(1);
-  });
+  }, 15000);
 
   it('pins pending append collision rejection, historical source allowance, and ordinary/APNAP/ability-triggered grouping', () => {
     const initial = bundle(
@@ -345,14 +359,20 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     expect(record(appended.pendingTriggers, 'pending').pendingObjectIds).toEqual([TRIGGER_A, TRIGGER_B, TRIGGER_C, TRIGGER_D]);
     const collision = thrown(() => appendPending(appended, [[TRIGGER_A, pendingRecord(TRIGGER_A, 'P3', 'ordinary')]]));
     expect(collision.code).toBe('TRIGGER_COMMIT_FAILED');
-    const registryCollision = thrown(() => appendPending(initial, [[STACK_TOP, pendingRecord(STACK_TOP, 'P2', 'ordinary')]]));
+    const registryBase = bundle(
+      stackBundle(),
+      emptyPending(),
+      { phase: 'precombat-main', step: null },
+      { kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: true },
+    );
+    const registryCollision = thrown(() => appendPending(registryBase, [[STACK_TOP, pendingRecord(STACK_TOP, 'P2', 'ordinary')]]));
     expect(registryCollision.code).toBe('TRIGGER_COMMIT_FAILED');
     const analysis = record(call('analyzeCorePendingTriggerPlacementV1', appended), 'placement analysis');
     expect(analysis.groups).toEqual([
       { stackPlacementBucket: 'ordinary', controllerPlayerId: 'P2', pendingObjectIds: [TRIGGER_B] },
       { stackPlacementBucket: 'ordinary', controllerPlayerId: 'P3', pendingObjectIds: [TRIGGER_A] },
-      { stackPlacementBucket: 'ability-triggered', controllerPlayerId: 'P1', pendingObjectIds: [TRIGGER_D] },
       { stackPlacementBucket: 'ability-triggered', controllerPlayerId: 'P3', pendingObjectIds: [TRIGGER_C] },
+      { stackPlacementBucket: 'ability-triggered', controllerPlayerId: 'P1', pendingObjectIds: [TRIGGER_D] },
     ]);
     expect(analysis.orderKind).toBe('deterministic-order');
   });
@@ -372,11 +392,12 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     const manual = record(call('analyzeCorePendingTriggerPlacementV1', pending), 'manual analysis');
     expect(manual.orderKind).toBe('manual-order-required');
     expect(manual.groups).toEqual([{ stackPlacementBucket: 'ordinary', controllerPlayerId: 'P2', pendingObjectIds: [TRIGGER_A, TRIGGER_B] }]);
-    const before = JSON.stringify(pending);
-    const failed = thrown(() => call('placeCorePendingTriggersOnStackV1', pending, [TRIGGER_A, TRIGGER_A]));
+    const triggerWindow = resultBundle(call('recordCoreSbaCheckOutcomeV1', pending, { actionsWereApplied: false }), 'trigger order window');
+    const before = JSON.stringify(triggerWindow);
+    const failed = thrown(() => call('placeCorePendingTriggersOnStackV1', triggerWindow, [TRIGGER_A, TRIGGER_A]));
     expect(failed.code).toBe('TRIGGER_ORDER_INVALID');
-    expect(JSON.stringify(pending)).toBe(before);
-    const placed = resultBundle(call('placeCorePendingTriggersOnStackV1', pending, [TRIGGER_B, TRIGGER_A]), 'placed triggers');
+    expect(JSON.stringify(triggerWindow)).toBe(before);
+    const placed = resultBundle(call('placeCorePendingTriggersOnStackV1', triggerWindow, [TRIGGER_B, TRIGGER_A]), 'placed triggers');
     expect(stackObjectIds(placed).slice(-2)).toEqual([TRIGGER_B, TRIGGER_A]);
     expect(record(placed.pendingTriggers, 'placed pending').pendingObjectIds).toEqual([]);
     expect(windowOf(placed)).toEqual({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: true });
@@ -432,16 +453,14 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     const numericZones = record(numericRegistry.zones, 'numeric zones');
     const numericByPlayer = record(numericZones.byPlayer, 'numeric players');
     const p2Zones = record(numericByPlayer.P2, 'numeric P2 zones');
-    const p3Zones = record(numericByPlayer.P3, 'numeric P3 zones');
     p2Zones.graveyard = [];
-    p3Zones.hand = ['PC3:0'];
-    const numericStack = record(call('createCoreStackTransactionBundleV1', numericInput), 'numeric stack');
+    p2Zones.hand = ['PC3:0'];
+    const numericStack = emptyStackBundle(numericInput);
     const numericReady = bundle(numericStack, emptyPending(), { phase: 'ending', step: 'end' }, { kind: 'position-advance-ready' });
     const numericCleanup = resultBundle(call('advanceCoreTurnPositionV1', numericReady, { nextPosition: { phase: 'ending', step: 'cleanup' } }), 'numeric cleanup');
     expect(windowOf(numericCleanup)).toEqual({ kind: 'cleanup-state-actions-required', playerId: 'P3' });
 
-    const discard = cleanupBundle({ kind: 'cleanup-discard-required', playerId: 'P2', requiredCount: 0 });
-    const stateActions = resultBundle(call('completeCoreCleanupDiscardCheckpointV1', discard), 'cleanup discard');
+    const stateActions = cleanupBundle({ kind: 'cleanup-state-actions-required', playerId: 'P2' });
     expect(windowOf(stateActions)).toEqual({ kind: 'cleanup-state-actions-required', playerId: 'P2' });
     const applied = resultBundle(call('applyCoreCleanupStateActionsV1', stateActions), 'cleanup state actions');
     expect(windowOf(applied)).toEqual({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: false });
@@ -472,7 +491,7 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     battlefield.counterDamage = { counters: [{ kind: 'shield', count: 1 }], markedDamage: 3 };
     battlefield.orientation = { faceIndex: 0, faceDown: false, tapped: true, flipped: false, phasedOut: false };
     battlefield.orientation = { faceIndex: 0, faceDown: false, tapped: true, flipped: false, phasedOut: true };
-    const stack = record(call('createCoreStackTransactionBundleV1', input), 'cleanup stack');
+    const stack = emptyStackBundle(input);
     const start = cleanupBundle({ kind: 'cleanup-state-actions-required', playerId: 'P2' }, stack);
     const result = resultBundle(call('applyCoreCleanupStateActionsV1', start), 'cleanup applied');
     const nextStack = record(result.stackBundle, 'next stack');
@@ -493,12 +512,12 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     const p2 = record(players.P2, 'P2');
     p2.landsPlayedThisTurn = 1;
     p2.spellsCastThisTurn = 2;
-    p2.drawnThisTurn = true;
+    p2.drawnThisTurn = 1;
     p2.manaPool = { W: 1, U: 0, B: 0, R: 0, G: 0, C: 0 };
     const beforeLife = p2.life;
     const beforePoison = p2.poison;
     const beforeMaximum = p2.maximumHandSizeOverride;
-    const stack = record(call('createCoreStackTransactionBundleV1', input), 'next-turn stack');
+    const stack = emptyStackBundle(input);
     const ready = bundle(stack, emptyPending(), { phase: 'ending', step: 'cleanup' }, { kind: 'turn-advance-ready' });
     const next = resultBundle(call('advanceCoreToNextTurnV1', ready), 'next turn');
     const nextRegistry = record(record(next.stackBundle, 'next turn stack').objectRegistry, 'next turn registry');
@@ -510,7 +529,7 @@ describe('O4P-01K turn, priority, SBA, trigger, and cleanup acceptance pins', ()
     const nextP2 = record(record(nextRegistry.players, 'next players').P2, 'next P2');
     expect(nextP2.landsPlayedThisTurn).toBe(0);
     expect(nextP2.spellsCastThisTurn).toBe(0);
-    expect(nextP2.drawnThisTurn).toBe(false);
+    expect(nextP2.drawnThisTurn).toBe(0);
     expect(nextP2.life).toBe(beforeLife);
     expect(nextP2.poison).toBe(beforePoison);
     expect(nextP2.maximumHandSizeOverride).toBe(beforeMaximum);

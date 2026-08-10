@@ -1,6 +1,6 @@
 import type { CoreObjectId, CorePlayerId } from '../ids';
-import { validateCoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
-import type { CoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
+import { validateCoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
+import type { CoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
 import {
   createModeNeutralCoreTurnLifecycleSliceV1,
   validateModeNeutralCoreTurnLifecycleSliceV1,

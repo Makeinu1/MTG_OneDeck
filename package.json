@@ -40,6 +40,7 @@
     "verify:mode-neutral-core-object-registry": "tsx scripts/checks/verify-mode-neutral-core-object-registry.ts",
     "verify:mode-neutral-core-stack-announcement": "tsx scripts/checks/verify-mode-neutral-core-stack-announcement.ts",
     "verify:mode-neutral-core-stack-transaction": "tsx scripts/checks/verify-mode-neutral-core-stack-transaction.ts",
+    "verify:mode-neutral-core-turn-priority": "tsx scripts/checks/verify-mode-neutral-core-turn-priority.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

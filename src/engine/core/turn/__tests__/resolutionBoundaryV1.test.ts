@@ -7,8 +7,8 @@ import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turnLifecycleV1';
 import { passCorePriorityV1, type CorePriorityPassComponentInputV1 } from '../priorityPassV1';
 import { completeCoreResolutionAfterRemovalV1 } from '../resolutionBoundaryV1';
 import { CoreTurnPriorityOperationErrorV1 } from '../turnPriorityErrorV1';
-import { createCoreStackTransactionBundleV1, removeCoreStackObjectV1 } from '../../stack/transaction';
-import type { CoreStackTransactionBundleV1 } from '../../stack/transaction/stackTransactionBundleV1';
+import { createCoreStackTransactionBundleV1, removeCoreStackObjectV1 } from '../../index';
+import type { CoreStackTransactionBundleV1 } from '../../index';
 
 type Raw = Record<string, unknown>;
 const TOP = '@triggered-ability:fixture-trigger' as CoreObjectId;

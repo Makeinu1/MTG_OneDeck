@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { validateModeNeutralCoreObjectRegistrySliceV2 } from '../../object/objectRegistryValidationV2';
 import { validateModeNeutralCoreObjectRuntimeSliceV2 } from '../../object/objectRuntimeV2';
-import { validateModeNeutralCoreStackAnnouncementSliceV1 } from '../../stack/stackAnnouncementValidationV1';
+import { validateModeNeutralCoreStackAnnouncementSliceV1 } from '../../index';
 import type { CoreObjectId, CorePlayerId } from '../../ids';
 import {
   applyCoreCleanupStateActionsV1,

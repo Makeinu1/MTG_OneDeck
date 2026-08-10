@@ -7,8 +7,8 @@ import type { CoreObjectId, CorePlayerId } from '../../ids';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turnLifecycleV1';
 import { passCorePriorityV1 } from '../priorityPassV1';
 import type { CorePriorityPassComponentInputV1 } from '../priorityPassV1';
-import { createCoreStackTransactionBundleV1, removeCoreStackObjectV1 } from '../../stack/transaction';
-import type { CoreStackTransactionBundleV1 } from '../../stack/transaction/stackTransactionBundleV1';
+import { createCoreStackTransactionBundleV1, removeCoreStackObjectV1 } from '../../index';
+import type { CoreStackTransactionBundleV1 } from '../../index';
 
 const PLAYERS = ['P1', 'P2', 'P3', 'P4'] as const;
 type Raw = Record<string, unknown>;

@@ -19,6 +19,7 @@ const machineCheckSteps = [
   { name: 'Mode-Neutral Core Object Registry V2検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-object-registry'] },
   { name: 'Mode-Neutral Core Stack Announcement検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-stack-announcement'] },
   { name: 'Mode-Neutral Core Stack Transaction検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-stack-transaction'] },
+  { name: 'Mode-Neutral Core Turn/Priority検証', cmd: 'npm', args: ['run', 'verify:mode-neutral-core-turn-priority'] },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

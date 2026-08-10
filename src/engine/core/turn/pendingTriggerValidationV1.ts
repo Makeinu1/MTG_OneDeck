@@ -13,10 +13,10 @@ import {
 import type { CoreTriggeredAbilityObjectIdentityV2 } from '../object/tokenObjectV2';
 import {
   validateModeNeutralCoreStackAnnouncementSliceV1,
-} from '../stack/stackAnnouncementValidationV1';
+} from './stackAnnouncementAccessV1';
 import type {
   CoreStackAnnouncementRecordV1,
-} from '../stack/stackAnnouncementRecordV1';
+} from './stackAnnouncementAccessV1';
 import type {
   CorePendingTriggeredAbilityV1,
   ModeNeutralCorePendingTriggerSliceV1,

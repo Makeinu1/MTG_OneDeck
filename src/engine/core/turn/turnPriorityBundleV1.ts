@@ -1,4 +1,4 @@
-import type { CoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
+import type { CoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
 import {
   validateCoreTurnPriorityBundleV1,
 } from './turnPriorityBundleValidationV1';

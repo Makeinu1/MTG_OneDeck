@@ -1,6 +1,6 @@
 import { isCanonicalCoreObjectIdV2 } from '../object/objectIdV2';
-import { validateCoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
-import type { CoreStackRemovalResultV1 } from '../stack/transaction/stackRemovalV1';
+import { validateCoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
+import type { CoreStackRemovalResultV1 } from './stackTransactionAccessV1';
 import type { CoreObjectId } from '../ids';
 import {
   normalizeCorePriorityPassComponentV1,

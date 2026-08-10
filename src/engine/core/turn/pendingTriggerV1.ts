@@ -4,7 +4,7 @@ import type {
 } from '../object/tokenObjectV2';
 import type {
   CoreStackAnnouncementRecordV1,
-} from '../stack/stackAnnouncementRecordV1';
+} from './stackAnnouncementAccessV1';
 import type { ModeNeutralCoreObjectRegistrySliceV2 } from '../object/objectRegistryStateV2';
 import {
   validateModeNeutralCorePendingTriggerSliceV1,

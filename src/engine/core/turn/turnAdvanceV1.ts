@@ -7,7 +7,7 @@ import type {
   ModeNeutralCoreObjectRuntimeSliceV2,
 } from '../object/objectRegistryStateV2';
 import type { CoreObjectId, CorePlayerId } from '../ids';
-import type { CoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
+import type { CoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
 import {
   CoreTurnPriorityOperationErrorV1,
   type CoreTurnPriorityOperationCodeV1,

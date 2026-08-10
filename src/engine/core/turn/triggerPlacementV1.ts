@@ -1,10 +1,8 @@
 import type { CoreObjectId } from '../ids';
 import {
   commitCoreSyntheticStackObjectV1,
-} from '../stack/transaction/syntheticStackCommitV1';
-import {
   CoreStackTransactionErrorV1,
-} from '../stack/transaction/stackTransactionErrorV1';
+} from './stackTransactionAccessV1';
 import {
   appendCorePendingTriggeredAbilitiesV1 as appendCorePendingTriggeredAbilitiesComponentV1,
   createModeNeutralCorePendingTriggerSliceV1,

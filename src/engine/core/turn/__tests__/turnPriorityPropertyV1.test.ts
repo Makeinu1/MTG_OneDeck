@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { createCoreStackTransactionBundleV1 } from '../../stack/transaction/stackTransactionBundleV1';
+import { createCoreStackTransactionBundleV1 } from '../../index';
 import type { CorePlayerId } from '../../ids';
 import { createModeNeutralCorePendingTriggerSliceV1 } from '../pendingTriggerV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turnLifecycleV1';

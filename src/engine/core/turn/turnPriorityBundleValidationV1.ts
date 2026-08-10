@@ -1,8 +1,8 @@
 import type { CoreObjectId, CorePlayerId } from '../ids';
 import {
   validateCoreStackTransactionBundleV1,
-} from '../stack/transaction/stackTransactionValidationV1';
-import type { CoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
+} from './stackTransactionAccessV1';
+import type { CoreStackTransactionBundleV1 } from './stackTransactionAccessV1';
 import {
   validateModeNeutralCorePendingTriggerSliceV1,
 } from './pendingTriggerValidationV1';
