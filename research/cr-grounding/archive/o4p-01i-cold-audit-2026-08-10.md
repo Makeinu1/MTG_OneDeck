@@ -53,6 +53,15 @@ release full check.
 - `package-lock.json`, dependencies, version axes, Solo product code, and
   Online runtime were unchanged.
 
+## Final full-check evidence
+
+After the boundary-corrected candidate re-audit, the judge ran the final full
+`npm run check` once. All 12 machine-check steps passed: CR, versions, Solo,
+Online architecture, Identity/Zone, Card Runtime, Zone Transition, Object
+Registry V2, Stack Announcement, lint, Core 166 files/1659 tests plus DOM 242
+files/1719 tests, and build. `npm run check:forbidden` returned FORBIDDEN 0
+and `git diff --check` passed on the same candidate fingerprint.
+
 Full `npm run check`, ledger audited transition, CI, Pages, and shipment were
 not part of the cold audit and remain judge-owned gates.
 
@@ -73,4 +82,4 @@ A fresh cold re-audit is required before the final full check.
 The fresh re-audit of the boundary-corrected candidate recomputed the
 fingerprint and returned `AUDIT-OK-PENDING-FULL-CHECK` with
 BLOCKER/HIGH/MEDIUM/LOW counts of 0/0/0/0. The final full check is the next
-judge-owned gate.
+judge-owned gate; it subsequently passed as recorded above.

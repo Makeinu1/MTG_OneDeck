@@ -1314,7 +1314,7 @@
       "type": "engine-fix",
       "domainId": "O4P-01I",
       "crOrder": 601.2,
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "O4P-01H",
         "cr-113-abilities",
@@ -1325,10 +1325,24 @@
         "cr-603-triggers-apnap"
       ],
       "evidence": [
-        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md"
+        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md",
+        "research/cr-grounding/o4p-01i-stack-announcement.contract.draft.md",
+        "normal-tests:O4P-01I:Core 166 files/1659 tests; DOM 242 files/1719 tests",
+        "property-tests:O4P-01I:included in Core 40 tests and full check",
+        "review-tests:src/engine/core/stack/__tests__/review.o4p-01i-stack-announcement.test.ts:9 tests",
+        "architecture-tests:src/test/architecture/o4p01iStackAnnouncementBoundary.test.ts:2 tests; review boundary:4 tests",
+        "src/engine/core/stack/fixtures/stack-announcement-v1.json",
+        "scripts/checks/verify-mode-neutral-core-stack-announcement.ts",
+        "research/cr-grounding/archive/o4p-01i-cold-audit-2026-08-10.md",
+        "cold-auditor:019fe93e-0b66-71f0-b9fe-b6cfaf049e07:clean:B/H/M/L=0/0/0/0",
+        "candidate-sha:9f7b582249ca6235f0b2ab846242e1286cb41f3e",
+        "candidate-fingerprint:ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618",
+        "npm run check:PASS:final candidate",
+        "npm run check:forbidden:PASS:FORBIDDEN 0",
+        "git diff --check:PASS"
       ],
       "manualBoundary": "Committed stack-announcement state only. No proposal/payment-in-progress state, cost payment, target legality, priority, resolution, retarget command, copy-effect execution, projection, online protocol, or UI.",
-      "nextGate": "Parallel CR and reuse analysis, frozen stack-announcement contract, implementation waves, independent acceptance tests, cold audit, full check, CI and Pages evidence.",
+      "nextGate": "GitHub Actions and Pages publication evidence, then shipped promotion.",
       "judge": "user-ruling-2026-08-10"
     }
   ],
@@ -4022,7 +4036,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "O4P-01H",
         "cr-113-abilities",
@@ -4044,10 +4058,24 @@
       ],
       "boundary": "Add an additive, committed-only Mode-Neutral Core slice that stores the choices fixed when a card spell, spell copy, activated ability, or triggered ability is placed on the stack. It does not implement proposal, payment, legality, priority, resolution, copy execution, projection, protocol, or UI.",
       "evidence": [
-        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md"
+        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md",
+        "research/cr-grounding/o4p-01i-stack-announcement.contract.draft.md",
+        "normal-tests:O4P-01I:Core 166 files/1659 tests; DOM 242 files/1719 tests",
+        "property-tests:O4P-01I:included in Core 40 tests and full check",
+        "review-tests:src/engine/core/stack/__tests__/review.o4p-01i-stack-announcement.test.ts:9 tests",
+        "architecture-tests:src/test/architecture/o4p01iStackAnnouncementBoundary.test.ts:2 tests; review boundary:4 tests",
+        "src/engine/core/stack/fixtures/stack-announcement-v1.json",
+        "scripts/checks/verify-mode-neutral-core-stack-announcement.ts",
+        "research/cr-grounding/archive/o4p-01i-cold-audit-2026-08-10.md",
+        "cold-auditor:019fe93e-0b66-71f0-b9fe-b6cfaf049e07:clean:B/H/M/L=0/0/0/0",
+        "candidate-sha:9f7b582249ca6235f0b2ab846242e1286cb41f3e",
+        "candidate-fingerprint:ccd5478923e5f6840444c24f3702485af1692370b2c11d5f5ce2646b90e5f618",
+        "npm run check:PASS:final candidate",
+        "npm run check:forbidden:PASS:FORBIDDEN 0",
+        "git diff --check:PASS"
       ],
       "manualBoundary": "Announcement snapshots are structural records, not proof that choices, targets, costs, or payments are legal. Resolution-time legality and copy semantics remain explicit DEFER items.",
-      "nextGate": "Complete parallel grounding, freeze the announcement contract, implement the stack announcement slice, pass cold audit and full machine gates, then collect CI and Pages evidence.",
+      "nextGate": "GitHub Actions and Pages publication evidence, then shipped promotion.",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     }
