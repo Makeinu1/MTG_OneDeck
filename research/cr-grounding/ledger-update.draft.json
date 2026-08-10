@@ -1,59 +1,49 @@
 {
-  "milestone": "O4P-01H",
+  "milestone": "O4P-01I",
+  "judge": "user-ruling-2026-08-10",
   "domainsEntry": {
     "type": "engine-fix",
-    "domainId": "O4P-01H",
-    "crOrder": 109,
+    "domainId": "O4P-01I",
+    "crOrder": 601.2,
     "status": "pending",
     "dependsOn": [
-      "O4P-01G",
-      "cr-109-objects",
-      "cr-110-permanents",
-      "cr-111-tokens",
-      "cr-112-spells",
+      "O4P-01H",
       "cr-113-abilities",
-      "cr-400-408-zones-lki"
+      "cr-115-targets",
+      "cr-118-costs",
+      "cr-601-casting-stack",
+      "cr-602-activated-abilities",
+      "cr-603-triggers-apnap"
     ],
     "evidence": [
-      "research/cr-grounding/o4p-01h-orchestration-plan.draft.md"
+      "research/cr-grounding/o4p-01i-orchestration-plan.draft.md"
     ],
-    "manualBoundary": "Universal object identity and zone/stack substrate only. No object-creation command, priority, resolution, target/mode/X announcement, cost payment, copyable-values derivation, CR707 automation, projection, online protocol, or UI.",
-    "nextGate": "Parallel grounding lanes, frozen contract, implementation waves, cold audit, full check, CI and Pages evidence.",
-    "judge": "user-ruling-2026-08-09"
+    "manualBoundary": "Committed stack-announcement state only. No proposal/payment-in-progress state, cost payment, target legality, priority, resolution, retarget command, copy-effect execution, projection, online protocol, or UI.",
+    "nextGate": "Parallel CR and reuse analysis, frozen stack-announcement contract, implementation waves, independent acceptance tests, cold audit, full check, CI and Pages evidence.",
+    "judge": "user-ruling-2026-08-10"
   },
   "plannedSequenceEntry": {
-    "id": "O4P-01H",
-    "crOrder": 109,
-    "crRefs": ["109", "110", "111", "112", "113", "400.7", "405", "707"],
+    "id": "O4P-01I",
+    "crOrder": 601.2,
+    "crRefs": ["115", "405", "601.2b", "601.2c", "601.2d", "601.2f", "601.2i", "602.2", "603.3c", "603.3d", "608.2b", "707.10"],
     "lane": "backbone",
     "edhValue": "high",
     "status": "pending",
     "dependsOn": [
-      "O4P-01G",
-      "cr-109-objects",
-      "cr-110-permanents",
-      "cr-111-tokens",
-      "cr-112-spells",
+      "O4P-01H",
       "cr-113-abilities",
-      "cr-400-408-zones-lki"
+      "cr-115-targets",
+      "cr-118-costs",
+      "cr-601-casting-stack",
+      "cr-602-activated-abilities",
+      "cr-603-triggers-apnap"
     ],
-    "landingState": [
-      "universalObjectId",
-      "universalObjectRegistryV2",
-      "tokenObjectIdentity",
-      "spellCopyObjectIdentity",
-      "activatedAbilityStackObject",
-      "triggeredAbilityStackObject",
-      "identityZoneV1ToV2Adapter",
-      "runtimeV1ToV2Adapter"
-    ],
-    "boundary": "Introduce an additive V2 mode-neutral object registry capable of representing card objects, battlefield tokens, spell copies, activated abilities, and triggered abilities in the existing shared-zone model while preserving all V1 public contracts.",
-    "evidence": [
-      "research/cr-grounding/o4p-01h-orchestration-plan.draft.md"
-    ],
-    "manualBoundary": "Structural substrate only. No creation command, copyable-values derivation, copy effect execution, priority, stack resolution, targeting, choices, cost payment, projection, online protocol, or UI.",
-    "nextGate": "Complete O4P-01H parallel grounding, contract freeze, implementation, cold audit, full check, CI and Pages publication.",
-    "judge": "user-ruling-2026-08-09",
-    "note": "User-authorized one-milestone orchestration exception: bounded parallel subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
+    "landingState": ["stackAnnouncementSliceV1", "modeChoiceKeys", "targetSelectionSnapshot", "announcedVariableValues", "costChoiceSnapshot", "divisionAssignments", "abilityTextSnapshot", "committedStackExactKeyParity"],
+    "boundary": "Add an additive, committed-only Mode-Neutral Core slice that stores the choices fixed when a card spell, spell copy, activated ability, or triggered ability is placed on the stack. It does not implement proposal, payment, legality, priority, resolution, copy execution, projection, protocol, or UI.",
+    "evidence": ["research/cr-grounding/o4p-01i-orchestration-plan.draft.md"],
+    "manualBoundary": "Announcement snapshots are structural records, not proof that choices, targets, costs, or payments are legal. Resolution-time legality and copy semantics remain explicit DEFER items.",
+    "nextGate": "Complete parallel grounding, freeze the announcement contract, implement the stack announcement slice, pass cold audit and full machine gates, then collect CI and Pages evidence.",
+    "judge": "user-ruling-2026-08-10",
+    "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
   }
 }

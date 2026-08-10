@@ -1309,6 +1309,27 @@
       "manualBoundary": "Universal object identity and zone/stack substrate only. No object-creation command, priority, resolution, target/mode/X announcement, cost payment, copyable-values derivation, CR707 automation, projection, online protocol, or UI.",
       "nextGate": "shipped。O4P-01I Stack Announcement Payload & Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-09"
+    },
+    {
+      "type": "engine-fix",
+      "domainId": "O4P-01I",
+      "crOrder": 601.2,
+      "status": "pending",
+      "dependsOn": [
+        "O4P-01H",
+        "cr-113-abilities",
+        "cr-115-targets",
+        "cr-118-costs",
+        "cr-601-casting-stack",
+        "cr-602-activated-abilities",
+        "cr-603-triggers-apnap"
+      ],
+      "evidence": [
+        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "Committed stack-announcement state only. No proposal/payment-in-progress state, cost payment, target legality, priority, resolution, retarget command, copy-effect execution, projection, online protocol, or UI.",
+      "nextGate": "Parallel CR and reuse analysis, frozen stack-announcement contract, implementation waves, independent acceptance tests, cold audit, full check, CI and Pages evidence.",
+      "judge": "user-ruling-2026-08-10"
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -3981,6 +4002,54 @@
       "nextGate": "shipped。O4P-01I Stack Announcement Payload & Lifecycle V1へ進む。",
       "judge": "user-ruling-2026-08-09",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
+    },
+    {
+      "id": "O4P-01I",
+      "crOrder": 601.2,
+      "crRefs": [
+        "115",
+        "405",
+        "601.2b",
+        "601.2c",
+        "601.2d",
+        "601.2f",
+        "601.2i",
+        "602.2",
+        "603.3c",
+        "603.3d",
+        "608.2b",
+        "707.10"
+      ],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": [
+        "O4P-01H",
+        "cr-113-abilities",
+        "cr-115-targets",
+        "cr-118-costs",
+        "cr-601-casting-stack",
+        "cr-602-activated-abilities",
+        "cr-603-triggers-apnap"
+      ],
+      "landingState": [
+        "stackAnnouncementSliceV1",
+        "modeChoiceKeys",
+        "targetSelectionSnapshot",
+        "announcedVariableValues",
+        "costChoiceSnapshot",
+        "divisionAssignments",
+        "abilityTextSnapshot",
+        "committedStackExactKeyParity"
+      ],
+      "boundary": "Add an additive, committed-only Mode-Neutral Core slice that stores the choices fixed when a card spell, spell copy, activated ability, or triggered ability is placed on the stack. It does not implement proposal, payment, legality, priority, resolution, copy execution, projection, protocol, or UI.",
+      "evidence": [
+        "research/cr-grounding/o4p-01i-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "Announcement snapshots are structural records, not proof that choices, targets, costs, or payments are legal. Resolution-time legality and copy semantics remain explicit DEFER items.",
+      "nextGate": "Complete parallel grounding, freeze the announcement contract, implement the stack announcement slice, pass cold audit and full machine gates, then collect CI and Pages evidence.",
+      "judge": "user-ruling-2026-08-10",
+      "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     }
   ],
   "judgePolicy": {
