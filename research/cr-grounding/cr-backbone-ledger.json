@@ -1356,18 +1356,51 @@
     {
       "type": "engine-fix",
       "domainId": "O4P-01J",
-      "crOrder": 601.2,
-      "crRefs": ["601.2i", "608.2b", "707.10", "707.10c"],
+      "crOrder": 405.2,
+      "crRefs": [
+        "112.1",
+        "112.2",
+        "115.7",
+        "115.8",
+        "400.7",
+        "405.1",
+        "405.2",
+        "601.2",
+        "602.2",
+        "603.3",
+        "608.2n",
+        "608.3",
+        "701.6",
+        "707.10"
+      ],
       "lane": "backbone",
       "edhValue": "high",
       "status": "pending",
-      "dependsOn": ["O4P-01I"],
-      "landingState": ["atomicStackCommit", "announcementReplacement", "stackObjectRemoval", "registryRuntimeZoneParity"],
-      "boundary": "Atomically add, replace, and remove committed stack objects together with Stack Zone, Object Registry, Runtime, and Announcement state. Counter and resolution-start operations are transaction boundaries only; priority and resolution authority remain O4P-01K.",
-      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
-      "manualBoundary": "No priority, payment, legality, resolution, complete copyable-values derivation, or automatic Oracle copy execution.",
-      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Kへ進む。",
-      "judge": "user-ruling-2026-08-10"
+      "dependsOn": [
+        "O4P-01G",
+        "O4P-01H",
+        "O4P-01I",
+        "cr-115-targets",
+        "cr-400-408-zones-lki",
+        "cr-601-casting-stack"
+      ],
+      "landingState": [
+        "stackTransactionBundleV1",
+        "atomicCardSpellCommit",
+        "atomicSyntheticStackCommit",
+        "immutableRetarget",
+        "atomicCardStackRemoval",
+        "atomicSyntheticStackCease",
+        "v2CardTransitionPreservation"
+      ],
+      "boundary": "Add pure atomic transactions that update Object Registry V2, Object Runtime V2, and Stack Announcement V1 together for stack commit, target replacement, and stack removal. These transactions are structural and do not prove action legality or perform resolution.",
+      "evidence": [
+        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "No proposal/payment state, timing or target legality, priority, APNAP, resolution effects, copyable-values derivation, command/event metadata, projection, protocol, or UI.",
+      "nextGate": "Complete parallel grounding, freeze the atomic stack transaction contract, implement and independently test the transaction functions, pass cold audit and full machine gates, then collect CI and Pages evidence.",
+      "judge": "user-ruling-2026-08-10",
+      "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under one judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     },
     {
       "type": "engine-fix",
@@ -4448,11 +4481,23 @@
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under a single judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     },
     {
-      "id": "O4P-01J", "crOrder": 601.2, "crRefs": ["601.2i", "608.2b", "707.10", "707.10c"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01I"],
-      "landingState": ["atomicStackCommit", "announcementReplacement", "stackObjectRemoval", "registryRuntimeZoneParity"],
-      "boundary": "Atomic stack-object, stack-zone, registry, runtime, and announcement add/replace/remove transactions. Priority and resolution authority remain O4P-01K.",
-      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
-      "manualBoundary": "No priority, payment, legality, resolution, complete copyable-values derivation, or automatic Oracle copy execution.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Kへ進む。", "judge": "user-ruling-2026-08-10"
+      "id": "O4P-01J",
+      "crOrder": 405.2,
+      "status": "pending",
+      "dependsOn": [
+        "O4P-01G",
+        "O4P-01H",
+        "O4P-01I",
+        "cr-115-targets",
+        "cr-400-408-zones-lki",
+        "cr-601-casting-stack"
+      ],
+      "evidence": [
+        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md"
+      ],
+      "manualBoundary": "Atomic structural transaction only. No cost payment, timing legality, target legality, priority, APNAP, resolution, copyable-values derivation, effect execution, command/event envelope, projection, online protocol, or UI.",
+      "nextGate": "Parallel CR/reuse/atomicity analysis, frozen transaction contract, implementation waves, independent acceptance tests, cold audit, full check, CI and Pages evidence.",
+      "judge": "user-ruling-2026-08-10"
     },
     {
       "id": "O4P-01K", "crOrder": 500, "crRefs": ["500", "501", "502", "503", "504", "505", "603", "704"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01J"],
