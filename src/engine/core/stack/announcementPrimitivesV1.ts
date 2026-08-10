@@ -84,9 +84,13 @@ function issue(
 }
 
 function isPlainRecord(value: unknown): value is RawRecord {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  const prototype = Reflect.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    const prototype = Reflect.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function readTargetRecord(value: unknown): {
@@ -99,7 +103,13 @@ function readTargetRecord(value: unknown): {
 
   const issues: CoreStackPrimitiveValidationIssue[] = [];
   const result: RawRecord = Object.create(null) as RawRecord;
-  for (const key of Reflect.ownKeys(value)) {
+  let keys: readonly PropertyKey[];
+  try {
+    keys = Reflect.ownKeys(value);
+  } catch {
+    return { record: null, issues: [issue('INVALID_TYPE', '', 'Object keys are not readable')] };
+  }
+  for (const key of keys) {
     if (typeof key !== 'string') {
       issues.push(issue('UNKNOWN_FIELD', pointer('', String(key)), 'Symbol fields are not allowed'));
       continue;
@@ -113,7 +123,13 @@ function readTargetRecord(value: unknown): {
       issues.push(issue('UNKNOWN_FIELD', fieldPath, `Unknown field: ${key}`));
       continue;
     }
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(value, key);
+    } catch {
+      issues.push(issue('INVALID_TYPE', fieldPath, 'Field descriptor is not readable'));
+      continue;
+    }
     if (descriptor === undefined || !descriptor.enumerable) {
       issues.push(issue('UNKNOWN_FIELD', fieldPath, 'Non-enumerable fields are not allowed'));
       continue;

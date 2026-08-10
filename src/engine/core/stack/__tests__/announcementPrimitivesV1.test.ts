@@ -48,6 +48,46 @@ describe('O4P-01I-E announcement primitives', () => {
     expect(validateCoreStackTargetRefV1(withSymbol).ok).toBe(false);
   });
 
+  it('fails closed without throwing for hostile target proxies', () => {
+    const revoked = Proxy.revocable({ kind: 'player', playerId: 'P1' }, {});
+    revoked.revoke();
+    expect(() => validateCoreStackTargetRefV1(revoked.proxy)).not.toThrow();
+    expect(validateCoreStackTargetRefV1(revoked.proxy)).toEqual({
+      ok: false,
+      issues: [{ code: 'INVALID_TYPE', path: '', message: 'Expected a plain object' }],
+    });
+
+    const prototypeTrap = new Proxy({}, {
+      getPrototypeOf: () => { throw new Error('hostile prototype trap'); },
+    });
+    expect(() => validateCoreStackTargetRefV1(prototypeTrap)).not.toThrow();
+    expect(validateCoreStackTargetRefV1(prototypeTrap).ok).toBe(false);
+
+    const ownKeysTrap = new Proxy({}, {
+      ownKeys: () => { throw new Error('hostile ownKeys trap'); },
+    });
+    expect(() => validateCoreStackTargetRefV1(ownKeysTrap)).not.toThrow();
+    expect(validateCoreStackTargetRefV1(ownKeysTrap)).toEqual({
+      ok: false,
+      issues: [{ code: 'INVALID_TYPE', path: '', message: 'Object keys are not readable' }],
+    });
+
+    const descriptorTrap = new Proxy({ kind: 'player', playerId: 'P1' }, {
+      getOwnPropertyDescriptor: (_target, key) => {
+        if (key === 'playerId') throw new Error('hostile descriptor trap');
+        return Object.getOwnPropertyDescriptor({ kind: 'player' }, key);
+      },
+    });
+    expect(() => validateCoreStackTargetRefV1(descriptorTrap)).not.toThrow();
+    expect(validateCoreStackTargetRefV1(descriptorTrap)).toEqual({
+      ok: false,
+      issues: [
+        { code: 'INVALID_TYPE', path: '/playerId', message: 'Field descriptor is not readable' },
+        { code: 'UNKNOWN_FIELD', path: '/playerId', message: 'Missing field: playerId' },
+      ],
+    });
+  });
+
   it('preserves input and returns fresh deeply frozen values', () => {
     const input = { kind: 'object', objectId: 'PC1:0' };
     const before = JSON.stringify(input);
