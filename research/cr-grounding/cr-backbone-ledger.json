@@ -1375,7 +1375,7 @@
       ],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "O4P-01G",
         "O4P-01H",
@@ -1395,10 +1395,24 @@
       ],
       "boundary": "Add pure atomic transactions that update Object Registry V2, Object Runtime V2, and Stack Announcement V1 together for stack commit, target replacement, and stack removal. These transactions are structural and do not prove action legality or perform resolution.",
       "evidence": [
-        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md"
+        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md",
+        "research/cr-grounding/o4p-01j-atomic-stack-transaction.contract.draft.md",
+        "normal-tests:O4P-01J:Core 179 files/1733 tests; DOM 244 files/1724 tests",
+        "property-tests:O4P-01J:transaction property suites PASS",
+        "review-tests:src/engine/core/stack/transaction/__tests__/review.o4p-01j-stack-transaction.test.ts:24 pins PASS",
+        "architecture-tests:src/test/architecture/o4p01jStackTransactionBoundary.test.ts and review.o4p-01j-stack-transaction-boundary.test.ts PASS",
+        "src/engine/core/stack/transaction/fixtures/stack-transaction-v1.json",
+        "scripts/checks/verify-mode-neutral-core-stack-transaction.ts",
+        "research/cr-grounding/archive/o4p-01j-cold-audit-2026-08-10.md",
+        "cold-auditor:019fea07-68ab-7613-819d-797db2533194:clean:B/H/M/L=0/0/0/0",
+        "candidate-sha:535ae6f67837b770a91dee6b676c5bd9fec1c564",
+        "candidate-fingerprint:29e377b31edb7b2b81a91dee288f818d1e1ac3c80464bdf4551702fb1f941001",
+        "npm run check:PASS:final candidate",
+        "npm run check:forbidden:PASS:FORBIDDEN 0",
+        "git diff --check:PASS"
       ],
       "manualBoundary": "No proposal/payment state, timing or target legality, priority, APNAP, resolution effects, copyable-values derivation, command/event metadata, projection, protocol, or UI.",
-      "nextGate": "Complete parallel grounding, freeze the atomic stack transaction contract, implement and independently test the transaction functions, pass cold audit and full machine gates, then collect CI and Pages evidence.",
+      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
       "judge": "user-ruling-2026-08-10",
       "note": "User-authorized one-milestone orchestration exception: bounded parallel Luna subagents are permitted under one judge/orchestrator. Role separation and cold-audit requirements remain mandatory."
     },
@@ -4483,7 +4497,7 @@
     {
       "id": "O4P-01J",
       "crOrder": 405.2,
-      "status": "pending",
+      "status": "audited",
       "dependsOn": [
         "O4P-01G",
         "O4P-01H",
@@ -4493,10 +4507,24 @@
         "cr-601-casting-stack"
       ],
       "evidence": [
-        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md"
+        "research/cr-grounding/o4p-01j-orchestration-plan.draft.md",
+        "research/cr-grounding/o4p-01j-atomic-stack-transaction.contract.draft.md",
+        "normal-tests:O4P-01J:Core 179 files/1733 tests; DOM 244 files/1724 tests",
+        "property-tests:O4P-01J:transaction property suites PASS",
+        "review-tests:src/engine/core/stack/transaction/__tests__/review.o4p-01j-stack-transaction.test.ts:24 pins PASS",
+        "architecture-tests:src/test/architecture/o4p01jStackTransactionBoundary.test.ts and review.o4p-01j-stack-transaction-boundary.test.ts PASS",
+        "src/engine/core/stack/transaction/fixtures/stack-transaction-v1.json",
+        "scripts/checks/verify-mode-neutral-core-stack-transaction.ts",
+        "research/cr-grounding/archive/o4p-01j-cold-audit-2026-08-10.md",
+        "cold-auditor:019fea07-68ab-7613-819d-797db2533194:clean:B/H/M/L=0/0/0/0",
+        "candidate-sha:535ae6f67837b770a91dee6b676c5bd9fec1c564",
+        "candidate-fingerprint:29e377b31edb7b2b81a91dee288f818d1e1ac3c80464bdf4551702fb1f941001",
+        "npm run check:PASS:final candidate",
+        "npm run check:forbidden:PASS:FORBIDDEN 0",
+        "git diff --check:PASS"
       ],
       "manualBoundary": "Atomic structural transaction only. No cost payment, timing legality, target legality, priority, APNAP, resolution, copyable-values derivation, effect execution, command/event envelope, projection, online protocol, or UI.",
-      "nextGate": "Parallel CR/reuse/atomicity analysis, frozen transaction contract, implementation waves, independent acceptance tests, cold audit, full check, CI and Pages evidence.",
+      "nextGate": "GitHub ActionsとPages公開証拠取得後にshippedへ昇格する。",
       "judge": "user-ruling-2026-08-10"
     },
     {
