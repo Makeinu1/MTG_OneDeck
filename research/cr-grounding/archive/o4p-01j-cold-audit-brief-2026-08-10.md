@@ -7,8 +7,8 @@
 - Required ancestor: `444f538221139dc31aeb8fcfa93f879a0fe3fd67`
 - Plan SHA: `3476e170124158da849dadb5a3031dfda4a28a3c`
 - Final contract SHA: `4c9ae2590875c273199f0fb5922efe5b9327b190`
-- Candidate SHA: `20e089f5103326781e945f8a29c2df89531b1318`
-- Candidate tree fingerprint: `0a21b883e3453acec2a7bee3f7f6db48f6bb07e061cfad3daa51475575dc752f`
+- Candidate SHA: `535ae6f67837b770a91dee6b676c5bd9fec1c564`
+- Candidate tree fingerprint: `29e377b31edb7b2b81a91dee288f818d1e1ac3c80464bdf4551702fb1f941001`
 - The fingerprint excludes this brief and the future findings record; the auditor must independently recompute and match both candidate SHA and fingerprint before inspecting the candidate.
 
 ## Auditor independence
@@ -32,12 +32,12 @@ change ledger/review/docs/source artifacts.
 ## Fingerprint procedure
 
 The candidate fingerprint is computed with the repository's
-`computeTreeFingerprint` helper over the 45 paths changed from PLAN_SHA to the
+`computeTreeFingerprint` helper over the 46 paths changed from PLAN_SHA to the
 candidate SHA, excluding this brief and the future findings record. Recompute
 from the repository root with:
 
 ```sh
-node --input-type=module -e "import {execFileSync} from 'node:child_process'; import {computeTreeFingerprint} from './scripts/codex-context.mjs'; const base='3476e170124158da849dadb5a3031dfda4a28a3c'; const head='20e089f5103326781e945f8a29c2df89531b1318'; const paths=execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\\n').filter(Boolean).filter((p)=>!['research/cr-grounding/archive/o4p-01j-cold-audit-brief-2026-08-10.md','research/cr-grounding/archive/o4p-01j-cold-audit-2026-08-10.md'].includes(p)); console.log(computeTreeFingerprint(process.cwd(),paths));"
+node --input-type=module -e "import {execFileSync} from 'node:child_process'; import {computeTreeFingerprint} from './scripts/codex-context.mjs'; const base='3476e170124158da849dadb5a3031dfda4a28a3c'; const head='535ae6f67837b770a91dee6b676c5bd9fec1c564'; const paths=execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\\n').filter(Boolean).filter((p)=>!['research/cr-grounding/archive/o4p-01j-cold-audit-brief-2026-08-10.md','research/cr-grounding/archive/o4p-01j-cold-audit-2026-08-10.md'].includes(p)); console.log(computeTreeFingerprint(process.cwd(),paths));"
 ```
 
 ## Audit questions
