@@ -1,0 +1,81 @@
+{
+  "bundle": {
+    "objectRegistry": {
+      "kind": "mode-neutral-core-object-registry-slice-v2",
+      "players": {
+        "P1": {"life":40,"poison":0,"energy":0,"experience":0,"manaPool":{"W":0,"U":0,"B":0,"R":0,"G":0,"C":0},"mulliganCount":0,"landsPlayedThisTurn":0,"spellsCastThisTurn":0,"drawnThisTurn":0,"maximumHandSizeOverride":"none"},
+        "P2": {"life":40,"poison":0,"energy":0,"experience":0,"manaPool":{"W":0,"U":0,"B":0,"R":0,"G":0,"C":0},"mulliganCount":0,"landsPlayedThisTurn":0,"spellsCastThisTurn":0,"drawnThisTurn":0,"maximumHandSizeOverride":"none"},
+        "P3": {"life":40,"poison":0,"energy":0,"experience":0,"manaPool":{"W":0,"U":0,"B":0,"R":0,"G":0,"C":0},"mulliganCount":0,"landsPlayedThisTurn":0,"spellsCastThisTurn":0,"drawnThisTurn":0,"maximumHandSizeOverride":"none"},
+        "P4": {"life":40,"poison":0,"energy":0,"experience":0,"manaPool":{"W":0,"U":0,"B":0,"R":0,"G":0,"C":0},"mulliganCount":0,"landsPlayedThisTurn":0,"spellsCastThisTurn":0,"drawnThisTurn":0,"maximumHandSizeOverride":"none"}
+      },
+      "turnOrder": ["P1","P2","P3","P4"],
+      "activePlayerId": "P1",
+      "cardDefinitions": {
+        "def.fixture-card": {"source":{"kind":"engine-synthetic"},"name":"Fixture Card","layout":"normal","manaValue":1,"colorIdentity":[],"typeLine":"Sorcery","keywords":[],"producedMana":[],"tokenKind":null,"faces":[{"name":"Fixture Card","manaCost":"{1}","typeLine":"Sorcery","oracleText":"Fixture effect.","power":null,"toughness":null,"loyalty":null,"defense":null}]}
+      },
+      "physicalCards": {
+        "PC1":{"definitionId":"def.fixture-card","ownerPlayerId":"P1","isCommander":false},
+        "PC2":{"definitionId":"def.fixture-card","ownerPlayerId":"P1","isCommander":false},
+        "PC3":{"definitionId":"def.fixture-card","ownerPlayerId":"P2","isCommander":false},
+        "PC4":{"definitionId":"def.fixture-card","ownerPlayerId":"P3","isCommander":false},
+        "PC5":{"definitionId":"def.fixture-card","ownerPlayerId":"P4","isCommander":false},
+        "PC6":{"definitionId":"def.fixture-card","ownerPlayerId":"P3","isCommander":false}
+      },
+      "objects": {
+        "PC1:0":{"kind":"card","physicalCardId":"PC1","incarnation":0,"baseControllerPlayerId":null},
+        "PC2:0":{"kind":"card","physicalCardId":"PC2","incarnation":0,"baseControllerPlayerId":null},
+        "PC3:0":{"kind":"card","physicalCardId":"PC3","incarnation":0,"baseControllerPlayerId":null},
+        "PC4:0":{"kind":"card","physicalCardId":"PC4","incarnation":0,"baseControllerPlayerId":null},
+        "PC5:1":{"kind":"card","physicalCardId":"PC5","incarnation":1,"baseControllerPlayerId":"P1"},
+        "PC6:0":{"kind":"card","physicalCardId":"PC6","incarnation":0,"baseControllerPlayerId":"P3"},
+        "@spell-copy:fixture-copy":{"kind":"spell-copy","definitionId":"def.fixture-card","controllerPlayerId":"P2","copiedFromObjectId":"@spell-copy:historic-copy"},
+        "@activated-ability:fixture-activation":{"kind":"activated-ability","controllerPlayerId":"P3","sourceObjectId":"PC6:0","abilityKey":"ability.activate"},
+        "@triggered-ability:fixture-trigger":{"kind":"triggered-ability","controllerPlayerId":"P4","sourceObjectId":null,"abilityKey":"ability.trigger"}
+      },
+      "zones": {
+        "byPlayer": {
+          "P1":{"library":["PC1:0"],"hand":["PC2:0"],"graveyard":[]},
+          "P2":{"library":[],"hand":[],"graveyard":["PC3:0"]},
+          "P3":{"library":[],"hand":[],"graveyard":[]},
+          "P4":{"library":[],"hand":[],"graveyard":[]}
+        },
+        "shared": {"battlefield":["PC6:0"],"stack":["@spell-copy:fixture-copy","PC5:1","@activated-ability:fixture-activation","@triggered-ability:fixture-trigger"],"exile":["PC4:0"],"command":[]}
+      }
+    },
+    "objectRuntime": {
+      "kind": "mode-neutral-core-object-runtime-slice-v2",
+      "byObject": {
+        "PC1:0":{"orientation":{"faceIndex":0,"faceDown":false,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[],"markedDamage":0},"attachment":{"attachedTo":null}},
+        "PC2:0":{"orientation":{"faceIndex":0,"faceDown":false,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[],"markedDamage":0},"attachment":{"attachedTo":null}},
+        "PC3:0":{"orientation":{"faceIndex":0,"faceDown":false,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[],"markedDamage":0},"attachment":{"attachedTo":null}},
+        "PC4:0":{"orientation":{"faceIndex":0,"faceDown":true,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[],"markedDamage":0},"attachment":{"attachedTo":null}},
+        "PC5:1":{"orientation":{"faceIndex":0,"faceDown":false,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[],"markedDamage":0},"attachment":{"attachedTo":null}},
+        "PC6:0":{"orientation":{"faceIndex":0,"faceDown":false,"tapped":false,"flipped":false,"phasedOut":false},"counterDamage":{"counters":[{"kind":"shield","count":1}],"markedDamage":0},"attachment":{"attachedTo":null}}
+      }
+    },
+    "stackAnnouncements": {
+      "kind": "mode-neutral-core-stack-announcement-slice-v1",
+      "byObject": {
+        "@spell-copy:fixture-copy":{"kind":"spell-copy","abilityTextSnapshot":null,"chosenModeKeys":["copy-mode"],"targetSelections":[{"selectionId":"copy-target","groupKey":"copy","target":{"kind":"player","playerId":"P4"}}],"announcedVariables":[{"variableKey":"X","value":1}],"distributions":[],"costChoices":{"alternativeCost":null,"additionalCosts":[]}},
+        "PC5:1":{"kind":"card-spell","abilityTextSnapshot":null,"chosenModeKeys":["damage-mode","damage-mode-alt"],"targetSelections":[{"selectionId":"card-object","groupKey":"primary","target":{"kind":"object","objectId":"PC6:0"}},{"selectionId":"card-player","groupKey":"secondary","target":{"kind":"player","playerId":"P2"}}],"announcedVariables":[{"variableKey":"X","value":3}],"distributions":[{"distributionKey":"damage","assignments":[{"targetSelectionId":"card-object","amount":2},{"targetSelectionId":"card-player","amount":1}]}],"costChoices":{"alternativeCost":{"costKey":"alternative"},"additionalCosts":[{"costKey":"kicker","times":2}]}},
+        "@activated-ability:fixture-activation":{"kind":"activated-ability","abilityTextSnapshot":"Tap: fixture ability.","chosenModeKeys":["ability-mode"],"targetSelections":[{"selectionId":"ability-target","groupKey":"ability","target":{"kind":"object","objectId":"@spell-copy:historic-target"}}],"announcedVariables":[{"variableKey":"X","value":2}],"distributions":[{"distributionKey":"damage","assignments":[{"targetSelectionId":"ability-target","amount":2}]}],"costChoices":{"alternativeCost":null,"additionalCosts":[{"costKey":"charge","times":1}]}},
+        "@triggered-ability:fixture-trigger":{"kind":"triggered-ability","abilityTextSnapshot":"When triggered, fixture effect.","chosenModeKeys":[],"targetSelections":[],"announcedVariables":[],"distributions":[],"costChoices":{"alternativeCost":null,"additionalCosts":[]}}
+      }
+    }
+  },
+  "scenarios": {
+    "cardCommit": {"sourceObjectId":"PC2:0","controllerPlayerId":"P3","announcementObjectId":"PC5:1","expectedPreviousObjectId":"PC2:0","expectedCommittedObjectId":"PC2:1","expectedStack":["@spell-copy:fixture-copy","PC5:1","@activated-ability:fixture-activation","@triggered-ability:fixture-trigger","PC2:1"]},
+    "syntheticCommits": [
+      {"kind":"spell-copy","objectId":"@spell-copy:new-copy","announcementObjectId":"@spell-copy:fixture-copy","object":{"kind":"spell-copy","definitionId":"def.fixture-card","controllerPlayerId":"P1","copiedFromObjectId":"@spell-copy:historical-source"}},
+      {"kind":"activated-ability","objectId":"@activated-ability:new-activation","announcementObjectId":"@activated-ability:fixture-activation","object":{"kind":"activated-ability","controllerPlayerId":"P1","sourceObjectId":"PC6:0","abilityKey":"ability.activate-new"}},
+      {"kind":"triggered-ability","objectId":"@triggered-ability:new-trigger","announcementObjectId":"@triggered-ability:fixture-trigger","object":{"kind":"triggered-ability","controllerPlayerId":"P1","sourceObjectId":null,"abilityKey":"ability.trigger-new"}}
+    ],
+    "retargetOne": {"objectId":"@activated-ability:fixture-activation","replacements":[{"selectionId":"ability-target","target":{"kind":"player","playerId":"P1"}}]},
+    "retargetMany": {"objectId":"PC5:1","replacements":[{"selectionId":"card-object","target":{"kind":"object","objectId":"@spell-copy:historical-target"}},{"selectionId":"card-player","target":{"kind":"player","playerId":"P4"}}]},
+    "removeToGraveyard": {"kind":"card-to-zone","objectId":"PC5:1","destination":{"kind":"owner-graveyard"},"expectedPreviousObjectId":"PC5:1","expectedNextObjectId":"PC5:2"},
+    "removeToBattlefield": {"kind":"card-to-zone","objectId":"PC5:1","destination":{"kind":"battlefield","baseControllerPlayerId":"P4"},"expectedPreviousObjectId":"PC5:1","expectedNextObjectId":"PC5:2"},
+    "ceaseKinds":["@spell-copy:fixture-copy","@activated-ability:fixture-activation","@triggered-ability:fixture-trigger"],
+    "middleRemoval": {"objectId":"PC5:1","expectedStack":["@spell-copy:fixture-copy","@activated-ability:fixture-activation","@triggered-ability:fixture-trigger"]},
+    "inputUnchanged": true
+  }
+}
