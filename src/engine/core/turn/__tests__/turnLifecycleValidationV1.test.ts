@@ -129,6 +129,16 @@ describe('CoreTurnWindowV1 and CoreTurnLifecycleSliceV1', () => {
     expect(validateCoreTurnWindowV1({ kind: 'resolution-ready', objectId: 'not-an-object-id' }).ok).toBe(false);
   });
 
+  it('rejects Array subclasses as non-canonical lifecycle arrays', () => {
+    class ExtendedPlayerIds extends Array<string> {}
+    const passedPlayerIds = new ExtendedPlayerIds('P1');
+    const result = validateCoreTurnWindowV1({
+      kind: 'priority', cycleStartPlayerId: 'P1', holderPlayerId: 'P2', passedPlayerIds,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.issues.map((issue) => issue.code)).toContain('INVALID_ARRAY');
+  });
+
   it('reports all issues in deterministic order and does not coerce values', () => {
     const input: Raw = {
       window: { kind: 'priority', cycleStartPlayerId: 'P1', holderPlayerId: 'P1', passedPlayerIds: ['P1', 'P1'] },

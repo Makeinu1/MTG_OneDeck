@@ -212,6 +212,9 @@ function validateCrossSlice(
     if (registry.zones.shared.stack.length !== 0) {
       issues.push(issue('CROSS_SLICE_MISMATCH', '/stackBundle/objectRegistry/zones/shared/stack', 'This window requires an empty stack'));
     }
+    if (pendingTriggers.pendingObjectIds.length !== 0) {
+      issues.push(issue('CROSS_SLICE_MISMATCH', '/pendingTriggers/pendingObjectIds', 'This window requires no pending triggers'));
+    }
   }
   const isCleanup = lifecycle.position.phase === 'ending' && lifecycle.position.step === 'cleanup';
   if (window.kind === 'turn-advance-ready') {

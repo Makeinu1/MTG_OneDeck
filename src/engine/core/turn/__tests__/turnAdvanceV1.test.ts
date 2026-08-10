@@ -205,6 +205,42 @@ describe('turn advance component V1', () => {
     ))).toBe('POSITION_SEQUENCE_OVERFLOW');
   });
 
+  it('refuses pending-trigger progression and hostile position operations', () => {
+    const withPending: CoreTurnAdvanceBundleV1 = {
+      ...positionAdvanceBundle({ phase: 'beginning', step: 'upkeep' }),
+      pendingTriggers: {
+        pendingObjectIds: [
+          '@triggered-ability:pending-a' as CoreObjectId,
+          '@triggered-ability:pending-b' as CoreObjectId,
+        ],
+      },
+    };
+    expect(thrownCode(() => advanceCoreTurnPositionV1(
+      withPending,
+      { nextPosition: { phase: 'beginning', step: 'draw' } },
+    ))).toBe('WINDOW_MISMATCH');
+
+    class PositionOperation {
+      readonly nextPosition = { phase: 'beginning' as const, step: 'draw' as const };
+    }
+    expect(thrownCode(() => advanceCoreTurnPositionV1(
+      positionAdvanceBundle({ phase: 'beginning', step: 'upkeep' }),
+      new PositionOperation() as never,
+    ))).toBe('INVALID_OPERATION_INPUT');
+
+    let reads = 0;
+    const accessor: Raw = {};
+    Object.defineProperty(accessor, 'nextPosition', {
+      enumerable: true,
+      get: () => { reads += 1; return { phase: 'beginning', step: 'draw' }; },
+    });
+    expect(thrownCode(() => advanceCoreTurnPositionV1(
+      positionAdvanceBundle({ phase: 'beginning', step: 'upkeep' }),
+      accessor as never,
+    ))).toBe('INVALID_OPERATION_INPUT');
+    expect(reads).toBe(0);
+  });
+
   it('rotates the Registry active player and resets only turn-local counters and mana', () => {
     const start = bundle(
       { phase: 'ending', step: 'cleanup' },

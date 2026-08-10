@@ -108,4 +108,25 @@ describe('recordCoreSbaCheckOutcomeV1', () => {
     );
     expect(recordCoreSbaCheckOutcomeV1(advance, { actionsWereApplied: false }).lifecycle.window.kind).toBe('turn-advance-ready');
   });
+
+  it('rejects class instances and accessors without reading the SBA outcome field', () => {
+    class OutcomeInput {
+      readonly actionsWereApplied = false;
+    }
+    const value = makeBundle({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: true });
+    expect(() => recordCoreSbaCheckOutcomeV1(value, new OutcomeInput() as never)).toThrowError(
+      expect.objectContaining({ code: 'INVALID_OPERATION_INPUT' }),
+    );
+
+    let reads = 0;
+    const accessor: Raw = {};
+    Object.defineProperty(accessor, 'actionsWereApplied', {
+      enumerable: true,
+      get: () => { reads += 1; return false; },
+    });
+    expect(() => recordCoreSbaCheckOutcomeV1(value, accessor as never)).toThrowError(
+      expect.objectContaining({ code: 'INVALID_OPERATION_INPUT' }),
+    );
+    expect(reads).toBe(0);
+  });
 });

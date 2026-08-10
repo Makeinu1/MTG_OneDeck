@@ -297,6 +297,18 @@ function readArray(value: unknown, path: string, issues: IssueCollector): readon
     return null;
   }
 
+  let prototype: object | null;
+  try {
+    prototype = Reflect.getPrototypeOf(value as object);
+  } catch {
+    issues.add('INVALID_ARRAY', path, 'Array prototype is not readable');
+    return null;
+  }
+  if (prototype !== Array.prototype) {
+    issues.add('INVALID_ARRAY', path, 'Expected an ordinary array');
+    return null;
+  }
+
   let lengthDescriptor: PropertyDescriptor | undefined;
   let keys: readonly (string | symbol)[];
   try {

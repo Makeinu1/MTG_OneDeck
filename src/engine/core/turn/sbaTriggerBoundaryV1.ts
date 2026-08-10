@@ -32,8 +32,18 @@ function normalizeBundle(input: unknown): CoreTurnPriorityBundleV1 {
   return result.value;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  try {
+    const prototype = Reflect.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
+}
+
 function readOutcome(input: unknown): CoreSbaCheckOutcomeV1 {
-  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+  if (!isPlainRecord(input)) {
     operationFailure('INVALID_OPERATION_INPUT', 'SBA outcome must be a plain record', '/outcome');
   }
   const keys = Reflect.ownKeys(input);

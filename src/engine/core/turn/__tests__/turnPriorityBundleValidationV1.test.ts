@@ -9,11 +9,17 @@ import { validateCoreTurnPriorityBundleV1 } from '../turnPriorityBundleValidatio
 
 type Raw = Record<string, unknown>;
 
+type ValidInput = Readonly<{
+  readonly stackBundle: ReturnType<typeof createCoreStackTransactionBundleV1>;
+  readonly pendingTriggers: ReturnType<typeof createModeNeutralCorePendingTriggerSliceV1>;
+  readonly lifecycle: ReturnType<typeof createModeNeutralCoreTurnLifecycleSliceV1>;
+}>;
+
 function fixture(path: string): Raw {
   return JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')) as Raw;
 }
 
-function validInput(): Raw {
+function validInput(): ValidInput {
   const runtime = fixture('../../fixtures/card-runtime-slice-v1.json');
   runtime.kind = 'mode-neutral-core-object-runtime-slice-v2';
   (runtime.byObject as Raw)['@token:fixture-token:0'] = structuredClone((runtime.byObject as Raw)['PC4:1']);
@@ -83,6 +89,48 @@ describe('validateCoreTurnPriorityBundleV1', () => {
       expect(Object.isFrozen(result.value)).toBe(true);
       expect(Object.isFrozen(result.value.pendingTriggers)).toBe(true);
       expect(Object.isFrozen(result.value.lifecycle)).toBe(true);
+    }
+  });
+
+  it('rejects progression-ready windows while pending triggers remain', () => {
+    const input = validInput();
+    const pendingObjectId = '@triggered-ability:validation-pending';
+    const pendingTriggers = createModeNeutralCorePendingTriggerSliceV1(input.stackBundle.objectRegistry, {
+      pendingObjectIds: [pendingObjectId],
+      byObject: {
+        [pendingObjectId]: {
+          stackPlacementBucket: 'ordinary',
+          object: { kind: 'triggered-ability', controllerPlayerId: 'P2', sourceObjectId: null, abilityKey: 'validation-pending' },
+          announcement: {
+            kind: 'triggered-ability', abilityTextSnapshot: 'When this triggers.', chosenModeKeys: [],
+            targetSelections: [], announcedVariables: [], distributions: [],
+            costChoices: { alternativeCost: null, additionalCosts: [] },
+          },
+        },
+      },
+    } as never);
+    const cases = [
+      { position: { phase: 'precombat-main', step: null }, window: { kind: 'position-advance-ready' } },
+      { position: { phase: 'ending', step: 'cleanup' }, window: { kind: 'cleanup-repeat-ready' } },
+      { position: { phase: 'ending', step: 'cleanup' }, window: { kind: 'turn-advance-ready' } },
+    ] as const;
+    for (const current of cases) {
+      const lifecycle = createModeNeutralCoreTurnLifecycleSliceV1({
+        turnNumber: 1,
+        positionSequence: 0,
+        position: current.position,
+        window: current.window,
+      });
+      const result = validateCoreTurnPriorityBundleV1({
+        stackBundle: input.stackBundle,
+        pendingTriggers,
+        lifecycle,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((issue) => issue.path === '/pendingTriggers/pendingObjectIds'
+          || issue.path === '/lifecycle/window')).toBe(true);
+      }
     }
   });
 });

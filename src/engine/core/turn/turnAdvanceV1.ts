@@ -353,9 +353,13 @@ export function advanceCoreTurnPositionV1<TPending extends CoreTurnPendingTrigge
     fail('WINDOW_MISMATCH', 'Position advance requires position-advance-ready');
   }
   requireEmptyStack(bundle);
+  if (bundle.pendingTriggers.pendingObjectIds.length !== 0) {
+    fail('WINDOW_MISMATCH', 'Position advance requires no pending triggers');
+  }
   if (!isPlainRecord(operation)) fail('INVALID_OPERATION_INPUT', 'Position advance input must be a plain object');
-  const positionResult = validateCoreTurnPositionV1(operation.nextPosition);
-  if (!positionResult.ok || !allowedTransition(bundle.lifecycle.position, operation.nextPosition)) {
+  const nextPosition = dataPropertyValue(operation, 'nextPosition');
+  const positionResult = validateCoreTurnPositionV1(nextPosition);
+  if (!positionResult.ok || !allowedTransition(bundle.lifecycle.position, positionResult.value)) {
     fail('POSITION_TRANSITION_INVALID', 'The requested position is not an allowed successor');
   }
   const registry = registryWithEmptyManaV1(bundle.stackBundle.objectRegistry);
