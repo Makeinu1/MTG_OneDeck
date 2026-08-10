@@ -1,20 +1,21 @@
 {
-  "milestone": "O4P-01K",
+  "milestone": "O4P-01L",
   "operation": "activate-existing-entry",
   "authority": "user-ruling-2026-08-10",
+  "baseSha": "7a205685be1e6e447f748f6b8b6865b8db25c540",
   "target": {
-    "domainsSelector": { "id": "O4P-01K", "expectedCount": 1 },
-    "plannedSequenceSelector": { "domainId": "O4P-01K", "expectedCount": 1 }
+    "domainsSelector": { "id": "O4P-01L", "expectedCount": 1 },
+    "plannedSequenceSelector": { "domainId": "O4P-01L", "expectedCount": 1 }
   },
   "preconditions": {
     "status": "pending",
-    "dependsOn": ["O4P-01J"],
+    "dependsOn": ["O4P-01K"],
     "parentStatus": "shipped",
-    "nextEntry": { "id": "O4P-01L", "dependsOn": ["O4P-01K"] }
+    "nextEntry": { "id": "O4P-01M", "dependsOn": ["O4P-01L"] }
   },
   "appendOnly": {
-    "evidence": "research/cr-grounding/o4p-01k-orchestration-plan.draft.md",
-    "note": "User-authorized O4P-01K orchestration: bounded parallel Luna subagents under one judge/orchestrator. Concrete SBA condition evaluation, trigger detection, full resolution, Combat, Control/Permission, Command/Event, Online, Cloudflare, and UI remain outside this milestone."
+    "evidence": "research/cr-grounding/o4p-01l-orchestration-plan.draft.md",
+    "note": "User-authorized O4P-01L orchestration: bounded parallel Luna subagents under one judge/orchestrator. Network Projection, Combat, Commander, player exit, typed Command/Event, Cloudflare, WebSocket, and UI remain outside this milestone."
   },
   "preserve": [
     "status=pending",
@@ -24,5 +25,6 @@
     "all other entries",
     "array order"
   ],
-  "commitMessage": "chore(ledger): activate O4P-01K orchestration plan"
+  "applyMethod": "targeted replacement of the existing O4P-01L domain and plannedSequence blocks; no JSON reserialization or reordering",
+  "commitMessage": "chore(ledger): activate O4P-01L orchestration plan"
 }
