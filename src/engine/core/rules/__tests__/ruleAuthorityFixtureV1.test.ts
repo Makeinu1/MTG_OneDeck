@@ -189,4 +189,76 @@ describe('O4P-01L rule-authority fixture', () => {
     expect(pruned.value.visibility.grantOrder).toEqual(['top-look']);
     expect(pruned.value.playPermissions.permissionOrder).toEqual(['top-play']);
   });
+
+  it('prunes missing decision-authority sources while preserving scope and authority order', () => {
+    let decisionAuthorities = createModeNeutralCoreDecisionAuthoritySliceV1({
+      authorityOrder: [],
+      byAuthority: {},
+    });
+    decisionAuthorities = addCoreDecisionAuthorityV1(decisionAuthorities, 'pending-unbound', {
+      controlledPlayerId: p2,
+      decisionMakerPlayerId: p1,
+      sourceObjectId: null,
+      scope: { kind: 'pending-next-turn' },
+    }).value;
+    decisionAuthorities = addCoreDecisionAuthorityV1(decisionAuthorities, 'all-game-unbound', {
+      controlledPlayerId: p2,
+      decisionMakerPlayerId: p1,
+      sourceObjectId: null,
+      scope: { kind: 'all-game-decisions' },
+    }).value;
+    decisionAuthorities = addCoreDecisionAuthorityV1(decisionAuthorities, 'valid-source', {
+      controlledPlayerId: p2,
+      decisionMakerPlayerId: p1,
+      sourceObjectId: pc4,
+      scope: { kind: 'decision', decisionKey: 'choose-mode' },
+    }).value;
+    decisionAuthorities = addCoreDecisionAuthorityV1(decisionAuthorities, 'missing-source', {
+      controlledPlayerId: p2,
+      decisionMakerPlayerId: p1,
+      sourceObjectId: pc2,
+      scope: { kind: 'active-turn', turnNumber: 4 },
+    }).value;
+    decisionAuthorities = addCoreDecisionAuthorityV1(decisionAuthorities, 'decision-unbound', {
+      controlledPlayerId: p2,
+      decisionMakerPlayerId: p1,
+      sourceObjectId: null,
+      scope: { kind: 'decision', decisionKey: 'choose-other-mode' },
+    }).value;
+    const original = createCoreRuleAuthorityBundleV1({ ...bundle(), decisionAuthorities });
+    const registry = JSON.parse(
+      JSON.stringify(original.turnPriorityBundle.stackBundle.objectRegistry),
+    ) as Raw;
+    delete (registry.objects as Raw)[pc2];
+
+    const pruned = pruneCoreRuleAuthorityForMissingSourcesV1(original, registry as never);
+
+    expect(pruned.value.decisionAuthorities.authorityOrder).toEqual([
+      'pending-unbound',
+      'all-game-unbound',
+      'valid-source',
+      'decision-unbound',
+    ]);
+    expect(Object.keys(pruned.value.decisionAuthorities.byAuthority)).toEqual([
+      'pending-unbound',
+      'all-game-unbound',
+      'valid-source',
+      'decision-unbound',
+    ]);
+    expect(pruned.value.decisionAuthorities.byAuthority['pending-unbound'].scope).toEqual({
+      kind: 'pending-next-turn',
+    });
+    expect(pruned.value.decisionAuthorities.byAuthority['all-game-unbound'].scope).toEqual({
+      kind: 'all-game-decisions',
+    });
+    expect(pruned.value.decisionAuthorities.byAuthority['valid-source'].sourceObjectId).toBe(pc4);
+    expect(pruned.value.decisionAuthorities.byAuthority['decision-unbound'].scope).toEqual({
+      kind: 'decision',
+      decisionKey: 'choose-other-mode',
+    });
+    expect(Object.isFrozen(pruned.value.decisionAuthorities)).toBe(true);
+    expect(JSON.parse(JSON.stringify(pruned.value.decisionAuthorities))).toEqual(
+      pruned.value.decisionAuthorities,
+    );
+  });
 });

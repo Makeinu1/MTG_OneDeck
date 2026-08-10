@@ -440,6 +440,48 @@ describe('O4P-01L rule authority acceptance pins', () => {
     );
     expect(consumed.permissionOrder).not.toContain('top');
     expect(JSON.stringify(fixtureZones())).toContain(STACK_CARD);
+
+    const exilePermission = resultValue(
+      call(
+        'addCorePlayPermissionV1',
+        emptyPlay(),
+        'face-down-exile',
+        permission({
+          objectId: 'PC4:0',
+          expectedZone: zone('exile'),
+          kind: 'object',
+        }),
+      ),
+      'face-down exile permission',
+    );
+    const allPlayersVisibility = resultValue(
+      call(
+        'createModeNeutralCoreVisibilitySliceV1',
+        {
+          grantOrder: ['face-down-exile-all'],
+          byGrant: {
+            'face-down-exile-all': {
+              subject: { kind: 'object', objectId: 'PC4:0' },
+              audience: { kind: 'all-players' },
+              mode: 'reveal',
+              sourceObjectId: null,
+              duration: indefinite,
+            },
+          },
+        },
+      ),
+      'all-player face-down exile visibility',
+    );
+    expect(
+      call(
+        'coreCanPlayerAttemptPlayObjectV1',
+        fixtureRegistry(),
+        allPlayersVisibility,
+        exilePermission,
+        P2,
+        'PC4:0',
+      ),
+    ).toBe(true);
   });
 
   it('pins pending/active/decision-specific/search authority, last-wins, skipped-turn activation, and non-authority boundaries', () => {

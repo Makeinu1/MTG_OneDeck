@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import fixture from '../../turn/fixtures/turn-priority-lifecycle-v1.json';
 
 import {
   addCorePlayPermissionV1,
@@ -9,14 +10,19 @@ import {
   removeCorePlayPermissionV1,
   validateModeNeutralCorePlayPermissionSliceV1,
 } from '../playPermissionV1';
+import { createModeNeutralCoreVisibilitySliceV1 } from '../visibilityGrantV1';
 import type { ModeNeutralCoreObjectRegistryStateV2 } from '../../object/objectRegistryStateV2';
 
 const objectId = 'PC1:0';
 const empty = () =>
   createModeNeutralCorePlayPermissionSliceV1({ permissionOrder: [], byPermission: {} });
-const permission = (subject: unknown, duration: unknown = { kind: 'indefinite' }) =>
+const permission = (
+  subject: unknown,
+  duration: unknown = { kind: 'indefinite' },
+  allowedPlayerId = 'P2',
+) =>
   ({
-    allowedPlayerId: 'P2',
+    allowedPlayerId,
     action: 'play-card',
     subject,
     sourceObjectId: null,
@@ -71,7 +77,7 @@ describe('playPermissionV1', () => {
     expect(registry.zones.byPlayer['P1' as never].library).toEqual([objectId]);
   });
 
-  it('checks only permission subject, expected zone, top position, and visibility', () => {
+  it('requires visibility for an actual face-down Exile object and honors both audiences', () => {
     const objectSlice = addCorePlayPermissionV1(
       empty(),
       'object',
@@ -99,46 +105,85 @@ describe('playPermissionV1', () => {
         objectId as never,
       ),
     ).toBe(false);
+    const faceDownObjectId = 'PC4:0' as never;
     const faceDown = addCorePlayPermissionV1(
       empty(),
       'exile',
       permission({
         kind: 'object',
-        objectId,
+        objectId: faceDownObjectId,
         expectedZone: { kind: 'shared-zone', zone: 'exile' },
       }),
     ).value;
-    const exileRegistry = {
-      ...registry,
-      zones: {
-        ...registry.zones,
-        byPlayer: { P1: { library: [], hand: [], graveyard: [] } },
-        shared: { ...registry.zones.shared, exile: [objectId] },
-      },
-    } as unknown as ModeNeutralCoreObjectRegistryStateV2;
+    const exileRegistry = fixture.bundle.stackBundle
+      .objectRegistry as unknown as ModeNeutralCoreObjectRegistryStateV2;
+    const exileRuntime = fixture.bundle.stackBundle.objectRuntime as unknown as {
+      readonly byObject: Readonly<Record<string, unknown>>;
+    };
+    expect(exileRegistry.zones.shared.exile).toContain(faceDownObjectId);
+    expect(JSON.stringify(exileRuntime.byObject[faceDownObjectId])).toContain('"faceDown":true');
     expect(
       coreCanPlayerAttemptPlayObjectV1(
         exileRegistry,
         { byGrant: {} },
         faceDown,
         'P2' as never,
-        objectId as never,
+        faceDownObjectId,
       ),
     ).toBe(false);
+    const specificPlayerVisibility = createModeNeutralCoreVisibilitySliceV1({
+      grantOrder: ['exile-specific'],
+      byGrant: {
+        'exile-specific': {
+          subject: { kind: 'object', objectId: faceDownObjectId },
+          audience: { kind: 'players', playerIds: ['P2' as never] },
+          mode: 'look',
+          sourceObjectId: null,
+          duration: { kind: 'indefinite' },
+        },
+      },
+    });
     expect(
       coreCanPlayerAttemptPlayObjectV1(
         exileRegistry,
-        {
-          byGrant: {
-            reveal: {
-              subject: { kind: 'object', objectId },
-              audience: { kind: 'players', playerIds: ['P2'] },
-            },
-          },
-        },
+        specificPlayerVisibility,
         faceDown,
         'P2' as never,
-        objectId as never,
+        faceDownObjectId,
+      ),
+    ).toBe(true);
+    const allPlayersVisibility = createModeNeutralCoreVisibilitySliceV1({
+      grantOrder: ['exile-all'],
+      byGrant: {
+        'exile-all': {
+          subject: { kind: 'object', objectId: faceDownObjectId },
+          audience: { kind: 'all-players' },
+          mode: 'reveal',
+          sourceObjectId: null,
+          duration: { kind: 'indefinite' },
+        },
+      },
+    });
+    const allPlayersFaceDown = addCorePlayPermissionV1(
+      empty(),
+      'exile-all',
+      permission(
+        {
+          kind: 'object',
+          objectId: faceDownObjectId,
+          expectedZone: { kind: 'shared-zone', zone: 'exile' },
+        },
+        { kind: 'indefinite' },
+        'P4',
+      ),
+    ).value;
+    expect(
+      coreCanPlayerAttemptPlayObjectV1(
+        exileRegistry,
+        allPlayersVisibility,
+        allPlayersFaceDown,
+        'P4' as never,
+        faceDownObjectId,
       ),
     ).toBe(true);
   });

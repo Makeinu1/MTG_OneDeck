@@ -8,6 +8,7 @@ import {
 } from './controlEffectV1';
 import {
   activateCorePendingDecisionAuthoritiesAtTurnStartV1,
+  createModeNeutralCoreDecisionAuthoritySliceV1,
   expireCoreDecisionAuthoritiesAfterTurnV1,
 } from './decisionAuthorityV1';
 import { createModeNeutralCoreVisibilitySliceV1 } from './visibilityGrantV1';
@@ -213,13 +214,26 @@ export function pruneCoreRuleAuthorityForMissingSourcesV1(
       playOrder.map((key) => [key, bundle.playPermissions.byPermission[key]]),
     ),
   });
+  const decisionAuthorityOrder = bundle.decisionAuthorities.authorityOrder.filter((key) => {
+    const sourceObjectId = bundle.decisionAuthorities.byAuthority[key].sourceObjectId;
+    return (
+      sourceObjectId === null ||
+      Object.prototype.hasOwnProperty.call(registry.objects, sourceObjectId)
+    );
+  });
+  const decisionAuthorities = createModeNeutralCoreDecisionAuthoritySliceV1({
+    authorityOrder: decisionAuthorityOrder,
+    byAuthority: Object.fromEntries(
+      decisionAuthorityOrder.map((key) => [key, bundle.decisionAuthorities.byAuthority[key]]),
+    ),
+  });
   const next = createCoreRuleAuthorityBundleV1({
     turnPriorityBundle: controlCanonical.turnPriorityBundle,
     control: controlCanonical.control,
     visibility,
     searchSessions: controlCanonical.searchSessions,
     playPermissions,
-    decisionAuthorities: controlCanonical.decisionAuthorities,
+    decisionAuthorities,
   });
   return result(next, changedControllerIds(bundle.control, control));
 }

@@ -423,8 +423,11 @@ function hasFaceDownIdentityVisibility(
     if (subject.kind !== 'object' || subject.objectId !== objectId) continue;
     const audience = row.audience;
     if (audience === null || typeof audience !== 'object') continue;
-    const players = (audience as Raw).playerIds;
-    if (Array.isArray(players) && players.includes(playerId)) return true;
+    const audienceRecord = audience as Raw;
+    if (audienceRecord.kind === 'all-players') return true;
+    const players = audienceRecord.playerIds;
+    if (audienceRecord.kind === 'players' && Array.isArray(players) && players.includes(playerId))
+      return true;
   }
   return false;
 }
