@@ -208,6 +208,10 @@ function validateCrossSlice(
       issues.push(issue('RESOLUTION_OBJECT_MISMATCH', '/lifecycle/window/objectId', 'Resolution object must equal the stack top'));
     }
   }
+  if ((window.kind === 'priority' || window.kind === 'resolution-ready')
+    && pendingTriggers.pendingObjectIds.length !== 0) {
+    issues.push(issue('CROSS_SLICE_MISMATCH', '/pendingTriggers/pendingObjectIds', 'This window requires no pending triggers'));
+  }
   if (window.kind === 'position-advance-ready' || window.kind === 'cleanup-repeat-ready') {
     if (registry.zones.shared.stack.length !== 0) {
       issues.push(issue('CROSS_SLICE_MISMATCH', '/stackBundle/objectRegistry/zones/shared/stack', 'This window requires an empty stack'));

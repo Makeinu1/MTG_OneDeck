@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { createCoreStackTransactionBundleV1 } from '../../index';
+import {
+  completeCoreResolutionAfterRemovalV1,
+  createCoreStackTransactionBundleV1,
+  passCorePriorityV1,
+} from '../../index';
+import type { CorePlayerId } from '../../ids';
 import { createModeNeutralCorePendingTriggerSliceV1 } from '../pendingTriggerV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turnLifecycleV1';
 import { validateCoreTurnPriorityBundleV1 } from '../turnPriorityBundleValidationV1';
@@ -133,4 +138,73 @@ describe('validateCoreTurnPriorityBundleV1', () => {
       }
     }
   });
+
+  it('rejects pending triggers at priority and resolution-ready public boundaries', () => {
+    const input = validInput();
+    const pendingObjectId = '@triggered-ability:boundary-pending';
+    const pendingTriggers = createModeNeutralCorePendingTriggerSliceV1(input.stackBundle.objectRegistry, {
+      pendingObjectIds: [pendingObjectId],
+      byObject: {
+        [pendingObjectId]: {
+          stackPlacementBucket: 'ordinary',
+          object: { kind: 'triggered-ability', controllerPlayerId: 'P2', sourceObjectId: null, abilityKey: 'boundary-pending' },
+          announcement: {
+            kind: 'triggered-ability', abilityTextSnapshot: 'When this triggers.', chosenModeKeys: [],
+            targetSelections: [], announcedVariables: [], distributions: [],
+            costChoices: { alternativeCost: null, additionalCosts: [] },
+          },
+        },
+      },
+    } as never);
+    const resolutionObjectId = input.stackBundle.objectRegistry.zones.shared.stack.at(-1);
+    if (resolutionObjectId === undefined) throw new Error('Fixture must contain a stack object');
+    const cases = [
+      {
+        lifecycle: createModeNeutralCoreTurnLifecycleSliceV1({
+          turnNumber: 1,
+          positionSequence: 0,
+          position: { phase: 'precombat-main', step: null },
+          window: {
+            kind: 'priority',
+            cycleStartPlayerId: 'P2' as CorePlayerId,
+            holderPlayerId: 'P2' as CorePlayerId,
+            passedPlayerIds: [],
+          },
+        }),
+        boundary: (bundle: Raw) => passCorePriorityV1(bundle as never, 'P2' as never),
+      },
+      {
+        lifecycle: createModeNeutralCoreTurnLifecycleSliceV1({
+          turnNumber: 1,
+          positionSequence: 0,
+          position: { phase: 'precombat-main', step: null },
+          window: { kind: 'resolution-ready', objectId: resolutionObjectId },
+        }),
+        boundary: (bundle: Raw) => completeCoreResolutionAfterRemovalV1(bundle as never, undefined as never),
+      },
+    ] as const;
+
+    for (const current of cases) {
+      const invalid = {
+        stackBundle: input.stackBundle,
+        pendingTriggers,
+        lifecycle: current.lifecycle,
+      } satisfies Raw;
+      const before = JSON.stringify(invalid);
+      const result = validateCoreTurnPriorityBundleV1(invalid);
+      expect(result).toEqual({
+        ok: false,
+        issues: [{
+          code: 'CROSS_SLICE_MISMATCH',
+          path: '/pendingTriggers/pendingObjectIds',
+          message: 'This window requires no pending triggers',
+        }],
+      });
+      expect(() => current.boundary(invalid)).toThrowError(
+        expect.objectContaining({ code: 'INVALID_TURN_PRIORITY_BUNDLE' }),
+      );
+      expect(JSON.stringify(invalid)).toBe(before);
+    }
+  });
+
 });
