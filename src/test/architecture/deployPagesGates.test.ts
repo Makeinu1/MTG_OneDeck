@@ -99,17 +99,21 @@ describe('GitHub Pages verification gates', () => {
     expect(labels[1]).toMatch(/^actions\/setup-node@/);
     expect(labels[2]).toBe('npm ci');
     expect(labels[3]).toBe('npm run check -- --build-base=/MTG_OneDeck/');
-    expect(labels[4]).toBe("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }} --policy governance-reset");
-    expect(labels[5]).toMatch(/^actions\/configure-pages@/);
-    expect(labels[6]).toMatch(/^actions\/upload-pages-artifact@/);
-    expect(labels).toHaveLength(7);
+    expect(labels[4]).toContain('node scripts/checks/resolve-diff-base.mjs --before');
+    expect(labels[5]).toContain('npm run check:forbidden -- --diff');
+    expect(labels[6]).toMatch(/^actions\/configure-pages@/);
+    expect(labels[7]).toMatch(/^actions\/upload-pages-artifact@/);
+    expect(labels).toHaveLength(8);
 
     const checkIndex = labels.indexOf('npm run check -- --build-base=/MTG_OneDeck/');
-    const forbiddenIndex = labels.indexOf("npm run check:forbidden -- --diff ${{ github.event.before || 'HEAD^' }} --policy governance-reset");
+    const forbiddenIndex = labels.findIndex((label) => label.startsWith('npm run check:forbidden -- --diff'));
     const uploadIndex = labels.findIndex((label) => label.startsWith('actions/upload-pages-artifact@'));
     expect(checkIndex).toBeGreaterThanOrEqual(0);
     expect(forbiddenIndex).toBeGreaterThan(checkIndex);
     expect(uploadIndex).toBeGreaterThan(forbiddenIndex);
+    expect(build.steps[0].fields.get('fetch-depth')).toBe('0');
+    expect(text).not.toContain('--policy governance-reset');
+    expect(text).toContain('id: diff-base');
     expect(deploy.fields.get('needs')).toBe('build');
     expect(deploy.steps.some((step) => step.fields.has('uses'))).toBe(true);
   });
