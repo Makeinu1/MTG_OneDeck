@@ -1,0 +1,67 @@
+{
+  "kind": "o4p-01l-rule-authority-fixture-v1",
+  "players": ["P1", "P2", "P3", "P4"],
+  "control": {
+    "ownedPermanent": { "objectId": "PC6:0", "ownerPlayerId": "P2", "controllerPlayerId": "P1" },
+    "effects": [
+      {
+        "key": "p2-control",
+        "targetObjectId": "PC6:0",
+        "gainingControllerPlayerId": "P2",
+        "sourceObjectId": "PC2:0",
+        "duration": { "kind": "indefinite" }
+      },
+      {
+        "key": "p1-control-eot",
+        "targetObjectId": "PC6:0",
+        "gainingControllerPlayerId": "P1",
+        "sourceObjectId": "PC2:0",
+        "duration": { "kind": "until-end-of-turn", "turnNumber": 4 }
+      }
+    ],
+    "continuity": {
+      "objectId": "PC6:0",
+      "controllerPlayerId": "P1",
+      "continuousSinceMostRecentTurnBegan": false
+    }
+  },
+  "visibility": {
+    "faceDownExile": { "objectId": "PC4:0", "audience": ["P1"], "mode": "look" },
+    "topLibrary": { "playerId": "P2", "count": 1, "audience": ["P1"], "mode": "look" }
+  },
+  "search": {
+    "rulesActorPlayerId": "P1",
+    "selectorPlayerId": "P2",
+    "zone": { "kind": "player-zone", "playerId": "P2", "zone": "library" },
+    "candidateObjectIds": []
+  },
+  "playPermissions": {
+    "object": {
+      "objectId": "PC4:0",
+      "expectedZone": { "kind": "shared-zone", "zone": "exile" },
+      "allowedPlayerId": "P1"
+    },
+    "topLibrary": { "playerId": "P2", "allowedPlayerId": "P1" }
+  },
+  "decisionAuthorities": {
+    "pending": {
+      "controlledPlayerId": "P2",
+      "decisionMakerPlayerId": "P1",
+      "scope": { "kind": "pending-next-turn" }
+    },
+    "active": {
+      "controlledPlayerId": "P2",
+      "decisionMakerPlayerId": "P1",
+      "scope": { "kind": "active-turn", "turnNumber": 4 }
+    }
+  },
+  "deferred": [
+    "card-movement",
+    "shuffle",
+    "reveal-event",
+    "cast-legality",
+    "network-projection",
+    "combat",
+    "player-exit"
+  ]
+}
