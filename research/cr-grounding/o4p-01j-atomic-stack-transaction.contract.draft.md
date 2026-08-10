@@ -174,8 +174,11 @@ new card ObjectId with `baseControllerPlayerId` equal to the supplied
 controller. The new ObjectId is appended to the shared stack. The old Runtime
 row is removed and the new row is the existing default post-zone-change
 Runtime value. The supplied announcement is added under the new ObjectId.
-All unrelated objects, Runtime rows, announcements, and stack order remain
-unchanged. The result contains only the complete bundle and old/new IDs.
+All unrelated objects, announcements, stack order, and Runtime rows remain
+unchanged. If an otherwise valid Runtime row has an object attachment pointing
+at the removed ObjectId, that live relation is cleared to `attachedTo: null`
+because the old object no longer exists under CR 400.7; no other Runtime field
+is changed. The result contains only the complete bundle and old/new IDs.
 
 The existing O4P-01G V1 transition is a reuse reference, not a direct call:
 it returns V1 Identity/Runtime only, does not update Announcement, cannot
@@ -307,7 +310,9 @@ incarnation once, removes the old ObjectId, and inserts a new card ObjectId in
 the supplied destination. A battlefield destination uses its supplied
 `baseControllerPlayerId`; every non-battlefield destination uses
 `baseControllerPlayerId: null`. The old Runtime row is removed and a default
-new row is added. The new ObjectId is returned as `nextObjectId`.
+new row is added. As with card-spell commit, any Runtime object attachment that
+points at the removed ObjectId is cleared and all other Runtime values remain
+unchanged. The new ObjectId is returned as `nextObjectId`.
 
 For `cease`, the target must be a `spell-copy`, `activated-ability`, or
 `triggered-ability`. Its Registry identity, stack entry, and Announcement are
