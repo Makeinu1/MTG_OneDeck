@@ -9,7 +9,9 @@
 - Final contract SHA: `4c9ae2590875c273199f0fb5922efe5b9327b190`
 - Candidate implementation SHA before this brief: `8a800c5b1a3199f6d57aa3320fa8df127ef264e4`
 - Candidate tree fingerprint before this brief: `66dfac9c5210afb77a17718289f2c93aa172a1db36cdf3b71ba9a7e744cf48fe`
-- The orchestrator will recompute the final candidate SHA and fingerprint after this brief is committed and before audit dispatch.
+- Candidate SHA including this brief: `4d1bb7d09f34e30146f6a8d530eeb76983535fd1`
+- Candidate tree fingerprint including this brief: `ec9d34ff3216f307b936468681b44dc8223bc3433391d813f7cd82331a95f52f`
+- The auditor must independently recompute and match the final candidate SHA and fingerprint before inspecting the candidate.
 
 ## Auditor independence
 
