@@ -1,0 +1,99 @@
+{
+  "byObject": {
+    "PC5:1": {
+      "kind": "card-spell",
+      "abilityTextSnapshot": null,
+      "chosenModeKeys": ["mode-card", "mode-card"],
+      "targetSelections": [
+        {
+          "selectionId": "card-object",
+          "groupKey": "primary",
+          "target": { "kind": "object", "objectId": "PC4:1" }
+        },
+        {
+          "selectionId": "card-player",
+          "groupKey": "secondary",
+          "target": { "kind": "player", "playerId": "P3" }
+        }
+      ],
+      "announcedVariables": [{ "variableKey": "X", "value": 3 }],
+      "distributions": [
+        {
+          "distributionKey": "damage",
+          "assignments": [{ "targetSelectionId": "card-object", "amount": 2 }]
+        }
+      ],
+      "costChoices": {
+        "alternativeCost": { "costKey": "alternative" },
+        "additionalCosts": [{ "costKey": "kicker", "times": 2 }]
+      }
+    },
+    "@spell-copy:fixture-copy": {
+      "kind": "spell-copy",
+      "abilityTextSnapshot": null,
+      "chosenModeKeys": ["mode-copy", "mode-copy", "mode-copy-alt"],
+      "targetSelections": [
+        {
+          "selectionId": "copy-player",
+          "groupKey": "copy-target",
+          "target": { "kind": "player", "playerId": "P4" }
+        }
+      ],
+      "announcedVariables": [{ "variableKey": "X", "value": 0 }],
+      "distributions": [],
+      "costChoices": {
+        "alternativeCost": null,
+        "additionalCosts": [{ "costKey": "replicate", "times": 3 }]
+      }
+    },
+    "@activated-ability:fixture-activation": {
+      "kind": "activated-ability",
+      "abilityTextSnapshot": "Tap: choose a target and deal X damage.",
+      "chosenModeKeys": ["mode-ability", "mode-ability"],
+      "targetSelections": [
+        {
+          "selectionId": "ability-history",
+          "groupKey": "damage-a",
+          "target": { "kind": "object", "objectId": "@spell-copy:historical-target" }
+        },
+        {
+          "selectionId": "ability-player",
+          "groupKey": "damage-b",
+          "target": { "kind": "player", "playerId": "P99" }
+        }
+      ],
+      "announcedVariables": [{ "variableKey": "X", "value": 0 }],
+      "distributions": [
+        {
+          "distributionKey": "damage",
+          "assignments": [
+            { "targetSelectionId": "ability-history", "amount": 1 },
+            { "targetSelectionId": "ability-player", "amount": 1 }
+          ]
+        }
+      ],
+      "costChoices": {
+        "alternativeCost": { "costKey": "overload" },
+        "additionalCosts": [{ "costKey": "charge", "times": 2 }]
+      }
+    },
+    "@triggered-ability:fixture-trigger": {
+      "kind": "triggered-ability",
+      "abilityTextSnapshot": "When this triggers, choose a mode and target.",
+      "chosenModeKeys": ["mode-trigger"],
+      "targetSelections": [
+        {
+          "selectionId": "trigger-object",
+          "groupKey": "trigger-target",
+          "target": { "kind": "object", "objectId": "@activated-ability:historical-source" }
+        }
+      ],
+      "announcedVariables": [],
+      "distributions": [],
+      "costChoices": {
+        "alternativeCost": null,
+        "additionalCosts": []
+      }
+    }
+  }
+}
