@@ -417,3 +417,5 @@ describe('activated ability activation envelope', () => {
     expect(store().warnings.some((warning) => warning.includes('ライフ'))).toBe(true);
   });
 });
+// verifies: ENG-MANA-003
+// verifies: ENG-MP-002

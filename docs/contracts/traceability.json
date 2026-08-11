@@ -28,7 +28,7 @@
       "failureBehavior": "Input state branches are not mutated.",
       "invariant": "All existing state records remain represented.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/review.properties.test.ts", "marker": "verifies: ENG-STATE-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-STATE-002", "kind": "automated"}],
       "acceptedBy": ["ACC-SETUP-001"]
     },
     {
@@ -224,7 +224,7 @@
       "invariant": "The unresolved turn-draw acceptance conflict remains explicit.",
       "verificationDisposition": "deferred-needs-decision",
       "needsDecision": "CONFLICT-TURN-DRAW-001 must resolve the acceptance interpretation of turn-entry draw.",
-      "verifiedBy": [{"path": "src/engine/__tests__/review.cr503-draw-step-trigger.test.ts", "marker": "verifies: ENG-TURN-003", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-TURN-003", "kind": "automated"}],
       "acceptedBy": ["ACC-TURN-001"]
     },
     {
@@ -280,7 +280,7 @@
       "failureBehavior": "The planner does not guess a source choice.",
       "invariant": "No-stack mana transactions are atomic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/review.mana-write.test.ts", "marker": "verifies: ENG-MANA-003", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/store/__tests__/activatedAbilityEnvelope.test.ts", "marker": "verifies: ENG-MANA-003", "kind": "automated"}],
       "acceptedBy": ["ACC-MANA-006", "ACC-MANA-007"]
     },
     {
@@ -294,7 +294,7 @@
       "failureBehavior": "No player record is silently dropped.",
       "invariant": "The state boundary remains additive.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/review.mp-state.test.ts", "marker": "verifies: ENG-MP-001", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/store/__tests__/zonesByPlayer.test.ts", "marker": "verifies: ENG-MP-001", "kind": "automated"}],
       "acceptedBy": ["ACC-CR-REPLAY-001"]
     },
     {
@@ -308,7 +308,7 @@
       "failureBehavior": "The local player is not substituted silently.",
       "invariant": "Recipient identity is retained across the command path.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/review.mp-zones-commands.test.ts", "marker": "verifies: ENG-MP-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/store/__tests__/activatedAbilityEnvelope.test.ts", "marker": "verifies: ENG-MP-002", "kind": "automated"}],
       "acceptedBy": ["ACC-ZONE-001"]
     },
     {
@@ -322,7 +322,7 @@
       "failureBehavior": "Compiler and UI cannot invent an opponent.",
       "invariant": "Player order is the single APNAP order.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/review.mp-four-player.test.ts", "marker": "verifies: ENG-MP-003", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/engine/__tests__/priority.test.ts", "marker": "verifies: ENG-MP-003", "kind": "automated"}],
       "acceptedBy": ["ACC-STACK-001"]
     },
     {
@@ -364,7 +364,7 @@
       "failureBehavior": "Unsupported behavior is not labeled automatic.",
       "invariant": "Tier selection is deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/review.grammar-compile.test.ts", "marker": "verifies: ENG-COMP-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/engine/__tests__/cr701DiscardCompiler.test.ts", "marker": "verifies: ENG-COMP-002", "kind": "automated"}],
       "acceptedBy": ["ACC-COMPILER-001"]
     },
     {
@@ -420,7 +420,7 @@
       "failureBehavior": "A failed action does not emit success feedback.",
       "invariant": "Presentation remains downstream of commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.feel-2-zero-choice-ui.test.tsx", "marker": "verifies: UI-DESIGN-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: UI-DESIGN-002", "kind": "automated"}],
       "acceptedBy": ["ACC-UI-RESP-001"]
     },
     {
@@ -462,7 +462,7 @@
       "failureBehavior": "Unresolved state is not visually erased.",
       "invariant": "Focus and semantic state remain visible.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.s5-compact-labels.test.ts", "marker": "verifies: UI-VIS-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/HudInteractions.test.tsx", "marker": "verifies: UI-VIS-002", "kind": "automated"}],
       "acceptedBy": ["ACC-UI-RESP-001"]
     },
     {
@@ -476,7 +476,7 @@
       "failureBehavior": "A new token without ownership is not accepted.",
       "invariant": "Token ownership remains explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/ui/__tests__/review.css-token-guard.test.ts", "marker": "verifies: UI-VIS-003", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/ambientMacroProduction.test.ts", "marker": "verifies: UI-VIS-003", "kind": "automated"}],
       "acceptedBy": ["ACC-UI-RESP-001"]
     },
     {
@@ -560,7 +560,7 @@
       "failureBehavior": "An active dialog cannot leak focus before resolution or cancellation.",
       "invariant": "Visible control or context action remains available.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.mobile-density.test.ts", "marker": "verifies: UI-RESP-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/HudInteractions.test.tsx", "marker": "verifies: UI-RESP-002", "kind": "automated"}],
       "acceptedBy": ["ACC-UI-RESP-001"]
     },
     {
@@ -589,7 +589,7 @@
       "failureBehavior": "Unsuccessful actions do not produce success cues.",
       "invariant": "Cue policy is downstream of semantic event commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.av0-contract.test.ts", "marker": "verifies: AV-001", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: AV-001", "kind": "automated"}],
       "acceptedBy": ["ACC-AV-MANUAL-001"]
     },
     {
@@ -603,7 +603,7 @@
       "failureBehavior": "Audibility controls do not rewrite saved preferences.",
       "invariant": "Light-theme silence and non-blocking presentation remain explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.av2-runtime-settings.test.ts", "marker": "verifies: AV-002", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/presentation/__tests__/av0-presentation.test.ts", "marker": "verifies: AV-002", "kind": "automated"}],
       "acceptedBy": ["ACC-AV-MANUAL-001"]
     },
     {
@@ -617,7 +617,7 @@
       "failureBehavior": "Presentation cannot split or delay the state transaction.",
       "invariant": "Event-to-cue cardinality remains deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/__tests__/review.av6-two-phase-beat.test.ts", "marker": "verifies: AV-003", "kind": "automated"}],
+      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: AV-003", "kind": "automated"}],
       "acceptedBy": ["ACC-AV-MANUAL-001"]
     },
     {

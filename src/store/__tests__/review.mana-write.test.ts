@@ -155,4 +155,3 @@ describe('review.mana-write: CR 605 mana-production catalog (§34.19/§34.11)', 
     expect(store().state!.zones.stack).toHaveLength(0);
   });
 });
-// verifies: ENG-MANA-003

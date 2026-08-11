@@ -145,7 +145,7 @@
       "owner": "judge",
       "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE"],
       "supersedes": ["legacy:docs/audio-visual-contract.md"],
-      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/__tests__/review.av0-contract.test.ts"],
+      "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/presentation/__tests__/av0-presentation.test.ts"],
       "lastVerifiedCommit": "69e54fd65c9b8b53a06678fcd67f915a26638bb5"
     },
     {

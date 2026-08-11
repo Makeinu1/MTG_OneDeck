@@ -105,4 +105,3 @@ describe('CR 503: draw step phase-begin trigger (Mana Vault)', () => {
     expect(triggers.some((t) => t.triggerId === 'trigger.upkeep')).toBe(true);
   });
 });
-// verifies: ENG-TURN-003

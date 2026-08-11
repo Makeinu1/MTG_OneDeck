@@ -56,3 +56,4 @@ describe('UXUI-AMBIENT-P2 production boundary', () => {
     expect((gameCss.match(/0%, 100% \{/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 });
+// verifies: UI-VIS-003

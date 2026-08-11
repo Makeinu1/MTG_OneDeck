@@ -84,6 +84,7 @@ describe('validateTrackManifest (不正 manifest)', () => {
     expect(validateTrackManifest(bad).length).toBeGreaterThan(0);
   });
 });
+// verifies: AV-002
 
 describe('getNextGridDelayMs (ループ巻戻り・境界)', () => {
   it('ループ終端の直前は巻戻って先頭グリッドへ吸着する', () => {

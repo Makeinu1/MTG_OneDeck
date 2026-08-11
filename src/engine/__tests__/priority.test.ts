@@ -289,3 +289,4 @@ describe('priority fixed-point loop', () => {
 });
 // verifies: ENG-TURN-001
 // verifies: ENG-TURN-002
+// verifies: ENG-MP-003

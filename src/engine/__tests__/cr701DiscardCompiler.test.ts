@@ -58,3 +58,4 @@ describe('CR 701.9 discard compiler leaf', () => {
   });
 });
 // verifies: ENG-COMP-001
+// verifies: ENG-COMP-002

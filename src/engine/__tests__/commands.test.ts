@@ -624,3 +624,5 @@ describe('logging', () => {
 });
 // verifies: ENG-CMD-001
 // verifies: ENG-CMD-002
+// verifies: ENG-STATE-002
+// verifies: ENG-TURN-003

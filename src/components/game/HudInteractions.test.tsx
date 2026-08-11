@@ -107,6 +107,8 @@ afterEach(() => {
   useGameStore.setState({ state: null });
   document.body.replaceChildren();
 });
+// verifies: UI-VIS-002
+// verifies: UI-RESP-002
 
 describe('high-frequency HUD interactions', () => {
   it('uses one touch tap for preview and a second tap for detailed operations', () => {

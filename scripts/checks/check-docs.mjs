@@ -204,6 +204,23 @@ function checkTraceability(traceability, manifest, scenarios) {
 }
 
 function checkLastVerifiedCommits(manifest) {
+  function commitBlobHash(commit, path) {
+    try {
+      execFileSync('git', ['cat-file', '-e', `${commit}:${path}`], { cwd: root, stdio: 'ignore' });
+      return execFileSync('git', ['rev-parse', `${commit}:${path}`], { cwd: root, encoding: 'utf8' }).trim();
+    } catch {
+      return null;
+    }
+  }
+
+  function workingTreeHash(path) {
+    try {
+      return execFileSync('git', ['hash-object', '--', path], { cwd: root, encoding: 'utf8' }).trim();
+    } catch {
+      return null;
+    }
+  }
+
   for (const entry of manifest?.contracts ?? []) {
     if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) continue;
     const sha = entry.lastVerifiedCommit;
@@ -220,9 +237,13 @@ function checkLastVerifiedCommits(manifest) {
     }
     const paths = [entry.path, ...(entry.verifiedBy ?? [])].filter((path) => !['scripts/checks/check-docs.mjs', 'scripts/checks/generate-engine-api.mjs'].includes(path));
     for (const path of paths) {
-      try {
-        execFileSync('git', ['diff', '--quiet', sha, '--', path], { cwd: root, stdio: 'ignore' });
-      } catch {
+      const expectedHash = commitBlobHash(sha, path);
+      const actualHash = workingTreeHash(path);
+      if (expectedHash === null) {
+        errors.push(`manifest ${entry.id}: verification evidence was not tracked at ${sha}: ${path}`);
+      } else if (actualHash === null) {
+        errors.push(`manifest ${entry.id}: verification evidence is missing from working tree: ${path}`);
+      } else if (expectedHash !== actualHash) {
         errors.push(`manifest ${entry.id}: verification stale after ${sha}: ${path}`);
       }
     }

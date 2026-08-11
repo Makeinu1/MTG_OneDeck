@@ -308,4 +308,3 @@ describe('MP-ZONES/COMMANDS Slice A (I29-I32)', () => {
     expect(() => store().restoreGame(snapshot)).toThrow(/PlayerId参照が不整合/);
   });
 });
-// verifies: ENG-MP-002

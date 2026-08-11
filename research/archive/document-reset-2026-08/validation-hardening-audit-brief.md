@@ -1,5 +1,7 @@
 # VALIDATION-HARDENING-2026-08 cold audit brief
 
+Audit profile: BROAD (governance, coverage, CI, and contract traceability)
+
 Audit the current checkout as a frozen candidate. Do not edit files, run git mutations, push, or infer missing product specifications.
 
 Scope:

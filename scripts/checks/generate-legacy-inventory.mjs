@@ -89,10 +89,21 @@ function targetFor(sourceKind, text) {
 }
 
 function dispositionFor({ sourceKind, type, text, targets }) {
+  if (type === 'heading' || (type === 'table-row' && isTableHeader(text))) {
+    return {
+      disposition: 'deferred-needs-decision',
+      rationale: 'Structural heading or table header is retained for completeness; no normative behavior is inferred pending explicit judge review.',
+    };
+  }
   if (sourceKind === 'acceptance' && targets.length > 0) return { disposition: 'active-acceptance', rationale: 'Acceptance item is retained as an explicit scenario-level behavior and linked to the current acceptance registry.' };
   if (targets.length > 0) return { disposition: 'active-clause', rationale: 'Normative item is retained as current behavior and linked to the current active clause registry.' };
   if (/obsolete|superseded|historical|retired|release evidence/i.test(text) && type === 'heading') return { disposition: 'archived-historical', rationale: 'This heading explicitly labels historical or superseded material; no current behavior is inferred from it.' };
   return { disposition: 'deferred-needs-decision', rationale: 'The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision.' };
+}
+
+function isTableHeader(line) {
+  const firstCell = line.replace(/^\s*\|/, '').split('|', 1)[0].trim();
+  return /^(?:#|id|no\.?|番号|項目|操作|条件|condition)$/i.test(firstCell);
 }
 
 function extract(sourcePath, sourceKind) {
