@@ -82,6 +82,80 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 63: `export type CoreCardDefinitionRecordV1 = Readonly<`
 - line 67: `export type CorePhysicalCardRecordV1 = Readonly<`
 
+## `src/engine/core/combat/combatContextV1.ts`
+
+- line 5: `export type CoreCombatContextStepV1 = 'declare-attackers' | 'declare-blockers';`
+- line 7: `export type CoreCombatContextAttackV1 = Readonly<{`
+- line 13: `export type CoreCombatContextBlockV1 = Readonly<{`
+- line 20: `export type CoreCombatContextV1 = Readonly<{`
+- line 30: `export type CoreCombatContextValidationCodeV1 =`
+- line 52: `export type CoreCombatContextValidationIssueV1 = Readonly<{`
+- line 68: `export class CoreCombatContextCreationErrorV1 extends CoreCombatContextErrorV1 {`
+- line 76: `export class CoreCombatContextAdditionErrorV1 extends CoreCombatContextErrorV1 {`
+- line 84: `export class CoreCombatContextStepErrorV1 extends CoreCombatContextErrorV1 {`
+- line 92: `export class CoreCombatContextReconciliationErrorV1 extends CoreCombatContextErrorV1 {`
+- line 468: `export function createCoreCombatContextV1(value: unknown): CoreCombatContextV1 {`
+- line 495: `export function addCoreCombatContextAttackV1(`
+- line 544: `export function addCoreCombatContextBlockV1(`
+- line 619: `export function setCoreCombatContextStepV1(`
+- line 642: `export function reconcileCoreCombatContextForPlayerExitV1(`
+
+## `src/engine/core/commander/commanderDamageProvenanceV1.ts`
+
+- line 7: `export type CoreCommanderDamageProvenanceRecordV1 = Readonly<{`
+- line 14: `export type CoreCommanderDamageProvenanceLedgerV1 = Readonly<{`
+- line 20: `export type CoreCommanderProvenanceValidationCodeV1 =`
+- line 27: `export type CoreCommanderProvenanceValidationIssueV1 = Readonly<{`
+- line 43: `export class CoreCommanderProvenanceCreationErrorV1 extends CoreCommanderProvenanceErrorV1 {`
+- line 51: `export class CoreCommanderProvenanceRecordingErrorV1 extends CoreCommanderProvenanceErrorV1 {`
+- line 59: `export class CoreCommanderProvenanceQueryErrorV1 extends CoreCommanderProvenanceErrorV1 {`
+- line 211: `export function createCoreCommanderDamageProvenanceLedgerV1(value: unknown): CoreCommanderDamageProvenanceLedgerV1 {`
+- line 279: `export function recordCoreCommanderDamageProvenanceV1(state: CoreCommanderDamageProvenanceLedgerV1, input: unknown): CoreCommanderDamageProvenanceLedgerV1 {`
+- line 328: `export function coreCommanderProvenanceDamageAgainstV1(state: CoreCommanderDamageProvenanceLedgerV1, commanderPhysicalCardId: unknown, defendingPlayerId: unknown): number {`
+- line 333: `export function coreCommanderThresholdReachedFromProvenanceV1(state: CoreCommanderDamageProvenanceLedgerV1, commanderPhysicalCardId: unknown, defendingPlayerId: unknown): boolean {`
+
+## `src/engine/core/commander/commanderDamageV1.ts`
+
+- line 8: `export type CoreCommanderDamageEntryV1 = Readonly<{`
+- line 14: `export type CoreCommanderDamageStateV1 = Readonly<{`
+- line 20: `export type CoreCommanderDamageValidationCodeV1 =`
+- line 33: `export type CoreCommanderDamageValidationIssueV1 = Readonly<{`
+- line 49: `export class CoreCommanderDamageCreationErrorV1 extends CoreCommanderDamageErrorV1 {`
+- line 57: `export class CoreCommanderDamageRecordingErrorV1 extends CoreCommanderDamageErrorV1 {`
+- line 214: `export function createCoreCommanderDamageStateV1(value: unknown): CoreCommanderDamageStateV1 {`
+- line 293: `export function recordCoreCommanderDamageV1(`
+- line 337: `export function coreCommanderDamageAgainstV1(`
+
+## `src/engine/core/commander/commanderIdentityV1.ts`
+
+- line 4: `export type CoreCommanderIdentityV1 = Readonly<{`
+- line 9: `export type CoreCommanderIdentityValidationCodeV1 =`
+- line 17: `export type CoreCommanderIdentityValidationIssueV1 = Readonly<{`
+- line 23: `export class CoreCommanderIdentityCreationErrorV1 extends Error {`
+- line 81: `export function createCoreCommanderIdentityV1(value: unknown): CoreCommanderIdentityV1 {`
+
+## `src/engine/core/commander/commanderReplacementV1.ts`
+
+- line 1: `export type CoreCommanderReplacementKindV1 = 'commander-replacement-903.9a' | 'commander-replacement-903.9b';`
+- line 3: `export type CoreCommanderReplacementSourceZoneV1 = 'graveyard' | 'exile' | 'hand' | 'library';`
+- line 5: `export type CoreCommanderReplacementChoiceV1 = Readonly<{`
+- line 10: `export type CoreCommanderReplacementValidationCodeV1 =`
+- line 18: `export type CoreCommanderReplacementValidationIssueV1 = Readonly<{`
+- line 24: `export class CoreCommanderReplacementChoiceCreationErrorV1 extends Error {`
+- line 88: `export function createCoreCommanderReplacementChoiceV1(`
+
+## `src/engine/core/commander/commanderTaxV1.ts`
+
+- line 7: `export type CoreCommanderCastOriginV1 = 'command-zone' | 'other-zone' | 'copy';`
+- line 9: `export type CoreCommanderCastAttemptV1 = Readonly<{`
+- line 13: `export type CoreCommanderCastLedgerV1 = Readonly<{`
+- line 18: `export type CoreCommanderCastLedgerValidationIssueV1 = Readonly<{`
+- line 125: `export class CoreCommanderCastLedgerCreationErrorV1 extends Error {`
+- line 136: `export class CoreCommanderCastRecordingErrorV1 extends Error {`
+- line 199: `export function createCoreCommanderCastLedgerV1(value: unknown): CoreCommanderCastLedgerV1 {`
+- line 224: `export function recordCoreCommanderCastV1(`
+- line 246: `export function coreCommanderTaxV1(ledger: CoreCommanderCastLedgerV1): number {`
+
 ## `src/engine/core/identityZoneCanonicalization.ts`
 
 - line 187: `export function canonicalizeModeNeutralCoreIdentityZoneSliceV1(`
@@ -142,6 +216,14 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 103: `export type {`
 - line 126: `export type {`
 - line 154: `export type {`
+- line 182: `export type {`
+- line 194: `export type {`
+- line 207: `export type {`
+- line 221: `export type {`
+- line 237: `export type {`
+- line 255: `export type {`
+- line 271: `export type {`
+- line 286: `export type {`
 
 ## `src/engine/core/object/index.ts`
 
@@ -303,6 +385,32 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 651: `export const createCoreActivatedAbilityObjectIdentityV2 =`
 - line 653: `export const createCoreTriggeredAbilityObjectIdentityV2 =`
 - line 656: `export function canonicalizeCoreGameObjectIdentityV2(`
+
+## `src/engine/core/player-lifecycle/playerExitReconciliationV1.ts`
+
+- line 15: `export type CorePlayerExitReferenceIdV1 = string & { readonly [corePlayerExitReferenceIdBrand]: true };`
+- line 17: `export type CorePlayerExitReferenceBundleV1 = Readonly<{`
+- line 31: `export type CorePlayerExitReconciliationResultV1 = Readonly<{`
+- line 45: `export type CorePlayerExitReconciliationIssueCodeV1 =`
+- line 56: `export type CorePlayerExitReconciliationIssueV1 = Readonly<{`
+- line 62: `export class CorePlayerExitReconciliationErrorV1 extends Error {`
+- line 417: `export function createCorePlayerExitReferenceBundleV1(value: unknown): CorePlayerExitReferenceBundleV1 {`
+- line 518: `export function reconcileCorePlayerExitV1(`
+
+## `src/engine/core/player-lifecycle/playerLifecycleV1.ts`
+
+- line 3: `export type CorePlayerLifecycleStatusV1 = 'active' | 'exited';`
+- line 4: `export type CorePlayerExitCauseV1 = 'concession' | 'defeat';`
+- line 6: `export type CorePlayerLifecycleEntryV1 = Readonly<{`
+- line 12: `export type CorePlayerLifecycleStateV1 = Readonly<{`
+- line 16: `export type CorePlayerExitRequestV1 = Readonly<{`
+- line 21: `export type CorePlayerLifecycleIssueCodeV1 =`
+- line 35: `export type CorePlayerLifecycleIssueV1 = Readonly<{`
+- line 41: `export class CorePlayerLifecycleErrorV1 extends Error {`
+- line 332: `export function createCorePlayerLifecycleStateV1(value: unknown): CorePlayerLifecycleStateV1 {`
+- line 339: `export function applyCorePlayerExitV1(`
+- line 385: `export function corePlayerLifecycleStatusV1(`
+- line 392: `export function corePlayerLifecycleExitCauseV1(`
 
 ## `src/engine/core/rules/controlEffectV1.ts`
 

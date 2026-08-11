@@ -1,0 +1,82 @@
+{
+  "version": "mode-neutral-core-commander-combat-player-exit-v1",
+  "replacement": {
+    "kind": "commander-replacement-903.9a",
+    "sourceZone": "graveyard"
+  },
+  "commanders": [
+    { "physicalCardId": "C1", "ownerPlayerId": "P1" },
+    { "physicalCardId": "C2", "ownerPlayerId": "P2" },
+    { "physicalCardId": "C3", "ownerPlayerId": "P3" },
+    { "physicalCardId": "C4", "ownerPlayerId": "P4" }
+  ],
+  "castLedger": {
+    "commander": { "physicalCardId": "C1", "ownerPlayerId": "P1" },
+    "castCount": 0
+  },
+  "damageState": {
+    "commanders": [
+      { "physicalCardId": "C1", "ownerPlayerId": "P1" },
+      { "physicalCardId": "C2", "ownerPlayerId": "P2" },
+      { "physicalCardId": "C3", "ownerPlayerId": "P3" },
+      { "physicalCardId": "C4", "ownerPlayerId": "P4" }
+    ],
+    "defendingPlayerIds": ["P1", "P2", "P3", "P4"],
+    "entries": []
+  },
+  "provenanceLedger": {
+    "commanders": [
+      { "physicalCardId": "C1", "ownerPlayerId": "P1" },
+      { "physicalCardId": "C2", "ownerPlayerId": "P2" },
+      { "physicalCardId": "C3", "ownerPlayerId": "P3" },
+      { "physicalCardId": "C4", "ownerPlayerId": "P4" }
+    ],
+    "defendingPlayerIds": ["P1", "P2", "P3", "P4"],
+    "records": [
+      { "combatObjectId": "PC1:0", "commanderPhysicalCardId": "C1", "defendingPlayerId": "P2", "damage": 10 },
+      { "combatObjectId": "PC4:0", "commanderPhysicalCardId": "C1", "defendingPlayerId": "P2", "damage": 11 }
+    ]
+  },
+  "combatContext": {
+    "combatId": "combat-01m",
+    "turnNumber": 7,
+    "step": "declare-blockers",
+    "attackingPlayerId": "P1",
+    "defendingPlayerIds": ["P2", "P3", "P4"],
+    "attacks": [
+      { "attackerObjectId": "PC1:0", "attackerControllerPlayerId": "P1", "defendingPlayerId": "P2" },
+      { "attackerObjectId": "PC2:0", "attackerControllerPlayerId": "P1", "defendingPlayerId": "P3" },
+      { "attackerObjectId": "PC3:0", "attackerControllerPlayerId": "P1", "defendingPlayerId": "P4" }
+    ],
+    "blocks": [
+      { "blockerObjectId": "PC4:0", "blockerControllerPlayerId": "P2", "attackedObjectId": "PC1:0", "defendingPlayerId": "P2" },
+      { "blockerObjectId": "PC5:0", "blockerControllerPlayerId": "P3", "attackedObjectId": "PC2:0", "defendingPlayerId": "P3" },
+      { "blockerObjectId": "PC6:0", "blockerControllerPlayerId": "P4", "attackedObjectId": "PC3:0", "defendingPlayerId": "P4" }
+    ]
+  },
+  "lifecycle": {
+    "players": [
+      { "playerId": "P1", "status": "active", "exitCause": null },
+      { "playerId": "P2", "status": "active", "exitCause": null },
+      { "playerId": "P3", "status": "active", "exitCause": null },
+      { "playerId": "P4", "status": "active", "exitCause": null }
+    ]
+  },
+  "lifecycleExits": [
+    { "playerId": "P1", "cause": "concession" },
+    { "playerId": "P2", "cause": "defeat" }
+  ],
+  "exitReferenceBundle": {
+    "turnOrder": ["P1", "P2", "P3", "P4"],
+    "eligiblePlayerIds": ["P2", "P3", "P4"],
+    "activePlayerId": "P1",
+    "priorityHolderPlayerId": "P1",
+    "ownedObjectIds": ["PC1:0", "@token:owned-token:0"],
+    "controlledObjectIds": ["PC1:0", "PC2:0", "@activated-ability:owned-ability", "@spell-copy:stack-b", "PC3:0"],
+    "nonCardStackObjectIds": ["@triggered-ability:stack-a", "@spell-copy:stack-b"],
+    "combatParticipantObjectIds": ["PC1:0", "PC4:0"],
+    "controlEffectIds": ["control-first", "control-second"],
+    "decisionAuthorityIds": ["authority-first", "authority-second"],
+    "searchSessionIds": ["search-first", "search-second"]
+  }
+}

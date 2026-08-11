@@ -1493,14 +1493,14 @@
       "crRefs": ["104", "506", "507", "508", "903"],
       "lane": "backbone",
       "edhValue": "high",
-      "status": "pending",
+      "status": "implemented-not-audited",
       "dependsOn": ["O4P-01L"],
       "landingState": ["commanderPhysicalCard", "commanderTax", "commanderDamage", "combatAssignments", "playerExit", "concession"],
       "boundary": "Represent Commander physical-card identity, commander tax/cast count, commander replacement choice, commander damage, multiplayer attacks/blocks, and player defeat/concession boundaries.",
-      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"],
+      "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json", "research/cr-grounding/o4p-01m-commander-combat-player-exit.contract.draft.md", "fixture: mode-neutral-core-commander-combat-player-exit-v1", "targeted-tests: 14 files, 136 tests PASS", "review-tests: 2 files, 8 tests PASS", "verify script: PASS", "npm-run-lint: PASS", "npm-run-build: PASS", "generated-engine-api: current", "git-diff-check: PASS"],
       "manualBoundary": "Full automatic combat damage calculation is not required; guided/manual application is allowed. WebSocket disconnect remains distinct from player exit.",
-      "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Nへ進む。",
-      "judge": "user-ruling-2026-08-10"
+      "nextGate": "修復済みcandidateの独立冷監査でBLOCKER/HIGH 0を確認し、同一fingerprintの全check、CI/Pages公開証拠後にO4P-01Nへ進む。",
+      "judge": "Sol-orchestrator-2026-08-11"
     },
     {
       "type": "engine-fix",
@@ -4617,9 +4617,9 @@
       "boundary": "Control effects, current-controller derivation, search, rule visibility, play permission, actor/selector separation, and opponent-turn Decision Authority.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json", "research/cr-grounding/o4p-01l-orchestration-plan.draft.md", "research/cr-grounding/o4p-01l-control-access-authority.contract.draft.md", "research/cr-grounding/archive/o4p-01l-cold-audit-record-2026-08-11.md", "normal-tests: 207 files, 1837 tests PASS", "property-tests: PASS", "review-tests: PASS", "architecture-tests: PASS", "fixture: PASS", "verify script: PASS", "candidate-sha: 16a519fb3a85533243a869e14b3d523d9862ef4d", "candidate-fingerprint: 8216ff04737d84ff391f6219c65c003ad77d020497c4faf378ec69a75805cbba", "npm-run-check: PASS", "npm-run-check-forbidden: PASS", "git-diff-check: PASS", "github-actions:31401987234", "github-actions-head:b325bcc4a21d001d2e544b1e13a33ca26abf7195", "github-actions-status:success", "github-actions-test:success", "github-actions-build:success", "github-actions-deploy:success", "pages-http:200", "pages-js-http:200", "pages-css-http:200", "served-js:index-CyZgN26K.js", "served-css:index-JeU5vEot.css"], "manualBoundary": "Network delivery and projection allowlists remain O4P-02D; no UI or Cloudflare runtime.", "nextGate": "shipped。O4P-01M Commander, Multiplayer Combat & Player Exit V1へ進む。", "judge": "user-ruling-2026-08-10", "note": "User-authorized O4P-01L orchestration: bounded parallel Luna subagents under one judge/orchestrator. Network Projection, Combat, Commander, player exit, typed Command/Event, Cloudflare, WebSocket, and UI remain outside this milestone. Final narrow cold audit: BLOCKER/HIGH/MEDIUM/LOW = 0; final full check passed on the same candidate fingerprint; GitHub Actions 31401987234 and Pages/JS/CSS HTTP 200 verified."
     },
     {
-      "id": "O4P-01M", "crOrder": 903, "crRefs": ["104", "506", "507", "508", "903"], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01L"],
+      "id": "O4P-01M", "crOrder": 903, "crRefs": ["104", "506", "507", "508", "903"], "lane": "backbone", "edhValue": "high", "status": "implemented-not-audited", "dependsOn": ["O4P-01L"],
       "landingState": ["commanderPhysicalCard", "commanderTax", "commanderDamage", "combatAssignments", "playerExit", "concession"],
-      "boundary": "Commander physical-card identity, commander tax/cast count, commander replacement, commander damage, multiplayer attacks/blocks, and player defeat/concession.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json"], "manualBoundary": "Full automatic combat damage is not required; guided/manual application is allowed. Disconnect remains distinct from player exit.", "nextGate": "契約凍結、実装、独立冷監査、全check、CI/Pages公開証拠後にO4P-01Nへ進む。", "judge": "user-ruling-2026-08-10"
+      "boundary": "Commander physical-card identity, commander tax/cast count, commander replacement, commander damage, multiplayer attacks/blocks, and player defeat/concession.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json", "research/cr-grounding/o4p-01m-commander-combat-player-exit.contract.draft.md", "fixture: mode-neutral-core-commander-combat-player-exit-v1", "targeted-tests: 14 files, 136 tests PASS", "review-tests: 2 files, 8 tests PASS", "verify script: PASS", "npm-run-lint: PASS", "npm-run-build: PASS", "generated-engine-api: current", "git-diff-check: PASS"], "manualBoundary": "Full automatic combat damage is not required; guided/manual application is allowed. Disconnect remains distinct from player exit.", "nextGate": "修復済みcandidateの独立冷監査でBLOCKER/HIGH 0を確認し、同一fingerprintの全check、CI/Pages公開証拠後にO4P-01Nへ進む。", "judge": "Sol-orchestrator-2026-08-11"
     },
     {
       "id": "O4P-01N", "crOrder": 999, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-01M"],

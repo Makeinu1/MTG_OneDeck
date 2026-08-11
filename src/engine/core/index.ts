@@ -174,3 +174,119 @@ export * from './stack/transaction';
 export * from './turn';
 
 export * from './rules';
+
+export {
+  CoreCommanderReplacementChoiceCreationErrorV1,
+  createCoreCommanderReplacementChoiceV1,
+} from './commander/commanderReplacementV1';
+export type {
+  CoreCommanderReplacementChoiceV1,
+  CoreCommanderReplacementKindV1,
+  CoreCommanderReplacementSourceZoneV1,
+  CoreCommanderReplacementValidationCodeV1,
+  CoreCommanderReplacementValidationIssueV1,
+} from './commander/commanderReplacementV1';
+
+export {
+  CoreCommanderIdentityCreationErrorV1,
+  createCoreCommanderIdentityV1,
+} from './commander/commanderIdentityV1';
+export type {
+  CoreCommanderIdentityV1,
+  CoreCommanderIdentityValidationCodeV1,
+  CoreCommanderIdentityValidationIssueV1,
+} from './commander/commanderIdentityV1';
+
+export {
+  CoreCommanderCastLedgerCreationErrorV1,
+  CoreCommanderCastRecordingErrorV1,
+  coreCommanderTaxV1,
+  createCoreCommanderCastLedgerV1,
+  recordCoreCommanderCastV1,
+} from './commander/commanderTaxV1';
+export type {
+  CoreCommanderCastAttemptV1,
+  CoreCommanderCastLedgerV1,
+  CoreCommanderCastLedgerValidationIssueV1,
+  CoreCommanderCastOriginV1,
+} from './commander/commanderTaxV1';
+
+export {
+  CoreCommanderDamageCreationErrorV1,
+  CoreCommanderDamageRecordingErrorV1,
+  coreCommanderDamageAgainstV1,
+  createCoreCommanderDamageStateV1,
+  recordCoreCommanderDamageV1,
+} from './commander/commanderDamageV1';
+export type {
+  CoreCommanderDamageEntryV1,
+  CoreCommanderDamageStateV1,
+  CoreCommanderDamageValidationCodeV1,
+  CoreCommanderDamageValidationIssueV1,
+} from './commander/commanderDamageV1';
+
+export {
+  CoreCommanderProvenanceCreationErrorV1,
+  CoreCommanderProvenanceRecordingErrorV1,
+  CoreCommanderProvenanceQueryErrorV1,
+  coreCommanderProvenanceDamageAgainstV1,
+  coreCommanderThresholdReachedFromProvenanceV1,
+  createCoreCommanderDamageProvenanceLedgerV1,
+  recordCoreCommanderDamageProvenanceV1,
+} from './commander/commanderDamageProvenanceV1';
+export type {
+  CoreCommanderDamageProvenanceLedgerV1,
+  CoreCommanderDamageProvenanceRecordV1,
+  CoreCommanderProvenanceValidationCodeV1,
+  CoreCommanderProvenanceValidationIssueV1,
+} from './commander/commanderDamageProvenanceV1';
+
+export {
+  CoreCombatContextAdditionErrorV1,
+  CoreCombatContextCreationErrorV1,
+  CoreCombatContextReconciliationErrorV1,
+  CoreCombatContextStepErrorV1,
+  addCoreCombatContextAttackV1,
+  addCoreCombatContextBlockV1,
+  createCoreCombatContextV1,
+  reconcileCoreCombatContextForPlayerExitV1,
+  setCoreCombatContextStepV1,
+} from './combat/combatContextV1';
+export type {
+  CoreCombatContextAttackV1,
+  CoreCombatContextBlockV1,
+  CoreCombatContextStepV1,
+  CoreCombatContextV1,
+  CoreCombatContextValidationCodeV1,
+  CoreCombatContextValidationIssueV1,
+} from './combat/combatContextV1';
+
+export {
+  CorePlayerLifecycleErrorV1,
+  applyCorePlayerExitV1,
+  corePlayerLifecycleStatusV1,
+  corePlayerLifecycleExitCauseV1,
+  createCorePlayerLifecycleStateV1,
+} from './player-lifecycle/playerLifecycleV1';
+export type {
+  CorePlayerExitCauseV1,
+  CorePlayerExitRequestV1,
+  CorePlayerLifecycleEntryV1,
+  CorePlayerLifecycleIssueCodeV1,
+  CorePlayerLifecycleIssueV1,
+  CorePlayerLifecycleStateV1,
+  CorePlayerLifecycleStatusV1,
+} from './player-lifecycle/playerLifecycleV1';
+
+export {
+  CorePlayerExitReconciliationErrorV1,
+  createCorePlayerExitReferenceBundleV1,
+  reconcileCorePlayerExitV1,
+} from './player-lifecycle/playerExitReconciliationV1';
+export type {
+  CorePlayerExitReconciliationResultV1,
+  CorePlayerExitReconciliationIssueCodeV1,
+  CorePlayerExitReconciliationIssueV1,
+  CorePlayerExitReferenceBundleV1,
+  CorePlayerExitReferenceIdV1,
+} from './player-lifecycle/playerExitReconciliationV1';
