@@ -283,6 +283,8 @@ export {
   createCorePlayerExitReferenceBundleV1,
   reconcileCorePlayerExitV1,
 } from './player-lifecycle/playerExitReconciliationV1';
+
+export * from './closure';
 export type {
   CorePlayerExitReconciliationResultV1,
   CorePlayerExitReconciliationIssueCodeV1,

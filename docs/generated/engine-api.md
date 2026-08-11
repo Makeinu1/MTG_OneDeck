@@ -82,6 +82,121 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 63: `export type CoreCardDefinitionRecordV1 = Readonly<`
 - line 67: `export type CorePhysicalCardRecordV1 = Readonly<`
 
+## `src/engine/core/closure/applyCommandV1.ts`
+
+- line 204: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+
+## `src/engine/core/closure/canonicalV1.ts`
+
+- line 1: `export type CoreCanonicalIssueV1 = Readonly<{`
+- line 7: `export class CoreCanonicalizationErrorV1 extends Error {`
+- line 145: `export function canonicalizeCoreValueV1(value: unknown): unknown {`
+- line 177: `export function serializeCoreCanonicalValueV1(value: unknown): string {`
+- line 232: `export function coreSha256HexV1(value: string): string {`
+- line 237: `export function coreCanonicalDigestFromValueV1(value: unknown): string {`
+- line 241: `export function canonicalizeModeNeutralCoreRootV1(value: import('./rootV1').ModeNeutralCoreRootV1): import('./rootV1').ModeNeutralCoreRootV1 {`
+- line 245: `export function serializeModeNeutralCoreRootV1(value: import('./rootV1').ModeNeutralCoreRootV1): string {`
+- line 249: `export function serializeCoreDomainEventsV1(value: readonly import('./domainEventV1').CoreDomainEventV1[]): string {`
+- line 253: `export function coreCanonicalDigestV1(value: unknown): string {`
+
+## `src/engine/core/closure/commandResultV1.ts`
+
+- line 4: `export type CoreCommandIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 5: `export type CoreCommandWarningV1 = Readonly<{ readonly code: 'MANUAL_CORRECTION_APPLIED'; readonly path: string; readonly message: string }>;`
+- line 6: `export type CoreCommandResultV1 =`
+- line 11: `export function freezeCoreCommandIssuesV1(issues: readonly CoreCommandIssueV1[]): readonly CoreCommandIssueV1[] {`
+
+## `src/engine/core/closure/commandV1.ts`
+
+- line 17: `export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;`
+- line 18: `export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;`
+- line 19: `export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;`
+- line 20: `export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;`
+- line 21: `export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;`
+- line 22: `export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;`
+- line 23: `export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;`
+- line 24: `export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;`
+- line 25: `export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;`
+- line 26: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
+- line 27: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
+- line 28: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
+- line 29: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;`
+- line 30: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 31: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 33: `export type CoreCommandPayloadV1 =`
+- line 40: `export type CoreCommandV1 = Readonly<{`
+- line 50: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 51: `export type CoreCommandValidationResultV1 =`
+- line 273: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 327: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 331: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+
+## `src/engine/core/closure/correctionV1.ts`
+
+- line 1: `export const CORE_MANUAL_CORRECTION_WARNING_CODE_V1 = 'MANUAL_CORRECTION_APPLIED' as const;`
+- line 3: `export type CoreCorrectionReasonV1 = string;`
+- line 4: `export type CoreCorrectionValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 6: `export function validateCoreCorrectionReasonV1(reason: unknown): readonly CoreCorrectionValidationIssueV1[] {`
+- line 12: `export function createCoreCorrectionWarningV1(reason: CoreCorrectionReasonV1): Readonly<{ readonly code: typeof CORE_MANUAL_CORRECTION_WARNING_CODE_V1; readonly path: '/reason'; readonly message: string }> {`
+
+## `src/engine/core/closure/domainEventV1.ts`
+
+- line 4: `export type CoreDomainEventPayloadV1 =`
+- line 16: `export type CoreDomainEventV1 = Readonly<{`
+- line 26: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
+
+## `src/engine/core/closure/headlessClosureV1.ts`
+
+- line 8: `export type CoreHeadlessClosureReportV1 = Readonly<{`
+- line 20: `export function runOrdinaryFourPlayerCoreClosureV1(initialRoot: ModeNeutralCoreRootV1, commands: readonly CoreCommandV1[] = []): CoreHeadlessClosureReportV1 {`
+- line 29: `export const executeOrdinaryFourPlayerCoreClosureV1 = runOrdinaryFourPlayerCoreClosureV1;`
+
+## `src/engine/core/closure/journalV1.ts`
+
+- line 12: `export type CoreCommandJournalEntryV1 = Readonly<{`
+- line 22: `export type CoreReplayPackageV1 = Readonly<{`
+- line 31: `export type CoreJournalValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 32: `export type CoreJournalValidationResultV1 =`
+- line 35: `export type CoreReplayPackageValidationResultV1 =`
+- line 83: `export function appendCoreCommandJournalEntryV1(journal: readonly CoreCommandJournalEntryV1[], command: CoreCommandV1, result: CoreCommandResultV1): readonly CoreCommandJournalEntryV1[] {`
+- line 90: `export function validateCoreCommandJournalEntryV1(value: unknown): CoreJournalValidationResultV1 {`
+- line 103: `export function createCoreReplayPackageV1(initialRoot: ModeNeutralCoreRootV1, journal: readonly CoreCommandJournalEntryV1[]): CoreReplayPackageV1 {`
+- line 119: `export function validateCoreReplayPackageV1(value: unknown): CoreReplayPackageValidationResultV1 {`
+
+## `src/engine/core/closure/randomZoneOrderV1.ts`
+
+- line 4: `export type CoreRandomZoneOrderInputV1 = Readonly<{`
+- line 10: `export type CoreRandomZoneOrderIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 68: `export function validateCoreRandomZoneOrderV1(input: CoreRandomZoneOrderInputV1, currentOrder: readonly CoreObjectId[]): readonly CoreRandomZoneOrderIssueV1[] {`
+- line 72: `export function applyCoreRecordedZoneOrderV1(currentOrder: readonly CoreObjectId[], input: CoreRandomZoneOrderInputV1): readonly CoreObjectId[] {`
+
+## `src/engine/core/closure/replayV1.ts`
+
+- line 8: `export type CoreReplayDivergenceV1 = Readonly<{ readonly code: 'INVALID_PACKAGE' | 'COMMAND_DIGEST_MISMATCH' | 'STATUS_MISMATCH' | 'BEFORE_DIGEST_MISMATCH' | 'AFTER_DIGEST_MISMATCH' | 'EVENT_DIGEST_MISMATCH' | 'FINAL_STATE_DIGEST_MISMATCH' | 'FINAL_EVENT_DIGEST_MISMATCH'; readonly journalIndex: number; readonly expected: string; readonly actual: string }>;`
+- line 9: `export type CoreReplayResultV1 =`
+- line 16: `export function replayCoreCommandsV1(packageInput: CoreReplayPackageV1): CoreReplayResultV1 {`
+- line 39: `export function replayCoreCommandsFromRootV1(initialRoot: ModeNeutralCoreRootV1, journal: readonly CoreCommandJournalEntryV1[]): CoreReplayResultV1 {`
+
+## `src/engine/core/closure/rootV1.ts`
+
+- line 10: `export type ModeNeutralCoreRootV1 = Readonly<{`
+- line 24: `export type { CoreRootValidationIssueV1, CoreRootValidationResultV1 } from './rootValidationV1';`
+
+## `src/engine/core/closure/rootValidationV1.ts`
+
+- line 21: `export type CoreRootValidationIssueV1 = Readonly<{`
+- line 26: `export type CoreRootValidationResultV1 =`
+- line 115: `export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {`
+- line 187: `export class CoreRootCreationErrorV1 extends Error {`
+- line 192: `export function createModeNeutralCoreRootV1(input: Omit<ModeNeutralCoreRootV1, 'kind'>): ModeNeutralCoreRootV1 {`
+
+## `src/engine/core/closure/versionsV1.ts`
+
+- line 1: `export type CoreClosureVersionVectorV1 = Readonly<{`
+- line 8: `export const CORE_CLOSURE_VERSION_VECTOR_V1: CoreClosureVersionVectorV1 = Object.freeze({`
+- line 15: `export function isCoreClosureVersionVectorV1(value: unknown): value is CoreClosureVersionVectorV1 {`
+- line 36: `export function createCoreClosureVersionVectorV1(value: unknown = CORE_CLOSURE_VERSION_VECTOR_V1): CoreClosureVersionVectorV1 {`
+
 ## `src/engine/core/combat/combatContextV1.ts`
 
 - line 5: `export type CoreCombatContextStepV1 = 'declare-attackers' | 'declare-blockers';`
@@ -223,7 +338,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 237: `export type {`
 - line 255: `export type {`
 - line 271: `export type {`
-- line 286: `export type {`
+- line 288: `export type {`
 
 ## `src/engine/core/object/index.ts`
 

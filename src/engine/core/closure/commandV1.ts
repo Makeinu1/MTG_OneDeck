@@ -1,0 +1,339 @@
+import { isCoreBaseId } from '../ids';
+import type { CorePhysicalCardId, CoreObjectId, CorePlayerId } from '../ids';
+import { isCanonicalCoreObjectIdV2 } from '../object/objectIdV2';
+import type { CoreCombatContextAttackV1, CoreCombatContextBlockV1, CoreCombatContextStepV1 } from '../combat/combatContextV1';
+import type { CoreCommanderCastOriginV1 } from '../commander/commanderTaxV1';
+import type { CoreCardSpellCommitInputV1 } from '../stack/transaction/cardSpellCommitV1';
+import type { CoreStackRemovalInputV1 } from '../stack/transaction/stackRemovalV1';
+import type { CoreDecisionContextV1 } from '../rules/decisionAuthorityV1';
+import type { CoreSearchSessionInputV1 } from '../rules/searchSessionOperationsV1';
+import type { CoreControlEffectV1 } from '../rules/controlEffectV1';
+import type { CoreRuleKeyV1 } from '../rules/ruleKeyV1';
+import { validateCoreRuleKeyV1 } from '../rules/ruleKeyV1';
+import type { CoreRuleZoneRefV1 } from '../rules/ruleZoneRefV1';
+import { validateCoreRuleZoneRefV1 } from '../rules/ruleZoneRefV1';
+import { validateCoreCardZoneDestinationV1 } from '../transition/zoneDestination';
+
+export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;
+export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;
+export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;
+export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;
+export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;
+export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;
+export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;
+export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;
+export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;
+export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;
+export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;
+export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;
+export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;
+export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
+export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
+
+export type CoreCommandPayloadV1 =
+  | CoreStackCommitCardSpellPayloadV1 | CoreStackRemoveObjectPayloadV1 | CorePriorityPassPayloadV1
+  | CoreSearchOpenPayloadV1 | CoreSearchCompletePayloadV1 | CoreControlEffectApplyPayloadV1
+  | CoreCommanderCastRecordPayloadV1 | CoreCommanderDamageRecordPayloadV1 | CoreCombatStepSetPayloadV1
+  | CoreCombatAttackAddPayloadV1 | CoreCombatBlockAddPayloadV1 | CorePlayerExitPayloadV1
+  | CoreRandomZoneOrderPayloadV1 | CoreCorrectPlayerLifePayloadV1 | CoreCorrectCommanderDamagePayloadV1;
+
+export type CoreCommandV1 = Readonly<{
+  readonly kind: 'mode-neutral-core-command-v1';
+  readonly schemaVersion: 1;
+  readonly sequence: number;
+  readonly actorPlayerId: CorePlayerId;
+  readonly decisionMakerPlayerId: CorePlayerId;
+  readonly decisionContext: CoreDecisionContextV1;
+  readonly payload: CoreCommandPayloadV1;
+}>;
+
+export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;
+export type CoreCommandValidationResultV1 =
+  | Readonly<{ readonly ok: true; readonly value: CoreCommandV1 }>
+  | Readonly<{ readonly ok: false; readonly issues: readonly CoreCommandValidationIssueV1[] }>;
+
+function issue(code: string, path: string, message: string): CoreCommandValidationIssueV1 { return Object.freeze({ code, path, message }); }
+function compare(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
+function sorted(values: readonly CoreCommandValidationIssueV1[]): readonly CoreCommandValidationIssueV1[] { return Object.freeze(values.slice().sort((left, right) => compare(left.path, right.path) || compare(left.code, right.code))); }
+function plain(value: unknown): value is Record<string, unknown> {
+  try { return value !== null && typeof value === 'object' && !Array.isArray(value) && (Reflect.getPrototypeOf(value) === Object.prototype || Reflect.getPrototypeOf(value) === null); } catch { return false; }
+}
+function exact(value: unknown, fields: readonly string[], path: string, issues: CoreCommandValidationIssueV1[], requiredFields: readonly string[] = fields): Record<string, unknown> | null {
+  if (!plain(value)) { issues.push(issue('INVALID_TYPE', path, 'Expected a plain record')); return null; }
+  let keys: readonly PropertyKey[];
+  try { keys = Reflect.ownKeys(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Record keys are not readable')); return null; }
+  const expected = new Set(fields); const out: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  for (const key of keys) {
+    if (typeof key !== 'string') { issues.push(issue('UNKNOWN_FIELD', `${path}/[symbol]`, 'Symbol fields are not allowed')); continue; }
+    if (!expected.has(key)) { issues.push(issue('UNKNOWN_FIELD', `${path}/${key}`, 'Unknown field')); continue; }
+    let descriptor: PropertyDescriptor | undefined;
+    try { descriptor = Object.getOwnPropertyDescriptor(value, key); } catch { issues.push(issue('INVALID_DESCRIPTOR', `${path}/${key}`, 'Field descriptor is not readable')); continue; }
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) issues.push(issue('INVALID_DESCRIPTOR', `${path}/${key}`, 'Field must be an enumerable data property'));
+    else out[key] = descriptor.value;
+  }
+  for (const field of requiredFields) if (!Object.prototype.hasOwnProperty.call(out, field)) issues.push(issue('MISSING_FIELD', `${path}/${field}`, 'Required field is missing'));
+  return out;
+}
+function validBaseId(value: unknown): value is string { return isCoreBaseId(value); }
+function validObjectId(value: unknown): value is CoreObjectId { return isCanonicalCoreObjectIdV2(value); }
+function requireBaseId(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void { if (!validBaseId(value)) issues.push(issue('INVALID_ID', path, 'Invalid Core base ID')); }
+function requireObjectId(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void { if (!validObjectId(value)) issues.push(issue('INVALID_ID', path, 'Invalid canonical Core object ID')); }
+function requireRuleKey(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void {
+  const checked = validateCoreRuleKeyV1(value, path);
+  if (!checked.ok) issues.push(...checked.issues.map((current) => issue(current.code, current.path, current.message)));
+}
+function validArray(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): readonly unknown[] | null {
+  let array: boolean;
+  try { array = Array.isArray(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Array inspection is not safe')); return null; }
+  if (!array) { issues.push(issue('INVALID_ARRAY', path, 'Expected an array')); return null; }
+  const objectValue = value as object;
+  let keys: readonly PropertyKey[]; let lengthDescriptor: PropertyDescriptor | undefined;
+  try { keys = Reflect.ownKeys(objectValue); lengthDescriptor = Object.getOwnPropertyDescriptor(objectValue, 'length'); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Array descriptors are not readable')); return null; }
+  try { if (Reflect.getPrototypeOf(objectValue) !== Array.prototype) issues.push(issue('INVALID_TYPE', path, 'Expected an ordinary array')); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Array prototype is not readable')); }
+  const lengthRecord = lengthDescriptor && 'value' in lengthDescriptor ? lengthDescriptor as unknown as Record<string, unknown> : null;
+  const length = lengthRecord?.value;
+  if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) { issues.push(issue('INVALID_ARRAY', `${path}/length`, 'Array length must be a non-negative safe integer')); return null; }
+  const expected = new Set<string>(); for (let index = 0; index < length; index += 1) expected.add(String(index));
+  for (const key of keys) if (key !== 'length' && (typeof key !== 'string' || !expected.has(key))) issues.push(issue('UNKNOWN_FIELD', `${path}/${typeof key === 'string' ? key : '[symbol]'}`, 'Arrays must be dense and have no extra fields'));
+  const result: unknown[] = [];
+  for (let index = 0; index < length; index += 1) {
+    let descriptor: PropertyDescriptor | undefined;
+    try { descriptor = Object.getOwnPropertyDescriptor(objectValue, String(index)); } catch { issues.push(issue('INVALID_DESCRIPTOR', `${path}/${index}`, 'Array entry descriptor is not readable')); continue; }
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) issues.push(issue('INVALID_DESCRIPTOR', `${path}/${index}`, 'Array entries must be enumerable data properties'));
+    else { const descriptorRecord = descriptor as unknown as Record<string, unknown>; result.push(descriptorRecord.value); }
+  }
+  return result;
+}
+
+function normalizeValue(value: unknown, path: string, issues: CoreCommandValidationIssueV1[], ancestors: WeakSet<object> = new WeakSet<object>()): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') { if (Number.isFinite(value)) return value; issues.push(issue('INVALID_VALUE', path, 'Numbers must be finite')); return null; }
+  if (typeof value !== 'object') { issues.push(issue('INVALID_TYPE', path, 'Only JSON values are supported')); return null; }
+  let array: boolean;
+  try { array = Array.isArray(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Value inspection is not safe')); return null; }
+  if (ancestors.has(value)) { issues.push(issue('INVALID_VALUE', path, 'Circular references are not supported')); return null; }
+  ancestors.add(value);
+  try {
+    if (array) {
+      const entries = validArray(value, path, issues); if (!entries) return null;
+      return Object.freeze(entries.map((entry, index) => normalizeValue(entry, `${path}/${index}`, issues, ancestors)));
+    }
+    if (!plain(value)) { issues.push(issue('INVALID_TYPE', path, 'Expected a plain record')); return null; }
+    let keys: readonly PropertyKey[]; try { keys = Reflect.ownKeys(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Record descriptors are not readable')); return null; }
+    const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== 'string') { issues.push(issue('UNKNOWN_FIELD', `${path}/[symbol]`, 'Symbol fields are not allowed')); continue; }
+      let descriptor: PropertyDescriptor | undefined; try { descriptor = Object.getOwnPropertyDescriptor(value, key); } catch { issues.push(issue('INVALID_DESCRIPTOR', `${path}/${key}`, 'Field descriptor is not readable')); continue; }
+      if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) issues.push(issue('INVALID_DESCRIPTOR', `${path}/${key}`, 'Field must be an enumerable data property'));
+      else result[key] = normalizeValue(descriptor.value, `${path}/${key}`, issues, ancestors);
+    }
+    return Object.freeze(result);
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function normalizedRecord(value: unknown, fields: readonly string[], path: string, issues: CoreCommandValidationIssueV1[]): Record<string, unknown> | null {
+  const row = exact(value, fields, path, issues); if (!row) return null;
+  const normalized: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  for (const field of fields) if (Object.prototype.hasOwnProperty.call(row, field)) normalized[field] = normalizeValue(row[field], `${path}/${field}`, issues);
+  return Object.freeze(normalized);
+}
+
+function normalizeZone(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): CoreRuleZoneRefV1 | null {
+  const checked = validateCoreRuleZoneRefV1(value, path);
+  if (!checked.ok) { issues.push(...checked.issues.map((current) => issue(current.code, current.path, current.message))); return null; }
+  return checked.value;
+}
+
+function normalizeSearchInput(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
+  const row = exact(value, ['zone', 'portion', 'criteria', 'revealFound', 'shuffleAfter', 'rulesActorPlayerId'], path, issues, ['zone', 'portion', 'criteria', 'revealFound', 'shuffleAfter']);
+  if (!row) return null;
+  const zone = normalizeZone(row.zone, `${path}/zone`, issues);
+  if (!zone) return null;
+  if (row.revealFound !== true && row.revealFound !== false) issues.push(issue('INVALID_TYPE', `${path}/revealFound`, 'Expected a boolean'));
+  if (row.shuffleAfter !== true && row.shuffleAfter !== false) issues.push(issue('INVALID_TYPE', `${path}/shuffleAfter`, 'Expected a boolean'));
+  if (row.rulesActorPlayerId !== undefined) requireBaseId(row.rulesActorPlayerId, `${path}/rulesActorPlayerId`, issues);
+  const portionRecord = exact(row.portion, ['kind', 'count'], `${path}/portion`, issues, ['kind']);
+  const criteriaRecord = exact(row.criteria, ['kind', 'criteriaKey', 'minimum', 'maximum', 'mayFailToFind'], `${path}/criteria`, issues, ['kind', 'minimum', 'maximum']);
+  const portion = portionRecord ? normalizeRecordValues(portionRecord, `${path}/portion`, issues) : null;
+  const criteria = criteriaRecord ? normalizeRecordValues(criteriaRecord, `${path}/criteria`, issues) : null;
+  if (portionRecord?.kind === 'all' && Object.prototype.hasOwnProperty.call(portionRecord, 'count')) issues.push(issue('UNKNOWN_FIELD', `${path}/portion/count`, 'All portions must not contain a count'));
+  if (portionRecord?.kind === 'top' && (typeof portionRecord.count !== 'number' || !Number.isSafeInteger(portionRecord.count) || portionRecord.count < 0)) issues.push(issue('INVALID_INTEGER', `${path}/portion/count`, 'Top count must be a non-negative safe integer'));
+  if (criteriaRecord?.kind === 'quantity' && (Object.prototype.hasOwnProperty.call(criteriaRecord, 'criteriaKey') || Object.prototype.hasOwnProperty.call(criteriaRecord, 'mayFailToFind'))) issues.push(issue('UNKNOWN_FIELD', `${path}/criteria`, 'Quantity criteria has fields for another kind'));
+  if (criteriaRecord?.kind === 'qualified') {
+    requireRuleKey(criteriaRecord.criteriaKey, `${path}/criteria/criteriaKey`, issues);
+    if (typeof criteriaRecord.mayFailToFind !== 'boolean') issues.push(issue('INVALID_TYPE', `${path}/criteria/mayFailToFind`, 'Expected a boolean'));
+  }
+  if (issues.some((current) => current.path.startsWith(path))) return null;
+  return Object.freeze({ zone, portion, criteria, revealFound: row.revealFound, shuffleAfter: row.shuffleAfter, ...(Object.prototype.hasOwnProperty.call(row, 'rulesActorPlayerId') ? { rulesActorPlayerId: row.rulesActorPlayerId } : {}) });
+}
+
+function normalizeRecordValues(row: Record<string, unknown>, path: string, issues: CoreCommandValidationIssueV1[]): Record<string, unknown> {
+  const normalized: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  for (const key of Object.keys(row)) normalized[key] = normalizeValue(row[key], `${path}/${key}`, issues);
+  return Object.freeze(normalized);
+}
+
+function normalizeRemovalInput(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
+  const row = exact(value, ['kind', 'objectId', 'destination'], path, issues, ['kind', 'objectId']);
+  if (!row) return null;
+  if (row.kind === 'cease') {
+    if (Object.prototype.hasOwnProperty.call(row, 'destination')) issues.push(issue('UNKNOWN_FIELD', `${path}/destination`, 'Cease input must not contain a destination'));
+  } else if (row.kind === 'card-to-zone') {
+    const destination = exact(row.destination, ['kind', 'placement', 'baseControllerPlayerId'], `${path}/destination`, issues, ['kind']);
+    if (destination) normalizeRecordValues(destination, `${path}/destination`, issues);
+    const destinationValidation = validateCoreCardZoneDestinationV1(row.destination);
+    if (!destinationValidation.ok || destinationValidation.value.kind === 'stack') issues.push(issue('INVALID_DESTINATION', `${path}/destination`, 'Invalid card removal destination'));
+  } else issues.push(issue('INVALID_LITERAL', `${path}/kind`, 'Invalid removal kind'));
+  requireObjectId(row.objectId, `${path}/objectId`, issues);
+  return normalizeRecordValues(row, path, issues);
+}
+
+function normalizeStackCommitInput(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
+  const row = normalizedRecord(value, ['sourceObjectId', 'controllerPlayerId', 'announcement'], path, issues);
+  if (!row) return null;
+  requireObjectId(row.sourceObjectId, `${path}/sourceObjectId`, issues);
+  requireBaseId(row.controllerPlayerId, `${path}/controllerPlayerId`, issues);
+  const announcement = exact(row.announcement, ['kind', 'abilityTextSnapshot', 'chosenModeKeys', 'targetSelections', 'announcedVariables', 'distributions', 'costChoices'], `${path}/announcement`, issues);
+  if (announcement) normalizeRecordValues(announcement, `${path}/announcement`, issues);
+  return normalizeRecordValues(row, path, issues);
+}
+
+function normalizeControlEffect(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
+  const row = normalizedRecord(value, ['targetObjectId', 'gainingControllerPlayerId', 'sourceObjectId', 'duration'], path, issues);
+  if (!row) return null;
+  requireObjectId(row.targetObjectId, `${path}/targetObjectId`, issues);
+  requireBaseId(row.gainingControllerPlayerId, `${path}/gainingControllerPlayerId`, issues);
+  if (row.sourceObjectId !== null) requireObjectId(row.sourceObjectId, `${path}/sourceObjectId`, issues);
+  const duration = exact(row.duration, ['kind', 'turnNumber', 'sourceObjectId', 'controllerPlayerId'], `${path}/duration`, issues, ['kind']);
+  if (duration) {
+    normalizeRecordValues(duration, `${path}/duration`, issues);
+    if (duration.kind === 'while-source-controlled-by') {
+      requireObjectId(duration.sourceObjectId, `${path}/duration/sourceObjectId`, issues);
+      requireBaseId(duration.controllerPlayerId, `${path}/duration/controllerPlayerId`, issues);
+    } else if (duration.kind === 'while-source-exists' || duration.kind === 'while-source-attached-to-target') {
+      requireObjectId(duration.sourceObjectId, `${path}/duration/sourceObjectId`, issues);
+    }
+  }
+  return normalizeRecordValues(row, path, issues);
+}
+
+function normalizePayloadNested(kind: string, row: Record<string, unknown>, issues: CoreCommandValidationIssueV1[]): Record<string, unknown> {
+  const nested = { ...row };
+  if (kind === 'stack-commit-card-spell') nested.input = normalizeStackCommitInput(row.input, '/payload/input', issues);
+  else if (kind === 'stack-remove-object') nested.input = normalizeRemovalInput(row.input, '/payload/input', issues);
+  else if (kind === 'search-open') nested.input = normalizeSearchInput(row.input, '/payload/input', issues);
+  else if (kind === 'control-effect-apply') nested.effect = normalizeControlEffect(row.effect, '/payload/effect', issues);
+  else if (kind === 'combat-attack-add') nested.attack = normalizedRecord(row.attack, ['attackerObjectId', 'attackerControllerPlayerId', 'defendingPlayerId'], '/payload/attack', issues);
+  else if (kind === 'combat-block-add') nested.block = normalizedRecord(row.block, ['blockerObjectId', 'blockerControllerPlayerId', 'attackedObjectId', 'defendingPlayerId'], '/payload/block', issues);
+  else if (kind === 'random-zone-order') nested.zone = normalizeZone(row.zone, '/payload/zone', issues);
+  for (const key of Object.keys(nested)) if (nested[key] !== null && typeof nested[key] === 'object' && !Object.isFrozen(nested[key])) nested[key] = normalizeValue(nested[key], `/payload/${key}`, issues);
+  return nested;
+}
+function readKind(value: unknown, issues: CoreCommandValidationIssueV1[]): string | null {
+  if (!plain(value)) { issues.push(issue('INVALID_TYPE', '/payload', 'Payload must be a plain record')); return null; }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, 'kind');
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor) || typeof descriptor.value !== 'string') { issues.push(issue('INVALID_LITERAL', '/payload/kind', 'Payload kind must be a data string')); return null; }
+    return descriptor.value;
+  } catch { issues.push(issue('INVALID_DESCRIPTOR', '/payload/kind', 'Payload kind descriptor is not readable')); return null; }
+}
+function validateContext(value: unknown, issues: CoreCommandValidationIssueV1[]): CoreDecisionContextV1 | null {
+  if (!plain(value)) { issues.push(issue('INVALID_TYPE', '/decisionContext', 'Expected a plain record')); return null; }
+  const raw: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  let keys: readonly PropertyKey[];
+  try { keys = Reflect.ownKeys(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', '/decisionContext', 'Record keys are not readable')); return null; }
+  const allowed = new Set(['kind', 'decisionKey', 'searchSessionId', 'turnNumber']);
+  for (const key of keys) {
+    if (typeof key !== 'string' || !allowed.has(key)) { issues.push(issue('UNKNOWN_FIELD', `/decisionContext/${typeof key === 'string' ? key : '[symbol]'}`, 'Unknown field')); continue; }
+    let descriptor: PropertyDescriptor | undefined;
+    try { descriptor = Object.getOwnPropertyDescriptor(value, key); } catch { issues.push(issue('INVALID_DESCRIPTOR', `/decisionContext/${key}`, 'Field descriptor is not readable')); continue; }
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) issues.push(issue('INVALID_DESCRIPTOR', `/decisionContext/${key}`, 'Field must be an enumerable data property'));
+    else raw[key] = descriptor.value;
+  }
+  if (!Object.prototype.hasOwnProperty.call(raw, 'kind')) issues.push(issue('MISSING_FIELD', '/decisionContext/kind', 'Required field is missing'));
+  if (typeof raw.turnNumber !== 'undefined' && (typeof raw.turnNumber !== 'number' || !Number.isSafeInteger(raw.turnNumber) || raw.turnNumber < 0)) issues.push(issue('INVALID_INTEGER', '/decisionContext/turnNumber', 'Turn number must be a non-negative safe integer'));
+  const turnNumber = typeof raw.turnNumber === 'number' ? raw.turnNumber : undefined;
+  if (raw.kind === 'decision') {
+    const checked = validateCoreRuleKeyV1(raw.decisionKey, '/decisionContext/decisionKey');
+    if (checked.ok) return Object.freeze({ kind: 'decision', decisionKey: checked.value, ...(turnNumber === undefined ? {} : { turnNumber }) });
+    issues.push(...checked.issues.map((current) => issue(current.code, current.path, current.message)));
+    return null;
+  }
+  if (raw.kind === 'search-session') {
+    const checked = validateCoreRuleKeyV1(raw.searchSessionId, '/decisionContext/searchSessionId');
+    if (checked.ok) return Object.freeze({ kind: 'search-session', searchSessionId: checked.value, ...(turnNumber === undefined ? {} : { turnNumber }) });
+    issues.push(...checked.issues.map((current) => issue(current.code, current.path, current.message)));
+    return null;
+  }
+  issues.push(issue('INVALID_LITERAL', '/decisionContext/kind', 'Invalid decision context kind')); return null;
+}
+
+export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {
+  const issues: CoreCommandValidationIssueV1[] = [];
+  const root = exact(input, ['kind', 'schemaVersion', 'sequence', 'actorPlayerId', 'decisionMakerPlayerId', 'decisionContext', 'payload'], '', issues);
+  if (!root) return { ok: false, issues: sorted(issues) };
+  if (root.kind !== 'mode-neutral-core-command-v1') issues.push(issue('INVALID_LITERAL', '/kind', 'Invalid command kind'));
+  if (root.schemaVersion !== 1) issues.push(issue('INVALID_VERSION', '/schemaVersion', 'Invalid command schema version'));
+  if (typeof root.sequence !== 'number' || !Number.isSafeInteger(root.sequence) || root.sequence < 1) issues.push(issue('INVALID_INTEGER', '/sequence', 'Sequence must be a positive safe integer'));
+  requireBaseId(root.actorPlayerId, '/actorPlayerId', issues);
+  requireBaseId(root.decisionMakerPlayerId, '/decisionMakerPlayerId', issues);
+  const context = validateContext(root.decisionContext, issues);
+  const rawPayload = root.payload;
+  const payloadRecord = plain(rawPayload) ? rawPayload : null;
+  if (!payloadRecord) issues.push(issue('INVALID_TYPE', '/payload', 'Payload must be a plain record'));
+  let payload: CoreCommandPayloadV1 | null = null;
+  if (payloadRecord) {
+    const kind = readKind(payloadRecord, issues);
+    const requireRecord = (fields: readonly string[]): Record<string, unknown> | null => exact(payloadRecord, fields, '/payload', issues);
+    const requirePlayerId = (value: unknown, path: string): void => requireBaseId(value, path, issues);
+    if (kind === 'stack-commit-card-spell') {
+      const row = requireRecord(['kind', 'input']); if (row) { const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, input: nested.input as CoreCardSpellCommitInputV1 }); }
+    } else if (kind === 'stack-remove-object') {
+      const row = requireRecord(['kind', 'input']); if (row) { const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, input: nested.input as CoreStackRemovalInputV1 }); }
+    } else if (kind === 'priority-pass') {
+      const row = requireRecord(['kind', 'playerId']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId }); }
+    } else if (kind === 'search-open') {
+      const row = requireRecord(['kind', 'sessionKey', 'input']); if (row) { requireRuleKey(row.sessionKey, '/payload/sessionKey', issues); const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, sessionKey: row.sessionKey as CoreRuleKeyV1, input: nested.input as CoreSearchSessionInputV1 }); }
+    } else if (kind === 'search-complete') {
+      const row = requireRecord(['kind', 'sessionKey', 'selectedObjectIds']); if (row) { requireRuleKey(row.sessionKey, '/payload/sessionKey', issues); const ids = validArray(row.selectedObjectIds, '/payload/selectedObjectIds', issues); ids?.forEach((id, index) => requireObjectId(id, `/payload/selectedObjectIds/${index}`, issues)); if (ids) payload = Object.freeze({ kind, sessionKey: row.sessionKey as CoreRuleKeyV1, selectedObjectIds: Object.freeze(ids as CoreObjectId[]) }); }
+    } else if (kind === 'control-effect-apply') {
+      const row = requireRecord(['kind', 'effectKey', 'effect']); if (row) { requireRuleKey(row.effectKey, '/payload/effectKey', issues); const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, effectKey: row.effectKey as CoreRuleKeyV1, effect: nested.effect as CoreControlEffectV1 }); }
+    } else if (kind === 'commander-cast-record') {
+      const row = requireRecord(['kind', 'physicalCardId', 'origin', 'accepted']); if (row) { requireBaseId(row.physicalCardId, '/payload/physicalCardId', issues); if (row.origin !== 'command-zone' && row.origin !== 'other-zone' && row.origin !== 'copy') issues.push(issue('INVALID_LITERAL', '/payload/origin', 'Invalid cast origin')); if (typeof row.accepted !== 'boolean') issues.push(issue('INVALID_TYPE', '/payload/accepted', 'Accepted must be boolean')); payload = Object.freeze({ kind, physicalCardId: row.physicalCardId as CorePhysicalCardId, origin: row.origin as CoreCommanderCastOriginV1, accepted: row.accepted as boolean }); }
+    } else if (kind === 'commander-damage-record') {
+      const row = requireRecord(['kind', 'physicalCardId', 'defendingPlayerId', 'damage', 'combatObjectId']); if (row) { requireBaseId(row.physicalCardId, '/payload/physicalCardId', issues); requirePlayerId(row.defendingPlayerId, '/payload/defendingPlayerId'); requireObjectId(row.combatObjectId, '/payload/combatObjectId', issues); if (typeof row.damage !== 'number' || !Number.isSafeInteger(row.damage) || row.damage < 0) issues.push(issue('INVALID_DAMAGE', '/payload/damage', 'Damage must be a nonnegative safe integer')); payload = Object.freeze({ kind, physicalCardId: row.physicalCardId as CorePhysicalCardId, defendingPlayerId: row.defendingPlayerId as CorePlayerId, damage: row.damage as number, combatObjectId: row.combatObjectId as CoreObjectId }); }
+    } else if (kind === 'combat-step-set') {
+      const row = requireRecord(['kind', 'step']); if (row) { if (row.step !== 'declare-attackers' && row.step !== 'declare-blockers') issues.push(issue('INVALID_LITERAL', '/payload/step', 'Invalid combat step')); payload = Object.freeze({ kind, step: row.step as CoreCombatContextStepV1 }); }
+    } else if (kind === 'combat-attack-add') {
+      const row = requireRecord(['kind', 'attack']); if (row) { const nested = normalizePayloadNested(kind, row, issues); const attack = nested.attack as Record<string, unknown> | null; if (attack) { requireObjectId(attack.attackerObjectId, '/payload/attack/attackerObjectId', issues); requirePlayerId(attack.attackerControllerPlayerId, '/payload/attack/attackerControllerPlayerId'); requirePlayerId(attack.defendingPlayerId, '/payload/attack/defendingPlayerId'); } payload = Object.freeze({ kind, attack: nested.attack as CoreCombatContextAttackV1 }); }
+    } else if (kind === 'combat-block-add') {
+      const row = requireRecord(['kind', 'block']); if (row) { const nested = normalizePayloadNested(kind, row, issues); const block = nested.block as Record<string, unknown> | null; if (block) { requireObjectId(block.blockerObjectId, '/payload/block/blockerObjectId', issues); requirePlayerId(block.blockerControllerPlayerId, '/payload/block/blockerControllerPlayerId'); requireObjectId(block.attackedObjectId, '/payload/block/attackedObjectId', issues); requirePlayerId(block.defendingPlayerId, '/payload/block/defendingPlayerId'); } payload = Object.freeze({ kind, block: nested.block as CoreCombatContextBlockV1 }); }
+    } else if (kind === 'player-exit') {
+      const row = requireRecord(['kind', 'playerId', 'cause']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); if (row.cause !== 'concession' && row.cause !== 'defeat') issues.push(issue('INVALID_LITERAL', '/payload/cause', 'Invalid exit cause')); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId, cause: row.cause as 'concession' | 'defeat' }); }
+    } else if (kind === 'random-zone-order') {
+      const row = requireRecord(['kind', 'randomDecisionId', 'zone', 'beforeOrder', 'afterOrder']); if (row) { requireRuleKey(row.randomDecisionId, '/payload/randomDecisionId', issues); const before = validArray(row.beforeOrder, '/payload/beforeOrder', issues); const after = validArray(row.afterOrder, '/payload/afterOrder', issues); before?.forEach((id, index) => requireObjectId(id, `/payload/beforeOrder/${index}`, issues)); after?.forEach((id, index) => requireObjectId(id, `/payload/afterOrder/${index}`, issues)); const nested = normalizePayloadNested(kind, row, issues); const zone = nested.zone as CoreRuleZoneRefV1 | null; if (zone && (zone.kind !== 'player-zone' || zone.zone !== 'library')) issues.push(issue('INVALID_RANDOM_ZONE', '/payload/zone', 'V1 random zone order is limited to a player library')); if (before && after && zone) payload = Object.freeze({ kind, randomDecisionId: row.randomDecisionId as CoreRuleKeyV1, zone, beforeOrder: Object.freeze(before as CoreObjectId[]), afterOrder: Object.freeze(after as CoreObjectId[]) }); }
+    } else if (kind === 'correct-player-life') {
+      const row = requireRecord(['kind', 'playerId', 'replacementLifeTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); if (typeof row.replacementLifeTotal !== 'number' || !Number.isSafeInteger(row.replacementLifeTotal)) issues.push(issue('INVALID_INTEGER', '/payload/replacementLifeTotal', 'Life must be a safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId, replacementLifeTotal: row.replacementLifeTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
+    } else if (kind === 'correct-commander-damage') {
+      const row = requireRecord(['kind', 'physicalCardId', 'defendingPlayerId', 'replacementDamageTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requireBaseId(row.physicalCardId, '/payload/physicalCardId', issues); requirePlayerId(row.defendingPlayerId, '/payload/defendingPlayerId'); if (typeof row.replacementDamageTotal !== 'number' || !Number.isSafeInteger(row.replacementDamageTotal) || row.replacementDamageTotal < 0) issues.push(issue('INVALID_DAMAGE', '/payload/replacementDamageTotal', 'Damage must be a nonnegative safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, physicalCardId: row.physicalCardId as CorePhysicalCardId, defendingPlayerId: row.defendingPlayerId as CorePlayerId, replacementDamageTotal: row.replacementDamageTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
+    } else issues.push(issue('UNKNOWN_PAYLOAD_KIND', '/payload/kind', 'Unknown Core command payload kind'));
+  }
+  if (issues.length || !context || !payload) return { ok: false, issues: sorted(issues) };
+  return { ok: true, value: Object.freeze({ kind: 'mode-neutral-core-command-v1', schemaVersion: 1, sequence: root.sequence as number, actorPlayerId: root.actorPlayerId as CorePlayerId, decisionMakerPlayerId: root.decisionMakerPlayerId as CorePlayerId, decisionContext: context, payload }) };
+}
+
+export class CoreCommandCreationErrorV1 extends Error {
+  readonly issues: readonly CoreCommandValidationIssueV1[];
+  constructor(issues: readonly CoreCommandValidationIssueV1[]) { super(`Invalid Core command (${issues.length} issue(s))`); this.name = 'CoreCommandCreationErrorV1'; this.issues = Object.freeze(issues.map((value) => Object.freeze({ ...value }))); Object.freeze(this); }
+}
+export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {
+  const issues: CoreCommandValidationIssueV1[] = [];
+  const fields = exact(input, ['schemaVersion', 'sequence', 'actorPlayerId', 'decisionMakerPlayerId', 'decisionContext', 'payload'], '', issues);
+  if (!fields || issues.length > 0) throw new CoreCommandCreationErrorV1(sorted(issues));
+  const candidate = Object.freeze({ kind: 'mode-neutral-core-command-v1' as const, schemaVersion: fields.schemaVersion, sequence: fields.sequence, actorPlayerId: fields.actorPlayerId, decisionMakerPlayerId: fields.decisionMakerPlayerId, decisionContext: fields.decisionContext, payload: fields.payload });
+  const result = validateCoreCommandV1(candidate);
+  if (!result.ok) throw new CoreCommandCreationErrorV1(result.issues);
+  return result.value;
+}

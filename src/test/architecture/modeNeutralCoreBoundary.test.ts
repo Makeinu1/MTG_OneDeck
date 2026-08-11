@@ -186,7 +186,8 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-mode-neutral-core-stack-transaction.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-turn-priority.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-rule-authority.ts'
-    || normalized === 'scripts/checks/verify-mode-neutral-core-commander-combat-player-exit.ts';
+    || normalized === 'scripts/checks/verify-mode-neutral-core-commander-combat-player-exit.ts'
+    || normalized === 'scripts/checks/verify-mode-neutral-core-closure.ts';
 }
 
 function isExistingCardTypeModule(target: string | null): boolean {
@@ -491,6 +492,10 @@ describe('mode-neutral Core dependency boundary', () => {
       },
       {
         filePath: resolve(repositoryRoot, 'scripts/checks/verify-mode-neutral-core-commander-combat-player-exit.ts'),
+        sourceText: "import * as Core from '../../src/engine/core';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'scripts/checks/verify-mode-neutral-core-closure.ts'),
         sourceText: "import * as Core from '../../src/engine/core';",
       },
     ];

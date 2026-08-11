@@ -1,0 +1,36 @@
+{
+  "version": "mode-neutral-core-closure-v1",
+  "players": ["P1", "P2", "P3", "P4"],
+  "commanders": [
+    { "physicalCardId": "PC1", "ownerPlayerId": "P1" },
+    { "physicalCardId": "PC3", "ownerPlayerId": "P2" },
+    { "physicalCardId": "PC6", "ownerPlayerId": "P3" },
+    { "physicalCardId": "PC5", "ownerPlayerId": "P4" }
+  ],
+  "payloadKinds": [
+    "stack-commit-card-spell",
+    "stack-remove-object",
+    "priority-pass",
+    "search-open",
+    "search-complete",
+    "control-effect-apply",
+    "commander-cast-record",
+    "commander-damage-record",
+    "combat-step-set",
+    "combat-attack-add",
+    "combat-block-add",
+    "player-exit",
+    "random-zone-order",
+    "correct-player-life",
+    "correct-commander-damage"
+  ],
+  "randomZone": { "kind": "player-zone", "playerId": "P1", "zone": "library" },
+  "deferred": [
+    "full-combat-damage",
+    "arbitrary-manual-state-mutation",
+    "network",
+    "room",
+    "projection",
+    "ui"
+  ]
+}

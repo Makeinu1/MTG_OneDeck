@@ -62,6 +62,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:mode-neutral-core-commander-combat-player-exit'],
   },
+  {
+    name: 'Mode-Neutral Core Closure検証',
+    cmd: 'npm',
+    args: ['run', 'verify:mode-neutral-core-closure'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
