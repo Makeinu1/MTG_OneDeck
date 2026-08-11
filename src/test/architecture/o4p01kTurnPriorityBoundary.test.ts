@@ -45,6 +45,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../.
 const sourceRoot = resolve(repositoryRoot, 'src');
 const coreRoot = resolve(sourceRoot, 'engine/core');
 const turnRoot = resolve(coreRoot, 'turn');
+const closureTurnConsumer = resolve(coreRoot, 'closure/applyCommandV1.ts');
 const compilerOptions = applicationCompilerOptions();
 const productionFilePaths = sourceFilePaths(sourceRoot);
 const productionProgram = ts.createProgram({
@@ -355,6 +356,7 @@ function boundaryViolations(units: readonly SourceUnit[]): readonly Violation[] 
 
   for (const unit of units) {
     if (isWithin(unit.filePath, turnRoot) || relativePath(unit.filePath) === 'src/engine/core/index.ts') continue;
+    if (unit.filePath === closureTurnConsumer) continue;
     for (const reference of references(unit)) {
       const target = resolvedTarget(reference);
       if (target === null || !isWithin(target, turnRoot)) continue;

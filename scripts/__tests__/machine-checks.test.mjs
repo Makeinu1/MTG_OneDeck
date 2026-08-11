@@ -131,6 +131,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:mode-neutral-core-turn-priority']],
       ['npm', ['run', 'verify:mode-neutral-core-rule-authority']],
       ['npm', ['run', 'verify:mode-neutral-core-commander-combat-player-exit']],
+      ['npm', ['run', 'verify:mode-neutral-core-closure']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],

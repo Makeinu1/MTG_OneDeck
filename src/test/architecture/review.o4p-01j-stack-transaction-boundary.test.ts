@@ -9,6 +9,10 @@ type SourceFile = Readonly<{ path: string; text: string }>;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const transactionRoot = resolve(repositoryRoot, 'src/engine/core/stack/transaction');
 const coreRoot = resolve(repositoryRoot, 'src/engine/core');
+const closureTransactionConsumers = new Set([
+  resolve(coreRoot, 'closure/applyCommandV1.ts'),
+  resolve(coreRoot, 'closure/commandV1.ts'),
+]);
 
 function sourceFiles(root: string): SourceFile[] {
   if (!existsSync(root)) return [];
@@ -82,9 +86,10 @@ describe('O4P-01J stack transaction architecture boundary', () => {
     }
   });
 
-  it('does not add a reverse dependency from existing G/H/I, Solo, or Online source trees into the transaction module', () => {
+  it('does not add a reverse dependency from pre-closure Core, Solo, or Online source trees into the transaction module', () => {
     const existingCoreSources = sourceFiles(coreRoot).filter((source) =>
       !source.path.startsWith(`${transactionRoot}/`)
+      && !closureTransactionConsumers.has(source.path)
       && !source.path.endsWith('/stack/index.ts')
       && !source.path.endsWith('/core/index.ts'));
     const violations = existingCoreSources.flatMap((source) =>

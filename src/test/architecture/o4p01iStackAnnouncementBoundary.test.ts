@@ -30,6 +30,10 @@ const sourceRoot = resolve(repositoryRoot, 'src');
 const coreRoot = resolve(sourceRoot, 'engine/core');
 const stackRoot = resolve(coreRoot, 'stack');
 const objectRoot = resolve(coreRoot, 'object');
+const closureStackConsumers = new Set([
+  resolve(coreRoot, 'closure/applyCommandV1.ts'),
+  resolve(coreRoot, 'closure/commandV1.ts'),
+]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
 const categoryOrder = [
   'stack-edge',
@@ -245,6 +249,7 @@ function inspectProductRuntimeImports(): Violation[] {
   const violations: Violation[] = [];
   for (const unit of sourceUnits(sourceRoot)) {
     if (isWithin(stackRoot, unit.filePath)) continue;
+    if (closureStackConsumers.has(unit.filePath)) continue;
     if (unit.filePath === resolve(coreRoot, 'index.ts')) continue;
     for (const reference of moduleReferences(unit.sourceFile)) {
       const target = resolveSourceTarget(unit.filePath, reference.specifier);
