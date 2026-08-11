@@ -17348,7 +17348,7 @@
       "targetIds": [
         "ENG-TURN-003"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0423",
@@ -18332,12 +18332,12 @@
       "sourceText": "- **sacrifice leaf(CR701.21a)**: self 形(`Sacrifice this <type>.` / `Sacrifice CARDNAME.`=source 名一致)は **auto**(`ctx.sourceId` のみ動かす)。単体 `Sacrifice a <type>.`(`You sacrifice ...` 含む・type ∈ creature/permanent/artifact/enchantment/land/planeswalker)は **guided**(CR701.21a=controller が選ぶ→ auto で勝手に選ばない。`controllerId !== 'you'` の permanent と type filter 不一致は確定時に拒否)。移動は既存 `moveCard`(battlefield→owner graveyard)であり **destruction ではない**(CR701.21a=regeneration・破壊置換は適用外。destroy 経路を通さない)。複数 count・each player/opponent・target-player・unless/may・qualified(another/nontoken/色/P-T 等)は manual(auto 詐称なし)。受け入れ=`src/store/__tests__/review.leaf-sacrifice.test.ts`(レビュー専有・4 pin)。",
       "textHash": "5d4edaa2d20e03e17f3d10d645be41567c246c2fd9fd6abcda9cccdbad7eec66",
       "summary": "- **sacrifice leaf(CR701.21a)**: self 形(`Sacrifice this <type>.` / `Sacrifice CARDNAME.`=source 名一致)は **auto**(`ctx.sourceId` のみ動かす)。単体 `Sacrifice a <type>.`(`You sacrifice ...` 含む・type ∈ creature/permanent/artifact/enchantment/land/planesw",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-CMD-004",
         "ENG-COMP-002"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0485",
@@ -18436,12 +18436,12 @@
       "sourceText": "- **generic ramp search composite(CR701.23a/23d/24b・2026-07-05)**: `Search your library for a <basic land | 単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle.`(Nature's Lore / Rampant Growth 型)を **guided** 化。解決=既存コマンド列 `moveCard(library→battlefield)` +(tapped 指示時のみ)`setTapped` + `shuffle`(**新 GameCommand 型なし**)。**CR701.24b**=shuffle 順列は confirm 時に `library − foundCard` から確定し、found を shuffle 対象へ含めない(0枚=見つけない選択も合法=CR701.23d、shuffle のみ実行)。filter は `basic land`(basic のみ)/ 単一 land subtype(`Forest card`= 非basic dual も合致)を弁別。**honest manual 境界**(auto/guided を騙らない): broad tutor(`any card`/`a card`)・複数(`up to two` 等)・Farseek 複合subtype・subtype OR・target-player・非library zone・非battlefield destination(to hand 等)・optional(`You may`)・`basic <subtype> card` 連言(保守的に manual)。fetch-land(Evolving Wilds 型)は既存 M4.15/M4.28 が担い本 composite の対象外。受け入れ=`review.cr701-library-search.test.ts`(engine 12 pin + store 4 pin・レビュー専有)。",
       "textHash": "37d0e0a20552ba13310fcdf739f9929227aac963c80b7e845cacb2c56718f277",
       "summary": "- **generic ramp search composite(CR701.23a/23d/24b・2026-07-05)**: `Search your library for a <basic land | 単一 basic land subtype> card, put that card onto the battlefield [tapped], then shuffle.`(Nature's Lore / Rampant Growth 型)を **guided",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-CMD-004",
         "ENG-COMP-002"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0491",
@@ -18878,12 +18878,12 @@
       "sourceText": "`effectsAuto`(グローバル or 当該カード)が **false** の時、通常の非マナ起動型能力では `activationPlanForSource(state, sourceId)` は **`null`** を返す → ストアは素の `addAbilityToStack` のみ適用するため、結果 GameState は **`applyCommand(state, {type:'addAbilityToStack', sourceId, kind:'activated', abilityLineIndex})` 単独適用と完全一致**(コスト自動精算による追加変化ゼロ)。I8(解決時 OFF=効果差分ゼロ)と対をなす活性化側の不変。**マナ能力はI9の例外で、CR605によりOFFでもスタックに置かない。** なお `activateAbility` はストア action(GameCommand ではない)ため I1〜I7 の fast-check harness 対象外。I9 と CR605 例外は `review.g4-activate` の具体ケースで固定する。",
       "textHash": "8c2c792f03ab4f7245b67656d4f8a03b9bb6e06efb44d293e78efbd78fa0991c",
       "summary": "`effectsAuto`(グローバル or 当該カード)が **false** の時、通常の非マナ起動型能力では `activationPlanForSource(state, sourceId)` は **`null`** を返す → ストアは素の `addAbilityToStack` のみ適用するため、結果 GameState は **`applyCommand(state, {type:'addAbilityToStack', sourceId, kind:'act",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-CMD-001",
         "ENG-CMD-002"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0519",
@@ -21603,11 +21603,11 @@
       "sourceText": "**7. naive マナショートカットのコスト整合(ACT-1・2026-07-17 追補)— この項も契約である**: `producedMana` メタデータ駆動のショートカット(`tapForMana`/`planAutoTap`/actionCatalog「マナを生成してタップ」)は、oracle 正本の**単一 recognizer** `naiveTapManaColors`(`src/engine/grammar/manaShortcut.ts`・WeakMap メモ化)が返す色に限り許可する。適格 = (a)**コストが正確に `{T}` だけの起動型 add-mana 行**の色(リテラル・シンボル和集合。リテラル無しの行は producedMana)。純度判定前に ability-word ラベル(CR207.2c=ルール上の意味なし)を剥がす(`stripAbilityWordLabel`)。(b)**基本土地タイプの内在マナ能力**(CR305.6)= タイプ行の Plains/Island/Swamp/Mountain/Forest から常に付与(リマインダー行は sanitize で消えるため oracle 文から復元不能)。(c)起動型 add-mana 行を**1本も持たない**カード(基本土地・誘発型生成者)は producedMana fallback 維持。コスト付き行しか持たないカード(Lotus Petal 型・filter 型)は naive 不適格 = 一般経路 `activateAbility` へ委譲し §34.19 のアトミック性でコストを支払う(CR118.3/602.2)。**oracle > メタデータ**(metadata 欠落時は oracle 由来色が正)。受け入れ = `src/store/__tests__/review.act1-mana-shortcut-cost.test.ts`(レビュー専有・19 pin)+ `review.m418.test.ts` Mana Confluence(前コロン Pay 1 life の支払い)。**既知 carry(ACT バッチ後続へ・2026-07-17 訂正)**: needs-choice 色選択ダイアログの選択肢が raw `producedMana` のまま(gameController/Playmat 計4箇所・corpus 実測で不整合2枚)= naive 対象外色を選ぶと選択色を無視して一般経路へ委譲される。**当初は ACT-2 を carry 先としたが、ACT-2(§34.46)は起動ラインの到達性に絞ったためスコープ外**=後続スライスへ繰り越す。",
       "textHash": "4020ce9d62ad1d3ca5036ec739e4ef393654946314f96d6c1528d3e31c32ab34",
       "summary": "**7. naive マナショートカットのコスト整合(ACT-1・2026-07-17 追補)— この項も契約である**: `producedMana` メタデータ駆動のショートカット(`tapForMana`/`planAutoTap`/actionCatalog「マナを生成してタップ」)は、oracle 正本の**単一 recognizer** `naiveTapManaColors`(`src/engine/grammar/manaShortcut.ts`・WeakMa",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-COMP-001"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0691",
@@ -21754,7 +21754,7 @@
       "targetIds": [
         "ENG-TURN-004"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0700",
@@ -22545,12 +22545,12 @@
       "sourceText": "**Tier-1 監査で発見・修正した MEDIUM + 残余note**: `targetCardId`/`targetPlayerId` の相互排他は当初 TypeScript の `?: never` のみで保証され、ランタイムでは `targetCardId` 優先の分岐が無条件実行されるため、両方が同時に設定された不正な command は `targetPlayerId` を無言で無視していた(エラーなし)。同種の問題として、planeswalker 対象も明示的な拒否が無く creature と同じ marked-damage 経路に暗黙で落ちていた(CR120.3c 対象外のはずが誤ってマークされる)。判定者が数行の外科的修正(両方設定時の明示 `EngineError`・planeswalker target の明示 `EngineError`)を適用し、review.* で両ケースを pin。他の全adversarial項目(CR120.8 zero/negative・player/creature 経路・`markDamage`/combat 非regression・purity/determinism・event ref 正確性)は独立監査で無欠陥確認。受け入れ=`review.cr120-damage.test.ts`(レビュー専有・7 pin)。",
       "textHash": "b1967c1823cb65c73f2d6adc4c1cb43de543b6fda5eaebd61095fa49bb924a1f",
       "summary": "**Tier-1 監査で発見・修正した MEDIUM + 残余note**: `targetCardId`/`targetPlayerId` の相互排他は当初 TypeScript の `?: never` のみで保証され、ランタイムでは `targetCardId` 優先の分岐が無条件実行されるため、両方が同時に設定された不正な command は `targetPlayerId` を無言で無視していた(エラーなし)。同種の問題として、planeswalker 対象も明示的",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-CMD-001",
         "ENG-CMD-002"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0747",
@@ -22685,7 +22685,7 @@
       "targetIds": [
         "ENG-MANA-001"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0755",
@@ -23095,7 +23095,7 @@
       "summary": "3. **Layer6は対象外(Slice Bへ)**: 本スライスはLayer4(additive type-changing)のみ。demand=L4:10 > L6:2でもあり、ability付与はkeyword-onlyでも別の意味論的広がり(除去・\"can't have\"・613.9 override等)を持つため、Layer4のread-site移行を先に安定させてから再利用する。",
       "disposition": "deferred-needs-decision",
       "targetIds": [],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0780",
@@ -23125,7 +23125,7 @@
       "summary": "5. **CDA(characteristic-defining ability)は対象外**: CR604.3aのCDAは全ゾーンで機能する必要があるが、本スライスはbattlefield限定の読み取りのみ。CDA固有の全ゾーン対応は将来スライスへ。",
       "disposition": "deferred-needs-decision",
       "targetIds": [],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0782",
@@ -23282,7 +23282,7 @@
       "summary": "4. **対象外(honest manual/defer)**: ability除去(\"can't have [keyword]\"等)・quoted granted non-keyword ability(例: 起動型/誘発型能力の付与)・keyword counter(122.1b。カウンター経由の別ブリッジは別スライス)・複数object(anthem)効果・613.9のoverride/optional条件。",
       "disposition": "deferred-needs-decision",
       "targetIds": [],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0792",
@@ -23376,7 +23376,7 @@
       "targetIds": [
         "ENG-TURN-001"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0798",
@@ -23724,7 +23724,7 @@
         "ENG-ZONES-001",
         "ENG-ZONES-002"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0819",
@@ -23973,12 +23973,12 @@
       "sourceText": "**契約**: `effect.counter-plus` の **「put a/an/<固定N> +1/+1 counter(s) on it」**(target 無し・`it` の後に残余テキスト無し)を **`decision:'auto'`** 化し、既存 `{type:'addCounters', cardId: ctx.sourceId, counterType:'+1/+1', delta:n}`(§32 の counter command 表と同一)を emit する。プレイヤー選択なし・target prompt なし・**新 GameCommand/GameState なし**(固定 self-draw と同型)。符号は既存 `counterDescriptorForRaw` が解析(+1/+1 のみ・-1/-1 等は対象外)。",
       "textHash": "5f5ab377bbed92990098ca400ac46f7063ef46e5c23898a327a2417743c3ca79",
       "summary": "**契約**: `effect.counter-plus` の **「put a/an/<固定N> +1/+1 counter(s) on it」**(target 無し・`it` の後に残余テキスト無し)を **`decision:'auto'`** 化し、既存 `{type:'addCounters', cardId: ctx.sourceId, counterType:'+1/+1', delta:n}`(§32 の counter command 表と同一)を emi",
-      "disposition": "active-clause",
+      "disposition": "deferred-needs-decision",
       "targetIds": [
         "ENG-CMD-001",
         "ENG-CMD-002"
       ],
-      "rationale": "The legacy line contains explicit normative language and is linked to the current active clause registry."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0834",
@@ -24448,7 +24448,7 @@
       "targetIds": [
         "ENG-MP-003"
       ],
-      "rationale": "The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision."
+      "rationale": "The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim."
     },
     {
       "legacyItemId": "LEGACY-ENG-0862",
