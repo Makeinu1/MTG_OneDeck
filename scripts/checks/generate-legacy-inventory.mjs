@@ -95,15 +95,40 @@ function dispositionFor({ sourceKind, type, text, targets }) {
       rationale: 'Structural heading or table header is retained for completeness; no normative behavior is inferred pending explicit judge review.',
     };
   }
-  if (sourceKind === 'acceptance' && targets.length > 0) return { disposition: 'active-acceptance', rationale: 'Acceptance item is retained as an explicit scenario-level behavior and linked to the current acceptance registry.' };
-  if (targets.length > 0) return { disposition: 'active-clause', rationale: 'Normative item is retained as current behavior and linked to the current active clause registry.' };
-  if (/obsolete|superseded|historical|retired|release evidence/i.test(text) && type === 'heading') return { disposition: 'archived-historical', rationale: 'This heading explicitly labels historical or superseded material; no current behavior is inferred from it.' };
+  if (isExplicitlyNonNormative(text)) {
+    return {
+      disposition: 'deferred-needs-decision',
+      rationale: 'The legacy line explicitly withdraws, limits, or reports status for surrounding material; preserve it without promoting it to a current normative claim.',
+    };
+  }
+  if (sourceKind === 'acceptance' && targets.length > 0 && (isNumberedTableRow(text) || hasExplicitNormativeLanguage(text))) {
+    return { disposition: 'active-acceptance', rationale: 'The numbered acceptance row or explicit acceptance condition is linked to the current acceptance registry.' };
+  }
+  if (targets.length > 0 && hasExplicitNormativeLanguage(text)) {
+    return { disposition: 'active-clause', rationale: 'The legacy line contains explicit normative language and is linked to the current active clause registry.' };
+  }
   return { disposition: 'deferred-needs-decision', rationale: 'The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision.' };
 }
 
 function isTableHeader(line) {
   const firstCell = line.replace(/^\s*\|/, '').split('|', 1)[0].trim();
   return /^(?:#|id|no\.?|番号|項目|操作|条件|condition)$/i.test(firstCell);
+}
+
+function firstTableCell(line) {
+  return line.replace(/^\s*\|/, '').split('|', 1)[0].trim();
+}
+
+function isNumberedTableRow(line) {
+  return /^(?:\d+|[A-Z]\d+)(?:[.)]|$)/i.test(firstTableCell(line));
+}
+
+function isExplicitlyNonNormative(text) {
+  return /not cite|引用しない|引用禁止|撤回|withdrawn|retracted|(?:^|\W)status\s*[:：*]/i.test(text);
+}
+
+function hasExplicitNormativeLanguage(text) {
+  return /MUST(?: NOT)?|SHALL|SHOULD|契約|不変|invariant|例外|precondition|完了条件|completion condition|受け入れ|acceptance|合否|pass\/fail|done when|must not/i.test(text);
 }
 
 function extract(sourcePath, sourceKind) {
