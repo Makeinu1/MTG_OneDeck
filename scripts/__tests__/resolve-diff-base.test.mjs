@@ -104,6 +104,19 @@ describe('resolve-diff-base', () => {
     }
   });
 
+  test('fails closed when before is not an ancestor of head', () => {
+    const repository = createRepository();
+    try {
+      const tree = git(repository.cwd, 'rev-parse', `${repository.firstSha}^{tree}`);
+      const unrelated = git(repository.cwd, 'commit-tree', tree, '-m', 'unrelated root');
+      expect(() => resolveDiffBase({ before: unrelated, head: repository.headSha, cwd: repository.cwd })).toThrow(
+        'before commit is not an ancestor of head',
+      );
+    } finally {
+      rmSync(repository.cwd, { recursive: true, force: true });
+    }
+  });
+
   test('prints a GITHUB_OUTPUT-compatible base value', () => {
     const repository = createRepository();
     try {

@@ -4,12 +4,14 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { isActiveLegacyItem } from './legacy-inventory-policy.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const manifestPath = join(root, 'docs/contracts/manifest.json');
 const scenarioPath = join(root, 'docs/acceptance/scenarios.json');
 const migrationPath = join(root, 'research/archive/document-reset-2026-08/migration-map.json');
 const traceabilityPath = join(root, 'docs/contracts/traceability.json');
+const traceabilityRelativePath = relative(root, traceabilityPath);
 const inventoryPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
 const errors = [];
 
@@ -179,6 +181,12 @@ function checkTraceability(traceability, manifest, scenarios) {
         errors.push(`traceability ${clause.id}: source marker missing ${clause.sourceMarker}`);
       }
     }
+    if (clause.status === 'active' && (typeof clause.sourceMarker !== 'string' || clause.sourceMarker.trim() === '')) {
+      errors.push(`traceability ${clause.id}: active clause requires a non-empty sourceMarker`);
+    }
+    if (clause.status === 'active' && (!Array.isArray(clause.acceptedBy) || clause.acceptedBy.length === 0)) {
+      errors.push(`traceability ${clause.id}: active clause requires acceptedBy evidence`);
+    }
     if (!Array.isArray(clause.verifiedBy) || clause.verifiedBy.length === 0) errors.push(`traceability ${clause.id}: no verification evidence`);
     for (const verifier of clause.verifiedBy ?? []) {
       if (!verifier.path || !verifier.marker || !verifier.kind) errors.push(`traceability ${clause.id}: malformed verifiedBy entry`);
@@ -203,7 +211,7 @@ function checkTraceability(traceability, manifest, scenarios) {
   return clauseIds;
 }
 
-function checkLastVerifiedCommits(manifest) {
+function checkLastVerifiedCommits(manifest, traceability) {
   function commitBlobHash(commit, path) {
     try {
       execFileSync('git', ['cat-file', '-e', `${commit}:${path}`], { cwd: root, stdio: 'ignore' });
@@ -235,7 +243,15 @@ function checkLastVerifiedCommits(manifest) {
     } catch {
       errors.push(`manifest ${entry.id}: lastVerifiedCommit is not an ancestor of HEAD ${sha}`);
     }
-    const paths = [entry.path, ...(entry.verifiedBy ?? [])].filter((path) => !['scripts/checks/check-docs.mjs', 'scripts/checks/generate-engine-api.mjs'].includes(path));
+    const clauseEvidence = (traceability?.clauses ?? [])
+      .filter((clause) => clause.contractId === entry.id)
+      .flatMap((clause) => (clause.verifiedBy ?? []).map((verifier) => verifier.path));
+    const paths = [...new Set([
+      entry.path,
+      ...(entry.status === 'active' ? [traceabilityRelativePath] : []),
+      ...(entry.verifiedBy ?? []),
+      ...clauseEvidence,
+    ])].filter((path) => !['scripts/checks/check-docs.mjs', 'scripts/checks/generate-engine-api.mjs'].includes(path));
     for (const path of paths) {
       const expectedHash = commitBlobHash(sha, path);
       const actualHash = workingTreeHash(path);
@@ -289,6 +305,7 @@ function checkLegacyInventory(inventory, clauseIds, scenarioIds) {
     if (item.disposition === 'archived-historical' && typeof item.rationale !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: historical rationale required`);
     if (item.disposition === 'duplicate-of' && (!Array.isArray(item.targetIds) || item.targetIds.length !== 1 || !ids.has(item.targetIds[0]))) errors.push(`legacy inventory ${item.legacyItemId}: duplicate-of target must exist`);
     if (['active-clause', 'active-acceptance', 'covered-by'].includes(item.disposition)) {
+      if (!isActiveLegacyItem(item)) errors.push(`legacy inventory ${item.legacyItemId}: active disposition lacks explicit normative or numbered acceptance evidence`);
       if (!Array.isArray(item.targetIds) || item.targetIds.length === 0) errors.push(`legacy inventory ${item.legacyItemId}: targetIds required`);
       for (const target of item.targetIds ?? []) if (!validTargets.has(target)) errors.push(`legacy inventory ${item.legacyItemId}: unresolved target ${target}`);
     }
@@ -330,7 +347,7 @@ function run() {
   const clauseIds = checkTraceability(traceability, manifest, scenarios?.scenarios);
   checkScenarios(scenarios?.scenarios, migration, new Set((manifest?.contracts ?? []).map((entry) => entry.id)), clauseIds);
   checkMigrationMap(migration);
-  checkLastVerifiedCommits(manifest);
+  checkLastVerifiedCommits(manifest, traceability);
   checkLegacyInventory(inventory, clauseIds, new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id)));
   for (const path of [
     join(root, 'README.md'), join(root, 'docs/README.md'), join(root, 'docs/acceptance.md'), join(root, 'docs/engine-spec.md'),

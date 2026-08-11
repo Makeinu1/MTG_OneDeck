@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { hasExplicitNormativeLanguage, isExplicitlyNonNormative, isNumberedTableRow, isTableHeader } from './legacy-inventory-policy.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const sources = [
@@ -108,27 +109,6 @@ function dispositionFor({ sourceKind, type, text, targets }) {
     return { disposition: 'active-clause', rationale: 'The legacy line contains explicit normative language and is linked to the current active clause registry.' };
   }
   return { disposition: 'deferred-needs-decision', rationale: 'The legacy item has no unambiguous current clause or acceptance target; preserve it pending explicit judge decision.' };
-}
-
-function isTableHeader(line) {
-  const firstCell = line.replace(/^\s*\|/, '').split('|', 1)[0].trim();
-  return /^(?:#|id|no\.?|番号|項目|操作|条件|condition)$/i.test(firstCell);
-}
-
-function firstTableCell(line) {
-  return line.replace(/^\s*\|/, '').split('|', 1)[0].trim();
-}
-
-function isNumberedTableRow(line) {
-  return /^(?:\d+|[A-Z]\d+)(?:[.)]|$)/i.test(firstTableCell(line));
-}
-
-function isExplicitlyNonNormative(text) {
-  return /not cite|引用しない|引用禁止|撤回|withdrawn|retracted|(?:^|\W)status\s*[:：*]/i.test(text);
-}
-
-function hasExplicitNormativeLanguage(text) {
-  return /MUST(?: NOT)?|SHALL|SHOULD|契約|不変|invariant|例外|precondition|完了条件|completion condition|受け入れ|acceptance|合否|pass\/fail|done when|must not/i.test(text);
 }
 
 function extract(sourcePath, sourceKind) {

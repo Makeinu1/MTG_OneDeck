@@ -87,4 +87,15 @@ describe('change detector', () => {
       rmSync(repo.cwd, { recursive: true, force: true });
     }
   });
+
+  test('fails closed when base is not an ancestor of head', () => {
+    const repo = repository();
+    try {
+      const tree = git(repo.cwd, 'rev-parse', `${repo.base}^{tree}`);
+      const unrelated = git(repo.cwd, 'commit-tree', tree, '-m', 'unrelated root');
+      expect(() => collectChangedFiles({ cwd: repo.cwd, base: unrelated })).toThrow('base is not an ancestor of head');
+    } finally {
+      rmSync(repo.cwd, { recursive: true, force: true });
+    }
+  });
 });

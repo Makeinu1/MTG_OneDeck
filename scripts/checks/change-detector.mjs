@@ -14,6 +14,14 @@ function resolveCommit(cwd, ref) {
   }
 }
 
+function assertAncestor(cwd, base, head) {
+  try {
+    git(cwd, ['merge-base', '--is-ancestor', base, head]);
+  } catch {
+    throw new Error(`base is not an ancestor of head: ${base} -> ${head}`);
+  }
+}
+
 function parseNameStatus(output) {
   const tokens = output.split('\0').filter(Boolean);
   const paths = [];
@@ -52,6 +60,7 @@ export function collectChangedFiles({ cwd, base, head = 'HEAD' } = {}) {
   const headSha = resolveCommit(cwd, head);
   const mode = base === undefined || base === null || base === '' ? 'working-tree-only' : 'base-aware';
   const baseSha = mode === 'base-aware' ? resolveCommit(cwd, base) : null;
+  if (baseSha) assertAncestor(cwd, baseSha, headSha);
   const paths = [];
   if (baseSha) paths.push(...diffPaths(cwd, [`${baseSha}...${headSha}`]));
   paths.push(...diffPaths(cwd, ['--cached']));

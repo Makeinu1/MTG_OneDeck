@@ -15,6 +15,15 @@ function resolveCommit(ref, cwd) {
   }
 }
 
+function isAncestor(base, head, cwd) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', base, head], { cwd, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function resolveDiffBase({ before = '', head = 'HEAD', cwd = process.cwd() } = {}) {
   const headSha = resolveCommit(head, cwd);
   if (!headSha) {
@@ -26,6 +35,9 @@ export function resolveDiffBase({ before = '', head = 'HEAD', cwd = process.cwd(
     const beforeSha = resolveCommit(normalizedBefore, cwd);
     if (!beforeSha) {
       throw new Error(`invalid before commit: ${normalizedBefore}`);
+    }
+    if (!isAncestor(beforeSha, headSha, cwd)) {
+      throw new Error(`before commit is not an ancestor of head: ${normalizedBefore}`);
     }
     return { base: beforeSha, head: headSha, reason: 'event.before' };
   }
