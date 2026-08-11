@@ -7,6 +7,8 @@ describe('legacy inventory disposition policy', () => {
     'Scope-out: MUST NOT be treated as a current contract.',
     'Limitation: SHALL remain outside the active acceptance surface.',
     'Retraction: MUST NOT be promoted after the CR conflict.',
+    'Withdrawal: SHALL remain historical evidence only.',
+    'Status — MUST NOT be treated as a behavior clause.',
   ])('defers explicit non-normative metadata: %s', (sourceText) => {
     expect(isExplicitlyNonNormative(sourceText)).toBe(true);
     expect(isActiveLegacyItem({

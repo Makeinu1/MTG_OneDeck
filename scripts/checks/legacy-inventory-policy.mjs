@@ -12,7 +12,7 @@ export function isNumberedTableRow(line) {
 }
 
 export function isExplicitlyNonNormative(text) {
-  return /not cite|引用しない|引用禁止|撤回|withdrawn|retracted|retraction|limitation|scope-out|out of scope|対象外|適用外|範囲外|(?:^|\W)status\s*[:：*]/i.test(text);
+  return /not cite|引用しない|引用禁止|撤回|withdrawn|withdrawal|retracted|retraction|limitation|scope-out|out of scope|対象外|適用外|範囲外|(?:^|\W)status\s*(?:[:：*]|[-—–])/i.test(text);
 }
 
 export function hasExplicitNormativeLanguage(text) {
