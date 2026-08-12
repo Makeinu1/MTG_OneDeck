@@ -205,3 +205,24 @@ Only this audit record and the exact O4P-02E domain/plannedSequence ledger
 entries will be included in the reownership commit. A new exact-head Actions
 run must pass the full check, forbidden scan, build, and Pages deploy before
 terminal shipment metadata.
+
+## Terminal publication evidence
+
+Judge-reownership commit `581599ad066853aa932a91f18e30a644acf453a1`
+changed only this audit record and the exact O4P-02E ledger entries. GitHub
+Actions run `31649121514` matched that exact head and passed every required
+step: `npm ci`, the full `npm run check`, resolved-base forbidden diff, Pages
+configuration and artifact upload, and Pages deployment.
+
+Served evidence after that deploy:
+
+- HTML `https://makeinu1.github.io/MTG_OneDeck/`: HTTP 200;
+- JS `assets/index-CyZgN26K.js`: HTTP 200;
+- CSS `assets/index-JeU5vEot.css`: HTTP 200.
+
+All three responses reported the deployment's `2026-08-12 23:07:45 UTC`
+last-modified time. Local `HEAD` and `origin/main` both matched the reownership
+commit before this terminal metadata update. O4P-02E now has independent
+BLOCKER/HIGH 0, a fingerprint-matched green release check, exact-head green
+CI/forbidden/build/deploy, and served HTML/JS/CSS evidence. O4P-02E is shipped,
+which completes the O4P-02 program; O4P-03A is next and was not started here.
