@@ -329,7 +329,195 @@ describe('review.codex-ops context projection', () => {
     expect(projection.selection).toMatchObject({ kind: 'selected', domainId: 'early' });
     expect(projection.domain.id).toBe('early');
     expect(projection.dependencies.map((entry) => entry.id)).toEqual(['dep']);
+    expect(projection.canonicalPaths).toContain(
+      '.agents/skills/mtg-onedeck-development/references/document-governance.md',
+    );
+    expect(projection.canonicalPaths).not.toEqual(
+      expect.arrayContaining([
+        '.agents/skills/mtg-onedeck-development/references/cycle.md',
+        '.agents/skills/mtg-onedeck-development/references/token-economy.md',
+      ]),
+    );
     expect(Buffer.byteLength(JSON.stringify(projection))).toBeLessThanOrEqual(12 * 1024);
+  });
+
+  it('keeps an active program ahead of an eligible lower-CR domain', () => {
+    const ledger = baseLedger();
+    ledger.goalPolicy.activeProgram = {
+      id: 'O4P',
+      domainIds: ['O4P-02A', 'O4P-02B'],
+    };
+    ledger.plannedSequence.push(
+      {
+        domainId: 'O4P-02A',
+        status: 'shipped',
+        crOrder: 1001,
+        dependsOn: ['dep'],
+      },
+      {
+        domainId: 'O4P-02B',
+        status: 'pending',
+        crOrder: 1002,
+        dependsOn: ['O4P-02A'],
+      },
+    );
+    ledger.domains.push(
+      {
+        id: 'O4P-02A',
+        status: 'shipped',
+        crOrder: 1001,
+        dependsOn: ['dep'],
+      },
+      {
+        id: 'O4P-02B',
+        status: 'pending',
+        crOrder: 1002,
+        dependsOn: ['O4P-02A'],
+      },
+    );
+
+    const projection = buildContextProjection({
+      ledger,
+      headLedger: structuredClone(ledger),
+      headSha: 'a'.repeat(40),
+      sourceSha256: 'b'.repeat(64),
+      loopStateText: [
+        'milestone: complete',
+        `baseSha: ${'a'.repeat(40)}`,
+        'treeFingerprint: clean',
+      ].join('\n'),
+      treeFingerprint: 'clean',
+    });
+
+    expect(projection.health.ok).toBe(true);
+    expect(projection.selection).toMatchObject({
+      kind: 'selected',
+      domainId: 'O4P-02B',
+      reason: 'active-program-order',
+    });
+    expect(projection.activeProgram).toMatchObject({
+      id: 'O4P',
+      status: 'active',
+      nextDomainId: 'O4P-02B',
+    });
+  });
+
+  it('fails closed for a completed active-program cycle or malformed dependency list', () => {
+    const cyclic = baseLedger();
+    cyclic.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    for (const collection of [cyclic.domains, cyclic.plannedSequence]) {
+      collection.find((entry) => (entry.id ?? entry.domainId) === 'early').status = 'shipped';
+      collection.find((entry) => (entry.id ?? entry.domainId) === 'later').status = 'shipped';
+      collection.find((entry) => (entry.id ?? entry.domainId) === 'early').dependsOn = ['later'];
+      collection.find((entry) => (entry.id ?? entry.domainId) === 'later').dependsOn = ['early'];
+    }
+    const cyclicProjection = buildContextProjection({
+      ledger: cyclic,
+      headLedger: structuredClone(cyclic),
+      headSha: 'a'.repeat(40),
+      sourceSha256: 'b'.repeat(64),
+      loopStateText: '',
+      treeFingerprint: 'clean',
+    });
+    expect(cyclicProjection.health.ok).toBe(false);
+    expect(cyclicProjection.selection.kind).toBe('integrity-error');
+    expect(contextExitCode(cyclicProjection)).toBe(2);
+
+    const malformed = baseLedger();
+    malformed.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    malformed.domains.find((entry) => entry.id === 'early').dependsOn = 'dep';
+    malformed.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = 'dep';
+    const malformedProjection = buildContextProjection({
+      ledger: malformed,
+      headLedger: structuredClone(malformed),
+      headSha: 'a'.repeat(40),
+      sourceSha256: 'b'.repeat(64),
+      loopStateText: '',
+      treeFingerprint: 'clean',
+    });
+    expect(malformedProjection.health.ok).toBe(false);
+    expect(malformedProjection.selection.kind).toBe('integrity-error');
+    expect(contextExitCode(malformedProjection)).toBe(2);
+  });
+
+  it('fails closed when either ledger collection alone declares an active-program dependency', () => {
+    for (const mismatchDirection of ['planned-only', 'domain-only']) {
+      const ledger = baseLedger();
+      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+      ledger.domains.push({ id: 'extra', status: 'pending', crOrder: 500 });
+      ledger.plannedSequence.push({
+        domainId: 'extra',
+        status: 'pending',
+        crOrder: 500,
+      });
+      const domainEntry = ledger.domains.find((entry) => entry.id === 'early');
+      const plannedEntry = ledger.plannedSequence.find(
+        (entry) => entry.domainId === 'early',
+      );
+      if (mismatchDirection === 'planned-only') plannedEntry.dependsOn.push('extra');
+      else domainEntry.dependsOn.push('extra');
+
+      const projection = buildContextProjection({
+        ledger,
+        headLedger: structuredClone(ledger),
+        headSha: 'a'.repeat(40),
+        sourceSha256: 'b'.repeat(64),
+        loopStateText: '',
+        treeFingerprint: 'clean',
+      });
+
+      expect(projection.health.ok, mismatchDirection).toBe(false);
+      expect(projection.health.errors, mismatchDirection).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'ACTIVE_PROGRAM_DEPENDENCY_MISMATCH',
+            domainId: 'early',
+            domainDependencies:
+              mismatchDirection === 'domain-only' ? ['dep', 'extra'] : ['dep'],
+            plannedSequenceDependencies:
+              mismatchDirection === 'planned-only' ? ['dep', 'extra'] : ['dep'],
+          }),
+        ]),
+      );
+      expect(projection.selection.kind, mismatchDirection).toBe('integrity-error');
+      expect(projection.domain, mismatchDirection).toBeNull();
+      expect(contextExitCode(projection), mismatchDirection).toBe(2);
+    }
+  });
+
+  it('accepts a shipped external active-program prerequisite retained in either ledger collection', () => {
+    for (const retainedCollection of ['domains', 'plannedSequence']) {
+      const ledger = baseLedger();
+      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+      if (retainedCollection === 'domains') {
+        ledger.plannedSequence = ledger.plannedSequence.filter(
+          (entry) => entry.domainId !== 'dep',
+        );
+      } else {
+        ledger.domains = ledger.domains.filter((entry) => entry.id !== 'dep');
+      }
+
+      const projection = buildContextProjection({
+        ledger,
+        headLedger: structuredClone(ledger),
+        headSha: 'a'.repeat(40),
+        sourceSha256: 'b'.repeat(64),
+        loopStateText: [
+          'milestone: complete',
+          `baseSha: ${'a'.repeat(40)}`,
+          'treeFingerprint: clean',
+        ].join('\n'),
+        treeFingerprint: 'clean',
+      });
+
+      expect(projection.health.ok, retainedCollection).toBe(true);
+      expect(projection.selection, retainedCollection).toMatchObject({
+        kind: 'selected',
+        domainId: 'early',
+        reason: 'active-program-order',
+      });
+      expect(contextExitCode(projection), retainedCollection).toBe(0);
+    }
   });
 
   it('fails closed on a live domain/plannedSequence status contradiction', () => {
@@ -430,6 +618,23 @@ describe('review.codex-ops governance invariants', () => {
     const root = resolve(import.meta.dirname, '..', '..');
     const agents = readFileSync(resolve(root, 'AGENTS.md'), 'utf8');
     const judgeProtocol = readFileSync(resolve(root, 'docs/judge-protocol.md'), 'utf8');
+    const governance = readFileSync(
+      resolve(
+        root,
+        '.agents/skills/mtg-onedeck-development/references/document-governance.md',
+      ),
+      'utf8',
+    );
+    const compatibilityPointers = [
+      'cycle.md',
+      'token-economy.md',
+      'codex-autoloop.md',
+    ].map((name) =>
+      readFileSync(
+        resolve(root, '.agents/skills/mtg-onedeck-development/references', name),
+        'utf8',
+      ),
+    );
     const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
     expect(Buffer.byteLength(agents)).toBeLessThanOrEqual(14 * 1024);
@@ -448,6 +653,24 @@ describe('review.codex-ops governance invariants', () => {
     }
     expect(judgeProtocol).toContain('npm run codex:context');
     expect(judgeProtocol).toContain('台帳全文');
+    expect(judgeProtocol).toContain('references/document-governance.md');
+    expect(judgeProtocol).not.toContain('{cycle,token-economy}.md');
+    expect(judgeProtocol).not.toContain('references/codex-autoloop.md');
+    for (const required of [
+      'one milestone only',
+      'one implementer and one cold auditor',
+      'one bounded wait',
+      'first context compaction',
+      'npm run codex:usage',
+      'goalPolicy.activeProgram',
+      'end the task',
+    ]) {
+      expect(governance).toContain(required);
+    }
+    for (const pointer of compatibilityPointers) {
+      expect(pointer).toContain('document-governance.md');
+      expect(Buffer.byteLength(pointer)).toBeLessThanOrEqual(512);
+    }
     expect(packageJson.scripts['codex:usage']).toBe('node scripts/codex-usage.mjs');
     expect(packageJson.scripts['codex:context']).toBe('node scripts/codex-context.mjs');
   });

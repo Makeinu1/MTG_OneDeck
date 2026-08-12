@@ -12,7 +12,11 @@ const ledgerFixture = () => ({
   selectionRule: 'fixture',
   statusDefinitions: {
     pending: 'pending',
+    drafted: 'drafted',
     'implemented-not-audited': 'implemented-not-audited',
+    audited: 'audited',
+    'judge-gated': 'judge-gated',
+    deferred: 'deferred',
     shipped: 'shipped',
   },
   judgePolicy: { reference: 'fixture' },
@@ -75,6 +79,209 @@ describe('codex context projection', () => {
 
     expect(projection.domain.id).toBe('later');
     expect(projection.dependencies.map((entry) => entry.id)).toEqual(['dep', 'early']);
+  });
+
+  it('selects an active-program entry before an eligible lower-CR-order entry', () => {
+    const ledger = ledgerFixture();
+    ledger.goalPolicy.activeProgram = {
+      id: 'O4P',
+      domainIds: ['later'],
+    };
+    ledger.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = ['dep'];
+    ledger.domains.find((entry) => entry.id === 'later').dependsOn = ['dep'];
+    const projection = project(ledger);
+
+    expect(projection.health.ok).toBe(true);
+    expect(projection.selection).toMatchObject({
+      kind: 'selected',
+      domainId: 'later',
+      reason: 'active-program-order',
+    });
+    expect(projection.activeProgram).toEqual({
+      id: 'O4P',
+      domainIds: ['later'],
+      status: 'active',
+      nextDomainId: 'later',
+    });
+  });
+
+  it('returns to normal CR order after every active-program entry ships', () => {
+    const ledger = ledgerFixture();
+    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    ledger.plannedSequence.find((entry) => entry.domainId === 'later').status = 'shipped';
+    ledger.domains.find((entry) => entry.id === 'later').status = 'shipped';
+    const projection = project(ledger);
+
+    expect(projection.selection).toMatchObject({
+      kind: 'selected',
+      domainId: 'early',
+      reason: 'earliest-eligible-cr-order',
+    });
+    expect(projection.activeProgram).toMatchObject({
+      status: 'complete',
+      nextDomainId: null,
+    });
+  });
+
+  it('fails closed rather than skipping a blocked active-program entry', () => {
+    const ledger = ledgerFixture();
+    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    const projection = project(ledger);
+
+    expect(projection.selection).toMatchObject({
+      kind: 'blocked',
+      domainId: 'later',
+      reason: 'active-program-dependency-not-shipped',
+      dependency: 'early',
+    });
+    expect(projection.activeProgram).toMatchObject({
+      status: 'blocked',
+      nextDomainId: 'later',
+    });
+    expect(contextExitCode(projection)).not.toBe(0);
+  });
+
+  it('fails integrity for missing, duplicate, and non-linear active-program declarations', () => {
+    const missing = ledgerFixture();
+    missing.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['missing'] };
+    expect(project(missing).health.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'ACTIVE_PROGRAM_DOMAIN_MISSING_FROM_COLLECTION' }),
+      ]),
+    );
+
+    const duplicate = ledgerFixture();
+    duplicate.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'early'] };
+    expect(project(duplicate).health.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DUPLICATE_ACTIVE_PROGRAM_DOMAIN_ID' }),
+      ]),
+    );
+
+    const nonLinear = ledgerFixture();
+    nonLinear.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    nonLinear.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = ['dep'];
+    expect(project(nonLinear).health.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'ACTIVE_PROGRAM_NON_LINEAR_DEPENDENCY' }),
+      ]),
+    );
+  });
+
+  it('fails closed for malformed, unknown, and cyclic active-program dependencies', () => {
+    const malformed = ledgerFixture();
+    malformed.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    malformed.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = 'early';
+    const malformedProjection = project(malformed);
+    expect(malformedProjection.health.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'INVALID_DEPENDENCY_LIST' })]),
+    );
+    expect(malformedProjection.selection.kind).toBe('integrity-error');
+    expect(contextExitCode(malformedProjection)).toBe(2);
+
+    const unknown = ledgerFixture();
+    unknown.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    unknown.domains.find((entry) => entry.id === 'early').dependsOn = ['missing'];
+    unknown.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = ['missing'];
+    const unknownProjection = project(unknown);
+    expect(unknownProjection.health.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'ACTIVE_PROGRAM_DEPENDENCY_UNKNOWN' }),
+      ]),
+    );
+    expect(unknownProjection.selection.kind).toBe('integrity-error');
+    expect(contextExitCode(unknownProjection)).toBe(2);
+
+    const cyclic = ledgerFixture();
+    cyclic.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    for (const entry of cyclic.plannedSequence) {
+      if (entry.domainId === 'early') {
+        entry.status = 'shipped';
+        entry.dependsOn = ['later'];
+      }
+      if (entry.domainId === 'later') entry.status = 'shipped';
+    }
+    for (const entry of cyclic.domains) {
+      if (entry.id === 'early') {
+        entry.status = 'shipped';
+        entry.dependsOn = ['later'];
+      }
+      if (entry.id === 'later') entry.status = 'shipped';
+    }
+    const cyclicProjection = project(cyclic);
+    expect(cyclicProjection.activeProgram).toMatchObject({ status: 'complete' });
+    expect(cyclicProjection.health.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'ACTIVE_PROGRAM_DEPENDENCY_CYCLE' }),
+      ]),
+    );
+    expect(cyclicProjection.selection.kind).toBe('integrity-error');
+    expect(contextExitCode(cyclicProjection)).toBe(2);
+  });
+
+  it.each([
+    ['domains', { id: 'external', status: 'shipped', dependsOn: [] }],
+    ['plannedSequence', {
+      type: 'domain-slice',
+      domainId: 'external',
+      status: 'shipped',
+      dependsOn: [],
+    }],
+  ])('accepts a shipped external dependency present only in %s', (collection, externalEntry) => {
+    const ledger = ledgerFixture();
+    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    ledger.domains.find((entry) => entry.id === 'early').dependsOn = ['external'];
+    ledger.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = ['external'];
+    ledger[collection].push(externalEntry);
+    const projection = project(ledger);
+
+    expect(projection.health.ok).toBe(true);
+    expect(projection.selection).toMatchObject({
+      kind: 'selected',
+      domainId: 'early',
+      reason: 'active-program-order',
+    });
+  });
+
+  it.each([
+    ['planned-only', 'plannedSequence', 'plannedSequenceDependencies', 'domainDependencies'],
+    ['domain-only', 'domains', 'domainDependencies', 'plannedSequenceDependencies'],
+  ])(
+    'fails integrity for a %s active-program dependency',
+    (_, collection, presentKey, absentKey) => {
+      const ledger = ledgerFixture();
+      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+      const entry = ledger[collection].find((candidate) =>
+        collection === 'domains' ? candidate.id === 'later' : candidate.domainId === 'later',
+      );
+      entry.dependsOn = ['dep', 'early'];
+      const projection = project(ledger);
+
+      expect(projection.health.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'ACTIVE_PROGRAM_DEPENDENCY_MISMATCH',
+            domainId: 'later',
+            [presentKey]: ['dep', 'early'],
+            [absentKey]: ['early'],
+          }),
+        ]),
+      );
+      expect(projection.selection).toMatchObject({ kind: 'integrity-error' });
+      expect(contextExitCode(projection)).toBe(2);
+    },
+  );
+
+  it('keeps explicit domain selection ahead of active-program selection', () => {
+    const ledger = ledgerFixture();
+    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    const projection = project(ledger, { domainId: 'early' });
+
+    expect(projection.selection).toMatchObject({
+      kind: 'selected',
+      domainId: 'early',
+      reason: 'explicit-domain',
+    });
   });
 
   it('fails closed for status contradictions and count decreases', () => {
@@ -176,9 +383,27 @@ describe('codex context projection', () => {
     })).toBe(4);
     expect(contextExitCode({
       health: { ok: true },
+      selection: { kind: 'blocked' },
+      loopState: { status: 'current' },
+    })).toBe(4);
+    expect(contextExitCode({
+      health: { ok: true },
       selection: { kind: 'selected' },
       loopState: { status: 'current' },
     })).toBe(0);
+  });
+
+  it('uses document governance as the sole cycle and token-economy canonical path', () => {
+    const projection = project(ledgerFixture());
+    expect(projection.canonicalPaths).toContain(
+      '.agents/skills/mtg-onedeck-development/references/document-governance.md',
+    );
+    expect(projection.canonicalPaths).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('/cycle.md'),
+        expect.stringContaining('/token-economy.md'),
+      ]),
+    );
   });
 
   it('fingerprints sorted paths and content deterministically', () => {

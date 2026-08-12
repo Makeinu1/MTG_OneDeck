@@ -4,7 +4,7 @@
 
 ## 0. 判断が来たら最初にやること(コールドスタート手順)
 
-新しい判定者セッションの読込順（**本節が唯一の正本**）: `AGENTS.md`（自動読込）→ `npm run codex:context -- [--domain <id>]` の検証済み投影 → 本文書の該当節 → `.agents/skills/mtg-onedeck-development/references/{cycle,token-economy}.md`。投影は台帳SHA、健全性、選定domain、依存、`.claude/loop-state.md`整合性だけを返す。通常はこの投影を使い、**台帳全文**を読むのは次の場合だけとする: コマンドがintegrity error/真の同点を返した、scope/北極星/契約原則を変える、履歴上の裁定を再確認する、または指定domainが投影不能。履歴は必要時だけ`cr-backbone-ledger-history.json`を読む。圧縮後も同じ順で復旧し、staleと判定されたloop-stateや圧縮要約のnext stepを正本扱いしない。その上で:
+新しい判定者セッションの読込順（**本節が唯一の正本**）: `AGENTS.md`（自動読込）→ `npm run codex:context -- [--domain <id>]` の検証済み投影 → 本文書の該当節 → `.agents/skills/mtg-onedeck-development/references/document-governance.md`。投影は台帳SHA、健全性、選定domain、依存、active program、`.claude/loop-state.md`整合性だけを返す。通常はこの投影を使い、**台帳全文**を読むのは次の場合だけとする: コマンドがintegrity error/真の同点を返した、scope/北極星/契約原則を変える、履歴上の裁定を再確認する、または指定domainが投影不能。履歴は必要時だけ`cr-backbone-ledger-history.json`を読む。圧縮後も同じ順で復旧し、staleと判定されたloop-stateや圧縮要約のnext stepを正本扱いしない。その上で:
 
 1. その判断は**決定論的か**? → §1 の3問テスト
 2. 決定論的 → **CR を引いて終了**(条番号を成果物に併記)。prompt 再走・再考・多数決をしない
@@ -30,6 +30,8 @@ standing 裁定(2026-07-23ユーザー裁定): 最終ゴールを「通常Comman
 **優先度式** = ① fake-green/壊れた既存自動化/未監査実装を先に閉じる → ② 通常Commander/EDH scope 内で前提が満たされた**最若番CR章・節** → ③ 前提不足なら、そのCRを閉じるために必要な最小substrateだけ先行して元のCRへ戻る → ④ 同一CR・同一依存順位ならMyDeck実プレイ摩擦 → ⑤ さらに同値ならCommander実カードコーパス頻度(`score.ts` demandを含む) → ⑥ `edhValue`。
 
 - この式で一意に決まる限り**自走してよい**(STOP しない)。
+- 明示的なprogram優先は台帳の`goalPolicy.activeProgram.id`と順序付き`domainIds`だけを機械権威とする。`nextGate`、note、草稿、会話文は選定器が解釈しない。active programの先頭未完了entryがblockedなら別entryへskipせずfail closedし、全entryが`shipped`なら通常CR列へ戻る。
+- ユーザーがprogram継続を明示しているのに`activeProgram`が未設定、壊れている、または自動投影がprogram外を返す場合、その自動選定は採用しない。在席判定者が`--domain <adjudicated-id>`で一意な対象を投影し、active-program台帳更新をjudge-owned作業として別に閉じる。
 - design-slice(D0〜D7)の standing 裁定は `docs/design-playbook.md` にあるが、同文書は **historical**(D4 回復契約の再承認まで新規実行に使わない。現況 = `docs/README.md`)。新規 D-slice はこの式と北極星②で裁定する。
 - STOP① に該当するのは次の3つだけ: (a) 上式でも真の同点かつ性質の異なる分岐 (b) 通常Commander/EDH scopeそのものの拡張・縮小 (c) 北極星・契約原則そのものの変更。旧 `judge: user-stop` / demand gateは、variant等のscope判断を表すものだけ維持する。
 - **plannedSequence 補充手順**(常駐判定者で可): 実装者が候補草稿(`research/cr-grounding/planned-sequence-batch*.draft.md`・CR 条番号+通常Commander scope+依存関係必須、MyDeck fixtureは任意の受け入れ証拠)→ 在席判定者がCR原文・scope・依存へ照合し、上式で台帳へ充填する。複数CRを跨ぐcarryはCR領域ごとに分割する。
@@ -116,7 +118,7 @@ standing 裁定(2026-07-08・北極星③「メタは遊びに従属する」): 
 
 ## 9. モデル×役割の既定
 
-`AGENTS.md`「役割 = 能力で定義」節が正本(本文書では重複させない)。機械作業(抽出・草稿・Tier-1・ship)+難草稿+助言は実装者・別セッションへ。委譲漏れシグナルの正本 = `.agents/skills/mtg-onedeck-development/references/codex-autoloop.md`。
+`AGENTS.md`「役割 = 能力で定義」節が正本(本文書では重複させない)。機械作業(抽出・草稿・Tier-1・ship)+難草稿+助言は実装者・別セッションへ。委譲要否・上限・待機規律の正本 = `.agents/skills/mtg-onedeck-development/references/document-governance.md`「Roles and write ownership」「Execution and context budget」。
 
 ## 10. grammar レーン裁定準則(fail-closed 常設・2026-08-05 feel-1 教訓)
 

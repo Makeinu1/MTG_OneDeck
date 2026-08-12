@@ -24,7 +24,25 @@
       "other existing variant/pruned boundaries"
     ],
     "userRuling": "2026-08-04",
-    "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。"
+    "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。",
+    "activeProgram": {
+      "id": "O4P-02",
+      "domainIds": [
+        "O4P-01G",
+        "O4P-01H",
+        "O4P-01I",
+        "O4P-01J",
+        "O4P-01K",
+        "O4P-01L",
+        "O4P-01M",
+        "O4P-01N",
+        "O4P-02A",
+        "O4P-02B",
+        "O4P-02C",
+        "O4P-02D",
+        "O4P-02E"
+      ]
+    }
   },
   "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。 2026-08-04: Codex判定者が未登録CR7XX節(705/706/707/708/709/710/711/713/715/718/723/724/730/732/733)を14 domainとして登録(pending 11+pruned 3)。716/719/720のplannedSequence note/evidenceをdomainsと同期(statusは元々shipped)。pending 11件をplannedSequenceへcrOrder順補充。base SHA=2f30dba。全体査察brief=research/cr-grounding/cr-coverage-audit-brief-2026-08-04.md。 2026-08-04(続): 全体査察Sagan(BLOCKER/HIGH=0・AUDIT-OK-PENDING-FULL-CHECK)のfindings裁定を適用。F1=cr-114-emblems登録(userGate: 7XXバッチ完了まで選定しない)。F2=evidence再マッピングはmaintenance送り(F2-F5 hygieneエントリ)。F3=golden-cases.json廃Playmat参照修正。F4=cr-121-drawing重複マージ。F5=草稿パスarchive追従。F6=本provenance文言是正。F7=cr-733 nextGate尊重注記。findings全文=research/cr-grounding/archive/coverage-audit-2026-08-04/findings.md。 2026-08-04(続2): ユーザー裁定「気持ちよさキュー優先」を適用。feelレーン新設(laneDefinitions.feel)。feel-1〜4を登録(guided深化/silent skip誠実化/PC退行回復/AV7統合)。selectionRule改定=feelキュー優先消費+CRバッチ並行。goalPolicy.userRuling=2026-08-04。",
   "plannedSequence": [

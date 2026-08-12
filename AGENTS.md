@@ -45,12 +45,16 @@
 ## 1タスク=1マイルストーン
 
 - 新しいトップレベルタスクにはmilestone ID、base SHA、ブリーフパス、Goal、Constraints、Done whenだけを渡す。過去タスク全文やReferenced chatを引き継がない。
+- 編集前に宣言base SHAのclean worktreeを要求する。別マイルストーンの未出荷差分があれば分離worktreeへ移すかSTOPし、候補を混在させない。
+- ユーザー指定programの優先は台帳の機械可読`goalPolicy.activeProgram`で表す。自動投影と明示programが食い違う間は`--domain`を使い、別マイルストーンへ黙って代替しない。
 - 通常の上限は実装者1名と冷監査者1名。両者とも`fork_context: false`。一般探索だけのサブエージェントは作らず、独立読取は同一`functions.exec`内でbatch化する。
 - 修正は同じ実装者へ返し最大2回。2連敗し、判定者の有界な外科修正でも閉じられなければSTOPする。
+- 最初のcontext compactionまたは修正上限到達後は、現在の原子的操作だけ閉じて短い継続packetを残し、次の安全境界でタスクを終了する。追加のユーザー認可は新しいタスクを開始できるが、消耗した会話を延長しない。
 - UI・音・演出は専用worktree/dev fixtureの試作タスクと本実装タスクを分離し、人間承認した値とscreenshotを凍結してから新しい本実装タスクを始める。
 - 実装中の追加要望は、現受け入れ条件の失敗または致命回帰だけ割り込ませる。それ以外は台帳へ短く記録して次タスクへ送る。
 - 実装中は対象テストだけを回す。候補treeを凍結して対象`review.*`と実機証拠を揃えた後、フルcheckより先に冷監査を行う。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`とし、監査修正と対象再監査を閉じてからrelease treeを再凍結し、同一fingerprintでフル`npm run check`を1回だけ行う。フルcheck自身が欠陥を検出した場合だけ、修正・無効化された対象検証・必要な再監査後に最終フルcheckを再実行する（上限2回）。
 - ship時に`.claude/loop-state.md`を`milestone: complete`へ戻し、完了packetをarchiveしてタスクを終了する。
+- ship後に次のmilestone IDを記録しても、同じタスク内では開始しない。
 
 ## 不可侵
 

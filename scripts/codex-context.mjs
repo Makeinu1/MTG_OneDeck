@@ -230,7 +230,174 @@ const mergeLedgerEntries = (ledger, errors) => {
       sequenceIndex: planned ? ledger.plannedSequence.indexOf(planned) : null,
     });
   }
-  return { merged, sequenceMap };
+  return { merged, domainMap, sequenceMap };
+};
+
+const validateActiveProgram = (ledger, domainMap, sequenceMap, errors) => {
+  const activeProgram = ledger.goalPolicy?.activeProgram;
+  if (activeProgram === undefined) return null;
+  if (!isObject(activeProgram) || Array.isArray(activeProgram)) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM', message: 'activeProgram must be an object' });
+    return null;
+  }
+  const keys = Object.keys(activeProgram).sort();
+  if (keys.length !== 2 || keys[0] !== 'domainIds' || keys[1] !== 'id') {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM', message: 'activeProgram has an invalid shape' });
+    return null;
+  }
+  if (typeof activeProgram.id !== 'string' || activeProgram.id.length === 0) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_ID' });
+  }
+  if (!Array.isArray(activeProgram.domainIds) || activeProgram.domainIds.length === 0) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_DOMAIN_IDS' });
+    return null;
+  }
+
+  const seen = new Set();
+  for (let index = 0; index < activeProgram.domainIds.length; index += 1) {
+    const domainId = activeProgram.domainIds[index];
+    if (typeof domainId !== 'string' || domainId.length === 0) {
+      errors.push({ code: 'INVALID_ACTIVE_PROGRAM_DOMAIN_ID', index });
+      continue;
+    }
+    if (seen.has(domainId)) {
+      errors.push({ code: 'DUPLICATE_ACTIVE_PROGRAM_DOMAIN_ID', domainId });
+      continue;
+    }
+    seen.add(domainId);
+    const domain = domainMap.get(domainId);
+    const sequence = sequenceMap.get(domainId);
+    if (!domain || !sequence) {
+      errors.push({ code: 'ACTIVE_PROGRAM_DOMAIN_MISSING_FROM_COLLECTION', domainId });
+      continue;
+    }
+    if (index > 0) {
+      const predecessor = activeProgram.domainIds[index - 1];
+      const domainDependencies = Array.isArray(domain.dependsOn) ? domain.dependsOn : [];
+      const sequenceDependencies = Array.isArray(sequence.dependsOn) ? sequence.dependsOn : [];
+      if (!domainDependencies.includes(predecessor) || !sequenceDependencies.includes(predecessor)) {
+        errors.push({
+          code: 'ACTIVE_PROGRAM_NON_LINEAR_DEPENDENCY',
+          domainId,
+          predecessor,
+        });
+      }
+    }
+  }
+  return {
+    id: activeProgram.id,
+    domainIds: [...activeProgram.domainIds],
+  };
+};
+
+const dependencyIds = (entry, collection, errors, { required = false } = {}) => {
+  if (entry.dependsOn === undefined) {
+    if (required) {
+      errors.push({
+        code: 'INVALID_DEPENDENCY_LIST',
+        collection,
+        domainId: entry.id ?? entry.domainId ?? null,
+      });
+    }
+    return [];
+  }
+  if (!Array.isArray(entry.dependsOn)) {
+    errors.push({
+      code: 'INVALID_DEPENDENCY_LIST',
+      collection,
+      domainId: entry.id ?? entry.domainId ?? null,
+    });
+    return [];
+  }
+  const ids = [];
+  const seen = new Set();
+  for (const dependency of entry.dependsOn) {
+    if (typeof dependency !== 'string' || dependency.length === 0) {
+      errors.push({
+        code: 'INVALID_DEPENDENCY_ID',
+        collection,
+        domainId: entry.id ?? entry.domainId ?? null,
+      });
+      continue;
+    }
+    if (seen.has(dependency)) {
+      errors.push({
+        code: 'DUPLICATE_DEPENDENCY_ID',
+        collection,
+        domainId: entry.id ?? entry.domainId ?? null,
+        dependency,
+      });
+      continue;
+    }
+    seen.add(dependency);
+    ids.push(dependency);
+  }
+  return ids;
+};
+
+const validateActiveProgramDependencyGraph = (
+  activeProgram,
+  domainMap,
+  sequenceMap,
+  errors,
+) => {
+  if (!activeProgram) return;
+  const visited = new Set();
+  const visiting = new Set();
+  const visit = (domainId) => {
+    if (visited.has(domainId)) return;
+    if (visiting.has(domainId)) {
+      errors.push({ code: 'ACTIVE_PROGRAM_DEPENDENCY_CYCLE', domainId });
+      return;
+    }
+    const domain = domainMap.get(domainId);
+    const sequence = sequenceMap.get(domainId);
+    if (!domain && !sequence) {
+      errors.push({ code: 'ACTIVE_PROGRAM_DEPENDENCY_UNKNOWN', domainId });
+      return;
+    }
+    visiting.add(domainId);
+    const isProgramEntry = activeProgram.domainIds.includes(domainId);
+    const domainDependencies = domain
+      ? dependencyIds(domain, 'domains', errors, {
+      required: isProgramEntry,
+        }).sort()
+      : [];
+    const plannedDependencies = sequence
+      ? dependencyIds(sequence, 'plannedSequence', errors, {
+      required: isProgramEntry,
+        }).sort()
+      : [];
+    if (
+      isProgramEntry &&
+      (domainDependencies.length !== plannedDependencies.length ||
+        domainDependencies.some((dependency, index) => dependency !== plannedDependencies[index]))
+    ) {
+      errors.push({
+        code: 'ACTIVE_PROGRAM_DEPENDENCY_MISMATCH',
+        domainId,
+        domainDependencies,
+        plannedSequenceDependencies: plannedDependencies,
+      });
+    }
+    const dependencies = [...new Set([...domainDependencies, ...plannedDependencies])].sort();
+    for (const dependency of dependencies) {
+      if (!domainMap.has(dependency) && !sequenceMap.has(dependency)) {
+        errors.push({
+          code: 'ACTIVE_PROGRAM_DEPENDENCY_UNKNOWN',
+          domainId,
+          dependency,
+        });
+        continue;
+      }
+      visit(dependency);
+    }
+    visiting.delete(domainId);
+    visited.add(domainId);
+  };
+  for (const domainId of activeProgram.domainIds) {
+    if (typeof domainId === 'string' && domainId.length > 0) visit(domainId);
+  }
 };
 
 const dependencyClosure = (domainId, merged, errors) => {
@@ -266,7 +433,7 @@ const isAutomaticCrEntry = (entry) => {
   return typeof entry.crOrder === 'number' && Number.isFinite(entry.crOrder);
 };
 
-const chooseDomain = (merged, sequenceMap) => {
+const chooseDomain = (merged, sequenceMap, activeProgram) => {
   const sequenceEntries = [...sequenceMap.keys()]
     .map((id) => merged.get(id))
     .filter(Boolean);
@@ -286,6 +453,43 @@ const chooseDomain = (merged, sequenceMap) => {
       reason: 'multiple-unaudited-implementations',
       candidates: unaudited.map((entry) => entry.id).sort(),
     };
+  }
+
+  if (activeProgram) {
+    for (const domainId of activeProgram.domainIds) {
+      const entry = merged.get(domainId);
+      if (!entry) {
+        return {
+          kind: 'integrity-error',
+          reason: 'active-program-domain-missing',
+          domainId,
+        };
+      }
+      if (entry.status === 'shipped') continue;
+      const dependencies = Array.isArray(entry.dependsOn) ? entry.dependsOn : [];
+      const blockedDependency = dependencies.find(
+        (dependency) => merged.get(dependency)?.status !== 'shipped',
+      );
+      if (blockedDependency) {
+        return {
+          kind: 'blocked',
+          domainId,
+          reason: 'active-program-dependency-not-shipped',
+          dependency: blockedDependency,
+        };
+      }
+      if (
+        !['pending', 'drafted', 'implemented-not-audited', 'audited'].includes(entry.status)
+      ) {
+        return {
+          kind: 'blocked',
+          domainId,
+          reason: 'active-program-status-blocked',
+          status: entry.status,
+        };
+      }
+      return { kind: 'selected', domainId, reason: 'active-program-order' };
+    }
   }
 
   const eligible = sequenceEntries.filter(
@@ -315,6 +519,28 @@ const chooseDomain = (merged, sequenceMap) => {
     reason: 'earliest-eligible-cr-order',
     crOrder: smallestOrder,
   };
+};
+
+const summarizeActiveProgram = (activeProgram, merged) => {
+  if (!activeProgram) return null;
+  for (const domainId of activeProgram.domainIds) {
+    const entry = merged.get(domainId);
+    if (!entry) {
+      return { ...activeProgram, status: 'blocked', nextDomainId: domainId };
+    }
+    if (entry.status === 'shipped') continue;
+    const dependencies = Array.isArray(entry.dependsOn) ? entry.dependsOn : [];
+    const blockedDependency = dependencies.find(
+      (dependency) => merged.get(dependency)?.status !== 'shipped',
+    );
+    const resumable = ['pending', 'drafted', 'implemented-not-audited', 'audited'];
+    return {
+      ...activeProgram,
+      status: blockedDependency || !resumable.includes(entry.status) ? 'blocked' : 'active',
+      nextDomainId: domainId,
+    };
+  }
+  return { ...activeProgram, status: 'complete', nextDomainId: null };
 };
 
 export function buildContextProjection({
@@ -362,9 +588,13 @@ export function buildContextProjection({
           : [],
       }
     : { domains: [], plannedSequence: [] };
-  const { merged, sequenceMap } = mergeLedgerEntries(safeLedger, errors);
+  const { merged, domainMap, sequenceMap } = mergeLedgerEntries(safeLedger, errors);
+  const activeProgram = validateActiveProgram(safeLedger, domainMap, sequenceMap, errors);
+  validateActiveProgramDependencyGraph(activeProgram, domainMap, sequenceMap, errors);
   let selection;
-  if (domainId) {
+  if (errors.length > 0) {
+    selection = { kind: 'integrity-error', reason: 'ledger-integrity-failed' };
+  } else if (domainId) {
     selection = merged.has(domainId)
       ? { kind: 'selected', domainId, reason: 'explicit-domain' }
       : { kind: 'integrity-error', reason: 'unknown-explicit-domain', domainId };
@@ -372,7 +602,7 @@ export function buildContextProjection({
       errors.push({ code: 'UNKNOWN_DOMAIN', domainId });
     }
   } else {
-    selection = chooseDomain(merged, sequenceMap);
+    selection = chooseDomain(merged, sequenceMap, activeProgram);
   }
   if (errors.length > 0) {
     selection = { kind: 'integrity-error', reason: 'ledger-integrity-failed' };
@@ -390,6 +620,7 @@ export function buildContextProjection({
   const domainStatuses = Object.fromEntries(
     [...merged].map(([id, entry]) => [id, entry.status]),
   );
+  const activeProgramSummary = summarizeActiveProgram(activeProgram, merged);
 
   return {
     ledgerSha256: sourceSha256,
@@ -401,6 +632,7 @@ export function buildContextProjection({
     },
     health: { ok: errors.length === 0, errors },
     selection,
+    activeProgram: activeProgramSummary,
     domain: compactDomain(selected),
     dependencies: dependencies.map((entry) => compactDomain(entry, { dependency: true })),
     canonicalPaths: [
@@ -409,8 +641,7 @@ export function buildContextProjection({
       LEDGER_PATH,
       LOOP_STATE_PATH,
       '.agents/skills/mtg-onedeck-development/SKILL.md',
-      '.agents/skills/mtg-onedeck-development/references/cycle.md',
-      '.agents/skills/mtg-onedeck-development/references/token-economy.md',
+      '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     ],
     loopState: parseLoopState(loopStateText, {
       headSha,
@@ -470,7 +701,7 @@ export function createContextProjection(root, domainId) {
 export function contextExitCode(projection) {
   if (!projection?.health?.ok) return 2;
   if (projection.selection?.kind === 'ambiguous') return 3;
-  if (projection.selection?.kind === 'none') return 4;
+  if (projection.selection?.kind === 'none' || projection.selection?.kind === 'blocked') return 4;
   if (projection.loopState?.status === 'stale') return 5;
   return 0;
 }

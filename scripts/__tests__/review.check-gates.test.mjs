@@ -91,18 +91,17 @@ describe('review.check-gates governance order', () => {
   it('places semantic cold audit before the single release full check', () => {
     const root = resolve(import.meta.dirname, '..', '..');
     const agents = readFileSync(resolve(root, 'AGENTS.md'), 'utf8');
-    const cycle = readFileSync(
-      resolve(root, '.agents/skills/mtg-onedeck-development/references/cycle.md'),
-      'utf8',
-    );
-    const autoloop = readFileSync(
-      resolve(root, '.agents/skills/mtg-onedeck-development/references/codex-autoloop.md'),
+    const governance = readFileSync(
+      resolve(
+        root,
+        '.agents/skills/mtg-onedeck-development/references/document-governance.md',
+      ),
       'utf8',
     );
     const audit = readFileSync(resolve(root, '.claude/audit-standing.md'), 'utf8');
     const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
-    for (const text of [agents, cycle, autoloop]) {
+    for (const text of [agents, governance]) {
       expect(text).toContain('AUDIT-OK-PENDING-FULL-CHECK');
       expect(text.indexOf('AUDIT-OK-PENDING-FULL-CHECK')).toBeLessThan(
         text.lastIndexOf('npm run check'),
