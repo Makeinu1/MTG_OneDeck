@@ -136,6 +136,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:online-four-seat-room']],
       ['npm', ['run', 'verify:online-in-memory-protocol']],
       ['npm', ['run', 'verify:online-audience-projection']],
+      ['npm', ['run', 'verify:online-local-room-gate']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],

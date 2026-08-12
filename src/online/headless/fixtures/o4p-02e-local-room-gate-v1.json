@@ -1,0 +1,182 @@
+{
+  "version": "o4p-02e-local-room-gate-v1",
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "roomId": "room-o4p-02e",
+  "serverBuildId": "server-o4p-02e",
+  "clientBuildId": "client-o4p-02e",
+  "clients": [
+    { "participantId": "host-p1", "role": "player", "corePlayerId": "P1" },
+    { "participantId": "player-p2", "role": "player", "corePlayerId": "P2" },
+    { "participantId": "player-p3", "role": "player", "corePlayerId": "P3" },
+    { "participantId": "player-p4", "role": "player", "corePlayerId": "P4" },
+    { "participantId": "table-display", "role": "table", "corePlayerId": null }
+  ],
+  "actions": [
+    { "witness": "hello-p1", "kind": "client-hello", "participantId": "host-p1" },
+    { "witness": "hello-p2", "kind": "client-hello", "participantId": "player-p2" },
+    { "witness": "hello-p3", "kind": "client-hello", "participantId": "player-p3" },
+    { "witness": "hello-p4", "kind": "client-hello", "participantId": "player-p4" },
+    { "witness": "hello-table", "kind": "client-hello", "participantId": "table-display" },
+    {
+      "witness": "projection-p1",
+      "kind": "projection",
+      "participantId": "host-p1",
+      "knownRevision": 0
+    },
+    {
+      "witness": "projection-p2",
+      "kind": "projection",
+      "participantId": "player-p2",
+      "knownRevision": 0
+    },
+    {
+      "witness": "projection-p3",
+      "kind": "projection",
+      "participantId": "player-p3",
+      "knownRevision": 0
+    },
+    {
+      "witness": "projection-p4",
+      "kind": "projection",
+      "participantId": "player-p4",
+      "knownRevision": 0
+    },
+    {
+      "witness": "projection-table",
+      "kind": "projection",
+      "participantId": "table-display",
+      "knownRevision": 0
+    },
+    {
+      "witness": "normal-player-rejection",
+      "kind": "command",
+      "participantId": "host-p1",
+      "commandId": "command-normal-rejection",
+      "baseRevision": 0,
+      "commandTemplate": "actor-mismatch-p2-sequence-1"
+    },
+    {
+      "witness": "table-role-rejection",
+      "kind": "command",
+      "participantId": "table-display",
+      "commandId": "command-table-role-rejection",
+      "baseRevision": 0,
+      "commandTemplate": "p1-commander-cast-sequence-1"
+    },
+    {
+      "witness": "accepted-command",
+      "kind": "command",
+      "participantId": "host-p1",
+      "commandId": "command-accepted-1",
+      "baseRevision": 0,
+      "commandTemplate": "p1-commander-cast-sequence-1"
+    },
+    {
+      "witness": "accepted-command-ordering",
+      "kind": "command",
+      "participantId": "player-p2",
+      "commandId": "command-accepted-2",
+      "baseRevision": 1,
+      "commandTemplate": "p2-commander-cast-sequence-2"
+    },
+    {
+      "witness": "accepted-duplicate",
+      "kind": "command",
+      "participantId": "host-p1",
+      "commandId": "command-accepted-1",
+      "baseRevision": 0,
+      "commandTemplate": "p1-commander-cast-sequence-1"
+    },
+    {
+      "witness": "stale-rejection",
+      "kind": "command",
+      "participantId": "player-p2",
+      "commandId": "command-stale-1",
+      "baseRevision": 0,
+      "commandTemplate": "p2-commander-cast-sequence-1"
+    },
+    {
+      "witness": "stale-current-projection",
+      "kind": "projection",
+      "participantId": "player-p2",
+      "knownRevision": 2
+    },
+    { "witness": "disconnect-player", "kind": "disconnect", "participantId": "player-p3" },
+    {
+      "witness": "rejoin-player",
+      "kind": "projection",
+      "participantId": "player-p3",
+      "knownRevision": 2
+    },
+    { "witness": "disconnect-table", "kind": "disconnect", "participantId": "table-display" },
+    {
+      "witness": "rejoin-table",
+      "kind": "projection",
+      "participantId": "table-display",
+      "knownRevision": 2
+    }
+  ],
+  "expectedCounts": {
+    "clientHellosAccepted": 5,
+    "clientHellosRejected": 0,
+    "commandsAccepted": 2,
+    "commandsRejected": 3,
+    "commandDuplicates": 1,
+    "staleRevisionRejections": 1,
+    "roleRejections": 1,
+    "projectionsAccepted": 8,
+    "projectionsRejected": 0,
+    "disconnects": 2,
+    "playerRejoins": 1,
+    "tableRejoins": 1
+  },
+  "expectedCoverage": {
+    "fourPlayers": true,
+    "tableDisplay": true,
+    "allClientHellos": true,
+    "allClientProjections": true,
+    "acceptedCommand": true,
+    "rejectedCommand": true,
+    "duplicateCommand": true,
+    "staleRevision": true,
+    "roleIsolation": true,
+    "playerReconnect": true,
+    "tableReconnect": true,
+    "privacyGate": true,
+    "replay": true
+  },
+  "expectedDeferred": [
+    "cloudflare",
+    "worker",
+    "durable-object",
+    "sqlite",
+    "websocket",
+    "persistence",
+    "ui"
+  ],
+  "privacyWitness": {
+    "distinctPlayerHands": 4,
+    "distinctPlayerLibraries": 4,
+    "playerPrivateIdentityOnly": true,
+    "tablePublicIdentityOnly": true,
+    "tableHasCorePlayerId": false,
+    "projectionsExcludedFromReport": true,
+    "responsesAndLogsAreSafe": true
+  },
+  "replayWitness": {
+    "acceptedUniqueCommands": 2,
+    "duplicateExcluded": true,
+    "closureReplayProtocolDigestsEqual": true,
+    "tamperedFails": true,
+    "reorderedFails": true,
+    "omittedFails": true
+  },
+  "transportBoundary": {
+    "inMemoryOnly": true,
+    "network": false,
+    "clockOrRandomness": false,
+    "persistence": false,
+    "ui": false
+  }
+}

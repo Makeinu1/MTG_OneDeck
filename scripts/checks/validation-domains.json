@@ -46,6 +46,17 @@
       "reason": "役割別可視性、hidden-card保護、filtered authority surface、秘密安全なresponse/logを通常・review・architecture証拠で検証する。"
     },
     {
+      "id": "online-headless",
+      "description": "4 PlayerとTableのローカルheadless composition、revision、reconnect、privacy、replay gate",
+      "sourcePatterns": ["src/online/headless/**"],
+      "testPatterns": ["src/online/headless/**/*.test.ts", "src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MULTIPLAYER", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": ["online-projection", "online-protocol", "online-room"],
+      "escalationLevel": "targeted",
+      "reason": "Room、protocol、projection、Core closureを一つの直列headless gateとして合成し、秘密安全なreportとreplay一致を専用review・architecture証拠で検証する。"
+    },
+    {
       "id": "engine-state",
       "description": "GameState、オブジェクトidentity、runtime値、不変性",
       "sourcePatterns": ["src/engine/**", "src/engine/types.ts", "src/engine/init.ts", "src/engine/core/object/**", "src/engine/core/runtime/**", "src/engine/core/rules/**"],

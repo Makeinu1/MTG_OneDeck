@@ -191,7 +191,8 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-solo-core-compatibility.ts'
     || normalized === 'scripts/checks/verify-online-four-seat-room.ts'
     || normalized === 'scripts/checks/verify-online-in-memory-protocol.ts'
-    || normalized === 'scripts/checks/verify-online-audience-projection.ts';
+    || normalized === 'scripts/checks/verify-online-audience-projection.ts'
+    || normalized === 'scripts/checks/verify-online-local-room-gate.ts';
 }
 
 function isFrozenCompatibilityCoreConsumer(path: string, target: string | null): boolean {
@@ -344,6 +345,46 @@ function isFrozenProjectionCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenHeadlessCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/headless/operation.ts',
+    new Set([
+      'CoreCommandV1',
+      'coreCanonicalDigestFromValueV1',
+      'replayCoreCommandsV1',
+      'runOrdinaryFourPlayerCoreClosureV1',
+    ]),
+  ],
+  [
+    'src/online/headless/types.ts',
+    new Set(['CoreCommandV1', 'CoreDecisionContextV1', 'CorePlayerId']),
+  ],
+  [
+    'src/online/headless/validation.ts',
+    new Set([
+      'CoreCommandV1',
+      'CoreDecisionContextV1',
+      'CorePlayerId',
+      'validateCoreCommandV1',
+    ]),
+  ],
+]);
+
+function isFrozenHeadlessCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenHeadlessCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 function isExistingCardTypeModule(target: string | null): boolean {
   if (target === null) return false;
   const normalized = relativeRepositoryPath(target);
@@ -480,7 +521,8 @@ function inspectReference(
     && !isFrozenCompatibilityCoreConsumer(unitPath, target)
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
-    && !isFrozenProjectionCoreConsumer(unitPath, target, reference)) {
+    && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
+    && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
 }

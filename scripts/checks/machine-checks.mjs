@@ -87,6 +87,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:online-audience-projection'],
   },
+  {
+    name: 'Online Local Headless Room Gate検証',
+    cmd: 'npm',
+    args: ['run', 'verify:online-local-room-gate'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

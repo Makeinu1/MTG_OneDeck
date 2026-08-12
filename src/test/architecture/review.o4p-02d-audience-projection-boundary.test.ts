@@ -309,6 +309,6 @@ describe('O4P-02D audience projection architecture boundary', () => {
       .filter((entry) => entry.isDirectory())
       .map(({ name }) => name)
       .sort();
-    expect(onlineKinds).toEqual(['architecture', 'projection', 'protocol', 'room']);
+    expect(onlineKinds).toEqual(['architecture', 'headless', 'projection', 'protocol', 'room']);
   });
 });
