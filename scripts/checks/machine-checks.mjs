@@ -72,6 +72,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:solo-core-compatibility'],
   },
+  {
+    name: 'Online Four-seat Room検証',
+    cmd: 'npm',
+    args: ['run', 'verify:online-four-seat-room'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

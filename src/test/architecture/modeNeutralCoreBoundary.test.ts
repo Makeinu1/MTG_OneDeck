@@ -188,13 +188,25 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-mode-neutral-core-rule-authority.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-commander-combat-player-exit.ts'
     || normalized === 'scripts/checks/verify-mode-neutral-core-closure.ts'
-    || normalized === 'scripts/checks/verify-solo-core-compatibility.ts';
+    || normalized === 'scripts/checks/verify-solo-core-compatibility.ts'
+    || normalized === 'scripts/checks/verify-online-four-seat-room.ts';
 }
 
 function isFrozenCompatibilityCoreConsumer(path: string, target: string | null): boolean {
   if (target === null) return false;
   return normalizePath(path) === 'src/engine/compatibility/soloCoreCompatibilityV1.ts'
     && relativeRepositoryPath(target) === 'src/engine/core/index.ts';
+}
+
+function isFrozenRoomCoreConsumer(path: string, target: string | null): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  return new Set([
+    'src/online/room/operations.ts',
+    'src/online/room/types.ts',
+    'src/online/room/validation.ts',
+  ]).has(normalizePath(path));
 }
 
 function isExistingCardTypeModule(target: string | null): boolean {
@@ -330,7 +342,8 @@ function inspectReference(
     addViolation(violations, reference, 'engine-no-online-reverse-import');
   }
   if (coreTarget && !coreUnit && !isTestPath(unitPath) && !isVerificationScript(unitPath)
-    && !isFrozenCompatibilityCoreConsumer(unitPath, target)) {
+    && !isFrozenCompatibilityCoreConsumer(unitPath, target)
+    && !isFrozenRoomCoreConsumer(unitPath, target)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
 }
@@ -511,8 +524,24 @@ describe('mode-neutral Core dependency boundary', () => {
         sourceText: "import * as Core from '../../src/engine/core';",
       },
       {
+        filePath: resolve(repositoryRoot, 'scripts/checks/verify-online-four-seat-room.ts'),
+        sourceText: "import * as Core from '../../src/engine/core';",
+      },
+      {
         filePath: resolve(repositoryRoot, 'src/engine/compatibility/soloCoreCompatibilityV1.ts'),
         sourceText: "import { isCoreBaseId } from '../core';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/room/operations.ts'),
+        sourceText: "import { validateModeNeutralCoreRootV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/room/types.ts'),
+        sourceText: "import type { CorePlayerId } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/room/validation.ts'),
+        sourceText: "import { isCoreBaseId } from '../../engine/core/index';",
       },
     ];
     expect(analyzeBoundarySources(units)).toEqual([]);
@@ -541,6 +570,33 @@ describe('mode-neutral Core dependency boundary', () => {
         kind: 'import',
         rule: 'core-no-product-runtime-import',
         specifier: '../core',
+      },
+    ]);
+  });
+
+  it('keeps the Room Core allowance exact and public-barrel-only', () => {
+    const units: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/room/operations.ts'),
+        sourceText: "import { applyCoreCommandV1 } from '../../engine/core/closure';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/room/unreviewed.ts'),
+        sourceText: "import { isCoreBaseId } from '../../engine/core/index';",
+      },
+    ];
+    expect(analyzeBoundarySources(units)).toEqual([
+      {
+        filePath: 'src/online/room/operations.ts',
+        kind: 'import',
+        rule: 'core-no-product-runtime-import',
+        specifier: '../../engine/core/closure',
+      },
+      {
+        filePath: 'src/online/room/unreviewed.ts',
+        kind: 'import',
+        rule: 'core-no-product-runtime-import',
+        specifier: '../../engine/core/index',
       },
     ]);
   });

@@ -13,6 +13,17 @@
       "reason": "文書・受け入れの参照整合性をcheck-docsと機械検査で確認する。"
     },
     {
+      "id": "online-room",
+      "description": "ローカル4席Room、participant、ready/start/active/finished、rejoinとCore lifecycle反映",
+      "sourcePatterns": ["src/online/room/**"],
+      "testPatterns": ["src/online/room/**/*.test.ts", "src/test/architecture/review.o4p-02b-four-seat-room-boundary.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MULTIPLAYER", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": [],
+      "escalationLevel": "targeted",
+      "reason": "Roomの純粋application境界、4席不変条件、Core退出との分離を専用通常・review・architecture証拠で検証する。"
+    },
+    {
       "id": "engine-state",
       "description": "GameState、オブジェクトidentity、runtime値、不変性",
       "sourcePatterns": ["src/engine/**", "src/engine/types.ts", "src/engine/init.ts", "src/engine/core/object/**", "src/engine/core/runtime/**", "src/engine/core/rules/**"],

@@ -1,0 +1,40 @@
+export { ONLINE_ROOM_SCHEMA_VERSION_V1 } from './types';
+export type {
+  ActivateOnlineRoomV1Input,
+  CreateOnlineRoomV1Input,
+  JoinOnlineRoomV1Input,
+  OnlineRoomActivationInputV1,
+  OnlineRoomCreationInputV1,
+  OnlineRoomIdV1,
+  OnlineRoomJoinInputV1,
+  OnlineRoomLifecycleV1,
+  OnlineRoomParticipantIdV1,
+  OnlineRoomParticipantRoleV1,
+  OnlineRoomParticipantV1,
+  OnlineRoomPlayerReadyInputV1,
+  OnlineRoomPlayerRejoinInputV1,
+  OnlineRoomPresenceV1,
+  OnlineRoomSeatAssignmentV1,
+  OnlineRoomSeatCapabilityV1,
+  OnlineRoomSeatIndexV1,
+  OnlineRoomSeatOutcomeV1,
+  OnlineRoomSeatV1,
+  OnlineRoomV1,
+  OnlineRoomValidationCodeV1,
+  OnlineRoomValidationIssueV1,
+  OnlineRoomValidationResultV1,
+  RejoinOnlineRoomPlayerV1Input,
+  SetOnlineRoomPlayerReadyV1Input,
+} from './types';
+export { validateOnlineRoomV1 } from './validation';
+export { OnlineRoomCreationErrorV1, OnlineRoomOperationErrorV1 } from './errors';
+export {
+  activateOnlineRoomV1,
+  createOnlineRoomV1,
+  disconnectOnlineRoomParticipantV1,
+  joinOnlineRoomV1,
+  reconcileOnlineRoomCoreLifecycleV1,
+  rejoinOnlineRoomPlayerV1,
+  setOnlineRoomPlayerReadyV1,
+  startOnlineRoomV1,
+} from './operations';

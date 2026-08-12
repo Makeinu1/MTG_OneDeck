@@ -35,6 +35,7 @@ const closureStackConsumers = new Set([
   resolve(coreRoot, 'closure/commandV1.ts'),
 ]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
+const allowedOnlineRootNames = new Set(['architecture', 'room']);
 const categoryOrder = [
   'stack-edge',
   'forbidden-import',
@@ -277,7 +278,9 @@ function inspectOnlineRuntime(): Violation[] {
   const onlineRoot = resolve(sourceRoot, 'online');
   if (existsSync(onlineRoot)) {
     for (const entry of readdirSync(onlineRoot, { withFileTypes: true })) {
-      if (entry.name !== 'architecture') add(violations, 'online-runtime', resolve(onlineRoot, entry.name), 0, entry.name);
+      if (!allowedOnlineRootNames.has(entry.name)) {
+        add(violations, 'online-runtime', resolve(onlineRoot, entry.name), 0, entry.name);
+      }
     }
   }
   return violations;
@@ -312,6 +315,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
   });
 
   it('reports every architecture violation in the pinned fixed order', () => {
+    expect([...allowedOnlineRootNames]).toEqual(['architecture', 'room']);
     expect(allBoundaryViolations().map((violation) => `${violation.category}|${violation.filePath}|${violation.detail}`)).toEqual([]);
   });
 });
