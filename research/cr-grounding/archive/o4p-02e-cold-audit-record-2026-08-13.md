@@ -164,3 +164,44 @@ recalculation remained exactly
 and `git diff --check` passed. O4P-02E is audited and pending only explicit
 candidate publication, exact-head CI/forbidden/build/Pages evidence, terminal
 ledger metadata, and a clean worktree.
+
+## Candidate publication and Judge reownership
+
+The Sol judge explicitly staged the 25 intended O4P-02E files and committed
+candidate `71695d53a76d466c4580a3eeb223daac7081b521` with the final cold-audit
+identifier. Candidate and `origin/main` matched after push.
+
+Exact-head GitHub Actions run `31647836312` passed `npm ci` and the complete
+`npm run check -- --build-base=/MTG_OneDeck/` step. The base resolver selected
+the declared ancestor `19bb9cbe6b1792d6ba0aad6960d7c539c472df0b`. The next step stopped only on
+the expected implementer-oriented forbidden scan, and Pages configuration,
+artifact upload, and deploy were skipped.
+
+The failed report classified four frozen O4P-02E governance drafts and three
+Judge-authored review paths as `FORBIDDEN`. The Sol judge re-owned all seven
+without changing their bytes, assertions, contracts, workflow, or protection
+rule:
+
+- `research/cr-grounding/o4p-02e-acceptance-brief.draft.md` —
+  SHA-256 `949075bf5b825afb357218c01b160d5b0712a0fb9a92312ac381975392d54558`;
+- `research/cr-grounding/o4p-02e-cold-audit-brief.draft.md` —
+  SHA-256 `d96ed6cf8b30ad2b34a9509d64cff15350938b2bf115302e8645a4cce3b999ba`;
+- `research/cr-grounding/o4p-02e-implementation-brief.draft.md` —
+  SHA-256 `e72c28f258bc2fb3f34b265193c3fa1370853e4bf834484f88474e3b69a6f3d1`;
+- `research/cr-grounding/o4p-02e-local-headless-room-gate.contract.draft.md` —
+  SHA-256 `3eb264034690210fad824db3511f16d398d94be4d08288e17e81c5b8ac658cf2`;
+
+- `src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts` —
+  SHA-256 `6bb1b10fef3346ecfac712182e8fc1259968d2b0bd3c20fc905e49e4a5cea270`;
+- `src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts` —
+  SHA-256 `98c451294316d3678536ae0b955c50f9ea898fb3c5b67cc7449ee21c00145b86`;
+- `src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts` —
+  SHA-256 `ae82b52966bba81ad1e69d38a2f72d3a6f78f9caefb7f5a00b5cd0acaea4c46c`.
+
+The same report listed `package.json`, this audit record, and the ledger under
+informational `NEEDS-REAUTH`; those Judge-owned paths did not fail the lane.
+
+Only this audit record and the exact O4P-02E domain/plannedSequence ledger
+entries will be included in the reownership commit. A new exact-head Actions
+run must pass the full check, forbidden scan, build, and Pages deploy before
+terminal shipment metadata.
