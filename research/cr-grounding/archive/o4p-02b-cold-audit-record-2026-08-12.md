@@ -105,3 +105,24 @@ O4P-02B is locally `audited`, not yet `shipped`. Candidate commit, push,
 GitHub Actions, Pages HTTP/asset evidence, and final clean-worktree proof remain
 release gates. The two MEDIUM architecture-hardening findings remain recorded;
 neither describes a forbidden dependency or reducer call in the frozen source.
+
+## Candidate publication and judge re-ownership
+
+The audited release tree was committed as
+`eeaf141c961652903bb5b8fd179436ca573f109a` and pushed to `main`. GitHub
+Actions run `31601060466` independently passed `npm ci` and the complete
+`npm run check` on that exact head. It then stopped at the forbidden-file lane
+before Pages because the pushed O4P-02B range contains the two judge-authored
+acceptance files:
+
+- `src/online/room/__tests__/review.o4p-02b-four-seat-room.test.ts`
+  SHA-256 `dba4cabae2fa1eb390e6e8d6e5d6329e30aca2ac934f7edeec672bf28bf7771b`;
+- `src/test/architecture/review.o4p-02b-four-seat-room-boundary.test.ts`
+  SHA-256 `f8aa29753e32cc97712abb9bdf682db0e2113d46e7f95beeb5036b8e0c448b4f`.
+
+The Sol judge explicitly re-owns those frozen acceptance files. They are the
+same files covered by the clean O4P-02B cold audits; no source file, assertion,
+workflow, or forbidden-file protection is changed. A metadata-only commit may
+advance the push diff base to
+`eeaf141c961652903bb5b8fd179436ca573f109a` and retry CI/Pages under the
+established O4P-01N and O4P-02A precedent.
