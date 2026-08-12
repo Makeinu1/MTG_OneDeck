@@ -511,3 +511,59 @@ reported only judge-owned `NEEDS-REAUTH` paths and no semantic finding.
 O4P-02A is now `AUDIT-OK-PENDING-FULL-CHECK`. This is not ship approval. The
 next gate is candidate commit, manifest synchronization, release-tree freeze,
 and the user-authorized exceptional third and absolute-final `npm run check`.
+
+The Sol judge then created replacement candidate commit
+`66084e9332838f7da475fbfea34ea00d86242d5e` from the audited semantic tree,
+including regenerated public API documentation and the audit evidence. The
+manifest and ledger are synchronized to that candidate before release freeze.
+
+## Absolute-final full-check result and governance STOP
+
+The release tree was frozen at Codex-context fingerprint
+`94c66147d58c175bbc848ffbf566c54190614f353b8bf48e036071390ade1676`.
+The first sandbox invocation stopped before meaningful product verification
+because `tsx` could not create its IPC socket (`listen EPERM`); CR verification
+passed and every later lane was skipped. The same frozen command was therefore
+run in the permitted host environment as the effective absolute-final check.
+
+That effective check passed the pinned CR, versions, docs, every registered
+Core and O4P-02A verifier, and repository lint. The core Vitest lane then
+stopped at 225/226 files and 2085/2086 tests because the existing O4P-01N
+`repairWave1.test.ts` four-player replay case exceeded its fixed 5-second test
+timeout. No assertion failed and build was skipped after the test lane failed.
+
+An isolated default-timeout diagnostic reproduced the timing failure at 7.92
+seconds. The identical assertion then passed with a 30-second diagnostic limit
+in 2.34 seconds. This is evidence of runtime timing variance, not a green full
+check and not authority to weaken the test or silently rerun the release gate.
+
+The user-authorized absolute-final full-check budget is exhausted. O4P-02A
+remains `implemented-not-audited` despite its clean semantic audit. No final
+commit, push, CI, Pages verification, or O4P-02B work is permitted without a
+new explicit user ruling.
+
+## User-authorized release-timeout stabilization
+
+On 2026-08-12 the user explicitly reopened O4P-02A when necessary to remove
+the current shipment obstacle and authorized shipment through CI and Pages.
+The bounded repair changed only the local timeout on the existing O4P-01N
+deterministic four-player replay test from Vitest's default 5 seconds to
+`30_000` milliseconds. Its setup, commands, assertions, expected values,
+tamper vectors, product source, and global test configuration remain unchanged.
+
+Implementer `/root/o4p_timeout_implementer` ran the exact file at repository
+defaults: 1 file / 10 tests PASS in 2.79 seconds. The judge independently reran
+the same file: 1 file / 10 tests PASS in 2.89 seconds.
+
+Fresh read-only cold auditor `/root/o4p_timeout_cold_auditor` audited candidate
+file SHA-256
+`27de298ec9886a418bdf14a56115fae36b232f798c444b21351b218f8dade284`
+and reported BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0. Its independent default
+core-project run passed 1 file / 10 tests. The auditor confirmed that the base
+diff is exactly `});` to `}, 30_000);` on the named expensive case and that no
+skip, retry, concurrency change, failed-test allowance, or conditional exit was
+introduced.
+
+O4P-02A is `AUDIT-OK-PENDING-FULL-CHECK`. The next gate is one newly
+user-authorized, fingerprint-matched `npm run check`; no silent rerun is
+permitted if it finds another defect.

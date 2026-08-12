@@ -311,7 +311,7 @@ describe('O4P-01N repair wave 1', () => {
     expect(closure.deferred).toEqual(['full-combat-damage', 'arbitrary-manual-state-mutation', 'network', 'room', 'projection', 'ui']);
     const inactiveDamage = Closure.applyCoreCommandV1(closure.finalRoot, command(closure.finalRoot.acceptedCommandCount + 1, 'P1', { kind: 'commander-damage-record', physicalCardId: 'PC6', defendingPlayerId: 'P4', damage: 1, combatObjectId: 'PC6:0' }, undefined, 'P2'));
     expect(inactiveDamage).toMatchObject({ status: 'rejected', root: closure.finalRoot, events: [], issues: [{ code: 'PLAYER_INACTIVE' }] });
-  });
+  }, 30_000);
 
   it('reports first replay tampering and rejects hostile journal/package structures', () => {
     const root = makeRoot({ priorityHolder: 'P2' });

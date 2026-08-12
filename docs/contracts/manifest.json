@@ -157,7 +157,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": [],
       "verifiedBy": ["scripts/checks/generate-engine-api.mjs", "scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "8caf0944fa5f351899f1f2ef327f94ac4a7ffa18"
+      "lastVerifiedCommit": "66084e9332838f7da475fbfea34ea00d86242d5e"
     }
   ]
 }
