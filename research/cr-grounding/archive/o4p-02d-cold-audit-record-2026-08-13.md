@@ -155,3 +155,27 @@ The full check changed no candidate or generated tracked artifact. O4P-02D is
 `audited` and pending only explicit candidate publication, exact-head GitHub
 Actions, Pages/served-asset evidence, terminal ledger metadata, and a clean
 worktree.
+
+## Candidate publication and judge reownership
+
+The Sol judge explicitly staged the audited files and created candidate commit
+`a06de6da2d43692d4d882e0bef9f2f4f31f2e560`, then pushed it to `main`.
+GitHub Actions run `31632766772` matched that exact head. Its `npm run check`
+step passed; the forbidden-diff step was the only failure, so Pages deployment
+was correctly skipped.
+
+The forbidden report named exactly three judge-owned paths. The Sol judge
+re-owned their frozen bytes without changing source, assertions, contract
+clauses, workflows, or protection logic:
+
+- `src/online/projection/__tests__/review.o4p-02d-audience-projection.test.ts`
+  SHA-256 `e4242a8d9fdc81666fe2c68f1d391a46dcc1d1437f2bf8ac0c26efbeec250c8b`;
+- `src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts`
+  SHA-256 `aa0789896881480a37f10a3ccb09fe85cbb60daa2931e5157d4b01fdf0bc7785`;
+- `research/cr-grounding/o4p-02d-implementation-brief.draft.md`
+  SHA-256 `c2a8779f0c3cec253765d2c81298c820d99149ca265b687a5f8883798625960a`.
+
+The remaining `NEEDS-REAUTH` paths were informational judge-owned package,
+contract, brief, audit-record, and ledger changes and did not fail the lane.
+O4P-02D remains `audited`; only the metadata retry, exact-head successful
+Actions/Pages evidence, terminal shipped metadata, and clean worktree remain.
