@@ -567,3 +567,28 @@ introduced.
 O4P-02A is `AUDIT-OK-PENDING-FULL-CHECK`. The next gate is one newly
 user-authorized, fingerprint-matched `npm run check`; no silent rerun is
 permitted if it finds another defect.
+
+## Candidate publication and judge re-ownership
+
+Release tree fingerprint
+`2ba57d16b09bc8c74c9f2378f98e5eeab0200a4709e37abda5ced868d5a91652`
+passed the one newly authorized local `npm run check`: all verifiers, docs,
+lint, Core 226 files / 2086 tests, DOM 256 files / 1776 tests, TypeScript, and
+build PASS. The exact tree was committed as
+`439bb013b8001cc75072ac2d3e6234eeabaca288` and pushed to `main`.
+
+GitHub Actions run `31583407381` independently passed `npm ci` and the complete
+`npm run check` on that head. It then stopped at the forbidden-file lane before
+Pages because the pushed O4P-02A range contains the two judge-authored
+acceptance files:
+
+- `src/engine/compatibility/__tests__/review.o4p-02a-solo-core-compatibility.test.ts`
+  SHA-256 `40732601aa7d830124676e2309a185a25476468d550abacff8a9aace2dde6a57`;
+- `src/test/architecture/review.o4p-02a-solo-core-compatibility-boundary.test.ts`
+  SHA-256 `14d16680a3b5c68ad75f8f50b3d71708c5ca0ed06fe6f539207035e19a0c4f10`.
+
+The Sol judge explicitly re-owns those frozen acceptance files. They are the
+same files covered by the clean O4P-02A cold audits; no file, assertion,
+workflow, or forbidden-file protection is changed. A metadata-only commit may
+advance the push diff base to `439bb013b8001cc75072ac2d3e6234eeabaca288` and
+retry CI/Pages under the established O4P-01N precedent.
