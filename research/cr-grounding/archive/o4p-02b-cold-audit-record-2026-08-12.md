@@ -126,3 +126,25 @@ workflow, or forbidden-file protection is changed. A metadata-only commit may
 advance the push diff base to
 `eeaf141c961652903bb5b8fd179436ca573f109a` and retry CI/Pages under the
 established O4P-01N and O4P-02A precedent.
+
+## Metadata retry and Pages evidence
+
+Judge re-ownership commit
+`c6bb60f5d5edcc17fd6b159467197c351fb2b81e` changed only this audit record and
+the ledger. GitHub Actions run `31602084451` resolved diff base
+`eeaf141c961652903bb5b8fd179436ca573f109a` and passed every required gate:
+`npm ci`, the complete `npm run check`, ancestor-safe diff-base resolution,
+forbidden scan, Pages artifact build, and Pages deploy.
+
+Served evidence after deployment:
+
+- `https://makeinu1.github.io/MTG_OneDeck/`: HTTP 200;
+- served JS `assets/index-CyZgN26K.js`: HTTP 200;
+- served CSS `assets/index-JeU5vEot.css`: HTTP 200;
+- HTML and both assets report deployment `Last-Modified` 2026-08-12 13:42:23
+  UTC.
+
+The pure Room substrate has no visible UI interaction to exercise; the served
+asset and CI evidence close publication. O4P-02B may now be marked `shipped`;
+one final metadata push records that terminal state and must itself pass
+CI/Pages with a clean worktree.
