@@ -81,3 +81,24 @@ confirmed candidate:
 The full check did not change a generated artifact or the candidate
 fingerprints. O4P-02C is `audited` and pending only explicit publication,
 GitHub Actions, Pages, served-asset, and clean-worktree evidence.
+
+## Candidate publication and judge re-ownership
+
+The audited release tree was committed as
+`d47e544ee62d6280531eb58d66a40747971c68a2` and pushed to `main`. GitHub
+Actions run `31615957143` independently passed `npm ci` and the complete
+`npm run check` on that exact head. It stopped at the forbidden-file lane
+before Pages solely because the pushed O4P-02C range contains two judge-
+authored acceptance files:
+
+- `src/online/protocol/__tests__/review.o4p-02c-in-memory-protocol.test.ts`
+  SHA-256 `e4e22747f8a9932f8e8aea2ff90ae9483cfb41ff2f95b4eeb7a0babebb4e543e`;
+- `src/test/architecture/review.o4p-02c-in-memory-protocol-boundary.test.ts`
+  SHA-256 `5d0101f024a4649b165d6c71b065b57edd2ea06135c0c198bedec9cd0261a4db`.
+
+The Sol judge explicitly re-owns those frozen acceptance files. They are the
+same files covered by the clean O4P-02C audit and fingerprint-matched full
+check; no source file, assertion, workflow, or forbidden-file protection is
+changed. A metadata-only commit may advance the push diff base to
+`d47e544ee62d6280531eb58d66a40747971c68a2` and retry CI/Pages under the
+established O4P-02A/O4P-02B precedent.
