@@ -82,6 +82,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:online-in-memory-protocol'],
   },
+  {
+    name: 'Online Audience Projection検証',
+    cmd: 'npm',
+    args: ['run', 'verify:online-audience-projection'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

@@ -35,6 +35,17 @@
       "reason": "protocol version、認証、Core command適用、revision/dedup、metadata-only resyncを通常・review・architecture証拠で検証する。"
     },
     {
+      "id": "online-projection",
+      "description": "Player、Table、Spectator向けallowlist投影、hidden-card保護、Search/Visibility/Play権限と秘密情報境界",
+      "sourcePatterns": ["src/online/projection/**"],
+      "testPatterns": ["src/online/projection/**/*.test.ts", "src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MULTIPLAYER", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": ["online-protocol", "online-room"],
+      "escalationLevel": "targeted",
+      "reason": "役割別可視性、hidden-card保護、filtered authority surface、秘密安全なresponse/logを通常・review・architecture証拠で検証する。"
+    },
+    {
       "id": "engine-state",
       "description": "GameState、オブジェクトidentity、runtime値、不変性",
       "sourcePatterns": ["src/engine/**", "src/engine/types.ts", "src/engine/init.ts", "src/engine/core/object/**", "src/engine/core/runtime/**", "src/engine/core/rules/**"],

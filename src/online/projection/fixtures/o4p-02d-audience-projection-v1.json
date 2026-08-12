@@ -1,0 +1,83 @@
+{
+  "version": "online-audience-projection-v1",
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "serverBuildId": "server-o4p-02d",
+  "differentClientBuildId": "client-o4p-02d",
+  "roomId": "room-o4p-02d",
+  "seatAssignments": [
+    {
+      "seatIndex": 0,
+      "corePlayerId": "P1",
+      "seatCapability": "seat_capability_AAAAAAAAAAAAAAAA"
+    },
+    {
+      "seatIndex": 1,
+      "corePlayerId": "P2",
+      "seatCapability": "seat_capability_BBBBBBBBBBBBBBBB"
+    },
+    {
+      "seatIndex": 2,
+      "corePlayerId": "P3",
+      "seatCapability": "seat_capability_CCCCCCCCCCCCCCCC"
+    },
+    {
+      "seatIndex": 3,
+      "corePlayerId": "P4",
+      "seatCapability": "seat_capability_DDDDDDDDDDDDDDDD"
+    }
+  ],
+  "host": {
+    "participantId": "host-p1",
+    "seatCapability": "seat_capability_AAAAAAAAAAAAAAAA"
+  },
+  "players": ["host-p1", "player-p2", "player-p3", "player-p4"],
+  "tableParticipantId": "table-display",
+  "spectatorParticipantId": "spectator-a",
+  "observerAuthorizations": [
+    {
+      "participantId": "table-display",
+      "observerCapability": "observer_capability_TTTTTTTTTTTTT"
+    },
+    {
+      "participantId": "spectator-a",
+      "observerCapability": "observer_capability_SSSSSSSSSSSSS"
+    }
+  ],
+  "objectSentinels": {
+    "p1Library": "PC1:0",
+    "p1Hand": "PC2:0",
+    "p2Hand": "PC3:0",
+    "faceDownExile": "PC4:0",
+    "publicStack": "PC5:1",
+    "controlledBattlefield": "PC6:0"
+  },
+  "privacyBoundary": {
+    "hiddenCardHasObjectId": false,
+    "hiddenCardHasRuntime": false,
+    "physicalCardIdsReturned": false,
+    "definitionIdsReturned": false,
+    "capabilitiesReturned": false,
+    "receiptsReturned": false,
+    "requestDigestsReturned": false,
+    "tableAndSpectatorPublicGameParity": true
+  },
+  "authorityBoundary": {
+    "ownHand": true,
+    "libraryDefaultHidden": true,
+    "publicFaceUp": true,
+    "faceDownControllerOnly": true,
+    "allPlayerRevealForObservers": true,
+    "playerLookForObservers": false,
+    "searchActorSelectorOnly": true,
+    "playPermissionAttemptOnly": true
+  },
+  "transportBoundary": {
+    "inMemoryOnly": true,
+    "webSocket": false,
+    "cloudflare": false,
+    "storage": false,
+    "clockOrRandomness": false,
+    "loggingSideEffect": false
+  }
+}

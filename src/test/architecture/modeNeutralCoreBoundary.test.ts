@@ -190,7 +190,8 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-mode-neutral-core-closure.ts'
     || normalized === 'scripts/checks/verify-solo-core-compatibility.ts'
     || normalized === 'scripts/checks/verify-online-four-seat-room.ts'
-    || normalized === 'scripts/checks/verify-online-in-memory-protocol.ts';
+    || normalized === 'scripts/checks/verify-online-in-memory-protocol.ts'
+    || normalized === 'scripts/checks/verify-online-audience-projection.ts';
 }
 
 function isFrozenCompatibilityCoreConsumer(path: string, target: string | null): boolean {
@@ -263,6 +264,81 @@ function isFrozenProtocolCoreConsumer(
   }
   if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
   const allowed = frozenProtocolCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
+const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/projection/project.ts',
+    new Set([
+      'CoreGameObjectIdentityV2',
+      'CoreObjectId',
+      'CorePlayerId',
+      'CoreRuleDurationV1',
+      'CoreVisibilityGrantV1',
+      'CoreVisibilitySubjectV1',
+      'ModeNeutralCoreObjectRegistrySliceV2',
+      'ModeNeutralCoreObjectRuntimeSliceV2',
+      'coreCanPlayerAttemptPlayObjectV1',
+      'coreCanPlayerViewObjectIdentityV1',
+      'coreDecisionMakerForV1',
+      'currentCoreObjectControllerV1',
+      'parseCoreObjectIdV2',
+    ]),
+  ],
+  [
+    'src/online/projection/support.ts',
+    new Set([
+      'CoreDecisionContextV1',
+      'CoreObjectId',
+      'CorePlayerId',
+      'CoreRuleZoneRefV1',
+      'isCanonicalCoreObjectIdV2',
+      'isCoreBaseId',
+      'validateCoreRuleZoneRefV1',
+    ]),
+  ],
+  [
+    'src/online/projection/types.ts',
+    new Set([
+      'CoreCardDefinitionSnapshotV1',
+      'CoreDecisionContextV1',
+      'CoreManaPoolV1',
+      'CoreObjectId',
+      'CoreObjectIdKindV2',
+      'CorePlayerExitCauseV1',
+      'CorePlayerId',
+      'CorePlayerLifecycleStatusV1',
+      'CoreRuleZoneRefV1',
+      'CoreSearchCriteriaV1',
+      'CoreSearchPortionV1',
+    ]),
+  ],
+  [
+    'src/online/projection/validation.ts',
+    new Set([
+      'CoreObjectId',
+      'CorePlayerId',
+      'isCanonicalCoreObjectIdV2',
+      'isCoreBaseId',
+      'parseCoreObjectIdV2',
+      'validateCoreRuleZoneRefV1',
+    ]),
+  ],
+]);
+
+function isFrozenProjectionCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenProjectionCoreImports.get(normalizePath(path));
   return allowed !== undefined
     && reference.importedNames.length > 0
     && reference.importedNames.every((name) => allowed.has(name));
@@ -403,7 +479,8 @@ function inspectReference(
   if (coreTarget && !coreUnit && !isTestPath(unitPath) && !isVerificationScript(unitPath)
     && !isFrozenCompatibilityCoreConsumer(unitPath, target)
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
-    && !isFrozenProtocolCoreConsumer(unitPath, target, reference)) {
+    && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
+    && !isFrozenProjectionCoreConsumer(unitPath, target, reference)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
 }
