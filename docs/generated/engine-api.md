@@ -69,26 +69,26 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 48: `export type SoloCoreCompatibilityCatalogEntryV1 = Readonly<{`
 - line 77: `export const SOLO_CORE_COMPATIBILITY_CATALOG_V1: readonly SoloCoreCompatibilityCatalogEntryV1[] = Object.freeze(`
 - line 81: `export function soloCoreCompatibilityEntryForV1(`
-- line 267: `export type SoloCorePlayerMapEntryV1 = Readonly<{`
-- line 272: `export type SoloCorePhysicalCardMapEntryV1 = Readonly<{`
-- line 277: `export type SoloCoreObjectMapEntryV1 = Readonly<{`
-- line 282: `export type SoloCoreIdentityMapV1 = Readonly<{`
-- line 391: `export function validateSoloCoreIdentityMapV1(input: unknown):`
-- line 398: `export function createSoloCoreIdentityMapV1(`
-- line 413: `export type SoloCoreComparableTurnPositionV1 = CoreTurnPositionV1;`
-- line 415: `export type SoloCoreComparableZoneV1 = Readonly<{`
-- line 421: `export type SoloCoreComparableCommanderV1 = Readonly<{`
-- line 427: `export type SoloCoreComparableCombatV1 = Readonly<{`
-- line 445: `export type SoloCoreComparableViewV1 = Readonly<{`
-- line 898: `export function projectSoloCompatibilityViewV1(state: unknown, identityMap: unknown): ProjectionResult {`
-- line 908: `export function projectCoreCompatibilityViewV1(root: unknown, identityMap: unknown): ProjectionResult {`
-- line 920: `export type { CompatibilityIssue as SoloCoreCompatibilityIssueV1 };`
+- line 277: `export type SoloCorePlayerMapEntryV1 = Readonly<{`
+- line 282: `export type SoloCorePhysicalCardMapEntryV1 = Readonly<{`
+- line 287: `export type SoloCoreObjectMapEntryV1 = Readonly<{`
+- line 292: `export type SoloCoreIdentityMapV1 = Readonly<{`
+- line 404: `export function validateSoloCoreIdentityMapV1(input: unknown):`
+- line 411: `export function createSoloCoreIdentityMapV1(`
+- line 426: `export type SoloCoreComparableTurnPositionV1 = CoreTurnPositionV1;`
+- line 428: `export type SoloCoreComparableZoneV1 = Readonly<{`
+- line 434: `export type SoloCoreComparableCommanderV1 = Readonly<{`
+- line 440: `export type SoloCoreComparableCombatV1 = Readonly<{`
+- line 458: `export type SoloCoreComparableViewV1 = Readonly<{`
+- line 1060: `export function projectSoloCompatibilityViewV1(state: unknown, identityMap: unknown): ProjectionResult {`
+- line 1070: `export function projectCoreCompatibilityViewV1(root: unknown, identityMap: unknown): ProjectionResult {`
+- line 1082: `export type { CompatibilityIssue as SoloCoreCompatibilityIssueV1 };`
 
 ## `src/engine/compatibility/soloCoreParityV1.ts`
 
 - line 6: `export type SoloCoreParityIssueV1 = Readonly<{`
 - line 24: `export type SoloCoreParityResultV1 = CompatibilityResult;`
-- line 263: `export function compareSoloCoreCompatibilityV1(`
+- line 339: `export function compareSoloCoreCompatibilityV1(`
 
 ## `src/engine/core/__tests__/testHelpers.ts`
 

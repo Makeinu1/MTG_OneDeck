@@ -35,6 +35,38 @@ function cloneView(): SoloCoreComparableViewV1 {
   };
 }
 
+function cloneCombatView(): SoloCoreComparableViewV1 {
+  return {
+    ...cloneView(),
+    combat: {
+      turnNumber: 4,
+      step: 'declare-blockers',
+      attackingPlayerId: 'P1' as never,
+      defendingPlayerIds: ['P2'] as never,
+      attacks: [{
+        attackerObjectId: 'PC1:0' as never,
+        attackerControllerPlayerId: 'P1' as never,
+        defendingPlayerId: 'P2' as never,
+      }],
+      blocks: [{
+        blockerObjectId: 'PC2:0' as never,
+        blockerControllerPlayerId: 'P2' as never,
+        attackedObjectId: 'PC1:0' as never,
+        defendingPlayerId: 'P2' as never,
+      }],
+    },
+  };
+}
+
+function asComparableView(input: unknown): SoloCoreComparableViewV1 {
+  return input as SoloCoreComparableViewV1;
+}
+
+function nullPrototypeArray<T>(input: T[]): T[] {
+  Object.setPrototypeOf(input, null);
+  return input;
+}
+
 function isDeeplyFrozen(input: unknown, seen = new WeakSet<object>()): boolean {
   if (input === null || typeof input !== 'object') return true;
   if (seen.has(input)) return true;
@@ -248,16 +280,198 @@ describe('soloCoreParityV1 differential comparator', () => {
   });
 
   it.each([
-    ['/kind', (view: SoloCoreComparableViewV1) => ({ ...view, kind: 'wrong' as never })],
-    ['/schemaVersion', (view: SoloCoreComparableViewV1) => ({ ...view, schemaVersion: 2 as never })],
-    ['/activePlayerId', (view: SoloCoreComparableViewV1) => ({ ...view, activePlayerId: 'P2' as never })],
-    ['/turnNumber', (view: SoloCoreComparableViewV1) => ({ ...view, turnNumber: 5 })],
-    ['/turnPosition/step', (view: SoloCoreComparableViewV1) => ({ ...view, turnPosition: { phase: 'beginning', step: 'draw' } })],
-    ['/orderedZones/0/objectIds/0', (view: SoloCoreComparableViewV1) => ({ ...view, orderedZones: [{ ...view.orderedZones[0], objectIds: ['PC2:0'] }, ...view.orderedZones.slice(1)] })],
-    ['/commanders/0/castCount', (view: SoloCoreComparableViewV1) => ({ ...view, commanders: [{ ...view.commanders[0], castCount: 1 }] })],
-    ['/combat', (view: SoloCoreComparableViewV1) => ({ ...view, combat: { turnNumber: 4, step: 'declare-attackers' as const, attackingPlayerId: 'P1' as never, defendingPlayerIds: ['P2'] as never, attacks: [], blocks: [] } })],
-  ])('reports every comparable mutation at %s', (path, mutate) => {
-    const result = compareSoloCoreCompatibilityV1(cloneView(), mutate(cloneView()) as unknown as SoloCoreComparableViewV1);
+    ['kind literal', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), kind: 'wrong' })],
+    ['schema version', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), schemaVersion: 2 })],
+    ['active player ID', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), activePlayerId: '' })],
+    ['positive turn number', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), turnNumber: 0 })],
+    ['safe turn number', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), turnNumber: Number.MAX_SAFE_INTEGER + 1 })],
+    ['phase literal', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), turnPosition: { phase: 'middle', step: null } })],
+    ['phase and step combination', (): SoloCoreComparableViewV1 => asComparableView({ ...cloneView(), turnPosition: { phase: 'beginning', step: null } })],
+    ['ordered zone literal', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, orderedZones: [{ ...view.orderedZones[0], zone: 'sideboard' }, ...view.orderedZones.slice(1)] });
+    }],
+    ['ordered zone player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, orderedZones: [{ ...view.orderedZones[0], playerId: '' }, ...view.orderedZones.slice(1)] });
+    }],
+    ['ordered zone object ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, orderedZones: [{ ...view.orderedZones[0], objectIds: [''] }, ...view.orderedZones.slice(1)] });
+    }],
+    ['commander physical-card ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, commanders: [{ ...view.commanders[0], physicalCardId: '' }] });
+    }],
+    ['commander owner player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, commanders: [{ ...view.commanders[0], ownerPlayerId: '' }] });
+    }],
+    ['non-negative commander cast count', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, commanders: [{ ...view.commanders[0], castCount: -1 }] });
+    }],
+    ['safe commander cast count', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, commanders: [{ ...view.commanders[0], castCount: Number.MAX_SAFE_INTEGER + 1 }] });
+    }],
+    ['positive combat turn number', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, turnNumber: 0 } });
+    }],
+    ['safe combat turn number', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, turnNumber: Number.MAX_SAFE_INTEGER + 1 } });
+    }],
+    ['combat step literal', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, step: 'combat-damage' } });
+    }],
+    ['combat attacking player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, attackingPlayerId: '' } });
+    }],
+    ['combat defending player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, defendingPlayerIds: [''] } });
+    }],
+    ['attack object ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, attacks: [{ ...view.combat?.attacks[0], attackerObjectId: '' }] } });
+    }],
+    ['attack controller player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, attacks: [{ ...view.combat?.attacks[0], attackerControllerPlayerId: '' }] } });
+    }],
+    ['attack defending player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, attacks: [{ ...view.combat?.attacks[0], defendingPlayerId: '' }] } });
+    }],
+    ['blocker object ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, blocks: [{ ...view.combat?.blocks[0], blockerObjectId: '' }] } });
+    }],
+    ['blocker controller player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, blocks: [{ ...view.combat?.blocks[0], blockerControllerPlayerId: '' }] } });
+    }],
+    ['blocked object ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, blocks: [{ ...view.combat?.blocks[0], attackedObjectId: '' }] } });
+    }],
+    ['block defending player ID', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({ ...view, combat: { ...view.combat, blocks: [{ ...view.combat?.blocks[0], defendingPlayerId: '' }] } });
+    }],
+  ] as const)('rejects structurally equal invalid views for %s', (_label, makeInvalid: () => SoloCoreComparableViewV1) => {
+    const solo = makeInvalid();
+    const core = makeInvalid();
+    const soloBefore = JSON.stringify(solo);
+    const coreBefore = JSON.stringify(core);
+    const first = compareSoloCoreCompatibilityV1(solo, core);
+    const second = compareSoloCoreCompatibilityV1(solo, core);
+    expect(first.kind).toBe('incompatible');
+    expect(first.issues).toEqual([
+      { code: 'VIEW_FIELD_MISMATCH', path: '', message: 'Comparable views could not be inspected safely' },
+    ]);
+    expect(second).toEqual(first);
+    expect(first.soloView).not.toBe(solo);
+    expect(first.coreView).not.toBe(core);
+    expect(isDeeplyFrozen(first.soloView)).toBe(true);
+    expect(isDeeplyFrozen(first.coreView)).toBe(true);
+    expect(JSON.stringify(solo)).toBe(soloBefore);
+    expect(JSON.stringify(core)).toBe(coreBefore);
+  });
+
+  it.each([
+    ['ordered zones', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, orderedZones: nullPrototypeArray([...view.orderedZones]) });
+    }],
+    ['ordered-zone object IDs', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      const zone = view.orderedZones[0];
+      return asComparableView({
+        ...view,
+        orderedZones: [{ ...zone, objectIds: nullPrototypeArray([...zone.objectIds]) }, ...view.orderedZones.slice(1)],
+      });
+    }],
+    ['commanders', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      return asComparableView({ ...view, commanders: nullPrototypeArray([...view.commanders]) });
+    }],
+    ['combat defending players', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({
+        ...view,
+        combat: { ...view.combat, defendingPlayerIds: nullPrototypeArray([...(view.combat?.defendingPlayerIds ?? [])]) },
+      });
+    }],
+    ['combat attacks', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({
+        ...view,
+        combat: { ...view.combat, attacks: nullPrototypeArray([...(view.combat?.attacks ?? [])]) },
+      });
+    }],
+    ['combat blocks', (): SoloCoreComparableViewV1 => {
+      const view = cloneCombatView();
+      return asComparableView({
+        ...view,
+        combat: { ...view.combat, blocks: nullPrototypeArray([...(view.combat?.blocks ?? [])]) },
+      });
+    }],
+  ] as const)('rejects equal comparable views with a non-ordinary %s array', (_label, makeInvalid) => {
+    const first = compareSoloCoreCompatibilityV1(makeInvalid(), makeInvalid());
+    const second = compareSoloCoreCompatibilityV1(makeInvalid(), makeInvalid());
+    expect(first.kind).toBe('incompatible');
+    expect(first.issues).toEqual([
+      { code: 'VIEW_FIELD_MISMATCH', path: '', message: 'Comparable views could not be inspected safely' },
+    ]);
+    expect(second).toEqual(first);
+    expect(isDeeplyFrozen(first.soloView)).toBe(true);
+    expect(isDeeplyFrozen(first.coreView)).toBe(true);
+  });
+
+  it.each([
+    ['throwing prototype trap', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      const hostile = new Proxy([...view.orderedZones], {
+        getPrototypeOf: (): never => { throw new Error('trap'); },
+      });
+      return asComparableView({ ...view, orderedZones: hostile });
+    }],
+    ['revoked array proxy', (): SoloCoreComparableViewV1 => {
+      const view = cloneView();
+      const revoked = Proxy.revocable([...view.orderedZones], {});
+      revoked.revoke();
+      return asComparableView({ ...view, orderedZones: revoked.proxy });
+    }],
+  ] as const)('fails closed with non-aliasing frozen evidence for a %s', (_label, makeHostile) => {
+    const solo = makeHostile();
+    const core = makeHostile();
+    const result = compareSoloCoreCompatibilityV1(solo, core);
+    expect(result.kind).toBe('incompatible');
+    expect(result.soloView).not.toBe(solo);
+    expect(result.coreView).not.toBe(core);
+    expect(result.issues).toEqual([
+      { code: 'VIEW_FIELD_MISMATCH', path: '', message: 'Comparable views could not be inspected safely' },
+    ]);
+    expect(isDeeplyFrozen(result.soloView)).toBe(true);
+    expect(isDeeplyFrozen(result.coreView)).toBe(true);
+  });
+
+  it.each([
+    ['kind', '', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => asComparableView({ ...view, kind: 'wrong' })],
+    ['schemaVersion', '', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => asComparableView({ ...view, schemaVersion: 2 })],
+    ['activePlayerId', '/activePlayerId', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, activePlayerId: 'P2' as never })],
+    ['turnNumber', '/turnNumber', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, turnNumber: 5 })],
+    ['turnPosition/step', '/turnPosition/step', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, turnPosition: { phase: 'beginning', step: 'draw' } })],
+    ['orderedZones/0/objectIds/0', '/orderedZones/0/objectIds/0', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, orderedZones: [{ ...view.orderedZones[0], objectIds: ['PC2:0'] as never }, ...view.orderedZones.slice(1)] })],
+    ['commanders/0/castCount', '/commanders/0/castCount', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, commanders: [{ ...view.commanders[0], castCount: 1 }] })],
+    ['combat', '/combat', (view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 => ({ ...view, combat: { turnNumber: 4, step: 'declare-attackers', attackingPlayerId: 'P1' as never, defendingPlayerIds: ['P2'] as never, attacks: [], blocks: [] } })],
+  ] as const)('reports every comparable mutation at %s', (_label, path, mutate: (view: SoloCoreComparableViewV1) => SoloCoreComparableViewV1) => {
+    const result = compareSoloCoreCompatibilityV1(cloneView(), mutate(cloneView()));
     expect(result.kind).toBe('incompatible');
     if (result.kind === 'incompatible') expect(result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path })]));
   });

@@ -204,11 +204,16 @@ function readExactRecord(
   return readable;
 }
 
+type IndexedArrayEntry = Readonly<{
+  readonly index: number;
+  readonly value: unknown;
+}>;
+
 function readDenseArray(
   input: unknown,
   path: string,
   issues: CompatibilityIssue[],
-): readonly unknown[] | null {
+): readonly IndexedArrayEntry[] | null {
   let array: boolean;
   try { array = Array.isArray(input); } catch {
     issues.push(issue('INVALID_DESCRIPTOR', path, 'Array inspection is not safe'));
@@ -242,12 +247,17 @@ function readDenseArray(
   }
   const length = rawLength;
   const allowed = new Set(['length', ...Array.from({ length }, (_, index) => String(index))]);
+  const present = new Set<PropertyKey>(keys);
   for (const key of keys) {
     if (typeof key !== 'string' || !allowed.has(key)) issues.push(issue('UNKNOWN_FIELD', `${path}/${typeof key === 'string' ? key : '<symbol>'}`, 'Unknown array property'));
   }
-  const values: unknown[] = [];
+  const values: IndexedArrayEntry[] = [];
   for (let index = 0; index < length; index += 1) {
     const key = String(index);
+    if (!present.has(key)) {
+      issues.push(issue('NON_DENSE_ARRAY', `${path}/${index}`, 'Array must expose every dense index'));
+      continue;
+    }
     let descriptor: PropertyDescriptor | undefined;
     try { descriptor = Object.getOwnPropertyDescriptor(value, key); } catch {
       issues.push(issue('INVALID_DESCRIPTOR', `${path}/${index}`, 'Array entry descriptor is not readable'));
@@ -258,7 +268,7 @@ function readDenseArray(
     } else if (descriptor.enumerable !== true || !('value' in descriptor)) {
       issues.push(issue('INVALID_DESCRIPTOR', `${path}/${index}`, 'Array entry must be an enumerable data property'));
     } else {
-      values.push(descriptor.value);
+      values.push(Object.freeze({ index, value: (descriptor as { readonly value: unknown }).value }));
     }
   }
   return values;
@@ -326,8 +336,9 @@ function normalizeIdentityMap(input: unknown): { readonly value: SoloCoreIdentit
   const objectSolo = new Set<string>();
   const objectCore = new Set<string>();
   const entry = (inputValue: unknown, fields: readonly string[], path: string): Record<string, unknown> | null => readExactRecord(inputValue, fields, path, issues);
-  for (const [index, raw] of (playersRaw ?? []).entries()) {
-    const value = entry(raw, ['soloPlayerId', 'corePlayerId'], `/players/${index}`);
+  for (const current of playersRaw ?? []) {
+    const index = current.index;
+    const value = entry(current.value, ['soloPlayerId', 'corePlayerId'], `/players/${index}`);
     if (value === null) continue;
     const solo = readString(value.soloPlayerId, `/players/${index}/soloPlayerId`, issues);
     const core = readString(value.corePlayerId, `/players/${index}/corePlayerId`, issues);
@@ -338,8 +349,9 @@ function normalizeIdentityMap(input: unknown): { readonly value: SoloCoreIdentit
     playerSolo.add(solo); playerCore.add(core);
     players.push(Object.freeze({ soloPlayerId: solo, corePlayerId: core as CorePlayerId }));
   }
-  for (const [index, raw] of (physicalRaw ?? []).entries()) {
-    const value = entry(raw, ['soloPhysicalCardId', 'corePhysicalCardId'], `/physicalCards/${index}`);
+  for (const current of physicalRaw ?? []) {
+    const index = current.index;
+    const value = entry(current.value, ['soloPhysicalCardId', 'corePhysicalCardId'], `/physicalCards/${index}`);
     if (value === null) continue;
     const solo = readString(value.soloPhysicalCardId, `/physicalCards/${index}/soloPhysicalCardId`, issues);
     const core = readString(value.corePhysicalCardId, `/physicalCards/${index}/corePhysicalCardId`, issues);
@@ -350,8 +362,9 @@ function normalizeIdentityMap(input: unknown): { readonly value: SoloCoreIdentit
     physicalSolo.add(solo); physicalCore.add(core);
     physicalCards.push(Object.freeze({ soloPhysicalCardId: solo, corePhysicalCardId: core as CorePhysicalCardId }));
   }
-  for (const [index, raw] of (objectsRaw ?? []).entries()) {
-    const value = entry(raw, ['soloObjectId', 'coreObjectId'], `/objects/${index}`);
+  for (const current of objectsRaw ?? []) {
+    const index = current.index;
+    const value = entry(current.value, ['soloObjectId', 'coreObjectId'], `/objects/${index}`);
     if (value === null) continue;
     const solo = readString(value.soloObjectId, `/objects/${index}/soloObjectId`, issues);
     const core = readString(value.coreObjectId, `/objects/${index}/coreObjectId`, issues);
@@ -472,6 +485,33 @@ function dataField(input: unknown, field: string): unknown {
   }
 }
 
+type SoloCombatFieldRead =
+  | Readonly<{ readonly kind: 'null' }>
+  | Readonly<{ readonly kind: 'value'; readonly value: unknown }>
+  | Readonly<{ readonly kind: 'invalid' }>;
+
+function readSoloCombatField(state: unknown, issues: CompatibilityIssue[]): SoloCombatFieldRead {
+  let descriptor: PropertyDescriptor | undefined;
+  try {
+    if (state === null || typeof state !== 'object') throw new TypeError('Expected Solo state');
+    descriptor = Object.getOwnPropertyDescriptor(state, 'combat');
+  } catch {
+    issues.push(issue('INVALID_SOURCE', '/combat', 'Solo combat field is not readable'));
+    return Object.freeze({ kind: 'invalid' });
+  }
+  if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) {
+    issues.push(issue('INVALID_SOURCE', '/combat', 'Solo combat must be an explicit enumerable data property'));
+    return Object.freeze({ kind: 'invalid' });
+  }
+  const value = (descriptor as { readonly value: unknown }).value;
+  if (value === undefined) {
+    issues.push(issue('INVALID_SOURCE', '/combat', 'Solo combat must be an explicit enumerable data property'));
+    return Object.freeze({ kind: 'invalid' });
+  }
+  if (value === null) return Object.freeze({ kind: 'null' });
+  return Object.freeze({ kind: 'value', value });
+}
+
 function recordKeys(input: unknown): readonly string[] | null {
   try {
     if (!isPlainRecord(input)) return null;
@@ -531,33 +571,70 @@ function coreRegistryOf(root: ModeNeutralCoreRootV1): Record<string, unknown> {
 
 function validateMapAgainstSolo(map: SoloCoreIdentityMapV1, state: unknown, issues: CompatibilityIssue[]): {
   readonly indexes: ReturnType<typeof mapIndexes>;
-  readonly cards: Record<string, unknown>;
-  readonly zones: Record<string, unknown>;
-  readonly zonesByPlayer: Record<string, unknown>;
+  readonly cards: Record<string, unknown> | null;
+  readonly zones: Record<string, unknown> | null;
+  readonly zonesByPlayer: Record<string, unknown> | null;
   readonly turnOrder: readonly string[];
-} | null {
+} {
   const indexes = mapIndexes(map);
   const cards = dataField(state, 'cards');
   const zones = dataField(state, 'zones');
   const zonesByPlayer = dataField(state, 'zonesByPlayer');
-  const turnOrder = arrayValue(dataField(state, 'turnOrder'));
-  if (!isPlainRecord(cards) || !isPlainRecord(zones) || !isPlainRecord(zonesByPlayer) || turnOrder === null || !turnOrder.every((id): id is string => typeof id === 'string')) {
+  const cardsRecord = isPlainRecord(cards) ? cards : null;
+  const zonesRecord = isPlainRecord(zones) ? zones : null;
+  const zonesByPlayerRecord = isPlainRecord(zonesByPlayer) ? zonesByPlayer : null;
+  if (cardsRecord === null || zonesRecord === null || zonesByPlayerRecord === null) {
     issues.push(issue('INVALID_SOURCE', '', 'Solo source state is not readable'));
-    return null;
   }
-  const turnSet = new Set(turnOrder);
-  for (const entry of map.players) {
-    if (!turnSet.has(entry.soloPlayerId) || !hasDataRecordEntry(zonesByPlayer, entry.soloPlayerId)) issues.push(issue('STALE_SOLO_REFERENCE', `/players/${entry.soloPlayerId}`, 'Solo player is not present in the state'));
+  const turnOrderEntries = readDenseArray(dataField(state, 'turnOrder'), '/turnOrder', issues);
+  let sourceTurnOrder: string[] | null = null;
+  if (turnOrderEntries !== null) {
+    const values: string[] = [];
+    for (const current of turnOrderEntries) {
+      if (typeof current.value !== 'string') {
+        issues.push(issue('INVALID_TYPE', `/turnOrder/${current.index}`, 'Turn-order entry must be a player ID'));
+      } else {
+        values.push(current.value);
+      }
+    }
+    if (values.length === turnOrderEntries.length) sourceTurnOrder = values;
   }
-  for (const playerId of turnOrder) if (!indexes.playerBySolo.has(playerId)) issues.push(issue('UNMAPPED_PLAYER', `/turnOrder/${playerId}`, 'Solo player is not mapped'));
-  for (const entry of map.physicalCards) if (!hasDataRecordEntry(cards, entry.soloPhysicalCardId)) issues.push(issue('STALE_SOLO_REFERENCE', `/physicalCards/${entry.soloPhysicalCardId}`, 'Solo physical card is not present in the state'));
-  const objectIds = new Set<string>();
-  for (const key of recordKeys(cards) ?? []) {
-    const objectId = soloObjectIdForCard(dataField(cards, key));
-    if (objectId !== null) objectIds.add(objectId);
+  if (sourceTurnOrder !== null) {
+    const turnSet = new Set(sourceTurnOrder);
+    for (const entry of map.players) {
+      if (!turnSet.has(entry.soloPlayerId) || zonesByPlayerRecord === null || !hasDataRecordEntry(zonesByPlayerRecord, entry.soloPlayerId)) {
+        issues.push(issue('STALE_SOLO_REFERENCE', `/players/${entry.soloPlayerId}`, 'Solo player is not present in the state'));
+      }
+    }
+    for (const current of sourceTurnOrder) {
+      if (!indexes.playerBySolo.has(current)) issues.push(issue('UNMAPPED_PLAYER', `/turnOrder/${current}`, 'Solo player is not mapped'));
+    }
   }
-  for (const entry of map.objects) if (!objectIds.has(entry.soloObjectId)) issues.push(issue('STALE_SOLO_REFERENCE', `/objects/${entry.soloObjectId}`, 'Solo object incarnation is not present in the state'));
-  return { indexes, cards, zones, zonesByPlayer, turnOrder: map.players.map((entry) => entry.soloPlayerId) };
+  if (cardsRecord !== null) {
+    for (const entry of map.physicalCards) {
+      if (!hasDataRecordEntry(cardsRecord, entry.soloPhysicalCardId)) issues.push(issue('STALE_SOLO_REFERENCE', `/physicalCards/${entry.soloPhysicalCardId}`, 'Solo physical card is not present in the state'));
+    }
+    const cardKeys = recordKeys(cardsRecord);
+    if (cardKeys === null) {
+      issues.push(issue('INVALID_SOURCE', '', 'Solo source state is not readable'));
+    } else {
+      const objectIds = new Set<string>();
+      for (const key of cardKeys) {
+        const objectId = soloObjectIdForCard(dataField(cardsRecord, key));
+        if (objectId !== null) objectIds.add(objectId);
+      }
+      for (const entry of map.objects) {
+        if (!objectIds.has(entry.soloObjectId)) issues.push(issue('STALE_SOLO_REFERENCE', `/objects/${entry.soloObjectId}`, 'Solo object incarnation is not present in the state'));
+      }
+    }
+  }
+  return {
+    indexes,
+    cards: cardsRecord,
+    zones: zonesRecord,
+    zonesByPlayer: zonesByPlayerRecord,
+    turnOrder: map.players.map((entry) => entry.soloPlayerId),
+  };
 }
 
 function validateMapAgainstCore(map: SoloCoreIdentityMapV1, root: ModeNeutralCoreRootV1, issues: CompatibilityIssue[]): {
@@ -588,11 +665,12 @@ function validateMapAgainstCore(map: SoloCoreIdentityMapV1, root: ModeNeutralCor
 
 function mapSoloZoneObject(
   soloCardId: unknown,
-  state: Record<string, unknown>,
+  state: Record<string, unknown> | null,
   indexes: ReturnType<typeof mapIndexes>,
   path: string,
   issues: CompatibilityIssue[],
 ): CoreObjectId | null {
+  if (state === null) return null;
   if (typeof soloCardId !== 'string' || !hasDataRecordEntry(state, soloCardId)) {
     issues.push(issue('STALE_SOLO_REFERENCE', path, 'Solo zone references an unknown card'));
     return null;
@@ -613,7 +691,31 @@ function mapSoloZoneObject(
   return mapped;
 }
 
-function soloTurnPosition(state: unknown, issues: CompatibilityIssue[]): SoloCoreComparableTurnPositionV1 | null {
+function mapSoloCombatObject(
+  soloCardId: unknown,
+  storedObjectId: unknown,
+  state: Record<string, unknown> | null,
+  indexes: ReturnType<typeof mapIndexes>,
+  cardPath: string,
+  objectPath: string,
+  issues: CompatibilityIssue[],
+): CoreObjectId | null {
+  if (state === null) return null;
+  const mapped = mapSoloZoneObject(soloCardId, state, indexes, cardPath, issues);
+  if (typeof soloCardId !== 'string' || !hasDataRecordEntry(state, soloCardId)) return null;
+  const currentObjectId = soloObjectIdForCard(dataField(state, soloCardId));
+  if (typeof storedObjectId !== 'string' || currentObjectId === null || storedObjectId !== currentObjectId) {
+    issues.push(issue('STALE_SOLO_REFERENCE', objectPath, 'Solo combat references a stale object incarnation'));
+    return null;
+  }
+  return mapped;
+}
+
+function soloTurnPosition(
+  state: unknown,
+  combatField: SoloCombatFieldRead,
+  issues: CompatibilityIssue[],
+): SoloCoreComparableTurnPositionV1 | null {
   const phase = dataField(state, 'phase');
   if (phase === 'untap' || phase === 'upkeep' || phase === 'draw') return Object.freeze({ phase: 'beginning', step: phase });
   if (phase === 'main1') return Object.freeze({ phase: 'precombat-main', step: null });
@@ -621,7 +723,8 @@ function soloTurnPosition(state: unknown, issues: CompatibilityIssue[]): SoloCor
   if (phase === 'end') return Object.freeze({ phase: 'ending', step: 'end' });
   if (phase === 'cleanup') return Object.freeze({ phase: 'ending', step: 'cleanup' });
   if (phase === 'combat') {
-    const combat = dataField(state, 'combat');
+    if (combatField.kind === 'invalid') return null;
+    const combat = combatField.kind === 'value' ? combatField.value : null;
     const step = isPlainRecord(combat) ? dataField(combat, 'step') : undefined;
     const translated = step === 'beginningOfCombat' ? 'beginning-of-combat'
       : step === 'declareAttackers' ? 'declare-attackers'
@@ -635,14 +738,22 @@ function soloTurnPosition(state: unknown, issues: CompatibilityIssue[]): SoloCor
 }
 
 function soloCombat(
-  state: unknown,
+  combatField: SoloCombatFieldRead,
   indexes: ReturnType<typeof mapIndexes>,
-  cards: Record<string, unknown>,
+  cards: Record<string, unknown> | null,
+  soloTurn: number | null,
   issues: CompatibilityIssue[],
 ): SoloCoreComparableCombatV1 | null {
-  const raw = dataField(state, 'combat');
-  if (raw === null || raw === undefined) return null;
+  if (combatField.kind !== 'value') return null;
+  const raw = combatField.value;
   if (!isPlainRecord(raw)) { issues.push(issue('INVALID_SOURCE', '/combat', 'Solo combat is not readable')); return null; }
+  const combatTurn = dataField(raw, 'turn');
+  const combatTurnNumber = typeof combatTurn === 'number' && Number.isSafeInteger(combatTurn) && combatTurn >= 1
+    ? combatTurn
+    : null;
+  if (combatTurnNumber === null || soloTurn === null || combatTurnNumber !== soloTurn) {
+    issues.push(issue('INVALID_SOURCE', '/combat/turn', 'Combat turn must be a positive safe integer matching Solo turn'));
+  }
   const step = dataField(raw, 'step');
   if (step !== 'declareAttackers' && step !== 'declareBlockers') {
     issues.push(issue('UNSUPPORTED_COMBAT_STEP', '/combat/step', 'Only combat assignments are comparable'));
@@ -656,20 +767,29 @@ function soloCombat(
   if (defending === undefined) issues.push(issue('UNMAPPED_PLAYER', '/combat/defendingPlayerId', 'Defending player is not mapped'));
   const attackers: SoloCoreComparableCombatV1['attacks'][number][] = [];
   const blockers: SoloCoreComparableCombatV1['blocks'][number][] = [];
-  const attackerValues = arrayValue(dataField(raw, 'attackers'));
-  const blockerValues = arrayValue(dataField(raw, 'blockers'));
+  const attackerValues = readDenseArray(dataField(raw, 'attackers'), '/combat/attackers', issues);
+  const blockerValues = readDenseArray(dataField(raw, 'blockers'), '/combat/blockers', issues);
   if (attackerValues === null || blockerValues === null) {
     issues.push(issue('INVALID_SOURCE', '/combat', 'Combat assignments must be arrays'));
-    return null;
   }
-  for (const [index, value] of attackerValues.entries()) {
+  for (const current of attackerValues ?? []) {
+    const index = current.index;
+    const value = current.value;
     if (!isPlainRecord(value)) { issues.push(issue('INVALID_SOURCE', `/combat/attackers/${index}`, 'Attacker is not readable')); continue; }
+    const attackerObjectId = mapSoloCombatObject(
+      dataField(value, 'cardId'),
+      dataField(value, 'objectId'),
+      cards,
+      indexes,
+      `/combat/attackers/${index}/cardId`,
+      `/combat/attackers/${index}/objectId`,
+      issues,
+    );
     const target = dataField(value, 'target');
     if (!isPlainRecord(target) || dataField(target, 'type') !== 'player') {
       issues.push(issue('UNSUPPORTED_COMBAT_TARGET', `/combat/attackers/${index}/target`, 'Battle targets are not transformable in V1'));
       continue;
     }
-    const attackerObjectId = mapSoloZoneObject(dataField(value, 'cardId'), cards, indexes, `/combat/attackers/${index}/cardId`, issues);
     const controllerSolo = dataField(value, 'controllerId');
     const controller = typeof controllerSolo === 'string' ? indexes.playerBySolo.get(controllerSolo) : undefined;
     const targetPlayer = dataField(target, 'playerId');
@@ -678,22 +798,33 @@ function soloCombat(
     if (targetCore === undefined) issues.push(issue('UNMAPPED_PLAYER', `/combat/attackers/${index}/target/playerId`, 'Attack target is not mapped'));
     if (attackerObjectId !== null && controller !== undefined && targetCore !== undefined) attackers.push(Object.freeze({ attackerObjectId, attackerControllerPlayerId: controller, defendingPlayerId: targetCore }));
   }
-  for (const [index, value] of blockerValues.entries()) {
+  for (const current of blockerValues ?? []) {
+    const index = current.index;
+    const value = current.value;
     if (!isPlainRecord(value)) { issues.push(issue('INVALID_SOURCE', `/combat/blockers/${index}`, 'Blocker is not readable')); continue; }
-    const blockerObjectId = mapSoloZoneObject(dataField(value, 'cardId'), cards, indexes, `/combat/blockers/${index}/cardId`, issues);
+    const blockerObjectId = mapSoloCombatObject(
+      dataField(value, 'cardId'),
+      dataField(value, 'objectId'),
+      cards,
+      indexes,
+      `/combat/blockers/${index}/cardId`,
+      `/combat/blockers/${index}/objectId`,
+      issues,
+    );
     const controllerSolo = dataField(value, 'controllerId');
     const controller = typeof controllerSolo === 'string' ? indexes.playerBySolo.get(controllerSolo) : undefined;
-    const blocking = arrayValue(dataField(value, 'blocking'));
+    const blocking = readDenseArray(dataField(value, 'blocking'), `/combat/blockers/${index}/blocking`, issues);
     if (blocking === null) { issues.push(issue('INVALID_SOURCE', `/combat/blockers/${index}/blocking`, 'Blocking assignments must be an array')); continue; }
     if (controller === undefined) issues.push(issue('UNMAPPED_PLAYER', `/combat/blockers/${index}/controllerId`, 'Blocker controller is not mapped'));
-    for (const [blockedIndex, blockedCardId] of blocking.entries()) {
-      const attackedObjectId = mapSoloZoneObject(blockedCardId, cards, indexes, `/combat/blockers/${index}/blocking/${blockedIndex}`, issues);
+    for (const blocked of blocking) {
+      const blockedIndex = blocked.index;
+      const attackedObjectId = mapSoloZoneObject(blocked.value, cards, indexes, `/combat/blockers/${index}/blocking/${blockedIndex}`, issues);
       if (blockerObjectId !== null && attackedObjectId !== null && controller !== undefined && defending !== undefined) blockers.push(Object.freeze({ blockerObjectId, blockerControllerPlayerId: controller, attackedObjectId, defendingPlayerId: defending }));
     }
   }
-  if (issues.length > 0 || attacking === undefined || defending === undefined) return null;
+  if (issues.length > 0 || attacking === undefined || defending === undefined || combatTurnNumber === null) return null;
   return Object.freeze({
-    turnNumber: typeof dataField(raw, 'turn') === 'number' ? dataField(raw, 'turn') as number : 0,
+    turnNumber: combatTurnNumber,
     step: step === 'declareAttackers' ? 'declare-attackers' : 'declare-blockers',
     attackingPlayerId: attacking,
     defendingPlayerIds: Object.freeze([defending]),
@@ -708,41 +839,55 @@ function soloProjectZones(
 ): readonly SoloCoreComparableZoneV1[] {
   const zones: SoloCoreComparableZoneV1[] = [];
   const privateZones = ['library', 'hand', 'graveyard'] as const;
-  for (const playerId of stateInfo.turnOrder) {
-    const corePlayerId = stateInfo.indexes.playerBySolo.get(playerId);
-    const playerZones = dataField(stateInfo.zonesByPlayer, playerId);
-    if (corePlayerId === undefined || !isPlainRecord(playerZones)) { issues.push(issue('INVALID_SOURCE', `/zonesByPlayer/${playerId}`, 'Player private zones are not readable')); continue; }
-    for (const zone of privateZones) {
-      const entries = arrayValue(dataField(playerZones, zone));
-      if (entries === null) { issues.push(issue('INVALID_SOURCE', `/zonesByPlayer/${playerId}/${zone}`, 'Zone must be an array')); zones.push(Object.freeze({ playerId: corePlayerId, zone, objectIds: Object.freeze([]) })); continue; }
-      const objectIds = entries.map((cardId, index) => mapSoloZoneObject(cardId, stateInfo.cards, stateInfo.indexes, `/zonesByPlayer/${playerId}/${zone}/${index}`, issues)).filter((id): id is CoreObjectId => id !== null);
-      zones.push(Object.freeze({ playerId: corePlayerId, zone, objectIds: Object.freeze(objectIds) }));
+  if (stateInfo.zonesByPlayer !== null) {
+    for (const playerId of stateInfo.turnOrder) {
+      const corePlayerId = stateInfo.indexes.playerBySolo.get(playerId);
+      const playerZones = dataField(stateInfo.zonesByPlayer, playerId);
+      if (corePlayerId === undefined || !isPlainRecord(playerZones)) { issues.push(issue('INVALID_SOURCE', `/zonesByPlayer/${playerId}`, 'Player private zones are not readable')); continue; }
+      for (const zone of privateZones) {
+        const entries = readDenseArray(dataField(playerZones, zone), `/zonesByPlayer/${playerId}/${zone}`, issues);
+        if (entries === null) { issues.push(issue('INVALID_SOURCE', `/zonesByPlayer/${playerId}/${zone}`, 'Zone must be an array')); zones.push(Object.freeze({ playerId: corePlayerId, zone, objectIds: Object.freeze([]) })); continue; }
+        const objectIds: CoreObjectId[] = [];
+        for (const current of entries) {
+          const mapped = mapSoloZoneObject(current.value, stateInfo.cards, stateInfo.indexes, `/zonesByPlayer/${playerId}/${zone}/${current.index}`, issues);
+          if (mapped !== null) objectIds.push(mapped);
+        }
+        zones.push(Object.freeze({ playerId: corePlayerId, zone, objectIds: Object.freeze(objectIds) }));
+      }
     }
   }
   for (const zone of ['battlefield', 'stack', 'exile', 'command'] as const) {
-    const entries = arrayValue(dataField(stateInfo.zones, zone));
+    const entries = stateInfo.zones === null
+      ? null
+      : readDenseArray(dataField(stateInfo.zones, zone), `/zones/${zone}`, issues);
     if (entries === null) { issues.push(issue('INVALID_SOURCE', `/zones/${zone}`, 'Shared zone must be an array')); zones.push(Object.freeze({ playerId: null, zone, objectIds: Object.freeze([]) })); continue; }
-    const objectIds = entries.map((cardId, index) => mapSoloZoneObject(cardId, stateInfo.cards, stateInfo.indexes, `/zones/${zone}/${index}`, issues)).filter((id): id is CoreObjectId => id !== null);
+    const objectIds: CoreObjectId[] = [];
+    for (const current of entries) {
+      const mapped = mapSoloZoneObject(current.value, stateInfo.cards, stateInfo.indexes, `/zones/${zone}/${current.index}`, issues);
+      if (mapped !== null) objectIds.push(mapped);
+    }
     zones.push(Object.freeze({ playerId: null, zone, objectIds: Object.freeze(objectIds) }));
   }
   return Object.freeze(zones);
 }
 
-function soloProjectCommanders(state: unknown, indexes: ReturnType<typeof mapIndexes>, cards: Record<string, unknown>, issues: CompatibilityIssue[]): readonly SoloCoreComparableCommanderV1[] {
-  const values = arrayValue(dataField(state, 'commanders'));
+function soloProjectCommanders(state: unknown, indexes: ReturnType<typeof mapIndexes>, cards: Record<string, unknown> | null, issues: CompatibilityIssue[]): readonly SoloCoreComparableCommanderV1[] {
+  const values = readDenseArray(dataField(state, 'commanders'), '/commanders', issues);
   if (values === null) { issues.push(issue('INVALID_SOURCE', '/commanders', 'Commanders must be an array')); return Object.freeze([]); }
   const result: SoloCoreComparableCommanderV1[] = [];
-  for (const [index, value] of values.entries()) {
+  for (const current of values) {
+    const index = current.index;
+    const value = current.value;
     if (!isPlainRecord(value)) { issues.push(issue('INVALID_SOURCE', `/commanders/${index}`, 'Commander is not readable')); continue; }
     const cardId = dataField(value, 'cardId');
-    const card = typeof cardId === 'string' ? dataField(cards, cardId) : undefined;
+    const card = cards !== null && typeof cardId === 'string' ? dataField(cards, cardId) : undefined;
     const physical = typeof cardId === 'string' && isPlainRecord(card) ? dataField(card, 'id') : undefined;
-    const corePhysical = typeof physical === 'string' ? indexes.physicalBySolo.get(physical) : undefined;
+    const corePhysical = cards !== null && typeof physical === 'string' ? indexes.physicalBySolo.get(physical) : undefined;
     const owner = isPlainRecord(card) ? dataField(card, 'ownerId') : undefined;
-    const coreOwner = typeof owner === 'string' ? indexes.playerBySolo.get(owner) : undefined;
+    const coreOwner = cards !== null && typeof owner === 'string' ? indexes.playerBySolo.get(owner) : undefined;
     const castCount = dataField(value, 'castCount');
-    if (corePhysical === undefined) issues.push(issue('UNMAPPED_PHYSICAL_CARD', `/commanders/${index}/cardId`, 'Commander physical card is not mapped'));
-    if (coreOwner === undefined) issues.push(issue('UNMAPPED_PLAYER', `/commanders/${index}/ownerId`, 'Commander owner is not mapped'));
+    if (cards !== null && corePhysical === undefined) issues.push(issue('UNMAPPED_PHYSICAL_CARD', `/commanders/${index}/cardId`, 'Commander physical card is not mapped'));
+    if (cards !== null && coreOwner === undefined) issues.push(issue('UNMAPPED_PLAYER', `/commanders/${index}/ownerId`, 'Commander owner is not mapped'));
     if (typeof castCount !== 'number' || !Number.isSafeInteger(castCount) || castCount < 0) issues.push(issue('INVALID_SOURCE', `/commanders/${index}/castCount`, 'Commander cast count is invalid'));
     if (corePhysical !== undefined && coreOwner !== undefined && typeof castCount === 'number' && Number.isSafeInteger(castCount) && castCount >= 0) result.push(Object.freeze({ physicalCardId: corePhysical, ownerPlayerId: coreOwner, castCount }));
   }
@@ -838,20 +983,37 @@ function projectSoloUnchecked(state: unknown, map: SoloCoreIdentityMapV1): Proje
   const active = dataField(state, 'activePlayerId');
   const activePlayerId = typeof active === 'string' ? indexes.playerBySolo.get(active) : undefined;
   const turn = dataField(state, 'turn');
+  const validTurn = typeof turn === 'number' && Number.isSafeInteger(turn) && turn >= 1;
   if (activePlayerId === undefined) issues.push(issue('UNMAPPED_PLAYER', '/activePlayerId', 'Active Solo player is not mapped'));
-  if (typeof turn !== 'number' || !Number.isSafeInteger(turn) || turn < 1) issues.push(issue('INVALID_SOURCE', '/turn', 'Turn number is invalid'));
+  if (!validTurn) issues.push(issue('INVALID_SOURCE', '/turn', 'Turn number is invalid'));
   const stateInfo = validateMapAgainstSolo(map, state, issues);
-  if (stateInfo === null) return rejected(issues);
-  const turnPosition = soloTurnPosition(state, issues);
-  const combat = soloCombat(state, stateInfo.indexes, stateInfo.cards, issues);
-  const orderedZones = soloProjectZones(stateInfo, issues);
-  const commanders = soloProjectCommanders(state, stateInfo.indexes, stateInfo.cards, issues);
-  if (issues.length > 0 || activePlayerId === undefined || turnPosition === null) return rejected(issues);
+  const combatField = readSoloCombatField(state, issues);
+  const turnPosition = soloTurnPosition(state, combatField, issues);
+  const soloTurnNumber = validTurn ? turn : null;
+  let combat: SoloCoreComparableCombatV1 | null = null;
+  try {
+    combat = soloCombat(combatField, stateInfo.indexes, stateInfo.cards, soloTurnNumber, issues);
+  } catch {
+    issues.push(issue('INVALID_SOURCE', '/combat', 'Solo combat could not be inspected safely'));
+  }
+  let orderedZones: readonly SoloCoreComparableZoneV1[] = Object.freeze([]);
+  try {
+    orderedZones = soloProjectZones(stateInfo, issues);
+  } catch {
+    issues.push(issue('INVALID_SOURCE', '/zones', 'Solo zones could not be inspected safely'));
+  }
+  let commanders: readonly SoloCoreComparableCommanderV1[] = Object.freeze([]);
+  try {
+    commanders = soloProjectCommanders(state, stateInfo.indexes, stateInfo.cards, issues);
+  } catch {
+    issues.push(issue('INVALID_SOURCE', '/commanders', 'Solo commanders could not be inspected safely'));
+  }
+  if (issues.length > 0 || activePlayerId === undefined || turnPosition === null || soloTurnNumber === null) return rejected(issues);
   const view: SoloCoreComparableViewV1 = Object.freeze({
     kind: 'solo-core-comparable-view-v1',
     schemaVersion: 1,
     activePlayerId,
-    turnNumber: turn as number,
+    turnNumber: soloTurnNumber,
     turnPosition,
     orderedZones,
     commanders,

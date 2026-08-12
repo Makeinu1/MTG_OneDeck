@@ -92,14 +92,77 @@ function nullableStringValue(input: object, field: string): string | null {
   return value;
 }
 
+function idValue(input: object, field: string): string {
+  const value = stringValue(input, field);
+  if (value.length === 0) throw new TypeError('Expected non-empty ID');
+  return value;
+}
+
+function nullableIdValue(input: object, field: string): string | null {
+  const value = nullableStringValue(input, field);
+  if (value !== null && value.length === 0) throw new TypeError('Expected nullable non-empty ID');
+  return value;
+}
+
+function positiveSafeIntegerValue(input: object, field: string): number {
+  const value = numberValue(input, field);
+  if (!Number.isSafeInteger(value) || value < 1) throw new TypeError('Expected positive safe integer');
+  return value;
+}
+
+function nonNegativeSafeIntegerValue(input: object, field: string): number {
+  const value = numberValue(input, field);
+  if (!Number.isSafeInteger(value) || value < 0) throw new TypeError('Expected non-negative safe integer');
+  return value;
+}
+
+function validateTurnPosition(phase: string, step: string | null): void {
+  const valid = phase === 'beginning'
+    ? step === 'untap' || step === 'upkeep' || step === 'draw'
+    : phase === 'precombat-main' || phase === 'postcombat-main'
+      ? step === null
+      : phase === 'combat'
+        ? step === 'beginning-of-combat'
+          || step === 'declare-attackers'
+          || step === 'declare-blockers'
+          || step === 'combat-damage'
+          || step === 'end-of-combat'
+        : phase === 'ending'
+          ? step === 'end' || step === 'cleanup'
+          : false;
+  if (!valid) throw new TypeError('Expected valid turn position');
+}
+
+const ZONE_LITERALS = new Set([
+  'library',
+  'hand',
+  'graveyard',
+  'battlefield',
+  'stack',
+  'exile',
+  'command',
+]);
+
 function mapDenseArray<T>(input: unknown, copy: (value: unknown) => T): T[] {
   if (!Array.isArray(input)) throw new TypeError('Expected array');
+  let prototype: object | null;
+  try {
+    prototype = Reflect.getPrototypeOf(input);
+  } catch {
+    throw new TypeError('Expected readable array prototype');
+  }
+  if (prototype !== Array.prototype) throw new TypeError('Expected ordinary array');
   const lengthDescriptor = Object.getOwnPropertyDescriptor(input, 'length');
   if (lengthDescriptor === undefined || !('value' in lengthDescriptor)) throw new TypeError('Expected array length');
   const length: unknown = lengthDescriptor.value;
   if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) throw new TypeError('Expected valid array length');
   const keys = Reflect.ownKeys(input);
-  if (keys.length !== length + 1 || !keys.includes('length')) throw new TypeError('Expected dense array');
+  const allowed = new Set(['length', ...Array.from({ length }, (_, index) => String(index))]);
+  const present = new Set<PropertyKey>(keys);
+  if (keys.some((key) => typeof key !== 'string' || !allowed.has(key))) throw new TypeError('Expected exact array shape');
+  for (let index = 0; index < length; index += 1) {
+    if (!present.has(String(index))) throw new TypeError('Expected dense array');
+  }
   const result: T[] = [];
   for (let index = 0; index < length; index += 1) {
     result.push(copy(dataValue(input, String(index))));
@@ -109,18 +172,29 @@ function mapDenseArray<T>(input: unknown, copy: (value: unknown) => T): T[] {
 
 function copyView(view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 {
   const source = exactRecord(view, ['kind', 'schemaVersion', 'activePlayerId', 'turnNumber', 'turnPosition', 'orderedZones', 'commanders', 'combat']);
+  const kind = stringValue(source, 'kind');
+  if (kind !== 'solo-core-comparable-view-v1') throw new TypeError('Invalid comparable view kind');
+  const schemaVersion = numberValue(source, 'schemaVersion');
+  if (schemaVersion !== 1) throw new TypeError('Invalid comparable view schema version');
+  const activePlayerId = idValue(source, 'activePlayerId');
+  const turnNumber = positiveSafeIntegerValue(source, 'turnNumber');
   const rawTurnPosition = exactRecord(dataValue(source, 'turnPosition'), ['phase', 'step']);
+  const phase = stringValue(rawTurnPosition, 'phase');
+  const step = nullableStringValue(rawTurnPosition, 'step');
+  validateTurnPosition(phase, step);
   const turnPosition = {
-    phase: stringValue(rawTurnPosition, 'phase'),
-    step: nullableStringValue(rawTurnPosition, 'step'),
+    phase,
+    step,
   };
   const orderedZones = mapDenseArray(dataValue(source, 'orderedZones'), (rawZone) => {
     const zone = exactRecord(rawZone, ['playerId', 'zone', 'objectIds']);
+    const zoneLiteral = stringValue(zone, 'zone');
+    if (!ZONE_LITERALS.has(zoneLiteral)) throw new TypeError('Invalid comparable zone');
     return {
-      playerId: nullableStringValue(zone, 'playerId'),
-      zone: stringValue(zone, 'zone'),
+      playerId: nullableIdValue(zone, 'playerId'),
+      zone: zoneLiteral,
       objectIds: mapDenseArray(dataValue(zone, 'objectIds'), (objectId) => {
-        if (typeof objectId !== 'string') throw new TypeError('Expected object ID');
+        if (typeof objectId !== 'string' || objectId.length === 0) throw new TypeError('Expected object ID');
         return objectId;
       }),
     };
@@ -128,46 +202,48 @@ function copyView(view: SoloCoreComparableViewV1): SoloCoreComparableViewV1 {
   const commanders = mapDenseArray(dataValue(source, 'commanders'), (rawCommander) => {
     const commander = exactRecord(rawCommander, ['physicalCardId', 'ownerPlayerId', 'castCount']);
     return {
-      physicalCardId: stringValue(commander, 'physicalCardId'),
-      ownerPlayerId: stringValue(commander, 'ownerPlayerId'),
-      castCount: numberValue(commander, 'castCount'),
+      physicalCardId: idValue(commander, 'physicalCardId'),
+      ownerPlayerId: idValue(commander, 'ownerPlayerId'),
+      castCount: nonNegativeSafeIntegerValue(commander, 'castCount'),
     };
   });
   const rawCombat = dataValue(source, 'combat');
   const combat = rawCombat === null ? null : (() => {
     const value = exactRecord(rawCombat, ['turnNumber', 'step', 'attackingPlayerId', 'defendingPlayerIds', 'attacks', 'blocks']);
+    const combatStep = stringValue(value, 'step');
+    if (combatStep !== 'declare-attackers' && combatStep !== 'declare-blockers') throw new TypeError('Invalid comparable combat step');
     return {
-      turnNumber: numberValue(value, 'turnNumber'),
-      step: stringValue(value, 'step'),
-      attackingPlayerId: stringValue(value, 'attackingPlayerId'),
+      turnNumber: positiveSafeIntegerValue(value, 'turnNumber'),
+      step: combatStep,
+      attackingPlayerId: idValue(value, 'attackingPlayerId'),
       defendingPlayerIds: mapDenseArray(dataValue(value, 'defendingPlayerIds'), (playerId) => {
-        if (typeof playerId !== 'string') throw new TypeError('Expected player ID');
+        if (typeof playerId !== 'string' || playerId.length === 0) throw new TypeError('Expected player ID');
         return playerId;
       }),
       attacks: mapDenseArray(dataValue(value, 'attacks'), (rawAttack) => {
         const attack = exactRecord(rawAttack, ['attackerObjectId', 'attackerControllerPlayerId', 'defendingPlayerId']);
         return {
-          attackerObjectId: stringValue(attack, 'attackerObjectId'),
-          attackerControllerPlayerId: stringValue(attack, 'attackerControllerPlayerId'),
-          defendingPlayerId: stringValue(attack, 'defendingPlayerId'),
+          attackerObjectId: idValue(attack, 'attackerObjectId'),
+          attackerControllerPlayerId: idValue(attack, 'attackerControllerPlayerId'),
+          defendingPlayerId: idValue(attack, 'defendingPlayerId'),
         };
       }),
       blocks: mapDenseArray(dataValue(value, 'blocks'), (rawBlock) => {
         const block = exactRecord(rawBlock, ['blockerObjectId', 'blockerControllerPlayerId', 'attackedObjectId', 'defendingPlayerId']);
         return {
-          blockerObjectId: stringValue(block, 'blockerObjectId'),
-          blockerControllerPlayerId: stringValue(block, 'blockerControllerPlayerId'),
-          attackedObjectId: stringValue(block, 'attackedObjectId'),
-          defendingPlayerId: stringValue(block, 'defendingPlayerId'),
+          blockerObjectId: idValue(block, 'blockerObjectId'),
+          blockerControllerPlayerId: idValue(block, 'blockerControllerPlayerId'),
+          attackedObjectId: idValue(block, 'attackedObjectId'),
+          defendingPlayerId: idValue(block, 'defendingPlayerId'),
         };
       }),
     };
   })();
   return freezeDeep({
-    kind: stringValue(source, 'kind'),
-    schemaVersion: numberValue(source, 'schemaVersion'),
-    activePlayerId: stringValue(source, 'activePlayerId'),
-    turnNumber: numberValue(source, 'turnNumber'),
+    kind,
+    schemaVersion,
+    activePlayerId,
+    turnNumber,
     turnPosition,
     orderedZones,
     commanders,
