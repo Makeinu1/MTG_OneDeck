@@ -24,6 +24,17 @@
       "reason": "Roomの純粋application境界、4席不変条件、Core退出との分離を専用通常・review・architecture証拠で検証する。"
     },
     {
+      "id": "online-protocol",
+      "description": "ローカルin-memory protocol、hello、command ACK/reject、revision、dedup、resync",
+      "sourcePatterns": ["src/online/protocol/**"],
+      "testPatterns": ["src/online/protocol/**/*.test.ts", "src/test/architecture/review.o4p-02c-in-memory-protocol-boundary.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-MULTIPLAYER", "CONTRACT-ACCEPTANCE"],
+      "dependentDomains": ["online-room"],
+      "escalationLevel": "targeted",
+      "reason": "protocol version、認証、Core command適用、revision/dedup、metadata-only resyncを通常・review・architecture証拠で検証する。"
+    },
+    {
       "id": "engine-state",
       "description": "GameState、オブジェクトidentity、runtime値、不変性",
       "sourcePatterns": ["src/engine/**", "src/engine/types.ts", "src/engine/init.ts", "src/engine/core/object/**", "src/engine/core/runtime/**", "src/engine/core/rules/**"],

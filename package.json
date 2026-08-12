@@ -46,6 +46,7 @@
     "verify:mode-neutral-core-closure": "tsx scripts/checks/verify-mode-neutral-core-closure.ts",
     "verify:solo-core-compatibility": "tsx scripts/checks/verify-solo-core-compatibility.ts",
     "verify:online-four-seat-room": "tsx scripts/checks/verify-online-four-seat-room.ts",
+    "verify:online-in-memory-protocol": "tsx scripts/checks/verify-online-in-memory-protocol.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

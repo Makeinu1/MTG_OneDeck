@@ -1,0 +1,73 @@
+{
+  "version": "online-in-memory-protocol-v1",
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "serverBuildId": "server-o4p-02c",
+  "matchingClientBuildId": "server-o4p-02c",
+  "differentClientBuildId": "client-o4p-02c",
+  "roomId": "room-o4p-02c",
+  "seatAssignments": [
+    {
+      "seatIndex": 0,
+      "corePlayerId": "P1",
+      "seatCapability": "seat_capability_AAAAAAAAAAAAAAAA"
+    },
+    {
+      "seatIndex": 1,
+      "corePlayerId": "P2",
+      "seatCapability": "seat_capability_BBBBBBBBBBBBBBBB"
+    },
+    {
+      "seatIndex": 2,
+      "corePlayerId": "P3",
+      "seatCapability": "seat_capability_CCCCCCCCCCCCCCCC"
+    },
+    {
+      "seatIndex": 3,
+      "corePlayerId": "P4",
+      "seatCapability": "seat_capability_DDDDDDDDDDDDDDDD"
+    }
+  ],
+  "host": {
+    "participantId": "host-p1",
+    "seatCapability": "seat_capability_AAAAAAAAAAAAAAAA"
+  },
+  "players": ["host-p1", "player-p2", "player-p3", "player-p4"],
+  "tableParticipantId": "table-display",
+  "spectatorParticipantId": "spectator-a",
+  "observerAuthorizations": [
+    {
+      "participantId": "table-display",
+      "observerCapability": "observer_capability_TTTTTTTTTTTTT"
+    },
+    {
+      "participantId": "spectator-a",
+      "observerCapability": "observer_capability_SSSSSSSSSSSSS"
+    }
+  ],
+  "commandId": "command-accepted-1",
+  "staleCommandId": "command-stale-1",
+  "responseKinds": [
+    "online-server-hello-v1",
+    "online-command-ack-v1",
+    "online-command-reject-v1",
+    "online-resync-v1"
+  ],
+  "revisionSource": "coreRoot.acceptedCommandCount",
+  "deduplicationKey": ["participantId", "commandId"],
+  "privacyBoundary": {
+    "responsesAreMetadataOnly": true,
+    "capabilitiesReturned": false,
+    "coreRootReturned": false,
+    "coreEventsReturned": false,
+    "coreWarningsReturned": false,
+    "projectionDeferredTo": "O4P-02D"
+  },
+  "transportBoundary": {
+    "inMemoryOnly": true,
+    "webSocket": false,
+    "cloudflare": false,
+    "storage": false,
+    "clockOrRandomness": false
+  }
+}

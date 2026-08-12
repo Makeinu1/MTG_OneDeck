@@ -12,6 +12,7 @@
     "verify-mode-neutral-core-rule-authority.ts",
     "verify-mode-neutral-core-closure.ts",
     "verify-solo-core-compatibility.ts",
-    "verify-online-four-seat-room.ts"
+    "verify-online-four-seat-room.ts",
+    "verify-online-in-memory-protocol.ts"
   ]
 }
