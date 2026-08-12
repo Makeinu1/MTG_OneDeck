@@ -1,0 +1,53 @@
+{
+  "version": "solo-core-compatibility-v1",
+  "schemaVersion": 1,
+  "concerns": [
+    { "concern": "player-roster", "classification": "lossy" },
+    { "concern": "active-player", "classification": "transformable" },
+    { "concern": "turn-position", "classification": "transformable" },
+    { "concern": "ordered-zones", "classification": "transformable" },
+    { "concern": "commander-identity", "classification": "transformable" },
+    { "concern": "commander-cast-count", "classification": "transformable" },
+    { "concern": "commander-damage", "classification": "lossy" },
+    { "concern": "combat-assignments", "classification": "transformable" },
+    { "concern": "general-life", "classification": "lossy" },
+    { "concern": "stack-subset", "classification": "lossy" },
+    { "concern": "search-control-subset", "classification": "lossy" },
+    { "concern": "random-zone-order", "classification": "transformable" },
+    { "concern": "full-combat-damage", "classification": "unsupported" },
+    { "concern": "pending-trigger-sba-turn-advance", "classification": "unsupported" },
+    { "concern": "poison-energy-experience", "classification": "solo-only" },
+    { "concern": "mana-payment", "classification": "solo-only" },
+    { "concern": "undo-redo", "classification": "solo-only" },
+    { "concern": "indexeddb-snapshot", "classification": "solo-only" },
+    { "concern": "typed-manual-correction", "classification": "core-only" },
+    { "concern": "core-replay-package", "classification": "core-only" }
+  ],
+  "phaseMappings": [
+    { "solo": "untap", "core": { "phase": "beginning", "step": "untap" } },
+    { "solo": "upkeep", "core": { "phase": "beginning", "step": "upkeep" } },
+    { "solo": "draw", "core": { "phase": "beginning", "step": "draw" } },
+    { "solo": "main1", "core": { "phase": "precombat-main", "step": null } },
+    { "solo": "combat", "core": { "phase": "combat", "step": "beginning-of-combat" } },
+    { "solo": "main2", "core": { "phase": "postcombat-main", "step": null } },
+    { "solo": "end", "core": { "phase": "ending", "step": "end" } },
+    { "solo": "cleanup", "core": { "phase": "ending", "step": "cleanup" } }
+  ],
+  "snapshotBoundary": {
+    "soloSnapshotVersion": 1,
+    "topLevelFields": ["version", "state", "deck", "autoAdvanceToMain"],
+    "coreReplayStoredInSoloSnapshot": false
+  },
+  "deferred": [
+    "solo-to-core-import",
+    "core-to-solo-export",
+    "mixed-transition-authority",
+    "full-combat-damage",
+    "snapshot-migration",
+    "room",
+    "protocol",
+    "projection",
+    "network",
+    "ui"
+  ]
+}

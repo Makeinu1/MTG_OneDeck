@@ -1,4 +1,4 @@
-export { coreCardObjectIdOf } from './ids';
+export { coreCardObjectIdOf, isCoreBaseId } from './ids';
 export type { CoreCardDefinitionId, CoreObjectId, CorePhysicalCardId, CorePlayerId } from './ids';
 
 export type {

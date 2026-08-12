@@ -67,6 +67,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:mode-neutral-core-closure'],
   },
+  {
+    name: 'Solo/Core Compatibility検証',
+    cmd: 'npm',
+    args: ['run', 'verify:solo-core-compatibility'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

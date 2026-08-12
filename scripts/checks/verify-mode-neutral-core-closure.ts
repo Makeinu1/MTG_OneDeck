@@ -47,7 +47,8 @@ function firstMutablePath(value: unknown, path = '', seen = new Set<object>()): 
 
 function makeRoot(): Core.ModeNeutralCoreRootV1 {
   const turnFixture = record(JSON.parse(readFileSync(turnFixturePath, 'utf8')) as unknown, 'turn fixture');
-  const source = Core.createCoreTurnPriorityBundleV1(record(turnFixture.bundle, 'turn fixture bundle'));
+  const turnBundle = record(turnFixture.bundle, 'turn fixture bundle') as unknown as Parameters<typeof Core.createCoreTurnPriorityBundleV1>[0];
+  const source = Core.createCoreTurnPriorityBundleV1(turnBundle);
   const baseRegistry = source.stackBundle.objectRegistry;
   const objectRegistry = Core.createModeNeutralCoreObjectRegistryStateV2({
     players: baseRegistry.players,
@@ -129,6 +130,7 @@ apply('P3', { kind: 'priority-pass', playerId: 'P3' as never });
 apply('P4', { kind: 'priority-pass', playerId: 'P4' as never });
 const announcement = initialRoot.ruleAuthority.turnPriorityBundle.stackBundle.stackAnnouncements.byObject['PC5:1' as Core.CoreObjectId];
 assert.ok(announcement);
+if (announcement.kind !== 'card-spell') throw new TypeError('Expected card-spell announcement');
 apply('P1', { kind: 'stack-commit-card-spell', input: { sourceObjectId: 'PC2:0' as never, controllerPlayerId: 'P1' as never, announcement } }, undefined, 'P2');
 const committedObjectId = root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared.stack.find((id) => id.startsWith('PC2:'));
 assert.ok(committedObjectId);
@@ -176,7 +178,7 @@ const tamperedReason = JSON.parse(JSON.stringify(report.replayPackage)) as { jou
 const correctionIndex = tamperedReason.journal.findIndex((entry) => entry.command.payload.kind === 'correct-player-life');
 assert.ok(correctionIndex >= 0);
 tamperedReason.journal[correctionIndex].command.payload.reason = 'tampered verifier reason';
-const tamperedReasonReplay = Core.replayCoreCommandsV1(tamperedReason as Core.CoreReplayPackageV1);
+const tamperedReasonReplay = Core.replayCoreCommandsV1(tamperedReason as unknown as Core.CoreReplayPackageV1);
 assert.equal(tamperedReasonReplay.ok, false);
 if (!tamperedReasonReplay.ok) {
   assert.equal(tamperedReasonReplay.divergence.code, 'COMMAND_DIGEST_MISMATCH');
