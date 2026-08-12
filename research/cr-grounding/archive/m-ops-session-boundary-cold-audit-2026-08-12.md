@@ -46,3 +46,33 @@ re-owned the following frozen judge paths without changing their semantics:
 No product file, assertion, selector behavior, active-program boundary, audit
 finding, or workflow implementation changed during re-ownership. The retry is
 metadata-only relative to the candidate commit.
+
+## Ship evidence
+
+- Judge re-ownership commit:
+  `e33da5a890feff763319a6eca3afda518d0537ed`
+- Successful GitHub Actions run: `31588053567`
+- Matching Actions head:
+  `e33da5a890feff763319a6eca3afda518d0537ed`
+- CI release full check: PASS
+- CI forbidden diff from candidate `45190ea2844a2aaa03996b9e57aa926fcdc14a0c`:
+  PASS
+- Pages build artifact and deploy jobs: PASS
+- Served HTML: HTTP 200, last modified `2026-08-12 10:40:57 UTC`
+- Served JavaScript `assets/index-CyZgN26K.js`: HTTP 200, same last-modified
+- Served CSS `assets/index-JeU5vEot.css`: HTTP 200, same last-modified
+
+Terminal task-usage snapshot for session
+`019ff4fc-af9c-7b22-8786-19cb4cb67e91`:
+
+- model cycles: 399
+- input tokens: 51,542,355 (49,903,104 cached; 1,639,251 uncached)
+- output tokens: 189,932
+- reasoning output tokens: 80,575
+- compactions: 6
+- full-check invocations observed across the combined recovery task: 3
+
+This measured overrun is the concrete baseline the new task-envelope,
+single-authority, bounded-agent, bounded-wait, compaction-exit, and single-final-
+check rules are intended to prevent. `M-OPS-SESSION-BOUNDARY` is shipped; the
+next task must start fresh at `O4P-02B`.
