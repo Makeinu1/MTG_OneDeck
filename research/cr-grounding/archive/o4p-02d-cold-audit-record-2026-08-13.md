@@ -179,3 +179,22 @@ The remaining `NEEDS-REAUTH` paths were informational judge-owned package,
 contract, brief, audit-record, and ledger changes and did not fail the lane.
 O4P-02D remains `audited`; only the metadata retry, exact-head successful
 Actions/Pages evidence, terminal shipped metadata, and clean worktree remain.
+
+## Terminal publication evidence
+
+Judge-reownership commit `151ccd7daf205d6380ae0128e18162f7f4310d9f`
+changed only this audit record and the exact O4P-02D ledger entries. GitHub
+Actions run `31633807578` matched that head and passed every required step:
+`npm ci`, full `npm run check`, resolved-base forbidden diff, Pages build and
+artifact upload, and Pages deployment.
+
+The served release evidence after deployment was:
+
+- HTML `https://makeinu1.github.io/MTG_OneDeck/`: HTTP 200;
+- JS `assets/index-CyZgN26K.js`: HTTP 200;
+- CSS `assets/index-JeU5vEot.css`: HTTP 200.
+
+Local `HEAD` and `origin/main` both matched the reownership commit before this
+terminal metadata update. O4P-02D has independent BLOCKER/HIGH 0, a green
+fingerprint-matched release check, exact-head green CI/forbidden/build/deploy,
+and served HTML/JS/CSS evidence. It is shipped; O4P-02E is next.
