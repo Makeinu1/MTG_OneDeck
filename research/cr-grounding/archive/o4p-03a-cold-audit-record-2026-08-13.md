@@ -163,3 +163,35 @@ paths and informational reauthorization metadata. No production source defect
 remains. Candidate publication may proceed; exact-head CI, Judge reownership
 if requested by CI, Pages HTTP evidence, and terminal ledger metadata remain
 release gates.
+
+## Candidate CI frozen-hash repair
+
+Candidate commit `fb1e4dac8f0fda4e718a3ca20aea4b32c0ef4637` was pushed to
+`main`. Exact-head Actions run `31659301785` passed the prerequisite verifiers
+through O4P-02E, then failed O4P-03A's fail-closed frozen-authority check before
+lint/tests/build. The implementation brief's actual SHA-256 was
+`62ccd47e5c4b63148070d87304d40fd9dd22fbdd676666ac85b9f19e7a2f686f`,
+while the verifier still expected its pre-cleanup spelling
+`1bc86dd3213649821961fd42d42961b795314ebaba8134896d1bee37814b5dfe`.
+
+The drift came from removing one trailing blank line after the successful local
+full check so `git diff --check` would be clean. Appending exactly one newline
+byte to the current 2005-byte brief reproduces the former 2006-byte hash. The
+Judge changed only the verifier's expected hash to the exact formatted bytes;
+no assertion or authority meaning changed. The direct verifier, machine-check
+registration 1 file / 7 tests, scoped lint, and `git diff --check` passed.
+
+Fresh focused read-only audit `/root/o4p03a_post_check_audit`:
+
+- base/HEAD: `fb1e4dac8f0fda4e718a3ca20aea4b32c0ef4637`
+- semantic fingerprint:
+  `daca6975b57f8c9eb9393011e7c39ff0ac4f2b96a38aa1417793a871341200f8`
+- context fingerprint:
+  `38fb5b1a4389a4bfab9da3db76156eecbac5d730801ba626cf8972ec37dc7056`
+- context health: `ok` / `current`
+- verdict: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+
+The auditor independently matched all eight frozen hashes, proved the one-byte
+relationship, and found no source, review, dependency, contract, assertion, or
+deferred-boundary change. It recommends a new exact-head CI run rather than a
+rerun of the known-bad candidate commit.

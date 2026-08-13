@@ -15,7 +15,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03a-acceptance-brief.draft.md':
     '13669554c78ecfb6fdfcb2cd3bf676e20fca5b2ed92f07a031bca3456ff38842',
   'research/cr-grounding/o4p-03a-implementation-brief.draft.md':
-    '1bc86dd3213649821961fd42d42961b795314ebaba8134896d1bee37814b5dfe',
+    '62ccd47e5c4b63148070d87304d40fd9dd22fbdd676666ac85b9f19e7a2f686f',
   'research/cr-grounding/o4p-03a-cold-audit-brief.draft.md':
     'd308ecb25249dffcb61e7aef16a725fa02174c6f12edc4982b72173148c1b954',
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
