@@ -14,6 +14,7 @@ import {
   type OnlineCloudflareRoomStatusV1,
   type OnlineCloudflareSqlStorage,
 } from './types';
+import { OnlineCloudflareSecurityRepository } from './security';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
@@ -59,10 +60,12 @@ function comparablePresenceState(serialized: string): string {
 
 export class OnlineCloudflareRepository {
   private readonly storage: OnlineCloudflareSqlStorage;
+  private readonly securityRepository: OnlineCloudflareSecurityRepository;
   constructor(storage: OnlineCloudflareSqlStorage) {
     this.storage = storage;
     storage.sql.exec(CREATE_ROOM);
     storage.sql.exec(CREATE_JOURNAL);
+    this.securityRepository = new OnlineCloudflareSecurityRepository(storage);
   }
 
   private rows(): RoomRow[] { return this.storage.sql.exec<RoomRow>(SELECT_ROOM).toArray(); }
@@ -156,10 +159,19 @@ export class OnlineCloudflareRepository {
 
   status(): OnlineCloudflareRoomStatusV1 | null {
     const state = this.load();
-    return state === null ? null : this.statusFor(state);
+    if (state === null) return null;
+    this.securityRepository.read(state);
+    return this.statusFor(state);
   }
 
-  initialize(roomId: string, state: OnlineProtocolStateV1): OnlineCloudflareRoomStatusV1 {
+  secureStatus(): OnlineCloudflareRoomStatusV1 | null {
+    const state = this.load();
+    if (state === null) return null;
+    this.securityRepository.read(state);
+    return this.statusFor(state);
+  }
+
+  initialize(roomId: string, state: OnlineProtocolStateV1, nowInput: unknown = Date.now()): OnlineCloudflareRoomStatusV1 {
     const stateJson = serializeOnlineCloudflareProtocolStateV1(state);
     if (
       state.room.roomId !== roomId ||
@@ -173,9 +185,12 @@ export class OnlineCloudflareRepository {
       if (existing.length === 1) {
         const current = this.load();
         if (current === null || current.room.roomId !== roomId || serializeOnlineCloudflareProtocolStateV1(current) !== stateJson) throw new ConflictError();
+        this.securityRepository.read(current);
         return this.statusFor(current);
       }
       this.storage.sql.exec(INSERT_ROOM, 1, ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1, roomId, state.revision, state.room.lifecycle, state.coreRoot.acceptedCommandCount, stateJson);
+      this.securityRepository.createSchemaInTransaction();
+      this.securityRepository.initializeInTransaction(roomId, state, nowInput);
       return this.statusFor(state);
     });
   }

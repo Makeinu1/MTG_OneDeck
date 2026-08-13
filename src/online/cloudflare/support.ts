@@ -10,7 +10,7 @@ export function jsonResponse(value: unknown, status = 200): Response {
   });
 }
 
-export function genericError(status: 400 | 404 | 405 | 409 | 413 | 500): Response {
+export function genericError(status: 400 | 401 | 403 | 404 | 405 | 409 | 413 | 429 | 500): Response {
   return jsonResponse(GENERIC_ERROR, status);
 }
 
@@ -40,7 +40,7 @@ export function isInvalidRoomPath(pathname: string): boolean {
     || roomId.includes('\\');
 }
 
-export function parseRoomPath(pathname: string): Readonly<{ roomId: string; action: 'room' | 'commands' | 'websocket' }> | null {
+export function parseRoomPath(pathname: string): Readonly<{ roomId: string; action: 'room' | 'commands' | 'capabilities' | 'websocket' }> | null {
   if (!pathname.startsWith(ROOM_PATH_PREFIX)) return null;
   const tail = pathname.slice(ROOM_PATH_PREFIX.length);
   const pieces = tail.split('/');
@@ -52,7 +52,15 @@ export function parseRoomPath(pathname: string): Readonly<{ roomId: string; acti
     return null;
   }
   if (!isSafeRoomId(roomId) || roomId === '.' || roomId === '..' || roomId.includes('/') || roomId.includes('\\')) return null;
-  const action = pieces.length === 1 ? 'room' : pieces[1] === 'commands' ? 'commands' : pieces[1] === 'websocket' ? 'websocket' : null;
+  const action = pieces.length === 1
+    ? 'room'
+    : pieces[1] === 'commands'
+      ? 'commands'
+      : pieces[1] === 'capabilities'
+        ? 'capabilities'
+        : pieces[1] === 'websocket'
+          ? 'websocket'
+          : null;
   return action === null ? null : Object.freeze({ roomId, action });
 }
 

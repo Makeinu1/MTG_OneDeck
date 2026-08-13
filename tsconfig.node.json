@@ -30,6 +30,7 @@
     "scripts/checks/verify-mode-neutral-core-stack-transaction.ts",
     "scripts/checks/verify-mode-neutral-core-turn-priority.ts",
     "scripts/checks/verify-mode-neutral-core-commander-combat-player-exit.ts",
-    "scripts/checks/verify-online-cloudflare-websocket-recovery.ts"
+    "scripts/checks/verify-online-cloudflare-websocket-recovery.ts",
+    "scripts/checks/verify-online-cloudflare-capability-abuse-control.ts"
   ]
 }

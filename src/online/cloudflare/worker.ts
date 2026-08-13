@@ -10,7 +10,13 @@ export default {
     if (route === null) {
       return genericError(isInvalidRoomPath(pathname) ? 400 : 404);
     }
-    const methodAllowed = route.action === 'room' ? request.method === 'GET' || request.method === 'PUT' : route.action === 'commands' ? request.method === 'POST' : request.method === 'GET';
+    const methodAllowed = route.action === 'room'
+      ? request.method === 'GET' || request.method === 'PUT'
+      : route.action === 'commands'
+        ? request.method === 'POST'
+        : route.action === 'capabilities'
+          ? request.method === 'POST'
+          : request.method === 'GET';
     if (!methodAllowed) return genericError(405);
     if (env.ONLINE_ROOMS === undefined) return genericError(500);
     if (route.action !== 'websocket' && (request.method === 'PUT' || request.method === 'POST')) {

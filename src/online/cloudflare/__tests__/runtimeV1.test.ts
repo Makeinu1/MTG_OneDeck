@@ -14,105 +14,11 @@ import {
 } from '../../protocol/index';
 import { OnlineRoomDurableObject, type OnlineCloudflareSocketAttachmentV1, type OnlineCloudflareWebSocket } from '../index';
 import worker from '../worker';
+import { SecuritySqlFixture } from './securitySqlFixture';
 
 type Row = Record<string, unknown>;
 
-type RoomRow = {
-  singleton: number;
-  schema_version: number;
-  room_id: string;
-  revision: number;
-  room_lifecycle: string;
-  accepted_command_count: number;
-  state_json: string;
-};
-
-type JournalRow = {
-  accepted_revision: number;
-  command_id: string;
-  participant_id: string;
-  base_revision: number;
-  command_json: string;
-};
-
-function cursor<T extends Row>(rows: readonly T[]): { toArray(): T[] } {
-  return { toArray: () => rows.map((row) => ({ ...row })) };
-}
-
-class RuntimeSqlStorage {
-  room: RoomRow | null = null;
-  journal: JournalRow[] = [];
-  writeCount = 0;
-
-  readonly sql = {
-    exec: <T extends Row>(query: string, ...bindings: readonly unknown[]) =>
-      this.execute<T>(query, bindings),
-  };
-
-  transactionSync<T>(callback: () => T): T {
-    const beforeRoom = this.room === null ? null : { ...this.room };
-    const beforeJournal = this.journal.map((row) => ({ ...row }));
-    const beforeWrites = this.writeCount;
-    try {
-      return callback();
-    } catch (error: unknown) {
-      this.room = beforeRoom;
-      this.journal = beforeJournal;
-      this.writeCount = beforeWrites;
-      throw error;
-    }
-  }
-
-  private execute<T extends Row>(query: string, bindings: readonly unknown[]): { toArray(): T[] } {
-    if (query.startsWith('CREATE TABLE')) return cursor<T>([]);
-    if (query.includes('FROM online_room_state')) {
-      return cursor<T>(this.room === null ? [] : ([this.room] as unknown as readonly T[]));
-    }
-    if (query.includes('FROM online_accepted_command')) {
-      return cursor<T>(this.journal as unknown as readonly T[]);
-    }
-    if (query.startsWith('INSERT INTO online_room_state')) {
-      if (this.room !== null) throw new Error('duplicate singleton');
-      this.room = {
-        singleton: Number(bindings[0]),
-        schema_version: Number(bindings[1]),
-        room_id: String(bindings[2]),
-        revision: Number(bindings[3]),
-        room_lifecycle: String(bindings[4]),
-        accepted_command_count: Number(bindings[5]),
-        state_json: String(bindings[6]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('INSERT INTO online_accepted_command')) {
-      this.journal.push({
-        accepted_revision: Number(bindings[0]),
-        command_id: String(bindings[1]),
-        participant_id: String(bindings[2]),
-        base_revision: Number(bindings[3]),
-        command_json: String(bindings[4]),
-      });
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state')) {
-      if (this.room === null || this.room.room_id !== String(bindings[4]) || this.room.revision !== Number(bindings[5])) {
-        throw new Error('compare-and-set mismatch');
-      }
-      this.room = {
-        ...this.room,
-        revision: Number(bindings[0]),
-        room_lifecycle: String(bindings[1]),
-        accepted_command_count: Number(bindings[2]),
-        state_json: String(bindings[3]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    throw new Error(`Unexpected SQL in runtime fake: ${query}`);
-  }
-}
+class RuntimeSqlStorage extends SecuritySqlFixture {}
 
 function protocolState(serverBuildId = 'ordinary-cloudflare-runtime-build'): OnlineProtocolStateV1 {
   const coreRoot = makeCoreRoot();
@@ -275,7 +181,7 @@ describe('O4P-03A Worker and Durable Object boundary', () => {
     const writes = storage.writeCount;
     const duplicate = await object.fetch(request());
     expect((await duplicate.json()) as Record<string, unknown>).toMatchObject({ kind: 'online-command-ack-v1', duplicate: true });
-    expect(storage.writeCount).toBe(writes);
+    expect(storage.writeCount).toBeGreaterThan(writes);
     expect(storage.room?.revision).toBe(1);
     expect(storage.journal).toHaveLength(1);
     expect(JSON.stringify(storage.journal[0])).not.toContain(CAPABILITIES[0]);
@@ -324,14 +230,21 @@ describe('O4P-03A Worker and Durable Object boundary', () => {
         authenticationRequired: true,
       })]);
       expect(JSON.stringify(socket.attachment)).not.toContain(CAPABILITIES[0]);
-      expect(socket.attachment).toEqual({
+      expect(socket.attachment).toMatchObject({
         kind: 'online-cloudflare-socket-attachment-v1',
         schemaVersion: 1,
         roomId: initial.room.roomId,
         participantId: null,
         role: null,
         authenticated: false,
+        connectionId: 1,
+        capabilityGeneration: null,
+        capabilityExpiresAt: null,
+        messageCount: 0,
+        malformedCount: 0,
       });
+      expect(socket.attachment).toHaveProperty('messageWindowStartedAt');
+      expect(socket.attachment).toHaveProperty('malformedWindowStartedAt');
     } finally {
       vi.stubGlobal('Response', NativeResponse);
       vi.unstubAllGlobals();

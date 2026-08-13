@@ -4,58 +4,9 @@ import { activateOnlineRoomV1, disconnectOnlineRoomParticipantV1, startOnlineRoo
 import { CAPABILITIES, makeCoreRoot, PARTICIPANTS, readyAllPlayers } from '../../room/__tests__/testHelpers';
 import { createOnlineProtocolStateV1, type OnlineCommandEnvelopeV1, type OnlineProtocolStateV1 } from '../../protocol/index';
 import { createAuthenticatedOnlineCloudflareSocketAttachmentV1, createOnlineCloudflareSocketAttachmentV1, OnlineRoomDurableObject, ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1, type OnlineCloudflareSocketAttachmentV1, type OnlineCloudflareWebSocket, validateOnlineCloudflareSocketAttachmentV1 } from '../index';
+import { SecuritySqlFixture } from './securitySqlFixture';
 
-type Row = Record<string, unknown>;
-type RoomRow = { singleton: number; schema_version: number; room_id: string; revision: number; room_lifecycle: string; accepted_command_count: number; state_json: string };
-type JournalRow = { accepted_revision: number; command_id: string; participant_id: string; base_revision: number; command_json: string };
-
-function cursor<T extends Row>(rows: readonly T[]): { toArray(): T[] } { return { toArray: () => rows.map((row) => ({ ...row })) }; }
-
-class TestSqlStorage {
-  room: RoomRow | null = null;
-  journal: JournalRow[] = [];
-  writeCount = 0;
-  failRoomReads = false;
-  readonly sql = { exec: <T extends Row>(query: string, ...bindings: readonly unknown[]) => this.execute<T>(query, bindings) };
-  transactionSync<T>(callback: () => T): T {
-    const beforeRoom = this.room === null ? null : { ...this.room };
-    const beforeJournal = this.journal.map((row) => ({ ...row }));
-    const beforeWrites = this.writeCount;
-    try { return callback(); } catch (error: unknown) { this.room = beforeRoom; this.journal = beforeJournal; this.writeCount = beforeWrites; throw error; }
-  }
-  private execute<T extends Row>(query: string, bindings: readonly unknown[]): { toArray(): T[] } {
-    if (query.startsWith('CREATE TABLE')) return cursor<T>([]);
-    if (query.includes('FROM online_room_state')) {
-      if (this.failRoomReads) throw new Error('hostile room row read failure');
-      return cursor<T>(this.room === null ? [] : [this.room] as unknown as readonly T[]);
-    }
-    if (query.includes('FROM online_accepted_command')) return cursor<T>(this.journal as unknown as readonly T[]);
-    if (query.startsWith('INSERT INTO online_room_state')) {
-      if (this.room !== null) throw new Error('duplicate singleton');
-      this.room = { singleton: Number(bindings[0]), schema_version: Number(bindings[1]), room_id: String(bindings[2]), revision: Number(bindings[3]), room_lifecycle: String(bindings[4]), accepted_command_count: Number(bindings[5]), state_json: String(bindings[6]) };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('INSERT INTO online_accepted_command')) {
-      this.journal.push({ accepted_revision: Number(bindings[0]), command_id: String(bindings[1]), participant_id: String(bindings[2]), base_revision: Number(bindings[3]), command_json: String(bindings[4]) });
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state SET revision')) {
-      if (this.room === null || this.room.room_id !== String(bindings[4]) || this.room.revision !== Number(bindings[5])) throw new Error('compare-and-set mismatch');
-      this.room = { ...this.room, revision: Number(bindings[0]), room_lifecycle: String(bindings[1]), accepted_command_count: Number(bindings[2]), state_json: String(bindings[3]) };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state SET room_lifecycle')) {
-      if (this.room === null || this.room.room_id !== String(bindings[2]) || this.room.revision !== Number(bindings[3]) || this.room.state_json !== String(bindings[4])) return cursor<T>([]);
-      this.room = { ...this.room, room_lifecycle: String(bindings[0]), state_json: String(bindings[1]) };
-      this.writeCount += 1;
-      return cursor<T>([{ singleton: 1 } as unknown as T]);
-    }
-    throw new Error(`Unexpected SQL: ${query}`);
-  }
-}
+class TestSqlStorage extends SecuritySqlFixture {}
 
 class TestSocket implements OnlineCloudflareWebSocket {
   attachment: unknown;
@@ -71,7 +22,9 @@ class TestDurableObjectState {
   readonly sockets: TestSocket[] = [];
   acceptCount = 0;
   failSocketEnumeration = false;
+  nowValue = 0;
   constructor(storage: TestSqlStorage, roomId: string) { this.storage = storage; this.id = { name: roomId }; }
+  now = (): number => this.nowValue;
   acceptWebSocket = (socket: OnlineCloudflareWebSocket): void => { this.acceptCount += 1; this.sockets.push(socket as TestSocket); };
   getWebSockets = (): readonly TestSocket[] => {
     if (this.failSocketEnumeration) throw new Error('hostile socket enumeration failure');
@@ -135,15 +88,19 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
       expect(JSON.stringify(socket.attachment)).not.toContain(CAPABILITIES[0]);
       const rejectedWrites = storage.writeCount;
       first.object.webSocketMessage(socket, JSON.stringify(hello(state, 'wrong-capability')));
-      expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-server-hello-v1', status: 'rejected' });
-      expect(storage.writeCount).toBe(rejectedWrites);
+      expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'CAPABILITY_REJECTED' });
+      expect(storage.writeCount).toBeGreaterThan(rejectedWrites);
       first.object.webSocketMessage(socket, JSON.stringify(hello(state)));
       expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-server-hello-v1', status: 'accepted', participantId: 'host', role: 'player' });
       expect(JSON.stringify(socket.attachment)).not.toContain(CAPABILITIES[0]);
-      const attachmentAfterAuth = JSON.stringify(socket.attachment);
       first.object.webSocketMessage(socket, JSON.stringify(hello(state, CAPABILITIES[1], PARTICIPANTS[1])));
       expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'IDENTITY_MISMATCH' });
-      expect(JSON.stringify(socket.attachment)).toBe(attachmentAfterAuth);
+      expect(socket.attachment).toMatchObject({
+        participantId: 'host',
+        role: 'player',
+        authenticated: true,
+        messageCount: 3,
+      });
       first.object.webSocketMessage(socket, JSON.stringify(projectionRequest(state)));
       const projected = JSON.parse(socket.sent.at(-1) ?? '{}') as Record<string, unknown>;
       expect(projected).toMatchObject({ kind: 'online-projected-snapshot-v1', status: 'accepted' });
@@ -168,8 +125,8 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     const socketB = new TestSocket();
     first.runtime.acceptWebSocket(socketA);
     first.runtime.acceptWebSocket(socketB);
-    socketA.serializeAttachment({ kind: 'online-cloudflare-socket-attachment-v1', schemaVersion: 1, roomId: state.room.roomId, participantId: null, role: null, authenticated: false });
-    socketB.serializeAttachment({ kind: 'online-cloudflare-socket-attachment-v1', schemaVersion: 1, roomId: state.room.roomId, participantId: null, role: null, authenticated: false });
+    socketA.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, 0));
+    socketB.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 2, 0));
     first.object.webSocketMessage(socketA, JSON.stringify(hello(state)));
     first.object.webSocketMessage(socketB, JSON.stringify(hello(state)));
     const beforeCommandWrites = storage.writeCount;
@@ -183,7 +140,7 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     expect(afterAcceptedWrites).toBeGreaterThan(beforeCommandWrites);
     first.object.webSocketMessage(socketA, JSON.stringify(envelope));
     expect(JSON.parse(socketA.sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', duplicate: true });
-    expect(storage.writeCount).toBe(afterAcceptedWrites);
+    expect(storage.writeCount).toBeGreaterThan(afterAcceptedWrites);
     expect(socketA.sent.filter((value) => messageKind(value) === 'online-cloudflare-revision-v1')).toHaveLength(1);
     first.runtime.sockets.splice(first.runtime.sockets.indexOf(socketA), 1);
     first.object.webSocketClose(socketA);
@@ -201,7 +158,7 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     expect((await object.fetch(initializeRequest(state))).status).toBe(200);
     const socket = new TestSocket();
     runtime.acceptWebSocket(socket);
-    socket.serializeAttachment({ kind: 'online-cloudflare-socket-attachment-v1', schemaVersion: 1, roomId: state.room.roomId, participantId: null, role: null, authenticated: false });
+    socket.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, 0));
     object.webSocketMessage(socket, new ArrayBuffer(4));
     object.webSocketMessage(socket, '{');
     object.webSocketMessage(socket, JSON.stringify({ kind: 'unknown-v1' }));
@@ -218,6 +175,64 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     expect(errors.every((error) => Object.keys(error).sort().join(',') === 'code,kind,schemaVersion')).toBe(true);
   });
 
+  it('validates the complete protocol and security snapshot before malformed-frame accounting', async () => {
+    const storage = new TestSqlStorage();
+    const state = protocolState();
+    const { object, runtime } = objectFor(storage, state);
+    expect((await object.fetch(initializeRequest(state))).status).toBe(200);
+    const socket = new TestSocket();
+    runtime.acceptWebSocket(socket);
+    socket.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, 0));
+    const attachmentBefore = JSON.stringify(socket.attachment);
+    const writesBefore = storage.writeCount;
+    const grant = storage.grants[0];
+    if (grant === undefined) throw new Error('Missing ordinary security grant');
+    const lastObservedAt = storage.security?.last_observed_at;
+    if (lastObservedAt === undefined) throw new Error('Missing ordinary security clock');
+    grant.http_window_started_at = lastObservedAt + 1;
+
+    object.webSocketMessage(socket, '{');
+
+    expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'INTERNAL_ERROR' });
+    expect(JSON.stringify(socket.attachment)).toBe(attachmentBefore);
+    expect(storage.writeCount).toBe(writesBefore);
+  });
+
+  it('rejects bearer collisions before lower handling without application mutation', async () => {
+    const storage = new TestSqlStorage();
+    const state = protocolState();
+    const { object, runtime } = objectFor(storage, state);
+    expect((await object.fetch(initializeRequest(state))).status).toBe(200);
+    const socket = new TestSocket();
+    runtime.acceptWebSocket(socket);
+    socket.serializeAttachment(createAuthenticatedOnlineCloudflareSocketAttachmentV1(state.room.roomId, PARTICIPANTS[0], 'player', 1, 0, 100_000));
+    const command = commandEnvelope(state, `${CAPABILITIES[0]}-embedded`);
+    object.webSocketMessage(socket, JSON.stringify(command));
+    expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'CAPABILITY_REJECTED' });
+    expect(storage.room?.revision).toBe(0);
+    expect(storage.journal).toHaveLength(0);
+  });
+
+  it('rate-limits an exhausted message window before protocol loading and records only a safe audit fact', async () => {
+    const storage = new TestSqlStorage();
+    const state = protocolState();
+    const { object, runtime } = objectFor(storage, state);
+    expect((await object.fetch(initializeRequest(state))).status).toBe(200);
+    const socket = new TestSocket();
+    runtime.acceptWebSocket(socket);
+    socket.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, 0, 32));
+    const attachmentBefore = JSON.stringify(socket.attachment);
+    const stateJsonBefore = storage.room?.state_json;
+    storage.failRoomReads = true;
+    runtime.nowValue = 1;
+    object.webSocketMessage(socket, '{');
+    expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'RATE_LIMITED' });
+    expect(JSON.stringify(socket.attachment)).toBe(attachmentBefore);
+    expect(storage.room?.state_json).toBe(stateJsonBefore);
+    expect(storage.journal).toHaveLength(0);
+    expect(storage.audit.at(-1)).toMatchObject({ event_code: 'RATE_REJECTED', outcome: 'rejected', connection_id: 1 });
+  });
+
   it('rejects attachment symbols, non-enumerable extras, and accessors while retaining no capability data', () => {
     const base = createOnlineCloudflareSocketAttachmentV1('room-02b');
     const nonEnumerableExtra = { ...base } as Record<string, unknown>;
@@ -228,7 +243,7 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     expect(validateOnlineCloudflareSocketAttachmentV1(nonEnumerableExtra, 'room-02b')).toEqual({ ok: false });
     expect(validateOnlineCloudflareSocketAttachmentV1(symbolExtra, 'room-02b')).toEqual({ ok: false });
     expect(validateOnlineCloudflareSocketAttachmentV1(accessorExtra, 'room-02b')).toEqual({ ok: false });
-    expect(JSON.stringify(base)).not.toContain('capability');
+    expect(JSON.stringify(base)).not.toContain(CAPABILITIES[0]);
   });
 
   it('fails closed on oversized attachments and swallows hostile load/enumeration failures', async () => {

@@ -33,6 +33,13 @@ export type OnlineCloudflareSocketAttachmentV1 = Readonly<{
   readonly participantId: string | null;
   readonly role: OnlineCloudflareSocketRoleV1 | null;
   readonly authenticated: boolean;
+  readonly connectionId: number;
+  readonly capabilityGeneration: number | null;
+  readonly capabilityExpiresAt: number | null;
+  readonly messageWindowStartedAt: number;
+  readonly messageCount: number;
+  readonly malformedWindowStartedAt: number;
+  readonly malformedCount: number;
 }>;
 
 export type OnlineCloudflareWebSocketReadyV1 = Readonly<{
@@ -48,6 +55,10 @@ export type OnlineCloudflareWebSocketErrorCodeV1 =
   | 'INVALID_MESSAGE'
   | 'AUTHENTICATION_REQUIRED'
   | 'IDENTITY_MISMATCH'
+  | 'CAPABILITY_REJECTED'
+  | 'ROLE_NOT_ALLOWED'
+  | 'CONTROLLER_LEASE_REQUIRED'
+  | 'RATE_LIMITED'
   | 'INTERNAL_ERROR';
 
 export type OnlineCloudflareWebSocketErrorV1 = Readonly<{
@@ -90,6 +101,7 @@ export interface OnlineCloudflareDurableObjectState {
   readonly storage: OnlineCloudflareSqlStorage;
   readonly acceptWebSocket: (socket: OnlineCloudflareWebSocket, tags?: readonly string[]) => void;
   readonly getWebSockets: () => readonly OnlineCloudflareWebSocket[];
+  readonly now?: () => number;
 }
 
 export interface OnlineCloudflareDurableObjectStub {

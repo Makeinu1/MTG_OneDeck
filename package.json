@@ -51,6 +51,7 @@
     "verify:online-local-room-gate": "tsx scripts/checks/verify-online-local-room-gate.ts",
     "verify:online-cloudflare-runtime-persistence": "tsx scripts/checks/verify-online-cloudflare-runtime-persistence.ts",
     "verify:online-cloudflare-websocket-recovery": "tsx scripts/checks/verify-online-cloudflare-websocket-recovery.ts",
+    "verify:online-cloudflare-capability-abuse-control": "tsx scripts/checks/verify-online-cloudflare-capability-abuse-control.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

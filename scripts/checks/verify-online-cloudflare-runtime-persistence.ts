@@ -19,11 +19,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03a-cold-audit-brief.draft.md':
     'd308ecb25249dffcb61e7aef16a725fa02174c6f12edc4982b72173148c1b954',
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
-    'b77b3207bc50a405692327d0140a930c08e6f13c2823e34472c6508a9a71fe2f',
+    '8e245cfd5ab59639ac9042cffb852145d8671520b665945f672cfc880c75b0ec',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
     'bac9d4fb4e18323e7cbb47e7e31f977d87b760ccd138da3f589e933498cddfce',
   'src/online/cloudflare/index.ts':
-    '1435efd945b51e900cb4e8fa3120b1b14de9ca8aaaea319f448d77740bb81212',
+    '3ad8311a1d68518c88f9092eb4da5c1d1a4cee3cb004a0241b7ae171cee31985',
   'wrangler.jsonc':
     '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
 });
@@ -133,6 +133,7 @@ assert.deepEqual(
     'src/online/cloudflare/outbox.ts',
     'src/online/cloudflare/persistence.ts',
     'src/online/cloudflare/runtime.ts',
+    'src/online/cloudflare/security.ts',
     'src/online/cloudflare/support.ts',
     'src/online/cloudflare/types.ts',
     'src/online/cloudflare/websocket.ts',

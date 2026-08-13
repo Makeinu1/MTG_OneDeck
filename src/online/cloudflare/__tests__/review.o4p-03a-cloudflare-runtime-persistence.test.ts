@@ -32,119 +32,11 @@ import {
   type OnlineCloudflareWebSocket,
 } from '../index';
 import worker from '../worker';
+import { SecuritySqlFixture } from './securitySqlFixture';
 
 type Row = Record<string, unknown>;
 
-type RoomRow = {
-  singleton: number;
-  schema_version: number;
-  room_id: string;
-  revision: number;
-  room_lifecycle: string;
-  accepted_command_count: number;
-  state_json: string;
-};
-
-type JournalRow = {
-  accepted_revision: number;
-  command_id: string;
-  participant_id: string;
-  base_revision: number;
-  command_json: string;
-};
-
-function cursor<T extends Row>(rows: readonly T[]): Readonly<{ toArray(): T[] }> {
-  return { toArray: () => rows.map((row) => ({ ...row })) };
-}
-
-class TransactionalSqliteStorage {
-  room: RoomRow | null = null;
-  journal: JournalRow[] = [];
-  readonly queries: Array<Readonly<{ query: string; bindings: readonly unknown[] }>> = [];
-  writeCount = 0;
-  transactionCount = 0;
-  failNextRoomUpdate = false;
-
-  readonly sql = {
-    exec: <T extends Row>(query: string, ...bindings: readonly unknown[]) =>
-      this.execute<T>(query, bindings),
-  };
-
-  transactionSync<T>(callback: () => T): T {
-    this.transactionCount += 1;
-    const beforeRoom = this.room === null ? null : { ...this.room };
-    const beforeJournal = this.journal.map((row) => ({ ...row }));
-    const beforeWrites = this.writeCount;
-    try {
-      return callback();
-    } catch (error) {
-      this.room = beforeRoom;
-      this.journal = beforeJournal;
-      this.writeCount = beforeWrites;
-      throw error;
-    }
-  }
-
-  private execute<T extends Row>(query: string, bindings: readonly unknown[]): ReturnType<typeof cursor<T>> {
-    this.queries.push(Object.freeze({ query, bindings: Object.freeze([...bindings]) }));
-    if (query.startsWith('CREATE TABLE')) return cursor<T>([]);
-    if (query.includes('FROM online_room_state')) {
-      return cursor<T>(this.room === null ? [] : ([this.room] as unknown as readonly T[]));
-    }
-    if (query.includes('FROM online_accepted_command')) {
-      return cursor<T>(this.journal as unknown as readonly T[]);
-    }
-    if (query.startsWith('INSERT INTO online_room_state')) {
-      if (this.room !== null) throw new Error('duplicate singleton');
-      expect(bindings).toHaveLength(7);
-      expect(bindings[0]).toBe(1);
-      this.room = {
-        singleton: Number(bindings[0]),
-        schema_version: Number(bindings[1]),
-        room_id: String(bindings[2]),
-        revision: Number(bindings[3]),
-        room_lifecycle: String(bindings[4]),
-        accepted_command_count: Number(bindings[5]),
-        state_json: String(bindings[6]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('INSERT INTO online_accepted_command')) {
-      this.journal.push({
-        accepted_revision: Number(bindings[0]),
-        command_id: String(bindings[1]),
-        participant_id: String(bindings[2]),
-        base_revision: Number(bindings[3]),
-        command_json: String(bindings[4]),
-      });
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state')) {
-      if (this.failNextRoomUpdate) {
-        this.failNextRoomUpdate = false;
-        throw new Error('forced room update failure');
-      }
-      if (this.room === null) throw new Error('missing singleton');
-      const expectedRoomId = String(bindings.at(-2));
-      const expectedBaseRevision = Number(bindings.at(-1));
-      if (this.room.room_id !== expectedRoomId || this.room.revision !== expectedBaseRevision) {
-        throw new Error('compare-and-set mismatch');
-      }
-      this.room = {
-        ...this.room,
-        revision: Number(bindings[0]),
-        room_lifecycle: String(bindings[1]),
-        accepted_command_count: Number(bindings[2]),
-        state_json: String(bindings[3]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    throw new Error(`Unexpected SQL in review fake: ${query}`);
-  }
-}
+class TransactionalSqliteStorage extends SecuritySqlFixture {}
 
 function activeRoom(coreRoot: ModeNeutralCoreRootV1): OnlineRoomV1 {
   return activateOnlineRoomV1(startOnlineRoomV1(readyAllPlayers(), PARTICIPANTS[0]), {
@@ -365,14 +257,14 @@ describe('O4P-03A Judge acceptance', () => {
         body: JSON.stringify(unsafeEnvelope),
       }),
     );
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
     expect(await response.text()).toBe(JSON.stringify({ kind: 'online-cloudflare-error-v1' }));
-    expect(storage.transactionCount).toBe(afterInitializeTransactions);
-    expect(storage.writeCount).toBe(afterInitializeWrites);
+    expect(storage.transactionCount).toBeGreaterThan(afterInitializeTransactions);
+    expect(storage.writeCount).toBeGreaterThan(afterInitializeWrites);
     expect(storage.journal).toEqual([]);
   });
 
-  it('keeps duplicate and authorization-rejected commands write-free', async () => {
+  it('keeps duplicate and authorization-rejected commands free of application-state writes', async () => {
     const storage = new TransactionalSqliteStorage();
     const object = durableObject(storage);
     const initial = protocolState();
@@ -392,17 +284,20 @@ describe('O4P-03A Judge acceptance', () => {
 
     const duplicate = await object.fetch(requestFor(acceptedEnvelope));
     expect(await duplicate.json()).toMatchObject({ kind: 'online-command-ack-v1', duplicate: true });
-    expect(storage.transactionCount).toBe(afterAcceptedTransactions);
-    expect(storage.writeCount).toBe(afterAcceptedWrites);
+    expect(storage.transactionCount).toBeGreaterThan(afterAcceptedTransactions);
+    expect(storage.writeCount).toBeGreaterThan(afterAcceptedWrites);
+    const afterDuplicateTransactions = storage.transactionCount;
+    const afterDuplicateWrites = storage.writeCount;
 
     const rejectedEnvelope = {
       ...envelope(initial, 'review-rejected-command'),
       participantCapability: CAPABILITIES[1],
     };
     const rejected = await object.fetch(requestFor(rejectedEnvelope));
-    expect(await rejected.json()).toMatchObject({ kind: 'online-command-reject-v1' });
-    expect(storage.transactionCount).toBe(afterAcceptedTransactions);
-    expect(storage.writeCount).toBe(afterAcceptedWrites);
+    expect(rejected.status).toBe(401);
+    expect(await rejected.json()).toEqual({ kind: 'online-cloudflare-error-v1' });
+    expect(storage.transactionCount).toBeGreaterThan(afterDuplicateTransactions);
+    expect(storage.writeCount).toBeGreaterThan(afterDuplicateWrites);
     expect(storage.room?.revision).toBe(1);
     expect(storage.journal).toHaveLength(1);
   });

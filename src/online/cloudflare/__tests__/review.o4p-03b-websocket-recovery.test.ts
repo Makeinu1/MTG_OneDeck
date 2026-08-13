@@ -32,141 +32,9 @@ import {
   type OnlineCloudflareSocketAttachmentV1,
   type OnlineCloudflareWebSocket,
 } from '../index';
+import { SecuritySqlFixture } from './securitySqlFixture';
 
-type Row = Record<string, unknown>;
-type RoomRow = {
-  singleton: number;
-  schema_version: number;
-  room_id: string;
-  revision: number;
-  room_lifecycle: string;
-  accepted_command_count: number;
-  state_json: string;
-};
-type JournalRow = {
-  accepted_revision: number;
-  command_id: string;
-  participant_id: string;
-  base_revision: number;
-  command_json: string;
-};
-
-function cursor<T extends Row>(rows: readonly T[]): { toArray(): T[] } {
-  return { toArray: () => rows.map((row) => ({ ...row })) };
-}
-
-class ReviewSqlStorage {
-  room: RoomRow | null = null;
-  journal: JournalRow[] = [];
-  writeCount = 0;
-  transactionCount = 0;
-  failNextPresenceUpdate = false;
-  failRoomReads = false;
-
-  readonly sql = {
-    exec: <T extends Row>(query: string, ...bindings: readonly unknown[]) =>
-      this.execute<T>(query, bindings),
-  };
-
-  transactionSync<T>(callback: () => T): T {
-    this.transactionCount += 1;
-    const room = this.room === null ? null : { ...this.room };
-    const journal = this.journal.map((entry) => ({ ...entry }));
-    const writes = this.writeCount;
-    try {
-      return callback();
-    } catch (error: unknown) {
-      this.room = room;
-      this.journal = journal;
-      this.writeCount = writes;
-      throw error;
-    }
-  }
-
-  private execute<T extends Row>(query: string, bindings: readonly unknown[]): { toArray(): T[] } {
-    if (query.startsWith('CREATE TABLE')) return cursor<T>([]);
-    if (query.startsWith('SELECT singleton FROM online_room_state WHERE singleton = ?')) {
-      const matches = this.room !== null &&
-        this.room.singleton === Number(bindings[0]) &&
-        this.room.room_id === String(bindings[1]) &&
-        this.room.revision === Number(bindings[2]);
-      return cursor<T>(matches ? [{ singleton: 1 } as unknown as T] : []);
-    }
-    if (query.startsWith('SELECT singleton FROM online_room_state WHERE singleton = 1')) {
-      const matches = this.room !== null &&
-        this.room.room_id === String(bindings[0]) &&
-        this.room.revision === Number(bindings[1]) &&
-        this.room.room_lifecycle === String(bindings[2]) &&
-        this.room.state_json === String(bindings[3]);
-      return cursor<T>(matches ? [{ singleton: 1 } as unknown as T] : []);
-    }
-    if (query.includes('FROM online_room_state')) {
-      if (this.failRoomReads) throw new Error('hostile SQLite row');
-      return cursor<T>(this.room === null ? [] : [this.room] as unknown as readonly T[]);
-    }
-    if (query.includes('FROM online_accepted_command')) {
-      return cursor<T>(this.journal as unknown as readonly T[]);
-    }
-    if (query.startsWith('INSERT INTO online_room_state')) {
-      if (this.room !== null) throw new Error('duplicate singleton');
-      this.room = {
-        singleton: Number(bindings[0]),
-        schema_version: Number(bindings[1]),
-        room_id: String(bindings[2]),
-        revision: Number(bindings[3]),
-        room_lifecycle: String(bindings[4]),
-        accepted_command_count: Number(bindings[5]),
-        state_json: String(bindings[6]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('INSERT INTO online_accepted_command')) {
-      this.journal.push({
-        accepted_revision: Number(bindings[0]),
-        command_id: String(bindings[1]),
-        participant_id: String(bindings[2]),
-        base_revision: Number(bindings[3]),
-        command_json: String(bindings[4]),
-      });
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state SET revision')) {
-      if (this.room === null || this.room.room_id !== String(bindings[4]) || this.room.revision !== Number(bindings[5])) {
-        throw new Error('accepted compare-and-set mismatch');
-      }
-      this.room = {
-        ...this.room,
-        revision: Number(bindings[0]),
-        room_lifecycle: String(bindings[1]),
-        accepted_command_count: Number(bindings[2]),
-        state_json: String(bindings[3]),
-      };
-      this.writeCount += 1;
-      return cursor<T>([]);
-    }
-    if (query.startsWith('UPDATE online_room_state SET room_lifecycle')) {
-      const matches = this.room !== null &&
-        this.room.room_id === String(bindings[2]) &&
-        this.room.revision === Number(bindings[3]) &&
-        this.room.state_json === String(bindings[4]);
-      if (!matches || this.room === null) return cursor<T>([]);
-      this.room = {
-        ...this.room,
-        room_lifecycle: String(bindings[0]),
-        state_json: String(bindings[1]),
-      };
-      this.writeCount += 1;
-      if (this.failNextPresenceUpdate) {
-        this.failNextPresenceUpdate = false;
-        throw new Error('forced presence update failure');
-      }
-      return cursor<T>([{ singleton: 1 } as unknown as T]);
-    }
-    throw new Error(`Unexpected SQL in O4P-03B review fake: ${query}`);
-  }
-}
+class ReviewSqlStorage extends SecuritySqlFixture {}
 
 class ReviewSocket implements OnlineCloudflareWebSocket {
   attachment: unknown;
@@ -190,6 +58,7 @@ class ReviewDurableObjectState {
   readonly sockets: ReviewSocket[] = [];
   acceptCount = 0;
   failEnumeration = false;
+  readonly now = (): number => 0;
   constructor(storage: ReviewSqlStorage, roomId: string) {
     this.storage = storage;
     this.id = { name: roomId };
@@ -325,7 +194,7 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
       expect(response.status).toBe(101);
       expect(runtime.acceptCount).toBe(1);
       expect((socket as unknown as Record<string, unknown>)['accept']).toBeUndefined();
-      expect(socket.attachment).toEqual(createOnlineCloudflareSocketAttachmentV1(state.room.roomId));
+      expect(socket.attachment).toEqual(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, 0));
       expect(socket.sent).toEqual([JSON.stringify({
         kind: 'online-cloudflare-websocket-ready-v1',
         schemaVersion: 1,
@@ -344,7 +213,7 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
     const storage = new ReviewSqlStorage();
     const initial = protocolState(true);
     const repository = new OnlineCloudflareRepository(storage);
-    repository.initialize(initial.room.roomId, initial);
+    repository.initialize(initial.room.roomId, initial, 0);
     const { object, runtime } = objectFor(storage, initial);
     const socket = new ReviewSocket();
     runtime.acceptWebSocket(socket);
@@ -352,8 +221,12 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
 
     const beforeReject = storage.writeCount;
     object.webSocketMessage(socket, JSON.stringify(hello(initial, 'invalid-capability')));
-    expect(parsedFrames(socket).at(-1)).toMatchObject({ kind: 'online-server-hello-v1', status: 'rejected' });
-    expect(storage.writeCount).toBe(beforeReject);
+    expect(parsedFrames(socket).at(-1)).toEqual({
+      kind: 'online-cloudflare-websocket-error-v1',
+      schemaVersion: 1,
+      code: 'CAPABILITY_REJECTED',
+    });
+    expect(storage.writeCount).toBeGreaterThan(beforeReject);
 
     object.webSocketMessage(socket, JSON.stringify(hello(initial)));
     expect(parsedFrames(socket).at(-1)).toMatchObject({
@@ -367,8 +240,12 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
 
     const afterReconnect = storage.writeCount;
     object.webSocketMessage(socket, JSON.stringify(projection(initial, CAPABILITIES[1])));
-    expect(parsedFrames(socket).at(-1)).toMatchObject({ kind: 'online-projected-snapshot-v1', status: 'rejected' });
-    expect(storage.writeCount).toBe(afterReconnect);
+    expect(parsedFrames(socket).at(-1)).toEqual({
+      kind: 'online-cloudflare-websocket-error-v1',
+      schemaVersion: 1,
+      code: 'CAPABILITY_REJECTED',
+    });
+    expect(storage.writeCount).toBeGreaterThan(afterReconnect);
 
     object.webSocketMessage(socket, JSON.stringify(projection(initial)));
     const projected = parsedFrames(socket).at(-1);
@@ -385,7 +262,7 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
     const storage = new ReviewSqlStorage();
     const state = protocolState();
     const repository = new OnlineCloudflareRepository(storage);
-    repository.initialize(state.room.roomId, state);
+    repository.initialize(state.room.roomId, state, 0);
     const { object, runtime } = objectFor(storage, state);
     const sender = new ReviewSocket();
     const peer = new ReviewSocket();
@@ -410,20 +287,25 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
     const writes = storage.writeCount;
     object.webSocketMessage(sender, JSON.stringify(command));
     expect(parsedFrames(sender).at(-1)).toMatchObject({ kind: 'online-command-ack-v1', duplicate: true });
-    expect(storage.writeCount).toBe(writes);
+    expect(storage.writeCount).toBeGreaterThan(writes);
     expect(parsedFrames(sender).filter((frame) => frame.kind === 'online-cloudflare-revision-v1')).toHaveLength(1);
 
+    const afterDuplicateWrites = storage.writeCount;
     const unauthorized = { ...envelope(repository.load() ?? state, 'review-rejected'), participantCapability: CAPABILITIES[1] };
     object.webSocketMessage(sender, JSON.stringify(unauthorized));
-    expect(parsedFrames(sender).at(-1)).toMatchObject({ kind: 'online-command-reject-v1' });
-    expect(storage.writeCount).toBe(writes);
+    expect(parsedFrames(sender).at(-1)).toEqual({
+      kind: 'online-cloudflare-websocket-error-v1',
+      schemaVersion: 1,
+      code: 'CAPABILITY_REJECTED',
+    });
+    expect(storage.writeCount).toBeGreaterThan(afterDuplicateWrites);
   });
 
   it('enforces exact-state presence CAS, rollback, multi-socket close, and hostile event failure boundaries', () => {
     const initial = protocolState(true);
     const storage = new ReviewSqlStorage();
     const repository = new OnlineCloudflareRepository(storage);
-    repository.initialize(initial.room.roomId, initial);
+    repository.initialize(initial.room.roomId, initial, 0);
     const reconnect = handleOnlineClientHelloV1(initial, hello(initial));
     expect(reconnect.response.status).toBe('accepted');
     repository.persistSameRevision(initial, reconnect.state);
@@ -436,7 +318,7 @@ describe('O4P-03B Judge WebSocket and recovery acceptance', () => {
 
     const rollbackStorage = new ReviewSqlStorage();
     const rollbackRepository = new OnlineCloudflareRepository(rollbackStorage);
-    rollbackRepository.initialize(initial.room.roomId, initial);
+    rollbackRepository.initialize(initial.room.roomId, initial, 0);
     rollbackStorage.failNextPresenceUpdate = true;
     expect(() => rollbackRepository.persistSameRevision(initial, reconnect.state)).toThrow('forced presence update failure');
     expect(rollbackRepository.load()).toEqual(initial);

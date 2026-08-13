@@ -43,6 +43,7 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
       'src/online/cloudflare/runtime.ts',
+      'src/online/cloudflare/security.ts',
       'src/online/cloudflare/support.ts',
       'src/online/cloudflare/types.ts',
       'src/online/cloudflare/websocket.ts',
@@ -107,7 +108,7 @@ describe('O4P-03B architecture boundary', () => {
     expect(runtime).toMatch(/webSocketClose\s*\(/);
     expect(runtime).toMatch(/webSocketError\s*\(/);
     expect(runtime).toMatch(
-      /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;\s*\/\* Cloudflare defines this as a non-disconnection notification\. \*\/\s*\}/,
+      /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;\s*\}/,
     );
     expect(runtime).not.toMatch(/\.accept\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
     expect(`${runtime}\n${websocket}`).not.toMatch(/setTimeout|setInterval|alarm\s*\(/);
@@ -150,7 +151,7 @@ describe('O4P-03B architecture boundary', () => {
     expect(outbox).not.toMatch(/localStorage|indexedDB|fetch\s*\(|setTimeout|setInterval/);
   });
 
-  it('does not claim O4P-03C abuse control or O4P-03D deployment authority', () => {
+  it('does not claim O4P-03D deployment authority', () => {
     const config = JSON.parse(source('wrangler.jsonc')) as Record<string, unknown>;
     expect(config).toEqual({
       main: 'src/online/cloudflare/worker.ts',
@@ -163,6 +164,6 @@ describe('O4P-03B architecture boundary', () => {
       },
     });
     const production = productionFiles(cloudflareRoot).map((path) => readFileSync(path, 'utf8')).join('\n');
-    expect(production).not.toMatch(/accountId|apiToken|customDomain|migrationTag|point.?in.?time|rateLimit|banParticipant|kickParticipant/i);
+    expect(production).not.toMatch(/accountId|apiToken|customDomain|migrationTag|point.?in.?time|banParticipant|kickParticipant/i);
   });
 });

@@ -7,23 +7,29 @@ import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const baseSha = 'c7fe4e32a0b1e8fb4ebf33b07313b1bcd08340e9';
+const baseSha = 'a6f4c539a977e38a6891c31fb99acf4fddfee428';
 
 const frozenHashes = Object.freeze({
-  'research/cr-grounding/o4p-03b-websocket-recovery.contract.draft.md':
-    'c2647339d79305eaeb0d05a5873596eb856e144777275cd65df43e10eeb79175',
-  'research/cr-grounding/o4p-03b-acceptance-brief.draft.md':
-    'd01b096c36310213d16bb9e4ceffd7bab39c71ca3e3b6f647b31dd3478bc32fc',
-  'research/cr-grounding/o4p-03b-implementation-brief.draft.md':
-    'a4212bcf32cf8b7a46cdad12444259a6fd1c4fc0a177687348377f7c5c6daad5',
-  'research/cr-grounding/o4p-03b-cold-audit-brief.draft.md':
-    '26a221b3e4cde53f5ba4e1dc598f759573eca8fb4b19e00ae5da41a100baa48d',
-  'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
-    '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
-  'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    'f71e555d9a03f80399f7aeb61cfe745666da04655636ab0dd68791e7357af92e',
-  'src/online/cloudflare/index.ts':
-    '3ad8311a1d68518c88f9092eb4da5c1d1a4cee3cb004a0241b7ae171cee31985',
+  'research/cr-grounding/o4p-03c-capability-abuse-control.contract.draft.md':
+    'aa336af38875a572b33b1376a8d00134463dcf061c003e64b625afc8ff9e7654',
+  'research/cr-grounding/o4p-03c-acceptance-brief.draft.md':
+    'd09d442e136fe0bb68d67e47a8a8810db001c9eb0dc76cc25c086da9a6a4b556',
+  'research/cr-grounding/o4p-03c-implementation-brief.draft.md':
+    '72d5181bf01afdfea156ace0dda573cdca0c22a720db65528f1248d6a17f876c',
+  'research/cr-grounding/o4p-03c-correction-1.draft.md':
+    'ff8fcd94072ab019acbb79480813f1b6bdee9bb443a7deb52e0871e5ac843a4a',
+  'research/cr-grounding/o4p-03c-cold-audit-brief.draft.md':
+    '04863d58c413b925cb7c6341e125d99d7bfb07ae578949dcaaa2b1f3583249cf',
+  'research/cr-grounding/o4p-03c-correction-2.draft.md':
+    '1f6c25c462f4ba0fbd52f5668d835b40c402c1348956ac4901c8814da0564925',
+  'research/cr-grounding/o4p-03c-correction-3-judge-surgery.draft.md':
+    '6c03276eaffb9ddc2dda1988a83596a37021cd2e68517f5698b0337e7230d594',
+  'src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts':
+    '12cbee7a3972258eb723d235763c0fdcab7ac80e5710c6f57fbe40b20e433728',
+  'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
+    '895a41a2445cba57fcabf58df587a1f64a85a1a7be0fc44271ece749c830de67',
+  'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
+    '4e6a917cfcd641b5daf2fb666640856425d7411506e0dbbaa5f04792ea6a8b0a',
   'wrangler.jsonc':
     '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
 });
@@ -36,14 +42,14 @@ const requiredFiles = Object.freeze([
   'src/online/cloudflare/support.ts',
   'src/online/cloudflare/persistence.ts',
   'src/online/cloudflare/runtime.ts',
+  'src/online/cloudflare/security.ts',
   'src/online/cloudflare/websocket.ts',
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/worker.ts',
-  'src/online/cloudflare/__tests__/hibernationV1.test.ts',
-  'src/online/cloudflare/__tests__/outboxV1.test.ts',
-  'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts',
-  'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
-  'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
+  'src/online/cloudflare/__tests__/securityV1.test.ts',
+  'src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts',
+  'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
+  'scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
 ]);
 
 function readText(path: string): string {
@@ -108,13 +114,13 @@ const packageAfter = JSON.parse(readText('package.json')) as {
 assert.deepEqual(packageAfter.dependencies, packageBefore.dependencies);
 assert.deepEqual(packageAfter.devDependencies, packageBefore.devDependencies);
 assert.equal(
-  packageAfter.scripts?.['verify:online-cloudflare-websocket-recovery'],
-  'tsx scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
+  packageAfter.scripts?.['verify:online-cloudflare-capability-abuse-control'],
+  'tsx scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
 );
 
 const checks = readText('scripts/checks/machine-checks.mjs');
-const prior = "args: ['run', 'verify:online-cloudflare-runtime-persistence']";
-const current = "args: ['run', 'verify:online-cloudflare-websocket-recovery']";
+const prior = "args: ['run', 'verify:online-cloudflare-websocket-recovery']";
+const current = "args: ['run', 'verify:online-cloudflare-capability-abuse-control']";
 const lint = "{ name: 'lint', cmd: 'npm', args: ['run', 'lint'] }";
 assert.equal(checks.split(current).length - 1, 1);
 assert.equal(checks.indexOf(prior) < checks.indexOf(current), true);
@@ -151,54 +157,56 @@ for (const path of production) {
 
 const types = readText('src/online/cloudflare/types.ts');
 const runtime = readText('src/online/cloudflare/runtime.ts');
+const security = readText('src/online/cloudflare/security.ts');
+const support = readText('src/online/cloudflare/support.ts');
 const websocket = readText('src/online/cloudflare/websocket.ts');
-const persistence = readText('src/online/cloudflare/persistence.ts');
-const outbox = readText('src/online/cloudflare/outbox.ts');
 const barrel = readText('src/online/cloudflare/index.ts');
 
-assert.match(types, /ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1\s*=\s*1/);
-assert.match(types, /ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1\s*=\s*16_384/);
-assert.match(types, /readonly acceptWebSocket:/);
-assert.match(types, /readonly getWebSockets:/);
-assert.doesNotMatch(types, /acceptWebSocket\?:|getWebSockets\?:/);
+assert.match(types, /readonly now\?: \(\) => number/);
+assert.match(support, /pieces\[1\] === 'capabilities'/);
+assert.match(runtime, /route\.action === 'capabilities'/);
+assert.match(runtime, /consumeHttpAction/);
+assert.match(runtime, /authorizeSocket/);
+assert.match(runtime, /acquireControllerLease/);
+assert.match(runtime, /releaseControllerLease/);
+assert.match(runtime, /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;/);
+assert.doesNotMatch(runtime, /setTimeout|setInterval|alarm\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
 
-assert.match(runtime, /this\.state\.acceptWebSocket\(pair\.server\)/);
-assert.match(runtime, /webSocketMessage\s*\(/);
-assert.match(runtime, /webSocketClose\s*\(/);
-assert.match(runtime, /webSocketError\s*\(/);
-assert.match(
-  runtime,
-  /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;\s*\}/,
-);
-assert.doesNotMatch(runtime, /\.accept\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
-assert.doesNotMatch(`${runtime}\n${websocket}`, /setTimeout|setInterval|alarm\s*\(/);
-assert.match(websocket, /Object\.getOwnPropertyNames/);
-assert.match(websocket, /Object\.getOwnPropertySymbols/);
-assert.match(websocket, /Object\.getOwnPropertyDescriptor/);
-assert.doesNotMatch(websocket, /participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot/);
-
-assert.match(persistence, /persistSameRevision\s*\(/);
-assert.match(
-  persistence,
-  /UPDATE online_room_state SET room_lifecycle = \?, state_json = \? WHERE singleton = 1 AND room_id = \? AND revision = \? AND state_json = \? RETURNING singleton/,
-);
-assert.match(persistence, /comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/);
-assert.doesNotMatch(persistence, /commitPresence\s*\(|persistPresence\s*\(|commitPresenceSameRevision\s*\(/);
-assert.doesNotMatch(persistence, /ALTER TABLE|DROP TABLE|PRAGMA|setTimeout|setInterval/i);
+for (const [name, value] of [
+  ['ONLINE_CLOUDFLARE_SECURITY_SCHEMA_VERSION_V1', '1'],
+  ['ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1', '43_200_000'],
+  ['ONLINE_CLOUDFLARE_CONTROLLER_LEASE_LIFETIME_MS_V1', '30_000'],
+  ['ONLINE_CLOUDFLARE_MAX_ATTACHED_SOCKETS_V1', '16'],
+  ['ONLINE_CLOUDFLARE_WEBSOCKET_MESSAGE_WINDOW_MS_V1', '10_000'],
+  ['ONLINE_CLOUDFLARE_MAX_WEBSOCKET_MESSAGES_PER_WINDOW_V1', '32'],
+  ['ONLINE_CLOUDFLARE_MALFORMED_MESSAGE_WINDOW_MS_V1', '60_000'],
+  ['ONLINE_CLOUDFLARE_MAX_MALFORMED_MESSAGES_PER_WINDOW_V1', '8'],
+  ['ONLINE_CLOUDFLARE_HTTP_BEARER_WINDOW_MS_V1', '10_000'],
+  ['ONLINE_CLOUDFLARE_MAX_HTTP_BEARER_ACTIONS_PER_WINDOW_V1', '32'],
+  ['ONLINE_CLOUDFLARE_ROTATION_WINDOW_MS_V1', '60_000'],
+  ['ONLINE_CLOUDFLARE_MAX_ROTATIONS_PER_WINDOW_V1', '4'],
+  ['ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1', '65_536'],
+  ['ONLINE_CLOUDFLARE_MAX_SECURITY_AUDIT_FACTS_V1', '256'],
+  ['ONLINE_CLOUDFLARE_MAX_RETIRED_CAPABILITIES_PER_GRANT_V1', '256'],
+] as const) assert.match(security, new RegExp(`${name}\\s*=\\s*${value}`));
+assert.match(websocket, /ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1/);
+assert.match(security, /CREATE TABLE online_security_state/);
+assert.match(security, /CREATE TABLE online_capability_grant/);
+assert.match(security, /CREATE TABLE online_controller_lease/);
+assert.match(security, /CREATE TABLE online_security_audit/);
+assert.match(security, /DELETE FROM online_controller_lease[\s\S]*RETURNING/);
+assert.match(security, /grant_count INTEGER NOT NULL/);
+assert.match(security, /retired_tokens_json TEXT NOT NULL/);
+assert.match(security, /transactionSync\s*\(/);
+assert.doesNotMatch(`${security}\n${runtime}\n${websocket}`, /console\.|setTimeout|setInterval|ALTER TABLE|DROP TABLE|PRAGMA/i);
 
 assert.doesNotMatch(barrel, /export\s+\*/);
-for (const name of [
-  'createOnlineCloudflareOutboxV1',
-  'enqueueOnlineCloudflareOutboxV1',
-  'replayOnlineCloudflareOutboxV1',
-  'settleOnlineCloudflareOutboxV1',
-]) assert.match(barrel, new RegExp(`\\b${name}\\b`));
-assert.doesNotMatch(barrel, /appendOnline|acknowledgeOnline|frameKind|frameStringField|parseOnlineCloudflareWebSocketFrame|serializeOnlineCloudflareWebSocketValue/);
-assert.match(outbox, /response:\s*unknown/);
-assert.match(outbox, /Object\.getOwnPropertyNames/);
-assert.match(outbox, /Object\.getOwnPropertySymbols/);
-assert.match(outbox, /Object\.getOwnPropertyDescriptor/);
-assert.doesNotMatch(outbox, /localStorage|indexedDB|fetch\s*\(|setTimeout|setInterval/);
+for (const forbidden of [
+  'OnlineCloudflareCapabilityGrantRow',
+  'resolveProtocolCapability',
+  'appendAudit',
+  'parseOnlineCloudflareWebSocketFrameV1',
+]) assert.doesNotMatch(barrel, new RegExp(`\\b${forbidden}\\b`));
 
 for (const root of [
   'src/engine',
@@ -214,7 +222,7 @@ for (const root of [
 }
 
 console.log(
-  'milestone=O4P-03B schema=1 transport=hibernation attachment=closed-16384 ' +
-  'reauth=true snapshot=projected outbox=immutable persistence=same-revision-cas ' +
-  'recreation=intact-storage dependencies=unchanged frozen=true',
+  'milestone=O4P-03C security-schema=1 classified=true expiry=exclusive rotation=closed ' +
+  'lease=single-controller abuse=bounded audit=append-only-secret-free sql=atomic ' +
+  'dependencies=unchanged config=unchanged frozen=true',
 );
