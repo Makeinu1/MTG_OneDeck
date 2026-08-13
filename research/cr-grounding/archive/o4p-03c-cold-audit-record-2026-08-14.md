@@ -157,3 +157,24 @@ post-run semantic and context fingerprints were unchanged, and
 
 Exact-head repair commit, successful Actions, GitHub Pages evidence, and
 terminal metadata remain pending. No Cloudflare deployment occurred.
+
+## Shipment
+
+Repair commit `369cba2fb7a1ce329db7a4374615dfef001b4278` was pushed to
+`main`. Exact-head Actions run `31751514637` passed `npm ci`, the complete
+Node 22 `npm run check -- --build-base=/MTG_OneDeck/`, resolved the commit-local
+base `4cd1a351c29baff1714a55c959acf5d7b5485a70`, passed the forbidden scan,
+configured and uploaded the Pages artifact, and deployed GitHub Pages. Both
+build and deploy jobs completed successfully.
+
+Served evidence after that deployment:
+
+- HTML `https://makeinu1.github.io/MTG_OneDeck/`: HTTP 200;
+- JS `assets/index-CyZgN26K.js`: HTTP 200;
+- CSS `assets/index-JeU5vEot.css`: HTTP 200.
+
+All three responses reported last-modified `2026-08-13 22:57:57 UTC`. Local
+`HEAD` and `origin/main` both matched the repair commit and the worktree was
+clean before terminal metadata. O4P-03C is eligible to be marked shipped.
+Cloudflare account, route, migration, resource creation, and actual Durable
+Object deployment remain wholly deferred to the separately bounded O4P-03D.
