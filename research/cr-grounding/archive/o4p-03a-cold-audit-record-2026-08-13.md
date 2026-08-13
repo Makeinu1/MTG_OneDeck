@@ -221,3 +221,18 @@ green as evidence for the entire candidate:
 This reownership changes only this audit record and the ledger. It does not
 change review bytes, assertions, production source, workflows, or protection
 rules. A new exact-head metadata CI run is required before terminal shipment.
+
+## Shipment
+
+Judge-reownership commit `98dd570db115c56e4389ef5ba3efe03bafb4d0cd` was
+pushed to `main`. Exact-head Actions run `31660263521` passed the complete full
+check, commit-local forbidden scan, production artifact upload, and Pages
+deploy. Served HTML returned HTTP 200 and referenced
+`assets/index-CyZgN26K.js` and `assets/index-JeU5vEot.css`; both served assets
+also returned HTTP 200. `HEAD` equaled `origin/main` and the worktree was clean
+before terminal metadata.
+
+O4P-03A is shipped. O4P-03B is the next milestone but is not started in this
+task. WebSocket hibernation/reconnect/recovery, expanded capability and abuse
+controls, production account/routes/migrations, full replay, and UI remain
+deferred to O4P-03B through O4P-03D.
