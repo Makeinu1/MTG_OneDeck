@@ -90,3 +90,31 @@ and the Vite production build. Generated assets were
 semantic and context fingerprints were unchanged, and `git diff --check`
 passed. Candidate publication, exact-head Actions, resolved-base forbidden
 handling, Pages HTTP evidence, and terminal ledger metadata remain.
+
+## Candidate CI and Judge reownership
+
+Candidate commit `fdea89c331172ef702e98d35bc869ea4ad10e489` was pushed to
+`main`. Exact-head Actions run `31697168398` passed `npm ci`, the complete
+`npm run check -- --build-base=/MTG_OneDeck/`, and resolved the declared base
+`c7fe4e32a0b1e8fb4ebf33b07313b1bcd08340e9`. It then stopped only at the
+expected implementer-oriented forbidden scan, so Pages configuration, artifact
+upload, and deploy were skipped.
+
+The failed lane listed package, ledger, audit record, and the four governance
+drafts as informational `NEEDS-REAUTH`. Its only `FORBIDDEN` paths were the
+following four Judge-authored review files. The Sol Judge re-owns their exact
+current bytes without changing any file, assertion, workflow, or protection:
+
+- `src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts`
+  — SHA-256 `b77b3207bc50a405692327d0140a930c08e6f13c2823e34472c6508a9a71fe2f`;
+- `src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts`
+  — SHA-256 `50ff23719166ebee67a58ea2b332a680d183d0bf2f1dbeaf88adc701af4446a2`;
+- `src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts`
+  — SHA-256 `bac9d4fb4e18323e7cbb47e7e31f977d87b760ccd138da3f589e933498cddfce`;
+- `src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts`
+  — SHA-256 `636e162e56838a0ee9da29e01bc9bf9cd086403524569819047fb21ee45509b2`.
+
+Only this audit record and the exact two O4P-03B ledger entries will change in
+the reownership commit. A new exact-head Actions run must pass full check,
+commit-local forbidden scan, build artifact upload, and Pages deploy before
+terminal shipment.
