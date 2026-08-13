@@ -118,3 +118,23 @@ Only this audit record and the exact two O4P-03B ledger entries will change in
 the reownership commit. A new exact-head Actions run must pass full check,
 commit-local forbidden scan, build artifact upload, and Pages deploy before
 terminal shipment.
+
+## Shipment
+
+Judge-reownership commit `af4d3a6dcf2cde6c0afc0bb4fe8b8200d7a542e2`
+was pushed to `main`. Exact-head Actions run `31698159799` passed `npm ci`,
+the complete full check, commit-local forbidden scan, Pages configuration and
+artifact upload, and Pages deployment. Both build and deploy jobs completed
+successfully.
+
+Served evidence after that deployment:
+
+- HTML `https://makeinu1.github.io/MTG_OneDeck/`: HTTP 200;
+- JS `assets/index-CyZgN26K.js`: HTTP 200;
+- CSS `assets/index-JeU5vEot.css`: HTTP 200.
+
+All three responses reported last-modified `2026-08-13 12:10:58 UTC`.
+Local `HEAD` and `origin/main` both matched the reownership commit and the
+worktree was clean before terminal metadata. O4P-03B is shipped. O4P-03C is
+next, but is not started in this task. Cloudflare account, route, migration,
+secret, and actual production Durable Object deployment remain O4P-03D.
