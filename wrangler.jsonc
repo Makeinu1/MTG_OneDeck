@@ -1,0 +1,12 @@
+{
+  "main": "src/online/cloudflare/worker.ts",
+  "compatibility_date": "2026-08-13",
+  "durable_objects": {
+    "bindings": [
+      { "name": "ONLINE_ROOMS", "class_name": "OnlineRoomDurableObject" }
+    ]
+  },
+  "exports": {
+    "OnlineRoomDurableObject": { "type": "durable-object", "storage": "sqlite" }
+  }
+}

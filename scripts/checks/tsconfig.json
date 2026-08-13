@@ -15,6 +15,7 @@
     "verify-online-four-seat-room.ts",
     "verify-online-in-memory-protocol.ts",
     "verify-online-audience-projection.ts",
-    "verify-online-local-room-gate.ts"
+    "verify-online-local-room-gate.ts",
+    "verify-online-cloudflare-runtime-persistence.ts"
   ]
 }

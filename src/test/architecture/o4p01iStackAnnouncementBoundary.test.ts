@@ -35,7 +35,7 @@ const closureStackConsumers = new Set([
   resolve(coreRoot, 'closure/commandV1.ts'),
 ]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
-const allowedOnlineRootNames = new Set(['architecture', 'headless', 'projection', 'protocol', 'room']);
+const allowedOnlineRootNames = new Set(['architecture', 'cloudflare', 'headless', 'projection', 'protocol', 'room']);
 const categoryOrder = [
   'stack-edge',
   'forbidden-import',
@@ -317,6 +317,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
   it('reports every architecture violation in the pinned fixed order', () => {
     expect([...allowedOnlineRootNames]).toEqual([
       'architecture',
+      'cloudflare',
       'headless',
       'projection',
       'protocol',

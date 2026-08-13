@@ -49,6 +49,7 @@
     "verify:online-in-memory-protocol": "tsx scripts/checks/verify-online-in-memory-protocol.ts",
     "verify:online-audience-projection": "tsx scripts/checks/verify-online-audience-projection.ts",
     "verify:online-local-room-gate": "tsx scripts/checks/verify-online-local-room-gate.ts",
+    "verify:online-cloudflare-runtime-persistence": "tsx scripts/checks/verify-online-cloudflare-runtime-persistence.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",
