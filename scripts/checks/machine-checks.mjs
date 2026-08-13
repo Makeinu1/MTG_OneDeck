@@ -97,6 +97,11 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:online-cloudflare-runtime-persistence'],
   },
+  {
+    name: 'Online Cloudflare WebSocket/Recovery検証',
+    cmd: 'npm',
+    args: ['run', 'verify:online-cloudflare-websocket-recovery'],
+  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

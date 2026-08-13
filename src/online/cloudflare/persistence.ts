@@ -23,11 +23,39 @@ const INSERT_ROOM = `INSERT INTO online_room_state (singleton, schema_version, r
 const INSERT_JOURNAL = `INSERT INTO online_accepted_command (accepted_revision, command_id, participant_id, base_revision, command_json) VALUES (?, ?, ?, ?, ?)`;
 const UPDATE_ROOM = `UPDATE online_room_state SET revision = ?, room_lifecycle = ?, accepted_command_count = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND revision = ?`;
 const VERIFY_ROOM = `SELECT singleton FROM online_room_state WHERE singleton = ? AND room_id = ? AND revision = ?`;
+const UPDATE_PRESENCE = `UPDATE online_room_state SET room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton`;
+const VERIFY_PRESENCE = `SELECT singleton FROM online_room_state WHERE singleton = 1 AND room_id = ? AND revision = ? AND room_lifecycle = ? AND state_json = ?`;
 
 type RoomRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; room_lifecycle: unknown; accepted_command_count: unknown; state_json: unknown };
 type JournalRow = { accepted_revision: unknown; command_id: unknown; participant_id: unknown; base_revision: unknown; command_json: unknown };
 
 function isInteger(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0; }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function comparablePresenceState(serialized: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new Error('Invalid presence state JSON');
+  }
+  if (!isRecord(parsed) || !isRecord(parsed.room) || !Array.isArray(parsed.room.participants)) {
+    throw new Error('Invalid presence state');
+  }
+  const room = parsed.room;
+  const participants = room.participants as unknown[];
+  const comparableParticipants = participants.map((participant: unknown) => {
+    if (!isRecord(participant)) throw new Error('Invalid presence participant');
+    const copy = { ...participant };
+    copy.presence = '__presence__';
+    return copy;
+  });
+  parsed.room = { ...room, lifecycle: '__lifecycle__', participants: comparableParticipants };
+  return JSON.stringify(parsed);
+}
 
 export class OnlineCloudflareRepository {
   private readonly storage: OnlineCloudflareSqlStorage;
@@ -174,6 +202,45 @@ export class OnlineCloudflareRepository {
       }
     });
   }
+
+  persistSameRevision(previous: OnlineProtocolStateV1, next: OnlineProtocolStateV1): void {
+    const previousJson = serializeOnlineCloudflareProtocolStateV1(previous);
+    const nextJson = serializeOnlineCloudflareProtocolStateV1(next);
+    if (
+      previous.room.roomId !== next.room.roomId ||
+      previous.revision !== next.revision ||
+      comparablePresenceState(previousJson) !== comparablePresenceState(nextJson)
+    ) throw new Error('Presence state changes outside the allowed boundary');
+    const current = this.load();
+    if (
+      current === null ||
+      current.room.roomId !== previous.room.roomId ||
+      current.revision !== previous.revision ||
+      serializeOnlineCloudflareProtocolStateV1(current) !== previousJson
+    ) throw new ConflictError();
+    this.storage.transactionSync(() => {
+      const rows = this.rows();
+      if (rows.length !== 1 || rows[0]?.state_json !== previousJson) throw new ConflictError();
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(
+        UPDATE_PRESENCE,
+        next.room.lifecycle,
+        nextJson,
+        next.room.roomId,
+        next.revision,
+        previousJson,
+      ).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new Error('Presence compare-and-set failed');
+      const verified = this.storage.sql.exec<{ singleton: unknown }>(
+        VERIFY_PRESENCE,
+        next.room.roomId,
+        next.revision,
+        next.room.lifecycle,
+        nextJson,
+      ).toArray();
+      if (verified.length !== 1 || verified[0]?.singleton !== 1) throw new Error('Presence state verification failed');
+    });
+  }
+
 }
 
 export class ConflictError extends Error {}

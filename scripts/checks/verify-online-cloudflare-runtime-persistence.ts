@@ -19,11 +19,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03a-cold-audit-brief.draft.md':
     'd308ecb25249dffcb61e7aef16a725fa02174c6f12edc4982b72173148c1b954',
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
-    'a1193c12fd97daeefed8034cc437de9a9144f0a927ee8658a800866eea8f2596',
+    'b77b3207bc50a405692327d0140a930c08e6f13c2823e34472c6508a9a71fe2f',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    '6bca65f845f083bc659b6ed0a48b39bc3272c76e0e3d0d7473d1ebbf1d7f1000',
+    'bac9d4fb4e18323e7cbb47e7e31f977d87b760ccd138da3f589e933498cddfce',
   'src/online/cloudflare/index.ts':
-    '81c59a0c3d7785771d0b3a6e29f0d1022bcfbf3d8a4b1145d7ccbae287981c1f',
+    '1435efd945b51e900cb4e8fa3120b1b14de9ca8aaaea319f448d77740bb81212',
   'wrangler.jsonc':
     '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
 });
@@ -130,21 +130,24 @@ assert.deepEqual(
   [
     'src/online/cloudflare/codec.ts',
     'src/online/cloudflare/index.ts',
+    'src/online/cloudflare/outbox.ts',
     'src/online/cloudflare/persistence.ts',
     'src/online/cloudflare/runtime.ts',
     'src/online/cloudflare/support.ts',
     'src/online/cloudflare/types.ts',
+    'src/online/cloudflare/websocket.ts',
     'src/online/cloudflare/worker.ts',
   ],
 );
 
 const allowedImports = new Set([
   '../protocol/index',
+  '../projection/index',
   '../room/index',
   '../../engine/core/index',
 ]);
 const forbiddenSource =
-  /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|acceptWebSocket|webSocketMessage|serializeAttachment|deserializeAttachment|addEventListener\s*\(\s*['"]message)/i;
+  /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
 for (const path of production) {
   const source = readFileSync(path, 'utf8');
   assert.doesNotMatch(source, forbiddenSource, normalized(path));
@@ -200,6 +203,6 @@ for (const root of [
 
 console.log(
   'milestone=O4P-03A schema=1 worker=getByName durable-object=sqlite ' +
-    'persistence=singleton+journal+transaction+cas websocket=entry-only ' +
+    'persistence=singleton+journal+transaction+cas websocket=successor-owned ' +
     'capability-journal=false dependencies=unchanged frozen=true',
 );

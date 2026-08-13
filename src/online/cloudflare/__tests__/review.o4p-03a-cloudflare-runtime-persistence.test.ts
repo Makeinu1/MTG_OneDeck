@@ -29,6 +29,7 @@ import {
   OnlineRoomDurableObject,
   deserializeOnlineCloudflareProtocolStateV1,
   serializeOnlineCloudflareProtocolStateV1,
+  type OnlineCloudflareWebSocket,
 } from '../index';
 import worker from '../worker';
 
@@ -204,9 +205,12 @@ function repository(storage: TransactionalSqliteStorage): OnlineCloudflareReposi
 }
 
 function durableObject(storage: TransactionalSqliteStorage): OnlineRoomDurableObject {
+  const sockets: OnlineCloudflareWebSocket[] = [];
   return new OnlineRoomDurableObject({
     id: { name: protocolState().room.roomId },
     storage,
+    acceptWebSocket: (socket) => sockets.push(socket),
+    getWebSockets: () => sockets,
   });
 }
 
@@ -472,18 +476,30 @@ describe('O4P-03A Judge acceptance', () => {
     expect(selected).toBe('room..legal');
   });
 
-  it('accepts exactly one standard WebSocket pair and sends only the deferred bootstrap', async () => {
+  it('remains compatible with the successor Hibernation WebSocket admission', async () => {
     const storage = new TransactionalSqliteStorage();
-    const object = durableObject(storage);
     const initial = protocolState();
+    const accepted = vi.fn();
+    const sockets: OnlineCloudflareWebSocket[] = [];
+    const object = new OnlineRoomDurableObject({
+      id: { name: initial.room.roomId },
+      storage,
+      acceptWebSocket: (socket) => { accepted(socket); sockets.push(socket); },
+      getWebSockets: () => sockets,
+    });
     expect((await object.fetch(initializeRequest(initial))).status).toBe(200);
 
-    const accepted = vi.fn();
     const sent: string[] = [];
+    let attachment: unknown;
     const client = Object.freeze({ side: 'client' });
+    const server: OnlineCloudflareWebSocket = {
+      send: (value) => sent.push(value),
+      serializeAttachment: (value) => { attachment = value; },
+      deserializeAttachment: () => attachment,
+    };
     class FakePair {
       readonly 0 = client;
-      readonly 1 = { accept: accepted, send: (value: string) => sent.push(value) };
+      readonly 1 = server;
     }
     const NativeResponse = globalThis.Response;
     class CloudflareResponse {
@@ -507,13 +523,19 @@ describe('O4P-03A Judge acceptance', () => {
       expect(accepted).toHaveBeenCalledTimes(1);
       expect(sent).toEqual([
         JSON.stringify({
-          kind: 'online-cloudflare-websocket-bootstrap-v1',
+          kind: 'online-cloudflare-websocket-ready-v1',
           schemaVersion: 1,
           roomId: initial.room.roomId,
           revision: 0,
-          deferred: ['messages', 'hibernation', 'reconnect', 'outbox'],
+          transport: 'hibernation',
+          authenticationRequired: true,
         }),
       ]);
+      expect(attachment).toMatchObject({
+        kind: 'online-cloudflare-socket-attachment-v1',
+        roomId: initial.room.roomId,
+        authenticated: false,
+      });
       for (const capability of CAPABILITIES) expect(sent[0]).not.toContain(capability);
     } finally {
       vi.stubGlobal('Response', NativeResponse);

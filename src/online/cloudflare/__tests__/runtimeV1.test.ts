@@ -12,7 +12,7 @@ import {
   type OnlineCommandEnvelopeV1,
   type OnlineProtocolStateV1,
 } from '../../protocol/index';
-import { OnlineRoomDurableObject } from '../index';
+import { OnlineRoomDurableObject, type OnlineCloudflareSocketAttachmentV1, type OnlineCloudflareWebSocket } from '../index';
 import worker from '../worker';
 
 type Row = Record<string, unknown>;
@@ -167,7 +167,21 @@ function initializeRequest(state: OnlineProtocolStateV1, extra: Row = {}): Reque
 }
 
 function durableObject(storage: RuntimeSqlStorage, roomId = protocolState().room.roomId): OnlineRoomDurableObject {
-  return new OnlineRoomDurableObject({ id: { name: roomId }, storage });
+  const sockets: OnlineCloudflareWebSocket[] = [];
+  return new OnlineRoomDurableObject({
+    id: { name: roomId },
+    storage,
+    acceptWebSocket: (socket) => sockets.push(socket),
+    getWebSockets: () => sockets,
+  });
+}
+
+class HibernationSocket implements OnlineCloudflareWebSocket {
+  attachment: unknown;
+  readonly sent: string[] = [];
+  send(value: string): void { this.sent.push(value); }
+  serializeAttachment(value: OnlineCloudflareSocketAttachmentV1): void { this.attachment = value; }
+  deserializeAttachment(): unknown { return this.attachment; }
 }
 
 describe('O4P-03A Worker and Durable Object boundary', () => {
@@ -267,17 +281,23 @@ describe('O4P-03A Worker and Durable Object boundary', () => {
     expect(JSON.stringify(storage.journal[0])).not.toContain(CAPABILITIES[0]);
   });
 
-  it('uses one standard WebSocket accept and a capability-free deferred bootstrap', async () => {
+  it('uses one hibernation accept and sends a capability-free ready frame after the attachment', async () => {
     const storage = new RuntimeSqlStorage();
     const initial = protocolState();
-    const object = durableObject(storage, initial.room.roomId);
-    expect((await object.fetch(initializeRequest(initial))).status).toBe(200);
     const accepted = vi.fn();
-    const sent: string[] = [];
+    const sockets: OnlineCloudflareWebSocket[] = [];
+    const object = new OnlineRoomDurableObject({
+      id: { name: initial.room.roomId },
+      storage,
+      acceptWebSocket: (socket) => { accepted(socket); sockets.push(socket); },
+      getWebSockets: () => sockets,
+    });
+    expect((await object.fetch(initializeRequest(initial))).status).toBe(200);
     const client = Object.freeze({ side: 'client' });
+    const socket = new HibernationSocket();
     class FakePair {
       readonly 0 = client;
-      readonly 1 = { accept: accepted, send: (value: string) => sent.push(value) };
+      readonly 1 = socket;
     }
     const NativeResponse = globalThis.Response;
     class CloudflareResponse {
@@ -295,14 +315,23 @@ describe('O4P-03A Worker and Durable Object boundary', () => {
       expect(response.status).toBe(101);
       expect((response as unknown as { webSocket: unknown }).webSocket).toBe(client);
       expect(accepted).toHaveBeenCalledTimes(1);
-      expect(sent).toEqual([JSON.stringify({
-        kind: 'online-cloudflare-websocket-bootstrap-v1',
+      expect(socket.sent).toEqual([JSON.stringify({
+        kind: 'online-cloudflare-websocket-ready-v1',
         schemaVersion: 1,
         roomId: initial.room.roomId,
         revision: 0,
-        deferred: ['messages', 'hibernation', 'reconnect', 'outbox'],
+        transport: 'hibernation',
+        authenticationRequired: true,
       })]);
-      expect(sent[0]).not.toContain(CAPABILITIES[0]);
+      expect(JSON.stringify(socket.attachment)).not.toContain(CAPABILITIES[0]);
+      expect(socket.attachment).toEqual({
+        kind: 'online-cloudflare-socket-attachment-v1',
+        schemaVersion: 1,
+        roomId: initial.room.roomId,
+        participantId: null,
+        role: null,
+        authenticated: false,
+      });
     } finally {
       vi.stubGlobal('Response', NativeResponse);
       vi.unstubAllGlobals();

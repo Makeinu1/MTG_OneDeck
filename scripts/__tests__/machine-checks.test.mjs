@@ -138,6 +138,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:online-audience-projection']],
       ['npm', ['run', 'verify:online-local-room-gate']],
       ['npm', ['run', 'verify:online-cloudflare-runtime-persistence']],
+      ['npm', ['run', 'verify:online-cloudflare-websocket-recovery']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],

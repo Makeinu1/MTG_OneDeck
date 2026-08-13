@@ -69,8 +69,13 @@ describe('O4P-03A architecture boundary', () => {
   });
 
   it('uses only local modules and shipped public lower barrels with no reverse dependency', () => {
-    const allowed = new Set(['../protocol/index', '../room/index', '../../engine/core/index']);
-    const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|acceptWebSocket|webSocketMessage|serializeAttachment|deserializeAttachment|addEventListener\s*\(\s*['"]message)/i;
+    const allowed = new Set([
+      '../protocol/index',
+      '../projection/index',
+      '../room/index',
+      '../../engine/core/index',
+    ]);
+    const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
     for (const filePath of productionFiles(cloudflareRoot)) {
       const sourceText = readFileSync(filePath, 'utf8');
       expect(sourceText, normalized(filePath)).not.toMatch(forbiddenSource);
@@ -140,8 +145,6 @@ describe('O4P-03A architecture boundary', () => {
     expect(config).not.toHaveProperty('migrations');
     const text = JSON.stringify(config);
     expect(text).not.toMatch(/account|route|secret|token|hostname|custom_domain|remote/i);
-    expect(source('src/online/cloudflare/runtime.ts')).not.toMatch(
-      /acceptWebSocket|webSocketMessage|serializeAttachment|deserializeAttachment/i,
-    );
+    expect(source('src/online/cloudflare/runtime.ts')).not.toMatch(/\.accept\s*\(/);
   });
 });
