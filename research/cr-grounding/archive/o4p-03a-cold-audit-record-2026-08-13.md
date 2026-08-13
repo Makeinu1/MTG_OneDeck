@@ -195,3 +195,29 @@ The auditor independently matched all eight frozen hashes, proved the one-byte
 relationship, and found no source, review, dependency, contract, assertion, or
 deferred-boundary change. It recommends a new exact-head CI run rather than a
 rerun of the known-bad candidate commit.
+
+## Exact-head CI success and Judge reownership
+
+Hash-repair commit `987f978b1a0ec21b417990f554ed7acc1ac55788` was pushed to
+`main`. Exact-head Actions run `31659706336` passed `npm ci`, the complete
+`npm run check`, its commit-local forbidden scan, production artifact upload,
+and Pages deploy. The run completed successfully.
+
+Because the preceding candidate run failed before reaching its base-aware
+forbidden lane, the successful repair run compared only `987f978` against
+`fb1e4da`. The Judge therefore explicitly re-owned the four review paths from
+the original O4P-03A base-aware scan instead of treating that commit-local
+green as evidence for the entire candidate:
+
+- `src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts`
+  SHA-256 `a1193c12fd97daeefed8034cc437de9a9144f0a927ee8658a800866eea8f2596`
+- `src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts`
+  SHA-256 `0f372183988e0eeb22ad96d19d1f658ed22453fd285cb5e2bb841c8f58e03692`
+- `src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts`
+  SHA-256 `99c15208bbb9ecd9f6df81c6f7ee98c25aa9b07357f3a87468516f3d63ff8341`
+- `src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts`
+  SHA-256 `6bca65f845f083bc659b6ed0a48b39bc3272c76e0e3d0d7473d1ebbf1d7f1000`
+
+This reownership changes only this audit record and the ledger. It does not
+change review bytes, assertions, production source, workflows, or protection
+rules. A new exact-head metadata CI run is required before terminal shipment.
