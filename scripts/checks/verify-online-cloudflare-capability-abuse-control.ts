@@ -27,7 +27,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts':
     '12cbee7a3972258eb723d235763c0fdcab7ac80e5710c6f57fbe40b20e433728',
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
-    '895a41a2445cba57fcabf58df587a1f64a85a1a7be0fc44271ece749c830de67',
+    '138aaabc1aee8152632baf2e978042667801f74cb005c7f0d09f08aeb3db2bd5',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
     '4e6a917cfcd641b5daf2fb666640856425d7411506e0dbbaa5f04792ea6a8b0a',
   'wrangler.jsonc':

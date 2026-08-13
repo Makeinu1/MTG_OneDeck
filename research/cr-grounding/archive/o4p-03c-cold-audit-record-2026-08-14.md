@@ -114,5 +114,46 @@ unchanged, and `git diff --check` passed.
 
 ## Candidate CI and shipment
 
-Pending commit, exact-head Actions, GitHub Pages evidence, and terminal
-metadata. No Cloudflare deployment occurred.
+Candidate commit `4cd1a351c29baff1714a55c959acf5d7b5485a70` was pushed to
+`main`. Exact-head Actions run `31750144276` passed every registered verifier,
+docs, lint, Core 226 files / 2,086 tests, and 281 of 282 DOM files. Its final
+Judge file did not execute on the workflow's Node 22 runtime: Vite could not
+bundle the static value import of `node:sqlite` from the Judge real-SQLite
+helper. Build, forbidden scan, and Pages were skipped. This was adjudicated as
+a real release-gate compatibility defect; no retry was used.
+
+The bounded repair is recorded in
+`research/cr-grounding/o4p-03c-ci-node22-sqlite-repair-audit-brief.draft.md`.
+Only the Judge helper changes its runtime SQLite load to
+`createRequire(import.meta.url)`, while keeping the erased SQLite type import,
+and only the corresponding verifier hash changes. No production, assertion,
+dependency, workflow, configuration, contract, or lower-layer byte changed.
+
+Independent repair audit at semantic fingerprint
+`e96660cdb997debb4b20e5ba207b3602cec7a5ba0d3c09834a51081d80383a3e`
+and context fingerprint
+`4a7b8374ed77ac92a7826924a8bf832fb69253cb208b709ed61a073be513ae8b`
+returned BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0 with unchanged fingerprints.
+Exact Node `v22.22.0` and local Node 24 each passed the Judge file's 11 tests
+against real in-memory SQLite; the O4P-03C verifier, scoped ESLint, and
+`git diff --check` passed. The repair is eligible for metadata confirmation
+and the governance-maximum second/final fingerprint-matched release full
+check.
+
+The metadata-confirmed repaired tree was frozen at semantic fingerprint
+`5d6558c1224637ba79ab157dbf345c6c2a909004065286b6697242732498cb72`
+and context fingerprint
+`15231909b67fb726260e48679168cd5f79e8b81ee51248719f4dd33cda06d443`.
+Independent metadata confirmation returned BLOCKER 0 / HIGH 0 / MEDIUM 0 /
+LOW 0 and authorized the governance-maximum second and final release full
+check.
+
+That final `npm run check` passed every registered verifier, docs, and lint;
+Core 226 files / 2,086 tests; DOM 282 files / 1,987 tests; TypeScript; and Vite
+production build. Generated assets remained `assets/index-DYJZmvM4.js` and
+`assets/index-JeU5vEot.css`. Total machine-check duration was 241,098 ms. The
+post-run semantic and context fingerprints were unchanged, and
+`git diff --check` passed. No further local release full check is authorized.
+
+Exact-head repair commit, successful Actions, GitHub Pages evidence, and
+terminal metadata remain pending. No Cloudflare deployment occurred.

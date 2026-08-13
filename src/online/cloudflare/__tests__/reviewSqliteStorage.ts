@@ -1,5 +1,8 @@
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { createRequire } from 'node:module';
+import type { SQLInputValue } from 'node:sqlite';
 import type { OnlineCloudflareSqlStorage } from '../types';
+
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as typeof import('node:sqlite');
 
 type Row = Record<string, unknown>;
 
