@@ -101,3 +101,54 @@ commit, contract-verification reanchor, fingerprint-matched local full check,
 exact-head CI, Judge reownership, Pages evidence, terminal ledger promotion,
 and clean-worktree evidence remain pending and must be appended only after
 they actually pass.
+
+## Contract reanchor and local full-check repair
+
+Candidate commit `3e87dd25b5e218669645f40a9e8a2096b5c9051c` fixed the
+modified `soloOnlineBoundary.test.ts` evidence. The Judge changed only
+`CONTRACT-ENGINE-MULTIPLAYER.lastVerifiedCommit`, added the exact manifest path
+to the O4P-04D candidate gate, and recorded the authority. The same auditor
+verified the candidate/working-tree evidence blob and reanchor diff at
+BLOCKER/HIGH/MEDIUM/LOW 0/0/0/0. The targeted set passed 14 files / 63 tests,
+plus docs, lint, TypeScript, and diff checks.
+
+The first formal local full check passed every verifier, docs, lint, and Core
+226 files / 2,086 tests. DOM passed 299 of 300 files and 2,079 of 2,080 tests,
+then an existing O4P-03D real-SQLite recovery test completed in about 33.2
+seconds and exceeded its explicit 30-second limit. The bounded repair changed
+only that final timeout to 60 seconds and registered its exact predecessor
+review filename in the three O4P-04B/C/D candidate gates. Test callback,
+fixtures, body, and assertions were unchanged. The complete repaired targeted
+set passed 15 files / 76 tests, and the independent repair audit returned
+0/0/0/0.
+
+The second and final authorized local full check passed CR/version/docs and all
+registered verifiers through O4P-03C, then the O4P-03D verifier correctly
+stopped on its stale frozen Judge-file hash before lint, tests, or build. The
+Judge refreshed only that one hash literal to the audited 60-second file hash
+and registered only the exact verifier filename in the three candidate gates.
+The verifier, 4 files / 26 tests, docs, scoped lint, TypeScript/Vite build, and
+diff check passed. Independent authority-hash repair audit returned 0/0/0/0.
+No third local `npm run check` was run or authorized; exact-head CI became the
+complete release gate.
+
+## Candidate exact-head full check and Judge reownership
+
+The audited candidate `7207073b3ef88edcc3549f6cf4f7b39fdb63b066` was
+published to `main`. Exact-head GitHub Actions run `31812534014` passed
+`npm run check -- --build-base=/MTG_OneDeck/`: every verifier, docs, lint,
+Core 226 files / 2,086 tests, DOM 300 files / 2,079 passed + 1 skipped = 2,080
+tests, TypeScript, and Vite build were green. It produced
+`assets/index-CyZgN26K.js` and `assets/index-JeU5vEot.css`.
+
+The run resolved the expected diff base
+`1f6a465b859ba64c9961c6fcdae80087e33b9882` and stopped only at
+`check:forbidden` before Pages. The scanner reported nine Judge-owned
+`review.*` paths as hard `FORBIDDEN`; manifest, contract/audit/brief/repair
+records, and the design HTML were informational `NEEDS-REAUTH`. Exact path
+hashes and the bounded metadata-only next commit are recorded in
+`research/cr-grounding/o4p-04d-ci-reauthorization.draft.md`.
+
+Independent Judge reownership verification, the metadata-only commit,
+exact-head successful CI, Pages evidence, terminal ledger promotion, and clean
+worktree remain pending.
