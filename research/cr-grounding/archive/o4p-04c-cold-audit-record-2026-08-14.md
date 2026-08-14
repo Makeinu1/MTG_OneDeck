@@ -95,3 +95,38 @@ Release state at this record creation is `AUDIT-OK-PENDING-FULL-CHECK`.
 `npm run check`, commit/push, exact-head CI, Pages evidence, terminal ledger
 promotion, and clean-worktree evidence remain pending and must be appended only
 after they actually pass. O4P-04D is not started.
+
+## Final full-check repair and local release gate
+
+The first release `npm run check` passed every verifier, docs, lint, and Core
+226 files / 2,086 tests, then exposed two stale DOM architecture
+registrations. The global Core boundary had not frozen the exact approved
+O4P-04C public-Core imports, and the frozen O4P-04B scope had not registered
+its approved O4P-04C successor composition. The check stopped before build.
+
+The bounded Judge repair is recorded in
+`research/cr-grounding/o4p-04c-full-check-repair-1.draft.md`. It changed only
+three Judge-owned architecture tests and added the repair/cold-audit briefs;
+runtime, product entry points, contracts, dependencies, and DEFERs did not
+change. Invalidated plus O4P-04C targeted evidence passed 10 files / 48 tests,
+and both domain checks passed again at multiplayer Core 106/699 + DOM 104/671
+and ui-responsive Core 103/677 + DOM 201/1,342.
+
+The same independent cold auditor inspected the frozen repair candidate and
+ran direct adversarial probes. Repair-audit fingerprints were:
+
+- semantic: `acf6b80b31afd7712d568aff9d274ed03710a6a15516c6839491f32a7baa3d3e`;
+- context: `d3ebad98742d4a5e1e6c911c8fc7facb2c2c5a28ba1ed6f0483988453af2d5b9`.
+
+Repair-audit verdict:
+
+```text
+BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+AUDIT-CLEAR
+```
+
+The second and final local `npm run check` ran on that exact audited context
+fingerprint and passed every verifier, docs, lint, Core 226 files / 2,086
+tests, DOM 296 files / 2,065 tests, TypeScript, and Vite build. No third local
+full check is permitted or required. Candidate commit/push, exact-head CI,
+Pages, ledger promotion, and clean-worktree evidence remain pending.

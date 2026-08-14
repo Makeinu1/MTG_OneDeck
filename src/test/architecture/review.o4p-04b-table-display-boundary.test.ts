@@ -75,7 +75,9 @@ describe('O4P-04B Table Display architecture boundary', () => {
       .filter((path) => !/\.test\.[^.]+$/.test(path))
       .filter((path) => !path.includes('/dev/'))
       .filter((path) => !path.includes('/online/tableDisplay/'))
-      .filter((path) => !path.endsWith('/components/online/TableDisplay.tsx'));
+      .filter((path) => !path.includes('/online/displayPairing/'))
+      .filter((path) => !path.endsWith('/components/online/TableDisplay.tsx'))
+      .filter((path) => !path.endsWith('/components/online/OnlineDisplayPairing.tsx'));
     const reverseText = otherProduction
       .map((path) => `${relative(ROOT, path)}\n${readFileSync(path, 'utf8')}`)
       .join('\n');
@@ -85,15 +87,25 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04b-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04b-cold-audit-record-2026-08-14\.md$/,
+      /^research\/cr-grounding\/o4p-04c-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-04c-cold-audit-record-2026-08-14\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/table-display\/index\.html$/,
+      /^research\/design\/display-pairing\/index\.html$/,
       /^src\/components\/online\/TableDisplay\.tsx$/,
       /^src\/components\/online\/tableDisplay\.css$/,
+      /^src\/components\/online\/OnlineDisplayPairing\.tsx$/,
+      /^src\/components\/online\/onlineDisplayPairing\.css$/,
       /^src\/components\/online\/__tests__\/(?:review\.o4p-04b-table-display|TableDisplay)\.test\.tsx$/,
+      /^src\/components\/online\/__tests__\/(?:review\.o4p-04c-display-pairing|OnlineDisplayPairing)\.test\.tsx$/,
       /^src\/dev\/tableDisplay\/main\.tsx$/,
+      /^src\/dev\/displayPairing\/main\.tsx$/,
       /^src\/online\/tableDisplay\//,
+      /^src\/online\/displayPairing\//,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
+      /^src\/test\/architecture\/modeNeutralCoreBoundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
     ];
     const unexpected = candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)));
     expect(unexpected).toEqual([]);

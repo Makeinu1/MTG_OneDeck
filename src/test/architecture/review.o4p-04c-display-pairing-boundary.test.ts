@@ -73,6 +73,7 @@ describe('O4P-04C Display Pairing architecture boundary', () => {
       /^src\/dev\/displayPairing\//,
       /^src\/online\/displayPairing\//,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
+      /^src\/test\/architecture\/(?:modeNeutralCoreBoundary|review\.o4p-04b-table-display-boundary)\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
     ];
     expect(candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)))).toEqual([]);

@@ -346,6 +346,37 @@ function isFrozenProjectionCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenDisplayPairingCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/displayPairing/model.ts',
+    new Set([
+      'CoreCommandPayloadV1',
+      'CorePlayerId',
+      'createCoreCommandV1',
+      'isCoreBaseId',
+    ]),
+  ],
+  [
+    'src/online/displayPairing/types.ts',
+    new Set(['CoreCommandV1', 'CorePlayerId']),
+  ],
+]);
+
+function isFrozenDisplayPairingCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenDisplayPairingCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenHeadlessCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/headless/operation.ts',
@@ -523,6 +554,7 @@ function inspectReference(
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
+    && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
