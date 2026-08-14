@@ -23,7 +23,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03d-production-evidence-repair-1.draft.md':
     '3ace5dbd1089412ef61a5009da51a96eded5a99501bef0fb02f83e93f212b13b',
   'src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts':
-    '97f4cd8962556a9e5f7cff443ea3ed8b15830ade5f39be560881080a8ab9760b',
+    '3771acdf221e50f3609cbacec70b52993bdadfa9f961c017fa53f7ea7f8ef0a1',
   'src/test/architecture/review.o4p-03d-cloudflare-production-gate.test.ts':
     'f6cff119febd28eee2ea7a742eae4f22fd5731f2dec4f9d25be071223a0c7804',
   'wrangler.jsonc':

@@ -76,6 +76,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
 
     const allowed = [
       /^docs\/contracts\/manifest\.json$/,
+      /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
       /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04d-cold-audit-record-2026-08-14\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,

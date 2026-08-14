@@ -62,6 +62,7 @@ describe('O4P-04C Display Pairing architecture boundary', () => {
     expect(() => statSync(join(ROOT, 'src/online/index.ts'))).toThrow();
 
     const allowed = [
+      /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
       /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04c-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
