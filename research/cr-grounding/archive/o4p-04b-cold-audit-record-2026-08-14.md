@@ -166,3 +166,30 @@ SHA-256 values and reauthorization boundary are frozen in
 hash/scope confirmation, metadata-only reownership commit, green exact-head
 CI/Pages, served-asset HTTP evidence, terminal ledger state, and clean worktree
 remain pending.
+
+## Exact-head release and Pages evidence
+
+The independent auditor confirmed the five frozen review hashes, candidate run
+scope, and sole forbidden-gate failure at 0/0/0/0. Judge reownership commit
+`7c252e7998214a56b6e6bf8ddd243fb75aee186b` changed only this audit record and
+the reauthorization draft, using published candidate
+`310c7e437177b66c5916039e326836471806f4e1` as its resolved diff base.
+
+Exact-head GitHub Actions run `31787878944` passed:
+
+- the full check: Core 226 files / 2,086 tests; DOM 293 files with 2,050 passed
+  and 1 skipped, 2,051 total; every verifier, docs, lint, TypeScript, and Vite
+  gate;
+- `check:forbidden`, scanning only the two Judge reownership records;
+- Pages-base build and artifact upload, emitting `index-CyZgN26K.js` and
+  `index-JeU5vEot.css`;
+- Pages deployment.
+
+The served HTML, named JavaScript, and named CSS each returned HTTP 200 with
+`Last-Modified: 2026-08-14T09:33:34Z`. One in-app browser load of the published
+URL reached the Japanese deck-entry screen at 1280x720 with horizontal
+overflow 0 and console errors 0; it loaded the exact named JS and CSS assets.
+Local `HEAD` equaled `origin/main` before terminal metadata.
+
+O4P-04B is eligible for terminal `shipped` state. O4P-04C remains pending and
+is not started in this task.
