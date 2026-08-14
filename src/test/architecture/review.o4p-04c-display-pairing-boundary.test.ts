@@ -1,0 +1,107 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const ROOT = process.cwd();
+const BASE_SHA = '4b2f4ac534c489ce92d2f3dfce4774679c597502';
+
+function filesBelow(path: string): string[] {
+  const absolute = join(ROOT, path);
+  const output: string[] = [];
+  for (const name of readdirSync(absolute)) {
+    const candidate = join(absolute, name);
+    if (statSync(candidate).isDirectory()) output.push(...filesBelow(relative(ROOT, candidate)));
+    else output.push(candidate);
+  }
+  return output;
+}
+
+function source(path: string): string {
+  return readFileSync(join(ROOT, path), 'utf8');
+}
+
+function candidatePaths(): string[] {
+  const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--'], { cwd: ROOT, encoding: 'utf8' })
+    .split(/\r?\n/).filter(Boolean);
+  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
+    .split(/\r?\n/).filter(Boolean);
+  return [...new Set([...tracked, ...untracked])].sort();
+}
+
+describe('O4P-04C Display Pairing architecture boundary', () => {
+  it('keeps the pure pairing boundary on five public barrels without ambient/browser effects', () => {
+    const files = filesBelow('src/online/displayPairing')
+      .filter((path) => extname(path) === '.ts')
+      .filter((path) => !path.includes('__tests__'));
+    const text = files.map((path) => readFileSync(path, 'utf8')).join('\n');
+    expect(files.length).toBeGreaterThan(1);
+    for (const publicImport of [
+      '../projection/index', '../workbench/index', '../tableDisplay/index',
+      '../protocol/index', '../../engine/core/index',
+    ]) expect(text).toContain(publicImport);
+    expect(text).not.toMatch(/from ['"][^'"]*(?:room\/(?!index)|cloudflare|headless|store|components|engine\/(?!core\/index)|projection\/(?!index)|workbench\/(?!index)|tableDisplay\/(?!index)|protocol\/(?!index))/i);
+    expect(text).not.toMatch(/\b(fetch|WebSocket|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|Date\.now|Math\.random|console\.)\b/);
+    expect(text).not.toMatch(/\b(React|document|window|HTMLElement)\b/);
+  });
+
+  it('allows only exact React composition and no transport, Store, Solo, or Core access', () => {
+    const component = source('src/components/online/OnlineDisplayPairing.tsx');
+    const css = source('src/components/online/onlineDisplayPairing.css');
+    expect(component).toMatch(/online\/displayPairing\/index/);
+    expect(component).toMatch(/\.\/PersonalWorkbench/);
+    expect(component).toMatch(/\.\/TableDisplay/);
+    expect(`${component}\n${css}`).not.toMatch(/components\/game|gameStore|src\/store|online\/(?:cloudflare|protocol|projection|room|headless)|engine\/core/i);
+    expect(`${component}\n${css}`).not.toMatch(/\b(fetch|WebSocket|localStorage|sessionStorage|indexedDB|setTimeout|setInterval)\b/);
+  });
+
+  it('keeps integration dev-only and constrains every base-relative candidate path', () => {
+    expect(source('research/design/display-pairing/index.html')).toContain('/src/dev/displayPairing/main.tsx');
+    expect(source('src/App.tsx')).not.toMatch(/OnlineDisplayPairing|displayPairing/);
+    expect(source('src/main.tsx')).not.toMatch(/OnlineDisplayPairing|displayPairing/);
+    expect(() => statSync(join(ROOT, 'src/online/index.ts'))).toThrow();
+
+    const allowed = [
+      /^docs\/contracts\/manifest\.json$/,
+      /^research\/cr-grounding\/o4p-04c-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-04c-cold-audit-record-2026-08-14\.md$/,
+      /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
+      /^research\/design\/display-pairing\/index\.html$/,
+      /^src\/components\/online\/OnlineDisplayPairing\.tsx$/,
+      /^src\/components\/online\/onlineDisplayPairing\.css$/,
+      /^src\/components\/online\/__tests__\/(?:review\.o4p-04c-display-pairing|OnlineDisplayPairing)\.test\.tsx$/,
+      /^src\/dev\/displayPairing\//,
+      /^src\/online\/displayPairing\//,
+      /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
+    ];
+    expect(candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)))).toEqual([]);
+    expect(candidatePaths()).not.toEqual(expect.arrayContaining([
+      'package.json', 'package-lock.json', 'vite.config.ts', 'src/version.ts',
+      'src/App.tsx', 'src/main.tsx', 'src/online/projection/index.ts',
+      'src/online/protocol/index.ts', 'src/online/cloudflare/index.ts',
+    ]));
+  });
+
+  it('registers only the exact new Online root/import and preserves responsive boundaries', () => {
+    for (const path of [
+      'src/test/architecture/o4p01iStackAnnouncementBoundary.test.ts',
+      'src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts',
+      'src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts',
+    ]) expect(source(path)).toContain('displayPairing');
+    for (const path of [
+      'src/test/architecture/review.o4p-01h-core-boundary.test.ts',
+      'src/test/architecture/soloOnlineBoundary.test.ts',
+    ]) {
+      expect(source(path)).toMatch(/OnlineDisplayPairing\.tsx[\s\S]*online\/displayPairing\/index/);
+      expect(source(path)).toMatch(/OnlineDisplayPairing\.tsx[\s\S]*online\/workbench\/index/);
+    }
+    const css = source('src/components/online/onlineDisplayPairing.css');
+    expect(source('src/components/online/OnlineDisplayPairing.tsx').match(/data-testid="online-display-pairing"/g)).toHaveLength(1);
+    expect(css).toMatch(/@media[^{]*max-width:\s*600px/s);
+    expect(css).toMatch(/@media[^{]*max-height:\s*500px/s);
+    expect(css).toMatch(/var\(--(?:surface|text|line|space|radius|shadow|accent|gold)/);
+    expect(css).toMatch(/button:focus-visible/);
+    expect(css).not.toMatch(/position:\s*fixed|https?:\/\//);
+  });
+});

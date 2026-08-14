@@ -127,6 +127,13 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
       ) || (
         sourcePath === 'src/components/online/TableDisplay.tsx'
         && targetPath === 'src/online/tableDisplay/index.ts'
+      ) || (
+        sourcePath === 'src/components/online/OnlineDisplayPairing.tsx'
+        && (
+          targetPath === 'src/online/displayPairing/index.ts'
+          || targetPath === 'src/online/workbench/index.ts'
+          || targetPath === 'src/components/online/onlineDisplayPairing.css'
+        )
       );
       if (targetIsCore && isOnlineReference) {
         violations.push(`${sourcePath}|core-online|${reference.specifier}|${reference.dynamic ? 'dynamic' : 'static'}`);

@@ -1,0 +1,115 @@
+.online-display-pairing {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  color: var(--text);
+  background: var(--surface-0);
+}
+
+.online-display-pairing__status,
+.online-display-pairing__focused,
+.online-display-pairing__focus {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-soft);
+}
+
+.online-display-pairing__status,
+.online-display-pairing__focused {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.online-display-pairing__status p,
+.online-display-pairing__focused p,
+.online-display-pairing__focused h2 {
+  margin: 0;
+}
+
+.online-display-pairing__opponents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.online-display-pairing__focus {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  min-height: 64px;
+  padding: var(--space-3);
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.online-display-pairing__focus span {
+  color: var(--text-dim);
+}
+
+.online-display-pairing__focus[aria-pressed="true"] {
+  border-color: var(--accent-border);
+  background: var(--surface-2);
+}
+
+.online-display-pairing__focus:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.online-display-pairing button:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+
+.online-display-pairing__surfaces {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.online-display-pairing__surface {
+  min-width: 0;
+}
+
+.online-display-pairing__surface > * {
+  min-height: auto;
+}
+
+.online-display-pairing__unavailable {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: var(--space-4);
+  color: var(--text);
+  background: var(--surface-0);
+}
+
+@media (max-width: 1100px) {
+  .online-display-pairing__surfaces {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .online-display-pairing {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .online-display-pairing__opponents,
+  .online-display-pairing__surfaces {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-height: 500px) {
+  .online-display-pairing__opponents {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

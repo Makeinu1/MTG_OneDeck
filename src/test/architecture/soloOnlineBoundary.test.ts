@@ -210,6 +210,12 @@ function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: str
   ) || (
     sourcePath === 'src/components/online/TableDisplay.tsx'
     && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/tableDisplay/index'))
+  ) || (
+    sourcePath === 'src/components/online/OnlineDisplayPairing.tsx'
+    && (
+      sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/displayPairing/index'))
+      || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/workbench/index'))
+    )
   );
 }
 
