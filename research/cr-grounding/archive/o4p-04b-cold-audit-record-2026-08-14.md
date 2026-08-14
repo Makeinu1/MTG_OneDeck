@@ -149,3 +149,20 @@ candidate change:
 
 Exact-head CI, forbidden-scope adjudication, Pages HTTP evidence, terminal
 ledger state, and clean worktree remain pending.
+
+## Published candidate CI and Judge reownership
+
+Published exact-head candidate `310c7e437177b66c5916039e326836471806f4e1`
+started GitHub Actions run `31787116951`. Its full check passed every verifier,
+docs, lint, Core, DOM, TypeScript, and Vite build gate. The run then stopped
+only at `check:forbidden`; Pages configuration and deployment were skipped.
+
+All informational `NEEDS-REAUTH` paths were expected Judge-owned contract,
+ledger, audit, brief, or design evidence. The five hard paths were the
+Judge-authored O4P-04B component review, the O4P-04B architecture review, and
+three older architecture reviews updated by bounded Judge surgery. Their exact
+SHA-256 values and reauthorization boundary are frozen in
+`research/cr-grounding/o4p-04b-ci-reauthorization.draft.md`. Independent
+hash/scope confirmation, metadata-only reownership commit, green exact-head
+CI/Pages, served-asset HTTP evidence, terminal ledger state, and clean worktree
+remain pending.
