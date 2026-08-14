@@ -160,3 +160,21 @@ The next commit is authorized to contain only this audit-record append and the
 CI reauthorization record. Product, review, test, contract, ledger, workflow,
 package, and design bytes remain frozen. Exact-head successful CI, Pages,
 terminal ledger promotion, and clean-worktree evidence are still pending.
+
+## Terminal prepublication evidence
+
+Judge reownership commit `8ac3bba0d6c1e529d257c8e66e7036f2c3b605e3`
+was published to `main`. Exact-head GitHub Actions run `31798129745` passed
+the full check (Core 226/2,086; DOM 296 files / 2,064 passed + 1 skipped),
+forbidden scan with diff base `1d8bffc3e39fb5be2b1fa2e0997c45848c3856af`,
+build, artifact upload, and Pages deployment.
+
+The deployed HTML, referenced JS `index-CyZgN26K.js`, and referenced CSS
+`index-JeU5vEot.css` each returned HTTP 200 with last-modified
+`2026-08-14T12:01:26Z`. A fresh public browser load at 1280x720 rendered the
+deck import application, used those exact JS/CSS assets, had horizontal
+overflow 0, and logged zero console errors. Local `HEAD` and `origin/main`
+both equaled `8ac3bba0d6c1e529d257c8e66e7036f2c3b605e3` before terminal metadata.
+
+O4P-04C is authorized for terminal ledger promotion to `shipped`. O4P-04D
+must remain `pending` and is not started in this task.
