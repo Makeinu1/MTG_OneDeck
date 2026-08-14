@@ -13,7 +13,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03d-cloudflare-headless-production-gate.contract.draft.md':
     '8e725d537b3d9dfde2ffb76d94bed4386bb5b098d8efb179655b04d5bf4e940a',
   'research/cr-grounding/o4p-03d-acceptance-brief.draft.md':
-    '7998ff939e71bb7530fab502bf070449d3394e955432c60d8fd42db1284f4d7d',
+    'eef955f66c0d38a17bbd77ba2f5cbea3ecef110893381d9ffc6670b95f81eb59',
   'research/cr-grounding/o4p-03d-implementation-brief.draft.md':
     '62bee91afbbf9dc860234b93d6d58732e41838ce0de59845307abafec416f759',
   'research/cr-grounding/o4p-03d-cold-audit-brief.draft.md':

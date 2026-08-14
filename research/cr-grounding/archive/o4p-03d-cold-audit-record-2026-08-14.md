@@ -260,3 +260,36 @@ The real Cloudflare production gate is closed. Candidate git publication,
 exact-head GitHub Actions, GitHub Pages, terminal metadata, and clean-worktree
 confirmation remain pending. No third local release full check is authorized,
 and this section does not claim shipment before those remaining gates pass.
+
+## Candidate CI authority-hash repair 1
+
+The Sol Judge explicitly committed and pushed candidate
+`86191e8f5e97fe369a73082b23ee2f4b23037479`. Exact-head GitHub Actions run
+`31768571632` passed every registered verifier through O4P-03C, then stopped in
+the O4P-03D production-gate verifier before lint, tests, build, forbidden scan,
+or Pages. The only failure was a stale frozen hash for the committed acceptance
+brief: its `git diff --check`-clean bytes hash to
+`eef955f66c0d38a17bbd77ba2f5cbea3ecef110893381d9ffc6670b95f81eb59`.
+Adding exactly one LF reconstructs the previous frozen hash
+`7998ff939e71bb7530fab502bf070449d3394e955432c60d8fd42db1284f4d7d`;
+no prose or clause changed.
+
+The bounded repair is recorded in
+`research/cr-grounding/o4p-03d-ci-authority-hash-repair-1.draft.md` and changes
+only that one hash literal in the verifier. Independent read-only repair audit
+by `/root/o4p03d_cold_auditor` returned BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+with verdict `AUDIT-OK-PENDING-EXACT-HEAD-CI-RETRY`.
+
+- semantic fingerprint before/after:
+  `bc5241a2db847313ce0e903b2d7b61b31a761cb2892d03f4f2b4740b6bcce907`;
+- context fingerprint before/after:
+  `4b6fbb8bf3323bd16bf83599006bc16054a8ecf81eddb030788608bd8a903b86`;
+- O4P-03D verifier: PASS in the allowed local environment after the sandboxed
+  `tsx listen EPERM` non-execution;
+- scoped ESLint, `tsconfig.node` TypeScript, and `git diff --check`: PASS;
+- source, tests, assertions, config, dependency, workflow, and Cloudflare
+  resources: unchanged.
+
+The repair is eligible for explicit commit/push and exact-head Actions retry.
+Shipment, GitHub Pages, terminal metadata, and clean-worktree confirmation
+remain pending. No third local release full check is authorized.
