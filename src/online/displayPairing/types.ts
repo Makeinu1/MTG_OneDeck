@@ -56,6 +56,7 @@ export type OnlineDisplayPairingSessionV1 = Readonly<{
   readonly participantCapability: OnlineProtocolParticipantCapabilityV1;
   readonly clientBuildId: string;
   readonly corePlayerId: CorePlayerId;
+  readonly personalProjection: unknown;
 }>;
 
 export type OnlineDisplayPairingBindingInputV1 = Readonly<{

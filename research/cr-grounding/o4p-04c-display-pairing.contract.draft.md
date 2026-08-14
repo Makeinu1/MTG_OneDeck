@@ -99,14 +99,17 @@ input is the exact record:
 ```text
 session: {
   protocolVersion, roomId, participantId, participantCapability,
-  clientBuildId, corePlayerId
+  clientBuildId, corePlayerId, personalProjection: unknown
 }
 action: PersonalWorkbenchActionV1
 commandId: string | null
 ```
 
-The session identity must form a validator-accepted `OnlineClientHelloV1`. The
-action actor/revision must match the bound Core player and current action data.
+The session identity must form a validator-accepted `OnlineClientHelloV1`.
+`personalProjection` must independently validate as the same connected pending
+Player/Room/participant/Core-player/revision through the shipped Player
+Workbench boundary. The action actor/revision must match that current validated
+Player projection.
 The function returns one fresh deeply frozen existing protocol frame:
 
 - `request-refresh` with `commandId: null` becomes an
@@ -121,9 +124,11 @@ The function returns one fresh deeply frozen existing protocol frame:
 
 The constructed request/envelope must pass the shipped public validator before
 return. Refresh rejects a non-null command ID; command actions reject null,
-invalid, or incompatible IDs. The binder does not invent randomness, time,
-acknowledgement, legality, success, retry, outbox settlement, or optimistic
-state. Bearer capability appears only in the required outbound protocol field;
+invalid, incompatible, or bearer-colliding IDs. A command ID is bearer-
+colliding when it contains any eight-or-more-character fragment of the bound
+capability. The binder does not invent randomness, time, acknowledgement,
+legality, success, retry, outbox settlement, or optimistic state. Bearer
+capability appears only in the required outbound protocol field;
 it is never included in the pairing view, focus action, error, UI, DOM,
 attribute, logging, or test snapshot.
 

@@ -117,6 +117,7 @@ function bindingInput(action: PersonalWorkbenchActionV1, commandId: string | nul
       participantCapability: 'seat_capability_AAAAAAAAAAAAAAAA',
       clientBuildId: 'o4p-04c-client-build',
       corePlayerId: 'P1',
+      personalProjection: clone(personalFixture),
     },
     action,
     commandId,
@@ -281,10 +282,31 @@ describe('O4P-04C Display Pairing review', () => {
   });
 
   it('rejects action/session/command mismatches with one secret-free error', () => {
+    const tableSession = bindingInput(
+      { kind: 'priority-pass', actorPlayerId: 'P1', baseRevision: 12 },
+      'o4p-04c-table-pass-13',
+    );
+    const projections = pair();
+    Object.assign(tableSession.session as MutableRecord, {
+      participantId: 'table-display',
+      participantCapability: 'observer_capability_TTTTTTTTTTTTT',
+      personalProjection: projections.table,
+    });
+    const bearerPass = bindingInput(
+      { kind: 'priority-pass', actorPlayerId: 'P1', baseRevision: 12 },
+      'seat_capability_AAAAAAAAAAAAAAAA',
+    );
+    const bearerConcede = bindingInput(
+      { kind: 'concede', actorPlayerId: 'P1', baseRevision: 12 },
+      'o4p-seat_capability-fragment',
+    );
     const cases = [
       bindingInput({ kind: 'request-refresh', knownRevision: 12 }, 'unexpected-command'),
       bindingInput({ kind: 'priority-pass', actorPlayerId: 'P1', baseRevision: 12 }, null),
       bindingInput({ kind: 'concede', actorPlayerId: 'P2', baseRevision: 12 }, 'o4p-04c-concede-13'),
+      tableSession,
+      bearerPass,
+      bearerConcede,
     ];
     (cases[2].session as MutableRecord).participantCapability = 'SECRET_CAPABILITY_VALUE_1234567890';
     for (const value of cases) {
@@ -294,7 +316,7 @@ describe('O4P-04C Display Pairing review', () => {
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toBe('Personal Workbench action binding is unavailable');
-        expect(String(error)).not.toMatch(/SECRET_|participant|capability|P2|command/i);
+        expect(String(error)).not.toMatch(/SECRET_|observer_|seat_capability|participant|capability|P2|command/i);
       }
     }
   });

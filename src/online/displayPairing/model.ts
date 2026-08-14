@@ -307,6 +307,7 @@ function parseBindingInput(input: unknown): Readonly<{
     'participantCapability',
     'clientBuildId',
     'corePlayerId',
+    'personalProjection',
   ]);
   if (session === null) return null;
   if (root.commandId !== null && typeof root.commandId !== 'string') return null;
@@ -330,7 +331,10 @@ function parseBindingInput(input: unknown): Readonly<{
   return null;
 }
 
-function validatedSession(session: SafeRecord): OnlineClientHelloV1 & Readonly<{ corePlayerId: CorePlayerId }> {
+function validatedSession(session: SafeRecord): OnlineClientHelloV1 & Readonly<{
+  readonly corePlayerId: CorePlayerId;
+  readonly revision: number;
+}> {
   if (!isCoreBaseId(session.corePlayerId)) return bindingUnavailable();
   const hello = {
     kind: 'online-client-hello-v1',
@@ -342,7 +346,34 @@ function validatedSession(session: SafeRecord): OnlineClientHelloV1 & Readonly<{
   };
   const validation = validateOnlineClientHelloV1(hello);
   if (!validation.ok) return bindingUnavailable();
-  return Object.freeze({ ...validation.value, corePlayerId: session.corePlayerId as CorePlayerId });
+  const projectionValidation = validateOnlineParticipantProjectionV1(session.personalProjection);
+  if (!projectionValidation.ok) return bindingUnavailable();
+  const projection = projectionValidation.value;
+  const view = buildPersonalWorkbenchViewV1(session.personalProjection);
+  if (
+    projection.role !== 'player' ||
+    projection.corePlayerId === null ||
+    projection.protocolVersion !== validation.value.protocolVersion ||
+    projection.roomId !== validation.value.roomId ||
+    projection.participantId !== validation.value.participantId ||
+    projection.corePlayerId !== session.corePlayerId ||
+    view.corePlayerId !== session.corePlayerId ||
+    view.revision !== projection.revision
+  ) return bindingUnavailable();
+  return Object.freeze({
+    ...validation.value,
+    corePlayerId: session.corePlayerId as CorePlayerId,
+    revision: projection.revision,
+  });
+}
+
+function containsCapabilityFragment(value: string, capability: string): boolean {
+  for (let length = 8; length <= capability.length; length += 1) {
+    for (let start = 0; start + length <= capability.length; start += 1) {
+      if (value.includes(capability.slice(start, start + length))) return true;
+    }
+  }
+  return false;
 }
 
 function bindWorkbenchAction(input: unknown): OnlineDisplayPairingProtocolFrameV1 {
@@ -351,7 +382,7 @@ function bindWorkbenchAction(input: unknown): OnlineDisplayPairingProtocolFrameV
   const session = validatedSession(parsed.session);
   const { action, commandId } = parsed;
   if (action.kind === 'request-refresh') {
-    if (commandId !== null) return bindingUnavailable();
+    if (commandId !== null || action.knownRevision !== session.revision) return bindingUnavailable();
     const request = {
       kind: 'online-projection-request-v1' as const,
       protocolVersion: session.protocolVersion,
@@ -366,9 +397,13 @@ function bindWorkbenchAction(input: unknown): OnlineDisplayPairingProtocolFrameV
     if (!validation.ok) return bindingUnavailable();
     return freezeDeep(validation.value);
   }
-  if (commandId === null || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(commandId)) return bindingUnavailable();
+  if (
+    commandId === null ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(commandId) ||
+    containsCapabilityFragment(commandId, session.participantCapability)
+  ) return bindingUnavailable();
   if (!isCoreBaseId(action.actorPlayerId) || action.actorPlayerId !== session.corePlayerId) return bindingUnavailable();
-  if (!validRevision(action.baseRevision)) return bindingUnavailable();
+  if (!validRevision(action.baseRevision) || action.baseRevision !== session.revision) return bindingUnavailable();
   const baseRevision = action.baseRevision;
   if (session.participantCapability.length < 1) return bindingUnavailable();
   const payload: CoreCommandPayloadV1 = action.kind === 'priority-pass'

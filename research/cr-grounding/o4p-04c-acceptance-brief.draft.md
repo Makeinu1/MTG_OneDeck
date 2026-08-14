@@ -32,8 +32,9 @@ not edit them.
    exact accepted command envelopes. Assert actor, decision maker, sequence,
    decision key, payload, revision, command-ID rules, deep freeze, deterministic
    output, and source non-mutation.
-7. Reject malformed session/action roots, capability/participant/Core-player
-   mismatch, revision mismatch, invalid command IDs, and wrong nullability.
+7. Reject malformed session/action roots, non-Player projection/session
+   identity, capability/participant/Core-player/revision mismatch,
+   bearer-fragment command IDs, invalid command IDs, and wrong nullability.
    Assert fixed generic errors contain no capability or caller value.
 8. Render the real Workbench and Table Display under the pairing surface.
    Assert exact audience placement, Japanese sync/focus status, native keyboard
