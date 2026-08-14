@@ -14,3 +14,8 @@ export type {
   VersionValidationIssue,
   VersionValidationResult,
 } from './contractVersions';
+export {
+  PUBLIC_RELEASE_RULESET_SCHEMA_VERSION_V1,
+  PUBLIC_RELEASE_RULESET_V1,
+} from './publicReleaseRuleset';
+export type { PublicReleaseRulesetV1 } from './publicReleaseRuleset';

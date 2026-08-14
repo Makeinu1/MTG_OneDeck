@@ -26,12 +26,12 @@
     "userRuling": "2026-08-04",
     "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。",
     "activeProgram": {
-      "id": "O4P-04",
+      "id": "O4P-05",
       "domainIds": [
-        "O4P-04A",
-        "O4P-04B",
-        "O4P-04C",
-        "O4P-04D"
+        "O4P-05A",
+        "O4P-05B",
+        "O4P-05C",
+        "O4P-05D"
       ]
     }
   },
