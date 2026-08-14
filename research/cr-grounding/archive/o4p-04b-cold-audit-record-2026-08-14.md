@@ -108,3 +108,44 @@ re-audit remain pending before the final full-check rerun.
 The focused run passed all five repaired architecture files plus all four
 O4P-04B targeted files: 9 files / 39 tests. Scoped ESLint and
 `git diff --check` passed. Independent focused repair re-audit remains pending.
+
+The independent focused repair re-audit at semantic fingerprint
+`060e235cdf90bbb105c4eeb1f548f32bd34d437a8e40803295deefb51c73fdf7`
+and context fingerprint
+`347b3ffa81e7c3c6a343821466b5a7c34dc12fa4c1bcc7f6bbb2d4dcd2abb7d8`
+returned `AUDIT-CLEAR`: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0.
+
+## Contract verification reanchor
+
+Audited candidate commit `f6322eb03b08688dcd862b9899d1330e8ff0a096`
+contains the repaired `soloOnlineBoundary.test.ts` evidence blob
+`a0d66b8cba007079cba690655738e66875a5f018`. The Judge reanchored only
+`CONTRACT-ENGINE-MULTIPLAYER.lastVerifiedCommit` to that candidate under
+`research/cr-grounding/o4p-04b-contract-verification-reanchor-1.draft.md`.
+Contract clauses, traceability, product source, test assertions, dependency,
+version, and workflow semantics are unchanged. `npm run check:docs` passed,
+the O4P-04B scope gate passed 1 file / 5 tests, the candidate evidence blob
+matched exactly, and `git diff --check` passed. Independent metadata
+confirmation remains pending.
+
+The independent metadata confirmation at semantic fingerprint
+`10b14afc80bed4956f797a58e9743cbbc8392281db5490594afb1a2559de7edc`
+and context fingerprint
+`5ae39c6dc795712bbf180caf7478365a7b3431ce3f9bd71182fef9984da64952`
+returned `AUDIT-OK-PENDING-FULL-CHECK`: BLOCKER 0 / HIGH 0 / MEDIUM 0 /
+LOW 0.
+
+## Final local full check
+
+The same fingerprint then passed the final release `npm run check` without any
+candidate change:
+
+- every verifier, docs contract, and lint gate passed;
+- Core: 226 files / 2,086 tests passed;
+- DOM: 293 files / 2,051 tests passed;
+- TypeScript project build and Vite production build passed;
+- emitted assets: `index-DYJZmvM4.js` and `index-JeU5vEot.css`;
+- total duration: 284,870 ms.
+
+Exact-head CI, forbidden-scope adjudication, Pages HTTP evidence, terminal
+ledger state, and clean worktree remain pending.

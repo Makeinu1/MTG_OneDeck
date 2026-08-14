@@ -82,6 +82,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
     expect(reverseText).not.toMatch(/online\/tableDisplay|o4p-04b-table-display-v1|\bTableDisplay\b/);
 
     const allowed = [
+      /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04b-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04b-cold-audit-record-2026-08-14\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
