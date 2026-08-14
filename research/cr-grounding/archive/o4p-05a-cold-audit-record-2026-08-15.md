@@ -61,7 +61,24 @@ candidate was re-audited again at the final fingerprints with severity
 - CI reauthorization audit: `/root/o4p05a_cold_auditor`, exact five hard
   forbidden paths and candidate/current SHA-256 values verified, protected
   post-candidate bytes unchanged, BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0,
-  `O4P-05A-CI-REAUTHORIZATION-APPROVED`.
+  `O4P-05A-CI-REAUTHORIZATION-APPROVED`;
+- first reauthorization run `31826746573` at
+  `3145950cd45d7bfa4a1de1690973bb0ab7edd4d1`: every verifier/docs/lint and
+  Core 226 / 2,086 passed; DOM 299/302 files and 2,087/2,091 tests passed plus
+  1 skipped, with exactly three predecessor scope-registration failures for
+  the two new CI reauthorization evidence paths; build and Pages skipped;
+- Judge repair: only the exact `ci-reauthorization` and
+  `ci-reauthorization-audit-brief` basenames were added to the existing
+  anchored O4P-05A alternation in the O4P-04B/C/D review tests; targeted 3
+  files / 13 tests and ESLint PASS;
+- post-registration-repair audit: semantic
+  `b08c0d19d38671834b27006c381338a0df2f1c17aedec9682c4c5ef0267cd330`,
+  context
+  `afcf8ca2fa82ab63d8dff26f3a81643285d1a6b93b1b16e3999bd0cbaecfe929`,
+  exact candidate/run identities and five authority hashes verified, arbitrary
+  suffix/subdirectory/O4P-05B/product/package/workflow/script probes all red,
+  BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0,
+  `AUDIT-OK-PENDING-FULL-CHECK`.
 
 This record is findings evidence only. Ship still requires Judge
 re-authorization of the reported ownership paths, terminal exact-head CI,

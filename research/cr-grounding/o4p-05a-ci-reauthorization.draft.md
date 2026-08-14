@@ -20,9 +20,9 @@ implementer writes.
 | Path | SHA-256 |
 | --- | --- |
 | `research/cr-grounding/o4p-05a-public-release-ruleset.contract.draft.md` | `18e026aa7d98b6c2f132ec25c5793a1ebb956f12d2c4f7f9a025414faf97966b` |
-| `src/test/architecture/review.o4p-04b-table-display-boundary.test.ts` | `65fab13cb09cf1078eaad649268e8b90d14e2a84899b9c80c2f2587d1c4a06e4` |
-| `src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts` | `9642cf3966805d0d5bec46d4deb8878e20b2f16257a387abd8aae51d0151e216` |
-| `src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts` | `5b449daecdfd2a82ce5708ececa23b6467cc26640fadf74baca8a86bb6810a40` |
+| `src/test/architecture/review.o4p-04b-table-display-boundary.test.ts` | `c92b0b2fb066cca3e3a2ec888b12361d3bc98802f7d5129efdaf046e367d89e5` |
+| `src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts` | `cebf6dfcfc971921c0839ba6e1556fa119633e53db12242c980bdb8c629151c9` |
+| `src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts` | `3c74e538c1dc9cc657e41c4b42ff68a5b77a6a72fd01e440613d96c48b1ff0b9` |
 | `src/versioning/review.o4p-05a-public-release-ruleset.test.ts` | `f03727f31a64a3b4555e7707ab2e7b4bae7ff82748045a22c915a8060c8a335f` |
 
 The same independent auditor must verify the candidate run/head identity, the
@@ -36,3 +36,12 @@ diff must use the published candidate as its base.
 Independent reauthorization audit:
 `/root/o4p05a_cold_auditor`, `O4P-05A-CI-REAUTHORIZATION-APPROVED`,
 BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0.
+
+The first reauthorization run, `31826746573` at
+`3145950cd45d7bfa4a1de1690973bb0ab7edd4d1`, correctly failed only because
+the two reauthorization evidence paths above had not yet been registered in
+the three predecessor O4P-04B/C/D base-relative candidate allowlists. The
+Judge added exactly those two basenames to the existing O4P-05A anchored
+alternation in each review test. Targeted verification passed 3 files / 13
+tests plus ESLint. The three current hashes above replace their pre-repair
+hashes; the contract and O4P-05A review bytes remain unchanged.

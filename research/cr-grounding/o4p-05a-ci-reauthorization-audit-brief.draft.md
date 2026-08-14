@@ -21,8 +21,17 @@ Verify independently:
 5. every listed SHA-256 matches the candidate bytes;
 6. the five paths are Judge-owned contract/review evidence and not implementer
    writes under the implementation brief;
-7. no product, review, test, contract, workflow, package, or script byte has
-   changed after the candidate commit.
+7. the post-reauthorization-run repair changes only the three predecessor
+   review tests and adds exactly these two anchored basenames to their existing
+   O4P-05A allowlist: `ci-reauthorization` and
+   `ci-reauthorization-audit-brief`;
+8. unrelated O4P-05A names, wrong dates, suffixes, directories, product paths,
+   and package/workflow/script paths remain rejected;
+9. the three current review hashes, unchanged contract hash, and unchanged
+   O4P-05A review hash match the authority record;
+10. no product, ordinary test, contract, workflow, package, or script byte has
+    changed after the candidate commit.
 
 Return findings only with BLOCKER/HIGH/MEDIUM/LOW totals and a final
-reauthorization verdict. Do not infer Pages success from the stopped run.
+reauthorization verdict for the repaired candidate context. Do not infer Pages
+success from either stopped run.

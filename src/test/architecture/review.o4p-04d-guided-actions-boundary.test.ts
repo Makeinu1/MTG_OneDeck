@@ -79,7 +79,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
       /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04d-cold-audit-record-2026-08-14\.md$/,
-      /^research\/cr-grounding\/o4p-05a-(?:acceptance-brief|cold-audit-brief|implementation-brief|public-release-ruleset\.contract)\.draft\.md$/,
+      /^research\/cr-grounding\/o4p-05a-(?:acceptance-brief|ci-reauthorization|ci-reauthorization-audit-brief|cold-audit-brief|implementation-brief|public-release-ruleset\.contract)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05a-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/display-pairing\/index\.html$/,
