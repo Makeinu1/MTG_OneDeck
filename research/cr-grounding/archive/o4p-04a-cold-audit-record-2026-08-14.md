@@ -174,3 +174,23 @@ frozen in `research/cr-grounding/o4p-04a-ci-reauthorization.draft.md`.
 Independent hash/scope confirmation, the metadata-only reownership commit,
 green exact-head CI/Pages, served-asset HTTP evidence, terminal ledger state,
 and clean worktree remain pending.
+
+## Exact-head release and Pages evidence
+
+Judge reownership commit `d1d781cd73b13536510d4ea46995f7ea87dd05fb`
+triggered GitHub Actions run `31779874674` with published candidate
+`b9f85870efe8614ea4547eeb27720c03e843a5ab` as the resolved diff base. The
+run passed the full check, forbidden scan, Pages artifact build, and Pages
+deployment:
+
+- Core: 226 files / 2,086 tests passed;
+- DOM: 289 files; 2,030 passed + 1 skipped = 2,031 total;
+- all verifiers, docs, lint, TypeScript, Vite, and forbidden scan passed;
+- served HTML returned HTTP 200 and named `index-CyZgN26K.js` plus
+  `index-JeU5vEot.css`;
+- both named JS and CSS assets returned HTTP 200;
+- served `Last-Modified`: `2026-08-14T07:35:08Z`;
+- local `HEAD` equaled `origin/main` before terminal metadata.
+
+O4P-04A is eligible for terminal `shipped` state. O4P-04B remains pending and
+is not started in this task.
