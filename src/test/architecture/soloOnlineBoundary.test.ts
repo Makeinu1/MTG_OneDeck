@@ -202,9 +202,15 @@ function isSoloUiUnit(unit: SourceUnit): boolean {
   return path === 'src/App.tsx' || path.startsWith('src/components/');
 }
 
-function isPersonalWorkbenchPublicImport(unit: SourceUnit, targetPath: string, unitSourceRoot: string): boolean {
-  return relativeSourcePath(unit.filePath) === 'src/components/online/PersonalWorkbench.tsx'
-    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/workbench/index'));
+function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: string, unitSourceRoot: string): boolean {
+  const sourcePath = relativeSourcePath(unit.filePath);
+  return (
+    sourcePath === 'src/components/online/PersonalWorkbench.tsx'
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/workbench/index'))
+  ) || (
+    sourcePath === 'src/components/online/TableDisplay.tsx'
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/tableDisplay/index'))
+  );
 }
 
 function inspectReference(
@@ -245,7 +251,7 @@ function inspectReference(
     isSoloUiUnit(unit)
     && targetPath
     && isWithin(resolve(unitSourceRoot, 'online'), targetPath)
-    && !isPersonalWorkbenchPublicImport(unit, targetPath, unitSourceRoot)
+    && !isAuthorizedOnlineDisplayPublicImport(unit, targetPath, unitSourceRoot)
   ) {
     addViolation(violations, reference, 'solo-ui-no-online');
   }

@@ -121,8 +121,13 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
       const isOnlineReference = reference.specifier.includes('/online')
         || targetPath.startsWith('src/online/')
         || targetPath === 'src/online';
-      const isPersonalWorkbenchPublicImport = sourcePath === 'src/components/online/PersonalWorkbench.tsx'
-        && targetPath === 'src/online/workbench/index.ts';
+      const isAuthorizedOnlineDisplayPublicImport = (
+        sourcePath === 'src/components/online/PersonalWorkbench.tsx'
+        && targetPath === 'src/online/workbench/index.ts'
+      ) || (
+        sourcePath === 'src/components/online/TableDisplay.tsx'
+        && targetPath === 'src/online/tableDisplay/index.ts'
+      );
       if (targetIsCore && isOnlineReference) {
         violations.push(`${sourcePath}|core-online|${reference.specifier}|${reference.dynamic ? 'dynamic' : 'static'}`);
       }
@@ -134,7 +139,7 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
       )) {
         violations.push(`${sourcePath}|core-product-or-runtime|${reference.specifier}`);
       }
-      if (isSolo && isOnlineReference && !isPersonalWorkbenchPublicImport) {
+      if (isSolo && isOnlineReference && !isAuthorizedOnlineDisplayPublicImport) {
         violations.push(`${sourcePath}|solo-online|${reference.specifier}`);
       }
       if (isSolo && (targetPath === 'src/engine/core/object/index.ts' || targetPath.startsWith('src/engine/core/object/'))) {
