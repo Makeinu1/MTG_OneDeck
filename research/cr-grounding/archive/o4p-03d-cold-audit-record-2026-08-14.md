@@ -369,3 +369,35 @@ Only this metadata reownership may be committed and pushed next. A fresh
 exact-head CI run must pass the release full check, forbidden scan, build, and
 Pages deployment before terminal metadata or shipment. No further local
 release full check or Cloudflare deployment is authorized.
+
+## Exact-head CI, Pages, and terminal eligibility
+
+The independently confirmed Judge-reownership metadata was committed and
+pushed as `cd0bc8cb59db6b657375df10e64edc7cdb85bfb6`. Exact-head GitHub
+Actions run `31771109912` completed successfully:
+
+- all registered verifiers and documentation checks: PASS;
+- Core: 226 files / 2,086 tests PASS;
+- DOM: 285 files / 2,007 tests PASS plus 1 skipped, 2,008 total;
+- lint, TypeScript project build, and Vite production build: PASS;
+- generated assets: `assets/index-CyZgN26K.js` and
+  `assets/index-JeU5vEot.css`;
+- resolved diff base:
+  `5dd0b7093bc2a4ed44e5fc32048f42bbef82e8d9`;
+- forbidden scan: PASS, with only the archive and ledger listed as
+  informational reauthorization paths;
+- Pages artifact upload and Pages deployment: PASS.
+
+The served Pages HTML returned HTTP 200 and referenced those exact JS and CSS
+assets. Both assets returned HTTP 200, with deployment last-modified time
+2026-08-14T05:00:26Z. Immediately before terminal metadata, local HEAD and
+`origin/main` both equaled
+`cd0bc8cb59db6b657375df10e64edc7cdb85bfb6`, and the tracked worktree was
+clean.
+
+All O4P-03D shipment gates are now closed: final independent audit and every
+repair audit are BLOCKER/HIGH 0, the governance-bounded local checks are
+recorded, the real Cloudflare production gate passed, exact-head Actions and
+forbidden passed, and served Pages evidence is current. O4P-03D is eligible to
+be marked shipped. The terminal metadata commit itself must still be pushed
+and its exact-head CI/Pages result verified; O4P-04A is not started here.
