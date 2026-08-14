@@ -96,3 +96,13 @@ candidate was re-audited again at the final fingerprints with severity
 This record is findings evidence only. Ship still requires Judge
 re-authorization of the reported ownership paths, terminal exact-head CI,
 Pages, and clean-worktree gates.
+
+## Terminal prepublication evidence
+
+- authority commit `cf873d03948e5944f22675cb5cb2b1d7cc2ed3a3`;
+- exact-head Actions run `31845754525`: complete check, forbidden scan,
+  TypeScript/Vite build, artifact upload, and Pages deploy PASS;
+- served HTML: HTTP 200, last-modified `2026-08-14T22:24:18Z`;
+- served JavaScript `assets/index-CyZgN26K.js`: HTTP 200;
+- served CSS `assets/index-JeU5vEot.css`: HTTP 200;
+- `HEAD == origin/main` before terminal ledger metadata: PASS.
