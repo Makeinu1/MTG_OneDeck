@@ -157,3 +157,20 @@ any candidate change:
 
 CI, Judge reownership of review evidence, Pages HTTP evidence, terminal ledger
 state, and clean worktree remain pending.
+
+## Published candidate CI and Judge reownership
+
+Published candidate HEAD `b9f85870efe8614ea4547eeb27720c03e843a5ab`
+started GitHub Actions run `31778875119`. Its full check passed every verifier,
+docs, lint, Core 226 / 2,086, DOM 289 / 2,031, TypeScript, and Vite build in
+560,116 ms. The Pages-base build emitted `index-CyZgN26K.js` and
+`index-JeU5vEot.css`.
+
+The run then stopped only at `check:forbidden`. Informational `NEEDS-REAUTH`
+paths were the expected Judge contract, ledger, audit, briefs, and design
+fixture. The five hard paths were Judge-authored or Judge-surgically-updated
+`review.*` evidence. Their exact SHA-256 values and reauthorization scope are
+frozen in `research/cr-grounding/o4p-04a-ci-reauthorization.draft.md`.
+Independent hash/scope confirmation, the metadata-only reownership commit,
+green exact-head CI/Pages, served-asset HTTP evidence, terminal ledger state,
+and clean worktree remain pending.
