@@ -27,6 +27,7 @@ import {
   type OnlineCloudflareSocketRoleV1,
   type OnlineCloudflareWebSocket,
 } from './types';
+import { emitRuntimeStartFactV1, emitFailureFactV1, emitWebSocketFactV1, isCanonicalVersionIdentifier } from './facts';
 import {
   createAuthenticatedOnlineCloudflareSocketAttachmentV1,
   createOnlineCloudflareRevisionNoticeV1,
@@ -160,11 +161,23 @@ export class OnlineRoomDurableObject {
   private readonly repository: OnlineCloudflareRepository;
   private readonly security: OnlineCloudflareSecurityRepository;
   private readonly state: OnlineCloudflareDurableObjectState;
+  private readonly versionIdentifier: string | null;
 
-  constructor(state: OnlineCloudflareDurableObjectState) {
+  constructor(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}) {
     this.state = state;
-    this.repository = new OnlineCloudflareRepository(state.storage);
+    const version = env.CF_VERSION_METADATA?.id;
+    if (version !== undefined && version !== null && !isCanonicalVersionIdentifier(version)) throw new Error('Invalid Cloudflare version metadata');
+    this.versionIdentifier = isCanonicalVersionIdentifier(version) ? version : null;
+    this.repository = new OnlineCloudflareRepository(state.storage, false, this.versionIdentifier);
     this.security = new OnlineCloudflareSecurityRepository(state.storage);
+    try {
+      const changed = this.repository.migrateApplicationSchema();
+      const loaded = this.repository.load();
+      emitRuntimeStartFactV1(1, changed, loaded !== null, this.versionIdentifier, loaded?.room.roomId ?? state.id.name);
+    } catch {
+      emitFailureFactV1('migration-failure', 'MIGRATION_FAILED', this.versionIdentifier, state.id.name);
+      throw new Error('Durable Object migration failed');
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -277,6 +290,7 @@ export class OnlineRoomDurableObject {
         pair.server.serializeAttachment(attachment);
         this.state.acceptWebSocket(pair.server);
         pair.server.send(JSON.stringify(createOnlineCloudflareWebSocketReadyV1(route.roomId, state.revision)));
+        emitWebSocketFactV1('accepted', null, 'ok', this.versionIdentifier, route.roomId);
         return new Response(null, { status: 101, webSocket: pair.client } as unknown as ResponseInit);
       }
       return genericError(405);
@@ -386,11 +400,14 @@ export class OnlineRoomDurableObject {
   }
 
   webSocketClose(socket: OnlineCloudflareWebSocket): void {
+    const attachment = this.attachment(socket);
+    emitWebSocketFactV1('close', attachment?.role ?? null, 'ok', this.versionIdentifier, attachment?.roomId ?? this.state.id.name);
     this.handleDisconnect(socket);
   }
 
   webSocketError(socket: OnlineCloudflareWebSocket): void {
-    void socket;
+    const attachment = this.attachment(socket);
+    emitWebSocketFactV1('error', attachment?.role ?? null, 'error', this.versionIdentifier, attachment?.roomId ?? this.state.id.name);
   }
 
   private now(): number {
@@ -493,6 +510,9 @@ export class OnlineRoomDurableObject {
       authorization.expiresAt,
     );
     socket.serializeAttachment(nextAttachment);
+    emitWebSocketFactV1('authenticated', role, 'ok', this.versionIdentifier, state.room.roomId);
+    const previousParticipant = state.room.participants.find((participant) => participant.participantId === participantId);
+    if (previousParticipant?.presence === 'disconnected') emitWebSocketFactV1('reconnect', role, 'ok', this.versionIdentifier, state.room.roomId);
     this.persistPresenceIfChanged(state, transition.state);
     this.sendApplicationValue(socket, transition.response);
   }
@@ -505,6 +525,7 @@ export class OnlineRoomDurableObject {
     const transition = handleOnlineProjectedSnapshotRequestV1(state, frame);
     this.persistPresenceIfChanged(state, transition.state);
     this.sendApplicationValue(socket, transition.response);
+    emitWebSocketFactV1('hibernation-message', this.attachment(socket)?.role ?? null, 'ok', this.versionIdentifier, state.room.roomId);
   }
 
   private handleCommand(
@@ -638,6 +659,6 @@ function createAuthenticatedOrUnauthenticatedAttachment(
   );
 }
 
-export function createOnlineRoomDurableObject(state: OnlineCloudflareDurableObjectState): OnlineRoomDurableObject {
-  return new OnlineRoomDurableObject(state);
+export function createOnlineRoomDurableObject(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}): OnlineRoomDurableObject {
+  return new OnlineRoomDurableObject(state, env);
 }

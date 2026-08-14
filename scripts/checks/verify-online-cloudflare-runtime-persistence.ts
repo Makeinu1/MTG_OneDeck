@@ -19,13 +19,13 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03a-cold-audit-brief.draft.md':
     'd308ecb25249dffcb61e7aef16a725fa02174c6f12edc4982b72173148c1b954',
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
-    '8e245cfd5ab59639ac9042cffb852145d8671520b665945f672cfc880c75b0ec',
+    '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    'bac9d4fb4e18323e7cbb47e7e31f977d87b760ccd138da3f589e933498cddfce',
+    '7e9f2ce4f30f778c8c5f7dbd357cc5d106cb03cf669195854fadf61cee5a2b53',
   'src/online/cloudflare/index.ts':
-    '3ad8311a1d68518c88f9092eb4da5c1d1a4cee3cb004a0241b7ae171cee31985',
+    'daa892e79cc07192d62a70921cc21c03b5bc1dad3dac7b474fed938ecd86c7f3',
   'wrangler.jsonc':
-    '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
+    'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
 
 const requiredFiles = Object.freeze([
@@ -87,8 +87,12 @@ for (const [path, expected] of Object.entries(frozenHashes)) {
 
 const config = JSON.parse(readText('wrangler.jsonc')) as unknown;
 assert.deepEqual(config, {
+  name: 'mtg-onedeck-online',
   main: 'src/online/cloudflare/worker.ts',
   compatibility_date: '2026-08-13',
+  workers_dev: true,
+  observability: { enabled: true, head_sampling_rate: 1 },
+  version_metadata: { binding: 'CF_VERSION_METADATA' },
   durable_objects: {
     bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
   },
@@ -129,6 +133,7 @@ assert.deepEqual(
   production.map(normalized),
   [
     'src/online/cloudflare/codec.ts',
+    'src/online/cloudflare/facts.ts',
     'src/online/cloudflare/index.ts',
     'src/online/cloudflare/outbox.ts',
     'src/online/cloudflare/persistence.ts',
@@ -151,7 +156,11 @@ const forbiddenSource =
   /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
 for (const path of production) {
   const source = readFileSync(path, 'utf8');
-  assert.doesNotMatch(source, forbiddenSource, normalized(path));
+  if (normalized(path) === 'src/online/cloudflare/facts.ts') {
+    assert.match(source, /console\.log\(JSON\.stringify\(fact\)\)/);
+  } else {
+    assert.doesNotMatch(source, forbiddenSource, normalized(path));
+  }
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
     assert.equal(local || allowedImports.has(specifier), true, `${normalized(path)} -> ${specifier}`);

@@ -39,6 +39,7 @@ describe('O4P-03B architecture boundary', () => {
   it('adds only the closed dependency-free Cloudflare transport surface', () => {
     const expected = [
       'src/online/cloudflare/codec.ts',
+      'src/online/cloudflare/facts.ts',
       'src/online/cloudflare/index.ts',
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
@@ -79,7 +80,11 @@ describe('O4P-03B architecture boundary', () => {
     ]);
     for (const file of productionFiles(cloudflareRoot)) {
       const text = readFileSync(file, 'utf8');
-      expect(text, normalized(file)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i);
+      if (normalized(file) === 'src/online/cloudflare/facts.ts') {
+        expect(text).toMatch(/console\.log\(JSON\.stringify\(fact\)\)/);
+      } else {
+        expect(text, normalized(file)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i);
+      }
       for (const specifier of moduleSpecifiers(text)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
         expect(local || allowed.has(specifier), `${normalized(file)} -> ${specifier}`).toBe(true);
@@ -107,9 +112,9 @@ describe('O4P-03B architecture boundary', () => {
     expect(runtime).toMatch(/webSocketMessage\s*\(/);
     expect(runtime).toMatch(/webSocketClose\s*\(/);
     expect(runtime).toMatch(/webSocketError\s*\(/);
-    expect(runtime).toMatch(
-      /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;\s*\}/,
-    );
+    const errorHandler = runtime.match(/webSocketError\(socket: OnlineCloudflareWebSocket\): void \{([\s\S]*?)\n {2}\}/)?.[1] ?? '';
+    expect(errorHandler).toContain("emitWebSocketFactV1('error'");
+    expect(errorHandler).not.toMatch(/handleDisconnect|persistSameRevision|repository\.|security\.|socket\.close/);
     expect(runtime).not.toMatch(/\.accept\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
     expect(`${runtime}\n${websocket}`).not.toMatch(/setTimeout|setInterval|alarm\s*\(/);
     expect(types).toMatch(/ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1\s*=\s*16_384/);
@@ -151,11 +156,15 @@ describe('O4P-03B architecture boundary', () => {
     expect(outbox).not.toMatch(/localStorage|indexedDB|fetch\s*\(|setTimeout|setInterval/);
   });
 
-  it('does not claim O4P-03D deployment authority', () => {
+  it('accepts the exact O4P-03D successor config without secret or custom-route authority', () => {
     const config = JSON.parse(source('wrangler.jsonc')) as Record<string, unknown>;
     expect(config).toEqual({
+      name: 'mtg-onedeck-online',
       main: 'src/online/cloudflare/worker.ts',
       compatibility_date: '2026-08-13',
+      workers_dev: true,
+      observability: { enabled: true, head_sampling_rate: 1 },
+      version_metadata: { binding: 'CF_VERSION_METADATA' },
       durable_objects: {
         bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
       },

@@ -6,6 +6,7 @@ import type {
 import type { OnlineRoomLifecycleV1 } from '../room/index';
 
 export const ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1 = 1 as const;
+export const ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_CLOUDFLARE_MAX_BODY_BYTES_V1 = 1_048_576 as const;
 export const ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1 = 16_384 as const;
 
@@ -120,4 +121,5 @@ export interface OnlineCloudflareRoomNamespace {
 
 export type OnlineCloudflareEnv = Readonly<{
   readonly ONLINE_ROOMS?: OnlineCloudflareRoomNamespace;
+  readonly CF_VERSION_METADATA?: Readonly<{ readonly id?: string }>;
 }>;

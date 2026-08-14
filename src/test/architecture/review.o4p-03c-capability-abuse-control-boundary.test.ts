@@ -35,6 +35,7 @@ describe('O4P-03C architecture boundary', () => {
   it('adds exactly one production security module without dependency, version, or config drift', () => {
     expect(productionFiles(cloudflareRoot).map(normalized)).toEqual([
       'src/online/cloudflare/codec.ts',
+      'src/online/cloudflare/facts.ts',
       'src/online/cloudflare/index.ts',
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
@@ -57,7 +58,6 @@ describe('O4P-03C architecture boundary', () => {
     const after = JSON.parse(source('package.json')) as Record<string, unknown>;
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
-    expect(source('wrangler.jsonc')).toBe(execFileSync('git', ['show', `${baseSha}:wrangler.jsonc`], { cwd: repositoryRoot, encoding: 'utf8' }));
     expect(source('package-lock.json')).not.toMatch(/@cloudflare|wrangler|miniflare|workerd/i);
   });
 
@@ -65,7 +65,11 @@ describe('O4P-03C architecture boundary', () => {
     const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../../engine/core/index']);
     for (const path of productionFiles(cloudflareRoot)) {
       const text = readFileSync(path, 'utf8');
-      expect(text, normalized(path)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:|setTimeout|setInterval|setAlarm|addEventListener\s*\(|\.accept\s*\(/i);
+      if (normalized(path) === 'src/online/cloudflare/facts.ts') {
+        expect(text).toMatch(/console\.log\(JSON\.stringify\(fact\)\)/);
+      } else {
+        expect(text, normalized(path)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:|setTimeout|setInterval|setAlarm|addEventListener\s*\(|\.accept\s*\(/i);
+      }
       for (const specifier of moduleSpecifiers(text)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
         expect(local || allowed.has(specifier), `${normalized(path)} -> ${specifier}`).toBe(true);
@@ -102,7 +106,7 @@ describe('O4P-03C architecture boundary', () => {
       ['ONLINE_CLOUDFLARE_MAX_RETIRED_CAPABILITIES_PER_GRANT_V1', '256'],
     ]) expect(security).toMatch(new RegExp(`${name}\\s*=\\s*${value}`));
     for (const table of ['online_security_state', 'online_capability_grant', 'online_controller_lease', 'online_security_audit']) {
-      expect(security).toMatch(new RegExp(`CREATE TABLE ${table}[^\u0060]+STRICT`));
+      expect(security).toMatch(new RegExp(`CREATE TABLE(?: IF NOT EXISTS)? ${table}[^\u0060]+STRICT`));
     }
     expect(security).toMatch(/UPDATE online_security_state[\s\S]*RETURNING singleton/);
     expect(security).toMatch(/UPDATE online_capability_grant[\s\S]*RETURNING participant_id/);
@@ -135,11 +139,15 @@ describe('O4P-03C architecture boundary', () => {
     expect(websocket).not.toMatch(/participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot|currentToken/);
   });
 
-  it('contains no deployment, migration, secret, observability, or external-abuse authority', () => {
+  it('contains only the exact O4P-03D successor deployment metadata and no secret or external-abuse authority', () => {
     const config = JSON.parse(source('wrangler.jsonc')) as Record<string, unknown>;
     expect(config).toEqual({
+      name: 'mtg-onedeck-online',
       main: 'src/online/cloudflare/worker.ts',
       compatibility_date: '2026-08-13',
+      workers_dev: true,
+      observability: { enabled: true, head_sampling_rate: 1 },
+      version_metadata: { binding: 'CF_VERSION_METADATA' },
       durable_objects: { bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }] },
       exports: { OnlineRoomDurableObject: { type: 'durable-object', storage: 'sqlite' } },
     });

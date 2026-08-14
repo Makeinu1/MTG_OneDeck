@@ -139,6 +139,10 @@ type AuditRow = {
   observed_at: unknown;
 };
 
+type SecurityTableRow = {
+  name: unknown;
+};
+
 type SecurityState = Readonly<{
   readonly singleton: 1;
   readonly schemaVersion: typeof ONLINE_CLOUDFLARE_SECURITY_SCHEMA_VERSION_V1;
@@ -205,10 +209,11 @@ type ExpectedGrant = Readonly<{
   readonly protocolCapability: string;
 }>;
 
-const CREATE_SECURITY_STATE = 'CREATE TABLE online_security_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, last_observed_at INTEGER NOT NULL, next_connection_id INTEGER NOT NULL, dropped_audit_count INTEGER NOT NULL, grant_count INTEGER NOT NULL) STRICT';
-const CREATE_GRANTS = 'CREATE TABLE online_capability_grant (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, authority TEXT NOT NULL, current_token TEXT NOT NULL, generation INTEGER NOT NULL, issued_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, http_window_started_at INTEGER NOT NULL, http_count INTEGER NOT NULL, rotation_window_started_at INTEGER NOT NULL, rotation_count INTEGER NOT NULL, retired_tokens_json TEXT NOT NULL, PRIMARY KEY (room_id, participant_id)) STRICT';
-const CREATE_LEASES = 'CREATE TABLE online_controller_lease (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, capability_generation INTEGER NOT NULL, holder_kind TEXT NOT NULL, connection_id INTEGER, expires_at INTEGER NOT NULL, PRIMARY KEY (room_id, participant_id)) STRICT';
-const CREATE_AUDIT = 'CREATE TABLE online_security_audit (audit_id INTEGER PRIMARY KEY, room_id TEXT NOT NULL, participant_id TEXT, connection_id INTEGER, authority TEXT, generation INTEGER, event_code TEXT NOT NULL, outcome TEXT NOT NULL, observed_at INTEGER NOT NULL) STRICT';
+const CREATE_SECURITY_STATE = 'CREATE TABLE IF NOT EXISTS online_security_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, last_observed_at INTEGER NOT NULL, next_connection_id INTEGER NOT NULL, dropped_audit_count INTEGER NOT NULL, grant_count INTEGER NOT NULL) STRICT';
+const CREATE_GRANTS = 'CREATE TABLE IF NOT EXISTS online_capability_grant (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, authority TEXT NOT NULL, current_token TEXT NOT NULL, generation INTEGER NOT NULL, issued_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, http_window_started_at INTEGER NOT NULL, http_count INTEGER NOT NULL, rotation_window_started_at INTEGER NOT NULL, rotation_count INTEGER NOT NULL, retired_tokens_json TEXT NOT NULL, PRIMARY KEY (room_id, participant_id)) STRICT';
+const CREATE_LEASES = 'CREATE TABLE IF NOT EXISTS online_controller_lease (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, capability_generation INTEGER NOT NULL, holder_kind TEXT NOT NULL, connection_id INTEGER, expires_at INTEGER NOT NULL, PRIMARY KEY (room_id, participant_id)) STRICT';
+const CREATE_AUDIT = 'CREATE TABLE IF NOT EXISTS online_security_audit (audit_id INTEGER PRIMARY KEY, room_id TEXT NOT NULL, participant_id TEXT, connection_id INTEGER, authority TEXT, generation INTEGER, event_code TEXT NOT NULL, outcome TEXT NOT NULL, observed_at INTEGER NOT NULL) STRICT';
+const SELECT_SECURITY_TABLES = "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('online_security_state', 'online_capability_grant', 'online_controller_lease', 'online_security_audit') ORDER BY name";
 
 const SELECT_SECURITY_STATE = 'SELECT singleton, schema_version, room_id, last_observed_at, next_connection_id, dropped_audit_count, grant_count FROM online_security_state WHERE singleton = 1';
 const SELECT_GRANTS = 'SELECT room_id, participant_id, authority, current_token, generation, issued_at, expires_at, http_window_started_at, http_count, rotation_window_started_at, rotation_count, retired_tokens_json FROM online_capability_grant ORDER BY participant_id';
@@ -634,6 +639,23 @@ export class OnlineCloudflareSecurityRepository {
     this.storage.sql.exec(CREATE_GRANTS);
     this.storage.sql.exec(CREATE_LEASES);
     this.storage.sql.exec(CREATE_AUDIT);
+  }
+
+  migrationSchemaPresence(): readonly string[] {
+    const names = rows(this.storage.sql.exec<SecurityTableRow>(SELECT_SECURITY_TABLES)).map((row) => {
+      if (typeof row.name !== 'string') throw new Error('Invalid security schema inventory');
+      return row.name;
+    });
+    if (new Set(names).size !== names.length) throw new Error('Invalid security schema inventory');
+    return Object.freeze(names);
+  }
+
+  migrationPresence(): Readonly<{ readonly state: number; readonly grants: number; readonly leases: number; readonly audit: number }> {
+    const state = rows(this.storage.sql.exec<SecurityStateRow>(SELECT_SECURITY_STATE));
+    const grants = rows(this.storage.sql.exec<GrantRow>(SELECT_GRANTS));
+    const leases = rows(this.storage.sql.exec<LeaseRow>(SELECT_LEASES));
+    const audit = rows(this.storage.sql.exec<AuditRow>(SELECT_AUDIT));
+    return Object.freeze({ state: state.length, grants: grants.length, leases: leases.length, audit: audit.length });
   }
 
   initializeInTransaction(roomId: string, state: OnlineProtocolStateV1, nowInput: unknown): void {

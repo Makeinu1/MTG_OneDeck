@@ -22,13 +22,22 @@ function cursor<T extends Row>(rows: readonly T[]): Readonly<{ toArray(): T[] }>
 
 export class ReviewSqliteStorage implements OnlineCloudflareSqlStorage {
   readonly database = new DatabaseSync(':memory:');
-  readonly queries: Array<Readonly<{ readonly query: string; readonly bindings: readonly unknown[] }>> = [];
+  readonly queries: Array<Readonly<{
+    readonly query: string;
+    readonly bindings: readonly unknown[];
+    readonly transactionDepth: number;
+  }>> = [];
   transactionCount = 0;
+  private transactionDepth = 0;
   failExecWhen: ((query: string, bindings: readonly unknown[]) => boolean) | null = null;
 
   readonly sql = {
     exec: <T extends Row>(query: string, ...bindings: readonly unknown[]) => {
-      this.queries.push(Object.freeze({ query, bindings: Object.freeze([...bindings]) }));
+      this.queries.push(Object.freeze({
+        query,
+        bindings: Object.freeze([...bindings]),
+        transactionDepth: this.transactionDepth,
+      }));
       if (this.failExecWhen?.(query, bindings) === true) throw new Error('forced review SQL failure');
       if (/^\s*CREATE\s+TABLE\b/i.test(query) && bindings.length === 0) {
         this.database.exec(query);
@@ -47,6 +56,7 @@ export class ReviewSqliteStorage implements OnlineCloudflareSqlStorage {
   transactionSync<T>(callback: () => T): T {
     this.transactionCount += 1;
     this.database.exec('BEGIN IMMEDIATE');
+    this.transactionDepth += 1;
     try {
       const result = callback();
       this.database.exec('COMMIT');
@@ -54,6 +64,8 @@ export class ReviewSqliteStorage implements OnlineCloudflareSqlStorage {
     } catch (error: unknown) {
       this.database.exec('ROLLBACK');
       throw error;
+    } finally {
+      this.transactionDepth -= 1;
     }
   }
 

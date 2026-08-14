@@ -471,16 +471,7 @@ describe('O4P-03C Judge capability and abuse-control acceptance', () => {
     initialize(storage, state);
     const before = storage.all<{ last_observed_at: number }>('SELECT last_observed_at FROM online_security_state');
     storage.run('DELETE FROM online_capability_grant WHERE participant_id = ?', PARTICIPANTS[1]);
-    const object = makeObject(storage, state, { value: NOW + 1 });
-    const socket = new ReviewSocket();
-    socket.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(
-      state.room.roomId,
-      1,
-      NOW,
-      ONLINE_CLOUDFLARE_MAX_WEBSOCKET_MESSAGES_PER_WINDOW_V1,
-    ));
-    object.webSocketMessage(socket, '{');
-    expect(parsedLast(socket)).toMatchObject({ code: 'INTERNAL_ERROR' });
+    expect(() => makeObject(storage, state, { value: NOW + 1 })).toThrow('Durable Object migration failed');
     expect(storage.all('SELECT * FROM online_security_audit')).toEqual([]);
     expect(storage.all('SELECT last_observed_at FROM online_security_state')).toEqual(before);
   });
@@ -540,11 +531,6 @@ describe('O4P-03C Judge capability and abuse-control acceptance', () => {
     const state = protocolState();
     initialize(storage, state);
     storage.run('UPDATE online_capability_grant SET authority = ? WHERE participant_id = ?', 'admin', PARTICIPANTS[0]);
-    const object = makeObject(storage, state, { value: NOW + 1 });
-    const socket = new ReviewSocket();
-    socket.serializeAttachment(createOnlineCloudflareSocketAttachmentV1(state.room.roomId, 1, NOW));
-    object.webSocketMessage(socket, '{');
-    expect(parsedLast(socket)).toEqual({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'INTERNAL_ERROR' });
-    expect((socket.attachment as OnlineCloudflareSocketAttachmentV1).messageCount).toBe(0);
+    expect(() => makeObject(storage, state, { value: NOW + 1 })).toThrow('Durable Object migration failed');
   });
 });

@@ -1,5 +1,7 @@
 import {
+  handleOnlineCommandEnvelopeV1,
   validateOnlineCommandEnvelopeV1,
+  validateOnlineProtocolStateV1,
   type OnlineCommandEnvelopeV1,
   type OnlineProtocolStateV1,
 } from '../protocol/index';
@@ -10,14 +12,18 @@ import {
   serializeOnlineCloudflareProtocolStateV1,
 } from './codec';
 import {
+  ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1,
   ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1,
   type OnlineCloudflareRoomStatusV1,
   type OnlineCloudflareSqlStorage,
 } from './types';
 import { OnlineCloudflareSecurityRepository } from './security';
+import { emitRecoveryFactV1, emitFailureFactV1, isCanonicalVersionIdentifier } from './facts';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
+const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migration (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL) STRICT`;
+const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const SELECT_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json FROM online_room_state WHERE singleton = 1`;
 const SELECT_JOURNAL = `SELECT accepted_revision, command_id, participant_id, base_revision, command_json FROM online_accepted_command ORDER BY accepted_revision`;
 const INSERT_ROOM = `INSERT INTO online_room_state (singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -26,9 +32,16 @@ const UPDATE_ROOM = `UPDATE online_room_state SET revision = ?, room_lifecycle =
 const VERIFY_ROOM = `SELECT singleton FROM online_room_state WHERE singleton = ? AND room_id = ? AND revision = ?`;
 const UPDATE_PRESENCE = `UPDATE online_room_state SET room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton`;
 const VERIFY_PRESENCE = `SELECT singleton FROM online_room_state WHERE singleton = 1 AND room_id = ? AND revision = ? AND room_lifecycle = ? AND state_json = ?`;
+const SELECT_MIGRATION = 'SELECT singleton, schema_version FROM online_application_migration ORDER BY singleton';
+const INSERT_MIGRATION = 'INSERT INTO online_application_migration (singleton, schema_version) VALUES (1, ?)';
+const SELECT_CHECKPOINT = 'SELECT singleton, room_id, checkpoint_revision, state_json FROM online_recovery_checkpoint WHERE singleton = 1';
+const INSERT_CHECKPOINT = 'INSERT INTO online_recovery_checkpoint (singleton, room_id, checkpoint_revision, state_json) VALUES (1, ?, ?, ?)';
+const UPDATE_CHECKPOINT = 'UPDATE online_recovery_checkpoint SET room_id = ?, checkpoint_revision = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND checkpoint_revision = ? RETURNING singleton';
 
 type RoomRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; room_lifecycle: unknown; accepted_command_count: unknown; state_json: unknown };
 type JournalRow = { accepted_revision: unknown; command_id: unknown; participant_id: unknown; base_revision: unknown; command_json: unknown };
+type MigrationRow = { singleton: unknown; schema_version: unknown };
+type CheckpointRow = { singleton: unknown; room_id: unknown; checkpoint_revision: unknown; state_json: unknown };
 
 function isInteger(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0; }
 
@@ -61,11 +74,109 @@ function comparablePresenceState(serialized: string): string {
 export class OnlineCloudflareRepository {
   private readonly storage: OnlineCloudflareSqlStorage;
   private readonly securityRepository: OnlineCloudflareSecurityRepository;
-  constructor(storage: OnlineCloudflareSqlStorage) {
+  private readonly versionIdentifier: string | null;
+  constructor(storage: OnlineCloudflareSqlStorage, createBaseSchema = true, versionIdentifier: string | null = null) {
     this.storage = storage;
-    storage.sql.exec(CREATE_ROOM);
-    storage.sql.exec(CREATE_JOURNAL);
     this.securityRepository = new OnlineCloudflareSecurityRepository(storage);
+    if (versionIdentifier !== null && !isCanonicalVersionIdentifier(versionIdentifier)) throw new Error('Invalid Cloudflare version metadata');
+    this.versionIdentifier = versionIdentifier;
+    if (createBaseSchema) storage.transactionSync(() => {
+      storage.sql.exec(CREATE_ROOM);
+      storage.sql.exec(CREATE_JOURNAL);
+    });
+  }
+
+  migrateApplicationSchema(): boolean {
+    return this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_ROOM);
+      this.storage.sql.exec(CREATE_JOURNAL);
+      this.storage.sql.exec(CREATE_MIGRATION);
+      this.storage.sql.exec(CREATE_CHECKPOINT);
+      const before = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
+      if (before.length > 1 || (before[0] !== undefined && (before[0].singleton !== 1 || before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1))) throw new Error('Invalid application migration ledger');
+      const room = this.rows();
+      if (room.length > 1) throw new Error('Invalid singleton state');
+      const securityTables = this.securityRepository.migrationSchemaPresence();
+      if (securityTables.length !== 0 && securityTables.length !== 4) throw new Error('Partial security schema');
+      this.securityRepository.createSchemaInTransaction();
+      if (room.length === 1) {
+        const state = this.loadWithoutMigration();
+        if (state === null) throw new Error('Missing protocol state');
+        const security = this.securityRepository.migrationPresence();
+        if (security.state === 0 && security.grants === 0 && security.leases === 0 && security.audit === 0) this.securityRepository.initializeInTransaction(state.room.roomId, state, Date.now());
+        else this.securityRepository.read(state);
+        const checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray();
+        if (checkpoints.length === 0) this.storage.sql.exec(INSERT_CHECKPOINT, state.room.roomId, state.revision, serializeOnlineCloudflareProtocolStateV1(state));
+        else if (checkpoints.length !== 1) throw new Error('Invalid recovery checkpoint');
+        else this.validateCheckpoint(state);
+      }
+      if (before.length === 0) this.storage.sql.exec(INSERT_MIGRATION, ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1);
+      return before.length === 0;
+    });
+  }
+
+  private loadWithoutMigration(): OnlineProtocolStateV1 | null {
+    const rooms = this.rows();
+    if (rooms.length === 0) return null;
+    if (rooms.length !== 1) throw new Error('Invalid singleton state');
+    const row = rooms[0];
+    if (row === undefined || row.singleton !== 1 || row.schema_version !== ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1 || typeof row.room_id !== 'string' || !isInteger(row.revision) || typeof row.room_lifecycle !== 'string' || !isInteger(row.accepted_command_count) || typeof row.state_json !== 'string') throw new Error('Invalid state row');
+    const state = deserializeOnlineCloudflareProtocolStateV1(row.state_json);
+    if (state.room.roomId !== row.room_id || state.room.lifecycle !== row.room_lifecycle || state.revision !== row.revision || state.coreRoot.acceptedCommandCount !== row.accepted_command_count) throw new Error('State relation mismatch');
+    const journal = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
+    if (journal.length !== state.revision) throw new Error('Journal count mismatch');
+    journal.forEach((entry, index) => {
+      if (!isInteger(entry.accepted_revision) || entry.accepted_revision !== index + 1 || typeof entry.command_id !== 'string' || typeof entry.participant_id !== 'string' || !isInteger(entry.base_revision) || entry.base_revision !== index || typeof entry.command_json !== 'string') throw new Error('Journal relation mismatch');
+      this.validateJournalCommand(state, entry, entry.command_json);
+    });
+    return state;
+  }
+
+  private validateCheckpoint(state: OnlineProtocolStateV1): Readonly<{ readonly checkpointRevision: number; readonly replayCount: number }> {
+    const checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray();
+    if (checkpoints.length !== 1) throw new Error('Invalid recovery checkpoint');
+    const checkpointRow = checkpoints[0];
+    if (checkpointRow === undefined || checkpointRow.singleton !== 1 || checkpointRow.room_id !== state.room.roomId || !isInteger(checkpointRow.checkpoint_revision) || checkpointRow.checkpoint_revision > state.revision || typeof checkpointRow.state_json !== 'string') throw new Error('Invalid recovery checkpoint');
+    const replayCount = state.revision - checkpointRow.checkpoint_revision;
+    if (replayCount > 63) throw new Error('Recovery replay suffix exceeds bound');
+    let rebuilt = deserializeOnlineCloudflareProtocolStateV1(checkpointRow.state_json);
+    if (rebuilt.room.roomId !== state.room.roomId || rebuilt.revision !== checkpointRow.checkpoint_revision) throw new Error('Invalid recovery checkpoint relation');
+    const currentParticipants = new Map(state.room.participants.map((participant) => [participant.participantId, participant]));
+    for (const participant of rebuilt.room.participants) {
+      const current = currentParticipants.get(participant.participantId);
+      if (current === undefined || current.role !== participant.role || current.seatIndex !== participant.seatIndex) throw new Error('Invalid recovery presence relation');
+    }
+    if (rebuilt.room.participants.length !== state.room.participants.length) throw new Error('Invalid recovery participant relation');
+    const journal = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
+    for (let index = checkpointRow.checkpoint_revision; index < journal.length; index += 1) {
+      const entry = journal[index];
+      if (entry === undefined) throw new Error('Missing journal suffix');
+      const participant = rebuilt.room.participants.find((candidate) => candidate.participantId === entry.participant_id);
+      const seat = participant === undefined || participant.role !== 'player' ? undefined : rebuilt.room.seats[participant.seatIndex];
+      if (participant === undefined || seat === undefined) throw new Error('Invalid replay participant');
+      const replayReady = validateOnlineProtocolStateV1({
+        ...rebuilt,
+        room: {
+          ...rebuilt.room,
+          participants: rebuilt.room.participants.map((candidate) => candidate.participantId === entry.participant_id
+            ? { ...candidate, presence: 'connected' as const }
+            : candidate),
+        },
+      });
+      if (!replayReady.ok) throw new Error('Invalid replay presence view');
+      let command: unknown;
+      if (typeof entry.command_json !== 'string') throw new Error('Invalid replay command');
+      try { command = JSON.parse(entry.command_json); } catch { throw new Error('Invalid replay command'); }
+      const transition = handleOnlineCommandEnvelopeV1(replayReady.value, {
+        kind: 'online-command-envelope-v1', protocolVersion: replayReady.value.protocolVersion, roomId: replayReady.value.room.roomId,
+        participantId: entry.participant_id, participantCapability: seat.seatCapability,
+        commandId: entry.command_id, baseRevision: entry.base_revision, command,
+      });
+      if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.state.revision !== index + 1) throw new Error('Recovery replay rejected');
+      rebuilt = transition.state;
+    }
+    if (rebuilt.revision !== state.revision || comparablePresenceState(serializeOnlineCloudflareProtocolStateV1(rebuilt)) !== comparablePresenceState(serializeOnlineCloudflareProtocolStateV1(state))) throw new Error('Recovery state mismatch');
+    return Object.freeze({ checkpointRevision: checkpointRow.checkpoint_revision, replayCount });
   }
 
   private rows(): RoomRow[] { return this.storage.sql.exec<RoomRow>(SELECT_ROOM).toArray(); }
@@ -141,20 +252,17 @@ export class OnlineCloudflareRepository {
   }
 
   load(): OnlineProtocolStateV1 | null {
-    const rooms = this.rows();
-    if (rooms.length === 0) return null;
-    if (rooms.length !== 1) throw new Error('Invalid singleton state');
-    const row = rooms[0];
-    if (row === undefined || row.singleton !== 1 || row.schema_version !== ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1 || typeof row.room_id !== 'string' || !isInteger(row.revision) || typeof row.room_lifecycle !== 'string' || !isInteger(row.accepted_command_count) || typeof row.state_json !== 'string') throw new Error('Invalid state row');
-    const state = deserializeOnlineCloudflareProtocolStateV1(row.state_json);
-    if (state.room.roomId !== row.room_id || state.room.lifecycle !== row.room_lifecycle || state.revision !== row.revision || state.coreRoot.acceptedCommandCount !== row.accepted_command_count) throw new Error('State relation mismatch');
-    const journal = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
-    if (journal.length !== state.revision) throw new Error('Journal count mismatch');
-    journal.forEach((entry, index) => {
-      if (!isInteger(entry.accepted_revision) || entry.accepted_revision !== index + 1 || typeof entry.command_id !== 'string' || typeof entry.participant_id !== 'string' || !isInteger(entry.base_revision) || entry.base_revision !== index || typeof entry.command_json !== 'string') throw new Error('Journal relation mismatch');
-      this.validateJournalCommand(state, entry, entry.command_json);
-    });
-    return state;
+    let state: OnlineProtocolStateV1 | null = null;
+    try {
+      state = this.loadWithoutMigration();
+      if (state === null) return null;
+      const recovery = this.validateCheckpoint(state);
+      emitRecoveryFactV1(recovery.checkpointRevision, state.revision, recovery.replayCount, 'ok', this.versionIdentifier, state.room.roomId);
+      return state;
+    } catch (error: unknown) {
+      emitFailureFactV1('recovery-failure', 'RECOVERY_FAILED', this.versionIdentifier, state?.room.roomId ?? null);
+      throw error;
+    }
   }
 
   status(): OnlineCloudflareRoomStatusV1 | null {
@@ -180,6 +288,13 @@ export class OnlineCloudflareRepository {
       state.receipts.length !== 0
     ) throw new Error('Only an empty initial state may be imported');
     return this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_ROOM);
+      this.storage.sql.exec(CREATE_JOURNAL);
+      this.storage.sql.exec(CREATE_MIGRATION);
+      this.storage.sql.exec(CREATE_CHECKPOINT);
+      this.securityRepository.createSchemaInTransaction();
+      const migrations = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
+      if (migrations.length === 0) this.storage.sql.exec(INSERT_MIGRATION, ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1);
       const existing = this.rows();
       if (existing.length > 1) throw new Error('Invalid singleton state');
       if (existing.length === 1) {
@@ -189,8 +304,8 @@ export class OnlineCloudflareRepository {
         return this.statusFor(current);
       }
       this.storage.sql.exec(INSERT_ROOM, 1, ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1, roomId, state.revision, state.room.lifecycle, state.coreRoot.acceptedCommandCount, stateJson);
-      this.securityRepository.createSchemaInTransaction();
       this.securityRepository.initializeInTransaction(roomId, state, nowInput);
+      this.storage.sql.exec(INSERT_CHECKPOINT, state.room.roomId, state.revision, stateJson);
       return this.statusFor(state);
     });
   }
@@ -214,6 +329,13 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(UPDATE_ROOM, state.revision, state.room.lifecycle, state.coreRoot.acceptedCommandCount, stateJson, state.room.roomId, envelope.baseRevision);
       if (this.storage.sql.exec<RoomRow>(VERIFY_ROOM, 1, state.room.roomId, state.revision).toArray().length !== 1) {
         throw new Error('Room state compare-and-set failed');
+      }
+      if (state.revision % 64 === 0) {
+        const checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray();
+        const checkpoint = checkpoints[0];
+        if (checkpoints.length !== 1 || checkpoint === undefined || checkpoint.room_id !== state.room.roomId || !isInteger(checkpoint.checkpoint_revision) || checkpoint.checkpoint_revision >= state.revision) throw new Error('Invalid checkpoint advancement source');
+        const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_CHECKPOINT, state.room.roomId, state.revision, stateJson, checkpoint.room_id, checkpoint.checkpoint_revision).toArray();
+        if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new Error('Checkpoint compare-and-set failed');
       }
     });
   }

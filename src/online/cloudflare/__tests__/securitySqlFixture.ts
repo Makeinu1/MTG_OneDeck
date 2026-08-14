@@ -33,6 +33,8 @@ type SecurityStateRow = {
 type GrantRow = Record<string, unknown>;
 type LeaseRow = Record<string, unknown>;
 type AuditRow = Record<string, unknown>;
+type MigrationRow = { singleton: number; schema_version: number };
+type CheckpointRow = { singleton: number; room_id: string; checkpoint_revision: number; state_json: string };
 
 function cursor<T extends Row>(rows: readonly T[]): { toArray(): T[] } {
   return { toArray: () => rows.map((row) => ({ ...row })) };
@@ -51,6 +53,8 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
   grants: GrantRow[] = [];
   leases: LeaseRow[] = [];
   audit: AuditRow[] = [];
+  migration: MigrationRow[] = [];
+  checkpoint: CheckpointRow[] = [];
   securityTables = new Set<string>();
   readonly queries: Array<Readonly<{ readonly query: string; readonly bindings: readonly unknown[] }>> = [];
   writeCount = 0;
@@ -58,6 +62,8 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
   failRoomReads = false;
   failNextRoomUpdate = false;
   failNextPresenceUpdate = false;
+  failNextCheckpointUpdate = false;
+  checkpointUpdateReturningOverride: readonly Row[] | null = null;
   leaseDeleteReturningOverride: readonly Row[] | null = null;
 
   readonly sql = {
@@ -73,8 +79,11 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     const leases = this.leases.map((row) => ({ ...row }));
     const audit = this.audit.map((row) => ({ ...row }));
     const securityTables = new Set(this.securityTables);
+    const migration = this.migration.map((row) => ({ ...row }));
+    const checkpoint = this.checkpoint.map((row) => ({ ...row }));
     const writes = this.writeCount;
     const leaseDeleteReturningOverride = this.leaseDeleteReturningOverride;
+    const checkpointUpdateReturningOverride = this.checkpointUpdateReturningOverride;
     try {
       return callback();
     } catch (error: unknown) {
@@ -85,31 +94,39 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       this.leases = leases;
       this.audit = audit;
       this.securityTables = securityTables;
+      this.migration = migration;
+      this.checkpoint = checkpoint;
       this.writeCount = writes;
       this.leaseDeleteReturningOverride = leaseDeleteReturningOverride;
+      this.checkpointUpdateReturningOverride = checkpointUpdateReturningOverride;
       throw error;
     }
   }
 
   protected execute<T extends Row>(query: string, bindings: readonly unknown[]): { toArray(): T[] } {
     this.queries.push(Object.freeze({ query, bindings: Object.freeze([...bindings]) }));
-    if (query.startsWith('CREATE TABLE online_security_state')) {
-      if (this.securityTables.has('online_security_state')) throw new Error('duplicate security table');
+    if (query.startsWith("SELECT name FROM sqlite_master WHERE type = 'table'")) {
+      return cursor<T>([...this.securityTables].sort().map((name) => ({ name })) as unknown as readonly T[]);
+    }
+    if (query.startsWith('CREATE TABLE online_security_state') || query.startsWith('CREATE TABLE IF NOT EXISTS online_security_state')) {
+      if (this.securityTables.has('online_security_state')) return cursor<T>([]);
       this.securityTables.add('online_security_state');
       return cursor<T>([]);
     }
-    if (query.startsWith('CREATE TABLE online_capability_grant')) {
-      if (this.securityTables.has('online_capability_grant')) throw new Error('duplicate security table');
+    if (query.startsWith('CREATE TABLE IF NOT EXISTS online_application_migration')) { return cursor<T>([]); }
+    if (query.startsWith('CREATE TABLE IF NOT EXISTS online_recovery_checkpoint')) { return cursor<T>([]); }
+    if (query.startsWith('CREATE TABLE online_capability_grant') || query.startsWith('CREATE TABLE IF NOT EXISTS online_capability_grant')) {
+      if (this.securityTables.has('online_capability_grant')) return cursor<T>([]);
       this.securityTables.add('online_capability_grant');
       return cursor<T>([]);
     }
-    if (query.startsWith('CREATE TABLE online_controller_lease')) {
-      if (this.securityTables.has('online_controller_lease')) throw new Error('duplicate security table');
+    if (query.startsWith('CREATE TABLE online_controller_lease') || query.startsWith('CREATE TABLE IF NOT EXISTS online_controller_lease')) {
+      if (this.securityTables.has('online_controller_lease')) return cursor<T>([]);
       this.securityTables.add('online_controller_lease');
       return cursor<T>([]);
     }
-    if (query.startsWith('CREATE TABLE online_security_audit')) {
-      if (this.securityTables.has('online_security_audit')) throw new Error('duplicate security table');
+    if (query.startsWith('CREATE TABLE online_security_audit') || query.startsWith('CREATE TABLE IF NOT EXISTS online_security_audit')) {
+      if (this.securityTables.has('online_security_audit')) return cursor<T>([]);
       this.securityTables.add('online_security_audit');
       return cursor<T>([]);
     }
@@ -126,6 +143,8 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       if (this.failRoomReads) throw new Error('hostile room read');
       return cursor<T>(this.room === null ? [] : [this.room] as unknown as readonly T[]);
     }
+    if (query.startsWith('SELECT') && query.includes('FROM online_application_migration')) return cursor<T>(this.migration as unknown as readonly T[]);
+    if (query.startsWith('SELECT') && query.includes('FROM online_recovery_checkpoint')) return cursor<T>(this.checkpoint as unknown as readonly T[]);
     if (query.startsWith('SELECT') && query.includes('FROM online_accepted_command')) return cursor<T>(this.journal as unknown as readonly T[]);
     if (query.startsWith('SELECT') && query.includes('FROM online_security_state')) {
       if (!this.securityTables.has('online_security_state')) throw new Error('missing security table');
@@ -152,6 +171,26 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       this.writeCount += 1;
       return cursor<T>([]);
     }
+    if (query.startsWith('INSERT INTO online_application_migration')) {
+      this.migration.push({ singleton: 1, schema_version: Number(bindings[0]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('INSERT INTO online_recovery_checkpoint')) {
+      this.checkpoint.push({ singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('INSERT INTO online_application_migration')) {
+      this.migration.push({ singleton: Number(bindings[0]), schema_version: Number(bindings[1]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('INSERT INTO online_recovery_checkpoint')) {
+      this.checkpoint.push({ singleton: Number(bindings[0]), room_id: String(bindings[1]), checkpoint_revision: Number(bindings[2]), state_json: String(bindings[3]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
     if (query.startsWith('INSERT INTO online_accepted_command')) {
       this.journal.push({ accepted_revision: Number(bindings[0]), command_id: String(bindings[1]), participant_id: String(bindings[2]), base_revision: Number(bindings[3]), command_json: String(bindings[4]) });
       this.writeCount += 1;
@@ -164,6 +203,29 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       }
       if (this.room === null || this.room.room_id !== String(bindings[4]) || this.room.revision !== Number(bindings[5])) throw new Error('room CAS');
       this.room = { ...this.room, revision: Number(bindings[0]), room_lifecycle: String(bindings[1]), accepted_command_count: Number(bindings[2]), state_json: String(bindings[3]) };
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('UPDATE online_recovery_checkpoint')) {
+      if (this.failNextCheckpointUpdate) {
+        this.failNextCheckpointUpdate = false;
+        throw new Error('forced checkpoint update failure');
+      }
+      if (this.checkpointUpdateReturningOverride !== null) {
+        const override = this.checkpointUpdateReturningOverride;
+        this.checkpointUpdateReturningOverride = null;
+        return cursor<T>(override as readonly T[]);
+      }
+      const index = this.checkpoint.findIndex((row) => row.singleton === 1 && row.room_id === String(bindings[3]) && row.checkpoint_revision === Number(bindings[4]));
+      if (index < 0) return cursor<T>([]);
+      this.checkpoint[index] = { singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) };
+      this.writeCount += 1;
+      return cursor<T>([{ singleton: 1 } as unknown as T]);
+    }
+    if (query.startsWith('UPDATE online_recovery_checkpoint')) {
+      const index = this.checkpoint.findIndex((row) => row.singleton === 1 && row.room_id === String(bindings[3]) && row.checkpoint_revision === Number(bindings[4]));
+      if (index < 0) return cursor<T>([]);
+      this.checkpoint[index] = { singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) };
       this.writeCount += 1;
       return cursor<T>([]);
     }

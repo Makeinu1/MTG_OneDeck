@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.online-evidence.tsbuildinfo"
+  },
+  "include": ["./o4p-03d-evidence.ts"]
+}

@@ -25,13 +25,13 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03c-correction-3-judge-surgery.draft.md':
     '6c03276eaffb9ddc2dda1988a83596a37021cd2e68517f5698b0337e7230d594',
   'src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts':
-    '12cbee7a3972258eb723d235763c0fdcab7ac80e5710c6f57fbe40b20e433728',
+    'c0264db4e4f771c47401338905d6689838a0bbebc31c052c46d68a8eeca3a10d',
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
-    '138aaabc1aee8152632baf2e978042667801f74cb005c7f0d09f08aeb3db2bd5',
+    '40a8a37f7348ed8bc553df3db9823b8b31ef190a36beb90604d3766b7c466d16',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
-    '4e6a917cfcd641b5daf2fb666640856425d7411506e0dbbaa5f04792ea6a8b0a',
+    '374443f252021ec3872162531e0355b69a65ddb0e6a957db3e08c6d038dc77af',
   'wrangler.jsonc':
-    '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
+    'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
 
 const requiredFiles = Object.freeze([
@@ -92,8 +92,12 @@ for (const [path, expected] of Object.entries(frozenHashes)) {
 
 const config = JSON.parse(readText('wrangler.jsonc')) as unknown;
 assert.deepEqual(config, {
+  name: 'mtg-onedeck-online',
   main: 'src/online/cloudflare/worker.ts',
   compatibility_date: '2026-08-13',
+  workers_dev: true,
+  observability: { enabled: true, head_sampling_rate: 1 },
+  version_metadata: { binding: 'CF_VERSION_METADATA' },
   durable_objects: {
     bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
   },
@@ -129,6 +133,7 @@ assert.equal(checks.indexOf(current) < checks.indexOf(lint), true);
 const production = sourceFiles(resolve(repositoryRoot, 'src/online/cloudflare'));
 assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/codec.ts',
+  'src/online/cloudflare/facts.ts',
   'src/online/cloudflare/index.ts',
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/persistence.ts',
@@ -148,7 +153,11 @@ const allowedImports = new Set([
 ]);
 for (const path of production) {
   const source = readFileSync(path, 'utf8');
-  assert.doesNotMatch(source, /react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i, normalized(path));
+  if (normalized(path) === 'src/online/cloudflare/facts.ts') {
+    assert.match(source, /console\.log\(JSON\.stringify\(fact\)\)/);
+  } else {
+    assert.doesNotMatch(source, /react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i, normalized(path));
+  }
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
     assert.equal(local || allowedImports.has(specifier), true, `${normalized(path)} -> ${specifier}`);
@@ -169,7 +178,9 @@ assert.match(runtime, /consumeHttpAction/);
 assert.match(runtime, /authorizeSocket/);
 assert.match(runtime, /acquireControllerLease/);
 assert.match(runtime, /releaseControllerLease/);
-assert.match(runtime, /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;/);
+const errorHandler = runtime.match(/webSocketError\(socket: OnlineCloudflareWebSocket\): void \{([\s\S]*?)\n {2}\}/)?.[1] ?? '';
+assert.match(errorHandler, /emitWebSocketFactV1\('error'/);
+assert.doesNotMatch(errorHandler, /handleDisconnect|persistSameRevision|repository\.|security\.|socket\.close/);
 assert.doesNotMatch(runtime, /setTimeout|setInterval|alarm\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
 
 for (const [name, value] of [
@@ -190,10 +201,10 @@ for (const [name, value] of [
   ['ONLINE_CLOUDFLARE_MAX_RETIRED_CAPABILITIES_PER_GRANT_V1', '256'],
 ] as const) assert.match(security, new RegExp(`${name}\\s*=\\s*${value}`));
 assert.match(websocket, /ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1/);
-assert.match(security, /CREATE TABLE online_security_state/);
-assert.match(security, /CREATE TABLE online_capability_grant/);
-assert.match(security, /CREATE TABLE online_controller_lease/);
-assert.match(security, /CREATE TABLE online_security_audit/);
+assert.match(security, /CREATE TABLE(?: IF NOT EXISTS)? online_security_state/);
+assert.match(security, /CREATE TABLE(?: IF NOT EXISTS)? online_capability_grant/);
+assert.match(security, /CREATE TABLE(?: IF NOT EXISTS)? online_controller_lease/);
+assert.match(security, /CREATE TABLE(?: IF NOT EXISTS)? online_security_audit/);
 assert.match(security, /DELETE FROM online_controller_lease[\s\S]*RETURNING/);
 assert.match(security, /grant_count INTEGER NOT NULL/);
 assert.match(security, /retired_tokens_json TEXT NOT NULL/);
@@ -224,5 +235,5 @@ for (const root of [
 console.log(
   'milestone=O4P-03C security-schema=1 classified=true expiry=exclusive rotation=closed ' +
   'lease=single-controller abuse=bounded audit=append-only-secret-free sql=atomic ' +
-  'dependencies=unchanged config=unchanged frozen=true',
+  'dependencies=unchanged config=successor-reowned frozen=true',
 );

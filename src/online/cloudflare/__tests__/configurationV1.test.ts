@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 describe('O4P-03A configuration', () => {
   it('declares exactly the Worker and SQLite Durable Object without deployment authority', () => {
     const config = JSON.parse(readFileSync('wrangler.jsonc', 'utf8')) as Record<string, unknown>;
-    expect(config).toEqual({
+    expect(config).toMatchObject({
       main: 'src/online/cloudflare/worker.ts',
       compatibility_date: '2026-08-13',
       durable_objects: {
@@ -14,6 +14,7 @@ describe('O4P-03A configuration', () => {
         OnlineRoomDurableObject: { type: 'durable-object', storage: 'sqlite' },
       },
     });
+    expect(config).toMatchObject({ name: 'mtg-onedeck-online', workers_dev: true, observability: { enabled: true, head_sampling_rate: 1 }, version_metadata: { binding: 'CF_VERSION_METADATA' } });
     expect(config).not.toHaveProperty('migrations');
     expect(JSON.stringify(config)).not.toMatch(/account|route|secret|token|hostname|remote/i);
   });

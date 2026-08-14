@@ -149,6 +149,8 @@ describe('O4P-03B hibernatable Cloudflare transport', () => {
     first.object.webSocketClose(socketB);
     expect(storage.room?.state_json).toContain('"presence":"disconnected"');
     expect(storage.room?.revision).toBe(1);
+    const recreated = objectFor(storage, state);
+    expect((await recreated.object.fetch(new Request(`https://room.test/api/online/rooms/${state.room.roomId}`))).status).toBe(200);
   });
 
   it('returns only closed safe errors for binary, malformed, oversized, unknown, and unauthenticated frames', async () => {

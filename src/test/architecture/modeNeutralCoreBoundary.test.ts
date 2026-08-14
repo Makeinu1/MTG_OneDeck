@@ -192,7 +192,8 @@ function isVerificationScript(path: string): boolean {
     || normalized === 'scripts/checks/verify-online-four-seat-room.ts'
     || normalized === 'scripts/checks/verify-online-in-memory-protocol.ts'
     || normalized === 'scripts/checks/verify-online-audience-projection.ts'
-    || normalized === 'scripts/checks/verify-online-local-room-gate.ts';
+    || normalized === 'scripts/checks/verify-online-local-room-gate.ts'
+    || normalized === 'scripts/online/o4p-03d-evidence.ts';
 }
 
 function isFrozenCompatibilityCoreConsumer(path: string, target: string | null): boolean {

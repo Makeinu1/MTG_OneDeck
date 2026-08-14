@@ -52,6 +52,7 @@
     "verify:online-cloudflare-runtime-persistence": "tsx scripts/checks/verify-online-cloudflare-runtime-persistence.ts",
     "verify:online-cloudflare-websocket-recovery": "tsx scripts/checks/verify-online-cloudflare-websocket-recovery.ts",
     "verify:online-cloudflare-capability-abuse-control": "tsx scripts/checks/verify-online-cloudflare-capability-abuse-control.ts",
+    "verify:online-cloudflare-production-gate": "tsx scripts/checks/verify-online-cloudflare-production-gate.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

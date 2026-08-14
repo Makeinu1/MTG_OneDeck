@@ -21,11 +21,11 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    'f71e555d9a03f80399f7aeb61cfe745666da04655636ab0dd68791e7357af92e',
+    '16e9161c500b94099b9f2f96c0ea0f8ad03a671ed6c450e309cd4f638c54e3ff',
   'src/online/cloudflare/index.ts':
-    '3ad8311a1d68518c88f9092eb4da5c1d1a4cee3cb004a0241b7ae171cee31985',
+    'daa892e79cc07192d62a70921cc21c03b5bc1dad3dac7b474fed938ecd86c7f3',
   'wrangler.jsonc':
-    '54ea73105a31940c6c3d90ac02ce04ce428a732613b04cec671d96be5ce4953e',
+    'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
 
 const requiredFiles = Object.freeze([
@@ -86,8 +86,12 @@ for (const [path, expected] of Object.entries(frozenHashes)) {
 
 const config = JSON.parse(readText('wrangler.jsonc')) as unknown;
 assert.deepEqual(config, {
+  name: 'mtg-onedeck-online',
   main: 'src/online/cloudflare/worker.ts',
   compatibility_date: '2026-08-13',
+  workers_dev: true,
+  observability: { enabled: true, head_sampling_rate: 1 },
+  version_metadata: { binding: 'CF_VERSION_METADATA' },
   durable_objects: {
     bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
   },
@@ -123,6 +127,7 @@ assert.equal(checks.indexOf(current) < checks.indexOf(lint), true);
 const production = sourceFiles(resolve(repositoryRoot, 'src/online/cloudflare'));
 assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/codec.ts',
+  'src/online/cloudflare/facts.ts',
   'src/online/cloudflare/index.ts',
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/persistence.ts',
@@ -142,7 +147,11 @@ const allowedImports = new Set([
 ]);
 for (const path of production) {
   const source = readFileSync(path, 'utf8');
-  assert.doesNotMatch(source, /react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i, normalized(path));
+  if (normalized(path) === 'src/online/cloudflare/facts.ts') {
+    assert.match(source, /console\.log\(JSON\.stringify\(fact\)\)/);
+  } else {
+    assert.doesNotMatch(source, /react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i, normalized(path));
+  }
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
     assert.equal(local || allowedImports.has(specifier), true, `${normalized(path)} -> ${specifier}`);
@@ -166,10 +175,9 @@ assert.match(runtime, /this\.state\.acceptWebSocket\(pair\.server\)/);
 assert.match(runtime, /webSocketMessage\s*\(/);
 assert.match(runtime, /webSocketClose\s*\(/);
 assert.match(runtime, /webSocketError\s*\(/);
-assert.match(
-  runtime,
-  /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{\s*void socket;\s*\}/,
-);
+const errorHandler = runtime.match(/webSocketError\(socket: OnlineCloudflareWebSocket\): void \{([\s\S]*?)\n {2}\}/)?.[1] ?? '';
+assert.match(errorHandler, /emitWebSocketFactV1\('error'/);
+assert.doesNotMatch(errorHandler, /handleDisconnect|persistSameRevision|repository\.|security\.|socket\.close/);
 assert.doesNotMatch(runtime, /\.accept\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
 assert.doesNotMatch(`${runtime}\n${websocket}`, /setTimeout|setInterval|alarm\s*\(/);
 assert.match(websocket, /Object\.getOwnPropertyNames/);

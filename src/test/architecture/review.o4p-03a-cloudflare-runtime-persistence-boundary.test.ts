@@ -78,7 +78,11 @@ describe('O4P-03A architecture boundary', () => {
     const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
     for (const filePath of productionFiles(cloudflareRoot)) {
       const sourceText = readFileSync(filePath, 'utf8');
-      expect(sourceText, normalized(filePath)).not.toMatch(forbiddenSource);
+      if (normalized(filePath) === 'src/online/cloudflare/facts.ts') {
+        expect(sourceText).toMatch(/console\.log\(JSON\.stringify\(fact\)\)/);
+      } else {
+        expect(sourceText, normalized(filePath)).not.toMatch(forbiddenSource);
+      }
       for (const specifier of moduleSpecifiers(sourceText)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
         expect(local || allowed.has(specifier), `${normalized(filePath)} -> ${specifier}`).toBe(true);
@@ -132,10 +136,14 @@ describe('O4P-03A architecture boundary', () => {
     expect(barrel).toContain('deserializeOnlineCloudflareProtocolStateV1');
   });
 
-  it('declares one dependency-free SQLite Durable Object without deployment authority', () => {
+  it('preserves the dependency-free SQLite Durable Object under the O4P-03D successor config', () => {
     const config = JSON.parse(source('wrangler.jsonc')) as Record<string, unknown>;
     expect(config.main).toBe('src/online/cloudflare/worker.ts');
     expect(config.compatibility_date).toBe('2026-08-13');
+    expect(config.name).toBe('mtg-onedeck-online');
+    expect(config.workers_dev).toBe(true);
+    expect(config.observability).toEqual({ enabled: true, head_sampling_rate: 1 });
+    expect(config.version_metadata).toEqual({ binding: 'CF_VERSION_METADATA' });
     expect(config.durable_objects).toEqual({
       bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
     });

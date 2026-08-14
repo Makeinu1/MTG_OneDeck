@@ -306,9 +306,10 @@ describe('O4P-03A Judge acceptance', () => {
     const storage = new TransactionalSqliteStorage();
     const object = durableObject(storage);
     const initial = protocolState();
+    const constructorWrites = storage.writeCount;
     const response = await object.fetch(initializeRequest(initial, { unexpected: true }));
     expect(response.status).toBe(400);
-    expect(storage.writeCount).toBe(0);
+    expect(storage.writeCount).toBe(constructorWrites);
     const body = await response.text();
     expect(body).toBe(JSON.stringify({ kind: 'online-cloudflare-error-v1' }));
     for (const capability of CAPABILITIES) expect(body).not.toContain(capability);
