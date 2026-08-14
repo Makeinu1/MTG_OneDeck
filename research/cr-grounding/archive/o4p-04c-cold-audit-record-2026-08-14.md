@@ -130,3 +130,33 @@ fingerprint and passed every verifier, docs, lint, Core 226 files / 2,086
 tests, DOM 296 files / 2,065 tests, TypeScript, and Vite build. No third local
 full check is permitted or required. Candidate commit/push, exact-head CI,
 Pages, ledger promotion, and clean-worktree evidence remain pending.
+
+## Candidate CI and Judge reownership
+
+Candidate commit `1d8bffc3e39fb5be2b1fa2e0997c45848c3856af` was
+published to `main`. Exact-head GitHub Actions run `31797116892` passed
+`npm run check -- --build-base=/MTG_OneDeck/`: all verifiers, docs, lint,
+Core 226 files / 2,086 tests, DOM 296 files / 2,064 passed + 1 skipped =
+2,065 total, TypeScript, and Vite build were green.
+
+The run stopped only at `check:forbidden` before Pages. The scanner reported
+six Judge-owned `review.*` paths as hard `FORBIDDEN` and the design HTML plus
+contract/audit/brief evidence as `NEEDS-REAUTH`. Exact path hashes and the
+bounded metadata-only next commit are recorded in
+`research/cr-grounding/o4p-04c-ci-reauthorization.draft.md`.
+
+The same independent auditor verified run/head identity, the successful full
+check, all seven listed hashes, and absence of unlisted hard forbidden paths.
+An initial LOW wording finding misclassifying the design HTML as hard
+`FORBIDDEN` was corrected to its actual `NEEDS-REAUTH` classification and
+rechecked closed. Final reownership verdict:
+
+```text
+BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+AUDIT-CLEAR
+```
+
+The next commit is authorized to contain only this audit-record append and the
+CI reauthorization record. Product, review, test, contract, ledger, workflow,
+package, and design bytes remain frozen. Exact-head successful CI, Pages,
+terminal ledger promotion, and clean-worktree evidence are still pending.
