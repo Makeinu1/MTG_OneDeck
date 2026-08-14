@@ -283,7 +283,7 @@ describe('O4P-03D Judge production gate', () => {
       checkpoint: target.all('SELECT * FROM online_recovery_checkpoint'),
       security: securitySnapshot(target),
     })).toBe(before);
-  });
+  }, 30_000);
 
   it('replays accepted commands when unjournaled presence differs or every participant disconnects', () => {
     const target = storage();
@@ -337,7 +337,7 @@ describe('O4P-03D Judge production gate', () => {
     }
     expect(repository.load()).toEqual(current);
     expect(repository.migrateApplicationSchema()).toBe(false);
-  }, 15_000);
+  }, 30_000);
 
   it('rolls back revision 64 when checkpoint compare-and-set writes no row', () => {
     const target = storage();
@@ -367,7 +367,7 @@ describe('O4P-03D Judge production gate', () => {
     expect(target.all('SELECT revision FROM online_room_state')).toEqual([{ revision: 63 }]);
     expect(target.all('SELECT COUNT(*) AS count FROM online_accepted_command')).toEqual([{ count: 63 }]);
     expect(target.all('SELECT checkpoint_revision FROM online_recovery_checkpoint')).toEqual([{ checkpoint_revision: 0 }]);
-  });
+  }, 30_000);
 
   it('runs every schema mutation in the construction transaction and binds real version metadata to correlated recovery facts', async () => {
     const target = storage();

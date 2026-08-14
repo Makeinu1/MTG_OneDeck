@@ -293,3 +293,40 @@ with verdict `AUDIT-OK-PENDING-EXACT-HEAD-CI-RETRY`.
 The repair is eligible for explicit commit/push and exact-head Actions retry.
 Shipment, GitHub Pages, terminal metadata, and clean-worktree confirmation
 remain pending. No third local release full check is authorized.
+
+## Candidate CI timeout repair 1
+
+The audited authority-hash repair was committed and pushed as
+`9ea1adde18058c02236b9b7f8e9edeb88ef2ca79`. Exact-head Actions run
+`31769101186` passed every registered verifier, lint, and Core 226 files /
+2,086 tests. DOM passed 284 of 285 files and 2,004 of 2,008 tests. Its only
+three failures were timeouts, with no assertion mismatch, in the O4P-03D real-
+SQLite Judge tests for checkpoint/replay-cap rejection, all-disconnected
+recovery, and checkpoint-CAS rollback. Build, forbidden scan, and Pages were
+skipped after that test-only failure.
+
+The bounded repair is frozen in
+`research/cr-grounding/o4p-03d-ci-timeout-repair-1.draft.md`. It changes only
+the three per-test limits from 5/15/5 seconds to 30 seconds and refreshes only
+the matching Judge-file hash in the registered verifier. Test bodies,
+assertions, fixtures, source, config, dependencies, workflow, and Cloudflare
+resources are unchanged.
+
+Independent read-only audit by `/root/o4p03d_cold_auditor` returned BLOCKER 0 /
+HIGH 0 / MEDIUM 0 / LOW 0 with verdict
+`AUDIT-OK-PENDING-EXACT-HEAD-CI-RETRY`.
+
+- semantic fingerprint before/after:
+  `08012bcf0703e801acc10c00c422e395a6d440d9300213ecb553c06191a2c417`;
+- context fingerprint before/after:
+  `2273dc9895f27b05ba61aeccbd9694c39cd48a724d74ebbed5ca76a764c06652`;
+- Node 24.12.0: one Judge file / 13 tests PASS;
+- exact Node 22.22.0: one Judge file / 13 tests PASS;
+- the three heavy tests remained non-vacuous at approximately 3.3 / 8.8 /
+  3.0 seconds in both runs;
+- O4P-03D verifier, scoped ESLint, `tsconfig.node` TypeScript, and
+  `git diff --check`: PASS.
+
+The audited timeout repair is eligible for explicit commit/push and an exact-
+head CI retry. No third local release full check is authorized. Shipment,
+Pages, terminal metadata, and clean-worktree confirmation remain pending.
