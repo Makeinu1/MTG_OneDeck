@@ -152,3 +152,29 @@ hashes and the bounded metadata-only next commit are recorded in
 Independent Judge reownership verification, the metadata-only commit,
 exact-head successful CI, Pages evidence, terminal ledger promotion, and clean
 worktree remain pending.
+
+## Terminal prepublication evidence
+
+The same independent auditor verified candidate run/head identity, its complete
+full-check result, every hard ownership path and recorded hash, and the
+metadata-only next scope. Final Judge reownership verdict was
+BLOCKER/HIGH/MEDIUM/LOW 0/0/0/0, `AUDIT-CLEAR`.
+
+Judge reownership commit `fcec7e71776616e820aa4e96ed1b98a573c1dae9`
+was published to `main`. Exact-head GitHub Actions run `31814122280` passed the
+complete check (Core 226 files / 2,086 tests; DOM 300 files / 2,079 passed + 1
+skipped), forbidden scan with diff base
+`7207073b3ef88edcc3549f6cf4f7b39fdb63b066`, TypeScript/Vite build, artifact
+upload, and Pages deployment.
+
+The deployed HTML, referenced JS `index-CyZgN26K.js`, and referenced CSS
+`index-JeU5vEot.css` each returned HTTP 200 with last-modified
+`2026-08-14T15:32:29Z`. A fresh public browser load at 1280x720 rendered the
+deck-import application from those exact JS/CSS assets, had horizontal
+overflow 0, app-owned fixed elements 0, and logged zero console errors. Local
+`HEAD` and `origin/main` both equaled
+`fcec7e71776616e820aa4e96ed1b98a573c1dae9` before terminal metadata.
+
+O4P-04D is authorized for terminal ledger promotion to `shipped`. This closes
+the O4P-04 active program. O4P-05A remains `pending` and is not started in this
+task.
