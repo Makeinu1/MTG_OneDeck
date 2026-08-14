@@ -1,0 +1,7 @@
+.display-pairing-fixture__last-action {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

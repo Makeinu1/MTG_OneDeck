@@ -1,0 +1,138 @@
+.online-guided-actions {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  color: var(--text);
+  background: var(--surface-0);
+}
+
+.online-guided-actions__status,
+.online-guided-actions__section,
+.online-guided-actions__confirmation,
+.online-guided-actions__unavailable {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-soft);
+}
+
+.online-guided-actions__status,
+.online-guided-actions__section,
+.online-guided-actions__confirmation {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.online-guided-actions h1,
+.online-guided-actions h2,
+.online-guided-actions h3,
+.online-guided-actions p {
+  margin: 0;
+}
+
+.online-guided-actions form,
+.online-guided-actions fieldset {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.online-guided-actions form {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  align-items: end;
+}
+
+.online-guided-actions fieldset,
+.online-guided-actions form > h3,
+.online-guided-actions form > button,
+.online-guided-actions form > p,
+.online-guided-actions__check,
+.online-guided-actions__records {
+  grid-column: 1 / -1;
+}
+
+.online-guided-actions label {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--text-dim);
+}
+
+.online-guided-actions input,
+.online-guided-actions select,
+.online-guided-actions textarea,
+.online-guided-actions button {
+  min-width: 0;
+  max-width: 100%;
+  padding: .55rem .65rem;
+  color: var(--text);
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+}
+
+.online-guided-actions textarea {
+  min-height: 4rem;
+  resize: vertical;
+}
+
+.online-guided-actions button {
+  cursor: pointer;
+}
+
+.online-guided-actions button:disabled,
+.online-guided-actions input:disabled,
+.online-guided-actions select:disabled,
+.online-guided-actions textarea:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.online-guided-actions button:focus-visible,
+.online-guided-actions input:focus-visible,
+.online-guided-actions select:focus-visible,
+.online-guided-actions textarea:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+
+.online-guided-actions__manual {
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+
+.online-guided-actions__check {
+  display: flex;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.online-guided-actions__check input {
+  width: auto;
+}
+
+.online-guided-actions__records {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.online-guided-actions__unavailable {
+  display: grid;
+  min-height: 16rem;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .online-guided-actions {
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+}

@@ -1,4 +1,5 @@
 import type { PersonalWorkbenchActionV1 } from '../../online/workbench/index';
+import type { OnlineGuidedActionV1 } from '../../online/guidedActions/index';
 import {
   buildOnlineDisplayPairingViewV1,
   createOnlineOpponentFocusActionV1,
@@ -6,6 +7,7 @@ import {
 } from '../../online/displayPairing/index';
 import { PersonalWorkbench } from './PersonalWorkbench';
 import { TableDisplay } from './TableDisplay';
+import { OnlineGuidedActions } from './OnlineGuidedActions';
 import './onlineDisplayPairing.css';
 
 export type OnlineDisplayPairingProps = Readonly<{
@@ -15,6 +17,7 @@ export type OnlineDisplayPairingProps = Readonly<{
   readonly focusedPlayerId: string | null;
   readonly onFocus: (action: OnlineOpponentFocusActionV1) => void;
   readonly onAction: (action: PersonalWorkbenchActionV1) => void;
+  readonly onGuidedAction: (action: OnlineGuidedActionV1) => void;
 }>;
 
 function interactionLabel(state: OnlineDisplayPairingProps['interactionState']): string {
@@ -38,6 +41,7 @@ export function OnlineDisplayPairing({
   focusedPlayerId,
   onFocus,
   onAction,
+  onGuidedAction,
 }: OnlineDisplayPairingProps) {
   let view;
   try {
@@ -96,6 +100,9 @@ export function OnlineDisplayPairing({
         </section>
         <section className="online-display-pairing__surface" aria-label="テーブル公開画面">
           <TableDisplay key={`table-${JSON.stringify(view)}`} projection={tableProjection} />
+        </section>
+        <section className="online-display-pairing__surface" aria-label="ガイド付き操作と手動記録">
+          <OnlineGuidedActions key={`guided-${JSON.stringify(view)}`} projection={personalProjection} interactionState={interactionState} onAction={onGuidedAction} />
         </section>
       </div>
     </main>

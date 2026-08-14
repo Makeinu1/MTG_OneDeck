@@ -1,0 +1,121 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const ROOT = process.cwd();
+const BASE_SHA = '1f6a465b859ba64c9961c6fcdae80087e33b9882';
+
+function filesBelow(path: string): string[] {
+  const absolute = join(ROOT, path);
+  const output: string[] = [];
+  for (const name of readdirSync(absolute)) {
+    const candidate = join(absolute, name);
+    if (statSync(candidate).isDirectory()) output.push(...filesBelow(relative(ROOT, candidate)));
+    else output.push(candidate);
+  }
+  return output;
+}
+
+function source(path: string): string {
+  return readFileSync(join(ROOT, path), 'utf8');
+}
+
+function candidatePaths(): string[] {
+  const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--'], { cwd: ROOT, encoding: 'utf8' })
+    .split(/\r?\n/).filter(Boolean);
+  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
+    .split(/\r?\n/).filter(Boolean);
+  return [...new Set([...tracked, ...untracked])].sort();
+}
+
+describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
+  it('uses only four public barrels in the pure boundary and no ambient effects', () => {
+    const files = filesBelow('src/online/guidedActions')
+      .filter((path) => ['.ts', '.tsx'].includes(extname(path)))
+      .filter((path) => !path.includes('__tests__'));
+    expect(files.map((path) => relative(ROOT, path)).sort()).toEqual([
+      'src/online/guidedActions/errors.ts',
+      'src/online/guidedActions/index.ts',
+      'src/online/guidedActions/model.ts',
+      'src/online/guidedActions/types.ts',
+    ]);
+    const text = files.map((path) => readFileSync(path, 'utf8')).join('\n');
+    for (const publicImport of [
+      '../projection/index', '../protocol/index', '../displayPairing/index',
+      '../../engine/core/index',
+    ]) expect(text).toContain(publicImport);
+    expect(text).not.toMatch(/from ['"][^'"]*(?:room|cloudflare|headless|store|components|engine\/(?!core\/index)|projection\/(?!index)|protocol\/(?!index)|displayPairing\/(?!index))/i);
+    expect(text).not.toMatch(/\b(fetch|WebSocket|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|Date\.now|Math\.random|console\.)\b/);
+    expect(text).not.toMatch(/\b(React|document|window|HTMLElement)\b/);
+  });
+
+  it('keeps React on the public guided barrel and pairing on exact successor composition', () => {
+    const component = source('src/components/online/OnlineGuidedActions.tsx');
+    const pairing = source('src/components/online/OnlineDisplayPairing.tsx');
+    const css = source('src/components/online/onlineGuidedActions.css');
+    expect(component).toMatch(/online\/guidedActions\/index/);
+    expect(pairing).toMatch(/\.\/OnlineGuidedActions/);
+    expect(pairing).toMatch(/onGuidedAction/);
+    expect(`${component}\n${pairing}\n${css}`).not.toMatch(/components\/game|gameStore|src\/store|online\/(?:cloudflare|protocol|projection|room|headless)|engine\/core/i);
+    expect(`${component}\n${pairing}\n${css}`).not.toMatch(/\b(fetch|WebSocket|localStorage|sessionStorage|indexedDB|setTimeout|setInterval)\b/);
+  });
+
+  it('keeps integration dev-only and constrains every base-relative candidate path', () => {
+    expect(source('research/design/display-pairing/index.html')).toContain('/src/dev/displayPairing/main.tsx');
+    expect(filesBelow('src/dev/displayPairing').map((path) => relative(ROOT, path)).sort()).toEqual([
+      'src/dev/displayPairing/displayPairing.css',
+      'src/dev/displayPairing/main.tsx',
+    ]);
+    expect(source('src/dev/displayPairing/main.tsx')).not.toMatch(
+      /\b(fetch|WebSocket|localStorage|sessionStorage|indexedDB|setTimeout|setInterval|Date\.now|Math\.random|console\.)\b/,
+    );
+    expect(source('src/App.tsx')).not.toMatch(/OnlineGuidedActions|guidedActions/);
+    expect(source('src/main.tsx')).not.toMatch(/OnlineGuidedActions|guidedActions/);
+    expect(() => statSync(join(ROOT, 'src/online/index.ts'))).toThrow();
+
+    const allowed = [
+      /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-04d-cold-audit-record-2026-08-14\.md$/,
+      /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
+      /^research\/design\/display-pairing\/index\.html$/,
+      /^src\/components\/online\/OnlineDisplayPairing\.tsx$/,
+      /^src\/components\/online\/OnlineGuidedActions\.tsx$/,
+      /^src\/components\/online\/onlineGuidedActions\.css$/,
+      /^src\/components\/online\/__tests__\/(?:review\.o4p-04d-guided-actions|OnlineDisplayPairing|OnlineGuidedActions)\.test\.tsx$/,
+      /^src\/components\/online\/__tests__\/review\.o4p-04c-display-pairing\.test\.tsx$/,
+      /^src\/dev\/displayPairing\/(?:displayPairing\.css|main\.tsx)$/,
+      /^src\/online\/guidedActions\//,
+      /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|modeNeutralCoreBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-04[cd]-(?:display-pairing|guided-actions)-boundary\.test\.ts$/,
+    ];
+    expect(candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)))).toEqual([]);
+    expect(candidatePaths()).not.toEqual(expect.arrayContaining([
+      'package.json', 'package-lock.json', 'vite.config.ts', 'src/version.ts',
+      'src/App.tsx', 'src/main.tsx', 'src/online/projection/index.ts',
+      'src/online/protocol/index.ts', 'src/online/cloudflare/index.ts',
+    ]));
+  });
+
+  it('registers only guidedActions and preserves responsive/manual boundaries', () => {
+    for (const path of [
+      'src/test/architecture/o4p01iStackAnnouncementBoundary.test.ts',
+      'src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts',
+      'src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts',
+    ]) expect(source(path)).toContain('guidedActions');
+    for (const path of [
+      'src/test/architecture/review.o4p-01h-core-boundary.test.ts',
+      'src/test/architecture/soloOnlineBoundary.test.ts',
+    ]) expect(source(path)).toMatch(/OnlineGuidedActions\.tsx[\s\S]*online\/guidedActions\/index/);
+
+    const component = source('src/components/online/OnlineGuidedActions.tsx');
+    const css = source('src/components/online/onlineGuidedActions.css');
+    expect(component.match(/data-testid="online-guided-actions"/g)).toHaveLength(1);
+    expect(component).toContain('手動記録（未送信）');
+    expect(css).toMatch(/@media[^{]*max-width:\s*600px/s);
+    expect(css).toMatch(/button:focus-visible/);
+    expect(css).toMatch(/var\(--(?:surface|text|line|space|radius|shadow|accent|gold)/);
+    expect(css).not.toMatch(/position:\s*fixed|https?:\/\//);
+  });
+});

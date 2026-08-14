@@ -64,17 +64,23 @@ describe('O4P-04C Display Pairing architecture boundary', () => {
     const allowed = [
       /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04c-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04c-cold-audit-record-2026-08-14\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-04d-cold-audit-record-2026-08-14\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/display-pairing\/index\.html$/,
       /^src\/components\/online\/OnlineDisplayPairing\.tsx$/,
+      /^src\/components\/online\/OnlineGuidedActions\.tsx$/,
       /^src\/components\/online\/onlineDisplayPairing\.css$/,
-      /^src\/components\/online\/__tests__\/(?:review\.o4p-04c-display-pairing|OnlineDisplayPairing)\.test\.tsx$/,
+      /^src\/components\/online\/onlineGuidedActions\.css$/,
+      /^src\/components\/online\/__tests__\/(?:review\.o4p-04[cd]-(?:display-pairing|guided-actions)|OnlineDisplayPairing|OnlineGuidedActions)\.test\.tsx$/,
       /^src\/dev\/displayPairing\//,
       /^src\/online\/displayPairing\//,
+      /^src\/online\/guidedActions\//,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
       /^src\/test\/architecture\/(?:modeNeutralCoreBoundary|review\.o4p-04b-table-display-boundary)\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-04d-guided-actions-boundary\.test\.ts$/,
     ];
     expect(candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)))).toEqual([]);
     expect(candidatePaths()).not.toEqual(expect.arrayContaining([

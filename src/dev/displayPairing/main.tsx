@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../../index.css';
+import './displayPairing.css';
 import { OnlineDisplayPairing } from '../../components/online/OnlineDisplayPairing';
 import type { OnlineOpponentFocusActionV1 } from '../../online/displayPairing/index';
 import type { PersonalWorkbenchActionV1 } from '../../online/workbench/index';
+import type { OnlineGuidedActionV1 } from '../../online/guidedActions/index';
 import fixture from '../../online/workbench/fixtures/o4p-04a-personal-workbench-v1.json';
 
 type MutableProjection = {
@@ -41,6 +43,7 @@ export function DisplayPairingFixture() {
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
   const [focusAction, setFocusAction] = useState<OnlineOpponentFocusActionV1 | null>(null);
   const [workbenchAction, setWorkbenchAction] = useState<PersonalWorkbenchActionV1 | null>(null);
+  const [guidedAction, setGuidedAction] = useState<OnlineGuidedActionV1 | null>(null);
   return (
     <>
       <OnlineDisplayPairing
@@ -50,9 +53,10 @@ export function DisplayPairingFixture() {
         focusedPlayerId={focusedPlayerId}
         onFocus={(action) => { setFocusedPlayerId(action.playerId); setFocusAction(action); }}
         onAction={setWorkbenchAction}
+        onGuidedAction={setGuidedAction}
       />
-      <output data-testid="display-pairing-last-action">
-        {JSON.stringify({ focusAction, workbenchAction })}
+      <output className="display-pairing-fixture__last-action" data-testid="display-pairing-last-action">
+        {JSON.stringify({ focusAction, workbenchAction, guidedAction })}
       </output>
     </>
   );

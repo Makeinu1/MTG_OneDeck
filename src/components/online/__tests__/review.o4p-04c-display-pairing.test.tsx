@@ -101,6 +101,7 @@ function mount(
         focusedPlayerId={focus}
         onFocus={(action) => focusActions.push(action)}
         onAction={(action) => workbenchActions.push(action)}
+        onGuidedAction={() => undefined}
       />,
     ));
   };

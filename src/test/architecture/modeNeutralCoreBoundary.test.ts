@@ -377,6 +377,40 @@ function isFrozenDisplayPairingCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenGuidedActionsCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/guidedActions/model.ts',
+    new Set([
+      'CoreCommandPayloadV1',
+      'CoreObjectId',
+      'CorePlayerId',
+      'createCoreCommandV1',
+      'isCanonicalCoreObjectIdV2',
+      'isCoreBaseId',
+      'validateCoreCommandV1',
+    ]),
+  ],
+  [
+    'src/online/guidedActions/types.ts',
+    new Set(['CoreObjectId', 'CorePlayerId']),
+  ],
+]);
+
+function isFrozenGuidedActionsCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenGuidedActionsCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenHeadlessCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/headless/operation.ts',
@@ -555,6 +589,7 @@ function inspectReference(
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
+    && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
     && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
