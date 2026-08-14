@@ -202,6 +202,11 @@ function isSoloUiUnit(unit: SourceUnit): boolean {
   return path === 'src/App.tsx' || path.startsWith('src/components/');
 }
 
+function isPersonalWorkbenchPublicImport(unit: SourceUnit, targetPath: string, unitSourceRoot: string): boolean {
+  return relativeSourcePath(unit.filePath) === 'src/components/online/PersonalWorkbench.tsx'
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/workbench/index'));
+}
+
 function inspectReference(
   unit: SourceUnit,
   reference: ImportReference,
@@ -236,7 +241,12 @@ function inspectReference(
     if (isCloudflareRuntime(reference.specifier)) addViolation(violations, reference, 'store-no-cloudflare-runtime');
   }
 
-  if (isSoloUiUnit(unit) && targetPath && isWithin(resolve(unitSourceRoot, 'online'), targetPath)) {
+  if (
+    isSoloUiUnit(unit)
+    && targetPath
+    && isWithin(resolve(unitSourceRoot, 'online'), targetPath)
+    && !isPersonalWorkbenchPublicImport(unit, targetPath, unitSourceRoot)
+  ) {
     addViolation(violations, reference, 'solo-ui-no-online');
   }
 

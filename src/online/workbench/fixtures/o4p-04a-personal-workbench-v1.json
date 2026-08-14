@@ -1,0 +1,200 @@
+{
+  "kind": "online-participant-projection-v1",
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "roomId": "room-o4p-04a-fixture",
+  "participantId": "player-p1",
+  "role": "player",
+  "corePlayerId": "P1",
+  "revision": 12,
+  "room": {
+    "lifecycle": "active",
+    "hostParticipantId": "player-p1",
+    "participants": [
+      { "participantId": "player-p1", "role": "player", "presence": "connected", "seatIndex": 0 },
+      { "participantId": "player-p2", "role": "player", "presence": "connected", "seatIndex": 1 },
+      { "participantId": "player-p3", "role": "player", "presence": "connected", "seatIndex": 2 },
+      { "participantId": "player-p4", "role": "player", "presence": "connected", "seatIndex": 3 }
+    ],
+    "seats": [
+      { "seatIndex": 0, "corePlayerId": "P1", "participantId": "player-p1", "ready": true, "outcome": "pending" },
+      { "seatIndex": 1, "corePlayerId": "P2", "participantId": "player-p2", "ready": true, "outcome": "pending" },
+      { "seatIndex": 2, "corePlayerId": "P3", "participantId": "player-p3", "ready": true, "outcome": "pending" },
+      { "seatIndex": 3, "corePlayerId": "P4", "participantId": "player-p4", "ready": true, "outcome": "pending" }
+    ]
+  },
+  "game": {
+    "turnOrder": ["P1", "P2", "P3", "P4"],
+    "turn": {
+      "activePlayerId": "P1",
+      "turnNumber": 4,
+      "positionSequence": 18,
+      "position": { "phase": "precombat-main", "step": null }
+    },
+    "players": [
+      {
+        "playerId": "P1", "life": 38, "poison": 0, "energy": 2, "experience": 1,
+        "manaPool": { "W": 0, "U": 1, "B": 0, "R": 0, "G": 2, "C": 0 },
+        "mulliganCount": 0, "landsPlayedThisTurn": 1, "spellsCastThisTurn": 1,
+        "drawnThisTurn": 1, "maximumHandSizeOverride": null, "status": "active", "exitCause": null
+      },
+      {
+        "playerId": "P2", "life": 34, "poison": 0, "energy": 0, "experience": 0,
+        "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+        "mulliganCount": 1, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0,
+        "drawnThisTurn": 0, "maximumHandSizeOverride": null, "status": "active", "exitCause": null
+      },
+      {
+        "playerId": "P3", "life": 40, "poison": 1, "energy": 0, "experience": 0,
+        "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 0 },
+        "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0,
+        "drawnThisTurn": 0, "maximumHandSizeOverride": "none", "status": "active", "exitCause": null
+      },
+      {
+        "playerId": "P4", "life": 27, "poison": 0, "energy": 0, "experience": 0,
+        "manaPool": { "W": 0, "U": 0, "B": 0, "R": 0, "G": 0, "C": 1 },
+        "mulliganCount": 0, "landsPlayedThisTurn": 0, "spellsCastThisTurn": 0,
+        "drawnThisTurn": 0, "maximumHandSizeOverride": 9, "status": "active", "exitCause": null
+      }
+    ],
+    "zones": {
+      "byPlayer": [
+        {
+          "playerId": "P1",
+          "zones": {
+            "library": { "count": 1, "entries": [{ "kind": "hidden-card" }] },
+            "hand": {
+              "count": 2,
+              "entries": [
+                {
+                  "kind": "visible-object", "objectId": "PC3:0", "objectKind": "card",
+                  "ownerPlayerId": "P1", "controllerPlayerId": null, "commander": false,
+                  "definition": {
+                    "source": { "kind": "engine-synthetic" }, "name": "森の知恵", "layout": "normal",
+                    "manaValue": 2, "colorIdentity": ["G"], "typeLine": "Enchantment",
+                    "keywords": [], "producedMana": [], "tokenKind": null,
+                    "faces": [{
+                      "name": "森の知恵", "manaCost": "{1}{G}", "typeLine": "Enchantment",
+                      "oracleText": "At the beginning of your draw step, you may draw two additional cards.",
+                      "power": null, "toughness": null, "loyalty": null, "defense": null
+                    }]
+                  },
+                  "runtime": {
+                    "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false,
+                    "phasedOut": false, "counters": [], "markedDamage": 0,
+                    "attachment": { "kind": "none" }
+                  }
+                },
+                {
+                  "kind": "visible-object", "objectId": "PC4:0", "objectKind": "card",
+                  "ownerPlayerId": "P1", "controllerPlayerId": null, "commander": false,
+                  "definition": {
+                    "source": { "kind": "engine-synthetic" }, "name": "稲妻", "layout": "normal",
+                    "manaValue": 1, "colorIdentity": ["R"], "typeLine": "Instant",
+                    "keywords": [], "producedMana": [], "tokenKind": null,
+                    "faces": [{
+                      "name": "稲妻", "manaCost": "{R}", "typeLine": "Instant",
+                      "oracleText": "Lightning Bolt deals 3 damage to any target.",
+                      "power": null, "toughness": null, "loyalty": null, "defense": null
+                    }]
+                  },
+                  "runtime": {
+                    "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false,
+                    "phasedOut": false, "counters": [], "markedDamage": 0,
+                    "attachment": { "kind": "none" }
+                  }
+                }
+              ]
+            },
+            "graveyard": { "count": 0, "entries": [] }
+          }
+        },
+        {
+          "playerId": "P2",
+          "zones": {
+            "library": { "count": 2, "entries": [{ "kind": "hidden-card" }, { "kind": "hidden-card" }] },
+            "hand": { "count": 1, "entries": [{ "kind": "hidden-card" }] },
+            "graveyard": { "count": 0, "entries": [] }
+          }
+        },
+        {
+          "playerId": "P3",
+          "zones": {
+            "library": { "count": 1, "entries": [{ "kind": "hidden-card" }] },
+            "hand": { "count": 2, "entries": [{ "kind": "hidden-card" }, { "kind": "hidden-card" }] },
+            "graveyard": { "count": 0, "entries": [] }
+          }
+        },
+        {
+          "playerId": "P4",
+          "zones": {
+            "library": { "count": 1, "entries": [{ "kind": "hidden-card" }] },
+            "hand": { "count": 1, "entries": [{ "kind": "hidden-card" }] },
+            "graveyard": { "count": 0, "entries": [] }
+          }
+        }
+      ],
+      "battlefield": {
+        "count": 2,
+        "entries": [
+          {
+            "kind": "visible-object", "objectId": "PC1:0", "objectKind": "card",
+            "ownerPlayerId": "P1", "controllerPlayerId": "P1", "commander": false,
+            "definition": {
+              "source": { "kind": "engine-synthetic" }, "name": "森", "layout": "normal",
+              "manaValue": 0, "colorIdentity": ["G"], "typeLine": "Basic Land — Forest",
+              "keywords": [], "producedMana": ["G"], "tokenKind": null,
+              "faces": [{
+                "name": "森", "manaCost": null, "typeLine": "Basic Land — Forest",
+                "oracleText": "{T}: Add {G}.", "power": null, "toughness": null,
+                "loyalty": null, "defense": null
+              }]
+            },
+            "runtime": {
+              "faceIndex": 0, "faceDown": false, "tapped": true, "flipped": false,
+              "phasedOut": false, "counters": [], "markedDamage": 0,
+              "attachment": { "kind": "none" }
+            }
+          },
+          {
+            "kind": "concealed-object", "objectId": "PC2:0", "objectKind": "card",
+            "runtime": {
+              "faceIndex": null, "faceDown": true, "tapped": false, "flipped": null,
+              "phasedOut": false, "counters": [{ "kind": "+1/+1", "count": 1 }],
+              "markedDamage": 0, "attachment": { "kind": "none" }
+            }
+          }
+        ]
+      },
+      "stack": { "count": 0, "entries": [] },
+      "exile": { "count": 0, "entries": [] },
+      "command": {
+        "count": 1,
+        "entries": [
+          {
+            "kind": "visible-object", "objectId": "PC5:0", "objectKind": "card",
+            "ownerPlayerId": "P1", "controllerPlayerId": null, "commander": true,
+            "definition": {
+              "source": { "kind": "engine-synthetic" }, "name": "研究者の統率者", "layout": "normal",
+              "manaValue": 4, "colorIdentity": ["U", "G"], "typeLine": "Legendary Creature — Wizard",
+              "keywords": [], "producedMana": [], "tokenKind": null,
+              "faces": [{
+                "name": "研究者の統率者", "manaCost": "{2}{G}{U}",
+                "typeLine": "Legendary Creature — Wizard", "oracleText": "Whenever you draw your second card each turn, explore.",
+                "power": "3", "toughness": "4", "loyalty": null, "defense": null
+              }]
+            },
+            "runtime": {
+              "faceIndex": 0, "faceDown": false, "tapped": false, "flipped": false,
+              "phasedOut": false, "counters": [], "markedDamage": 0,
+              "attachment": { "kind": "none" }
+            }
+          }
+        ]
+      }
+    },
+    "visibilityGrants": [],
+    "searchSessions": [],
+    "playPermissions": []
+  }
+}

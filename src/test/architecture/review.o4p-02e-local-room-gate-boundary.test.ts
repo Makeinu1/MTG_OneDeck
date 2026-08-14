@@ -355,7 +355,7 @@ describe('O4P-02E local headless room gate architecture boundary', () => {
     expect(projectedSnapshotCalls).toBe(1);
   });
 
-  it('prevents reverse dependencies and limits src/online to the frozen six module kinds', () => {
+  it('prevents reverse dependencies and limits src/online to the frozen seven module kinds', () => {
     for (const root of [
       resolve(repositoryRoot, 'src/engine/core'),
       resolve(onlineRoot, 'room'),
@@ -372,6 +372,6 @@ describe('O4P-02E local headless room gate architecture boundary', () => {
       .filter((entry) => entry.isDirectory())
       .map(({ name }) => name)
       .sort();
-    expect(onlineKinds).toEqual(['architecture', 'cloudflare', 'headless', 'projection', 'protocol', 'room']);
+    expect(onlineKinds).toEqual(['architecture', 'cloudflare', 'headless', 'projection', 'protocol', 'room', 'workbench']);
   });
 });
