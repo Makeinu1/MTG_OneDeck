@@ -330,3 +330,42 @@ HIGH 0 / MEDIUM 0 / LOW 0 with verdict
 The audited timeout repair is eligible for explicit commit/push and an exact-
 head CI retry. No third local release full check is authorized. Shipment,
 Pages, terminal metadata, and clean-worktree confirmation remain pending.
+
+## Candidate exact-head full check and Judge reownership
+
+The audited timeout repair was committed and pushed as
+`5dd0b7093bc2a4ed44e5fc32048f42bbef82e8d9`. Exact-head GitHub Actions run
+`31770174232` completed the single release full check successfully:
+
+- all registered verifiers and documentation checks: PASS;
+- Core: 226 files / 2,086 tests PASS;
+- DOM: 285 files / 2,007 tests PASS plus 1 skipped, 2,008 total;
+- lint, TypeScript project build, and Vite production build: PASS;
+- generated assets: `assets/index-CyZgN26K.js` and
+  `assets/index-JeU5vEot.css`;
+- full-check duration: 542,493 ms.
+
+The run then resolved the expected diff base
+`9ea1adde18058c02236b9b7f8e9edeb88ef2ca79` and stopped only at the
+implementer-oriented forbidden-file boundary. The sole forbidden file was the
+Judge-owned
+`src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts`;
+the audit record, ledger, and timeout-repair brief were reported only as
+informational reauthorization paths. Pages configuration, upload, and deploy
+were therefore skipped.
+
+The Sol Judge explicitly re-owns the unchanged frozen bytes rather than
+changing the test, assertions, source, verifier, repair brief, policy, or
+workflow. The frozen hashes are:
+
+- Judge review test:
+  `97f4cd8962556a9e5f7cff443ea3ed8b15830ade5f39be560881080a8ab9760b`;
+- timeout-repair brief:
+  `49f4dc31836494e6116291eaf287c38a9c2ac9e51c9f6f2b4fd74042f6baa2ec`;
+- registered O4P-03D verifier:
+  `7f74184653684ed0a7f9f145500aadf494a5c31bb05128fe7ac2cc5ab29e262a`.
+
+Only this metadata reownership may be committed and pushed next. A fresh
+exact-head CI run must pass the release full check, forbidden scan, build, and
+Pages deployment before terminal metadata or shipment. No further local
+release full check or Cloudflare deployment is authorized.
