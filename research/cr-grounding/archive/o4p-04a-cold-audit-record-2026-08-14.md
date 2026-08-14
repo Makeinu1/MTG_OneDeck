@@ -115,3 +115,45 @@ The auditor confirmed that wrong source files, other Online targets,
 engine/store/snapshot/server/runtime imports, alias/namespace/dynamic-import
 probes, and all pre-existing negative boundaries remain rejected. The final
 release full-check rerun remains pending on the metadata-frozen fingerprint.
+
+## Contract verification reanchor
+
+The next full-check invocation stopped in `check:docs` before Online
+verifiers, lint, tests, or build because the changed
+`src/test/architecture/soloOnlineBoundary.test.ts` no longer matched the old
+`CONTRACT-ENGINE-MULTIPLAYER.lastVerifiedCommit`. This is a fail-closed
+pre-publication metadata guard: the manifest requires an existing ancestor
+commit with the exact audited verification-evidence blob.
+
+The Judge therefore created candidate commit
+`945f3d657df3d48313a2d9b2377f9b86984ce013` with the auditor identifier, then
+reanchored only that contract's `lastVerifiedCommit` to the candidate SHA under
+`research/cr-grounding/o4p-04a-contract-verification-reanchor-1.draft.md`.
+No clause, traceability item, product source, test assertion, version,
+dependency, workflow, or release boundary changed. Independent metadata
+confirmation and the final full-check remain pending.
+
+The same independent auditor verified the reanchor at semantic fingerprint
+`27703d5133e40e4f5973a1bb17018f7def3bf6f9b6cc3308c1c57ea478d45c4b`
+and tree/context fingerprint
+`9d151c14a41552d58acd2b8fa39be8ee23e4a3585631f59f123f7d4922dacda8`.
+It confirmed the candidate/working-tree boundary-test blob ID
+`147f7fd845dc6f9fa8595996b9089907136508c1`, `check:docs` PASS, and totals
+BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0.
+
+## Final local full check
+
+The fingerprint-matched final `npm run check` completed successfully without
+any candidate change:
+
+- every pinned-CR, version, docs, architecture, Core, Solo compatibility, and
+  Online/Cloudflare verifier passed;
+- lint passed;
+- Core: 226 files / 2,086 tests passed;
+- DOM: 289 files / 2,031 tests passed;
+- TypeScript project build and Vite production build passed;
+- emitted assets: `index-DYJZmvM4.js` and `index-JeU5vEot.css`;
+- total duration: 602,398 ms.
+
+CI, Judge reownership of review evidence, Pages HTTP evidence, terminal ledger
+state, and clean worktree remain pending.
