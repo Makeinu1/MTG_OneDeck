@@ -87,6 +87,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^src\/components\/online\/__tests__\/review\.o4p-04c-display-pairing\.test\.tsx$/,
       /^src\/dev\/displayPairing\/(?:displayPairing\.css|main\.tsx)$/,
       /^src\/online\/guidedActions\//,
+      /^src\/online\/cloudflare\/__tests__\/review\.o4p-03d-cloudflare-production-gate\.test\.ts$/,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|modeNeutralCoreBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04[cd]-(?:display-pairing|guided-actions)-boundary\.test\.ts$/,

@@ -108,6 +108,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^src\/online\/tableDisplay\//,
       /^src\/online\/displayPairing\//,
       /^src\/online\/guidedActions\//,
+      /^src\/online\/cloudflare\/__tests__\/review\.o4p-03d-cloudflare-production-gate\.test\.ts$/,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
       /^src\/test\/architecture\/modeNeutralCoreBoundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,

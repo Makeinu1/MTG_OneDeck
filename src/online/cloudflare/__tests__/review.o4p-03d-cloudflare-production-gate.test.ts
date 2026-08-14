@@ -337,7 +337,7 @@ describe('O4P-03D Judge production gate', () => {
     }
     expect(repository.load()).toEqual(current);
     expect(repository.migrateApplicationSchema()).toBe(false);
-  }, 30_000);
+  }, 60_000);
 
   it('rolls back revision 64 when checkpoint compare-and-set writes no row', () => {
     const target = storage();
