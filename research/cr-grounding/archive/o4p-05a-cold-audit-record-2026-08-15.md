@@ -35,7 +35,7 @@ base-relative successor-registration failures and no product failure: Core
 only the exact declared O4P-05A brief, audit, and versioning paths to those
 three allowlists. The repair target passed 4 files / 18 tests and the complete
 candidate was re-audited again at the final fingerprints with severity
-0/0/0/0. The final second full check remains the release gate.
+0/0/0/0. The final second full check then passed completely.
 
 ## Final verified evidence
 
@@ -52,8 +52,17 @@ candidate was re-audited again at the final fingerprints with severity
 - exact successor registration rejects an extra versioning file, an arbitrary
   O4P-05A brief, and a wrong-date audit record in all three predecessor tests;
 - forbidden scan reported only Judge-owned ledger/briefs and Judge-owned
-  `review.*` paths, pending Judge re-ownership.
+  `review.*` paths, pending Judge re-ownership;
+- final local full check: every verifier/docs/lint PASS, Core 226 files / 2,086
+  tests PASS, DOM 302 files / 2,090 passed + 1 skipped, TypeScript and Vite build PASS;
+- candidate commit `04587deb7d5ceee136f35b7190554b94394f94f0`;
+- candidate Actions run `31825432893`: exact-head full check PASS, stopped only
+  at the expected governance ownership scan, Pages skipped;
+- CI reauthorization audit: `/root/o4p05a_cold_auditor`, exact five hard
+  forbidden paths and candidate/current SHA-256 values verified, protected
+  post-candidate bytes unchanged, BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0,
+  `O4P-05A-CI-REAUTHORIZATION-APPROVED`.
 
-This record is findings evidence only. Ship still requires the single
-fingerprint-matched release full check, commit/push, exact-head CI, Pages, and
-clean-worktree gates.
+This record is findings evidence only. Ship still requires Judge
+re-authorization of the reported ownership paths, terminal exact-head CI,
+Pages, and clean-worktree gates.
