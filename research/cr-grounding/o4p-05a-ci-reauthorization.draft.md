@@ -45,3 +45,11 @@ Judge added exactly those two basenames to the existing O4P-05A anchored
 alternation in each review test. Targeted verification passed 3 files / 13
 tests plus ESLint. The three current hashes above replace their pre-repair
 hashes; the contract and O4P-05A review bytes remain unchanged.
+
+The exact-head repaired run, `31844771445` at
+`45fb786441c29cd79358fc0466d35eb1ecf0394a`, passed the complete
+`npm run check -- --build-base=/MTG_OneDeck/`. Its governance scan then
+reported only the three repaired O4P-04B/C/D review paths as hard forbidden;
+the authority/audit evidence paths were `NEEDS-REAUTH` information only.
+Pages was skipped. A final independent identity/hash check is required before
+this authority-only update is committed.

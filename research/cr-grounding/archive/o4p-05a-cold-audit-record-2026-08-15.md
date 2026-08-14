@@ -78,7 +78,20 @@ candidate was re-audited again at the final fingerprints with severity
   exact candidate/run identities and five authority hashes verified, arbitrary
   suffix/subdirectory/O4P-05B/product/package/workflow/script probes all red,
   BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0,
-  `AUDIT-OK-PENDING-FULL-CHECK`.
+  `AUDIT-OK-PENDING-FULL-CHECK`;
+- repaired candidate `45fb786441c29cd79358fc0466d35eb1ecf0394a`,
+  Actions run `31844771445`: exact-head complete check PASS; forbidden scan
+  reported exactly the three repaired O4P-04B/C/D review paths as hard and
+  only the three authority/audit evidence paths as informational
+  `NEEDS-REAUTH`; Pages skipped pending final Judge re-ownership;
+- final CI reauthorization audit: exact repair HEAD/run, complete check,
+  five authority hashes, semantic
+  `b08c0d19d38671834b27006c381338a0df2f1c17aedec9682c4c5ef0267cd330`,
+  context
+  `019c431c1b6b84b27bc6a315c47417ec86db04ceb45ffe5a0bb8e5a96b0e0e6d`,
+  local/origin/remote identity, and authority-only pending diff verified;
+  BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0,
+  `O4P-05A-FINAL-CI-REAUTHORIZATION-APPROVED`.
 
 This record is findings evidence only. Ship still requires Judge
 re-authorization of the reported ownership paths, terminal exact-head CI,
