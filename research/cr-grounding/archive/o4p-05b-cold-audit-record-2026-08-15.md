@@ -91,3 +91,23 @@ requires the fingerprint-matched final audit, one local full check, candidate
 commit exact-head CI, independent verification of the CI ownership stop, a
 Judge authority-only follow-up, terminal exact-head CI/Pages, ledger evidence,
 and a clean worktree.
+
+## Candidate CI reauthorization
+
+- candidate commit: `83c8c00cd7586c9d821fc1d5f527cb4d0d09e0ad`;
+- candidate Actions run: `31853186966`, build job `94932827832`;
+- exact-head full check: Core 226 files / 2,086 tests and DOM 303 files /
+  2,095 tests, all verifiers, docs, lint, TypeScript, and Vite PASS;
+- diff base: `76da2a67743d4e54f9ef6008ca86373963c965fe`;
+- ownership stop: exactly five recorded Judge-owned hard paths and five
+  expected governance soft paths; no unlisted path;
+- Pages configuration, artifact upload, and deployment: intentionally skipped;
+- independent auditor: `/root/o4p05b_cold_auditor`;
+- severity: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0;
+- verdict: `O4P-05B-CI-REAUTHORIZATION-APPROVED`.
+
+The Judge reauthorizes the exact candidate bytes recorded above. The immediate
+follow-up changes only this findings/authority record; product, review, test,
+contract, package, workflow, script, and version bytes remain frozen. The next
+exact-head CI must pass the ownership scan and Pages before the ledger can be
+promoted to `shipped`.
