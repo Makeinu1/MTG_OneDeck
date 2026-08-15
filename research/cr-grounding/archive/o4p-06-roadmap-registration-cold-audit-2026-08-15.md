@@ -43,6 +43,15 @@ Final semantic candidate fingerprint before this findings record:
    exact O4P-06 registration paths; unrelated O4P-06 and tested O4P-07 paths
    remain rejected. O4P-05C/D hash reanchors match current bytes, both
    verifiers pass, and the six affected review files pass 28/28 tests.
+6. CI clean-checkout repair candidate
+   `87dec7f99b1f59529c73d6c7ef936f4eb08676c72c786c0c408d53f774088bf2`:
+   BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0. Exact-head Actions run
+   `31883960191` failed only because the Judge review treated the documented
+   stale-loop exit 5 as a projection failure when the intentionally ignored
+   loop-state file was absent. The bounded two-file repair preserves every
+   ledger-health, O4P-06A selection, and active-program assertion; local/current
+   and clean-checkout/stale reproductions both pass 7/7 tests with their exact
+   exit contracts. No local full check was rerun before this re-audit.
 
 ## Verified claims
 
@@ -60,6 +69,9 @@ Final semantic candidate fingerprint before this findings record:
 - The first full-check failure and its bounded repair are recorded in
   `research/cr-grounding/o4p-06-roadmap-registration-full-check-repair-1.draft.md`;
   the independent post-repair audit is 0/0/0/0.
+- The exact-head clean-checkout failure and its bounded review portability
+  repair are independently audited at 0/0/0/0 without weakening selection or
+  ledger-integrity assertions.
 - Targeted O4P-05D and O4P-06 review gates, JSON parsing, docs, lint,
   `codex:context`, changed-file allowlists, and `git diff --check` passed.
 - Reference repositories are idea-only; no code, dependency, license,

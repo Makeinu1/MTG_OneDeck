@@ -38,3 +38,22 @@ Run the three invalidated reviews, the O4P-05C and O4P-05D verifiers/reviews,
 and the O4P-06 review. Return the new frozen candidate to the same BROAD cold
 auditor. Only after BLOCKER/HIGH zero may the second and final `npm run check`
 run.
+
+## CI clean-checkout portability repair
+
+The exact-head Actions run `31883960191` then exposed one environment-only
+failure in the Judge-owned O4P-06 review. The review invoked
+`scripts/codex-context.mjs` with `execFileSync`, which incorrectly required a
+zero exit even though `.claude/loop-state.md` is intentionally gitignored and
+therefore absent from a clean checkout. The projection itself was healthy and
+selected O4P-06A correctly; the CLI returned its documented stale-loop exit 5.
+Core passed 226 files / 2,086 tests and DOM passed 307 of 308 files / 2,118 of
+2,120 tests, with this as the only failure.
+
+The bounded repair uses `spawnSync`, requires a clean process invocation and
+empty stderr, parses the same projection, retains every health, selection, and
+active-program assertion, and now verifies that the CLI exit matches the
+reported loop-state status (`0` for current, `5` for stale). This keeps the
+local continuation guard strict while making the roadmap assertion reproducible
+in both a governed local worktree and an exact-head clean checkout. No ledger,
+roadmap, product, runtime, or dependency semantics change.

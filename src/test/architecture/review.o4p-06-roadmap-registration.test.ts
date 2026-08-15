@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -186,10 +186,14 @@ describe('O4P-06 playable four-player roadmap registration', () => {
   });
 
   it('selects O4P-06A through the healthy explicit active program', () => {
-    const projection = JSON.parse(execFileSync('node', ['scripts/codex-context.mjs'], {
+    const context = spawnSync('node', ['scripts/codex-context.mjs'], {
       cwd: ROOT,
       encoding: 'utf8',
-    })) as {
+    });
+    expect(context.error).toBeUndefined();
+    expect(context.signal).toBeNull();
+    expect(context.stderr).toBe('');
+    const projection = JSON.parse(context.stdout) as {
       health?: { ok?: boolean; errors?: unknown[] };
       selection?: { kind?: string; domainId?: string; reason?: string };
       activeProgram?: { id?: string; status?: string; nextDomainId?: string };
@@ -202,7 +206,7 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     expect(projection.activeProgram).toMatchObject({
       id: 'O4P-06', status: 'active', nextDomainId: 'O4P-06A',
     });
-    expect(projection.loopState?.status).toBe('current');
+    expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
   });
 
