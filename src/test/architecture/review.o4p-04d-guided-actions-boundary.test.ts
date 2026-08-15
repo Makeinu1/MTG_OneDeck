@@ -86,7 +86,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^research\/cr-grounding\/archive\/o4p-05a-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/o4p-05b-(?:acceptance-brief|cold-audit-brief|four-player-release-scenario\.contract|implementation-brief|judge-surgery-1)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05b-cold-audit-record-2026-08-15\.md$/,
-      /^research\/cr-grounding\/o4p-05c-(?:acceptance-brief|cold-audit-brief|full-check-repair-1|implementation-brief|judge-surgery-1|release-gates\.contract)\.draft\.md$/,
+      /^research\/cr-grounding\/o4p-05c-(?:acceptance-brief|ci-reauthorization|cold-audit-brief|full-check-repair-1|implementation-brief|judge-surgery-1|release-gates\.contract)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05c-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/display-pairing\/index\.html$/,

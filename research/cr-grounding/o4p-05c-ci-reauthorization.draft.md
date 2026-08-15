@@ -44,9 +44,9 @@ e046e7c15ec636b47a12fa95541c4004d9ee5bdfeef023e8fcc3ebe550224c76  research/cr-gr
 061c464c752b679913cee34150962be94c8c404fc8a558e1fe8854c7fe12f5ab  research/cr-grounding/o4p-05c-judge-surgery-1.draft.md
 2d33c9eddd8eefe12d314ec2ca6ed9b6bef19a5df75147d94292d91bb356cba1  research/cr-grounding/o4p-05c-release-gates.contract.draft.md
 c5ece001c839b33c795100dceb01190bfc1c9cfa43b08561c0eb9c7a44f645f8  src/online/cloudflare/__tests__/review.o4p-05c-release-gates.test.ts
-788e4b49c5db28b9657f20756cdf508538f3b8f2cadb87e2e8a61767832f2cf2  src/test/architecture/review.o4p-04b-table-display-boundary.test.ts
-8dc7ce2e78b6e9b819bf5cf4c7473445c592aca45a4c196c8e4582dcd849cebe  src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts
-165c1e0ed03aeef21fc0006dd635f181afa83b929b8caa187a70a4f54bfa2ded  src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts
+65fc54605850cedd137c79eb036ab3525e88c29fa9ddc2fe5a8c5a1818b8e567  src/test/architecture/review.o4p-04b-table-display-boundary.test.ts
+c6d719a824994bd6e25230598fd9070931713598c0ad8572b14dab6fb1af1fc2  src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts
+00e719b9d725a7d32824ee7cc33f2c8ce701d89b5ef06722c062196a94f2e28e  src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts
 1fb77a4095d7b96283e484d339c7a81ea5019f0a46aff6d96ca6f0da6dc5fecf  src/test/architecture/review.o4p-05c-release-gates.test.ts
 ```
 
@@ -58,3 +58,20 @@ version, runtime, protocol, Core, UI, CR pin, or external resource.
 This is not a shipped-status claim. The next exact-head run must pass the full
 check, forbidden scan, build artifact, and Pages deployment before terminal
 ledger promotion.
+
+## Exact-head correction
+
+Actions run `31864604668` checked out exact head
+`0c27338d4a9d07351d047c8a27787d49100297e9`. Every verifier, docs check,
+lint, and Core test passed, but the DOM lane stopped with exactly three
+failures because the O4P-04B/C/D candidate-path allowlists did not yet name
+this reauthorization record. DOM reported 303 passing files, three failing
+files, 2,104 passing tests, one skipped test, and three failing tests; build,
+forbidden, and Pages were correctly skipped.
+
+The bounded correction adds exactly `ci-reauthorization` to the O4P-05C
+research-path alternation in those three predecessor reviews and reanchors
+their exact hashes in the O4P-05C verifier. It does not broaden the milestone
+prefix, alter package boundaries, or change production behavior. The four
+affected architecture reviews pass 16/16 targeted tests. A further exact-head
+run remains required before terminal ledger promotion.
