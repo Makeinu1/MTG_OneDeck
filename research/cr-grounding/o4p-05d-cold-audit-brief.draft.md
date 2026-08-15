@@ -16,6 +16,7 @@ Authority:
 - `research/cr-grounding/o4p-05d-production-release-closure.contract.draft.md`;
 - `research/cr-grounding/o4p-05d-acceptance-brief.draft.md`;
 - `research/cr-grounding/o4p-05d-judge-surgery-1.draft.md`;
+- `research/cr-grounding/o4p-05d-judge-surgery-2.draft.md`;
 - the candidate fingerprint supplied in the delegation message.
 
 Audit the frozen candidate for these claims:
@@ -25,7 +26,8 @@ Audit the frozen candidate for these claims:
 2. no production source, CR, version, dependency, Worker configuration, Pages
    workflow, or O4P-05C gate meaning drift is hidden in the checkpoint;
 3. the release order prevents Cloudflare deployment before cold audit, the
-   fingerprint-matched local full check, and exact-candidate CI/Pages;
+   fingerprint-matched local full check, expected first-CI review-only stop,
+   independent Judge reauthorization, and later exact-head green CI/Pages;
 4. deploy acceptance binds a distinct active version, preserved rollback
    target, persisted revision-96 Room, fresh four-socket/revision-96 evidence,
    safe 404 envelope, and failure-before-promotion behavior;
@@ -40,6 +42,9 @@ Audit the frozen candidate for these claims:
 9. Judge surgery 1 closes the first audit's three HIGH findings: plain
    forbidden is green on the locally committed candidate, a bare premature
    `shipped` ledger mutation is red, and any package-lock drift is red.
+10. Judge surgery 2 closes the re-audit's two HIGH findings: the first semantic
+    candidate is not overclaimed as forbidden/Pages-green, and shipped terminal
+    evidence rejects secret/account/capability/raw-JSON material.
 
 Run at minimum:
 

@@ -7,6 +7,8 @@ const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 const REVIEW_PATH = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
 const PRODUCTION_RECORD = 'research/cr-grounding/archive/o4p-05d-cold-audit-record-2026-08-15.md';
+const SECRET_MATERIAL = /\b[0-9a-f]{32}\b|gh[opsu]_[A-Za-z0-9]{20,}|Bearer[ \t]+[A-Za-z0-9._~-]{8,}|(?:capability|token|secret|authorization|account(?:Id|_id| identifier))[ \t]*[:=][ \t]*\S+|-----BEGIN [A-Z ]*PRIVATE KEY-----/i;
+const RAW_JSON_LINE = /^\s*\{.*\}\s*$/m;
 
 function text(path: string): string {
   return readFileSync(resolve(ROOT, path), 'utf8');
@@ -36,6 +38,8 @@ describe('O4P-05D production-release closure boundary', () => {
           expect(record).toContain('Production-closure audit: BLOCKER 0 / HIGH 0');
           expect(record).toContain('Cloudflare active version');
           expect(record).toContain('fresh init-load');
+          expect(record).not.toMatch(SECRET_MATERIAL);
+          expect(record).not.toMatch(RAW_JSON_LINE);
         }
       }
       if (index > 0) expect(domains[0]?.dependsOn, id).toEqual([ids[index - 1]]);
@@ -100,6 +104,8 @@ describe('O4P-05D production-release closure boundary', () => {
     expect(contract).toContain('Any failed production smoke triggers STOP-before-promotion');
     expect(contract).toContain('former version for a bounded Cloudflare rollback');
     expect(contract).toContain('24-hour wall-clock soak remain outside');
+    expect(contract).toContain('expected first CI forbidden');
+    expect(contract).toContain('reauthorization draft');
     expect(`${contract}\n${acceptance}`).not.toMatch(/\b[0-9a-f]{32}\b|gho_[A-Za-z0-9]{20,}|Bearer[ \t]+[A-Za-z0-9._-]{20,}/i);
   });
 });

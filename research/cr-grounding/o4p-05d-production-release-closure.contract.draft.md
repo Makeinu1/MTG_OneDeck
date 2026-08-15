@@ -19,8 +19,9 @@ single auditable release identity:
 
 1. one exact candidate commit passes independent cold audit and the local
    release full check;
-2. that exact candidate passes GitHub Actions, the forbidden-file guard, build,
-   and GitHub Pages deployment;
+2. that exact semantic candidate receives explicit Judge reauthorization for
+   its new `review.*` bytes, after which exact-head GitHub Actions, the
+   forbidden-file guard, build, and GitHub Pages deployment pass;
 3. the unchanged Worker/configuration bytes are deployed to the existing
    `mtg-onedeck-online` workers.dev service;
 4. the new Cloudflare version, live four-player headless smoke, persisted-Room
@@ -58,21 +59,27 @@ The order is fail-closed:
    with BLOCKER/HIGH zero;
 4. run one local `npm run check` on the unchanged audited fingerprint;
 5. explicitly stage only the declared O4P-05D files, commit with the cold-audit
-   identifier, push, and require exact-head Actions plus Pages success;
-6. from that clean candidate commit, deploy with
+   identifier, and push the semantic candidate; its expected first CI forbidden
+   stop may name only the exact Judge-owned O4P-05D review path after the full
+   check has passed, and must not be treated as release success;
+6. record that exact CI run, review path, and review hash in a Judge-owned
+   reauthorization draft; require the same independent auditor to confirm
+   unchanged semantic bytes, then commit/push only that reauthorization
+   metadata and require exact-head Actions, forbidden, build, and Pages success;
+7. from that clean reauthorized candidate commit, deploy with
    `npx --yes wrangler@4.123.0 deploy` and an O4P-05D message; accept only the
    existing Worker name, workers.dev origin, `ONLINE_ROOMS` Durable Object, and
    `CF_VERSION_METADATA` binding;
-7. prove the active version changed, the former active version remains listed
+8. prove the active version changed, the former active version remains listed
    as the rollback target, the previously certified revision-96 Room still
    returns HTTP 200, and a fresh `init-load` evidence run reaches four sockets,
    revision 96, accepted-command count 96, and HTTP 200;
-8. prove Worker root and an unrelated path retain the expected safe HTTP 404
+9. prove Worker root and an unrelated path retain the expected safe HTTP 404
    envelope, and record no capability, token, account identifier, or raw tail;
-9. record the production evidence, obtain findings-only independent closure of
+10. record the production evidence, obtain findings-only independent closure of
    the release claim, promote both O4P-05D ledger entries, reset loop state, and
    explicitly commit/push terminal metadata; and
-10. require terminal exact-head Actions/Pages success, served HTML/JS/CSS HTTP
+11. require terminal exact-head Actions/Pages success, served HTML/JS/CSS HTTP
     200, `HEAD == origin/main`, and a clean worktree.
 
 Any failed production smoke triggers STOP-before-promotion. The Judge may use
@@ -84,10 +91,11 @@ change, route/DNS change, schema rollback, or account-wide mutation is allowed.
 
 The archive/ledger record must contain only secret-free release facts:
 
-- candidate and terminal commit SHA;
+- semantic-candidate, Judge-reauthorization, and terminal commit SHA;
 - semantic/tree fingerprint used for cold audit and local full check;
 - cold-auditor identity and severity totals;
-- local full-check result and exact-head Actions run IDs;
+- local full-check result, expected first-CI forbidden stop, reauthorization
+  audit, and exact-head green Actions run IDs;
 - Pages URL, served asset names, HTTP status, and deployment timestamp;
 - Wrangler version, previous/new Cloudflare version identifiers, deploy message,
   workers.dev origin, binding names, and deployment status;
