@@ -103,6 +103,11 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^research\/cr-grounding\/archive\/o4p-05c-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/o4p-05d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05d-cold-audit-record-2026-08-15\.md$/,
+      /^research\/cr-grounding\/o4p-06-playable-four-player-roadmap\.contract\.draft\.md$/,
+      /^research\/cr-grounding\/o4p-06-roadmap-ledger-update\.draft\.json$/,
+      /^research\/cr-grounding\/o4p-06-roadmap-registration-(?:acceptance|cold-audit-brief|predecessor-gate-repair-1|full-check-repair-1)\.draft\.md$/,
+      /^research\/cr-grounding\/planned-sequence-batch-o4p-06\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-06-roadmap-registration-cold-audit-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/table-display\/index\.html$/,
       /^research\/design\/display-pairing\/index\.html$/,
@@ -131,6 +136,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^src\/test\/architecture\/review\.o4p-04d-guided-actions-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-05c-release-gates\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-05d-production-release-closure\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-06-roadmap-registration\.test\.ts$/,
     ];
     const unexpected = candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)));
     expect(unexpected).toEqual([]);

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 const REVIEW_PATH = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
+const O4P_06_REVIEW_PATH = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
 const PREDECESSOR_REVIEW_PATHS = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -27,7 +28,15 @@ describe('O4P-05D production-release closure boundary', () => {
       goalPolicy?: { activeProgram?: { id?: string; domainIds?: string[] } };
     };
     const ids = ['O4P-05A', 'O4P-05B', 'O4P-05C', 'O4P-05D'];
-    expect(ledger.goalPolicy?.activeProgram).toEqual({ id: 'O4P-05', domainIds: ids });
+    const activeProgram = ledger.goalPolicy?.activeProgram;
+    if (activeProgram?.id === 'O4P-05') {
+      expect(activeProgram).toEqual({ id: 'O4P-05', domainIds: ids });
+    } else {
+      expect(activeProgram).toEqual({
+        id: 'O4P-06',
+        domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'],
+      });
+    }
     for (const [index, id] of ids.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -61,7 +70,7 @@ describe('O4P-05D production-release closure boundary', () => {
       encoding: 'utf8',
     }).trim().split(/\r?\n/).filter(Boolean);
     const drift = [...new Set([...tracked, ...untracked])].sort();
-    expect(drift).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
+    expect(drift).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH, O4P_06_REVIEW_PATH].sort());
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;
     const after = JSON.parse(text('package.json')) as Record<string, unknown>;

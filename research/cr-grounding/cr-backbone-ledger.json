@@ -26,12 +26,14 @@
     "userRuling": "2026-08-04",
     "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。",
     "activeProgram": {
-      "id": "O4P-05",
+      "id": "O4P-06",
       "domainIds": [
-        "O4P-05A",
-        "O4P-05B",
-        "O4P-05C",
-        "O4P-05D"
+        "O4P-06A",
+        "O4P-06B",
+        "O4P-06C",
+        "O4P-06D",
+        "O4P-06E",
+        "O4P-06F"
       ]
     }
   },
@@ -1823,6 +1825,108 @@
       "nextGate": "shipped。O4P-05 active program closed; nextDomainId null.",
       "judge": "Sol-orchestrator-2026-08-15",
       "note": "Luna xhigh implementerのzero-write機械preflight後、Judgeがrelease closureを構成。候補冷監査とfull-check修復を0/0/0/0で閉じ、semantic candidateのexpected ownership-only CI stopを同一監査者が再認可。Actions 31872007453とPagesを通過後、同一clean HEADをCloudflare active versionへdeployし、rollback保持、既存Room revision 96、fresh 4-socket revision 96、safe 404を確認。本番閉鎖監査のHIGH 2は証拠表現を修正し再監査0/0/0/0。O4P-05 active programを完了。"
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06A",
+      "crOrder": 1018,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-05D"],
+      "landingState": ["fourDeckBootstrap", "deterministicRoomGenesis", "roomStateSizeBudget"],
+      "boundary": "Convert four validated real Commander deck inputs into a deterministic revision-0 Core/Room state and prove production-size feasibility within the existing 1 MiB request/state envelope.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "No browser lobby, transport, UI, new gameplay commands, or production deploy; synthetic or single-deck evidence cannot satisfy the four-real-deck gate. A failed 1 MiB measurement keeps O4P-06A non-shippable and judge-gated until a bounded alternative is implemented and verified inside A.",
+      "nextGate": "Freeze the O4P-06A contract and implement only deterministic four-deck bootstrap and size-gate behavior in a new bounded task.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06B",
+      "crOrder": 1019,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06A"],
+      "landingState": ["playableCommandSurface", "genericZoneMovement", "permanentStateActions", "turnPhaseActions"],
+      "boundary": "Add typed, authorized, deterministic, replayable ordinary tabletop commands for draw, zone movement, tap/untap, mana, counters, tokens, and turn/phase progression.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "Do not claim arbitrary Oracle automation; preserve authority, projection, replay, and correction boundaries, with unsupported compound effects honestly guided/manual.",
+      "nextGate": "After O4P-06A ships, freeze the minimum playable command matrix and executable four-seat scenario for O4P-06B.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06C",
+      "crOrder": 1020,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06B"],
+      "landingState": ["formingLobby", "seatDeckSubmission", "readyStart", "inviteCapability", "browserCorsPolicy"],
+      "boundary": "Add a browser-safe forming-room API with seat claim, per-seat deck submission, ready/start, capability-scoped invites, server-checked initialization, and exact-origin CORS/OPTIONS.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "No accounts, public room discovery, global matchmaking, chat, unrestricted client-supplied room state, or capability material in URLs/logs.",
+      "nextGate": "After O4P-06B ships, freeze the forming-lobby state machine, HTTP schema, origin policy, and abuse/error matrix for O4P-06C.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06D",
+      "crOrder": 1021,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06C"],
+      "landingState": ["browserWebSocketClient", "acknowledgedOutbox", "snapshotResync", "reconnectRecovery"],
+      "boundary": "Implement the browser WebSocket state machine for hello/projection, command ACK, bounded outbox, resync, reconnect, stale-response rejection, and snapshot recovery.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "No optimistic authoritative mutation, silent accepted-action loss, credential persistence/leakage, or unversioned protocol widening.",
+      "nextGate": "After O4P-06C ships, freeze the browser connection/outbox/recovery state machine and adversarial delivery matrix for O4P-06D.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06E",
+      "crOrder": 1022,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06D"],
+      "landingState": ["publicOnlineEntry", "roomCreateJoinInvite", "personalTableGuidedIntegration", "responsiveOnlineUI"],
+      "boundary": "Integrate room create/invite/join, deck submission, ready/start, Personal Workbench, Table Display, and Guided/Manual Actions into the public App.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "Preserve offline Solo, projection/capability boundaries, private-card secrecy, keyboard/right-click alternatives, and required three-viewport browser evidence.",
+      "nextGate": "After O4P-06D ships, freeze the public join-to-play UX, Solo coexistence, privacy, accessibility, and viewport acceptance for O4P-06E.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-06F",
+      "crOrder": 1023,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06E"],
+      "landingState": ["fourBrowserAcceptance", "fourRealDeckAcceptance", "productionRelease", "releaseClosure"],
+      "boundary": "Run and release the complete production scenario with four actual browser contexts, four real decks, ordinary table actions, reconnect/resync, player exit, and replay/final-state comparison.",
+      "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"],
+      "manualBoundary": "No release claim without executable final-state evidence, privacy/recovery gates, independent cold audit, same-fingerprint full check, exact-head CI/Pages/Cloudflare evidence, and production smoke.",
+      "nextGate": "After O4P-06E ships, freeze the four-browser production scenario and release evidence matrix for O4P-06F.",
+      "judge": "Sol-orchestrator-2026-08-15",
+      "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -4731,6 +4835,30 @@
     {
       "id": "O4P-05D", "crOrder": 1017, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "shipped", "dependsOn": ["O4P-05C"],
       "landingState": ["productionRelease", "githubPages", "cloudflareProduction", "releaseClosure"], "boundary": "Publish the validated MVP release with final CI, Pages, Cloudflare, recovery, privacy, load, and security evidence.", "evidence": ["research/cr-grounding/o4p-01-to-05-rebaseline-2026-08-10.draft.md", "research/cr-grounding/o4p-01-to-05-rebaseline-ledger-update-2026-08-10.draft.json", "research/cr-grounding/o4p-05d-production-release-closure.contract.draft.md", "research/cr-grounding/o4p-05d-acceptance-brief.draft.md", "research/cr-grounding/o4p-05d-implementation-brief.draft.md", "research/cr-grounding/o4p-05d-cold-audit-brief.draft.md", "research/cr-grounding/o4p-05d-judge-surgery-1.draft.md", "research/cr-grounding/o4p-05d-judge-surgery-2.draft.md", "research/cr-grounding/o4p-05d-full-check-repair-1.draft.md", "research/cr-grounding/o4p-05d-ci-reauthorization.draft.md", "research/cr-grounding/o4p-05d-ci-reauthorization-audit-brief.draft.md", "research/cr-grounding/o4p-05d-production-closure-audit-brief.draft.md", "research/cr-grounding/archive/o4p-05d-cold-audit-record-2026-08-15.md", "src/test/architecture/review.o4p-05d-production-release-closure.test.ts", "scripts/checks/verify-o4p-05d-production-release-closure.ts", "implementer:codex-cli:01a0040d-257f-7030-95c8-e98dd7465e85:gpt-5.6-luna:xhigh:mechanical-preflight:zero-tracked-writes", "initial-candidate-audit:/root/o4p05d_cold_auditor:0/3/0/0", "final-candidate-audit:/root/o4p05d_cold_auditor:0/0/0/0:semantic=9ca82e94a7865ea9c981ba894bb1be0ef979e7c785a3b378d834dcf44bd988ae:context=a9a6fc774f1898d32128206870982423718254584ffdddcf0146a22519b42dd08", "final-local-full-check:Core226/2086:DOM307/2113:verifiers/docs/lint/TypeScript/Vite:PASS", "semantic-candidate:b92b916c049e26088ed5b72d7ebdaa597457d6b8:actions31871407969:full-check-PASS:forbidden-four-Judge-review-paths:Pages-skipped", "ci-reauthorization:/root/o4p05d_cold_auditor:0/0/0/0:APPROVED", "reauthorized-candidate:0d227e07bd086afe2c0301e288a76df5e95f9a13:actions31872007453:full-check+forbidden+build+Pages:PASS", "pages-html-js-css:HTTP200:CyZgN26K/JeU5vEot:last-modified=2026-08-15T07:38:07Z", "cloudflare-active:a22940cc-1c77-4a1e-8775-13ad8cd4af8a:rollback-retained=8f0b3e2b-b69f-47b4-a1fa-e0d0af3b8c2a", "prior-room:HTTP200:revision96:accepted96", "fresh-init-load:HTTP200:four-sockets:revision96:accepted96", "initial-production-closure-audit:/root/o4p05d_cold_auditor:0/2/0/0", "final-production-closure-audit:/root/o4p05d_cold_auditor:0/0/0/0", "head-equals-origin-main-before-terminal-metadata:PASS"], "manualBoundary": "O4P-05C remains the semantic release-gate authority; account-wide cost/Sybil controls, WAF, custom-domain Access, cross-Room quota, and a 24-hour soak remain deferred.", "nextGate": "shipped。O4P-05 active program closed; nextDomainId null.", "judge": "Sol-orchestrator-2026-08-15", "note": "Luna xhigh implementerのzero-write機械preflight後、Judgeがrelease closureを構成。候補冷監査とfull-check修復を0/0/0/0で閉じ、semantic candidateのexpected ownership-only CI stopを同一監査者が再認可。Actions 31872007453とPagesを通過後、同一clean HEADをCloudflare active versionへdeployし、rollback保持、既存Room revision 96、fresh 4-socket revision 96、safe 404を確認。本番閉鎖監査のHIGH 2は証拠表現を修正し再監査0/0/0/0。O4P-05 active programを完了。"
+    },
+    {
+      "id": "O4P-06A", "crOrder": 1018, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-05D"],
+      "landingState": ["fourDeckBootstrap", "deterministicRoomGenesis", "roomStateSizeBudget"], "boundary": "Convert four validated real Commander deck inputs into a deterministic revision-0 Core/Room state and prove production-size feasibility within the existing 1 MiB request/state envelope.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "No browser lobby, transport, UI, new gameplay commands, or production deploy; synthetic or single-deck evidence cannot satisfy the four-real-deck gate. A failed 1 MiB measurement keeps O4P-06A non-shippable and judge-gated until a bounded alternative is implemented and verified inside A.", "nextGate": "Freeze the O4P-06A contract and implement only deterministic four-deck bootstrap and size-gate behavior in a new bounded task.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "id": "O4P-06B", "crOrder": 1019, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06A"],
+      "landingState": ["playableCommandSurface", "genericZoneMovement", "permanentStateActions", "turnPhaseActions"], "boundary": "Add typed, authorized, deterministic, replayable ordinary tabletop commands for draw, zone movement, tap/untap, mana, counters, tokens, and turn/phase progression.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "Do not claim arbitrary Oracle automation; preserve authority, projection, replay, and correction boundaries, with unsupported compound effects honestly guided/manual.", "nextGate": "After O4P-06A ships, freeze the minimum playable command matrix and executable four-seat scenario for O4P-06B.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "id": "O4P-06C", "crOrder": 1020, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06B"],
+      "landingState": ["formingLobby", "seatDeckSubmission", "readyStart", "inviteCapability", "browserCorsPolicy"], "boundary": "Add a browser-safe forming-room API with seat claim, per-seat deck submission, ready/start, capability-scoped invites, server-checked initialization, and exact-origin CORS/OPTIONS.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "No accounts, public room discovery, global matchmaking, chat, unrestricted client-supplied room state, or capability material in URLs/logs.", "nextGate": "After O4P-06B ships, freeze the forming-lobby state machine, HTTP schema, origin policy, and abuse/error matrix for O4P-06C.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "id": "O4P-06D", "crOrder": 1021, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06C"],
+      "landingState": ["browserWebSocketClient", "acknowledgedOutbox", "snapshotResync", "reconnectRecovery"], "boundary": "Implement the browser WebSocket state machine for hello/projection, command ACK, bounded outbox, resync, reconnect, stale-response rejection, and snapshot recovery.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "No optimistic authoritative mutation, silent accepted-action loss, credential persistence/leakage, or unversioned protocol widening.", "nextGate": "After O4P-06C ships, freeze the browser connection/outbox/recovery state machine and adversarial delivery matrix for O4P-06D.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "id": "O4P-06E", "crOrder": 1022, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06D"],
+      "landingState": ["publicOnlineEntry", "roomCreateJoinInvite", "personalTableGuidedIntegration", "responsiveOnlineUI"], "boundary": "Integrate room create/invite/join, deck submission, ready/start, Personal Workbench, Table Display, and Guided/Manual Actions into the public App.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "Preserve offline Solo, projection/capability boundaries, private-card secrecy, keyboard/right-click alternatives, and required three-viewport browser evidence.", "nextGate": "After O4P-06D ships, freeze the public join-to-play UX, Solo coexistence, privacy, accessibility, and viewport acceptance for O4P-06E.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
+    },
+    {
+      "id": "O4P-06F", "crOrder": 1023, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06E"],
+      "landingState": ["fourBrowserAcceptance", "fourRealDeckAcceptance", "productionRelease", "releaseClosure"], "boundary": "Run and release the complete production scenario with four actual browser contexts, four real decks, ordinary table actions, reconnect/resync, player exit, and replay/final-state comparison.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp"], "manualBoundary": "No release claim without executable final-state evidence, privacy/recovery gates, independent cold audit, same-fingerprint full check, exact-head CI/Pages/Cloudflare evidence, and production smoke.", "nextGate": "After O4P-06E ships, freeze the four-browser production scenario and release evidence matrix for O4P-06F.", "judge": "Sol-orchestrator-2026-08-15", "note": "User-approved O4P-06 serial roadmap registration; product behavior remains unimplemented until milestone-specific audit and release."
     }
   ],
   "judgePolicy": {

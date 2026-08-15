@@ -1,0 +1,23 @@
+{
+  "milestone": "O4P-06-ROADMAP-REGISTRATION",
+  "operation": "append-approved-active-program",
+  "authority": "user-ruling-2026-08-15",
+  "baseSha": "69559e13716e9d0767d8189714d8c14fb630db46",
+  "preserveActiveProgram": "O4P-05 is complete and its entries remain immutable shipped history",
+  "activeProgram": {
+    "id": "O4P-06",
+    "domainIds": ["O4P-06A", "O4P-06B", "O4P-06C", "O4P-06D", "O4P-06E", "O4P-06F"]
+  },
+  "appendPendingSequence": [
+    { "id": "O4P-06A", "crOrder": 1018, "dependsOn": ["O4P-05D"] },
+    { "id": "O4P-06B", "crOrder": 1019, "dependsOn": ["O4P-06A"] },
+    { "id": "O4P-06C", "crOrder": 1020, "dependsOn": ["O4P-06B"] },
+    { "id": "O4P-06D", "crOrder": 1021, "dependsOn": ["O4P-06C"] },
+    { "id": "O4P-06E", "crOrder": 1022, "dependsOn": ["O4P-06D"] },
+    { "id": "O4P-06F", "crOrder": 1023, "dependsOn": ["O4P-06E"] }
+  ],
+  "collectionPolicy": "Append each entry exactly once to domains and plannedSequence with synchronized status and boundaries.",
+  "applyMethod": "Targeted activeProgram replacement and tail append only; preserve every pre-existing ledger entry and array position.",
+  "implementationClaim": "none",
+  "externalWrite": "none"
+}

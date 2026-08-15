@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const baseSha = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 const reviewPath = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
+const o4p06ReviewPath = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
 const predecessorReviewPaths = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -26,11 +27,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: 'bf74aa5bfe81ff6c89884a82b05bc000e7da087a7bc4fcf9d5ec238f6f0355fc',
+  [reviewPath]: '45d539db23107ce1cc381eb55ba0fcc6e8a334f663bf23c53e4eb4a48c1cf9c9',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': '415fe28517b11b869a44b4f770051532b9e1b051aca6a310d27fd6716d8aff84',
-  'scripts/checks/verify-o4p-05c-release-gates.ts': 'bbfd2dd21c9b6dea4615adcdea1da0abdc1c925bade80634f111021f26f2705d',
+  'scripts/checks/verify-o4p-05c-release-gates.ts': 'ddb1c53304ad423a4e15a8b25c412d15fd2c1f622f824e3fd27b3b388f31b986',
 });
 
 function readText(path: string): string {
@@ -73,7 +74,7 @@ const untrackedProtectedDrift = execFileSync('git', ['ls-files', '--others', '--
   encoding: 'utf8',
 }).trim().split(/\r?\n/).filter(Boolean);
 const protectedDrift = [...new Set([...trackedProtectedDrift, ...untrackedProtectedDrift])].sort();
-assert.deepEqual(protectedDrift, [...predecessorReviewPaths, reviewPath].sort());
+assert.deepEqual(protectedDrift, [...predecessorReviewPaths, reviewPath, o4p06ReviewPath].sort());
 
 const machineChecks = readText('scripts/checks/machine-checks.mjs');
 const predecessor = "args: ['run', 'verify:o4p-05c-release-gates']";
@@ -89,7 +90,15 @@ const ledger = JSON.parse(readText('research/cr-grounding/cr-backbone-ledger.jso
   goalPolicy?: { activeProgram?: { id?: string; domainIds?: string[] } };
 };
 const ids = ['O4P-05A', 'O4P-05B', 'O4P-05C', 'O4P-05D'];
-assert.deepEqual(ledger.goalPolicy?.activeProgram, { id: 'O4P-05', domainIds: ids });
+const activeProgram = ledger.goalPolicy?.activeProgram;
+if (activeProgram?.id === 'O4P-05') {
+  assert.deepEqual(activeProgram, { id: 'O4P-05', domainIds: ids });
+} else {
+  assert.deepEqual(activeProgram, {
+    id: 'O4P-06',
+    domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'],
+  });
+}
 for (const [index, id] of ids.entries()) {
   const domains = ledger.domains.filter((entry) => entry.id === id);
   const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
