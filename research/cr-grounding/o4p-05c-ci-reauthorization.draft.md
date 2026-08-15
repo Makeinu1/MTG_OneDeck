@@ -75,3 +75,44 @@ their exact hashes in the O4P-05C verifier. It does not broaden the milestone
 prefix, alter package boundaries, or change production behavior. The four
 affected architecture reviews pass 16/16 targeted tests. A further exact-head
 run remains required before terminal ledger promotion.
+
+## Final correction reauthorization
+
+Corrected candidate commit:
+`72e72ff3e0c939930d627b913f5cb0d56f55f7ec`
+
+Corrected candidate git tree:
+`47bafcb7e0c6a28b937f57b811e961fe0c53f742`
+
+Corrected five-file semantic fingerprint:
+`e5a878e4e28a7d6ff2bca062ebfe122a7eeb43a0a05843323508ca3f1c2bdde8`
+
+Corrected context tree fingerprint:
+`4a618e414e7758c12cf3d216d6aaf865ba6eb2754f1b2cd85b72b5ec94f832e1`
+
+Actions run `31865238160`, build job `94965122732`, checked out the exact
+corrected candidate. The complete `npm run check --
+--build-base=/MTG_OneDeck/` passed:
+
+- Core: 226 files / 2,086 tests;
+- DOM: 306 files / 2,107 passed + 1 skipped = 2,108 total;
+- every verifier, docs, lint, TypeScript, and Vite build passed;
+- assets: `index-CyZgN26K.js` and `index-JeU5vEot.css`;
+- test 479,667 ms; build 18,782 ms; total 593,115 ms.
+
+The diff base resolved exactly to
+`0c27338d4a9d07351d047c8a27787d49100297e9`. The only failed step was the
+ownership scan: this record was informational `NEEDS-REAUTH`, and the exact
+04B/04C/04D reviews were the only `FORBIDDEN` paths. Configure, artifact
+upload, and Pages were skipped solely for that ownership result.
+
+Independent auditor `/root/o4p05c_cold_auditor` verified the exact commit,
+tree, clean worktree, 13/13 recorded hashes, complete check, and ownership
+classification with BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0.
+
+Verdict: `O4P-05C-FINAL-CI-REAUTHORIZATION-APPROVED`
+
+This update changes only the existing Judge-owned reauthorization record. A
+new exact-head run must still pass the full check, forbidden gate, build,
+Pages deployment, and served-asset verification before terminal ledger
+promotion.
