@@ -60,8 +60,12 @@ The order is fail-closed:
 4. run one local `npm run check` on the unchanged audited fingerprint;
 5. explicitly stage only the declared O4P-05D files, commit with the cold-audit
    identifier, and push the semantic candidate; its expected first CI forbidden
-   stop may name only the exact Judge-owned O4P-05D review path after the full
-   check has passed, and must not be treated as release success;
+   stop may name only these four exact Judge-owned review paths after the full
+   check has passed, and must not be treated as release success:
+   `src/test/architecture/review.o4p-04b-table-display-boundary.test.ts`,
+   `src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts`,
+   `src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts`, and
+   `src/test/architecture/review.o4p-05d-production-release-closure.test.ts`;
 6. record that exact CI run, review path, and review hash in a Judge-owned
    reauthorization draft; require the same independent auditor to confirm
    unchanged semantic bytes, then commit/push only that reauthorization

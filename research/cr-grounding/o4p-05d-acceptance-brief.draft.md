@@ -23,10 +23,11 @@ Risk / audit lane: `R3 / BROAD`
    candidate, and the same fingerprint passes one local `npm run check`.
 6. The semantic-candidate commit contains only explicitly staged O4P-05D files
    and the auditor identifier. Its first CI passes the full check and stops only
-   because the declared base diff contains the exact Judge-owned D review path.
-   The Judge records that path/hash/run; the same auditor confirms unchanged
-   bytes; a metadata-only reauthorization commit then passes exact-head Actions,
-   forbidden, build, and Pages deployment.
+   because the declared base diff contains the exact Judge-owned O4P-04B,
+   O4P-04C, O4P-04D, and O4P-05D architecture review paths enumerated by the
+   contract. The Judge records those four paths/hashes and the run; the same
+   auditor confirms unchanged bytes; a metadata-only reauthorization commit
+   then passes exact-head Actions, forbidden, build, and Pages deployment.
 7. The exact clean reauthorized candidate deploys to the existing workers.dev Worker. The
    new version is active at 100%, differs from the former active version, and
    the former version remains available as a rollback target.

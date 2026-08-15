@@ -37,3 +37,12 @@ the corrected candidate to the same cold auditor. Only after a matching
 BLOCKER/HIGH-zero repair audit may the governance-maximum second and final local
 `npm run check` run. No push, CI, Pages, or Cloudflare deployment is authorized
 before that closure.
+
+## Repair-audit wording correction
+
+The first repair audit found no mechanical weakening but correctly rejected the
+older contract phrase that predicted an O4P-05D-only forbidden stop. Because
+this repair re-owns the O4P-04B/C/D predecessor architecture reviews too, the
+actual base-relative first CI must list exactly those three review paths plus
+the O4P-05D review path. Contract, acceptance, review, and verifier now bind
+that exact four-path set; no additional code or scope correction is made.

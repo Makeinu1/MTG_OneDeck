@@ -19,14 +19,14 @@ const secretMaterial = /\b[0-9a-f]{32}\b|gh[opsu]_[A-Za-z0-9]{20,}|Bearer[ \t]+[
 const rawJsonLine = /^\s*\{.*\}\s*$/m;
 
 const frozenHashes = Object.freeze({
-  'research/cr-grounding/o4p-05d-production-release-closure.contract.draft.md': '80dd3334399dcf8e3cf17b481011e9c0f09c3711dabc9b0b46ccd7be787f6ed0',
-  'research/cr-grounding/o4p-05d-acceptance-brief.draft.md': '109f8a7ae4fc32beff3055e666988afd84900423a8ec04a3cc39e508e0cffea8',
+  'research/cr-grounding/o4p-05d-production-release-closure.contract.draft.md': 'ab947a0d768428340aea706ea7f161c721b8cea25a22bde94142402eb20c8075',
+  'research/cr-grounding/o4p-05d-acceptance-brief.draft.md': '6e814dabcb4916b3436e86764692297c17d16d56351515d196351e686df7fbe6',
   'research/cr-grounding/o4p-05d-implementation-brief.draft.md': '3863314d13e5cd7f0107ae6c663879cb295983d5baedf79928831476eca4e021',
   'research/cr-grounding/o4p-05d-cold-audit-brief.draft.md': 'db17316e7539727ed36f8e4e9a8f675754dfdfec81175603f9f4effe797a468a',
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
-  'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': '868e9c22bb48a8232a2541cc79fb549b8501225a35499aa6e914d8ee9289a2b5',
-  [reviewPath]: '1afe5ab8bb4d31849dde22b9e3e430ac21f56de45f35f25ec98c397d3c3d9280',
+  'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
+  [reviewPath]: 'bf74aa5bfe81ff6c89884a82b05bc000e7da087a7bc4fcf9d5ec238f6f0355fc',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': '415fe28517b11b869a44b4f770051532b9e1b051aca6a310d27fd6716d8aff84',
@@ -126,6 +126,9 @@ for (const claim of [
   '24-hour wall-clock soak remain outside', 'expected first CI forbidden',
   'reauthorization draft',
 ]) assert.match(contract, new RegExp(claim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+for (const path of [...predecessorReviewPaths, reviewPath]) {
+  assert.match(contract, new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+}
 
 console.log(
   'milestone=O4P-05D predecessors=O4P-05A+B+C protected-drift=none ' +

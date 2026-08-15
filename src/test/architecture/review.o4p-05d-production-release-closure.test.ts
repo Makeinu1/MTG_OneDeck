@@ -111,6 +111,7 @@ describe('O4P-05D production-release closure boundary', () => {
     expect(contract).toContain('24-hour wall-clock soak remain outside');
     expect(contract).toContain('expected first CI forbidden');
     expect(contract).toContain('reauthorization draft');
+    for (const path of [...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH]) expect(contract).toContain(path);
     expect(`${contract}\n${acceptance}`).not.toMatch(/\b[0-9a-f]{32}\b|gho_[A-Za-z0-9]{20,}|Bearer[ \t]+[A-Za-z0-9._-]{20,}/i);
   });
 });
