@@ -84,7 +84,10 @@ describe('O4P-04B Table Display architecture boundary', () => {
     expect(reverseText).not.toMatch(/online\/tableDisplay|o4p-04b-table-display-v1|\bTableDisplay\b/);
 
     const allowed = [
+      /^package\.json$/,
+      /^tsconfig\.node\.json$/,
       /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
+      /^scripts\/(?:__tests__\/machine-checks\.test\.mjs|checks\/(?:machine-checks\.mjs|verify-o4p-05c-release-gates\.ts))$/,
       /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04b-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04b-cold-audit-record-2026-08-14\.md$/,
@@ -96,6 +99,8 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^research\/cr-grounding\/archive\/o4p-05a-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/o4p-05b-(?:acceptance-brief|cold-audit-brief|four-player-release-scenario\.contract|implementation-brief|judge-surgery-1)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05b-cold-audit-record-2026-08-15\.md$/,
+      /^research\/cr-grounding\/o4p-05c-(?:acceptance-brief|cold-audit-brief|full-check-repair-1|implementation-brief|judge-surgery-1|release-gates\.contract)\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-05c-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/table-display\/index\.html$/,
       /^research\/design\/display-pairing\/index\.html$/,
@@ -114,6 +119,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^src\/online\/displayPairing\//,
       /^src\/online\/guidedActions\//,
       /^src\/online\/headless\/__tests__\/review\.o4p-05b-four-player-release-scenario\.test\.ts$/,
+      /^src\/online\/cloudflare\/__tests__\/(?:releaseGateEvidenceV1(?:\.test)?\.ts|review\.o4p-05c-release-gates\.test\.ts)$/,
       /^src\/versioning\/(?:index|publicReleaseRuleset(?:\.test)?|review\.o4p-05a-public-release-ruleset\.test)\.ts$/,
       /^src\/online\/cloudflare\/__tests__\/review\.o4p-03d-cloudflare-production-gate\.test\.ts$/,
       /^src\/test\/architecture\/(?:o4p01iStackAnnouncementBoundary|review\.o4p-01h-core-boundary|review\.o4p-02d-audience-projection-boundary|review\.o4p-02e-local-room-gate-boundary|soloOnlineBoundary)\.test\.ts$/,
@@ -121,11 +127,11 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04d-guided-actions-boundary\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-05c-release-gates\.test\.ts$/,
     ];
     const unexpected = candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)));
     expect(unexpected).toEqual([]);
     expect(candidatePaths()).not.toEqual(expect.arrayContaining([
-      'package.json',
       'package-lock.json',
       'vite.config.ts',
       'src/version.ts',
@@ -133,6 +139,15 @@ describe('O4P-04B Table Display architecture boundary', () => {
       'src/App.tsx',
       'src/main.tsx',
     ]));
+    const packageBefore = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as { dependencies?: unknown; devDependencies?: unknown; scripts?: Record<string, unknown> };
+    const packageAfter = JSON.parse(source('package.json')) as { dependencies?: unknown; devDependencies?: unknown; scripts?: Record<string, unknown> };
+    expect(packageAfter.dependencies).toEqual(packageBefore.dependencies);
+    expect(packageAfter.devDependencies).toEqual(packageBefore.devDependencies);
+    const changedScripts = [...new Set([...Object.keys(packageBefore.scripts ?? {}), ...Object.keys(packageAfter.scripts ?? {})])]
+      .filter((key) => packageBefore.scripts?.[key] !== packageAfter.scripts?.[key])
+      .sort();
+    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates']);
+    expect(packageAfter.scripts?.['verify:o4p-05c-release-gates']).toBe('tsx scripts/checks/verify-o4p-05c-release-gates.ts');
   });
 
   it('uses one adaptive tree, existing variables, and the three contract viewports', () => {
