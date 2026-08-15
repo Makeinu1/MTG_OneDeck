@@ -17,6 +17,7 @@ Authority:
 - `research/cr-grounding/o4p-05d-acceptance-brief.draft.md`;
 - `research/cr-grounding/o4p-05d-judge-surgery-1.draft.md`;
 - `research/cr-grounding/o4p-05d-judge-surgery-2.draft.md`;
+- `research/cr-grounding/o4p-05d-full-check-repair-1.draft.md`;
 - the candidate fingerprint supplied in the delegation message.
 
 Audit the frozen candidate for these claims:
@@ -45,6 +46,9 @@ Audit the frozen candidate for these claims:
 10. Judge surgery 2 closes the re-audit's two HIGH findings: the first semantic
     candidate is not overclaimed as forbidden/Pages-green, and shipped terminal
     evidence rejects secret/account/capability/raw-JSON material.
+11. full-check repair 1 re-owns only the exact O4P-05D successor paths in the
+    O4P-04B/C/D base-relative reviews, keeps their negative production list and
+    dependency guards intact, and refreshes only the resulting frozen hashes.
 
 Run at minimum:
 

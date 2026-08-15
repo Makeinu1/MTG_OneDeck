@@ -87,7 +87,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^package\.json$/,
       /^tsconfig\.node\.json$/,
       /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
-      /^scripts\/(?:__tests__\/machine-checks\.test\.mjs|checks\/(?:machine-checks\.mjs|verify-o4p-05c-release-gates\.ts))$/,
+      /^scripts\/(?:__tests__\/machine-checks\.test\.mjs|checks\/(?:machine-checks\.mjs|verify-o4p-(?:05c-release-gates|05d-production-release-closure)\.ts))$/,
       /^docs\/contracts\/manifest\.json$/,
       /^research\/cr-grounding\/o4p-04b-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04b-cold-audit-record-2026-08-14\.md$/,
@@ -101,6 +101,8 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^research\/cr-grounding\/archive\/o4p-05b-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/o4p-05c-(?:acceptance-brief|ci-reauthorization|cold-audit-brief|full-check-repair-1|implementation-brief|judge-surgery-1|release-gates\.contract)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05c-cold-audit-record-2026-08-15\.md$/,
+      /^research\/cr-grounding\/o4p-05d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-05d-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/table-display\/index\.html$/,
       /^research\/design\/display-pairing\/index\.html$/,
@@ -128,6 +130,7 @@ describe('O4P-04B Table Display architecture boundary', () => {
       /^src\/test\/architecture\/review\.o4p-04c-display-pairing-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04d-guided-actions-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-05c-release-gates\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-05d-production-release-closure\.test\.ts$/,
     ];
     const unexpected = candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)));
     expect(unexpected).toEqual([]);
@@ -146,8 +149,9 @@ describe('O4P-04B Table Display architecture boundary', () => {
     const changedScripts = [...new Set([...Object.keys(packageBefore.scripts ?? {}), ...Object.keys(packageAfter.scripts ?? {})])]
       .filter((key) => packageBefore.scripts?.[key] !== packageAfter.scripts?.[key])
       .sort();
-    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates']);
+    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure']);
     expect(packageAfter.scripts?.['verify:o4p-05c-release-gates']).toBe('tsx scripts/checks/verify-o4p-05c-release-gates.ts');
+    expect(packageAfter.scripts?.['verify:o4p-05d-production-release-closure']).toBe('tsx scripts/checks/verify-o4p-05d-production-release-closure.ts');
   });
 
   it('uses one adaptive tree, existing variables, and the three contract viewports', () => {

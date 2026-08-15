@@ -6,6 +6,11 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 const REVIEW_PATH = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
+const PREDECESSOR_REVIEW_PATHS = [
+  'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
+  'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
+  'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts',
+] as const;
 const PRODUCTION_RECORD = 'research/cr-grounding/archive/o4p-05d-cold-audit-record-2026-08-15.md';
 const SECRET_MATERIAL = /\b[0-9a-f]{32}\b|gh[opsu]_[A-Za-z0-9]{20,}|Bearer[ \t]+[A-Za-z0-9._~-]{8,}|(?:capability|token|secret|authorization|account(?:Id|_id| identifier))[ \t]*[:=][ \t]*\S+|-----BEGIN [A-Z ]*PRIVATE KEY-----/i;
 const RAW_JSON_LINE = /^\s*\{.*\}\s*$/m;
@@ -56,7 +61,7 @@ describe('O4P-05D production-release closure boundary', () => {
       encoding: 'utf8',
     }).trim().split(/\r?\n/).filter(Boolean);
     const drift = [...new Set([...tracked, ...untracked])].sort();
-    expect(drift).toEqual([REVIEW_PATH]);
+    expect(drift).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;
     const after = JSON.parse(text('package.json')) as Record<string, unknown>;

@@ -79,7 +79,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^tsconfig\.node\.json$/,
       /^docs\/contracts\/manifest\.json$/,
       /^scripts\/checks\/verify-online-cloudflare-production-gate\.ts$/,
-      /^scripts\/(?:__tests__\/machine-checks\.test\.mjs|checks\/(?:machine-checks\.mjs|verify-o4p-05c-release-gates\.ts))$/,
+      /^scripts\/(?:__tests__\/machine-checks\.test\.mjs|checks\/(?:machine-checks\.mjs|verify-o4p-(?:05c-release-gates|05d-production-release-closure)\.ts))$/,
       /^research\/cr-grounding\/o4p-04d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-04d-cold-audit-record-2026-08-14\.md$/,
       /^research\/cr-grounding\/o4p-05a-(?:acceptance-brief|ci-reauthorization|ci-reauthorization-audit-brief|cold-audit-brief|implementation-brief|public-release-ruleset\.contract)\.draft\.md$/,
@@ -88,6 +88,8 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^research\/cr-grounding\/archive\/o4p-05b-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/o4p-05c-(?:acceptance-brief|ci-reauthorization|cold-audit-brief|full-check-repair-1|implementation-brief|judge-surgery-1|release-gates\.contract)\.draft\.md$/,
       /^research\/cr-grounding\/archive\/o4p-05c-cold-audit-record-2026-08-15\.md$/,
+      /^research\/cr-grounding\/o4p-05d-[a-z0-9-]+(?:\.contract)?\.draft\.md$/,
+      /^research\/cr-grounding\/archive\/o4p-05d-cold-audit-record-2026-08-15\.md$/,
       /^research\/cr-grounding\/cr-backbone-ledger(?:-history)?\.json$/,
       /^research\/design\/display-pairing\/index\.html$/,
       /^src\/components\/online\/OnlineDisplayPairing\.tsx$/,
@@ -105,6 +107,7 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
       /^src\/test\/architecture\/review\.o4p-04b-table-display-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-04[cd]-(?:display-pairing|guided-actions)-boundary\.test\.ts$/,
       /^src\/test\/architecture\/review\.o4p-05c-release-gates\.test\.ts$/,
+      /^src\/test\/architecture\/review\.o4p-05d-production-release-closure\.test\.ts$/,
     ];
     expect(candidatePaths().filter((path) => !allowed.some((pattern) => pattern.test(path)))).toEqual([]);
     expect(candidatePaths()).not.toEqual(expect.arrayContaining([
@@ -119,8 +122,9 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
     const changedScripts = [...new Set([...Object.keys(packageBefore.scripts ?? {}), ...Object.keys(packageAfter.scripts ?? {})])]
       .filter((key) => packageBefore.scripts?.[key] !== packageAfter.scripts?.[key])
       .sort();
-    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates']);
+    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure']);
     expect(packageAfter.scripts?.['verify:o4p-05c-release-gates']).toBe('tsx scripts/checks/verify-o4p-05c-release-gates.ts');
+    expect(packageAfter.scripts?.['verify:o4p-05d-production-release-closure']).toBe('tsx scripts/checks/verify-o4p-05d-production-release-closure.ts');
   });
 
   it('registers only guidedActions and preserves responsive/manual boundaries', () => {
