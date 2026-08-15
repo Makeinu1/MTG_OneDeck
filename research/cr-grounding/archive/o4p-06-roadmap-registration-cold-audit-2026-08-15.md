@@ -78,5 +78,26 @@ Final semantic candidate fingerprint before this findings record:
   production source, protocol, workflow, Worker configuration, CR pin, deploy,
   or external write was introduced.
 
+## Exact-head CI Judge reownership
+
+Candidate HEAD `c5a7a2da94ce1215fc942d7be516fb67935d31b9` was checked by
+Actions run `31884859326`. The full `npm run check` step passed, including Core
+226 files / 2,086 tests, DOM 308 files / 2,119 passed plus 1 skipped of 2,120,
+the O4P-06 review 7/7, lint, TypeScript/Vite build, and every machine verifier.
+
+The subsequent forbidden-file step stopped on exactly these Judge-owned bytes
+from the `5484fc5a61b25a1b7315bd4e6c0168ec73dbb8ad` diff base:
+
+- `research/cr-grounding/archive/o4p-06-roadmap-registration-cold-audit-2026-08-15.md`
+  at SHA-256 `7875daa76b9684a633320af006545a3e963ca31a17d4861a4c74fa268f2eae4f`;
+- `research/cr-grounding/o4p-06-roadmap-registration-full-check-repair-1.draft.md`
+  at SHA-256 `ad8aafe7f1286429c121033a67998254d34a4aab49500753686ea8c1096e6c90`;
+- `src/test/architecture/review.o4p-06-roadmap-registration.test.ts`
+  at SHA-256 `34c5745d6858467404f677632904a7f7f33b41782d0762d6b16c5a3dc529fd2f`.
+
+The Judge re-owns those exact tested bytes. This metadata-only record is the
+sole follow-up change; it does not alter the audited review, repair evidence,
+ledger, roadmap semantics, runtime, dependencies, or product behavior.
+
 This record does not claim that O4P-06A or four-player browser play is
 implemented. It records only the independently audited roadmap registration.
