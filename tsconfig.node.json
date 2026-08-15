@@ -33,6 +33,7 @@
     "scripts/checks/verify-online-cloudflare-websocket-recovery.ts",
     "scripts/checks/verify-online-cloudflare-capability-abuse-control.ts",
     "scripts/checks/verify-online-cloudflare-production-gate.ts",
-    "scripts/checks/verify-o4p-05c-release-gates.ts"
+    "scripts/checks/verify-o4p-05c-release-gates.ts",
+    "scripts/checks/verify-o4p-05d-production-release-closure.ts"
   ]
 }

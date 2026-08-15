@@ -54,6 +54,7 @@
     "verify:online-cloudflare-capability-abuse-control": "tsx scripts/checks/verify-online-cloudflare-capability-abuse-control.ts",
     "verify:online-cloudflare-production-gate": "tsx scripts/checks/verify-online-cloudflare-production-gate.ts",
     "verify:o4p-05c-release-gates": "tsx scripts/checks/verify-o4p-05c-release-gates.ts",
+    "verify:o4p-05d-production-release-closure": "tsx scripts/checks/verify-o4p-05d-production-release-closure.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

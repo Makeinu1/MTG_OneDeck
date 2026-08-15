@@ -142,6 +142,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:online-cloudflare-capability-abuse-control']],
       ['npm', ['run', 'verify:online-cloudflare-production-gate']],
       ['npm', ['run', 'verify:o4p-05c-release-gates']],
+      ['npm', ['run', 'verify:o4p-05d-production-release-closure']],
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],
