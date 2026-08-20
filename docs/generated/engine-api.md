@@ -113,7 +113,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/applyCommandV1.ts`
 
-- line 204: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 250: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -137,28 +137,29 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/commandV1.ts`
 
-- line 17: `export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;`
-- line 18: `export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;`
-- line 19: `export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;`
-- line 20: `export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;`
-- line 21: `export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;`
-- line 22: `export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;`
-- line 23: `export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;`
-- line 24: `export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;`
-- line 25: `export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;`
-- line 26: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
-- line 27: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
-- line 28: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
-- line 29: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;`
-- line 30: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
-- line 31: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
-- line 33: `export type CoreCommandPayloadV1 =`
-- line 40: `export type CoreCommandV1 = Readonly<{`
-- line 50: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
-- line 51: `export type CoreCommandValidationResultV1 =`
-- line 273: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 327: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 331: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 19: `export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;`
+- line 20: `export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;`
+- line 21: `export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;`
+- line 22: `export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;`
+- line 23: `export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;`
+- line 24: `export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;`
+- line 25: `export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;`
+- line 26: `export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;`
+- line 27: `export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;`
+- line 28: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
+- line 29: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
+- line 30: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
+- line 31: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;`
+- line 32: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 33: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 35: `export type CoreCommandPayloadV1 =`
+- line 43: `export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';`
+- line 45: `export type CoreCommandV1 = Readonly<{`
+- line 55: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 56: `export type CoreCommandValidationResultV1 =`
+- line 322: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 392: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 396: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -171,8 +172,8 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 ## `src/engine/core/closure/domainEventV1.ts`
 
 - line 4: `export type CoreDomainEventPayloadV1 =`
-- line 16: `export type CoreDomainEventV1 = Readonly<{`
-- line 26: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
+- line 24: `export type CoreDomainEventV1 = Readonly<{`
+- line 34: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
 
 ## `src/engine/core/closure/headlessClosureV1.ts`
 
@@ -367,7 +368,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 237: `export type {`
 - line 255: `export type {`
 - line 271: `export type {`
-- line 288: `export type {`
+- line 289: `export type {`
 
 ## `src/engine/core/object/index.ts`
 
@@ -940,6 +941,29 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 34: `export type CoreSyntheticStackCommitInputV1 = Readonly<{`
 - line 43: `export type CoreSyntheticStackCommitResultV1 = Readonly<{`
 - line 396: `export function commitCoreSyntheticStackObjectV1(`
+
+## `src/engine/core/tabletop/commandV1.ts`
+
+- line 9: `export type CoreTabletopTurnPositionV1 =`
+- line 21: `export type CoreTabletopDrawPayloadV1 = Readonly<{`
+- line 26: `export type CoreTabletopZoneMovePayloadV1 = Readonly<{`
+- line 32: `export type CoreTabletopTapPayloadV1 = Readonly<{`
+- line 38: `export type CoreTabletopManaPayloadV1 = Readonly<{`
+- line 44: `export type CoreTabletopCounterPayloadV1 = Readonly<{`
+- line 51: `export type CoreTabletopTokenCreatePayloadV1 = Readonly<{`
+- line 58: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
+- line 63: `export type CoreTabletopTurnTransitionV1 =`
+- line 68: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
+- line 73: `export type CoreTabletopCommandPayloadV1 =`
+- line 83: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+
+## `src/engine/core/tabletop/operationsV1.ts`
+
+- line 48: `export type CoreTabletopOperationResultV1 = Readonly<{`
+- line 53: `export class CoreTabletopOperationErrorV1 extends Error {`
+- line 287: `export function drawCoreTabletopCardsV1(`
+- line 510: `export function untapCoreTabletopPermanentsV1(`
+- line 530: `export function applyCoreTabletopPayloadV1(`
 
 ## `src/engine/core/transition/cardReincarnation.ts`
 
