@@ -28,6 +28,13 @@ import { createCoreCorrectionWarningV1, validateCoreCorrectionReasonV1 } from '.
 import { createModeNeutralCoreRootV1, validateModeNeutralCoreRootV1 } from './rootValidationV1';
 import type { ModeNeutralCoreRootV1 } from './rootV1';
 import type { CoreCommandIssueV1, CoreCommandResultV1, CoreCommandWarningV1 } from './commandResultV1';
+import { applyCoreTabletopPayloadV1 } from '../tabletop/operationsV1';
+import { drawCoreTabletopCardsV1, untapCoreTabletopPermanentsV1 } from '../tabletop/operationsV1';
+import {
+  advanceCoreToNextTurnV1,
+  advanceCoreTurnPositionV1,
+  completeCoreTurnBasedActionCheckpointV1,
+} from '../turn/turnAdvanceV1';
 
 type Raw = Record<string, unknown>;
 type HandlerResult = Readonly<{ readonly root: ModeNeutralCoreRootV1; readonly payloads: readonly CoreDomainEventPayloadV1[]; readonly warnings: readonly CoreCommandWarningV1[] }>;
@@ -137,6 +144,45 @@ function eventRoot(root: ModeNeutralCoreRootV1, command: CoreCommandV1, payloads
     : { status: 'accepted' as const, root, events, warnings: emptyWarnings, beforeStateDigest: before, afterStateDigest: after });
 }
 
+function handleTabletopTurnProgress(
+  root: ModeNeutralCoreRootV1,
+  actorPlayerId: CorePlayerId,
+  transition: Extract<CoreCommandPayloadV1, { readonly kind: 'table-turn-progress' }>,
+): HandlerResult {
+  const lifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
+  const registry = stackBundle(root).objectRegistry;
+  if (registry.activePlayerId !== actorPlayerId) adapterFailure('INACTIVE_ACTOR', '/actorPlayerId', 'Only the active player may progress the turn');
+  let workingRoot = root;
+  const payloads: CoreDomainEventPayloadV1[] = [];
+  if (transition.transition.kind === 'checkpoint') {
+    if (lifecycle.window.kind !== 'turn-based-action-required') adapterFailure('TURN_GATE', '/payload/transition', 'No turn-based checkpoint is currently required');
+    if (lifecycle.window.action === 'draw-step-draw') {
+      const drawn = drawCoreTabletopCardsV1(workingRoot, actorPlayerId, 1);
+      workingRoot = drawn.root;
+      payloads.push(...drawn.payloads);
+    }
+    let runtime = stackBundle(workingRoot).objectRuntime;
+    if (lifecycle.window.action === 'untap-step-actions') runtime = untapCoreTabletopPermanentsV1(workingRoot, stackBundle(workingRoot).objectRegistry, runtime, actorPlayerId);
+    const currentStack = stackBundle(workingRoot);
+    const nextBundle = completeCoreTurnBasedActionCheckpointV1({
+      stackBundle: { ...currentStack, objectRuntime: runtime },
+      pendingTriggers: workingRoot.ruleAuthority.turnPriorityBundle.pendingTriggers,
+      lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
+    }, lifecycle.window.action);
+    workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
+  } else if (transition.transition.kind === 'position') {
+    const turn = workingRoot.ruleAuthority.turnPriorityBundle;
+    const nextBundle = advanceCoreTurnPositionV1({ stackBundle: turn.stackBundle, pendingTriggers: turn.pendingTriggers, lifecycle: turn.lifecycle }, { nextPosition: transition.transition.nextPosition });
+    workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
+  } else {
+    const turn = workingRoot.ruleAuthority.turnPriorityBundle;
+    const nextBundle = advanceCoreToNextTurnV1({ stackBundle: turn.stackBundle, pendingTriggers: turn.pendingTriggers, lifecycle: turn.lifecycle });
+    workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
+  }
+  payloads.push({ kind: 'table-turn-progressed', transition: transition.transition.kind === 'position' ? Object.freeze({ kind: transition.transition.kind, nextPosition: transition.transition.nextPosition }) : Object.freeze({ kind: transition.transition.kind }) });
+  return { root: workingRoot, payloads, warnings: [] };
+}
+
 function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreCommandPayloadV1, { readonly kind: 'player-exit' }>): HandlerResult {
   const registry = stackBundle(root).objectRegistry;
   if (registry.activePlayerId === payload.playerId) adapterFailure('ACTIVE_PLAYER_EXIT_REQUIRES_TURN_TRANSITION', '/payload/playerId', 'The current active player must exit through a turn transition');
@@ -235,6 +281,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
   if (payloadBinding.kind === 'player-exit' && (payloadBinding.playerId !== checked.actorPlayerId || payloadBinding.playerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/playerId', message: 'Exit actor and decision maker must equal the exiting player' }], before);
   if (payloadBinding.kind === 'correct-player-life' && (payloadBinding.playerId !== checked.actorPlayerId || payloadBinding.playerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/playerId', message: 'Life correction actor and decision maker must equal the corrected player' }], before);
   if (payloadBinding.kind === 'correct-commander-damage' && (payloadBinding.defendingPlayerId !== checked.actorPlayerId || payloadBinding.defendingPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/defendingPlayerId', message: 'Commander-damage correction actor and decision maker must equal the defending player' }], before);
+  if ((payloadBinding.kind === 'table-draw' || payloadBinding.kind === 'table-mana-adjust' || payloadBinding.kind === 'table-turn-progress' || payloadBinding.kind === 'table-token-create') && checked.actorPlayerId !== checked.decisionMakerPlayerId) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/decisionMakerPlayerId', message: 'This ordinary tabletop command requires actor and decision maker to match' }], before);
   if (payloadBinding.kind === 'search-complete') {
     const session = current.ruleAuthority.searchSessions.bySession[payloadBinding.sessionKey];
     if (session && (session.rulesActorPlayerId !== checked.actorPlayerId || session.selectorPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/sessionKey', message: 'Search completion authority does not match the session actors' }], before);
@@ -266,6 +313,11 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'player-exit') handled = handlePlayerExit(current, payload);
     else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length }], warnings: [] }; }
     else if (payload.kind === 'correct-player-life') { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); const registry = stackBundle(current).objectRegistry; const player = registry.players[payload.playerId]; if (!player) throw new Error('Correction player is not registered'); const players = { ...registry.players, [payload.playerId]: { ...player, life: payload.replacementLifeTotal } }; handled = { root: updateRegistryInRoot(current, registryWith(registry, { players })), payloads: [{ kind: 'manual-correction-applied', correction: 'player-life' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
+    else if (payload.kind === 'table-turn-progress') handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload);
+    else if (payload.kind === 'table-draw' || payload.kind === 'table-zone-move' || payload.kind === 'table-tap' || payload.kind === 'table-mana-adjust' || payload.kind === 'table-counter-adjust' || payload.kind === 'table-token-create' || payload.kind === 'table-token-remove') {
+      const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);
+      handled = { root: result.root, payloads: result.payloads, warnings: [] };
+    }
     else { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); if (validateCoreCorrectionReasonV1(payload.reason).length) throw new Error('Correction reason is invalid'); const state = current.commanderDamage; const entries = state.entries.filter((entry) => !(entry.commanderPhysicalCardId === payload.physicalCardId && entry.defendingPlayerId === payload.defendingPlayerId)); if (payload.replacementDamageTotal > 0) entries.push({ commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.replacementDamageTotal }); const damage = createCoreCommanderDamageStateV1({ commanders: state.commanders, defendingPlayerIds: state.defendingPlayerIds, entries }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderDamage: damage }), payloads: [{ kind: 'manual-correction-applied', correction: 'commander-damage' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
     const acceptedRoot = createModeNeutralCoreRootV1({ ...handled.root, acceptedCommandCount: current.acceptedCommandCount + 1 });
     return eventRoot(acceptedRoot, checked, handled.payloads, handled.warnings, before);

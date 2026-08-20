@@ -16,6 +16,7 @@ export type DenseArrayRead = Readonly<{
 const APPLICATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 const CAPABILITY_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 const CAPABILITY_RUN_PATTERN = /[A-Za-z0-9_-]{32,}/g;
+const MINIMUM_CAPABILITY_FRAGMENT_LENGTH = 8;
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const UNSAFE_IDS = new Set(['__proto__', 'prototype', 'constructor']);
 const REDACTED_CAPABILITY = '<redacted-capability>';
@@ -287,6 +288,24 @@ export function containsConfiguredCapability(
   );
 }
 
+function containsConfiguredCapabilityFragment(
+  value: string,
+  configuredCapabilities: readonly string[],
+): boolean {
+  return configuredCapabilities.some((capability) => {
+    if (!isProtocolCapability(capability)) return false;
+    for (
+      let offset = 0;
+      offset <= capability.length - MINIMUM_CAPABILITY_FRAGMENT_LENGTH;
+      offset += 1
+    ) {
+      const fragment = capability.slice(offset, offset + MINIMUM_CAPABILITY_FRAGMENT_LENGTH);
+      if (value.includes(fragment)) return true;
+    }
+    return false;
+  });
+}
+
 export type SafeGraphInspectionResult = 'clear' | 'contains-configured-capability' | 'unreadable';
 
 export function inspectGraphForConfiguredCapability(
@@ -296,7 +315,7 @@ export function inspectGraphForConfiguredCapability(
   const ancestors = new WeakSet<object>();
   const inspect = (value: unknown): SafeGraphInspectionResult => {
     if (typeof value === 'string') {
-      return containsConfiguredCapability(value, configuredCapabilities)
+      return containsConfiguredCapabilityFragment(value, configuredCapabilities)
         ? 'contains-configured-capability'
         : 'clear';
     }
@@ -311,7 +330,10 @@ export function inspectGraphForConfiguredCapability(
         return 'unreadable';
       }
       for (const key of keys) {
-        if (typeof key === 'string' && containsConfiguredCapability(key, configuredCapabilities)) {
+        if (
+          typeof key === 'string'
+          && containsConfiguredCapabilityFragment(key, configuredCapabilities)
+        ) {
           return 'contains-configured-capability';
         }
         let descriptor: PropertyDescriptor | undefined;

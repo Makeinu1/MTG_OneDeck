@@ -285,6 +285,7 @@ export {
 } from './player-lifecycle/playerExitReconciliationV1';
 
 export * from './closure';
+export * from './tabletop';
 export type {
   CorePlayerExitReconciliationResultV1,
   CorePlayerExitReconciliationIssueCodeV1,

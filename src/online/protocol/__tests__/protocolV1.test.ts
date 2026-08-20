@@ -30,6 +30,7 @@ import {
   validateOnlineProtocolStateV1,
   type OnlineProtocolStateV1,
 } from '../index';
+import { inspectGraphForConfiguredCapability } from '../support';
 
 const SERVER_BUILD = 'server-build-02c';
 const CLIENT_BUILD = 'client-build-02c';
@@ -290,6 +291,60 @@ describe('O4P-02C in-memory protocol', () => {
     });
     expect(JSON.stringify(transition.response)).not.toContain(CAPABILITIES[0]);
     expect(JSON.stringify(transition.state.coreRoot)).not.toContain(CAPABILITIES[0]);
+  });
+
+  it('rejects eight-character capability fragments in values and property keys without disclosure', () => {
+    const fragment = CAPABILITIES[0].slice(0, 8);
+    const shortFragment = CAPABILITIES[0].slice(0, 7);
+    expect(inspectGraphForConfiguredCapability({ nested: `prefix-${fragment}-suffix` }, CAPABILITIES)).toBe(
+      'contains-configured-capability',
+    );
+    expect(inspectGraphForConfiguredCapability({ [`property-${fragment}`]: true }, CAPABILITIES)).toBe(
+      'contains-configured-capability',
+    );
+    expect(inspectGraphForConfiguredCapability({ nested: `prefix-${shortFragment}-suffix` }, CAPABILITIES)).toBe(
+      'clear',
+    );
+    expect(inspectGraphForConfiguredCapability({ nested: `prefix-${fragment}-suffix` }, CAPABILITIES)).not.toContain(
+      fragment,
+    );
+  });
+
+  it('rejects a table-token-create definition containing a capability fragment before Core apply', () => {
+    const initial = protocolState();
+    const fragment = CAPABILITIES[0].slice(0, 8);
+    const sourceDefinition = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry
+      .cardDefinitions['def.fixture-card' as never];
+    const taintedDefinition = {
+      ...sourceDefinition,
+      name: `${sourceDefinition.name}-${fragment}`,
+    };
+    const taintedCommand = createCoreCommandV1({
+      schemaVersion: 1,
+      sequence: 1,
+      actorPlayerId: 'P1' as never,
+      decisionMakerPlayerId: 'P1' as never,
+      decisionContext: { kind: 'decision', decisionKey: 'protocol-command' },
+      payload: {
+        kind: 'table-token-create',
+        tokenSeed: 'fragment-token',
+        definitionId: 'fragment-definition' as never,
+        definition: taintedDefinition,
+      },
+    });
+    const transition = handleOnlineCommandEnvelopeV1(
+      initial,
+      envelope(initial, 'fragment-definition', 0, taintedCommand),
+    );
+    expect(transition.state).toBe(initial);
+    expect(transition.state.revision).toBe(0);
+    expect(transition.state.receipts).toHaveLength(0);
+    expect(transition.response).toMatchObject({
+      kind: 'online-command-reject-v1',
+      issues: [{ code: 'INVALID_CAPABILITY', path: '/command' }],
+    });
+    expect(JSON.stringify(transition.response)).not.toContain(fragment);
+    expect(JSON.stringify(transition.state.coreRoot)).not.toContain(fragment);
   });
 
   it('applies once, reconstructs duplicates, rejects ID reuse, and stores no capability', () => {

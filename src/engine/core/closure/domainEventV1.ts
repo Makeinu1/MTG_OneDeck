@@ -11,7 +11,15 @@ export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'combat-changed'; readonly operation: 'step' | 'attack' | 'block' }>
   | Readonly<{ readonly kind: 'player-exited'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>
   | Readonly<{ readonly kind: 'zone-randomized'; readonly randomDecisionId: string; readonly zoneKind: string; readonly count: number }>
-  | Readonly<{ readonly kind: 'manual-correction-applied'; readonly correction: 'player-life' | 'commander-damage' }>;
+  | Readonly<{ readonly kind: 'manual-correction-applied'; readonly correction: 'player-life' | 'commander-damage' }>
+  | Readonly<{ readonly kind: 'table-draw'; readonly playerId: CorePlayerId; readonly count: number }>
+  | Readonly<{ readonly kind: 'table-zone-moved'; readonly objectId: CoreObjectId; readonly newObjectId: CoreObjectId; readonly destination: string }>
+  | Readonly<{ readonly kind: 'table-tap-changed'; readonly objectId: CoreObjectId; readonly tapped: boolean }>
+  | Readonly<{ readonly kind: 'table-mana-adjusted'; readonly playerId: CorePlayerId; readonly color: string; readonly delta: number; readonly resultingAmount: number }>
+  | Readonly<{ readonly kind: 'table-counter-adjusted'; readonly objectId: CoreObjectId; readonly counterKind: string; readonly delta: number; readonly resultingCount: number }>
+  | Readonly<{ readonly kind: 'table-token-created'; readonly objectId: CoreObjectId; readonly definitionId: string; readonly controllerPlayerId: CorePlayerId }>
+  | Readonly<{ readonly kind: 'table-token-removed'; readonly objectId: CoreObjectId }>
+  | Readonly<{ readonly kind: 'table-turn-progressed'; readonly transition: Readonly<Record<string, unknown>> }>;
 
 export type CoreDomainEventV1 = Readonly<{
   readonly kind: 'mode-neutral-core-domain-event-v1';
