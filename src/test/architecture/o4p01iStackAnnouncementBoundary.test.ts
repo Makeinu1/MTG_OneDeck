@@ -35,7 +35,7 @@ const closureStackConsumers = new Set([
   resolve(coreRoot, 'closure/commandV1.ts'),
 ]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
-const allowedOnlineRootNames = new Set(['architecture', 'cloudflare', 'displayPairing', 'guidedActions', 'headless', 'projection', 'protocol', 'room', 'tableDisplay', 'workbench']);
+const allowedOnlineRootNames = new Set(['architecture', 'bootstrap', 'cloudflare', 'displayPairing', 'guidedActions', 'headless', 'projection', 'protocol', 'room', 'tableDisplay', 'workbench']);
 const categoryOrder = [
   'stack-edge',
   'forbidden-import',
@@ -317,6 +317,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
   it('reports every architecture violation in the pinned fixed order', { timeout: 60000 }, () => {
     expect([...allowedOnlineRootNames]).toEqual([
       'architecture',
+      'bootstrap',
       'cloudflare',
       'displayPairing',
       'guidedActions',
@@ -327,6 +328,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
       'tableDisplay',
       'workbench',
     ]);
+    expect(allowedOnlineRootNames.has('unreviewed-runtime')).toBe(false);
     expect(allBoundaryViolations().map((violation) => `${violation.category}|${violation.filePath}|${violation.detail}`)).toEqual([]);
   });
 });

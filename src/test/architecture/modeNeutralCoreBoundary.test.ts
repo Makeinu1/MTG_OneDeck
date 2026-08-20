@@ -451,6 +451,70 @@ function isFrozenHeadlessCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenBootstrapCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/bootstrap/catalog/catalogV1.ts',
+    new Set([
+      'CoreCardDefinitionSnapshotV1',
+      'CoreColorIdentityV1',
+      'CoreManaColorV1',
+      'CorePlayerId',
+      'createModeNeutralCoreObjectRegistryStateV2',
+    ]),
+  ],
+  [
+    'src/online/bootstrap/fourDeckBootstrapV1.ts',
+    new Set([
+      'CORE_CLOSURE_VERSION_VECTOR_V1',
+      'CoreCardDefinitionSnapshotV1',
+      'CoreCardObjectRuntimeStateV1',
+      'CoreObjectId',
+      'CorePhysicalCardV1',
+      'CorePlayerId',
+      'ModeNeutralCoreRootV1',
+      'coreCanonicalDigestFromValueV1',
+      'coreCardObjectIdOf',
+      'createCoreCommanderCastLedgerV1',
+      'createCoreCommanderDamageProvenanceLedgerV1',
+      'createCoreCommanderDamageStateV1',
+      'createCoreCommanderIdentityV1',
+      'createCorePlayerLifecycleStateV1',
+      'createCoreReplayPackageV1',
+      'createCoreRuleAuthorityBundleV1',
+      'createCoreStackTransactionBundleV1',
+      'createCoreTurnPriorityBundleV1',
+      'createModeNeutralCoreControlSliceV1',
+      'createModeNeutralCoreDecisionAuthoritySliceV1',
+      'createModeNeutralCoreObjectRegistryStateV2',
+      'createModeNeutralCoreObjectRuntimeStateV2',
+      'createModeNeutralCorePendingTriggerSliceV1',
+      'createModeNeutralCorePlayPermissionSliceV1',
+      'createModeNeutralCoreRootV1',
+      'createModeNeutralCoreSearchSessionSliceV1',
+      'createModeNeutralCoreStackAnnouncementSliceV1',
+      'createModeNeutralCoreTurnLifecycleSliceV1',
+      'createModeNeutralCoreVisibilitySliceV1',
+      'replayCoreCommandsV1',
+      'serializeModeNeutralCoreRootV1',
+    ]),
+  ],
+]);
+
+function isFrozenBootstrapCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenBootstrapCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 function isExistingCardTypeModule(target: string | null): boolean {
   if (target === null) return false;
   const normalized = relativeRepositoryPath(target);
@@ -590,7 +654,8 @@ function inspectReference(
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
-    && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)) {
+    && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)
+    && !isFrozenBootstrapCoreConsumer(unitPath, target, reference)) {
     addViolation(violations, reference, 'core-no-product-runtime-import');
   }
 }
@@ -881,6 +946,40 @@ describe('mode-neutral Core dependency boundary', () => {
         rule: 'core-no-product-runtime-import',
         specifier: '../../engine/core/index',
       },
+    ]);
+  });
+
+  it('keeps the Bootstrap Core allowance file-, symbol-, and public-barrel-exact', () => {
+    const allowedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/bootstrap/catalog/catalogV1.ts'),
+        sourceText: "import { createModeNeutralCoreObjectRegistryStateV2, type CoreCardDefinitionSnapshotV1 } from '../../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/bootstrap/fourDeckBootstrapV1.ts'),
+        sourceText: "import { createModeNeutralCoreRootV1, type ModeNeutralCoreRootV1 } from '../../engine/core/index';",
+      },
+    ];
+    expect(analyzeBoundarySources(allowedUnits)).toEqual([]);
+
+    const rejectedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/bootstrap/unreviewed.ts'),
+        sourceText: "import { createModeNeutralCoreRootV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/bootstrap/fourDeckBootstrapV1.ts'),
+        sourceText: "import { applyCoreCommandV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/bootstrap/fourDeckBootstrapV1.ts'),
+        sourceText: "import { createModeNeutralCoreRootV1 } from '../../engine/core/closure';",
+      },
+    ];
+    expect(analyzeBoundarySources(rejectedUnits).map(({ rule }) => rule)).toEqual([
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
     ]);
   });
 
