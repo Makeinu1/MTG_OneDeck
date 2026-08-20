@@ -65,6 +65,22 @@ returned `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0`. The prior
 `AUDIT-OK-PENDING-FULL-CHECK` verdict remains valid for the release
 fingerprint.
 
+The first effective full release check then exposed only historical-gate drift:
+O4P-05D and four related reviews compared their old milestone bases to current
+`HEAD`, so the first authorized successor source was misclassified. The bounded
+Judge repair pins those guards to their exact closure SHAs, preserves live
+reverse-reachability/untracked/active-program checks, and re-anchors the frozen
+hash chain. No O4P-06A runtime, fixture, ordinary test, public API, dependency,
+version, workflow, or UI byte changed.
+
+The same cold auditor reproduced repair fingerprint
+`88ffe26e5728f93db79d15132d99b1228489da271d6ee5acc84ed13a6d93bf2b`,
+verified both predecessor verifiers, 32 affected reviews, seven machine-check
+tests, scoped lint/typecheck/diff checks, and vacuity probes, then returned:
+
+`BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0`
+`AUDIT-OK-PENDING-FINAL-FULL-CHECK`
+
 The initial forbidden scan reported expected Judge re-ownership paths and the
 Judge-authored `review.*` file. It was not adjudicated as a semantic product
 finding. Before external release, the Judge must explicitly stage intended

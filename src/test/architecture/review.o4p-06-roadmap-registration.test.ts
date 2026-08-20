@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '69559e13716e9d0767d8189714d8c14fb630db46';
+const CLOSURE_SHA = '04dd0575388d3aa5a09f63ef6123f67b63933fe3';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const IDS = ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'] as const;
 const DEPENDENCIES = ['O4P-05D', 'O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E'] as const;
@@ -71,6 +72,10 @@ function text(path: string): string {
   return readFileSync(resolve(ROOT, path), 'utf8');
 }
 
+function closureText(path: string): string {
+  return execFileSync('git', ['show', `${CLOSURE_SHA}:${path}`], { cwd: ROOT, encoding: 'utf8' });
+}
+
 function parseLedger(raw: string): Ledger {
   return JSON.parse(raw) as Ledger;
 }
@@ -98,15 +103,10 @@ function sharedEntry(entry: Entry): Record<string, unknown> {
 }
 
 function changedPaths(): string[] {
-  const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA], {
+  return execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
     cwd: ROOT,
     encoding: 'utf8',
   }).split(/\r?\n/).filter(Boolean);
-  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  }).split(/\r?\n/).filter(Boolean);
-  return [...new Set([...tracked, ...untracked])].sort();
 }
 
 describe('O4P-06 playable four-player roadmap registration', () => {
@@ -115,7 +115,7 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       cwd: ROOT,
       encoding: 'utf8',
     }));
-    const after = parseLedger(text(LEDGER_PATH));
+    const after = parseLedger(closureText(LEDGER_PATH));
 
     expect(withoutCollections(after)).toEqual(withoutCollections(before));
     expect(withoutActiveProgram(after.goalPolicy)).toEqual(withoutActiveProgram(before.goalPolicy));
@@ -127,7 +127,7 @@ describe('O4P-06 playable four-player roadmap registration', () => {
   });
 
   it('keeps both collections synchronized in the approved A-to-F order', () => {
-    const ledger = parseLedger(text(LEDGER_PATH));
+    const ledger = parseLedger(closureText(LEDGER_PATH));
     for (const [index, id] of IDS.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -185,7 +185,10 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     );
   });
 
-  it('selects O4P-06A through the healthy explicit active program', () => {
+  it('selects the first pending O4P-06 parent through the healthy active program', () => {
+    const ledger = parseLedger(text(LEDGER_PATH));
+    const nextDomainId = IDS.find((id) => ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
+    expect(nextDomainId).toBeDefined();
     const context = spawnSync('node', ['scripts/codex-context.mjs'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -201,10 +204,10 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     };
     expect(projection.health).toEqual({ ok: true, errors: [] });
     expect(projection.selection).toMatchObject({
-      kind: 'selected', domainId: 'O4P-06A', reason: 'active-program-order',
+      kind: 'selected', domainId: nextDomainId, reason: 'active-program-order',
     });
     expect(projection.activeProgram).toMatchObject({
-      id: 'O4P-06', status: 'active', nextDomainId: 'O4P-06A',
+      id: 'O4P-06', status: 'active', nextDomainId,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();

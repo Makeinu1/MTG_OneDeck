@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
 const BASE_SHA = '1f6a465b859ba64c9961c6fcdae80087e33b9882';
+const HISTORICAL_SCOPE_SHA = '04dd0575388d3aa5a09f63ef6123f67b63933fe3';
 
 function filesBelow(path: string): string[] {
   const absolute = join(ROOT, path);
@@ -22,11 +23,8 @@ function source(path: string): string {
 }
 
 function candidatePaths(): string[] {
-  const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--'], { cwd: ROOT, encoding: 'utf8' })
+  return execFileSync('git', ['diff', '--name-only', BASE_SHA, HISTORICAL_SCOPE_SHA, '--'], { cwd: ROOT, encoding: 'utf8' })
     .split(/\r?\n/).filter(Boolean);
-  const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' })
-    .split(/\r?\n/).filter(Boolean);
-  return [...new Set([...tracked, ...untracked])].sort();
 }
 
 describe('O4P-04D Guided/Manual Actions architecture boundary', () => {

@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
+const CLOSURE_SHA = '69559e13716e9d0767d8189714d8c14fb630db46';
 const REVIEW_PATH = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
-const O4P_06_REVIEW_PATH = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
 const PREDECESSOR_REVIEW_PATHS = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -61,7 +61,7 @@ describe('O4P-05D production-release closure boundary', () => {
   });
 
   it('admits only the Judge review path under src and freezes product/configuration bytes', () => {
-    const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--', 'src', 'rule', 'wrangler.jsonc', 'package-lock.json'], {
+    const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA, '--', 'src', 'rule', 'wrangler.jsonc', 'package-lock.json'], {
       cwd: ROOT,
       encoding: 'utf8',
     }).trim().split(/\r?\n/).filter(Boolean);
@@ -69,8 +69,8 @@ describe('O4P-05D production-release closure boundary', () => {
       cwd: ROOT,
       encoding: 'utf8',
     }).trim().split(/\r?\n/).filter(Boolean);
-    const drift = [...new Set([...tracked, ...untracked])].sort();
-    expect(drift).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH, O4P_06_REVIEW_PATH].sort());
+    expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
+    expect(untracked).toEqual([]);
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;
     const after = JSON.parse(text('package.json')) as Record<string, unknown>;

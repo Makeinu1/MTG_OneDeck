@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const baseSha = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
+const closureSha = '69559e13716e9d0767d8189714d8c14fb630db46';
 const reviewPath = 'src/test/architecture/review.o4p-05d-production-release-closure.test.ts';
-const o4p06ReviewPath = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
 const predecessorReviewPaths = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -27,11 +27,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: '45d539db23107ce1cc381eb55ba0fcc6e8a334f663bf23c53e4eb4a48c1cf9c9',
+  [reviewPath]: '315a828e12a7c8dd0c1da4e702142bbd8681c1cef3be7bb6b979f8f5c9fdfc6d',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': '415fe28517b11b869a44b4f770051532b9e1b051aca6a310d27fd6716d8aff84',
-  'scripts/checks/verify-o4p-05c-release-gates.ts': 'ddb1c53304ad423a4e15a8b25c412d15fd2c1f622f824e3fd27b3b388f31b986',
+  'scripts/checks/verify-o4p-05c-release-gates.ts': 'ecf03e4c3c0a1123b51d109be076b9c49a6d56be4255a5467a7fcd2bbe648d13',
 });
 
 function readText(path: string): string {
@@ -65,7 +65,7 @@ assert.equal(
   'tsx scripts/checks/verify-o4p-05d-production-release-closure.ts',
 );
 
-const trackedProtectedDrift = execFileSync('git', ['diff', '--name-only', baseSha, '--', 'src', 'rule', 'wrangler.jsonc', 'package-lock.json'], {
+const trackedProtectedDrift = execFileSync('git', ['diff', '--name-only', baseSha, closureSha, '--', 'src', 'rule', 'wrangler.jsonc', 'package-lock.json'], {
   cwd: repositoryRoot,
   encoding: 'utf8',
 }).trim().split(/\r?\n/).filter(Boolean);
@@ -73,8 +73,8 @@ const untrackedProtectedDrift = execFileSync('git', ['ls-files', '--others', '--
   cwd: repositoryRoot,
   encoding: 'utf8',
 }).trim().split(/\r?\n/).filter(Boolean);
-const protectedDrift = [...new Set([...trackedProtectedDrift, ...untrackedProtectedDrift])].sort();
-assert.deepEqual(protectedDrift, [...predecessorReviewPaths, reviewPath, o4p06ReviewPath].sort());
+assert.deepEqual(trackedProtectedDrift.sort(), [...predecessorReviewPaths, reviewPath].sort());
+assert.deepEqual(untrackedProtectedDrift, []);
 
 const machineChecks = readText('scripts/checks/machine-checks.mjs');
 const predecessor = "args: ['run', 'verify:o4p-05c-release-gates']";
