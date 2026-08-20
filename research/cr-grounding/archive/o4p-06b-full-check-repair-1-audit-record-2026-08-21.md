@@ -41,3 +41,13 @@ Audit brief:
 - LOW: 0
 
 Verdict: `AUDIT-OK-PENDING-FINAL-FULL-CHECK`.
+
+## Record-only reauthorization
+
+After this record was added, the same independent auditor verified that it
+faithfully preserved the audit, that the semantic fingerprint remained
+`639d63118e3b0881d08053810e44f6f34cc6005c4a97abee63cac82fcce4cb28`, and
+that the record-only context fingerprint was
+`057c73b77394e88079ff20f0b4c2cd0fb84afab48f68587172eaee580e27c720`.
+The refreshed verdict remained `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` and
+`AUDIT-OK-PENDING-FINAL-FULL-CHECK`; no candidate semantics changed.
