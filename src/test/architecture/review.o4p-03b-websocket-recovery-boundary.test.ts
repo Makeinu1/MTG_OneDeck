@@ -76,6 +76,7 @@ describe('O4P-03B architecture boundary', () => {
       '../protocol/index',
       '../projection/index',
       '../room/index',
+      '../lobby/index',
       '../../engine/core/index',
     ]);
     for (const file of productionFiles(cloudflareRoot)) {

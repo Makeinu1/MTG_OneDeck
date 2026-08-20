@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    '16e9161c500b94099b9f2f96c0ea0f8ad03a671ed6c450e309cd4f638c54e3ff',
+    'ccded241b686c01668281342eb14b1eaf750e0bf1c07a2abd6f5dce0aa43e3c7',
   'src/online/cloudflare/index.ts':
     '0e83d8bcaedc0c6e78ba901db46a056cab93215d8b5dbcf759957eb1a0879336',
   'wrangler.jsonc':

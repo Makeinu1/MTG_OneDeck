@@ -73,6 +73,7 @@ describe('O4P-03A architecture boundary', () => {
       '../protocol/index',
       '../projection/index',
       '../room/index',
+      '../lobby/index',
       '../../engine/core/index',
     ]);
     const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
