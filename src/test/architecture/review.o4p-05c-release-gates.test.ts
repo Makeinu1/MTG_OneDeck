@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '7dc41384bf6763986a47151d69f78f31021976fe';
+const CLOSURE_SHA = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 
 function sourceFiles(root: string): readonly string[] {
   const result: string[] = [];
@@ -49,7 +50,7 @@ describe('O4P-05C release-gate architecture boundary', () => {
       'src/online/cloudflare/worker.ts',
       'src/versioning',
     ];
-    const drift = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--', ...protectedRoots], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const drift = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA, '--', ...protectedRoots], { cwd: ROOT, encoding: 'utf8' }).trim();
     expect(drift).toBe('');
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;

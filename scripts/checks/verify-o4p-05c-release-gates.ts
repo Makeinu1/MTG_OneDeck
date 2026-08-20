@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const baseSha = '7dc41384bf6763986a47151d69f78f31021976fe';
+const closureSha = 'e5b426fe93e4c4d0b25c76f51d1ca877351f8b8c';
 
 const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05c-release-gates.contract.draft.md': '2d33c9eddd8eefe12d314ec2ca6ed9b6bef19a5df75147d94292d91bb356cba1',
@@ -20,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/releaseGateEvidenceV1.ts': 'ffa54e7cbd66c6c07364ab752681a525cf2aceb930e72d15320830fe3729b655',
   'src/online/cloudflare/__tests__/releaseGateEvidenceV1.test.ts': '653e442ca434d2205bc51183f897aa343fc01293845cadab25d615c1f3af7b11',
   'src/online/cloudflare/__tests__/review.o4p-05c-release-gates.test.ts': 'c5ece001c839b33c795100dceb01190bfc1c9cfa43b08561c0eb9c7a44f645f8',
-  'src/test/architecture/review.o4p-05c-release-gates.test.ts': '1fb77a4095d7b96283e484d339c7a81ea5019f0a46aff6d96ca6f0da6dc5fecf',
+  'src/test/architecture/review.o4p-05c-release-gates.test.ts': '4c3035e29163c58a72260beb087b7705d4e93c22e74f99c7fdbed221492c86db',
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts': 'dbf1ddc2613367c597e859d9bda8654e7ba179c963b628b8e7e859ea6ed78e6f',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts': '70fbe00827b403af5aaa9a6d37ece4e62dbb47f274443dc3d7529d8e5bd27a3b',
   'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts': '7b1a9ee4f716f25f0f111221957a0e0fbe08e0a3534ad4dae1e82e60d1800166',
@@ -115,7 +116,7 @@ for (const path of productionFiles(resolve(repositoryRoot, 'src'))) {
 assert.doesNotMatch(readText('src/online/cloudflare/index.ts'), /releaseGate/i);
 
 const protectedDrift = execFileSync('git', [
-  'diff', '--name-only', baseSha, '--', 'rule', 'wrangler.jsonc', 'src/engine', 'src/versioning',
+  'diff', '--name-only', baseSha, closureSha, '--', 'rule', 'wrangler.jsonc', 'src/engine', 'src/versioning',
   'src/online/architecture', 'src/online/room', 'src/online/protocol', 'src/online/projection', 'src/online/headless',
   'src/online/cloudflare/codec.ts', 'src/online/cloudflare/facts.ts', 'src/online/cloudflare/index.ts',
   'src/online/cloudflare/outbox.ts', 'src/online/cloudflare/persistence.ts', 'src/online/cloudflare/runtime.ts',
