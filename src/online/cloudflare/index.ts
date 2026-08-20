@@ -79,3 +79,28 @@ export type {
 } from './outbox';
 export { OnlineRoomDurableObject, createOnlineRoomDurableObject } from './runtime';
 export { default as onlineCloudflareWorker } from './worker';
+export {
+  ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1,
+  ONLINE_FORMING_LOBBY_SCHEMA_VERSION_V1,
+  claimOnlineFormingLobbySeatV1,
+  createOnlineFormingLobbyV1,
+  isOnlineFormingLobbyParticipantIdV1,
+  projectOnlineFormingLobbyV1,
+  setOnlineFormingLobbySeatReadyV1,
+  startOnlineFormingLobbyV1,
+  submitOnlineFormingLobbyDeckV1,
+  validateOnlineFormingLobbyV1,
+} from '../lobby/index';
+export type {
+  ClaimOnlineFormingLobbySeatV1Input,
+  CreateOnlineFormingLobbyV1Input,
+  OnlineFormingLobbyLifecycleV1,
+  OnlineFormingLobbyProjectionV1,
+  OnlineFormingLobbySeatIndexV1,
+  OnlineFormingLobbySeatV1,
+  OnlineFormingLobbyV1,
+  OnlineFormingLobbyValidationResultV1,
+  SetOnlineFormingLobbySeatReadyV1Input,
+  StartOnlineFormingLobbyV1Input,
+  SubmitOnlineFormingLobbyDeckV1Input,
+} from '../lobby/index';

@@ -29,6 +29,14 @@ import {
 } from './types';
 import { emitRuntimeStartFactV1, emitFailureFactV1, emitWebSocketFactV1, isCanonicalVersionIdentifier } from './facts';
 import {
+  claimOnlineFormingLobbySeatV1,
+  projectOnlineFormingLobbyV1,
+  setOnlineFormingLobbySeatReadyV1,
+  startOnlineFormingLobbyV1,
+  submitOnlineFormingLobbyDeckV1,
+  validateOnlineFormingLobbyV1,
+} from '../lobby/index';
+import {
   createAuthenticatedOnlineCloudflareSocketAttachmentV1,
   createOnlineCloudflareRevisionNoticeV1,
   createOnlineCloudflareSocketAttachmentV1,
@@ -157,6 +165,10 @@ function rejectionStatus(error: unknown): 400 | 401 | 403 | 404 | 405 | 409 | 41
   return 500;
 }
 
+function allowedBrowserOrigin(origin: string | null): boolean {
+  return origin === null || origin === 'https://makeinu1.github.io' || origin === 'http://localhost:5173' || origin === 'http://127.0.0.1:5173';
+}
+
 export class OnlineRoomDurableObject {
   private readonly repository: OnlineCloudflareRepository;
   private readonly security: OnlineCloudflareSecurityRepository;
@@ -182,6 +194,7 @@ export class OnlineRoomDurableObject {
 
   async fetch(request: Request): Promise<Response> {
     try {
+      if (!allowedBrowserOrigin(request.headers.get('origin'))) return genericError(403);
       const pathname = new URL(request.url).pathname;
       const route = parseRoomPath(pathname);
       if (route === null) return genericError(isInvalidRoomPath(pathname) ? 400 : 404);
@@ -216,6 +229,64 @@ export class OnlineRoomDurableObject {
         } catch (error: unknown) {
           return genericError(error instanceof ConflictError ? 409 : rejectionStatus(error));
         }
+      }
+      if (route.action === 'lobby' && request.method === 'GET') {
+        const lobby = this.repository.loadLobby(route.roomId);
+        return lobby === null ? genericError(404) : jsonResponse(projectOnlineFormingLobbyV1(lobby));
+      }
+      if (route.action === 'lobby' && request.method === 'POST') {
+        if (!validJsonContentType(request)) return genericError(400);
+        const body = await readJsonBody(request);
+        if (body === null) return genericError(400);
+        const kind = ownDataString(body, 'kind');
+        const schemaVersion = ownDataValue(body, 'schemaVersion');
+        if (kind === 'online-forming-lobby-initialize-v1') {
+          if (!isExactRecord(body, ['kind', 'schemaVersion', 'lobby'])) return genericError(400);
+          if (schemaVersion !== 1) return genericError(400);
+          const checked = validateOnlineFormingLobbyV1(ownDataValue(body, 'lobby'));
+          if (!checked.ok || checked.value.roomId !== route.roomId) return genericError(400);
+          try {
+            this.repository.initializeLobby(checked.value);
+            return jsonResponse({ kind: 'online-forming-lobby-created-v1', schemaVersion: 1, roomId: checked.value.roomId, projection: projectOnlineFormingLobbyV1(checked.value) });
+          } catch (error: unknown) {
+            return genericError(error instanceof ConflictError ? 409 : 400);
+          }
+        }
+        const lobby = this.repository.loadLobby(route.roomId);
+        if (lobby === null) return genericError(404);
+        try {
+          if (kind === 'online-forming-lobby-seat-claim-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'inviteCapability']) && schemaVersion === 1) {
+            const transitioned = claimOnlineFormingLobbySeatV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', inviteCapability: ownDataString(body, 'inviteCapability') ?? '' });
+            this.repository.persistLobby(lobby, transitioned.lobby);
+            return jsonResponse({ kind: 'online-forming-lobby-seat-claimed-v1', schemaVersion: 1, roomId: route.roomId, seatCapability: transitioned.seatCapability, projection: projectOnlineFormingLobbyV1(transitioned.lobby) });
+          }
+          if (kind === 'online-forming-lobby-deck-submit-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'deckText']) && schemaVersion === 1) {
+            const transitioned = submitOnlineFormingLobbyDeckV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '', deckId: ownDataString(body, 'deckId') ?? '', deckText: ownDataString(body, 'deckText') ?? '' });
+            this.repository.persistLobby(lobby, transitioned);
+            return jsonResponse({ kind: 'online-forming-lobby-deck-submitted-v1', schemaVersion: 1, roomId: route.roomId, projection: projectOnlineFormingLobbyV1(transitioned) });
+          }
+          if (kind === 'online-forming-lobby-ready-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready']) && schemaVersion === 1) {
+            const ready = ownDataValue(body, 'ready');
+            if (typeof ready !== 'boolean') return genericError(400);
+            const transitioned = setOnlineFormingLobbySeatReadyV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '', ready });
+            this.repository.persistLobby(lobby, transitioned);
+            return jsonResponse({ kind: 'online-forming-lobby-ready-v1', schemaVersion: 1, roomId: route.roomId, projection: projectOnlineFormingLobbyV1(transitioned) });
+          }
+          if (kind === 'online-forming-lobby-start-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 1) {
+            const started = startOnlineFormingLobbyV1(lobby, { hostParticipantId: ownDataString(body, 'hostParticipantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '' });
+            if (!started.genesis.ok) return genericError(400);
+            try {
+              const status = this.repository.initialize(route.roomId, started.genesis.protocolState, this.now());
+              this.repository.persistLobby(lobby, started.lobby);
+              return jsonResponse({ kind: 'online-forming-lobby-started-v1', schemaVersion: 1, roomId: route.roomId, status });
+            } catch (error: unknown) {
+              return genericError(error instanceof ConflictError ? 409 : 400);
+            }
+          }
+        } catch (error: unknown) {
+          return genericError(error instanceof ConflictError ? 409 : 400);
+        }
+        return genericError(400);
       }
       if (route.action === 'capabilities' && request.method === 'POST') {
         if (!validJsonContentType(request)) return genericError(400);

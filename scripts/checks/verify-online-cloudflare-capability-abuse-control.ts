@@ -149,6 +149,7 @@ const allowedImports = new Set([
   '../protocol/index',
   '../projection/index',
   '../room/index',
+  '../lobby/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {

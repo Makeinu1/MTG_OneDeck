@@ -40,7 +40,7 @@ export function isInvalidRoomPath(pathname: string): boolean {
     || roomId.includes('\\');
 }
 
-export function parseRoomPath(pathname: string): Readonly<{ roomId: string; action: 'room' | 'commands' | 'capabilities' | 'websocket' }> | null {
+export function parseRoomPath(pathname: string): Readonly<{ roomId: string; action: 'room' | 'lobby' | 'commands' | 'capabilities' | 'websocket' }> | null {
   if (!pathname.startsWith(ROOM_PATH_PREFIX)) return null;
   const tail = pathname.slice(ROOM_PATH_PREFIX.length);
   const pieces = tail.split('/');
@@ -53,8 +53,10 @@ export function parseRoomPath(pathname: string): Readonly<{ roomId: string; acti
   }
   if (!isSafeRoomId(roomId) || roomId === '.' || roomId === '..' || roomId.includes('/') || roomId.includes('\\')) return null;
   const action = pieces.length === 1
-    ? 'room'
-    : pieces[1] === 'commands'
+      ? 'room'
+    : pieces[1] === 'lobby'
+      ? 'lobby'
+      : pieces[1] === 'commands'
       ? 'commands'
       : pieces[1] === 'capabilities'
         ? 'capabilities'

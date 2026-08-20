@@ -4,7 +4,7 @@ function emit(fact: OnlineCloudflareStructuredFactV1): void {
   try { console.log(JSON.stringify(fact)); } catch { /* logging is non-semantic */ }
 }
 
-const ACTIONS = new Set(['room', 'commands', 'capabilities', 'websocket', 'unknown']);
+const ACTIONS = new Set(['room', 'lobby', 'create', 'commands', 'capabilities', 'websocket', 'unknown']);
 const METHODS = new Set(['GET', 'PUT', 'POST', 'OTHER']);
 const OUTCOMES = new Set(['ok', 'error']);
 const SOCKET_EVENTS = new Set(['accepted', 'authenticated', 'hibernation-message', 'close', 'error', 'reconnect']);

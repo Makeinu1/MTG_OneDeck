@@ -23,7 +23,7 @@ const frozenHashes = Object.freeze({
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
     '7e9f2ce4f30f778c8c5f7dbd357cc5d106cb03cf669195854fadf61cee5a2b53',
   'src/online/cloudflare/index.ts':
-    'daa892e79cc07192d62a70921cc21c03b5bc1dad3dac7b474fed938ecd86c7f3',
+    '0e83d8bcaedc0c6e78ba901db46a056cab93215d8b5dbcf759957eb1a0879336',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -150,6 +150,7 @@ const allowedImports = new Set([
   '../protocol/index',
   '../projection/index',
   '../room/index',
+  '../lobby/index',
   '../../engine/core/index',
 ]);
 const forbiddenSource =

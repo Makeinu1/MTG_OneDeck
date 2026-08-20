@@ -19,11 +19,16 @@ import {
 } from './types';
 import { OnlineCloudflareSecurityRepository } from './security';
 import { emitRecoveryFactV1, emitFailureFactV1, isCanonicalVersionIdentifier } from './facts';
+import {
+  validateOnlineFormingLobbyV1,
+  type OnlineFormingLobbyV1,
+} from '../lobby/index';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
 const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migration (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL) STRICT`;
 const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const CREATE_LOBBY = `CREATE TABLE IF NOT EXISTS online_forming_lobby (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const SELECT_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json FROM online_room_state WHERE singleton = 1`;
 const SELECT_JOURNAL = `SELECT accepted_revision, command_id, participant_id, base_revision, command_json FROM online_accepted_command ORDER BY accepted_revision`;
 const INSERT_ROOM = `INSERT INTO online_room_state (singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -37,11 +42,15 @@ const INSERT_MIGRATION = 'INSERT INTO online_application_migration (singleton, s
 const SELECT_CHECKPOINT = 'SELECT singleton, room_id, checkpoint_revision, state_json FROM online_recovery_checkpoint WHERE singleton = 1';
 const INSERT_CHECKPOINT = 'INSERT INTO online_recovery_checkpoint (singleton, room_id, checkpoint_revision, state_json) VALUES (1, ?, ?, ?)';
 const UPDATE_CHECKPOINT = 'UPDATE online_recovery_checkpoint SET room_id = ?, checkpoint_revision = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND checkpoint_revision = ? RETURNING singleton';
+const SELECT_LOBBY = 'SELECT singleton, schema_version, room_id, state_json FROM online_forming_lobby WHERE singleton = 1';
+const INSERT_LOBBY = 'INSERT INTO online_forming_lobby (singleton, schema_version, room_id, state_json) VALUES (1, ?, ?, ?)';
+const UPDATE_LOBBY = 'UPDATE online_forming_lobby SET room_id = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND state_json = ? RETURNING singleton';
 
 type RoomRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; room_lifecycle: unknown; accepted_command_count: unknown; state_json: unknown };
 type JournalRow = { accepted_revision: unknown; command_id: unknown; participant_id: unknown; base_revision: unknown; command_json: unknown };
 type MigrationRow = { singleton: unknown; schema_version: unknown };
 type CheckpointRow = { singleton: unknown; room_id: unknown; checkpoint_revision: unknown; state_json: unknown };
+type LobbyRow = { singleton: unknown; schema_version: unknown; room_id: unknown; state_json: unknown };
 
 function isInteger(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0; }
 
@@ -92,6 +101,7 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_JOURNAL);
       this.storage.sql.exec(CREATE_MIGRATION);
       this.storage.sql.exec(CREATE_CHECKPOINT);
+      this.storage.sql.exec(CREATE_LOBBY);
       const before = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
       if (before.length > 1 || (before[0] !== undefined && (before[0].singleton !== 1 || before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1))) throw new Error('Invalid application migration ledger');
       const room = this.rows();
@@ -263,6 +273,55 @@ export class OnlineCloudflareRepository {
       emitFailureFactV1('recovery-failure', 'RECOVERY_FAILED', this.versionIdentifier, state?.room.roomId ?? null);
       throw error;
     }
+  }
+
+  loadLobby(roomId: string): OnlineFormingLobbyV1 | null {
+    const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error('Invalid forming lobby singleton');
+    const row = rows[0];
+    if (row === undefined || row.singleton !== 1 || row.schema_version !== 1 || row.room_id !== roomId || typeof row.state_json !== 'string') throw new Error('Invalid forming lobby row');
+    let parsed: unknown;
+    try { parsed = JSON.parse(row.state_json); } catch { throw new Error('Invalid forming lobby JSON'); }
+    const validation = validateOnlineFormingLobbyV1(parsed);
+    if (!validation.ok || JSON.stringify(validation.value) !== row.state_json) throw new Error('Invalid forming lobby state');
+    return validation.value;
+  }
+
+  initializeLobby(lobby: OnlineFormingLobbyV1): void {
+    const checked = validateOnlineFormingLobbyV1(lobby);
+    if (!checked.ok) throw new Error('Invalid forming lobby state');
+    lobby = checked.value;
+    const stateJson = JSON.stringify(lobby);
+    if (stateJson === undefined) throw new Error('Invalid forming lobby serialization');
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_LOBBY);
+      const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (rows.length > 1) throw new Error('Invalid forming lobby singleton');
+      if (rows.length === 1) {
+        const row = rows[0];
+        if (row === undefined || row.room_id !== lobby.roomId || row.state_json !== stateJson) throw new ConflictError();
+        return;
+      }
+      this.storage.sql.exec(INSERT_LOBBY, 1, lobby.roomId, stateJson);
+    });
+  }
+
+  persistLobby(previous: OnlineFormingLobbyV1, next: OnlineFormingLobbyV1): void {
+    const checkedPrevious = validateOnlineFormingLobbyV1(previous);
+    const checkedNext = validateOnlineFormingLobbyV1(next);
+    if (!checkedPrevious.ok || !checkedNext.ok) throw new Error('Invalid forming lobby transition');
+    previous = checkedPrevious.value;
+    next = checkedNext.value;
+    const previousJson = JSON.stringify(previous);
+    const nextJson = JSON.stringify(next);
+    if (previous.roomId !== next.roomId || previousJson === undefined || nextJson === undefined) throw new Error('Invalid forming lobby transition');
+    this.storage.transactionSync(() => {
+      const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (rows.length !== 1 || rows[0]?.room_id !== previous.roomId || rows[0]?.state_json !== previousJson) throw new ConflictError();
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, next.roomId, nextJson, previous.roomId, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
   }
 
   status(): OnlineCloudflareRoomStatusV1 | null {
