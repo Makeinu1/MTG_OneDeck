@@ -81,6 +81,19 @@ tests, scoped lint/typecheck/diff checks, and vacuity probes, then returned:
 `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0`
 `AUDIT-OK-PENDING-FINAL-FULL-CHECK`
 
+The final effective full check at commit
+`5bc25d4219b3f862ad753e19156d152a489ed47a` passed every verifier, docs,
+lint, and Core (`226` files / `2,086` tests). DOM passed `308` of `312` files
+and `2,129` of `2,133` tests, then failed four pre-existing architecture
+registration guards because the new `src/online/bootstrap` module kind and its
+public Core import were not registered. No O4P-06A catalog, bootstrap, replay,
+size, secrecy, identity, Room, or Protocol assertion failed.
+
+This was the second effective full-check result after the bounded historical-
+gate repair. The task therefore reached the governance full-check limit and
+stopped without shipment. `AUDIT-OK-PENDING-FULL-CHECK` remains an audit fact,
+not a release verdict; O4P-06A remains `pending` and O4P-06B remains locked.
+
 The initial forbidden scan reported expected Judge re-ownership paths and the
 Judge-authored `review.*` file. It was not adjudicated as a semantic product
 finding. Before external release, the Judge must explicitly stage intended
