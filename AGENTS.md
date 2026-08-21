@@ -27,34 +27,35 @@
 
 実行順、R0〜R3のリスク分類、affected/domain/release lane、BROAD監査予算、fingerprint規律は `document-governance.md` に一本化する。
 
-実装者と受け入れ基準作者・監査者を同一にしない。実装と判定を同じタスクで行った場合も、別主体の冷監査までは`implemented-not-audited`であり、正式出荷しない。別主体は次のいずれかとする。
+実装者と受け入れ基準作者・監査者を同一にしない。R2/R3の実装と判定を同じタスクで行った場合も、別主体の冷監査までは`implemented-not-audited`であり、正式出荷しない。別主体は次のいずれかとする。
 
-- `fork_context: false`のサブエージェントへ、実装理由を含まない監査ブリーフのパスだけ渡す。
+- fresh-contextのサブエージェント（現Codex面では`fork_turns: "none"`）へ、実装理由を含まない監査ブリーフのパスとcandidate fingerprintだけを渡す。
 - 実装履歴を持たない別Codexタスクへ、同じブリーフのパスだけ渡す。
 
 冷監査者はファイルを編集しない。判定者がfindingsを裁定し、BLOCKER/HIGH = 0になるまで昇格しない。statusを`shipped`へ上げる条件は全て必須:
 
-1. 独立冷監査がBLOCKER/HIGH 0。
+1. R2/R3は独立冷監査がBLOCKER/HIGH 0。R0の機械導出terminal metadataだけは`document-governance.md`の狭い例外を満たす。
 2. findings記録が台帳noteまたは`research/cr-grounding/archive/`に存在。
 3. `npm run check`が全緑。
 4. 該当`review.*` / golden evidenceが緑。
-5. commitメッセージに冷監査の識別子を記載。
+5. commitメッセージに冷監査またはR0機械検証の識別子を記載。
 
-「コード変更なし」「メタデータのみ」「既存テスト緑」は冷監査省略理由にならない。詳細な監査ループとprecedentはSkillおよび`research/cr-grounding/archive/governance/`を参照する。
+「コード変更なし」「メタデータのみ」「既存テスト緑」は単独では冷監査省略理由にならない。既監査のimmutable evidenceからのみ導出され、exact bytes/hashを実行可能verifierが検証し、authority・allowlist・受け入れ意味を変えないR0 terminal metadataだけを例外とする。詳細な監査ループとprecedentはSkillおよび`research/cr-grounding/archive/governance/`を参照する。
 
-## 1タスク=1マイルストーン
+## 1候補=1マイルストーン
 
-- 新しいトップレベルタスクにはmilestone ID、base SHA、ブリーフパス、Goal、Constraints、Done whenだけを渡す。過去タスク全文やReferenced chatを引き継がない。
+- 通常の新しいトップレベルタスクにはmilestone ID、base SHA、ブリーフパス、Goal、Constraints、Done whenだけを渡す。過去タスク全文やReferenced chatを引き継がない。
+- ユーザーが台帳の`goalPolicy.activeProgram`全体の完遂を明示認可した場合だけ、同じ判定者タスクをprogram supervisorとして使える。ただし同時にactiveな候補は1つだけとし、各マイルストーンは独立cycleとして閉じる。
 - 編集前に宣言base SHAのclean worktreeを要求する。別マイルストーンの未出荷差分があれば分離worktreeへ移すかSTOPし、候補を混在させない。
 - ユーザー指定programの優先は台帳の機械可読`goalPolicy.activeProgram`で表す。自動投影と明示programが食い違う間は`--domain`を使い、別マイルストーンへ黙って代替しない。
-- 通常の上限は実装者1名と冷監査者1名。両者とも`fork_context: false`。一般探索だけのサブエージェントは作らず、独立読取は同一`functions.exec`内でbatch化する。
+- 通常の上限は実装者1名と冷監査者1名。両者ともfresh-contextで起動する。一般探索だけのサブエージェントは作らず、独立読取は同一`functions.exec`内でbatch化する。
 - 修正は同じ実装者へ返し最大2回。2連敗し、判定者の有界な外科修正でも閉じられなければSTOPする。
-- 最初のcontext compactionまたは修正上限到達後は、現在の原子的操作だけ閉じて短い継続packetを残し、次の安全境界でタスクを終了する。追加のユーザー認可は新しいタスクを開始できるが、消耗した会話を延長しない。
+- context compactionは回復checkpointとする。現在の原子的操作を閉じて短い継続packetを更新し、`AGENTS.md`→検証済み`codex:context`→active brief→`docs/judge-protocol.md`該当節→Skill referenceの順で復旧する。staleなloop-stateや圧縮要約のnext stepを正本扱いしない。
 - UI・音・演出は専用worktree/dev fixtureの試作タスクと本実装タスクを分離し、人間承認した値とscreenshotを凍結してから新しい本実装タスクを始める。
 - 実装中の追加要望は、現受け入れ条件の失敗または致命回帰だけ割り込ませる。それ以外は台帳へ短く記録して次タスクへ送る。
 - 実装中は対象テストだけを回す。候補treeを凍結して対象`review.*`と実機証拠を揃えた後、フルcheckより先に冷監査を行う。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`とし、監査修正と対象再監査を閉じてからrelease treeを再凍結し、同一fingerprintでフル`npm run check`を1回だけ行う。フルcheck自身が欠陥を検出した場合だけ、修正・無効化された対象検証・必要な再監査後に最終フルcheckを再実行する（上限2回）。
-- ship時に`.claude/loop-state.md`を`milestone: complete`へ戻し、完了packetをarchiveしてタスクを終了する。
-- ship後に次のmilestone IDを記録しても、同じタスク内では開始しない。
+- ship時に完了packetをarchiveする。通常タスクは`.claude/loop-state.md`を`milestone: complete`へ戻して終了する。明示認可済みprogram supervisorは、exact-head CI/公開証拠とclean worktreeを確認した後だけ次IDを`codex:context -- --domain`で再投影し、新しいbase/fingerprint/六項目envelopeへ切り替えてよい。
+- 後続cycleのsource/test/contract/audit作業は、この遷移gateが通るまで開始しない。
 
 ## 不可侵
 

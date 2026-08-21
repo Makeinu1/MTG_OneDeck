@@ -1,0 +1,13 @@
+# OneDeck defaults for future Codex runs. Explicit user/spawn values override
+# subagent defaults; release evidence, not model identity, decides quality.
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+project_doc_max_bytes = 32768
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 2
+# Generic worker default. R3/BROAD cold audits must use the explicit audited
+# role file or an explicit spawn model+effort override.
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "medium"

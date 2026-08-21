@@ -9,8 +9,10 @@ pointers must not restate these rules.
 
 Start with exactly one milestone ID, base SHA, brief path, goal, constraints,
 and done-when. Read `AGENTS.md`, the verified output of
-`npm run codex:context -- [--domain <id>]`, the active brief, the matching
-contract/manifest entry, the matching ledger entry, and this workflow. Do not
+`npm run codex:context -- [--domain <id>]`, the active brief,
+`docs/judge-protocol.md` for the applicable ruling, and this workflow. Read the
+matching contract/manifest or full ledger entry only when the projection and
+brief do not establish the required claim. Do not
 import a prior task transcript. Read the full ledger or history only when the
 projection reports an integrity error or true ambiguity, the requested domain
 cannot be projected, or an explicit ruling must be recovered.
@@ -29,10 +31,14 @@ automatic projection disagree, use `--domain` for the adjudicated milestone and
 schedule a judge-owned active-program ledger update; never substitute the
 automatic result silently.
 
-One task owns one milestone only. Shipping, a terminal STOP, or an exhausted
-repair budget ends the task. Record the next milestone ID in the completion
-packet, but do not start it in the same task. Additional user authorization may
-start a fresh task; it does not reopen an exhausted task transcript.
+One worktree owns one active milestone candidate only. A normal user task ends
+when that milestone ships, reaches a terminal STOP, or exhausts its repair
+budget. When the user explicitly authorizes completion of the ordered
+`goalPolicy.activeProgram`, the same judge task may supervise serial milestone
+cycles. Shipping still ends the current cycle. Before the next cycle, require
+exact-head release evidence, a clean worktree, a new verified `codex:context
+-- --domain <next-id>` projection, a refreshed base/fingerprint, and a new
+six-field envelope. A STOP or exhausted repair budget ends the whole program.
 
 ## Roles and write ownership
 
@@ -46,18 +52,30 @@ implementer for at most two correction returns. Do not create general explorer
 agents or research future milestones while the active milestone is unresolved.
 Parallel code writes require explicitly disjoint paths, a frozen shared
 contract, and a stated latency benefit; otherwise keep implementation serial.
+Start implementers and auditors with no inherited supervisor transcript. On the
+current Codex surface use `fork_turns: "none"`; on other surfaces use the
+equivalent fresh-context option. Give auditors only the frozen brief path and
+candidate fingerprint, never the implementer's rationale.
 
 ## Execution and context budget
 
 - Batch independent local reads and read-only checks in one bounded tool stage.
   Keep approvals, waits, adaptive investigation, and conflicting writes
   sequential.
+- Subagents are a latency/role-separation tool, not a token-saving default;
+  every worker performs its own model and tool work. Keep deterministic reads,
+  extraction, and checks in one programmatic judge stage when they fit.
 - Send the judge conclusions, exact clauses, compact diffs, and findings—not
   raw tours, transcripts, or full test logs.
-- Use ordinary reasoning for search, implementation, and targeted tests; use
-  higher reasoning for contracts, CR adjudication, architecture, and cold
-  audit. Reserve the highest tier for ambiguity not resolved by canonical
-  lookup. Do not hard-code model names in governance.
+- Resolve model and effort from an explicit user request, then the project
+  config, then the parent. Default to the lowest effort that meets evidence:
+  medium for clear bounded work, high/xhigh for difficult multi-step
+  implementation or audit, and max only for unresolved R3 ambiguity. Never
+  silently substitute an unavailable requested model or effort.
+- An R3/BROAD cold audit must not inherit the generic worker default. Its spawn
+  or selected custom-agent file must explicitly set both model and reasoning
+  effort; the repository baseline is Sol/high unless an explicit supported
+  user request selects another capable configuration.
 - A cold audit gets one bounded wait: NARROW 15 minutes, STANDARD 30 minutes,
   or BROAD 45 minutes. Do not replace it with repeated short waits or raw
   transcript polling. A timeout is no verdict and remains
@@ -65,10 +83,13 @@ contract, and a stated latency benefit; otherwise keep implementation serial.
 - Do not issue a new wait or repository read merely to produce a status update.
   Report phase changes, findings, approvals, and terminal evidence. A
   platform-required heartbeat stays one line and starts no new investigation.
-- The first context compaction is a task-boundary warning. Finish only the
-  current atomic action, write a compact continuation packet, and end at the
-  next safe boundary. Do not start another agent, repair wave, full check, or
-  adjacent milestone in the compacted task.
+- Context compaction is a recovery checkpoint. Finish the current atomic
+  action, update the compact continuation packet, and recover from `AGENTS.md`,
+  verified `codex:context`, active brief, the applicable
+  `docs/judge-protocol.md` section, and this workflow. Do not start another
+  agent, repair wave, full check, or adjacent
+  milestone until that recovery is current; an authorized program may continue
+  after the normal transition gate.
 - Run `npm run codex:usage -- --session <id>` at every task terminal. Record
   its model cycles, cached/uncached input, compactions, and full checks; when
   platform counters are available, also record subagent and wait counts. Never
@@ -90,8 +111,10 @@ scenarios until explicit adjudication and current executable evidence agree.
 
 ## Risk lanes
 
-- R0: spelling, links, indexes, or archive movement. Run docs lint and
-  self-review.
+- R0: spelling, links, indexes, archive movement, or terminal metadata derived
+  only from already audited immutable evidence. Run docs lint and self-review.
+  A new cold audit may be omitted only when an executable verifier checks exact
+  bytes/hashes and no authority, allowlist, acceptance claim, or meaning changes.
 - R1: non-semantic script/refactor or fixture organization. Run the affected
   check and peer review.
 - R2: UI behavior, store wiring, or ordinary engine behavior. Run the domain
@@ -124,7 +147,7 @@ forbidden-file guard receives an explicit diff base in CI.
 ## Freeze, audit, correction, and release
 
 Iterate with targeted checks. Freeze the candidate tree and record its
-fingerprint before audit. Select NARROW, STANDARD, or BROAD from actual risk;
+fingerprint before audit. R2/R3 select NARROW, STANDARD, or BROAD from actual risk;
 cross-document workflow or selection-policy changes are BROAD. The auditor
 runs target-domain adversarial evidence, not the release full check.
 
@@ -139,7 +162,9 @@ The release full check command is `npm run check`; no narrower command can
 substitute for it.
 
 Ship only with the authority defined in `AGENTS.md` and `.claude/commands/ship.md`.
-On ship, record audit and release evidence, reset loop-state to
-`milestone: complete`, archive the completion packet, run the terminal usage
-measurement, and end the task. Without ship authority, leave a verified
-candidate and make no external write.
+On ship, record audit and release evidence, archive the completion packet, and
+run the terminal usage measurement. A normal task resets loop-state to
+`milestone: complete` and ends. An explicitly authorized program supervisor may
+instead transition to the next domain only after the exact-head clean-worktree
+gate above; the final program cycle resets loop-state and ends. Without ship
+authority, leave a verified candidate and make no external write.

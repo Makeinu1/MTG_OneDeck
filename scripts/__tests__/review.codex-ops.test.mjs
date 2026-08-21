@@ -639,9 +639,9 @@ describe('review.codex-ops governance invariants', () => {
 
     expect(Buffer.byteLength(agents)).toBeLessThanOrEqual(14 * 1024);
     for (const required of [
-      'fork_context: false',
+      'fork_turns: "none"',
       'BLOCKER/HIGH = 0',
-      '1タスク=1マイルストーン',
+      '1候補=1マイルストーン',
       'npm run check',
       '右クリックメニューの代替',
       'CR を検査器にする',
@@ -657,13 +657,14 @@ describe('review.codex-ops governance invariants', () => {
     expect(judgeProtocol).not.toContain('{cycle,token-economy}.md');
     expect(judgeProtocol).not.toContain('references/codex-autoloop.md');
     for (const required of [
-      'one milestone only',
+      'one active milestone candidate only',
       'one implementer and one cold auditor',
       'one bounded wait',
-      'first context compaction',
+      'Context compaction is a recovery checkpoint',
       'npm run codex:usage',
       'goalPolicy.activeProgram',
-      'end the task',
+      'program supervisor',
+      'exact-head clean-worktree',
     ]) {
       expect(governance).toContain(required);
     }
