@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   O4P06F_PAGES_ORIGIN_V1,
   O4P06F_WORKER_ORIGIN_V1,
+  awaitO4p06fParticipantDisconnectedV1,
+  inspectO4p06fParticipantPresenceV1,
   inspectO4p06fProjectionZonesV1,
   isO4p06fRevisionNoticeAtMostV1,
   runO4p06fFourBrowserEvidenceV1,
@@ -9,6 +11,7 @@ import {
   type O4p06fBrowserV1,
   type O4p06fContextV1,
   type O4p06fPageV1,
+  type O4p06fSocketV1,
 } from '../../../../scripts/online/o4p-06f-four-browser-evidence';
 
 const CAPABILITY = `seat_${'S'.repeat(48)}`;
@@ -72,6 +75,41 @@ function hangingCleanupBrowser(log: string[]): O4p06fBrowserV1 {
   };
 }
 
+function presenceProjection(presence: 'connected' | 'disconnected', participants = ['p1', 'p2', 'p3', 'p4', 'table']): Record<string, unknown> {
+  const zone = () => ({ count: 0, entries: [] });
+  return {
+    kind: 'online-participant-projection-v1', schemaVersion: 1, protocolVersion: 1, roomId: 'room-observer', participantId: 'p1', role: 'player', corePlayerId: 'P1', revision: 4,
+    room: {
+      lifecycle: 'active', hostParticipantId: 'p1', participants: participants.map((participantId, index) => ({ participantId, role: index === 4 ? 'table' : 'player', presence: participantId === 'p2' ? presence : 'connected', seatIndex: index === 4 ? null : index })),
+      seats: [0, 1, 2, 3].map((seatIndex) => ({ seatIndex, corePlayerId: `P${String(seatIndex + 1)}`, participantId: participants[seatIndex], ready: true, outcome: 'active' })),
+    },
+    game: { turnOrder: ['P1', 'P2', 'P3', 'P4'], turn: { activePlayerId: 'P1', phase: 'main', step: 'precombat' }, players: [], zones: { byPlayer: [0, 1, 2, 3].map((index) => ({ playerId: `P${String(index + 1)}`, zones: { library: zone(), hand: zone(), graveyard: zone() } })) }, visibilityGrants: [], searchSessions: [], playPermissions: [] },
+  };
+}
+
+function presenceSnapshot(presence: 'connected' | 'disconnected'): Record<string, unknown> {
+  return { kind: 'online-projected-snapshot-v1', status: 'accepted', revision: 4, projection: presenceProjection(presence) };
+}
+
+function observerSocket(frames: readonly unknown[], sent: unknown[]): O4p06fSocketV1 {
+  let index = 0;
+  return {
+    send: (value) => { sent.push(value); },
+    next: () => Promise.resolve(frames[index++]),
+    close: () => undefined,
+    pendingCount: () => Promise.resolve(0),
+  };
+}
+
+function hangingObserverSendSocket(sent: unknown[]): O4p06fSocketV1 {
+  return {
+    send: (value) => { sent.push(value); return new Promise<void>(() => undefined); },
+    next: () => Promise.resolve(undefined),
+    close: () => undefined,
+    pendingCount: () => Promise.resolve(0),
+  };
+}
+
 describe('O4P-06F four-browser production evidence', () => {
   it('accepts only an exact same-room non-future revision notice', () => {
     const roomId = 'room-ordinary-revision-notice';
@@ -82,6 +120,80 @@ describe('O4P-06F four-browser production evidence', () => {
     expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, roomId: 'room-other' }, roomId, 3)).toBe(false);
     expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, schemaVersion: 2 }, roomId, 3)).toBe(false);
     expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, extra: true }, roomId, 3)).toBe(false);
+  });
+
+  it('observes delayed P2 close propagation through a surviving Player read-only projection', async () => {
+    const sent: unknown[] = [];
+    await awaitO4p06fParticipantDisconnectedV1({ socket: observerSocket([presenceSnapshot('connected'), presenceSnapshot('disconnected')], sent), roomId: 'room-observer', observerParticipantId: 'p1', observerParticipantCapability: 'seat-secret-p1', targetParticipantId: 'p2', targetExpectedSeatIndex: 1, ownPlayerId: 'P1', fragments: [], timeoutMs: 100, runtime: { now: () => Date.now(), schedule: (milliseconds, task) => setTimeout(task, milliseconds), cancel: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>) } });
+    expect(sent).toHaveLength(2);
+    expect(sent.every((frame) => (frame as Record<string, unknown>).kind === 'online-projection-request-v1' && (frame as Record<string, unknown>).knownRevision === 4 && (frame as Record<string, unknown>).participantId === 'p1' && (frame as Record<string, unknown>).participantCapability === 'seat-secret-p1')).toBe(true);
+  });
+
+  it('rejects malformed and duplicate participant rows before reconnect evidence', () => {
+    const malformed = presenceProjection('disconnected');
+    (malformed.room as Record<string, unknown>).participants = [...(malformed.room as Record<string, unknown>).participants as unknown[], { participantId: 'extra', role: 'player', presence: 'connected', seatIndex: 4 }];
+    expect(() => inspectO4p06fParticipantPresenceV1(malformed, 'p2', 1)).toThrow('projection participant rows incomplete');
+    const duplicate = presenceProjection('disconnected', ['p1', 'p2', 'p2', 'p4', 'table']);
+    expect(() => inspectO4p06fParticipantPresenceV1(duplicate, 'p2', 1)).toThrow('projection participant ID malformed');
+    const invalid = presenceProjection('disconnected');
+    ((invalid.room as Record<string, unknown>).participants as Record<string, unknown>[])[1].presence = 'unknown';
+    expect(() => inspectO4p06fParticipantPresenceV1(invalid, 'p2', 1)).toThrow('projection participant presence malformed');
+    const tableTarget = presenceProjection('disconnected', ['p1', 'table', 'p3', 'p4', 'p2']);
+    expect(() => inspectO4p06fParticipantPresenceV1(tableTarget, 'p2', 1)).toThrow('projection target participant relation malformed');
+    const wrongSeat = presenceProjection('disconnected');
+    const wrongSeatRows = (wrongSeat.room as Record<string, unknown>).participants as Record<string, unknown>[];
+    wrongSeatRows[0].seatIndex = 1; wrongSeatRows[1].seatIndex = 0;
+    expect(() => inspectO4p06fParticipantPresenceV1(wrongSeat, 'p2', 1)).toThrow('projection target participant relation malformed');
+  });
+
+  it('bounds disconnect observation attempts and fails closed when P2 remains connected', async () => {
+    const sent: unknown[] = [];
+    const runtime = { now: () => Date.now(), schedule: (milliseconds: number, task: () => void) => setTimeout(task, milliseconds), cancel: (handle: unknown) => clearTimeout(handle as ReturnType<typeof setTimeout>) };
+    const input = { socket: observerSocket([presenceSnapshot('connected'), presenceSnapshot('connected')], sent), roomId: 'room-observer', observerParticipantId: 'p1', observerParticipantCapability: 'seat-secret-p1', targetParticipantId: 'p2', targetExpectedSeatIndex: 1, ownPlayerId: 'P1', fragments: [], timeoutMs: 100, maxAttempts: 2, runtime };
+    await expect(awaitO4p06fParticipantDisconnectedV1(input)).rejects.toThrow('P2 disconnect observation exhausted');
+    expect(sent).toHaveLength(2);
+    await expect(awaitO4p06fParticipantDisconnectedV1({ ...input, timeoutMs: Number.NaN })).rejects.toThrow('disconnect observation timeout invalid');
+    await expect(awaitO4p06fParticipantDisconnectedV1({ ...input, timeoutMs: Number.POSITIVE_INFINITY })).rejects.toThrow('disconnect observation timeout invalid');
+  });
+
+  it('bounds a never-resolving observer send with the injected deadline', async () => {
+    const sent: unknown[] = []; let now = 0; const timers = new Map<() => void, number>();
+    const runtime = {
+      now: () => now,
+      schedule: (milliseconds: number, task: () => void) => { timers.set(task, milliseconds); return task; },
+      cancel: (handle: unknown) => { timers.delete(handle as () => void); },
+    };
+    const completion = awaitO4p06fParticipantDisconnectedV1({ socket: hangingObserverSendSocket(sent), roomId: 'room-observer', observerParticipantId: 'p1', observerParticipantCapability: 'seat-secret-p1', targetParticipantId: 'p2', targetExpectedSeatIndex: 1, ownPlayerId: 'P1', fragments: [], timeoutMs: 10, runtime });
+    for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    expect(timers.size).toBe(1);
+    const [timer, milliseconds] = timers.entries().next().value as [() => void, number];
+    now += milliseconds;
+    timer();
+    await expect(completion).rejects.toThrow('P2 disconnect observation send timeout');
+    expect(sent).toHaveLength(1);
+    expect(now).toBe(10);
+  });
+
+  it('recomputes the cumulative deadline after a delayed observer send', async () => {
+    let now = 0; let resolveSend: (() => void) | null = null; const timers = new Map<() => void, number>();
+    const runtime = {
+      now: () => now,
+      schedule: (milliseconds: number, task: () => void) => { timers.set(task, milliseconds); return task; },
+      cancel: (handle: unknown) => { timers.delete(handle as () => void); },
+    };
+    const socket: O4p06fSocketV1 = {
+      send: () => new Promise<void>((resolve) => { resolveSend = resolve; }),
+      next: () => new Promise<unknown>(() => undefined),
+      close: () => undefined,
+      pendingCount: () => Promise.resolve(0),
+    };
+    const completion = awaitO4p06fParticipantDisconnectedV1({ socket, roomId: 'room-observer', observerParticipantId: 'p1', observerParticipantCapability: 'seat-secret-p1', targetParticipantId: 'p2', targetExpectedSeatIndex: 1, ownPlayerId: 'P1', fragments: [], timeoutMs: 10, runtime });
+    for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    now = 9; (resolveSend as (() => void) | null)?.();
+    for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    expect([...timers.values()]).toEqual([1]);
+    const timer = timers.keys().next().value as () => void; now = 10; timer();
+    await expect(completion).rejects.toThrow('P2 disconnect observation timeout');
   });
 
   it('accepts a closed secret-free summary and freezes a fresh copy', () => {

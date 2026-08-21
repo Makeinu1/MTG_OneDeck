@@ -23,8 +23,10 @@ const MAX_SUMMARY_BYTES = 131_072;
 const MAX_HTTP_BODY_BYTES = 1_048_576;
 const MAX_WS_FRAME_BYTES = 65_536;
 const DEFAULT_TIMEOUT_MS = 15_000;
+const MAX_DISCONNECT_OBSERVATION_TIMEOUT_MS = DEFAULT_TIMEOUT_MS * 4;
 const MAX_CANONICAL_DEPTH = 64;
 const MAX_CANONICAL_NODES = 20_000;
+const MAX_DISCONNECT_OBSERVATION_ATTEMPTS = 8;
 const MAX_QUEUED_REVISION_NOTICES = 64;
 
 type RecordV1 = Record<string, unknown>;
@@ -414,6 +416,78 @@ function assertNoHiddenOpponentIdentity(projection: RecordV1, ownPlayerId: strin
   inspectO4p06fProjectionZonesV1(projection, ownPlayerId, expectedPlayerIds);
 }
 
+export function inspectO4p06fParticipantPresenceV1(projection: unknown, expectedParticipantId: string, expectedSeatIndex: number): 'connected' | 'disconnected' {
+  if (typeof expectedParticipantId !== 'string' || expectedParticipantId.length === 0) throw new Error('expected participant ID missing');
+  if (!Number.isSafeInteger(expectedSeatIndex) || Object.is(expectedSeatIndex, -0) || expectedSeatIndex < 0 || expectedSeatIndex > 3) throw new Error('expected participant seat missing');
+  const root = asRecord(projection, 'projection missing');
+  const room = exactKeys(own(root, 'room'), ['lifecycle', 'hostParticipantId', 'participants', 'seats'], 'projection room malformed');
+  const participants = own(room, 'participants');
+  if (!Array.isArray(participants) || participants.length !== 5) throw new Error('projection participant rows incomplete');
+  canonicalString(participants);
+  const seen = new Set<string>();
+  let matched: 'connected' | 'disconnected' | null = null;
+  let playerSeats = 0;
+  const seatIndexes = new Set<number>();
+  for (const participant of participants) {
+    const row = exactKeys(participant, ['participantId', 'role', 'presence', 'seatIndex'], 'projection participant row malformed');
+    const participantId = own(row, 'participantId');
+    const role = own(row, 'role');
+    const presence = own(row, 'presence');
+    const seatIndex = own(row, 'seatIndex');
+    if (typeof participantId !== 'string' || participantId.length === 0 || seen.has(participantId)) throw new Error('projection participant ID malformed');
+    seen.add(participantId);
+    if (role !== 'player' && role !== 'table') throw new Error('projection participant role malformed');
+    if (presence !== 'connected' && presence !== 'disconnected') throw new Error('projection participant presence malformed');
+    if (role === 'player') {
+      if (typeof seatIndex !== 'number' || !Number.isSafeInteger(seatIndex) || Object.is(seatIndex, -0) || seatIndex < 0 || seatIndex > 3 || seatIndexes.has(seatIndex)) throw new Error('projection participant seat malformed');
+      seatIndexes.add(seatIndex); playerSeats += 1;
+    } else if (seatIndex !== null) {
+      throw new Error('projection table seat malformed');
+    }
+    if (participantId === expectedParticipantId) {
+      if (matched !== null) throw new Error('projection participant duplicate');
+      if (role !== 'player' || seatIndex !== expectedSeatIndex) throw new Error('projection target participant relation malformed');
+      matched = presence;
+    }
+  }
+  if (playerSeats !== 4 || seatIndexes.size !== 4 || matched === null) throw new Error('projection participant row missing');
+  return matched;
+}
+
+export async function awaitO4p06fParticipantDisconnectedV1(input: Readonly<{
+  readonly socket: O4p06fSocketV1;
+  readonly roomId: string;
+  readonly observerParticipantId: string;
+  readonly observerParticipantCapability: string;
+  readonly targetParticipantId: string;
+  readonly targetExpectedSeatIndex: number;
+  readonly ownPlayerId: string;
+  readonly fragments: readonly string[];
+  readonly timeoutMs: number;
+  readonly runtime: TimeoutRuntimeV1;
+  readonly maxAttempts?: number;
+}>): Promise<void> {
+  if (!Number.isSafeInteger(input.timeoutMs) || input.timeoutMs <= 0 || input.timeoutMs > MAX_DISCONNECT_OBSERVATION_TIMEOUT_MS) throw new Error('disconnect observation timeout invalid');
+  const attempts = input.maxAttempts ?? MAX_DISCONNECT_OBSERVATION_ATTEMPTS;
+  if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > MAX_DISCONNECT_OBSERVATION_ATTEMPTS) throw new Error('disconnect observation attempts invalid');
+  const deadline = input.runtime.now() + input.timeoutMs;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const remaining = deadline - input.runtime.now();
+    if (remaining <= 0) throw new Error('disconnect observation timeout');
+    await drainQueuedRevisionNotices(input.socket, input.roomId, 4, remaining, input.fragments, input.runtime);
+    const responseRemaining = deadline - input.runtime.now();
+    if (responseRemaining <= 0) throw new Error('disconnect observation timeout');
+    await assertTimeout(Promise.resolve(input.socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId: input.roomId, participantId: input.observerParticipantId, participantCapability: input.observerParticipantCapability, knownRevision: 4, clientBuildId: CLIENT_BUILD_ID, decisionContext: null })), responseRemaining, 'P2 disconnect observation send', input.runtime);
+    const snapshotRemaining = deadline - input.runtime.now();
+    if (snapshotRemaining <= 0) throw new Error('disconnect observation timeout');
+    const snapshot = await receiveMatching(input.socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1' && own(value, 'revision') === 4, snapshotRemaining, input.fragments, 'P2 disconnect observation', input.runtime, (value) => isO4p06fRevisionNoticeAtMostV1(value, input.roomId, 4));
+    const projection = projectionFrom(snapshot, input.fragments, 'P2 disconnect observation projection invalid');
+    assertNoHiddenOpponentIdentity(projection, input.ownPlayerId);
+    if (inspectO4p06fParticipantPresenceV1(projection, input.targetParticipantId, input.targetExpectedSeatIndex) === 'disconnected') return;
+  }
+  throw new Error('P2 disconnect observation exhausted');
+}
+
 function assertPlayerConceded(projection: RecordV1, playerId: string): void {
   const room = asRecord(own(projection, 'room'), 'projection room missing');
   const seats = own(room, 'seats');
@@ -454,16 +528,22 @@ export function isO4p06fRevisionNoticeAtMostV1(input: unknown, roomId: string, e
 }
 
 async function drainQueuedRevisionNotices(socket: O4p06fSocketV1, roomId: string, expectedRevision: number, timeoutMs: number, fragments: readonly string[], runtime: TimeoutRuntimeV1): Promise<void> {
+  const deadline = runtime.now() + timeoutMs;
   for (let drained = 0; drained < MAX_QUEUED_REVISION_NOTICES; drained += 1) {
-    const pending = await assertTimeout(socket.pendingCount(), timeoutMs, 'revision queue count', runtime);
+    const remaining = deadline - runtime.now();
+    if (remaining <= 0) throw new Error('revision queue timeout');
+    const pending = await assertTimeout(socket.pendingCount(), remaining, 'revision queue count', runtime);
     if (!Number.isSafeInteger(pending) || pending < 0 || pending > MAX_QUEUED_REVISION_NOTICES) throw new Error('revision queue invalid');
     if (pending === 0) return;
-    const value = await assertTimeout(socket.next(timeoutMs), timeoutMs, 'revision queue drain', runtime);
+    const nextRemaining = deadline - runtime.now();
+    if (nextRemaining <= 0) throw new Error('revision queue timeout');
+    const value = await assertTimeout(socket.next(nextRemaining), nextRemaining, 'revision queue drain', runtime);
     assertSecretFree(value, fragments);
     const current = asRecord(value, 'revision queue frame');
     if (!isO4p06fRevisionNoticeAtMostV1(current, roomId, expectedRevision)) throw new Error('revision queue unexpected frame');
   }
-  if (await assertTimeout(socket.pendingCount(), timeoutMs, 'revision queue final count', runtime) === 0) return;
+  const remaining = deadline - runtime.now();
+  if (remaining > 0 && await assertTimeout(socket.pendingCount(), remaining, 'revision queue final count', runtime) === 0) return;
   throw new Error('revision queue exhausted');
 }
 
@@ -1017,10 +1097,14 @@ export async function runO4p06fFourBrowserEvidenceV1(input: O4p06fEvidenceDepsV1
     }
     const p2Socket = sockets[1]; if (p2Socket === undefined || playerCredentials[1] === undefined) throw new Error('missing P2 socket');
     await assertTimeout(Promise.resolve(p2Socket.close()), timeoutMs, 'P2 reconnect close', timeoutRuntime);
-    const p2 = playerCredentials[1]; const p2Opened = await openParticipantSocket(pages[1], socketUrl, roomId, p2.participantId, p2.seatCapability, 'player', runtimeFragments, timeoutMs, 2, timeoutRuntime, (socket) => allSockets.add(socket)); sockets[1] = p2Opened.socket;
+    const p2 = playerCredentials[1];
+    const p1Socket = sockets[0]; const p1 = playerCredentials[0];
+    if (p1Socket === undefined || p1 === undefined) throw new Error('missing surviving P1 socket');
+    await awaitO4p06fParticipantDisconnectedV1({ socket: p1Socket, roomId, observerParticipantId: p1.participantId, observerParticipantCapability: p1.seatCapability, targetParticipantId: p2.participantId, targetExpectedSeatIndex: 1, ownPlayerId: 'P1', fragments: runtimeFragments, timeoutMs, runtime: timeoutRuntime });
+    const p2Opened = await openParticipantSocket(pages[1], socketUrl, roomId, p2.participantId, p2.seatCapability, 'player', runtimeFragments, timeoutMs, 2, timeoutRuntime, (socket) => allSockets.add(socket)); sockets[1] = p2Opened.socket;
     if (p2Opened.socket === p2Socket) throw new Error('P2 reconnect did not create a fresh socket');
     const p2Projection = p2Opened.projection;
-    if (p2Opened.reason !== 'rejoined' || own(p2Projection, 'revision') !== 4 || p2Opened.snapshotCount !== 1) throw new Error('P2 resync reason/revision mismatch');
+    if (p2Opened.reason !== 'snapshot-required' || own(p2Projection, 'revision') !== 4 || p2Opened.snapshotCount !== 1) throw new Error('P2 resync reason/revision mismatch');
     if (await assertTimeout(p2Opened.socket.pendingCount(), timeoutMs, 'P2 frame accounting', timeoutRuntime) !== 0) throw new Error('P2 unsolicited frame queue');
     assertNoHiddenOpponentIdentity(p2Projection, 'P2'); playerProjections[1] = p2Projection;
     const p4 = playerCredentials[3]; const p4Socket = sockets[3]; if (p4 === undefined || p4Socket === undefined) throw new Error('missing P4 socket');
