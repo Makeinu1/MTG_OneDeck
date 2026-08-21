@@ -11,6 +11,7 @@ const IMPLEMENTATION = 'research/cr-grounding/o4p-06f-implementation-brief.draft
 const HARNESS = 'scripts/online/o4p-06f-four-browser-evidence.ts';
 const ORDINARY_TEST = 'src/online/browser/__tests__/fourBrowserProductionEvidenceV1.test.ts';
 const THIS_REVIEW = 'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts';
+const TERMINAL_ROADMAP_REVIEW = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
 const FULL_CHECK_REPAIR_REVIEWS = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -41,7 +42,7 @@ describe('review O4P-06F four-browser production release', () => {
     const changedSrc = git('diff', '--name-only', BASE_SHA, '--', 'src')
       .split('\n')
       .filter(Boolean);
-    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
+    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, TERMINAL_ROADMAP_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
     expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github')).toBe('');
 
     const before = JSON.parse(git('show', `${BASE_SHA}:package.json`)) as {
