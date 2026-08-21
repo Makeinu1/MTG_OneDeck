@@ -117,7 +117,8 @@ describe('O4P-04C Display Pairing architecture boundary', () => {
     const changedScripts = [...new Set([...Object.keys(packageBefore.scripts ?? {}), ...Object.keys(packageAfter.scripts ?? {})])]
       .filter((key) => packageBefore.scripts?.[key] !== packageAfter.scripts?.[key])
       .sort();
-    expect(changedScripts).toEqual(['verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure']);
+    expect(changedScripts).toEqual(['evidence:o4p-06f', 'verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure']);
+    expect(packageAfter.scripts?.['evidence:o4p-06f']).toBe('tsx scripts/online/o4p-06f-four-browser-evidence.ts');
     expect(packageAfter.scripts?.['verify:o4p-05c-release-gates']).toBe('tsx scripts/checks/verify-o4p-05c-release-gates.ts');
     expect(packageAfter.scripts?.['verify:o4p-05d-production-release-closure']).toBe('tsx scripts/checks/verify-o4p-05d-production-release-closure.ts');
   });
