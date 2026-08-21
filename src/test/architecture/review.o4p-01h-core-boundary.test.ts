@@ -141,6 +141,12 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
           || targetPath === 'src/online/guidedActions/index.ts'
           || targetPath === 'src/components/online/onlineDisplayPairing.css'
         )
+      ) || (
+        sourcePath === 'src/App.tsx'
+        && targetPath === 'src/components/online/PublicOnlineApp.tsx'
+      ) || (
+        sourcePath === 'src/components/online/PublicOnlineApp.tsx'
+        && targetPath === 'src/online/publicApp/index.ts'
       );
       if (targetIsCore && isOnlineReference) {
         violations.push(`${sourcePath}|core-online|${reference.specifier}|${reference.dynamic ? 'dynamic' : 'static'}`);
