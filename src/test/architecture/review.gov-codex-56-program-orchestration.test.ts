@@ -1,10 +1,14 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '592bcc7ed69266f0b078bb8a4e3a3d4103113e1a';
+const AUDIT_RECORD =
+  'research/cr-grounding/archive/gov-codex-56-program-orchestration-audit-record-2026-08-22.md';
+const AUDIT_RECORD_SHA256 = '444fce44e947e6ebc27b2a5debbba64166c739c3bd356162123c3178af40d582';
 const O4P_06_IDS = ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'];
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
 const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json')) as {
@@ -21,7 +25,7 @@ const expectOrdered = (source: string, terms: string[]): void => {
 };
 
 describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
-  it('registers one bounded governance milestone after shipped O4P-06F', () => {
+  it('ships one bounded governance milestone after shipped O4P-06F', () => {
     const domains = ledger.domains.filter((entry) => entry.id === 'GOV-CODEX-56-2026-08');
     const planned = ledger.plannedSequence.filter(
       (entry) => entry.domainId === 'GOV-CODEX-56-2026-08',
@@ -32,7 +36,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     const checkpoint = planned[0];
     if (domain === undefined || checkpoint === undefined) throw new Error('missing GOV entry');
     expect(domain).toMatchObject({
-      status: 'pending',
+      status: 'shipped',
       dependsOn: ['O4P-06F'],
       landingState: [
         'serialProgramSupervisor',
@@ -44,7 +48,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     expect(checkpoint).toMatchObject({
       type: 'checkpoint',
       domainId: 'GOV-CODEX-56-2026-08',
-      status: 'pending',
+      status: 'shipped',
       dependsOn: ['O4P-06F'],
     });
     const { id: domainId, ...domainShared } = domain;
@@ -53,6 +57,16 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     expect(checkpointType).toBe('checkpoint');
     expect(checkpointId).toBe(domainId);
     expect(checkpointShared).toEqual(domainShared);
+    expect(domain.evidence).toEqual(expect.arrayContaining([
+      AUDIT_RECORD,
+      `terminal-record-sha256:${AUDIT_RECORD_SHA256}`,
+    ]));
+    const auditRecord = read(AUDIT_RECORD);
+    expect(createHash('sha256').update(auditRecord).digest('hex')).toBe(AUDIT_RECORD_SHA256);
+    expect(auditRecord).toContain('BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0');
+    expect(auditRecord).toContain('Core: 227 files / 2093 tests passed.');
+    expect(auditRecord).toContain('DOM: 325 files / 2204 tests passed.');
+    expect(auditRecord).toContain('Machine-check total: 375421 milliseconds.');
 
     for (const id of O4P_06_IDS) {
       const domainEntries = ledger.domains.filter((entry) => entry.id === id);
