@@ -33,6 +33,7 @@ import {
   projectOnlineFormingLobbyV1,
   setOnlineFormingLobbySeatReadyV1,
   startOnlineFormingLobbyV1,
+  startOnlineFormingLobbyWithTableV1,
   submitOnlineFormingLobbyDeckV1,
   validateOnlineFormingLobbyV1,
 } from '../lobby/index';
@@ -276,8 +277,22 @@ export class OnlineRoomDurableObject {
             const started = startOnlineFormingLobbyV1(lobby, { hostParticipantId: ownDataString(body, 'hostParticipantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '' });
             if (!started.genesis.ok) return genericError(400);
             try {
-              const status = this.repository.initialize(route.roomId, started.genesis.protocolState, this.now());
-              this.repository.persistLobby(lobby, started.lobby);
+              const status = this.repository.initializeRoomAndTransitionLobby(route.roomId, started.genesis.protocolState, lobby, started.lobby, this.now());
+              return jsonResponse({ kind: 'online-forming-lobby-started-v1', schemaVersion: 1, roomId: route.roomId, status });
+            } catch (error: unknown) {
+              return genericError(error instanceof ConflictError ? 409 : 400);
+            }
+          }
+          if (kind === 'online-forming-lobby-start-with-table-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'tableParticipantId', 'tableCapability']) && schemaVersion === 1) {
+            const started = startOnlineFormingLobbyWithTableV1(lobby, {
+              hostParticipantId: ownDataString(body, 'hostParticipantId') ?? '',
+              seatCapability: ownDataString(body, 'seatCapability') ?? '',
+              tableParticipantId: ownDataString(body, 'tableParticipantId') ?? '',
+              tableCapability: ownDataString(body, 'tableCapability') ?? '',
+            });
+            if (!started.genesis.ok) return genericError(400);
+            try {
+              const status = this.repository.initializeRoomAndTransitionLobby(route.roomId, started.genesis.protocolState, lobby, started.lobby, this.now());
               return jsonResponse({ kind: 'online-forming-lobby-started-v1', schemaVersion: 1, roomId: route.roomId, status });
             } catch (error: unknown) {
               return genericError(error instanceof ConflictError ? 409 : 400);

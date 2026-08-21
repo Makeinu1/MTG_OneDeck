@@ -1,5 +1,7 @@
 import { bootstrapFourDeckGenesisV1, type FourDeckBootstrapResultV1 } from '../bootstrap/index';
 import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../room/validationSupport';
+import { joinOnlineRoomV1 } from '../room/index';
+import { createOnlineProtocolStateV1, type OnlineProtocolObserverCapabilityV1 } from '../protocol/index';
 import { validateBuildId } from '../../versioning/index';
 import { assertNoConfiguredCapabilityFragmentV1 } from '../cloudflare/codec';
 
@@ -42,6 +44,12 @@ export type ClaimOnlineFormingLobbySeatV1Input = Readonly<{ readonly participant
 export type SubmitOnlineFormingLobbyDeckV1Input = Readonly<{ readonly participantId: string; readonly seatCapability: string; readonly deckId: string; readonly deckText: string }>;
 export type SetOnlineFormingLobbySeatReadyV1Input = Readonly<{ readonly participantId: string; readonly seatCapability: string; readonly ready: boolean }>;
 export type StartOnlineFormingLobbyV1Input = Readonly<{ readonly hostParticipantId: string; readonly seatCapability: string }>;
+export type StartOnlineFormingLobbyWithTableV1Input = Readonly<{
+  readonly hostParticipantId: string;
+  readonly seatCapability: string;
+  readonly tableParticipantId: string;
+  readonly tableCapability: string;
+}>;
 
 export type OnlineFormingLobbyProjectionV1 = Readonly<{
   readonly kind: 'online-forming-lobby-projection-v1';
@@ -240,6 +248,70 @@ export function startOnlineFormingLobbyV1(lobbyInput: unknown, input: StartOnlin
   const genesis = bootstrapFourDeckGenesisV1({ roomId: lobby.roomId, serverBuildId: lobby.serverBuildId, seats });
   if (!genesis.ok) return Object.freeze({ lobby, genesis });
   return Object.freeze({ lobby: validateLobbyInternal(freezeLobby({ ...lobby, lifecycle: 'started' })), genesis });
+}
+
+/**
+ * Add the single host-authorized Table observer to the existing deterministic
+ * four-player bootstrap.  This deliberately delegates card parsing and Core
+ * construction to the legacy start helper so the four-deck bytes remain
+ * identical; only the Room/Protocol observer envelope is extended.
+ */
+export function startOnlineFormingLobbyWithTableV1(
+  lobbyInput: unknown,
+  input: StartOnlineFormingLobbyWithTableV1Input,
+): Readonly<{ readonly lobby: OnlineFormingLobbyV1; readonly genesis: FourDeckBootstrapResultV1 }> {
+  const lobby = validateLobbyInternal(lobbyInput);
+  if (
+    lobby.lifecycle !== 'ready' ||
+    !exactRecord(input, ['hostParticipantId', 'seatCapability', 'tableParticipantId', 'tableCapability']) ||
+    !appId(input.hostParticipantId) ||
+    !capability(input.seatCapability) ||
+    !appId(input.tableParticipantId) ||
+    typeof input.tableCapability !== 'string' ||
+    !/^[A-Za-z0-9_-]{32,128}$/.test(input.tableCapability)
+  ) fail('Invalid table start input');
+  if (input.hostParticipantId !== lobby.hostParticipantId || seatForCapability(lobby, input.hostParticipantId, input.seatCapability) !== 0) fail('Host authorization rejected');
+  if (input.tableParticipantId === input.hostParticipantId || lobby.seats.some((seat) => seat.participantId === input.tableParticipantId)) fail('Table participant collision');
+  const configured = capabilitiesOf(lobby);
+  if (configured.includes(input.tableCapability) || input.tableCapability === input.seatCapability) fail('Table capability collision');
+  try {
+    const allCapabilities = [...configured, input.tableCapability];
+    for (let index = 0; index < allCapabilities.length; index += 1) {
+      const current = allCapabilities[index];
+      if (current === undefined) continue;
+      assertNoConfiguredCapabilityFragmentV1(current, allCapabilities.filter((_, candidateIndex) => candidateIndex !== index));
+    }
+    assertNoConfiguredCapabilityFragmentV1(input.tableParticipantId, allCapabilities);
+    for (const identifier of [lobby.roomId, lobby.serverBuildId, lobby.hostParticipantId, ...lobby.seats.flatMap((seat) => [seat.participantId, seat.deckId].filter((value): value is string => value !== null))]) {
+      assertNoConfiguredCapabilityFragmentV1(identifier, [input.tableCapability]);
+    }
+  } catch {
+    fail('Table capability fragment');
+  }
+  const started = startOnlineFormingLobbyV1(lobby, {
+    hostParticipantId: input.hostParticipantId,
+    seatCapability: input.seatCapability,
+  });
+  if (!started.genesis.ok) return started;
+  try {
+    const roomWithTable = joinOnlineRoomV1(started.genesis.room, {
+      participantId: input.tableParticipantId,
+      role: 'table',
+    });
+    const observerCapability = input.tableCapability as OnlineProtocolObserverCapabilityV1;
+    const protocolState = createOnlineProtocolStateV1({
+      serverBuildId: lobby.serverBuildId,
+      room: roomWithTable,
+      coreRoot: started.genesis.coreRoot,
+      observerAuthorizations: [{ participantId: input.tableParticipantId, observerCapability }],
+    });
+    return Object.freeze({
+      lobby: started.lobby,
+      genesis: Object.freeze({ ...started.genesis, room: roomWithTable, protocolState }),
+    });
+  } catch {
+    fail('Table start initialization failed');
+  }
 }
 
 export function projectOnlineFormingLobbyV1(lobbyInput: unknown): OnlineFormingLobbyProjectionV1 {

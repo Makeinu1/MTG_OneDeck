@@ -220,6 +220,9 @@ function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: str
       || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/workbench/index'))
       || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/guidedActions/index'))
     )
+  ) || (
+    sourcePath === 'src/components/online/PublicOnlineApp.tsx'
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/publicApp/index'))
   );
 }
 

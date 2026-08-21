@@ -369,6 +369,71 @@ export class OnlineCloudflareRepository {
     });
   }
 
+  /** Atomically initialize Room/security/checkpoint and advance its forming lobby. */
+  initializeRoomAndTransitionLobby(
+    roomId: string,
+    state: OnlineProtocolStateV1,
+    previousLobby: OnlineFormingLobbyV1,
+    nextLobby: OnlineFormingLobbyV1,
+    nowInput: unknown = Date.now(),
+  ): OnlineCloudflareRoomStatusV1 {
+    const stateJson = serializeOnlineCloudflareProtocolStateV1(state);
+    const checkedPrevious = validateOnlineFormingLobbyV1(previousLobby);
+    const checkedNext = validateOnlineFormingLobbyV1(nextLobby);
+    if (
+      state.room.roomId !== roomId ||
+      state.revision !== 0 ||
+      state.coreRoot.acceptedCommandCount !== 0 ||
+      state.receipts.length !== 0 ||
+      !checkedPrevious.ok ||
+      !checkedNext.ok ||
+      checkedPrevious.value.roomId !== roomId ||
+      checkedNext.value.roomId !== roomId ||
+      checkedPrevious.value.lifecycle !== 'ready' ||
+      checkedNext.value.lifecycle !== 'started'
+    ) throw new Error('Invalid atomic Room/lobby initialization input');
+    const previousJson = JSON.stringify(checkedPrevious.value);
+    const nextJson = JSON.stringify(checkedNext.value);
+    if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid forming lobby serialization');
+    return this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_ROOM);
+      this.storage.sql.exec(CREATE_JOURNAL);
+      this.storage.sql.exec(CREATE_MIGRATION);
+      this.storage.sql.exec(CREATE_CHECKPOINT);
+      this.storage.sql.exec(CREATE_LOBBY);
+      this.securityRepository.createSchemaInTransaction();
+      const migrations = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
+      if (migrations.length > 1 || (migrations[0] !== undefined && (migrations[0].singleton !== 1 || migrations[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1))) throw new Error('Invalid application migration ledger');
+      if (migrations.length === 0) this.storage.sql.exec(INSERT_MIGRATION, ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1);
+      const existing = this.rows();
+      if (existing.length > 1) throw new Error('Invalid singleton state');
+      let effectiveState = state;
+      if (existing.length === 0) {
+        this.storage.sql.exec(INSERT_ROOM, 1, ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1, roomId, state.revision, state.room.lifecycle, state.coreRoot.acceptedCommandCount, stateJson);
+        this.securityRepository.initializeInTransaction(roomId, state, nowInput);
+        this.storage.sql.exec(INSERT_CHECKPOINT, roomId, state.revision, stateJson);
+      } else {
+        const current = this.loadWithoutMigration();
+        if (current === null || current.room.roomId !== roomId || serializeOnlineCloudflareProtocolStateV1(current) !== stateJson) throw new ConflictError();
+        effectiveState = current;
+        const securityPresence = this.securityRepository.migrationPresence();
+        if (securityPresence.state === 0 && securityPresence.grants === 0 && securityPresence.leases === 0 && securityPresence.audit === 0) this.securityRepository.initializeInTransaction(roomId, current, nowInput);
+        else this.securityRepository.read(current);
+        const checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray();
+        if (checkpoints.length === 0) this.storage.sql.exec(INSERT_CHECKPOINT, roomId, current.revision, stateJson);
+        else if (checkpoints.length !== 1 || checkpoints[0]?.room_id !== roomId || checkpoints[0]?.checkpoint_revision !== current.revision || checkpoints[0]?.state_json !== stateJson) throw new Error('Invalid recovery checkpoint');
+      }
+      const lobbyRows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (lobbyRows.length !== 1 || lobbyRows[0]?.room_id !== roomId) throw new ConflictError();
+      if (lobbyRows[0]?.state_json !== nextJson) {
+        if (lobbyRows[0]?.state_json !== previousJson) throw new ConflictError();
+        const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, roomId, nextJson, roomId, previousJson).toArray();
+        if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+      }
+      return this.statusFor(effectiveState);
+    });
+  }
+
   commitAccepted(state: OnlineProtocolStateV1, envelope: OnlineCommandEnvelopeV1): void {
     if (
       state.room.roomId !== envelope.roomId ||

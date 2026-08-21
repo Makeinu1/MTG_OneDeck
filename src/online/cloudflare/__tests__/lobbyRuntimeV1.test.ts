@@ -118,6 +118,7 @@ describe('forming lobby runtime persistence', () => {
     storage.failExecWhen = (query) => query.startsWith('UPDATE online_forming_lobby');
     const started = await object.fetch(post({ kind: 'online-forming-lobby-start-v1', schemaVersion: 1, hostParticipantId: participants[0], seatCapability: seatCapabilities[0] }));
     expect(started.status).toBe(400);
+    expect((await object.fetch(new Request(`https://room.test/api/online/rooms/${roomId}`))).status).toBe(404);
     storage.failExecWhen = null;
     const recovered = await object.fetch(post({ kind: 'online-forming-lobby-start-v1', schemaVersion: 1, hostParticipantId: participants[0], seatCapability: seatCapabilities[0] }));
     expect(recovered.status).toBe(200);

@@ -86,8 +86,12 @@ async function handleCreate(request: Request, env: OnlineCloudflareEnv): Promise
   const serverBuildId = isCanonicalVersionIdentifier(env.CF_VERSION_METADATA?.id) ? env.CF_VERSION_METADATA.id : 'o4p-06c-server';
   const seatCapabilities = [randomToken('seat'), randomToken('seat'), randomToken('seat'), randomToken('seat')] as [string, string, string, string];
   const inviteCapabilities = [randomToken('invite'), randomToken('invite'), randomToken('invite')] as [string, string, string];
+  const tableParticipantId = randomToken('table').slice(0, 64);
+  const tableCapability = randomToken('observer');
+  if (new Set([...seatCapabilities, ...inviteCapabilities, tableCapability]).size !== 8) return genericError(500);
   const lobby = createOnlineFormingLobbyV1({ roomId, serverBuildId, hostParticipantId: body.participantId, seatCapabilities, inviteCapabilities });
-  for (const identifier of [roomId, serverBuildId, body.participantId]) assertNoConfiguredCapabilityFragmentV1(identifier, [...seatCapabilities, ...inviteCapabilities]);
+  for (const identifier of [roomId, serverBuildId, body.participantId, tableParticipantId]) assertNoConfiguredCapabilityFragmentV1(identifier, [...seatCapabilities, ...inviteCapabilities, tableCapability]);
+  assertNoConfiguredCapabilityFragmentV1(tableCapability, [...seatCapabilities, ...inviteCapabilities]);
   const internal = new Request(`https://worker.internal/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -96,7 +100,7 @@ async function handleCreate(request: Request, env: OnlineCloudflareEnv): Promise
   const result = await env.ONLINE_ROOMS.getByName(roomId).fetch(internal);
   if (!result.ok) return genericError(result.status === 409 ? 409 : 500);
   const resultBody = await result.json() as Record<string, unknown>;
-  return jsonResponse({ kind: 'online-forming-lobby-created-v1', schemaVersion: 1, roomId, seatCapability: seatCapabilities[0], inviteCapabilities: Object.freeze([...inviteCapabilities]), projection: resultBody.projection });
+  return jsonResponse({ kind: 'online-forming-lobby-created-v1', schemaVersion: 1, roomId, seatCapability: seatCapabilities[0], inviteCapabilities: Object.freeze([...inviteCapabilities]), tableParticipantId, tableCapability, projection: resultBody.projection });
 }
 
 export default {

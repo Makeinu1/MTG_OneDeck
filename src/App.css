@@ -10,6 +10,16 @@
   align-items: center;
   padding: 48px 24px 80px;}
 
+.app__mode-choice {
+  width: min(82.5rem, 100%);
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);}
+
+.app__mode-choice button { min-height: 44px; }
+
 .app__resume {
   min-width: 0;
   padding: var(--space-3) var(--space-4);

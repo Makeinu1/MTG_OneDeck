@@ -6,6 +6,7 @@ import { startAudioForGameGesture } from './components/game/presentation/AudioVi
 import { OpponentSetupScreen } from './components/game/OpponentSetupScreen';
 import { Modal } from './components/Modal';
 import { SavedDeckLibrary } from './components/SavedDeckLibrary';
+import { PublicOnlineApp } from './components/online/PublicOnlineApp';
 import { loadSnapshot, type GameSnapshot } from './data/gameSnapshot';
 import { loadKeybindings, type KeybindingsMap } from './data/keybindings';
 import {
@@ -70,6 +71,7 @@ function App() {
   const [gameView, setGameView] = useState<'game' | 'opponent-setup'>('game');
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | 'new' | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
+  const [onlineMode, setOnlineMode] = useState<'solo' | 'online'>('solo');
   const localizationRefreshKey = useRef('');
 
   useEffect(() => {
@@ -229,8 +231,25 @@ function App() {
     );
   }
 
+  if (onlineMode === 'online') {
+    return (
+      <div className="app">
+        <PublicOnlineApp
+          decks={savedDecks.map((deck) => ({ id: deck.id, name: deck.name, deckText: deck.deckText }))}
+          initialDeckId={selectedDeck?.id}
+          onBackToSolo={() => setOnlineMode('solo')}
+        />
+        <FanContentNotice />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
+      <nav className="app__mode-choice" aria-label="プレイモード">
+        <button type="button" className="btn btn--primary" data-testid="open-solo-mode" onClick={() => setOnlineMode('solo')}>一人回し</button>
+        <button type="button" className="btn btn--ghost" data-testid="open-online-mode" onClick={() => setOnlineMode('online')}>4人オンライン</button>
+      </nav>
       {(snapshot?.state || (legacyFallback && legacyDeck && legacyDeck.length > 0)) && (
         <section className="app__resume-shelf" aria-label="前回の続き">
           {snapshot?.state && (
