@@ -185,10 +185,9 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     );
   });
 
-  it('selects the first pending O4P-06 parent through the healthy active program', () => {
+  it('projects the healthy active program through its pending and complete states', () => {
     const ledger = parseLedger(text(LEDGER_PATH));
     const nextDomainId = IDS.find((id) => ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
-    expect(nextDomainId).toBeDefined();
     const context = spawnSync('node', ['scripts/codex-context.mjs'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -199,16 +198,24 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     const projection = JSON.parse(context.stdout) as {
       health?: { ok?: boolean; errors?: unknown[] };
       selection?: { kind?: string; domainId?: string; reason?: string };
-      activeProgram?: { id?: string; status?: string; nextDomainId?: string };
+      activeProgram?: { id?: string; status?: string; nextDomainId?: string | null };
       loopState?: { status?: string };
     };
     expect(projection.health).toEqual({ ok: true, errors: [] });
-    expect(projection.selection).toMatchObject({
-      kind: 'selected', domainId: nextDomainId, reason: 'active-program-order',
-    });
-    expect(projection.activeProgram).toMatchObject({
-      id: 'O4P-06', status: 'active', nextDomainId,
-    });
+    if (nextDomainId === undefined) {
+      expect(projection.activeProgram).toEqual({
+        id: 'O4P-06', domainIds: IDS, status: 'complete', nextDomainId: null,
+      });
+      expect(IDS).not.toContain(projection.selection?.domainId);
+      expect(projection.selection?.reason).not.toBe('active-program-order');
+    } else {
+      expect(projection.selection).toMatchObject({
+        kind: 'selected', domainId: nextDomainId, reason: 'active-program-order',
+      });
+      expect(projection.activeProgram).toMatchObject({
+        id: 'O4P-06', status: 'active', nextDomainId,
+      });
+    }
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
   });
