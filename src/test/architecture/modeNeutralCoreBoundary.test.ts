@@ -271,6 +271,28 @@ function isFrozenProtocolCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenCloudflareCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/cloudflare/persistence.ts',
+    new Set(['coreSha256HexV1']),
+  ],
+]);
+
+function isFrozenCloudflareCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenCloudflareCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/projection/project.ts',
@@ -651,6 +673,7 @@ function inspectReference(
     && !isFrozenCompatibilityCoreConsumer(unitPath, target)
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
+    && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
@@ -871,6 +894,10 @@ describe('mode-neutral Core dependency boundary', () => {
         filePath: resolve(repositoryRoot, 'src/online/protocol/validation.ts'),
         sourceText: "import { validateCoreCommandV1, type CoreCommandV1 } from '../../engine/core/index';",
       },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
     ];
     expect(analyzeBoundarySources(units)).toEqual([]);
   });
@@ -974,6 +1001,36 @@ describe('mode-neutral Core dependency boundary', () => {
       {
         filePath: resolve(repositoryRoot, 'src/online/bootstrap/fourDeckBootstrapV1.ts'),
         sourceText: "import { createModeNeutralCoreRootV1 } from '../../engine/core/closure';",
+      },
+    ];
+    expect(analyzeBoundarySources(rejectedUnits).map(({ rule }) => rule)).toEqual([
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+    ]);
+  });
+
+  it('keeps the Cloudflare checkpoint-digest allowance file-, symbol-, and public-barrel-exact', () => {
+    const allowedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+    ];
+    expect(analyzeBoundarySources(allowedUnits)).toEqual([]);
+
+    const rejectedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/cloudflare/unreviewed.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
+        sourceText: "import { coreCanonicalDigestFromValueV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/closure';",
       },
     ];
     expect(analyzeBoundarySources(rejectedUnits).map(({ rule }) => rule)).toEqual([

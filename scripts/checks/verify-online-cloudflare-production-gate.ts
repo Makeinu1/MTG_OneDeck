@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as ts from 'typescript';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const baseSha = '9ab8449aa7b7a4ab729f5d9acb752417c686e07b';
@@ -152,6 +153,51 @@ for (const path of production) {
 }
 
 const persistence = readText('src/online/cloudflare/persistence.ts');
+const persistenceAst = ts.createSourceFile(
+  'src/online/cloudflare/persistence.ts',
+  persistence,
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TS,
+);
+
+function collectAstNodes<T extends ts.Node>(
+  root: ts.Node,
+  predicate: (node: ts.Node) => node is T,
+): readonly T[] {
+  const matches: T[] = [];
+  function visit(node: ts.Node): void {
+    if (predicate(node)) matches.push(node);
+    ts.forEachChild(node, visit);
+  }
+  visit(root);
+  return matches;
+}
+
+function repositoryMethod(name: string): ts.MethodDeclaration {
+  const matches = collectAstNodes(
+    persistenceAst,
+    (node): node is ts.MethodDeclaration => ts.isMethodDeclaration(node)
+      && ts.isIdentifier(node.name)
+      && node.name.text === name
+      && ts.isClassDeclaration(node.parent)
+      && node.parent.name?.text === 'OnlineCloudflareRepository',
+  );
+  assert.equal(matches.length, 1, `expected one repository method: ${name}`);
+  const method = matches[0];
+  if (method === undefined || method.body === undefined) {
+    throw new Error(`missing repository method body: ${name}`);
+  }
+  return method;
+}
+
+function flattenedOrOperands(expression: ts.Expression): readonly string[] {
+  if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
+    return [...flattenedOrOperands(expression.left), ...flattenedOrOperands(expression.right)];
+  }
+  return [expression.getText(persistenceAst)];
+}
+
 assert.match(persistence, /ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1\s*=|ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1/);
 assert.match(persistence, /online_application_migration/);
 assert.match(persistence, /online_recovery_checkpoint/);
@@ -165,7 +211,197 @@ assert.match(persistence, /handleOnlineCommandEnvelopeV1\(replayReady\.value/);
 assert.match(persistence, /isCanonicalVersionIdentifier/);
 assert.match(persistence, /migrationSchemaPresence\(\)/);
 assert.match(persistence, /securityTables\.length !== 0 && securityTables\.length !== 4/);
-assert.match(persistence, /else this\.validateCheckpoint\(state\)/);
+const recoverySchemaDeclarations = collectAstNodes(
+  persistenceAst,
+  (node): node is ts.VariableDeclaration => ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && node.name.text === 'CREATE_RECOVERY_VERIFICATION'
+    && ts.isVariableDeclarationList(node.parent)
+    && (node.parent.flags & ts.NodeFlags.Const) !== 0
+    && ts.isVariableStatement(node.parent.parent)
+    && node.parent.parent.parent === persistenceAst,
+);
+assert.equal(recoverySchemaDeclarations.length, 1);
+const recoverySchemaInitializer = recoverySchemaDeclarations[0]?.initializer;
+if (recoverySchemaInitializer === undefined || !ts.isNoSubstitutionTemplateLiteral(recoverySchemaInitializer)) {
+  throw new Error('invalid recovery verification schema declaration');
+}
+assert.equal(
+  recoverySchemaInitializer.text,
+  'CREATE TABLE IF NOT EXISTS online_recovery_verification (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, version_identifier TEXT NOT NULL, verified_revision INTEGER NOT NULL, checkpoint_revision INTEGER NOT NULL, journal_count INTEGER NOT NULL, checkpoint_digest TEXT NOT NULL) STRICT',
+);
+
+const recoveryHit = repositoryMethod('recoveryVerificationHit');
+if (recoveryHit.body === undefined) throw new Error('recovery hit body missing');
+const digestRejections = recoveryHit.body.statements.filter((statement): statement is ts.IfStatement =>
+  ts.isIfStatement(statement)
+  && collectAstNodes(
+    statement.expression,
+    (node): node is ts.BinaryExpression => ts.isBinaryExpression(node)
+      && node.getText(persistenceAst)
+        === 'marker.checkpoint_digest !== checkpointDigest(checkpoint.state_json)',
+  ).length === 1
+  && statement.thenStatement.getText(persistenceAst) === 'return null;');
+assert.equal(digestRejections.length, 1);
+const digestRejection = digestRejections[0];
+if (digestRejection === undefined) throw new Error('digest rejection missing');
+const digestRelation = collectAstNodes(
+  digestRejection.expression,
+  (node): node is ts.BinaryExpression => ts.isBinaryExpression(node)
+    && node.getText(persistenceAst)
+      === 'marker.checkpoint_digest !== checkpointDigest(checkpoint.state_json)',
+)[0];
+if (digestRelation === undefined || !ts.isBinaryExpression(digestRelation.parent)) throw new Error('digest relation missing');
+assert.equal(digestRelation.parent, digestRejection.expression);
+assert.equal(digestRelation.parent.operatorToken.kind, ts.SyntaxKind.BarBarToken);
+assert.equal(digestRelation.parent.right, digestRelation);
+const directRecoveryReturns = recoveryHit.body.statements.filter(ts.isReturnStatement);
+assert.equal(directRecoveryReturns.length, 1);
+assert.equal(
+  recoveryHit.body.statements.indexOf(directRecoveryReturns[0] as ts.Statement)
+    > recoveryHit.body.statements.indexOf(digestRejection),
+  true,
+);
+const digestCondition = digestRejection.expression.getText(persistenceAst);
+assert.deepEqual(flattenedOrOperands(digestRejection.expression), [
+  'checkpoint === undefined',
+  'marker === undefined',
+  'checkpoint.singleton !== 1',
+  "typeof checkpoint.room_id !== 'string'",
+  'checkpoint.room_id !== state.room.roomId',
+  '!isInteger(checkpoint.checkpoint_revision)',
+  'checkpoint.checkpoint_revision > state.revision',
+  "typeof checkpoint.state_json !== 'string'",
+  '!isBoundedSerialized(checkpoint.state_json)',
+  'marker.singleton !== 1',
+  "typeof marker.room_id !== 'string'",
+  'marker.room_id !== state.room.roomId',
+  "typeof marker.version_identifier !== 'string'",
+  '!isCanonicalVersionIdentifier(marker.version_identifier)',
+  'marker.version_identifier !== this.versionIdentifier',
+  '!isInteger(marker.verified_revision)',
+  'marker.verified_revision !== state.revision',
+  '!isInteger(marker.checkpoint_revision)',
+  'marker.checkpoint_revision !== checkpoint.checkpoint_revision',
+  '!isInteger(marker.journal_count)',
+  'marker.journal_count !== state.revision',
+  '!isCheckpointDigest(marker.checkpoint_digest)',
+  'marker.checkpoint_digest !== checkpointDigest(checkpoint.state_json)',
+]);
+assert.equal(digestCondition.includes('checkpoint_digest'), true);
+
+const migrate = repositoryMethod('migrateApplicationSchema');
+if (migrate.body === undefined) throw new Error('migration body missing');
+assert.equal(migrate.body.statements.length, 5);
+assert.equal(migrate.body.statements[0]?.getText(persistenceAst), 'this.migrationRecovery = null;');
+assert.equal(migrate.body.statements.at(-2)?.getText(persistenceAst), 'this.migrationRecovery = pendingRecovery;');
+assert.equal(migrate.body.statements.at(-1)?.getText(persistenceAst), 'return changed;');
+const changedDeclarations = collectAstNodes(
+  migrate,
+  (node): node is ts.VariableDeclaration => ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && node.name.text === 'changed'
+    && node.initializer !== undefined
+    && ts.isCallExpression(node.initializer)
+    && node.initializer.expression.getText(persistenceAst) === 'this.storage.transactionSync'
+    && ts.isVariableDeclarationList(node.parent)
+    && ts.isVariableStatement(node.parent.parent)
+    && node.parent.parent.parent === migrate.body,
+);
+assert.equal(changedDeclarations.length, 1);
+const migrateTransaction = changedDeclarations[0]?.initializer;
+if (migrateTransaction === undefined || !ts.isCallExpression(migrateTransaction)) {
+  throw new Error('migration transaction call missing');
+}
+const migrateCallback = migrateTransaction.arguments[0];
+if (migrateCallback === undefined || !ts.isArrowFunction(migrateCallback) || !ts.isBlock(migrateCallback.body)) {
+  throw new Error('migration transaction callback missing');
+}
+const migrateBody = migrateCallback.body;
+const directMigrationReturns = migrateBody.statements.filter(ts.isReturnStatement);
+assert.equal(directMigrationReturns.length, 1);
+assert.equal(migrateBody.statements.at(-1), directMigrationReturns[0]);
+const cachedDeclarations = collectAstNodes(
+  migrateBody,
+  (node): node is ts.VariableDeclaration => ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && node.name.text === 'cached'
+    && node.initializer?.getText(persistenceAst) === 'this.recoveryVerificationHit(state)',
+);
+assert.equal(cachedDeclarations.length, 1);
+const cachedStatement = cachedDeclarations[0]?.parent.parent;
+if (cachedStatement === undefined || !ts.isVariableStatement(cachedStatement) || !ts.isBlock(cachedStatement.parent)) {
+  throw new Error('migration cache declaration missing');
+}
+const cachedBlock = cachedStatement.parent;
+const roomBranch = cachedBlock.parent;
+if (!ts.isIfStatement(roomBranch)) throw new Error('migration room branch missing');
+assert.equal(roomBranch.expression.getText(persistenceAst), 'room.length === 1');
+assert.equal(roomBranch.parent, migrateBody);
+const cachedIndex = cachedBlock.statements.indexOf(cachedStatement);
+const cacheMiss = cachedBlock.statements[cachedIndex + 1];
+if (cacheMiss === undefined || !ts.isIfStatement(cacheMiss)) {
+  throw new Error('migration cache-miss branch missing');
+}
+assert.equal(cacheMiss.expression.getText(persistenceAst), 'cached === null');
+const cacheMissBody = cacheMiss.thenStatement;
+if (!ts.isBlock(cacheMissBody)) throw new Error('migration cache-miss block missing');
+assert.equal(
+  cacheMissBody.statements[0]?.getText(persistenceAst),
+  'const recovery = this.validateCheckpoint(state);',
+);
+assert.equal(
+  cacheMissBody.statements[1]?.getText(persistenceAst),
+  'this.writeRecoveryVerificationInTransaction(state, recovery.checkpointRevision);',
+);
+
+const initialize = repositoryMethod('initialize');
+if (initialize.body === undefined) throw new Error('initialize body missing');
+const initializationTransactions = collectAstNodes(
+  initialize.body,
+  (node): node is ts.VariableDeclaration => ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && node.name.text === 'result'
+    && node.initializer !== undefined
+    && ts.isCallExpression(node.initializer)
+    && node.initializer.expression.getText(persistenceAst) === 'this.storage.transactionSync'
+    && ts.isVariableDeclarationList(node.parent)
+    && ts.isVariableStatement(node.parent.parent)
+    && node.parent.parent.parent === initialize.body,
+);
+assert.equal(initializationTransactions.length, 1);
+const initializationCall = initializationTransactions[0]?.initializer;
+if (initializationCall === undefined || !ts.isCallExpression(initializationCall)) throw new Error('initialization transaction missing');
+const initializationCallback = initializationCall.arguments[0];
+if (initializationCallback === undefined || !ts.isArrowFunction(initializationCallback) || !ts.isBlock(initializationCallback.body)) throw new Error('initialization transaction callback missing');
+const initializationStatements = initializationCallback.body.statements.map((statement) => statement.getText(persistenceAst));
+const initializationRecoveryIndex = initializationStatements.indexOf('const initializationRecovery = this.validateCheckpoint(state);');
+assert.notEqual(initializationRecoveryIndex, -1);
+assert.equal(
+  initializationStatements[initializationRecoveryIndex + 1],
+  'this.writeRecoveryVerificationInTransaction(state, state.revision);',
+);
+const directInitializationReturns = initializationCallback.body.statements.filter(ts.isReturnStatement);
+assert.equal(directInitializationReturns.length, 1);
+assert.equal(initializationCallback.body.statements.at(-1), directInitializationReturns[0]);
+assert.equal(initializationRecoveryIndex + 2, initializationCallback.body.statements.length - 1);
+
+const commit = repositoryMethod('commitAccepted');
+if (commit.body === undefined) throw new Error('commit body missing');
+const commitTransactions = commit.body.statements.filter((statement): statement is ts.ExpressionStatement =>
+  ts.isExpressionStatement(statement)
+  && ts.isCallExpression(statement.expression)
+  && statement.expression.expression.getText(persistenceAst) === 'this.storage.transactionSync');
+assert.equal(commitTransactions.length, 1);
+const commitTransactionCall = commitTransactions[0]?.expression;
+if (commitTransactionCall === undefined || !ts.isCallExpression(commitTransactionCall)) throw new Error('commit transaction missing');
+const commitCallback = commitTransactionCall.arguments[0];
+if (commitCallback === undefined || !ts.isArrowFunction(commitCallback) || !ts.isBlock(commitCallback.body)) throw new Error('commit transaction callback missing');
+assert.equal(commitCallback.body.statements.filter(ts.isReturnStatement).length, 0);
+assert.equal(
+  commitCallback.body.statements.at(-1)?.getText(persistenceAst),
+  'this.writeRecoveryVerificationInTransaction(state, checkpoint.checkpoint_revision);',
+);
 
 const facts = readText('src/online/cloudflare/facts.ts');
 for (const value of [

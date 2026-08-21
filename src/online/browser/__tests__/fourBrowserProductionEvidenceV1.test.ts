@@ -3,6 +3,7 @@ import {
   O4P06F_PAGES_ORIGIN_V1,
   O4P06F_WORKER_ORIGIN_V1,
   inspectO4p06fProjectionZonesV1,
+  isO4p06fRevisionNoticeAtMostV1,
   runO4p06fFourBrowserEvidenceV1,
   validateO4p06fEvidenceSummaryV1,
   type O4p06fBrowserV1,
@@ -72,6 +73,17 @@ function hangingCleanupBrowser(log: string[]): O4p06fBrowserV1 {
 }
 
 describe('O4P-06F four-browser production evidence', () => {
+  it('accepts only an exact same-room non-future revision notice', () => {
+    const roomId = 'room-ordinary-revision-notice';
+    const notice = { kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId, revision: 3 };
+    expect(isO4p06fRevisionNoticeAtMostV1(notice, roomId, 3)).toBe(true);
+    expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, revision: 4 }, roomId, 3)).toBe(false);
+    expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, revision: -0 }, roomId, 3)).toBe(false);
+    expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, roomId: 'room-other' }, roomId, 3)).toBe(false);
+    expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, schemaVersion: 2 }, roomId, 3)).toBe(false);
+    expect(isO4p06fRevisionNoticeAtMostV1({ ...notice, extra: true }, roomId, 3)).toBe(false);
+  });
+
   it('accepts a closed secret-free summary and freezes a fresh copy', () => {
     const input = summary();
     const result = validateO4p06fEvidenceSummaryV1(input);

@@ -25,6 +25,7 @@ const MAX_WS_FRAME_BYTES = 65_536;
 const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_CANONICAL_DEPTH = 64;
 const MAX_CANONICAL_NODES = 20_000;
+const MAX_QUEUED_REVISION_NOTICES = 64;
 
 type RecordV1 = Record<string, unknown>;
 type JsonValueV1 = null | boolean | number | string | readonly JsonValueV1[] | { readonly [key: string]: JsonValueV1 };
@@ -434,6 +435,38 @@ async function receiveMatching(socket: O4p06fSocketV1, predicate: (value: Record
   }
 }
 
+export function isO4p06fRevisionNoticeAtMostV1(input: unknown, roomId: string, expectedRevision: number): boolean {
+  try {
+    if (typeof roomId !== 'string' || roomId.length === 0 || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return false;
+    const value = exactKeys(input, ['kind', 'roomId', 'revision', 'schemaVersion'], 'revision notice malformed');
+    const noticeRevision = own(value, 'revision');
+    return own(value, 'kind') === 'online-cloudflare-revision-v1'
+      && own(value, 'schemaVersion') === 1
+      && own(value, 'roomId') === roomId
+      && typeof noticeRevision === 'number'
+      && Number.isSafeInteger(noticeRevision)
+      && !Object.is(noticeRevision, -0)
+      && noticeRevision >= 0
+      && noticeRevision <= expectedRevision;
+  } catch {
+    return false;
+  }
+}
+
+async function drainQueuedRevisionNotices(socket: O4p06fSocketV1, roomId: string, expectedRevision: number, timeoutMs: number, fragments: readonly string[], runtime: TimeoutRuntimeV1): Promise<void> {
+  for (let drained = 0; drained < MAX_QUEUED_REVISION_NOTICES; drained += 1) {
+    const pending = await assertTimeout(socket.pendingCount(), timeoutMs, 'revision queue count', runtime);
+    if (!Number.isSafeInteger(pending) || pending < 0 || pending > MAX_QUEUED_REVISION_NOTICES) throw new Error('revision queue invalid');
+    if (pending === 0) return;
+    const value = await assertTimeout(socket.next(timeoutMs), timeoutMs, 'revision queue drain', runtime);
+    assertSecretFree(value, fragments);
+    const current = asRecord(value, 'revision queue frame');
+    if (!isO4p06fRevisionNoticeAtMostV1(current, roomId, expectedRevision)) throw new Error('revision queue unexpected frame');
+  }
+  if (await assertTimeout(socket.pendingCount(), timeoutMs, 'revision queue final count', runtime) === 0) return;
+  throw new Error('revision queue exhausted');
+}
+
 async function openParticipantSocket(page: O4p06fPageV1, url: string, roomId: string, participantId: string, participantCapability: string, role: 'player' | 'table', fragments: readonly string[], timeoutMs: number, knownRevision: number, runtime: TimeoutRuntimeV1, trackSocket: (socket: O4p06fSocketV1) => void): Promise<{ readonly socket: O4p06fSocketV1; readonly projection: RecordV1; readonly reason: string; readonly snapshotCount: number }> {
   const socket = await assertTimeout(page.openWebSocket(url), timeoutMs, 'socket open', runtime);
   trackSocket(socket);
@@ -442,7 +475,7 @@ async function openParticipantSocket(page: O4p06fPageV1, url: string, roomId: st
   const hello = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-server-hello-v1', timeoutMs, fragments, 'socket hello', runtime);
   exactString(hello, 'status', 'accepted', 'socket hello rejected');
   if (own(hello, 'participantId') !== participantId || own(hello, 'roomId') !== roomId || own(hello, 'role') !== role) throw new Error('socket audience mismatch');
-  await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId, participantCapability, knownRevision, clientBuildId: CLIENT_BUILD_ID });
+  await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId, participantCapability, knownRevision, clientBuildId: CLIENT_BUILD_ID, decisionContext: null });
   const snapshot = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1', timeoutMs, fragments, 'initial projection', runtime);
   const snapshotCount = 1;
   if (typeof own(snapshot, 'revision') !== 'number' || (knownRevision > 0 && (own(snapshot, 'revision') as number) < knownRevision)) throw new Error('stale projection snapshot');
@@ -649,18 +682,33 @@ class CdpPageV1 implements O4p06fPageV1 {
       console.warn = (...args) => { state.warnings += 1; originalWarn(...args); };
       return true;
     })()`);
-    const controls = await this.evaluate<Readonly<{ readonly online: boolean; readonly lobby: boolean; readonly create: boolean; readonly join: boolean; readonly deck: boolean; readonly ready: boolean; readonly start: boolean; readonly href: string; readonly origin: string }>>(`(() => {
-      const open = document.querySelector('[data-testid="open-online-mode"]');
-      if (open instanceof HTMLElement) open.click();
-      return { online: document.querySelector('[data-testid="public-online-app"]') !== null,
-        lobby: document.querySelector('[data-testid="online-room-summary"]') !== null || document.querySelector('[data-testid="online-create-room"]') !== null,
-        create: document.querySelector('[data-testid="online-create-room"]') !== null,
-        join: document.querySelector('[data-testid="online-join-room"]') !== null,
-        deck: document.querySelector('[data-testid="online-deck-select"]') !== null,
-        ready: document.querySelector('[data-testid="online-ready-toggle"]') !== null,
-        start: document.querySelector('[data-testid="online-start-game"]') !== null, href: location.href, origin: location.origin };
-    })()`);
-    if (!controls.online || !controls.lobby || !controls.create || !controls.join || !controls.deck || !controls.ready || !controls.start || controls.href !== url || controls.origin !== new URL(url).origin) throw new Error('public Online controls/document mismatch');
+    try {
+      await this.evaluate(`(() => {
+        const open = document.querySelector('[data-testid="open-online-mode"]');
+        if (!(open instanceof HTMLElement)) throw new Error('public Online entry missing');
+        open.click();
+        return true;
+      })()`);
+    } catch { throw new Error('public Online entry activation failed'); }
+    let controls: Readonly<{ readonly online: boolean; readonly lobby: boolean; readonly create: boolean; readonly join: boolean; readonly deck: boolean; readonly ready: boolean; readonly start: boolean; readonly href: string; readonly origin: string }>;
+    try { controls = await this.evaluate(`new Promise((resolve) => {
+      const deadline = Date.now() + 5_000;
+      const inspect = () => {
+        const value = { online: document.querySelector('[data-testid="public-online-app"]') !== null,
+          lobby: document.querySelector('[data-testid="online-room-summary"]') !== null || document.querySelector('[data-testid="online-create-room"]') !== null,
+          create: document.querySelector('[data-testid="online-create-room"]') !== null,
+          join: document.querySelector('[data-testid="online-join-room"]') !== null,
+          deck: document.querySelector('[data-testid="online-deck-select"]') !== null,
+          ready: document.querySelector('[data-testid="online-ready-toggle"]') !== null,
+          start: document.querySelector('[data-testid="online-start-game"]') !== null, href: location.href, origin: location.origin };
+        if (value.online && value.lobby && value.create && value.join && value.deck && value.ready && value.start) resolve(value);
+        else if (Date.now() >= deadline) resolve(value);
+        else setTimeout(inspect, 25);
+      };
+      inspect();
+    })`); } catch { throw new Error('public Online controls wait failed'); }
+    const missingControls = (['online', 'lobby', 'create', 'join', 'deck', 'ready', 'start'] as const).filter((key) => !controls[key]);
+    if (missingControls.length > 0 || controls.href !== url || controls.origin !== new URL(url).origin) throw new Error(`public Online controls/document mismatch: ${missingControls.join(',') || 'location'}`);
   }
 
   async evaluate<T>(expression: string, argument?: unknown): Promise<T> {
@@ -713,7 +761,7 @@ class CdpPageV1 implements O4p06fPageV1 {
   async assetFacts(): Promise<Readonly<{ readonly href: string; readonly origin: string; readonly statuses: readonly number[]; readonly hashes: readonly string[] }>> {
     return this.evaluate(`(async () => {
       const href = location.href; const origin = location.origin;
-      const urls = [href, ...[...document.querySelectorAll('script[src],link[rel="stylesheet"][href]')].map((node) => node instanceof HTMLScriptElement ? node.src : (node as HTMLLinkElement).href).filter((value) => value.startsWith(origin + '/'))];
+      const urls = [href, ...[...document.querySelectorAll('script[src],link[rel="stylesheet"][href]')].map((node) => node instanceof HTMLScriptElement ? node.src : node instanceof HTMLLinkElement ? node.href : '').filter((value) => value.startsWith(origin + '/'))];
       const rows = await Promise.all(urls.map(async (url) => { const response = await fetch(url); const reader = response.body?.getReader(); if (!reader) throw new Error('asset body missing'); const chunks = []; let total = 0; for (;;) { const part = await reader.read(); if (part.done) break; total += part.value.byteLength; if (total > ${String(MAX_HTTP_BODY_BYTES)}) throw new Error('asset too large'); chunks.push(part.value); } if (total === 0) throw new Error('asset body empty'); const bytes = new Uint8Array(total); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; } const digest = await crypto.subtle.digest('SHA-256', bytes); const hash = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join(''); return { status: response.status, hash }; }));
       return { href, origin, statuses: rows.map((row) => row.status), hashes: rows.map((row) => row.hash) };
     })()`);
@@ -955,12 +1003,13 @@ export async function runO4p06fFourBrowserEvidenceV1(input: O4p06fEvidenceDepsV1
       const playerId = CORE_PLAYERS[index]; if (playerId === undefined) throw new Error('missing player id');
       const before = projectionZones(playerProjections[index], playerId);
       const commandId = runtimeIdentifier('cmd');
+      await drainQueuedRevisionNotices(socket, roomId, revision, timeoutMs, runtimeFragments, timeoutRuntime);
       await socket.send({ kind: 'online-command-envelope-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: credential.participantId, participantCapability: credential.seatCapability, commandId, baseRevision: revision, command: createTabletopCommand(revision + 1, playerId, { kind: 'table-draw', count: 1 }) });
-      const ack = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-command-ack-v1' && own(value, 'commandId') === commandId, timeoutMs, runtimeFragments, 'draw ack', timeoutRuntime, (value) => own(value, 'kind') === 'online-cloudflare-revision-v1' && own(value, 'revision') === revision + 1);
+      const ack = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-command-ack-v1' && own(value, 'commandId') === commandId, timeoutMs, runtimeFragments, 'draw ack', timeoutRuntime, (value) => isO4p06fRevisionNoticeAtMostV1(value, roomId, revision + 1));
       if (own(ack, 'duplicate') !== false || own(ack, 'acceptedRevision') !== revision + 1 || own(ack, 'currentRevision') !== revision + 1) throw new Error('wrong revision or duplicate draw ack');
       revision += 1; actionKindCounts['table-draw'] += 1;
-      await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: credential.participantId, participantCapability: credential.seatCapability, knownRevision: revision, clientBuildId: CLIENT_BUILD_ID });
-      const snapshot = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1' && own(value, 'revision') === revision, timeoutMs, runtimeFragments, 'draw projection', timeoutRuntime, (value) => own(value, 'kind') === 'online-cloudflare-revision-v1' && own(value, 'revision') === revision);
+      await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: credential.participantId, participantCapability: credential.seatCapability, knownRevision: revision, clientBuildId: CLIENT_BUILD_ID, decisionContext: null });
+      const snapshot = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1' && own(value, 'revision') === revision, timeoutMs, runtimeFragments, 'draw projection', timeoutRuntime, (value) => isO4p06fRevisionNoticeAtMostV1(value, roomId, revision));
       const projection = projectionFrom(snapshot, runtimeFragments, 'draw projection invalid'); assertNoHiddenOpponentIdentity(projection, playerId);
       const after = projectionZones(projection, playerId);
       if (after.hand !== before.hand + 1 || after.library !== before.library - 1) throw new Error('draw zone counts mismatch');
@@ -976,8 +1025,9 @@ export async function runO4p06fFourBrowserEvidenceV1(input: O4p06fEvidenceDepsV1
     assertNoHiddenOpponentIdentity(p2Projection, 'P2'); playerProjections[1] = p2Projection;
     const p4 = playerCredentials[3]; const p4Socket = sockets[3]; if (p4 === undefined || p4Socket === undefined) throw new Error('missing P4 socket');
     const exitCommandId = runtimeIdentifier('cmd');
+    await drainQueuedRevisionNotices(p4Socket, roomId, revision, timeoutMs, runtimeFragments, timeoutRuntime);
     await p4Socket.send({ kind: 'online-command-envelope-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: p4.participantId, participantCapability: p4.seatCapability, commandId: exitCommandId, baseRevision: revision, command: createTabletopCommand(revision + 1, 'P4', { kind: 'player-exit', playerId: 'P4', cause: 'concession' }) });
-    const exitAck = await receiveMatching(p4Socket, (value) => own(value, 'kind') === 'online-command-ack-v1' && own(value, 'commandId') === exitCommandId, timeoutMs, runtimeFragments, 'exit ack', timeoutRuntime, (value) => own(value, 'kind') === 'online-cloudflare-revision-v1' && own(value, 'revision') === revision + 1);
+    const exitAck = await receiveMatching(p4Socket, (value) => own(value, 'kind') === 'online-command-ack-v1' && own(value, 'commandId') === exitCommandId, timeoutMs, runtimeFragments, 'exit ack', timeoutRuntime, (value) => isO4p06fRevisionNoticeAtMostV1(value, roomId, revision + 1));
     if (own(exitAck, 'duplicate') !== false || own(exitAck, 'acceptedRevision') !== 5 || own(exitAck, 'currentRevision') !== 5) throw new Error('exit revision mismatch'); revision = 5; actionKindCounts['player-exit'] += 1;
     const status = await requestJson(pages[0], `${workerOrigin}/api/online/rooms/${encodeURIComponent(roomId)}${ROOM_STATUS_SUFFIX}`, undefined, timeoutMs, timeoutRuntime);
     assertSecretFree(status.body, runtimeFragments);
@@ -987,8 +1037,8 @@ export async function runO4p06fFourBrowserEvidenceV1(input: O4p06fEvidenceDepsV1
     for (const index of [0, 1, 2, 3, 4] as const) {
       const socket = sockets[index]; if (socket === undefined) continue;
       const credential = index === 4 ? { participantId: createdTableId, seatCapability: createdTableCapability } : playerCredentials[index]; if (credential === undefined) continue;
-      await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: credential.participantId, participantCapability: credential.seatCapability, knownRevision: revision, clientBuildId: CLIENT_BUILD_ID });
-      const snapshot = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1' && own(value, 'revision') === 5, timeoutMs, runtimeFragments, 'exit projection', timeoutRuntime, (value) => own(value, 'kind') === 'online-cloudflare-revision-v1' && own(value, 'revision') === 5);
+      await socket.send({ kind: 'online-projection-request-v1', protocolVersion: PROTOCOL_VERSION, roomId, participantId: credential.participantId, participantCapability: credential.seatCapability, knownRevision: revision, clientBuildId: CLIENT_BUILD_ID, decisionContext: null });
+      const snapshot = await receiveMatching(socket, (value) => own(value, 'kind') === 'online-projected-snapshot-v1' && own(value, 'revision') === 5, timeoutMs, runtimeFragments, 'exit projection', timeoutRuntime, (value) => isO4p06fRevisionNoticeAtMostV1(value, roomId, 5));
       const projection = projectionFrom(snapshot, runtimeFragments, 'exit projection invalid'); assertNoHiddenOpponentIdentity(projection, index === 4 ? '' : CORE_PLAYERS[index], CORE_PLAYERS.slice(0, 3)); assertPlayerConceded(projection, 'P4'); if (index === 4) tableProjection = projection; else playerProjections[index] = projection;
     }
     const audienceProjections = [...playerProjections.slice(0, 3), tableProjection];

@@ -16,6 +16,12 @@ const FULL_CHECK_REPAIR_REVIEWS = [
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
   'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts',
 ] as const;
+const PRODUCTION_CORRECTION_PATHS = [
+  'src/online/cloudflare/__tests__/persistenceV1.test.ts',
+  'src/online/cloudflare/__tests__/securitySqlFixture.ts',
+  'src/online/cloudflare/persistence.ts',
+  'src/test/architecture/modeNeutralCoreBoundary.test.ts',
+] as const;
 
 function text(path: string): string {
   return readFileSync(resolve(ROOT, path), 'utf8');
@@ -35,7 +41,7 @@ describe('review O4P-06F four-browser production release', () => {
     const changedSrc = git('diff', '--name-only', BASE_SHA, '--', 'src')
       .split('\n')
       .filter(Boolean);
-    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS].sort());
+    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
     expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github')).toBe('');
 
     const before = JSON.parse(git('show', `${BASE_SHA}:package.json`)) as {

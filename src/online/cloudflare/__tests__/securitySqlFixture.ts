@@ -35,6 +35,7 @@ type LeaseRow = Record<string, unknown>;
 type AuditRow = Record<string, unknown>;
 type MigrationRow = { singleton: number; schema_version: number };
 type CheckpointRow = { singleton: number; room_id: string; checkpoint_revision: number; state_json: string };
+type RecoveryVerificationRow = { singleton: number; room_id: string; version_identifier: string; verified_revision: number; checkpoint_revision: number; journal_count: number; checkpoint_digest: string };
 
 function cursor<T extends Row>(rows: readonly T[]): { toArray(): T[] } {
   return { toArray: () => rows.map((row) => ({ ...row })) };
@@ -55,6 +56,7 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
   audit: AuditRow[] = [];
   migration: MigrationRow[] = [];
   checkpoint: CheckpointRow[] = [];
+  recoveryVerification: RecoveryVerificationRow[] = [];
   securityTables = new Set<string>();
   readonly queries: Array<Readonly<{ readonly query: string; readonly bindings: readonly unknown[] }>> = [];
   writeCount = 0;
@@ -63,6 +65,7 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
   failNextRoomUpdate = false;
   failNextPresenceUpdate = false;
   failNextCheckpointUpdate = false;
+  failNextCheckpointRead = false;
   checkpointUpdateReturningOverride: readonly Row[] | null = null;
   leaseDeleteReturningOverride: readonly Row[] | null = null;
 
@@ -81,6 +84,7 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     const securityTables = new Set(this.securityTables);
     const migration = this.migration.map((row) => ({ ...row }));
     const checkpoint = this.checkpoint.map((row) => ({ ...row }));
+    const recoveryVerification = this.recoveryVerification.map((row) => ({ ...row }));
     const writes = this.writeCount;
     const leaseDeleteReturningOverride = this.leaseDeleteReturningOverride;
     const checkpointUpdateReturningOverride = this.checkpointUpdateReturningOverride;
@@ -96,6 +100,7 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       this.securityTables = securityTables;
       this.migration = migration;
       this.checkpoint = checkpoint;
+      this.recoveryVerification = recoveryVerification;
       this.writeCount = writes;
       this.leaseDeleteReturningOverride = leaseDeleteReturningOverride;
       this.checkpointUpdateReturningOverride = checkpointUpdateReturningOverride;
@@ -115,6 +120,7 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     }
     if (query.startsWith('CREATE TABLE IF NOT EXISTS online_application_migration')) { return cursor<T>([]); }
     if (query.startsWith('CREATE TABLE IF NOT EXISTS online_recovery_checkpoint')) { return cursor<T>([]); }
+    if (query.startsWith('CREATE TABLE IF NOT EXISTS online_recovery_verification')) { return cursor<T>([]); }
     if (query.startsWith('CREATE TABLE online_capability_grant') || query.startsWith('CREATE TABLE IF NOT EXISTS online_capability_grant')) {
       if (this.securityTables.has('online_capability_grant')) return cursor<T>([]);
       this.securityTables.add('online_capability_grant');
@@ -144,7 +150,14 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       return cursor<T>(this.room === null ? [] : [this.room] as unknown as readonly T[]);
     }
     if (query.startsWith('SELECT') && query.includes('FROM online_application_migration')) return cursor<T>(this.migration as unknown as readonly T[]);
-    if (query.startsWith('SELECT') && query.includes('FROM online_recovery_checkpoint')) return cursor<T>(this.checkpoint as unknown as readonly T[]);
+    if (query.startsWith('SELECT') && query.includes('FROM online_recovery_checkpoint')) {
+      if (this.failNextCheckpointRead) {
+        this.failNextCheckpointRead = false;
+        throw new Error('forced checkpoint read failure');
+      }
+      return cursor<T>(this.checkpoint as unknown as readonly T[]);
+    }
+    if (query.startsWith('SELECT') && query.includes('FROM online_recovery_verification')) return cursor<T>(this.recoveryVerification as unknown as readonly T[]);
     if (query.startsWith('SELECT') && query.includes('FROM online_accepted_command')) return cursor<T>(this.journal as unknown as readonly T[]);
     if (query.startsWith('SELECT') && query.includes('FROM online_security_state')) {
       if (!this.securityTables.has('online_security_state')) throw new Error('missing security table');
@@ -178,6 +191,11 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     }
     if (query.startsWith('INSERT INTO online_recovery_checkpoint')) {
       this.checkpoint.push({ singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('INSERT INTO online_recovery_verification')) {
+      this.recoveryVerification.push({ singleton: 1, room_id: String(bindings[0]), version_identifier: String(bindings[1]), verified_revision: Number(bindings[2]), checkpoint_revision: Number(bindings[3]), journal_count: Number(bindings[4]), checkpoint_digest: String(bindings[5]) });
       this.writeCount += 1;
       return cursor<T>([]);
     }
@@ -228,6 +246,13 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       this.checkpoint[index] = { singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) };
       this.writeCount += 1;
       return cursor<T>([]);
+    }
+    if (query.startsWith('UPDATE online_recovery_verification')) {
+      const index = this.recoveryVerification.findIndex((row) => row.singleton === 1 && row.room_id === String(bindings[6]) && row.version_identifier === String(bindings[7]) && row.verified_revision === Number(bindings[8]) && row.checkpoint_revision === Number(bindings[9]) && row.journal_count === Number(bindings[10]) && row.checkpoint_digest === String(bindings[11]));
+      if (index < 0) return cursor<T>([]);
+      this.recoveryVerification[index] = { singleton: 1, room_id: String(bindings[0]), version_identifier: String(bindings[1]), verified_revision: Number(bindings[2]), checkpoint_revision: Number(bindings[3]), journal_count: Number(bindings[4]), checkpoint_digest: String(bindings[5]) };
+      this.writeCount += 1;
+      return cursor<T>([{ singleton: 1 } as unknown as T]);
     }
     if (query.startsWith('UPDATE online_room_state SET room_lifecycle')) {
       const matched = this.room !== null && this.room.room_id === String(bindings[2]) && this.room.revision === Number(bindings[3]) && this.room.state_json === String(bindings[4]);
