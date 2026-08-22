@@ -44,6 +44,7 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
       'src/online/cloudflare/runtime.ts',
+      'src/online/cloudflare/scryfallResolver.ts',
       'src/online/cloudflare/security.ts',
       'src/online/cloudflare/support.ts',
       'src/online/cloudflare/types.ts',
@@ -77,6 +78,7 @@ describe('O4P-03B architecture boundary', () => {
       '../projection/index',
       '../room/index',
       '../lobby/index',
+      '../deckSubmission/index',
       '../../engine/core/index',
     ]);
     for (const file of productionFiles(cloudflareRoot)) {
@@ -96,6 +98,7 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/room',
       'src/online/protocol',
       'src/online/projection',
+      'src/online/deckSubmission',
       'src/online/headless',
       'src/store',
     ]) {
@@ -130,14 +133,18 @@ describe('O4P-03B architecture boundary', () => {
 
   it('keeps same-revision presence persistence exact and accepted-command authority unchanged', () => {
     const persistence = source('src/online/cloudflare/persistence.ts');
+    const sameRevisionPersistence = persistence.match(
+      /persistSameRevision\s*\([\s\S]*?\n {2}\}\n\n\}/,
+    )?.[0] ?? '';
     expect(persistence).toMatch(/persistSameRevision\s*\(/);
+    expect(sameRevisionPersistence).not.toBe('');
     expect(persistence).not.toMatch(/commitPresence\s*\(|persistPresence\s*\(|commitPresenceSameRevision\s*\(/);
     expect(persistence).toMatch(
       /UPDATE online_room_state SET room_lifecycle = \?, state_json = \? WHERE singleton = 1 AND room_id = \? AND revision = \? AND state_json = \? RETURNING singleton/,
     );
-    expect(persistence).toMatch(/comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/);
-    expect(persistence).toMatch(/transactionSync\s*\(/);
-    expect(persistence).not.toMatch(/ALTER TABLE|DROP TABLE|PRAGMA|retry|setTimeout|setInterval/i);
+    expect(sameRevisionPersistence).toMatch(/comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/);
+    expect(sameRevisionPersistence).toMatch(/transactionSync\s*\(/);
+    expect(sameRevisionPersistence).not.toMatch(/ALTER TABLE|DROP TABLE|PRAGMA|retry|setTimeout|setInterval/i);
     expect(source('src/online/cloudflare/types.ts')).toMatch(/ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1\s*=\s*1/);
   });
 

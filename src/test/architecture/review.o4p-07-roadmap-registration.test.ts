@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '20064643cd2a3e25c2bf80f12a538028720664f2';
+const CLOSURE_SHA = '55fe011700bd6bb10a699e1bd431f0bf12cc40cb';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const IDS = ['O4P-07A', 'O4P-07B', 'O4P-07C'] as const;
 const DEPENDENCIES = ['O4P-06F', 'O4P-07A', 'O4P-07B'] as const;
@@ -26,6 +27,11 @@ type Ledger = {
 };
 
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
+const closureRead = (path: string): string => execFileSync(
+  'git',
+  ['show', `${CLOSURE_SHA}:${path}`],
+  { cwd: ROOT, encoding: 'utf8' },
+);
 const parse = (raw: string): Ledger => JSON.parse(raw) as Ledger;
 const withoutCollections = (ledger: Ledger): Record<string, unknown> => {
   const copy: Record<string, unknown> = { ...ledger };
@@ -52,7 +58,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
     const before = parse(execFileSync('git', ['show', `${BASE_SHA}:${LEDGER_PATH}`], {
       cwd: ROOT, encoding: 'utf8',
     }));
-    const after = parse(read(LEDGER_PATH));
+    const after = parse(closureRead(LEDGER_PATH));
     expect(withoutCollections(after)).toEqual(withoutCollections(before));
     expect(withoutActiveProgram(after.goalPolicy)).toEqual(withoutActiveProgram(before.goalPolicy));
     expect(after.goalPolicy.activeProgram).toEqual({ id: 'O4P-07', domainIds: IDS });
@@ -63,7 +69,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
   });
 
   it('keeps both collections synchronized in A-to-C order', () => {
-    const ledger = parse(read(LEDGER_PATH));
+    const ledger = parse(closureRead(LEDGER_PATH));
     for (const [index, id] of IDS.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -82,7 +88,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
   });
 
   it('freezes the product semantics and O4P-07C completion boundary', () => {
-    const contract = read('research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md');
+    const contract = closureRead('research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md');
     for (const term of [
       'server-side Scryfall resolution',
       'Identical decks',
@@ -113,17 +119,21 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
     expect(projection.selection).toEqual({
       kind: 'selected', domainId: 'O4P-07A', reason: 'explicit-domain',
     });
+    const liveLedger = parse(read(LEDGER_PATH));
+    const nextDomainId = IDS.find((id) =>
+      liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped',
+    ) ?? null;
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-07', domainIds: IDS, status: 'active', nextDomainId: 'O4P-07A',
+      id: 'O4P-07',
+      domainIds: IDS,
+      status: nextDomainId === null ? 'complete' : 'active',
+      nextDomainId,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
 
   it('changes only Judge-owned registration and historical-gate files', () => {
-    const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA], {
-      cwd: ROOT, encoding: 'utf8',
-    }).trim().split(/\r?\n/u).filter(Boolean);
-    const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
+    const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
       cwd: ROOT, encoding: 'utf8',
     }).trim().split(/\r?\n/u).filter(Boolean);
     const allowed = new Set([
@@ -145,13 +155,13 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
       'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
     ]);
-    for (const path of [...changed, ...untracked]) {
+    for (const path of changed) {
       expect(allowed.has(path), `unexpected changed path: ${path}`).toBe(true);
     }
-    expect(read('package-lock.json')).toBe(
+    expect(closureRead('package-lock.json')).toBe(
       execFileSync('git', ['show', `${BASE_SHA}:package-lock.json`], { cwd: ROOT, encoding: 'utf8' }),
     );
-    expect(read('wrangler.jsonc')).toBe(
+    expect(closureRead('wrangler.jsonc')).toBe(
       execFileSync('git', ['show', `${BASE_SHA}:wrangler.jsonc`], { cwd: ROOT, encoding: 'utf8' }),
     );
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();

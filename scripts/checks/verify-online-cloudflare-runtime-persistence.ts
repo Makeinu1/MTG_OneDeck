@@ -21,9 +21,9 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
     '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    '743286f3180b6a3521a796c71d15203dd8856e6a6cd3c814975a9e1427c84616',
+    '0e624b80a476f1b876e80c0eb3d38fb5dbc3712ea557b2e521bd8ebc6cddcab9',
   'src/online/cloudflare/index.ts':
-    '0e83d8bcaedc0c6e78ba901db46a056cab93215d8b5dbcf759957eb1a0879336',
+    '2670b1aa454a98905e567fee534c65ca99742cf614187f282a346c08f1caa96a',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -138,6 +138,7 @@ assert.deepEqual(
     'src/online/cloudflare/outbox.ts',
     'src/online/cloudflare/persistence.ts',
     'src/online/cloudflare/runtime.ts',
+    'src/online/cloudflare/scryfallResolver.ts',
     'src/online/cloudflare/security.ts',
     'src/online/cloudflare/support.ts',
     'src/online/cloudflare/types.ts',
@@ -151,6 +152,7 @@ const allowedImports = new Set([
   '../projection/index',
   '../room/index',
   '../lobby/index',
+  '../deckSubmission/index',
   '../../engine/core/index',
 ]);
 const forbiddenSource =
@@ -204,6 +206,7 @@ for (const root of [
   'src/online/room',
   'src/online/protocol',
   'src/online/projection',
+  'src/online/deckSubmission',
   'src/online/headless',
   'src/store',
 ]) {

@@ -278,6 +278,32 @@ const frozenCloudflareCoreImports = new Map<string, ReadonlySet<string>>([
   ],
 ]);
 
+const frozenDeckSubmissionCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/deckSubmission/resolution.ts',
+    new Set(['coreSha256HexV1']),
+  ],
+  [
+    'src/online/deckSubmission/validation.ts',
+    new Set(['coreSha256HexV1']),
+  ],
+]);
+
+function isFrozenDeckSubmissionCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenDeckSubmissionCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 function isFrozenCloudflareCoreConsumer(
   path: string,
   target: string | null,
@@ -674,6 +700,7 @@ function inspectReference(
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
+    && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
@@ -898,6 +925,14 @@ describe('mode-neutral Core dependency boundary', () => {
         filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
         sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
       },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/resolution.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/validation.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
     ];
     expect(analyzeBoundarySources(units)).toEqual([]);
   });
@@ -1030,6 +1065,40 @@ describe('mode-neutral Core dependency boundary', () => {
       },
       {
         filePath: resolve(repositoryRoot, 'src/online/cloudflare/persistence.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/closure';",
+      },
+    ];
+    expect(analyzeBoundarySources(rejectedUnits).map(({ rule }) => rule)).toEqual([
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+    ]);
+  });
+
+  it('keeps the deck-submission digest allowance file-, symbol-, and public-barrel-exact', () => {
+    const allowedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/resolution.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/validation.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+    ];
+    expect(analyzeBoundarySources(allowedUnits)).toEqual([]);
+
+    const rejectedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/unreviewed.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/resolution.ts'),
+        sourceText: "import { coreCanonicalDigestFromValueV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/deckSubmission/validation.ts'),
         sourceText: "import { coreSha256HexV1 } from '../../engine/core/closure';",
       },
     ];

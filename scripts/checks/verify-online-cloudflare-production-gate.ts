@@ -24,9 +24,9 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03d-production-evidence-repair-1.draft.md':
     '3ace5dbd1089412ef61a5009da51a96eded5a99501bef0fb02f83e93f212b13b',
   'src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts':
-    '3771acdf221e50f3609cbacec70b52993bdadfa9f961c017fa53f7ea7f8ef0a1',
+    '4c8043575d9d2652d1bf46fd94df73b5a1d24c10c3afa285c204e79f01c01b62',
   'src/test/architecture/review.o4p-03d-cloudflare-production-gate.test.ts':
-    'f6cff119febd28eee2ea7a742eae4f22fd5731f2dec4f9d25be071223a0c7804',
+    'e3e06a3e7e0257337755ceff6dfad433f5cda5f6ce22663aed4521684ab341a3',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -125,6 +125,7 @@ assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/persistence.ts',
   'src/online/cloudflare/runtime.ts',
+  'src/online/cloudflare/scryfallResolver.ts',
   'src/online/cloudflare/security.ts',
   'src/online/cloudflare/support.ts',
   'src/online/cloudflare/types.ts',
@@ -136,6 +137,7 @@ const allowedImports = new Set([
   '../projection/index',
   '../room/index',
   '../lobby/index',
+  '../deckSubmission/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {
@@ -452,6 +454,7 @@ for (const root of [
   'src/online/room',
   'src/online/protocol',
   'src/online/projection',
+  'src/online/deckSubmission',
   'src/online/headless',
   'src/store',
 ]) {

@@ -205,6 +205,18 @@ function seatForCapability(lobby: OnlineFormingLobbyV1, participantId: string, s
   return index;
 }
 
+/** Shared seat authorization used by the v2 deck boundary. */
+export function authorizeOnlineFormingLobbySeatV1(lobbyInput: unknown, participantId: string, seatCapability: string): number {
+  return seatForCapability(validateLobbyInternal(lobbyInput), participantId, seatCapability);
+}
+
+/** Clear only the legacy deck/readiness fields for one authorized seat. */
+export function invalidateOnlineFormingLobbySeatDeckV1(lobbyInput: unknown, seatIndex: number): OnlineFormingLobbyV1 {
+  const lobby = validateLobbyInternal(lobbyInput);
+  if (!Number.isInteger(seatIndex) || seatIndex < 0 || seatIndex >= lobby.seats.length) fail('Invalid seat index');
+  return withSeat(lobby, seatIndex, { deckId: null, deckText: null, ready: false }, 'forming');
+}
+
 function withSeat(lobby: OnlineFormingLobbyV1, index: number, patch: Partial<OnlineFormingLobbySeatV1>, lifecycle?: OnlineFormingLobbyLifecycleV1): OnlineFormingLobbyV1 {
   const seats = lobby.seats.map((seat, seatIndex) => seatIndex === index ? Object.freeze({ ...seat, ...patch }) : seat);
   const ready = seats.every((seat) => seat.participantId !== null && seat.deckId !== null && seat.deckText !== null && seat.ready);

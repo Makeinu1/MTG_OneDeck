@@ -37,6 +37,8 @@ import {
   submitOnlineFormingLobbyDeckV1,
   validateOnlineFormingLobbyV1,
 } from '../lobby/index';
+import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
+import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
 import {
   createAuthenticatedOnlineCloudflareSocketAttachmentV1,
   createOnlineCloudflareRevisionNoticeV1,
@@ -175,12 +177,14 @@ export class OnlineRoomDurableObject {
   private readonly security: OnlineCloudflareSecurityRepository;
   private readonly state: OnlineCloudflareDurableObjectState;
   private readonly versionIdentifier: string | null;
+  private readonly deckResolver: OnlineDeckResolverV2;
 
-  constructor(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}) {
+  constructor(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}, deckResolver: OnlineDeckResolverV2 = new OnlineDeckScryfallResolverV2()) {
     this.state = state;
     const version = env.CF_VERSION_METADATA?.id;
     if (version !== undefined && version !== null && !isCanonicalVersionIdentifier(version)) throw new Error('Invalid Cloudflare version metadata');
     this.versionIdentifier = isCanonicalVersionIdentifier(version) ? version : null;
+    this.deckResolver = deckResolver;
     this.repository = new OnlineCloudflareRepository(state.storage, false, this.versionIdentifier);
     this.security = new OnlineCloudflareSecurityRepository(state.storage);
     try {
@@ -233,7 +237,10 @@ export class OnlineRoomDurableObject {
       }
       if (route.action === 'lobby' && request.method === 'GET') {
         const lobby = this.repository.loadLobby(route.roomId);
-        return lobby === null ? genericError(404) : jsonResponse(projectOnlineFormingLobbyV1(lobby));
+        if (lobby === null) return genericError(404);
+        return new URL(request.url).searchParams.get('schemaVersion') === '2'
+          ? jsonResponse(this.repository.projectLobbyV2(route.roomId, lobby))
+          : jsonResponse(projectOnlineFormingLobbyV1(lobby));
       }
       if (route.action === 'lobby' && request.method === 'POST') {
         if (!validJsonContentType(request)) return genericError(400);
@@ -256,6 +263,10 @@ export class OnlineRoomDurableObject {
         const lobby = this.repository.loadLobby(route.roomId);
         if (lobby === null) return genericError(404);
         try {
+          if (kind === 'online-forming-lobby-deck-submit-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'submissionId', 'entries']) && schemaVersion === 2) {
+            const result = await this.repository.submitDeckV2(route.roomId, body, this.deckResolver);
+            return jsonResponse(result);
+          }
           if (kind === 'online-forming-lobby-seat-claim-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'inviteCapability']) && schemaVersion === 1) {
             const transitioned = claimOnlineFormingLobbySeatV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', inviteCapability: ownDataString(body, 'inviteCapability') ?? '' });
             this.repository.persistLobby(lobby, transitioned.lobby);
@@ -745,6 +756,6 @@ function createAuthenticatedOrUnauthenticatedAttachment(
   );
 }
 
-export function createOnlineRoomDurableObject(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}): OnlineRoomDurableObject {
-  return new OnlineRoomDurableObject(state, env);
+export function createOnlineRoomDurableObject(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}, deckResolver?: OnlineDeckResolverV2): OnlineRoomDurableObject {
+  return deckResolver === undefined ? new OnlineRoomDurableObject(state, env) : new OnlineRoomDurableObject(state, env, deckResolver);
 }

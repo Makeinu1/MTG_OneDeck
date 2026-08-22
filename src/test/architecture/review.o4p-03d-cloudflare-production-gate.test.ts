@@ -29,6 +29,8 @@ describe('O4P-03D architecture boundary', () => {
     const worker = text('src/online/cloudflare/worker.ts');
     const runtime = text('src/online/cloudflare/runtime.ts');
     const persistence = text('src/online/cloudflare/persistence.ts');
-    expect([worker, runtime, persistence].join('\n')).not.toMatch(/react|zustand|indexeddb|scryfall/i);
+    const productionGate = [worker, runtime, persistence].join('\n');
+    expect(productionGate).not.toMatch(/react|zustand|indexeddb/i);
+    expect(productionGate).not.toMatch(/https:\/\/api\.scryfall\.com/i);
   });
 });

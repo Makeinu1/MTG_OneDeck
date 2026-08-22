@@ -189,6 +189,13 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
       this.writeCount += 1;
       return cursor<T>([]);
     }
+    if (query.startsWith('UPDATE online_application_migration')) {
+      const row = this.migration[0];
+      if (row === undefined || row.schema_version !== Number(bindings[1])) return cursor<T>([]);
+      row.schema_version = Number(bindings[0]);
+      this.writeCount += 1;
+      return cursor<T>([{ singleton: 1 } as unknown as T]);
+    }
     if (query.startsWith('INSERT INTO online_recovery_checkpoint')) {
       this.checkpoint.push({ singleton: 1, room_id: String(bindings[0]), checkpoint_revision: Number(bindings[1]), state_json: String(bindings[2]) });
       this.writeCount += 1;

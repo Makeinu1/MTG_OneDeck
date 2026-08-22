@@ -40,6 +40,7 @@ describe('O4P-03C architecture boundary', () => {
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
       'src/online/cloudflare/runtime.ts',
+      'src/online/cloudflare/scryfallResolver.ts',
       'src/online/cloudflare/security.ts',
       'src/online/cloudflare/support.ts',
       'src/online/cloudflare/types.ts',
@@ -62,7 +63,7 @@ describe('O4P-03C architecture boundary', () => {
   });
 
   it('keeps lower imports one-way and production free of runtime-only authority', () => {
-    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../lobby/index', '../../engine/core/index']);
+    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../lobby/index', '../deckSubmission/index', '../../engine/core/index']);
     for (const path of productionFiles(cloudflareRoot)) {
       const text = readFileSync(path, 'utf8');
       if (normalized(path) === 'src/online/cloudflare/facts.ts') {
@@ -75,7 +76,7 @@ describe('O4P-03C architecture boundary', () => {
         expect(local || allowed.has(specifier), `${normalized(path)} -> ${specifier}`).toBe(true);
       }
     }
-    for (const root of ['src/engine', 'src/online/room', 'src/online/protocol', 'src/online/projection', 'src/online/headless', 'src/store']) {
+    for (const root of ['src/engine', 'src/online/room', 'src/online/protocol', 'src/online/projection', 'src/online/deckSubmission', 'src/online/headless', 'src/store']) {
       for (const path of productionFiles(resolve(repositoryRoot, root))) {
         expect(readFileSync(path, 'utf8'), normalized(path)).not.toMatch(/online\/cloudflare|\.\.\/cloudflare/);
       }

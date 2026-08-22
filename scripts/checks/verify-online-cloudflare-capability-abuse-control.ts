@@ -29,7 +29,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
     '40a8a37f7348ed8bc553df3db9823b8b31ef190a36beb90604d3766b7c466d16',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
-    '9fad3f627689cc1d334adaa88ef4126662568478eb3182809f69b9bc2a0e4d77',
+    'cf3212f0c3f319b14fb0cab23c165ffc9fab02647c509d2be8fae051b04dc5a2',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -42,6 +42,7 @@ const requiredFiles = Object.freeze([
   'src/online/cloudflare/support.ts',
   'src/online/cloudflare/persistence.ts',
   'src/online/cloudflare/runtime.ts',
+  'src/online/cloudflare/scryfallResolver.ts',
   'src/online/cloudflare/security.ts',
   'src/online/cloudflare/websocket.ts',
   'src/online/cloudflare/outbox.ts',
@@ -138,6 +139,7 @@ assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/persistence.ts',
   'src/online/cloudflare/runtime.ts',
+  'src/online/cloudflare/scryfallResolver.ts',
   'src/online/cloudflare/security.ts',
   'src/online/cloudflare/support.ts',
   'src/online/cloudflare/types.ts',
@@ -150,6 +152,7 @@ const allowedImports = new Set([
   '../projection/index',
   '../room/index',
   '../lobby/index',
+  '../deckSubmission/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {
@@ -225,6 +228,7 @@ for (const root of [
   'src/online/room',
   'src/online/protocol',
   'src/online/projection',
+  'src/online/deckSubmission',
   'src/online/headless',
   'src/store',
 ]) {

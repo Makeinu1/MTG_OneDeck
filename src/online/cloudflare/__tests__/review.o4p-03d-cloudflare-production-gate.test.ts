@@ -21,7 +21,7 @@ import {
   type OnlineProtocolStateV1,
 } from '../../protocol/index';
 import {
-  ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1,
+  ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2,
   OnlineCloudflareRepository,
   OnlineRoomDurableObject,
   onlineCloudflareWorker,
@@ -145,7 +145,7 @@ describe('O4P-03D Judge production gate', () => {
     const repository = new OnlineCloudflareRepository(target);
     expect(repository.migrateApplicationSchema()).toBe(true);
     expect(target.all('SELECT * FROM online_application_migration')).toEqual([
-      { singleton: 1, schema_version: ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 },
+      { singleton: 1, schema_version: ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2 },
     ]);
     expect(target.all('SELECT room_id, checkpoint_revision, state_json FROM online_recovery_checkpoint')).toEqual([
       {

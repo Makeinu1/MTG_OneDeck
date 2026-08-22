@@ -3,6 +3,7 @@ export {
   ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1,
   ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1,
   ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1,
+  ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2,
 } from './types';
 export {
   ONLINE_CLOUDFLARE_SECURITY_SCHEMA_VERSION_V1,
@@ -78,6 +79,18 @@ export type {
   OnlineCloudflareOutboxV1,
 } from './outbox';
 export { OnlineRoomDurableObject, createOnlineRoomDurableObject } from './runtime';
+export { ONLINE_DECK_SUBMISSION_SCHEMA_VERSION_V2, ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2, OnlineDeckScryfallResolverV2, OnlineDeckScryfallUnavailableError, resolveOnlineDeckSubmissionV2, parseOnlineDeckSubmitV2, validateOnlineDeckSubmitV2 } from '../deckSubmission/index';
+export type {
+  OnlineDeckResolverV2,
+  OnlineDeckSubmitV2,
+  OnlineDeckSubmissionEntryV2,
+  OnlineDeckSubmissionHeadV2,
+  OnlineDeckSubmissionIssueV2,
+  OnlineDeckSubmissionResultV2,
+  OnlineDeckResolvedEntryV2,
+  OnlineDeckResolvedSnapshotV2,
+  OnlineFormingLobbyProjectionV2,
+} from '../deckSubmission/index';
 export { default as onlineCloudflareWorker } from './worker';
 export {
   ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1,
@@ -89,6 +102,8 @@ export {
   setOnlineFormingLobbySeatReadyV1,
   startOnlineFormingLobbyV1,
   submitOnlineFormingLobbyDeckV1,
+  authorizeOnlineFormingLobbySeatV1,
+  invalidateOnlineFormingLobbySeatDeckV1,
   validateOnlineFormingLobbyV1,
 } from '../lobby/index';
 export type {
