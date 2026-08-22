@@ -72,3 +72,21 @@ recheck before full check.
   `assets/index-DB7TO263.css`.
 
 Final verdict: `AUDIT-OK-FULL-CHECK-PASS`.
+
+## Candidate exact-head CI
+
+Candidate `02c3bf9b9575774b26bc65bae23b7b15ba603ef1` / Actions
+`32588291754` checked out the exact HEAD and passed the full check: Core
+227/2,093; DOM 336 files with 2,262 passed + 1 skipped; all verifiers, docs,
+lint, TypeScript, and Vite build; total 769,685 ms. CI assets were
+`index-m9P-2onj.js` and `index-DB7TO263.css`.
+
+The run then stopped only at nine `NEEDS-REAUTH` research paths and eleven
+`FORBIDDEN` Judge-owned review paths. Pages and Worker success are not claimed;
+the deploy job was skipped pending ownership reauthorization.
+
+The exact three-file ownership metadata candidate was independently audited by
+`/root/o4p07b_luna_cold_auditor` at fingerprint
+`315ff8e646b716d94e79c0ba688e442c53143d94c5a1caefb3d2b33d8a83e4a9`.
+All twenty hashes and CI facts matched with findings 0/0/0/0;
+`O4P-07B-CI-REAUTHORIZATION-APPROVED`.
