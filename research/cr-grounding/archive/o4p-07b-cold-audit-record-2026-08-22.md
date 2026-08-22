@@ -121,3 +121,29 @@ affected ESLint, TypeScript, and diff-check green.
 Findings: BLOCKER/HIGH/MEDIUM/LOW = `0/0/0/0`.
 
 Verdict: `AUDIT-OK-PENDING-EXACT-HEAD-CI`.
+
+## Production-repair full-check hash-chain audit
+
+Exact-head Actions `32605787278` checked out repair commit
+`71f63ba07a08c63717f4e239fa1e72cafb05a18b`. It passed every machine verifier
+through O4P-03D, then stopped at the O4P-05C frozen SHA for the intentionally
+changed `src/online/cloudflare/persistence.ts`. Lint, tests, build, ownership,
+and Pages did not run; no green full-check or deployment claim is made for this
+attempt.
+
+The Judge-only mechanical repair changes exactly two hash literals: O4P-05C
+pins the audited persistence SHA
+`2073be8c2731f2ecf283cc4f8273799e125896f03a81eff4ae69791f32d6883c`,
+and O4P-05D pins the resulting O4P-05C verifier SHA
+`1efda4e5e96dacf2e91dff11fc146ab83e8735e9d38c1f491ed3503b28e379fa`.
+The resulting O4P-05D verifier SHA is
+`d7038df2efaadddcf932a783541df9a5825a8a1b76502383294165e27188b40c`.
+
+Read-only Luna/xhigh auditor `/root/o4p07b_resubmit_cold_audit` recomputed
+repair fingerprint
+`c73646f61a3ae094690b2d0aceab4a58a770233b6ecb02007521137476963f33`,
+verified the exact two-line chain, unchanged product/review bytes, direct green
+O4P-05C/O4P-05D verifiers, affected ESLint, and diff-check. Findings were
+BLOCKER/HIGH/MEDIUM/LOW = `0/0/0/0`.
+
+Verdict: `AUDIT-OK-PENDING-FINAL-EXACT-HEAD-CI`.

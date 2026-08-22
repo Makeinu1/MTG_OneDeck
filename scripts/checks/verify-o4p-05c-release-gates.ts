@@ -37,7 +37,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/facts.ts': 'f3cd284585f1029ccf60803284fc70cc84acb497fe7ead553ab7d32e30d6a108',
   'src/online/cloudflare/index.ts': '32cc08899e5df7682247f3b071d2a82b2d3761140e8aa141f315dc4db99868b2',
   'src/online/cloudflare/outbox.ts': '606e0b1194e8a1c948bce7777fcd79f47fd23d598ff5aa57d191ec6d348e2c93',
-  'src/online/cloudflare/persistence.ts': '7e49261244beeab3f4414df921d9fac4fb8cb94553d1bab24ca98503aa62082f',
+  'src/online/cloudflare/persistence.ts': '2073be8c2731f2ecf283cc4f8273799e125896f03a81eff4ae69791f32d6883c',
   'src/online/cloudflare/runtime.ts': 'b250e3caaae6c0bbd0ae867a56bf66285c93308f979e13cdb57bd444e87540a2',
   'src/online/cloudflare/scryfallResolver.ts': '8f63102bded5b9f1c667c8f04eaa7551b4130a930435d7276e625d1fb15f6ee4',
   'src/online/cloudflare/security.ts': '3e94348604cd4c0a1a09b5e0337caa35ffeecebe24e783fce9ac711154679d15',
