@@ -181,4 +181,37 @@ describe('ImportScreen saved decks', () => {
     expect(view.querySelector('[role="alert"]')?.textContent).toContain('保存できませんでした');
     expect(view.querySelector<HTMLButtonElement>('[data-testid="start-game"]')?.disabled).toBe(false);
   });
+
+  it('invalidates an in-flight save on unmount without changing the caller selection', async () => {
+    mocks.resolveDeck.mockResolvedValue({ resolved, unresolved: [] });
+    let finishSave: (value: SaveResolvedDeckResult) => void = () => {
+      throw new Error('Save did not start');
+    };
+    const pendingSave = new Promise<SaveResolvedDeckResult>((resolve) => {
+      finishSave = resolve;
+    });
+    mocks.saveResolvedDeck.mockReturnValue(pendingSave);
+    const onDeckSaved = vi.fn();
+    const view = renderScreen({ onDeckSaved });
+    enterDeckText(view, savedDeck.deckText);
+
+    const button = view.querySelector<HTMLButtonElement>('[data-testid="import-button"]');
+    if (!button) throw new Error('import button not found');
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mocks.saveResolvedDeck).toHaveBeenCalledOnce();
+    act(() => root?.unmount());
+    root = null;
+    finishSave({ deck: savedDeck, operation: 'created' });
+    await act(async () => {
+      await pendingSave;
+      await Promise.resolve();
+    });
+
+    expect(onDeckSaved).not.toHaveBeenCalled();
+    expect(mocks.requestPersistentStorageOnce).not.toHaveBeenCalled();
+  });
 });

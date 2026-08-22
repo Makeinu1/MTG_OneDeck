@@ -35,7 +35,9 @@ export function FanContentNotice() {
   return (
     <footer className="app__fan-content" data-testid="fan-content-notice">
       <p>
-        {'このコンテンツは、ウィザーズ・オブ・ザ・コーストのファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。'}
+        {
+          'このコンテンツは、ウィザーズ・オブ・ザ・コーストのファンコンテンツ・ポリシーに沿った非公式のファンコンテンツです。'
+        }
         {'ウィザーズ・オブ・ザ・コースト社の認可・許諾を受けたものではありません。'}
         {'題材の一部にWizards of the Coast LLCの財産が含まれています。© Wizards of the Coast LLC.'}
       </p>
@@ -72,6 +74,8 @@ function App() {
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | 'new' | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
   const [onlineMode, setOnlineMode] = useState<'solo' | 'online'>('solo');
+  const [onlineImportOpen, setOnlineImportOpen] = useState(false);
+  const [onlineImporting, setOnlineImporting] = useState(false);
   const localizationRefreshKey = useRef('');
 
   useEffect(() => {
@@ -131,9 +135,7 @@ function App() {
   useEffect(() => {
     if (!libraryReady) return;
     const incompleteCards = savedDecks.flatMap((deck) =>
-      deck.entries
-        .map((entry) => entry.card)
-        .filter(needsJapaneseDisplayRefresh),
+      deck.entries.map((entry) => entry.card).filter(needsJapaneseDisplayRefresh),
     );
     if (incompleteCards.length === 0) return;
     const refreshKey = [...new Set(incompleteCards.map((card) => card.oracleId))]
@@ -171,8 +173,11 @@ function App() {
   };
 
   const handleDeckSaved = useCallback((deck: SavedDeck): void => {
-    setSavedDecks((current) => [deck, ...current.filter((item) => item.id !== deck.id)]
-      .sort((a, b) => b.updatedAt - a.updatedAt));
+    setSavedDecks((current) =>
+      [deck, ...current.filter((item) => item.id !== deck.id)].sort(
+        (a, b) => b.updatedAt - a.updatedAt,
+      ),
+    );
     setSelectedDeck(deck);
     setLegacyFallback(false);
     setEditorDirty(false);
@@ -185,32 +190,40 @@ function App() {
     setPendingDeck(null);
   }, []);
 
-  const requestDeckSwitch = useCallback((next: SavedDeck | 'new'): void => {
-    if (next !== 'new' && next.id === selectedDeck?.id) return;
-    if (editorDirty) {
-      setPendingDeck(next);
-      return;
-    }
-    performDeckSwitch(next);
-  }, [editorDirty, performDeckSwitch, selectedDeck?.id]);
+  const requestDeckSwitch = useCallback(
+    (next: SavedDeck | 'new'): void => {
+      if (next !== 'new' && next.id === selectedDeck?.id) return;
+      if (editorDirty) {
+        setPendingDeck(next);
+        return;
+      }
+      performDeckSwitch(next);
+    },
+    [editorDirty, performDeckSwitch, selectedDeck?.id],
+  );
 
   const handleRename = useCallback(async (deck: SavedDeck, name: string): Promise<void> => {
     const renamed = await renameSavedDeck(deck.id, name);
-    setSavedDecks((current) => current
-      .map((item) => item.id === renamed.id ? renamed : item)
-      .sort((a, b) => b.updatedAt - a.updatedAt));
-    setSelectedDeck((current) => current?.id === renamed.id ? renamed : current);
+    setSavedDecks((current) =>
+      current
+        .map((item) => (item.id === renamed.id ? renamed : item))
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    );
+    setSelectedDeck((current) => (current?.id === renamed.id ? renamed : current));
   }, []);
 
-  const handleDelete = useCallback(async (deck: SavedDeck): Promise<void> => {
-    await deleteSavedDeck(deck.id);
-    setSavedDecks((current) => current.filter((item) => item.id !== deck.id));
-    if (selectedDeck?.id === deck.id) {
-      setEditorDirty(false);
-      setEditorVersion((version) => version + 1);
-      setSelectedDeck(null);
-    }
-  }, [selectedDeck?.id]);
+  const handleDelete = useCallback(
+    async (deck: SavedDeck): Promise<void> => {
+      await deleteSavedDeck(deck.id);
+      setSavedDecks((current) => current.filter((item) => item.id !== deck.id));
+      if (selectedDeck?.id === deck.id) {
+        setEditorDirty(false);
+        setEditorVersion((version) => version + 1);
+        setSelectedDeck(null);
+      }
+    },
+    [selectedDeck?.id],
+  );
 
   if (state) {
     if (gameView === 'opponent-setup') {
@@ -235,10 +248,53 @@ function App() {
     return (
       <div className="app">
         <PublicOnlineApp
-          decks={savedDecks.map((deck) => ({ id: deck.id, name: deck.name, deckText: deck.deckText }))}
+          decks={savedDecks.map((deck) => ({
+            id: deck.id,
+            name: deck.name,
+            entries: deck.entries,
+          }))}
           initialDeckId={selectedDeck?.id}
-          onBackToSolo={() => setOnlineMode('solo')}
+          selectedDeckId={selectedDeck?.id}
+          onDeckSelect={(deckId) => {
+            const next = savedDecks.find((deck) => deck.id === deckId);
+            if (next) setSelectedDeck(next);
+          }}
+          onImportDeck={() => setOnlineImportOpen(true)}
+          onBackToSolo={() => {
+            setOnlineImportOpen(false);
+            setOnlineImporting(false);
+            setOnlineMode('solo');
+          }}
         />
+        {onlineImportOpen && (
+          <div className="app__online-import" data-testid="online-import-dialog">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              data-testid="online-import-cancel"
+              disabled={onlineImporting}
+              onClick={() => {
+                setOnlineImporting(false);
+                setOnlineImportOpen(false);
+              }}
+            >
+              読み込みをやめる
+            </button>
+            <ImportScreen
+              initialDeckText=""
+              onStart={() => undefined}
+              onDeckSaved={(deck) => {
+                handleDeckSaved(deck);
+                setOnlineImporting(false);
+                setOnlineImportOpen(false);
+              }}
+              onImportingChange={setOnlineImporting}
+              importOnly
+              keybindings={keybindings}
+              onKeybindingsChange={setKeybindings}
+            />
+          </div>
+        )}
         <FanContentNotice />
       </div>
     );
@@ -247,14 +303,31 @@ function App() {
   return (
     <div className="app">
       <nav className="app__mode-choice" aria-label="プレイモード">
-        <button type="button" className="btn btn--primary" data-testid="open-solo-mode" onClick={() => setOnlineMode('solo')}>一人回し</button>
-        <button type="button" className="btn btn--ghost" data-testid="open-online-mode" onClick={() => setOnlineMode('online')}>4人オンライン</button>
+        <button
+          type="button"
+          className="btn btn--primary"
+          data-testid="open-solo-mode"
+          onClick={() => setOnlineMode('solo')}
+        >
+          一人回し
+        </button>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          data-testid="open-online-mode"
+          onClick={() => setOnlineMode('online')}
+        >
+          4人オンライン
+        </button>
       </nav>
       {(snapshot?.state || (legacyFallback && legacyDeck && legacyDeck.length > 0)) && (
         <section className="app__resume-shelf" aria-label="前回の続き">
           {snapshot?.state && (
             <div className="app__resume">
-              <div><strong>中断したゲーム</strong><p>盤面を保存した地点から続けます。</p></div>
+              <div>
+                <strong>中断したゲーム</strong>
+                <p>盤面を保存した地点から続けます。</p>
+              </div>
               <button
                 type="button"
                 className="btn btn--primary"
@@ -267,7 +340,10 @@ function App() {
           )}
           {legacyFallback && legacyDeck && legacyDeck.length > 0 && (
             <div className="app__resume">
-              <div><strong>前回のデッキ</strong><p>再解析せず、新しい一人回しを始めます。</p></div>
+              <div>
+                <strong>前回のデッキ</strong>
+                <p>再解析せず、新しい一人回しを始めます。</p>
+              </div>
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -318,7 +394,9 @@ function App() {
         >
           <p>まだ解析していない変更があります。別のデッキを開くと、この入力内容は失われます。</p>
           <div className="dialog__actions">
-            <button type="button" className="btn btn--ghost" onClick={() => setPendingDeck(null)}>入力を続ける</button>
+            <button type="button" className="btn btn--ghost" onClick={() => setPendingDeck(null)}>
+              入力を続ける
+            </button>
             <button
               type="button"
               className="btn btn--danger"

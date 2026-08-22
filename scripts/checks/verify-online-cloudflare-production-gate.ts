@@ -138,6 +138,7 @@ const allowedImports = new Set([
   '../room/index',
   '../lobby/index',
   '../deckSubmission/index',
+  '../genesis/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {
@@ -455,6 +456,7 @@ for (const root of [
   'src/online/protocol',
   'src/online/projection',
   'src/online/deckSubmission',
+  'src/online/genesis',
   'src/online/headless',
   'src/store',
 ]) {

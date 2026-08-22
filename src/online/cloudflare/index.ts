@@ -41,6 +41,9 @@ export type {
   OnlineCloudflareInitializeV1,
   OnlineCloudflareRoomNamespace,
   OnlineCloudflareRoomStatusV1,
+  OnlineReadyV2,
+  OnlineStartWithTableV2,
+  OnlineDynamicStartResultV2,
   OnlineCloudflareRevisionNoticeV1,
   OnlineCloudflareSocketAttachmentV1,
   OnlineCloudflareSocketRoleV1,
@@ -79,6 +82,8 @@ export type {
   OnlineCloudflareOutboxV1,
 } from './outbox';
 export { OnlineRoomDurableObject, createOnlineRoomDurableObject } from './runtime';
+export { buildDynamicRoomGenesisV2, createDynamicRoomGenesisV2 } from '../genesis/index';
+export type { DynamicGenesisInputV2, DynamicGenesisIssueCodeV2, DynamicGenesisIssueV2, DynamicGenesisResultV2, DynamicGenesisSeatInputV2, DynamicGenesisSuccessV2 } from '../genesis/index';
 export { ONLINE_DECK_SUBMISSION_SCHEMA_VERSION_V2, ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2, OnlineDeckScryfallResolverV2, OnlineDeckScryfallUnavailableError, resolveOnlineDeckSubmissionV2, parseOnlineDeckSubmitV2, validateOnlineDeckSubmitV2 } from '../deckSubmission/index';
 export type {
   OnlineDeckResolverV2,

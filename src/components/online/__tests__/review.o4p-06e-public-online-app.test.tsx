@@ -14,6 +14,8 @@ const INVITES = [
   `invite_${'B'.repeat(40)}`,
   `invite_${'C'.repeat(40)}`,
 ] as const;
+const SCRYFALL_ID = '5da14d86-0780-4821-a799-96f64b377df4';
+const ORACLE_ID = 'd8ad23a1-0b43-48ea-9fbe-d89b29194509';
 
 function projection(hostParticipantId = HOST_ID, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -47,6 +49,28 @@ function created(hostParticipantId = HOST_ID, extra: Record<string, unknown> = {
   };
 }
 
+function projectionV2(
+  hostParticipantId = HOST_ID,
+  lifecycle: 'forming' | 'ready' | 'started' = 'forming',
+): Record<string, unknown> {
+  const complete = lifecycle !== 'forming';
+  return {
+    kind: 'online-forming-lobby-projection-v2',
+    schemaVersion: 2,
+    lifecycle,
+    roomId: ROOM_ID,
+    serverBuildId: 'o4p-07b-server',
+    hostParticipantId,
+    seats: [0, 1, 2, 3].map((index) => ({
+      seatIndex: index,
+      corePlayerId: `P${index + 1}`,
+      participantId: index === 0 ? hostParticipantId : complete ? `player-${index + 1}` : null,
+      deckState: complete ? 'accepted' : 'none',
+      ready: complete,
+    })),
+  };
+}
+
 function ok(value: unknown): Response {
   return new Response(JSON.stringify(value), { status: 200, headers: { 'content-type': 'application/json' } });
 }
@@ -72,13 +96,35 @@ function required<T extends Element = HTMLElement>(container: HTMLElement, selec
   return found;
 }
 
-function mount(onBackToSolo = vi.fn()): { container: HTMLDivElement; root: Root; onBackToSolo: ReturnType<typeof vi.fn> } {
+function mount(
+  onBackToSolo = vi.fn(),
+  deckName = '《監査デッキ》',
+  deckId = 'deck-o4p06e-review',
+): { container: HTMLDivElement; root: Root; onBackToSolo: ReturnType<typeof vi.fn> } {
   const container = document.createElement('div');
   const root = createRoot(container);
   act(() => root.render(
     <PublicOnlineApp
-      decks={[{ id: 'deck-o4p06e-review', name: '《監査デッキ》', deckText: 'Commander\n1 Celes, Rune Knight\nDeck\n99 Island' }]}
-      initialDeckId="deck-o4p06e-review"
+      decks={[{
+        id: deckId,
+        name: deckName,
+        entries: [{
+          section: 'main',
+          quantity: 1,
+          card: {
+            scryfallId: SCRYFALL_ID,
+            oracleId: ORACLE_ID,
+            name: 'Review Card',
+            lang: 'en',
+            layout: 'normal',
+            cmc: 1,
+            colorIdentity: [],
+            typeLine: 'Creature',
+            faces: [{ name: 'Review Card', typeLine: 'Creature' }],
+          },
+        }],
+      }]}
+      initialDeckId={deckId}
       onBackToSolo={onBackToSolo}
     />,
   ));
@@ -111,10 +157,13 @@ describe('O4P-06E public Online App review', () => {
 
   it('creates through the fixed endpoint and exposes only the Room plus three intentional invites', async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    let createdParticipantId = '';
     vi.stubGlobal('fetch', vi.fn((url: string | URL | Request, init?: RequestInit) => {
       calls.push({ url: requestUrl(url), init });
+      if (init?.method === 'GET') return Promise.resolve(ok(projectionV2(createdParticipantId)));
       const participantId = requestBody(init).participantId;
       if (typeof participantId !== 'string') throw new Error('Expected participantId');
+      createdParticipantId = participantId;
       return Promise.resolve(ok(created(participantId)));
     }));
     const mounted = mount();
@@ -123,7 +172,7 @@ describe('O4P-06E public Online App review', () => {
       required<HTMLButtonElement>(mounted.container, '[data-testid="online-create-room"]').click();
       await Promise.resolve();
     });
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
     expect(calls[0]?.url).toBe('https://mtg-onedeck-online.makeinu1.workers.dev/api/online/rooms');
     expect(calls[0]?.init?.method).toBe('POST');
     const sent = requestBody(calls[0]?.init);
@@ -131,6 +180,10 @@ describe('O4P-06E public Online App review', () => {
     expect(sent.schemaVersion).toBe(1);
     expect(typeof sent.participantId).toBe('string');
     expect(Object.keys(sent).sort()).toEqual(['kind', 'participantId', 'schemaVersion']);
+    expect(calls[1]?.url).toBe(
+      `https://mtg-onedeck-online.makeinu1.workers.dev/api/online/rooms/${ROOM_ID}/lobby?schemaVersion=2`,
+    );
+    expect(calls[1]?.init?.method).toBe('GET');
 
     expect(required(mounted.container, '[data-testid="online-room-summary"]').textContent).toContain(ROOM_ID);
     const inviteControls = mounted.container.querySelectorAll('[data-testid="online-invite-copy"]');
@@ -182,15 +235,9 @@ describe('O4P-06E public Online App review', () => {
         hostParticipantId = participantId;
         return Promise.resolve(ok(created(hostParticipantId)));
       }
-      return Promise.resolve(ok(projection(hostParticipantId, {
-        lifecycle: 'ready',
-        seats: [
-          { seatIndex: 0, corePlayerId: 'P1', participantId: hostParticipantId, deckId: 'deck-host', deckSubmitted: true, ready: true },
-          { seatIndex: 1, corePlayerId: 'P2', participantId: 'player-two', deckId: 'deck-two', deckSubmitted: true, ready: true },
-          { seatIndex: 2, corePlayerId: 'P3', participantId: 'player-three', deckId: 'deck-three', deckSubmitted: true, ready: true },
-          { seatIndex: 3, corePlayerId: 'P4', participantId: 'player-four', deckId: 'deck-four', deckSubmitted: true, ready: true },
-        ],
-      })));
+      return Promise.resolve(
+        ok(projectionV2(hostParticipantId, call === 2 ? 'forming' : 'ready')),
+      );
     }));
     const mounted = mount();
     await act(async () => { required<HTMLButtonElement>(mounted.container, '[data-testid="online-create-room"]').click(); await Promise.resolve(); });
@@ -217,6 +264,41 @@ describe('O4P-06E public Online App review', () => {
     expect(deck.tagName).toBe('SELECT');
     expect(room.getAttribute('autocomplete')).toBe('off');
     expect(invite.getAttribute('autocomplete')).toBe('off');
+    act(() => mounted.root.unmount());
+  });
+
+  it('keeps bearer-like saved metadata out of deck option DOM', () => {
+    vi.stubGlobal('fetch', vi.fn());
+    const mounted = mount(vi.fn(), TABLE_CAPABILITY, SEAT_CAPABILITY);
+    const select = required<HTMLSelectElement>(
+      mounted.container,
+      '[data-testid="online-deck-select"]',
+    );
+    expect(select.textContent).toContain('保存済みデッキ 1');
+    expect(select.innerHTML).not.toMatch(new RegExp(`${TABLE_CAPABILITY}|${SEAT_CAPABILITY}`));
+    act(() => mounted.root.unmount());
+  });
+
+  it('keeps an exact eight-character capability fragment out of deck option DOM after create', async () => {
+    let participantId = '';
+    vi.stubGlobal('fetch', vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === 'GET') return Promise.resolve(ok(projectionV2(participantId)));
+      participantId = String(requestBody(init).participantId);
+      return Promise.resolve(ok(created(participantId)));
+    }));
+    const fragment = SEAT_CAPABILITY.slice(10, 18);
+    const mounted = mount(vi.fn(), `任意デッキ-${fragment}`, 'safe-deck-id');
+    await act(async () => {
+      required<HTMLButtonElement>(mounted.container, '[data-testid="online-create-room"]').click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const select = required<HTMLSelectElement>(
+      mounted.container,
+      '[data-testid="online-deck-select"]',
+    );
+    expect(select.textContent).toContain('保存済みデッキ 1');
+    expect(select.innerHTML).not.toContain(fragment);
     act(() => mounted.root.unmount());
   });
 });

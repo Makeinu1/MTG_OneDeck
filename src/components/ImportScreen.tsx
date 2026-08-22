@@ -30,6 +30,7 @@ export interface ImportScreenProps {
   onDeckSaved?: (deck: SavedDeck) => void;
   onDirtyChange?: (dirty: boolean) => void;
   onImportingChange?: (importing: boolean) => void;
+  importOnly?: boolean;
   keybindings: KeybindingsMap;
   onKeybindingsChange: (map: KeybindingsMap) => void;
 }
@@ -74,6 +75,7 @@ export function ImportScreen({
   onDeckSaved,
   onDirtyChange,
   onImportingChange,
+  importOnly = false,
   keybindings,
   onKeybindingsChange,
 }: ImportScreenProps) {
@@ -99,6 +101,10 @@ export function ImportScreen({
   const [rebindingAction, setRebindingAction] = useState<KeybindingAction | null>(null);
   const [keybindingWarning, setKeybindingWarning] = useState<string | null>(null);
   const importRunRef = useRef(0);
+
+  useEffect(() => () => {
+    importRunRef.current += 1;
+  }, []);
 
   useEffect(() => {
     onDirtyChange?.(deckText !== savedBaselineText);
@@ -126,7 +132,9 @@ export function ImportScreen({
       if (!nextKey) return;
 
       if (conflictsWith(keybindings, action, nextKey)) {
-        setKeybindingWarning(`「${formatKeybindingLabel(nextKey)}」は他のショートカットと重複しています。`);
+        setKeybindingWarning(
+          `「${formatKeybindingLabel(nextKey)}」は他のショートカットと重複しています。`,
+        );
         return;
       }
 
@@ -168,7 +176,12 @@ export function ImportScreen({
       for (const entry of entries) {
         const card = result.resolved.get(entry.name);
         if (card) {
-          resolved.push({ name: entry.name, card, quantity: entry.quantity, section: entry.section });
+          resolved.push({
+            name: entry.name,
+            card,
+            quantity: entry.quantity,
+            section: entry.section,
+          });
         }
       }
       setResolvedEntries(resolved);
@@ -193,9 +206,10 @@ export function ImportScreen({
           setSavedBaselineText(deckText);
           setSaveStatus({
             kind: 'saved',
-            message: saved.operation === 'created'
-              ? 'マイデッキに保存しました。'
-              : 'マイデッキを更新しました。',
+            message:
+              saved.operation === 'created'
+                ? 'マイデッキに保存しました。'
+                : 'マイデッキを更新しました。',
           });
           onDeckSaved?.(saved.deck);
           void requestPersistentStorageOnce();
@@ -219,12 +233,14 @@ export function ImportScreen({
   };
 
   const totalCount = resolvedEntries.reduce((sum, e) => sum + e.quantity, 0);
-  const canStart = hasImported
-    && unresolved.length === 0
-    && parseErrors.length === 0
-    && resolvedEntries.length > 0;
+  const canStart =
+    hasImported &&
+    unresolved.length === 0 &&
+    parseErrors.length === 0 &&
+    resolvedEntries.length > 0;
 
   const handleStart = (): void => {
+    if (importOnly) return;
     const deck: InitDeckCard[] = [];
     for (const entry of resolvedEntries) {
       for (let i = 0; i < entry.quantity; i++) {
@@ -284,14 +300,19 @@ export function ImportScreen({
             <span className="import-screen__step">01</span>
             <h2>デッキリスト</h2>
           </div>
-          <span className={`import-screen__state import-screen__state--${workflowState}`} aria-live="polite">
+          <span
+            className={`import-screen__state import-screen__state--${workflowState}`}
+            aria-live="polite"
+          >
             {workflowState === 'empty' && '入力待ち'}
             {workflowState === 'resolving' && 'カードを解決中'}
             {workflowState === 'ready' && 'プレイ可能'}
             {workflowState === 'error' && '修正が必要'}
           </span>
         </div>
-        <label className="import-screen__label" htmlFor="deck-input">デッキリストを貼り付け</label>
+        <label className="import-screen__label" htmlFor="deck-input">
+          デッキリストを貼り付け
+        </label>
         <textarea
           id="deck-input"
           data-testid="deck-input"
@@ -312,11 +333,24 @@ export function ImportScreen({
 
         <div className="import-screen__actions" data-testid="import-primary-actions">
           {workflowState === 'ready' ? (
-            <button type="button" data-testid="start-game" className="btn btn--accent btn--hero" onClick={handleStart} disabled={!canStart}>
-              ゲーム開始
-            </button>
+            !importOnly ? (
+              <button
+                type="button"
+                data-testid="start-game"
+                className="btn btn--accent btn--hero"
+                onClick={handleStart}
+                disabled={!canStart}
+              >
+                ゲーム開始
+              </button>
+            ) : null
           ) : workflowState === 'resolving' ? (
-            <button type="button" data-testid="cancel-import" className="btn btn--primary btn--hero" onClick={handleCancelImport}>
+            <button
+              type="button"
+              data-testid="cancel-import"
+              className="btn btn--primary btn--hero"
+              onClick={handleCancelImport}
+            >
               読み込みを中止
             </button>
           ) : (
@@ -345,58 +379,55 @@ export function ImportScreen({
         <details className="import-screen__details">
           <summary>詳細・ショートカット設定</summary>
           <section className="import-screen__keybindings" data-testid="keybindings">
-          <div className="import-screen__keybindings-header">
-            <h2>キーボードショートカット</h2>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              data-testid="keybindings-reset"
-              onClick={handleResetKeybindings}
-            >
-              デフォルトに戻す
-            </button>
-          </div>
-          <div className="import-screen__keybindings-grid">
-            {KEYBINDING_ACTIONS.map((action) => (
-              <div key={action} className="import-screen__keybinding-row">
-                <span className="import-screen__keybinding-label">{ACTION_LABELS[action]}</span>
-                <kbd className="import-screen__keybinding-key">
-                  {formatKeybindingLabel(keybindings[action])}
-                </kbd>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  data-testid={`rebind-${action}`}
-                  onClick={() => {
-                    setRebindingAction(action);
-                    setKeybindingWarning(null);
-                  }}
-                >
-                  {rebindingAction === action ? '入力待ち…' : '変更'}
-                </button>
-              </div>
-            ))}
-          </div>
-          {rebindingAction && (
-            <p className="import-screen__keybinding-hint">
-              割り当てたいキーを押してください。Esc でキャンセルします。
-            </p>
-          )}
-          {keybindingWarning && (
-            <p className="import-screen__keybinding-warning" role="alert">
-              {keybindingWarning}
-            </p>
-          )}
+            <div className="import-screen__keybindings-header">
+              <h2>キーボードショートカット</h2>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                data-testid="keybindings-reset"
+                onClick={handleResetKeybindings}
+              >
+                デフォルトに戻す
+              </button>
+            </div>
+            <div className="import-screen__keybindings-grid">
+              {KEYBINDING_ACTIONS.map((action) => (
+                <div key={action} className="import-screen__keybinding-row">
+                  <span className="import-screen__keybinding-label">{ACTION_LABELS[action]}</span>
+                  <kbd className="import-screen__keybinding-key">
+                    {formatKeybindingLabel(keybindings[action])}
+                  </kbd>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    data-testid={`rebind-${action}`}
+                    onClick={() => {
+                      setRebindingAction(action);
+                      setKeybindingWarning(null);
+                    }}
+                  >
+                    {rebindingAction === action ? '入力待ち…' : '変更'}
+                  </button>
+                </div>
+              ))}
+            </div>
+            {rebindingAction && (
+              <p className="import-screen__keybinding-hint">
+                割り当てたいキーを押してください。Esc でキャンセルします。
+              </p>
+            )}
+            {keybindingWarning && (
+              <p className="import-screen__keybinding-warning" role="alert">
+                {keybindingWarning}
+              </p>
+            )}
           </section>
         </details>
 
         {progress && (
           <div className="import-screen__progress">
             <div className="import-screen__progress-bar">
-              <div
-                className="import-screen__progress-fill"
-                style={{ width: `${progressPct}%` }}
-              />
+              <div className="import-screen__progress-fill" style={{ width: `${progressPct}%` }} />
             </div>
             <span className="import-screen__progress-label">
               解決中: {progress.done} / {progress.total}
@@ -468,7 +499,8 @@ export function ImportScreen({
       {resolvedEntries.length > 0 && (
         <section className="import-screen__gallery">
           <h2>
-            解決済みカード <span className="import-screen__gallery-count">{resolvedEntries.length}</span>
+            解決済みカード{' '}
+            <span className="import-screen__gallery-count">{resolvedEntries.length}</span>
           </h2>
           <div className="import-screen__grid">
             {resolvedEntries.map((entry, index) => (

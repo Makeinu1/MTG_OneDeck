@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createOnlineFormingLobbyV1, submitOnlineFormingLobbyDeckV1 } from '../../lobby/index';
+import { claimOnlineFormingLobbySeatV1, createOnlineFormingLobbyV1, submitOnlineFormingLobbyDeckV1 } from '../../lobby/index';
 import { OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
 import type { CardDef } from '../../../types/card';
@@ -45,6 +45,9 @@ describe('Cloudflare v2 deck persistence', () => {
     const result = await submit.json() as { state?: unknown; projection?: Record<string, unknown> };
     expect(result.state).toBe('accepted');
     expect(JSON.stringify(result)).not.toContain(CAP);
+    const ready = await object.fetch(new Request(`https://room.test/api/online/rooms/${ROOM}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-ready-v2', schemaVersion: 2, participantId: PARTICIPANT, seatCapability: CAP, ready: true }) }));
+    expect(ready.status).toBe(200);
+    expect(await ready.json()).toMatchObject({ kind: 'online-forming-lobby-ready-v2', schemaVersion: 2, roomId: ROOM });
     const projection = await object.fetch(new Request(`https://room.test/api/online/rooms/${ROOM}/lobby?schemaVersion=2`));
     expect(projection.status).toBe(200);
     expect(JSON.stringify(await projection.json())).not.toContain(SID);
@@ -126,5 +129,26 @@ describe('Cloudflare v2 deck persistence', () => {
     storage.failExecWhen = null;
     expect(repository.loadDeckHeadsV2(ROOM)).toEqual([]);
     expect(repository.loadLobby(ROOM)).toEqual(initial);
+  });
+
+  it('accepts v2-only readiness and starts deterministic dynamic genesis with a table', async () => {
+    const storage = new ReviewSqliteStorage();
+    const repository = new OnlineCloudflareRepository(storage);
+    let current = lobby();
+    const participants = [PARTICIPANT, 'participant-1', 'participant-2', 'participant-3'];
+    const capabilities = [CAP, 'seat_' + '1'.repeat(32), 'seat_' + '2'.repeat(32), 'seat_' + '3'.repeat(32)];
+    for (let index = 1; index < 4; index += 1) {
+      const claimed = claimOnlineFormingLobbySeatV1(current, { participantId: participants[index], inviteCapability: `invite_${String(index).repeat(32)}` });
+      current = claimed.lobby;
+    }
+    repository.initializeLobby(current);
+    const resolver = { resolve: () => Promise.resolve(new Map([[SID, card()]])) };
+    for (let index = 0; index < 4; index += 1) {
+      await repository.submitDeckV2(ROOM, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: participants[index], seatCapability: capabilities[index], deckId: `deck-${index}`, submissionId: `submission-${index}`, entries: [{ section: 'main', quantity: 1, scryfallId: SID, oracleId: OID }] }, resolver);
+      repository.setReadyV2(ROOM, participants[index], capabilities[index], true);
+    }
+    expect(repository.projectLobbyV2(ROOM).lifecycle).toBe('ready');
+    const started = repository.startWithTableV2(ROOM, { hostParticipantId: PARTICIPANT, seatCapability: CAP, tableParticipantId: 'table-v2', tableCapability: 'observer_' + 't'.repeat(32) });
+    expect(started).toMatchObject({ outcome: 'started', issue: null, status: { revision: 0, roomLifecycle: 'active' } });
   });
 });

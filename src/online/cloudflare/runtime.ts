@@ -262,10 +262,28 @@ export class OnlineRoomDurableObject {
         }
         const lobby = this.repository.loadLobby(route.roomId);
         if (lobby === null) return genericError(404);
+        const activeRoom = this.repository.load()?.room.lifecycle === 'active';
+        if (activeRoom && (kind === 'online-forming-lobby-seat-claim-v1' || kind === 'online-forming-lobby-deck-submit-v1' || kind === 'online-forming-lobby-ready-v1' || kind === 'online-forming-lobby-start-v1' || kind === 'online-forming-lobby-start-with-table-v1')) return genericError(400);
         try {
           if (kind === 'online-forming-lobby-deck-submit-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'submissionId', 'entries']) && schemaVersion === 2) {
             const result = await this.repository.submitDeckV2(route.roomId, body, this.deckResolver);
             return jsonResponse(result);
+          }
+          if (kind === 'online-forming-lobby-ready-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready']) && schemaVersion === 2) {
+            const ready = ownDataValue(body, 'ready');
+            const participantId = ownDataString(body, 'participantId');
+            const seatCapability = ownDataString(body, 'seatCapability');
+            if (typeof ready !== 'boolean' || participantId === null || seatCapability === null) return genericError(400);
+            const projection = this.repository.setReadyV2(route.roomId, participantId, seatCapability, ready);
+            return jsonResponse({ kind: 'online-forming-lobby-ready-v2', schemaVersion: 2, roomId: route.roomId, projection });
+          }
+          if (kind === 'online-forming-lobby-start-with-table-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'tableParticipantId', 'tableCapability']) && schemaVersion === 2) {
+            const hostParticipantId = ownDataString(body, 'hostParticipantId');
+            const seatCapability = ownDataString(body, 'seatCapability');
+            const tableParticipantId = ownDataString(body, 'tableParticipantId');
+            const tableCapability = ownDataString(body, 'tableCapability');
+            if (hostParticipantId === null || seatCapability === null || tableParticipantId === null || tableCapability === null) return genericError(400);
+            return jsonResponse(this.repository.startWithTableV2(route.roomId, { hostParticipantId, seatCapability, tableParticipantId, tableCapability }));
           }
           if (kind === 'online-forming-lobby-seat-claim-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'inviteCapability']) && schemaVersion === 1) {
             const transitioned = claimOnlineFormingLobbySeatV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', inviteCapability: ownDataString(body, 'inviteCapability') ?? '' });

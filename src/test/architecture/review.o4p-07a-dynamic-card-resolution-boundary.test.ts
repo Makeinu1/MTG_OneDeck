@@ -6,9 +6,14 @@ import { describe, expect, it } from 'vitest';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const baseSha = '55fe011700bd6bb10a699e1bd431f0bf12cc40cb';
+const closureSha = 'ead2ed875e84b932fb56e04055dd9621a6cecb39';
 
 function source(path: string): string {
   return readFileSync(resolve(repositoryRoot, path), 'utf8');
+}
+
+function sourceAt(sha: string, path: string): string {
+  return execFileSync('git', ['show', `${sha}:${path}`], { cwd: repositoryRoot, encoding: 'utf8' });
 }
 
 function normalized(path: string): string {
@@ -62,6 +67,7 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
       '../room/index',
       '../lobby/index',
       '../deckSubmission/index',
+      '../genesis/index',
       '../../engine/core/index',
     ]);
     for (const path of productionFiles(resolve(repositoryRoot, 'src/online/cloudflare'))) {
@@ -110,11 +116,11 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
   });
 
   it('does not switch public UI, fixed bootstrap, or start genesis during 07A', () => {
-    const baseApp = execFileSync('git', ['show', `${baseSha}:src/App.tsx`], { cwd: repositoryRoot, encoding: 'utf8' });
-    expect(source('src/App.tsx')).toBe(baseApp);
-    const runtime = source('src/online/cloudflare/runtime.ts');
-    const persistence = source('src/online/cloudflare/persistence.ts');
-    const resolution = source('src/online/deckSubmission/resolution.ts');
+    const baseApp = sourceAt(baseSha, 'src/App.tsx');
+    expect(sourceAt(closureSha, 'src/App.tsx')).toBe(baseApp);
+    const runtime = sourceAt(closureSha, 'src/online/cloudflare/runtime.ts');
+    const persistence = sourceAt(closureSha, 'src/online/cloudflare/persistence.ts');
+    const resolution = sourceAt(closureSha, 'src/online/deckSubmission/resolution.ts');
     expect(`${runtime}\n${persistence}\n${resolution}`).not.toMatch(/catalogV1|fourDeckBootstrapV1|parseBootstrapDeckTextV1|ONLINE_BOOTSTRAP_DECK/);
     expect(runtime).toMatch(/searchParams\.get\('schemaVersion'\) === '2'[\s\S]*projectLobbyV2[\s\S]*projectOnlineFormingLobbyV1/);
     expect(runtime).toMatch(/kind === 'online-forming-lobby-start-v1'/);

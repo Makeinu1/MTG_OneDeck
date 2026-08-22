@@ -20,6 +20,32 @@ export type OnlineCloudflareRoomStatusV1 = Readonly<{
   readonly acceptedCommandCount: number;
 }>;
 
+export type OnlineReadyV2 = Readonly<{
+  readonly kind: 'online-forming-lobby-ready-v2';
+  readonly schemaVersion: 2;
+  readonly participantId: string;
+  readonly seatCapability: string;
+  readonly ready: boolean;
+}>;
+
+export type OnlineStartWithTableV2 = Readonly<{
+  readonly kind: 'online-forming-lobby-start-with-table-v2';
+  readonly schemaVersion: 2;
+  readonly hostParticipantId: string;
+  readonly seatCapability: string;
+  readonly tableParticipantId: string;
+  readonly tableCapability: string;
+}>;
+
+export type OnlineDynamicStartResultV2 = Readonly<{
+  readonly kind: 'online-forming-lobby-start-result-v2';
+  readonly schemaVersion: 2;
+  readonly roomId: string;
+  readonly outcome: 'started' | 'needs-attention';
+  readonly issue: 'ROOM_GENESIS_TOO_LARGE' | null;
+  readonly status: OnlineCloudflareRoomStatusV1 | null;
+}>;
+
 export type OnlineCloudflareInitializeV1 = Readonly<{
   readonly kind: 'online-cloudflare-room-initialize-v1';
   readonly schemaVersion: typeof ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1;

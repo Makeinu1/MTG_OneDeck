@@ -47,6 +47,8 @@ import {
   type OnlineDeckSubmissionStateV2,
   type OnlineFormingLobbyProjectionV2,
 } from '../deckSubmission/index';
+import { buildDynamicRoomGenesisV2, type DynamicGenesisSeatInputV2 } from '../genesis/index';
+import type { OnlineDynamicStartResultV2 } from './types';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
@@ -77,6 +79,7 @@ const UPDATE_LOBBY = 'UPDATE online_forming_lobby SET room_id = ?, state_json = 
 const CREATE_DECK_HEAD = `CREATE TABLE IF NOT EXISTS online_deck_submission_head_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), participant_id TEXT NOT NULL, deck_id TEXT NOT NULL, submission_id TEXT NOT NULL, content_digest TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), state TEXT NOT NULL CHECK (state IN ('none', 'resolving', 'accepted', 'needs-attention')), snapshot_digest TEXT, PRIMARY KEY (room_id, seat_index)) STRICT`;
 const CREATE_DECK_HISTORY = `CREATE TABLE IF NOT EXISTS online_deck_submission_history_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), submission_id TEXT NOT NULL, participant_id TEXT NOT NULL, deck_id TEXT NOT NULL, canonical_input TEXT NOT NULL, content_digest TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), state TEXT NOT NULL CHECK (state IN ('resolving', 'accepted', 'needs-attention')), issues_json TEXT NOT NULL, PRIMARY KEY (room_id, seat_index, submission_id)) STRICT`;
 const CREATE_DECK_SNAPSHOT = `CREATE TABLE IF NOT EXISTS online_deck_submission_snapshot_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), snapshot_digest TEXT NOT NULL CHECK (length(snapshot_digest) = 64), snapshot_json TEXT NOT NULL, PRIMARY KEY (room_id, seat_index)) STRICT`;
+const CREATE_DECK_READY = `CREATE TABLE IF NOT EXISTS online_deck_submission_ready_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), ready INTEGER NOT NULL CHECK (ready IN (0, 1)), PRIMARY KEY (room_id, seat_index)) STRICT`;
 const SELECT_DECK_HEADS = 'SELECT room_id, seat_index, participant_id, deck_id, submission_id, content_digest, revision, state, snapshot_digest FROM online_deck_submission_head_v2 WHERE room_id = ? ORDER BY seat_index';
 const SELECT_DECK_HEAD = 'SELECT room_id, seat_index, participant_id, deck_id, submission_id, content_digest, revision, state, snapshot_digest FROM online_deck_submission_head_v2 WHERE room_id = ? AND seat_index = ?';
 const SELECT_DECK_HISTORY = 'SELECT room_id, seat_index, submission_id, participant_id, deck_id, canonical_input, content_digest, revision, state, issues_json FROM online_deck_submission_history_v2 WHERE room_id = ? AND seat_index = ? AND submission_id = ?';
@@ -89,6 +92,10 @@ const INSERT_DECK_HISTORY = 'INSERT INTO online_deck_submission_history_v2 (room
 const UPDATE_DECK_HISTORY = 'UPDATE online_deck_submission_history_v2 SET participant_id = ?, deck_id = ?, canonical_input = ?, content_digest = ?, revision = ?, state = ?, issues_json = ? WHERE room_id = ? AND seat_index = ? AND submission_id = ? RETURNING submission_id';
 const DELETE_DECK_SNAPSHOT = 'DELETE FROM online_deck_submission_snapshot_v2 WHERE room_id = ? AND seat_index = ?';
 const INSERT_DECK_SNAPSHOT = 'INSERT INTO online_deck_submission_snapshot_v2 (room_id, seat_index, snapshot_digest, snapshot_json) VALUES (?, ?, ?, ?)';
+const SELECT_DECK_READY = 'SELECT room_id, seat_index, ready FROM online_deck_submission_ready_v2 WHERE room_id = ? ORDER BY seat_index';
+const SELECT_DECK_READY_SEAT = 'SELECT room_id, seat_index, ready FROM online_deck_submission_ready_v2 WHERE room_id = ? AND seat_index = ?';
+const INSERT_DECK_READY = 'INSERT INTO online_deck_submission_ready_v2 (room_id, seat_index, ready) VALUES (?, ?, ?)';
+const UPDATE_DECK_READY = 'UPDATE online_deck_submission_ready_v2 SET ready = ? WHERE room_id = ? AND seat_index = ? RETURNING seat_index';
 
 type RoomRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; room_lifecycle: unknown; accepted_command_count: unknown; state_json: unknown };
 type JournalRow = { accepted_revision: unknown; command_id: unknown; participant_id: unknown; base_revision: unknown; command_json: unknown };
@@ -99,6 +106,7 @@ type LobbyRow = { singleton: unknown; schema_version: unknown; room_id: unknown;
 type DeckHeadRow = { room_id: unknown; seat_index: unknown; participant_id: unknown; deck_id: unknown; submission_id: unknown; content_digest: unknown; revision: unknown; state: unknown; snapshot_digest: unknown };
 type DeckHistoryRow = DeckHeadRow & { canonical_input: unknown; issues_json: unknown };
 type DeckSnapshotRow = { room_id: unknown; seat_index: unknown; snapshot_digest: unknown; snapshot_json: unknown };
+type DeckReadyRow = { room_id: unknown; seat_index: unknown; ready: unknown };
 type RecoveryVerificationResult = Readonly<{ readonly checkpointRevision: number; readonly replayCount: number }>;
 type MigrationRecoveryHandoff = RecoveryVerificationResult & Readonly<{ readonly roomId: string; readonly currentRevision: number; readonly versionIdentifier: string | null }>;
 
@@ -233,6 +241,7 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_HEAD);
       this.storage.sql.exec(CREATE_DECK_HISTORY);
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
+      this.storage.sql.exec(CREATE_DECK_READY);
       this.storage.sql.exec(CREATE_LOBBY);
       const before = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
       if (before.length > 1 || (before[0] !== undefined && (before[0].singleton !== 1 || (before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 && before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2)))) throw new Error('Invalid application migration ledger');
@@ -547,6 +556,7 @@ export class OnlineCloudflareRepository {
     this.storage.sql.exec(CREATE_DECK_HEAD);
     this.storage.sql.exec(CREATE_DECK_HISTORY);
     this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
+    this.storage.sql.exec(CREATE_DECK_READY);
   }
 
   private deckHead(roomId: string, querySeatIndex: number): OnlineDeckSubmissionHeadV2 | null {
@@ -650,6 +660,11 @@ export class OnlineCloudflareRepository {
       headSeats.add(head.seatIndex);
       const seat = lobby.seats[head.seatIndex];
       if (seat === undefined || seat.participantId !== head.participantId) throw new Error('Invalid v2 head participant relation');
+      if (
+        (seat.deckId !== null || seat.deckText !== null) &&
+        (head.state !== 'needs-attention' || head.snapshotDigest !== null)
+      )
+        throw new Error('Mixed v1/v2 deck relation');
       const histories = this.storage.sql.exec<DeckHistoryRow>(SELECT_DECK_HISTORY_SEAT, roomId, head.seatIndex).toArray();
       for (const history of histories) this.validateHistoryRow(history);
       const currentHistory = histories.find((history) => history.submission_id === head.submissionId);
@@ -664,6 +679,20 @@ export class OnlineCloudflareRepository {
       const histories = this.storage.sql.exec<DeckHistoryRow>(SELECT_DECK_HISTORY_SEAT, roomId, seatIndex).toArray();
       if (histories.length > 0) throw new Error('History without v2 head');
     }
+    try {
+      const readyRows = this.storage.sql.exec<DeckReadyRow>(SELECT_DECK_READY, roomId).toArray();
+      const seenReady = new Set<number>();
+      for (const row of readyRows) {
+        if (typeof row.room_id !== 'string' || row.room_id !== roomId || typeof row.seat_index !== 'number' || !Number.isSafeInteger(row.seat_index) || row.seat_index < 0 || row.seat_index > 3 || (row.ready !== 0 && row.ready !== 1) || seenReady.has(row.seat_index)) throw new Error('Invalid v2 ready relation');
+        seenReady.add(row.seat_index);
+        if (row.ready === 1) {
+          const head = this.deckHead(roomId, row.seat_index);
+          if (head === null || head.state !== 'accepted' || head.snapshotDigest === null) throw new Error('Ready v2 seat is not accepted');
+        }
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error && /no such table/i.test(error.message))) throw error;
+    }
   }
 
   projectLobbyV2(roomId: string, lobbyInput?: OnlineFormingLobbyV1): OnlineFormingLobbyProjectionV2 {
@@ -675,9 +704,130 @@ export class OnlineCloudflareRepository {
     }
     if (lobby === null) throw new Error('Missing forming lobby');
     this.validateDeckRelations(roomId, lobby);
-    const heads = new Map(this.loadDeckHeadsV2(roomId).map((head) => [head.seatIndex, head.state]));
-    const seats = lobby.seats.map((seat, index) => Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, deckState: heads.get(index as 0 | 1 | 2 | 3) ?? 'none', ready: seat.ready }));
-    return Object.freeze({ kind: 'online-forming-lobby-projection-v2', schemaVersion: 2, lifecycle: lobby.lifecycle, roomId: lobby.roomId, serverBuildId: lobby.serverBuildId, hostParticipantId: lobby.hostParticipantId, seats: Object.freeze(seats) as OnlineFormingLobbyProjectionV2['seats'] });
+    const heads = new Map(this.loadDeckHeadsV2(roomId).map((head) => [head.seatIndex, head]));
+    const ready = new Map<number, boolean>();
+    try { for (const row of this.storage.sql.exec<DeckReadyRow>(SELECT_DECK_READY, roomId).toArray()) if (typeof row.seat_index === 'number' && (row.ready === 0 || row.ready === 1)) ready.set(row.seat_index, row.ready === 1); } catch (error: unknown) { if (!(error instanceof Error && /no such table/i.test(error.message))) throw error; }
+    const seats = lobby.seats.map((seat, index) => {
+      const head = heads.get(index as 0 | 1 | 2 | 3);
+      const accepted = head?.state === 'accepted' && head.snapshotDigest !== null;
+      return Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, deckState: head?.state ?? 'none', ready: accepted && ready.get(index) === true });
+    });
+    const lifecycle = (() => {
+      const complete = seats.every((seat) => seat.participantId !== null && seat.deckState === 'accepted' && seat.ready);
+      const started = this.load()?.room.lifecycle === 'active';
+      return started ? 'started' : complete ? 'ready' : 'forming';
+    })();
+    return Object.freeze({ kind: 'online-forming-lobby-projection-v2', schemaVersion: 2, lifecycle, roomId: lobby.roomId, serverBuildId: lobby.serverBuildId, hostParticipantId: lobby.hostParticipantId, seats: Object.freeze(seats) as OnlineFormingLobbyProjectionV2['seats'] });
+  }
+
+  private v2Ready(roomId: string, seatIndex: number): boolean {
+    try {
+      const rows = this.storage.sql.exec<DeckReadyRow>(SELECT_DECK_READY_SEAT, roomId, seatIndex).toArray();
+      if (rows.length === 0) return false;
+      if (rows.length !== 1 || rows[0]?.ready !== 0 && rows[0]?.ready !== 1) throw new Error('Invalid v2 ready row');
+      return rows[0]?.ready === 1;
+    } catch (error: unknown) {
+      if (error instanceof Error && /no such table/i.test(error.message)) return false;
+      throw error;
+    }
+  }
+
+  setReadyV2(roomId: string, participantId: string, seatCapability: string, readyValue: boolean): OnlineFormingLobbyProjectionV2 {
+    const lobby = this.loadLobby(roomId);
+    if (lobby === null) throw new Error('Missing forming lobby');
+    const seatIndex = authorizeOnlineFormingLobbySeatV1(lobby, participantId, seatCapability);
+    this.validateDeckRelations(roomId, lobby);
+    if (lobby.lifecycle === 'started' || this.load()?.room.lifecycle === 'active') throw new Error('Started lobby cannot change readiness');
+    const head = this.deckHead(roomId, seatIndex);
+    if (head === null || head.state !== 'accepted' || head.snapshotDigest === null) throw new Error('Accepted v2 deck required before ready');
+    const expectedLobbyJson = JSON.stringify(lobby);
+    if (expectedLobbyJson === undefined) throw new Error('Invalid lobby serialization');
+    this.storage.transactionSync(() => {
+      this.ensureDeckSchema();
+      const lobbyRows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (lobbyRows.length !== 1 || lobbyRows[0]?.room_id !== roomId || lobbyRows[0]?.state_json !== expectedLobbyJson || this.rows().length !== 0) throw new ConflictError();
+      const currentHead = this.deckHead(roomId, seatIndex);
+      const currentSnapshot = this.loadDeckSnapshotV2(roomId, seatIndex);
+      if (currentHead === null || currentSnapshot === null || currentHead.participantId !== participantId || currentHead.revision !== head.revision || currentHead.submissionId !== head.submissionId || currentHead.contentDigest !== head.contentDigest || currentHead.snapshotDigest !== head.snapshotDigest || currentSnapshot.digest !== head.snapshotDigest || currentHead.state !== 'accepted') throw new ConflictError();
+      const existing = this.storage.sql.exec<DeckReadyRow>(SELECT_DECK_READY_SEAT, roomId, seatIndex).toArray();
+      if (existing.length > 1) throw new Error('Invalid v2 ready row');
+      if (existing.length === 0) this.storage.sql.exec(INSERT_DECK_READY, roomId, seatIndex, readyValue ? 1 : 0);
+      else {
+        const updated = this.storage.sql.exec<{ seat_index: unknown }>(UPDATE_DECK_READY, readyValue ? 1 : 0, roomId, seatIndex).toArray();
+        if (updated.length !== 1 || updated[0]?.seat_index !== seatIndex) throw new ConflictError();
+      }
+    });
+    return this.projectLobbyV2(roomId);
+  }
+
+  startWithTableV2(roomId: string, input: { readonly hostParticipantId: string; readonly seatCapability: string; readonly tableParticipantId: string; readonly tableCapability: string }): OnlineDynamicStartResultV2 {
+    const lobby = this.loadLobby(roomId);
+    if (lobby === null) throw new Error('Missing forming lobby');
+    const hostSeat = authorizeOnlineFormingLobbySeatV1(lobby, input.hostParticipantId, input.seatCapability);
+    if (hostSeat !== 0 || input.hostParticipantId !== lobby.hostParticipantId) throw new Error('Host authorization rejected');
+    if (!isOnlineRoomApplicationIdV1(input.tableParticipantId) || !isOnlineRoomSeatCapabilityV1(input.tableCapability)) throw new Error('Table authorization rejected');
+    const configuredBeforeTable = lobby.seats.flatMap((seat) => [seat.seatCapability, ...(seat.inviteCapability === null ? [] : [seat.inviteCapability])]);
+    assertNoConfiguredCapabilityFragmentV1(input.tableCapability, configuredBeforeTable);
+    assertNoConfiguredCapabilityFragmentV1(JSON.stringify({ roomId, serverBuildId: lobby.serverBuildId, hostParticipantId: lobby.hostParticipantId, participantIds: lobby.seats.map((seat) => seat.participantId), capabilities: configuredBeforeTable }), [input.tableCapability]);
+    assertNoConfiguredCapabilityFragmentV1(input.tableParticipantId, [input.tableCapability, ...configuredBeforeTable]);
+    this.validateDeckRelations(roomId, lobby);
+    if (lobby.lifecycle === 'started' || this.load()?.room.lifecycle === 'active') throw new Error('Lobby already started');
+    const heads = this.loadDeckHeadsV2(roomId);
+    assertNoConfiguredCapabilityFragmentV1(JSON.stringify(heads), [input.tableCapability]);
+    const seats: DynamicGenesisSeatInputV2[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      const head = heads.find((candidate) => candidate.seatIndex === index);
+      const seat = lobby.seats[index];
+      if (head === undefined || seat?.participantId === null || head.state !== 'accepted' || head.snapshotDigest === null || !this.v2Ready(roomId, index)) throw new Error('All seats must be accepted and ready');
+      const loaded = this.loadDeckSnapshotV2(roomId, index);
+      if (loaded === null || loaded.digest !== head.snapshotDigest) throw new Error('Accepted snapshot relation invalid');
+      assertNoConfiguredCapabilityFragmentV1(loaded.serialized, [input.tableCapability]);
+      const histories = this.storage.sql.exec<DeckHistoryRow>(SELECT_DECK_HISTORY_SEAT, roomId, index).toArray();
+      for (const history of histories) {
+        this.validateHistoryRow(history);
+        assertNoConfiguredCapabilityFragmentV1(JSON.stringify(history), [input.tableCapability]);
+      }
+      let parsed: unknown;
+      try { parsed = JSON.parse(loaded.serialized); } catch { throw new Error('Invalid v2 snapshot JSON'); }
+      if (!exactOwnKeys(parsed, ['entries']) || !Array.isArray(parsed.entries)) throw new Error('Invalid v2 snapshot shape');
+      seats.push(Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, seatCapability: seat.seatCapability, revision: head.revision, submissionId: head.submissionId, contentDigest: head.contentDigest, snapshotDigest: head.snapshotDigest, snapshot: Object.freeze({ entries: parsed.entries, digest: loaded.digest, serialized: loaded.serialized }) }));
+    }
+    const genesis = buildDynamicRoomGenesisV2({ roomId, serverBuildId: lobby.serverBuildId, seats: seats as [DynamicGenesisSeatInputV2, DynamicGenesisSeatInputV2, DynamicGenesisSeatInputV2, DynamicGenesisSeatInputV2], tableParticipantId: input.tableParticipantId, tableCapability: input.tableCapability });
+    if (!genesis.ok) {
+      const tooLarge = genesis.issues.some((current) => current.code === 'ROOM_GENESIS_TOO_LARGE');
+      if (!tooLarge) throw new Error('Dynamic Room genesis failed');
+      return Object.freeze({ kind: 'online-forming-lobby-start-result-v2', schemaVersion: 2, roomId, outcome: 'needs-attention', issue: 'ROOM_GENESIS_TOO_LARGE', status: null });
+    }
+    const status = this.initializeDynamicRoomV2(roomId, genesis.protocolState, lobby, seats);
+    return Object.freeze({ kind: 'online-forming-lobby-start-result-v2', schemaVersion: 2, roomId, outcome: 'started', issue: null, status });
+  }
+
+  private initializeDynamicRoomV2(roomId: string, state: OnlineProtocolStateV1, expectedLobby: OnlineFormingLobbyV1, expectedSeats: readonly DynamicGenesisSeatInputV2[]): OnlineCloudflareRoomStatusV1 {
+    const stateJson = serializeOnlineCloudflareProtocolStateV1(state);
+    const expectedLobbyJson = JSON.stringify(expectedLobby);
+    if (expectedLobbyJson === undefined) throw new Error('Invalid lobby serialization');
+    return this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_ROOM); this.storage.sql.exec(CREATE_JOURNAL); this.storage.sql.exec(CREATE_MIGRATION); this.storage.sql.exec(CREATE_CHECKPOINT); this.storage.sql.exec(CREATE_RECOVERY_VERIFICATION); this.storage.sql.exec(CREATE_DECK_HEAD); this.storage.sql.exec(CREATE_DECK_HISTORY); this.storage.sql.exec(CREATE_DECK_SNAPSHOT); this.storage.sql.exec(CREATE_DECK_READY); this.storage.sql.exec(CREATE_LOBBY); this.securityRepository.createSchemaInTransaction();
+      const lobbyRows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (lobbyRows.length !== 1 || lobbyRows[0]?.room_id !== roomId || lobbyRows[0]?.state_json !== expectedLobbyJson) throw new ConflictError();
+      for (const seat of expectedSeats) {
+        const head = this.deckHead(roomId, seat.seatIndex);
+        const snapshot = this.loadDeckSnapshotV2(roomId, seat.seatIndex);
+        if (head === null || snapshot === null || head.participantId !== seat.participantId || head.revision !== seat.revision || head.submissionId !== seat.submissionId || head.contentDigest !== seat.contentDigest || head.snapshotDigest !== seat.snapshotDigest || snapshot.digest !== seat.snapshotDigest || head.state !== 'accepted' || !this.v2Ready(roomId, seat.seatIndex)) throw new ConflictError();
+      }
+      const existing = this.rows();
+      if (existing.length > 1) throw new Error('Invalid singleton state');
+      if (existing.length === 1) {
+        const current = this.loadWithoutMigration();
+        if (current === null || serializeOnlineCloudflareProtocolStateV1(current) !== stateJson) throw new ConflictError();
+        return this.statusFor(current);
+      }
+      this.storage.sql.exec(INSERT_ROOM, 1, ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1, roomId, 0, state.room.lifecycle, state.coreRoot.acceptedCommandCount, stateJson);
+      this.securityRepository.initializeInTransaction(roomId, state, Date.now());
+      this.storage.sql.exec(INSERT_CHECKPOINT, roomId, 0, stateJson);
+      this.writeRecoveryVerificationInTransaction(state, 0);
+      return this.statusFor(state);
+    });
   }
 
   async submitDeckV2(roomId: string, input: unknown, resolver: OnlineDeckResolverV2): Promise<OnlineDeckSubmissionResultV2> {
@@ -687,7 +837,8 @@ export class OnlineCloudflareRepository {
     let authorizedSeatIndex: number;
     try { authorizedSeatIndex = authorizeOnlineFormingLobbySeatV1(lobby, input.participantId, input.seatCapability); }
     catch { throw new Error('Seat authorization rejected'); }
-    if (lobby.lifecycle === 'started') throw new Error('Started lobby cannot accept deck submissions');
+    if (lobby.lifecycle === 'started' || this.load()?.room.lifecycle === 'active') throw new Error('Started lobby cannot accept deck submissions');
+    this.validateDeckRelations(roomId, lobby);
     if (input.kind !== 'online-forming-lobby-deck-submit-v2' || input.schemaVersion !== 2) throw new Error('Invalid v2 protocol envelope');
     if (!closedSubmissionShape(input)) throw new Error('Invalid deck submission shape');
     const forbidden = [roomId, lobby.roomId, lobby.hostParticipantId, ...lobby.seats.flatMap((seat) => [seat.seatCapability, ...(seat.inviteCapability === null ? [] : [seat.inviteCapability]), ...(seat.participantId === null ? [] : [seat.participantId])])];
@@ -749,6 +900,7 @@ export class OnlineCloudflareRepository {
         if (updated.length !== 1 || updated[0]?.seat_index !== seatIndex) throw new ConflictError();
       }
       this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, seatIndex);
+      this.storage.sql.exec(UPDATE_DECK_READY, 0, roomId, seatIndex);
       if (history === undefined) this.storage.sql.exec(INSERT_DECK_HISTORY, roomId, seatIndex, value.submissionId, value.participantId, value.deckId, parsed.canonicalInput, parsed.contentDigest, beginRevision, 'resolving', '[]');
       else {
         const updatedHistory = this.storage.sql.exec<{ submission_id: unknown }>(UPDATE_DECK_HISTORY, value.participantId, value.deckId, parsed.canonicalInput, parsed.contentDigest, beginRevision, 'resolving', '[]', roomId, seatIndex, value.submissionId).toArray();
@@ -820,6 +972,7 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_HEAD);
       this.storage.sql.exec(CREATE_DECK_HISTORY);
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
+      this.storage.sql.exec(CREATE_DECK_READY);
       const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
       if (rows.length > 1) throw new Error('Invalid forming lobby singleton');
       if (rows.length === 1) {
@@ -832,6 +985,7 @@ export class OnlineCloudflareRepository {
   }
 
   persistLobby(previous: OnlineFormingLobbyV1, next: OnlineFormingLobbyV1): void {
+    if (this.load()?.room.lifecycle === 'active') throw new Error('Active Room lobby is immutable');
     const checkedPrevious = validateOnlineFormingLobbyV1(previous);
     const checkedNext = validateOnlineFormingLobbyV1(next);
     if (!checkedPrevious.ok || !checkedNext.ok) throw new Error('Invalid forming lobby transition');
@@ -865,6 +1019,7 @@ export class OnlineCloudflareRepository {
             if (invalidatedHistory.length !== 1 || invalidatedHistory[0]?.submission_id !== staleHead.submissionId) throw new ConflictError();
           }
           this.storage.sql.exec(DELETE_DECK_SNAPSHOT, previous.roomId, seatIndex);
+          this.storage.sql.exec(UPDATE_DECK_READY, 0, previous.roomId, seatIndex);
         }
       }
     });
@@ -901,6 +1056,7 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_HEAD);
       this.storage.sql.exec(CREATE_DECK_HISTORY);
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
+      this.storage.sql.exec(CREATE_DECK_READY);
       this.securityRepository.createSchemaInTransaction();
       const migrations = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
       if (migrations.length > 1 || (migrations[0] !== undefined && migrations[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 && migrations[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2)) throw new Error('Invalid application migration ledger');

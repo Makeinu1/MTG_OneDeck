@@ -79,6 +79,7 @@ describe('O4P-03B architecture boundary', () => {
       '../room/index',
       '../lobby/index',
       '../deckSubmission/index',
+      '../genesis/index',
       '../../engine/core/index',
     ]);
     for (const file of productionFiles(cloudflareRoot)) {
@@ -99,6 +100,7 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/protocol',
       'src/online/projection',
       'src/online/deckSubmission',
+      'src/online/genesis',
       'src/online/headless',
       'src/store',
     ]) {

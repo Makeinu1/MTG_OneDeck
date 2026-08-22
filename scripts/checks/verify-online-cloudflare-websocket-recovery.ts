@@ -21,9 +21,9 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    'b22bea7d1a2275a4e2fab43779f66c7f8c9e9868e5287a91abaebdb020c531c4',
+    '50aa37814a2e8d16a19a044b8c51558f086209a08b6cf5b8d596328baf96bc74',
   'src/online/cloudflare/index.ts':
-    '2670b1aa454a98905e567fee534c65ca99742cf614187f282a346c08f1caa96a',
+    '32cc08899e5df7682247f3b071d2a82b2d3761140e8aa141f315dc4db99868b2',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -146,6 +146,7 @@ const allowedImports = new Set([
   '../room/index',
   '../lobby/index',
   '../deckSubmission/index',
+  '../genesis/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {
@@ -217,6 +218,7 @@ for (const root of [
   'src/online/protocol',
   'src/online/projection',
   'src/online/deckSubmission',
+  'src/online/genesis',
   'src/online/headless',
   'src/store',
 ]) {

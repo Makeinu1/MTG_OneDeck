@@ -289,6 +289,61 @@ const frozenDeckSubmissionCoreImports = new Map<string, ReadonlySet<string>>([
   ],
 ]);
 
+const frozenGenesisCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/genesis/index.ts',
+    new Set([
+      'CORE_CLOSURE_VERSION_VECTOR_V1',
+      'CoreCardDefinitionSnapshotV1',
+      'CoreCardObjectRuntimeStateV1',
+      'CoreObjectId',
+      'CorePhysicalCardV1',
+      'CorePlayerId',
+      'ModeNeutralCoreRootV1',
+      'coreCanonicalDigestFromValueV1',
+      'coreCardObjectIdOf',
+      'coreSha256HexV1',
+      'createCoreCommanderCastLedgerV1',
+      'createCoreCommanderDamageProvenanceLedgerV1',
+      'createCoreCommanderDamageStateV1',
+      'createCoreCommanderIdentityV1',
+      'createCorePlayerLifecycleStateV1',
+      'createCoreReplayPackageV1',
+      'createCoreRuleAuthorityBundleV1',
+      'createCoreStackTransactionBundleV1',
+      'createCoreTurnPriorityBundleV1',
+      'createModeNeutralCoreControlSliceV1',
+      'createModeNeutralCoreDecisionAuthoritySliceV1',
+      'createModeNeutralCoreObjectRegistryStateV2',
+      'createModeNeutralCoreObjectRuntimeStateV2',
+      'createModeNeutralCorePendingTriggerSliceV1',
+      'createModeNeutralCorePlayPermissionSliceV1',
+      'createModeNeutralCoreRootV1',
+      'createModeNeutralCoreSearchSessionSliceV1',
+      'createModeNeutralCoreStackAnnouncementSliceV1',
+      'createModeNeutralCoreTurnLifecycleSliceV1',
+      'createModeNeutralCoreVisibilitySliceV1',
+      'replayCoreCommandsV1',
+      'serializeModeNeutralCoreRootV1',
+    ]),
+  ],
+]);
+
+function isFrozenGenesisCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenGenesisCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 function isFrozenDeckSubmissionCoreConsumer(
   path: string,
   target: string | null,
@@ -701,6 +756,7 @@ function inspectReference(
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
     && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)
+    && !isFrozenGenesisCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
@@ -1099,6 +1155,36 @@ describe('mode-neutral Core dependency boundary', () => {
       },
       {
         filePath: resolve(repositoryRoot, 'src/online/deckSubmission/validation.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/closure';",
+      },
+    ];
+    expect(analyzeBoundarySources(rejectedUnits).map(({ rule }) => rule)).toEqual([
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+      'core-no-product-runtime-import',
+    ]);
+  });
+
+  it('keeps the dynamic-genesis Core allowance file-, symbol-, and public-barrel-exact', () => {
+    const allowedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/genesis/index.ts'),
+        sourceText: "import { coreSha256HexV1, createModeNeutralCoreRootV1 } from '../../engine/core/index';",
+      },
+    ];
+    expect(analyzeBoundarySources(allowedUnits)).toEqual([]);
+
+    const rejectedUnits: SourceUnit[] = [
+      {
+        filePath: resolve(repositoryRoot, 'src/online/genesis/unreviewed.ts'),
+        sourceText: "import { coreSha256HexV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/genesis/index.ts'),
+        sourceText: "import { applyCoreCommandV1 } from '../../engine/core/index';",
+      },
+      {
+        filePath: resolve(repositoryRoot, 'src/online/genesis/index.ts'),
         sourceText: "import { coreSha256HexV1 } from '../../engine/core/closure';",
       },
     ];

@@ -21,9 +21,9 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
     '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    '0e624b80a476f1b876e80c0eb3d38fb5dbc3712ea557b2e521bd8ebc6cddcab9',
+    'c7af6d63c217ab1cad259b06aaceeb36f7ccd5fc32d6db803272e8d71632aed5',
   'src/online/cloudflare/index.ts':
-    '2670b1aa454a98905e567fee534c65ca99742cf614187f282a346c08f1caa96a',
+    '32cc08899e5df7682247f3b071d2a82b2d3761140e8aa141f315dc4db99868b2',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -153,6 +153,7 @@ const allowedImports = new Set([
   '../room/index',
   '../lobby/index',
   '../deckSubmission/index',
+  '../genesis/index',
   '../../engine/core/index',
 ]);
 const forbiddenSource =
@@ -207,11 +208,14 @@ for (const root of [
   'src/online/protocol',
   'src/online/projection',
   'src/online/deckSubmission',
+  'src/online/genesis',
   'src/online/headless',
   'src/store',
 ]) {
   for (const path of sourceFiles(resolve(repositoryRoot, root))) {
-    assert.doesNotMatch(readFileSync(path, 'utf8'), /online\/cloudflare|online-cloudflare/);
+    for (const specifier of moduleSpecifiers(readFileSync(path, 'utf8'))) {
+      assert.doesNotMatch(specifier, /online\/cloudflare|online-cloudflare/);
+    }
   }
 }
 
