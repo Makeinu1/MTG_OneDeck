@@ -26,14 +26,11 @@
     "userRuling": "2026-08-04",
     "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。",
     "activeProgram": {
-      "id": "O4P-06",
+      "id": "O4P-07",
       "domainIds": [
-        "O4P-06A",
-        "O4P-06B",
-        "O4P-06C",
-        "O4P-06D",
-        "O4P-06E",
-        "O4P-06F"
+        "O4P-07A",
+        "O4P-07B",
+        "O4P-07C"
       ]
     }
   },
@@ -1945,6 +1942,57 @@
       "nextGate": "shipped。Exact-head CI/Pages closure is completed by the authorized /ship flow; no successor milestone is started.",
       "judge": "Sol-orchestrator-2026-08-22",
       "note": "O4P-06A-F remained shipped. Fresh-context Sol/high BROAD audit closed at 0/0/0/0 on fingerprint 7e452e504497aded5009f1db18b57a69b1fe5808e0189d67604729a564154b6f. The fingerprint-matched local release check passed Core 227/2093, DOM 325/2204, every verifier/docs/lint/TypeScript/Vite build in 375421ms. Terminal bytes are pinned by executable SHA-256 review; the authorized /ship flow owns exact-head CI and Pages closure."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-07A",
+      "crOrder": 1025,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-06F"],
+      "landingState": ["dynamicDeckResolution", "roomCardSnapshot", "deckSubmitV2", "privateValidationErrors"],
+      "boundary": "Add closed v2 structured deck submission, server-authoritative Scryfall resolution, seat-scoped immutable snapshots, idempotent replacement/CAS, and owner-private structured failures.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No public deck-selector or start-path switch, client-authoritative CardDef, EDH legality enforcement, sideboard, or fixed-catalog removal in O4P-07A.",
+      "nextGate": "pending。Freeze O4P-07A contract before implementation; O4P-07B cannot begin before shipment.",
+      "judge": "Sol-orchestrator-2026-08-22",
+      "note": "Roadmap registration only; product behavior remains unimplemented."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-07B",
+      "crOrder": 1026,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-07A"],
+      "landingState": ["arbitraryDeckPublicUi", "dynamicRoomGenesis", "acceptedReadyGate", "duplicateDeckSupport"],
+      "boundary": "Move the public Online deck flow to arbitrary saved/imported lists, owner-actionable validation states, and deterministic genesis from four accepted Room snapshots.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No single-operator seat-switch mode, EDH legality enforcement, sideboard, or production claim before O4P-07C.",
+      "nextGate": "pending behind O4P-07A shipment.",
+      "judge": "Sol-orchestrator-2026-08-22",
+      "note": "Roadmap registration only; product behavior remains unimplemented."
+    },
+    {
+      "type": "checkpoint",
+      "domainId": "O4P-07C",
+      "crOrder": 1027,
+      "crRefs": [],
+      "lane": "backbone",
+      "edhValue": "high",
+      "status": "pending",
+      "dependsOn": ["O4P-07B"],
+      "landingState": ["fixedCatalogRuntimeRemoval", "legacyClientUpgradeBoundary", "fourBrowserDynamicAcceptance", "productionRelease"],
+      "boundary": "Remove the fixed catalog from production runtime/build graphs, fail closed for legacy submit clients, and release arbitrary-deck Online play with four-browser production evidence.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No completion claim without fixed runtime-path absence, duplicate-deck proof, owner-private failures, exact-head CI/Pages/Worker evidence, and production smoke.",
+      "nextGate": "pending behind O4P-07B shipment; O4P-07 program completion occurs only here.",
+      "judge": "Sol-orchestrator-2026-08-22",
+      "note": "Roadmap registration only; product behavior remains unimplemented."
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -4888,6 +4936,33 @@
     {
       "id": "O4P-06F", "crOrder": 1023, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "shipped", "dependsOn": ["O4P-06E"],
       "landingState": ["fourBrowserAcceptance", "fourRealDeckAcceptance", "productionRelease", "releaseClosure"], "boundary": "Run and release the complete production scenario with four actual browser contexts, four real decks, ordinary table actions, reconnect/resync, player exit, and replay/final-state comparison.", "evidence": ["research/cr-grounding/o4p-06-playable-four-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-06-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-06.draft.md", "research/cr-grounding/o4p-06-roadmap-ledger-update.draft.json", "user-ruling:2026-08-15:playable-four-player-web-mvp", "research/cr-grounding/o4p-06f-four-browser-production-release.contract.draft.md", "research/cr-grounding/o4p-06f-acceptance-brief.draft.md", "research/cr-grounding/o4p-06f-implementation-brief.draft.md", "research/cr-grounding/archive/o4p-06f-cold-audit-record-2026-08-21.md", "research/cr-grounding/archive/o4p-06f-full-check-repair-1-audit-record-2026-08-21.md", "research/cr-grounding/archive/o4p-06f-recovery-cold-audit-record-2026-08-21.md", "research/cr-grounding/o4p-06f-ci-reauthorization-record.draft.md", "research/cr-grounding/archive/o4p-06f-production-corrections-cold-audit-record-2026-08-21.md", "research/cr-grounding/archive/o4p-06f-production-corrections-historical-gate-repair-audit-record-2026-08-21.md", "research/cr-grounding/o4p-06f-production-corrections-ci-reauthorization-record.draft.md", "research/cr-grounding/archive/o4p-06f-production-correction-3-cold-audit-record-2026-08-21.md", "research/cr-grounding/archive/o4p-06f-production-evidence-record-2026-08-21.md", "src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts", "implementer:/root/o4p06f_luna_implementer:gpt-5.6-luna:xhigh", "initial-audit:/root/o4p06f_luna_cold_auditor:0/0/0/0:fingerprint=8e9fc60f6671de4b83538c62b92445f77add201cc7e5411b5f7034a7dbdea264", "full-check-repair-1-audit:/root/o4p06f_luna_cold_auditor:0/0/0/0:fingerprint=98a3ce6dc96330d5613fd8eebc752685c452194906eab831e4291229d025f150", "recovery-audit:/root/o4p06f_luna_recovery_auditor:0/0/0/0:fingerprint=34e148a9866297fba5730a5c92830dd513bd255997385315d89a51d2d947ac38", "production-corrections-audit:/root/o4p06f_luna_production_corrections_auditor:0/0/0/0:fingerprint=a9637c2a7e3777ae3280d69fcdb5b93f68af27354d829895e22ca057667a7447", "historical-gate-audit:/root/o4p06f_gate_repair_auditor:0/0/0/0:fingerprint=4b8e7408f60fce04d0242b399d9836d382227bf90441a568903b1b523f777d52", "correction-3-audit:/root/o4p06f_luna_correction3_cold_auditor:0/0/0/0:fingerprint=d4c34e164977edd95b13b0ee7894d16e7e566dbf749cb642978c1e53f010c805", "production-evidence-audit:/root/o4p06f_luna_production_evidence_auditor:0/0/0/0:O4P-06F-PRODUCTION-EVIDENCE-APPROVED", "semantic-chain:fc15775184d8c23c8193e0505c91018396591809/6a12b8e0f139547a2d1f336c2f612ec0db20aed3/df71d8c8552a24419eb235f0df20887922ee9f04/57caa976987b499f222d0489ef1be890d3219e70/0f8957486af558b503d42c3d66e2e4563f2734ef", "production-evidence:summary-sha256=7bcc4f5cbf42664315c9e88c6402321792e5adf29a65a5c113822633630ddbf5:four-browser+four-real-deck+reconnect+exit+replay+cleanup=PASS", "production-evidence-commit:9a97da9c6af756a1988a85b21c872a3a2c9fa565:actions32476785026:full-check+forbidden+build+Pages=PASS", "pages-html-js-css:HTTP200:B8jI0XI3/DNaejTHC:last-modified=2026-08-21T11:29:26Z", "cloudflare:wrangler-4.122.0:post-version=683c03f2-0d90-42c4-adb1-d6887e794ade:active-100-percent:root+safe-probe=404:same-room-status=200-revision5-count5"], "manualBoundary": "No release claim without executable final-state evidence, privacy/recovery gates, independent cold audit, same-fingerprint full check, exact-head CI/Pages/Cloudflare evidence, and production smoke.", "nextGate": "shipped。O4P-06 program complete; next new bounded task is not selected.", "judge": "Sol-orchestrator-2026-08-21", "note": "Luna xhighが四browser/四実deck production harness、P1-P4 draw、P2 fresh reconnect/resync、P4 exit、projection secrecy/hash equality、distinct Worker version回復、bounded cleanupを実装・実証。初回監査5/7/1/0、full-check修復、production CPU marker補正、historical verifier補正、P2 disconnect観測補正を各独立監査0/0/0/0で閉じた。Actions 32476785026、Pages HTML/JS/CSS 200、Wrangler 4.122.0、final Worker active 100%、same-Room revision/count 5を確認し、O4P-06A-F serial programを完了。"
+    },
+    {
+      "id": "O4P-07A", "crOrder": 1025, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-06F"],
+      "landingState": ["dynamicDeckResolution", "roomCardSnapshot", "deckSubmitV2", "privateValidationErrors"],
+      "boundary": "Add closed v2 structured deck submission, server-authoritative Scryfall resolution, seat-scoped immutable snapshots, idempotent replacement/CAS, and owner-private structured failures.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No public deck-selector or start-path switch, client-authoritative CardDef, EDH legality enforcement, sideboard, or fixed-catalog removal in O4P-07A.",
+      "nextGate": "pending。Freeze O4P-07A contract before implementation; O4P-07B cannot begin before shipment.",
+      "judge": "Sol-orchestrator-2026-08-22", "note": "Roadmap registration only; product behavior remains unimplemented."
+    },
+    {
+      "id": "O4P-07B", "crOrder": 1026, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-07A"],
+      "landingState": ["arbitraryDeckPublicUi", "dynamicRoomGenesis", "acceptedReadyGate", "duplicateDeckSupport"],
+      "boundary": "Move the public Online deck flow to arbitrary saved/imported lists, owner-actionable validation states, and deterministic genesis from four accepted Room snapshots.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No single-operator seat-switch mode, EDH legality enforcement, sideboard, or production claim before O4P-07C.",
+      "nextGate": "pending behind O4P-07A shipment.",
+      "judge": "Sol-orchestrator-2026-08-22", "note": "Roadmap registration only; product behavior remains unimplemented."
+    },
+    {
+      "id": "O4P-07C", "crOrder": 1027, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-07B"],
+      "landingState": ["fixedCatalogRuntimeRemoval", "legacyClientUpgradeBoundary", "fourBrowserDynamicAcceptance", "productionRelease"],
+      "boundary": "Remove the fixed catalog from production runtime/build graphs, fail closed for legacy submit clients, and release arbitrary-deck Online play with four-browser production evidence.",
+      "evidence": ["research/cr-grounding/o4p-07-dynamic-online-catalog-roadmap.contract.draft.md", "research/cr-grounding/o4p-07-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-07.draft.md", "research/cr-grounding/o4p-07-roadmap-ledger-update.draft.json", "user-ruling:2026-08-22:remove-fixed-online-catalog", "research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md"],
+      "manualBoundary": "No completion claim without fixed runtime-path absence, duplicate-deck proof, owner-private failures, exact-head CI/Pages/Worker evidence, and production smoke.",
+      "nextGate": "pending behind O4P-07B shipment; O4P-07 program completion occurs only here.",
+      "judge": "Sol-orchestrator-2026-08-22", "note": "Roadmap registration only; product behavior remains unimplemented."
     }
   ],
   "judgePolicy": {

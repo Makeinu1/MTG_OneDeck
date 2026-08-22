@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '592bcc7ed69266f0b078bb8a4e3a3d4103113e1a';
+const CLOSURE_SHA = '20064643cd2a3e25c2bf80f12a538028720664f2';
 const AUDIT_RECORD =
   'research/cr-grounding/archive/gov-codex-56-program-orchestration-audit-record-2026-08-22.md';
 const AUDIT_RECORD_SHA256 = '444fce44e947e6ebc27b2a5debbba64166c739c3bd356162123c3178af40d582';
@@ -143,7 +144,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     expect(Buffer.byteLength(read('AGENTS.md'), 'utf8')).toBeLessThan(32768);
   });
 
-  it('projects the governance task explicitly while O4P-06 remains complete', () => {
+  it('projects the governance task explicitly and keeps O4P-06 complete', () => {
     const context = spawnSync(
       'node',
       ['scripts/codex-context.mjs', '--domain', 'GOV-CODEX-56-2026-08'],
@@ -164,11 +165,15 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       domainId: 'GOV-CODEX-56-2026-08',
       reason: 'explicit-domain',
     });
-    expect(projection.activeProgram).toMatchObject({
-      id: 'O4P-06',
-      domainIds: O4P_06_IDS,
-      status: 'complete',
-      nextDomainId: null,
+    for (const id of O4P_06_IDS) {
+      expect(ledger.domains.find((entry) => entry.id === id)?.status, id).toBe('shipped');
+      expect(ledger.plannedSequence.find((entry) => entry.domainId === id)?.status, id).toBe('shipped');
+    }
+    expect(projection.activeProgram).toEqual({
+      id: 'O4P-07',
+      domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'],
+      status: 'active',
+      nextDomainId: 'O4P-07A',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
@@ -180,14 +185,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
         encoding: 'utf8',
       }),
     ).not.toThrow();
-    const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    })
-      .trim()
-      .split('\n')
-      .filter(Boolean);
-    const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
+    const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
       cwd: ROOT,
       encoding: 'utf8',
     })
@@ -214,7 +212,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
       'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
     ]);
-    for (const path of [...tracked, ...untracked]) {
+    for (const path of tracked) {
       expect(allowed.has(path), `unexpected candidate path: ${path}`).toBe(true);
     }
     expect(() =>

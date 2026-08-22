@@ -185,10 +185,13 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     );
   });
 
-  it('projects the healthy active program through its pending and complete states', () => {
+  it('keeps the historical O4P-06 program complete under later active programs', () => {
     const ledger = parseLedger(text(LEDGER_PATH));
-    const nextDomainId = IDS.find((id) => ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
-    const context = spawnSync('node', ['scripts/codex-context.mjs'], {
+    for (const id of IDS) {
+      expect(ledger.domains.find((entry) => entry.id === id)?.status, id).toBe('shipped');
+      expect(ledger.plannedSequence.find((entry) => entry.domainId === id)?.status, id).toBe('shipped');
+    }
+    const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-06F'], {
       cwd: ROOT,
       encoding: 'utf8',
     });
@@ -202,32 +205,27 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       loopState?: { status?: string };
     };
     expect(projection.health).toEqual({ ok: true, errors: [] });
-    if (nextDomainId === undefined) {
-      expect(projection.activeProgram).toEqual({
-        id: 'O4P-06', domainIds: IDS, status: 'complete', nextDomainId: null,
-      });
-      expect(IDS).not.toContain(projection.selection?.domainId);
-      expect(projection.selection?.reason).not.toBe('active-program-order');
-    } else {
-      expect(projection.selection).toMatchObject({
-        kind: 'selected', domainId: nextDomainId, reason: 'active-program-order',
-      });
-      expect(projection.activeProgram).toMatchObject({
-        id: 'O4P-06', status: 'active', nextDomainId,
-      });
-    }
+    expect(projection.selection).toEqual({
+      kind: 'selected', domainId: 'O4P-06F', reason: 'explicit-domain',
+    });
+    expect(projection.activeProgram).toEqual({
+      id: 'O4P-07',
+      domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'],
+      status: 'active',
+      nextDomainId: 'O4P-07A',
+    });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
   });
 
-  it('extends the O4P-05D gate only for the exact O4P-06 successor', () => {
+  it('keeps exact O4P-06 history while allowing the registered O4P-07 successor', () => {
     const predecessorReview = text('src/test/architecture/review.o4p-05d-production-release-closure.test.ts');
     const predecessorVerifier = text('scripts/checks/verify-o4p-05d-production-release-closure.ts');
     for (const source of [predecessorReview, predecessorVerifier]) {
       expect(source).toContain("id: 'O4P-05'");
       expect(source).toContain("id: 'O4P-06'");
-      expect(source).toContain('O4P-06F');
-      expect(source).not.toContain("id: 'O4P-07'");
+      expect(source).toContain("id: 'O4P-07'");
+      expect(source).toContain("['O4P-07A', 'O4P-07B', 'O4P-07C']");
     }
   });
 

@@ -28,15 +28,11 @@ describe('O4P-05D production-release closure boundary', () => {
       goalPolicy?: { activeProgram?: { id?: string; domainIds?: string[] } };
     };
     const ids = ['O4P-05A', 'O4P-05B', 'O4P-05C', 'O4P-05D'];
-    const activeProgram = ledger.goalPolicy?.activeProgram;
-    if (activeProgram?.id === 'O4P-05') {
-      expect(activeProgram).toEqual({ id: 'O4P-05', domainIds: ids });
-    } else {
-      expect(activeProgram).toEqual({
-        id: 'O4P-06',
-        domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'],
-      });
-    }
+    expect([
+      { id: 'O4P-05', domainIds: ids },
+      { id: 'O4P-06', domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'] },
+      { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
+    ]).toContainEqual(ledger.goalPolicy?.activeProgram);
     for (const [index, id] of ids.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);

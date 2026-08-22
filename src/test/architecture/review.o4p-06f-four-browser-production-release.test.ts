@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '8810ed2e6db69fdc93c131f6abc195af6a763066';
+const TERMINAL_SHA = '20064643cd2a3e25c2bf80f12a538028720664f2';
 const CONTRACT = 'research/cr-grounding/o4p-06f-four-browser-production-release.contract.draft.md';
 const ACCEPTANCE = 'research/cr-grounding/o4p-06f-acceptance-brief.draft.md';
 const IMPLEMENTATION = 'research/cr-grounding/o4p-06f-implementation-brief.draft.md';
@@ -40,7 +41,7 @@ describe('review O4P-06F four-browser production release', () => {
     }
     expect(git('rev-parse', `${BASE_SHA}^{commit}`)).toBe(BASE_SHA);
 
-    const changedSrc = git('diff', '--name-only', BASE_SHA, '--', 'src')
+    const changedSrc = git('diff', '--name-only', BASE_SHA, TERMINAL_SHA, '--', 'src')
       .split('\n')
       .filter(Boolean);
     expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, TERMINAL_ROADMAP_REVIEW, GOVERNANCE_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
