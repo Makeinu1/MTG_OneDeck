@@ -27,3 +27,15 @@ Five affected review files / 26 tests, O4P-05D verifier, scoped TypeScript,
 ESLint, diff/config/dependency checks passed. The ownership scan contained only
 the two repair research paths as NEEDS-REAUTH and the changed Judge review as
 FORBIDDEN. HEAD equaled origin/main at audit time.
+
+## Post-record evidence recheck
+
+After this record was added to the staged candidate, the same read-only auditor
+rechecked the complete four-file repair. It confirmed that this record
+truthfully preserved the prior verdict and evidence, that the three previously
+audited file hashes were unchanged, that this record was the only added path,
+and that staged/unstaged diff checks and the repaired review (5/5) passed. The
+final four-file fingerprint was
+`d9341d01343e250f8e1e424dde790cfab26d546d33f2dbe290c0f82fa9c87995`.
+The retained verdict was `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0` and
+`AUDIT-OK-PENDING-FINAL-FULL-CHECK`.
