@@ -915,10 +915,16 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       const projectedOwnSeat = checked.value.seats.find(
         (seat) => seat.participantId === secrets?.participantId,
       );
+      const conflictKeepsAcceptedDeck =
+        state === 'needs-attention' &&
+        projectedOwnSeat?.deckState === 'accepted' &&
+        issues.length === 1 &&
+        plain(issues[0]) &&
+        own(issues[0], 'code') === 'SUBMISSION_CONFLICT';
       if (
         checked.value.lifecycle === 'started' ||
         projectedOwnSeat === undefined ||
-        projectedOwnSeat.deckState !== state
+        (projectedOwnSeat.deckState !== state && !conflictKeepsAcceptedDeck)
       )
         throw new Error(PUBLIC_ONLINE_ERROR_V1);
       const first = issues[0];

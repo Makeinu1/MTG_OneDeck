@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimOnlineFormingLobbySeatV1, createOnlineFormingLobbyV1, submitOnlineFormingLobbyDeckV1 } from '../../lobby/index';
-import { OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
+import { ConflictError, OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
 import type { CardDef } from '../../../types/card';
 
@@ -32,6 +32,87 @@ describe('Cloudflare v2 deck persistence', () => {
     const replay = await repository.submitDeckV2(ROOM, request, resolver);
     expect(replay).toEqual(accepted);
     expect(JSON.stringify(replay)).not.toContain(CAP);
+  });
+
+  it('clears readiness in a complete ready lobby before fresh host resubmission', async () => {
+    const storage = new ReviewSqliteStorage();
+    const repository = new OnlineCloudflareRepository(storage);
+    let current = lobby();
+    const participants = [PARTICIPANT, 'participant-1', 'participant-2', 'participant-3'];
+    const capabilities = [CAP, 'seat_' + '1'.repeat(32), 'seat_' + '2'.repeat(32), 'seat_' + '3'.repeat(32)];
+    for (let index = 1; index < 4; index += 1) {
+      current = claimOnlineFormingLobbySeatV1(current, { participantId: participants[index], inviteCapability: `invite_${String(index).repeat(32)}` }).lobby;
+    }
+    repository.initializeLobby(current);
+    const resolver = { resolve: () => Promise.resolve(new Map([[SID, card()]])) };
+    for (let index = 0; index < 4; index += 1) {
+      await repository.submitDeckV2(ROOM, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: participants[index], seatCapability: capabilities[index], deckId: `deck-${index}`, submissionId: `submission-${index}`, entries: [{ section: 'main', quantity: 1, scryfallId: SID, oracleId: OID }] }, resolver);
+      repository.setReadyV2(ROOM, participants[index], capabilities[index], true);
+    }
+    expect(repository.projectLobbyV2(ROOM).lifecycle).toBe('ready');
+    const fresh = await repository.submitDeckV2(ROOM, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: PARTICIPANT, seatCapability: CAP, deckId: 'deck-0', submissionId: 'submission-host-fresh', entries: [{ section: 'main', quantity: 1, scryfallId: SID, oracleId: OID }] }, resolver);
+    expect(fresh.state).toBe('accepted');
+    expect(fresh.projection.lifecycle).toBe('forming');
+    expect(fresh.projection.seats[0]?.ready).toBe(false);
+    repository.setReadyV2(ROOM, PARTICIPANT, CAP, true);
+    const replay = await repository.submitDeckV2(ROOM, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: PARTICIPANT, seatCapability: CAP, deckId: 'deck-0', submissionId: 'submission-host-fresh', entries: [{ section: 'main', quantity: 1, scryfallId: SID, oracleId: OID }] }, resolver);
+    expect(replay.state).toBe('accepted');
+    expect(replay.projection.seats[0]?.ready).toBe(true);
+  });
+
+  it('fails closed on a malformed ready cursor without accepting a stale-ready submission', async () => {
+    const storage = new ReviewSqliteStorage();
+    const repository = new OnlineCloudflareRepository(storage);
+    repository.initializeLobby(lobby());
+    const resolver = { resolve: () => Promise.resolve(new Map([[SID, card()]])) };
+    const initial = { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: PARTICIPANT, seatCapability: CAP, deckId: 'deck-cursor', submissionId: 'submission-cursor-initial', entries: [{ section: 'main' as const, quantity: 1, scryfallId: SID, oracleId: OID }] };
+    await repository.submitDeckV2(ROOM, initial, resolver);
+    repository.setReadyV2(ROOM, PARTICIPANT, CAP, true);
+    const originalExec = storage.sql.exec;
+    storage.sql.exec = <T extends Record<string, unknown>>(query: string, ...bindings: readonly unknown[]) => {
+      if (query.startsWith('UPDATE online_deck_submission_ready_v2')) return { toArray: () => ({ length: 0 } as unknown as T[]) };
+      return originalExec<T>(query, ...bindings);
+    };
+    const fresh = { ...initial, submissionId: 'submission-cursor-fresh' };
+    await expect(repository.submitDeckV2(ROOM, fresh, resolver)).rejects.toBeInstanceOf(ConflictError);
+    expect(repository.projectLobbyV2(ROOM).seats[0]?.ready).toBe(true);
+    expect(repository.loadDeckHeadsV2(ROOM)[0]?.submissionId).toBe(initial.submissionId);
+    storage.sql.exec = <T extends Record<string, unknown>>(query: string, ...bindings: readonly unknown[]) => {
+      if (query.startsWith('UPDATE online_deck_submission_ready_v2')) {
+        const row = { seat_index: 0 };
+        Object.setPrototypeOf(row, { evil: true });
+        return { toArray: () => [row] as unknown as T[] };
+      }
+      return originalExec<T>(query, ...bindings);
+    };
+    await expect(repository.submitDeckV2(ROOM, { ...initial, submissionId: 'submission-cursor-custom-row' }, resolver)).rejects.toBeInstanceOf(ConflictError);
+    expect(repository.projectLobbyV2(ROOM).seats[0]?.ready).toBe(true);
+    expect(repository.loadDeckHeadsV2(ROOM)[0]?.submissionId).toBe(initial.submissionId);
+  });
+
+  it('invalidates accepted readiness when a fresh parse-invalid submission arrives', async () => {
+    const storage = new ReviewSqliteStorage();
+    const repository = new OnlineCloudflareRepository(storage);
+    repository.initializeLobby(lobby());
+    const resolver = { resolve: () => Promise.resolve(new Map([[SID, card()]])) };
+    const initial = { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: PARTICIPANT, seatCapability: CAP, deckId: 'deck-invalid', submissionId: 'submission-invalid-initial', entries: [{ section: 'main' as const, quantity: 1, scryfallId: SID, oracleId: OID }] };
+    await repository.submitDeckV2(ROOM, initial, resolver);
+    repository.setReadyV2(ROOM, PARTICIPANT, CAP, true);
+    const conflict = await repository.submitDeckV2(ROOM, { ...initial, entries: [{ section: 'main' as const, quantity: 0, scryfallId: SID, oracleId: OID }] }, resolver);
+    expect(conflict.issues[0]?.code).toBe('SUBMISSION_CONFLICT');
+    expect(conflict.projection.seats[0]?.ready).toBe(true);
+    const invalid = { ...initial, deckId: 'deck-invalid-fresh', submissionId: 'submission-invalid-fresh', entries: [{ section: 'main' as const, quantity: 0, scryfallId: SID, oracleId: OID }] };
+    const result = await repository.submitDeckV2(ROOM, invalid, resolver);
+    expect(result.state).toBe('needs-attention');
+    expect(result.issues[0]?.code).toBe('INVALID_QUANTITY');
+    expect(result.projection.seats[0]?.deckState).toBe('needs-attention');
+    expect(result.projection.seats[0]?.ready).toBe(false);
+    expect(repository.loadDeckSnapshotV2(ROOM, 0)).toBeNull();
+    const replay = await repository.submitDeckV2(ROOM, invalid, resolver);
+    expect(replay).toEqual(result);
+    const changed = await repository.submitDeckV2(ROOM, { ...invalid, entries: [{ section: 'main' as const, quantity: -1, scryfallId: SID, oracleId: OID }] }, resolver);
+    expect(changed.issues[0]?.code).toBe('SUBMISSION_CONFLICT');
+    expect(repository.loadDeckHeadsV2(ROOM)[0]?.revision).toBe(2);
   });
 
   it('serves the v2 safe projection and private result over the Durable Object route', async () => {

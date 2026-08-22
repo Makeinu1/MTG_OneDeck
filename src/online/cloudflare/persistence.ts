@@ -33,6 +33,7 @@ import {
 import {
   canonicalDeckSubmissionInputV2,
   contentDigestOfDeckSubmissionV2,
+  ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2,
   parseOnlineDeckSubmitV2,
   resolveOnlineDeckSubmissionV2,
   isCanonicalScryfallIdV2,
@@ -147,6 +148,56 @@ function exactOwnKeys(value: unknown, keys: readonly string[]): value is Record<
     const own = Reflect.ownKeys(value);
     return own.length === keys.length && own.every((key) => typeof key === 'string' && keys.includes(key) && Object.prototype.propertyIsEnumerable.call(value, key));
   } catch { return false; }
+}
+
+function denseArray(value: unknown): value is readonly unknown[] {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return false;
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+  if (lengthDescriptor === undefined || !('value' in lengthDescriptor) || lengthDescriptor.get !== undefined || lengthDescriptor.set !== undefined) return false;
+  const length: unknown = (lengthDescriptor as PropertyDescriptor & { readonly value: unknown }).value;
+  if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) return false;
+  let keys: readonly PropertyKey[];
+  try { keys = Reflect.ownKeys(value); } catch { return false; }
+  if (keys.length !== length + 1 || !keys.includes('length')) return false;
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) return false;
+  }
+  return true;
+}
+
+function isSeatIndexRow(value: unknown, seatIndex: number): boolean {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    const prototype: object | null = Object.getPrototypeOf(value) as object | null;
+    if (prototype !== Object.prototype && prototype !== null) return false;
+    if (!exactOwnKeys(value, ['seat_index'])) return false;
+    const descriptor = Object.getOwnPropertyDescriptor(value, 'seat_index');
+    return descriptor !== undefined && descriptor.enumerable === true && 'value' in descriptor && descriptor.get === undefined && descriptor.set === undefined && descriptor.value === seatIndex;
+  } catch { return false; }
+}
+
+function canonicalRawDeckSubmissionInput(value: Record<string, unknown>, forbidden: readonly string[]): string | null {
+  const deckId = value.deckId;
+  const rawEntries = value.entries;
+  if (typeof deckId !== 'string' || !Array.isArray(rawEntries) || Object.getPrototypeOf(rawEntries) !== Array.prototype) return null;
+  const entries: Array<{ readonly section: string | number | boolean | null; readonly quantity: string | number | boolean | null; readonly scryfallId: string | number | boolean | null; readonly oracleId: string | number | boolean | null }> = [];
+  for (const rawEntry of rawEntries) {
+    if (!isRecord(rawEntry) || !exactOwnKeys(rawEntry, ['section', 'quantity', 'scryfallId', 'oracleId'])) return null;
+    const section = rawEntry.section;
+    const quantity = rawEntry.quantity;
+    const scryfallId = rawEntry.scryfallId;
+    const oracleId = rawEntry.oracleId;
+    const scalar = (candidate: unknown): candidate is string | number | boolean | null => candidate === null || typeof candidate === 'string' || typeof candidate === 'boolean' || (typeof candidate === 'number' && Number.isFinite(candidate));
+    if (!scalar(section) || !scalar(quantity) || !scalar(scryfallId) || !scalar(oracleId)) return null;
+    for (const candidate of [section, quantity, scryfallId, oracleId]) if (typeof candidate === 'string') {
+      try { assertNoConfiguredCapabilityFragmentV1(candidate, forbidden); } catch { return null; }
+    }
+    entries.push({ section, quantity, scryfallId, oracleId });
+  }
+  const serialized = JSON.stringify({ deckId, entries });
+  if (typeof serialized !== 'string' || new TextEncoder().encode(serialized).length > ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2) return null;
+  return serialized;
 }
 
 function isInteger(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0; }
@@ -639,10 +690,12 @@ export class OnlineCloudflareRepository {
     if (coreSha256HexV1(row.canonical_input) !== row.content_digest) throw new Error('Invalid v2 history digest');
     let parsed: unknown;
     try { parsed = JSON.parse(row.canonical_input); } catch { throw new Error('Invalid v2 canonical input'); }
-    if (!exactOwnKeys(parsed, ['deckId', 'entries']) || parsed.deckId !== row.deck_id || !Array.isArray(parsed.entries) || parsed.entries.length === 0) throw new Error('Invalid v2 canonical input');
+    if (!exactOwnKeys(parsed, ['deckId', 'entries']) || parsed.deckId !== row.deck_id || !Array.isArray(parsed.entries) || (parsed.entries.length === 0 && row.state !== 'needs-attention')) throw new Error('Invalid v2 canonical input');
     if (JSON.stringify({ deckId: parsed.deckId, entries: parsed.entries }) !== row.canonical_input) throw new Error('Invalid v2 canonical input');
     parsed.entries.forEach((entry) => {
-      if (!exactOwnKeys(entry, ['section', 'quantity', 'scryfallId', 'oracleId']) || (entry.section !== 'commander' && entry.section !== 'main') || typeof entry.quantity !== 'number' || !Number.isSafeInteger(entry.quantity) || entry.quantity <= 0 || !isCanonicalScryfallIdV2(entry.scryfallId) || !isCanonicalScryfallIdV2(entry.oracleId)) throw new Error('Invalid v2 canonical entry');
+      const scalar = (candidate: unknown): boolean => candidate === null || typeof candidate === 'string' || typeof candidate === 'boolean' || (typeof candidate === 'number' && Number.isFinite(candidate));
+      if (!exactOwnKeys(entry, ['section', 'quantity', 'scryfallId', 'oracleId']) || !scalar(entry.section) || !scalar(entry.quantity) || !scalar(entry.scryfallId) || !scalar(entry.oracleId)) throw new Error('Invalid v2 canonical entry');
+      if (row.state !== 'needs-attention' && (entry.section !== 'commander' && entry.section !== 'main' || typeof entry.quantity !== 'number' || !Number.isSafeInteger(entry.quantity) || entry.quantity <= 0 || typeof entry.scryfallId !== 'string' || !isCanonicalScryfallIdV2(entry.scryfallId) || typeof entry.oracleId !== 'string' || !isCanonicalScryfallIdV2(entry.oracleId))) throw new Error('Invalid v2 canonical entry');
     });
     const issues = this.issuesFromHistory(row, parsed.entries.length);
     if ((row.state === 'accepted' || row.state === 'resolving') && issues.length !== 0) throw new Error('Invalid v2 terminal issue relation');
@@ -652,6 +705,63 @@ export class OnlineCloudflareRepository {
 
   private resultV2(roomId: string, submissionId: string, state: OnlineDeckSubmissionStateV2, issues: readonly OnlineDeckSubmissionIssueV2[], projection: OnlineFormingLobbyProjectionV2): OnlineDeckSubmissionResultV2 {
     return Object.freeze({ kind: 'online-forming-lobby-deck-result-v2', schemaVersion: 2, roomId, submissionId, state, issues: Object.freeze([...issues]), projection });
+  }
+
+  private beginInvalidDeckSubmissionV2(roomId: string, seatIndex: number, expectedHead: OnlineDeckSubmissionHeadV2, participantId: string, deckId: string, submissionId: string, canonicalInput: string, contentDigest: string, issues: readonly OnlineDeckSubmissionIssueV2[]): void {
+    this.storage.transactionSync(() => {
+      this.ensureDeckSchema();
+      const current = this.deckHead(roomId, seatIndex);
+      if (current === null || current.revision !== expectedHead.revision || current.submissionId !== expectedHead.submissionId || current.contentDigest !== expectedHead.contentDigest) throw new ConflictError();
+      if (current.revision >= Number.MAX_SAFE_INTEGER) throw new Error('Deck revision overflow');
+      const revision = current.revision + 1;
+      const currentLobby = this.loadLobby(roomId);
+      if (currentLobby === null) throw new Error('Missing forming lobby');
+      const nextLobby = invalidateOnlineFormingLobbySeatDeckV1(currentLobby, seatIndex);
+      const previousJson = JSON.stringify(currentLobby);
+      const nextJson = JSON.stringify(nextLobby);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid lobby serialization');
+      const updatedHead = this.storage.sql.exec<{ seat_index: unknown }>(UPDATE_DECK_HEAD, participantId, deckId, submissionId, contentDigest, revision, 'needs-attention', null, roomId, seatIndex, current.revision).toArray();
+      if (updatedHead.length !== 1 || updatedHead[0]?.seat_index !== seatIndex) throw new ConflictError();
+      this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, seatIndex);
+      this.clearReadyV2InTransaction(roomId, seatIndex);
+      const issueJson = JSON.stringify(issues);
+      if (issueJson === undefined) throw new Error('Invalid v2 issue serialization');
+      this.storage.sql.exec(INSERT_DECK_HISTORY, roomId, seatIndex, submissionId, participantId, deckId, canonicalInput, contentDigest, revision, 'needs-attention', issueJson);
+      const updatedLobby = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, roomId, nextJson, roomId, previousJson).toArray();
+      if (updatedLobby.length !== 1 || updatedLobby[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  private invalidateFailedDeckSubmissionV2(roomId: string, seatIndex: number, expectedHead: OnlineDeckSubmissionHeadV2, issues: readonly OnlineDeckSubmissionIssueV2[]): void {
+    this.storage.transactionSync(() => {
+      this.ensureDeckSchema();
+      const current = this.deckHead(roomId, seatIndex);
+      if (current === null || current.revision !== expectedHead.revision || current.submissionId !== expectedHead.submissionId || current.contentDigest !== expectedHead.contentDigest) throw new ConflictError();
+      if (current.revision >= Number.MAX_SAFE_INTEGER) throw new Error('Deck revision overflow');
+      const currentLobby = this.loadLobby(roomId);
+      if (currentLobby === null) throw new Error('Missing forming lobby');
+      const nextLobby = invalidateOnlineFormingLobbySeatDeckV1(currentLobby, seatIndex);
+      const previousJson = JSON.stringify(currentLobby);
+      const nextJson = JSON.stringify(nextLobby);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid lobby serialization');
+      const historyRows = this.storage.sql.exec<DeckHistoryRow>(SELECT_DECK_HISTORY, roomId, seatIndex, current.submissionId).toArray();
+      if (historyRows.length !== 1 || historyRows[0] === undefined) throw new Error('Missing v2 history during parse invalidation');
+      const history = historyRows[0];
+      const entryCount = this.validateHistoryRow(history);
+      const historyIssues = issues.every((issue) => issue.entryIndex === null || (Number.isSafeInteger(issue.entryIndex) && issue.entryIndex >= 0 && issue.entryIndex < entryCount))
+        ? issues
+        : Object.freeze([{ code: 'STALE_RESOLUTION' as const, entryIndex: null, retryable: false }]);
+      const issueJson = JSON.stringify(historyIssues);
+      if (issueJson === undefined) throw new Error('Invalid v2 issue serialization');
+      const invalidatedHead = this.storage.sql.exec<{ seat_index: unknown }>(INVALIDATE_DECK_HEAD, current.revision + 1, 'needs-attention', roomId, seatIndex, current.revision).toArray();
+      if (invalidatedHead.length !== 1 || invalidatedHead[0]?.seat_index !== seatIndex) throw new ConflictError();
+      this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, seatIndex);
+      this.clearReadyV2InTransaction(roomId, seatIndex);
+      const updatedHistory = this.storage.sql.exec<{ submission_id: unknown }>(UPDATE_DECK_HISTORY, current.participantId, current.deckId, history.canonical_input, current.contentDigest, current.revision + 1, 'needs-attention', issueJson, roomId, seatIndex, current.submissionId).toArray();
+      if (updatedHistory.length !== 1 || updatedHistory[0]?.submission_id !== current.submissionId) throw new ConflictError();
+      const updatedLobby = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, roomId, nextJson, roomId, previousJson).toArray();
+      if (updatedLobby.length !== 1 || updatedLobby[0]?.singleton !== 1) throw new ConflictError();
+    });
   }
 
   private validateDeckRelations(roomId: string, lobby: OnlineFormingLobbyV1): void {
@@ -730,6 +840,11 @@ export class OnlineCloudflareRepository {
       if (error instanceof Error && /no such table/i.test(error.message)) return false;
       throw error;
     }
+  }
+
+  private clearReadyV2InTransaction(roomId: string, seatIndex: number): void {
+    const clearedReady: unknown = this.storage.sql.exec<{ seat_index: unknown }>(UPDATE_DECK_READY, 0, roomId, seatIndex).toArray();
+    if (!denseArray(clearedReady) || clearedReady.length > 1 || (clearedReady.length === 1 && !isSeatIndexRow(clearedReady[0], seatIndex))) throw new ConflictError();
   }
 
   setReadyV2(roomId: string, participantId: string, seatCapability: string, readyValue: boolean): OnlineFormingLobbyProjectionV2 {
@@ -848,6 +963,26 @@ export class OnlineCloudflareRepository {
     const parsed = parseOnlineDeckSubmitV2(input);
     if (!parsed.ok) {
       const submissionId = isRecord(input) && isOnlineRoomApplicationIdV1(input.submissionId) ? input.submissionId : 'invalid';
+      this.ensureDeckSchema();
+      const canonicalInput = submissionId === 'invalid' ? null : canonicalRawDeckSubmissionInput(input, forbidden);
+      const contentDigest = canonicalInput === null ? null : coreSha256HexV1(canonicalInput);
+      if (submissionId !== 'invalid' && contentDigest !== null) {
+        const existingHistory = this.storage.sql.exec<DeckHistoryRow>(SELECT_DECK_HISTORY, roomId, authorizedSeatIndex, submissionId).toArray();
+        if (existingHistory.length > 1) throw new Error('Invalid v2 submission history');
+        const history = existingHistory[0];
+        if (history !== undefined) {
+          const entryCount = this.validateHistoryRow(history);
+          if (history.content_digest !== contentDigest) return this.resultV2(roomId, submissionId, 'needs-attention', Object.freeze([{ code: 'SUBMISSION_CONFLICT', entryIndex: null, retryable: false }]), this.projectLobbyV2(roomId));
+          return this.resultV2(roomId, submissionId, 'needs-attention', this.issuesFromHistory(history, entryCount), this.projectLobbyV2(roomId));
+        }
+      }
+      const existingHead = this.deckHead(roomId, authorizedSeatIndex);
+      if (submissionId !== 'invalid' && existingHead !== null && existingHead.state !== 'none') {
+        if (canonicalInput !== null && contentDigest !== null) this.beginInvalidDeckSubmissionV2(roomId, authorizedSeatIndex, existingHead, input.participantId, input.deckId, submissionId, canonicalInput, contentDigest, parsed.issues);
+        else this.invalidateFailedDeckSubmissionV2(roomId, authorizedSeatIndex, existingHead, parsed.issues);
+        const projection = this.projectLobbyV2(roomId);
+        return this.resultV2(roomId, submissionId, 'needs-attention', parsed.issues, projection);
+      }
       const projection = this.projectLobbyV2(roomId, lobby);
       const state = projection.seats[authorizedSeatIndex as 0 | 1 | 2 | 3]?.deckState ?? 'none';
       return this.resultV2(roomId, submissionId, state, parsed.issues, projection);
@@ -900,7 +1035,7 @@ export class OnlineCloudflareRepository {
         if (updated.length !== 1 || updated[0]?.seat_index !== seatIndex) throw new ConflictError();
       }
       this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, seatIndex);
-      this.storage.sql.exec(UPDATE_DECK_READY, 0, roomId, seatIndex);
+      this.clearReadyV2InTransaction(roomId, seatIndex);
       if (history === undefined) this.storage.sql.exec(INSERT_DECK_HISTORY, roomId, seatIndex, value.submissionId, value.participantId, value.deckId, parsed.canonicalInput, parsed.contentDigest, beginRevision, 'resolving', '[]');
       else {
         const updatedHistory = this.storage.sql.exec<{ submission_id: unknown }>(UPDATE_DECK_HISTORY, value.participantId, value.deckId, parsed.canonicalInput, parsed.contentDigest, beginRevision, 'resolving', '[]', roomId, seatIndex, value.submissionId).toArray();

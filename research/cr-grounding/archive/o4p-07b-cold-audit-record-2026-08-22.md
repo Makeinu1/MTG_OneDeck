@@ -90,3 +90,34 @@ The exact three-file ownership metadata candidate was independently audited by
 `315ff8e646b716d94e79c0ba688e442c53143d94c5a1caefb3d2b33d8a83e4a9`.
 All twenty hashes and CI facts matched with findings 0/0/0/0;
 `O4P-07B-CI-REAUTHORIZATION-APPROVED`.
+
+## Production-acceptance repair audit
+
+The exact-head Pages/Worker production exercise found one release-blocking
+Cloudflare SQLite difference after the first four-seat dynamic start succeeded:
+a fresh explicit deck submission after readiness remained ready in production.
+The candidate was reopened instead of claiming shipment.
+
+The bounded repair consumes and validates the
+`UPDATE online_deck_submission_ready_v2 ... RETURNING` cursor synchronously
+before Scryfall resolution. It also closes adjacent authenticated failure
+boundaries found by adversarial audit: malformed cursor rows roll back; fresh
+parse-invalid submissions become immutable `needs-attention` heads;
+same-ID/same-content retries are idempotent; same-ID/different-content requests
+return `SUBMISSION_CONFLICT` without mutating the accepted deck; and the public
+client preserves that accepted projection while showing the owner-local
+conflict instead of the generic transport error.
+
+Fresh-context Luna/xhigh auditor `/root/o4p07b_resubmit_cold_audit` recomputed
+semantic fingerprint
+`91b69b0657e83f88b503d3791e19de91363b08ed1067525b162609d765b8e005`.
+It verified malformed non-array and custom-prototype cursor rollback, ready
+clearing before external resolution, raw-canonical issue history,
+idempotence/conflict separation, capability-fragment rejection, public result
+shape closure, and accepted/resolving compatibility. Targeted evidence was
+four files / 27 tests plus O4P-07A dynamic-resolution and persistence-v1 19/19,
+affected ESLint, TypeScript, and diff-check green.
+
+Findings: BLOCKER/HIGH/MEDIUM/LOW = `0/0/0/0`.
+
+Verdict: `AUDIT-OK-PENDING-EXACT-HEAD-CI`.
