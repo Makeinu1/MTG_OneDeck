@@ -45,3 +45,23 @@ fresh-context, read-only, R3/BROAD)
 Shipment remains prohibited until the fingerprint-matched full release check,
 exact-head CI/Pages, corrected Worker deployment, real Scryfall production
 smoke, terminal ledger evidence, and clean-worktree closure all pass.
+
+## Release check and exact-head ownership stop
+
+The unchanged audited fingerprint
+`a24773d4e79844bb5d2674e7f141490972c0fcc36781299dae7043cfec27fc8d`
+passed the local `npm run check`: Core 227 files / 2,093 tests, DOM 330 files /
+2,237 tests, every verifier, docs, lint, TypeScript, and Vite build; total
+393,097 ms.
+
+Candidate commit `f099bd52f483f59f25f89b6696c62fa4e17f4863` was pushed.
+Exact-head Actions run `32566560220`, build job `97015902640`, passed the full
+check before the expected ownership stop: Core 2,093 tests; DOM 2,236 passed +
+1 skipped = 2,237; all verifiers, docs, lint, TypeScript, and Vite build; total
+710,267 ms. It built `index-B8jI0XI3.js` and `index-DNaejTHC.css`.
+
+The next step failed only on Judge ownership classification: exactly three
+`NEEDS-REAUTH` research paths and one `FORBIDDEN` Judge-owned review path. Pages
+configuration/upload and deploy job `97017217564` were skipped. This evidence
+does not claim Pages, Worker, or shipment success; it authorizes only the
+separate parent-fixed CI ownership review.
