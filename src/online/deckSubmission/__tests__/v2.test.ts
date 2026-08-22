@@ -55,6 +55,39 @@ describe('online v2 deck submission boundary', () => {
     expect(body.identifiers).toHaveLength(75);
   });
 
+  it('invokes a native-style fetcher without binding the resolver as receiver', async () => {
+    const fetcher: typeof fetch = function (this: unknown) {
+      if (this !== undefined) throw new Error('fetcher receiver must be undefined');
+      return Promise.resolve(new Response(JSON.stringify({
+        object: 'list',
+        data: [{
+          id: A,
+          oracle_id: O,
+          name: 'Black Lotus shape',
+          lang: 'en',
+          layout: 'normal',
+          cmc: 0,
+          color_identity: [],
+          keywords: [],
+          produced_mana: ['W', 'U', 'B', 'R', 'G'],
+          type_line: 'Artifact',
+          mana_cost: '{0}',
+          oracle_text: '{T}, Sacrifice this artifact: Add three mana of any one color.',
+          image_uris: { normal: 'https://img.test/normal.jpg', small: 'https://img.test/small.jpg' },
+        }],
+        not_found: [],
+      }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    };
+    const result = await resolveOnlineDeckSubmissionV2([BASE_ENTRY], new OnlineDeckScryfallResolverV2(fetcher, undefined, () => Promise.resolve()));
+    expect(result.issues).toEqual([]);
+    expect(result.snapshot?.entries[0]?.definition).toMatchObject({
+      scryfallId: A,
+      oracleId: O,
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+      faces: [{ typeLine: 'Artifact', manaCost: '{0}' }],
+    });
+  });
+
   it('keeps typed outage private but rethrows unknown resolver errors', async () => {
     const outage = await resolveOnlineDeckSubmissionV2([BASE_ENTRY], { resolve: () => Promise.reject(new OnlineDeckScryfallUnavailableError()) });
     expect(outage.issues).toEqual([{ code: 'SCRYFALL_UNAVAILABLE', entryIndex: null, retryable: true }]);

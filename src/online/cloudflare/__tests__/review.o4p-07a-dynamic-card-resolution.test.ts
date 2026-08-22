@@ -123,6 +123,39 @@ describe('O4P-07A Judge acceptance', () => {
     expect(detailed.identityMismatches.size).toBe(0);
   });
 
+  it('keeps Cloudflare native fetch unbound and accepts the verified collection shape', async () => {
+    const fetcher: typeof fetch = function (this: unknown) {
+      if (this !== undefined) throw new Error('fetcher receiver must be undefined');
+      return Promise.resolve(new Response(JSON.stringify({
+        object: 'list',
+        data: [{
+          id: PRINT_ID,
+          oracle_id: ORACLE_ID,
+          name: 'Verified artifact shape',
+          lang: 'en',
+          layout: 'normal',
+          cmc: 0,
+          color_identity: [],
+          keywords: [],
+          produced_mana: ['W', 'U', 'B', 'R', 'G'],
+          type_line: 'Artifact',
+          mana_cost: '{0}',
+          oracle_text: '{T}, Sacrifice this artifact: Add three mana of any one color.',
+          image_uris: { normal: 'https://img.test/normal.jpg', small: 'https://img.test/small.jpg' },
+        }],
+        not_found: [],
+      }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    };
+    const result = await resolveOnlineDeckSubmissionV2(request().entries, new OnlineDeckScryfallResolverV2(fetcher, undefined, () => Promise.resolve()));
+    expect(result.issues).toEqual([]);
+    expect(result.snapshot?.entries[0]?.definition).toMatchObject({
+      scryfallId: PRINT_ID,
+      oracleId: ORACLE_ID,
+      producedMana: ['W', 'U', 'B', 'R', 'G'],
+      faces: [{ typeLine: 'Artifact', manaCost: '{0}' }],
+    });
+  });
+
   it('treats malformed optional Scryfall fields as an unavailable authority response', async () => {
     const fetcher: typeof fetch = () => Promise.resolve(new Response(JSON.stringify({
       object: 'list',

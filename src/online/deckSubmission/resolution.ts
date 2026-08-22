@@ -113,7 +113,7 @@ export class OnlineDeckScryfallResolverV2 implements OnlineDeckResolverV2 {
   private readonly endpoint: string;
   private readonly wait: () => Promise<void>;
   constructor(fetcher: typeof fetch = fetch, endpoint = 'https://api.scryfall.com/cards/collection', wait: () => Promise<void> = () => new Promise((resolve) => setTimeout(resolve, 100))) {
-    this.fetcher = fetcher;
+    this.fetcher = (input, init) => fetcher(input, init);
     this.endpoint = endpoint;
     this.wait = wait;
   }
