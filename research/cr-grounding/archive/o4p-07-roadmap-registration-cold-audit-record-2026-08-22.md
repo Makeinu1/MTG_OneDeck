@@ -24,6 +24,16 @@ Evidence passed: four relevant review files with 22 tests, O4P-05D executable
 verifier, TypeScript, scoped ESLint, staged diff check, protected-untracked
 probe, JSON parse, and healthy `codex:context` selection of O4P-07A.
 
+After this audit record was added and referenced identically by all six ledger
+representations, the same findings-only auditor performed a final evidence-only
+recheck at fingerprint
+`2e0d9b24e0d3220106798d9b2eb6bf4b769532483382f9b836493cafbda77f72`.
+The record was truthful, all six evidence arrays were identical, the audit
+record appeared exactly once in each, the Judge review passed 5/5, docs/JSON/
+staged-diff and product-runtime-path absence checks passed, and the final
+verdict remained `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0` with
+`AUDIT-OK-PENDING-FULL-CHECK`.
+
 The registration changes selection policy only. It does not claim O4P-07A
 product implementation, Scryfall resolution, UI migration, fixed-catalog
 removal, Pages publication, or Worker deployment.
