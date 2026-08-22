@@ -96,3 +96,19 @@ CI/Pages confirmation, `HEAD == origin/main`, and clean-worktree transition.
   `289832d7bfbc5a989290711b8fbfb2853a28bc92cfd6be52afdd07b5654c45de`
   with `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` and approval
   `O4P-07A-TERMINAL-FULL-CHECK-REPAIR-APPROVED`.
+
+## Terminal repair candidate CI
+
+- Exact HEAD `4824e01dbcfdf7e5b7618379370b6f740e0dd7ce` in Actions
+  `32569165758` passed the full check: Core 227/2,093; DOM 330 files with
+  2,236 passed + 1 skipped; all verifiers, docs, lint, TypeScript, Vite, and
+  assets `index-B8jI0XI3.js` / `index-DNaejTHC.css`; total 726,085 ms.
+- Exact parent diff-base was `c2a22caa84ab477f79188c5f6848e6a6c4279460`.
+  The run then stopped only at the expected ownership boundary: two research
+  `NEEDS-REAUTH` paths and the two audited Judge review `FORBIDDEN` paths.
+- Pages job `97023352652` was skipped. No release or new Pages deployment is
+  claimed until the metadata-only reauthorization exact-head run succeeds.
+- Luna/xhigh reauthorization audit at fingerprint
+  `db37ea4b7dd908b6303ffd8d31082a97b95705a08500b3964d5210f0970d57a5`
+  closed at `0/0/0/0` with
+  `O4P-07A-TERMINAL-REPAIR-CI-REAUTHORIZATION-APPROVED`.
