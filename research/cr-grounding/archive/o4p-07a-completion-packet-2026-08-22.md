@@ -81,3 +81,18 @@ CI/Pages confirmation, `HEAD == origin/main`, and clean-worktree transition.
   and the terminal cold-audit brief. O4P-07A alone changed from pending to
   shipped in both ledger collections, O4P-07B/O4P-07C remained pending, and
   the active program projected O4P-07B without starting it.
+
+## Terminal full-check repair
+
+- Exact-head Actions `32568531533` at `c2a22caa84ab477f79188c5f6848e6a6c4279460`
+  passed Core and failed only two historical Judge review assertions in DOM:
+  they still expected the active program to project O4P-07A after O4P-07A was
+  shipped, while the ledger correctly projected O4P-07B.
+- The bounded repair changes exactly those two expected literals from O4P-07A
+  to O4P-07B. Targeted DOM passed 2 files / 12 tests, targeted ESLint passed,
+  and `git diff --check` passed.
+- Read-only auditor `/root/o4p07a_luna_cold_auditor` (`gpt-5.6-luna`, xhigh)
+  audited canonical fingerprint
+  `289832d7bfbc5a989290711b8fbfb2853a28bc92cfd6be52afdd07b5654c45de`
+  with `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` and approval
+  `O4P-07A-TERMINAL-FULL-CHECK-REPAIR-APPROVED`.
