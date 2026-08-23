@@ -173,7 +173,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       id: 'O4P-07',
       domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'],
       status: 'active',
-      nextDomainId: 'O4P-07B',
+      nextDomainId: 'O4P-07C',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
