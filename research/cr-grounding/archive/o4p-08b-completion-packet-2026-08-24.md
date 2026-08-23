@@ -94,6 +94,39 @@ O4P-08C/D. The record-bearing terminal metadata still requires exact-head CI,
 Pages publication, HEAD/origin equality, and clean-worktree confirmation before
 the O4P-08C cycle begins.
 
+## Terminal CI ownership evidence
+
+Terminal completion candidate HEAD
+`0ba92a2dfaa49fd27155d4646eea9b2599a0fa12` has parent/diff-base
+`63267987b17b09495eb773ad6b6f023863b78fc3`. Actions run `32666689059`,
+build job `97261066923`, passed the complete canonical full check and exact
+diff-base resolution before stopping only at the expected Judge ownership
+scan. Pages configuration, artifact upload, and deployment were skipped.
+
+The classifier reported exactly three NEEDS-REAUTH research paths and four
+FORBIDDEN Judge-review paths:
+
+| Category | Path | Terminal candidate SHA-256 |
+| --- | --- | --- |
+| NEEDS-REAUTH | `research/cr-grounding/archive/o4p-08b-completion-packet-2026-08-24.md` | `47750b0efe3d14656641f5990e7ef2a9eed5a8c808434e4e4f6faf56ab52ff7a` |
+| NEEDS-REAUTH | `research/cr-grounding/cr-backbone-ledger.json` | `9b3106da1e9bea0835d8d64ecf7d3bda5c3ebc1701fcfb3eb66902521b09868a` |
+| NEEDS-REAUTH | `research/cr-grounding/o4p-08b-completion-cold-audit-brief-2026-08-24.draft.md` | `7137788624a60d3ef1275f97b5d417b951828d5547295bd16aea1e56045d7de4` |
+| FORBIDDEN | `src/test/architecture/review.gov-codex-56-program-orchestration.test.ts` | `6eb29c80f963efec203046fdd29e37b6ee8a15c84204552f2e30961294120bfb` |
+| FORBIDDEN | `src/test/architecture/review.o4p-06-roadmap-registration.test.ts` | `61c7e73fca7b3e95bac2724e41a38d8a5f1426465637b793b39d03c2c9fdc5f8` |
+| FORBIDDEN | `src/test/architecture/review.o4p-07-roadmap-registration.test.ts` | `ced7c4ae9bc65d710669da2a11a17fd373e42f780d0d65cff24134ca043d413a` |
+| FORBIDDEN | `src/test/architecture/review.o4p-08-roadmap-registration.test.ts` | `a31e9571cfa8d1224a329f0969d5385cf01f383fd3feeaedfeebdae06c8987e2` |
+
+The same cold auditor independently recomputed the partition and exact hashes,
+matched the prior seven-file completion fingerprint, verified 22/22 Judge
+review tests, scope, and privacy, and returned
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0`.
+
+`O4P-08B-TERMINAL-CI-OWNERSHIP-REAUTH-OK`
+
+This approval authorizes only the parent-only two-file metadata commit and its
+replacement exact-head CI/Pages flow. It is not broader product or shipment
+evidence by itself.
+
 ## Deferred
 
 Variable two/four-player roster, two-player 20/40 life selection, dynamic
