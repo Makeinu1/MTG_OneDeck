@@ -73,3 +73,32 @@ replacement exact-head CI/Pages flow remain required. This record is not
 shipment evidence.
 
 `O4P-08C-COLD-AUDIT-OK-PENDING-FULL-CHECK`
+
+## Exact-head CI and Judge reauthorization
+
+Semantic candidate `d1f6af7a8411df7b1f47ad0aa3a3e417f4df9fde` was
+published to `main`. GitHub Actions run `32674249131` checked that exact HEAD;
+its canonical `npm run check -- --build-base=/MTG_OneDeck/` step passed. The
+run then stopped only at `check:forbidden`, before artifact upload or Pages
+deployment, with the five O4P-08C research/archive paths as informational
+`NEEDS-REAUTH` and exactly the following seven Judge review blobs as
+`FORBIDDEN`:
+
+| Path | SHA-256 at `d1f6af7` |
+|---|---|
+| `src/online/cloudflare/__tests__/review.o4p-08c-variable-runtime.test.ts` | `b23daccd5022143abd6291a53e6383d37067fed064684512be1fcb99345a84ac` |
+| `src/online/genesis/__tests__/review.o4p-08c-variable-roster-genesis.test.ts` | `03350d53a681fbef7354579b5ff2ca0829f3b460990824c0d2c37d54762279bc` |
+| `src/test/architecture/review.o4p-02b-four-seat-room-boundary.test.ts` | `29b1feaf3f52f625d452d6ef6990c2fdfd98da5541f47fae6cf9411ad1821e84` |
+| `src/test/architecture/review.o4p-02c-in-memory-protocol-boundary.test.ts` | `61231d93e7a3d130401d9a15fb5ca7c61460de8ebf0873c28c911e5d2638f695` |
+| `src/test/architecture/review.o4p-05d-production-release-closure.test.ts` | `ed9ec552223c8fd98f1c07b80d8a07e2a82cd05eb45fd299ca8a886490902ae1` |
+| `src/test/architecture/review.o4p-08-roadmap-registration.test.ts` | `365a500a7201341851d3b940918ccc1e737c1cb84bbec9d90b425cd9fed144b3` |
+| `src/test/architecture/review.o4p-08c-variable-roster-boundary.test.ts` | `fbd3531a297718c39347f83b796bcb5c4be7f2c8d4e6e03b948c8f210b45db76` |
+
+The final cold auditor independently recomputed every hash from
+`git show d1f6af7:<path>`, confirmed the exact-head successful full-check step
+and seven-path ownership-only stop, and returned `BLOCKER 0 / HIGH 0` plus
+`REAUTH-OK`. The Judge explicitly re-owns only these exact seven blobs. This
+authorizes a metadata-only reauthorization commit; it does not change semantic
+candidate bytes.
+
+`O4P-08C-EXACT-BYTE-JUDGE-REAUTHORIZATION-APPROVED`
