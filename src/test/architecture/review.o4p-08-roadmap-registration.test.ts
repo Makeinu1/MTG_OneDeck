@@ -16,6 +16,27 @@ const REGISTRATION_EVIDENCE = [
   'user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck',
   'research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md',
 ] as const;
+const O4P08A_EVIDENCE = [
+  ...REGISTRATION_EVIDENCE,
+  'research/cr-grounding/o4p-08a-shared-membership-recovery-errors.contract.draft.md',
+  'research/cr-grounding/o4p-08a-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-08a-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-08a-cold-audit-brief.draft.md',
+  'research/cr-grounding/archive/o4p-08a-cold-audit-record-2026-08-24.md',
+  'research/cr-grounding/archive/o4p-08a-completion-packet-2026-08-24.md',
+  'src/online/cloudflare/__tests__/review.o4p-08a-membership-runtime.test.ts',
+  'src/online/lobby/__tests__/review.o4p-08a-shared-membership.test.ts',
+  'src/online/publicApp/review.o4p-08a-recovery-client.test.ts',
+  'implementer:/root/o4p08a_implementer:gpt-5.6-luna:xhigh',
+  'cold-audit:/root/o4p08a_cold_audit:0/0/0/0:semantic=2047804951b54e402827594df6f44cb0fe4456aba5f03bd37b0ff89e19cc631b',
+  'guard-audit:/root/o4p08a_cold_audit:0/0/0/0:fingerprint=5ed88238d5d555fd111df533957650a1f67814f31ee404f6e7584f9816e6b9e3',
+  'completion-audit:/root/o4p08a_completion_audit:0/0/0/0:O4P-08A-COMPLETION-COLD-AUDIT-OK',
+  'product-commit:050090564a91f59669357c2e1ea2fee6e03fa3f1',
+  'release-head:209cc9553789391d8a3acd32e0adbe676640dbe3:actions32652846197:full-check+forbidden+artifact+Pages=PASS',
+  'pages-html-js-css:HTTP200:DvzndVuh/DB7TO263:last-modified=2026-08-23T17:02:25Z',
+  'cloudflare:wrangler-4.125.0:deployment=16558e13-1855-4681-b0bf-139a877a1d46:version=ce347521-0b6a-4bb9-9634-cfbecfdc716c:active-100-percent:root=404',
+  'production-api:shared-claim+same-seat-recovery+nonhost-secret-separation+invite-rotate+kick-revoke+admission-close+leave+host-close+correlation-id+secret-output=false=PASS',
+] as const;
 
 type Entry = Record<string, unknown> & { id?: string; domainId?: string; status?: string };
 type Ledger = {
@@ -73,12 +94,16 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       expect(shared(planned[0] ?? {}), id).toEqual(shared(domains[0] ?? {}));
       expect(domains[0], id).toMatchObject({
         crOrder: 1028 + index,
-        status: 'pending',
+        status: index === 0 ? 'shipped' : 'pending',
         dependsOn: [DEPENDENCIES[index]],
         lane: 'backbone',
         edhValue: 'high',
-        evidence: REGISTRATION_EVIDENCE,
       });
+      if (index === 0) {
+        expect(domains[0]?.evidence).toEqual(O4P08A_EVIDENCE);
+      } else {
+        expect(domains[0]?.evidence).toEqual(REGISTRATION_EVIDENCE);
+      }
     }
   });
 
@@ -117,7 +142,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08A',
+      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08B',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
@@ -155,6 +180,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       'research/cr-grounding/o4p-08a-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08a-cold-audit-brief.draft.md',
       'research/cr-grounding/archive/o4p-08a-cold-audit-record-2026-08-24.md',
+      'research/cr-grounding/archive/o4p-08a-completion-packet-2026-08-24.md',
+      'research/cr-grounding/o4p-08a-completion-cold-audit-brief-2026-08-24.draft.md',
       'src/test/architecture/review.o4p-05d-production-release-closure.test.ts',
       'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
       'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
