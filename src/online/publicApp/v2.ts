@@ -12,6 +12,7 @@ import {
 } from '../displayPairing/index';
 import { bindOnlineGuidedCommandActionV1 } from '../guidedActions/index';
 import { validatePublicOnlineProjectionV1 } from './client';
+import { parseOnlineSharedInviteCodeV3 } from '../lobby/index';
 import {
   isCanonicalScryfallIdV2,
   ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2,
@@ -24,10 +25,17 @@ import {
   type PublicOnlineSeatV2,
   type PublicOnlineSnapshotV2,
 } from './types';
+import { createPublicOnlineRecoveryStoreV1, parsePublicOnlineErrorV3, publicOnlineErrorMessageV3, type PublicOnlineRecoveryRecordV1 } from './recoveryV1';
 
 const MAX_RESPONSE_BYTES = 1_048_576;
 const APP_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 const CAPABILITY = /^[A-Za-z0-9_-]{32,128}$/;
+
+class PublicOnlineRequestErrorV3 extends Error {}
+
+function publicRequestErrorMessage(error: unknown): string {
+  return error instanceof PublicOnlineRequestErrorV3 ? error.message : PUBLIC_ONLINE_ERROR_V1;
+}
 type RecordValue = Record<string, unknown>;
 type Secrets = Readonly<{
   readonly participantId: string;
@@ -425,14 +433,27 @@ export function validatePublicOnlineProjectionV2(
 }
 async function json(response: Response, secrets: readonly string[]): Promise<unknown> {
   if (
-    !response.ok ||
     !/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? '')
   )
     throw new Error(PUBLIC_ONLINE_ERROR_V1);
   const text = await response.text();
   if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES || secretFragment(text, secrets))
     throw new Error(PUBLIC_ONLINE_ERROR_V1);
-  return JSON.parse(text) as unknown;
+  const value = JSON.parse(text) as unknown;
+  if (!response.ok) {
+    const parsed = parsePublicOnlineErrorV3(value);
+    if (parsed !== null) throw new PublicOnlineRequestErrorV3(publicOnlineErrorMessageV3(parsed).message);
+    throw new Error(PUBLIC_ONLINE_ERROR_V1);
+  }
+  return value;
+}
+
+async function boundedResponseJson(response: Response, secrets: readonly string[]): Promise<unknown> {
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? '')) return null;
+  let text: string;
+  try { text = await response.text(); } catch { return null; }
+  if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES || secretFragment(text, secrets)) return null;
+  try { return JSON.parse(text) as unknown; } catch { return null; }
 }
 function secretList(value: Secrets | null): readonly string[] {
   return value === null ? [] : [value.seatCapability, ...value.invites, value.tableCapability];
@@ -564,6 +585,7 @@ function parseStartResult(value: unknown, roomId: string): 'started' | 'needs-at
 }
 
 export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
+  const recoveryStore = createPublicOnlineRecoveryStoreV1();
   let projection: PublicOnlineProjectionV2 | null = null;
   let secrets: Secrets | null = null;
   let deck: PublicOnlineDeckOptionV2 | null = null;
@@ -721,6 +743,16 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       throw new Error(PUBLIC_ONLINE_ERROR_V1);
     return value;
   };
+  const requestRaw = async (path: string, init: RequestInit): Promise<Readonly<{ readonly response: Response; readonly epoch: number; readonly sequence: number }>> => {
+    const requestEpoch = epoch;
+    const sequence = ++requestSequence;
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+    const response = await fetch(`${PUBLIC_ONLINE_ENDPOINT_V1}${path}`, { ...init, signal: controller.signal });
+    if (requestEpoch !== epoch || sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+    return Object.freeze({ response, epoch: requestEpoch, sequence });
+  };
   const loadProjection = async (roomId: string): Promise<PublicOnlineProjectionV2> => {
     const value = await request(
       `/api/online/rooms/${encodeURIComponent(roomId)}/lobby?schemaVersion=2`,
@@ -739,8 +771,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       projection = await loadProjection(snapshot.roomId);
       publish(null);
       if (projection.lifecycle === 'started') startBrowsers();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -781,8 +813,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       });
       publish(null);
       pollLater();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -835,14 +867,162 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       });
       publish(null);
       pollLater();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
         publish(snapshot.error);
       }
     }
+  };
+  const sharedFailure = (body: unknown): string => {
+    const parsed = parsePublicOnlineErrorV3(body);
+    return parsed === null ? PUBLIC_ONLINE_ERROR_V1 : publicOnlineErrorMessageV3(parsed).message;
+  };
+  const createShared = async (): Promise<void> => {
+    if (busy !== null) return;
+    epoch += 1;
+    abortController?.abort();
+    const operationEpoch = epoch;
+    busy = 'create';
+    publish(null);
+    try {
+      const participantId = id('p');
+      const raw = await requestRaw('/api/online/rooms', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: 'online-forming-lobby-create-v3', schemaVersion: 3, participantId }),
+      });
+      const body = await boundedResponseJson(raw.response, []);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!raw.response.ok) { publish(sharedFailure(body)); return; }
+      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'inviteCode', 'tableParticipantId', 'tableCapability', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-created-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'participantId') !== participantId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const roomId = own(body, 'roomId'); const seatCapability = own(body, 'seatCapability'); const inviteCodeValue = own(body, 'inviteCode'); const tableParticipantId = own(body, 'tableParticipantId'); const tableCapability = own(body, 'tableCapability');
+      if (typeof inviteCodeValue !== 'string') throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const inviteCode = inviteCodeValue;
+      const parsedInvite = parseOnlineSharedInviteCodeV3(inviteCode);
+      const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
+      if (!appId(roomId) || !capability(seatCapability) || parsedInvite === null || parsedInvite.roomId !== roomId || !appId(tableParticipantId) || !capability(tableCapability) || !checked.ok || checked.value.roomId !== roomId || checked.value.hostParticipantId !== participantId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 || pairwiseCapabilityFragment([seatCapability, parsedInvite.admissionCapability, tableCapability]) || secretFragment(JSON.stringify(checked.value), [seatCapability, parsedInvite.admissionCapability, tableCapability])) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const nextSecrets = Object.freeze({ participantId, seatCapability, invites: Object.freeze([inviteCode]), tableParticipantId, tableCapability });
+      recoveryStore.save({ kind: 'public-online-recovery-v1', schemaVersion: 1, roomId, participantId, seatCapability, isHost: true, tableParticipantId, tableCapability });
+      secrets = nextSecrets;
+      projection = checked.value;
+      snapshot = Object.freeze({ ...snapshot, mode: 'forming', roomId, isHost: true, invites: nextSecrets.invites, error: null });
+      publish(null);
+      pollLater();
+    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
+    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+  };
+  const joinShared = async (inviteCode: string): Promise<void> => {
+    if (busy !== null) return;
+    const invite = parseOnlineSharedInviteCodeV3(inviteCode);
+    if (invite === null) { publish(PUBLIC_ONLINE_ERROR_V1); return; }
+    epoch += 1;
+    abortController?.abort();
+    const operationEpoch = epoch;
+    busy = 'join';
+    publish(null);
+    try {
+      const participantId = id('p');
+      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(invite.roomId)}/lobby`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: 'online-forming-lobby-shared-claim-v3', schemaVersion: 3, participantId, admissionCapability: invite.admissionCapability }),
+      });
+      const body = await boundedResponseJson(raw.response, [invite.admissionCapability]);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!raw.response.ok) { publish(sharedFailure(body)); return; }
+      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-shared-claimed-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== invite.roomId || own(body, 'participantId') !== participantId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const seatCapability = own(body, 'seatCapability');
+      const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
+      if (!capability(seatCapability) || !checked.ok || checked.value.roomId !== invite.roomId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 || secretFragment(JSON.stringify(checked.value), [seatCapability, invite.admissionCapability])) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const nextSecrets = Object.freeze({ participantId, seatCapability, invites: Object.freeze([] as string[]), tableParticipantId: '', tableCapability: '' });
+      recoveryStore.save({ kind: 'public-online-recovery-v1', schemaVersion: 1, roomId: invite.roomId, participantId, seatCapability, isHost: false, tableParticipantId: null, tableCapability: null });
+      secrets = nextSecrets;
+      projection = checked.value;
+      snapshot = Object.freeze({ ...snapshot, mode: 'forming', roomId: invite.roomId, isHost: false, invites: Object.freeze([]), error: null });
+      publish(null);
+      pollLater();
+    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
+    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+  };
+  const validatedRecovery = (body: unknown, record: PublicOnlineRecoveryRecordV1): Readonly<{ readonly secrets: Secrets; readonly projection: PublicOnlineProjectionV2 }> | null => {
+    if (!plain(body) || own(body, 'kind') !== 'online-forming-lobby-recovered-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== record.roomId || own(body, 'participantId') !== record.participantId || own(body, 'seatCapability') !== record.seatCapability) return null;
+    const projectionResult = validatePublicOnlineProjectionV2(own(body, 'projection'));
+    if (!projectionResult.ok || projectionResult.value.roomId !== record.roomId) return null;
+    const ownSeats = projectionResult.value.seats.filter((seat) => seat.participantId === record.participantId);
+    if (ownSeats.length !== 1 || (record.isHost !== (projectionResult.value.hostParticipantId === record.participantId))) return null;
+    if (record.isHost) {
+      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'inviteCode', 'tableParticipantId', 'tableCapability', 'projection'])) return null;
+      const inviteCode = own(body, 'inviteCode'); const tableParticipantId = own(body, 'tableParticipantId'); const tableCapability = own(body, 'tableCapability');
+      const sharedInvite = typeof inviteCode === 'string' ? inviteCode : null;
+      const parsedInvite = sharedInvite === null ? null : parseOnlineSharedInviteCodeV3(sharedInvite);
+      if (sharedInvite === null || parsedInvite === null || parsedInvite.roomId !== record.roomId || typeof tableParticipantId !== 'string' || !appId(tableParticipantId) || typeof tableCapability !== 'string' || !capability(tableCapability) || tableParticipantId !== record.tableParticipantId || tableCapability !== record.tableCapability) return null;
+      if (secretFragment(JSON.stringify(projectionResult.value), [record.seatCapability, tableCapability])) return null;
+      return Object.freeze({ secrets: Object.freeze({ participantId: record.participantId, seatCapability: record.seatCapability, invites: Object.freeze([sharedInvite]), tableParticipantId, tableCapability }), projection: projectionResult.value });
+    }
+    if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'projection'])) return null;
+    if (secretFragment(JSON.stringify(projectionResult.value), [record.seatCapability])) return null;
+    return Object.freeze({ secrets: Object.freeze({ participantId: record.participantId, seatCapability: record.seatCapability, invites: Object.freeze([] as string[]), tableParticipantId: '', tableCapability: '' }), projection: projectionResult.value });
+  };
+  const recover = async (): Promise<void> => {
+    if (busy !== null) return;
+    const record = recoveryStore.load();
+    if (record === null) return;
+    const operationEpoch = epoch;
+    busy = 'refresh';
+    publish(null);
+    try {
+      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(record.roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-recover-v3', schemaVersion: 3, participantId: record.participantId, seatCapability: record.seatCapability }) });
+      const response = raw.response;
+      const body = await boundedResponseJson(response, []);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!response.ok) {
+        const parsed = body !== null && !secretFragment(JSON.stringify(body), [record.seatCapability]) ? parsePublicOnlineErrorV3(body) : null;
+        if (parsed?.code === 'CREDENTIAL_KICKED' || parsed?.code === 'CREDENTIAL_REJECTED' || parsed?.code === 'ROOM_NOT_FOUND' || parsed?.code === 'ROOM_EXPIRED') recoveryStore.clear();
+        if (parsed !== null) publish(publicOnlineErrorMessageV3(parsed).message);
+        else publish(PUBLIC_ONLINE_ERROR_V1);
+        return;
+      }
+      const checked = validatedRecovery(body, record);
+      if (checked === null) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      secrets = checked.secrets;
+      projection = checked.projection;
+      snapshot = Object.freeze({ ...snapshot, mode: projection.lifecycle === 'started' ? 'started' : 'forming', roomId: record.roomId, isHost: record.isHost, invites: secrets.invites, error: null });
+      publish(null);
+      if (projection.lifecycle === 'started') startBrowsers(); else pollLater();
+    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
+    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+  };
+  const leave = async (): Promise<void> => {
+    if (busy !== null || secrets === null || snapshot.roomId === null) return;
+    const roomId = snapshot.roomId;
+    const participantId = secrets.participantId;
+    const seatCapability = secrets.seatCapability;
+    const host = snapshot.isHost;
+    const operationEpoch = epoch;
+    busy = 'refresh';
+    publish(null);
+    try {
+      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-leave-v3', schemaVersion: 3, participantId, seatCapability }) });
+      const response = raw.response;
+      const body = await boundedResponseJson(response, [seatCapability]);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!response.ok) {
+        const parsed = parsePublicOnlineErrorV3(body);
+        if (parsed?.code === 'CREDENTIAL_KICKED' || parsed?.code === 'CREDENTIAL_REJECTED' || parsed?.code === 'ROOM_NOT_FOUND' || parsed?.code === 'ROOM_EXPIRED') recoveryStore.clear();
+        publish(parsed === null ? PUBLIC_ONLINE_ERROR_V1 : publicOnlineErrorMessageV3(parsed).message);
+        return;
+      }
+      if (host) {
+        if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'closed']) || own(body, 'kind') !== 'online-forming-lobby-left-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== roomId || own(body, 'closed') !== true) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      } else {
+        if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-left-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== roomId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+        const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
+        if (!checked.ok || checked.value.roomId !== roomId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 0) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      }
+      recoveryStore.clear(); disconnect();
+    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
+    finally { if (operationEpoch === epoch) busy = null; }
   };
   const submitDeck = async (value: PublicOnlineDeckOptionV2): Promise<void> => {
     if (
@@ -949,8 +1129,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       });
       publish(null);
       pollLater();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1010,8 +1190,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       projection = checked.value;
       publish(null);
       pollLater();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1066,8 +1246,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       stopPoll();
       publish(null);
       startBrowsers();
-    } catch {
-      if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1);
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1149,10 +1329,14 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     },
     create,
     join,
+    createShared,
+    joinShared,
     refresh,
     submitDeck,
     toggleReady,
     start,
+    recover,
+    leave,
     retry,
     displayDeckName: (name: string, index: number) => {
       const fallback = `保存済みデッキ ${index + 1}`;

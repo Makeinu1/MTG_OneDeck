@@ -10,7 +10,7 @@ export function jsonResponse(value: unknown, status = 200): Response {
   });
 }
 
-export function genericError(status: 400 | 401 | 403 | 404 | 405 | 409 | 413 | 429 | 500): Response {
+export function genericError(status: 400 | 401 | 403 | 404 | 405 | 409 | 410 | 413 | 426 | 429 | 500 | 503): Response {
   return jsonResponse(GENERIC_ERROR, status);
 }
 

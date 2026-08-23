@@ -70,6 +70,12 @@ describe('O4P-05D production-release closure boundary', () => {
     expect([
       [],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
+      [
+        'src/online/cloudflare/__tests__/review.o4p-08a-membership-runtime.test.ts',
+        'src/online/lobby/__tests__/review.o4p-08a-shared-membership.test.ts',
+        'src/online/publicApp/recoveryV1.ts',
+        'src/online/publicApp/review.o4p-08a-recovery-client.test.ts',
+      ],
     ]).toContainEqual(untracked);
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;

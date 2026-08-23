@@ -30,6 +30,9 @@ import {
 import { emitRuntimeStartFactV1, emitFailureFactV1, emitWebSocketFactV1, isCanonicalVersionIdentifier } from './facts';
 import {
   claimOnlineFormingLobbySeatV1,
+  authorizeOnlineFormingLobbySeatV1,
+  encodeOnlineSharedInviteCodeV3,
+  validateOnlineLobbyAdmissionV3,
   ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1,
   projectOnlineFormingLobbyV1,
   validateOnlineFormingLobbyV1,
@@ -54,6 +57,43 @@ import {
 
 function publicProtocolResponse(value: unknown): Response {
   return jsonResponse(value, 200);
+}
+
+function runtimeRandomToken(prefix: string): string {
+  const bytes = new Uint8Array(32);
+  const cryptoObject = globalThis.crypto;
+  if (cryptoObject === undefined || typeof cryptoObject.getRandomValues !== 'function' || typeof btoa !== 'function') throw new Error('Randomness unavailable');
+  cryptoObject.getRandomValues(bytes);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `${prefix}_${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')}`;
+}
+
+type OnlinePublicErrorCodeV3 = 'ROOM_NOT_FOUND' | 'ROOM_EXPIRED' | 'INVITE_INVALID' | 'INVITE_ROTATED' | 'ADMISSION_CLOSED' | 'ROOM_FULL' | 'PARTICIPANT_RECOVERABLE' | 'CREDENTIAL_REJECTED' | 'CREDENTIAL_KICKED' | 'HOST_REQUIRED' | 'INVALID_LIFECYCLE' | 'DECK_REQUIRED' | 'DECK_RESOLVING' | 'DECK_NEEDS_ATTENTION' | 'PLAYERS_NOT_READY' | 'CLIENT_UPGRADE_REQUIRED' | 'RATE_LIMITED' | 'SERVICE_UNAVAILABLE';
+type OnlinePublicHttpStatusV3 = 400 | 401 | 403 | 404 | 405 | 409 | 410 | 413 | 426 | 429 | 500 | 503;
+const PUBLIC_ERROR_RETRYABLE: Readonly<Record<OnlinePublicErrorCodeV3, boolean>> = Object.freeze({ ROOM_NOT_FOUND: false, ROOM_EXPIRED: false, INVITE_INVALID: false, INVITE_ROTATED: false, ADMISSION_CLOSED: false, ROOM_FULL: false, PARTICIPANT_RECOVERABLE: true, CREDENTIAL_REJECTED: false, CREDENTIAL_KICKED: false, HOST_REQUIRED: false, INVALID_LIFECYCLE: false, DECK_REQUIRED: false, DECK_RESOLVING: true, DECK_NEEDS_ATTENTION: false, PLAYERS_NOT_READY: true, CLIENT_UPGRADE_REQUIRED: false, RATE_LIMITED: true, SERVICE_UNAVAILABLE: true });
+function onlinePublicErrorV3(code: OnlinePublicErrorCodeV3, status: OnlinePublicHttpStatusV3): Response {
+  let correlationId: string;
+  try { correlationId = `correlation_${runtimeRandomToken('id').slice(3)}`; } catch { return genericError(status); }
+  return jsonResponse({ kind: 'online-public-error-v3', schemaVersion: 3, code, retryable: PUBLIC_ERROR_RETRYABLE[code], correlationId }, status);
+}
+function publicErrorCode(error: unknown): OnlinePublicErrorCodeV3 | null {
+  const message = error instanceof Error ? error.message : '';
+  if (message === 'Seat authorization rejected' || message === 'Invalid seat authorization') return 'CREDENTIAL_REJECTED';
+  if (!(message in PUBLIC_ERROR_RETRYABLE)) return null;
+  return message as OnlinePublicErrorCodeV3;
+}
+function publicErrorStatus(code: OnlinePublicErrorCodeV3): OnlinePublicHttpStatusV3 {
+  if (code === 'SERVICE_UNAVAILABLE') return 503;
+  if (code === 'RATE_LIMITED') return 429;
+  if (code === 'CLIENT_UPGRADE_REQUIRED') return 426;
+  if (code === 'ROOM_EXPIRED' || code === 'INVITE_ROTATED' || code === 'CREDENTIAL_KICKED') return 410;
+  if (code === 'ROOM_NOT_FOUND') return 404;
+  if (code === 'INVITE_INVALID') return 404;
+  if (code === 'ADMISSION_CLOSED' || code === 'HOST_REQUIRED') return 403;
+  if (code === 'ROOM_FULL' || code === 'PARTICIPANT_RECOVERABLE' || code === 'INVALID_LIFECYCLE' || code === 'DECK_REQUIRED' || code === 'DECK_RESOLVING' || code === 'DECK_NEEDS_ATTENTION' || code === 'PLAYERS_NOT_READY') return 409;
+  if (code === 'CREDENTIAL_REJECTED') return 401;
+  return 400;
 }
 
 function websocketPair(): { client: WebSocket; server: OnlineCloudflareWebSocket } {
@@ -248,6 +288,8 @@ export class OnlineRoomDurableObject {
   private readonly state: OnlineCloudflareDurableObjectState;
   private readonly versionIdentifier: string | null;
   private readonly deckResolver: OnlineDeckResolverV2;
+  private lobbyV3WindowStartedAt = 0;
+  private lobbyV3MutationCount = 0;
 
   constructor(state: OnlineCloudflareDurableObjectState, env: import('./types').OnlineCloudflareEnv = {}, deckResolver: OnlineDeckResolverV2 = new OnlineDeckScryfallResolverV2()) {
     this.state = state;
@@ -330,8 +372,102 @@ export class OnlineRoomDurableObject {
             return genericError(error instanceof ConflictError ? 409 : 400);
           }
         }
+        if (kind === 'online-forming-lobby-initialize-v3') {
+          if (!isExactRecord(body, ['kind', 'schemaVersion', 'lobby', 'admission', 'tableParticipantId', 'tableCapability']) || schemaVersion !== 3) return genericError(400);
+          const checkedLobby = validateOnlineFormingLobbyV1(ownDataValue(body, 'lobby'));
+          const checkedAdmission = validateOnlineLobbyAdmissionV3(ownDataValue(body, 'admission'));
+          const tableParticipantId = ownDataString(body, 'tableParticipantId');
+          const tableCapability = ownDataString(body, 'tableCapability');
+          if (!checkedLobby.ok || !checkedAdmission.ok || checkedLobby.value.roomId !== route.roomId || checkedAdmission.value.roomId !== route.roomId || tableParticipantId === null || tableCapability === null) return genericError(400);
+          try {
+            this.repository.initializeLobbyV3(checkedLobby.value, checkedAdmission.value, tableParticipantId, tableCapability);
+            return jsonResponse({ kind: 'online-forming-lobby-created-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.projectLobbyV2(route.roomId, checkedLobby.value) });
+          } catch (error: unknown) { return genericError(error instanceof ConflictError ? 409 : 400); }
+        }
         const lobby = this.repository.loadLobby(route.roomId);
-        if (lobby === null) return genericError(404);
+        const isRecognizedV3Kind = kind === 'online-forming-lobby-shared-claim-v3' || kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-admission-rotate-v3' || kind === 'online-forming-lobby-admission-close-v3' || kind === 'online-forming-lobby-kick-v3' || kind === 'online-forming-lobby-leave-v3';
+        if (lobby === null) return isRecognizedV3Kind && schemaVersion === 3 ? onlinePublicErrorV3('ROOM_NOT_FOUND', 404) : genericError(404);
+        if (kind?.endsWith('-v3') === true || schemaVersion === 3) {
+          const recognized = kind === 'online-forming-lobby-shared-claim-v3' || kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-admission-rotate-v3' || kind === 'online-forming-lobby-admission-close-v3' || kind === 'online-forming-lobby-kick-v3' || kind === 'online-forming-lobby-leave-v3';
+          if (!recognized) return genericError(400);
+          try {
+            const admission = this.repository.loadAdmissionV3(route.roomId);
+            if (admission === null) throw new Error('ROOM_NOT_FOUND');
+            const roomLifecycle = this.repository.load()?.room.lifecycle;
+            if (kind === 'online-forming-lobby-shared-claim-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) || schemaVersion !== 3) return genericError(400);
+              const participantId = ownDataString(body, 'participantId'); const admissionCapability = ownDataString(body, 'admissionCapability');
+              if (participantId === null || admissionCapability === null || !isOnlineRoomApplicationIdV1(participantId) || !isOnlineRoomSeatCapabilityV1(admissionCapability)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') throw new Error('INVALID_LIFECYCLE');
+              const result = this.repository.claimLobbyAdmissionV3(route.roomId, { participantId, admissionCapability });
+              return jsonResponse({ kind: 'online-forming-lobby-shared-claimed-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability: result.seatCapability, projection: this.repository.projectLobbyV2(route.roomId, result.lobby) });
+            }
+            if (kind === 'online-forming-lobby-recover-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
+              const participantId = ownDataString(body, 'participantId'); const seatCapability = ownDataString(body, 'seatCapability');
+              if (participantId === null || seatCapability === null || !isOnlineRoomApplicationIdV1(participantId) || !isOnlineRoomSeatCapabilityV1(seatCapability)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (this.repository.isRevokedCredentialV3(route.roomId, participantId, seatCapability)) throw new Error('CREDENTIAL_KICKED');
+              const seatIndex = authorizeOnlineFormingLobbySeatV1(lobby, participantId, seatCapability);
+              const isHost = seatIndex === 0;
+              const table = this.repository.tableCredentialsV3(route.roomId);
+              if (isHost && (table === null || !isOnlineRoomApplicationIdV1(table.participantId) || !isOnlineRoomSeatCapabilityV1(table.capability))) throw new Error('SERVICE_UNAVAILABLE');
+              return jsonResponse({ kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability, ...(isHost ? { inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, admission.currentCapability), tableParticipantId: table?.participantId ?? null, tableCapability: table?.capability ?? null } : {}), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
+            }
+            if (kind === 'online-forming-lobby-admission-rotate-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
+              const hostParticipantId = ownDataString(body, 'hostParticipantId'); const seatCapability = ownDataString(body, 'seatCapability');
+              if (hostParticipantId === null || seatCapability === null || !isOnlineRoomApplicationIdV1(hostParticipantId) || !isOnlineRoomSeatCapabilityV1(seatCapability)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') throw new Error('INVALID_LIFECYCLE');
+              const next = this.repository.rotateLobbyAdmissionV3(route.roomId, { hostParticipantId, seatCapability, nextCapability: runtimeRandomToken('admission') });
+              return jsonResponse({ kind: 'online-forming-lobby-admission-rotated-v3', schemaVersion: 3, roomId: route.roomId, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, next.currentCapability), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
+            }
+            if (kind === 'online-forming-lobby-admission-close-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
+              const hostParticipantId = ownDataString(body, 'hostParticipantId'); const seatCapability = ownDataString(body, 'seatCapability');
+              if (hostParticipantId === null || seatCapability === null || !isOnlineRoomApplicationIdV1(hostParticipantId) || !isOnlineRoomSeatCapabilityV1(seatCapability)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') throw new Error('INVALID_LIFECYCLE');
+              this.repository.closeLobbyAdmissionV3(route.roomId, { hostParticipantId, seatCapability });
+              return jsonResponse({ kind: 'online-forming-lobby-admission-closed-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.projectLobbyV2(route.roomId, lobby) });
+            }
+            if (kind === 'online-forming-lobby-kick-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'targetParticipantId']) || schemaVersion !== 3) return genericError(400);
+              const hostParticipantId = ownDataString(body, 'hostParticipantId'); const seatCapability = ownDataString(body, 'seatCapability'); const targetParticipantId = ownDataString(body, 'targetParticipantId');
+              if (hostParticipantId === null || seatCapability === null || targetParticipantId === null || !isOnlineRoomApplicationIdV1(hostParticipantId) || !isOnlineRoomSeatCapabilityV1(seatCapability) || !isOnlineRoomApplicationIdV1(targetParticipantId)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') throw new Error('INVALID_LIFECYCLE');
+              let hostSeat: number;
+              try { hostSeat = authorizeOnlineFormingLobbySeatV1(lobby, hostParticipantId, seatCapability); } catch { throw new Error('HOST_REQUIRED'); }
+              if (hostSeat !== 0) throw new Error('HOST_REQUIRED');
+              const result = this.repository.replaceLobbySeatV3(route.roomId, targetParticipantId, runtimeRandomToken('seat'), runtimeRandomToken('invite'), true);
+              return jsonResponse({ kind: 'online-forming-lobby-kicked-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.projectLobbyV2(route.roomId, result.lobby) });
+            }
+            if (kind === 'online-forming-lobby-leave-v3') {
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
+              const participantId = ownDataString(body, 'participantId'); const seatCapability = ownDataString(body, 'seatCapability');
+              if (participantId === null || seatCapability === null || !isOnlineRoomApplicationIdV1(participantId) || !isOnlineRoomSeatCapabilityV1(seatCapability)) return genericError(400);
+              this.consumeLobbyV3Mutation();
+              if (roomLifecycle === 'finished') throw new Error('ROOM_EXPIRED');
+              if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') throw new Error('INVALID_LIFECYCLE');
+              const seatIndex = authorizeOnlineFormingLobbySeatV1(lobby, participantId, seatCapability);
+              if (seatIndex === 0) { this.repository.deleteFormingLobbyV3(route.roomId); return jsonResponse({ kind: 'online-forming-lobby-left-v3', schemaVersion: 3, roomId: route.roomId, closed: true }); }
+              const result = this.repository.replaceLobbySeatV3(route.roomId, participantId, runtimeRandomToken('seat'), runtimeRandomToken('invite'), false);
+              return jsonResponse({ kind: 'online-forming-lobby-left-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.projectLobbyV2(route.roomId, result.lobby) });
+            }
+          } catch (error: unknown) {
+            const code = publicErrorCode(error);
+            if (code !== null) return onlinePublicErrorV3(code, publicErrorStatus(code));
+            return onlinePublicErrorV3('SERVICE_UNAVAILABLE', 503);
+          }
+        }
         const roomLifecycle = this.repository.load()?.room.lifecycle;
         if ((roomLifecycle === 'started' || roomLifecycle === 'active' || roomLifecycle === 'finished') && (kind === 'online-forming-lobby-seat-claim-v1' || kind === 'online-forming-lobby-deck-submit-v1' || kind === 'online-forming-lobby-ready-v1' || kind === 'online-forming-lobby-start-v1' || kind === 'online-forming-lobby-start-with-table-v1')) return genericError(400);
         if (isValidLegacyUpgradeRequest(body, kind, schemaVersion, lobby)) return jsonResponse(LEGACY_UPGRADE_REQUIRED, LEGACY_UPGRADE_RESPONSE.status);
@@ -345,6 +481,14 @@ export class OnlineRoomDurableObject {
             const participantId = ownDataString(body, 'participantId');
             const seatCapability = ownDataString(body, 'seatCapability');
             if (typeof ready !== 'boolean' || participantId === null || seatCapability === null) return genericError(400);
+            if (roomLifecycle === 'finished') return onlinePublicErrorV3('ROOM_EXPIRED', 410);
+            if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') return onlinePublicErrorV3('INVALID_LIFECYCLE', 409);
+            let seatIndex: number;
+            try { seatIndex = authorizeOnlineFormingLobbySeatV1(lobby, participantId, seatCapability); } catch { return onlinePublicErrorV3('CREDENTIAL_REJECTED', 401); }
+            const current = this.repository.projectLobbyV2(route.roomId, lobby).seats[seatIndex];
+            if (current === undefined || current.deckState === 'none') return onlinePublicErrorV3('DECK_REQUIRED', 409);
+            if (current.deckState === 'resolving') return onlinePublicErrorV3('DECK_RESOLVING', 409);
+            if (current.deckState === 'needs-attention') return onlinePublicErrorV3('DECK_NEEDS_ATTENTION', 409);
             const projection = this.repository.setReadyV2(route.roomId, participantId, seatCapability, ready);
             return jsonResponse({ kind: 'online-forming-lobby-ready-v2', schemaVersion: 2, roomId: route.roomId, projection });
           }
@@ -354,6 +498,17 @@ export class OnlineRoomDurableObject {
             const tableParticipantId = ownDataString(body, 'tableParticipantId');
             const tableCapability = ownDataString(body, 'tableCapability');
             if (hostParticipantId === null || seatCapability === null || tableParticipantId === null || tableCapability === null) return genericError(400);
+            if (roomLifecycle === 'finished') return onlinePublicErrorV3('ROOM_EXPIRED', 410);
+            if (roomLifecycle === 'started' || roomLifecycle === 'active' || lobby.lifecycle === 'started') return onlinePublicErrorV3('INVALID_LIFECYCLE', 409);
+            let hostSeat: number;
+            try { hostSeat = authorizeOnlineFormingLobbySeatV1(lobby, hostParticipantId, seatCapability); } catch { return onlinePublicErrorV3('HOST_REQUIRED', 403); }
+            if (hostSeat !== 0 || hostParticipantId !== lobby.hostParticipantId) return onlinePublicErrorV3('HOST_REQUIRED', 403);
+            const current = this.repository.projectLobbyV2(route.roomId, lobby);
+            if (current.lifecycle === 'started') return onlinePublicErrorV3('INVALID_LIFECYCLE', 409);
+            if (current.seats.some((seat) => seat.deckState === 'resolving')) return onlinePublicErrorV3('DECK_RESOLVING', 409);
+            if (current.seats.some((seat) => seat.deckState === 'needs-attention')) return onlinePublicErrorV3('DECK_NEEDS_ATTENTION', 409);
+            if (current.seats.some((seat) => seat.participantId === null || seat.deckState === 'none')) return onlinePublicErrorV3('DECK_REQUIRED', 409);
+            if (current.seats.some((seat) => !seat.ready)) return onlinePublicErrorV3('PLAYERS_NOT_READY', 409);
             return jsonResponse(this.repository.startWithTableV2(route.roomId, { hostParticipantId, seatCapability, tableParticipantId, tableCapability }));
           }
           if (kind === 'online-forming-lobby-seat-claim-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'inviteCapability']) && schemaVersion === 1) {
@@ -565,6 +720,18 @@ export class OnlineRoomDurableObject {
     } catch {
       return Number.NaN;
     }
+  }
+
+  private consumeLobbyV3Mutation(): void {
+    const now = this.now();
+    if (!Number.isFinite(now)) throw new Error('SERVICE_UNAVAILABLE');
+    if (this.lobbyV3WindowStartedAt === 0 || now - this.lobbyV3WindowStartedAt >= 60_000) {
+      this.lobbyV3WindowStartedAt = now;
+      this.lobbyV3MutationCount = 0;
+    }
+    if (now < this.lobbyV3WindowStartedAt) throw new Error('SERVICE_UNAVAILABLE');
+    this.lobbyV3MutationCount += 1;
+    if (this.lobbyV3MutationCount > 256) throw new Error('RATE_LIMITED');
   }
 
   private attachment(socket: OnlineCloudflareWebSocket): OnlineCloudflareSocketAttachmentV1 | null {

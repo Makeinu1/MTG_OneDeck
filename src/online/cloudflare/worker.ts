@@ -1,4 +1,4 @@
-import { createOnlineFormingLobbyV1, isOnlineFormingLobbyParticipantIdV1 } from '../lobby/index';
+import { createOnlineFormingLobbyV1, createOnlineLobbyAdmissionV3, encodeOnlineSharedInviteCodeV3, isOnlineFormingLobbyParticipantIdV1 } from '../lobby/index';
 import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
 import { genericError, isInvalidRoomPath, isWebSocketUpgrade, parseRoomPath, readJsonBody, validContentLength, validJsonContentType, jsonResponse } from './support';
 import type { OnlineCloudflareEnv } from './types';
@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = Object.freeze([
 ]);
 const CREATE_PATH = '/api/online/rooms';
 const FORMING_CREATE_KIND = 'online-forming-lobby-create-v1';
+const FORMING_CREATE_V3_KIND = 'online-forming-lobby-create-v3';
 
 function originOf(request: Request): string | null {
   const value = request.headers.get('origin');
@@ -65,6 +66,13 @@ function randomToken(prefix: string): string {
   return `${prefix}_${encoded}`;
 }
 
+function serviceUnavailableV3(): Response {
+  try {
+    const correlationId = `correlation_${randomToken('id').slice(3)}`;
+    return jsonResponse({ kind: 'online-public-error-v3', schemaVersion: 3, code: 'SERVICE_UNAVAILABLE', retryable: true, correlationId }, 503);
+  } catch { return genericError(503); }
+}
+
 function exactRecord(value: Record<string, unknown>, expected: readonly string[]): boolean {
   try {
     if (Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length !== 0) return false;
@@ -77,17 +85,50 @@ function exactRecord(value: Record<string, unknown>, expected: readonly string[]
   } catch { return false; }
 }
 
+function recognizedPublicLobbyV3(value: Record<string, unknown>): boolean {
+  if (value.schemaVersion !== 3 || typeof value.kind !== 'string') return false;
+  const participant = (key: string): boolean => isOnlineFormingLobbyParticipantIdV1(value[key]);
+  const capability = (key: string): boolean => typeof value[key] === 'string' && /^[A-Za-z0-9_-]{32,128}$/.test(value[key]);
+  if (value.kind === 'online-forming-lobby-shared-claim-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) && participant('participantId') && capability('admissionCapability');
+  if (value.kind === 'online-forming-lobby-recover-v3' || value.kind === 'online-forming-lobby-leave-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
+  if (value.kind === 'online-forming-lobby-admission-rotate-v3' || value.kind === 'online-forming-lobby-admission-close-v3') return exactRecord(value, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && participant('hostParticipantId') && capability('seatCapability');
+  if (value.kind === 'online-forming-lobby-kick-v3') return exactRecord(value, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'targetParticipantId']) && participant('hostParticipantId') && capability('seatCapability') && participant('targetParticipantId');
+  return false;
+}
+
 async function handleCreate(request: Request, env: OnlineCloudflareEnv): Promise<Response> {
   if (!validJsonContentType(request) || !validContentLength(request)) return genericError(400);
   const body = await readJsonBody(request.clone());
-  if (body === null || !exactRecord(body, ['kind', 'schemaVersion', 'participantId']) || body.kind !== FORMING_CREATE_KIND || body.schemaVersion !== 1 || !isOnlineFormingLobbyParticipantIdV1(body.participantId)) return genericError(400);
-  if (env.ONLINE_ROOMS === undefined) return genericError(500);
-  const roomId = randomToken('room').slice(0, 64);
-  const serverBuildId = isCanonicalVersionIdentifier(env.CF_VERSION_METADATA?.id) ? env.CF_VERSION_METADATA.id : 'o4p-06c-server';
-  const seatCapabilities = [randomToken('seat'), randomToken('seat'), randomToken('seat'), randomToken('seat')] as [string, string, string, string];
-  const inviteCapabilities = [randomToken('invite'), randomToken('invite'), randomToken('invite')] as [string, string, string];
-  const tableParticipantId = randomToken('table').slice(0, 64);
-  const tableCapability = randomToken('observer');
+  if (body === null || !isOnlineFormingLobbyParticipantIdV1(body.participantId) || !exactRecord(body, ['kind', 'schemaVersion', 'participantId']) || (body.kind !== FORMING_CREATE_KIND && body.kind !== FORMING_CREATE_V3_KIND) || (body.kind === FORMING_CREATE_KIND ? body.schemaVersion !== 1 : body.schemaVersion !== 3)) return genericError(400);
+  if (env.ONLINE_ROOMS === undefined) return body.kind === FORMING_CREATE_V3_KIND ? serviceUnavailableV3() : genericError(500);
+  let roomId: string;
+  let serverBuildId: string;
+  let seatCapabilities: [string, string, string, string];
+  let inviteCapabilities: [string, string, string];
+  let tableParticipantId: string;
+  let tableCapability: string;
+  try {
+    roomId = randomToken('room').slice(0, 64);
+    serverBuildId = isCanonicalVersionIdentifier(env.CF_VERSION_METADATA?.id) ? env.CF_VERSION_METADATA.id : 'o4p-06c-server';
+    seatCapabilities = [randomToken('seat'), randomToken('seat'), randomToken('seat'), randomToken('seat')];
+    inviteCapabilities = [randomToken('invite'), randomToken('invite'), randomToken('invite')];
+    tableParticipantId = randomToken('table').slice(0, 64);
+    tableCapability = randomToken('observer');
+  } catch { return body.kind === FORMING_CREATE_V3_KIND ? serviceUnavailableV3() : genericError(500); }
+  if (body.kind === FORMING_CREATE_V3_KIND) {
+    try {
+      const admissionCapability = randomToken('admission');
+      if (new Set([...seatCapabilities, ...inviteCapabilities, tableCapability, admissionCapability]).size !== 9) return serviceUnavailableV3();
+      const admission = createOnlineLobbyAdmissionV3({ roomId, currentCapability: admissionCapability });
+      const lobby = createOnlineFormingLobbyV1({ roomId, serverBuildId, hostParticipantId: body.participantId, seatCapabilities, inviteCapabilities });
+      for (const identifier of [roomId, serverBuildId, body.participantId, tableParticipantId]) assertNoConfiguredCapabilityFragmentV1(identifier, [...seatCapabilities, ...inviteCapabilities, tableCapability, admissionCapability]);
+      const internal = new Request(`https://worker.internal/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-initialize-v3', schemaVersion: 3, lobby, admission, tableParticipantId, tableCapability }) });
+      const result = await env.ONLINE_ROOMS.getByName(roomId).fetch(internal);
+      if (!result.ok) return serviceUnavailableV3();
+      const resultBody = await result.json() as Record<string, unknown>;
+      return jsonResponse({ kind: 'online-forming-lobby-created-v3', schemaVersion: 3, roomId, participantId: body.participantId, seatCapability: seatCapabilities[0], inviteCode: encodeOnlineSharedInviteCodeV3(roomId, admissionCapability), tableParticipantId, tableCapability, projection: resultBody.projection });
+    } catch { return serviceUnavailableV3(); }
+  }
   if (new Set([...seatCapabilities, ...inviteCapabilities, tableCapability]).size !== 8) return genericError(500);
   const lobby = createOnlineFormingLobbyV1({ roomId, serverBuildId, hostParticipantId: body.participantId, seatCapabilities, inviteCapabilities });
   for (const identifier of [roomId, serverBuildId, body.participantId, tableParticipantId]) assertNoConfiguredCapabilityFragmentV1(identifier, [...seatCapabilities, ...inviteCapabilities, tableCapability]);
@@ -131,18 +172,25 @@ export default {
           action = route.action;
           const methodAllowed = route.action === 'room' ? request.method === 'GET' || (request.method === 'PUT' && origin === null) : route.action === 'lobby' ? request.method === 'GET' || request.method === 'POST' : route.action === 'commands' ? request.method === 'POST' : route.action === 'capabilities' ? request.method === 'POST' : request.method === 'GET';
           if (!methodAllowed) response = genericError(405);
-          else if (env.ONLINE_ROOMS === undefined) response = genericError(500);
           else if (route.action === 'websocket' && (!isWebSocketUpgrade(request) || request.body !== null)) response = genericError(400);
           else if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT') && (!validJsonContentType(request) || !validContentLength(request))) response = genericError(400);
           else {
             let bodyValid = true;
+            let recognizedV3 = false;
             if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT')) {
               try {
                 const parsed = await readJsonBody(request.clone());
-                bodyValid = parsed !== null && !(route.action === 'lobby' && parsed.kind === 'online-forming-lobby-initialize-v1');
+                const internalInitializer = route.action === 'lobby' && (parsed?.kind === 'online-forming-lobby-initialize-v1' || parsed?.kind === 'online-forming-lobby-initialize-v3');
+                bodyValid = parsed !== null && !internalInitializer;
+                recognizedV3 = parsed !== null && route.action === 'lobby' && recognizedPublicLobbyV3(parsed);
               } catch { bodyValid = false; }
             }
-            response = bodyValid ? await env.ONLINE_ROOMS.getByName(route.roomId).fetch(request) : genericError(400);
+            if (!bodyValid) response = genericError(400);
+            else if (env.ONLINE_ROOMS === undefined) response = recognizedV3 ? serviceUnavailableV3() : genericError(500);
+            else {
+              try { response = await env.ONLINE_ROOMS.getByName(route.roomId).fetch(request); }
+              catch { response = recognizedV3 ? serviceUnavailableV3() : genericError(500); }
+            }
           }
         }
       }

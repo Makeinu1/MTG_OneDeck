@@ -27,11 +27,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: '8ce84982b56e0ea03b7d0af40bc39dd84afcc0034e0709a015eafeb5c70a61fa',
+  [reviewPath]: '4c2d7c6603676871d06b98db047a0393c3c4ab5a14dc850f247afa8d2c28d1cf',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': '415fe28517b11b869a44b4f770051532b9e1b051aca6a310d27fd6716d8aff84',
-  'scripts/checks/verify-o4p-05c-release-gates.ts': '77d833070cf067f6474abbbab540098e1f534f4035a1147666043600376cedbd',
+  'scripts/checks/verify-o4p-05c-release-gates.ts': '3736fffa1b0744de2e99e73d6277704ce93729b6c27a0414cbb376724f1a2ff0',
 });
 
 function readText(path: string): string {
@@ -78,6 +78,12 @@ assert.equal(
   [
     [],
     ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
+    [
+      'src/online/cloudflare/__tests__/review.o4p-08a-membership-runtime.test.ts',
+      'src/online/lobby/__tests__/review.o4p-08a-shared-membership.test.ts',
+      'src/online/publicApp/recoveryV1.ts',
+      'src/online/publicApp/review.o4p-08a-recovery-client.test.ts',
+    ],
   ].some((allowed) => JSON.stringify(allowed) === JSON.stringify(untrackedProtectedDrift)),
   true,
   'unexpected untracked protected drift',

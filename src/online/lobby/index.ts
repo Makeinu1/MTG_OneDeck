@@ -246,3 +246,138 @@ export function projectOnlineFormingLobbyV1(lobbyInput: unknown): OnlineFormingL
   const lobby = validateLobbyInternal(lobbyInput);
   return Object.freeze({ kind: 'online-forming-lobby-projection-v1', schemaVersion: 1, lifecycle: lobby.lifecycle, roomId: lobby.roomId, serverBuildId: lobby.serverBuildId, hostParticipantId: lobby.hostParticipantId, seats: Object.freeze(lobby.seats.map((seat) => Object.freeze({ seatIndex: seat.seatIndex, corePlayerId: seat.corePlayerId, participantId: seat.participantId, deckId: seat.deckId, deckSubmitted: seat.deckText !== null, ready: seat.ready }))) });
 }
+
+/** Shared admission credential persisted alongside the forming four-seat lobby. */
+export type OnlineLobbyAdmissionV3 = Readonly<{
+  readonly kind: 'online-lobby-admission-v3';
+  readonly schemaVersion: 3;
+  readonly roomId: string;
+  readonly currentCapability: string;
+  readonly generation: number;
+  readonly open: boolean;
+  readonly retiredCapabilities: readonly string[];
+}>;
+
+export type OnlineLobbyAdmissionValidationResultV3 =
+  | Readonly<{ readonly ok: true; readonly value: OnlineLobbyAdmissionV3 }>
+  | Readonly<{ readonly ok: false }>;
+
+function admissionCapability(value: unknown): value is string {
+  return typeof value === 'string' && isOnlineRoomSeatCapabilityV1(value);
+}
+
+function validateAdmissionInternal(value: unknown): OnlineLobbyAdmissionV3 {
+  const fields = ['kind', 'schemaVersion', 'roomId', 'currentCapability', 'generation', 'open', 'retiredCapabilities'] as const;
+  if (!exactRecord(value, fields)) fail('Invalid admission record');
+  const record = value;
+  const kind = ownData(record, 'kind');
+  const schemaVersion = ownData(record, 'schemaVersion');
+  const roomId = ownData(record, 'roomId');
+  const currentCapability = ownData(record, 'currentCapability');
+  const generation = ownData(record, 'generation');
+  const open = ownData(record, 'open');
+  const retired = ownData(record, 'retiredCapabilities');
+  if (kind !== 'online-lobby-admission-v3' || schemaVersion !== 3 || !appId(roomId) || !admissionCapability(currentCapability) || typeof generation !== 'number' || !Number.isSafeInteger(generation) || generation < 1 || typeof open !== 'boolean' || !Array.isArray(retired) || Object.getPrototypeOf(retired) !== Array.prototype || retired.length > 4) fail('Invalid admission fields');
+  const retiredValues: string[] = [];
+  for (let index = 0; index < retired.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(retired, String(index));
+    if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) fail('Sparse retired capabilities');
+    const candidate: unknown = descriptor.value;
+    if (!admissionCapability(candidate) || candidate === currentCapability || retiredValues.includes(candidate)) fail('Invalid retired capability');
+    retiredValues.push(candidate);
+  }
+  try { assertNoConfiguredCapabilityFragmentV1(roomId, [currentCapability, ...retiredValues]); } catch { fail('Invalid admission metadata'); }
+  return Object.freeze({ kind: 'online-lobby-admission-v3', schemaVersion: 3, roomId, currentCapability, generation, open, retiredCapabilities: Object.freeze(retiredValues) });
+}
+
+export function validateOnlineLobbyAdmissionV3(input: unknown): OnlineLobbyAdmissionValidationResultV3 {
+  try { return Object.freeze({ ok: true as const, value: validateAdmissionInternal(input) }); }
+  catch { return Object.freeze({ ok: false as const }); }
+}
+
+export function createOnlineLobbyAdmissionV3(input: Readonly<{ readonly roomId: string; readonly currentCapability: string }>): OnlineLobbyAdmissionV3 {
+  if (!exactRecord(input, ['roomId', 'currentCapability']) || !appId(input.roomId) || !admissionCapability(input.currentCapability)) fail('Invalid admission creation input');
+  try { assertNoConfiguredCapabilityFragmentV1(input.roomId, [input.currentCapability]); } catch { fail('Invalid admission creation input'); }
+  return validateAdmissionInternal({ kind: 'online-lobby-admission-v3', schemaVersion: 3, roomId: input.roomId, currentCapability: input.currentCapability, generation: 1, open: true, retiredCapabilities: [] });
+}
+
+function encodeBase64UrlUtf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  if (typeof btoa !== 'function') throw new Error('Base64 unavailable');
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function decodeBase64UrlUtf8(value: string): string | null {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
+  try {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4);
+    if (typeof atob !== 'function') return null;
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch { return null; }
+}
+
+export function encodeOnlineSharedInviteCodeV3(roomId: string, admissionCapabilityValue: string): string {
+  if (!appId(roomId) || !admissionCapability(admissionCapabilityValue)) fail('Invalid shared invite');
+  return `v3.${encodeBase64UrlUtf8(roomId)}.${admissionCapabilityValue}`;
+}
+
+export function parseOnlineSharedInviteCodeV3(value: unknown): Readonly<{ readonly roomId: string; readonly admissionCapability: string }> | null {
+  if (typeof value !== 'string') return null;
+  const parts = value.split('.');
+  if (parts.length !== 3 || parts[0] !== 'v3' || parts[1] === '' || !/^[A-Za-z0-9_-]+$/.test(parts[1])) return null;
+  const roomId = decodeBase64UrlUtf8(parts[1]);
+  const admissionCapabilityValue = parts[2];
+  if (roomId === null || !appId(roomId) || encodeBase64UrlUtf8(roomId) !== parts[1] || !admissionCapability(admissionCapabilityValue)) return null;
+  return Object.freeze({ roomId, admissionCapability: admissionCapabilityValue });
+}
+
+export function claimOnlineLobbyAdmissionV3(
+  lobbyInput: unknown,
+  admissionInput: unknown,
+  input: Readonly<{ readonly participantId: string; readonly admissionCapability: string }>,
+): Readonly<{ readonly lobby: OnlineFormingLobbyV1; readonly admission: OnlineLobbyAdmissionV3; readonly seatCapability: string }> {
+  const lobby = validateLobbyInternal(lobbyInput);
+  const admission = validateAdmissionInternal(admissionInput);
+  if (admission.roomId !== lobby.roomId || !exactRecord(input, ['participantId', 'admissionCapability']) || !appId(input.participantId) || !admissionCapability(input.admissionCapability)) fail('INVITE_INVALID');
+  if (!admission.open) fail('ADMISSION_CLOSED');
+  if (input.admissionCapability !== admission.currentCapability) fail(admission.retiredCapabilities.includes(input.admissionCapability) ? 'INVITE_ROTATED' : 'INVITE_INVALID');
+  if (lobby.lifecycle !== 'forming') fail('INVALID_LIFECYCLE');
+  if (lobby.seats.some((seat) => seat.participantId === input.participantId)) fail('PARTICIPANT_RECOVERABLE');
+  const index = lobby.seats.findIndex((seat) => seat.participantId === null);
+  if (index < 0) fail('ROOM_FULL');
+  const target = lobby.seats[index];
+  if (target === undefined) fail('ROOM_FULL');
+  const next = withSeat(lobby, index, { participantId: input.participantId, inviteCapability: null });
+  return Object.freeze({ lobby: next, admission, seatCapability: target.seatCapability });
+}
+
+export function rotateOnlineLobbyAdmissionV3(
+  lobbyInput: unknown,
+  admissionInput: unknown,
+  input: Readonly<{ readonly hostParticipantId: string; readonly seatCapability: string; readonly nextCapability: string }>,
+): OnlineLobbyAdmissionV3 {
+  const lobby = validateLobbyInternal(lobbyInput);
+  const admission = validateAdmissionInternal(admissionInput);
+  if (admission.roomId !== lobby.roomId || !exactRecord(input, ['hostParticipantId', 'seatCapability', 'nextCapability']) || input.hostParticipantId !== lobby.hostParticipantId || !admissionCapability(input.nextCapability) || input.nextCapability === admission.currentCapability || admission.retiredCapabilities.includes(input.nextCapability)) fail('HOST_REQUIRED');
+  try { seatForCapability(lobby, input.hostParticipantId, input.seatCapability); } catch { fail('HOST_REQUIRED'); }
+  if (lobby.lifecycle !== 'forming' && lobby.lifecycle !== 'ready') fail('INVALID_LIFECYCLE');
+  return validateAdmissionInternal({ ...admission, currentCapability: input.nextCapability, generation: admission.generation + 1, open: true, retiredCapabilities: [admission.currentCapability, ...admission.retiredCapabilities].slice(0, 4) });
+}
+
+export function closeOnlineLobbyAdmissionV3(
+  lobbyInput: unknown,
+  admissionInput: unknown,
+  input: Readonly<{ readonly hostParticipantId: string; readonly seatCapability: string }>,
+): OnlineLobbyAdmissionV3 {
+  const lobby = validateLobbyInternal(lobbyInput);
+  const admission = validateAdmissionInternal(admissionInput);
+  if (admission.roomId !== lobby.roomId || !exactRecord(input, ['hostParticipantId', 'seatCapability']) || input.hostParticipantId !== lobby.hostParticipantId) fail('HOST_REQUIRED');
+  try { seatForCapability(lobby, input.hostParticipantId, input.seatCapability); } catch { fail('HOST_REQUIRED'); }
+  if (lobby.lifecycle !== 'forming' && lobby.lifecycle !== 'ready') fail('INVALID_LIFECYCLE');
+  return validateAdmissionInternal({ ...admission, open: false });
+}

@@ -108,10 +108,14 @@ export type PublicOnlineControllerV2 = Readonly<{
   readonly subscribe: (listener: (snapshot: PublicOnlineSnapshotV2) => void) => () => void;
   readonly create: () => Promise<void>;
   readonly join: (roomId: string, inviteCapability: string) => Promise<void>;
+  readonly createShared: () => Promise<void>;
+  readonly joinShared: (inviteCode: string) => Promise<void>;
   readonly refresh: () => Promise<void>;
   readonly submitDeck: (deck: PublicOnlineDeckOptionV2) => Promise<void>;
   readonly toggleReady: () => Promise<void>;
   readonly start: () => Promise<void>;
+  readonly recover: () => Promise<void>;
+  readonly leave: () => Promise<void>;
   readonly retry: () => Promise<void>;
   readonly displayDeckName: (name: string, index: number) => string;
   readonly copyInvite: (invite: string) => Promise<void>;

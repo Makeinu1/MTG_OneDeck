@@ -25,7 +25,12 @@ import { emitRecoveryFactV1, emitFailureFactV1, isCanonicalVersionIdentifier } f
 import {
   validateOnlineFormingLobbyV1,
   invalidateOnlineFormingLobbySeatDeckV1,
+  validateOnlineLobbyAdmissionV3,
+  claimOnlineLobbyAdmissionV3,
+  rotateOnlineLobbyAdmissionV3,
+  closeOnlineLobbyAdmissionV3,
   type OnlineFormingLobbyV1,
+  type OnlineLobbyAdmissionV3,
 } from '../lobby/index';
 import {
   authorizeOnlineFormingLobbySeatV1,
@@ -57,6 +62,9 @@ const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migratio
 const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_RECOVERY_VERIFICATION = `CREATE TABLE IF NOT EXISTS online_recovery_verification (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, version_identifier TEXT NOT NULL, verified_revision INTEGER NOT NULL, checkpoint_revision INTEGER NOT NULL, journal_count INTEGER NOT NULL, checkpoint_digest TEXT NOT NULL) STRICT`;
 const CREATE_LOBBY = `CREATE TABLE IF NOT EXISTS online_forming_lobby (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const CREATE_ADMISSION = `CREATE TABLE IF NOT EXISTS online_lobby_admission (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const CREATE_TABLE_CREDENTIALS = `CREATE TABLE IF NOT EXISTS online_lobby_table_credentials (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, participant_id TEXT NOT NULL, capability TEXT NOT NULL) STRICT`;
+const CREATE_REVOKED = `CREATE TABLE IF NOT EXISTS online_lobby_revoked_credential (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, seat_capability TEXT NOT NULL, PRIMARY KEY (room_id, participant_id, seat_capability)) STRICT`;
 const SELECT_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json FROM online_room_state WHERE singleton = 1`;
 const SELECT_JOURNAL = `SELECT accepted_revision, command_id, participant_id, base_revision, command_json FROM online_accepted_command ORDER BY accepted_revision`;
 const INSERT_ROOM = `INSERT INTO online_room_state (singleton, schema_version, room_id, revision, room_lifecycle, accepted_command_count, state_json) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -75,8 +83,16 @@ const SELECT_RECOVERY_VERIFICATION = 'SELECT singleton, room_id, version_identif
 const INSERT_RECOVERY_VERIFICATION = 'INSERT INTO online_recovery_verification (singleton, room_id, version_identifier, verified_revision, checkpoint_revision, journal_count, checkpoint_digest) VALUES (1, ?, ?, ?, ?, ?, ?)';
 const UPDATE_RECOVERY_VERIFICATION = 'UPDATE online_recovery_verification SET room_id = ?, version_identifier = ?, verified_revision = ?, checkpoint_revision = ?, journal_count = ?, checkpoint_digest = ? WHERE singleton = 1 AND room_id = ? AND version_identifier = ? AND verified_revision = ? AND checkpoint_revision = ? AND journal_count = ? AND checkpoint_digest = ? RETURNING singleton';
 const SELECT_LOBBY = 'SELECT singleton, schema_version, room_id, state_json FROM online_forming_lobby WHERE singleton = 1';
+const SELECT_ADMISSION = 'SELECT singleton, schema_version, room_id, state_json FROM online_lobby_admission WHERE singleton = 1';
+const SELECT_TABLE_CREDENTIALS = 'SELECT singleton, room_id, participant_id, capability FROM online_lobby_table_credentials WHERE singleton = 1';
+const SELECT_REVOKED = 'SELECT room_id, participant_id, seat_capability FROM online_lobby_revoked_credential WHERE room_id = ? AND participant_id = ? AND seat_capability = ?';
 const INSERT_LOBBY = 'INSERT INTO online_forming_lobby (singleton, schema_version, room_id, state_json) VALUES (1, ?, ?, ?)';
+const INSERT_ADMISSION = 'INSERT INTO online_lobby_admission (singleton, schema_version, room_id, state_json) VALUES (1, ?, ?, ?)';
+const INSERT_TABLE_CREDENTIALS = 'INSERT INTO online_lobby_table_credentials (singleton, room_id, participant_id, capability) VALUES (1, ?, ?, ?)';
+const INSERT_REVOKED = 'INSERT OR IGNORE INTO online_lobby_revoked_credential (room_id, participant_id, seat_capability) VALUES (?, ?, ?)';
+const TRIM_REVOKED = 'DELETE FROM online_lobby_revoked_credential WHERE room_id = ? AND rowid NOT IN (SELECT rowid FROM online_lobby_revoked_credential WHERE room_id = ? ORDER BY rowid DESC LIMIT 64)';
 const UPDATE_LOBBY = 'UPDATE online_forming_lobby SET room_id = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND state_json = ? RETURNING singleton';
+const UPDATE_ADMISSION = 'UPDATE online_lobby_admission SET room_id = ?, state_json = ? WHERE singleton = 1 AND room_id = ? AND state_json = ? RETURNING singleton';
 const CREATE_DECK_HEAD = `CREATE TABLE IF NOT EXISTS online_deck_submission_head_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), participant_id TEXT NOT NULL, deck_id TEXT NOT NULL, submission_id TEXT NOT NULL, content_digest TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), state TEXT NOT NULL CHECK (state IN ('none', 'resolving', 'accepted', 'needs-attention')), snapshot_digest TEXT, PRIMARY KEY (room_id, seat_index)) STRICT`;
 const CREATE_DECK_HISTORY = `CREATE TABLE IF NOT EXISTS online_deck_submission_history_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), submission_id TEXT NOT NULL, participant_id TEXT NOT NULL, deck_id TEXT NOT NULL, canonical_input TEXT NOT NULL, content_digest TEXT NOT NULL, revision INTEGER NOT NULL CHECK (revision >= 0), state TEXT NOT NULL CHECK (state IN ('resolving', 'accepted', 'needs-attention')), issues_json TEXT NOT NULL, PRIMARY KEY (room_id, seat_index, submission_id)) STRICT`;
 const CREATE_DECK_SNAPSHOT = `CREATE TABLE IF NOT EXISTS online_deck_submission_snapshot_v2 (room_id TEXT NOT NULL, seat_index INTEGER NOT NULL CHECK (seat_index BETWEEN 0 AND 3), snapshot_digest TEXT NOT NULL CHECK (length(snapshot_digest) = 64), snapshot_json TEXT NOT NULL, PRIMARY KEY (room_id, seat_index)) STRICT`;
@@ -104,6 +120,8 @@ type MigrationRow = { singleton: unknown; schema_version: unknown };
 type CheckpointRow = { singleton: unknown; room_id: unknown; checkpoint_revision: unknown; state_json: unknown };
 type RecoveryVerificationRow = { singleton: unknown; room_id: unknown; version_identifier: unknown; verified_revision: unknown; checkpoint_revision: unknown; journal_count: unknown; checkpoint_digest: unknown };
 type LobbyRow = { singleton: unknown; schema_version: unknown; room_id: unknown; state_json: unknown };
+type AdmissionRow = { singleton: unknown; schema_version: unknown; room_id: unknown; state_json: unknown };
+type TableCredentialRow = { singleton: unknown; room_id: unknown; participant_id: unknown; capability: unknown };
 type DeckHeadRow = { room_id: unknown; seat_index: unknown; participant_id: unknown; deck_id: unknown; submission_id: unknown; content_digest: unknown; revision: unknown; state: unknown; snapshot_digest: unknown };
 type DeckHistoryRow = DeckHeadRow & { canonical_input: unknown; issues_json: unknown };
 type DeckSnapshotRow = { room_id: unknown; seat_index: unknown; snapshot_digest: unknown; snapshot_json: unknown };
@@ -294,6 +312,9 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
       this.storage.sql.exec(CREATE_DECK_READY);
       this.storage.sql.exec(CREATE_LOBBY);
+      this.storage.sql.exec(CREATE_ADMISSION);
+      this.storage.sql.exec(CREATE_TABLE_CREDENTIALS);
+      this.storage.sql.exec(CREATE_REVOKED);
       const before = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
       if (before.length > 1 || (before[0] !== undefined && (before[0].singleton !== 1 || (before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 && before[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2)))) throw new Error('Invalid application migration ledger');
       const room = this.rows();
@@ -922,7 +943,7 @@ export class OnlineCloudflareRepository {
     const expectedLobbyJson = JSON.stringify(expectedLobby);
     if (expectedLobbyJson === undefined) throw new Error('Invalid lobby serialization');
     return this.storage.transactionSync(() => {
-      this.storage.sql.exec(CREATE_ROOM); this.storage.sql.exec(CREATE_JOURNAL); this.storage.sql.exec(CREATE_MIGRATION); this.storage.sql.exec(CREATE_CHECKPOINT); this.storage.sql.exec(CREATE_RECOVERY_VERIFICATION); this.storage.sql.exec(CREATE_DECK_HEAD); this.storage.sql.exec(CREATE_DECK_HISTORY); this.storage.sql.exec(CREATE_DECK_SNAPSHOT); this.storage.sql.exec(CREATE_DECK_READY); this.storage.sql.exec(CREATE_LOBBY); this.securityRepository.createSchemaInTransaction();
+      this.storage.sql.exec(CREATE_ROOM); this.storage.sql.exec(CREATE_JOURNAL); this.storage.sql.exec(CREATE_MIGRATION); this.storage.sql.exec(CREATE_CHECKPOINT); this.storage.sql.exec(CREATE_RECOVERY_VERIFICATION); this.storage.sql.exec(CREATE_DECK_HEAD); this.storage.sql.exec(CREATE_DECK_HISTORY); this.storage.sql.exec(CREATE_DECK_SNAPSHOT); this.storage.sql.exec(CREATE_DECK_READY); this.storage.sql.exec(CREATE_LOBBY); this.storage.sql.exec(CREATE_ADMISSION); this.storage.sql.exec(CREATE_TABLE_CREDENTIALS); this.storage.sql.exec(CREATE_REVOKED); this.securityRepository.createSchemaInTransaction();
       const lobbyRows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
       if (lobbyRows.length !== 1 || lobbyRows[0]?.room_id !== roomId || lobbyRows[0]?.state_json !== expectedLobbyJson) throw new ConflictError();
       for (const seat of expectedSeats) {
@@ -1108,6 +1129,9 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_HISTORY);
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
       this.storage.sql.exec(CREATE_DECK_READY);
+      this.storage.sql.exec(CREATE_ADMISSION);
+      this.storage.sql.exec(CREATE_TABLE_CREDENTIALS);
+      this.storage.sql.exec(CREATE_REVOKED);
       const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
       if (rows.length > 1) throw new Error('Invalid forming lobby singleton');
       if (rows.length === 1) {
@@ -1116,6 +1140,161 @@ export class OnlineCloudflareRepository {
         return;
       }
       this.storage.sql.exec(INSERT_LOBBY, 1, lobby.roomId, stateJson);
+    });
+  }
+
+  initializeLobbyV3(
+    lobbyInput: OnlineFormingLobbyV1,
+    admissionInput: OnlineLobbyAdmissionV3,
+    tableParticipantId: string,
+    tableCapability: string,
+  ): void {
+    const checkedLobby = validateOnlineFormingLobbyV1(lobbyInput);
+    const checkedAdmission = validateOnlineLobbyAdmissionV3(admissionInput);
+    if (!checkedLobby.ok || !checkedAdmission.ok || checkedLobby.value.roomId !== checkedAdmission.value.roomId || !isOnlineRoomApplicationIdV1(tableParticipantId) || !isOnlineRoomSeatCapabilityV1(tableCapability)) throw new Error('Invalid v3 lobby initialization');
+    const seatInviteCapabilities = checkedLobby.value.seats.flatMap((seat) => [seat.seatCapability, ...(seat.inviteCapability === null ? [] : [seat.inviteCapability])]);
+    const capabilitySet = [...seatInviteCapabilities, checkedAdmission.value.currentCapability, tableCapability];
+    for (let index = 0; index < capabilitySet.length; index += 1) {
+      const current = capabilitySet[index];
+      if (current === undefined) throw new Error('Invalid v3 capability set');
+      for (let candidateIndex = index + 1; candidateIndex < capabilitySet.length; candidateIndex += 1) {
+        const candidate = capabilitySet[candidateIndex];
+        if (candidate === undefined) throw new Error('Invalid v3 capability set');
+        if (current.split('_', 1)[0] === candidate.split('_', 1)[0]) continue;
+        try { assertNoConfiguredCapabilityFragmentV1(current, [candidate]); assertNoConfiguredCapabilityFragmentV1(candidate, [current]); } catch { throw new Error('Invalid v3 capability collision'); }
+      }
+    }
+    try {
+      for (const metadata of [checkedLobby.value.roomId, checkedLobby.value.serverBuildId, checkedLobby.value.hostParticipantId, tableParticipantId]) assertNoConfiguredCapabilityFragmentV1(metadata, capabilitySet);
+    } catch { throw new Error('Invalid v3 capability collision'); }
+    const stateJson = JSON.stringify(checkedLobby.value);
+    const admissionJson = JSON.stringify(checkedAdmission.value);
+    if (stateJson === undefined || admissionJson === undefined) throw new Error('Invalid v3 lobby serialization');
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_LOBBY); this.storage.sql.exec(CREATE_ADMISSION); this.storage.sql.exec(CREATE_TABLE_CREDENTIALS); this.storage.sql.exec(CREATE_REVOKED); this.storage.sql.exec(CREATE_DECK_HEAD); this.storage.sql.exec(CREATE_DECK_HISTORY); this.storage.sql.exec(CREATE_DECK_SNAPSHOT); this.storage.sql.exec(CREATE_DECK_READY);
+      const existing = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (existing.length > 1) throw new Error('Invalid forming lobby singleton');
+      if (existing.length === 1) {
+        if (existing[0]?.room_id !== checkedLobby.value.roomId || existing[0]?.state_json !== stateJson) throw new ConflictError();
+        const existingAdmission = this.loadAdmissionV3(checkedLobby.value.roomId);
+        const existingTable = this.tableCredentialsV3(checkedLobby.value.roomId);
+        if (existingAdmission === null || JSON.stringify(existingAdmission) !== admissionJson || existingTable?.participantId !== tableParticipantId || existingTable.capability !== tableCapability) throw new ConflictError();
+        return;
+      }
+      this.storage.sql.exec(INSERT_LOBBY, 1, checkedLobby.value.roomId, stateJson);
+      this.storage.sql.exec(INSERT_ADMISSION, 3, checkedAdmission.value.roomId, admissionJson);
+      this.storage.sql.exec(INSERT_TABLE_CREDENTIALS, checkedLobby.value.roomId, tableParticipantId, tableCapability);
+    });
+  }
+
+  loadAdmissionV3(roomId: string): OnlineLobbyAdmissionV3 | null {
+    let rows: AdmissionRow[];
+    try { rows = this.storage.sql.exec<AdmissionRow>(SELECT_ADMISSION).toArray(); } catch (error: unknown) { if (error instanceof Error && /no such table/i.test(error.message)) return null; throw error; }
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error('Invalid admission singleton');
+    const row = rows[0];
+    if (row === undefined || row.singleton !== 1 || row.schema_version !== 3 || row.room_id !== roomId || typeof row.state_json !== 'string') throw new Error('Invalid admission row');
+    let parsed: unknown;
+    try { parsed = JSON.parse(row.state_json); } catch { throw new Error('Invalid admission JSON'); }
+    const checked = validateOnlineLobbyAdmissionV3(parsed);
+    if (!checked.ok || JSON.stringify(checked.value) !== row.state_json) throw new Error('Invalid admission state');
+    return checked.value;
+  }
+
+  tableCredentialsV3(roomId: string): Readonly<{ readonly participantId: string; readonly capability: string }> | null {
+    let rows: TableCredentialRow[];
+    try { rows = this.storage.sql.exec<TableCredentialRow>(SELECT_TABLE_CREDENTIALS).toArray(); } catch (error: unknown) { if (error instanceof Error && /no such table/i.test(error.message)) return null; throw error; }
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error('Invalid table credential singleton');
+    const row = rows[0];
+    if (row === undefined || row.singleton !== 1 || row.room_id !== roomId || typeof row.participant_id !== 'string' || typeof row.capability !== 'string') throw new Error('Invalid table credentials');
+    return Object.freeze({ participantId: row.participant_id, capability: row.capability });
+  }
+
+  isRevokedCredentialV3(roomId: string, participantId: string, seatCapability: string): boolean {
+    try { return this.storage.sql.exec(SELECT_REVOKED, roomId, participantId, seatCapability).toArray().length !== 0; } catch (error: unknown) { if (error instanceof Error && /no such table/i.test(error.message)) return false; throw error; }
+  }
+
+  claimLobbyAdmissionV3(roomId: string, input: Readonly<{ readonly participantId: string; readonly admissionCapability: string }>): Readonly<{ readonly lobby: OnlineFormingLobbyV1; readonly admission: OnlineLobbyAdmissionV3; readonly seatCapability: string }> {
+    return this.storage.transactionSync(() => {
+      const lobby = this.loadLobby(roomId); const admission = this.loadAdmissionV3(roomId);
+      if (lobby === null || admission === null) throw new Error('ROOM_NOT_FOUND');
+      const result = claimOnlineLobbyAdmissionV3(lobby, admission, input);
+      const previousJson = JSON.stringify(lobby); const nextJson = JSON.stringify(result.lobby);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid lobby serialization');
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, roomId, nextJson, roomId, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+      return Object.freeze({ lobby: result.lobby, admission, seatCapability: result.seatCapability });
+    });
+  }
+
+  rotateLobbyAdmissionV3(roomId: string, input: Readonly<{ readonly hostParticipantId: string; readonly seatCapability: string; readonly nextCapability: string }>): OnlineLobbyAdmissionV3 {
+    return this.storage.transactionSync(() => {
+      const lobby = this.loadLobby(roomId); const current = this.loadAdmissionV3(roomId);
+      if (lobby === null || current === null) throw new Error('ROOM_NOT_FOUND');
+      const next = rotateOnlineLobbyAdmissionV3(lobby, current, input);
+      const previousJson = JSON.stringify(current); const nextJson = JSON.stringify(next);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid admission serialization');
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_ADMISSION, roomId, nextJson, roomId, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+      return next;
+    });
+  }
+
+  closeLobbyAdmissionV3(roomId: string, input: Readonly<{ readonly hostParticipantId: string; readonly seatCapability: string }>): OnlineLobbyAdmissionV3 {
+    return this.storage.transactionSync(() => {
+      const lobby = this.loadLobby(roomId); const current = this.loadAdmissionV3(roomId);
+      if (lobby === null || current === null) throw new Error('ROOM_NOT_FOUND');
+      const next = closeOnlineLobbyAdmissionV3(lobby, current, input);
+      const previousJson = JSON.stringify(current); const nextJson = JSON.stringify(next);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid admission serialization');
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_ADMISSION, roomId, nextJson, roomId, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+      return next;
+    });
+  }
+
+  replaceLobbySeatV3(roomId: string, targetParticipantId: string, replacementSeatCapability: string, replacementInviteCapability: string, revoke: boolean): Readonly<{ readonly lobby: OnlineFormingLobbyV1; readonly seatCapability: string }> {
+    return this.storage.transactionSync(() => {
+      const lobby = this.loadLobby(roomId);
+      if (lobby === null) throw new Error('ROOM_NOT_FOUND');
+      if (!isOnlineRoomSeatCapabilityV1(replacementSeatCapability) || !isOnlineRoomSeatCapabilityV1(replacementInviteCapability)) throw new Error('CREDENTIAL_REJECTED');
+      const configured = lobby.seats.flatMap((seat) => [seat.seatCapability, ...(seat.inviteCapability === null ? [] : [seat.inviteCapability])]);
+      if (configured.includes(replacementSeatCapability) || configured.includes(replacementInviteCapability) || replacementSeatCapability === replacementInviteCapability) throw new Error('CREDENTIAL_REJECTED');
+      const index = lobby.seats.findIndex((seat) => seat.participantId === targetParticipantId);
+      if (index <= 0) throw new Error(index === 0 ? 'HOST_REQUIRED' : 'CREDENTIAL_REJECTED');
+      const target = lobby.seats[index];
+      if (target === undefined) throw new Error('CREDENTIAL_REJECTED');
+      const nextSeats = lobby.seats.map((seat, seatIndex) => seatIndex === index ? Object.freeze({ ...seat, participantId: null, seatCapability: replacementSeatCapability, inviteCapability: replacementInviteCapability, deckId: null, deckText: null, ready: false }) : seat);
+      const checkedNext = validateOnlineFormingLobbyV1({ ...lobby, lifecycle: 'forming', seats: nextSeats });
+      if (!checkedNext.ok) throw new Error('Invalid seat replacement');
+      const next = checkedNext.value;
+      const previousJson = JSON.stringify(lobby); const nextJson = JSON.stringify(next);
+      if (previousJson === undefined || nextJson === undefined) throw new Error('Invalid lobby serialization');
+      const updated = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_LOBBY, roomId, nextJson, roomId, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+      this.storage.sql.exec('DELETE FROM online_deck_submission_head_v2 WHERE room_id = ? AND seat_index = ?', roomId, index);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_history_v2 WHERE room_id = ? AND seat_index = ?', roomId, index);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_snapshot_v2 WHERE room_id = ? AND seat_index = ?', roomId, index);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_ready_v2 WHERE room_id = ? AND seat_index = ?', roomId, index);
+      if (revoke) {
+        this.storage.sql.exec(INSERT_REVOKED, roomId, targetParticipantId, target.seatCapability);
+        this.storage.sql.exec(TRIM_REVOKED, roomId, roomId);
+      }
+      return Object.freeze({ lobby: next, seatCapability: replacementSeatCapability });
+    });
+  }
+
+  deleteFormingLobbyV3(roomId: string): void {
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec('DELETE FROM online_forming_lobby WHERE singleton = 1 AND room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_lobby_admission WHERE singleton = 1 AND room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_lobby_table_credentials WHERE singleton = 1 AND room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_lobby_revoked_credential WHERE room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_head_v2 WHERE room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_history_v2 WHERE room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_snapshot_v2 WHERE room_id = ?', roomId);
+      this.storage.sql.exec('DELETE FROM online_deck_submission_ready_v2 WHERE room_id = ?', roomId);
     });
   }
 
@@ -1256,6 +1435,9 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_DECK_HISTORY);
       this.storage.sql.exec(CREATE_DECK_SNAPSHOT);
       this.storage.sql.exec(CREATE_LOBBY);
+      this.storage.sql.exec(CREATE_ADMISSION);
+      this.storage.sql.exec(CREATE_TABLE_CREDENTIALS);
+      this.storage.sql.exec(CREATE_REVOKED);
       this.securityRepository.createSchemaInTransaction();
       const migrations = this.storage.sql.exec<MigrationRow>(SELECT_MIGRATION).toArray();
       if (migrations.length > 1 || (migrations[0] !== undefined && (migrations[0].singleton !== 1 || (migrations[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 && migrations[0].schema_version !== ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2)))) throw new Error('Invalid application migration ledger');

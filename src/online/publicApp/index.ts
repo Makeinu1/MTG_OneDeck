@@ -15,3 +15,10 @@ export type {
   PublicOnlineControllerV2,
 } from './types';
 export { createPublicOnlineControllerV2, validatePublicOnlineProjectionV2 } from './v2';
+export {
+  createPublicOnlineRecoveryStoreV1,
+  parsePublicOnlineErrorV3,
+  publicOnlineErrorMessageV3,
+  readAndScrubPublicOnlineInviteFragmentV3,
+} from './recoveryV1';
+export type { PublicOnlineRecoveryRecordV1, PublicOnlineStorageV1, PublicOnlineErrorV3, PublicOnlineErrorCodeV3 } from './recoveryV1';
