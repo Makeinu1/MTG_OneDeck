@@ -36,10 +36,21 @@ Audited fingerprint: `4cdaab94ff49290f50d993862ae65a25c79a6b67f94602fb7ca9b432cb
 
 ## Release evidence
 
-Worker-first deployment, exact-head CI/Pages, served-asset verification,
-sanitized v3/v4 production recovery acceptance, HEAD/origin equality, and clean
-worktree closure are pending and must be appended before status becomes
-`shipped`.
+The Worker-first deploy completed with version
+`31d3c58c-7d83-40ab-9e5b-a5d52229cba2`. Sanitized production recovery smoke
+verified exact legacy v3 response compatibility, v4 admission open/closed
+state, successful host close, and secret-free projection.
+
+Actions run `32664162807`, build job `97254862165`, at exact candidate HEAD
+`46b3a52aa67e8e746306409a899a7ba936445619` passed the complete canonical
+check and exact diff-base resolution, then stopped only at the expected Judge
+ownership gate. Independent exact-byte reauthorization returned
+`O4P-08B-CI-OWNERSHIP-REAUTH-OK` with
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0`.
+
+Replacement exact-head green CI/Pages, served-asset verification,
+HEAD/origin equality, and clean worktree closure remain pending and must be
+appended before status becomes `shipped`.
 
 ## Deferred
 
