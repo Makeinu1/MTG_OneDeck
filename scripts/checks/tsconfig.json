@@ -16,6 +16,7 @@
     "verify-online-in-memory-protocol.ts",
     "verify-online-audience-projection.ts",
     "verify-online-local-room-gate.ts",
-    "verify-online-cloudflare-runtime-persistence.ts"
+    "verify-online-cloudflare-runtime-persistence.ts",
+    "verify-o4p-07c-production-runtime.ts"
   ]
 }

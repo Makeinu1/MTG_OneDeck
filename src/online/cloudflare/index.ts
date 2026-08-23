@@ -104,9 +104,6 @@ export {
   createOnlineFormingLobbyV1,
   isOnlineFormingLobbyParticipantIdV1,
   projectOnlineFormingLobbyV1,
-  setOnlineFormingLobbySeatReadyV1,
-  startOnlineFormingLobbyV1,
-  submitOnlineFormingLobbyDeckV1,
   authorizeOnlineFormingLobbySeatV1,
   invalidateOnlineFormingLobbySeatDeckV1,
   validateOnlineFormingLobbyV1,
@@ -121,6 +118,5 @@ export type {
   OnlineFormingLobbyV1,
   OnlineFormingLobbyValidationResultV1,
   SetOnlineFormingLobbySeatReadyV1Input,
-  StartOnlineFormingLobbyV1Input,
   SubmitOnlineFormingLobbyDeckV1Input,
 } from '../lobby/index';

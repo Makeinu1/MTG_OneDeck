@@ -4,10 +4,9 @@ import {
   claimOnlineFormingLobbySeatV1,
   createOnlineFormingLobbyV1,
   setOnlineFormingLobbySeatReadyV1,
-  startOnlineFormingLobbyV1,
-  startOnlineFormingLobbyWithTableV1,
   submitOnlineFormingLobbyDeckV1,
 } from '../index';
+import { startOnlineFormingLobbyV1, startOnlineFormingLobbyWithTableV1 } from '../fixtures/fixedStartV1';
 
 const participantIds = ['host-table-test', 'player-table-test-2', 'player-table-test-3', 'player-table-test-4'] as const;
 const seatCapabilities = ['seat_' + 'A'.repeat(40), 'seat_' + 'B'.repeat(40), 'seat_' + 'C'.repeat(40), 'seat_' + 'D'.repeat(40)] as const;

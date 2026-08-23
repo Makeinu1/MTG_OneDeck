@@ -48,19 +48,22 @@ describe('O4P-06E public Online App boundary review', () => {
     expect(publicAppFiles).not.toMatch(/\.\.\/\.\.\/engine\/core\/(?!index)/);
   });
 
-  it('keeps the Table extension additive and the frozen legacy start visible', () => {
+  it('keeps the Table extension while the terminal upgrade cutoff removes fixed start', () => {
     const runtime = source('src/online/cloudflare/runtime.ts');
     const persistence = source('src/online/cloudflare/persistence.ts');
     const worker = source('src/online/cloudflare/worker.ts');
     const lobby = source('src/online/lobby/index.ts');
     expect(runtime).toMatch(/online-forming-lobby-start-v1/);
     expect(runtime).toMatch(/online-forming-lobby-start-with-table-v1/);
+    expect(runtime).toMatch(/online-forming-lobby-upgrade-required-v1/);
+    expect(runtime).toMatch(/status:\s*426/);
     expect(worker).toMatch(/tableParticipantId/);
     expect(worker).toMatch(/tableCapability/);
-    expect(lobby).toMatch(/startOnlineFormingLobbyWithTableV1/);
+    expect(lobby).not.toMatch(/startOnlineFormingLobbyWithTableV1|bootstrapFourDeckGenesisV1/);
+    expect(runtime).not.toMatch(/startOnlineFormingLobbyWithTableV1|startOnlineFormingLobbyV1/);
     expect(runtime).not.toMatch(/observerAuthorizations\s*:\s*\[\s*\]/);
-    expect(runtime.match(/initializeRoomAndTransitionLobby/g)).toHaveLength(2);
+    expect(runtime.match(/initializeRoomAndTransitionLobby/g)).toBeNull();
     expect(runtime).not.toMatch(/repository\.initialize\([^\n]+\)[\s\S]{0,160}repository\.persistLobby/);
-    expect(persistence).toMatch(/initializeRoomAndTransitionLobby[\s\S]+transactionSync/);
+    expect(persistence).toMatch(/startWithTableV2[\s\S]+initializeDynamicRoomV2/);
   });
 });

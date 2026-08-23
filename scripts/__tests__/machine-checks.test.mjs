@@ -21,7 +21,7 @@ describe('machine-check argument parsing', () => {
       continueOnError: false,
       buildBase: '/MTG_OneDeck/',
     });
-    expect(machineCheckStepsFor({ buildBase: '/MTG_OneDeck/' }).at(-1)).toEqual({
+    expect(machineCheckStepsFor({ buildBase: '/MTG_OneDeck/' }).at(-2)).toEqual({
       name: 'build (型検査内蔵)',
       cmd: 'npm',
       args: ['run', 'build', '--', '--base=/MTG_OneDeck/'],
@@ -146,6 +146,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'lint']],
       ['npm', ['test']],
       ['npm', ['run', 'build']],
+      ['npm', ['run', 'verify:o4p-07c-production-runtime']],
     ]);
     expect(report.exitCode).toBe(0);
   });

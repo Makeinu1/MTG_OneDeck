@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createPublicOnlineControllerV1,
   validatePublicOnlineProjectionV1,
-} from './index';
+} from './client';
 
 const ROOM_ID = 'room-public-client';
 const BUILD_ID = 'build-public-client';

@@ -125,6 +125,7 @@ const machineCheckSteps = [
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },
+  { name: 'O4P-07C Production Runtime検証', cmd: 'npm', args: ['run', 'verify:o4p-07c-production-runtime'] },
 ];
 
 export function machineCheckStepsFor({ buildBase } = {}) {

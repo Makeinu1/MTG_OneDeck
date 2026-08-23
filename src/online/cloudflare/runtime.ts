@@ -30,13 +30,12 @@ import {
 import { emitRuntimeStartFactV1, emitFailureFactV1, emitWebSocketFactV1, isCanonicalVersionIdentifier } from './facts';
 import {
   claimOnlineFormingLobbySeatV1,
+  ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1,
   projectOnlineFormingLobbyV1,
-  setOnlineFormingLobbySeatReadyV1,
-  startOnlineFormingLobbyV1,
-  startOnlineFormingLobbyWithTableV1,
-  submitOnlineFormingLobbyDeckV1,
   validateOnlineFormingLobbyV1,
+  type OnlineFormingLobbyV1,
 } from '../lobby/index';
+import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../room/validationSupport';
 import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
 import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
 import {
@@ -158,6 +157,77 @@ function isExactRecord(value: Record<string, unknown>, expected: readonly string
   }
 }
 
+const LEGACY_UPGRADE_REQUIRED = Object.freeze({
+  kind: 'online-forming-lobby-upgrade-required-v1',
+  schemaVersion: 1,
+  requiredSchemaVersion: 2,
+});
+const LEGACY_UPGRADE_RESPONSE = Object.freeze({ status: 426 });
+
+const LEGACY_UPGRADE_FIELDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  'online-forming-lobby-deck-submit-v1': ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'deckText'],
+  'online-forming-lobby-ready-v1': ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready'],
+  'online-forming-lobby-start-v1': ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability'],
+  'online-forming-lobby-start-with-table-v1': ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'tableParticipantId', 'tableCapability'],
+});
+
+function isValidLegacyUpgradeRequest(body: Record<string, unknown>, kind: string | null, schemaVersion: unknown, lobby: OnlineFormingLobbyV1): boolean {
+  if (schemaVersion !== 1 || kind === null) return false;
+  if (lobby.lifecycle === 'started') return false;
+  const fields = LEGACY_UPGRADE_FIELDS[kind];
+  if (fields === undefined || !isExactRecord(body, fields)) return false;
+  const applicationIdField = (name: string): boolean => {
+    const value = ownDataValue(body, name);
+    return typeof value === 'string' && isOnlineRoomApplicationIdV1(value);
+  };
+  const seatCapabilityField = (name: string): boolean => {
+    const value = ownDataValue(body, name);
+    return typeof value === 'string' && isOnlineRoomSeatCapabilityV1(value);
+  };
+  const tableCapabilityField = (name: string): boolean => {
+    const value = ownDataValue(body, name);
+    return typeof value === 'string' && isOnlineRoomSeatCapabilityV1(value);
+  };
+  const configuredCapabilities = lobby.seats.flatMap((seat) => [seat.seatCapability, ...(seat.inviteCapability === null ? [] : [seat.inviteCapability])]);
+  if (kind === 'online-forming-lobby-deck-submit-v1') {
+    const deckId = ownDataValue(body, 'deckId');
+    const deckText = ownDataValue(body, 'deckText');
+    if (!applicationIdField('participantId') || !seatCapabilityField('seatCapability') || !applicationIdField('deckId') || typeof deckId !== 'string' || typeof deckText !== 'string') return false;
+    if (new TextEncoder().encode(deckText).length > ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1) return false;
+    try {
+      assertNoConfiguredCapabilityFragmentV1(deckId, configuredCapabilities);
+    } catch {
+      return false;
+    }
+    return true;
+  }
+  if (kind === 'online-forming-lobby-ready-v1') {
+    return applicationIdField('participantId') && seatCapabilityField('seatCapability') && typeof ownDataValue(body, 'ready') === 'boolean';
+  }
+  if (kind === 'online-forming-lobby-start-v1') return applicationIdField('hostParticipantId') && seatCapabilityField('seatCapability');
+  const hostParticipantId = ownDataValue(body, 'hostParticipantId');
+  const tableParticipantId = ownDataValue(body, 'tableParticipantId');
+  const tableCapability = ownDataValue(body, 'tableCapability');
+  if (!applicationIdField('hostParticipantId') || !seatCapabilityField('seatCapability') || !applicationIdField('tableParticipantId') || !tableCapabilityField('tableCapability') || typeof hostParticipantId !== 'string' || typeof tableParticipantId !== 'string' || typeof tableCapability !== 'string') return false;
+  const occupiedParticipants = [lobby.hostParticipantId, ...lobby.seats.flatMap((seat) => seat.participantId === null ? [] : [seat.participantId])];
+  if (tableParticipantId === hostParticipantId || occupiedParticipants.includes(tableParticipantId)) return false;
+  if (tableCapability === ownDataValue(body, 'seatCapability') || configuredCapabilities.includes(tableCapability)) return false;
+  const allCapabilities = [...configuredCapabilities, tableCapability];
+  try {
+    for (let index = 0; index < allCapabilities.length; index += 1) {
+      const current = allCapabilities[index];
+      if (current !== undefined) assertNoConfiguredCapabilityFragmentV1(current, allCapabilities.filter((_, candidateIndex) => candidateIndex !== index));
+    }
+    assertNoConfiguredCapabilityFragmentV1(tableParticipantId, allCapabilities);
+    for (const identifier of [lobby.roomId, lobby.serverBuildId, lobby.hostParticipantId, ...lobby.seats.flatMap((seat) => [seat.participantId, seat.deckId].filter((value): value is string => value !== null))]) {
+      assertNoConfiguredCapabilityFragmentV1(identifier, [tableCapability]);
+    }
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 function rejectionStatus(error: unknown): 400 | 401 | 403 | 404 | 405 | 409 | 413 | 429 | 500 {
   if (!(error instanceof OnlineCloudflareSecurityError)) return 500;
   if (error.code === 'INVALID_INPUT') return 400;
@@ -262,8 +332,9 @@ export class OnlineRoomDurableObject {
         }
         const lobby = this.repository.loadLobby(route.roomId);
         if (lobby === null) return genericError(404);
-        const activeRoom = this.repository.load()?.room.lifecycle === 'active';
-        if (activeRoom && (kind === 'online-forming-lobby-seat-claim-v1' || kind === 'online-forming-lobby-deck-submit-v1' || kind === 'online-forming-lobby-ready-v1' || kind === 'online-forming-lobby-start-v1' || kind === 'online-forming-lobby-start-with-table-v1')) return genericError(400);
+        const roomLifecycle = this.repository.load()?.room.lifecycle;
+        if ((roomLifecycle === 'started' || roomLifecycle === 'active' || roomLifecycle === 'finished') && (kind === 'online-forming-lobby-seat-claim-v1' || kind === 'online-forming-lobby-deck-submit-v1' || kind === 'online-forming-lobby-ready-v1' || kind === 'online-forming-lobby-start-v1' || kind === 'online-forming-lobby-start-with-table-v1')) return genericError(400);
+        if (isValidLegacyUpgradeRequest(body, kind, schemaVersion, lobby)) return jsonResponse(LEGACY_UPGRADE_REQUIRED, LEGACY_UPGRADE_RESPONSE.status);
         try {
           if (kind === 'online-forming-lobby-deck-submit-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'submissionId', 'entries']) && schemaVersion === 2) {
             const result = await this.repository.submitDeckV2(route.roomId, body, this.deckResolver);
@@ -289,43 +360,6 @@ export class OnlineRoomDurableObject {
             const transitioned = claimOnlineFormingLobbySeatV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', inviteCapability: ownDataString(body, 'inviteCapability') ?? '' });
             this.repository.persistLobby(lobby, transitioned.lobby);
             return jsonResponse({ kind: 'online-forming-lobby-seat-claimed-v1', schemaVersion: 1, roomId: route.roomId, seatCapability: transitioned.seatCapability, projection: projectOnlineFormingLobbyV1(transitioned.lobby) });
-          }
-          if (kind === 'online-forming-lobby-deck-submit-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'deckId', 'deckText']) && schemaVersion === 1) {
-            const transitioned = submitOnlineFormingLobbyDeckV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '', deckId: ownDataString(body, 'deckId') ?? '', deckText: ownDataString(body, 'deckText') ?? '' });
-            this.repository.persistLobby(lobby, transitioned);
-            return jsonResponse({ kind: 'online-forming-lobby-deck-submitted-v1', schemaVersion: 1, roomId: route.roomId, projection: projectOnlineFormingLobbyV1(transitioned) });
-          }
-          if (kind === 'online-forming-lobby-ready-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready']) && schemaVersion === 1) {
-            const ready = ownDataValue(body, 'ready');
-            if (typeof ready !== 'boolean') return genericError(400);
-            const transitioned = setOnlineFormingLobbySeatReadyV1(lobby, { participantId: ownDataString(body, 'participantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '', ready });
-            this.repository.persistLobby(lobby, transitioned);
-            return jsonResponse({ kind: 'online-forming-lobby-ready-v1', schemaVersion: 1, roomId: route.roomId, projection: projectOnlineFormingLobbyV1(transitioned) });
-          }
-          if (kind === 'online-forming-lobby-start-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 1) {
-            const started = startOnlineFormingLobbyV1(lobby, { hostParticipantId: ownDataString(body, 'hostParticipantId') ?? '', seatCapability: ownDataString(body, 'seatCapability') ?? '' });
-            if (!started.genesis.ok) return genericError(400);
-            try {
-              const status = this.repository.initializeRoomAndTransitionLobby(route.roomId, started.genesis.protocolState, lobby, started.lobby, this.now());
-              return jsonResponse({ kind: 'online-forming-lobby-started-v1', schemaVersion: 1, roomId: route.roomId, status });
-            } catch (error: unknown) {
-              return genericError(error instanceof ConflictError ? 409 : 400);
-            }
-          }
-          if (kind === 'online-forming-lobby-start-with-table-v1' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'tableParticipantId', 'tableCapability']) && schemaVersion === 1) {
-            const started = startOnlineFormingLobbyWithTableV1(lobby, {
-              hostParticipantId: ownDataString(body, 'hostParticipantId') ?? '',
-              seatCapability: ownDataString(body, 'seatCapability') ?? '',
-              tableParticipantId: ownDataString(body, 'tableParticipantId') ?? '',
-              tableCapability: ownDataString(body, 'tableCapability') ?? '',
-            });
-            if (!started.genesis.ok) return genericError(400);
-            try {
-              const status = this.repository.initializeRoomAndTransitionLobby(route.roomId, started.genesis.protocolState, lobby, started.lobby, this.now());
-              return jsonResponse({ kind: 'online-forming-lobby-started-v1', schemaVersion: 1, roomId: route.roomId, status });
-            } catch (error: unknown) {
-              return genericError(error instanceof ConflictError ? 409 : 400);
-            }
           }
         } catch (error: unknown) {
           return genericError(error instanceof ConflictError ? 409 : 400);

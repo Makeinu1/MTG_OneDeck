@@ -5,9 +5,9 @@ import {
   createOnlineFormingLobbyV1,
   projectOnlineFormingLobbyV1,
   setOnlineFormingLobbySeatReadyV1,
-  startOnlineFormingLobbyV1,
   submitOnlineFormingLobbyDeckV1,
 } from '../../lobby/index';
+import { startOnlineFormingLobbyV1 } from '../../lobby/fixtures/fixedStartV1';
 import worker from '../worker';
 
 const ORIGIN = 'https://makeinu1.github.io';
