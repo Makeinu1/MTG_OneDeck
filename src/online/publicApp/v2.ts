@@ -374,7 +374,10 @@ async function boundedResponseText(
   secrets: readonly string[],
 ): Promise<string | null> {
   const declaredLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) return null;
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    return null;
+  }
   if (response.body === null) return '';
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -1013,10 +1016,13 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
         projection.lifecycle !== 'started' &&
         !projection.seats.some((seat) => seat.participantId === secrets?.participantId)
       ) {
+        const recoveryStillPresent = recoveryStore.load() !== null;
         const issue: PublicOnlineErrorIssueV2 = Object.freeze({
-          code: 'CREDENTIAL_KICKED',
+          code: recoveryStillPresent ? 'CREDENTIAL_KICKED' : 'CREDENTIAL_REJECTED',
           retryable: false,
-          message: 'ホストによってロビーから外されました。再参加する場合は新しい招待を受け取ってください。',
+          message: recoveryStillPresent
+            ? 'ホストによってロビーから外されました。再参加する場合は新しい招待を受け取ってください。'
+            : 'このブラウザの参加資格は終了しました。別のタブで退出した場合は、新しい招待から参加してください。',
           correlationId: id('local'),
           action: '新しい招待を入力',
         });
@@ -1520,8 +1526,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
   }> | null => {
     if (
       !plain(body) ||
-      own(body, 'kind') !== 'online-forming-lobby-recovered-v3' ||
-      own(body, 'schemaVersion') !== 3 ||
+      own(body, 'kind') !== 'online-forming-lobby-recovered-v4' ||
+      own(body, 'schemaVersion') !== 4 ||
       own(body, 'roomId') !== record.roomId ||
       own(body, 'participantId') !== record.participantId ||
       own(body, 'seatCapability') !== record.seatCapability
@@ -1631,8 +1637,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            kind: 'online-forming-lobby-recover-v3',
-            schemaVersion: 3,
+            kind: 'online-forming-lobby-recover-v4',
+            schemaVersion: 4,
             participantId: record.participantId,
             seatCapability: record.seatCapability,
           }),
@@ -1648,8 +1654,12 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
             'CLIENT_UPGRADE_REQUIRED',
             'ページを更新して最新版を読み込んでください。',
           );
+        const recoverySecrets = [
+          record.seatCapability,
+          ...(record.tableCapability === null ? [] : [record.tableCapability]),
+        ];
         const safeBody =
-          body !== null && !secretFragment(JSON.stringify(body), [record.seatCapability])
+          body !== null && !secretFragment(JSON.stringify(body), recoverySecrets)
             ? body
             : null;
         const parsed = parsePublicOnlineErrorV3(safeBody);
@@ -1974,16 +1984,19 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       const outcome = parseStartResult(response, projection.roomId);
       if (outcome === null) throw new Error(PUBLIC_ONLINE_ERROR_V1);
       if (outcome === 'needs-attention') {
+        const issue: PublicOnlineErrorIssueV2 = Object.freeze({
+          code: 'ROOM_GENESIS_TOO_LARGE',
+          retryable: false,
+          message: 'デッキが大きすぎます。数量またはカード数を減らして再提出してください。',
+          correlationId: id('local'),
+          action: 'デッキを見直す',
+        });
         snapshot = Object.freeze({
           ...snapshot,
-          ownerIssue: Object.freeze({
-            code: 'ROOM_GENESIS_TOO_LARGE',
-            entryIndex: null,
-            retryable: false,
-            message: 'デッキが大きすぎます。数量またはカード数を減らしてください。',
-          }),
+          ownerIssue: null,
+          errorIssue: issue,
         });
-        publish(null);
+        publish(issue.message);
         return;
       }
       projection = Object.freeze({ ...projection, lifecycle: 'started' });
@@ -2028,9 +2041,24 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
         baseRevision: frame.baseRevision,
         command: frame.command,
       });
-      if (!submitted.ok) publish(PUBLIC_ONLINE_ERROR_V1);
+      if (!submitted.ok)
+        publishLocalError(
+          new PublicOnlineLocalErrorV3(
+            'CLIENT_INVALID_RESPONSE',
+            '操作を送信できませんでした。接続状態と盤面を確認してください。',
+          ),
+          null,
+          '盤面を確認',
+        );
     } catch {
-      publish(PUBLIC_ONLINE_ERROR_V1);
+      publishLocalError(
+        new PublicOnlineLocalErrorV3(
+          'CLIENT_INVALID_RESPONSE',
+          '操作を送信できませんでした。接続状態と盤面を確認してください。',
+        ),
+        null,
+        '盤面を確認',
+      );
     }
   };
   const disconnect = (): void => {

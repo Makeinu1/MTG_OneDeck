@@ -125,14 +125,15 @@ describe('O4P-08A Judge: Worker and Durable Object membership', () => {
       participantId: 'participant-o4p08a-host-control', seatCapability: hostCapability,
     }), env);
     expect(recovered.status).toBe(200);
-    expect(await recovered.json()).toMatchObject({
+    const recoveredV3 = await recovered.json() as Json;
+    expect(recoveredV3).toMatchObject({
       kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId,
       participantId: 'participant-o4p08a-host-control', seatCapability: hostCapability,
-      admissionOpen: true,
       inviteCode: rotated.inviteCode,
       tableParticipantId: created.tableParticipantId,
       tableCapability: created.tableCapability,
     });
+    expect(recoveredV3).not.toHaveProperty('admissionOpen');
 
     const closed = await worker.fetch(request(`https://worker.test/api/online/rooms/${roomId}/lobby`, {
       kind: 'online-forming-lobby-admission-close-v3', schemaVersion: 3,
@@ -146,11 +147,11 @@ describe('O4P-08A Judge: Worker and Durable Object membership', () => {
     expect(closedClaim.status).toBe(403);
     secretFreeError(await closedClaim.json(), 'ADMISSION_CLOSED');
     const recoveredClosed = await worker.fetch(request(`https://worker.test/api/online/rooms/${roomId}/lobby`, {
-      kind: 'online-forming-lobby-recover-v3', schemaVersion: 3,
+      kind: 'online-forming-lobby-recover-v4', schemaVersion: 4,
       participantId: 'participant-o4p08a-host-control', seatCapability: hostCapability,
     }), env);
     expect(await recoveredClosed.json()).toMatchObject({
-      kind: 'online-forming-lobby-recovered-v3', admissionOpen: false,
+      kind: 'online-forming-lobby-recovered-v4', schemaVersion: 4, admissionOpen: false,
     });
     storage.close();
   });

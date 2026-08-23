@@ -385,10 +385,11 @@ export class OnlineRoomDurableObject {
           } catch (error: unknown) { return genericError(error instanceof ConflictError ? 409 : 400); }
         }
         const lobby = this.repository.loadLobby(route.roomId);
+        const isRecoverV4 = kind === 'online-forming-lobby-recover-v4' && schemaVersion === 4;
         const isRecognizedV3Kind = kind === 'online-forming-lobby-shared-claim-v3' || kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-admission-rotate-v3' || kind === 'online-forming-lobby-admission-close-v3' || kind === 'online-forming-lobby-kick-v3' || kind === 'online-forming-lobby-leave-v3';
-        if (lobby === null) return isRecognizedV3Kind && schemaVersion === 3 ? onlinePublicErrorV3('ROOM_NOT_FOUND', 404) : genericError(404);
-        if (kind?.endsWith('-v3') === true || schemaVersion === 3) {
-          const recognized = kind === 'online-forming-lobby-shared-claim-v3' || kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-admission-rotate-v3' || kind === 'online-forming-lobby-admission-close-v3' || kind === 'online-forming-lobby-kick-v3' || kind === 'online-forming-lobby-leave-v3';
+        if (lobby === null) return (isRecognizedV3Kind && schemaVersion === 3) || isRecoverV4 ? onlinePublicErrorV3('ROOM_NOT_FOUND', 404) : genericError(404);
+        if (kind?.endsWith('-v3') === true || schemaVersion === 3 || isRecoverV4) {
+          const recognized = kind === 'online-forming-lobby-shared-claim-v3' || kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-recover-v4' || kind === 'online-forming-lobby-admission-rotate-v3' || kind === 'online-forming-lobby-admission-close-v3' || kind === 'online-forming-lobby-kick-v3' || kind === 'online-forming-lobby-leave-v3';
           if (!recognized) return genericError(400);
           try {
             const admission = this.repository.loadAdmissionV3(route.roomId);
@@ -404,8 +405,9 @@ export class OnlineRoomDurableObject {
               const result = this.repository.claimLobbyAdmissionV3(route.roomId, { participantId, admissionCapability });
               return jsonResponse({ kind: 'online-forming-lobby-shared-claimed-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability: result.seatCapability, projection: this.repository.projectLobbyV2(route.roomId, result.lobby) });
             }
-            if (kind === 'online-forming-lobby-recover-v3') {
-              if (!isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
+            if (kind === 'online-forming-lobby-recover-v3' || kind === 'online-forming-lobby-recover-v4') {
+              const recoveryVersion = kind === 'online-forming-lobby-recover-v4' ? 4 : 3;
+              if (!isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) || schemaVersion !== recoveryVersion) return genericError(400);
               const participantId = ownDataString(body, 'participantId'); const seatCapability = ownDataString(body, 'seatCapability');
               if (participantId === null || seatCapability === null || !isOnlineRoomApplicationIdV1(participantId) || !isOnlineRoomSeatCapabilityV1(seatCapability)) return genericError(400);
               this.consumeLobbyV3Mutation();
@@ -415,7 +417,7 @@ export class OnlineRoomDurableObject {
               const isHost = seatIndex === 0;
               const table = this.repository.tableCredentialsV3(route.roomId);
               if (isHost && (table === null || !isOnlineRoomApplicationIdV1(table.participantId) || !isOnlineRoomSeatCapabilityV1(table.capability))) throw new Error('SERVICE_UNAVAILABLE');
-              return jsonResponse({ kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability, ...(isHost ? { admissionOpen: admission.open, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, admission.currentCapability), tableParticipantId: table?.participantId ?? null, tableCapability: table?.capability ?? null } : {}), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
+              return jsonResponse({ kind: recoveryVersion === 4 ? 'online-forming-lobby-recovered-v4' : 'online-forming-lobby-recovered-v3', schemaVersion: recoveryVersion, roomId: route.roomId, participantId, seatCapability, ...(isHost ? { ...(recoveryVersion === 4 ? { admissionOpen: admission.open } : {}), inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, admission.currentCapability), tableParticipantId: table?.participantId ?? null, tableCapability: table?.capability ?? null } : {}), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
             }
             if (kind === 'online-forming-lobby-admission-rotate-v3') {
               if (!isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);

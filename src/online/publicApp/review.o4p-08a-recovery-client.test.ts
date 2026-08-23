@@ -131,8 +131,8 @@ describe('O4P-08A Judge: recovery, fragment, and structured client errors', () =
       const body = JSON.parse(init.body) as Record<string, unknown>;
       const kind = typeof body.kind === 'string' ? body.kind : '';
       calls.push(kind);
-      if (kind === 'online-forming-lobby-recover-v3') return Promise.resolve(new Response(JSON.stringify({
-        kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3,
+      if (kind === 'online-forming-lobby-recover-v4') return Promise.resolve(new Response(JSON.stringify({
+        kind: 'online-forming-lobby-recovered-v4', schemaVersion: 4,
         roomId: RECORD.roomId, participantId: RECORD.participantId,
         seatCapability: RECORD.seatCapability, projection: projection(RECORD.participantId),
       }), { status: 200, headers: { 'content-type': 'application/json' } }));
@@ -150,13 +150,13 @@ describe('O4P-08A Judge: recovery, fragment, and structured client errors', () =
     await controller.leave();
     expect(controller.getSnapshot()).toMatchObject({ mode: 'entry', roomId: null });
     expect(localStorage.getItem('mtg-onedeck:online-recovery-v1')).toBeNull();
-    expect(calls).toEqual(['online-forming-lobby-recover-v3', 'online-forming-lobby-leave-v3']);
+    expect(calls).toEqual(['online-forming-lobby-recover-v4', 'online-forming-lobby-leave-v3']);
   });
 
   it('does not adopt or clear recovery from a surplus success envelope', async () => {
     localStorage.setItem('mtg-onedeck:online-recovery-v1', JSON.stringify(RECORD));
     const fetcher: typeof fetch = () => Promise.resolve(new Response(JSON.stringify({
-      kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3,
+      kind: 'online-forming-lobby-recovered-v4', schemaVersion: 4,
       roomId: RECORD.roomId, participantId: RECORD.participantId,
       seatCapability: RECORD.seatCapability, projection: projection(RECORD.participantId),
       leaked: `seat_${'x'.repeat(40)}`,
@@ -214,7 +214,7 @@ describe('O4P-08A Judge: recovery, fragment, and structured client errors', () =
     const fetcher: typeof fetch = (_input, init) => {
       if (typeof init?.body !== 'string') throw new Error('missing body');
       const body = JSON.parse(init.body) as Record<string, unknown>;
-      if (body.kind === 'online-forming-lobby-recover-v3') return Promise.resolve(new Response(JSON.stringify({ kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId: RECORD.roomId, participantId: hostRecord.participantId, seatCapability: hostRecord.seatCapability, admissionOpen: true, inviteCode, tableParticipantId: hostRecord.tableParticipantId, tableCapability: hostRecord.tableCapability, projection: readyProjection }), { status: 200, headers: { 'content-type': 'application/json' } }));
+      if (body.kind === 'online-forming-lobby-recover-v4') return Promise.resolve(new Response(JSON.stringify({ kind: 'online-forming-lobby-recovered-v4', schemaVersion: 4, roomId: RECORD.roomId, participantId: hostRecord.participantId, seatCapability: hostRecord.seatCapability, admissionOpen: true, inviteCode, tableParticipantId: hostRecord.tableParticipantId, tableCapability: hostRecord.tableCapability, projection: readyProjection }), { status: 200, headers: { 'content-type': 'application/json' } }));
       if (body.kind === 'online-forming-lobby-start-with-table-v2') { startRejected = true; return Promise.resolve(new Response(JSON.stringify({ kind: 'online-public-error-v3', schemaVersion: 3, code: 'PLAYERS_NOT_READY', retryable: true, correlationId: 'correlation-start-review' }), { status: 409, headers: { 'content-type': 'application/json' } })); }
       if (body.kind === 'online-forming-lobby-leave-v3') return Promise.resolve(new Response(JSON.stringify({ kind: 'online-public-error-v3', schemaVersion: 3, code: 'ROOM_EXPIRED', retryable: false, correlationId: 'correlation-leave-review' }), { status: 410, headers: { 'content-type': 'application/json' } }));
       throw new Error('unexpected request');

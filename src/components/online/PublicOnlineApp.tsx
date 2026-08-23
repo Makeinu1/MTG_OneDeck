@@ -525,7 +525,7 @@ export function PublicOnlineApp({
                 >
                   対戦を開始
                 </button>
-                {actionError('対戦開始を再試行')}
+                {actionError('対戦開始を再試行', 'デッキを見直す')}
               </div>
             </>
           ) : (
@@ -591,6 +591,7 @@ export function PublicOnlineApp({
             />
           </div>
         ))}
+      {started && actionError('盤面を確認')}
     </main>
   );
 }

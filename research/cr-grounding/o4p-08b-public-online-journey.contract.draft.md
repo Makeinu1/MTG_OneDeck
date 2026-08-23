@@ -79,6 +79,18 @@ Explicit leave clears the record through the shipped authoritative flow.
 - Leave is available to every participant before start. Host leave warns that
   it closes the lobby; non-host leave describes only that participant's exit.
 
+### Recovery wire compatibility
+
+- The shipped exact `online-forming-lobby-recover-v3` request/response remains
+  byte-shape compatible for cached clients and never gains a surplus field.
+- O4P-08B adds `online-forming-lobby-recover-v4` / schema 4. Its guest response
+  retains the v3 guest fields. Its host response retains the v3 host fields and
+  adds the required non-secret boolean `admissionOpen` so the recovered UI can
+  distinguish active and closed admission authoritatively.
+- Deployment is Worker first, then Pages. A new client must not be published
+  before the Worker accepts v4; cached v3 clients continue using the preserved
+  v3 response after the Worker upgrade.
+
 ## Actionable errors
 
 - The controller snapshot preserves structured public error fields: code,

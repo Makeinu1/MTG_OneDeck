@@ -194,13 +194,18 @@ describe('O4P-08B Judge: production controller journey', () => {
     slow.disconnect();
 
     vi.useRealTimers();
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('{}', {
+    const cancel = vi.fn();
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(new ReadableStream<Uint8Array>({
+      start(streamController) { streamController.enqueue(new TextEncoder().encode('{}')); },
+      cancel,
+    }), {
       status: 200,
       headers: { 'content-type': 'application/json', 'content-length': '1048577' },
     }))));
     const oversized = createPublicOnlineControllerV2();
     await oversized.createShared();
     expect(oversized.getSnapshot().errorIssue).toMatchObject({ code: 'CLIENT_INVALID_RESPONSE' });
+    expect(cancel).toHaveBeenCalledOnce();
     oversized.disconnect();
   });
 
@@ -212,7 +217,7 @@ describe('O4P-08B Judge: production controller journey', () => {
       tableParticipantId: TABLE_ID, tableCapability: TABLE_CAPABILITY,
     }));
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response({
-      kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3,
+      kind: 'online-forming-lobby-recovered-v4', schemaVersion: 4,
       roomId: ROOM_ID, participantId: hostId, seatCapability: HOST_SEAT,
       admissionOpen: false, inviteCode: INVITE_A,
       tableParticipantId: TABLE_ID, tableCapability: TABLE_CAPABILITY,
@@ -228,16 +233,27 @@ describe('O4P-08B Judge: production controller journey', () => {
       participantId: hostId, seatCapability: HOST_SEAT, isHost: true,
       tableParticipantId: TABLE_ID, tableCapability: TABLE_CAPABILITY,
     }));
-    const fragment = HOST_SEAT.slice(-8);
+    const seatFragment = HOST_SEAT.slice(-8);
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response({
       kind: 'online-public-error-v3', schemaVersion: 3, code: 'SERVICE_UNAVAILABLE',
-      retryable: true, correlationId: `correlation-${fragment}`,
+      retryable: true, correlationId: `correlation-${seatFragment}`,
     }, 503))));
     const secretError = createPublicOnlineControllerV2();
     await secretError.recover();
     expect(secretError.getSnapshot().errorIssue).toMatchObject({ code: 'CLIENT_INVALID_RESPONSE' });
-    expect(secretError.getSnapshot().errorIssue?.correlationId).not.toContain(fragment);
+    expect(secretError.getSnapshot().errorIssue?.correlationId).not.toContain(seatFragment);
     secretError.disconnect();
+
+    const tableFragment = TABLE_CAPABILITY.slice(-8);
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response({
+      kind: 'online-public-error-v3', schemaVersion: 3, code: 'SERVICE_UNAVAILABLE',
+      retryable: true, correlationId: `correlation-${tableFragment}`,
+    }, 503))));
+    const tableSecretError = createPublicOnlineControllerV2();
+    await tableSecretError.recover();
+    expect(tableSecretError.getSnapshot().errorIssue).toMatchObject({ code: 'CLIENT_INVALID_RESPONSE' });
+    expect(tableSecretError.getSnapshot().errorIssue?.correlationId).not.toContain(tableFragment);
+    tableSecretError.disconnect();
   });
 
   it('detects a kicked running participant on refresh and clears obsolete recovery', async () => {
