@@ -1,0 +1,20 @@
+{
+  "milestone": "O4P-08-ROADMAP-REGISTRATION",
+  "operation": "append-approved-active-program",
+  "authority": "user-ruling-2026-08-23",
+  "baseSha": "2973e60942623d57e6af53a5e36cb488a26f56b7",
+  "preserveActiveProgram": "O4P-07 is complete and its entries remain immutable shipped history",
+  "activeProgram": {
+    "id": "O4P-08",
+    "domainIds": ["O4P-08A", "O4P-08B", "O4P-08C", "O4P-08D"]
+  },
+  "appendPendingSequence": [
+    { "id": "O4P-08A", "crOrder": 1028, "dependsOn": ["O4P-07C"] },
+    { "id": "O4P-08B", "crOrder": 1029, "dependsOn": ["O4P-08A"] },
+    { "id": "O4P-08C", "crOrder": 1030, "dependsOn": ["O4P-08B"] },
+    { "id": "O4P-08D", "crOrder": 1031, "dependsOn": ["O4P-08C"] }
+  ],
+  "collectionPolicy": "Append each entry exactly once to domains and plannedSequence with synchronized fields.",
+  "implementationClaim": "none",
+  "externalWrite": "none"
+}

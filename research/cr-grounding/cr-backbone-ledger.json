@@ -26,11 +26,12 @@
     "userRuling": "2026-08-04",
     "feelQueueRuling": "2026-08-04 ユーザー裁定: 優先軸を「気持ちよさキュー優先」へ変更。feelレーン(guided深化/信頼/回復/演出)を新設し、CR章順スライスは並行レーンとして維持する。選定式: feelキューの次スライスを優先消費し、CRバッチはmanualの前提になるもの(707コピー/708裏向き等)をfeelスライスの合間に差し込む。根拠: MyDeck census実測でmanual 496/664行(75%)・うちneeds-target 239行が既存guided機構の文法拡張だけでguided化可能な最大単一源。",
     "activeProgram": {
-      "id": "O4P-07",
+      "id": "O4P-08",
       "domainIds": [
-        "O4P-07A",
-        "O4P-07B",
-        "O4P-07C"
+        "O4P-08A",
+        "O4P-08B",
+        "O4P-08C",
+        "O4P-08D"
       ]
     }
   },
@@ -1993,6 +1994,38 @@
       "nextGate": "shipped。O4P-07A〜Cはすべてshippedで、固定オンラインカタログ廃止programはcomplete。",
       "judge": "Codex-judge-2026-08-23",
       "note": "固定catalog/v1成功経路を本番import graphと公開barrelから撤去し、legacy deck/ready/startをsecret-free HTTP 426へ固定。Luna xhighの独立R3/BROAD監査と3修正監査を0/0/0/0で閉鎖し、Actions 32633685663、Pages新資産、Worker bb60678b active 100%、固定catalog外4席の動的submit/start/reconnect/replay、owner-private issue、capability非漏えいを確認。Safari/Firefox通常・private、Chrome通常・incognito相当と3 viewportでoverflow/console error 0。O4P-07 program完了。"
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-08A", "crOrder": 1028, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-07C"],
+      "landingState": ["sharedInvitation", "durableRecovery", "preStartKick", "structuredOnlineErrors"],
+      "boundary": "Add shared invitation admission, unique post-join seat authority, durable same-browser recovery, explicit leave, pre-start host kick, invitation rotation/closure, and secret-free structured public failures.",
+      "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"],
+      "manualBoundary": "No public page redesign, variable roster, two-player genesis, account ban, matchmaking, or product release in O4P-08A.",
+      "nextGate": "pending。契約凍結後、O4P-08Aだけを実装・監査・出荷する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized serial program; registration is not implementation evidence."
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-08B", "crOrder": 1029, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08A"],
+      "landingState": ["deckFirstJourney", "stagedLobby", "hostLobbyControls", "actionableFailureUi"],
+      "boundary": "Replace the public flat Online form with deck-first Solo/Online choice, create/join entry, invite-only admission, staged deck/ready/start lobby, recovery/leave, and host moderation surfaces.",
+      "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"],
+      "manualBoundary": "No variable roster or two-player Core/genesis in O4P-08B; the shipped four-player game remains the only start roster.",
+      "nextGate": "pending。O4P-08A出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized serial program; registration is not implementation evidence."
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-08C", "crOrder": 1030, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08B"],
+      "landingState": ["variableRoomRoster", "twoOrFourGenesis", "twoPlayerLifeChoice", "exactRosterReplay"],
+      "boundary": "Generalize Room, Protocol, Projection, deck snapshots, Core roster, dynamic genesis, and replay to exact two/four-player configuration with two-player 20/40 and four-player 40 life.",
+      "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"],
+      "manualBoundary": "No Duel Commander, deck legality, accounts, teams, absent-player placeholders, or final public release in O4P-08C.",
+      "nextGate": "pending。O4P-08B出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized two-player scope ruling; registration is not implementation evidence."
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-08D", "crOrder": 1031, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08C"],
+      "landingState": ["twoPlayerPublicUi", "exactRosterSurfaces", "browserAcceptance", "productionRelease"],
+      "boundary": "Expose two/four room creation, adapt exact-roster player/table/guided surfaces, and release the complete Online room UX and two-player program with production evidence.",
+      "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"],
+      "manualBoundary": "No completion claim without two-player 20/40, four-player 40, invitation/recovery/kick/error, responsive browser, replay, audit, exact-head CI/Pages/Worker, and clean-worktree evidence.",
+      "nextGate": "pending。O4P-08C出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "O4P-08 program completion boundary; registration is not implementation evidence."
     }
   ],
   "selectionRule": "autoloop step 0 は docs/judge-protocol.md §2 と goalPolicy を適用する。①fake-green/壊れた自動化/未監査実装を先に閉じる。②domainsとplannedSequenceのlive entryをdomainIdで統合し、重複時はdomains.statusを正とする。③通常Commander/EDH scope内で、前提が満たされた最若番crOrderのpending entryを選ぶ。④前提不足なら必要最小限の依存substrateだけ先行し、完了後に元entryへ戻る。⑤同一crOrder・同一依存順位だけMyDeck実プレイ摩擦、Commander実カードコーパス頻度、edhValueの順でtie-breakする。plannedSequenceの配列位置は履歴であり優先順位ではない。複数CR carryは禁止し、CR領域ごとに分割する。design/maintenance、goalPolicy.excludedScopeのvariant、明示scope-outsideのdeferredだけをCR queueから除外する。lane=prunedだけでは除外しない。通常Commanderで到達可能なRole/Battle/Saga/day-night/monarch/initiative/new card frame/Rad等は依存待ちを含めpendingとして選定可能にする。補充草稿はCR条番号+通常Commander scope+依存関係を必須とし、MyDeck fixtureは受け入れ証拠として記録する。STOP①は式で解けない真の同点、scope変更、北極星/契約原則変更だけ。UI変更を含むCR sliceは375縦/812横/1440 desktop+console error 0を受け入れに含める。 [2026-08-04 ユーザー裁定] feelレーンを優先消費する。feelキューの次pendingスライスが最優先。CR章順pendingはfeelスライス完了後の並行枠で選定し、manualの前提になるCR(707/708等)はfeelより先に選定してよい。",
@@ -4963,6 +4996,22 @@
       "manualBoundary": "No single-operator seat-switch mode, EDH legality enforcement, sideboard, or client-definition fallback. Fixed catalog bytes remain regression fixtures only and are outside production graphs.",
       "nextGate": "shipped。O4P-07A〜Cはすべてshippedで、固定オンラインカタログ廃止programはcomplete。",
       "judge": "Codex-judge-2026-08-23", "note": "固定catalog/v1成功経路を本番import graphと公開barrelから撤去し、legacy deck/ready/startをsecret-free HTTP 426へ固定。Luna xhighの独立R3/BROAD監査と3修正監査を0/0/0/0で閉鎖し、Actions 32633685663、Pages新資産、Worker bb60678b active 100%、固定catalog外4席の動的submit/start/reconnect/replay、owner-private issue、capability非漏えいを確認。Safari/Firefox通常・private、Chrome通常・incognito相当と3 viewportでoverflow/console error 0。O4P-07 program完了。"
+    },
+    {
+      "id": "O4P-08A", "crOrder": 1028, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-07C"],
+      "landingState": ["sharedInvitation", "durableRecovery", "preStartKick", "structuredOnlineErrors"], "boundary": "Add shared invitation admission, unique post-join seat authority, durable same-browser recovery, explicit leave, pre-start host kick, invitation rotation/closure, and secret-free structured public failures.", "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"], "manualBoundary": "No public page redesign, variable roster, two-player genesis, account ban, matchmaking, or product release in O4P-08A.", "nextGate": "pending。契約凍結後、O4P-08Aだけを実装・監査・出荷する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized serial program; registration is not implementation evidence."
+    },
+    {
+      "id": "O4P-08B", "crOrder": 1029, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08A"],
+      "landingState": ["deckFirstJourney", "stagedLobby", "hostLobbyControls", "actionableFailureUi"], "boundary": "Replace the public flat Online form with deck-first Solo/Online choice, create/join entry, invite-only admission, staged deck/ready/start lobby, recovery/leave, and host moderation surfaces.", "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"], "manualBoundary": "No variable roster or two-player Core/genesis in O4P-08B; the shipped four-player game remains the only start roster.", "nextGate": "pending。O4P-08A出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized serial program; registration is not implementation evidence."
+    },
+    {
+      "id": "O4P-08C", "crOrder": 1030, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08B"],
+      "landingState": ["variableRoomRoster", "twoOrFourGenesis", "twoPlayerLifeChoice", "exactRosterReplay"], "boundary": "Generalize Room, Protocol, Projection, deck snapshots, Core roster, dynamic genesis, and replay to exact two/four-player configuration with two-player 20/40 and four-player 40 life.", "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"], "manualBoundary": "No Duel Commander, deck legality, accounts, teams, absent-player placeholders, or final public release in O4P-08C.", "nextGate": "pending。O4P-08B出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "User-authorized two-player scope ruling; registration is not implementation evidence."
+    },
+    {
+      "id": "O4P-08D", "crOrder": 1031, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-08C"],
+      "landingState": ["twoPlayerPublicUi", "exactRosterSurfaces", "browserAcceptance", "productionRelease"], "boundary": "Expose two/four room creation, adapt exact-roster player/table/guided surfaces, and release the complete Online room UX and two-player program with production evidence.", "evidence": ["research/cr-grounding/o4p-08-online-room-ux-two-player-roadmap.contract.draft.md", "research/cr-grounding/o4p-08-roadmap-registration-acceptance.draft.md", "research/cr-grounding/planned-sequence-batch-o4p-08.draft.md", "research/cr-grounding/o4p-08-roadmap-ledger-update.draft.json", "user-ruling:2026-08-23:online-room-ux-two-player-flexible-deck", "research/cr-grounding/archive/o4p-08-roadmap-registration-cold-audit-record-2026-08-23.md"], "manualBoundary": "No completion claim without two-player 20/40, four-player 40, invitation/recovery/kick/error, responsive browser, replay, audit, exact-head CI/Pages/Worker, and clean-worktree evidence.", "nextGate": "pending。O4P-08C出荷後だけ開始する。", "judge": "Codex-judge-2026-08-23", "note": "O4P-08 program completion boundary; registration is not implementation evidence."
     }
   ],
   "judgePolicy": {

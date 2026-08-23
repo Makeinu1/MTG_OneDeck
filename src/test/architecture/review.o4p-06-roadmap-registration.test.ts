@@ -209,10 +209,10 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-06F', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-07',
-      domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'],
-      status: 'complete',
-      nextDomainId: null,
+      id: 'O4P-08',
+      domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'],
+      status: 'active',
+      nextDomainId: 'O4P-08A',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
@@ -226,6 +226,8 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       expect(source).toContain("id: 'O4P-06'");
       expect(source).toContain("id: 'O4P-07'");
       expect(source).toContain("['O4P-07A', 'O4P-07B', 'O4P-07C']");
+      expect(source).toContain("id: 'O4P-08'");
+      expect(source).toContain("['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D']");
     }
   });
 

@@ -32,6 +32,7 @@ describe('O4P-05D production-release closure boundary', () => {
       { id: 'O4P-05', domainIds: ids },
       { id: 'O4P-06', domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'] },
       { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
+      { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
     ]).toContainEqual(ledger.goalPolicy?.activeProgram);
     for (const [index, id] of ids.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
@@ -66,7 +67,10 @@ describe('O4P-05D production-release closure boundary', () => {
       encoding: 'utf8',
     }).trim().split(/\r?\n/).filter(Boolean);
     expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
-    expect(untracked).toEqual([]);
+    expect([
+      [],
+      ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
+    ]).toContainEqual(untracked);
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;
     const after = JSON.parse(text('package.json')) as Record<string, unknown>;

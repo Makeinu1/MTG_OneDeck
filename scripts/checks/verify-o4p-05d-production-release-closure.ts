@@ -27,7 +27,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: '27837e732ca9ef2f1f3ca7b5570b8353ee694822ebaa96f94b8fecd4dcb0a086',
+  [reviewPath]: '8ce84982b56e0ea03b7d0af40bc39dd84afcc0034e0709a015eafeb5c70a61fa',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': '415fe28517b11b869a44b4f770051532b9e1b051aca6a310d27fd6716d8aff84',
@@ -74,7 +74,14 @@ const untrackedProtectedDrift = execFileSync('git', ['ls-files', '--others', '--
   encoding: 'utf8',
 }).trim().split(/\r?\n/).filter(Boolean);
 assert.deepEqual(trackedProtectedDrift.sort(), [...predecessorReviewPaths, reviewPath].sort());
-assert.deepEqual(untrackedProtectedDrift, []);
+assert.equal(
+  [
+    [],
+    ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
+  ].some((allowed) => JSON.stringify(allowed) === JSON.stringify(untrackedProtectedDrift)),
+  true,
+  'unexpected untracked protected drift',
+);
 
 const machineChecks = readText('scripts/checks/machine-checks.mjs');
 const predecessor = "args: ['run', 'verify:o4p-05c-release-gates']";
@@ -94,6 +101,7 @@ const allowedPrograms = [
   { id: 'O4P-05', domainIds: ids },
   { id: 'O4P-06', domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'] },
   { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
+  { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
 ];
 assert.equal(
   allowedPrograms.some((program) => JSON.stringify(program) === JSON.stringify(ledger.goalPolicy?.activeProgram)),
