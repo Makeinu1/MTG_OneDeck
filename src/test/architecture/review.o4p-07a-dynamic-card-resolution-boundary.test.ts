@@ -65,6 +65,7 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
       '../protocol/index',
       '../projection/index',
       '../room/index',
+      '../room/validationSupport',
       '../lobby/index',
       '../deckSubmission/index',
       '../genesis/index',

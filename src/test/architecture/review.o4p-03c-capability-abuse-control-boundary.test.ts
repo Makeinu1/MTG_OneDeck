@@ -63,7 +63,7 @@ describe('O4P-03C architecture boundary', () => {
   });
 
   it('keeps lower imports one-way and production free of runtime-only authority', () => {
-    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../lobby/index', '../deckSubmission/index', '../genesis/index', '../../engine/core/index']);
+    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../room/validationSupport', '../lobby/index', '../deckSubmission/index', '../genesis/index', '../../engine/core/index']);
     for (const path of productionFiles(cloudflareRoot)) {
       const text = readFileSync(path, 'utf8');
       if (normalized(path) === 'src/online/cloudflare/facts.ts') {

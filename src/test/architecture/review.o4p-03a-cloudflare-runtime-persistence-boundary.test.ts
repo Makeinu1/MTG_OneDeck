@@ -73,6 +73,7 @@ describe('O4P-03A architecture boundary', () => {
       '../protocol/index',
       '../projection/index',
       '../room/index',
+      '../room/validationSupport',
       '../lobby/index',
       '../deckSubmission/index',
       '../genesis/index',

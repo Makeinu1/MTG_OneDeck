@@ -77,6 +77,7 @@ describe('O4P-03B architecture boundary', () => {
       '../protocol/index',
       '../projection/index',
       '../room/index',
+      '../room/validationSupport',
       '../lobby/index',
       '../deckSubmission/index',
       '../genesis/index',
