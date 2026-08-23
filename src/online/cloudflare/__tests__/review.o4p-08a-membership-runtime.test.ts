@@ -269,6 +269,12 @@ describe('O4P-08A Judge: Worker and Durable Object membership', () => {
     }), { ONLINE_ROOMS: { getByName: () => ({ fetch: () => Promise.reject(new Error('binding failed')) }) } });
     expect(rejectedBinding.status).toBe(503);
     secretFreeError(await rejectedBinding.json(), 'SERVICE_UNAVAILABLE');
+    const rejectedV4Binding = await worker.fetch(request('https://worker.test/api/online/rooms/room-o4p08b-v4-binding/lobby', {
+      kind: 'online-forming-lobby-recover-v4', schemaVersion: 4,
+      participantId: 'participant-o4p08b-v4-binding', seatCapability: `seat_${'v'.repeat(40)}`,
+    }), { ONLINE_ROOMS: { getByName: () => ({ fetch: () => Promise.reject(new Error('binding failed')) }) } });
+    expect(rejectedV4Binding.status).toBe(503);
+    secretFreeError(await rejectedV4Binding.json(), 'SERVICE_UNAVAILABLE');
   });
 
   it('allows recovery but rejects every other membership mutation after Room start', async () => {

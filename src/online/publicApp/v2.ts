@@ -1016,7 +1016,12 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
         projection.lifecycle !== 'started' &&
         !projection.seats.some((seat) => seat.participantId === secrets?.participantId)
       ) {
-        const recoveryStillPresent = recoveryStore.load() !== null;
+        const currentRecovery = recoveryStore.load();
+        const recoveryStillPresent =
+          currentRecovery !== null &&
+          currentRecovery.roomId === snapshot.roomId &&
+          currentRecovery.participantId === secrets.participantId &&
+          currentRecovery.seatCapability === secrets.seatCapability;
         const issue: PublicOnlineErrorIssueV2 = Object.freeze({
           code: recoveryStillPresent ? 'CREDENTIAL_KICKED' : 'CREDENTIAL_REJECTED',
           retryable: false,

@@ -39,6 +39,11 @@ host close.
 - Browser console error count remained zero in both host and guest tabs across
   deck, join, host-lobby, accepted/resubmit, close/rotate, kick, and
   leave/return states.
+- The five final-repair PNG files below were written to disk and read back for
+  visual inspection. Before saving the kick and kicked-client images, rendered
+  text was checked for `v3.`, Room/participant IDs, and admission/seat/Table
+  capability markers; both checks were false and the kicked join input was
+  empty.
 
 ## Screenshots
 

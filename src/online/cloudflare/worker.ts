@@ -85,10 +85,12 @@ function exactRecord(value: Record<string, unknown>, expected: readonly string[]
   } catch { return false; }
 }
 
-function recognizedPublicLobbyV3(value: Record<string, unknown>): boolean {
-  if (value.schemaVersion !== 3 || typeof value.kind !== 'string') return false;
+function recognizedPublicLobbyRequest(value: Record<string, unknown>): boolean {
+  if (typeof value.kind !== 'string') return false;
   const participant = (key: string): boolean => isOnlineFormingLobbyParticipantIdV1(value[key]);
   const capability = (key: string): boolean => typeof value[key] === 'string' && /^[A-Za-z0-9_-]{32,128}$/.test(value[key]);
+  if (value.kind === 'online-forming-lobby-recover-v4') return value.schemaVersion === 4 && exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
+  if (value.schemaVersion !== 3) return false;
   if (value.kind === 'online-forming-lobby-shared-claim-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) && participant('participantId') && capability('admissionCapability');
   if (value.kind === 'online-forming-lobby-recover-v3' || value.kind === 'online-forming-lobby-leave-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
   if (value.kind === 'online-forming-lobby-admission-rotate-v3' || value.kind === 'online-forming-lobby-admission-close-v3') return exactRecord(value, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && participant('hostParticipantId') && capability('seatCapability');
@@ -176,20 +178,20 @@ export default {
           else if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT') && (!validJsonContentType(request) || !validContentLength(request))) response = genericError(400);
           else {
             let bodyValid = true;
-            let recognizedV3 = false;
+            let recognizedPublicLobby = false;
             if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT')) {
               try {
                 const parsed = await readJsonBody(request.clone());
                 const internalInitializer = route.action === 'lobby' && (parsed?.kind === 'online-forming-lobby-initialize-v1' || parsed?.kind === 'online-forming-lobby-initialize-v3');
                 bodyValid = parsed !== null && !internalInitializer;
-                recognizedV3 = parsed !== null && route.action === 'lobby' && recognizedPublicLobbyV3(parsed);
+                recognizedPublicLobby = parsed !== null && route.action === 'lobby' && recognizedPublicLobbyRequest(parsed);
               } catch { bodyValid = false; }
             }
             if (!bodyValid) response = genericError(400);
-            else if (env.ONLINE_ROOMS === undefined) response = recognizedV3 ? serviceUnavailableV3() : genericError(500);
+            else if (env.ONLINE_ROOMS === undefined) response = recognizedPublicLobby ? serviceUnavailableV3() : genericError(500);
             else {
               try { response = await env.ONLINE_ROOMS.getByName(route.roomId).fetch(request); }
-              catch { response = recognizedV3 ? serviceUnavailableV3() : genericError(500); }
+              catch { response = recognizedPublicLobby ? serviceUnavailableV3() : genericError(500); }
             }
           }
         }
