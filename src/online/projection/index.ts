@@ -41,3 +41,13 @@ export {
   handleOnlineProjectedSnapshotRequestV1,
   OnlineProjectionOperationErrorV1,
 } from './operation';
+
+export {
+  ONLINE_PROJECTION_SCHEMA_VERSION_V2,
+  projectOnlineVariableProtocolV2,
+  projectOnlineVariableRoomV2,
+} from './variable';
+export type {
+  OnlineVariableParticipantProjectionV2,
+  OnlineParticipantProjectionV2,
+} from './variable';

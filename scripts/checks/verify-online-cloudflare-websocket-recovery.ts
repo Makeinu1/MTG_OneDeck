@@ -23,7 +23,7 @@ const frozenHashes = Object.freeze({
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
     'e827a7c722cd1f44d401f57f7f2f304bd91e080f2e6e963457a6f3f62bbb2b53',
   'src/online/cloudflare/index.ts':
-    '987ee9cd6c0cf1e4473bdbae929f83b2c6ea47fea0647d580901dfaf3e1b25ba',
+    'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });

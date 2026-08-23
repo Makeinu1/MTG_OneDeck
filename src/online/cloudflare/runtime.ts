@@ -1,10 +1,12 @@
 import {
   handleOnlineCommandEnvelopeV1,
+  handleOnlineVariableCommandEnvelopeV2,
   handleOnlineClientHelloV1,
   validateOnlineCommandEnvelopeV1,
   validateOnlineProtocolStateV1,
+  type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
-import { handleOnlineProjectedSnapshotRequestV1 } from '../projection/index';
+import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2 } from '../projection/index';
 import { disconnectOnlineRoomParticipantV1 } from '../room/index';
 import { ConflictError, OnlineCloudflareRepository } from './persistence';
 import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
@@ -36,8 +38,10 @@ import {
   ONLINE_FORMING_LOBBY_MAX_DECK_TEXT_BYTES_V1,
   projectOnlineFormingLobbyV1,
   validateOnlineFormingLobbyV1,
+  claimOnlineVariableLobbySeatV4,
   type OnlineFormingLobbyV1,
 } from '../lobby/index';
+import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4 } from '../lobby/index';
 import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../room/validationSupport';
 import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
 import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
@@ -317,6 +321,8 @@ export class OnlineRoomDurableObject {
       if (route === null) return genericError(isInvalidRoomPath(pathname) ? 400 : 404);
       if (this.state.id.name !== route.roomId) return genericError(400);
       if (route.action === 'room' && request.method === 'GET') {
+        const variableState = this.repository.loadVariableProtocolV2(route.roomId);
+        if (variableState !== null) return jsonResponse({ kind: 'online-cloudflare-room-status-v2', schemaVersion: 2, roomId: route.roomId, playerCount: variableState.configuration.playerCount, startingLife: variableState.configuration.startingLife, revision: variableState.revision, roomLifecycle: variableState.room.lifecycle });
         const status = this.repository.secureStatus();
         return status === null ? genericError(404) : jsonResponse(status);
       }
@@ -348,6 +354,8 @@ export class OnlineRoomDurableObject {
         }
       }
       if (route.action === 'lobby' && request.method === 'GET') {
+        const variableLobby = this.repository.loadVariableLobbyV4(route.roomId);
+        if (variableLobby !== null) return jsonResponse(this.repository.projectVariableLobbyV4(route.roomId, variableLobby));
         const lobby = this.repository.loadLobby(route.roomId);
         if (lobby === null) return genericError(404);
         return new URL(request.url).searchParams.get('schemaVersion') === '2'
@@ -383,6 +391,47 @@ export class OnlineRoomDurableObject {
             this.repository.initializeLobbyV3(checkedLobby.value, checkedAdmission.value, tableParticipantId, tableCapability);
             return jsonResponse({ kind: 'online-forming-lobby-created-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.projectLobbyV2(route.roomId, checkedLobby.value) });
           } catch (error: unknown) { return genericError(error instanceof ConflictError ? 409 : 400); }
+        }
+        if (kind === 'online-forming-lobby-initialize-v4') {
+          if (!isExactRecord(body, ['kind', 'schemaVersion', 'lobby']) || schemaVersion !== 4) return genericError(400);
+          const checked = validateOnlineVariableLobbyV4(ownDataValue(body, 'lobby'));
+          if (!checked.ok || checked.value.roomId !== route.roomId) return genericError(400);
+          try {
+            this.repository.initializeVariableLobbyV4(checked.value);
+            return jsonResponse({ kind: 'online-forming-lobby-created-v4', schemaVersion: 4, roomId: checked.value.roomId, projection: projectOnlineVariableLobbyV4(checked.value) });
+          } catch (error: unknown) { return genericError(error instanceof ConflictError ? 409 : 400); }
+        }
+        const variableLobby = this.repository.loadVariableLobbyV4(route.roomId);
+        if (variableLobby !== null) {
+          try {
+            const startedVariable = this.repository.loadVariableProtocolV2(route.roomId);
+            if (startedVariable !== null && kind !== 'online-forming-lobby-recover-v5') throw new Error('INVALID_LIFECYCLE');
+            if ((kind === 'online-forming-lobby-shared-claim-v4' || kind === 'online-forming-lobby-shared-claim-v3') && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) && body.schemaVersion === (kind === 'online-forming-lobby-shared-claim-v4' ? 4 : 3) && typeof body.participantId === 'string' && typeof body.admissionCapability === 'string') {
+              const claimed = claimOnlineVariableLobbySeatV4(variableLobby, body.participantId, body.admissionCapability); this.repository.persistVariableLobbyV4(variableLobby, claimed.lobby);
+              return jsonResponse({ kind: kind.endsWith('-v3') ? 'online-forming-lobby-shared-claimed-v3' : 'online-forming-lobby-shared-claimed-v4', schemaVersion: kind.endsWith('-v3') ? 3 : 4, roomId: route.roomId, participantId: body.participantId, seatCapability: claimed.seatCapability, projection: projectOnlineVariableLobbyV4(claimed.lobby) });
+            }
+            if (kind === 'online-forming-lobby-recover-v5' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && body.schemaVersion === 5 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string') {
+              const seat = variableLobby.seats.find((candidate) => candidate.participantId === body.participantId && candidate.seatCapability === body.seatCapability); if (seat === undefined) throw new Error('CREDENTIAL_KICKED'); const isHost = body.participantId === variableLobby.hostParticipantId;
+              return jsonResponse({ kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId: route.roomId, participantId: body.participantId, playerCount: variableLobby.configuration.playerCount, startingLife: variableLobby.configuration.startingLife, ...(isHost ? { admissionOpen: variableLobby.admissionOpen, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, variableLobby.admissionCapability), tableParticipantId: variableLobby.tableParticipantId, tableCapability: variableLobby.tableCapability } : {}), projection: projectOnlineVariableLobbyV4(variableLobby) });
+            }
+            if (kind === 'online-forming-lobby-admission-rotate-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 3 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') { const rotated = this.repository.rotateVariableLobbyV4(route.roomId, body.hostParticipantId, body.seatCapability, runtimeRandomToken('admission')); return jsonResponse({ kind: 'online-forming-lobby-admission-rotated-v3', schemaVersion: 3, roomId: route.roomId, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, rotated.admissionCapability), projection: rotated.projection }); }
+            if (kind === 'online-forming-lobby-admission-close-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 3 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') return jsonResponse({ kind: 'online-forming-lobby-admission-closed-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.closeVariableLobbyV4(route.roomId, body.hostParticipantId, body.seatCapability) });
+            if (kind === 'online-forming-lobby-kick-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability', 'targetParticipantId']) && schemaVersion === 3 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string' && typeof body.targetParticipantId === 'string') return jsonResponse({ kind: 'online-forming-lobby-kicked-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.kickVariableLobbySeatV4(route.roomId, body.hostParticipantId, body.seatCapability, body.targetParticipantId, runtimeRandomToken('seat'), runtimeRandomToken('admission')) });
+            if (kind === 'online-forming-lobby-leave-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && schemaVersion === 3 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string') {
+              const target = variableLobby.seats.find((candidate) => candidate.participantId === body.participantId && candidate.seatCapability === body.seatCapability); if (target === undefined) throw new Error('CREDENTIAL_KICKED'); if (target.seatIndex === 0) { this.repository.deleteVariableLobbyV4(route.roomId); return jsonResponse({ kind: 'online-forming-lobby-left-v3', schemaVersion: 3, roomId: route.roomId, closed: true }); }
+              return jsonResponse({ kind: 'online-forming-lobby-left-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.leaveVariableLobbySeatV4(route.roomId, body.participantId, body.seatCapability, runtimeRandomToken('seat'), runtimeRandomToken('admission')) });
+            }
+            if (kind === 'online-forming-lobby-deck-submit-v2') return jsonResponse(await this.repository.submitVariableDeckV2(route.roomId, body, this.deckResolver));
+            if (kind === 'online-forming-lobby-ready-v4' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready']) && body.schemaVersion === 4 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string' && typeof body.ready === 'boolean') return jsonResponse({ kind, schemaVersion: 4, roomId: route.roomId, projection: this.repository.setVariableReadyV4(route.roomId, body.participantId, body.seatCapability, body.ready) });
+            if (kind === 'online-forming-lobby-ready-v2' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability', 'ready']) && body.schemaVersion === 2 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string' && typeof body.ready === 'boolean') return jsonResponse({ kind, schemaVersion: 2, roomId: route.roomId, projection: this.repository.setVariableReadyV4(route.roomId, body.participantId, body.seatCapability, body.ready) });
+            if (kind === 'online-forming-lobby-start-v4' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && body.schemaVersion === 4 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') return jsonResponse(this.repository.startVariableV4(route.roomId, body.hostParticipantId, body.seatCapability));
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : '';
+            const code = message === 'Room is full' ? 'ROOM_FULL' : message === 'Invite rejected' ? 'INVITE_INVALID' : message === 'HOST_REQUIRED' ? 'HOST_REQUIRED' : message === 'CREDENTIAL_KICKED' ? 'CREDENTIAL_KICKED' : message === 'ADMISSION_CLOSED' ? 'ADMISSION_CLOSED' : message === 'INVALID_LIFECYCLE' ? 'INVALID_LIFECYCLE' : message === 'PLAYERS_NOT_READY' ? 'PLAYERS_NOT_READY' : message === 'Accepted v2 deck required before ready' || message === 'Accepted snapshot relation invalid' ? 'DECK_REQUIRED' : message === 'ROOM_NOT_FOUND' ? 'ROOM_NOT_FOUND' : null;
+            if (code !== null) return onlinePublicErrorV3(code, publicErrorStatus(code));
+            return genericError(error instanceof ConflictError ? 409 : 400);
+          }
+          return genericError(400);
         }
         const lobby = this.repository.loadLobby(route.roomId);
         const isRecoverV4 = kind === 'online-forming-lobby-recover-v4' && schemaVersion === 4;
@@ -531,7 +580,7 @@ export class OnlineRoomDurableObject {
         const currentCapability = ownDataString(body, 'currentCapability');
         const nextCapability = ownDataString(body, 'nextCapability');
         if (body.kind !== 'online-cloudflare-capability-rotate-v1' || body.schemaVersion !== 1 || participantId === null || currentCapability === null || nextCapability === null) return genericError(400);
-        const state = this.repository.load();
+        const state = this.repository.load() ?? this.repository.loadVariableProtocolV2(route.roomId);
         if (state === null) return genericError(404);
         try {
           const response = this.security.rotate(state, participantId, currentCapability, nextCapability, this.now());
@@ -549,7 +598,8 @@ export class OnlineRoomDurableObject {
         const networkCapability = ownDataString(body, 'participantCapability');
         if (roomId !== null && roomId !== route.roomId) return genericError(400);
         if (participantId === null || networkCapability === null) return genericError(400);
-        const state = this.repository.load();
+        const legacyState = this.repository.load();
+        const state = legacyState ?? this.repository.loadVariableProtocolV2(route.roomId);
         if (state === null) return genericError(404);
         const now = this.now();
         const admission = this.security.consumeHttpAction(state, participantId, networkCapability, 'command', now);
@@ -573,13 +623,18 @@ export class OnlineRoomDurableObject {
           );
           if (!acquired) return genericError(409);
         }
-        const transition = handleOnlineCommandEnvelopeV1(state, internalMessage);
-        if (validation.ok && transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) this.repository.commitAccepted(transition.state, validation.value);
+        const transition = state.kind === 'online-protocol-state-v2'
+          ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage)
+          : handleOnlineCommandEnvelopeV1(state, internalMessage);
+        if (validation.ok && transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+          if (state.kind === 'online-protocol-state-v2') this.repository.commitVariableAcceptedV2(state, transition.state as OnlineVariableProtocolStateV2, validation.value);
+          else this.repository.commitAccepted(transition.state as typeof state, validation.value);
+        }
         return publicProtocolResponse(transition.response);
       }
       if (route.action === 'websocket' && request.method === 'GET') {
         if (!isWebSocketUpgrade(request) || request.body !== null) return genericError(400);
-        const state = this.repository.load();
+        const state = this.repository.load() ?? this.repository.loadVariableProtocolV2(route.roomId);
         if (state === null) return genericError(404);
         this.security.read(state);
         let sockets: readonly OnlineCloudflareWebSocket[];
@@ -635,10 +690,10 @@ export class OnlineRoomDurableObject {
       this.sendError(socket, 'RATE_LIMITED');
       return;
     }
-    let state: Exclude<ReturnType<OnlineCloudflareRepository['load']>, null>;
+    let state: Exclude<ReturnType<OnlineCloudflareRepository['load']>, null> | OnlineVariableProtocolStateV2;
     let securitySnapshot: ReturnType<OnlineCloudflareSecurityRepository['read']>;
     try {
-      const loaded = this.repository.load();
+      const loaded = this.repository.load() ?? this.repository.loadVariableProtocolV2(attachment.roomId);
       if (loaded === null) throw new Error('Missing protocol state');
       state = loaded;
       securitySnapshot = this.security.read(loaded);
@@ -693,7 +748,11 @@ export class OnlineRoomDurableObject {
         return;
       }
       const internalMessage = cloneWithProtocolCapability(frame, admission.authorization.protocolCapability);
-      if (kind === 'online-client-hello-v1') {
+      if (state.kind === 'online-protocol-state-v2') {
+        if (kind === 'online-client-hello-v1') this.handleVariableHello(socket, internalMessage, currentAttachment, state, admission.authorization);
+        else if (kind === 'online-projection-request-v1') this.handleVariableProjection(socket, internalMessage, state);
+        else this.handleVariableCommand(socket, internalMessage, state, admission.authorization, now);
+      } else if (kind === 'online-client-hello-v1') {
         this.handleHello(socket, internalMessage, currentAttachment, state, admission.authorization);
       } else if (kind === 'online-projection-request-v1') {
         this.handleProjection(socket, internalMessage, state);
@@ -884,6 +943,45 @@ export class OnlineRoomDurableObject {
     this.sendApplicationValue(socket, transition.response);
   }
 
+  private handleVariableHello(
+    socket: OnlineCloudflareWebSocket,
+    frame: OnlineCloudflareWebSocketFrameV1,
+    attachment: OnlineCloudflareSocketAttachmentV1,
+    state: OnlineVariableProtocolStateV2,
+    authorization: { readonly participantId: string; readonly authority: 'host' | 'seat' | 'table' | 'spectator'; readonly generation: number; readonly expiresAt: number },
+  ): void {
+    const roomId = frameStringField(frame, 'roomId'); const participantId = frameStringField(frame, 'participantId'); const clientBuildId = frameStringField(frame, 'clientBuildId');
+    if (roomId !== state.room.roomId || participantId !== authorization.participantId || clientBuildId === null) { this.sendError(socket, 'IDENTITY_MISMATCH'); return; }
+    const role: OnlineCloudflareSocketRoleV1 = authorization.authority === 'host' || authorization.authority === 'seat' ? 'player' : authorization.authority;
+    socket.serializeAttachment(createAuthenticatedOnlineCloudflareSocketAttachmentV1(attachment.roomId, participantId, role, attachment.connectionId, authorization.generation, authorization.expiresAt, attachment.messageWindowStartedAt, attachment.messageCount, attachment.malformedWindowStartedAt, attachment.malformedCount));
+    this.sendApplicationValue(socket, Object.freeze({ kind: 'online-server-hello-v1', protocolVersion: state.protocolVersion, revision: state.revision, serverBuildId: state.serverBuildId, status: 'accepted', roomId, participantId, role, clientBuildIdMatch: clientBuildId === state.serverBuildId, issues: Object.freeze([]) }));
+  }
+
+  private handleVariableProjection(socket: OnlineCloudflareWebSocket, frame: OnlineCloudflareWebSocketFrameV1, state: OnlineVariableProtocolStateV2): void {
+    const participantId = frameStringField(frame, 'participantId'); const clientBuildId = frameStringField(frame, 'clientBuildId'); const record = transitionResponseRecord(frame); const knownRevision = record?.knownRevision;
+    if (participantId === null || clientBuildId === null || typeof knownRevision !== 'number' || !Number.isSafeInteger(knownRevision) || knownRevision < 0) { this.sendError(socket, 'INVALID_MESSAGE'); return; }
+    const role = state.room.participants.some((entry) => entry.participantId === participantId) ? 'player' : 'table';
+    const projection = projectOnlineVariableProtocolV2(state, participantId);
+    this.sendApplicationValue(socket, Object.freeze({ kind: 'online-projected-snapshot-v1', protocolVersion: state.protocolVersion, status: 'accepted', roomId: state.room.roomId, participantId, role, knownRevision, revision: state.revision, serverBuildId: state.serverBuildId, clientBuildIdMatch: clientBuildId === state.serverBuildId, reason: knownRevision === state.revision ? 'synchronized' : 'snapshot-required', projection, issues: Object.freeze([]) }));
+  }
+
+  private handleVariableCommand(
+    socket: OnlineCloudflareWebSocket,
+    frame: OnlineCloudflareWebSocketFrameV1,
+    state: OnlineVariableProtocolStateV2,
+    authorization: { readonly participantId: string; readonly authority: 'host' | 'seat' | 'table' | 'spectator'; readonly generation: number; readonly expiresAt: number },
+    now: number,
+  ): void {
+    const validation = validateOnlineCommandEnvelopeV1(frame); const transition = handleOnlineVariableCommandEnvelopeV2(state, frame);
+    if (!validation.ok) { this.sendApplicationValue(socket, transition.response); return; }
+    const acquired = this.security.acquireControllerLease(state, authorization.participantId, authorization.generation, { kind: 'socket', connectionId: this.attachment(socket)?.connectionId ?? null }, now);
+    if (!acquired) { this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED'); return; }
+    if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+      this.repository.commitVariableAcceptedV2(state, transition.state, validation.value); this.sendApplicationValue(socket, transition.response); this.broadcastRevision(state.room.roomId, transition.state.revision); return;
+    }
+    this.sendApplicationValue(socket, transition.response);
+  }
+
   private persistPresenceIfChanged(
     previous: Exclude<ReturnType<OnlineCloudflareRepository['load']>, null>,
     next: Exclude<ReturnType<OnlineCloudflareRepository['load']>, null>,
@@ -917,9 +1015,9 @@ export class OnlineRoomDurableObject {
   private handleDisconnect(socket: OnlineCloudflareWebSocket): void {
     const attachment = this.attachment(socket);
     if (attachment === null || !attachment.authenticated || attachment.participantId === null || attachment.capabilityGeneration === null) return;
-    let state: ReturnType<OnlineCloudflareRepository['load']>;
+    let state: ReturnType<OnlineCloudflareRepository['load']> | OnlineVariableProtocolStateV2;
     try {
-      state = this.repository.load();
+      state = this.repository.load() ?? this.repository.loadVariableProtocolV2(attachment.roomId);
       if (state === null) return;
       const grant = state.room.participants.find((participant) => participant.participantId === attachment.participantId);
       if (grant?.role === 'player') {
@@ -929,6 +1027,7 @@ export class OnlineRoomDurableObject {
       return;
     }
     let sockets: readonly OnlineCloudflareWebSocket[];
+    if (state.kind === 'online-protocol-state-v2') return;
     try {
       sockets = this.state.getWebSockets();
       for (const candidate of sockets) {

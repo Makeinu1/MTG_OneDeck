@@ -220,6 +220,10 @@ const frozenRoomCoreImports = new Map<string, ReadonlySet<string>>([
     'src/online/room/validation.ts',
     new Set(['CorePlayerId', 'isCoreBaseId']),
   ],
+  [
+    'src/online/room/variable.ts',
+    new Set(['CorePlayerId', 'ModeNeutralCoreRootV1']),
+  ],
 ]);
 
 function isFrozenRoomCoreConsumer(
@@ -253,6 +257,14 @@ const frozenProtocolCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/protocol/validation.ts',
     new Set(['CoreCommandV1', 'validateCoreCommandV1']),
+  ],
+  [
+    'src/online/protocol/variable.ts',
+    new Set(['ModeNeutralCoreRootV1', 'validateModeNeutralCoreRootV1']),
+  ],
+  [
+    'src/online/protocol/variableCommand.ts',
+    new Set(['applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
   ],
 ]);
 
@@ -292,6 +304,43 @@ const frozenDeckSubmissionCoreImports = new Map<string, ReadonlySet<string>>([
 const frozenGenesisCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/genesis/index.ts',
+    new Set([
+      'CORE_CLOSURE_VERSION_VECTOR_V1',
+      'CoreCardDefinitionSnapshotV1',
+      'CoreCardObjectRuntimeStateV1',
+      'CoreObjectId',
+      'CorePhysicalCardV1',
+      'CorePlayerId',
+      'ModeNeutralCoreRootV1',
+      'coreCanonicalDigestFromValueV1',
+      'coreCardObjectIdOf',
+      'coreSha256HexV1',
+      'createCoreCommanderCastLedgerV1',
+      'createCoreCommanderDamageProvenanceLedgerV1',
+      'createCoreCommanderDamageStateV1',
+      'createCoreCommanderIdentityV1',
+      'createCorePlayerLifecycleStateV1',
+      'createCoreReplayPackageV1',
+      'createCoreRuleAuthorityBundleV1',
+      'createCoreStackTransactionBundleV1',
+      'createCoreTurnPriorityBundleV1',
+      'createModeNeutralCoreControlSliceV1',
+      'createModeNeutralCoreDecisionAuthoritySliceV1',
+      'createModeNeutralCoreObjectRegistryStateV2',
+      'createModeNeutralCoreObjectRuntimeStateV2',
+      'createModeNeutralCorePendingTriggerSliceV1',
+      'createModeNeutralCorePlayPermissionSliceV1',
+      'createModeNeutralCoreRootV1',
+      'createModeNeutralCoreSearchSessionSliceV1',
+      'createModeNeutralCoreStackAnnouncementSliceV1',
+      'createModeNeutralCoreTurnLifecycleSliceV1',
+      'createModeNeutralCoreVisibilitySliceV1',
+      'replayCoreCommandsV1',
+      'serializeModeNeutralCoreRootV1',
+    ]),
+  ],
+  [
+    'src/online/genesis/variable.ts',
     new Set([
       'CORE_CLOSURE_VERSION_VECTOR_V1',
       'CoreCardDefinitionSnapshotV1',
@@ -375,6 +424,10 @@ function isFrozenCloudflareCoreConsumer(
 }
 
 const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/projection/variable.ts',
+    new Set(['CorePlayerId']),
+  ],
   [
     'src/online/projection/project.ts',
     new Set([

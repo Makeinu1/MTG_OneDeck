@@ -76,6 +76,20 @@ describe('O4P-05D production-release closure boundary', () => {
         'src/online/publicApp/recoveryV1.ts',
         'src/online/publicApp/review.o4p-08a-recovery-client.test.ts',
       ],
+      [
+        'src/online/cloudflare/__tests__/review.o4p-08c-variable-runtime.test.ts',
+        'src/online/cloudflare/__tests__/variableCreateV5.test.ts',
+        'src/online/cloudflare/__tests__/variableRuntimeV4.test.ts',
+        'src/online/genesis/__tests__/review.o4p-08c-variable-roster-genesis.test.ts',
+        'src/online/genesis/__tests__/variableGenesisV3.test.ts',
+        'src/online/genesis/variable.ts',
+        'src/online/lobby/variable.ts',
+        'src/online/projection/variable.ts',
+        'src/online/protocol/variable.ts',
+        'src/online/protocol/variableCommand.ts',
+        'src/online/room/variable.ts',
+        'src/test/architecture/review.o4p-08c-variable-roster-boundary.test.ts',
+      ],
     ]).toContainEqual(untracked);
 
     const before = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], { cwd: ROOT, encoding: 'utf8' })) as Record<string, unknown>;

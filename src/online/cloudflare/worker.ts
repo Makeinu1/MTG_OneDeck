@@ -3,6 +3,7 @@ import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
 import { genericError, isInvalidRoomPath, isWebSocketUpgrade, parseRoomPath, readJsonBody, validContentLength, validJsonContentType, jsonResponse } from './support';
 import type { OnlineCloudflareEnv } from './types';
 import { emitWorkerRequestFactV1, isCanonicalVersionIdentifier } from './facts';
+import { createOnlineVariableLobbyV4, projectOnlineVariableLobbyV4 } from '../lobby/index';
 
 export { OnlineRoomDurableObject } from './runtime';
 
@@ -14,6 +15,7 @@ const ALLOWED_ORIGINS = Object.freeze([
 const CREATE_PATH = '/api/online/rooms';
 const FORMING_CREATE_KIND = 'online-forming-lobby-create-v1';
 const FORMING_CREATE_V3_KIND = 'online-forming-lobby-create-v3';
+const FORMING_CREATE_V5_KIND = 'online-forming-lobby-create-v5';
 
 function originOf(request: Request): string | null {
   const value = request.headers.get('origin');
@@ -90,6 +92,8 @@ function recognizedPublicLobbyRequest(value: Record<string, unknown>): boolean {
   const participant = (key: string): boolean => isOnlineFormingLobbyParticipantIdV1(value[key]);
   const capability = (key: string): boolean => typeof value[key] === 'string' && /^[A-Za-z0-9_-]{32,128}$/.test(value[key]);
   if (value.kind === 'online-forming-lobby-recover-v4') return value.schemaVersion === 4 && exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
+  if (value.kind === 'online-forming-lobby-recover-v5') return value.schemaVersion === 5 && exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
+  if (value.kind === 'online-forming-lobby-shared-claim-v4') return value.schemaVersion === 4 && exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) && participant('participantId') && capability('admissionCapability');
   if (value.schemaVersion !== 3) return false;
   if (value.kind === 'online-forming-lobby-shared-claim-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'admissionCapability']) && participant('participantId') && capability('admissionCapability');
   if (value.kind === 'online-forming-lobby-recover-v3' || value.kind === 'online-forming-lobby-leave-v3') return exactRecord(value, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && participant('participantId') && capability('seatCapability');
@@ -101,6 +105,27 @@ function recognizedPublicLobbyRequest(value: Record<string, unknown>): boolean {
 async function handleCreate(request: Request, env: OnlineCloudflareEnv): Promise<Response> {
   if (!validJsonContentType(request) || !validContentLength(request)) return genericError(400);
   const body = await readJsonBody(request.clone());
+  if (body !== null && exactRecord(body, ['kind', 'schemaVersion', 'participantId', 'playerCount', 'startingLife']) && body.kind === FORMING_CREATE_V5_KIND && body.schemaVersion === 5 && isOnlineFormingLobbyParticipantIdV1(body.participantId) && (body.playerCount === 2 || body.playerCount === 4) && (body.startingLife === 20 || body.startingLife === 40) && (body.playerCount !== 4 || body.startingLife === 40)) {
+    if (env.ONLINE_ROOMS === undefined) return serviceUnavailableV3();
+    try {
+      const roomId = randomToken('room').slice(0, 64);
+      const serverBuildId = isCanonicalVersionIdentifier(env.CF_VERSION_METADATA?.id) ? env.CF_VERSION_METADATA.id : 'o4p-08c-server';
+      const playerCount = body.playerCount;
+      const startingLife = body.startingLife;
+      const seatCapabilities = Array.from({ length: playerCount }, () => randomToken('seat'));
+      const admissionCapability = randomToken('admission');
+      const tableParticipantId = randomToken('table').slice(0, 64);
+      const tableCapability = randomToken('observer');
+      const allCapabilities = [...seatCapabilities, admissionCapability, tableCapability];
+      if (new Set(allCapabilities).size !== allCapabilities.length) return serviceUnavailableV3();
+      const lobby = createOnlineVariableLobbyV4({ roomId, serverBuildId, hostParticipantId: body.participantId, configuration: { playerCount, startingLife }, seatCapabilities, admissionCapability, tableParticipantId, tableCapability });
+      for (const identifier of [roomId, serverBuildId, body.participantId, tableParticipantId]) assertNoConfiguredCapabilityFragmentV1(identifier, allCapabilities);
+      const internal = new Request(`https://worker.internal/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-initialize-v4', schemaVersion: 4, lobby }) });
+      const result = await env.ONLINE_ROOMS.getByName(roomId).fetch(internal);
+      if (!result.ok) return serviceUnavailableV3();
+      return jsonResponse({ kind: 'online-forming-lobby-created-v5', schemaVersion: 5, roomId, participantId: body.participantId, playerCount, startingLife, seatCapability: seatCapabilities[0], inviteCode: encodeOnlineSharedInviteCodeV3(roomId, admissionCapability), tableParticipantId, tableCapability, projection: projectOnlineVariableLobbyV4(lobby) });
+    } catch { return serviceUnavailableV3(); }
+  }
   if (body === null || !isOnlineFormingLobbyParticipantIdV1(body.participantId) || !exactRecord(body, ['kind', 'schemaVersion', 'participantId']) || (body.kind !== FORMING_CREATE_KIND && body.kind !== FORMING_CREATE_V3_KIND) || (body.kind === FORMING_CREATE_KIND ? body.schemaVersion !== 1 : body.schemaVersion !== 3)) return genericError(400);
   if (env.ONLINE_ROOMS === undefined) return body.kind === FORMING_CREATE_V3_KIND ? serviceUnavailableV3() : genericError(500);
   let roomId: string;
@@ -182,7 +207,7 @@ export default {
             if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT')) {
               try {
                 const parsed = await readJsonBody(request.clone());
-                const internalInitializer = route.action === 'lobby' && (parsed?.kind === 'online-forming-lobby-initialize-v1' || parsed?.kind === 'online-forming-lobby-initialize-v3');
+                const internalInitializer = route.action === 'lobby' && (parsed?.kind === 'online-forming-lobby-initialize-v1' || parsed?.kind === 'online-forming-lobby-initialize-v3' || parsed?.kind === 'online-forming-lobby-initialize-v4');
                 bodyValid = parsed !== null && !internalInitializer;
                 recognizedPublicLobby = parsed !== null && route.action === 'lobby' && recognizedPublicLobbyRequest(parsed);
               } catch { bodyValid = false; }

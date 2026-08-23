@@ -4,6 +4,7 @@ export {
   ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1,
   ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1,
   ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2,
+  ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V3,
 } from './types';
 export {
   ONLINE_CLOUDFLARE_SECURITY_SCHEMA_VERSION_V1,
@@ -84,6 +85,8 @@ export type {
 export { OnlineRoomDurableObject, createOnlineRoomDurableObject } from './runtime';
 export { buildDynamicRoomGenesisV2, createDynamicRoomGenesisV2 } from '../genesis/index';
 export type { DynamicGenesisInputV2, DynamicGenesisIssueCodeV2, DynamicGenesisIssueV2, DynamicGenesisResultV2, DynamicGenesisSeatInputV2, DynamicGenesisSuccessV2 } from '../genesis/index';
+export { buildVariableRoomGenesisV3, createVariableRoomGenesisV3, VARIABLE_GENESIS_SCHEMA_VERSION_V3 } from '../genesis/index';
+export type { VariableGenesisInputV3, VariableGenesisIssueCodeV3, VariableGenesisIssueV3, VariableGenesisResultV3, VariableGenesisSeatInputV3, VariableGenesisSuccessV3 } from '../genesis/index';
 export { ONLINE_DECK_SUBMISSION_SCHEMA_VERSION_V2, ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2, OnlineDeckScryfallResolverV2, OnlineDeckScryfallUnavailableError, resolveOnlineDeckSubmissionV2, parseOnlineDeckSubmitV2, validateOnlineDeckSubmitV2 } from '../deckSubmission/index';
 export type {
   OnlineDeckResolverV2,
@@ -108,6 +111,8 @@ export {
   invalidateOnlineFormingLobbySeatDeckV1,
   validateOnlineFormingLobbyV1,
 } from '../lobby/index';
+export { ONLINE_FORMING_LOBBY_SCHEMA_VERSION_V4, createOnlineVariableLobbyV4, validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4 } from '../lobby/index';
+export type { OnlineVariableLobbyV4, OnlineVariableLobbyProjectionV4, OnlineVariableLobbyConfigurationV4 } from '../lobby/index';
 export type {
   ClaimOnlineFormingLobbySeatV1Input,
   CreateOnlineFormingLobbyV1Input,

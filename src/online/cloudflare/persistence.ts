@@ -53,10 +53,14 @@ import {
   type OnlineDeckSubmissionStateV2,
   type OnlineFormingLobbyProjectionV2,
 } from '../deckSubmission/index';
-import { buildDynamicRoomGenesisV2, type DynamicGenesisSeatInputV2 } from '../genesis/index';
+import { buildDynamicRoomGenesisV2, buildVariableRoomGenesisV3, type DynamicGenesisSeatInputV2, type VariableGenesisSeatInputV3 } from '../genesis/index';
+import { handleOnlineVariableCommandEnvelopeV2, validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
 import type { OnlineDynamicStartResultV2 } from './types';
+import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4, setOnlineVariableLobbyDeckAcceptedV4, setOnlineVariableLobbyReadyV4, rotateOnlineVariableLobbyAdmissionV4, closeOnlineVariableLobbyAdmissionV4, replaceOnlineVariableLobbySeatV4, type OnlineVariableLobbyV4, type OnlineVariableLobbyProjectionV4 } from '../lobby/index';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const CREATE_VARIABLE_ROOM = `CREATE TABLE IF NOT EXISTS online_variable_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const SELECT_VARIABLE_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, state_json FROM online_variable_room_state WHERE singleton = 1`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
 const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migration (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL) STRICT`;
 const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
@@ -303,6 +307,7 @@ export class OnlineCloudflareRepository {
     let pendingRecovery: MigrationRecoveryHandoff | null = null;
     const changed = this.storage.transactionSync(() => {
       this.storage.sql.exec(CREATE_ROOM);
+      this.storage.sql.exec(CREATE_VARIABLE_ROOM);
       this.storage.sql.exec(CREATE_JOURNAL);
       this.storage.sql.exec(CREATE_MIGRATION);
       this.storage.sql.exec(CREATE_CHECKPOINT);
@@ -624,6 +629,143 @@ export class OnlineCloudflareRepository {
     return validation.value;
   }
 
+  loadVariableLobbyV4(roomId: string): OnlineVariableLobbyV4 | null {
+    let rows: readonly LobbyRow[];
+    try { rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray(); } catch (error: unknown) { if (error instanceof Error && /Unexpected SQL/i.test(error.message)) return null; throw error; }
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error('Invalid forming lobby singleton');
+    const row = rows[0];
+    if (row === undefined || row.schema_version !== 4 || row.room_id !== roomId || typeof row.state_json !== 'string') return null;
+    let parsed: unknown;
+    try { parsed = JSON.parse(row.state_json); } catch { throw new Error('Invalid variable lobby JSON'); }
+    const checked = validateOnlineVariableLobbyV4(parsed);
+    if (!checked.ok || JSON.stringify(checked.value) !== row.state_json) throw new Error('Invalid variable lobby state');
+    return checked.value;
+  }
+
+  initializeVariableLobbyV4(lobbyInput: OnlineVariableLobbyV4): void {
+    const checked = validateOnlineVariableLobbyV4(lobbyInput);
+    if (!checked.ok) throw new Error('Invalid variable lobby state');
+    const stateJson = JSON.stringify(checked.value);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_LOBBY);
+      const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray();
+      if (rows.length > 1) throw new Error('Invalid forming lobby singleton');
+      if (rows.length === 1) {
+        const row = rows[0];
+        if (row === undefined || row.room_id !== checked.value.roomId || row.schema_version !== 4 || row.state_json !== stateJson) throw new ConflictError();
+        return;
+      }
+      this.storage.sql.exec(INSERT_LOBBY, 4, checked.value.roomId, stateJson);
+    });
+  }
+
+  projectVariableLobbyV4(roomId: string, lobbyInput?: OnlineVariableLobbyV4): OnlineVariableLobbyProjectionV4 {
+    const lobby = lobbyInput ?? this.loadVariableLobbyV4(roomId);
+    if (lobby === null) throw new Error('Missing variable lobby');
+    return projectOnlineVariableLobbyV4(lobby);
+  }
+
+  loadVariableProtocolV2(roomId: string): OnlineVariableProtocolStateV2 | null {
+    let rows: readonly { readonly singleton: unknown; readonly schema_version: unknown; readonly room_id: unknown; readonly revision: unknown; readonly room_lifecycle: unknown; readonly state_json: unknown }[];
+    try { rows = this.storage.sql.exec<{ readonly singleton: unknown; readonly schema_version: unknown; readonly room_id: unknown; readonly revision: unknown; readonly room_lifecycle: unknown; readonly state_json: unknown }>(SELECT_VARIABLE_ROOM).toArray(); } catch (error: unknown) { if (error instanceof Error && (/no such table/i.test(error.message) || /Unexpected SQL/i.test(error.message))) return null; throw error; }
+    if (rows.length === 0) return null;
+    const row = rows[0];
+    if (rows.length !== 1 || row === undefined || row.schema_version !== 2 || row.room_id !== roomId || typeof row.state_json !== 'string') throw new Error('Invalid variable protocol row');
+    let parsed: unknown; try { parsed = JSON.parse(row.state_json); } catch { throw new Error('Invalid variable protocol JSON'); }
+    const checked = validateOnlineVariableProtocolStateV2(parsed); if (!checked.ok || JSON.stringify(checked.value) !== row.state_json || row.revision !== checked.value.revision || row.room_lifecycle !== checked.value.room.lifecycle || checked.value.coreRoot.acceptedCommandCount !== checked.value.revision) throw new Error('Invalid variable protocol state');
+    let journal: readonly JournalRow[]; let checkpoints: readonly CheckpointRow[];
+    try { journal = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray(); checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray(); } catch { throw new Error('Invalid variable recovery state'); }
+    const checkpoint = checkpoints[0]; if (journal.length !== checked.value.revision || checked.value.receipts.length !== checked.value.revision || checkpoints.length !== 1 || checkpoint === undefined || checkpoint.singleton !== 1 || checkpoint.room_id !== roomId || checkpoint.checkpoint_revision !== 0 || typeof checkpoint.state_json !== 'string') throw new Error('Invalid variable recovery relation');
+    let initialParsed: unknown; try { initialParsed = JSON.parse(checkpoint.state_json); } catch { throw new Error('Invalid variable checkpoint JSON'); }
+    const initial = validateOnlineVariableProtocolStateV2(initialParsed); if (!initial.ok || initial.value.revision !== 0 || initial.value.receipts.length !== 0 || JSON.stringify(initial.value.configuration) !== JSON.stringify(checked.value.configuration)) throw new Error('Invalid variable checkpoint state');
+    let replay = initial.value; const configuredCapabilities = [...checked.value.room.seats.map((seat) => seat.seatCapability), ...checked.value.observerAuthorizations.map((entry) => entry.observerCapability)];
+    for (let index = 0; index < journal.length; index += 1) {
+      const entry = journal[index]; const acceptedRevision = index + 1;
+      if (entry === undefined || entry.accepted_revision !== acceptedRevision || entry.base_revision !== index || typeof entry.command_id !== 'string' || typeof entry.participant_id !== 'string' || typeof entry.command_json !== 'string') throw new Error('Invalid variable journal relation');
+      assertNoConfiguredCapabilityFragmentV1(entry.command_id, configuredCapabilities); assertNoConfiguredCapabilityFragmentV1(entry.participant_id, configuredCapabilities);
+      const receipt = checked.value.receipts.find((candidate) => candidate.acceptedRevision === acceptedRevision); if (receipt === undefined || receipt.commandId !== entry.command_id || receipt.participantId !== entry.participant_id) throw new Error('Invalid variable journal receipt');
+      const participant = replay.room.participants.find((candidate) => candidate.participantId === entry.participant_id); const seat = participant === undefined || participant.seatIndex === null ? undefined : replay.room.seats[participant.seatIndex]; if (participant?.role !== 'player' || seat === undefined) throw new Error('Invalid variable journal participant');
+      let command: unknown; try { command = JSON.parse(entry.command_json); } catch { throw new Error('Invalid variable journal command JSON'); }
+      const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id, participantCapability: seat.seatCapability, commandId: entry.command_id, baseRevision: index, command };
+      const validation = validateOnlineCommandEnvelopeV1(envelope); if (!validation.ok || JSON.stringify(validation.value.command) !== entry.command_json) throw new Error('Invalid variable journal command');
+      const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
+    }
+    if (JSON.stringify(replay) !== row.state_json) throw new Error('Variable journal replay mismatch');
+    return checked.value;
+  }
+
+  initializeVariableProtocolV2(stateInput: OnlineVariableProtocolStateV2): Readonly<{ readonly kind: 'online-cloudflare-room-status-v2'; readonly schemaVersion: 2; readonly roomId: string; readonly playerCount: 2 | 4; readonly startingLife: 20 | 40; readonly revision: number; readonly roomLifecycle: string }> {
+    const checked = validateOnlineVariableProtocolStateV2(stateInput); if (!checked.ok) throw new Error('Invalid variable protocol state');
+    const state = checked.value; const stateJson = JSON.stringify(state);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_VARIABLE_ROOM);
+      this.storage.sql.exec(CREATE_JOURNAL);
+      this.storage.sql.exec(CREATE_CHECKPOINT);
+      this.securityRepository.createSchemaInTransaction();
+      const rows = this.storage.sql.exec<{ readonly singleton: unknown; readonly schema_version: unknown; readonly room_id: unknown; readonly state_json: unknown }>(SELECT_VARIABLE_ROOM).toArray();
+      if (rows.length > 1) throw new Error('Invalid variable protocol singleton');
+      if (rows.length === 1) { if (rows[0]?.room_id !== state.room.roomId || rows[0]?.schema_version !== 2 || rows[0]?.state_json !== stateJson) throw new ConflictError(); return; }
+      this.storage.sql.exec('INSERT INTO online_variable_room_state (singleton, schema_version, room_id, revision, room_lifecycle, state_json) VALUES (1, 2, ?, ?, ?, ?)', state.room.roomId, state.revision, state.room.lifecycle, stateJson);
+      this.storage.sql.exec(INSERT_CHECKPOINT, state.room.roomId, 0, stateJson);
+      this.securityRepository.initializeInTransaction(state.room.roomId, state, Date.now());
+    });
+    return Object.freeze({ kind: 'online-cloudflare-room-status-v2', schemaVersion: 2, roomId: state.room.roomId, playerCount: state.configuration.playerCount, startingLife: state.configuration.startingLife, revision: state.revision, roomLifecycle: state.room.lifecycle });
+  }
+
+  commitVariableAcceptedV2(previousInput: OnlineVariableProtocolStateV2, nextInput: OnlineVariableProtocolStateV2, envelope: OnlineCommandEnvelopeV1): void {
+    const previous = validateOnlineVariableProtocolStateV2(previousInput); const next = validateOnlineVariableProtocolStateV2(nextInput);
+    if (!previous.ok || !next.ok || previous.value.room.roomId !== envelope.roomId || next.value.room.roomId !== envelope.roomId || previous.value.revision !== envelope.baseRevision || next.value.revision !== envelope.baseRevision + 1) throw new Error('Invalid variable accepted transition');
+    const capabilities = [...next.value.room.seats.map((seat) => seat.seatCapability), ...next.value.observerAuthorizations.map((entry) => entry.observerCapability)];
+    assertNoConfiguredCapabilityFragmentV1(envelope.commandId, capabilities); assertNoConfiguredCapabilityFragmentV1(envelope.participantId, capabilities);
+    const commandJson = serializeAcceptedCoreCommandV1(envelope.command, capabilities); const previousJson = JSON.stringify(previous.value); const nextJson = JSON.stringify(next.value);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(INSERT_JOURNAL, next.value.revision, envelope.commandId, envelope.participantId, envelope.baseRevision, commandJson);
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = ?, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', next.value.revision, next.value.room.lifecycle, nextJson, envelope.roomId, previous.value.revision, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  persistVariableLobbyV4(previousInput: OnlineVariableLobbyV4, nextInput: OnlineVariableLobbyV4): void {
+    const previous = validateOnlineVariableLobbyV4(previousInput); const next = validateOnlineVariableLobbyV4(nextInput);
+    if (!previous.ok || !next.ok || previous.value.roomId !== next.value.roomId || JSON.stringify(previous.value.configuration) !== JSON.stringify(next.value.configuration)) throw new Error('Invalid variable lobby transition');
+    const previousJson = JSON.stringify(previous.value); const nextJson = JSON.stringify(next.value);
+    this.storage.transactionSync(() => {
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_forming_lobby SET state_json = ?, schema_version = ? WHERE singleton = 1 AND room_id = ? AND schema_version = ? AND state_json = ? RETURNING singleton', nextJson, 4, previous.value.roomId, 4, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  rotateVariableLobbyV4(roomId: string, hostParticipantId: string, seatCapability: string, nextCapability: string): Readonly<{ readonly projection: OnlineVariableLobbyProjectionV4; readonly admissionCapability: string }> {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('ROOM_NOT_FOUND');
+    if (lobby.hostParticipantId !== hostParticipantId || lobby.seats[0]?.seatCapability !== seatCapability) throw new Error('HOST_REQUIRED');
+    const next = rotateOnlineVariableLobbyAdmissionV4(lobby, nextCapability); this.persistVariableLobbyV4(lobby, next); return Object.freeze({ projection: projectOnlineVariableLobbyV4(next), admissionCapability: next.admissionCapability });
+  }
+  closeVariableLobbyV4(roomId: string, hostParticipantId: string, seatCapability: string): OnlineVariableLobbyProjectionV4 {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('ROOM_NOT_FOUND');
+    if (lobby.hostParticipantId !== hostParticipantId || lobby.seats[0]?.seatCapability !== seatCapability) throw new Error('HOST_REQUIRED');
+    const next = closeOnlineVariableLobbyAdmissionV4(lobby); this.persistVariableLobbyV4(lobby, next); return projectOnlineVariableLobbyV4(next);
+  }
+  deleteVariableLobbyV4(roomId: string): void { this.storage.transactionSync(() => { const rows = this.storage.sql.exec<LobbyRow>(SELECT_LOBBY).toArray(); if (rows.length !== 1 || rows[0]?.room_id !== roomId || rows[0]?.schema_version !== 4) throw new Error('ROOM_NOT_FOUND'); this.storage.sql.exec('DELETE FROM online_forming_lobby WHERE singleton = 1 AND room_id = ? AND schema_version = 4', roomId); }); }
+  private replaceVariableLobbySeatV4(lobby: OnlineVariableLobbyV4, participantId: string, nextSeatCapability: string, nextAdmissionCapability: string): OnlineVariableLobbyProjectionV4 {
+    const roomId = lobby.roomId;
+    const index = lobby.seats.findIndex((seat) => seat.participantId === participantId); if (index <= 0) throw new Error(index === 0 ? 'HOST_REQUIRED' : 'PARTICIPANT_NOT_FOUND');
+    const next = replaceOnlineVariableLobbySeatV4(lobby, participantId, nextSeatCapability, nextAdmissionCapability);
+    this.storage.transactionSync(() => { this.ensureDeckSchema(); this.storage.sql.exec('DELETE FROM online_deck_submission_head_v2 WHERE room_id = ? AND seat_index = ?', roomId, index); this.storage.sql.exec('DELETE FROM online_deck_submission_history_v2 WHERE room_id = ? AND seat_index = ?', roomId, index); this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, index); this.storage.sql.exec('DELETE FROM online_deck_submission_ready_v2 WHERE room_id = ? AND seat_index = ?', roomId, index); });
+    this.persistVariableLobbyV4(lobby, next); return projectOnlineVariableLobbyV4(next);
+  }
+  kickVariableLobbySeatV4(roomId: string, hostParticipantId: string, hostSeatCapability: string, targetParticipantId: string, nextSeatCapability: string, nextAdmissionCapability: string): OnlineVariableLobbyProjectionV4 {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('ROOM_NOT_FOUND');
+    if (lobby.hostParticipantId !== hostParticipantId || lobby.seats[0]?.seatCapability !== hostSeatCapability) throw new Error('HOST_REQUIRED');
+    return this.replaceVariableLobbySeatV4(lobby, targetParticipantId, nextSeatCapability, nextAdmissionCapability);
+  }
+  leaveVariableLobbySeatV4(roomId: string, participantId: string, seatCapability: string, nextSeatCapability: string, nextAdmissionCapability: string): OnlineVariableLobbyProjectionV4 {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('ROOM_NOT_FOUND');
+    const seat = lobby.seats.find((candidate) => candidate.participantId === participantId && candidate.seatCapability === seatCapability);
+    if (seat === undefined) throw new Error('CREDENTIAL_KICKED');
+    return this.replaceVariableLobbySeatV4(lobby, participantId, nextSeatCapability, nextAdmissionCapability);
+  }
+
   private ensureDeckSchema(): void {
     this.storage.sql.exec(CREATE_DECK_HEAD);
     this.storage.sql.exec(CREATE_DECK_HISTORY);
@@ -936,6 +1078,44 @@ export class OnlineCloudflareRepository {
     }
     const status = this.initializeDynamicRoomV2(roomId, genesis.protocolState, lobby, seats);
     return Object.freeze({ kind: 'online-forming-lobby-start-result-v2', schemaVersion: 2, roomId, outcome: 'started', issue: null, status });
+  }
+
+  async submitVariableDeckV2(roomId: string, input: unknown, resolver: OnlineDeckResolverV2): Promise<unknown> {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('Missing variable lobby');
+    if (!exactSubmissionEnvelope(input) || !isOnlineRoomApplicationIdV1(input.participantId) || !isOnlineRoomSeatCapabilityV1(input.seatCapability) || input.kind !== 'online-forming-lobby-deck-submit-v2' || input.schemaVersion !== 2) throw new Error('Invalid variable deck envelope');
+    const seatIndex = lobby.seats.findIndex((seat) => seat.participantId === input.participantId && seat.seatCapability === input.seatCapability); if (seatIndex < 0 || lobby.lifecycle !== 'forming') throw new Error('Seat authorization rejected');
+    if (lobby.seats[seatIndex]?.ready) throw new Error('PLAYERS_NOT_READY');
+    const parsed = parseOnlineDeckSubmitV2(input); if (!parsed.ok) throw new Error('Invalid variable deck submission');
+    const resolved = await resolveOnlineDeckSubmissionV2(parsed.value.entries, resolver); if (resolved.snapshot === null) return Object.freeze({ kind: 'online-forming-lobby-deck-result-v2', schemaVersion: 2, roomId, submissionId: parsed.value.submissionId, state: 'needs-attention', issues: resolved.issues, projection: projectOnlineVariableLobbyV4(lobby) });
+    const currentLobby = this.loadVariableLobbyV4(roomId); if (currentLobby === null || currentLobby.lifecycle !== 'forming') throw new ConflictError();
+    const currentSeatIndex = currentLobby.seats.findIndex((seat) => seat.participantId === input.participantId && seat.seatCapability === input.seatCapability); if (currentSeatIndex !== seatIndex || currentLobby.seats[currentSeatIndex]?.ready) throw new ConflictError();
+    const contentDigest = parsed.contentDigest; const snapshot = resolved.snapshot; const snapshotJson = snapshot.serialized; const existingHead = this.deckHead(roomId, seatIndex); const revision = existingHead === null ? 1 : existingHead.revision + 1;
+    if (existingHead !== null && existingHead.participantId === input.participantId && existingHead.contentDigest === contentDigest && existingHead.state === 'accepted') { const repairedLobby = currentLobby.seats[seatIndex]?.acceptedDeck ? currentLobby : setOnlineVariableLobbyDeckAcceptedV4(currentLobby, input.participantId, true); if (repairedLobby !== currentLobby) this.persistVariableLobbyV4(currentLobby, repairedLobby); return Object.freeze({ kind: 'online-forming-lobby-deck-result-v2', schemaVersion: 2, roomId, submissionId: existingHead.submissionId, state: 'accepted', issues: Object.freeze([]), projection: projectOnlineVariableLobbyV4(repairedLobby) }); }
+    const nextLobby = setOnlineVariableLobbyDeckAcceptedV4(currentLobby, input.participantId, true); const currentLobbyJson = JSON.stringify(currentLobby); const nextLobbyJson = JSON.stringify(nextLobby);
+    this.storage.transactionSync(() => {
+      this.ensureDeckSchema();
+      if (this.deckHead(roomId, seatIndex) !== null) { this.storage.sql.exec('DELETE FROM online_deck_submission_head_v2 WHERE room_id = ? AND seat_index = ?', roomId, seatIndex); this.storage.sql.exec('DELETE FROM online_deck_submission_history_v2 WHERE room_id = ? AND seat_index = ?', roomId, seatIndex); this.storage.sql.exec(DELETE_DECK_SNAPSHOT, roomId, seatIndex); this.storage.sql.exec('DELETE FROM online_deck_submission_ready_v2 WHERE room_id = ? AND seat_index = ?', roomId, seatIndex); }
+      this.storage.sql.exec(INSERT_DECK_HEAD, roomId, seatIndex, input.participantId, parsed.value.deckId, parsed.value.submissionId, contentDigest, revision, 'accepted', snapshot.digest);
+      this.storage.sql.exec(INSERT_DECK_HISTORY, roomId, seatIndex, parsed.value.submissionId, input.participantId, parsed.value.deckId, parsed.canonicalInput, contentDigest, revision, 'accepted', '[]');
+      this.storage.sql.exec(INSERT_DECK_SNAPSHOT, roomId, seatIndex, snapshot.digest, snapshotJson);
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_forming_lobby SET state_json = ?, schema_version = 4 WHERE singleton = 1 AND room_id = ? AND schema_version = 4 AND state_json = ? RETURNING singleton', nextLobbyJson, roomId, currentLobbyJson).toArray(); if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+    return Object.freeze({ kind: 'online-forming-lobby-deck-result-v2', schemaVersion: 2, roomId, submissionId: parsed.value.submissionId, state: 'accepted', issues: Object.freeze([]), projection: projectOnlineVariableLobbyV4(nextLobby) });
+  }
+
+  setVariableReadyV4(roomId: string, participantId: string, seatCapability: string, ready: boolean): OnlineVariableLobbyProjectionV4 {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('Missing variable lobby');
+    if (!lobby.seats.some((seat) => seat.participantId === participantId && seat.seatCapability === seatCapability && seat.acceptedDeck)) throw new Error('Accepted v2 deck required before ready');
+    const next = setOnlineVariableLobbyReadyV4(lobby, participantId, ready); this.persistVariableLobbyV4(lobby, next); return projectOnlineVariableLobbyV4(next);
+  }
+
+  startVariableV4(roomId: string, hostParticipantId: string, seatCapability: string): Readonly<Record<string, unknown>> {
+    const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('Missing variable lobby');
+    if (lobby.hostParticipantId !== hostParticipantId || lobby.seats[0]?.seatCapability !== seatCapability) throw new Error('HOST_REQUIRED');
+    if (lobby.seats.some((seat) => seat.participantId === null || !seat.acceptedDeck || !seat.ready)) throw new Error('PLAYERS_NOT_READY');
+    const seats: VariableGenesisSeatInputV3[] = lobby.seats.map((seat, index) => { const head = this.deckHead(roomId, index); const loaded = this.loadDeckSnapshotV2(roomId, index); if (head === null || loaded === null || head.state !== 'accepted' || head.snapshotDigest !== loaded.digest || seat.participantId === null) throw new Error('Accepted snapshot relation invalid'); let parsed: unknown; try { parsed = JSON.parse(loaded.serialized); } catch { throw new Error('Invalid variable snapshot JSON'); } if (!exactOwnKeys(parsed, ['entries']) || !Array.isArray(parsed.entries)) throw new Error('Invalid variable snapshot shape'); return Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, seatCapability: seat.seatCapability, snapshotDigest: loaded.digest, snapshot: Object.freeze({ entries: parsed.entries as never, digest: loaded.digest, serialized: loaded.serialized }) }); });
+    const genesis = buildVariableRoomGenesisV3({ roomId, serverBuildId: lobby.serverBuildId, configuration: lobby.configuration, seats, tableParticipantId: lobby.tableParticipantId ?? undefined, tableCapability: lobby.tableCapability ?? undefined }); if (!genesis.ok) throw new Error(genesis.issues[0]?.code ?? 'VARIABLE_GENESIS_FAILED');
+    const status = this.initializeVariableProtocolV2(genesis.protocolState); const nextLobby = { ...lobby, lifecycle: 'started' as const, admissionOpen: false }; this.persistVariableLobbyV4(lobby, nextLobby); return status;
   }
 
   private initializeDynamicRoomV2(roomId: string, state: OnlineProtocolStateV1, expectedLobby: OnlineFormingLobbyV1, expectedSeats: readonly DynamicGenesisSeatInputV2[]): OnlineCloudflareRoomStatusV1 {

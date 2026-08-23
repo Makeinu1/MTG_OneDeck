@@ -44,3 +44,20 @@ export { OnlineProtocolCreationErrorV1, OnlineProtocolOperationErrorV1 } from '.
 export { handleOnlineClientHelloV1 } from './hello';
 export { handleOnlineCommandEnvelopeV1 } from './command';
 export { handleOnlineSnapshotRequestV1 } from './snapshot';
+
+export {
+  ONLINE_PROTOCOL_SCHEMA_VERSION_V2,
+  validateOnlineVariableProtocolStateV2,
+  createOnlineVariableProtocolStateV2,
+  protocolStateCapabilitiesV2,
+  createOnlineProtocolStateV2,
+  validateOnlineProtocolStateV2,
+} from './variable';
+export { handleOnlineVariableCommandEnvelopeV2 } from './variableCommand';
+export type { OnlineVariableCommandTransitionV2 } from './variableCommand';
+export type {
+  OnlineVariableProtocolStateV2,
+  CreateOnlineVariableProtocolStateV2Input,
+  OnlineVariableProtocolValidationResultV2,
+} from './variable';
+export type { OnlineVariableProtocolStateV2 as OnlineProtocolStateV2 } from './variable';

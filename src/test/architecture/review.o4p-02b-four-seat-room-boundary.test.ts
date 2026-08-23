@@ -15,6 +15,7 @@ const allowedRoomModuleSpecifiers = new Set([
   './errors',
   './operations',
   './types',
+  './variable',
   './validation',
   './validationSupport',
 ]);
@@ -177,6 +178,7 @@ describe('O4P-02B four-seat Room architecture boundary', () => {
       'src/online/room/types.ts',
       'src/online/room/validation.ts',
       'src/online/room/validationSupport.ts',
+      'src/online/room/variable.ts',
     ]);
     const forbiddenSource = /Math\.random|Date\.now|new\s+Date|setTimeout|setInterval|fetch\s*\(|new\s+WebSocket|applyCoreCommandV1\s*\(|replayCoreCommandsV1\s*\(|protocolVersion|projectionSchemaVersion|localStorage|indexedDB/i;
     for (const filePath of files) {

@@ -247,6 +247,35 @@ export function projectOnlineFormingLobbyV1(lobbyInput: unknown): OnlineFormingL
   return Object.freeze({ kind: 'online-forming-lobby-projection-v1', schemaVersion: 1, lifecycle: lobby.lifecycle, roomId: lobby.roomId, serverBuildId: lobby.serverBuildId, hostParticipantId: lobby.hostParticipantId, seats: Object.freeze(lobby.seats.map((seat) => Object.freeze({ seatIndex: seat.seatIndex, corePlayerId: seat.corePlayerId, participantId: seat.participantId, deckId: seat.deckId, deckSubmitted: seat.deckText !== null, ready: seat.ready }))) });
 }
 
+export {
+  ONLINE_FORMING_LOBBY_SCHEMA_VERSION_V4,
+  validateOnlineVariableLobbyV4,
+  createOnlineVariableLobbyV4,
+  claimOnlineVariableLobbySeatV4,
+  setOnlineVariableLobbyDeckAcceptedV4,
+  setOnlineVariableLobbyReadyV4,
+  projectOnlineVariableLobbyV4,
+  startOnlineVariableLobbyV4,
+  rotateOnlineVariableLobbyAdmissionV4,
+  closeOnlineVariableLobbyAdmissionV4,
+  replaceOnlineVariableLobbySeatV4,
+  leaveOnlineVariableLobbyParticipantV4,
+  createOnlineLobbyV4,
+  validateOnlineLobbyV4,
+} from './variable';
+export type {
+  OnlineVariableLobbyLifecycleV4,
+  OnlineVariableLobbySeatV4,
+  OnlineVariableLobbyV4,
+  CreateOnlineVariableLobbyV4Input,
+  OnlineVariableLobbyProjectionV4,
+  OnlineVariableLobbyConfigurationV4,
+  OnlineVariableLobbyPlayerCountV4,
+  OnlineVariableLobbyStartingLifeV4,
+  OnlineLobbyV4,
+  OnlineLobbyProjectionV4,
+} from './variable';
+
 /** Shared admission credential persisted alongside the forming four-seat lobby. */
 export type OnlineLobbyAdmissionV3 = Readonly<{
   readonly kind: 'online-lobby-admission-v3';

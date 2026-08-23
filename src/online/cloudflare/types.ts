@@ -8,6 +8,7 @@ import type { OnlineRoomLifecycleV1 } from '../room/index';
 export const ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2 = 2 as const;
+export const ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V3 = 3 as const;
 export const ONLINE_CLOUDFLARE_MAX_BODY_BYTES_V1 = 1_048_576 as const;
 export const ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1 = 16_384 as const;
 

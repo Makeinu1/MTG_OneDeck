@@ -23,7 +23,7 @@ const frozenHashes = Object.freeze({
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
     'b7d69c3a71e77373c8722db99182d0074f38d18bb309c7229724b1272875fb12',
   'src/online/cloudflare/index.ts':
-    '987ee9cd6c0cf1e4473bdbae929f83b2c6ea47fea0647d580901dfaf3e1b25ba',
+    'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });

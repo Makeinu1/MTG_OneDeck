@@ -230,3 +230,6 @@ export function buildDynamicRoomGenesisV2(input: DynamicGenesisInputV2): Dynamic
 }
 
 export const createDynamicRoomGenesisV2 = buildDynamicRoomGenesisV2;
+
+export { buildVariableRoomGenesisV3, createVariableRoomGenesisV3, buildVariableRosterGenesisV3, VARIABLE_GENESIS_SCHEMA_VERSION_V3 } from './variable';
+export type { VariableGenesisInputV3, VariableGenesisIssueCodeV3, VariableGenesisIssueV3, VariableGenesisResultV3, VariableGenesisSeatInputV3, VariableGenesisSuccessV3 } from './variable';

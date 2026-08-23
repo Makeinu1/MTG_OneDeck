@@ -47,12 +47,15 @@ const expectedProductionFiles = [
   'src/online/protocol/support.ts',
   'src/online/protocol/types.ts',
   'src/online/protocol/validation.ts',
+  'src/online/protocol/variable.ts',
+  'src/online/protocol/variableCommand.ts',
 ] as const;
 
 const allowedModuleSpecifiers = new Set([
   '../../engine/core/index',
   '../../versioning/index',
   '../room/index',
+  '../room/variable',
   './auth',
   './command',
   './errors',
@@ -62,6 +65,8 @@ const allowedModuleSpecifiers = new Set([
   './support',
   './types',
   './validation',
+  './variable',
+  './variableCommand',
 ]);
 
 const exactCoreImports = new Map<string, ReadonlySet<string>>([
@@ -80,6 +85,14 @@ const exactCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/protocol/validation.ts',
     new Set(['CoreCommandV1', 'validateCoreCommandV1']),
+  ],
+  [
+    'src/online/protocol/variable.ts',
+    new Set(['ModeNeutralCoreRootV1', 'validateModeNeutralCoreRootV1']),
+  ],
+  [
+    'src/online/protocol/variableCommand.ts',
+    new Set(['applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
   ],
 ]);
 
@@ -314,13 +327,16 @@ describe('O4P-02C in-memory protocol architecture boundary', () => {
         expect(allowed.has(binding.imported), `${path} imports ${binding.imported}`).toBe(true);
         if (binding.imported === 'applyCoreCommandV1') {
           reducerImportCount += 1;
-          expect(path).toBe('src/online/protocol/command.ts');
+          expect([
+            'src/online/protocol/command.ts',
+            'src/online/protocol/variableCommand.ts',
+          ]).toContain(path);
           reducerCallCount += identifierCallCount(sourceText, filePath, binding.local);
         }
       }
     }
-    expect(reducerImportCount).toBe(1);
-    expect(reducerCallCount).toBe(1);
+    expect(reducerImportCount).toBe(2);
+    expect(reducerCallCount).toBe(2);
   });
 
   it('fails closed on aliases outside command, namespaces, dynamic imports, and escaping modules', () => {

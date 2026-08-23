@@ -1,5 +1,6 @@
 import type {
   OnlineProtocolStateV1,
+  OnlineVariableProtocolStateV2,
 } from '../protocol/index';
 import type {
   OnlineRoomParticipantRoleV1,
@@ -208,6 +209,7 @@ type ExpectedGrant = Readonly<{
   readonly authority: OnlineCloudflareSecurityAuthorityV1;
   readonly protocolCapability: string;
 }>;
+type OnlineSecurityProtocolState = OnlineProtocolStateV1 | OnlineVariableProtocolStateV2;
 
 const CREATE_SECURITY_STATE = 'CREATE TABLE IF NOT EXISTS online_security_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, last_observed_at INTEGER NOT NULL, next_connection_id INTEGER NOT NULL, dropped_audit_count INTEGER NOT NULL, grant_count INTEGER NOT NULL) STRICT';
 const CREATE_GRANTS = 'CREATE TABLE IF NOT EXISTS online_capability_grant (room_id TEXT NOT NULL, participant_id TEXT NOT NULL, authority TEXT NOT NULL, current_token TEXT NOT NULL, generation INTEGER NOT NULL, issued_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, http_window_started_at INTEGER NOT NULL, http_count INTEGER NOT NULL, rotation_window_started_at INTEGER NOT NULL, rotation_count INTEGER NOT NULL, retired_tokens_json TEXT NOT NULL, PRIMARY KEY (room_id, participant_id)) STRICT';
@@ -282,12 +284,13 @@ function rows<T>(value: { toArray(): T[] }): T[] {
   return result;
 }
 
-function configuredGrants(state: OnlineProtocolStateV1): readonly ExpectedGrant[] {
+function configuredGrants(state: OnlineSecurityProtocolState): readonly ExpectedGrant[] {
   const participants = state.room.participants;
   const expected: ExpectedGrant[] = [];
   for (const participant of participants) {
     if (!isRole(participant.role)) throw new OnlineCloudflareSecurityError('INVALID_SECURITY_STATE');
     if (participant.role === 'player') {
+      if (participant.seatIndex === null) throw new OnlineCloudflareSecurityError('INVALID_SECURITY_STATE');
       const seat = state.room.seats[participant.seatIndex];
       if (seat === undefined) throw new OnlineCloudflareSecurityError('INVALID_SECURITY_STATE');
       expected.push(Object.freeze({
@@ -304,6 +307,14 @@ function configuredGrants(state: OnlineProtocolStateV1): readonly ExpectedGrant[
         protocolCapability: authorization.observerCapability,
       }));
     }
+  }
+  for (const authorization of state.observerAuthorizations) {
+    if (expected.some((grant) => grant.participantId === authorization.participantId)) continue;
+    expected.push(Object.freeze({
+      participantId: authorization.participantId,
+      authority: 'table',
+      protocolCapability: authorization.observerCapability,
+    }));
   }
   const ids = new Set<string>();
   const capabilities = new Set<string>();
@@ -468,14 +479,14 @@ function rowAudit(value: AuditRow): AuditFact {
   });
 }
 
-function assertSnapshotRelations(snapshot: SecuritySnapshot, state: OnlineProtocolStateV1): void {
-  if (snapshot.state.roomId !== state.room.roomId || snapshot.grants.length !== state.room.participants.length
+function assertSnapshotRelations(snapshot: SecuritySnapshot, state: OnlineSecurityProtocolState): void {
+  const expected = configuredGrants(state);
+  if (snapshot.state.roomId !== state.room.roomId || snapshot.grants.length !== expected.length
     || snapshot.state.grantCount !== snapshot.grants.length
     || snapshot.audit.length > ONLINE_CLOUDFLARE_MAX_SECURITY_AUDIT_FACTS_V1
     || (snapshot.state.droppedAuditCount > 0 && snapshot.audit.length !== ONLINE_CLOUDFLARE_MAX_SECURITY_AUDIT_FACTS_V1)) {
     throw new OnlineCloudflareSecurityError('INVALID_SECURITY_STATE');
   }
-  const expected = configuredGrants(state);
   const expectedById = new Map(expected.map((grant) => [grant.participantId, grant]));
   const configuredCapabilities = expected.map((grant) => grant.protocolCapability);
   const seen = new Set<string>();
@@ -658,7 +669,7 @@ export class OnlineCloudflareSecurityRepository {
     return Object.freeze({ state: state.length, grants: grants.length, leases: leases.length, audit: audit.length });
   }
 
-  initializeInTransaction(roomId: string, state: OnlineProtocolStateV1, nowInput: unknown): void {
+  initializeInTransaction(roomId: string, state: OnlineSecurityProtocolState, nowInput: unknown): void {
     const now = clockValue(nowInput);
     const existingState = rows(this.storage.sql.exec<SecurityStateRow>(SELECT_SECURITY_STATE));
     const existingGrants = rows(this.storage.sql.exec<GrantRow>(SELECT_GRANTS));
@@ -692,7 +703,7 @@ export class OnlineCloudflareSecurityRepository {
     if (snapshot.state.lastObservedAt !== now || snapshot.grants.length !== expected.length) throw new OnlineCloudflareSecurityError('INVALID_SECURITY_STATE');
   }
 
-  read(state: OnlineProtocolStateV1): SecuritySnapshot {
+  read(state: OnlineSecurityProtocolState): SecuritySnapshot {
     try {
       const securitySnapshot = this.readSecuritySnapshot();
       const expected = configuredGrants(state);
@@ -737,7 +748,7 @@ export class OnlineCloudflareSecurityRepository {
     }
   }
 
-  validateClock(state: OnlineProtocolStateV1, nowInput: unknown): number {
+  validateClock(state: OnlineSecurityProtocolState, nowInput: unknown): number {
     return validateClock(this.read(state), nowInput);
   }
 
@@ -768,7 +779,7 @@ export class OnlineCloudflareSecurityRepository {
     });
   }
 
-  allocateConnectionId(state: OnlineProtocolStateV1, nowInput: unknown): number {
+  allocateConnectionId(state: OnlineSecurityProtocolState, nowInput: unknown): number {
     return this.storage.transactionSync(() => {
       const snapshot = this.read(state);
       const now = validateClock(snapshot, nowInput);
@@ -782,7 +793,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   consumeHttpAction(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string,
     token: string,
     action: OnlineCloudflareSecurityActionV1,
@@ -816,7 +827,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   authorizeSocket(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string,
     token: string,
     action: OnlineCloudflareSecurityActionV1,
@@ -840,7 +851,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   rotate(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string,
     currentToken: string,
     nextToken: string,
@@ -926,7 +937,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   acquireControllerLease(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string,
     generation: number,
     holder: OnlineCloudflareControllerHolderV1,
@@ -957,7 +968,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   releaseControllerLease(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string,
     generation: number,
     holder: OnlineCloudflareControllerHolderV1,
@@ -976,7 +987,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   recordAudit(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     participantId: string | null,
     connectionId: number | null,
     authority: OnlineCloudflareSecurityAuthorityV1 | null,
@@ -993,7 +1004,7 @@ export class OnlineCloudflareSecurityRepository {
   }
 
   private recordAuditSafe(
-    state: OnlineProtocolStateV1,
+    state: OnlineSecurityProtocolState,
     now: number,
     grant: Grant | null,
     connectionId: number | null,

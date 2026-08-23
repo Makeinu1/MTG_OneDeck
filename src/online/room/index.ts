@@ -38,3 +38,31 @@ export {
   setOnlineRoomPlayerReadyV1,
   startOnlineRoomV1,
 } from './operations';
+
+export {
+  ONLINE_ROOM_SCHEMA_VERSION_V2,
+  validateOnlineVariableRoomV2,
+  createOnlineVariableRoomV2,
+  joinOnlineVariableRoomV2,
+  acceptOnlineVariableRoomDeckV2,
+  setOnlineVariableRoomPlayerReadyV2,
+  startOnlineVariableRoomV2,
+  activateOnlineVariableRoomV2,
+  createOnlineRoomV2,
+  validateOnlineRoomV2,
+} from './variable';
+export type {
+  OnlineVariablePlayerCountV2,
+  OnlineVariableStartingLifeV2,
+  OnlineVariableRoomConfigurationV2,
+  OnlineVariableRoomSeatIndexV2,
+  OnlineVariableRoomLifecycleV2,
+  OnlineVariableRoomSeatV2,
+  OnlineVariableRoomParticipantV2,
+  OnlineVariableRoomV2,
+  CreateOnlineVariableRoomV2Input,
+  OnlineVariableRoomSeatAssignmentV2,
+  OnlineVariableRoomValidationResultV2,
+  OnlineRoomV2,
+  OnlineRoomConfigurationV2,
+} from './variable';

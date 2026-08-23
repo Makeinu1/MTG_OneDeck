@@ -160,8 +160,8 @@ describe('forming lobby runtime persistence', () => {
     const object = new OnlineRoomDurableObject({ id: { name: roomId }, storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
     const postLobby = (value: unknown): Request => new Request(`https://room.test/api/online/rooms/${roomId}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) });
     expect((await object.fetch(postLobby({ kind: 'online-forming-lobby-initialize-v1', schemaVersion: 1, lobby }))).status).toBe(200);
-    const runtime = object as unknown as { repository: { load: () => { room: { lifecycle: typeof lifecycle } }; loadLobby: () => typeof lobby } };
-    runtime.repository = { load: () => ({ room: { lifecycle } }), loadLobby: () => lobby };
+    const runtime = object as unknown as { repository: { load: () => { room: { lifecycle: typeof lifecycle } }; loadLobby: () => typeof lobby; loadVariableLobbyV4: () => null } };
+    runtime.repository = { load: () => ({ room: { lifecycle } }), loadLobby: () => lobby, loadVariableLobbyV4: () => null };
     const before = await object.fetch(new Request(`https://room.test/api/online/rooms/${roomId}/lobby`));
     const request = await object.fetch(postLobby({ kind: 'online-forming-lobby-deck-submit-v1', schemaVersion: 1, participantId: 'host-finished', seatCapability: seatCapabilities[0], deckId: 'deck-finished', deckText: '1 Plains' }));
     expect(request.status).toBe(400);
