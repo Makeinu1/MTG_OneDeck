@@ -44,6 +44,10 @@ host close.
   text was checked for `v3.`, Room/participant IDs, and admission/seat/Table
   capability markers; both checks were false and the kicked join input was
   empty.
+- The 375px deck-first PNG is a privacy crop of the equal Solo/Online action
+  row from the measured 375x812 viewport. Saved-deck names, artwork, commander
+  labels, editor text, and card rows are outside the crop; the full viewport is
+  represented only by the recorded `365/365` no-overflow metrics.
 
 ## Screenshots
 
