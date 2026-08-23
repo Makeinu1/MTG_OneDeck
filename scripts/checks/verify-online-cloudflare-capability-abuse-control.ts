@@ -29,7 +29,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
     '40a8a37f7348ed8bc553df3db9823b8b31ef190a36beb90604d3766b7c466d16',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
-    '5f2f488001997102e8d30617e86b116745e2a4454856954db11aae9a0a43e397',
+    'ff8761e7eb46a81cb855b87891f9b48219aef425e1c3eafe1d51ce1e14698f94',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });

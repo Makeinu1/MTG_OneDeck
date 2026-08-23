@@ -59,3 +59,33 @@ imports remain valid.
 The full canonical check, exact-head CI, Pages/Worker deployment, four-context
 and cross-browser production acceptance, and terminal ledger closure were not
 part of this audit and remain required before shipment.
+
+## Full-check repair audits
+
+1. Exact-head Actions `32614875094` stopped at the historical O4P-03A frozen
+   hash after the product change. The bounded verifier/allowlist repin candidate
+   fingerprint `34b379dffdbb4e707639ae4354827e7ef12305d4a6b95da03230275c99d50cfe`
+   was independently audited by `/root/o4p07c_fullcheck_repair_luna_audit`.
+   All 84 pins and the O3A -> O3B -> O3C -> O3D -> O5C -> O5D chain matched;
+   findings were `0/0/0/0`, token
+   `O4P-07C-FULL-CHECK-REPAIR-AUDIT-OK`.
+2. Replacement Actions `32615426397` reached Vitest and exposed seven stale
+   review expectations. The seven-review repair plus its two briefs froze at
+   `baa2eb8cac3b7a92735b536cfe381d93e7627b8b17d09f7872c1fbd49b76a78f`.
+   Read-only auditor `/root/o4p07c_fullcheck_repair2_luna_audit` verified seven
+   files / 34 tests, affected ESLint, and exact scope with findings `0/0/0/0`,
+   token `O4P-07C-FULL-CHECK-REPAIR-2-AUDIT-OK`.
+3. The user-authorized exceptional Actions `32632994186`, build job
+   `97178491909`, then stopped at the O4P-03A review hash before lint, Vitest,
+   build, O4P-07C production verification, ownership, or Pages. The five-file
+   SHA-chain repair plus two briefs froze at
+   `e040f3e2cc9c3e04cbf8bb2df7948a9ebebf6914a5db8119690818304bf718ae`.
+   Fresh read-only auditor `/root/o4p07c_fullcheck_repair3_luna_audit`
+   recomputed the six review pins, three downstream verifier pins, O5C-to-O5D
+   pin, final hashes, five direct verifier results, ESLint, and diff scope.
+   Findings were `0/0/0/0`, token
+   `O4P-07C-FULL-CHECK-REPAIR-3-AUDIT-OK`.
+
+No full-check, deployment, Pages, Worker, or shipment success is claimed by
+these correction audits. Another full-check requires a new explicit user
+exception.
