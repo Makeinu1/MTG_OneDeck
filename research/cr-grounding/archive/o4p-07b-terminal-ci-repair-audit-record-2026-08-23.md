@@ -31,3 +31,17 @@ Approval: `O4P-07B-TERMINAL-CI-REPAIR-APPROVED`.
 
 This record authorizes a new exact-head CI attempt. It does not claim that the
 replacement CI or Pages deployment has passed.
+
+## Candidate CI ownership stop
+
+Actions `32608268633` checked out exact candidate HEAD
+`cd34d6eaa8d0a661479c8094a1883f1c70364f72`. Its build job `97116847136`
+passed the complete `npm run check -- --build-base=/MTG_OneDeck/` step and
+resolved the exact diff base to
+`39b1f8da0950ce381b5268332836aadca4d512b5`.
+
+The subsequent ownership classifier stopped on exactly one `NEEDS-REAUTH`
+archive record plus three `FORBIDDEN` paths: this audit brief and the two
+Judge-owned `review.*` tests. Pages configuration, artifact upload, and deploy
+were skipped. This is an expected ownership stop, not a green release, and
+requires a separate exact-head green flow after Judge reauthorization.
