@@ -24,17 +24,45 @@ import {
   type PublicOnlineProjectionV2,
   type PublicOnlineSeatV2,
   type PublicOnlineSnapshotV2,
+  type PublicOnlineErrorIssueV2,
 } from './types';
-import { createPublicOnlineRecoveryStoreV1, parsePublicOnlineErrorV3, publicOnlineErrorMessageV3, type PublicOnlineRecoveryRecordV1 } from './recoveryV1';
+import {
+  createPublicOnlineRecoveryStoreV1,
+  parsePublicOnlineErrorV3,
+  publicOnlineErrorMessageV3,
+  type PublicOnlineErrorMessageV3,
+  type PublicOnlineRecoveryRecordV1,
+} from './recoveryV1';
 
 const MAX_RESPONSE_BYTES = 1_048_576;
 const APP_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 const CAPABILITY = /^[A-Za-z0-9_-]{32,128}$/;
+const BEARER_TEXT = /(?:seat|invite|admission|observer|table)_[A-Za-z0-9_-]{8}/i;
 
-class PublicOnlineRequestErrorV3 extends Error {}
-
-function publicRequestErrorMessage(error: unknown): string {
-  return error instanceof PublicOnlineRequestErrorV3 ? error.message : PUBLIC_ONLINE_ERROR_V1;
+class PublicOnlineRequestErrorV3 extends Error {
+  readonly detail: PublicOnlineErrorMessageV3;
+  constructor(detail: PublicOnlineErrorMessageV3) {
+    super(detail.message);
+    this.detail = detail;
+  }
+}
+class PublicOnlineLocalErrorV3 extends Error {
+  readonly code:
+    | 'CLIENT_OFFLINE'
+    | 'CLIENT_TIMEOUT'
+    | 'CLIENT_INVALID_RESPONSE'
+    | 'CLIENT_UPGRADE_REQUIRED';
+  constructor(
+    code:
+      | 'CLIENT_OFFLINE'
+      | 'CLIENT_TIMEOUT'
+      | 'CLIENT_INVALID_RESPONSE'
+      | 'CLIENT_UPGRADE_REQUIRED',
+    message: string,
+  ) {
+    super(message);
+    this.code = code;
+  }
 }
 type RecordValue = Record<string, unknown>;
 type Secrets = Readonly<{
@@ -177,11 +205,11 @@ function safeDeckEntries(
   forbidden: readonly string[],
 ): Readonly<{
   readonly entries: readonly {
-      readonly section: 'commander' | 'main';
-      readonly quantity: number;
-      readonly scryfallId: string;
-      readonly oracleId: string;
-    }[];
+    readonly section: 'commander' | 'main';
+    readonly quantity: number;
+    readonly scryfallId: string;
+    readonly oracleId: string;
+  }[];
   readonly ownerLabels: readonly string[];
 }> | null {
   try {
@@ -279,10 +307,7 @@ function safeDeckEntries(
       );
     }
     const canonical = JSON.stringify({ deckId, entries: result });
-    if (
-      new TextEncoder().encode(canonical).length >
-      ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2
-    )
+    if (new TextEncoder().encode(canonical).length > ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2)
       return null;
     return Object.freeze({
       entries: Object.freeze(result),
@@ -314,8 +339,7 @@ function secretFragment(text: string, secrets: readonly string[]): boolean {
 function pairwiseCapabilityFragment(values: readonly string[]): boolean {
   return values.some((value, index) =>
     values.some(
-      (other, otherIndex) =>
-        index !== otherIndex && secretFragment(value, Object.freeze([other])),
+      (other, otherIndex) => index !== otherIndex && secretFragment(value, Object.freeze([other])),
     ),
   );
 }
@@ -329,11 +353,7 @@ function id(prefix: string): string {
     .join('')
     .slice(0, 38)}`;
 }
-function issueText(
-  code: string,
-  index: number | null,
-  ownerLabels: readonly string[],
-): string {
+function issueText(code: string, index: number | null, ownerLabels: readonly string[]): string {
   const card = index === null ? '' : (ownerLabels[index] ?? '');
   const label = card === '' ? '' : `《${card}》`;
   const map: Record<string, string> = {
@@ -432,31 +452,81 @@ export function validatePublicOnlineProjectionV2(
   };
 }
 async function json(response: Response, secrets: readonly string[]): Promise<unknown> {
-  if (
-    !/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? '')
-  )
-    throw new Error(PUBLIC_ONLINE_ERROR_V1);
-  const text = await response.text();
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? ''))
+    throw new PublicOnlineLocalErrorV3(
+      response.status === 426 ? 'CLIENT_UPGRADE_REQUIRED' : 'CLIENT_INVALID_RESPONSE',
+      response.status === 426
+        ? 'ページを更新して最新版を読み込んでください。'
+        : 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+    );
+  let text: string;
+  try {
+    text = await response.text();
+  } catch {
+    throw new PublicOnlineLocalErrorV3(
+      'CLIENT_INVALID_RESPONSE',
+      'サーバーの応答を読み取れませんでした。ページを更新して再試行してください。',
+    );
+  }
   if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES || secretFragment(text, secrets))
-    throw new Error(PUBLIC_ONLINE_ERROR_V1);
-  const value = JSON.parse(text) as unknown;
+    throw new PublicOnlineLocalErrorV3(
+      'CLIENT_INVALID_RESPONSE',
+      'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+    );
+  let value: unknown;
+  try {
+    value = JSON.parse(text) as unknown;
+  } catch {
+    throw new PublicOnlineLocalErrorV3(
+      'CLIENT_INVALID_RESPONSE',
+      'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+    );
+  }
   if (!response.ok) {
     const parsed = parsePublicOnlineErrorV3(value);
-    if (parsed !== null) throw new PublicOnlineRequestErrorV3(publicOnlineErrorMessageV3(parsed).message);
-    throw new Error(PUBLIC_ONLINE_ERROR_V1);
+    if (parsed !== null) throw new PublicOnlineRequestErrorV3(publicOnlineErrorMessageV3(parsed));
+    throw new PublicOnlineLocalErrorV3(
+      response.status === 426 ? 'CLIENT_UPGRADE_REQUIRED' : 'CLIENT_INVALID_RESPONSE',
+      response.status === 426
+        ? 'ページを更新して最新版を読み込んでください。'
+        : 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+    );
   }
   return value;
 }
 
-async function boundedResponseJson(response: Response, secrets: readonly string[]): Promise<unknown> {
-  if (!/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? '')) return null;
+async function boundedResponseJson(
+  response: Response,
+  secrets: readonly string[],
+): Promise<unknown> {
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(response.headers.get('content-type') ?? ''))
+    return null;
   let text: string;
-  try { text = await response.text(); } catch { return null; }
-  if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES || secretFragment(text, secrets)) return null;
-  try { return JSON.parse(text) as unknown; } catch { return null; }
+  try {
+    text = await response.text();
+  } catch {
+    return null;
+  }
+  if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES || secretFragment(text, secrets))
+    return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
 }
 function secretList(value: Secrets | null): readonly string[] {
-  return value === null ? [] : [value.seatCapability, ...value.invites, value.tableCapability];
+  if (value === null) return [];
+  const entropy = (capabilityValue: string): string => {
+    const separator = capabilityValue.lastIndexOf('_');
+    return separator >= 0 ? capabilityValue.slice(separator + 1) : capabilityValue;
+  };
+  const inviteEntropy = value.invites.flatMap((inviteCode) => {
+    const parsed = parseOnlineSharedInviteCodeV3(inviteCode);
+    return parsed === null ? [] : [entropy(parsed.admissionCapability)];
+  });
+  return [entropy(value.seatCapability), ...inviteEntropy, entropy(value.tableCapability)]
+    .filter((candidate) => candidate.length >= 8);
 }
 function created(
   value: unknown,
@@ -487,11 +557,7 @@ function created(
   const seatCapability = own(value, 'seatCapability') as string;
   const tableParticipantId = own(value, 'tableParticipantId') as string;
   const tableCapability = own(value, 'tableCapability') as string;
-  const allCapabilities = Object.freeze([
-    seatCapability,
-    ...invites,
-    tableCapability,
-  ]);
+  const allCapabilities = Object.freeze([seatCapability, ...invites, tableCapability]);
   const checkedProjection = validatePublicOnlineProjectionV1(own(value, 'projection'));
   if (
     new Set(allCapabilities).size !== allCapabilities.length ||
@@ -589,7 +655,6 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
   let projection: PublicOnlineProjectionV2 | null = null;
   let secrets: Secrets | null = null;
   let deck: PublicOnlineDeckOptionV2 | null = null;
-  let lastDeck: PublicOnlineDeckOptionV2 | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let busy: PublicOnlineSnapshotV2['busy'] = null;
   let playerClient: OnlineBrowserWebSocketClientV1 | null = null;
@@ -600,6 +665,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
   let epoch = 0;
   let abortController: AbortController | null = null;
   let requestSequence = 0;
+  let retryOperation: (() => Promise<void>) | null = null;
   const listeners = new Set<(snapshot: PublicOnlineSnapshotV2) => void>();
   let snapshot: PublicOnlineSnapshotV2 = Object.freeze({
     mode: 'entry',
@@ -613,6 +679,9 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     connection: 'lobby',
     ownerIssue: null,
     error: null,
+    errorIssue: null,
+    recoveryAvailable: recoveryStore.load() !== null,
+    admissionOpen: null,
     ownSeatIndex: null,
     player: null,
     table: null,
@@ -635,6 +704,10 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     return 'connecting';
   };
   const publish = (error: string | null = snapshot.error): void => {
+    if (error === null && snapshot.errorIssue !== null) {
+      snapshot = Object.freeze({ ...snapshot, errorIssue: null });
+      retryOperation = null;
+    }
     const safe = projection;
     snapshot = Object.freeze({
       ...snapshot,
@@ -642,6 +715,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       lifecycle: projection?.lifecycle ?? null,
       projection: safe,
       selectedDeckId: deck?.id ?? '',
+      recoveryAvailable: recoveryStore.load() !== null,
       busy,
       connection: connection(
         projection?.lifecycle === 'started',
@@ -666,6 +740,66 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
         /* isolated */
       }
     }
+  };
+  const publishServerError = (
+    body: unknown,
+    retry: (() => Promise<void>) | null = null,
+    action = 'もう一度接続',
+    fallback = PUBLIC_ONLINE_ERROR_V1,
+  ): void => {
+    const parsed = parsePublicOnlineErrorV3(body);
+    if (parsed === null) {
+      publishLocalError(
+        new PublicOnlineLocalErrorV3(
+          'CLIENT_INVALID_RESPONSE',
+          fallback === PUBLIC_ONLINE_ERROR_V1
+            ? 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。'
+            : fallback,
+        ),
+        retry,
+        action,
+      );
+      return;
+    }
+    const detail = publicOnlineErrorMessageV3(parsed);
+    const issue: PublicOnlineErrorIssueV2 = Object.freeze({ ...detail, action });
+    retryOperation = detail.retryable ? retry : null;
+    snapshot = Object.freeze({ ...snapshot, errorIssue: issue });
+    publish(detail.message);
+  };
+  const publishLocalError = (
+    error: unknown,
+    retry: (() => Promise<void>) | null = null,
+    action = 'もう一度接続',
+  ): void => {
+    if (error instanceof PublicOnlineRequestErrorV3) {
+      const issue: PublicOnlineErrorIssueV2 = Object.freeze({ ...error.detail, action });
+      retryOperation = error.detail.retryable ? retry : null;
+      snapshot = Object.freeze({ ...snapshot, errorIssue: issue });
+      publish(error.detail.message);
+      return;
+    }
+    const local = error instanceof PublicOnlineLocalErrorV3
+      ? error
+      : new PublicOnlineLocalErrorV3(
+          typeof navigator !== 'undefined' && navigator.onLine === false
+            ? 'CLIENT_OFFLINE'
+            : 'CLIENT_INVALID_RESPONSE',
+          typeof navigator !== 'undefined' && navigator.onLine === false
+            ? 'オフラインです。ネットワーク接続を確認して再試行してください。'
+            : 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+        );
+    const issue: PublicOnlineErrorIssueV2 = Object.freeze({
+      code: local.code,
+      retryable:
+        local.code !== 'CLIENT_INVALID_RESPONSE' && local.code !== 'CLIENT_UPGRADE_REQUIRED',
+      message: local.message,
+      correlationId: id('local'),
+      action,
+    });
+    retryOperation = issue.retryable ? retry : null;
+    snapshot = Object.freeze({ ...snapshot, errorIssue: issue });
+    publish(local.message);
   };
   const stopPoll = (): void => {
     if (timer !== null) {
@@ -732,10 +866,31 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     abortController?.abort();
     const controller = new AbortController();
     abortController = controller;
-    const response = await fetch(`${PUBLIC_ONLINE_ENDPOINT_V1}${path}`, {
-      ...init,
-      signal: controller.signal,
-    });
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
+    let response: Response;
+    try {
+      response = await fetch(`${PUBLIC_ONLINE_ENDPOINT_V1}${path}`, {
+        ...init,
+        signal: controller.signal,
+      });
+    } catch (error: unknown) {
+      clearTimeout(timeout);
+      if (timedOut && requestEpoch === epoch)
+        throw new PublicOnlineLocalErrorV3(
+          'CLIENT_TIMEOUT',
+          'サーバーからの応答が遅れています。接続を確認して再試行してください。',
+        );
+      if (requestEpoch !== epoch || sequence !== requestSequence) throw error;
+      throw new PublicOnlineLocalErrorV3(
+        'CLIENT_OFFLINE',
+        'サーバーに接続できません。ネットワーク接続を確認して再試行してください。',
+      );
+    }
+    clearTimeout(timeout);
     if (requestEpoch !== epoch || sequence !== requestSequence)
       throw new Error(PUBLIC_ONLINE_ERROR_V1);
     const value = await json(response, secretList(secrets));
@@ -743,14 +898,44 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       throw new Error(PUBLIC_ONLINE_ERROR_V1);
     return value;
   };
-  const requestRaw = async (path: string, init: RequestInit): Promise<Readonly<{ readonly response: Response; readonly epoch: number; readonly sequence: number }>> => {
+  const requestRaw = async (
+    path: string,
+    init: RequestInit,
+  ): Promise<
+    Readonly<{ readonly response: Response; readonly epoch: number; readonly sequence: number }>
+  > => {
     const requestEpoch = epoch;
     const sequence = ++requestSequence;
     abortController?.abort();
     const controller = new AbortController();
     abortController = controller;
-    const response = await fetch(`${PUBLIC_ONLINE_ENDPOINT_V1}${path}`, { ...init, signal: controller.signal });
-    if (requestEpoch !== epoch || sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
+    let response: Response;
+    try {
+      response = await fetch(`${PUBLIC_ONLINE_ENDPOINT_V1}${path}`, {
+        ...init,
+        signal: controller.signal,
+      });
+    } catch (error: unknown) {
+      clearTimeout(timeout);
+      if (timedOut && requestEpoch === epoch)
+        throw new PublicOnlineLocalErrorV3(
+          'CLIENT_TIMEOUT',
+          'サーバーからの応答が遅れています。接続を確認して再試行してください。',
+        );
+      if (requestEpoch !== epoch || sequence !== requestSequence) throw error;
+      throw new PublicOnlineLocalErrorV3(
+        'CLIENT_OFFLINE',
+        'サーバーに接続できません。ネットワーク接続を確認して再試行してください。',
+      );
+    }
+    clearTimeout(timeout);
+    if (requestEpoch !== epoch || sequence !== requestSequence)
+      throw new Error(PUBLIC_ONLINE_ERROR_V1);
     return Object.freeze({ response, epoch: requestEpoch, sequence });
   };
   const loadProjection = async (roomId: string): Promise<PublicOnlineProjectionV2> => {
@@ -759,7 +944,11 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       { method: 'GET', headers: { accept: 'application/json' } },
     );
     const checked = validatePublicOnlineProjectionV2(value);
-    if (!checked.ok || checked.value.roomId !== roomId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+    if (!checked.ok || checked.value.roomId !== roomId)
+      throw new PublicOnlineLocalErrorV3(
+        'CLIENT_INVALID_RESPONSE',
+        'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
+      );
     return checked.value;
   };
   const refresh = async (): Promise<void> => {
@@ -772,7 +961,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       publish(null);
       if (projection.lifecycle === 'started') startBrowsers();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch) publishLocalError(error, refresh, 'ロビーを更新');
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -814,7 +1003,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       publish(null);
       pollLater();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch) publishLocalError(error);
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -868,17 +1057,13 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       publish(null);
       pollLater();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch) publishLocalError(error);
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
         publish(snapshot.error);
       }
     }
-  };
-  const sharedFailure = (body: unknown): string => {
-    const parsed = parsePublicOnlineErrorV3(body);
-    return parsed === null ? PUBLIC_ONLINE_ERROR_V1 : publicOnlineErrorMessageV3(parsed).message;
   };
   const createShared = async (): Promise<void> => {
     if (busy !== null) return;
@@ -890,33 +1075,126 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     try {
       const participantId = id('p');
       const raw = await requestRaw('/api/online/rooms', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: 'online-forming-lobby-create-v3', schemaVersion: 3, participantId }),
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'online-forming-lobby-create-v3',
+          schemaVersion: 3,
+          participantId,
+        }),
       });
       const body = await boundedResponseJson(raw.response, []);
-      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
-      if (!raw.response.ok) { publish(sharedFailure(body)); return; }
-      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'inviteCode', 'tableParticipantId', 'tableCapability', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-created-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'participantId') !== participantId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
-      const roomId = own(body, 'roomId'); const seatCapability = own(body, 'seatCapability'); const inviteCodeValue = own(body, 'inviteCode'); const tableParticipantId = own(body, 'tableParticipantId'); const tableCapability = own(body, 'tableCapability');
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence)
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!raw.response.ok) {
+        publishServerError(body, createShared, 'もう一度部屋を作る');
+        return;
+      }
+      if (
+        !exact(body, [
+          'kind',
+          'schemaVersion',
+          'roomId',
+          'participantId',
+          'seatCapability',
+          'inviteCode',
+          'tableParticipantId',
+          'tableCapability',
+          'projection',
+        ]) ||
+        own(body, 'kind') !== 'online-forming-lobby-created-v3' ||
+        own(body, 'schemaVersion') !== 3 ||
+        own(body, 'participantId') !== participantId
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const roomId = own(body, 'roomId');
+      const seatCapability = own(body, 'seatCapability');
+      const inviteCodeValue = own(body, 'inviteCode');
+      const tableParticipantId = own(body, 'tableParticipantId');
+      const tableCapability = own(body, 'tableCapability');
       if (typeof inviteCodeValue !== 'string') throw new Error(PUBLIC_ONLINE_ERROR_V1);
       const inviteCode = inviteCodeValue;
       const parsedInvite = parseOnlineSharedInviteCodeV3(inviteCode);
       const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
-      if (!appId(roomId) || !capability(seatCapability) || parsedInvite === null || parsedInvite.roomId !== roomId || !appId(tableParticipantId) || !capability(tableCapability) || !checked.ok || checked.value.roomId !== roomId || checked.value.hostParticipantId !== participantId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 || pairwiseCapabilityFragment([seatCapability, parsedInvite.admissionCapability, tableCapability]) || secretFragment(JSON.stringify(checked.value), [seatCapability, parsedInvite.admissionCapability, tableCapability])) throw new Error(PUBLIC_ONLINE_ERROR_V1);
-      const nextSecrets = Object.freeze({ participantId, seatCapability, invites: Object.freeze([inviteCode]), tableParticipantId, tableCapability });
-      recoveryStore.save({ kind: 'public-online-recovery-v1', schemaVersion: 1, roomId, participantId, seatCapability, isHost: true, tableParticipantId, tableCapability });
+      if (
+        !appId(roomId) ||
+        !capability(seatCapability) ||
+        parsedInvite === null ||
+        parsedInvite.roomId !== roomId ||
+        !appId(tableParticipantId) ||
+        !capability(tableCapability) ||
+        !checked.ok ||
+        checked.value.roomId !== roomId ||
+        checked.value.hostParticipantId !== participantId ||
+        checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 ||
+        pairwiseCapabilityFragment([
+          seatCapability,
+          parsedInvite.admissionCapability,
+          tableCapability,
+        ]) ||
+        secretFragment(JSON.stringify(checked.value), [
+          seatCapability,
+          parsedInvite.admissionCapability,
+          tableCapability,
+        ])
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const nextSecrets = Object.freeze({
+        participantId,
+        seatCapability,
+        invites: Object.freeze([inviteCode]),
+        tableParticipantId,
+        tableCapability,
+      });
+      recoveryStore.save({
+        kind: 'public-online-recovery-v1',
+        schemaVersion: 1,
+        roomId,
+        participantId,
+        seatCapability,
+        isHost: true,
+        tableParticipantId,
+        tableCapability,
+      });
       secrets = nextSecrets;
       projection = checked.value;
-      snapshot = Object.freeze({ ...snapshot, mode: 'forming', roomId, isHost: true, invites: nextSecrets.invites, error: null });
+      snapshot = Object.freeze({
+        ...snapshot,
+        mode: 'forming',
+        roomId,
+        isHost: true,
+        invites: nextSecrets.invites,
+        admissionOpen: true,
+        error: null,
+      });
       publish(null);
       pollLater();
-    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
-    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+    } catch (error: unknown) {
+      if (operationEpoch === epoch)
+        publishLocalError(error, createShared, 'もう一度部屋を作る');
+    } finally {
+      if (operationEpoch === epoch) {
+        busy = null;
+        publish(snapshot.error);
+      }
+    }
   };
   const joinShared = async (inviteCode: string): Promise<void> => {
     if (busy !== null) return;
     const invite = parseOnlineSharedInviteCodeV3(inviteCode);
-    if (invite === null) { publish(PUBLIC_ONLINE_ERROR_V1); return; }
+    if (invite === null) {
+      const issue: PublicOnlineErrorIssueV2 = Object.freeze({
+        code: 'INVITE_INVALID',
+        retryable: false,
+        message: '招待が正しくありません。招待コードを確認してください。',
+        correlationId: id('local'),
+        action: '招待コードを確認',
+      });
+      retryOperation = null;
+      snapshot = Object.freeze({ ...snapshot, errorIssue: issue });
+      publish(issue.message);
+      return;
+    }
     epoch += 1;
     abortController?.abort();
     const operationEpoch = epoch;
@@ -925,44 +1203,312 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     try {
       const participantId = id('p');
       const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(invite.roomId)}/lobby`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: 'online-forming-lobby-shared-claim-v3', schemaVersion: 3, participantId, admissionCapability: invite.admissionCapability }),
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'online-forming-lobby-shared-claim-v3',
+          schemaVersion: 3,
+          participantId,
+          admissionCapability: invite.admissionCapability,
+        }),
       });
       const body = await boundedResponseJson(raw.response, [invite.admissionCapability]);
-      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
-      if (!raw.response.ok) { publish(sharedFailure(body)); return; }
-      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-shared-claimed-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== invite.roomId || own(body, 'participantId') !== participantId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence)
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (!raw.response.ok) {
+        publishServerError(body, () => joinShared(inviteCode), 'もう一度参加');
+        return;
+      }
+      if (
+        !exact(body, [
+          'kind',
+          'schemaVersion',
+          'roomId',
+          'participantId',
+          'seatCapability',
+          'projection',
+        ]) ||
+        own(body, 'kind') !== 'online-forming-lobby-shared-claimed-v3' ||
+        own(body, 'schemaVersion') !== 3 ||
+        own(body, 'roomId') !== invite.roomId ||
+        own(body, 'participantId') !== participantId
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
       const seatCapability = own(body, 'seatCapability');
       const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
-      if (!capability(seatCapability) || !checked.ok || checked.value.roomId !== invite.roomId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 || secretFragment(JSON.stringify(checked.value), [seatCapability, invite.admissionCapability])) throw new Error(PUBLIC_ONLINE_ERROR_V1);
-      const nextSecrets = Object.freeze({ participantId, seatCapability, invites: Object.freeze([] as string[]), tableParticipantId: '', tableCapability: '' });
-      recoveryStore.save({ kind: 'public-online-recovery-v1', schemaVersion: 1, roomId: invite.roomId, participantId, seatCapability, isHost: false, tableParticipantId: null, tableCapability: null });
+      if (
+        !capability(seatCapability) ||
+        !checked.ok ||
+        checked.value.roomId !== invite.roomId ||
+        checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 1 ||
+        secretFragment(JSON.stringify(checked.value), [seatCapability, invite.admissionCapability])
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const nextSecrets = Object.freeze({
+        participantId,
+        seatCapability,
+        invites: Object.freeze([] as string[]),
+        tableParticipantId: '',
+        tableCapability: '',
+      });
+      recoveryStore.save({
+        kind: 'public-online-recovery-v1',
+        schemaVersion: 1,
+        roomId: invite.roomId,
+        participantId,
+        seatCapability,
+        isHost: false,
+        tableParticipantId: null,
+        tableCapability: null,
+      });
       secrets = nextSecrets;
       projection = checked.value;
-      snapshot = Object.freeze({ ...snapshot, mode: 'forming', roomId: invite.roomId, isHost: false, invites: Object.freeze([]), error: null });
+      snapshot = Object.freeze({
+        ...snapshot,
+        mode: 'forming',
+        roomId: invite.roomId,
+        isHost: false,
+        invites: Object.freeze([]),
+        error: null,
+      });
       publish(null);
       pollLater();
-    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
-    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+    } catch (error: unknown) {
+      if (operationEpoch === epoch)
+        publishLocalError(error, () => joinShared(inviteCode), 'もう一度参加');
+    } finally {
+      if (operationEpoch === epoch) {
+        busy = null;
+        publish(snapshot.error);
+      }
+    }
   };
-  const validatedRecovery = (body: unknown, record: PublicOnlineRecoveryRecordV1): Readonly<{ readonly secrets: Secrets; readonly projection: PublicOnlineProjectionV2 }> | null => {
-    if (!plain(body) || own(body, 'kind') !== 'online-forming-lobby-recovered-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== record.roomId || own(body, 'participantId') !== record.participantId || own(body, 'seatCapability') !== record.seatCapability) return null;
+  const moderationRequest = async (
+    kind: 'rotate' | 'close' | 'kick',
+    targetParticipantId?: string,
+  ): Promise<void> => {
+    if (
+      busy !== null ||
+      projection === null ||
+      secrets === null ||
+      !snapshot.isHost ||
+      projection.lifecycle === 'started' ||
+      (kind === 'kick' &&
+        (targetParticipantId === undefined ||
+          !appId(targetParticipantId) ||
+          targetParticipantId === secrets.participantId))
+    )
+      return;
+    const operationEpoch = epoch;
+    busy = kind;
+    publish(null);
+    try {
+      const bodyInput =
+        kind === 'kick'
+          ? {
+              kind: 'online-forming-lobby-kick-v3',
+              schemaVersion: 3,
+              hostParticipantId: secrets.participantId,
+              seatCapability: secrets.seatCapability,
+              targetParticipantId,
+            }
+          : {
+              kind:
+                kind === 'rotate'
+                  ? 'online-forming-lobby-admission-rotate-v3'
+                  : 'online-forming-lobby-admission-close-v3',
+              schemaVersion: 3,
+              hostParticipantId: secrets.participantId,
+              seatCapability: secrets.seatCapability,
+            };
+      const raw = await requestRaw(
+        `/api/online/rooms/${encodeURIComponent(projection.roomId)}/lobby`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(bodyInput),
+        },
+      );
+      const body = await boundedResponseJson(raw.response, secretList(secrets));
+      if (!raw.response.ok) {
+        const action =
+          kind === 'rotate'
+            ? '招待を再発行'
+            : kind === 'close'
+              ? '参加受付を締める'
+              : 'もう一度外す';
+        publishServerError(body, () => moderationRequest(kind, targetParticipantId), action);
+        return;
+      }
+      const expected =
+        kind === 'rotate'
+          ? 'online-forming-lobby-admission-rotated-v3'
+          : kind === 'close'
+            ? 'online-forming-lobby-admission-closed-v3'
+            : 'online-forming-lobby-kicked-v3';
+      const fields =
+        kind === 'rotate'
+          ? ['kind', 'schemaVersion', 'roomId', 'inviteCode', 'projection']
+          : ['kind', 'schemaVersion', 'roomId', 'projection'];
+      if (
+        !exact(body, fields) ||
+        own(body, 'kind') !== expected ||
+        own(body, 'schemaVersion') !== 3 ||
+        own(body, 'roomId') !== projection.roomId
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
+      if (
+        !checked.ok ||
+        checked.value.roomId !== projection.roomId ||
+        checked.value.lifecycle === 'started'
+      )
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (kind === 'rotate') {
+        const inviteCode = own(body, 'inviteCode');
+        const parsed =
+          typeof inviteCode === 'string' ? parseOnlineSharedInviteCodeV3(inviteCode) : null;
+        if (
+          parsed === null ||
+          parsed.roomId !== projection.roomId ||
+          secretFragment(inviteCode as string, [secrets.seatCapability])
+        )
+          throw new Error(PUBLIC_ONLINE_ERROR_V1);
+        secrets = Object.freeze({ ...secrets, invites: Object.freeze([inviteCode as string]) });
+      } else if (kind === 'close') {
+        secrets = Object.freeze({ ...secrets, invites: Object.freeze([]) });
+      }
+      projection = checked.value;
+      snapshot = Object.freeze({
+        ...snapshot,
+        invites: secrets.invites,
+        admissionOpen: kind === 'close' ? false : kind === 'rotate' ? true : snapshot.admissionOpen,
+        error: null,
+        errorIssue: null,
+      });
+      publish(null);
+      pollLater();
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) {
+        const action =
+          kind === 'rotate'
+            ? '招待を再発行'
+            : kind === 'close'
+              ? '参加受付を締める'
+              : 'もう一度外す';
+        publishLocalError(error, () => moderationRequest(kind, targetParticipantId), action);
+      }
+    } finally {
+      if (operationEpoch === epoch) {
+        busy = null;
+        publish(snapshot.error);
+      }
+    }
+  };
+  const rotateInvite = async (): Promise<void> => moderationRequest('rotate');
+  const closeAdmission = async (): Promise<void> => moderationRequest('close');
+  const kick = async (targetParticipantId: string): Promise<void> =>
+    moderationRequest('kick', targetParticipantId);
+  const validatedRecovery = (
+    body: unknown,
+    record: PublicOnlineRecoveryRecordV1,
+  ): Readonly<{
+    readonly secrets: Secrets;
+    readonly projection: PublicOnlineProjectionV2;
+  }> | null => {
+    if (
+      !plain(body) ||
+      own(body, 'kind') !== 'online-forming-lobby-recovered-v3' ||
+      own(body, 'schemaVersion') !== 3 ||
+      own(body, 'roomId') !== record.roomId ||
+      own(body, 'participantId') !== record.participantId ||
+      own(body, 'seatCapability') !== record.seatCapability
+    )
+      return null;
     const projectionResult = validatePublicOnlineProjectionV2(own(body, 'projection'));
     if (!projectionResult.ok || projectionResult.value.roomId !== record.roomId) return null;
-    const ownSeats = projectionResult.value.seats.filter((seat) => seat.participantId === record.participantId);
-    if (ownSeats.length !== 1 || (record.isHost !== (projectionResult.value.hostParticipantId === record.participantId))) return null;
+    const ownSeats = projectionResult.value.seats.filter(
+      (seat) => seat.participantId === record.participantId,
+    );
+    if (
+      ownSeats.length !== 1 ||
+      record.isHost !== (projectionResult.value.hostParticipantId === record.participantId)
+    )
+      return null;
     if (record.isHost) {
-      if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'inviteCode', 'tableParticipantId', 'tableCapability', 'projection'])) return null;
-      const inviteCode = own(body, 'inviteCode'); const tableParticipantId = own(body, 'tableParticipantId'); const tableCapability = own(body, 'tableCapability');
+      if (
+        !exact(body, [
+          'kind',
+          'schemaVersion',
+          'roomId',
+          'participantId',
+          'seatCapability',
+          'inviteCode',
+          'tableParticipantId',
+          'tableCapability',
+          'projection',
+        ])
+      )
+        return null;
+      const inviteCode = own(body, 'inviteCode');
+      const tableParticipantId = own(body, 'tableParticipantId');
+      const tableCapability = own(body, 'tableCapability');
       const sharedInvite = typeof inviteCode === 'string' ? inviteCode : null;
-      const parsedInvite = sharedInvite === null ? null : parseOnlineSharedInviteCodeV3(sharedInvite);
-      if (sharedInvite === null || parsedInvite === null || parsedInvite.roomId !== record.roomId || typeof tableParticipantId !== 'string' || !appId(tableParticipantId) || typeof tableCapability !== 'string' || !capability(tableCapability) || tableParticipantId !== record.tableParticipantId || tableCapability !== record.tableCapability) return null;
-      if (secretFragment(JSON.stringify(projectionResult.value), [record.seatCapability, tableCapability])) return null;
-      return Object.freeze({ secrets: Object.freeze({ participantId: record.participantId, seatCapability: record.seatCapability, invites: Object.freeze([sharedInvite]), tableParticipantId, tableCapability }), projection: projectionResult.value });
+      const parsedInvite =
+        sharedInvite === null ? null : parseOnlineSharedInviteCodeV3(sharedInvite);
+      if (
+        sharedInvite === null ||
+        parsedInvite === null ||
+        parsedInvite.roomId !== record.roomId ||
+        typeof tableParticipantId !== 'string' ||
+        !appId(tableParticipantId) ||
+        typeof tableCapability !== 'string' ||
+        !capability(tableCapability) ||
+        tableParticipantId !== record.tableParticipantId ||
+        tableCapability !== record.tableCapability
+      )
+        return null;
+      if (
+        secretFragment(JSON.stringify(projectionResult.value), [
+          record.seatCapability,
+          tableCapability,
+        ])
+      )
+        return null;
+      return Object.freeze({
+        secrets: Object.freeze({
+          participantId: record.participantId,
+          seatCapability: record.seatCapability,
+          invites: Object.freeze([sharedInvite]),
+          tableParticipantId,
+          tableCapability,
+        }),
+        projection: projectionResult.value,
+      });
     }
-    if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', 'projection'])) return null;
-    if (secretFragment(JSON.stringify(projectionResult.value), [record.seatCapability])) return null;
-    return Object.freeze({ secrets: Object.freeze({ participantId: record.participantId, seatCapability: record.seatCapability, invites: Object.freeze([] as string[]), tableParticipantId: '', tableCapability: '' }), projection: projectionResult.value });
+    if (
+      !exact(body, [
+        'kind',
+        'schemaVersion',
+        'roomId',
+        'participantId',
+        'seatCapability',
+        'projection',
+      ])
+    )
+      return null;
+    if (secretFragment(JSON.stringify(projectionResult.value), [record.seatCapability]))
+      return null;
+    return Object.freeze({
+      secrets: Object.freeze({
+        participantId: record.participantId,
+        seatCapability: record.seatCapability,
+        invites: Object.freeze([] as string[]),
+        tableParticipantId: '',
+        tableCapability: '',
+      }),
+      projection: projectionResult.value,
+    });
   };
   const recover = async (): Promise<void> => {
     if (busy !== null) return;
@@ -972,26 +1518,59 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     busy = 'refresh';
     publish(null);
     try {
-      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(record.roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-recover-v3', schemaVersion: 3, participantId: record.participantId, seatCapability: record.seatCapability }) });
+      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(record.roomId)}/lobby`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'online-forming-lobby-recover-v3',
+          schemaVersion: 3,
+          participantId: record.participantId,
+          seatCapability: record.seatCapability,
+        }),
+      });
       const response = raw.response;
       const body = await boundedResponseJson(response, []);
-      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence)
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
       if (!response.ok) {
-        const parsed = body !== null && !secretFragment(JSON.stringify(body), [record.seatCapability]) ? parsePublicOnlineErrorV3(body) : null;
-        if (parsed?.code === 'CREDENTIAL_KICKED' || parsed?.code === 'CREDENTIAL_REJECTED' || parsed?.code === 'ROOM_NOT_FOUND' || parsed?.code === 'ROOM_EXPIRED') recoveryStore.clear();
-        if (parsed !== null) publish(publicOnlineErrorMessageV3(parsed).message);
-        else publish(PUBLIC_ONLINE_ERROR_V1);
+        const parsed =
+          body !== null && !secretFragment(JSON.stringify(body), [record.seatCapability])
+            ? parsePublicOnlineErrorV3(body)
+            : null;
+        if (
+          parsed?.code === 'CREDENTIAL_KICKED' ||
+          parsed?.code === 'CREDENTIAL_REJECTED' ||
+          parsed?.code === 'ROOM_NOT_FOUND' ||
+          parsed?.code === 'ROOM_EXPIRED'
+        )
+          recoveryStore.clear();
+        publishServerError(body, recover, '対戦に戻る');
         return;
       }
       const checked = validatedRecovery(body, record);
       if (checked === null) throw new Error(PUBLIC_ONLINE_ERROR_V1);
       secrets = checked.secrets;
       projection = checked.projection;
-      snapshot = Object.freeze({ ...snapshot, mode: projection.lifecycle === 'started' ? 'started' : 'forming', roomId: record.roomId, isHost: record.isHost, invites: secrets.invites, error: null });
+      snapshot = Object.freeze({
+        ...snapshot,
+        mode: projection.lifecycle === 'started' ? 'started' : 'forming',
+        roomId: record.roomId,
+        isHost: record.isHost,
+        invites: secrets.invites,
+        admissionOpen: record.isHost ? true : null,
+        error: null,
+      });
       publish(null);
-      if (projection.lifecycle === 'started') startBrowsers(); else pollLater();
-    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
-    finally { if (operationEpoch === epoch) { busy = null; publish(snapshot.error); } }
+      if (projection.lifecycle === 'started') startBrowsers();
+      else pollLater();
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publishLocalError(error, recover, '対戦に戻る');
+    } finally {
+      if (operationEpoch === epoch) {
+        busy = null;
+        publish(snapshot.error);
+      }
+    }
   };
   const leave = async (): Promise<void> => {
     if (busy !== null || secrets === null || snapshot.roomId === null) return;
@@ -1003,26 +1582,64 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     busy = 'refresh';
     publish(null);
     try {
-      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-leave-v3', schemaVersion: 3, participantId, seatCapability }) });
+      const raw = await requestRaw(`/api/online/rooms/${encodeURIComponent(roomId)}/lobby`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'online-forming-lobby-leave-v3',
+          schemaVersion: 3,
+          participantId,
+          seatCapability,
+        }),
+      });
       const response = raw.response;
       const body = await boundedResponseJson(response, [seatCapability]);
-      if (raw.epoch !== epoch || raw.sequence !== requestSequence) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+      if (raw.epoch !== epoch || raw.sequence !== requestSequence)
+        throw new Error(PUBLIC_ONLINE_ERROR_V1);
       if (!response.ok) {
         const parsed = parsePublicOnlineErrorV3(body);
-        if (parsed?.code === 'CREDENTIAL_KICKED' || parsed?.code === 'CREDENTIAL_REJECTED' || parsed?.code === 'ROOM_NOT_FOUND' || parsed?.code === 'ROOM_EXPIRED') recoveryStore.clear();
-        publish(parsed === null ? PUBLIC_ONLINE_ERROR_V1 : publicOnlineErrorMessageV3(parsed).message);
+        if (
+          parsed?.code === 'CREDENTIAL_KICKED' ||
+          parsed?.code === 'CREDENTIAL_REJECTED' ||
+          parsed?.code === 'ROOM_NOT_FOUND' ||
+          parsed?.code === 'ROOM_EXPIRED'
+        )
+          recoveryStore.clear();
+        publishServerError(body, leave, 'もう一度退出');
         return;
       }
       if (host) {
-        if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'closed']) || own(body, 'kind') !== 'online-forming-lobby-left-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== roomId || own(body, 'closed') !== true) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+        if (
+          !exact(body, ['kind', 'schemaVersion', 'roomId', 'closed']) ||
+          own(body, 'kind') !== 'online-forming-lobby-left-v3' ||
+          own(body, 'schemaVersion') !== 3 ||
+          own(body, 'roomId') !== roomId ||
+          own(body, 'closed') !== true
+        )
+          throw new Error(PUBLIC_ONLINE_ERROR_V1);
       } else {
-        if (!exact(body, ['kind', 'schemaVersion', 'roomId', 'projection']) || own(body, 'kind') !== 'online-forming-lobby-left-v3' || own(body, 'schemaVersion') !== 3 || own(body, 'roomId') !== roomId) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+        if (
+          !exact(body, ['kind', 'schemaVersion', 'roomId', 'projection']) ||
+          own(body, 'kind') !== 'online-forming-lobby-left-v3' ||
+          own(body, 'schemaVersion') !== 3 ||
+          own(body, 'roomId') !== roomId
+        )
+          throw new Error(PUBLIC_ONLINE_ERROR_V1);
         const checked = validatePublicOnlineProjectionV2(own(body, 'projection'));
-        if (!checked.ok || checked.value.roomId !== roomId || checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 0) throw new Error(PUBLIC_ONLINE_ERROR_V1);
+        if (
+          !checked.ok ||
+          checked.value.roomId !== roomId ||
+          checked.value.seats.filter((seat) => seat.participantId === participantId).length !== 0
+        )
+          throw new Error(PUBLIC_ONLINE_ERROR_V1);
       }
-      recoveryStore.clear(); disconnect();
-    } catch { if (operationEpoch === epoch) publish(PUBLIC_ONLINE_ERROR_V1); }
-    finally { if (operationEpoch === epoch) busy = null; }
+      recoveryStore.clear();
+      disconnect();
+    } catch (error: unknown) {
+      if (operationEpoch === epoch) publishLocalError(error, leave, 'もう一度退出');
+    } finally {
+      if (operationEpoch === epoch) busy = null;
+    }
   };
   const submitDeck = async (value: PublicOnlineDeckOptionV2): Promise<void> => {
     if (
@@ -1040,7 +1657,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     const operationEpoch = epoch;
     busy = 'deck';
     deck = value;
-    lastDeck = value;
+    snapshot = Object.freeze({ ...snapshot, ownerIssue: null });
     publish(null);
     try {
       const submissionId = id('submission');
@@ -1127,10 +1744,12 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
                 message: issueText(code, entryIndex, safeDeck.ownerLabels),
               }),
       });
+      retryOperation = retryable ? () => submitDeck(value) : null;
       publish(null);
       pollLater();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch)
+        publishLocalError(error, () => submitDeck(value), 'デッキを再確認');
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1191,7 +1810,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       publish(null);
       pollLater();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch)
+        publishLocalError(error, toggleReady, '準備状態を更新');
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1247,7 +1867,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       publish(null);
       startBrowsers();
     } catch (error: unknown) {
-      if (operationEpoch === epoch) publish(publicRequestErrorMessage(error));
+      if (operationEpoch === epoch) publishLocalError(error, start, '対戦開始を再試行');
     } finally {
       if (operationEpoch === epoch) {
         busy = null;
@@ -1256,7 +1876,8 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     }
   };
   const retry = async (): Promise<void> => {
-    if (lastDeck !== null) await submitDeck(lastDeck);
+    const operation = retryOperation;
+    if (operation !== null) await operation();
   };
   const submitAction = (action: unknown, guided: boolean): void => {
     if (secrets === null || projection === null || playerClient === null) return;
@@ -1298,7 +1919,7 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     projection = null;
     secrets = null;
     deck = null;
-    lastDeck = null;
+    retryOperation = null;
     busy = null;
     snapshot = Object.freeze({
       mode: 'entry',
@@ -1312,6 +1933,9 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       connection: 'lobby',
       ownerIssue: null,
       error: null,
+      errorIssue: null,
+      recoveryAvailable: recoveryStore.load() !== null,
+      admissionOpen: null,
       ownSeatIndex: null,
       player: null,
       table: null,
@@ -1335,6 +1959,9 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
     submitDeck,
     toggleReady,
     start,
+    rotateInvite,
+    closeAdmission,
+    kick,
     recover,
     leave,
     retry,
@@ -1342,12 +1969,12 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       const fallback = `保存済みデッキ ${index + 1}`;
       try {
         if (
-          secrets === null ||
           !Number.isSafeInteger(index) ||
           index < 0 ||
           typeof name !== 'string' ||
           new TextEncoder().encode(name).length > 120 ||
-          secretFragment(name, secretList(secrets))
+          BEARER_TEXT.test(name) ||
+          (secrets !== null && secretFragment(name, secretList(secrets)))
         )
           return fallback;
         return name;
@@ -1365,10 +1992,12 @@ export function createPublicOnlineControllerV2(): PublicOnlineControllerV2 {
       ) {
         try {
           await navigator.clipboard.writeText(invite);
+          return true;
         } catch {
-          /* optional */
+          return false;
         }
       }
+      return false;
     },
     disconnect,
   });

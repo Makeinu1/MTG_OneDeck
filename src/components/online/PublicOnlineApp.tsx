@@ -1,31 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   createPublicOnlineControllerV2,
+  encodeOnlineSharedInviteCodeV3,
+  readAndScrubPublicOnlineInviteFragmentV3,
   type PublicOnlineDeckOptionV2,
   type PublicOnlineSnapshotV2,
-} from '../../online/publicApp/index';
+} from '../../online/publicApp';
 import './publicOnlineApp.css';
 import { OnlineDisplayPairing } from './OnlineDisplayPairing';
 import { OnlineGuidedActions } from './OnlineGuidedActions';
 import { PersonalWorkbench } from './PersonalWorkbench';
 
 export type PublicOnlineAppProps = Readonly<{
-  readonly decks: readonly PublicOnlineDeckOptionV2[];
-  readonly initialDeckId?: string;
-  readonly selectedDeckId?: string;
-  readonly onDeckSelect?: (deckId: string) => void;
-  readonly onBackToSolo: () => void;
-  readonly onImportDeck?: () => void;
+  decks: readonly PublicOnlineDeckOptionV2[];
+  initialDeckId?: string;
+  selectedDeckId?: string;
+  onDeckSelect?: (deckId: string) => void;
+  onBackToSolo: () => void;
+  onImportDeck?: () => void;
 }>;
-
-function publicDeckState(state: string): string {
-  return state === 'accepted'
-    ? 'デッキ確認済み'
-    : state === 'resolving'
-      ? 'デッキ確認中'
-      : state === 'needs-attention'
-        ? 'デッキ要修正'
-        : 'デッキ未提出';
+const steps = ['入室済み', 'デッキ提出', '準備完了', '対戦開始'] as const;
+function deckState(value: string): string {
+  return value === 'accepted'
+    ? '提出済み'
+    : value === 'resolving'
+      ? '確認中'
+      : value === 'needs-attention'
+        ? '要修正'
+        : '未提出';
+}
+function cardCount(deck: PublicOnlineDeckOptionV2 | null): number {
+  return deck?.entries.reduce((sum, entry) => sum + entry.quantity, 0) ?? 0;
 }
 function allReady(snapshot: PublicOnlineSnapshotV2): boolean {
   return (
@@ -45,51 +50,94 @@ export function PublicOnlineApp({
 }: PublicOnlineAppProps) {
   const controller = useMemo(() => createPublicOnlineControllerV2(), []);
   const [snapshot, setSnapshot] = useState<PublicOnlineSnapshotV2>(() => controller.getSnapshot());
-  const [roomId, setRoomId] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [selectedDeckId, setSelectedDeckId] = useState(initialDeckId || decks[0]?.id || '');
+  const [joinCode, setJoinCode] = useState('');
+  const [entry, setEntry] = useState<'entry' | 'join'>('entry');
+  const [revealed, setRevealed] = useState(false);
+  const [kickSeat, setKickSeat] = useState<number | null>(null);
+  const [copyNotice, setCopyNotice] = useState('');
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
   useEffect(() => {
-    const unsubscribe = controller.subscribe(setSnapshot);
+    const off = controller.subscribe(setSnapshot);
     return () => {
-      unsubscribe();
+      off();
       controller.disconnect();
     };
   }, [controller]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const invite = readAndScrubPublicOnlineInviteFragmentV3(window.location, window.history);
+    if (!invite) return;
+    const code = encodeOnlineSharedInviteCodeV3(invite.roomId, invite.admissionCapability);
+    const timer = window.setTimeout(() => {
+      setJoinCode(code);
+      setEntry('join');
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (snapshot.mode !== 'forming' || snapshot.busy !== null || joinCode === '') return;
+    const timer = window.setTimeout(() => setJoinCode(''), 0);
+    return () => window.clearTimeout(timer);
+  }, [snapshot.busy, snapshot.mode, joinCode]);
   const activeDeckId = controlledDeckId ?? selectedDeckId;
   const exactDeckIndex = decks.findIndex((deck) => deck.id === activeDeckId);
   const selectedDeckIndex = exactDeckIndex >= 0 ? exactDeckIndex : decks.length > 0 ? 0 : -1;
   const selectedDeck = selectedDeckIndex < 0 ? null : (decks[selectedDeckIndex] ?? null);
-  const selectedDeckToken = selectedDeckIndex < 0 ? '' : `deck-option-${selectedDeckIndex}`;
-  const isStarted = snapshot.lifecycle === 'started';
+  const selectedDeckName = selectedDeck === null
+    ? ''
+    : controller.displayDeckName(selectedDeck.name, selectedDeckIndex);
+  const admitted = snapshot.roomId !== null && snapshot.mode !== 'entry';
+  const started = snapshot.lifecycle === 'started';
   const local =
     snapshot.ownSeatIndex === null
       ? null
       : (snapshot.projection?.seats[snapshot.ownSeatIndex] ?? null);
-  const status = isStarted
-    ? snapshot.connection === 'online'
-      ? 'オンライン'
+  const seatLabel = (index: number): string => {
+    const seat = snapshot.projection?.seats[index];
+    const own = snapshot.ownSeatIndex === index;
+    const host = seat?.participantId === snapshot.projection?.hostParticipantId;
+    return own && host
+      ? 'あなた（ホスト）'
+      : own
+        ? 'あなた'
+        : host
+          ? 'ホスト'
+          : `プレイヤー${index + 1}`;
+  };
+  const currentStep = started ? 3 : local?.ready ? 3 : local?.deckState === 'accepted' ? 2 : 1;
+  const blockers =
+    snapshot.projection?.seats
+      .flatMap((seat) => {
+        if (seat.participantId === null) return [];
+        const label = seatLabel(seat.seatIndex).replace('あなた（ホスト）', 'あなた');
+        return [
+          seat.deckState !== 'accepted'
+            ? `${label}: デッキ${deckState(seat.deckState)}`
+            : '',
+          !seat.ready ? `${label}: 未準備` : '',
+        ];
+      })
+      .filter(Boolean) ?? [];
+  const emptySeatCount =
+    snapshot.projection?.seats.filter((seat) => seat.participantId === null).length ?? 0;
+  const interactionState =
+    snapshot.connection === 'online'
+      ? 'ready'
       : snapshot.connection === 'reconnecting'
-        ? '再接続中'
-        : snapshot.connection === 'failed'
-          ? '接続失敗'
-          : '接続中'
-    : local?.deckState === 'resolving'
-      ? 'デッキ確認中'
-      : 'ロビー待機中';
-  async function join(): Promise<void> {
-    await controller.join(roomId, inviteCode);
-    if (controller.getSnapshot().error === null) setInviteCode('');
-  }
-  async function submit(): Promise<void> {
-    if (selectedDeck !== null) await controller.submitDeck(selectedDeck);
-  }
+        ? 'offline'
+        : 'updating';
+  const chooseDeck = (id: string) => {
+    setSelectedDeckId(id);
+    onDeckSelect?.(id);
+  };
   return (
     <main className="public-online-app" data-testid="public-online-app">
       <header className="public-online-app__header">
         <div>
           <p className="public-online-app__eyebrow">ONLINE ROOM</p>
-          <h1>4人オンライン</h1>
-          <p>保存済みデッキから、招待制の対戦ルームへ接続します。</p>
+          <h1>オンライン対戦</h1>
+          <p>選んだデッキで、招待制の4人対戦へ進みます。</p>
         </div>
         <button
           type="button"
@@ -103,224 +151,394 @@ export function PublicOnlineApp({
           一人回しに戻る
         </button>
       </header>
-      <section className="public-online-app__lobby" aria-label="オンラインルームの準備">
-        <div className="public-online-app__fields">
-          <label htmlFor="online-room-id">Room ID</label>
-          <input
-            id="online-room-id"
-            data-testid="online-room-id"
-            value={roomId}
-            onChange={(event) => setRoomId(event.target.value)}
-            autoComplete="off"
-            inputMode="text"
-          />
-          <label htmlFor="online-invite-code">招待コード</label>
-          <input
-            id="online-invite-code"
-            data-testid="online-invite-code"
-            value={inviteCode}
-            onChange={(event) => setInviteCode(event.target.value)}
-            autoComplete="off"
-            inputMode="text"
-          />
-          <label htmlFor="online-deck-select">使用デッキ</label>
-          <select
-            id="online-deck-select"
-            data-testid="online-deck-select"
-            value={selectedDeckToken}
-            onChange={(event) => {
-              const index = Number(event.target.value.replace(/^deck-option-/, ''));
-              const next = Number.isSafeInteger(index) ? decks[index] : undefined;
-              if (next === undefined) return;
-              setSelectedDeckId(next.id);
-              onDeckSelect?.(next.id);
-            }}
-          >
-            {decks.length === 0 && <option value="">保存済みデッキがありません</option>}
-            {decks.map((deck, index) => (
-              <option value={`deck-option-${index}`} key={`deck-option-${index}`}>
-                {controller.displayDeckName(deck.name, index)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="public-online-app__actions">
-          <button
-            type="button"
-            className="btn btn--primary"
-            data-testid="online-create-room"
-            disabled={snapshot.busy !== null}
-            onClick={() => {
-              void controller.create();
-            }}
-          >
-            ルームを作成
-          </button>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            data-testid="online-join-room"
-            disabled={snapshot.busy !== null || roomId.trim() === '' || inviteCode.trim() === ''}
-            onClick={() => {
-              void join();
-            }}
-          >
-            招待コードで参加
-          </button>
+      {!admitted && (
+        <section className="public-online-app__lobby" aria-label="オンライン対戦の入口">
+          {snapshot.recoveryAvailable && (
+            <div className="public-online-app__recovery">
+              <strong>進行中の対戦があります</strong>
+              <span>このブラウザの参加情報から復帰できます。</span>
+              <button
+                type="button"
+                className="btn btn--primary"
+                data-testid="online-recover"
+                onClick={() => void controller.recover()}
+              >
+                対戦に戻る
+              </button>
+            </div>
+          )}
+          {entry === 'entry' ? (
+            <>
+              <h2>対戦の入口</h2>
+              <p>部屋を作るか、共有された招待コードを1つ入力してください。</p>
+              <div className="public-online-app__choice-grid">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="online-create-shared"
+                  disabled={snapshot.busy !== null || selectedDeck === null}
+                  onClick={() => void controller.createShared()}
+                >
+                  部屋を作る
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  data-testid="online-open-join"
+                  onClick={() => setEntry('join')}
+                >
+                  招待で参加
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2>招待で参加</h2>
+              <label htmlFor="online-shared-invite">招待コード</label>
+              <input
+                id="online-shared-invite"
+                data-testid="online-shared-invite"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                autoComplete="off"
+                inputMode="text"
+                placeholder="招待コードを入力"
+              />
+              <div className="public-online-app__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="online-join-shared"
+                  disabled={snapshot.busy !== null || joinCode.trim() === ''}
+                  onClick={() => void controller.joinShared(joinCode.trim())}
+                >
+                  ロビーに参加
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={() => setEntry('entry')}>
+                  キャンセル
+                </button>
+              </div>
+            </>
+          )}
           {onImportDeck && (
             <button
               type="button"
               className="btn btn--ghost"
               data-testid="online-import-deck"
-              disabled={snapshot.busy !== null}
               onClick={onImportDeck}
             >
-              新しいカードリストを読み込む
+              デッキを登録・インポート
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn--ghost"
-            data-testid="online-refresh-lobby"
-            disabled={snapshot.busy !== null || snapshot.roomId === null || isStarted}
-            onClick={() => {
-              void controller.refresh();
-            }}
+        </section>
+      )}
+      {!admitted && selectedDeck && (
+        <section className="public-online-app__selected-deck" aria-label="選択中のデッキ">
+          <strong>《{selectedDeckName}》</strong>
+          <span>{cardCount(selectedDeck)}枚 · このデッキで遊ぶ</span>
+          <select
+            aria-label="使用デッキ"
+            data-testid="online-deck-select"
+            value={selectedDeck.id}
+            onChange={(e) => chooseDeck(e.target.value)}
           >
-            ルームを更新
-          </button>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            data-testid="online-submit-deck"
-            disabled={
-              snapshot.busy !== null ||
-              snapshot.roomId === null ||
-              isStarted ||
-              selectedDeck === null
-            }
-            onClick={() => {
-              void submit();
-            }}
-          >
-            デッキを提出
-          </button>
-          <button
-            type="button"
-            className="btn btn--ghost"
-            data-testid="online-ready-toggle"
-            disabled={
-              snapshot.busy !== null ||
-              snapshot.roomId === null ||
-              isStarted ||
-              local?.deckState !== 'accepted'
-            }
-            onClick={() => {
-              void controller.toggleReady();
-            }}
-          >
-            準備完了を切り替え
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            data-testid="online-start-game"
-            disabled={
-              snapshot.busy !== null || !snapshot.isHost || !allReady(snapshot) || isStarted
-            }
-            onClick={() => {
-              void controller.start();
-            }}
-          >
-            対戦を開始
-          </button>
-        </div>
-      </section>
-      {snapshot.roomId !== null && (
-        <section
-          className="public-online-app__status"
-          data-testid="online-room-summary"
-          aria-label="ルーム概要"
-        >
-          <h2>Room {snapshot.roomId}</h2>
-          <p data-testid="online-connection-status">接続状態: {status}</p>
-          <p>
-            ライフサイクル:{' '}
-            {isStarted ? '対戦中' : snapshot.lifecycle === 'ready' ? '開始準備完了' : '準備中'}
-          </p>
-          <div className="public-online-app__seats" aria-label="4席の状態">
+            {decks.map((deck, index) => (
+              <option key={deck.id} value={deck.id}>
+                {controller.displayDeckName(deck.name, index)}
+              </option>
+            ))}
+          </select>
+        </section>
+      )}
+      {admitted && !started && (
+        <section className="public-online-app__status" aria-label="対戦ロビー">
+          <div className="public-online-app__lobby-heading">
+            <div>
+              <p className="public-online-app__eyebrow">オンライン対戦</p>
+              <h2>対戦ロビー</h2>
+            </div>
+            <span className="public-online-app__transport">
+              {snapshot.connection === 'reconnecting'
+                ? '再接続中'
+                : snapshot.connection === 'failed'
+                  ? '接続失敗'
+                  : '接続中'}
+            </span>
+          </div>
+          <ol className="public-online-app__steps" aria-label="対戦の進行状況">
+            {steps.map((step, index) => (
+              <li
+                key={step}
+                aria-current={index === currentStep ? 'step' : undefined}
+                className={index <= currentStep ? 'is-active' : ''}
+              >
+                <span>{index + 1}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+          {selectedDeck && (
+            <div className="public-online-app__selected-deck">
+              <strong>《{selectedDeckName}》</strong>
+              <span>
+                {cardCount(selectedDeck)}枚 · デッキ状態: {deckState(local?.deckState ?? 'none')}
+              </span>
+              <div className="public-online-app__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="online-submit-deck"
+                  disabled={snapshot.busy !== null || local?.deckState === 'accepted'}
+                  onClick={() => void controller.submitDeck(selectedDeck)}
+                >
+                  デッキを提出
+                </button>
+                {local?.deckState === 'accepted' && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    data-testid="online-ready-toggle"
+                    disabled={snapshot.busy !== null}
+                    onClick={() => void controller.toggleReady()}
+                  >
+                    {local.ready ? '準備完了を取り消す' : '準備完了にする'}
+                  </button>
+                )}
+              </div>
+              {snapshot.ownerIssue && (
+                <div className="public-online-app__error" role="alert">
+                  <p>{snapshot.ownerIssue.message}</p>
+                  {snapshot.ownerIssue.retryable && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => void controller.retry()}
+                    >
+                      デッキを再確認
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="public-online-app__seats" aria-label="参加メンバー">
             {Array.from({ length: 4 }, (_, index) => {
               const seat = snapshot.projection?.seats[index];
+              const own = snapshot.ownSeatIndex === index;
+              const label = seatLabel(index);
               return (
-                <article key={`seat-${index}`} data-testid="online-seat-summary">
-                  <strong>席 {index + 1}</strong>
-                  <span>
-                    {seat?.participantId !== null && seat?.participantId !== undefined
-                      ? '参加済み'
-                      : '招待待ち'}
-                  </span>
-                  <span>{publicDeckState(seat?.deckState ?? 'none')}</span>
-                  <span>{seat?.ready === true ? '準備完了' : '未準備'}</span>
+                <article key={index} data-testid="online-seat-summary">
+                  <strong>{label}</strong>
+                  <span>{seat?.participantId ? '入室済み' : '空席'}</span>
+                  <span>デッキ: {seat?.participantId ? deckState(seat.deckState) : '—'}</span>
+                  <span>{seat?.participantId ? (seat.ready ? '準備完了' : '未準備') : '—'}</span>
+                  {snapshot.isHost && seat?.participantId && !own && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      data-testid={`online-kick-${index}`}
+                      onClick={() => setKickSeat(index)}
+                    >
+                      ロビーから外す
+                    </button>
+                  )}
+                  {kickSeat === index && (
+                    <div role="alertdialog">
+                      <p>{label}をロビーから外しますか？</p>
+                      <button type="button" onClick={() => setKickSeat(null)}>
+                        キャンセル
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (seat?.participantId) void controller.kick(seat.participantId);
+                          setKickSeat(null);
+                        }}
+                      >
+                        確認して外す
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}
           </div>
-          {snapshot.invites.length > 0 && (
-            <div className="public-online-app__invites" aria-label="一度だけ表示する招待コード">
-              <h3>招待コード（この画面だけで表示）</h3>
-              {snapshot.invites.map((invite, index) => (
-                <div className="public-online-app__invite" key={`invite-${index}`}>
-                  <code>{invite}</code>
-                  <button
-                    type="button"
-                    data-testid="online-invite-copy"
-                    onClick={() => {
-                      void controller.copyInvite(invite);
-                    }}
-                  >
-                    コピー
-                  </button>
+          {snapshot.isHost ? (
+            <>
+              {snapshot.admissionOpen === false ? (
+                <div className="public-online-app__invite" data-testid="online-admission-closed">
+                  <strong>参加受付は終了しています</strong>
+                  <span>この招待から新しい参加者は入室できません。</span>
                 </div>
-              ))}
+              ) : (
+                <div className="public-online-app__invite">
+                  <strong>共有招待</strong>
+                  <span>
+                    {revealed
+                      ? (snapshot.invites[0] ?? '招待コードを準備できません')
+                      : '招待リンクを準備しました'}
+                  </span>
+                  <div>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      data-testid="online-invite-link-copy"
+                      onClick={() => {
+                        const code = snapshot.invites[0];
+                        if (!code || !navigator.clipboard) {
+                          setCopyNotice('招待リンクをコピーできませんでした。もう一度お試しください。');
+                          return;
+                        }
+                        const link = `${window.location.origin}${window.location.pathname}#online-invite=${encodeURIComponent(code)}`;
+                        void navigator.clipboard.writeText(link).then(
+                          () => setCopyNotice('招待リンクをコピーしました。'),
+                          () => setCopyNotice('招待リンクをコピーできませんでした。もう一度お試しください。'),
+                        );
+                      }}
+                    >
+                      招待リンクをコピー
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      data-testid="online-invite-copy"
+                      onClick={() => {
+                        const code = snapshot.invites[0];
+                        if (!code) {
+                          setCopyNotice('招待コードをコピーできませんでした。もう一度お試しください。');
+                          return;
+                        }
+                        void controller.copyInvite(code).then((copied) => {
+                          setCopyNotice(
+                            copied
+                              ? '招待コードをコピーしました。'
+                              : '招待コードをコピーできませんでした。もう一度お試しください。',
+                          );
+                        });
+                      }}
+                    >
+                      招待コードをコピー
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => setRevealed((value) => !value)}
+                    >
+                      {revealed ? 'コードを隠す' : 'コードを表示'}
+                    </button>
+                  </div>
+                  <p aria-live="polite" data-testid="online-copy-notice">{copyNotice}</p>
+                </div>
+              )}
+              <div className="public-online-app__host-tools">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  data-testid="online-invite-rotate"
+                  disabled={snapshot.busy !== null || snapshot.admissionOpen === false}
+                  onClick={() => {
+                    setRevealed(false);
+                    setCopyNotice('');
+                    void controller.rotateInvite();
+                  }}
+                >
+                  招待を再発行
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  data-testid="online-admission-close"
+                  disabled={snapshot.busy !== null || snapshot.admissionOpen === false}
+                  onClick={() => {
+                    setRevealed(false);
+                    setCopyNotice('');
+                    void controller.closeAdmission();
+                  }}
+                >
+                  参加受付を締める
+                </button>
+              </div>
+              <div className="public-online-app__blockers">
+                <strong>開始条件</strong>
+                {emptySeatCount > 0 || blockers.length ? (
+                  <ul>
+                    {emptySeatCount > 0 && <li>空席 {emptySeatCount}</li>}
+                    {blockers.map((blocker) => (
+                      <li key={blocker}>{blocker}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span>開始できます</span>
+                )}
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="online-start-game"
+                  disabled={snapshot.busy !== null || !allReady(snapshot)}
+                  onClick={() => void controller.start()}
+                >
+                  対戦を開始
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="public-online-app__waiting">ホストの開始を待っています</p>
+          )}
+          <button
+            type="button"
+            className="btn btn--ghost"
+            data-testid="online-leave"
+            onClick={() => setLeaveConfirm(true)}
+          >
+            ロビーを退出
+          </button>
+          {leaveConfirm && (
+            <div role="alertdialog" aria-label="ロビー退出の確認" className="public-online-app__confirm">
+              <p>
+                {snapshot.isHost
+                  ? 'ホストが退出するとロビーは閉じます。退出しますか？'
+                  : 'このロビーから退出します。再参加には現在の招待が必要です。'}
+              </p>
+              <button type="button" className="btn btn--ghost" onClick={() => setLeaveConfirm(false)}>
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                data-testid="online-leave-confirm"
+                onClick={() => {
+                  setLeaveConfirm(false);
+                  void controller.leave();
+                }}
+              >
+                退出する
+              </button>
             </div>
           )}
         </section>
       )}
-      {snapshot.ownerIssue !== null && (
-        <div className="public-online-app__error" data-testid="online-owner-error" role="alert">
-          <p>{snapshot.ownerIssue.message}</p>
-          {snapshot.ownerIssue.retryable && (
+      {snapshot.error && (
+        <div className="public-online-app__error" role="alert" data-testid="online-error">
+          <p>{snapshot.error}</p>
+          {snapshot.errorIssue && <small>照会 ID: {snapshot.errorIssue.correlationId}</small>}
+          {snapshot.errorIssue?.retryable && (
             <button
               type="button"
-              data-testid="online-retry-submit"
-              onClick={() => {
-                void controller.retry();
-              }}
+              className="btn btn--ghost"
+              onClick={() => void controller.retry()}
             >
-              再試行
+              {snapshot.errorIssue.action}
             </button>
           )}
         </div>
       )}
-      {snapshot.error !== null && (
-        <p className="public-online-app__error" data-testid="online-error" role="alert">
-          {snapshot.error}
-        </p>
-      )}
-      {isStarted &&
-        snapshot.player?.projection !== null &&
-        snapshot.player?.projection !== undefined &&
-        (snapshot.table?.projection !== null && snapshot.table?.projection !== undefined ? (
+      {started &&
+        snapshot.player?.projection &&
+        (snapshot.table?.projection ? (
           <OnlineDisplayPairing
             personalProjection={snapshot.player.projection}
             tableProjection={snapshot.table.projection}
-            interactionState={
-              snapshot.connection === 'online'
-                ? 'ready'
-                : snapshot.connection === 'reconnecting'
-                  ? 'offline'
-                  : 'updating'
-            }
+            interactionState={interactionState}
             focusedPlayerId={null}
             onFocus={() => undefined}
             onAction={controller.submitPersonalAction}
@@ -330,24 +548,12 @@ export function PublicOnlineApp({
           <div className="public-online-app__player-surfaces">
             <PersonalWorkbench
               projection={snapshot.player.projection}
-              interactionState={
-                snapshot.connection === 'online'
-                  ? 'ready'
-                  : snapshot.connection === 'reconnecting'
-                    ? 'offline'
-                    : 'updating'
-              }
+              interactionState={interactionState}
               onAction={controller.submitPersonalAction}
             />
             <OnlineGuidedActions
               projection={snapshot.player.projection}
-              interactionState={
-                snapshot.connection === 'online'
-                  ? 'ready'
-                  : snapshot.connection === 'reconnecting'
-                    ? 'offline'
-                    : 'updating'
-              }
+              interactionState={interactionState}
               onAction={controller.submitGuidedAction}
             />
           </div>

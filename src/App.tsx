@@ -25,6 +25,13 @@ import type { CardDef } from './types/card';
 
 const DECK_TEXT_KEY = 'mtg-onedeck:deck-text';
 const DECK_CARDS_KEY = 'mtg-onedeck:deck-cards';
+const BEARER_LIKE_DECK_NAME = /(?:seat|invite|admission|observer|table)_[A-Za-z0-9_-]{8}/i;
+
+function safeSavedDeckName(name: string, index: number): string {
+  return typeof name === 'string' && name.length <= 120 && !BEARER_LIKE_DECK_NAME.test(name)
+    ? name
+    : `保存済みデッキ ${index + 1}`;
+}
 
 interface StoredDeckCard {
   def: CardDef;
@@ -302,24 +309,6 @@ function App() {
 
   return (
     <div className="app">
-      <nav className="app__mode-choice" aria-label="プレイモード">
-        <button
-          type="button"
-          className="btn btn--primary"
-          data-testid="open-solo-mode"
-          onClick={() => setOnlineMode('solo')}
-        >
-          一人回し
-        </button>
-        <button
-          type="button"
-          className="btn btn--ghost"
-          data-testid="open-online-mode"
-          onClick={() => setOnlineMode('online')}
-        >
-          4人オンライン
-        </button>
-      </nav>
       {(snapshot?.state || (legacyFallback && legacyDeck && legacyDeck.length > 0)) && (
         <section className="app__resume-shelf" aria-label="前回の続き">
           {snapshot?.state && (
@@ -371,6 +360,23 @@ function App() {
             onRename={handleRename}
             onDelete={handleDelete}
           />
+          {selectedDeck && (
+            <section className="app__play-choice" aria-label="選択したデッキで遊ぶ" data-testid="play-choice">
+              <div>
+                <p className="app__play-choice-eyebrow">選択中のデッキ</p>
+                <h2>《{safeSavedDeckName(selectedDeck.name, Math.max(0, savedDecks.findIndex((deck) => deck.id === selectedDeck.id)))}》</h2>
+                <p>{selectedDeck.entries.reduce((total, entry) => total + entry.quantity, 0)}枚。次の遊び方を選べます。</p>
+              </div>
+              <div className="app__play-choice-actions">
+                <button type="button" className="btn btn--primary" data-testid="open-solo-mode" onClick={() => { startAudioForGameGesture(); handleStart(selectedDeck.entries.flatMap((entry) => Array.from({ length: entry.quantity }, () => ({ def: entry.card, isCommander: entry.section === 'commander' })))); }}>
+                  一人回し
+                </button>
+                <button type="button" className="btn btn--primary" data-testid="open-online-mode" onClick={() => setOnlineMode('online')}>
+                  オンライン対戦
+                </button>
+              </div>
+            </section>
+          )}
           <ImportScreen
             key={`${selectedDeck?.id ?? 'new'}:${editorVersion}`}
             initialDeckText={legacyFallback ? legacyDeckText : ''}

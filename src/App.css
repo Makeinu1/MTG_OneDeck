@@ -20,6 +20,25 @@
 
 .app__mode-choice button { min-height: 44px; }
 
+.app__play-choice {
+  width: min(82.5rem, 100%);
+  margin: 0 auto var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.app__play-choice h2 { margin: 0; color: var(--text-h); font-family: var(--serif); }
+.app__play-choice p { margin: var(--space-1) 0 0; color: var(--text-dim); }
+.app__play-choice-eyebrow { color: var(--gold-bright) !important; font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .1em; }
+.app__play-choice-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.app__play-choice-actions .btn { min-height: 44px; }
+@media (max-width: 600px) { .app__play-choice { align-items: stretch; flex-direction: column; } .app__play-choice-actions { display: grid; grid-template-columns: 1fr 1fr; } }
+
 .app__resume {
   min-width: 0;
   padding: var(--space-3) var(--space-4);

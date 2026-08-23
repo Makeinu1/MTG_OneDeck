@@ -24,6 +24,8 @@
 }
 
 .public-online-app__header > button { min-height: 44px; }
+.public-online-app__lobby button,
+.public-online-app__status button { min-height: 44px; }
 
 .public-online-app__header h1,
 .public-online-app__status h2 {
@@ -52,6 +54,25 @@
 .public-online-app__invite code { min-width: 0; overflow-wrap: anywhere; color: var(--gold-bright); }
 .public-online-app__error { margin: 0; padding: var(--space-3); border: 1px solid var(--danger); border-radius: var(--radius-md); color: var(--text-h); background: var(--surface-2); }
 .public-online-app__player-surfaces { display: grid; gap: var(--space-4); }
+.public-online-app__choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.public-online-app__choice-grid .btn { min-height: 64px; }
+.public-online-app__selected-deck, .public-online-app__recovery, .public-online-app__invite, .public-online-app__blockers { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-2); }
+.public-online-app__selected-deck span, .public-online-app__recovery span, .public-online-app__invite span { color: var(--text-dim); }
+.public-online-app__selected-deck select { min-height: 44px; background: var(--surface-1); color: var(--text-h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 0 var(--space-2); }
+.public-online-app__lobby-heading, .public-online-app__host-tools, .public-online-app__invite > div, .public-online-app__recovery { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.public-online-app__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); padding: 0; margin: var(--space-4) 0; list-style: none; }
+.public-online-app__steps li { display: grid; gap: var(--space-1); color: var(--text-dim); font-size: var(--font-size-xs); }
+.public-online-app__steps li span { width: 2rem; height: 2rem; border: 1px solid var(--line-strong); border-radius: 50%; display: grid; place-items: center; }
+.public-online-app__steps li.is-active { color: var(--text-h); font-weight: 700; }
+.public-online-app__steps li.is-active span { border-color: var(--gold-bright); color: var(--gold-bright); }
+.public-online-app__transport { color: var(--text-dim); }
+.public-online-app__waiting { padding: var(--space-3); color: var(--text-dim); }
+.public-online-app__blockers ul { margin: 0; padding-left: 1.25rem; color: var(--text-dim); }
+.public-online-app__blockers button { justify-self: start; }
+.public-online-app__seats article button { margin-top: auto; }
+.public-online-app__confirm { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--warn); border-radius: var(--radius-md); background: var(--surface-2); }
+.public-online-app__confirm p { flex: 1 1 100%; margin: 0; color: var(--text-h); }
+@media (max-width: 600px) { .public-online-app__choice-grid, .public-online-app__steps { grid-template-columns: 1fr; } .public-online-app__steps li { grid-template-columns: max-content 1fr; align-items: center; } }
 
 @media (max-width: 720px) {
   .public-online-app__header { align-items: stretch; flex-direction: column; }

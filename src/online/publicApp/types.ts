@@ -66,6 +66,13 @@ export type PublicOnlineIssueV2 = Readonly<{
   readonly retryable: boolean;
   readonly message: string;
 }>;
+export type PublicOnlineErrorIssueV2 = Readonly<{
+  readonly code: string;
+  readonly retryable: boolean;
+  readonly message: string;
+  readonly correlationId: string;
+  readonly action: string;
+}>;
 export type PublicOnlineSeatV2 = Readonly<{
   readonly seatIndex: 0 | 1 | 2 | 3;
   readonly corePlayerId: 'P1' | 'P2' | 'P3' | 'P4';
@@ -96,10 +103,23 @@ export type PublicOnlineSnapshotV2 = Readonly<{
   readonly projection: PublicOnlineProjectionV2 | null;
   readonly invites: readonly string[];
   readonly selectedDeckId: string;
-  readonly busy: 'create' | 'join' | 'refresh' | 'deck' | 'ready' | 'start' | null;
+  readonly busy:
+    | 'create'
+    | 'join'
+    | 'refresh'
+    | 'deck'
+    | 'ready'
+    | 'start'
+    | 'rotate'
+    | 'close'
+    | 'kick'
+    | null;
   readonly connection: 'lobby' | 'connecting' | 'online' | 'reconnecting' | 'failed';
   readonly ownerIssue: PublicOnlineIssueV2 | null;
   readonly error: string | null;
+  readonly errorIssue: PublicOnlineErrorIssueV2 | null;
+  readonly recoveryAvailable: boolean;
+  readonly admissionOpen: boolean | null;
   readonly player: OnlineBrowserStateV1 | null;
   readonly table: OnlineBrowserStateV1 | null;
 }>;
@@ -114,11 +134,14 @@ export type PublicOnlineControllerV2 = Readonly<{
   readonly submitDeck: (deck: PublicOnlineDeckOptionV2) => Promise<void>;
   readonly toggleReady: () => Promise<void>;
   readonly start: () => Promise<void>;
+  readonly rotateInvite: () => Promise<void>;
+  readonly closeAdmission: () => Promise<void>;
+  readonly kick: (targetParticipantId: string) => Promise<void>;
   readonly recover: () => Promise<void>;
   readonly leave: () => Promise<void>;
   readonly retry: () => Promise<void>;
   readonly displayDeckName: (name: string, index: number) => string;
-  readonly copyInvite: (invite: string) => Promise<void>;
+  readonly copyInvite: (invite: string) => Promise<boolean>;
   readonly submitPersonalAction: (action: unknown) => void;
   readonly submitGuidedAction: (action: unknown) => void;
   readonly disconnect: () => void;

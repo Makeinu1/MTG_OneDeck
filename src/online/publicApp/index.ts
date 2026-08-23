@@ -9,6 +9,7 @@ export type {
   PublicOnlineValidationResultV1,
   PublicOnlineDeckOptionV2,
   PublicOnlineIssueV2,
+  PublicOnlineErrorIssueV2,
   PublicOnlineSeatV2,
   PublicOnlineProjectionV2,
   PublicOnlineSnapshotV2,
@@ -20,5 +21,11 @@ export {
   parsePublicOnlineErrorV3,
   publicOnlineErrorMessageV3,
   readAndScrubPublicOnlineInviteFragmentV3,
+  encodeOnlineSharedInviteCodeV3,
 } from './recoveryV1';
-export type { PublicOnlineRecoveryRecordV1, PublicOnlineStorageV1, PublicOnlineErrorV3, PublicOnlineErrorCodeV3 } from './recoveryV1';
+export type {
+  PublicOnlineRecoveryRecordV1,
+  PublicOnlineStorageV1,
+  PublicOnlineErrorV3,
+  PublicOnlineErrorCodeV3,
+} from './recoveryV1';
