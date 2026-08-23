@@ -136,6 +136,7 @@ const allowedImports = new Set([
   '../protocol/index',
   '../projection/index',
   '../room/index',
+  '../room/validationSupport',
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',

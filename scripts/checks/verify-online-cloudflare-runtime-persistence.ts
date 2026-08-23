@@ -23,7 +23,7 @@ const frozenHashes = Object.freeze({
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
     'c7af6d63c217ab1cad259b06aaceeb36f7ccd5fc32d6db803272e8d71632aed5',
   'src/online/cloudflare/index.ts':
-    '32cc08899e5df7682247f3b071d2a82b2d3761140e8aa141f315dc4db99868b2',
+    '987ee9cd6c0cf1e4473bdbae929f83b2c6ea47fea0647d580901dfaf3e1b25ba',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -151,6 +151,7 @@ const allowedImports = new Set([
   '../protocol/index',
   '../projection/index',
   '../room/index',
+  '../room/validationSupport',
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',
