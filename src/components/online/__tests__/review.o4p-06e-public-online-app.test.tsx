@@ -198,6 +198,9 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     expect(required(mounted.container, '[aria-current="step"]').textContent).toContain('対戦開始');
     expect(required<HTMLButtonElement>(mounted.container, '[data-testid="online-start-game"]').disabled)
       .toBe(false);
+    const resubmit = required<HTMLButtonElement>(mounted.container, '[data-testid="online-submit-deck"]');
+    expect(resubmit.disabled).toBe(false);
+    expect(resubmit.textContent).toContain('デッキを再提出');
     await click(mounted.container, '[data-testid="online-invite-copy"]');
     const notice = required(mounted.container, '[data-testid="online-copy-notice"]');
     expect(notice.textContent).toBe('招待コードをコピーしました。');
@@ -237,7 +240,8 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     await click(mounted.container, '[data-testid="online-submit-deck"]');
     expect(submittedKind).toBe('online-forming-lobby-deck-submit-v2');
     const deckPanel = required(mounted.container, '.public-online-app__selected-deck');
-    expect(deckPanel.textContent).toContain('《Review Card》 が見つかりません');
+    expect(deckPanel.textContent).toContain('確認できないカードがあります');
+    expect(deckPanel.textContent).not.toContain('Review Card');
     expect(deckPanel.textContent).not.toContain(SEAT_CAPABILITY);
     act(() => mounted.root.unmount());
   });
@@ -271,6 +275,8 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     expect(mounted.container.querySelector('[data-testid="online-invite-link-copy"]')).toBeNull();
     expect(mounted.container.querySelector('[data-testid="online-invite-copy"]')).toBeNull();
     expect(mounted.container.textContent).not.toContain(INVITE);
+    expect(required<HTMLButtonElement>(mounted.container, '[data-testid="online-invite-rotate"]').disabled)
+      .toBe(false);
     act(() => mounted.root.unmount());
   });
 

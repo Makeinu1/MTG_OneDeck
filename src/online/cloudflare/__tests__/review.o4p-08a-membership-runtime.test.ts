@@ -128,6 +128,7 @@ describe('O4P-08A Judge: Worker and Durable Object membership', () => {
     expect(await recovered.json()).toMatchObject({
       kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId,
       participantId: 'participant-o4p08a-host-control', seatCapability: hostCapability,
+      admissionOpen: true,
       inviteCode: rotated.inviteCode,
       tableParticipantId: created.tableParticipantId,
       tableCapability: created.tableCapability,
@@ -144,6 +145,13 @@ describe('O4P-08A Judge: Worker and Durable Object membership', () => {
     }), env);
     expect(closedClaim.status).toBe(403);
     secretFreeError(await closedClaim.json(), 'ADMISSION_CLOSED');
+    const recoveredClosed = await worker.fetch(request(`https://worker.test/api/online/rooms/${roomId}/lobby`, {
+      kind: 'online-forming-lobby-recover-v3', schemaVersion: 3,
+      participantId: 'participant-o4p08a-host-control', seatCapability: hostCapability,
+    }), env);
+    expect(await recoveredClosed.json()).toMatchObject({
+      kind: 'online-forming-lobby-recovered-v3', admissionOpen: false,
+    });
     storage.close();
   });
 

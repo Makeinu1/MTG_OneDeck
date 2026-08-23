@@ -215,7 +215,8 @@ describe('O4P-07B public v2 Judge boundary', () => {
       entryIndex: 0,
       retryable: true,
     });
-    expect(ownerIssue?.message).toContain('《所有者表示名》');
+    expect(ownerIssue?.message).toContain('確認できないカードがあります');
+    expect(ownerIssue?.message).not.toContain('所有者表示名');
     expect(JSON.stringify(controller.getSnapshot().projection)).not.toMatch(
       /所有者表示名|CARD_NOT_FOUND|5da14d86/,
     );
@@ -284,7 +285,7 @@ describe('O4P-07B public v2 Judge boundary', () => {
     const controller = createPublicOnlineControllerV2();
     await controller.create();
     await controller.start();
-    expect(controller.getSnapshot().error).toBe('オンライン操作を完了できませんでした。');
+    expect(controller.getSnapshot().error).toBe('サーバーから予期しない応答が返りました。ページを更新して再試行してください。');
     expect(socket).not.toHaveBeenCalled();
     controller.disconnect();
   });
@@ -314,7 +315,7 @@ describe('O4P-07B public v2 Judge boundary', () => {
     await submitController.submitDeck(deck());
     expect(submitController.getSnapshot()).toMatchObject({
       roomId: ROOM_ID,
-      error: 'オンライン操作を完了できませんでした。',
+      error: 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
     });
     submitController.disconnect();
 
@@ -339,7 +340,7 @@ describe('O4P-07B public v2 Judge boundary', () => {
     await readyController.toggleReady();
     expect(readyController.getSnapshot()).toMatchObject({
       roomId: ROOM_ID,
-      error: 'オンライン操作を完了できませんでした。',
+      error: 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
     });
     readyController.disconnect();
   });
@@ -406,7 +407,7 @@ describe('O4P-07B public v2 Judge boundary', () => {
     await submitController.create();
     await submitController.submitDeck(deck());
     expect(submitController.getSnapshot().error).toBe(
-      'オンライン操作を完了できませんでした。',
+      'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
     );
     submitController.disconnect();
 
@@ -430,7 +431,7 @@ describe('O4P-07B public v2 Judge boundary', () => {
     await readyController.create();
     await readyController.toggleReady();
     expect(readyController.getSnapshot().error).toBe(
-      'オンライン操作を完了できませんでした。',
+      'サーバーから予期しない応答が返りました。ページを更新して再試行してください。',
     );
     readyController.disconnect();
   });

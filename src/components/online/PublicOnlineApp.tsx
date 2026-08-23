@@ -54,7 +54,11 @@ export function PublicOnlineApp({
   const [joinCode, setJoinCode] = useState('');
   const [entry, setEntry] = useState<'entry' | 'join'>('entry');
   const [revealed, setRevealed] = useState(false);
-  const [kickSeat, setKickSeat] = useState<number | null>(null);
+  const [kickTarget, setKickTarget] = useState<Readonly<{
+    seatIndex: number;
+    participantId: string;
+    label: string;
+  }> | null>(null);
   const [copyNotice, setCopyNotice] = useState('');
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   useEffect(() => {
@@ -127,6 +131,29 @@ export function PublicOnlineApp({
       : snapshot.connection === 'reconnecting'
         ? 'offline'
         : 'updating';
+  const actionError = (...actions: readonly string[]) => {
+    if (
+      snapshot.error === null ||
+      snapshot.errorIssue === null ||
+      !actions.includes(snapshot.errorIssue.action)
+    )
+      return null;
+    return (
+      <div className="public-online-app__error" role="alert" data-testid="online-error">
+        <p>{snapshot.error}</p>
+        <small>照会 ID: {snapshot.errorIssue.correlationId}</small>
+        {snapshot.errorIssue.retryable && (
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => void controller.retry()}
+          >
+            {snapshot.errorIssue.action}
+          </button>
+        )}
+      </div>
+    );
+  };
   const chooseDeck = (id: string) => {
     setSelectedDeckId(id);
     onDeckSelect?.(id);
@@ -230,6 +257,13 @@ export function PublicOnlineApp({
               デッキを登録・インポート
             </button>
           )}
+          {actionError(
+            '対戦に戻る',
+            'もう一度部屋を作る',
+            'もう一度参加',
+            '招待コードを確認',
+            '新しい招待を入力',
+          )}
         </section>
       )}
       {!admitted && selectedDeck && (
@@ -277,6 +311,7 @@ export function PublicOnlineApp({
               </li>
             ))}
           </ol>
+          {actionError('ロビーを更新')}
           {selectedDeck && (
             <div className="public-online-app__selected-deck">
               <strong>《{selectedDeckName}》</strong>
@@ -288,10 +323,10 @@ export function PublicOnlineApp({
                   type="button"
                   className="btn btn--primary"
                   data-testid="online-submit-deck"
-                  disabled={snapshot.busy !== null || local?.deckState === 'accepted'}
+                  disabled={snapshot.busy !== null}
                   onClick={() => void controller.submitDeck(selectedDeck)}
                 >
-                  デッキを提出
+                  {local?.deckState === 'accepted' ? 'デッキを再提出' : 'デッキを提出'}
                 </button>
                 {local?.deckState === 'accepted' && (
                   <button
@@ -319,6 +354,7 @@ export function PublicOnlineApp({
                   )}
                 </div>
               )}
+              {actionError('デッキを再確認', '準備状態を更新')}
             </div>
           )}
           <div className="public-online-app__seats" aria-label="参加メンバー">
@@ -337,22 +373,30 @@ export function PublicOnlineApp({
                       type="button"
                       className="btn btn--ghost"
                       data-testid={`online-kick-${index}`}
-                      onClick={() => setKickSeat(index)}
+                      onClick={() => setKickTarget({
+                        seatIndex: index,
+                        participantId: seat.participantId ?? '',
+                        label,
+                      })}
                     >
                       ロビーから外す
                     </button>
                   )}
-                  {kickSeat === index && (
+                  {kickTarget?.seatIndex === index && (
                     <div role="alertdialog">
-                      <p>{label}をロビーから外しますか？</p>
-                      <button type="button" onClick={() => setKickSeat(null)}>
+                      <p>{kickTarget.label}をロビーから外しますか？</p>
+                      {seat?.participantId !== kickTarget.participantId && (
+                        <p>参加者が変わりました。確認を閉じて選び直してください。</p>
+                      )}
+                      <button type="button" onClick={() => setKickTarget(null)}>
                         キャンセル
                       </button>
                       <button
                         type="button"
+                        disabled={seat?.participantId !== kickTarget.participantId}
                         onClick={() => {
-                          if (seat?.participantId) void controller.kick(seat.participantId);
-                          setKickSeat(null);
+                          void controller.kick(kickTarget.participantId);
+                          setKickTarget(null);
                         }}
                       >
                         確認して外す
@@ -363,6 +407,7 @@ export function PublicOnlineApp({
               );
             })}
           </div>
+          {actionError('もう一度外す')}
           {snapshot.isHost ? (
             <>
               {snapshot.admissionOpen === false ? (
@@ -435,7 +480,7 @@ export function PublicOnlineApp({
                   type="button"
                   className="btn btn--ghost"
                   data-testid="online-invite-rotate"
-                  disabled={snapshot.busy !== null || snapshot.admissionOpen === false}
+                  disabled={snapshot.busy !== null}
                   onClick={() => {
                     setRevealed(false);
                     setCopyNotice('');
@@ -458,6 +503,7 @@ export function PublicOnlineApp({
                   参加受付を締める
                 </button>
               </div>
+              {actionError('招待を再発行', '参加受付を締める')}
               <div className="public-online-app__blockers">
                 <strong>開始条件</strong>
                 {emptySeatCount > 0 || blockers.length ? (
@@ -479,6 +525,7 @@ export function PublicOnlineApp({
                 >
                   対戦を開始
                 </button>
+                {actionError('対戦開始を再試行')}
               </div>
             </>
           ) : (
@@ -515,22 +562,8 @@ export function PublicOnlineApp({
               </button>
             </div>
           )}
+          {actionError('もう一度退出')}
         </section>
-      )}
-      {snapshot.error && (
-        <div className="public-online-app__error" role="alert" data-testid="online-error">
-          <p>{snapshot.error}</p>
-          {snapshot.errorIssue && <small>照会 ID: {snapshot.errorIssue.correlationId}</small>}
-          {snapshot.errorIssue?.retryable && (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => void controller.retry()}
-            >
-              {snapshot.errorIssue.action}
-            </button>
-          )}
-        </div>
       )}
       {started &&
         snapshot.player?.projection &&

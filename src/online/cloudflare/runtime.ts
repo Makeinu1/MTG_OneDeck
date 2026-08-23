@@ -415,7 +415,7 @@ export class OnlineRoomDurableObject {
               const isHost = seatIndex === 0;
               const table = this.repository.tableCredentialsV3(route.roomId);
               if (isHost && (table === null || !isOnlineRoomApplicationIdV1(table.participantId) || !isOnlineRoomSeatCapabilityV1(table.capability))) throw new Error('SERVICE_UNAVAILABLE');
-              return jsonResponse({ kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability, ...(isHost ? { inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, admission.currentCapability), tableParticipantId: table?.participantId ?? null, tableCapability: table?.capability ?? null } : {}), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
+              return jsonResponse({ kind: 'online-forming-lobby-recovered-v3', schemaVersion: 3, roomId: route.roomId, participantId, seatCapability, ...(isHost ? { admissionOpen: admission.open, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, admission.currentCapability), tableParticipantId: table?.participantId ?? null, tableCapability: table?.capability ?? null } : {}), projection: this.repository.projectLobbyV2(route.roomId, lobby) });
             }
             if (kind === 'online-forming-lobby-admission-rotate-v3') {
               if (!isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) || schemaVersion !== 3) return genericError(400);
