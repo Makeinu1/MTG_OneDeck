@@ -185,6 +185,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       'research/cr-grounding/o4p-08b-acceptance-brief.draft.md',
       'research/cr-grounding/o4p-08b-browser-evidence-2026-08-24.draft.md',
       'research/cr-grounding/o4p-08b-cold-audit-brief.draft.md',
+      'research/cr-grounding/archive/o4p-08b-cold-audit-record-2026-08-24.md',
+      'research/cr-grounding/archive/o4p-08b-completion-packet-2026-08-24.md',
       'research/cr-grounding/o4p-08b-production-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08b-prototype-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08b-public-online-journey.contract.draft.md',
