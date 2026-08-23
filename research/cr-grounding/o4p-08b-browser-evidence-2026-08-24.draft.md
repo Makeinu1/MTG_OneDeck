@@ -51,9 +51,6 @@ host close.
 
 ## Screenshots
 
-- `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/deck-first-375x812.png`
-- `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/join-812x375.png`
-- `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/host-lobby-1440x900.png`
 - `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/repair-deck-first-375x812.png`
 - `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/repair-join-812x375.png`
 - `/Users/shumpeiabe/.codex/visualizations/2026/08/23/01a02edb-6e42-7710-9945-089bb56686f6/o4p08b-production/repair-host-resubmit-1440x900.png`
