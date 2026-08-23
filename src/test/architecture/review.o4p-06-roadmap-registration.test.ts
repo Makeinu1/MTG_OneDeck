@@ -211,8 +211,8 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     expect(projection.activeProgram).toEqual({
       id: 'O4P-07',
       domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'],
-      status: 'active',
-      nextDomainId: 'O4P-07C',
+      status: 'complete',
+      nextDomainId: null,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
