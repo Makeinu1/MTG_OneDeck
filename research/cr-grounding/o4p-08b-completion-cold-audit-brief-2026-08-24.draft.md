@@ -1,0 +1,44 @@
+# O4P-08B Completion Cold Audit Brief — 2026-08-24
+
+Milestone: `O4P-08B`
+Risk: `R3 / BROAD UI`
+Mode: read-only completion and terminal-transition audit
+
+## Authority
+
+- `AGENTS.md`
+- `docs/judge-protocol.md`
+- `.agents/skills/mtg-onedeck-development/references/document-governance.md`
+- `research/cr-grounding/o4p-08b-public-online-journey.contract.draft.md`
+- `research/cr-grounding/o4p-08b-acceptance-brief.draft.md`
+- `research/cr-grounding/archive/o4p-08b-cold-audit-record-2026-08-24.md`
+- `research/cr-grounding/archive/o4p-08b-completion-packet-2026-08-24.md`
+
+## Frozen evidence
+
+- semantic fingerprint:
+  `4cdaab94ff49290f50d993862ae65a25c79a6b67f94602fb7ca9b432cb29d363`
+- semantic HEAD: `da7f6c7354b591a98511b2fa685c9c3f0547146c`
+- release HEAD before this metadata candidate:
+  `63267987b17b09495eb773ad6b6f023863b78fc3`
+- Actions: run `32665253749`, build `97257541437`, deploy `97259236097`
+- Worker version: `31d3c58c-7d83-40ab-9e5b-a5d52229cba2`
+
+## Audit questions
+
+1. Do both ledger collections describe O4P-08B identically as shipped and leave
+   O4P-08C/D pending?
+2. Do all evidence strings match the frozen audit, exact-head CI/Pages, served
+   assets, Worker, production smoke, and browser facts?
+3. Do Judge review expectations require the exact O4P-08B evidence and project
+   O4P-08C as the next active program domain without weakening historical
+   equality or allowlists?
+4. Does the candidate contain no invitation, Room/participant identifier,
+   credential, private deck/card material, or raw API body?
+5. Is the completion claim bounded to O4P-08B with all O4P-08C/D behavior still
+   deferred?
+
+Return only findings, `BLOCKER/HIGH/MEDIUM/LOW` counts, and either
+`O4P-08B-COMPLETION-COLD-AUDIT-OK` or failure. Do not edit files and do not call
+the milestone shipped solely from this audit; terminal exact-head CI/Pages and
+clean transition remain required.

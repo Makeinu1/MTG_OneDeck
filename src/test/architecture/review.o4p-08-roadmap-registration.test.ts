@@ -37,6 +37,29 @@ const O4P08A_EVIDENCE = [
   'cloudflare:wrangler-4.125.0:deployment=16558e13-1855-4681-b0bf-139a877a1d46:version=ce347521-0b6a-4bb9-9634-cfbecfdc716c:active-100-percent:root=404',
   'production-api:shared-claim+same-seat-recovery+nonhost-secret-separation+invite-rotate+kick-revoke+admission-close+leave+host-close+correlation-id+secret-output=false=PASS',
 ] as const;
+const O4P08B_EVIDENCE = [
+  ...REGISTRATION_EVIDENCE,
+  'research/cr-grounding/o4p-08b-public-online-journey.contract.draft.md',
+  'research/cr-grounding/o4p-08b-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-08b-prototype-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-08b-production-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-08b-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-08b-browser-evidence-2026-08-24.draft.md',
+  'research/cr-grounding/archive/o4p-08b-cold-audit-record-2026-08-24.md',
+  'research/cr-grounding/archive/o4p-08b-completion-packet-2026-08-24.md',
+  'research/cr-grounding/o4p-08b-completion-cold-audit-brief-2026-08-24.draft.md',
+  'src/online/publicApp/o4p08b.production.test.ts',
+  'src/online/publicApp/review.o4p-08b-production-journey.test.ts',
+  'src/test/architecture/review.o4p-08b-public-online-journey-boundary.test.ts',
+  'cold-audit:/root/o4p08b_cold_audit:0/0/0/0:semantic=4cdaab94ff49290f50d993862ae65a25c79a6b67f94602fb7ca9b432cb29d363',
+  'completion-audit:/root/o4p08b_cold_audit:0/0/0/0:O4P-08B-COMPLETION-COLD-AUDIT-OK',
+  'semantic-head:da7f6c7354b591a98511b2fa685c9c3f0547146c',
+  'release-head:63267987b17b09495eb773ad6b6f023863b78fc3:actions32665253749:full-check+forbidden+artifact+Pages=PASS',
+  'pages-html-js-css:HTTP200:D_oRKqjq/B3eS80pY:last-modified=2026-08-23T20:56:34Z',
+  'cloudflare:wrangler-4.125.0:version=31d3c58c-7d83-40ab-9e5b-a5d52229cba2:active-100-percent:root=404',
+  'production-api:v3-exact+v4-open-closed+host-close+secret-projection=false=PASS',
+  'production-browser:375x812+812x375+1440x900:room-id-input=0:overflow=0:console-error=0:PASS',
+] as const;
 
 type Entry = Record<string, unknown> & { id?: string; domainId?: string; status?: string };
 type Ledger = {
@@ -94,13 +117,15 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       expect(shared(planned[0] ?? {}), id).toEqual(shared(domains[0] ?? {}));
       expect(domains[0], id).toMatchObject({
         crOrder: 1028 + index,
-        status: index === 0 ? 'shipped' : 'pending',
+        status: index <= 1 ? 'shipped' : 'pending',
         dependsOn: [DEPENDENCIES[index]],
         lane: 'backbone',
         edhValue: 'high',
       });
       if (index === 0) {
         expect(domains[0]?.evidence).toEqual(O4P08A_EVIDENCE);
+      } else if (index === 1) {
+        expect(domains[0]?.evidence).toEqual(O4P08B_EVIDENCE);
       } else {
         expect(domains[0]?.evidence).toEqual(REGISTRATION_EVIDENCE);
       }
@@ -123,7 +148,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(contract).toContain('does not add deck-legality enforcement, accounts, matchmaking, bans, teams');
   });
 
-  it('projects a healthy O4P-08A selection', () => {
+  it('projects the healthy active O4P-08 program after O4P-08B shipment', () => {
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-08A'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -142,7 +167,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08B',
+      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08C',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
@@ -187,6 +212,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       'research/cr-grounding/o4p-08b-cold-audit-brief.draft.md',
       'research/cr-grounding/archive/o4p-08b-cold-audit-record-2026-08-24.md',
       'research/cr-grounding/archive/o4p-08b-completion-packet-2026-08-24.md',
+      'research/cr-grounding/o4p-08b-completion-cold-audit-brief-2026-08-24.draft.md',
       'research/cr-grounding/o4p-08b-production-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08b-prototype-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08b-public-online-journey.contract.draft.md',

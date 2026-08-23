@@ -1,7 +1,7 @@
 # O4P-08B Completion Packet — 2026-08-24
 
 Milestone: `O4P-08B`
-Status: `audited-pending-release`
+Status: `shipped`
 Implementation base: `8bd8ac143943182d920b5bf8608b4b1c0e3109fd`
 Audited semantic HEAD: `da7f6c7354b591a98511b2fa685c9c3f0547146c`
 Audited fingerprint: `4cdaab94ff49290f50d993862ae65a25c79a6b67f94602fb7ca9b432cb29d363`
@@ -48,9 +48,51 @@ ownership gate. Independent exact-byte reauthorization returned
 `O4P-08B-CI-OWNERSHIP-REAUTH-OK` with
 `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0`.
 
-Replacement exact-head green CI/Pages, served-asset verification,
-HEAD/origin equality, and clean worktree closure remain pending and must be
-appended before status becomes `shipped`.
+Replacement Actions run `32665253749` checked out exact release HEAD
+`63267987b17b09495eb773ad6b6f023863b78fc3` and passed:
+
+- build job `97257541437`: full canonical check, exact diff-base, ownership
+  scan, Pages configuration, and artifact upload;
+- deploy job `97259236097`: Pages publication success.
+
+Served Pages evidence after deployment:
+
+- HTML: HTTP 200, 1,305 bytes, Last-Modified
+  `Sun, 23 Aug 2026 20:56:34 GMT`;
+- `assets/index-D_oRKqjq.js`: HTTP 200, 1,050,500 bytes;
+- `assets/index-B3eS80pY.css`: HTTP 200, 210,498 bytes.
+
+The Worker deployment list confirms version
+`31d3c58c-7d83-40ab-9e5b-a5d52229cba2` at 100% allocation. Its root returns
+the expected safe JSON HTTP 404. The release HEAD equals `origin/main` and the
+worktree was clean before this terminal ledger candidate.
+
+Public browser re-verification after Pages deployment passed:
+
+- 375x812: Solo and Online actions both visible at 44px, overflow 0;
+- 812x375: one invitation input, no Room ID label/input, minimum target 44px,
+  overflow 0;
+- 1440x900: create/join choices, no Room ID input, overflow 0;
+- console error 0 at all three sizes.
+
+## Independent completion audit
+
+The terminal completion candidate updates only this packet, the synchronized
+O4P-08B ledger entries, its completion-audit brief, and exact Judge review
+expectations that project the next active domain as O4P-08C. It does not alter
+product, Worker, dependency, workflow, configuration, generated, or O4P-08C/D
+implementation bytes.
+
+Fresh-context cold audit returned
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0`.
+
+`O4P-08B-COMPLETION-COLD-AUDIT-OK`
+
+This shipped claim is bounded to O4P-08B. Variable roster, two-player life,
+dynamic genesis/projection, and two-player table rendering remain pending in
+O4P-08C/D. The record-bearing terminal metadata still requires exact-head CI,
+Pages publication, HEAD/origin equality, and clean-worktree confirmation before
+the O4P-08C cycle begins.
 
 ## Deferred
 
