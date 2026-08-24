@@ -60,6 +60,33 @@ const O4P08B_EVIDENCE = [
   'production-api:v3-exact+v4-open-closed+host-close+secret-projection=false=PASS',
   'production-browser:375x812+812x375+1440x900:room-id-input=0:overflow=0:console-error=0:PASS',
 ] as const;
+const O4P08C_EVIDENCE = [
+  ...REGISTRATION_EVIDENCE,
+  'research/cr-grounding/o4p-08c-variable-roster-genesis.contract.draft.md',
+  'research/cr-grounding/o4p-08c-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-08c-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-08c-cold-audit-brief.draft.md',
+  'research/cr-grounding/archive/o4p-08c-cold-audit-record-2026-08-24.md',
+  'research/cr-grounding/archive/o4p-08c-completion-packet-2026-08-24.md',
+  'research/cr-grounding/o4p-08c-completion-cold-audit-brief-2026-08-24.draft.md',
+  'src/online/room/variable.ts',
+  'src/online/protocol/variable.ts',
+  'src/online/protocol/variableCommand.ts',
+  'src/online/projection/variable.ts',
+  'src/online/genesis/variable.ts',
+  'src/online/cloudflare/__tests__/review.o4p-08c-variable-runtime.test.ts',
+  'src/online/genesis/__tests__/review.o4p-08c-variable-roster-genesis.test.ts',
+  'src/test/architecture/review.o4p-08c-variable-roster-boundary.test.ts',
+  'implementer:/root/o4p08c_implementer:gpt-5.6-luna:xhigh',
+  'cold-audit:/root/o4p08c_final_cold_audit:0/0/0/0:semantic=c21aa8ddee8855c99c035fa2937834efdeb3054e2e4727b629057f3d993a3e0a',
+  'completion-audit:/root/o4p08c_completion_audit:0/0/0/0:O4P-08C-COMPLETION-COLD-AUDIT-OK',
+  'semantic-head:d1f6af7a8411df7b1f47ad0aa3a3e417f4df9fde',
+  'release-head:ee6352ab03e4a89225fac1f1b2bee63ada4882b3:actions32675114117:full-check+forbidden+artifact+Pages=PASS',
+  'full-check:core227/2093+dom352/2374+lint+build+verifiers=PASS',
+  'pages-html-js-css:HTTP200:D_oRKqjq/B3eS80pY:last-modified=2026-08-24T00:05:55Z',
+  'cloudflare:wrangler-4.125.0:version=a12016ac-c698-4984-ba79-e8eaa45e3662:root=404',
+  'production-api:create=2/20+2/40+4/40+shared-invite-multi-use+room-full+guest-recovery-secret-free+invalid-config-reject=PASS',
+] as const;
 
 type Entry = Record<string, unknown> & { id?: string; domainId?: string; status?: string };
 type Ledger = {
@@ -117,7 +144,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       expect(shared(planned[0] ?? {}), id).toEqual(shared(domains[0] ?? {}));
       expect(domains[0], id).toMatchObject({
         crOrder: 1028 + index,
-        status: index <= 1 ? 'shipped' : 'pending',
+        status: index <= 2 ? 'shipped' : 'pending',
         dependsOn: [DEPENDENCIES[index]],
         lane: 'backbone',
         edhValue: 'high',
@@ -126,6 +153,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
         expect(domains[0]?.evidence).toEqual(O4P08A_EVIDENCE);
       } else if (index === 1) {
         expect(domains[0]?.evidence).toEqual(O4P08B_EVIDENCE);
+      } else if (index === 2) {
+        expect(domains[0]?.evidence).toEqual(O4P08C_EVIDENCE);
       } else {
         expect(domains[0]?.evidence).toEqual(REGISTRATION_EVIDENCE);
       }
@@ -148,7 +177,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(contract).toContain('does not add deck-legality enforcement, accounts, matchmaking, bans, teams');
   });
 
-  it('projects the healthy active O4P-08 program after O4P-08B shipment', () => {
+  it('projects the healthy active O4P-08 program after O4P-08C shipment', () => {
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-08A'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -167,7 +196,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08C',
+      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08D',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
@@ -236,6 +265,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       'research/cr-grounding/o4p-08c-implementation-brief.draft.md',
       'research/cr-grounding/o4p-08c-variable-roster-genesis.contract.draft.md',
       'research/cr-grounding/archive/o4p-08c-cold-audit-record-2026-08-24.md',
+      'research/cr-grounding/archive/o4p-08c-completion-packet-2026-08-24.md',
+      'research/cr-grounding/o4p-08c-completion-cold-audit-brief-2026-08-24.draft.md',
       'src/online/cloudflare/index.ts',
       'src/online/cloudflare/types.ts',
       'src/online/cloudflare/security.ts',
