@@ -18,7 +18,7 @@ describe('O4P-08B public Online journey architecture review', () => {
 
   it('uses shared admission only and never asks the participant for Room ID', () => {
     const component = source('src/components/online/PublicOnlineApp.tsx');
-    expect(component).toContain('controller.createShared()');
+    expect(component).toContain('controller.createShared(roomConfiguration)');
     expect(component).toContain('controller.joinShared(joinCode.trim())');
     expect(component).toContain('readAndScrubPublicOnlineInviteFragmentV3');
     expect(component).not.toMatch(/Room ID|online-room-id|controller\.join\(roomId/);
@@ -29,7 +29,7 @@ describe('O4P-08B public Online journey architecture review', () => {
 
   it('keeps moderation pre-start, host-only in presentation, and actionably structured', () => {
     const component = source('src/components/online/PublicOnlineApp.tsx');
-    const controller = source('src/online/publicApp/v2.ts');
+    const controller = source('src/online/publicApp/v3.ts');
     const types = source('src/online/publicApp/types.ts');
     for (const operation of ['rotateInvite', 'closeAdmission', 'kick', 'recover', 'leave']) {
       expect(component).toContain(`controller.${operation}`);
@@ -44,13 +44,11 @@ describe('O4P-08B public Online journey architecture review', () => {
     expect(controller).toContain('online-forming-lobby-kick-v3');
   });
 
-  it('does not widen O4P-08B into variable roster or two-player genesis', () => {
-    const changed = [
-      source('src/App.tsx'),
-      source('src/components/online/PublicOnlineApp.tsx'),
-      source('src/online/publicApp/types.ts'),
-      source('src/online/publicApp/v2.ts'),
-    ].join('\n');
-    expect(changed).not.toMatch(/playerCount\s*:\s*[24]|startingLife\s*:\s*(?:20|40)|2人部屋/);
+  it('preserves the O4P-08B fixed predecessor while O4P-08D adds a separate variable controller', () => {
+    const predecessor = source('src/online/publicApp/v2.ts');
+    const successor = source('src/online/publicApp/v3.ts');
+    expect(predecessor).not.toContain("kind: 'online-forming-lobby-create-v5'");
+    expect(successor).toContain("kind: 'online-forming-lobby-create-v5'");
+    expect(successor).toMatch(/playerCount[\s\S]*startingLife/);
   });
 });

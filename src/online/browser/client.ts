@@ -1,6 +1,6 @@
 import { validateOnlineCommandEnvelopeV1 } from '../protocol/index';
 import {
-  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionAny,
   type OnlineParticipantProjectionV1,
 } from '../projection/index';
 import { CURRENT_CONTRACT_VERSIONS, validateBuildId } from '../../versioning/index';
@@ -638,7 +638,7 @@ export function createOnlineBrowserWebSocketClientV1(
         }
         return;
       }
-      const projectionResult = validateOnlineParticipantProjectionV1(ownDataValue(record, 'projection'));
+      const projectionResult = validateOnlineParticipantProjectionAny(ownDataValue(record, 'projection'));
       if (!projectionResult.ok) { issueCode = 'PROJECTION_REJECTED'; publish(); return; }
       const accepted = projectionResult.value;
       if (accepted.roomId !== config.roomId || accepted.participantId !== config.participantId

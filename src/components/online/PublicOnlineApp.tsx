@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  createPublicOnlineControllerV2,
+  createPublicOnlineControllerV3,
   encodeOnlineSharedInviteCodeV3,
   readAndScrubPublicOnlineInviteFragmentV3,
   type PublicOnlineDeckOptionV2,
-  type PublicOnlineSnapshotV2,
+  type PublicOnlineSnapshotV3,
+  type PublicOnlineConfigurationV3,
 } from '../../online/publicApp';
 import './publicOnlineApp.css';
 import { OnlineDisplayPairing } from './OnlineDisplayPairing';
@@ -20,22 +21,13 @@ export type PublicOnlineAppProps = Readonly<{
   onImportDeck?: () => void;
 }>;
 const steps = ['入室済み', 'デッキ提出', '準備完了', '対戦開始'] as const;
-function deckState(value: string): string {
-  return value === 'accepted'
-    ? '提出済み'
-    : value === 'resolving'
-      ? '確認中'
-      : value === 'needs-attention'
-        ? '要修正'
-        : '未提出';
-}
 function cardCount(deck: PublicOnlineDeckOptionV2 | null): number {
   return deck?.entries.reduce((sum, entry) => sum + entry.quantity, 0) ?? 0;
 }
-function allReady(snapshot: PublicOnlineSnapshotV2): boolean {
+function allReady(snapshot: PublicOnlineSnapshotV3): boolean {
   return (
     snapshot.projection?.seats.every(
-      (seat) => seat.participantId !== null && seat.deckState === 'accepted' && seat.ready,
+      (seat) => seat.participantId !== null && seat.acceptedDeck && seat.ready,
     ) === true
   );
 }
@@ -48,8 +40,9 @@ export function PublicOnlineApp({
   onBackToSolo,
   onImportDeck,
 }: PublicOnlineAppProps) {
-  const controller = useMemo(() => createPublicOnlineControllerV2(), []);
-  const [snapshot, setSnapshot] = useState<PublicOnlineSnapshotV2>(() => controller.getSnapshot());
+  const controller = useMemo(() => createPublicOnlineControllerV3(), []);
+  const [snapshot, setSnapshot] = useState<PublicOnlineSnapshotV3>(() => controller.getSnapshot());
+  const [roomConfiguration, setRoomConfiguration] = useState<PublicOnlineConfigurationV3>({ playerCount: 2, startingLife: 40 });
   const [selectedDeckId, setSelectedDeckId] = useState(initialDeckId || decks[0]?.id || '');
   const [joinCode, setJoinCode] = useState('');
   const [entry, setEntry] = useState<'entry' | 'join'>('entry');
@@ -109,15 +102,15 @@ export function PublicOnlineApp({
           ? 'ホスト'
           : `プレイヤー${index + 1}`;
   };
-  const currentStep = started ? 3 : local?.ready ? 3 : local?.deckState === 'accepted' ? 2 : 1;
+  const currentStep = started ? 3 : local?.ready ? 3 : local?.acceptedDeck ? 2 : 1;
   const blockers =
     snapshot.projection?.seats
       .flatMap((seat) => {
         if (seat.participantId === null) return [];
         const label = seatLabel(seat.seatIndex).replace('あなた（ホスト）', 'あなた');
         return [
-          seat.deckState !== 'accepted'
-            ? `${label}: デッキ${deckState(seat.deckState)}`
+          !seat.acceptedDeck
+            ? `${label}: デッキ未提出`
             : '',
           !seat.ready ? `${label}: 未準備` : '',
         ];
@@ -164,7 +157,7 @@ export function PublicOnlineApp({
         <div>
           <p className="public-online-app__eyebrow">ONLINE ROOM</p>
           <h1>オンライン対戦</h1>
-          <p>選んだデッキで、招待制の4人対戦へ進みます。</p>
+          <p>選んだデッキで、招待制の対戦へ進みます。</p>
         </div>
         <button
           type="button"
@@ -198,13 +191,25 @@ export function PublicOnlineApp({
             <>
               <h2>対戦の入口</h2>
               <p>部屋を作るか、共有された招待コードを1つ入力してください。</p>
+              <fieldset className="public-online-app__room-config" aria-label="対戦人数">
+                <legend>対戦人数</legend>
+                <button type="button" data-testid="online-player-count-2" aria-pressed={roomConfiguration.playerCount === 2} onClick={() => setRoomConfiguration({ playerCount: 2, startingLife: roomConfiguration.startingLife })}>2人</button>
+                <button type="button" data-testid="online-player-count-4" aria-pressed={roomConfiguration.playerCount === 4} onClick={() => setRoomConfiguration({ playerCount: 4, startingLife: 40 })}>4人</button>
+              </fieldset>
+              <fieldset className="public-online-app__room-config" aria-label="開始ライフ">
+                <legend>{roomConfiguration.playerCount === 4 ? '開始ライフ 40（固定）' : '開始ライフ'}</legend>
+                {roomConfiguration.playerCount === 2 && <>
+                  <button type="button" data-testid="online-starting-life-20" aria-pressed={roomConfiguration.startingLife === 20} onClick={() => setRoomConfiguration({ playerCount: 2, startingLife: 20 })}>20</button>
+                  <button type="button" data-testid="online-starting-life-40" aria-pressed={roomConfiguration.startingLife === 40} onClick={() => setRoomConfiguration({ playerCount: 2, startingLife: 40 })}>40</button>
+                </>}
+              </fieldset>
               <div className="public-online-app__choice-grid">
                 <button
                   type="button"
                   className="btn btn--primary"
                   data-testid="online-create-shared"
                   disabled={snapshot.busy !== null || selectedDeck === null}
-                  onClick={() => void controller.createShared()}
+                  onClick={() => void controller.createShared(roomConfiguration)}
                 >
                   部屋を作る
                 </button>
@@ -290,6 +295,11 @@ export function PublicOnlineApp({
             <div>
               <p className="public-online-app__eyebrow">オンライン対戦</p>
               <h2>対戦ロビー</h2>
+              {snapshot.configuration && (
+                <p data-testid="online-authoritative-configuration">
+                  {snapshot.configuration.playerCount}人・開始ライフ{snapshot.configuration.startingLife}
+                </p>
+              )}
             </div>
             <span className="public-online-app__transport">
               {snapshot.connection === 'reconnecting'
@@ -316,7 +326,7 @@ export function PublicOnlineApp({
             <div className="public-online-app__selected-deck">
               <strong>《{selectedDeckName}》</strong>
               <span>
-                {cardCount(selectedDeck)}枚 · デッキ状態: {deckState(local?.deckState ?? 'none')}
+                {cardCount(selectedDeck)}枚 · デッキ状態: {local?.acceptedDeck ? '提出済み' : '未提出'}
               </span>
               <div className="public-online-app__actions">
                 <button
@@ -326,9 +336,9 @@ export function PublicOnlineApp({
                   disabled={snapshot.busy !== null}
                   onClick={() => void controller.submitDeck(selectedDeck)}
                 >
-                  {local?.deckState === 'accepted' ? 'デッキを再提出' : 'デッキを提出'}
+                  {local?.acceptedDeck ? 'デッキを再提出' : 'デッキを提出'}
                 </button>
-                {local?.deckState === 'accepted' && (
+                {local?.acceptedDeck && (
                   <button
                     type="button"
                     className="btn btn--ghost"
@@ -358,15 +368,14 @@ export function PublicOnlineApp({
             </div>
           )}
           <div className="public-online-app__seats" aria-label="参加メンバー">
-            {Array.from({ length: 4 }, (_, index) => {
-              const seat = snapshot.projection?.seats[index];
+            {(snapshot.projection?.seats ?? []).map((seat, index) => {
               const own = snapshot.ownSeatIndex === index;
               const label = seatLabel(index);
               return (
                 <article key={index} data-testid="online-seat-summary">
                   <strong>{label}</strong>
                   <span>{seat?.participantId ? '入室済み' : '空席'}</span>
-                  <span>デッキ: {seat?.participantId ? deckState(seat.deckState) : '—'}</span>
+                  <span>デッキ: {seat.participantId ? (seat.acceptedDeck ? '提出済み' : '未提出') : '—'}</span>
                   <span>{seat?.participantId ? (seat.ready ? '準備完了' : '未準備') : '—'}</span>
                   {snapshot.isHost && seat?.participantId && !own && (
                     <button
@@ -564,6 +573,11 @@ export function PublicOnlineApp({
           )}
           {actionError('もう一度退出')}
         </section>
+      )}
+      {started && snapshot.configuration && (
+        <p className="public-online-app__authoritative-configuration" data-testid="online-authoritative-configuration">
+          {snapshot.configuration.playerCount}人・開始ライフ{snapshot.configuration.startingLife}
+        </p>
       )}
       {started &&
         snapshot.player?.projection &&

@@ -26,6 +26,8 @@ import {
   type OnlineProjectedZoneEntryV1,
   type OnlineProjectionIssueV1,
 } from './types';
+import { ONLINE_PROJECTION_SCHEMA_VERSION_V3 } from './variable';
+import type { OnlineVariableParticipantProjectionV3 } from './variable';
 
 const LOWER_CASE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -581,4 +583,244 @@ export function validateOnlineParticipantProjectionV1(
   } catch {
     return Object.freeze({ ok: false, issues: freezeProjectionIssues([projectionIssue('INVALID_DESCRIPTOR', '', 'Projection could not be inspected safely')]) });
   }
+}
+
+/**
+ * Validator for the additive full variable projection.  The v3 envelope is
+ * deliberately checked independently so the fixed four-seat v1 contract is
+ * never widened.  The game payload is the already validated v1 projection
+ * payload; roster/configuration relations are checked here before it reaches
+ * any browser surface.
+ */
+function canonicalProjectionInput(input: unknown, active: WeakSet<object> = new WeakSet()): unknown {
+  if (input === null || typeof input !== 'object') return input;
+  const object = input;
+  if (active.has(object)) throw new TypeError('Projection contains a cycle');
+  active.add(object);
+  try {
+    if (Array.isArray(input)) {
+      if (Object.getPrototypeOf(input) !== Array.prototype) throw new TypeError('Projection array prototype is not canonical');
+      const lengthDescriptor = Object.getOwnPropertyDescriptor(input, 'length');
+      if (lengthDescriptor === undefined || !('value' in lengthDescriptor) || !Number.isSafeInteger(lengthDescriptor.value) || lengthDescriptor.value < 0) throw new TypeError('Projection array length is not canonical');
+      const keys = Reflect.ownKeys(input);
+      if (keys.length !== lengthDescriptor.value + 1 || !keys.includes('length')) throw new TypeError('Projection array is sparse or has surplus fields');
+      const values: unknown[] = [];
+      for (let index = 0; index < lengthDescriptor.value; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(input, String(index));
+        if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) throw new TypeError('Projection array entry is not a data property');
+        values.push(canonicalProjectionInput(descriptor.value, active));
+      }
+      return values;
+    }
+    const prototype = Reflect.getPrototypeOf(input);
+    if (prototype !== Object.prototype && prototype !== null) throw new TypeError('Projection record prototype is not canonical');
+    const keys = Reflect.ownKeys(input);
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof key !== 'string') throw new TypeError('Projection record has a symbol field');
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) throw new TypeError('Projection record field is not a data property');
+      output[key] = canonicalProjectionInput(descriptor.value, active);
+    }
+    return output;
+  } finally {
+    active.delete(object);
+  }
+}
+function containsPlayerReference(value: unknown, forbidden: ReadonlySet<string>): boolean {
+  if (typeof value === 'string') return forbidden.has(value);
+  if (Array.isArray(value)) return value.some((entry) => containsPlayerReference(entry, forbidden));
+  if (value !== null && typeof value === 'object') return Object.entries(value as Record<string, unknown>).some(([key, entry]) => forbidden.has(key) || containsPlayerReference(entry, forbidden));
+  return false;
+}
+
+export function validateOnlineParticipantProjectionV3(
+  input: unknown,
+): Readonly<{ readonly ok: true; readonly value: OnlineVariableParticipantProjectionV3 } | { readonly ok: false; readonly issues: readonly OnlineProjectionIssueV1[] }> {
+  const issues: OnlineProjectionIssueV1[] = [];
+  const invalid = (path: string, message: string): void => {
+    issues.push(Object.freeze({ code: 'INVALID_RELATION', path, message }));
+  };
+  try {
+    const canonical = canonicalProjectionInput(input);
+    if (canonical === null || typeof canonical !== 'object' || Array.isArray(canonical)) {
+      invalid('', 'Projection root must be an object');
+      return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+    }
+    const root = canonical as Record<string, unknown>;
+    const rootKeys = Object.keys(root).sort();
+    if (rootKeys.join(',') !== ['configuration', 'corePlayerId', 'game', 'kind', 'participantId', 'protocolVersion', 'revision', 'role', 'room', 'roomId', 'schemaVersion'].sort().join(',')) {
+      invalid('', 'Projection has unknown or missing fields');
+    }
+    if (root.kind !== 'online-participant-projection-v3') invalid('/kind', 'Invalid projection kind');
+    if (root.schemaVersion !== ONLINE_PROJECTION_SCHEMA_VERSION_V3) invalid('/schemaVersion', 'Invalid projection schema version');
+    if (root.protocolVersion !== CURRENT_CONTRACT_VERSIONS.protocolVersion) invalid('/protocolVersion', 'Protocol version is not supported');
+    if (!isApplicationId(root.roomId)) invalid('/roomId', 'Invalid room ID');
+    if (!isApplicationId(root.participantId)) invalid('/participantId', 'Invalid participant ID');
+    if (!['player', 'table', 'spectator'].includes(String(root.role))) invalid('/role', 'Invalid role');
+    if (root.role === 'player' && !isCoreBaseId(root.corePlayerId)) invalid('/corePlayerId', 'Player projection requires a Core player');
+    if (root.role !== 'player' && root.corePlayerId !== null) invalid('/corePlayerId', 'Observer projection must have null Core player');
+    if (!Number.isSafeInteger(root.revision) || (root.revision as number) < 0) invalid('/revision', 'Invalid revision');
+
+    const config = root.configuration;
+    if (config === null || typeof config !== 'object' || Array.isArray(config)) invalid('/configuration', 'Invalid configuration');
+    else {
+      const c = config as Record<string, unknown>;
+      if (Object.keys(c).length !== 2 || (c.playerCount !== 2 && c.playerCount !== 4) || (c.startingLife !== 20 && c.startingLife !== 40) || (c.playerCount === 4 && c.startingLife !== 40)) invalid('/configuration', 'Unsupported configuration');
+    }
+    const playerCount = (config as Record<string, unknown> | null)?.playerCount;
+    if (playerCount !== 2 && playerCount !== 4) return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+
+    const room = root.room;
+    if (room === null || typeof room !== 'object' || Array.isArray(room)) invalid('/room', 'Invalid room');
+    else {
+      const r = room as Record<string, unknown>;
+      const roomKeys = Object.keys(r).sort();
+      if (roomKeys.join(',') !== ['hostParticipantId', 'lifecycle', 'participants', 'seats'].sort().join(',')) invalid('/room', 'Room has unknown or missing fields');
+      if (!['forming', 'ready', 'started', 'active', 'finished'].includes(String(r.lifecycle))) invalid('/room/lifecycle', 'Invalid lifecycle');
+      if (!isApplicationId(r.hostParticipantId)) invalid('/room/hostParticipantId', 'Invalid host participant ID');
+      if (!Array.isArray(r.participants) || r.participants.length < playerCount) invalid('/room/participants', 'Invalid participant roster');
+      if (!Array.isArray(r.seats) || r.seats.length !== playerCount) invalid('/room/seats', 'Seat roster must match configuration');
+      const seats: readonly unknown[] = Array.isArray(r.seats) ? r.seats as readonly unknown[] : [];
+      const participantIds = new Set<string>();
+      for (let index = 0; index < seats.length; index += 1) {
+        const seat = seats[index];
+        if (seat === null || typeof seat !== 'object' || Array.isArray(seat)) { invalid(`/room/seats/${index}`, 'Invalid seat'); continue; }
+        const s = seat as Record<string, unknown>;
+        const keys = Object.keys(s).sort();
+        if (keys.join(',') !== ['acceptedDeck', 'corePlayerId', 'outcome', 'participantId', 'ready', 'seatIndex'].sort().join(',')) invalid(`/room/seats/${index}`, 'Seat has unknown or missing fields');
+        if (s.seatIndex !== index || s.corePlayerId !== `P${index + 1}`) invalid(`/room/seats/${index}`, 'Seat order mismatch');
+        if (s.participantId !== null) {
+          if (!isApplicationId(s.participantId)) invalid(`/room/seats/${index}/participantId`, 'Invalid participant ID');
+          else if (participantIds.has(s.participantId)) invalid(`/room/seats/${index}/participantId`, 'Duplicate participant ID');
+          else participantIds.add(s.participantId);
+        }
+        if (typeof s.acceptedDeck !== 'boolean' || typeof s.ready !== 'boolean' || (s.ready === true && s.acceptedDeck !== true)) invalid(`/room/seats/${index}`, 'Invalid seat readiness relation');
+        if (!['pending', 'conceded', 'defeated'].includes(String(s.outcome))) invalid(`/room/seats/${index}/outcome`, 'Invalid seat outcome');
+      }
+      const participants: readonly unknown[] = Array.isArray(r.participants) ? r.participants as readonly unknown[] : [];
+      const seen = new Set<string>();
+      for (let index = 0; index < participants.length; index += 1) {
+        const value = participants[index];
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) { invalid(`/room/participants/${index}`, 'Invalid participant'); continue; }
+        const p = value as Record<string, unknown>;
+        if (Object.keys(p).sort().join(',') !== ['participantId', 'presence', 'role', 'seatIndex'].sort().join(',')) invalid(`/room/participants/${index}`, 'Participant has unknown or missing fields');
+        if (!isApplicationId(p.participantId) || seen.has(String(p.participantId))) invalid(`/room/participants/${index}/participantId`, 'Invalid or duplicate participant ID');
+        else seen.add(p.participantId);
+        if (!['player', 'table', 'spectator'].includes(String(p.role)) || !['connected', 'disconnected'].includes(String(p.presence))) invalid(`/room/participants/${index}`, 'Invalid participant role/presence');
+        if (p.role === 'player' && !Number.isInteger(p.seatIndex)) invalid(`/room/participants/${index}/seatIndex`, 'Player participant must have a seat');
+        if (p.role !== 'player' && p.seatIndex !== null) invalid(`/room/participants/${index}/seatIndex`, 'Observer seat must be null');
+      }
+      if (typeof r.hostParticipantId === 'string' && !seen.has(r.hostParticipantId)) invalid('/room/hostParticipantId', 'Host must be a participant');
+    }
+    const game = root.game;
+    if (game === null || typeof game !== 'object' || Array.isArray(game)) invalid('/game', 'Invalid game projection');
+    else {
+      const g = game as Record<string, unknown>;
+      const expected = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
+      if (Object.keys(g).sort().join(',') !== expected.sort().join(',')) invalid('/game', 'Game has unknown or missing fields');
+      if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || g.turnOrder.some((id, i) => id !== `P${i + 1}`)) invalid('/game/turnOrder', 'Turn order must match exact roster');
+      if (!Array.isArray(g.players) || g.players.length !== playerCount) invalid('/game/players', 'Player coverage must match exact roster');
+      if (!Array.isArray(g.visibilityGrants) || !Array.isArray(g.searchSessions) || !Array.isArray(g.playPermissions)) invalid('/game', 'Invalid game authority arrays');
+      if (playerCount === 2 && containsPlayerReference(g, new Set(['P3', 'P4']))) invalid('/game', 'Two-player projection references an unavailable player');
+    }
+    // Reuse the hardened v1 descriptor/visibility validator on an internal
+    // compatibility candidate.  v1 is fixed at four seats, so a two-seat v3
+    // candidate receives inert P3/P4 records only for validation; those records
+    // are never returned or exposed to callers.
+    if (issues.length === 0) {
+      const r = root.room as Record<string, unknown>;
+      const g = root.game as Record<string, unknown>;
+      const rawSeats = r.seats as readonly Record<string, unknown>[];
+      const seats = rawSeats.map((seat) => ({
+        seatIndex: seat.seatIndex,
+        corePlayerId: seat.corePlayerId,
+        participantId: seat.participantId,
+        ready: seat.ready,
+        outcome: seat.outcome,
+      }));
+      const rawPlayers = g.players as readonly Record<string, unknown>[];
+      const rawByPlayer = (g.zones as Record<string, unknown>).byPlayer as readonly Record<string, unknown>[];
+      const inertPlayer = (playerId: string): Record<string, unknown> => {
+        const template = rawPlayers[0] ?? {};
+        return {
+          ...template,
+          playerId,
+          life: 40,
+          poison: 0,
+          energy: 0,
+          experience: 0,
+          manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+          mulliganCount: 0,
+          landsPlayedThisTurn: 0,
+          spellsCastThisTurn: 0,
+          drawnThisTurn: 0,
+          maximumHandSizeOverride: 'none',
+          status: 'active',
+          exitCause: null,
+        };
+      };
+      const inertZone = (playerId: string): Record<string, unknown> => ({
+        playerId,
+        zones: {
+          library: { count: 0, entries: [] },
+          hand: { count: 0, entries: [] },
+          graveyard: { count: 0, entries: [] },
+        },
+      });
+      const paddedSeats = [...seats];
+      const paddedPlayers = [...rawPlayers];
+      const paddedByPlayer = [...rawByPlayer];
+      const paddedTurnOrder = [...(g.turnOrder as readonly unknown[])];
+      for (let index = paddedSeats.length; index < 4; index += 1) {
+        const playerId = `P${index + 1}`;
+        paddedSeats.push({ seatIndex: index, corePlayerId: playerId, participantId: null, ready: false, outcome: 'pending' });
+        paddedPlayers.push(inertPlayer(playerId));
+        paddedByPlayer.push(inertZone(playerId));
+        paddedTurnOrder.push(playerId);
+      }
+      const candidate = {
+        kind: 'online-participant-projection-v1',
+        schemaVersion: 1,
+        protocolVersion: root.protocolVersion,
+        roomId: root.roomId,
+        participantId: root.participantId,
+        role: root.role,
+        corePlayerId: root.corePlayerId,
+        revision: root.revision,
+        room: {
+          lifecycle: r.lifecycle,
+          hostParticipantId: r.hostParticipantId,
+          participants: r.participants,
+          seats: paddedSeats,
+        },
+        game: {
+          ...g,
+          turnOrder: paddedTurnOrder,
+          players: paddedPlayers,
+          zones: { ...(g.zones as Record<string, unknown>), byPlayer: paddedByPlayer },
+        },
+      };
+      const deepValidation = validateOnlineParticipantProjectionV1(candidate);
+      if (!deepValidation.ok) {
+        invalid('/game', 'Full projection payload failed the v1 safety validator');
+      }
+    }
+    if (issues.length > 0) return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+    return Object.freeze({ ok: true, value: deepFreezeCopy(canonical) as OnlineVariableParticipantProjectionV3 });
+  } catch {
+    invalid('', 'Invalid projection');
+    return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+  }
+}
+
+/** Validate either the legacy full projection or the additive variable one. */
+export function validateOnlineParticipantProjectionAny(
+  input: unknown,
+): Readonly<{ readonly ok: true; readonly value: OnlineParticipantProjectionV1 } | { readonly ok: false; readonly issues: readonly OnlineProjectionIssueV1[] }> {
+  const legacy = validateOnlineParticipantProjectionV1(input);
+  if (legacy.ok) return legacy;
+  const variable = validateOnlineParticipantProjectionV3(input);
+  if (variable.ok) return Object.freeze({ ok: true, value: variable.value as unknown as OnlineParticipantProjectionV1 });
+  return variable;
 }

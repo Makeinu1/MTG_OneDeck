@@ -1,5 +1,5 @@
 import {
-  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionAny,
   type OnlineParticipantProjectionV1,
   type OnlineProjectedPlayerV1,
   type OnlineProjectedZoneEntryV1,
@@ -164,7 +164,7 @@ function playerSummaries(projection: OnlineParticipantProjectionV1): readonly Pe
 }
 
 export function buildPersonalWorkbenchViewV1(input: unknown): PersonalWorkbenchViewV1 {
-  const validated = validateOnlineParticipantProjectionV1(input);
+  const validated = validateOnlineParticipantProjectionAny(input);
   if (!validated.ok) return unavailable();
 
   const projection = validated.value;

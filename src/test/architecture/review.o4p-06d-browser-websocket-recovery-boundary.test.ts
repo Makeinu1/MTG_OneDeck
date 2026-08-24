@@ -68,7 +68,7 @@ describe('O4P-06D browser WebSocket architecture boundary', () => {
 
   it('pins closed validation, projection-only authority, bounded recovery, and no ambient persistence', () => {
     const source = productionFiles(browserRoot).map((file) => readFileSync(file, 'utf8')).join('\n');
-    expect(source).toContain('validateOnlineParticipantProjectionV1');
+    expect(source).toContain('validateOnlineParticipantProjectionAny');
     expect(source).toContain('validateOnlineCommandEnvelopeV1');
     expect(source).toContain('Object.getOwnPropertyDescriptors');
     expect(source).toContain('ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1');

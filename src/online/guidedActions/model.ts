@@ -14,7 +14,7 @@ import {
   type OnlineCommandEnvelopeV1,
 } from '../protocol/index';
 import {
-  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionAny,
   type OnlineParticipantProjectionV1,
   type OnlineProjectedPlayerV1,
   type OnlineProjectedVisibleObjectV1,
@@ -224,7 +224,7 @@ function visibleCandidates(
 }
 
 function buildGuidedView(input: unknown): OnlineGuidedActionsViewV1 {
-  const validation = validateOnlineParticipantProjectionV1(input);
+  const validation = validateOnlineParticipantProjectionAny(input);
   if (!validation.ok) unavailable();
   const projection = validation.value;
   ownParticipant(projection);
@@ -433,7 +433,7 @@ function validatedBindingSession(session: SafeRecord): Readonly<{ readonly raw: 
   const checkedHello = validateOnlineClientHelloV1(hello);
   if (!checkedHello.ok) bindingUnavailable();
   const view = buildGuidedView(session.personalProjection);
-  const projectionValidation = validateOnlineParticipantProjectionV1(session.personalProjection);
+  const projectionValidation = validateOnlineParticipantProjectionAny(session.personalProjection);
   if (!projectionValidation.ok) bindingUnavailable();
   const projection = projectionValidation.value;
   if (

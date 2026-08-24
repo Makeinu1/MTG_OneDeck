@@ -1,5 +1,5 @@
 import {
-  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionAny,
   type OnlineParticipantProjectionV1,
   type OnlineProjectedPlayerV1,
   type OnlineProjectedZoneEntryV1,
@@ -112,7 +112,9 @@ function tablePresence(projection: OnlineParticipantProjectionV1): 'connected' |
 function playerSummaries(projection: OnlineParticipantProjectionV1): readonly TableDisplayPlayerSummaryV1[] {
   const { turnOrder, players, zones } = projection.game;
   const { seats, participants } = projection.room;
-  if (turnOrder.length !== 4 || players.length !== 4 || seats.length !== 4 || zones.byPlayer.length !== 4) return unavailable();
+  const configuredCount = (projection as unknown as { readonly configuration?: { readonly playerCount?: unknown } }).configuration?.playerCount;
+  const expectedCount = configuredCount === 2 || configuredCount === 4 ? configuredCount : 4;
+  if (turnOrder.length !== expectedCount || players.length !== expectedCount || seats.length !== expectedCount || zones.byPlayer.length !== expectedCount) return unavailable();
 
   return turnOrder.map((playerId, index) => {
     const player = players[index];
@@ -157,9 +159,9 @@ function playerSummaries(projection: OnlineParticipantProjectionV1): readonly Ta
 
 export function buildTableDisplayViewV1(input: unknown): TableDisplayViewV1 {
   try {
-    const firstValidation = validateOnlineParticipantProjectionV1(input);
+    const firstValidation = validateOnlineParticipantProjectionAny(input);
     if (!firstValidation.ok) return unavailable();
-    const secondValidation = validateOnlineParticipantProjectionV1(firstValidation.value);
+    const secondValidation = validateOnlineParticipantProjectionAny(firstValidation.value);
     if (!secondValidation.ok) return unavailable();
     const projection = secondValidation.value;
     const presence = tablePresence(projection);

@@ -16,17 +16,18 @@ const ORACLE_ID = 'd8ad23a1-0b43-48ea-9fbe-d89b29194509';
 
 function projection(hostId: string, guest = false, lifecycle: 'forming' | 'ready' = 'forming') {
   return {
-    kind: 'online-forming-lobby-projection-v2' as const,
-    schemaVersion: 2 as const,
+    kind: 'online-forming-lobby-projection-v4' as const,
+    schemaVersion: 4 as const,
     lifecycle,
     roomId: ROOM_ID,
     serverBuildId: 'build-o4p08b-ui-review',
     hostParticipantId: hostId,
-    seats: [0, 1, 2, 3].map((index) => ({
+    configuration: { playerCount: 2 as const, startingLife: 40 as const },
+    seats: [0, 1].map((index) => ({
       seatIndex: index,
       corePlayerId: `P${index + 1}`,
       participantId: index === 0 ? hostId : index === 1 && guest ? 'guest-o4p08b-ui-review' : null,
-      deckState: 'none',
+      acceptedDeck: false,
       ready: false,
     })),
   };
@@ -34,10 +35,12 @@ function projection(hostId: string, guest = false, lifecycle: 'forming' | 'ready
 
 function created(hostId: string, guest = false) {
   return {
-    kind: 'online-forming-lobby-created-v3' as const,
-    schemaVersion: 3 as const,
+    kind: 'online-forming-lobby-created-v5' as const,
+    schemaVersion: 5 as const,
     roomId: ROOM_ID,
     participantId: hostId,
+    playerCount: 2 as const,
+    startingLife: 40 as const,
     seatCapability: SEAT_CAPABILITY,
     inviteCode: INVITE,
     tableParticipantId: TABLE_ID,
@@ -147,11 +150,14 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     act(() => mounted.root.unmount());
   });
 
-  it('creates through shared v3 admission and renders staged privacy-safe host lobby', async () => {
+  it('creates through variable shared admission and renders an exact two-seat privacy-safe host lobby', async () => {
     vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
       const sent = body(init);
       const hostId = String(sent.participantId);
-      expect(sent).toMatchObject({ kind: 'online-forming-lobby-create-v3', schemaVersion: 3 });
+      expect(sent).toMatchObject({
+        kind: 'online-forming-lobby-create-v5', schemaVersion: 5,
+        playerCount: 2, startingLife: 40,
+      });
       return Promise.resolve(response(created(hostId, true)));
     }));
     const mounted = mount();
@@ -160,10 +166,12 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     expect(required(mounted.container, '[aria-label="対戦ロビー"]')).toBeTruthy();
     expect(mounted.container.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
     expect(required(mounted.container, '[aria-current="step"]').textContent).toContain('デッキ提出');
-    expect(mounted.container.textContent).toContain('空席 2');
-    expect(mounted.container.querySelectorAll('[data-testid="online-seat-summary"]')).toHaveLength(4);
-    expect(mounted.container.querySelectorAll('[data-testid="online-seat-summary"]')[2]?.textContent)
-      .toContain('空席デッキ: ——');
+    const seatSummaries = mounted.container.querySelectorAll('[data-testid="online-seat-summary"]');
+    expect(seatSummaries).toHaveLength(2);
+    expect([...seatSummaries].every((seatSummary) => seatSummary.textContent?.includes('入室済み'))).toBe(true);
+    expect(mounted.container.textContent).not.toContain('空席');
+    expect(mounted.container.querySelectorAll('[data-testid="online-seat-summary"]')[1]?.textContent)
+      .toContain('デッキ: 未提出');
     expect(mounted.container.textContent).not.toContain(ROOM_ID);
     expect(mounted.container.innerHTML).not.toMatch(
       new RegExp(`${SEAT_CAPABILITY}|${TABLE_CAPABILITY}|guest-o4p08b-ui-review`),
@@ -183,11 +191,11 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
       const hostId = String(sent.participantId);
       const readyProjection = {
         ...projection(hostId, true, 'ready'),
-        seats: [0, 1, 2, 3].map((index) => ({
+        seats: [0, 1].map((index) => ({
           seatIndex: index,
           corePlayerId: `P${index + 1}`,
           participantId: index === 0 ? hostId : `ready-player-${index + 1}`,
-          deckState: 'accepted',
+          acceptedDeck: true,
           ready: true,
         })),
       };
@@ -214,7 +222,7 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     let submittedKind = '';
     vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
       const sent = body(init);
-      if (sent.kind === 'online-forming-lobby-create-v3') {
+      if (sent.kind === 'online-forming-lobby-create-v5') {
         hostId = String(sent.participantId);
         return Promise.resolve(response(created(hostId)));
       }
@@ -222,7 +230,7 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
       const failedProjection = {
         ...projection(hostId),
         seats: projection(hostId).seats.map((seat, index) =>
-          index === 0 ? { ...seat, deckState: 'needs-attention' } : seat,
+          index === 0 ? { ...seat, acceptedDeck: false } : seat,
         ),
       };
       return Promise.resolve(response({
@@ -250,7 +258,7 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     let hostId = '';
     vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
       const sent = body(init);
-      if (sent.kind === 'online-forming-lobby-create-v3') {
+      if (sent.kind === 'online-forming-lobby-create-v5') {
         hostId = String(sent.participantId);
         return Promise.resolve(response(created(hostId)));
       }
@@ -314,8 +322,8 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
         })),
       };
       return Promise.resolve(response({
-        kind: 'online-forming-lobby-shared-claimed-v3',
-        schemaVersion: 3,
+        kind: 'online-forming-lobby-shared-claimed-v4',
+        schemaVersion: 4,
         roomId: ROOM_ID,
         participantId: guestId,
         seatCapability: SEAT_CAPABILITY,

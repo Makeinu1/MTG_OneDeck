@@ -36,7 +36,11 @@ export type {
   OnlineProjectionValidationResultV1,
 } from './types';
 export { validateOnlineProjectionRequestV1 } from './request';
-export { validateOnlineParticipantProjectionV1 } from './validation';
+export {
+  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionV3,
+  validateOnlineParticipantProjectionAny,
+} from './validation';
 export {
   handleOnlineProjectedSnapshotRequestV1,
   OnlineProjectionOperationErrorV1,
@@ -50,4 +54,13 @@ export {
 export type {
   OnlineVariableParticipantProjectionV2,
   OnlineParticipantProjectionV2,
+} from './variable';
+export {
+  ONLINE_PROJECTION_SCHEMA_VERSION_V3,
+  projectOnlineVariableProtocolV3,
+  projectOnlineVariableRoomV3,
+} from './variable';
+export type {
+  OnlineVariableParticipantProjectionV3,
+  OnlineParticipantProjectionV3,
 } from './variable';

@@ -32,7 +32,7 @@ describe('O4P-08C variable roster and genesis architecture review', () => {
     ]) expect(contract).toContain(term);
   });
 
-  it('does not widen the milestone into React, table layout, dependencies, or configuration', () => {
+  it('allows the O4P-08D successor to consume the frozen variable boundary without dependency drift', () => {
     const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA], {
       encoding: 'utf8',
     }).trim().split(/\r?\n/u).filter(Boolean);
@@ -41,8 +41,9 @@ describe('O4P-08C variable roster and genesis architecture review', () => {
     }).trim().split(/\r?\n/u).filter(Boolean);
     const candidatePaths = [...new Set([...changed, ...untracked])];
     expect(candidatePaths.some((path) => path.startsWith('src/App'))).toBe(false);
-    expect(candidatePaths.some((path) => path.startsWith('src/components/'))).toBe(false);
-    expect(candidatePaths.some((path) => /(?:Table|Workbench)/u.test(path))).toBe(false);
+    expect(candidatePaths).toContain('src/components/online/PublicOnlineApp.tsx');
+    expect(candidatePaths).toContain('src/online/tableDisplay/model.ts');
+    expect(candidatePaths).toContain('src/online/workbench/model.ts');
     expect(candidatePaths).not.toContain('package.json');
     expect(candidatePaths).not.toContain('package-lock.json');
     expect(candidatePaths).not.toContain('wrangler.jsonc');

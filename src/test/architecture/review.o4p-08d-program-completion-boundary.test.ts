@@ -14,6 +14,8 @@ describe('O4P-08D Judge: program completion boundary', () => {
     expect(app).toContain('online-player-count-4');
     expect(app).toContain('online-starting-life-20');
     expect(app).toContain('開始ライフ 40（固定）');
+    expect(app).toContain('snapshot.configuration');
+    expect(app).toMatch(/playerCount.*開始ライフ|開始ライフ.*startingLife/su);
     expect(app).not.toContain('Array.from({ length: 4 }');
     expect(types).toContain('PublicOnlineControllerV3');
     expect(index).toContain('createPublicOnlineControllerV3');
@@ -27,6 +29,18 @@ describe('O4P-08D Judge: program completion boundary', () => {
     expect(variable).toContain('projectOnlineVariableProtocolV3');
     expect(variable).toContain('validateOnlineParticipantProjectionV3');
     expect(validationV1).toContain("'online-participant-projection-v1'");
+  });
+
+  it('retains the hardened public client and real browser-action transport', () => {
+    const client = source('src/online/publicApp/v3.ts');
+    expect(client).toContain('parsePublicOnlineErrorV3');
+    expect(client).toContain('createOnlineBrowserWebSocketClientV1');
+    expect(client).toContain('online-forming-lobby-ready-v4');
+    expect(client).toContain('online-forming-lobby-start-v4');
+    expect(client).toContain('/websocket');
+    expect(client).not.toContain('Math.random');
+    expect(client).not.toMatch(/submitPersonalAction:\s*\(\)\s*=>\s*undefined/u);
+    expect(client).not.toMatch(/submitGuidedAction:\s*\(\)\s*=>\s*undefined/u);
   });
 
   it('does not widen the program into excluded product or governance scope', () => {

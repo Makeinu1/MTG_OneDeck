@@ -6,7 +6,7 @@ import {
   validateOnlineProtocolStateV1,
   type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
-import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2 } from '../projection/index';
+import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3 } from '../projection/index';
 import { disconnectOnlineRoomParticipantV1 } from '../room/index';
 import { ConflictError, OnlineCloudflareRepository } from './persistence';
 import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
@@ -961,7 +961,12 @@ export class OnlineRoomDurableObject {
     const participantId = frameStringField(frame, 'participantId'); const clientBuildId = frameStringField(frame, 'clientBuildId'); const record = transitionResponseRecord(frame); const knownRevision = record?.knownRevision;
     if (participantId === null || clientBuildId === null || typeof knownRevision !== 'number' || !Number.isSafeInteger(knownRevision) || knownRevision < 0) { this.sendError(socket, 'INVALID_MESSAGE'); return; }
     const role = state.room.participants.some((entry) => entry.participantId === participantId) ? 'player' : 'table';
-    const projection = projectOnlineVariableProtocolV2(state, participantId);
+    // Existing O4P-08C clients remain on the compact v2 wire; the shipped v3
+    // browser identifies itself with the D client build and receives the full
+    // exact-roster projection. Both generations are validated client-side.
+    const projection = clientBuildId === 'o4p-08d-client'
+      ? projectOnlineVariableProtocolV3(state, participantId)
+      : projectOnlineVariableProtocolV2(state, participantId);
     this.sendApplicationValue(socket, Object.freeze({ kind: 'online-projected-snapshot-v1', protocolVersion: state.protocolVersion, status: 'accepted', roomId: state.room.roomId, participantId, role, knownRevision, revision: state.revision, serverBuildId: state.serverBuildId, clientBuildIdMatch: clientBuildId === state.serverBuildId, reason: knownRevision === state.revision ? 'synchronized' : 'snapshot-required', projection, issues: Object.freeze([]) }));
   }
 

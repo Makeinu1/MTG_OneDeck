@@ -26,7 +26,7 @@ describe('O4P-07B fixed-catalog-free served path architecture', () => {
     expect(start).toContain('initializeDynamicRoomV2');
   });
 
-  it('serves entries-only v2 UI while preserving the fixed catalog solely as a deferred fixture', () => {
+  it('serves entries-only UI through the current controller while preserving the fixed catalog solely as a deferred fixture', () => {
     const app = source('src/App.tsx');
     const component = source('src/components/online/PublicOnlineApp.tsx');
     const types = source('src/online/publicApp/types.ts');
@@ -36,12 +36,12 @@ describe('O4P-07B fixed-catalog-free served path architecture', () => {
     expect(app).toMatch(/<PublicOnlineApp[\s\S]*?entries:\s*deck\.entries/);
     expect(app).toMatch(/onImportDeck=\{\(\) => setOnlineImportOpen\(true\)\}/);
     expect(app).toMatch(/<ImportScreen[\s\S]*?importOnly/);
-    expect(component).toContain('createPublicOnlineControllerV2');
+    expect(component).toContain('createPublicOnlineControllerV3');
     expect(component).not.toContain('createPublicOnlineControllerV1');
     expect(types).toMatch(/PublicOnlineDeckOptionV2[\s\S]*?readonly entries:/);
     expect(methodRegion(types, 'export type PublicOnlineDeckOptionV2', 'export type PublicOnlineIssueV2'))
       .not.toContain('deckText');
-    expect(exports).toContain('createPublicOnlineControllerV2');
+    expect(exports).toContain('createPublicOnlineControllerV3');
     expect(v2).toContain("kind: 'online-forming-lobby-deck-submit-v2'");
     expect(v2).not.toMatch(/catalogV1|fourDeckBootstrapV1/);
 

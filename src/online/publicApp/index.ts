@@ -14,8 +14,16 @@ export type {
   PublicOnlineProjectionV2,
   PublicOnlineSnapshotV2,
   PublicOnlineControllerV2,
+  PublicOnlinePlayerCountV3,
+  PublicOnlineStartingLifeV3,
+  PublicOnlineConfigurationV3,
+  PublicOnlineSeatV3,
+  PublicOnlineProjectionV3,
+  PublicOnlineSnapshotV3,
+  PublicOnlineControllerV3,
 } from './types';
 export { createPublicOnlineControllerV2, validatePublicOnlineProjectionV2 } from './v2';
+export { createPublicOnlineControllerV3, validatePublicOnlineProjectionV3 } from './v3';
 export {
   createPublicOnlineRecoveryStoreV1,
   parsePublicOnlineErrorV3,

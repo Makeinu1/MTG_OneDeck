@@ -10,7 +10,7 @@ import {
   type OnlineClientHelloV1,
 } from '../protocol/index';
 import {
-  validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionAny,
   validateOnlineProjectionRequestV1,
   type OnlineParticipantProjectionV1,
 } from '../projection/index';
@@ -237,8 +237,8 @@ function buildPairingView(
   if (rawFocusedPlayerId !== null && !isCoreBaseId(rawFocusedPlayerId)) return unavailable();
   const focusedPlayerId = rawFocusedPlayerId === null ? null : rawFocusedPlayerId as CorePlayerId;
 
-  const personalValidation = validateOnlineParticipantProjectionV1(root.personalProjection);
-  const tableValidation = validateOnlineParticipantProjectionV1(root.tableProjection);
+  const personalValidation = validateOnlineParticipantProjectionAny(root.personalProjection);
+  const tableValidation = validateOnlineParticipantProjectionAny(root.tableProjection);
   if (!personalValidation.ok || !tableValidation.ok) return unavailable();
   const personal = personalValidation.value;
   const table = tableValidation.value;
@@ -258,7 +258,9 @@ function buildPairingView(
   const opponents = tableView.players
     .filter((player) => player.playerId !== personalView.corePlayerId)
     .map((player) => playerSummary(player, focusedPlayerId));
-  if (opponents.length !== 3) return unavailable();
+  const configuredCount = (personal as unknown as { readonly configuration?: { readonly playerCount?: unknown } }).configuration?.playerCount;
+  const expectedOpponents = configuredCount === 2 || configuredCount === 4 ? configuredCount - 1 : 3;
+  if (opponents.length !== expectedOpponents) return unavailable();
   if (
     focusedPlayerId !== null &&
     !opponents.some(
@@ -346,7 +348,7 @@ function validatedSession(session: SafeRecord): OnlineClientHelloV1 & Readonly<{
   };
   const validation = validateOnlineClientHelloV1(hello);
   if (!validation.ok) return bindingUnavailable();
-  const projectionValidation = validateOnlineParticipantProjectionV1(session.personalProjection);
+  const projectionValidation = validateOnlineParticipantProjectionAny(session.personalProjection);
   if (!projectionValidation.ok) return bindingUnavailable();
   const projection = projectionValidation.value;
   const view = buildPersonalWorkbenchViewV1(session.personalProjection);

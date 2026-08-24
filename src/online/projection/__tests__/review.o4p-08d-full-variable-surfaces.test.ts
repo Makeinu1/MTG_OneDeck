@@ -125,4 +125,37 @@ describe('O4P-08D Judge: full exact-roster browser surfaces', () => {
     expect(validateOnlineParticipantProjectionV3(projection)).toMatchObject({ ok: false });
     expect(() => buildPersonalWorkbenchViewV1(projection)).toThrow();
   });
+
+  it('rejects hostile descriptors, surplus keys, and every absent-player reference', () => {
+    const result = genesis(2, 20);
+    const valid = projectOnlineVariableProtocolV3(result.protocolState, 'participant-o4p08d-1');
+    const checked = validateOnlineParticipantProjectionV3(valid);
+    expect(checked).toMatchObject({ ok: true });
+    if (checked.ok) {
+      expect(Object.isFrozen(checked.value)).toBe(true);
+      expect(Object.isFrozen(checked.value.configuration)).toBe(true);
+      expect(Object.isFrozen(checked.value.room.seats)).toBe(true);
+      expect(Object.isFrozen(checked.value.game)).toBe(true);
+    }
+
+    const absentTurn: unknown = JSON.parse(JSON.stringify(valid));
+    const game = (absentTurn as { game: { turn: { activePlayerId: string } } }).game;
+    game.turn.activePlayerId = 'P3';
+    expect(validateOnlineParticipantProjectionV3(absentTurn)).toMatchObject({ ok: false });
+
+    const getter = JSON.parse(JSON.stringify(valid)) as Record<string, unknown>;
+    Object.defineProperty(getter, 'configuration', {
+      enumerable: true,
+      get: () => { throw new Error('getter must not run'); },
+    });
+    expect(() => validateOnlineParticipantProjectionV3(getter)).not.toThrow();
+    expect(validateOnlineParticipantProjectionV3(getter)).toMatchObject({ ok: false });
+
+    const nonEnumerable = JSON.parse(JSON.stringify(valid)) as Record<string, unknown>;
+    Object.defineProperty(nonEnumerable, 'hidden', { enumerable: false, value: 'secret' });
+    expect(validateOnlineParticipantProjectionV3(nonEnumerable)).toMatchObject({ ok: false });
+    const symbol = JSON.parse(JSON.stringify(valid)) as Record<PropertyKey, unknown>;
+    symbol[Symbol('hidden')] = 'secret';
+    expect(validateOnlineParticipantProjectionV3(symbol)).toMatchObject({ ok: false });
+  });
 });
