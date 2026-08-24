@@ -87,3 +87,36 @@ ownership flow remains required before the O4P-08D cycle begins.
 Public 2/4-player creation controls, two-player 20/40 selection UI, exact-roster
 Table/Workbench/guided rendering, three-viewport browser acceptance, and final
 program release remain exclusively O4P-08D.
+
+## Terminal CI ownership evidence
+
+Terminal completion candidate HEAD
+`2fc320f2fc5c735d12256ebbd8682bbf735a6f24` has parent/diff-base
+`ee6352ab03e4a89225fac1f1b2bee63ada4882b3`. Actions run
+`32676276126`, build job `97284878218`, passed the complete canonical full
+check and exact diff-base resolution before stopping only at the expected Judge
+ownership scan. Pages configuration, artifact upload, and deployment were
+skipped.
+
+The authoritative classifier partition was exactly three `NEEDS-REAUTH`
+research paths and four `FORBIDDEN` Judge review paths:
+
+| Category | Path | Terminal candidate SHA-256 |
+|---|---|---|
+| NEEDS-REAUTH | `research/cr-grounding/archive/o4p-08c-completion-packet-2026-08-24.md` | `ec79b698467bdc01765a335e46a8e8cf0ee32802f3e49bbaa6e0de2bb87d7415` |
+| NEEDS-REAUTH | `research/cr-grounding/cr-backbone-ledger.json` | `e59282ca03bf60ee9f7c2f1a4e8a513e11139fea70284d5c5dad688a685a4855` |
+| NEEDS-REAUTH | `research/cr-grounding/o4p-08c-completion-cold-audit-brief-2026-08-24.draft.md` | `4a91d61df35414436f05d8512a5cb20e4bee65438f91fb0de0c854c76b988e11` |
+| FORBIDDEN | `src/test/architecture/review.gov-codex-56-program-orchestration.test.ts` | `82f1c703778475c1814d5719f30eec51dcea9e1d2aa9d2425752cac579c748a7` |
+| FORBIDDEN | `src/test/architecture/review.o4p-06-roadmap-registration.test.ts` | `d01b1c05c14b03d64599fd8d9be0df84da826655936a2a54a2e044387463f7a9` |
+| FORBIDDEN | `src/test/architecture/review.o4p-07-roadmap-registration.test.ts` | `299c1e0f23261636b0ce1501718cca07f3da81584b81ff01b81d987325a159ef` |
+| FORBIDDEN | `src/test/architecture/review.o4p-08-roadmap-registration.test.ts` | `4bee7f5bb955bf42dbc920274b3661551347dd9a27b3720fb4bda267255df247` |
+
+The fresh-context completion auditor independently recomputed all seven commit
+blobs, confirmed the partition and exact-head successful full-check step, and
+returned `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` plus
+`O4P-08C-TERMINAL-CI-OWNERSHIP-REAUTH-OK`.
+
+This approval authorizes only the parent-only packet/brief metadata commit and
+its replacement exact-head CI/Pages flow.
+
+`O4P-08C-TERMINAL-CI-OWNERSHIP-REAUTH-OK`
