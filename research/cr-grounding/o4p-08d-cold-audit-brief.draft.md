@@ -93,3 +93,35 @@ confirmed the exact-head full-check and classifier boundary, and returned
 This approval is limited to the exact Judge-review blob above and this
 parent-only evidence update. It does not authorize source changes or shipment;
 replacement exact-head CI and Pages verification remain required.
+
+## Completion metadata CI ownership addendum
+
+Completion candidate `2cf35e9dccc8fd3731fce8f018164940023030e4`
+marked O4P-08D shipped, projected the O4P-08 active program as complete, and
+recorded the already-observed production evidence. GitHub Actions run
+`32693212223`, build job `97330486401`, checked that exact HEAD, passed the
+canonical full check and exact diff-base from
+`c90c533d457e46f9d01a748c827c26b884a814db`, then stopped only at
+`check:forbidden`. Pages configuration and artifact upload were skipped.
+
+The authoritative classifier returned exactly two `NEEDS-REAUTH` paths and
+four `FORBIDDEN` Judge-review paths:
+
+| Category | Path | SHA-256 at `2cf35e9` |
+|---|---|---|
+| NEEDS-REAUTH | `research/cr-grounding/cr-backbone-ledger.json` | `aa0fddcc5a24943ed9a22e1f60c177f54b02e5d46deac411382b3075bc04e46c` |
+| NEEDS-REAUTH | `research/cr-grounding/o4p-08d-browser-evidence-2026-08-24.draft.md` | `2f212dfd29a3eea5c275c8c2c11ec7c984a3fddf5a9fec1f342b63023774d371` |
+| FORBIDDEN | `src/test/architecture/review.gov-codex-56-program-orchestration.test.ts` | `1016a5f72da6904c86f7ef3eaeeb09b373ee79d9e23d37fc4e5b12d0a5c31758` |
+| FORBIDDEN | `src/test/architecture/review.o4p-06-roadmap-registration.test.ts` | `97f4e75d6c4286c438c6134f015e3584c6dfe3e91dc1eaeecc507f94dd672b43` |
+| FORBIDDEN | `src/test/architecture/review.o4p-07-roadmap-registration.test.ts` | `627c0ffdce18c2820650fb48fb06eb27d20ec2c7a51272d5de1e2feabaddc164` |
+| FORBIDDEN | `src/test/architecture/review.o4p-08-roadmap-registration.test.ts` | `4f442889e4ba7ae09b59f3e0d3856f0aff007d3ea8c1af328316a35c59a01020` |
+
+The independent completion auditor recomputed the six commit blobs, confirmed
+the exact classifier boundary and exact-head full-check step, and returned
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` plus
+`O4P-08D-COMPLETION-EXACT-BYTE-REAUTHORIZATION-APPROVED`.
+
+This approval authorizes only the exact six audited blobs above and this
+parent-only evidence update. It is not final shipment evidence; replacement
+exact-head CI, Pages, active Worker, browser, and clean-worktree verification
+remain required.
