@@ -332,6 +332,9 @@ describe('review.codex-ops context projection', () => {
     expect(projection.canonicalPaths).toContain(
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     );
+    expect(projection.canonicalPaths).toContain(
+      '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
+    );
     expect(projection.canonicalPaths).not.toEqual(
       expect.arrayContaining([
         '.agents/skills/mtg-onedeck-development/references/cycle.md',
@@ -659,7 +662,7 @@ describe('review.codex-ops governance invariants', () => {
     for (const required of [
       'one active milestone candidate only',
       'one implementer and one cold auditor',
-      'one bounded wait',
+      'one logical bounded wait chain',
       'Context compaction is a recovery checkpoint',
       'npm run codex:usage',
       'goalPolicy.activeProgram',

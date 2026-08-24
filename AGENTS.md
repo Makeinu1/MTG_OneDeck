@@ -10,6 +10,7 @@
 
 - 裁定・優先度・コールドスタート: `docs/judge-protocol.md`
 - 反復手順・役割別cycle・token economy: `.agents/skills/mtg-onedeck-development/references/document-governance.md`
+- 自由文依頼のLLM正規化: `.agents/skills/mtg-onedeck-development/references/request-normalization.md`
 - Tier-1監査: `.claude/audit-standing.md`
 - 状態と次スライス: `research/cr-grounding/cr-backbone-ledger.json`（履歴は同`-history.json`）
 - エンジン契約・受け入れ・UI/AV契約: `docs/contracts/manifest.json` と `docs/acceptance/scenarios.json`
@@ -42,20 +43,16 @@
 
 「コード変更なし」「メタデータのみ」「既存テスト緑」は単独では冷監査省略理由にならない。既監査のimmutable evidenceからのみ導出され、exact bytes/hashを実行可能verifierが検証し、authority・allowlist・受け入れ意味を変えないR0 terminal metadataだけを例外とする。詳細な監査ループとprecedentはSkillおよび`research/cr-grounding/archive/governance/`を参照する。
 
-## 1候補=1マイルストーン
+## 依頼正規化と1候補=1マイルストーン
 
-- 通常の新しいトップレベルタスクにはmilestone ID、base SHA、ブリーフパス、Goal、Constraints、Done whenだけを渡す。過去タスク全文やReferenced chatを引き継がない。
-- ユーザーが台帳の`goalPolicy.activeProgram`全体の完遂を明示認可した場合だけ、同じ判定者タスクをprogram supervisorとして使える。ただし同時にactiveな候補は1つだけとし、各マイルストーンは独立cycleとして閉じる。
-- 編集前に宣言base SHAのclean worktreeを要求する。別マイルストーンの未出荷差分があれば分離worktreeへ移すかSTOPし、候補を混在させない。
-- ユーザー指定programの優先は台帳の機械可読`goalPolicy.activeProgram`で表す。自動投影と明示programが食い違う間は`--domain`を使い、別マイルストーンへ黙って代替しない。
-- 通常の上限は実装者1名と冷監査者1名。両者ともfresh-contextで起動する。一般探索だけのサブエージェントは作らず、独立読取は同一`functions.exec`内でbatch化する。
-- 修正は同じ実装者へ返し最大2回。2連敗し、判定者の有界な外科修正でも閉じられなければSTOPする。
-- context compactionは回復checkpointとする。現在の原子的操作を閉じて短い継続packetを更新し、`AGENTS.md`→検証済み`codex:context`→active brief→`docs/judge-protocol.md`該当節→Skill referenceの順で復旧する。staleなloop-stateや圧縮要約のnext stepを正本扱いしない。
-- UI・音・演出は専用worktree/dev fixtureの試作タスクと本実装タスクを分離し、人間承認した値とscreenshotを凍結してから新しい本実装タスクを始める。
-- 実装中の追加要望は、現受け入れ条件の失敗または致命回帰だけ割り込ませる。それ以外は台帳へ短く記録して次タスクへ送る。
-- 実装中は対象テストだけを回す。候補treeを凍結して対象`review.*`と実機証拠を揃えた後、フルcheckより先に冷監査を行う。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`とし、監査修正と対象再監査を閉じてからrelease treeを再凍結し、同一fingerprintでフル`npm run check`を1回だけ行う。フルcheck自身が欠陥を検出した場合だけ、修正・無効化された対象検証・必要な再監査後に最終フルcheckを再実行する（上限2回）。
-- ship時に完了packetをarchiveする。通常タスクは`.claude/loop-state.md`を`milestone: complete`へ戻して終了する。明示認可済みprogram supervisorは、exact-head CI/公開証拠とclean worktreeを確認した後だけ次IDを`codex:context -- --domain`で再投影し、新しいbase/fingerprint/六項目envelopeへ切り替えてよい。
-- 後続cycleのsource/test/contract/audit作業は、この遷移gateが通るまで開始しない。
+- LLMは非自明な自由文依頼を、作業前に`request-normalization.md`の`Intent / Program / Goal / Constraints / Done when / Budget objective / Authority`へ一度だけ整形する。ユーザーに定型文への書き直しを求めず、Intentだけで権限を認可せず、元依頼を超えるscope・ship・外部書込を足さない。
+- `inspect`と`plan`は読み取り専用、`change`は1マイルストーン、`goal`は明示された順序付きprogramだけを直列実行する。commit、push、deploy/publish、release/shipは元依頼から個別に認可し、`+ ship`は明示されたend-to-end releaseだけに付ける。
+- milestone executorにはmilestone ID、base SHA、brief path、Goal、Constraints、Done whenの六項目だけを渡し、過去タスク全文・Referenced chat・生ログを継承しない。
+- 一worktreeのactive candidateは常に一つ。program supervisorは契約・遷移・git・shipを保持するが、worker履歴を吸収せず、各cycleをfresh contextと4 KiB以下のterminal packetで分離する。
+- 編集前にcleanな宣言base SHAと検証済み`codex:context -- --domain <id>`を要求する。別候補、壊れたauthority、staleな未出荷resume stateがあれば混在させない。
+- agent lineage、修正、compaction、continuation、wait、full check、push/CIの上限とpreflightは`document-governance.md`だけで定義し、task名・metadata commit・continuationでcounterをリセットしない。
+- context compactionは回復checkpointとする。現在の原子的操作を閉じ、`AGENTS.md`→検証済み`codex:context`→active brief→`docs/judge-protocol.md`該当節→Skill referenceの順で復旧する。圧縮要約のnext stepを正本扱いしない。
+- UI・音・演出は専用worktree/dev fixtureの試作と本実装を分離し、人間承認した値とscreenshotを凍結してから本実装を始める。
 
 ## 不可侵
 
@@ -73,7 +70,7 @@ STOPしてユーザーに聞くのは4類だけ:
 1. 優先度式でも解けないロードマップ上の真の価値判断。
 2. CRで一意に解けない真の曖昧。
 3. 北極星/契約原則変更または不可逆・通常Pages pushを超える外部書込。
-4. 実装者2連敗かつ有界な外科修正で閉じられない。
+4. 同一lineageの修正waveを2回使い切っても現受け入れ条件を満たせない。
 
 公開・外部送信・戻せない決定は確認が既定。例外は`/ship`で、監査合格と全check緑を認可としてpush、CI、Pages確認まで自走してよい。手順は`.claude/commands/ship.md`を参照する。
 

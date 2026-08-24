@@ -1,7 +1,7 @@
 # OneDeck defaults for future Codex runs. Explicit user/spawn values override
 # subagent defaults; release evidence, not model identity, decides quality.
 model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 project_doc_max_bytes = 32768
 
 [agents]

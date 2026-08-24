@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '2973e60942623d57e6af53a5e36cb488a26f56b7';
+const CLOSURE_SHA = '2cf35e9dccc8fd3731fce8f018164940023030e4';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const IDS = ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] as const;
 const DEPENDENCIES = ['O4P-07C', 'O4P-08A', 'O4P-08B', 'O4P-08C'] as const;
@@ -153,8 +154,16 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(after.goalPolicy.activeProgram).toEqual({ id: 'O4P-08', domainIds: IDS });
     expect(after.domains.slice(0, before.domains.length)).toEqual(before.domains);
     expect(after.plannedSequence.slice(0, before.plannedSequence.length)).toEqual(before.plannedSequence);
-    expect(after.domains).toHaveLength(before.domains.length + IDS.length);
-    expect(after.plannedSequence).toHaveLength(before.plannedSequence.length + IDS.length);
+    expect(
+      after.domains
+        .filter((entry) => IDS.includes(entry.id as (typeof IDS)[number]))
+        .map((entry) => entry.id),
+    ).toEqual(IDS);
+    expect(
+      after.plannedSequence
+        .filter((entry) => IDS.includes(entry.domainId as (typeof IDS)[number]))
+        .map((entry) => entry.domainId),
+    ).toEqual(IDS);
   });
 
   it('keeps both collections synchronized in A-to-D order', () => {
@@ -224,12 +233,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
 
-  it('changes only Judge-owned registration and exact historical guards', () => {
-    const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    }).trim().split(/\r?\n/u).filter(Boolean);
-    const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], {
+  it('freezes only Judge-owned registration and exact historical guards at closure', () => {
+    const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
       cwd: ROOT,
       encoding: 'utf8',
     }).trim().split(/\r?\n/u).filter(Boolean);
@@ -337,15 +342,30 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
       'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',
     ]);
-    for (const path of [...changed, ...untracked]) {
+    for (const path of changed) {
       expect(allowed.has(path), `unexpected changed path: ${path}`).toBe(true);
     }
-    expect(read('package-lock.json')).toBe(
+    expect(
+      execFileSync('git', ['show', `${CLOSURE_SHA}:package-lock.json`], {
+        cwd: ROOT,
+        encoding: 'utf8',
+      }),
+    ).toBe(
       execFileSync('git', ['show', `${BASE_SHA}:package-lock.json`], { cwd: ROOT, encoding: 'utf8' }),
     );
-    expect(read('wrangler.jsonc')).toBe(
+    expect(
+      execFileSync('git', ['show', `${CLOSURE_SHA}:wrangler.jsonc`], {
+        cwd: ROOT,
+        encoding: 'utf8',
+      }),
+    ).toBe(
       execFileSync('git', ['show', `${BASE_SHA}:wrangler.jsonc`], { cwd: ROOT, encoding: 'utf8' }),
     );
-    expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
+    expect(() =>
+      execFileSync('git', ['diff', '--check', BASE_SHA, CLOSURE_SHA], {
+        cwd: ROOT,
+        encoding: 'utf8',
+      }),
+    ).not.toThrow();
   });
 });

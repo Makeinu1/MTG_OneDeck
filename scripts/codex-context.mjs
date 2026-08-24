@@ -641,6 +641,7 @@ export function buildContextProjection({
       LEDGER_PATH,
       LOOP_STATE_PATH,
       '.agents/skills/mtg-onedeck-development/SKILL.md',
+      '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     ],
     loopState: parseLoopState(loopStateText, {

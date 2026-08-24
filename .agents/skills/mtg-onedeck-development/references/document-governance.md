@@ -5,6 +5,26 @@ OneDeck milestones. `AGENTS.md` owns permanent boundaries; this document owns
 execution order, task lifetime, token economy, and lane selection. Compatibility
 pointers must not restate these rules.
 
+## Request normalization and authority
+
+Before grounding a non-trivial request, normalize the user's prose exactly once
+with `request-normalization.md`. The LLM performs this conversion; never ask the
+user to learn or rewrite the schema. Show it once for `change`, `goal`, or any
+external authority, then use the compact record instead of replaying the raw
+conversation.
+
+`Intent` selects work shape and never grants an `Authority` bit. `inspect` and
+`plan` are read-only shapes; `change` selects one milestone; `goal` selects only
+an explicitly named or accepted ordered milestone program. Local writes,
+commit, push, deploy/publish, and release/ship are separate permissions and
+remain false unless the original request grants each one. Reserve `+ ship` for
+an explicit end-to-end release workflow; it is not required for a commit-only,
+push-only, or deploy-only request. Persistence language such as “finish” or “do
+not stop” does not broaden program or external authority.
+Normalization may resolve reversible details from live authority, but it cannot
+invent scope, milestones, dependencies, success criteria, destructive actions,
+secrets, purchases, or external writes.
+
 ## Task envelope and cold start
 
 Start with exactly one milestone ID, base SHA, brief path, goal, constraints,
@@ -38,7 +58,14 @@ budget. When the user explicitly authorizes completion of the ordered
 cycles. Shipping still ends the current cycle. Before the next cycle, require
 exact-head release evidence, a clean worktree, a new verified `codex:context
 -- --domain <next-id>` projection, a refreshed base/fingerprint, and a new
-six-field envelope. A STOP or exhausted repair budget ends the whole program.
+six-field envelope. The supervisor keeps only the normalized request, live
+authority, counters, and a terminal packet no larger than 4 KiB; it does not
+absorb worker transcripts or raw logs. A STOP or exhausted repair budget ends
+the whole program.
+
+Only a failure of the current milestone acceptance or a critical regression may
+interrupt active implementation. Record every other addition compactly for a
+later milestone; do not expand the active candidate.
 
 ## Roles and write ownership
 
@@ -47,9 +74,10 @@ git, and release decisions. An implementer changes only assigned source and
 ordinary tests. A cold auditor receives only the frozen audit brief, edits
 nothing, and returns findings.
 
-Use at most one implementer and one cold auditor per milestone. Reuse the same
-implementer for at most two correction returns. Do not create general explorer
-agents or research future milestones while the active milestone is unresolved.
+Use at most one implementer and one cold auditor lineage per milestone. Reuse
+the same implementer within the two total correction waves. Do not create
+general explorer agents or research future milestones while the active
+milestone is unresolved.
 Parallel code writes require explicitly disjoint paths, a frozen shared
 contract, and a stated latency benefit; otherwise keep implementation serial.
 Start implementers and auditors with no inherited supervisor transcript. On the
@@ -67,6 +95,9 @@ candidate fingerprint, never the implementer's rationale.
   extraction, and checks in one programmatic judge stage when they fit.
 - Send the judge conclusions, exact clauses, compact diffs, and findings—not
   raw tours, transcripts, or full test logs.
+- Keep each continuation and terminal packet at or below 4 KiB. A bounded tool
+  stage normally returns at most 12 KiB to the model; filter or summarize larger
+  output before it re-enters context.
 - Resolve model and effort from an explicit user request, then the project
   config, then the parent. Default to the lowest effort that meets evidence:
   medium for clear bounded work, high/xhigh for difficult multi-step
@@ -76,9 +107,10 @@ candidate fingerprint, never the implementer's rationale.
   or selected custom-agent file must explicitly set both model and reasoning
   effort; the repository baseline is Sol/high unless an explicit supported
   user request selects another capable configuration.
-- A cold audit gets one bounded wait: NARROW 15 minutes, STANDARD 30 minutes,
-  or BROAD 45 minutes. Do not replace it with repeated short waits or raw
-  transcript polling. A timeout is no verdict and remains
+- A cold audit gets one logical bounded wait chain: NARROW 15 minutes, STANDARD
+  30 minutes, or BROAD 45 minutes. CI gets one logical wait chain. Do not replace
+  either with repeated short waits, raw transcript polling, or timed status
+  reads. A timeout is no verdict and remains
   `implemented-not-audited`.
 - Do not issue a new wait or repository read merely to produce a status update.
   Report phase changes, findings, approvals, and terminal evidence. A
@@ -90,11 +122,44 @@ candidate fingerprint, never the implementer's rationale.
   agent, repair wave, full check, or adjacent
   milestone until that recovery is current; an authorized program may continue
   after the normal transition gate.
+- Each logical role lineage may compact at most twice. The first compaction
+  resumes from the compact packet. A second compaction ends that task and
+  requires the single allowed fresh-context same-role continuation. That
+  continuation shares the original implementer or auditor slot and all counters;
+  a third compaction or second continuation is forbidden.
 - Run `npm run codex:usage -- --session <id>` at every task terminal. Record
   its model cycles, cached/uncached input, compactions, and full checks; when
   platform counters are available, also record subagent and wait counts. Never
   copy prompts or double-count inherited fork history. Quality gates never
   weaken to improve these metrics.
+
+## Hard execution counters
+
+Counters belong to the milestone ID and candidate lineage, not a task name.
+Renaming a repair, metadata commit, continuation, or thread never resets them.
+
+- implementer: one
+- cold auditor: one; reuse it for affected-claim re-audit and exact-byte review
+- logical role lineage compactions: at most two
+- fresh same-role continuations: at most one; it is not another role slot
+- correction waves: at most two total; a return to the same implementer or a
+  bounded judge-owned surgical correction consumes one wave
+- supervisor visible usage: 1.0M-token hard ceiling and 160 model-cycle hard
+  ceiling per lineage when platform counters are available
+- team visible usage: 1.6M-token hard ceiling and 400 model-cycle hard ceiling
+  per milestone when platform counters are available
+- release full check: one normally, two absolute maximum
+- semantic push: one normally
+- replacement push/exact-head CI: at most one
+- audit wait: one logical chain
+- CI wait: one logical chain
+- production browser verification: once on the final release HEAD
+
+Known sandbox or IPC restrictions use the already approved execution path on
+the first attempt. Do not repeat a known-failing probe for every milestone. If a
+counter is exhausted, do not add a third repair wave, compaction, or
+continuation, weaken evidence, or silently open a new candidate. Leave the
+milestone unshipped and require an explicit repair milestone or user ruling.
 
 ## Contract and migration rules
 
@@ -150,6 +215,15 @@ Iterate with targeted checks. Freeze the candidate tree and record its
 fingerprint before audit. R2/R3 select NARROW, STANDARD, or BROAD from actual risk;
 cross-document workflow or selection-policy changes are BROAD. The auditor
 runs target-domain adversarial evidence, not the release full check.
+
+Before the audit freeze, run one bounded release preflight. It must confirm the
+declared base/ancestor, ledger collection parity, loop-state/resume consistency,
+protected ownership, review hash chain, candidate fingerprint, planned terminal
+metadata, invalidated claims, known execution environment, and secret-free
+evidence. If no dedicated command exists, perform the equivalent checks in one
+batched read-only stage and record the structured result; never claim an
+unimplemented command exists. A failed preflight forbids the audit/full-check/
+push sequence until repaired.
 
 The clean semantic verdict is `AUDIT-OK-PENDING-FULL-CHECK`. Close findings,
 re-run only invalidated evidence, freeze the release tree again, and require the

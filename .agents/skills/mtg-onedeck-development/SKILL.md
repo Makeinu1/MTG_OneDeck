@@ -6,22 +6,29 @@ description: Run contract-first MTG OneDeck development with separated ChatGPT j
 # MTG OneDeck development
 
 Run exactly one milestone candidate at a time. Preserve role separation even
-when every role uses ChatGPT. A user-authorized machine-readable active program
-may run serial milestone cycles in one supervisor task, but never overlaps
-candidates or worker context.
+when every role uses ChatGPT. Normalize free-form requests with
+[references/request-normalization.md](references/request-normalization.md).
+A user-authorized machine-readable active program may use one supervisor, but
+each milestone executes in fresh worker/auditor context and returns only a
+compact terminal packet; candidates and worker histories never overlap.
 
 ## Start a milestone
 
-1. Read the repository `AGENTS.md`, the verified `codex:context` projection,
-   the active brief, and the matching ledger entry. `CLAUDE.md` / `QWEN.md`
-   are thin compatibility entries.
-2. Classify the task as judge, implementer, or cold audit. Never silently combine roles.
-3. Read `docs/judge-protocol.md` for the applicable ruling and STOP boundary.
-4. Read [references/document-governance.md](references/document-governance.md) for the selected role, risk lane, and phase.
-5. Do not read `references/cycle.md`, `references/token-economy.md`, or
+1. Normalize the original request. Do not make the user write the schema, and
+   do not infer ship or external-write authority from “finish” or broad approval.
+2. Read the repository `AGENTS.md`, the verified `codex:context` projection,
+   and the active brief. Read the matching contract or ledger entry only when
+   those sources do not establish the required claim; read the full ledger or
+   history only for a projection integrity error, true ambiguity, or an
+   explicitly required ruling. `CLAUDE.md` / `QWEN.md` are thin compatibility
+   entries.
+3. Classify the task as judge, implementer, or cold audit. Never silently combine roles.
+4. Read `docs/judge-protocol.md` for the applicable ruling and STOP boundary.
+5. Read [references/document-governance.md](references/document-governance.md) for the selected role, risk lane, and phase.
+6. Do not read `references/cycle.md`, `references/token-economy.md`, or
    `references/codex-autoloop.md` during a normal start; they are compatibility
    pointers only and contain no operative rules.
-6. Start implementers and auditors with fresh context. On the current Codex
+7. Start implementers and auditors with fresh context. On the current Codex
    collaboration surface use `fork_turns: "none"` and pass only the six-field
    implementer envelope or frozen audit-brief path plus candidate fingerprint.
 
@@ -37,3 +44,5 @@ candidates or worker context.
 ## Finish
 
 Run milestone-specific tests while iterating, cold-audit the R2/R3 candidate tree, then run the full machine check once on the same release fingerprint after findings are closed. A clean pre-release audit is `AUDIT-OK-PENDING-FULL-CHECK`, never ship approval by itself. For visible UI changes, verify the required viewports and zero new browser-console errors. Use the completion report required by `AGENTS.md`. After a shipped cycle, a program supervisor may continue only through the clean exact-head transition gate in the workflow reference.
+Hard counters and authority do not reset when a repair, continuation, metadata
+commit, or task is renamed.

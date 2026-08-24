@@ -132,7 +132,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     );
     expect(config).toMatch(/^model = "gpt-5\.6-sol"$/m);
-    expect(config).toMatch(/^model_reasoning_effort = "high"$/m);
+    expect(config).toMatch(/^model_reasoning_effort = "medium"$/m);
     expect(config).toMatch(/^project_doc_max_bytes = 32768$/m);
     expect(config).toMatch(/^max_concurrent_threads_per_session = 2$/m);
     expect(config).toMatch(/^default_subagent_model = "gpt-5\.6-luna"$/m);

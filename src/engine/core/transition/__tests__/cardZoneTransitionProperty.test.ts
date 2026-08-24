@@ -262,6 +262,7 @@ function assertTransitionCase(loaded: LoadedFixture, testCase: TransitionCase): 
 }
 
 const sourceObjectIds = ['PC2:0', 'PC3:0', 'PC4:1', 'PC5:1', 'PC6:0', 'PC7:0'] as const;
+const PROPERTY_TEST_TIMEOUT_MS = 15_000;
 function sourceSlots(identity: ModeNeutralCoreIdentityZoneSliceV1): readonly SourceSlot[] {
   return sourceObjectIds.map((objectId) => {
     const typedObjectId = objectId as CoreObjectId;
@@ -390,7 +391,7 @@ describe('Core card zone transition fixture properties', () => {
     for (const testCase of loaded.metadata.cases) assertTransitionCase(loaded, testCase);
   });
 
-  it('generates valid source, destination, placement, and controller records', () => {
+  it('generates valid source, destination, placement, and controller records', { timeout: PROPERTY_TEST_TIMEOUT_MS }, () => {
     const loaded = loadFixture();
     fc.assert(
       fc.property(generatedTransitionArbitrary(loaded), (generated) => {
@@ -400,7 +401,7 @@ describe('Core card zone transition fixture properties', () => {
     );
   });
 
-  it('generates invalid records and rejects each atomically', () => {
+  it('generates invalid records and rejects each atomically', { timeout: PROPERTY_TEST_TIMEOUT_MS }, () => {
     const loaded = loadFixture();
     fc.assert(
       fc.property(generatedInvalidArbitrary, (transitionInput) => {

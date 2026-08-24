@@ -101,12 +101,14 @@ describe('review.check-gates governance order', () => {
     const audit = readFileSync(resolve(root, '.claude/audit-standing.md'), 'utf8');
     const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
-    for (const text of [agents, governance]) {
-      expect(text).toContain('AUDIT-OK-PENDING-FULL-CHECK');
-      expect(text.indexOf('AUDIT-OK-PENDING-FULL-CHECK')).toBeLessThan(
-        text.lastIndexOf('npm run check'),
-      );
-    }
+    expect(agents).toContain(
+      '.agents/skills/mtg-onedeck-development/references/document-governance.md',
+    );
+    expect(agents).not.toContain('AUDIT-OK-PENDING-FULL-CHECK');
+    expect(governance).toContain('AUDIT-OK-PENDING-FULL-CHECK');
+    expect(governance.indexOf('AUDIT-OK-PENDING-FULL-CHECK')).toBeLessThan(
+      governance.lastIndexOf('npm run check'),
+    );
     expect(audit).toContain('AUDIT-OK-PENDING-FULL-CHECK');
     expect(audit).toContain('同一fingerprint');
     expect(audit).toContain('対象domain');
