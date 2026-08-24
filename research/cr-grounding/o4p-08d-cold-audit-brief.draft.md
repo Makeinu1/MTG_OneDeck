@@ -63,3 +63,33 @@ This approval authorizes only the exact bytes above and this parent-only
 metadata follow-up. It does not change semantic candidate bytes and is not
 shipment evidence; replacement exact-head CI and Pages verification remain
 required.
+
+## Error-guidance repair CI ownership addendum
+
+The responsive containment repair shipped at
+`6680a5e25d102b3a12c1b84766932dcf23fcc5c0`. Production verification then
+found that a non-retryable invitation error rendered its cause and correlation
+ID but omitted explicit recovery guidance and retryability. The bounded repair
+at `7e85e49af8a02a21ef8233dcf730b6aa29c6cd79` added those two visible facts and
+the Judge review that freezes both retryable and non-retryable behavior.
+
+GitHub Actions run `32689566354`, build job `97320699411`, checked that exact
+HEAD, passed the canonical `npm run check -- --build-base=/MTG_OneDeck/` step
+and exact diff-base resolution from
+`6680a5e25d102b3a12c1b84766932dcf23fcc5c0`, then stopped only at
+`check:forbidden`. Pages configuration and artifact upload were skipped.
+
+The authoritative classifier returned one path and no others:
+
+| Category | Path | SHA-256 at `7e85e49` |
+|---|---|---|
+| FORBIDDEN | `src/components/online/__tests__/review.o4p-06e-public-online-app.test.tsx` | `c1357f0308a9f780c0202d105ae5b3374fe9345e954d4ead726e50e2ed740329` |
+
+The same independent cold auditor recomputed the exact Judge-review blob,
+confirmed the exact-head full-check and classifier boundary, and returned
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` plus
+`O4P-08D-ERROR-GUIDANCE-EXACT-BYTE-REAUTHORIZATION-APPROVED`.
+
+This approval is limited to the exact Judge-review blob above and this
+parent-only evidence update. It does not authorize source changes or shipment;
+replacement exact-head CI and Pages verification remain required.
