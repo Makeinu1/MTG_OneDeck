@@ -39,6 +39,10 @@ Base SHA: `2a50db07f3962a11ec5a77b93bedc74ca4f628b6`
     O4P-08 retains the exact four ordered entries, and its path/package
     guards compare the frozen base and closure commits rather than today's
     unrelated worktree.
+13. A clean checkout with no ignored local loop-state may synthesize a current
+    baseline only when an explicit domain is present in both HEAD ledger
+    collections. Dirty candidates, implicit selection, and HEAD-missing domains
+    retain the ordinary stale-loop failure.
 
 ## Required validation
 

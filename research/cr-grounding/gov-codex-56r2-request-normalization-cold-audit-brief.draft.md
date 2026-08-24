@@ -47,6 +47,9 @@ Mode: read-only, fresh context, independent from implementation
 10. Do the full-check repairs preserve the original O4P-08 evidence and audit
     order while binding historical scope checks to their closure commit instead
     of blocking legitimate later milestones?
+11. Does clean-checkout loop synthesis require an explicit domain, a clean
+    worktree, and matching entries in both HEAD ledger collections, while every
+    dirty or uncommitted candidate remains fail-closed on local loop-state?
 
 ## Audit boundary
 

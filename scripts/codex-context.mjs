@@ -671,6 +671,27 @@ const git = (root, args) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 
+export function synthesizeCleanHeadLoopState({
+  domainId,
+  headLedger,
+  headSha,
+  treeFingerprint,
+  clean,
+}) {
+  if (!clean || typeof domainId !== 'string' || domainId.length === 0) return '';
+  const hasDomain = Array.isArray(headLedger?.domains)
+    && headLedger.domains.some((entry) => entry?.id === domainId);
+  const hasSequence = Array.isArray(headLedger?.plannedSequence)
+    && headLedger.plannedSequence.some((entry) => entry?.domainId === domainId);
+  if (!hasDomain || !hasSequence) return '';
+  return [
+    `milestone: ${domainId}`,
+    'step: clean-head-baseline',
+    `baseSha: ${headSha}`,
+    `treeFingerprint: ${treeFingerprint}`,
+  ].join('\n');
+}
+
 export function createContextProjection(root, domainId) {
   const ledgerText = readFileSync(resolve(root, LEDGER_PATH), 'utf8');
   let ledger;
@@ -688,13 +709,22 @@ export function createContextProjection(root, domainId) {
   const headSha = git(root, ['rev-parse', 'HEAD']);
   const treeFingerprint = computeTreeFingerprint(root);
   const loopStatePath = resolve(root, LOOP_STATE_PATH);
+  const loopStateText = existsSync(loopStatePath)
+    ? readFileSync(loopStatePath, 'utf8')
+    : synthesizeCleanHeadLoopState({
+        domainId,
+        headLedger,
+        headSha,
+        treeFingerprint,
+        clean: git(root, ['status', '--porcelain=v1', '--untracked-files=normal']) === '',
+      });
   return buildContextProjection({
     ledger,
     headLedger,
     headSha,
     sourceSha256: sha256(ledgerText),
     domainId,
-    loopStateText: existsSync(loopStatePath) ? readFileSync(loopStatePath, 'utf8') : '',
+    loopStateText,
     treeFingerprint,
   });
 }

@@ -57,6 +57,10 @@ end-to-end release. Intent selects the work shape and grants no authority bit.
 - Every external action remains false without its own explicit authority bit.
   Commit, push, or deploy/publish may be authorized without granting
   release/ship or permission to mark the milestone `shipped`.
+- An ignored local loop-state remains mandatory for a dirty candidate. A clean
+  checkout may synthesize a current baseline only for an explicit domain that
+  already exists in both HEAD ledger collections; no implicit selection or
+  dirty worktree may use this fallback.
 
 ## Done when
 
@@ -79,6 +83,9 @@ end-to-end release. Intent selects the work shape and grants no authority bit.
   proving the exact ordered O4P-08 entries, evidence, and frozen closure diff;
   the audit-order test proves the compact root contract routes to the one
   workflow that owns the exact audit verdict.
+- The context CLI succeeds for an explicit audited domain in a clean exact-HEAD
+  checkout where the intentionally ignored local loop-state is absent, while
+  missing or stale loop-state still fails closed for dirty candidates.
 - Targeted checks pass and an independent fresh-context R3/BROAD cold auditor
   reports `BLOCKER/HIGH = 0` for the frozen candidate fingerprint.
 

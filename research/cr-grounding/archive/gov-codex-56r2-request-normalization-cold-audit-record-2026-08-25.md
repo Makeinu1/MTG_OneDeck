@@ -38,6 +38,28 @@ write authority, and protection of hard ceilings from ordinary budget input.
 
 `AUDIT-OK-PENDING-FULL-CHECK`
 
+## Candidate CI clean-checkout finding
+
+Candidate commit `0184e7b6efbd3c4f21fc18ff542181d5e747e504` ran as
+GitHub Actions `32761446552`. All verifiers, lint, 227 Core files / 2,093 Core
+tests, and 356 of 357 DOM files passed. The sole failure was the R2 architecture
+review invoking `codex-context` in a clean checkout where the intentionally
+ignored `.claude/loop-state.md` was absent; the CLI correctly reported healthy
+ledger/context data but exited 5 for missing local loop metadata.
+
+The bounded repair synthesizes a loop baseline only when the worktree is clean,
+the request names an explicit domain, and that domain already exists in both
+HEAD ledger collections. Dirty/uncommitted candidates retain the existing
+fail-closed loop-state requirement.
+
+The repair candidate
+`dda1ecdab9dee7513ab3d975e8a7a46411d01009bd4e1f175c55725a04c00116`
+was independently audited by `/root/gov_codex_56r2_timeout_audit` at
+`BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0`. Its adversarial helper matrix passed 8/8;
+the existing stale exit 5 and 12 KiB successful-packet ceiling remain intact.
+
+`AUDIT-OK-PENDING-EXACT-HEAD-CI`
+
 The full repository check, commit, push, deployment, and release were not part
 of the auditor's work.
 
