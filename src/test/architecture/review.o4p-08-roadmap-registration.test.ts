@@ -87,6 +87,29 @@ const O4P08C_EVIDENCE = [
   'cloudflare:wrangler-4.125.0:version=a12016ac-c698-4984-ba79-e8eaa45e3662:root=404',
   'production-api:create=2/20+2/40+4/40+shared-invite-multi-use+room-full+guest-recovery-secret-free+invalid-config-reject=PASS',
 ] as const;
+const O4P08D_EVIDENCE = [
+  ...REGISTRATION_EVIDENCE,
+  'research/cr-grounding/o4p-08d-two-player-surfaces-release.contract.draft.md',
+  'research/cr-grounding/o4p-08d-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-08d-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-08d-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-08d-browser-evidence-2026-08-24.draft.md',
+  'src/online/projection/__tests__/review.o4p-08d-full-variable-surfaces.test.ts',
+  'src/online/publicApp/review.o4p-08d-variable-public-client.test.ts',
+  'src/test/architecture/review.o4p-08d-program-completion-boundary.test.ts',
+  'src/components/online/__tests__/review.o4p-06e-public-online-app.test.tsx',
+  'implementer:/root/o4p08d_implementer',
+  'cold-audit:/root/o4p08d_cold_audit:0/0/0/0:semantic=361680e9159e85e487ca8af3071da3133630c3032d6c7f18a7349650c981f64d',
+  'repair-audit:/root/o4p08d_cold_audit:0/0/0/0:responsive=5210099622302db55aa221df5dd4880c31073ed32eb7e4650ad350846de842ee',
+  'repair-audit:/root/o4p08d_cold_audit:0/0/0/0:error-guidance=d346e49a9b635a90f9abd5440db6c8e2abd9a821ffba88973baeacdbb95d9fa1',
+  'semantic-head:7e85e49af8a02a21ef8233dcf730b6aa29c6cd79',
+  'release-head:c90c533d457e46f9d01a748c827c26b884a814db:actions32690626681:full-check+forbidden+artifact+Pages=PASS',
+  'full-check:core227/2093+dom356/2401+lint+build+verifiers=PASS',
+  'pages-html-js-css:HTTP200:BGLulJi3/B9TjsUJs:last-modified=2026-08-24T04:49:17Z',
+  'cloudflare:wrangler-4.125.0:version=c11d3540-c571-4e37-82c1-2a1aa602f663:active-100-percent:root=404',
+  'production-api:2p20-create+multi-claim+full+recover+flex-deck+ready+start+2p40-rotate+kick-revoke+4p40-create+invalid4p20+post-start-kick-reject+secret-output=false=PASS',
+  'production-browser:375x812+812x375+1440x900:2p20-recover+exact2+4p40-fixed+actionable-error4lines+room-id-input=0+overflow=0+min-target44+console-error=0=PASS',
+] as const;
 
 type Entry = Record<string, unknown> & { id?: string; domainId?: string; status?: string };
 type Ledger = {
@@ -144,7 +167,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       expect(shared(planned[0] ?? {}), id).toEqual(shared(domains[0] ?? {}));
       expect(domains[0], id).toMatchObject({
         crOrder: 1028 + index,
-        status: index <= 2 ? 'shipped' : 'pending',
+        status: 'shipped',
         dependsOn: [DEPENDENCIES[index]],
         lane: 'backbone',
         edhValue: 'high',
@@ -156,7 +179,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       } else if (index === 2) {
         expect(domains[0]?.evidence).toEqual(O4P08C_EVIDENCE);
       } else {
-        expect(domains[0]?.evidence).toEqual(REGISTRATION_EVIDENCE);
+        expect(domains[0]?.evidence).toEqual(O4P08D_EVIDENCE);
       }
     }
   });
@@ -177,7 +200,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(contract).toContain('does not add deck-legality enforcement, accounts, matchmaking, bans, teams');
   });
 
-  it('projects the healthy active O4P-08 program after O4P-08C shipment', () => {
+  it('projects the healthy completed O4P-08 program after O4P-08D shipment', () => {
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-08A'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -196,7 +219,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08', domainIds: IDS, status: 'active', nextDomainId: 'O4P-08D',
+      id: 'O4P-08', domainIds: IDS, status: 'complete', nextDomainId: null,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
