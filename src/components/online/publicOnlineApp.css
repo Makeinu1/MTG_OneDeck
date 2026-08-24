@@ -1,9 +1,14 @@
 .public-online-app {
   width: min(82.5rem, 100%);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 0 auto;
   display: grid;
   gap: var(--space-4);
 }
+
+.public-online-app > * { min-width: 0; }
 
 .public-online-app__header,
 .public-online-app__lobby,
@@ -58,7 +63,7 @@
 .public-online-app__choice-grid .btn { min-height: 64px; }
 .public-online-app__selected-deck, .public-online-app__recovery, .public-online-app__invite, .public-online-app__blockers { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-2); }
 .public-online-app__selected-deck span, .public-online-app__recovery span, .public-online-app__invite span { color: var(--text-dim); }
-.public-online-app__selected-deck select { min-height: 44px; background: var(--surface-1); color: var(--text-h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 0 var(--space-2); }
+.public-online-app__selected-deck select { width: 100%; max-width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; background: var(--surface-1); color: var(--text-h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 0 var(--space-2); }
 .public-online-app__lobby-heading, .public-online-app__host-tools, .public-online-app__invite > div, .public-online-app__recovery { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .public-online-app__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); padding: 0; margin: var(--space-4) 0; list-style: none; }
 .public-online-app__steps li { display: grid; gap: var(--space-1); color: var(--text-dim); font-size: var(--font-size-xs); }
