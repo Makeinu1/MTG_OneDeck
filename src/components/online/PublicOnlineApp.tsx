@@ -134,7 +134,9 @@ export function PublicOnlineApp({
     return (
       <div className="public-online-app__error" role="alert" data-testid="online-error">
         <p>{snapshot.error}</p>
-        <small>照会 ID: {snapshot.errorIssue.correlationId}</small>
+        <p data-testid="online-error-guidance">次の対応: {snapshot.errorIssue.action}</p>
+        <p><small>同じ操作の再試行: {snapshot.errorIssue.retryable ? '可能' : '不可'}</small></p>
+        <p><small>照会 ID: {snapshot.errorIssue.correlationId}</small></p>
         {snapshot.errorIssue.retryable && (
           <button
             type="button"

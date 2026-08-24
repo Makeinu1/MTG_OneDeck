@@ -288,7 +288,7 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     act(() => mounted.root.unmount());
   });
 
-  it('shows a cause, correlation ID, and no retry for a nonretryable join rejection', async () => {
+  it('shows cause, recovery guidance, retryability, and correlation for a nonretryable join rejection', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response({
       kind: 'online-public-error-v3',
       schemaVersion: 3,
@@ -303,8 +303,35 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     await click(mounted.container, '[data-testid="online-join-shared"]');
     const alert = required(mounted.container, '[data-testid="online-error"]');
     expect(alert.textContent).toContain('部屋は満席です');
+    expect(alert.textContent).toContain('次の対応: もう一度参加');
+    expect(alert.textContent).toContain('同じ操作の再試行: 不可');
     expect(alert.textContent).toContain('correlation-o4p08b-full');
+    expect(alert.querySelectorAll(':scope > p > small')).toHaveLength(2);
     expect(alert.querySelector('button')).toBeNull();
+    expect(alert.innerHTML).not.toContain(ADMISSION);
+    act(() => mounted.root.unmount());
+  });
+
+  it('shows explicit retryability and an action button for a retryable join failure', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response({
+      kind: 'online-public-error-v3',
+      schemaVersion: 3,
+      code: 'SERVICE_UNAVAILABLE',
+      retryable: true,
+      correlationId: 'correlation-o4p08d-retry',
+    }, 503))));
+    const mounted = mount();
+    await click(mounted.container, '[data-testid="online-open-join"]');
+    const input = required<HTMLInputElement>(mounted.container, '[data-testid="online-shared-invite"]');
+    act(() => enter(input, INVITE));
+    await click(mounted.container, '[data-testid="online-join-shared"]');
+    const alert = required(mounted.container, '[data-testid="online-error"]');
+    expect(alert.textContent).toContain('サーバーに接続できません');
+    expect(alert.textContent).toContain('次の対応: もう一度参加');
+    expect(alert.textContent).toContain('同じ操作の再試行: 可能');
+    expect(alert.textContent).toContain('correlation-o4p08d-retry');
+    expect(alert.querySelectorAll(':scope > p > small')).toHaveLength(2);
+    expect(alert.querySelector('button')?.textContent).toBe('もう一度参加');
     expect(alert.innerHTML).not.toContain(ADMISSION);
     act(() => mounted.root.unmount());
   });
