@@ -118,10 +118,10 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-07A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08',
-      domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'],
-      status: 'complete',
-      nextDomainId: null,
+      id: 'O4P-09',
+      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
+      status: 'active',
+      nextDomainId: 'O4P-09A',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });

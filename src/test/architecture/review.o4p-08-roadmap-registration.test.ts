@@ -151,7 +151,10 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     const after = parse(read(LEDGER_PATH));
     expect(withoutCollections(after)).toEqual(withoutCollections(before));
     expect(withoutActiveProgram(after.goalPolicy)).toEqual(withoutActiveProgram(before.goalPolicy));
-    expect(after.goalPolicy.activeProgram).toEqual({ id: 'O4P-08', domainIds: IDS });
+    expect(after.goalPolicy.activeProgram).toEqual({
+      id: 'O4P-09',
+      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
+    });
     expect(after.domains.slice(0, before.domains.length)).toEqual(before.domains);
     expect(after.plannedSequence.slice(0, before.plannedSequence.length)).toEqual(before.plannedSequence);
     expect(
@@ -209,7 +212,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(contract).toContain('does not add deck-legality enforcement, accounts, matchmaking, bans, teams');
   });
 
-  it('projects the healthy completed O4P-08 program after O4P-08D shipment', () => {
+  it('keeps O4P-08 shipped while projecting the registered O4P-09 successor', () => {
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-08A'], {
       cwd: ROOT,
       encoding: 'utf8',
@@ -228,7 +231,10 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08', domainIds: IDS, status: 'complete', nextDomainId: null,
+      id: 'O4P-09',
+      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
+      status: 'active',
+      nextDomainId: 'O4P-09A',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });

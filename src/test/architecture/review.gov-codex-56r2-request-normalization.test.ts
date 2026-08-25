@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -49,10 +49,20 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
         { cwd: ROOT, encoding: 'utf8' },
       ),
     ) as typeof ledger;
-    expect(ledger.domains.filter((entry) => entry.id !== id)).toEqual(baseLedger.domains);
-    expect(ledger.plannedSequence.filter((entry) => entry.domainId !== id)).toEqual(
+    const successorIds = new Set([
+      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
+      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+    ]);
+    expect(ledger.domains.filter((entry) => entry.id !== id && !successorIds.has(entry.id as string))).toEqual(baseLedger.domains);
+    expect(ledger.plannedSequence.filter(
+      (entry) => entry.domainId !== id && !successorIds.has(entry.domainId as string),
+    )).toEqual(
       baseLedger.plannedSequence,
     );
+    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(10);
+    expect(ledger.plannedSequence.filter(
+      (entry) => successorIds.has(entry.domainId as string),
+    )).toHaveLength(10);
   });
 
   it('makes the LLM normalize prose without transferring authority', () => {
@@ -181,15 +191,22 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
   });
 
   it('projects normalization as canonical and changes governance paths only', () => {
-    const raw = execFileSync(
+    const context = spawnSync(
       'node',
       ['scripts/codex-context.mjs', '--domain', 'GOV-CODEX-56R2-2026-08'],
       { cwd: ROOT, encoding: 'utf8' },
     );
-    const projection = JSON.parse(raw) as { canonicalPaths?: string[] };
+    expect(context.error).toBeUndefined();
+    expect(context.signal).toBeNull();
+    expect(context.stderr).toBe('');
+    const projection = JSON.parse(context.stdout) as {
+      canonicalPaths?: string[];
+      loopState?: { status?: string };
+    };
     expect(projection.canonicalPaths).toContain(
       '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
     );
+    expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(() =>
       execFileSync('git', ['merge-base', '--is-ancestor', BASE_SHA, 'HEAD'], {
         cwd: ROOT,
@@ -207,18 +224,29 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
       '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
       '.codex/config.toml',
       'AGENTS.md',
+      'research/cr-grounding/archive/o4p-09-roadmap-registration-cold-audit-record-2026-08-25.md',
       'research/cr-grounding/cr-backbone-ledger.json',
       'research/cr-grounding/gov-codex-56r2-request-normalization-acceptance.draft.md',
       'research/cr-grounding/gov-codex-56r2-request-normalization-cold-audit-brief.draft.md',
       'research/cr-grounding/gov-codex-56r2-request-normalization.contract.draft.md',
       'research/cr-grounding/archive/gov-codex-56r2-request-normalization-cold-audit-record-2026-08-25.md',
+      'research/cr-grounding/o4p-09-roadmap-ledger-update.draft.json',
+      'research/cr-grounding/o4p-09-roadmap-registration-acceptance.draft.md',
+      'research/cr-grounding/o4p-09-roadmap-registration-cold-audit-brief.draft.md',
+      'research/cr-grounding/o4p-09-shared-table-playable-roadmap.contract.draft.md',
+      'research/cr-grounding/planned-sequence-batch-o4p-09.draft.md',
       'scripts/__tests__/review.codex-ops.test.mjs',
       'scripts/__tests__/review.check-gates.test.mjs',
+      'scripts/checks/verify-o4p-05d-production-release-closure.ts',
       'scripts/codex-context.mjs',
       'src/engine/core/transition/__tests__/cardZoneTransitionProperty.test.ts',
       'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
       'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
+      'src/test/architecture/review.o4p-05d-production-release-closure.test.ts',
+      'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
+      'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
       'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',
+      'src/test/architecture/review.o4p-09-roadmap-registration.test.ts',
     ]);
     for (const path of changed) {
       expect(allowed.has(path), `unexpected governance candidate path: ${path}`).toBe(true);

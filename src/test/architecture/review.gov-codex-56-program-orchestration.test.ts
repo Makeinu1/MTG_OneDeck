@@ -170,10 +170,10 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       expect(ledger.plannedSequence.find((entry) => entry.domainId === id)?.status, id).toBe('shipped');
     }
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-08',
-      domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'],
-      status: 'complete',
-      nextDomainId: null,
+      id: 'O4P-09',
+      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
+      status: 'active',
+      nextDomainId: 'O4P-09A',
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
