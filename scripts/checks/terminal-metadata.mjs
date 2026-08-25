@@ -81,8 +81,13 @@ const readBaseText = (root, baseSha, path) => {
 
 const readCandidateEntry = (root, path) => {
   const absolute = resolve(root, path);
-  if (!existsSync(absolute)) return { kind: 'deleted' };
-  const stat = lstatSync(absolute);
+  let stat;
+  try {
+    stat = lstatSync(absolute);
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') return { kind: 'deleted' };
+    throw error;
+  }
   if (stat.isSymbolicLink()) return { kind: 'symlink', target: readlinkSync(absolute) };
   return { kind: 'file', content: readFileSync(absolute) };
 };
@@ -195,6 +200,7 @@ export function computeCandidateFingerprints({ root = process.cwd(), ledger } = 
   for (const path of candidatePaths(root)) {
     if (path === LOOP_STATE_PATH) continue;
     const entry = readCandidateEntry(root, path);
+    if (entry.kind === 'deleted') continue;
     if (path === LEDGER_PATH && entry.kind === 'file') {
       semanticEntries.push({ path, kind: 'file', content: stableStringify(semanticLedger(candidateLedger)) });
     } else semanticEntries.push({ path, ...entry });

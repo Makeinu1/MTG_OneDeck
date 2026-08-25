@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -13,7 +13,10 @@ import {
   ownerViolation,
   workflowHasCorrectDiffBase,
 } from '../checks/release-preflight.mjs';
-import { verifyTerminalMetadata } from '../checks/terminal-metadata.mjs';
+import {
+  computeCandidateFingerprints,
+  verifyTerminalMetadata,
+} from '../checks/terminal-metadata.mjs';
 
 const write = (root, path, text) => {
   const absolute = join(root, path);
@@ -39,6 +42,7 @@ function repoFixture(status = 'audited') {
   write(root, 'research/cr-grounding/cr-backbone-ledger.json', `${JSON.stringify(ledger(status), null, 2)}\n`);
   write(root, '.claude/loop-state.md', 'milestone: M1\nstep: implementation\n');
   write(root, 'src/app.ts', 'export const value = 1;\n');
+  write(root, 'src/tracked-deletion.ts', 'export const removed = true;\n');
   git(root, ['add', '.']);
   git(root, ['commit', '-qm', 'base']);
   return { root, base: git(root, ['rev-parse', 'HEAD']) };
@@ -120,6 +124,42 @@ describe('terminal metadata classifier', () => {
     expect(report.errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: 'UNSYNCHRONIZED_TERMINAL_METADATA' }),
     ]));
+  });
+
+  it('keeps semantic fingerprints stable across committing a tracked deletion', () => {
+    const { root, base } = repoFixture();
+    rmSync(join(root, 'src/tracked-deletion.ts'));
+    const beforeCommit = computeCandidateFingerprints({ root });
+    const classification = verifyTerminalMetadata({ root, base, requireTerminal: true });
+    expect(classification).toMatchObject({ ok: false, lane: 'semantic' });
+    expect(classification.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'NON_TERMINAL_PATH', path: 'src/tracked-deletion.ts' }),
+    ]));
+
+    git(root, ['add', '-u', 'src/tracked-deletion.ts']);
+    git(root, ['commit', '-qm', 'delete tracked fixture']);
+    const afterCommit = computeCandidateFingerprints({ root });
+
+    expect(beforeCommit.semanticFingerprint).toBe(afterCommit.semanticFingerprint);
+    expect(beforeCommit.terminalFingerprint).toBe(afterCommit.terminalFingerprint);
+  });
+
+  it('hashes dangling symlinks by link target and remains stable across commit', () => {
+    const { root } = repoFixture();
+    const linkPath = join(root, 'src/dangling-link.ts');
+    symlinkSync('missing-target-a.ts', linkPath);
+    const first = computeCandidateFingerprints({ root });
+
+    unlinkSync(linkPath);
+    symlinkSync('missing-target-b.ts', linkPath);
+    const changed = computeCandidateFingerprints({ root });
+    expect(changed.semanticFingerprint).not.toBe(first.semanticFingerprint);
+
+    git(root, ['add', 'src/dangling-link.ts']);
+    git(root, ['commit', '-qm', 'track dangling symlink fixture']);
+    const committed = computeCandidateFingerprints({ root });
+    expect(committed.semanticFingerprint).toBe(changed.semanticFingerprint);
+    expect(committed.terminalFingerprint).toBe(changed.terminalFingerprint);
   });
 });
 

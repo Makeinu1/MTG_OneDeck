@@ -58,3 +58,29 @@ Verify all of the following:
 Return `BLOCKER/HIGH/MEDIUM/LOW` counts and either
 `AUDIT-OK-PENDING-EXACT-HEAD-CI` or findings. Do not infer shipment from this
 audit; replacement exact-head CI and Pages remain mandatory.
+
+## Candidate-tree fingerprint stability addendum
+
+Audit only the bounded diff from
+`9ba58f36e14e8f51879e9c742c0237279d8262e9`. The Judge supplies the exact
+candidate fingerprint separately. Edit nothing and do not run the full release
+check.
+
+Verify that:
+
+1. only `scripts/checks/terminal-metadata.mjs`, its normal regression test, and
+   this audit addendum changed;
+2. `computeCandidateFingerprints` hashes the files and symlinks present in the
+   candidate tree, but does not retain a tombstone for a tracked path absent
+   from that tree;
+3. terminal change classification still sees and rejects non-terminal
+   deletions, and semantic-ledger terminal-field stripping is unchanged;
+4. the isolated regression proves the semantic and terminal fingerprints are
+   identical immediately before and after committing the same tracked-file
+   deletion;
+5. focused tests, scoped lint, preflight, context, forbidden scan, secret scan,
+   and `git diff --check` are green.
+
+Return `BLOCKER/HIGH/MEDIUM/LOW` and
+`AUDIT-OK-PENDING-EXACT-HEAD-CI` or findings. Shipment still requires the
+replacement exact-head semantic CI and Pages proof.
