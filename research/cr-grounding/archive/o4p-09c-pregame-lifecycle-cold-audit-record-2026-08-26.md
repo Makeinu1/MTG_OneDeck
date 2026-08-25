@@ -139,3 +139,25 @@ the two byte-equal O4P-09C ledger evidence arrays. Product, tests, contracts,
 generated API, manifests, workflow, authority, allowlists, and O4P-09D onward
 remain unchanged. R0 exact-byte reauthorization is required before the
 metadata-only boundary commit and replacement push.
+
+## Replacement exact-head CI and Pages proof
+
+Metadata boundary head `176a03434ee9d04e52474f4422f69b82b513ccfb`
+equaled `origin/main`. GitHub Actions run `32873196996` evaluated that exact
+head. Build job `97884877600` passed the full check, resolved diff base
+`44a8fef8aa8df578fe315c7f03619c837f4c1bf6`, passed the protected ownership
+scan, configured Pages, and uploaded the artifact. Deploy job `97889142050`
+passed.
+
+The public root `https://makeinu1.github.io/MTG_OneDeck/` returned HTTP 200.
+Its served HTML referenced `assets/index-Bh1uCDJL.js` and
+`assets/index-B9TjsUJs.css`; both returned HTTP 200. The local worktree was
+clean and `HEAD == origin/main` at this release boundary.
+
+Terminal promotion changes only this record and the two byte-equal O4P-09C
+ledger entries: status becomes `shipped`, the immutable release proof is added,
+and the gate records that the authorized O4P-09A through O4P-09C program is
+complete while O4P-09D remains untouched and `pending`. Product, tests,
+contracts, generated API, manifests, workflow, authority, and allowlists remain
+unchanged. R0 exact-byte reauthorization is required before the terminal
+metadata commit.
