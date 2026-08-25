@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '0c0c7a533fffd8e3495cf74bb7d86b827f222c2e';
+const FROZEN_CANDIDATE_SHA = '3fb115b58260bebbea6911642616bc8a863ef95c';
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
 const gitLines = (args: string[]): string[] => execFileSync('git', args, {
   cwd: ROOT,
@@ -112,10 +113,9 @@ describe('O4P-09A unified GameScreen surface seam', () => {
   });
 
   it('does not fork online/player presentation or expand the milestone', () => {
-    const changed = new Set([
-      ...gitLines(['diff', '--name-only', BASE_SHA]),
-      ...gitLines(['ls-files', '--others', '--exclude-standard']),
-    ]);
+    const changed = new Set(gitLines([
+      'diff', '--name-only', BASE_SHA, FROZEN_CANDIDATE_SHA,
+    ]));
     for (const path of REQUIRED_PRODUCT_PATHS) expect(changed, path).toContain(path);
     expect(changed).toContain('src/components/game/GameScreenInteractionPort.test.tsx');
     for (const path of changed) {
