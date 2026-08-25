@@ -72,7 +72,27 @@ GameScreen, controller, store, dependency, configuration, or CR bytes changed.
 
 ## Release state
 
-Cold audit is closed at BLOCKER/HIGH zero. Semantic commit, the one release
-full check, terminal ledger/loop-state closure, exact-head CI, Pages asset
-verification, and clean worktree remain pending. No UI browser scenario or
-Cloudflare Worker deployment is claimed by this application-only slice.
+Cold audit is closed at BLOCKER/HIGH zero and semantic commit
+`509cc02dfe13cb228b0dd5cc70b0661ce51ce973` exists. The initial release full
+check exposed the Judge-only findings recorded below. Their independent
+reaudit, one replacement full check, terminal ledger/loop-state closure,
+exact-head CI, Pages asset verification, and clean worktree remain pending. No
+UI browser scenario or Cloudflare Worker deployment is claimed by this
+application-only slice.
+
+## Release full-check finding
+
+Semantic commit `509cc02dfe13cb228b0dd5cc70b0661ce51ce973` passed machine
+verifiers, docs, lint, and Core `227 files / 2,093 tests`. DOM completed
+`357 passed / 5 failed` files and `2,421 passed / 5 failed` tests. Four failures
+were exact Judge architecture registrations for the new `application` root and
+its two reviewed Core imports. One was the existing O4P-06C lobby scenario
+exceeding the default five-second timeout under full-suite load; the unchanged
+scenario passed alone at 3/3 with 4.93 seconds of test work.
+
+The Judge-only correction registers the exact new module/import pairs and
+calibrates only that scenario to a 10-second timeout. It adds no wildcard,
+changes no assertion or fixture, and leaves all O4P-09B product hashes above
+unchanged. Focused architecture evidence passed 5 files / 30 tests; the lobby
+scenario passed 1 file / 3 tests. Independent exact-byte reaudit and one
+replacement release full check remain required.

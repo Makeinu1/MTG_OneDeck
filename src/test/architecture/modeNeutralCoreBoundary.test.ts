@@ -241,6 +241,32 @@ function isFrozenRoomCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenApplicationCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/application/gameIntentV1.ts',
+    new Set(['CoreCommandV1', 'validateCoreCommandV1']),
+  ],
+  [
+    'src/online/application/types.ts',
+    new Set(['CoreCommandV1']),
+  ],
+]);
+
+function isFrozenApplicationCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenApplicationCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenProtocolCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/protocol/command.ts',
@@ -806,6 +832,7 @@ function inspectReference(
   if (coreTarget && !coreUnit && !isTestPath(unitPath) && !isVerificationScript(unitPath)
     && !isFrozenCompatibilityCoreConsumer(unitPath, target)
     && !isFrozenRoomCoreConsumer(unitPath, target, reference)
+    && !isFrozenApplicationCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
     && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)

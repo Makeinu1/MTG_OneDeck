@@ -105,7 +105,7 @@ describe('O4P-06C browser-safe lobby and invite boundary', () => {
     expect(lookups).toBe(0);
   });
 
-  it('claims four seats and projects no invite, bearer, or deck contents', () => {
+  it('claims four seats and projects no invite, bearer, or deck contents', { timeout: 10000 }, () => {
     let lobby = createLobby();
     const participants = ['participant-host', 'participant-two', 'participant-three', 'participant-four'];
     for (let index = 1; index < 4; index += 1) {

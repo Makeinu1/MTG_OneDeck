@@ -57,3 +57,21 @@ it; a stale receipt's base revision differs from the current authoritative
 revision; a non-duplicate ACK is the newly accepted head rather than an older
 revision. Add hostile Remote-output evidence and do not change Protocol, Core,
 Projection, UI, or the intent/application boundary.
+
+## Release full-check finding wave 2
+
+The single release full check at semantic commit
+`509cc02dfe13cb228b0dd5cc70b0661ce51ce973` passed every machine verifier,
+docs, lint, and Core `227 files / 2,093 tests`, then failed DOM with four
+Judge-owned architecture registrations and one existing lobby review timeout.
+The four guards rejected only the newly reviewed `src/online/application`
+module kind or its two exact Core imports. The bounded Judge correction adds
+only the `application` root and exact `CoreCommandV1` / `validateCoreCommandV1`
+consumer pairs; all reverse-import and unknown-module assertions remain.
+
+The lobby scenario passed alone at 3/3 with 4.93 seconds of test work after the
+full-suite 5-second timeout. Its semantic assertions and fixtures remain exact;
+only that test's timeout is calibrated to 10 seconds to prevent load-dependent
+false failure. The user-approved exception set authorizes one replacement full
+check after these Judge-only bytes pass focused evidence and independent
+reaudit. No product source or acceptance meaning may change in this repair.
