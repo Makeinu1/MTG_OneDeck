@@ -241,3 +241,41 @@ expected to stop only at metadata/review ownership classification. The Judge
 will then append that exact ownership evidence, obtain exact-byte
 reauthorization, and make the final metadata-only replacement push. No product
 or Worker byte changes in either step.
+
+## Scope-shield exact-head CI and terminal ownership reauthorization
+
+Scope-shield repair HEAD and `origin/main`:
+`36a782c6507a54fe64eb0fcac6728e7efed58b5f`
+
+Workflow diff base:
+`7e77b85da19cf12e85de00eac41720cbcebf1c0f`
+
+Actions run `32813645645`, build job `97697630080`, checked out the exact
+repair HEAD and passed the complete canonical
+`npm run check -- --build-base=/MTG_OneDeck/` step. Core passed `227 files /
+2,093 tests`; DOM passed `360 files / 2,417 tests` with one
+environment-skipped test out of 2,418. All verifiers, docs, lint, TypeScript,
+and Vite build passed. CI built `index-DJ9lpjXP.js` and
+`index-B9TjsUJs.css`.
+
+Diff-base resolution selected the exact workflow base above. The run stopped
+only at the expected Judge ownership scan. Pages configuration, artifact
+upload, and deploy job `97699524730` were skipped. The authoritative
+`forbidden-files.mjs` partition is exactly one `NEEDS-REAUTH` path and one
+`FORBIDDEN` Judge-review path:
+
+| Category | Path | Repair candidate SHA-256 |
+| --- | --- | --- |
+| NEEDS-REAUTH | `research/cr-grounding/archive/o4p-09a-unified-game-surface-cold-audit-record-2026-08-25.md` | `8005439ec280ea09cfbe16c079852f430bb8a4a622fa7811621550bf3fc98f26` |
+| FORBIDDEN | `src/test/architecture/review.o4p-09a-unified-game-surface.test.ts` | `bd97107c71bd0eb4fae5a2c95469073e653850603713a3022fad2b241f79c24f` |
+
+The terminal replacement changes only this record. It preserves the exact
+review hash above and changes no product, contract, protocol, dependency,
+configuration, workflow, generated, or Worker byte. The user's exception-set
+approval authorizes this final metadata-only replacement push. That exact
+replacement HEAD must pass full CI, metadata-only ownership verification,
+artifact upload, Pages deployment, public asset and browser verification,
+HEAD/origin equality, and clean-worktree closure before O4P-09A is formally
+released.
+
+`O4P-09A-SCOPE-SHIELD-CI-OWNERSHIP-REAUTH-APPROVED`
