@@ -107,3 +107,18 @@ committed as checkpoint `49dee67b2b9e32330e9845f34936e661ca26a604`.
 The manifest now points to that exact checkpoint. One absolute-final release
 full check under the approved exception remains; no further full-check retry is
 authorized in this task.
+
+## Absolute-final local release proof
+
+At preflight head `86e805dd6926c9d73880549b07b9de1e79ac7098`, the
+absolute-final `npm run check` passed in 398,385 ms. All machine verifiers and
+docs passed; lint passed; Core passed `228 files / 2,097 tests`; DOM passed
+`364 files / 2,436 tests`; TypeScript/Vite production build passed; and the
+O4P-07C production-runtime verifier passed. Built assets were
+`index-BJemusJ9.js` and `index-B9TjsUJs.css`.
+
+No further local full-check invocation is authorized. The two byte-equal O4P-09C
+ledger entries now record the audit, correction, generated checkpoint, approved
+exception, and local proof while status remains `pending`. R0 exact-byte
+reauthorization, commit/push, exact-head CI, Pages asset proof, and terminal
+promotion remain required.
