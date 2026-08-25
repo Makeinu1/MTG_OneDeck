@@ -29,3 +29,32 @@ Adversarial claims:
 
 Return only findings grouped BLOCKER/HIGH/MEDIUM/LOW, exact evidence, and a
 verdict. A clean verdict is `AUDIT-OK-PENDING-FULL-CHECK`.
+
+## Exact-head release repair addendum
+
+Audit the final repair from base
+`dc0bf5c7e6cfb4688f8ba1da6dbdd01d4a43d5c6` independently and edit nothing.
+The candidate fingerprint is supplied separately by the Judge.
+
+Verify all of the following:
+
+1. Actions run `32887781212`, job `97932186357`, selected `semantic`, ran the
+   full check, and failed only because the temporary standalone reauthorization
+   record was not a frozen O4P-09C `JUDGE_PATHS` member.
+2. The net repair changes only this brief and the adjacent acceptance file and
+   deletes the two temporary
+   `gov-codex-57-ci-lane-ownership-reauthorization*` records. Their substantive
+   release evidence is preserved in the acceptance addendum and their exact
+   prior bytes remain available at `dc0bf5c7`.
+3. No review allowlist, executable source, workflow, generated API, product,
+   contract meaning, dependency, or ledger byte changes in this repair.
+4. `review.o4p-09c-pregame-lifecycle.test.ts` passes without modification, so
+   the frozen O4P-09C scope remains closed rather than being widened for a
+   one-off evidence path.
+5. `npm run check:forbidden -- --diff dc0bf5c7` reports only research paths as
+   informational with zero `FORBIDDEN`, and targeted review tests,
+   `check:release-preflight`, context, secret scan, and `git diff --check` pass.
+
+Return `BLOCKER/HIGH/MEDIUM/LOW` counts and either
+`AUDIT-OK-PENDING-EXACT-HEAD-CI` or findings. Do not infer shipment from this
+audit; replacement exact-head CI and Pages remain mandatory.
