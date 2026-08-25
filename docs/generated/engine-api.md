@@ -113,7 +113,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/applyCommandV1.ts`
 
-- line 250: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 255: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -157,9 +157,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 45: `export type CoreCommandV1 = Readonly<{`
 - line 55: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
 - line 56: `export type CoreCommandValidationResultV1 =`
-- line 322: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 392: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 396: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 326: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 396: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 400: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -216,9 +216,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 - line 21: `export type CoreRootValidationIssueV1 = Readonly<{`
 - line 26: `export type CoreRootValidationResultV1 =`
-- line 115: `export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {`
-- line 187: `export class CoreRootCreationErrorV1 extends Error {`
-- line 192: `export function createModeNeutralCoreRootV1(input: Omit<ModeNeutralCoreRootV1, 'kind'>): ModeNeutralCoreRootV1 {`
+- line 122: `export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {`
+- line 194: `export class CoreRootCreationErrorV1 extends Error {`
+- line 199: `export function createModeNeutralCoreRootV1(input: Omit<ModeNeutralCoreRootV1, 'kind'>): ModeNeutralCoreRootV1 {`
 
 ## `src/engine/core/closure/versionsV1.ts`
 
@@ -361,14 +361,14 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 103: `export type {`
 - line 126: `export type {`
 - line 154: `export type {`
-- line 182: `export type {`
-- line 194: `export type {`
-- line 207: `export type {`
-- line 221: `export type {`
-- line 237: `export type {`
-- line 255: `export type {`
-- line 271: `export type {`
-- line 289: `export type {`
+- line 184: `export type {`
+- line 196: `export type {`
+- line 209: `export type {`
+- line 223: `export type {`
+- line 239: `export type {`
+- line 257: `export type {`
+- line 273: `export type {`
+- line 291: `export type {`
 
 ## `src/engine/core/object/index.ts`
 
@@ -556,6 +556,31 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 339: `export function applyCorePlayerExitV1(`
 - line 385: `export function corePlayerLifecycleStatusV1(`
 - line 392: `export function corePlayerLifecycleExitCauseV1(`
+
+## `src/engine/core/pregame/index.ts`
+
+- line 1: `export type {`
+
+## `src/engine/core/pregame/operationsV1.ts`
+
+- line 235: `export function rotateCorePregameTurnOrderV1(`
+- line 261: `export function dealCorePregameOpeningHandsV1(`
+- line 269: `export function applyCorePregameMulliganWaveV1(`
+- line 286: `export function commitCorePregameBottomBatchV1(`
+- line 327: `export const setCorePregameStartingPlayerV1 = rotateCorePregameTurnOrderV1;`
+- line 328: `export const dealCorePregameOpeningHandV1 = dealCorePregameOpeningHandsV1;`
+- line 329: `export const applyCorePregameMulliganV1 = applyCorePregameMulliganWaveV1;`
+- line 330: `export const commitCorePregameBottomChoicesV1 = commitCorePregameBottomBatchV1;`
+
+## `src/engine/core/pregame/typesV1.ts`
+
+- line 4: `export type CorePregameOperationIssueV1 = Readonly<{`
+- line 10: `export type CorePregameOperationResultV1 = Readonly<{`
+- line 18: `export type CorePregamePlayerPhysicalOrderV1 = Readonly<{`
+- line 23: `export type CorePregameMulliganInputV1 = Readonly<{`
+- line 28: `export type CorePregameBottomBatchEntryV1 = Readonly<{`
+- line 33: `export type CorePregameBottomBatchV1 = readonly CorePregameBottomBatchEntryV1[];`
+- line 35: `export type CorePregameSetupResultV1 = Readonly<{`
 
 ## `src/engine/core/rules/controlEffectV1.ts`
 
@@ -953,9 +978,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 51: `export type CoreTabletopTokenCreatePayloadV1 = Readonly<{`
 - line 58: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
 - line 63: `export type CoreTabletopTurnTransitionV1 =`
-- line 68: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
-- line 73: `export type CoreTabletopCommandPayloadV1 =`
-- line 83: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+- line 69: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
+- line 74: `export type CoreTabletopCommandPayloadV1 =`
+- line 84: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
 
 ## `src/engine/core/tabletop/operationsV1.ts`
 
@@ -1016,25 +1041,25 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 ## `src/engine/core/turn/index.ts`
 
 - line 83: `export type { CoreTurnPositionV1 } from './turnPositionV1';`
-- line 84: `export type {`
-- line 97: `export type {`
-- line 105: `export function createModeNeutralCorePendingTriggerSliceV1(`
-- line 108: `export function createModeNeutralCorePendingTriggerSliceV1(`
-- line 112: `export function createModeNeutralCorePendingTriggerSliceV1(`
-- line 126: `export type {`
-- line 216: `export type {`
-- line 224: `export type {`
-- line 230: `export function coreApnapPlayerOrderV1(`
-- line 240: `export function analyzeCorePendingTriggerPlacementV1(`
-- line 247: `export function appendCorePendingTriggeredAbilitiesV1(`
-- line 258: `export type { CoreSbaCheckOutcomeV1 } from './sbaTriggerBoundaryV1';`
-- line 260: `export function startCorePriorityCycleV1(`
-- line 267: `export function passCorePriorityV1(`
-- line 275: `export function resumeCoreAfterPriorityActionV1(`
-- line 283: `export function completeCoreResolutionAfterRemovalV1(`
-- line 294: `export type CoreTurnPositionAdvanceInputV1 = Readonly<{`
-- line 308: `export type {`
-- line 313: `export type {`
+- line 85: `export type {`
+- line 98: `export type {`
+- line 106: `export function createModeNeutralCorePendingTriggerSliceV1(`
+- line 109: `export function createModeNeutralCorePendingTriggerSliceV1(`
+- line 113: `export function createModeNeutralCorePendingTriggerSliceV1(`
+- line 127: `export type {`
+- line 217: `export type {`
+- line 225: `export type {`
+- line 231: `export function coreApnapPlayerOrderV1(`
+- line 241: `export function analyzeCorePendingTriggerPlacementV1(`
+- line 248: `export function appendCorePendingTriggeredAbilitiesV1(`
+- line 259: `export type { CoreSbaCheckOutcomeV1 } from './sbaTriggerBoundaryV1';`
+- line 261: `export function startCorePriorityCycleV1(`
+- line 268: `export function passCorePriorityV1(`
+- line 276: `export function resumeCoreAfterPriorityActionV1(`
+- line 284: `export function completeCoreResolutionAfterRemovalV1(`
+- line 295: `export type CoreTurnPositionAdvanceInputV1 = Readonly<{`
+- line 309: `export type {`
+- line 314: `export type {`
 
 ## `src/engine/core/turn/pendingTriggerV1.ts`
 
@@ -1121,10 +1146,11 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 122: `export function rebuildCoreTurnAdvanceBundleV1<`
 - line 141: `export function assertCoreTurnAdvanceBundleV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
 - line 208: `export function registryWithEmptyManaV1(`
-- line 347: `export function advanceCoreTurnPositionV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
-- line 378: `export function completeCoreTurnBasedActionCheckpointV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
-- line 419: `export function advanceCoreToNextTurnV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
-- line 455: `export type {`
+- line 352: `export function skipCoreFirstTurnDrawV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
+- line 379: `export function advanceCoreTurnPositionV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
+- line 419: `export function completeCoreTurnBasedActionCheckpointV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
+- line 460: `export function advanceCoreToNextTurnV1<TPending extends CoreTurnPendingTriggerComponentV1>(`
+- line 496: `export type {`
 
 ## `src/engine/core/turn/turnLifecycleV1.ts`
 
