@@ -563,14 +563,14 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/pregame/operationsV1.ts`
 
-- line 235: `export function rotateCorePregameTurnOrderV1(`
-- line 261: `export function dealCorePregameOpeningHandsV1(`
-- line 269: `export function applyCorePregameMulliganWaveV1(`
-- line 286: `export function commitCorePregameBottomBatchV1(`
-- line 327: `export const setCorePregameStartingPlayerV1 = rotateCorePregameTurnOrderV1;`
-- line 328: `export const dealCorePregameOpeningHandV1 = dealCorePregameOpeningHandsV1;`
-- line 329: `export const applyCorePregameMulliganV1 = applyCorePregameMulliganWaveV1;`
-- line 330: `export const commitCorePregameBottomChoicesV1 = commitCorePregameBottomBatchV1;`
+- line 234: `export function rotateCorePregameTurnOrderV1(`
+- line 260: `export function dealCorePregameOpeningHandsV1(`
+- line 268: `export function applyCorePregameMulliganWaveV1(`
+- line 285: `export function commitCorePregameBottomBatchV1(`
+- line 326: `export const setCorePregameStartingPlayerV1 = rotateCorePregameTurnOrderV1;`
+- line 327: `export const dealCorePregameOpeningHandV1 = dealCorePregameOpeningHandsV1;`
+- line 328: `export const applyCorePregameMulliganV1 = applyCorePregameMulliganWaveV1;`
+- line 329: `export const commitCorePregameBottomChoicesV1 = commitCorePregameBottomBatchV1;`
 
 ## `src/engine/core/pregame/typesV1.ts`
 
