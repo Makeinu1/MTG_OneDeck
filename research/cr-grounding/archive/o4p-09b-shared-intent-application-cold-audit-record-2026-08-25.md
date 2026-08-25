@@ -96,3 +96,16 @@ changes no assertion or fixture, and leaves all O4P-09B product hashes above
 unchanged. Focused architecture evidence passed 5 files / 30 tests; the lobby
 scenario passed 1 file / 3 tests. Independent exact-byte reaudit and one
 replacement release full check remain required.
+
+The Judge repair candidate
+`71d272c7ac04ab82ac4d3671456efc23d119aa77cd7e47a5e8976a64b087822d`
+was independently reaudited by `/root/o4p09b_cold_audit` at
+BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0 and received
+`REPLACEMENT-FULL-CHECK-AUTHORIZED`. Repair commit
+`7afcad181c5d029ce726ab495a6d5ec950162e8f` then passed the replacement
+release full check: all machine verifiers, lint, Core `227 files / 2,093
+tests`, DOM `362 files / 2,426 tests`, TypeScript/Vite build, and the
+production-runtime verifier passed in 986,681 ms. Built assets were
+`index-F6C4yCH4.js` and `index-B9TjsUJs.css`. Product hashes remained exactly
+those recorded above. Exact-head CI, Pages asset verification, and terminal
+ledger/loop-state closure remain pending.

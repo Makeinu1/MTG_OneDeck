@@ -75,3 +75,14 @@ only that test's timeout is calibrated to 10 seconds to prevent load-dependent
 false failure. The user-approved exception set authorizes one replacement full
 check after these Judge-only bytes pass focused evidence and independent
 reaudit. No product source or acceptance meaning may change in this repair.
+
+The repaired candidate
+`71d272c7ac04ab82ac4d3671456efc23d119aa77cd7e47a5e8976a64b087822d`
+was independently reaudited at BLOCKER/HIGH/MEDIUM/LOW zero and authorized for
+one replacement full check. Exact repair commit
+`7afcad181c5d029ce726ab495a6d5ec950162e8f` then passed all machine
+verifiers, lint, Core `227 files / 2,093 tests`, DOM
+`362 files / 2,426 tests`, TypeScript/Vite build, and the production-runtime
+verifier in 986,681 ms. Built assets were `index-F6C4yCH4.js` and
+`index-B9TjsUJs.css`. No further local full-check invocation is required or
+authorized for O4P-09B.
