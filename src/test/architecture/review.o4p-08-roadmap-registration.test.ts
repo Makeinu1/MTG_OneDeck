@@ -230,11 +230,19 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(projection.selection).toEqual({
       kind: 'selected', domainId: 'O4P-08A', reason: 'explicit-domain',
     });
+    const liveLedger = parse(read(LEDGER_PATH));
+    const o4p09Ids = [
+      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
+      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+    ] as const;
+    const nextDomainId = o4p09Ids.find((id) => (
+      liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
+    )) ?? null;
     expect(projection.activeProgram).toEqual({
       id: 'O4P-09',
-      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
-      status: 'active',
-      nextDomainId: 'O4P-09A',
+      domainIds: o4p09Ids,
+      status: nextDomainId === null ? 'complete' : 'active',
+      nextDomainId,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });

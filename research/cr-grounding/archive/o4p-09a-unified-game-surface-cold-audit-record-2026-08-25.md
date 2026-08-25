@@ -125,3 +125,64 @@ pass exact-head CI, the now metadata-only ownership scan, artifact upload,
 Pages deployment, public asset verification, and production browser evidence.
 
 `O4P-09A-CI-OWNERSHIP-REAUTH-APPROVED`
+
+## Historical active-program guard repair
+
+The ownership-replacement candidate at
+`42eb436fdcaf64c420c9e931fe4b7643afb73ad0` triggered Actions run
+`32810193279`, build job `97687948425`. All pre-DOM verifiers, docs, lint,
+and Core tests passed. DOM then failed only four historical Judge guards:
+`review.gov-codex-56-program-orchestration.test.ts`,
+`review.o4p-06-roadmap-registration.test.ts`,
+`review.o4p-07-roadmap-registration.test.ts`, and
+`review.o4p-08-roadmap-registration.test.ts`. Their fixed expectation still
+named `O4P-09A`, while the live ledger correctly projected the first
+unshipped member, `O4P-09B`. DOM reported `356 files / 2,413 tests` passed,
+four files / four tests failed, and one test was environment-skipped out of
+2,418. Build, ownership, artifact, and Pages stages were consequently
+skipped.
+
+The user explicitly authorized the complete exception set: a third Judge
+correction wave, one repair push with exact-head CI, and one metadata-only
+ownership-reauthorization push with final exact-head CI and Pages proof. This
+authorization adds no product scope and permits no additional local full
+check.
+
+The seated Judge changed exactly the four historical `review.*` guards. Each
+now derives `nextDomainId` from the first live ledger domain in
+`O4P-09A` through `O4P-09J` whose status is not `shipped`, or `null` after all
+ten ship. The expected active-program status is `active` while that value
+exists and `complete` when it is `null`. The historical selection, closure,
+and registration assertions remain intact; the repair adds no wildcard,
+allowlist, product, contract, protocol, dependency, configuration, or
+workflow change.
+
+| Judge-owned repair path | Audited SHA-256 |
+| --- | --- |
+| `src/test/architecture/review.gov-codex-56-program-orchestration.test.ts` | `6bc7d3a922610c49c54a07cce24f016ae799b47340b4859070348b6fb5b3145a` |
+| `src/test/architecture/review.o4p-06-roadmap-registration.test.ts` | `3f64547cb07a0ffc29fe1b1a811c2b9736050b3198b93d87bf4b8b8f7824ecf0` |
+| `src/test/architecture/review.o4p-07-roadmap-registration.test.ts` | `e317241a3afdc1acf42136efdec2d1a4dff57ce25497e281c23bd1b42ba400fd` |
+| `src/test/architecture/review.o4p-08-roadmap-registration.test.ts` | `09ede6d4304ed474369d1cdf3051550b7faf1cdba3b965285f8ebcea9bd25d75` |
+
+Targeted verification passed the four repaired guards plus the live O4P-09
+registration guard: `5 files / 27 tests`. Affected ESLint, `check:docs`,
+`git diff --check`, and the O4P-09B context projection passed. Fixed
+`nextDomainId: 'O4P-09A'` literals are zero. The ownership verifier classifies
+exactly these four paths as Judge-owned `FORBIDDEN`, as expected before
+reauthorization.
+
+The same fresh-context cold auditor independently exercised the complete
+11-state A-through-J-then-null transition matrix, verified all four exact
+hashes and candidate fingerprint
+`f446b555e7e108cfc147a8de4466796740cf6cb6e8a7863d2005139d7d30a474`,
+and reported `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0`.
+
+`O4P-09A-HISTORICAL-GUARD-REPAIR-APPROVED`
+
+The repair commit must now pass one exact-head Actions run. If that run passes
+the canonical full check and stops only at these four ownership findings, the
+Judge will append that exact CI ownership evidence, obtain exact-byte
+reauthorization, and make the single authorized metadata-only replacement
+push. Only the replacement HEAD may proceed to artifact upload, Pages,
+public-asset and production-browser verification, HEAD/origin equality, and
+clean-worktree closure.
