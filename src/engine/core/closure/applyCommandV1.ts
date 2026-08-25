@@ -34,6 +34,7 @@ import {
   advanceCoreToNextTurnV1,
   advanceCoreTurnPositionV1,
   completeCoreTurnBasedActionCheckpointV1,
+  skipCoreFirstTurnDrawV1,
 } from '../turn/turnAdvanceV1';
 
 type Raw = Record<string, unknown>;
@@ -173,6 +174,10 @@ function handleTabletopTurnProgress(
   } else if (transition.transition.kind === 'position') {
     const turn = workingRoot.ruleAuthority.turnPriorityBundle;
     const nextBundle = advanceCoreTurnPositionV1({ stackBundle: turn.stackBundle, pendingTriggers: turn.pendingTriggers, lifecycle: turn.lifecycle }, { nextPosition: transition.transition.nextPosition });
+    workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
+  } else if (transition.transition.kind === 'first-turn-draw-skip') {
+    const turn = workingRoot.ruleAuthority.turnPriorityBundle;
+    const nextBundle = skipCoreFirstTurnDrawV1({ stackBundle: turn.stackBundle, pendingTriggers: turn.pendingTriggers, lifecycle: turn.lifecycle });
     workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
   } else {
     const turn = workingRoot.ruleAuthority.turnPriorityBundle;

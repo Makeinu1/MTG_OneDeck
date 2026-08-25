@@ -35,7 +35,7 @@ const closureStackConsumers = new Set([
   resolve(coreRoot, 'closure/commandV1.ts'),
 ]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
-const allowedOnlineRootNames = new Set(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'workbench']);
+const allowedOnlineRootNames = new Set(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'workbench']);
 const categoryOrder = [
   'stack-edge',
   'forbidden-import',
@@ -327,6 +327,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
       'guidedActions',
       'headless',
       'lobby',
+      'pregame',
       'projection',
       'protocol',
       'publicApp',

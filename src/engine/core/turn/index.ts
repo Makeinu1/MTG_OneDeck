@@ -81,6 +81,7 @@ function bundleOf(
 }
 
 export type { CoreTurnPositionV1 } from './turnPositionV1';
+export { skipCoreFirstTurnDrawV1 } from './turnAdvanceV1';
 export type {
   CoreTurnWindowV1,
   CoreTurnLifecycleSliceV1,

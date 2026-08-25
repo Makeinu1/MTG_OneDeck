@@ -467,4 +467,17 @@ describe('O4P-02D audience projection', () => {
     );
     expect(validateOnlineParticipantProjectionV1(mutable)).toMatchObject({ ok: true });
   });
+
+  it('accepts a rotated game turn order when player and zone arrays follow it', () => {
+    const transition = handleOnlineProjectedSnapshotRequestV1(state(), request());
+    if (transition.response.status !== 'accepted') throw new Error('Expected projection');
+    const mutable = structuredClone(transition.response.projection) as unknown as {
+      game: { turnOrder: string[]; players: unknown[]; zones: { byPlayer: unknown[] } };
+    };
+    const rotate = <T>(values: readonly T[]): T[] => [...values.slice(1), ...values.slice(0, 1)];
+    mutable.game.turnOrder = rotate(mutable.game.turnOrder);
+    mutable.game.players = rotate(mutable.game.players);
+    mutable.game.zones.byPlayer = rotate(mutable.game.zones.byPlayer);
+    expect(validateOnlineParticipantProjectionV1(mutable)).toMatchObject({ ok: true });
+  });
 });

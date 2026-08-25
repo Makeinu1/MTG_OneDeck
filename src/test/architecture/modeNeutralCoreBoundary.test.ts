@@ -528,6 +528,59 @@ function isFrozenProjectionCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenPregameCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/pregame/types.ts',
+    new Set([
+      'CoreObjectId',
+      'CorePhysicalCardId',
+      'CorePlayerId',
+      'ModeNeutralCoreRootV1',
+    ]),
+  ],
+  [
+    'src/online/pregame/validation.ts',
+    new Set([
+      'CorePhysicalCardId',
+      'CorePlayerId',
+      'coreSha256HexV1',
+      'isCanonicalCoreObjectIdV2',
+      'isCoreBaseId',
+    ]),
+  ],
+  [
+    'src/online/pregame/operations.ts',
+    new Set([
+      'CoreObjectId',
+      'CorePlayerId',
+      'applyCorePregameMulliganWaveV1',
+      'commitCorePregameBottomBatchV1',
+      'coreSha256HexV1',
+      'dealCorePregameOpeningHandsV1',
+      'rotateCorePregameTurnOrderV1',
+    ]),
+  ],
+  [
+    'src/online/pregame/projection.ts',
+    new Set(['CorePlayerId']),
+  ],
+]);
+
+function isFrozenPregameCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null || relativeRepositoryPath(target) !== 'src/engine/core/index.ts') {
+    return false;
+  }
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenPregameCoreImports.get(normalizePath(path));
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenDisplayPairingCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/displayPairing/model.ts',
@@ -838,6 +891,7 @@ function inspectReference(
     && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)
     && !isFrozenGenesisCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)
+    && !isFrozenPregameCoreConsumer(unitPath, target, reference)
     && !isFrozenDisplayPairingCoreConsumer(unitPath, target, reference)
     && !isFrozenGuidedActionsCoreConsumer(unitPath, target, reference)
     && !isFrozenHeadlessCoreConsumer(unitPath, target, reference)

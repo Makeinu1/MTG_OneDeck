@@ -124,7 +124,7 @@ describe('O4P-01N repair wave 1', () => {
     ]));
   });
 
-  it('requires turn order to match the active lifecycle roster in order', () => {
+  it('accepts a duplicate-free rotated turn order while preserving roster membership', () => {
     const root = makeRoot({ priorityHolder: 'P2' });
     const registry = root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
     const reversedRegistry = Core.createModeNeutralCoreObjectRegistryStateV2({
@@ -139,7 +139,9 @@ describe('O4P-01N repair wave 1', () => {
     const stackBundle = Core.createCoreStackTransactionBundleV1({ ...root.ruleAuthority.turnPriorityBundle.stackBundle, objectRegistry: reversedRegistry });
     const turnPriorityBundle = Core.createCoreTurnPriorityBundleV1({ ...root.ruleAuthority.turnPriorityBundle, stackBundle });
     const ruleAuthority = Core.createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle });
-    expect(Closure.validateModeNeutralCoreRootV1({ ...root, ruleAuthority })).toMatchObject({ ok: false, issues: [{ code: 'TURN_ORDER_MISMATCH' }] });
+    expect(Closure.validateModeNeutralCoreRootV1({ ...root, ruleAuthority })).toMatchObject({ ok: true });
+    const missing = Closure.validateModeNeutralCoreRootV1({ ...root, ruleAuthority: { ...ruleAuthority, turnPriorityBundle: { ...turnPriorityBundle, stackBundle: { ...stackBundle, objectRegistry: { ...reversedRegistry, turnOrder: ['P1', 'P2', 'P3'] as never } } } } });
+    expect(missing).toMatchObject({ ok: false });
   });
 
   it('returns the real unchanged digest for malformed, authority, sequence, and operation rejections', () => {

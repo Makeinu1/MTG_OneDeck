@@ -105,6 +105,13 @@ function nestedIssues(error: unknown, path: string): readonly CoreRootValidation
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((id, index) => id === right[index]);
 }
+function samePlayerSet(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  return leftSet.size === left.length && rightSet.size === right.length
+    && left.every((id) => rightSet.has(id));
+}
 function active(lifecycle: CorePlayerLifecycleStateV1, playerId: string): boolean {
   return lifecycle.players.some((entry) => entry.playerId === playerId && entry.status === 'active');
 }
@@ -142,8 +149,8 @@ export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidatio
     const registry = ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
     const registryPlayerIds = Object.keys(registry.players);
     const activeLifecyclePlayerIds = playerLifecycle.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId);
-    if (!sameIds(registryPlayerIds, activeLifecyclePlayerIds)) issues.push(issue('PLAYER_ROSTER_MISMATCH', '/playerLifecycle/players', 'Registry player order must match active lifecycle players'));
-    if (!sameIds(registry.turnOrder, activeLifecyclePlayerIds)) issues.push(issue('TURN_ORDER_MISMATCH', '/ruleAuthority/turnPriorityBundle/stackBundle/objectRegistry/turnOrder', 'Turn order must match active lifecycle players in order'));
+    if (!samePlayerSet(registryPlayerIds, activeLifecyclePlayerIds)) issues.push(issue('PLAYER_ROSTER_MISMATCH', '/playerLifecycle/players', 'Registry players must match the active lifecycle player set'));
+    if (!samePlayerSet(registry.turnOrder, activeLifecyclePlayerIds)) issues.push(issue('TURN_ORDER_MISMATCH', '/ruleAuthority/turnPriorityBundle/stackBundle/objectRegistry/turnOrder', 'Turn order must be an exact permutation of active lifecycle players'));
     registry.turnOrder.forEach((playerId, index) => {
       if (!active(playerLifecycle, playerId)) issues.push(issue('INACTIVE_PLAYER', `/ruleAuthority/turnPriorityBundle/stackBundle/objectRegistry/turnOrder/${index}`, 'Turn-order players must be active'));
     });

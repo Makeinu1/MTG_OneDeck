@@ -63,6 +63,7 @@ export type CoreTabletopTokenRemovePayloadV1 = Readonly<{
 export type CoreTabletopTurnTransitionV1 =
   | Readonly<{ readonly kind: 'checkpoint' }>
   | Readonly<{ readonly kind: 'position'; readonly nextPosition: CoreTabletopTurnPositionV1 }>
+  | Readonly<{ readonly kind: 'first-turn-draw-skip' }>
   | Readonly<{ readonly kind: 'next-turn' }>;
 
 export type CoreTabletopTurnPayloadV1 = Readonly<{

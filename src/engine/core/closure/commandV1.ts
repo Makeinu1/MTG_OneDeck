@@ -264,6 +264,10 @@ function normalizeTabletopTransition(value: unknown, path: string, issues: CoreC
     if (Object.prototype.hasOwnProperty.call(row, 'nextPosition')) issues.push(issue('UNKNOWN_FIELD', `${path}/nextPosition`, 'This transition does not contain a next position'));
     return Object.freeze({ kind: row.kind });
   }
+  if (row.kind === 'first-turn-draw-skip') {
+    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition')) issues.push(issue('UNKNOWN_FIELD', `${path}/nextPosition`, 'This transition does not contain a next position'));
+    return issues.some((current) => current.path.startsWith(path)) ? null : Object.freeze({ kind: 'first-turn-draw-skip' as const });
+  }
   if (row.kind !== 'position') { issues.push(issue('INVALID_LITERAL', `${path}/kind`, 'Invalid tabletop turn transition')); return null; }
   const nextPosition = plain(row.nextPosition) ? row.nextPosition : null;
   if (nextPosition === null) { issues.push(issue('INVALID_TYPE', `${path}/nextPosition`, 'Next position must be a plain record')); return null; }

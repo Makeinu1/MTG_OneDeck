@@ -344,6 +344,38 @@ function windowForPosition<TPending extends CoreTurnPendingTriggerComponentV1>(
   return sbaWindow(playerId);
 }
 
+/**
+ * Commander two-player turn one omits the draw step. This is deliberately a
+ * separate operation so an ordinary position transition cannot silently
+ * bypass the mandatory draw boundary in any other game.
+ */
+export function skipCoreFirstTurnDrawV1<TPending extends CoreTurnPendingTriggerComponentV1>(
+  input: CoreTurnAdvanceBundleV1<TPending>,
+): CoreTurnAdvanceBundleV1<TPending> {
+  const bundle = assertCoreTurnAdvanceBundleV1(input);
+  if (bundle.lifecycle.window.kind !== 'position-advance-ready') {
+    fail('WINDOW_MISMATCH', 'First-turn draw skip requires position-advance-ready');
+  }
+  if (bundle.lifecycle.turnNumber !== 1
+    || bundle.lifecycle.position.phase !== 'beginning'
+    || bundle.lifecycle.position.step !== 'upkeep'
+    || bundle.stackBundle.objectRegistry.turnOrder.length !== 2
+    || bundle.stackBundle.objectRegistry.activePlayerId !== requireActivePlayer(bundle)
+    || bundle.stackBundle.objectRegistry.zones.shared.stack.length !== 0
+    || bundle.pendingTriggers.pendingObjectIds.length !== 0) {
+    fail('POSITION_TRANSITION_INVALID', 'First-turn draw skip is valid only in the exact two-player turn-one upkeep window');
+  }
+  return rebuildCoreTurnAdvanceBundleV1(
+    bundle,
+    lifecycleWith(
+      bundle.lifecycle,
+      { phase: 'precombat-main', step: null },
+      incrementPositionSequence(bundle.lifecycle.positionSequence),
+      windowForPosition(bundle, { phase: 'precombat-main', step: null }),
+    ),
+  );
+}
+
 export function advanceCoreTurnPositionV1<TPending extends CoreTurnPendingTriggerComponentV1>(
   input: CoreTurnAdvanceBundleV1<TPending>,
   operation: Readonly<{ readonly nextPosition: CoreTurnPositionV1 }>,
@@ -359,6 +391,15 @@ export function advanceCoreTurnPositionV1<TPending extends CoreTurnPendingTrigge
   if (!isPlainRecord(operation)) fail('INVALID_OPERATION_INPUT', 'Position advance input must be a plain object');
   const nextPosition = dataPropertyValue(operation, 'nextPosition');
   const positionResult = validateCoreTurnPositionV1(nextPosition);
+  if (bundle.lifecycle.turnNumber === 1
+    && bundle.lifecycle.position.phase === 'beginning'
+    && bundle.lifecycle.position.step === 'upkeep'
+    && positionResult.ok
+    && positionResult.value.phase === 'beginning'
+    && positionResult.value.step === 'draw'
+    && bundle.stackBundle.objectRegistry.turnOrder.length === 2) {
+    fail('POSITION_TRANSITION_INVALID', 'Two-player turn one must use first-turn-draw-skip');
+  }
   if (!positionResult.ok || !allowedTransition(bundle.lifecycle.position, positionResult.value)) {
     fail('POSITION_TRANSITION_INVALID', 'The requested position is not an allowed successor');
   }

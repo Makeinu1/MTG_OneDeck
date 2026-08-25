@@ -445,7 +445,7 @@ export function validateOnlineParticipantProjectionV1(
         const playerId = turnOrder[index] as CorePlayerId;
         if (order.includes(playerId)) invalid(issues, 'DUPLICATE_VALUE', `/game/turnOrder/${index}`, 'Duplicate turn-order player'); else order.push(playerId);
       }
-      if (order.length !== seatPlayers.length || order.some((id, index) => id !== seatPlayers[index])) invalid(issues, 'INVALID_RELATION', '/game/turnOrder', 'Turn order must match ordered seats');
+      if (order.length !== seatPlayers.length || new Set(order).size !== seatPlayers.length || seatPlayers.some((id) => !order.includes(id))) invalid(issues, 'INVALID_RELATION', '/game/turnOrder', 'Turn order must be an exact seated-player permutation');
       const turn = readExactRecord(game.turn, ['activePlayerId', 'turnNumber', 'positionSequence', 'position'], '/game/turn', issues);
       if (turn !== null) {
         player(turn.activePlayerId, '/game/turn/activePlayerId', issues);
@@ -719,7 +719,7 @@ export function validateOnlineParticipantProjectionV3(
       const g = game as Record<string, unknown>;
       const expected = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
       if (Object.keys(g).sort().join(',') !== expected.sort().join(',')) invalid('/game', 'Game has unknown or missing fields');
-      if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || g.turnOrder.some((id, i) => id !== `P${i + 1}`)) invalid('/game/turnOrder', 'Turn order must match exact roster');
+      if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || new Set(g.turnOrder).size !== playerCount || g.turnOrder.some((id) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || Array.from({ length: playerCount }, (_, i) => `P${i + 1}`).some((id) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact seated-player permutation');
       if (!Array.isArray(g.players) || g.players.length !== playerCount) invalid('/game/players', 'Player coverage must match exact roster');
       if (!Array.isArray(g.visibilityGrants) || !Array.isArray(g.searchSessions) || !Array.isArray(g.playPermissions)) invalid('/game', 'Invalid game authority arrays');
       if (playerCount === 2 && containsPlayerReference(g, new Set(['P3', 'P4']))) invalid('/game', 'Two-player projection references an unavailable player');
