@@ -13,9 +13,8 @@ import {
   freeMulliganBottomCount,
   guidedControllerId,
   useGameStore,
-  type GameStore,
 } from '../../store/gameStore';
-import type { GameState, ManualTargetZone, PlayerId, ZoneId } from '../../engine/types';
+import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import { isCommander, commanderTax } from '../../engine/commander';
 import { eligibleTargets } from '../../engine/commands';
 import { parseManaCost } from '../../engine/mana';
@@ -62,6 +61,10 @@ import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
 import type { DropIntent } from './dragIntent';
 import { requestInteractionHistory } from './historyUiEvents';
 import type { DecisionFocusModel } from './decisionFocus';
+import type {
+  GameScreenInteractionPort,
+  GameScreenMenuTriggerEvent,
+} from './gameScreenInteractionPort';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -84,7 +87,7 @@ const TARGET_RULE_ACTION_TITLES: Record<string, string> = {
   'attach-target': '装備/付与',
 };
 
-type MenuTriggerEvent = React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>;
+type MenuTriggerEvent = GameScreenMenuTriggerEvent;
 type PendingMove = { cardId: string; to: ZoneId };
 type PendingPaymentAction =
   | { kind: 'stack'; cardId: string; shortfall: number; xValue: number; faceIndex: number }
@@ -120,100 +123,7 @@ function commanderZoneChoiceMode(zone: ZoneId): 'replacement' | 'sba' {
   return zone === 'graveyard' || zone === 'exile' ? 'sba' : 'replacement';
 }
 
-export interface GameController {
-  state: GameState | null;
-  store: GameStore;
-  /** カードシート/コンテキストメニューを開く(タップ/右クリック)。 */
-  openCardMenu: (cardId: string, e: MenuTriggerEvent) => void;
-  openCardMenuAt?: (cardId: string, x: number, y: number) => void;
-  /** ダブルクリック/クイックアクション。 */
-  handleCardDoubleClick: (cardId: string, e: React.MouseEvent) => void;
-  /** CR 305.6/producedMana の安全な土地クリックを色選択つきで実行する。 */
-  requestTapForMana?: (cardId: string) => void;
-  requestActivateAbility?: (cardId: string, abilityLineIndex?: number) => void;
-  requestDraw: (count: number) => void;
-  requestShuffleLibrary: () => void;
-  /** Mulligan confirmation (one shuffle-completed; contract §2.1). */
-  requestMulligan: () => void;
-  /** Keep confirmation (one hand-kept; contract §2.1). */
-  requestKeepHand: () => void;
-  requestToggleTap: (cardId: string) => void;
-  requestToggleTapMany?: (cardIds: readonly string[]) => boolean;
-  requestSetAllTapped: (tapped: boolean) => void;
-  /** スタックを1件/全件解決(フェッチはダイアログを挟む)。 */
-  requestResolveTop: () => void;
-  requestResolveAll: () => void;
-  advancePhase: () => void;
-  advanceTurn: () => void;
-  /** 「次に進む」単一アクション(PrimaryAction 状態機械)。ボタンとショートカット共通。 */
-  runPrimaryAction?: () => void;
-  undo: () => void;
-  redo: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
-  setManualTargets: (
-    stackItemId: string,
-    targetIds: string[],
-    targetPlayerIds?: PlayerId[],
-    allowedZones?: ManualTargetZone[],
-  ) => void;
-  /** ライブラリ操作メニュー(引く/シャッフル/切削/占術…)。 */
-  openLibraryActions: (e: MenuTriggerEvent) => void;
-  libraryActionsOpen: boolean;
-  /** ゾーンビューア(墓地/追放/ライブラリ)を開く。 */
-  openZoneViewer: (zone: 'graveyard' | 'exile' | 'library') => void;
-  /**
-   * 相手盤面ビューア(モーダル)。常設しない=docs/design-vision.md:80 原則7
-   * 「常設の…相手ライフ行…は廃止し『タップで出す』へ降格」。
-   * overlays はコントローラ生成前に組まれ controller を参照できないため、
-   * Feed と同じく GameScreen が opponentBoardOpen を見て描画する。
-   */
-  opponentBoardOpen: boolean;
-  openOpponentBoard: () => void;
-  closeOpponentBoard: () => void;
-  openTokenDialog: () => void;
-  openAttackDialog: () => void;
-  openArrangeTop: () => void;
-  openCountDialog: (kind: CountDialogState['kind'], defaultValue: number) => void;
-  requestConfirm: (action: 'restart' | 'back-to-import') => void;
-  /** 誘発候補の件数(PrimaryAction 状態機械・ベルバッジ用)。 */
-  triggerCandidateCount: number;
-  triggerSheetOpen?: boolean;
-  processTriggers?: () => void;
-  closeTriggerSheet?: () => void;
-  /** 祝祭アニメを許可するか(初期マウント/再開の一斉再生を抑止・D5)。 */
-  motionArmed: boolean;
-  /** フィード(誘発/警告/ログ)の開閉。GameScreen が feedOpen で <Feed> を描画。 */
-  feedOpen: boolean;
-  openFeed: () => void;
-  closeFeed: () => void;
-  /** 全ダイアログ+メニューの描画ノード(GameScreen が末尾に置く)。 */
-  overlays: ReactNode;
-  /** ショートカット無効化フラグ(ダイアログ表示中)。 */
-  shortcutsBlocked: boolean;
-  transitionCue: TransitionCueData | null;
-  dismissTransitionCue: (id: number) => void;
-  /** DnDの意味を既存のカード操作経路へ合流させる。 */
-  performDrop: (intent: DropIntent) => void;
-  /** ドラッグ開始時にhover以外の一時UIも閉じる。 */
-  closeTransientUi: () => void;
-
-  decisionFocus?: DecisionFocusModel | null;
-  chooseDecisionCard?: (cardId: string) => void;
-  chooseDecisionPlayer?: (playerId: PlayerId) => void;
-  cancelDecision?: () => void;
-  mulliganActive?: boolean;
-  /** CR 702.194 teamwork cost-tap multi-select state (present only during teamwork prompt). */
-  teamworkInfo?: {
-    threshold: number;
-    selectedIds: readonly string[];
-    totalPower: number;
-    canConfirm: boolean;
-  } | null;
-  toggleTeamworkCreature?: (cardId: string) => void;
-  confirmTeamwork?: () => void;
-  declineTeamwork?: () => void;
-}
+export type GameController = GameScreenInteractionPort;
 
 /**
  * 新レイアウト用のゲーム操作統括フック。GameScreen が唯一の呼び出し元。
@@ -224,7 +134,7 @@ export function useGameController({
 }: {
   keybindings: KeybindingsMap;
   externalShortcutsBlocked?: boolean;
-}): GameController {
+}): GameScreenInteractionPort {
   const store = useGameStore();
   const { state, mulliganDecisionPending } = store;
 
@@ -2010,7 +1920,12 @@ export function useGameController({
 
   return {
     state: state ?? null,
-    store,
+    warnings: store.warnings,
+    triggerCandidates: store.triggerCandidates,
+    resolutionSession: store.resolutionSession,
+    guidedDecisionActive: store.pendingGuided !== null,
+    mulliganDecisionPending,
+    autoAdvanceToMain: store.autoAdvanceToMain,
     openCardMenu,
     openCardMenuAt,
     handleCardDoubleClick,
@@ -2038,6 +1953,37 @@ export function useGameController({
       targetPlayerIds,
       allowedZones,
     ),
+    confirmGuidedZeroChoice: () => store.confirmGuidedZeroChoice(),
+    removeStackItem: (id, to) => store.removeStackItem(id, to),
+    completeManualResolution: () => store.completeManualResolution(),
+    placePendingTriggersForPriority: (pendingTriggerIds) => (
+      store.placePendingTriggersForPriority(pendingTriggerIds)
+    ),
+    putPendingTriggerOnStack: (pendingTriggerId) => (
+      store.putPendingTriggerOnStack(pendingTriggerId)
+    ),
+    addAbilityToStack: (sourceId, kind, abilityLineIndex) => (
+      store.addAbilityToStack(sourceId, kind, abilityLineIndex)
+    ),
+    adjustLife: (delta) => store.dispatch({ type: 'adjustLife', delta }),
+    adjustMana: (color, delta) => store.adjustMana(color, delta),
+    clearManaPool: () => store.dispatch({ type: 'clearManaPool' }),
+    adjustPlayerCounter: (kind, delta) => (
+      store.dispatch({ type: 'adjustPlayerCounter', kind, delta })
+    ),
+    setMaximumHandSizeOverride: (value) => (
+      store.dispatch({ type: 'setMaximumHandSizeOverride', value })
+    ),
+    adjustOpponentLife: (label, delta) => store.adjustOpponentLife(label, delta),
+    adjustCommanderDamage: (label, delta) => (
+      store.dispatch({ type: 'adjustCommanderDamage', label, delta })
+    ),
+    proliferateAll: () => store.proliferateAll(),
+    rollDie: (sides) => store.rollDie(sides),
+    flipCoin: () => store.flipCoin(),
+    setAutoAdvance: (on) => store.setAutoAdvance(on),
+    dismissTriggerCandidates: () => store.dismissTriggerCandidates(),
+    clearWarnings: () => store.clearWarnings(),
     openLibraryActions,
     libraryActionsOpen: libraryMenu !== null,
     openZoneViewer: (zone) => setZoneViewer(zone),

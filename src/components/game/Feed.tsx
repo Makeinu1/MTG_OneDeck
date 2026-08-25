@@ -15,16 +15,16 @@ export interface FeedProps {
 }
 
 export function Feed({ controller, onClose }: FeedProps) {
-  const { state, store } = controller;
+  const { state } = controller;
   if (!state) return null;
-  const items = projectFeed(store.warnings, store.triggerCandidates, state.log);
+  const items = projectFeed(controller.warnings, controller.triggerCandidates, state.log);
 
   function placeTrigger(sourceId?: string, pendingTriggerId?: string, abilityLineIndex?: number): void {
     if (pendingTriggerId) {
-      store.putPendingTriggerOnStack(pendingTriggerId);
+      controller.putPendingTriggerOnStack(pendingTriggerId);
       return;
     }
-    if (sourceId) store.addAbilityToStack(sourceId, 'triggered', abilityLineIndex);
+    if (sourceId) controller.addAbilityToStack(sourceId, 'triggered', abilityLineIndex);
   }
 
   return (
@@ -33,13 +33,13 @@ export function Feed({ controller, onClose }: FeedProps) {
         <div className="game-sheet__header">
           <span className="game-sheet__title">フィード</span>
           <div className="feed__head-actions">
-            {store.triggerCandidates.length > 0 && (
-              <button type="button" className="life-sheet__mini" data-testid="feed-triggers-ignore-all" onClick={() => store.dismissTriggerCandidates()}>
+            {controller.triggerCandidates.length > 0 && (
+              <button type="button" className="life-sheet__mini" data-testid="feed-triggers-ignore-all" onClick={controller.dismissTriggerCandidates}>
                 誘発を全て無視
               </button>
             )}
-            {store.warnings.length > 0 && (
-              <button type="button" className="life-sheet__mini" data-testid="feed-clear-warnings" onClick={() => store.clearWarnings()}>
+            {controller.warnings.length > 0 && (
+              <button type="button" className="life-sheet__mini" data-testid="feed-clear-warnings" onClick={controller.clearWarnings}>
                 警告を消す
               </button>
             )}

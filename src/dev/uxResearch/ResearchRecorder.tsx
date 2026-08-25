@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GameController } from '../../components/game/gameController';
+import { useGameStore } from '../../store/gameStore';
 import {
   createResearchCheckpoint,
   createResearchSession,
@@ -63,7 +64,8 @@ function downloadSession(session: UiResearchSession): void {
 }
 
 export function ResearchRecorder({ controller }: { controller: GameController }) {
-  const { state, store } = controller;
+  const { state } = controller;
+  const store = useGameStore();
   const [assignedTask] = useState(assignedTaskFromUrl);
   const participantDiscovery = Boolean(assignedTask.taskId && assignedTask.phase === 'owner-discovery');
   const [deckId, setDeckId] = useState<ResearchDeckId>(() =>
@@ -238,7 +240,12 @@ export function ResearchRecorder({ controller }: { controller: GameController })
     if (currentSignals.warningSignature !== previous.warningSignature) {
       addCheckpoint('warning');
     }
-  }, [addCheckpoint, state, store.pendingGuided, store.warnings]);
+  }, [
+    addCheckpoint,
+    state,
+    store.pendingGuided,
+    store.warnings,
+  ]);
 
   if (!state) return null;
 

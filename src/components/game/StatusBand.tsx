@@ -31,7 +31,7 @@ export interface StatusBandProps {
 }
 
 export function StatusBand({ controller }: StatusBandProps) {
-  const { state, store } = controller;
+  const { state } = controller;
   const [lifeOpen, setLifeOpen] = useState(false);
   // ライフ変化の色フラッシュ(D5④)。hooks は早期 return より前。
   const life = controller.state?.life ?? null;
@@ -84,7 +84,7 @@ export function StatusBand({ controller }: StatusBandProps) {
   const model = statusBandModel(state);
   const activePhaseIndex = PHASE_ORDER.indexOf(model.phase);
   const mana = manaReadinessModel(state);
-  const unseen = feedUnseenCount(store.warnings, store.triggerCandidates);
+  const unseen = feedUnseenCount(controller.warnings, controller.triggerCandidates);
 
   return (
     <div className="status-band" data-testid="status-band" data-stack-active={model.stackActive}>
@@ -100,16 +100,16 @@ export function StatusBand({ controller }: StatusBandProps) {
           type="button"
           className="status-band__phase-current"
           data-testid="current-phase-label"
-          aria-pressed={store.autoAdvanceToMain}
-          aria-label={`現在は${model.phaseLabel}。ターン開始は${store.autoAdvanceToMain ? '自動でメイン1まで進む' : 'フェイズごとに進む'}。押すと${store.autoAdvanceToMain ? '手動' : '自動'}へ切り替えます`}
+          aria-pressed={controller.autoAdvanceToMain}
+          aria-label={`現在は${model.phaseLabel}。ターン開始は${controller.autoAdvanceToMain ? '自動でメイン1まで進む' : 'フェイズごとに進む'}。押すと${controller.autoAdvanceToMain ? '手動' : '自動'}へ切り替えます`}
           onClick={() => {
-            store.setAutoAdvance(!store.autoAdvanceToMain);
+            controller.setAutoAdvance(!controller.autoAdvanceToMain);
             setModeFlash(true);
           }}
         >
           <strong>{model.phaseLabel}</strong>
-          <span className="status-band__phase-mode" title={store.autoAdvanceToMain ? '自動進行' : '手動進行'}>
-            <Icon name="auto" />{store.autoAdvanceToMain ? '自' : '手'}
+          <span className="status-band__phase-mode" title={controller.autoAdvanceToMain ? '自動進行' : '手動進行'}>
+            <Icon name="auto" />{controller.autoAdvanceToMain ? '自' : '手'}
           </span>
         </button>
         {PHASE_ORDER.map((phase, index) => (
@@ -153,7 +153,7 @@ export function StatusBand({ controller }: StatusBandProps) {
                 type="button"
                 data-testid={`mana-minus-${color}`}
                 aria-label={`${name}を1点減らす`}
-                onClick={() => store.adjustMana(color, -1)}
+                onClick={() => controller.adjustMana(color, -1)}
               >−</button>
               <span title={`${name}${mana.pool[color]}点`} aria-label={`${name}${mana.pool[color]}点`}>
                 {kanji}<strong>{mana.pool[color]}</strong>
@@ -162,7 +162,7 @@ export function StatusBand({ controller }: StatusBandProps) {
                 type="button"
                 data-testid={`mana-plus-${color}`}
                 aria-label={`${name}を1点増やす`}
-                onClick={() => store.adjustMana(color, 1)}
+                onClick={() => controller.adjustMana(color, 1)}
               >＋</button>
             </span>
           ))}
@@ -181,7 +181,7 @@ export function StatusBand({ controller }: StatusBandProps) {
             className="status-band__life-adjust"
             data-testid="life-minus"
             aria-label="ライフを1減らす"
-            onClick={() => store.dispatch({ type: 'adjustLife', delta: -1 })}
+            onClick={() => controller.adjustLife(-1)}
           >
             −
           </button>
@@ -201,7 +201,7 @@ export function StatusBand({ controller }: StatusBandProps) {
             className="status-band__life-adjust"
             data-testid="life-plus"
             aria-label="ライフを1増やす"
-            onClick={() => store.dispatch({ type: 'adjustLife', delta: 1 })}
+            onClick={() => controller.adjustLife(1)}
           >
             ＋
           </button>

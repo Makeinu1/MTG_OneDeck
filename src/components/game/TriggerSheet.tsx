@@ -23,7 +23,7 @@ function reorder(ids: readonly string[], fromIndex: number, toIndex: number): st
 }
 
 export function TriggerSheet({ controller, onClose }: TriggerSheetProps) {
-  const candidates = controller.store.triggerCandidates;
+  const candidates = controller.triggerCandidates;
   const pendingIds = useMemo(
     () => candidates.flatMap((candidate) => candidate.pendingTriggerId ? [candidate.pendingTriggerId] : []),
     [candidates],
@@ -60,9 +60,9 @@ export function TriggerSheet({ controller, onClose }: TriggerSheetProps) {
 
   function place(candidate: TriggerCandidate): void {
     if (candidate.pendingTriggerId) {
-      controller.store.putPendingTriggerOnStack(candidate.pendingTriggerId);
+      controller.putPendingTriggerOnStack(candidate.pendingTriggerId);
     } else {
-      controller.store.addAbilityToStack(
+      controller.addAbilityToStack(
         candidate.sourceId,
         'triggered',
         candidate.abilityLineIndex,
@@ -137,7 +137,7 @@ export function TriggerSheet({ controller, onClose }: TriggerSheetProps) {
             className="trigger-sheet__place-all"
             data-testid="trigger-sheet-place-ordered"
             onClick={() => {
-              controller.store.placePendingTriggersForPriority(orderedIds);
+              controller.placePendingTriggersForPriority(orderedIds);
               onClose();
             }}
           >

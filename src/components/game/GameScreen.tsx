@@ -17,7 +17,16 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useGameController } from './gameController';
 import { StatusBand } from './StatusBand';
 import { StackBand } from './StackBand';
@@ -47,6 +56,7 @@ import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import './game.css';
 import { AudioVisualProvider } from './presentation/AudioVisualProvider';
 import { commanderOnBattlefield } from './presentation/twoPhaseBeat';
+import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
 
 const ResearchRecorder = import.meta.env.DEV
   ? lazy(async () => {
@@ -63,6 +73,7 @@ function uxResearchModeEnabled(): boolean {
 export interface GameScreenProps {
   keybindings: KeybindingsMap;
   onOpenOpponentSetup?: () => void;
+  interactionPort?: GameScreenInteractionPort;
 }
 
 export function TabletopSurface() {
@@ -92,18 +103,78 @@ function activatorClientPoint(event: Event): { x: number; y: number } | null {
   return touch ? { x: touch.clientX, y: touch.clientY } : null;
 }
 
-export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps) {
+interface GameScreenSurfaceProps {
+  interactionPort: GameScreenInteractionPort;
+  onOpenOpponentSetup?: () => void;
+  initialHandLayout: string | null;
+  handWorkspaceOpen: boolean;
+  setHandWorkspaceOpen: (open: boolean) => void;
+  researchLayer?: ReactNode;
+}
+
+interface LocalGameScreenProps extends Omit<GameScreenSurfaceProps, 'interactionPort'> {
+  keybindings: KeybindingsMap;
+}
+
+export function GameScreen({
+  keybindings,
+  onOpenOpponentSetup,
+  interactionPort,
+}: GameScreenProps) {
   const initialHandLayout = useMemo(
     () => new URLSearchParams(window.location.search).get('hand'),
     [],
   );
-  const handWorkspaceAvailable = initialHandLayout !== 'flat';
   const [handWorkspaceOpen, setHandWorkspaceOpen] = useState(initialHandLayout === 'workspace');
-  const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
-  const controller = useGameController({
+
+  const surfaceProps = {
+    onOpenOpponentSetup,
+    initialHandLayout,
+    handWorkspaceOpen,
+    setHandWorkspaceOpen,
+  };
+  return interactionPort
+    ? <GameScreenSurface interactionPort={interactionPort} {...surfaceProps} />
+    : <LocalGameScreen keybindings={keybindings} {...surfaceProps} />;
+}
+
+function LocalGameScreen({
+  keybindings,
+  onOpenOpponentSetup,
+  initialHandLayout,
+  handWorkspaceOpen,
+  setHandWorkspaceOpen,
+}: LocalGameScreenProps) {
+  const interactionPort = useGameController({
     keybindings,
     externalShortcutsBlocked: handWorkspaceOpen,
   });
+  return (
+    <GameScreenSurface
+      interactionPort={interactionPort}
+      onOpenOpponentSetup={onOpenOpponentSetup}
+      initialHandLayout={initialHandLayout}
+      handWorkspaceOpen={handWorkspaceOpen}
+      setHandWorkspaceOpen={setHandWorkspaceOpen}
+      researchLayer={ResearchRecorder && uxResearchModeEnabled() ? (
+        <Suspense fallback={null}>
+          <ResearchRecorder controller={interactionPort} />
+        </Suspense>
+      ) : null}
+    />
+  );
+}
+
+function GameScreenSurface({
+  interactionPort: controller,
+  onOpenOpponentSetup,
+  initialHandLayout,
+  handWorkspaceOpen,
+  setHandWorkspaceOpen,
+  researchLayer,
+}: GameScreenSurfaceProps) {
+  const handWorkspaceAvailable = initialHandLayout !== 'flat';
+  const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
   useLayoutMemory(controller.state);
   const localHandWorkspaceButtonRef = useRef<HTMLButtonElement | null>(null);
   const restoreHandFocusRef = useRef(false);
@@ -241,7 +312,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
         </div>
         <PresentationLayer controller={controller} />
         <SemanticPresentationLayer
-          openingDealCount={controller.store.mulliganDecisionPending
+          openingDealCount={controller.mulliganDecisionPending
             ? controller.state.zones.hand.length
             : undefined}
         />
@@ -276,11 +347,7 @@ export function GameScreen({ keybindings, onOpenOpponentSetup }: GameScreenProps
           <OpponentBoardDialog controller={controller} onClose={controller.closeOpponentBoard} />
         )}
         {controller.overlays}
-        {ResearchRecorder && uxResearchModeEnabled() && (
-          <Suspense fallback={null}>
-            <ResearchRecorder controller={controller} />
-          </Suspense>
-        )}
+        {researchLayer}
       </div>
       {/* A successful drop can remount the same card in its destination before
           dnd-kit's default drop animation finishes. That animation chases the

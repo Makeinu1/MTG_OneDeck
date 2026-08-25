@@ -35,7 +35,6 @@ function GameMenuSheet({
   onClose: () => void;
   onOpenOpponentSetup?: () => void;
 }) {
-  const { store } = controller;
   const { preferences, setPreferences, audioStatus, policy } = useAudioVisual();
   const [ambient, setAmbient] = useState(isAmbientEnabled());
   const act = (fn: () => void) => () => {
@@ -155,22 +154,22 @@ function GameMenuSheet({
           <button type="button" className="game-menu__action" data-testid="menu-untap-all" onClick={act(() => controller.requestSetAllTapped(false))}>
             全てアンタップ
           </button>
-          <button type="button" className="game-menu__action" data-testid="menu-proliferate" onClick={act(() => store.proliferateAll())}>
+          <button type="button" className="game-menu__action" data-testid="menu-proliferate" onClick={act(controller.proliferateAll)}>
             増殖
           </button>
-          <button type="button" className="game-menu__action" data-testid="menu-die" onClick={act(() => store.rollDie(20))}>
+          <button type="button" className="game-menu__action" data-testid="menu-die" onClick={act(() => controller.rollDie(20))}>
             ダイス(d20)
           </button>
-          <button type="button" className="game-menu__action" data-testid="menu-coin" onClick={act(() => store.flipCoin())}>
+          <button type="button" className="game-menu__action" data-testid="menu-coin" onClick={act(controller.flipCoin)}>
             コイン
           </button>
           <button
             type="button"
             className="game-menu__action"
             data-testid="menu-auto-advance"
-            onClick={act(() => store.setAutoAdvance(!store.autoAdvanceToMain))}
+            onClick={act(() => controller.setAutoAdvance(!controller.autoAdvanceToMain))}
           >
-            ターン開始: {store.autoAdvanceToMain ? '自動でメイン1まで' : 'フェイズごとに進む'}
+            ターン開始: {controller.autoAdvanceToMain ? '自動でメイン1まで' : 'フェイズごとに進む'}
           </button>
 
           <button type="button" className="game-menu__action game-menu__action--warn" data-testid="menu-restart" onClick={act(() => controller.requestConfirm('restart'))}>
@@ -186,7 +185,7 @@ function GameMenuSheet({
 }
 
 export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
-  const { state, store } = controller;
+  const { state } = controller;
   const [menuOpen, setMenuOpen] = useState(false);
   if (!state) return null;
   const stackActive = state.zones.stack.length > 0;
@@ -194,7 +193,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
   const primary = primaryActionModel(
     state,
     controller.triggerCandidateCount,
-    store.resolutionSession?.stage === 'manual-required',
+    controller.resolutionSession?.stage === 'manual-required',
   );
   const primaryLanguage = primaryActionLanguage(state, primary);
 
@@ -205,7 +204,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
     }
     switch (primary.kind) {
       case 'manual-resolution':
-        store.completeManualResolution();
+        controller.completeManualResolution();
         break;
       case 'resolve':
         controller.requestResolveTop();
@@ -231,7 +230,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         type="button"
         className="thumb-zone__icon-btn"
         data-testid="undo"
-        disabled={!(controller.canUndo ?? store.canUndo)}
+        disabled={!controller.canUndo}
         onClick={controller.undo}
         title="元に戻す"
       >
@@ -242,7 +241,7 @@ export function ThumbZone({ controller, onOpenOpponentSetup }: ThumbZoneProps) {
         type="button"
         className="thumb-zone__icon-btn"
         data-testid="redo"
-        disabled={!(controller.canRedo ?? store.canRedo)}
+        disabled={!controller.canRedo}
         onClick={controller.redo}
         title="やり直す"
       >

@@ -70,7 +70,7 @@ export function HandRibbon({
   onOpenWorkspace,
   onCloseWorkspace = () => {},
 }: HandRibbonProps) {
-  const { state, store } = controller;
+  const { state } = controller;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const handCardsRef = useRef<HTMLDivElement | null>(null);
   const { setNode: setMeasuredHandNode, width: handCardsWidth } = useElementSize<HTMLDivElement>();
@@ -103,7 +103,7 @@ export function HandRibbon({
     [],
   );
   const handCount = state?.zones.hand.length ?? 0;
-  const openingHand = store.mulliganDecisionPending;
+  const openingHand = controller.mulliganDecisionPending;
   const largeHandCollapsed = handCount > 15 && !workspaceOpen && !flatControl;
   const handLayout = flatControl
     ? 'flat'

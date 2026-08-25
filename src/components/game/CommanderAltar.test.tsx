@@ -11,51 +11,13 @@ import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 function controllerForAway(): { controller: GameController; openCardMenu: ReturnType<typeof vi.fn> } {
   const state = buildVisualFixture('partner-away').snapshot.state;
   useGameStore.setState({ state });
-  const store = useGameStore.getState();
   const openCardMenu = vi.fn();
   return {
     openCardMenu,
     controller: {
       state,
-      store,
       openCardMenu,
-      handleCardDoubleClick: vi.fn(),
-      requestDraw: vi.fn(),
-      requestShuffleLibrary: vi.fn(),
-      requestMulligan: vi.fn(),
-      requestKeepHand: vi.fn(),
-      requestToggleTap: vi.fn(),
-      requestSetAllTapped: vi.fn(),
-      requestResolveTop: vi.fn(),
-      requestResolveAll: vi.fn(),
-      advancePhase: vi.fn(),
-      advanceTurn: vi.fn(),
-      undo: vi.fn(),
-      redo: vi.fn(),
-      setManualTargets: vi.fn(),
-      openLibraryActions: vi.fn(),
-      libraryActionsOpen: false,
-      openZoneViewer: vi.fn(),
-      opponentBoardOpen: false,
-      openOpponentBoard: vi.fn(),
-      closeOpponentBoard: vi.fn(),
-      openTokenDialog: vi.fn(),
-      openAttackDialog: vi.fn(),
-      openArrangeTop: vi.fn(),
-      openCountDialog: vi.fn(),
-      requestConfirm: vi.fn(),
-      triggerCandidateCount: 0,
-      motionArmed: false,
-      feedOpen: false,
-      openFeed: vi.fn(),
-      closeFeed: vi.fn(),
-      overlays: null,
-      shortcutsBlocked: false,
-      transitionCue: null,
-      dismissTransitionCue: vi.fn(),
-      performDrop: vi.fn(),
-      closeTransientUi: vi.fn(),
-    },
+    } as unknown as GameController,
   };
 }
 

@@ -137,7 +137,7 @@ function StackOverflowMenu({ item, controller, open, onToggle, onManualTarget }:
             onClick={(event) => {
               event.stopPropagation();
               onToggle();
-              controller.store.removeStackItem(item.cardId);
+              controller.removeStackItem(item.cardId);
             }}
           >
             {isAbility ? 'スタックから取り除く' : '手動で打ち消す'}
@@ -165,7 +165,7 @@ export function StackBand({ controller }: StackBandProps) {
     (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
   ) ?? false;
   const expanded = expandedSessionId === sessionId || hasStackCandidate;
-  const resolutionLocked = controller.store.resolutionSession !== null;
+  const resolutionLocked = controller.resolutionSession !== null;
   const boardPeek = boardPeekSessionId === sessionId && !hasStackCandidate && !resolutionLocked;
 
   useEffect(() => {
@@ -205,7 +205,7 @@ export function StackBand({ controller }: StackBandProps) {
       <section
         id="stack-pile"
         className={`stack-band stack-pile${
-          controller.store.resolutionSession ? ' stack-pile--manual' : ''
+          controller.resolutionSession ? ' stack-pile--manual' : ''
         }${boardPeek ? ' stack-pile--board-peek' : ''}`}
         data-testid="stack-band"
         data-expanded={expanded || undefined}
@@ -339,11 +339,11 @@ export function StackBand({ controller }: StackBandProps) {
               </ol>
             )}
 
-            {controller.store.resolutionSession?.stage === 'manual-required' && (
+            {controller.resolutionSession?.stage === 'manual-required' && (
               <div className="stack-pile__manual-task" data-testid="stack-manual-task">
                 <strong>手動処理が必要です</strong>
-                <span>{controller.store.resolutionSession.tasks[0]?.message}</span>
-                <button type="button" onClick={() => controller.store.completeManualResolution()}>
+                <span>{controller.resolutionSession.tasks[0]?.message}</span>
+                <button type="button" onClick={controller.completeManualResolution}>
                   完了
                 </button>
               </div>

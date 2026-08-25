@@ -37,9 +37,22 @@ function controllerFor(
   const store = useGameStore.getState();
   return {
     state,
-    store,
+    warnings: store.warnings,
+    triggerCandidates: store.triggerCandidates,
+    resolutionSession: store.resolutionSession,
+    guidedDecisionActive: store.pendingGuided !== null,
+    mulliganDecisionPending: store.mulliganDecisionPending,
+    autoAdvanceToMain: store.autoAdvanceToMain,
     openCardMenu: vi.fn(),
     handleCardDoubleClick: vi.fn(),
+    requestTapForMana: (cardId) => { useGameStore.getState().tapForMana(cardId); },
+    requestActivateAbility: (cardId, abilityLineIndex) => {
+      useGameStore.getState().activateAbility(
+        cardId,
+        abilityLineIndex,
+        { assistRestrictedMana: true },
+      );
+    },
     requestDraw: (count) => useGameStore.getState().draw(count),
     requestShuffleLibrary: () => useGameStore.getState().shuffleLibrary(),
     requestMulligan: vi.fn(),
@@ -55,7 +68,40 @@ function controllerFor(
     advanceTurn: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
     setManualTargets: vi.fn(),
+    confirmGuidedZeroChoice: () => useGameStore.getState().confirmGuidedZeroChoice(),
+    removeStackItem: (id, to) => useGameStore.getState().removeStackItem(id, to),
+    completeManualResolution: () => useGameStore.getState().completeManualResolution(),
+    placePendingTriggersForPriority: (ids) => (
+      useGameStore.getState().placePendingTriggersForPriority(ids)
+    ),
+    putPendingTriggerOnStack: (id) => useGameStore.getState().putPendingTriggerOnStack(id),
+    addAbilityToStack: (sourceId, kind, abilityLineIndex) => (
+      useGameStore.getState().addAbilityToStack(sourceId, kind, abilityLineIndex)
+    ),
+    adjustLife: (delta) => useGameStore.getState().dispatch({ type: 'adjustLife', delta }),
+    adjustMana: (color, delta) => useGameStore.getState().adjustMana(color, delta),
+    clearManaPool: () => useGameStore.getState().dispatch({ type: 'clearManaPool' }),
+    adjustPlayerCounter: (kind, delta) => (
+      useGameStore.getState().dispatch({ type: 'adjustPlayerCounter', kind, delta })
+    ),
+    setMaximumHandSizeOverride: (value) => (
+      useGameStore.getState().dispatch({ type: 'setMaximumHandSizeOverride', value })
+    ),
+    adjustOpponentLife: (label, delta) => (
+      useGameStore.getState().adjustOpponentLife(label, delta)
+    ),
+    adjustCommanderDamage: (label, delta) => (
+      useGameStore.getState().dispatch({ type: 'adjustCommanderDamage', label, delta })
+    ),
+    proliferateAll: () => useGameStore.getState().proliferateAll(),
+    rollDie: (sides) => useGameStore.getState().rollDie(sides),
+    flipCoin: () => useGameStore.getState().flipCoin(),
+    setAutoAdvance: (on) => useGameStore.getState().setAutoAdvance(on),
+    dismissTriggerCandidates: () => useGameStore.getState().dismissTriggerCandidates(),
+    clearWarnings: () => useGameStore.getState().clearWarnings(),
     openLibraryActions: vi.fn(),
     libraryActionsOpen: false,
     openZoneViewer: vi.fn(),
@@ -176,7 +222,7 @@ describe('high-frequency HUD interactions', () => {
       },
     };
     const controller = controllerFor(state);
-    const activateAbility = vi.spyOn(controller.store, 'activateAbility');
+    const activateAbility = vi.spyOn(controller, 'requestActivateAbility');
     const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
 
     act(() => {
@@ -184,7 +230,7 @@ describe('high-frequency HUD interactions', () => {
         new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
       );
     });
-    expect(activateAbility).toHaveBeenCalledWith(cardId, 0, { assistRestrictedMana: true });
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 0);
     const quickButton = container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}"]`)!;
     expect(quickButton.title).toContain('即時');
 
@@ -213,7 +259,7 @@ describe('high-frequency HUD interactions', () => {
       },
     };
     const controller = controllerFor(state);
-    const activateAbility = vi.spyOn(controller.store, 'activateAbility');
+    const activateAbility = vi.spyOn(controller, 'requestActivateAbility');
     const { container, root } = mount(<GameCard controller={controller} cardId={cardId} />);
     const layoutCard = container.querySelector<HTMLElement>(`[data-layout-card-id="${cardId}"]`)!;
 
@@ -224,7 +270,7 @@ describe('high-frequency HUD interactions', () => {
     act(() => {
       container.querySelector<HTMLButtonElement>(`[data-testid="quick-ability-${cardId}-2"]`)?.click();
     });
-    expect(activateAbility).toHaveBeenCalledWith(cardId, 2, { assistRestrictedMana: true });
+    expect(activateAbility).toHaveBeenCalledWith(cardId, 2);
     expect(container.querySelector(`[data-testid="quick-ability-picker-${cardId}"]`)).toBeNull();
     act(() => root.unmount());
   });
@@ -530,10 +576,7 @@ describe('high-frequency HUD interactions', () => {
   it('marks an undecided opening hand for the staggered deal ritual', () => {
     const state = buildVisualFixture('hand7').snapshot.state;
     const controller = controllerFor(state);
-    const openingController = {
-      ...controller,
-      store: { ...controller.store, mulliganDecisionPending: true },
-    } as GameController;
+    const openingController = { ...controller, mulliganDecisionPending: true };
     const { container, root } = mount(<HandRibbon controller={openingController} />);
 
     expect(container.querySelector('[data-testid="hand-ribbon"]')?.getAttribute('data-opening-hand')).toBe('true');
@@ -550,7 +593,7 @@ describe('high-frequency HUD interactions', () => {
 
     act(() => useGameStore.getState().dispatch({ type: 'adjustLife', delta: -1 }));
     const nextState = useGameStore.getState().state;
-    act(() => root.render(<RecentCue controller={{ ...controller, state: nextState, store: useGameStore.getState() }} />));
+    act(() => root.render(<RecentCue controller={{ ...controller, state: nextState }} />));
     const cue = container.querySelector<HTMLButtonElement>('[data-testid="recent-cue"]');
     expect(cue?.textContent).toContain('ライフ');
     act(() => cue?.click());
@@ -571,7 +614,7 @@ describe('high-frequency HUD interactions', () => {
 
     act(() => useGameStore.getState().draw(1));
     const nextState = useGameStore.getState().state;
-    const nextController = { ...controller, state: nextState, store: useGameStore.getState() };
+    const nextController = { ...controller, state: nextState };
     act(() => root.render(
       <>
         <PresentationLayer controller={nextController} />
@@ -672,7 +715,9 @@ describe('high-frequency HUD interactions', () => {
     expect(toggle?.querySelector('.status-band__phase-mode')?.textContent).toContain('自');
     act(() => toggle?.click());
     expect(useGameStore.getState().autoAdvanceToMain).toBe(false);
-    act(() => root.render(<StatusBand controller={{ ...controller, store: useGameStore.getState() }} />));
+    act(() => root.render(
+      <StatusBand controller={{ ...controller, autoAdvanceToMain: false }} />,
+    ));
     expect(container.querySelector('[data-testid="current-phase-label"]')?.getAttribute('aria-pressed')).toBe('false');
     expect(container.querySelector('.status-band__phase-mode')?.textContent).toContain('手');
     act(() => useGameStore.getState().setAutoAdvance(true));

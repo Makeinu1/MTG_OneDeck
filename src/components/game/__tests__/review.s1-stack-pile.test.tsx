@@ -30,7 +30,9 @@ function controllerFor(state: ReturnType<typeof buildVisualFixture>['snapshot'][
   useGameStore.setState({ state, warnings: [], triggerCandidates: [] });
   return {
     state,
-    store: useGameStore.getState(),
+    resolutionSession: null,
+    removeStackItem: vi.fn(),
+    completeManualResolution: vi.fn(),
     decisionFocus: null,
     requestResolveTop: vi.fn(),
     requestResolveAll: vi.fn(),
@@ -74,7 +76,7 @@ describe('S1 stack pile contract', () => {
   it('keeps manual target/remove wired through the overflow (⋯) menu', () => {
     const state = buildVisualFixture('stack').snapshot.state;
     const controller = controllerFor(state);
-    const removeStackItem = vi.spyOn(controller.store, 'removeStackItem').mockImplementation(() => {});
+    const removeStackItem = vi.spyOn(controller, 'removeStackItem').mockImplementation(() => {});
     const { container, root } = mountPile(controller);
     // ⋯メニューのトリガーが存在(aria-label に「その他」系の名詞を許容)
     const overflow = container.querySelector<HTMLButtonElement>('[data-testid^="stack-overflow-"]');
@@ -95,7 +97,7 @@ describe('S1 stack pile contract', () => {
     });
     expect(controller.setManualTargets).toHaveBeenCalledWith(stackItemId, [], []);
 
-    // 手動打ち消し／能力除去は store の専用経路へ届く。
+    // 手動打ち消し／能力除去は interaction port の専用経路へ届く。
     act(() => overflow?.click());
     act(() => {
       container.querySelector<HTMLButtonElement>('[data-testid^="stack-manual-remove-"]')?.click();
@@ -110,20 +112,11 @@ describe('S1 stack pile contract', () => {
     const completeManualResolution = vi.fn();
     const controller = {
       ...base,
-      store: {
-        ...base.store,
-        resolutionSession: {
-          mode: 'top',
-          sourceId: state.zones.stack[0],
-          baseline: state,
-          stage: 'manual-required',
-          reason: 'unsupported',
-          tasks: [{ id: 'manual-task', message: 'カードの指示に従ってください。' }],
-          stepPast: [],
-          stepFuture: [],
-        },
-        completeManualResolution,
+      resolutionSession: {
+        stage: 'manual-required',
+        tasks: [{ id: 'manual-task', message: 'カードの指示に従ってください。' }],
       },
+      completeManualResolution,
     } as GameController;
     const { container, root } = mountPile(controller);
 

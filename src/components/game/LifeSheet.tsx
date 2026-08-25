@@ -26,7 +26,7 @@ export interface LifeSheetProps {
 }
 
 export function LifeSheet({ controller, onClose }: LifeSheetProps) {
-  const { state, store } = controller;
+  const { state } = controller;
   const titleId = useId();
   const sheetRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -107,7 +107,7 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
                 type="button"
                 className="life-sheet__step"
                 data-testid={`life-step-${delta}`}
-                onClick={() => store.dispatch({ type: 'adjustLife', delta })}
+                onClick={() => controller.adjustLife(delta)}
               >
                 {delta > 0 ? `+${delta}` : delta}
               </button>
@@ -131,10 +131,9 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
                   : 'number'}
               onChange={(event) => {
                 const mode = event.currentTarget.value;
-                store.dispatch({
-                  type: 'setMaximumHandSizeOverride',
-                  value: mode === 'auto' ? undefined : mode === 'none' ? 'none' : 7,
-                });
+                controller.setMaximumHandSizeOverride(
+                  mode === 'auto' ? undefined : mode === 'none' ? 'none' : 7,
+                );
               }}
             >
               <option value="auto">自動（通常7枚）</option>
@@ -154,7 +153,7 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
                 onChange={(event) => {
                   const value = event.currentTarget.valueAsNumber;
                   if (Number.isFinite(value)) {
-                    store.dispatch({ type: 'setMaximumHandSizeOverride', value });
+                    controller.setMaximumHandSizeOverride(value);
                   }
                 }}
               />
@@ -173,7 +172,7 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
               type="button"
               className="life-sheet__mini"
               data-testid="mana-clear"
-              onClick={() => store.dispatch({ type: 'clearManaPool' })}
+              onClick={controller.clearManaPool}
             >
               空にする
             </button>
@@ -181,13 +180,13 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
           <div className="life-sheet__mana-grid">
             {MANA_ORDER.map((color) => (
               <div className="life-sheet__mana" key={color} data-mana={color}>
-                <button type="button" className="life-sheet__step" onClick={() => store.adjustMana(color, -1)}>
+                <button type="button" className="life-sheet__step" onClick={() => controller.adjustMana(color, -1)}>
                   −
                 </button>
                 <span className="life-sheet__mana-val" data-testid={`mana-${color}`}>
                   {MANA_LABELS[color]} {state.manaPool[color] ?? 0}
                 </span>
-                <button type="button" className="life-sheet__step" data-testid={`mana-add-${color}`} onClick={() => store.adjustMana(color, 1)}>
+                <button type="button" className="life-sheet__step" data-testid={`mana-add-${color}`} onClick={() => controller.adjustMana(color, 1)}>
                   ＋
                 </button>
               </div>
@@ -201,10 +200,10 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
             <span className="life-sheet__label">{label}</span>
             <span className="life-sheet__value">{state[kind] ?? 0}</span>
             <div className="life-sheet__steps">
-              <button type="button" className="life-sheet__step" onClick={() => store.dispatch({ type: 'adjustPlayerCounter', kind, delta: -1 })}>
+              <button type="button" className="life-sheet__step" onClick={() => controller.adjustPlayerCounter(kind, -1)}>
                 −1
               </button>
-              <button type="button" className="life-sheet__step" data-testid={`counter-${kind}-plus`} onClick={() => store.dispatch({ type: 'adjustPlayerCounter', kind, delta: 1 })}>
+              <button type="button" className="life-sheet__step" data-testid={`counter-${kind}-plus`} onClick={() => controller.adjustPlayerCounter(kind, 1)}>
                 +1
               </button>
             </div>
@@ -220,10 +219,10 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
             </span>
             <span className="life-sheet__value">{state.opponentLife[label] ?? 40}</span>
             <div className="life-sheet__steps">
-              <button type="button" className="life-sheet__step" onClick={() => store.adjustOpponentLife(label, -1)}>
+              <button type="button" className="life-sheet__step" onClick={() => controller.adjustOpponentLife(label, -1)}>
                 −1
               </button>
-              <button type="button" className="life-sheet__step" onClick={() => store.adjustOpponentLife(label, 1)}>
+              <button type="button" className="life-sheet__step" onClick={() => controller.adjustOpponentLife(label, 1)}>
                 +1
               </button>
               <button
@@ -231,7 +230,7 @@ export function LifeSheet({ controller, onClose }: LifeSheetProps) {
                 className="life-sheet__step"
                 title="統率者ダメージ +1"
                 data-testid={`cmd-dmg-${label}`}
-                onClick={() => store.dispatch({ type: 'adjustCommanderDamage', label, delta: 1 })}
+                onClick={() => controller.adjustCommanderDamage(label, 1)}
               >
                 ⚔+1
               </button>

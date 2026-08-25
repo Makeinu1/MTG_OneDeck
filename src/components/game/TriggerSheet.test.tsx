@@ -24,10 +24,8 @@ describe('TriggerSheet', () => {
     const second = candidate('b', '誘発B');
     const placePendingTriggersForPriority = vi.fn();
     const controller = {
-      store: {
-        triggerCandidates: [first, second],
-        placePendingTriggersForPriority,
-      },
+      triggerCandidates: [first, second],
+      placePendingTriggersForPriority,
     } as unknown as GameController;
     const onClose = vi.fn();
     const container = document.createElement('div');
@@ -52,7 +50,7 @@ describe('TriggerSheet', () => {
 
   it('closes with Escape for keyboard operation', () => {
     const controller = {
-      store: { triggerCandidates: [candidate('a', '誘発A')] },
+      triggerCandidates: [candidate('a', '誘発A')],
     } as unknown as GameController;
     const onClose = vi.fn();
     const container = document.createElement('div');

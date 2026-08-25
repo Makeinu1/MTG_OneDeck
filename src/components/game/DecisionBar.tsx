@@ -36,7 +36,7 @@ export function DecisionBar({ controller }: { controller: GameController }) {
           type="button"
           className="decision-bar__zero"
           data-testid="guided-zero-confirm"
-          onClick={() => controller.store.confirmGuidedZeroChoice()}
+          onClick={controller.confirmGuidedZeroChoice}
         >
           {focus.zeroChoice.label}
         </button>
