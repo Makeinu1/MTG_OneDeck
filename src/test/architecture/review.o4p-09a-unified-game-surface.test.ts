@@ -44,8 +44,12 @@ const ALLOWED_PATHS = new Set([
   'src/components/game/OpponentSetupScreen.review.test.tsx',
   'src/components/game/TriggerSheet.test.tsx',
   'src/components/game/__tests__/review.s1-stack-pile.test.tsx',
+  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
   'src/test/architecture/review.o4p-09a-unified-game-surface.test.ts',
   'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
+  'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
+  'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
+  'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-09-roadmap-registration.test.ts',
 ]);
 

@@ -186,3 +186,58 @@ reauthorization, and make the single authorized metadata-only replacement
 push. Only the replacement HEAD may proceed to artifact upload, Pages,
 public-asset and production-browser verification, HEAD/origin equality, and
 clean-worktree closure.
+
+## Scope-shield follow-up repair
+
+The preceding expected transition to ownership verification was superseded by
+the next exact-head result. Actions run `32812270305`, build job
+`97693759127`, checked out repair HEAD
+`7e77b85da19cf12e85de00eac41720cbcebf1c0f`. All verifiers, docs, lint, and
+Core passed; Core reported `227 files / 2,093 tests`. DOM reported `359 of 360
+files` and `2,416 tests` passed, one test failed, and one test was
+environment-skipped out of 2,418. The sole failure was the O4P-09A scope
+shield rejecting
+`src/test/architecture/review.gov-codex-56-program-orchestration.test.ts` as
+an unexpected base-relative path. Build, ownership, artifact, and Pages steps
+were skipped.
+
+The shield retains an exact `ALLOWED_PATHS` set against immutable O4P-09A base
+`0c0c7a533fffd8e3495cf74bb7d86b827f222c2e`. The four historical Judge
+repairs from the preceding section were the complete set of base-relative
+paths newly present but absent from that allowlist. The seated Judge therefore
+added exactly these literals to the existing set:
+
+- `src/test/architecture/review.gov-codex-56-program-orchestration.test.ts`
+- `src/test/architecture/review.o4p-06-roadmap-registration.test.ts`
+- `src/test/architecture/review.o4p-07-roadmap-registration.test.ts`
+- `src/test/architecture/review.o4p-08-roadmap-registration.test.ts`
+
+No wildcard, directory prefix, product path, contract, protocol, dependency,
+configuration, or workflow permission was added. The existing prohibitions on
+Online presentation forks and `src/engine/`, `src/online/`, and `src/store/`
+changes remain unchanged. The user's complete exception-set approval and
+subsequent continuation approval cover this bounded Judge closure; they do not
+authorize another local full check or widen product scope.
+
+Targeted verification passed the repaired shield, all four newly recognized
+historical guards, and the O4P-09 registration guard: `6 files / 31 tests`.
+Affected ESLint, `check:docs`, `git diff --check`, and the O4P-09B context
+projection passed. The ownership verifier classifies only the repaired shield
+as the expected Judge-owned `FORBIDDEN` path.
+
+The same cold auditor independently verified candidate fingerprint
+`5a608b64b78fafc519e28ee0d2213e1669be4f90d43dc0d0157b6749438f38b0`
+and shield SHA-256
+`bd97107c71bd0eb4fae5a2c95469073e653850603713a3022fad2b241f79c24f`.
+It confirmed that the four literals are the complete missing set, all
+prohibitions remain intact, and reported
+`BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0`.
+
+`O4P-09A-SCOPE-SHIELD-REPAIR-APPROVED`
+
+The next repair commit changes only this record and the one exact scope
+shield. Its exact-head Actions run must pass the canonical full check and is
+expected to stop only at metadata/review ownership classification. The Judge
+will then append that exact ownership evidence, obtain exact-byte
+reauthorization, and make the final metadata-only replacement push. No product
+or Worker byte changes in either step.
