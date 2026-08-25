@@ -190,7 +190,7 @@ export function workflowHasCorrectDiffBase(root) {
   ));
   const changeLane = indexOf((value) => (
     /(?:^|\n)id:\s*change-lane(?:\n|$)/.test(value) &&
-    /check:terminal-metadata/.test(value) &&
+    /(?:check:terminal-metadata|scripts\/checks\/terminal-metadata\.mjs)/.test(value) &&
     /steps\.diff-base\.outputs\.base/.test(value)
   ));
   const forbidden = indexOf((value) => (

@@ -116,6 +116,16 @@ describe('GitHub Pages verification gates', () => {
     expect(build.steps[0].fields.get('fetch-depth')).toBe('0');
     expect(text).not.toContain('--policy governance-reset');
     expect(text).toContain('id: diff-base');
+    expect(text).toContain(
+      'node scripts/checks/terminal-metadata.mjs --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --json > "$lane_report"',
+    );
+    expect(text).not.toContain(
+      'npm run check:terminal-metadata -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --json > "$lane_report"',
+    );
+    expect(text).toContain(
+      `jq -er '.lane | select(. == "semantic" or . == "terminal")'`,
+    );
+    expect(text).toContain('echo "lane=$lane" >> "$GITHUB_OUTPUT"');
     expect(deploy.fields.get('needs')).toBe('build');
     expect(deploy.fields.get('if')).toContain("needs.build.outputs.lane == 'semantic");
     expect(text).toContain("steps.change-lane.outputs.lane == 'terminal'");

@@ -30,7 +30,7 @@ const frozenHashes = Object.freeze({
   [reviewPath]: 'd8ecf72193ce55ae28e70af7d6de3ddfd5d50ceada757778f7284d2088ccde39',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
-  '.github/workflows/deploy-pages.yml': '2d2ac7baeaf42b06f24c35421e82ae70a388e88b143fefdce73cfd87df97bb8f',
+  '.github/workflows/deploy-pages.yml': 'c2c3d75d5816547db13a835ba9c9ffec921ab5620caf5192daacbeff579ecb19',
   'scripts/checks/verify-o4p-05c-release-gates.ts': '7a7707bdcd6bea841f8cdc707a15c7dd21d694f845da71897cd4f4f0a0e77a7b',
 });
 
