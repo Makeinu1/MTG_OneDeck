@@ -122,3 +122,20 @@ ledger entries now record the audit, correction, generated checkpoint, approved
 exception, and local proof while status remains `pending`. R0 exact-byte
 reauthorization, commit/push, exact-head CI, Pages asset proof, and terminal
 promotion remain required.
+
+## Exact-head CI ownership boundary
+
+Push-preflight head `44a8fef8aa8df578fe315c7f03619c837f4c1bf6` equaled
+`origin/main`. GitHub Actions run `32870992758` evaluated that exact head and
+its `npm run check -- --build-base=/MTG_OneDeck/` step passed. The workflow
+resolved diff base `5f62a8f6730fd7a758d8b284ba818cf19f09c347` and then stopped at
+the ownership scan because that first push span contained the already audited
+O4P-09C protected contract, generated API, Judge acceptance, Core, ledger, and
+audit-record paths. Pages steps were therefore skipped. This was not a product
+or full-check failure.
+
+The bounded recovery keeps O4P-09C `pending` and changes only this record plus
+the two byte-equal O4P-09C ledger evidence arrays. Product, tests, contracts,
+generated API, manifests, workflow, authority, allowlists, and O4P-09D onward
+remain unchanged. R0 exact-byte reauthorization is required before the
+metadata-only boundary commit and replacement push.
