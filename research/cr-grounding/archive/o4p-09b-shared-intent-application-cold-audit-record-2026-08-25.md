@@ -109,3 +109,23 @@ production-runtime verifier passed in 986,681 ms. Built assets were
 `index-F6C4yCH4.js` and `index-B9TjsUJs.css`. Product hashes remained exactly
 those recorded above. Exact-head CI, Pages asset verification, and terminal
 ledger/loop-state closure remain pending.
+
+## Exact-head CI boundary finding
+
+GitHub Actions run `32825719555` evaluated exact head
+`b61725ca1808d08bdf12a744df1760a4eaae0f00`. Its `npm run check` step passed,
+including all machine verifiers, Core and DOM suites, lint, TypeScript/Vite
+build, and the production-runtime verifier. The subsequent
+`check:forbidden -- --diff ce06a17b123cb6684090b48f9350df085e98ec54`
+step failed because the single push spanned the O4P-09A release head through
+all three O4P-09B commits and therefore rediscovered the already seated,
+independently audited Judge-owned `review.*` changes. Pages upload and deploy
+were consequently skipped. This is a push-boundary governance finding, not a
+product or release-check failure.
+
+The bounded recovery keeps O4P-09B pending and changes only this audit record
+and the two byte-equal O4P-09B ledger entries. All accepted product, review,
+contract, and repair bytes remain unchanged. An independent R0 exact-byte
+reauthorization is required before committing and pushing this metadata-only
+boundary; the resulting push diff must contain no forbidden path and must
+reach successful CI and Pages before terminal promotion.
