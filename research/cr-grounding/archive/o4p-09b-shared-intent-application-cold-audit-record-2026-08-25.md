@@ -129,3 +129,27 @@ contract, and repair bytes remain unchanged. An independent R0 exact-byte
 reauthorization is required before committing and pushing this metadata-only
 boundary; the resulting push diff must contain no forbidden path and must
 reach successful CI and Pages before terminal promotion.
+
+## Replacement release proof
+
+R0-authorized boundary commit
+`8a63f1c9607051e28913fea165311bc76544254e` was pushed as the sole successor
+to `b61725ca1808d08bdf12a744df1760a4eaae0f00`. GitHub Actions run
+`32827510232` matched that exact head. Build job `97738677796` passed
+`npm run check`, resolved the intended `b61725c...` diff base, reported the
+forbidden scan successful, configured Pages, and uploaded the Pages artifact.
+Deploy job `97742483308` then completed successfully.
+
+The public root returned HTTP 200 with last-modified
+`Tue, 25 Aug 2026 08:50:57 GMT`. Its exact referenced assets also returned
+HTTP 200: `index-DJ9lpjXP.js` (`1,050,779` bytes) and
+`index-B9TjsUJs.css` (`210,640` bytes). HEAD equaled `origin/main`, and the
+tracked worktree was clean. O4P-09B has no UI binding or Cloudflare Worker
+change, so no viewport scenario or Worker deployment is claimed.
+
+These facts satisfy the release proof for terminal promotion. The terminal
+metadata candidate changes only this record and the two byte-equal O4P-09B
+ledger entries from `pending` to `shipped`; accepted product, review, contract,
+and release bytes remain unchanged. Independent R0 exact-byte reauthorization,
+one terminal metadata commit, and its exact-head CI/Pages confirmation remain
+required before advancing the active candidate to O4P-09C.
