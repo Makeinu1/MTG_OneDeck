@@ -64,3 +64,24 @@ Cold audit is closed at BLOCKER/HIGH zero. Semantic commit, the single release
 asset verification, `HEAD == origin/main`, and clean-worktree proof remain
 pending. This headless slice claims no public UI scenario or Cloudflare Worker
 deployment.
+
+## Release full-check finding
+
+The first sandboxed launch stopped before product evaluation because the `tsx`
+runner could not create its temporary IPC socket (`EPERM`). The authorized
+environment retry at semantic head
+`5317c09996abf04b784c6502aa2c831393621844` was the first actual release full
+check. It passed every machine verifier, docs, lint, and Core `228 files / 2,097
+tests`. DOM completed `362 passed / 2 failed` files and `2,434 passed / 2
+failed` tests. Both failures were the same O4P-01K reverse-layer finding:
+`src/engine/core/pregame/operationsV1.ts` directly imported the Turn priority
+bundle factory.
+
+The bounded correction removes that one direct Turn import. It constructs the
+same structural bundle and relies on `createModeNeutralCoreRootV1` and its
+existing rule-authority validation to canonicalize and fail closed. No guard,
+assertion, state shape, command, plan, projection, or public behavior is
+weakened. Focused O4P-01K plus O4P-09C Judge evidence passed 3 files / 14 tests;
+Core Pregame passed 1 file / 4 tests; affected ESLint, `tsc -b`, and diff checks
+passed. Independent affected-claim reaudit and the one authorized replacement
+release full check remain required.

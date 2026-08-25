@@ -8,7 +8,6 @@ import {
 import type { ModeNeutralCoreObjectRegistrySliceV2 } from '../object';
 import { createModeNeutralCoreRootV1 } from '../closure/rootValidationV1';
 import type { ModeNeutralCoreRootV1 } from '../closure/rootV1';
-import { createCoreTurnPriorityBundleV1 } from '../turn/turnPriorityBundleV1';
 import { createDefaultCoreCardRuntimeAfterZoneChangeV1, nextCoreCardIncarnationV1 } from '../transition/cardReincarnation';
 import type {
   CorePregameBottomBatchV1,
@@ -77,11 +76,11 @@ function rebuildRoot(
     objectRuntime: runtimeState,
     stackAnnouncements: current.stackBundle.stackAnnouncements,
   };
-  const turnPriorityBundle = createCoreTurnPriorityBundleV1({
+  const turnPriorityBundle = {
     stackBundle,
     pendingTriggers: current.pendingTriggers,
     lifecycle,
-  });
+  };
   return createModeNeutralCoreRootV1({
     ...root,
     playerLifecycle,
