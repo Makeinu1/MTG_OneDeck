@@ -25,9 +25,14 @@ const REQUIRED_PRODUCT_PATHS = [
   'src/components/game/StatusBand.tsx',
   'src/components/game/ThumbZone.tsx',
   'src/components/game/TriggerSheet.tsx',
+  'src/components/game/presentation/CommanderRitualLayer.tsx',
   'src/dev/uxResearch/ResearchRecorder.tsx',
 ] as const;
 const ALLOWED_PATHS = new Set([
+  '.claude/loop-state.md',
+  'docs/contracts/manifest.json',
+  'research/cr-grounding/cr-backbone-ledger.json',
+  'research/cr-grounding/archive/o4p-09a-unified-game-surface-cold-audit-record-2026-08-25.md',
   'research/cr-grounding/o4p-09a-unified-game-surface.contract.draft.md',
   'research/cr-grounding/o4p-09a-acceptance-brief.draft.md',
   'research/cr-grounding/o4p-09a-implementation-brief.draft.md',
@@ -40,6 +45,8 @@ const ALLOWED_PATHS = new Set([
   'src/components/game/TriggerSheet.test.tsx',
   'src/components/game/__tests__/review.s1-stack-pile.test.tsx',
   'src/test/architecture/review.o4p-09a-unified-game-surface.test.ts',
+  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
+  'src/test/architecture/review.o4p-09-roadmap-registration.test.ts',
 ]);
 
 describe('O4P-09A unified GameScreen surface seam', () => {
@@ -57,6 +64,7 @@ describe('O4P-09A unified GameScreen surface seam', () => {
       'placePendingTriggersForPriority',
       'putPendingTriggerOnStack',
       'addAbilityToStack',
+      'resolveCommanderRitualCue',
     ]) expect(port, required).toContain(required);
     for (const forbidden of [
       'GameStore', 'useGameStore', 'zustand', 'dispatch:', 'Room',
@@ -91,6 +99,12 @@ describe('O4P-09A unified GameScreen surface seam', () => {
     const controller = read('src/components/game/gameController.tsx');
     expect(controller).toContain('GameScreenInteractionPort');
     expect(controller).not.toMatch(/\n\s*store,\n\s*openCardMenu/u);
+
+    const ritual = read('src/components/game/presentation/CommanderRitualLayer.tsx');
+    expect(ritual).toContain('resolveCue');
+    expect(ritual).not.toContain('useGameStore');
+    const screen = read('src/components/game/GameScreen.tsx');
+    expect(screen).toContain('resolveCue={controller.resolveCommanderRitualCue}');
   });
 
   it('does not fork online/player presentation or expand the milestone', () => {

@@ -5,6 +5,9 @@ import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
 import { buildVisualFixture } from '../../dev/visualFixtures/fixtureBuilder';
 import { GameScreen } from './GameScreen';
 import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
+import { presentationRuntime } from './presentation/presentationRuntime';
+import { useGameController } from './gameController';
+import { useGameStore } from '../../store/gameStore';
 
 function injectedPort(): GameScreenInteractionPort {
   const state = buildVisualFixture('hand7').snapshot.state;
@@ -41,6 +44,7 @@ function injectedPort(): GameScreenInteractionPort {
     placePendingTriggersForPriority: vi.fn(),
     putPendingTriggerOnStack: vi.fn(),
     addAbilityToStack: vi.fn(),
+    resolveCommanderRitualCue: vi.fn(() => null),
     adjustLife: vi.fn(),
     adjustMana: vi.fn(),
     clearManaPool: vi.fn(),
@@ -85,6 +89,7 @@ function injectedPort(): GameScreenInteractionPort {
 }
 
 afterEach(() => {
+  useGameStore.setState({ state: null });
   document.body.replaceChildren();
 });
 
@@ -115,6 +120,79 @@ describe('GameScreen injected interaction port', () => {
     expect(interactionPort.requestDraw).toHaveBeenCalledWith(1);
     expect(interactionPort.adjustLife).toHaveBeenCalledWith(-1);
 
+    act(() => root.unmount());
+  });
+
+  it('renders commander ritual cues from the injected resolver', () => {
+    const interactionPort = injectedPort();
+    interactionPort.resolveCommanderRitualCue = vi.fn(() => ({
+      cardId: 'remote-commander',
+      faceIndex: 1,
+      name: '注入された統率者',
+      typeLine: '伝説のクリーチャー',
+    }));
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <GameScreen
+          keybindings={DEFAULT_KEYBINDINGS}
+          interactionPort={interactionPort}
+        />,
+      );
+    });
+    act(() => {
+      presentationRuntime.publish({
+        action: 'cast',
+        status: 'committed',
+        cardId: 'remote-commander',
+        sourceZone: 'command',
+        destinationZone: 'stack',
+        isCommander: true,
+        sourceEventId: 'injected:commander-cast',
+      });
+    });
+
+    expect(interactionPort.resolveCommanderRitualCue).toHaveBeenCalledWith('remote-commander');
+    expect(container.querySelector('[data-testid="commander-cutin"]')?.textContent)
+      .toContain('《注入された統率者》');
+    act(() => root.unmount());
+  });
+
+  it('resolves Local commander cues from the current committed state at call time', () => {
+    const state = buildVisualFixture('hand7').snapshot.state;
+    useGameStore.setState({ state });
+    let localPort: GameScreenInteractionPort | null = null;
+    function Harness() {
+      localPort = useGameController({ keybindings: DEFAULT_KEYBINDINGS });
+      return null;
+    }
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<Harness />));
+
+    const commanderId = state.commanders[0].cardId;
+    const commander = state.cards[commanderId];
+    const def = state.defs[commander.defId];
+    const resolveCue = localPort!.resolveCommanderRitualCue;
+    const committedState = {
+      ...state,
+      defs: {
+        ...state.defs,
+        [def.scryfallId]: {
+          ...def,
+          faces: def.faces.map((face, index) => index === commander.faceIndex
+            ? { ...face, printedName: '同期コミット済み統率者' }
+            : face),
+        },
+      },
+    };
+    act(() => useGameStore.setState({ state: committedState }));
+
+    expect(resolveCue(commanderId)?.name).toBe('同期コミット済み統率者');
     act(() => root.unmount());
   });
 });

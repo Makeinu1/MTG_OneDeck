@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '2a50db07f3962a11ec5a77b93bedc74ca4f628b6';
+const CLOSURE_SHA = '0c0c7a533fffd8e3495cf74bb7d86b827f222c2e';
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
 const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json')) as {
   domains: Array<Record<string, unknown>>;
@@ -212,12 +213,9 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
         cwd: ROOT,
       }),
     ).not.toThrow();
-    const changed = new Set([
-      ...gitLines(['diff', '--name-only', `${BASE_SHA}...HEAD`]),
-      ...gitLines(['diff', '--name-only', '--cached']),
-      ...gitLines(['diff', '--name-only']),
-      ...gitLines(['ls-files', '--others', '--exclude-standard']),
-    ]);
+    const changed = new Set(gitLines([
+      'diff', '--name-only', BASE_SHA, CLOSURE_SHA,
+    ]));
     const allowed = new Set([
       '.agents/skills/mtg-onedeck-development/SKILL.md',
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',

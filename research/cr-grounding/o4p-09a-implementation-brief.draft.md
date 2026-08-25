@@ -54,3 +54,8 @@ Done when:
 - `npm run check:fast` unexpectedly selected the release lane, consuming full-
   check invocation 1 and stopping at the expected stale UI manifest anchors.
   The implementer did not rerun it; only one final release full check remains.
+- Cold audit finding wave 1 requires the same implementer lineage to remove the
+  remaining Local-store read from `CommanderRitualLayer`. The port must expose
+  a named commander-ritual cue resolver evaluated at event time, Local behavior
+  must remain synchronous with the committed state, and injected-port coverage
+  must prove the cue comes from the injected adapter.

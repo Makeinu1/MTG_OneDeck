@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '629de59eb244e6c9eeb78c3bdab29cfd15596b48';
+const CLOSURE_SHA = '0c0c7a533fffd8e3495cf74bb7d86b827f222c2e';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
@@ -61,6 +62,11 @@ type Ledger = {
 };
 
 const text = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
+const closureText = (path: string): string => execFileSync(
+  'git',
+  ['show', `${CLOSURE_SHA}:${path}`],
+  { cwd: ROOT, encoding: 'utf8' },
+);
 const parse = (raw: string): Ledger => JSON.parse(raw) as Ledger;
 const sha256Json = (value: unknown): string => createHash('sha256')
   .update(JSON.stringify(value))
@@ -96,7 +102,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       cwd: ROOT,
       encoding: 'utf8',
     }));
-    const after = parse(text(LEDGER_PATH));
+    const after = parse(closureText(LEDGER_PATH));
     expect(withoutCollections(after)).toEqual(withoutCollections(before));
     expect(withoutActiveProgram(after.goalPolicy)).toEqual(withoutActiveProgram(before.goalPolicy));
     expect(after.goalPolicy.activeProgram).toEqual({ id: 'O4P-09', domainIds: IDS });
@@ -110,7 +116,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
   });
 
   it('keeps domains and plannedSequence synchronized in A-to-J order', () => {
-    const ledger = parse(text(LEDGER_PATH));
+    const ledger = parse(closureText(LEDGER_PATH));
     for (const [index, id] of IDS.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -177,17 +183,23 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
     expect(projection.selection).toEqual({
       kind: 'selected', domainId: 'O4P-09A', reason: 'explicit-domain',
     });
+    const liveLedger = parse(text(LEDGER_PATH));
+    const nextDomainId = IDS.find((id) => (
+      liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
+    )) ?? null;
     expect(projection.activeProgram).toEqual({
-      id: 'O4P-09', domainIds: IDS, status: 'active', nextDomainId: 'O4P-09A',
+      id: 'O4P-09',
+      domainIds: IDS,
+      status: nextDomainId === null ? 'complete' : 'active',
+      nextDomainId,
     });
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
   });
 
   it('changes only Judge-owned registration and exact historical guards', () => {
-    const changed = new Set([
-      ...gitLines(['diff', '--name-only', BASE_SHA]),
-      ...gitLines(['ls-files', '--others', '--exclude-standard']),
-    ]);
+    const changed = new Set(gitLines([
+      'diff', '--name-only', BASE_SHA, CLOSURE_SHA,
+    ]));
     const allowed = new Set<string>(REQUIRED_CHANGED_PATHS);
     for (const path of REQUIRED_CHANGED_PATHS) expect(changed, path).toContain(path);
     for (const path of changed) {

@@ -3,8 +3,8 @@
  * docs/audio-visual-contract.md §5.
  *
  * Subscribes future-only to the browser-session presentationRuntime.
- * Reacts only to commander-cast events. Derives the cast face from the
- * already-committed store state. Renders CommanderCutIn for exactly
+ * Reacts only to commander-cast events. Resolves the cast face through the
+ * injected interaction port after the state commit. Renders CommanderCutIn for exactly
  * COMMANDER_RITUAL_DURATION_MS and replaces/restarts on recast.
  *
  * Audio: pre-rendered commander patch via sfxRenderer through CommanderBus
@@ -32,7 +32,6 @@ import {
 } from './commanderRitual';
 import { playSfx, type SfxPlaybackHandle } from './sfxRenderer';
 import { presentationSoundDelayMs } from './semanticSound';
-import { useGameStore } from '../../../store/gameStore';
 import { CommanderCutIn, type CommanderCutInData } from '../CommanderCutIn';
 
 interface ActiveRitual {
@@ -40,7 +39,11 @@ interface ActiveRitual {
   cue: CommanderCutInData;
 }
 
-export function CommanderRitualLayer() {
+export function CommanderRitualLayer({
+  resolveCue,
+}: {
+  resolveCue: (cardId: string) => CommanderCutInData | null;
+}) {
   const { policy } = useAudioVisual();
   const [ritual, setRitual] = useState<ActiveRitual | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,22 +132,8 @@ export function CommanderRitualLayer() {
     const unsubscribe = presentationRuntime.subscribe((event: SequencedPresentationEvent) => {
       if (event.kind !== 'commander-cast') return;
 
-      const storeState = useGameStore.getState().state;
-      if (!storeState) return;
-      const card = storeState.cards[event.cardId];
-      if (!card) return;
-      const def = storeState.defs[card.defId];
-      if (!def) return;
-      const face = def.faces[card.faceIndex] ?? def.faces[0];
-      if (!face) return;
-
-      const cue: CommanderCutInData = {
-        cardId: event.cardId,
-        faceIndex: card.faceIndex,
-        name: face.printedName ?? face.name ?? def.printedName ?? def.name,
-        typeLine: face.printedTypeLine ?? face.typeLine ?? def.typeLine,
-        ...(face.imageUrl ? { imageUrl: face.imageUrl } : {}),
-      };
+      const cue = resolveCue(event.cardId);
+      if (!cue) return;
 
       cleanup();
       setRitual({ id: event.id, cue });
@@ -184,7 +173,7 @@ export function CommanderRitualLayer() {
       cleanup();
       setRitual(null);
     };
-  }, []);
+  }, [resolveCue]);
 
   useEffect(() => {
     if (!policy.eventsAudible) {

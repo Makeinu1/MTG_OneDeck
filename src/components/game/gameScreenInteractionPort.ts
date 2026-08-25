@@ -15,6 +15,7 @@ import type { ManaColor } from '../../types/card';
 import type { DecisionFocusModel } from './decisionFocus';
 import type { DropIntent } from './dragIntent';
 import type { TransitionCueData } from './transitionCueModel';
+import type { CommanderCutInData } from './CommanderCutIn';
 
 export type GameScreenMenuTriggerEvent =
   | ReactMouseEvent<HTMLElement>
@@ -79,6 +80,7 @@ export interface GameScreenInteractionPort {
     kind: AbilityKind,
     abilityLineIndex?: number,
   ) => void;
+  resolveCommanderRitualCue: (cardId: string) => CommanderCutInData | null;
 
   adjustLife: (delta: number) => void;
   adjustMana: (color: ManaColor, delta: number) => void;

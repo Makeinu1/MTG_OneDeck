@@ -45,7 +45,8 @@ not add Remote execution.
 The port must cover the current surface without a local-store escape hatch,
 including mulligan state, resolution-session presentation, trigger candidates,
 guided zero-choice confirmation, ability/mana requests, stack removal/manual
-completion, trigger placement, and existing `GameController` interactions.
+completion, trigger placement, commander-ritual cue resolution at event time,
+and existing `GameController` interactions.
 `GameController` may remain as a compatibility type alias to the new port, but
 it must not retain a `store` member.
 
@@ -73,5 +74,8 @@ it must not retain a `store` member.
   to preserve its existing checkpoint schema and `pendingGuided` payload. That
   exception must not enter `GameScreenInteractionPort`, production game
   components, or the injected-port path.
+- `CommanderRitualLayer` must resolve `commander-cast` cues through an explicit
+  semantic port method. It must not read the Local store, and the injected path
+  must render the same cue using its own adapter projection.
 - A fresh-context R3/STANDARD cold audit must return BLOCKER/HIGH zero before
   the fingerprint-matched release full check.

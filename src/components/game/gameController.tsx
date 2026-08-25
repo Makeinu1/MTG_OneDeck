@@ -65,6 +65,7 @@ import type {
   GameScreenInteractionPort,
   GameScreenMenuTriggerEvent,
 } from './gameScreenInteractionPort';
+import type { CommanderCutInData } from './CommanderCutIn';
 
 /** カード操作の開き先。既定=カードシート(D1)。VITE_UI_V2_SHEET=false で ContextMenu へ。 */
 function isV2SheetEnabled(): boolean {
@@ -123,7 +124,28 @@ function commanderZoneChoiceMode(zone: ZoneId): 'replacement' | 'sba' {
   return zone === 'graveyard' || zone === 'exile' ? 'sba' : 'replacement';
 }
 
-export type GameController = GameScreenInteractionPort;
+export type GameController = Omit<GameScreenInteractionPort, 'resolveCommanderRitualCue'>
+  & Partial<Pick<GameScreenInteractionPort, 'resolveCommanderRitualCue'>>;
+
+function commanderRitualCueFromState(
+  state: GameState | null,
+  cardId: string,
+): CommanderCutInData | null {
+  if (!state) return null;
+  const card = state.cards[cardId];
+  if (!card) return null;
+  const def = state.defs[card.defId];
+  if (!def) return null;
+  const face = def.faces[card.faceIndex] ?? def.faces[0];
+  if (!face) return null;
+  return {
+    cardId,
+    faceIndex: card.faceIndex,
+    name: face.printedName ?? face.name ?? def.printedName ?? def.name,
+    typeLine: face.printedTypeLine ?? face.typeLine ?? def.typeLine,
+    ...(face.imageUrl ? { imageUrl: face.imageUrl } : {}),
+  };
+}
 
 /**
  * 新レイアウト用のゲーム操作統括フック。GameScreen が唯一の呼び出し元。
@@ -185,6 +207,10 @@ export function useGameController({
     const id = setTimeout(() => setMotionArmed(true), 0);
     return () => clearTimeout(id);
   }, []);
+
+  const resolveCommanderRitualCue = useCallback((cardId: string): CommanderCutInData | null => (
+    commanderRitualCueFromState(useGameStore.getState().state, cardId)
+  ), []);
 
   const settlePendingResolvePresentation = useCallback((): void => {
     const pending = pendingResolvePresentationRef.current;
@@ -1965,6 +1991,7 @@ export function useGameController({
     addAbilityToStack: (sourceId, kind, abilityLineIndex) => (
       store.addAbilityToStack(sourceId, kind, abilityLineIndex)
     ),
+    resolveCommanderRitualCue,
     adjustLife: (delta) => store.dispatch({ type: 'adjustLife', delta }),
     adjustMana: (color, delta) => store.adjustMana(color, delta),
     clearManaPool: () => store.dispatch({ type: 'clearManaPool' }),

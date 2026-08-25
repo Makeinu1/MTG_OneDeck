@@ -316,7 +316,7 @@ function GameScreenSurface({
             ? controller.state.zones.hand.length
             : undefined}
         />
-        <CommanderRitualLayer />
+        <CommanderRitualLayer resolveCue={controller.resolveCommanderRitualCue} />
         <Toast />
         <div className="game-screen__support">
           <SupportRow controller={controller} activeDragId={activeDragId} />

@@ -16,7 +16,8 @@ Base SHA: `0c0c7a533fffd8e3495cf74bb7d86b827f222c2e`
    `OnlineStack` source is added.
 5. Explicit port methods preserve ability activation, tap-for-mana, guided zero
    choice, manual stack removal/completion, trigger placement, mulligan display,
-   and resolution-session display.
+   resolution-session display, and commander-ritual cue resolution for both
+   Local and injected adapters without a Local-store escape.
 6. Ordinary port/surface and HUD tests pass; all existing protected review tests
    stay green without implementer edits. Judge-owned protected fixture changes
    are projection-only migrations and preserve their prior assertions.

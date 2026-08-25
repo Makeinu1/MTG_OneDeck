@@ -102,7 +102,7 @@
       "dependsOn": [],
       "supersedes": ["legacy:docs/design-vision.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
+      "lastVerifiedCommit": "f2ba4db8bd90513ce1eb37085a1945551058e141"
     },
     {
       "id": "CONTRACT-UI-VISUAL",
@@ -113,7 +113,7 @@
       "dependsOn": ["CONTRACT-UI-DESIGN"],
       "supersedes": ["legacy:docs/design-system.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
+      "lastVerifiedCommit": "f2ba4db8bd90513ce1eb37085a1945551058e141"
     },
     {
       "id": "CONTRACT-UI-ARCHITECTURE",
@@ -135,7 +135,7 @@
       "dependsOn": ["CONTRACT-UI-ARCHITECTURE"],
       "supersedes": ["legacy:docs/acceptance.md#mobile"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/adaptiveLaneLayout.test.ts"],
-      "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
+      "lastVerifiedCommit": "f2ba4db8bd90513ce1eb37085a1945551058e141"
     },
     {
       "id": "CONTRACT-AV",
