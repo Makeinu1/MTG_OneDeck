@@ -8,13 +8,18 @@
   "preserveParallelCandidate": "GOV-CODEX-56R2-2026-08 remains audited and unchanged",
   "activeProgram": {
     "id": "O4P-09",
-    "domainIds": ["O4P-09A", "O4P-09B", "O4P-09C", "O4P-09D", "O4P-09E", "O4P-09F", "O4P-09G", "O4P-09H", "O4P-09I", "O4P-09J"]
+    "domainIds": ["O4P-09A", "O4P-09B", "O4P-09C", "O4P-09C-UI", "O4P-09D", "O4P-09E", "O4P-09F", "O4P-09G", "O4P-09H", "O4P-09I", "O4P-09J"],
+    "authority": { "localWrites": false, "commit": false, "push": false, "deploy": false, "ship": false },
+    "autonomy": { "mode": "complete" },
+    "journeyPolicy": { "maxConsecutiveSubstrate": 2, "enforceFromDomainId": "O4P-09C-UI", "legacyDebtDomainIds": ["O4P-09A", "O4P-09B", "O4P-09C"] },
+    "usagePolicy": { "enforceFromDomainId": "O4P-09C-UI" }
   },
   "appendPendingSequence": [
     { "id": "O4P-09A", "crOrder": 1033, "dependsOn": ["O4P-08D"] },
     { "id": "O4P-09B", "crOrder": 1034, "dependsOn": ["O4P-09A"] },
     { "id": "O4P-09C", "crOrder": 1035, "dependsOn": ["O4P-09B"] },
-    { "id": "O4P-09D", "crOrder": 1036, "dependsOn": ["O4P-09C"] },
+    { "id": "O4P-09C-UI", "crOrder": 1035.5, "dependsOn": ["O4P-09C"] },
+    { "id": "O4P-09D", "crOrder": 1036, "dependsOn": ["O4P-09C-UI"] },
     { "id": "O4P-09E", "crOrder": 1037, "dependsOn": ["O4P-09D"] },
     { "id": "O4P-09F", "crOrder": 1038, "dependsOn": ["O4P-09E"] },
     { "id": "O4P-09G", "crOrder": 1039, "dependsOn": ["O4P-09F"] },
@@ -26,4 +31,3 @@
   "implementationClaim": "none",
   "externalWrite": "none"
 }
-

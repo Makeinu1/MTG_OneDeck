@@ -62,6 +62,22 @@ milestones, dependencies, destructive actions, credentials, purchases, or
 external writes. The original user message remains the authority if the
 normalization conflicts with it.
 
+## Active-program authority and autonomy
+
+When the user explicitly activates an ordered program, copy the normalized
+authority bits once into the machine-readable `goalPolicy.activeProgram.authority`
+envelope. `autonomy.mode: complete` means that milestone transitions,
+acceptance-driven corrections, and meaning-preserving release repairs inside
+that envelope do not ask the user for formal permission again. It does not turn a false authority bit into true and does not infer commit, push, deploy, or ship
+authority from “implement”, “finish”, “continue”, or “complete autonomy”.
+
+Counter exhaustion is telemetry, not a new authority request. If acceptance is
+still satisfiable, the Judge records cumulative usage and derives a repair
+candidate with the same acceptance and authority. Ask the user only for a true
+value/scope/North-Star decision, contradiction that cannot be adjudicated,
+secret or purchase, irreversible action, or an external write whose authority
+bit is false.
+
 ## Visibility and storage
 
 Show the normalized form once in commentary for `change`, `goal`, or any request

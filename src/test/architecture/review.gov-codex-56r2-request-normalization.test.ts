@@ -51,8 +51,9 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
       ),
     ) as typeof ledger;
     const successorIds = new Set([
-      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
+      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+      'GOV-CODEX-57-2026-08',
     ]);
     expect(ledger.domains.filter((entry) => entry.id !== id && !successorIds.has(entry.id as string))).toEqual(baseLedger.domains);
     expect(ledger.plannedSequence.filter(
@@ -60,10 +61,10 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     )).toEqual(
       baseLedger.plannedSequence,
     );
-    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(10);
+    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(12);
     expect(ledger.plannedSequence.filter(
       (entry) => successorIds.has(entry.domainId as string),
-    )).toHaveLength(10);
+    )).toHaveLength(12);
   });
 
   it('makes the LLM normalize prose without transferring authority', () => {
@@ -140,7 +141,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     const config = read('.codex/config.toml');
     const auditor = read('.codex/agents/onedeck-cold-auditor.toml');
     expect(workflow).toContain('terminal packet no larger than 4 KiB');
-    expect(workflow).toContain('## Hard execution counters');
+    expect(workflow).toContain('## Candidate execution counters and autonomous repair');
     expect(workflow).toContain('release full check: one normally, two absolute maximum');
     expect(workflow).toContain('replacement push/exact-head CI: at most one');
     expect(workflow).toContain('A second compaction ends that task');
@@ -151,7 +152,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(workflow).toContain(
       'Only a failure of the current milestone acceptance or a critical regression may',
     );
-    expect(workflow).toContain('run one bounded release preflight');
+    expect(workflow).toContain('npm run check:release-preflight');
     expect(config).toMatch(/^model = "gpt-5\.6-sol"$/m);
     expect(config).toMatch(/^model_reasoning_effort = "medium"$/m);
     expect(auditor).toMatch(/^model = "gpt-5\.6-sol"$/m);

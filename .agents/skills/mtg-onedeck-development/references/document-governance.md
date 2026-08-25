@@ -43,25 +43,32 @@ worktree or stop; do not mix candidates. Stop on an integrity error, missing or
 conflicting authority, or a value decision not fixed by the pinned CR and an
 explicit user ruling.
 
-Automatic selection may apply a machine-readable
-`goalPolicy.activeProgram = { id, domainIds }`. `domainIds` is the complete,
-ordered program boundary. Narrative `nextGate`, notes, drafts, and thread text
-do not activate or order a program. If an explicit user program and the
+Automatic selection may apply a machine-readable `goalPolicy.activeProgram`.
+`domainIds` is the complete, ordered program boundary. `authority` stores the
+separately normalized local-write, commit, push, deploy, and ship bits; missing
+bits are false. `autonomy.mode: complete` suppresses repeat permission prompts
+only inside that envelope. `journeyPolicy` and `usagePolicy` govern
+player-outcome cadence and terminal measurement but grant no authority.
+Narrative `nextGate`, notes, drafts, and thread text do not activate, order, or
+authorize a program. If an explicit user program and the
 automatic projection disagree, use `--domain` for the adjudicated milestone and
 schedule a judge-owned active-program ledger update; never substitute the
 automatic result silently.
 
 One worktree owns one active milestone candidate only. A normal user task ends
-when that milestone ships, reaches a terminal STOP, or exhausts its repair
-budget. When the user explicitly authorizes completion of the ordered
+when that milestone ships or reaches a terminal STOP. When a candidate exhausts
+its correction/full-check allowance, close it as `repair-required`, preserve
+its cumulative usage and findings, and derive one repair candidate with the
+same acceptance and authority. Do not rename or silently reset the exhausted
+candidate. Under `autonomy.mode: complete`, this transition is automatic while
+acceptance remains satisfiable. When the user explicitly authorizes completion of the ordered
 `goalPolicy.activeProgram`, the same judge task may supervise serial milestone
 cycles. Shipping still ends the current cycle. Before the next cycle, require
 exact-head release evidence, a clean worktree, a new verified `codex:context
 -- --domain <next-id>` projection, a refreshed base/fingerprint, and a new
 six-field envelope. The supervisor keeps only the normalized request, live
 authority, counters, and a terminal packet no larger than 4 KiB; it does not
-absorb worker transcripts or raw logs. A STOP or exhausted repair budget ends
-the whole program.
+absorb worker transcripts or raw logs. A true STOP ends the whole program.
 
 Only a failure of the current milestone acceptance or a critical regression may
 interrupt active implementation. Record every other addition compactly for a
@@ -128,14 +135,16 @@ candidate fingerprint, never the implementer's rationale.
   continuation shares the original implementer or auditor slot and all counters;
   a third compaction or second continuation is forbidden.
 - Run `npm run codex:usage -- --session <id>` at every task terminal. Record
-  its model cycles, cached/uncached input, compactions, and full checks; when
+  `modelCycles`, `cachedInputTokens`, `uncachedInputTokens`, `compactions`,
+  `repairWaves`, `fullChecks`, `ciRuns`, and `elapsedMs`; when
   platform counters are available, also record subagent and wait counts. Never
   copy prompts or double-count inherited fork history. Quality gates never
   weaken to improve these metrics.
 
-## Hard execution counters
+## Candidate execution counters and autonomous repair
 
 Counters belong to the milestone ID and candidate lineage, not a task name.
+They are cost telemetry and per-candidate safety bounds, not permission prompts.
 Renaming a repair, metadata commit, continuation, or thread never resets them.
 
 - implementer: one
@@ -157,9 +166,27 @@ Renaming a repair, metadata commit, continuation, or thread never resets them.
 
 Known sandbox or IPC restrictions use the already approved execution path on
 the first attempt. Do not repeat a known-failing probe for every milestone. If a
-counter is exhausted, do not add a third repair wave, compaction, or
-continuation, weaken evidence, or silently open a new candidate. Leave the
-milestone unshipped and require an explicit repair milestone or user ruling.
+counter is exhausted, do not add a third wave to that candidate, weaken
+evidence, or reset its identity. Record `repair-required`, the cause, findings,
+and cumulative usage, then derive a repair candidate with the same acceptance
+and original authority. Complete autonomy allows that derived candidate without
+a new permission prompt. Stop only when the contract is contradictory,
+acceptance is no longer satisfiable, a true value/scope/North-Star decision is
+missing, or the next action lacks authority.
+
+## Player-journey cadence
+
+An active-program domain declares `deliveryClass`, `playerOutcome`,
+`journeyEvidence`, and `outcomeDeadlineDomainId`. A `player-outcome` milestone
+names executable production journey evidence. A `substrate` milestone names the
+later outcome that pays its debt. From
+`activeProgram.journeyPolicy.enforceFromDomainId`, three consecutive substrate
+milestones are invalid. Older debt may be listed only in the exact
+`legacyDebtDomainIds` array; the exception cannot grow after activation.
+
+From `activeProgram.usagePolicy.enforceFromDomainId`, a terminal milestone must
+contain the complete structured usage record. Earlier shipped milestones may
+use only `measurementStatus: historical-unavailable`; never invent zero usage.
 
 ## Contract and migration rules
 
@@ -216,14 +243,22 @@ fingerprint before audit. R2/R3 select NARROW, STANDARD, or BROAD from actual ri
 cross-document workflow or selection-policy changes are BROAD. The auditor
 runs target-domain adversarial evidence, not the release full check.
 
-Before the audit freeze, run one bounded release preflight. It must confirm the
+Before the audit freeze, run
+`npm run check:release-preflight -- --base <sha> --domain <id> --owner <judge|implementer>`.
+This bounded release preflight must confirm the
 declared base/ancestor, ledger collection parity, loop-state/resume consistency,
 protected ownership, review hash chain, candidate fingerprint, planned terminal
 metadata, invalidated claims, known execution environment, and secret-free
-evidence. If no dedicated command exists, perform the equivalent checks in one
-batched read-only stage and record the structured result; never claim an
-unimplemented command exists. A failed preflight forbids the audit/full-check/
-push sequence until repaired.
+evidence. It also rejects fixed active-program next-ID guards, stale generated
+API, secret-like changed text, and a CI diff-base/ownership mismatch. A failed
+preflight forbids the audit/full-check/push sequence until repaired.
+
+Semantic and terminal fingerprints are separate. A terminal-only successor may
+change only synchronized terminal fields in the ledger and loop-state, as
+verified by `npm run check:terminal-metadata`. Product, contract, workflow,
+generated, and `review.*` bytes force the semantic lane. Exact terminal-only CI
+reuses the already deployed semantic artifact by leaving Pages untouched; it
+does not repeat full Vitest/build or redeploy identical product bytes.
 
 The clean semantic verdict is `AUDIT-OK-PENDING-FULL-CHECK`. Close findings,
 re-run only invalidated evidence, freeze the release tree again, and require the

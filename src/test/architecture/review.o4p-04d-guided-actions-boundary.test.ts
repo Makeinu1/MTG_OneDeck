@@ -126,7 +126,9 @@ describe('O4P-04D Guided/Manual Actions architecture boundary', () => {
     const changedScripts = [...new Set([...Object.keys(packageBefore.scripts ?? {}), ...Object.keys(packageAfter.scripts ?? {})])]
       .filter((key) => packageBefore.scripts?.[key] !== packageAfter.scripts?.[key])
       .sort();
-    expect(changedScripts).toEqual(['evidence:o4p-06f', 'verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure', 'verify:o4p-07c-production-runtime']);
+    expect(changedScripts).toEqual(['check:release-preflight', 'check:terminal-metadata', 'evidence:o4p-06f', 'verify:o4p-05c-release-gates', 'verify:o4p-05d-production-release-closure', 'verify:o4p-07c-production-runtime']);
+    expect(packageAfter.scripts?.['check:release-preflight']).toBe('node scripts/checks/release-preflight.mjs');
+    expect(packageAfter.scripts?.['check:terminal-metadata']).toBe('node scripts/checks/terminal-metadata.mjs');
     expect(packageAfter.scripts?.['evidence:o4p-06f']).toBe('tsx scripts/online/o4p-06f-four-browser-evidence.ts');
     expect(packageAfter.scripts?.['verify:o4p-05c-release-gates']).toBe('tsx scripts/checks/verify-o4p-05c-release-gates.ts');
     expect(packageAfter.scripts?.['verify:o4p-05d-production-release-closure']).toBe('tsx scripts/checks/verify-o4p-05d-production-release-closure.ts');

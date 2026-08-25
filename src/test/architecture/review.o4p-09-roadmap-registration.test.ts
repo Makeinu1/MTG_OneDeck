@@ -12,6 +12,10 @@ const IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
   'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
 ] as const;
+const LIVE_IDS = [
+  'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
+  'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+] as const;
 const DEPENDENCIES = [
   'O4P-08D', 'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D',
   'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I',
@@ -184,12 +188,12 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-09A', reason: 'explicit-domain',
     });
     const liveLedger = parse(text(LEDGER_PATH));
-    const nextDomainId = IDS.find((id) => (
+    const nextDomainId = LIVE_IDS.find((id) => (
       liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
     )) ?? null;
-    expect(projection.activeProgram).toEqual({
+    expect(projection.activeProgram).toMatchObject({
       id: 'O4P-09',
-      domainIds: IDS,
+      domainIds: LIVE_IDS,
       status: nextDomainId === null ? 'complete' : 'active',
       nextDomainId,
     });
@@ -225,7 +229,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
         encoding: 'utf8',
       }),
     );
-    expect(text('.github/workflows/deploy-pages.yml')).toBe(
+    expect(closureText('.github/workflows/deploy-pages.yml')).toBe(
       execFileSync('git', ['show', `${BASE_SHA}:.github/workflows/deploy-pages.yml`], {
         cwd: ROOT,
         encoding: 'utf8',

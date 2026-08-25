@@ -69,6 +69,33 @@ const baseLedger = () => ({
   goalPolicy: { scope: 'normal-commander-edh', excludedScope: [] },
 });
 
+const activeProgramPolicy = (ledger, domainIds) => {
+  for (const domainId of domainIds) {
+    for (const entry of [
+      ledger.domains.find((candidate) => candidate.id === domainId),
+      ledger.plannedSequence.find((candidate) => candidate.domainId === domainId),
+    ]) {
+      if (!entry) continue;
+      entry.deliveryClass = 'player-outcome';
+      entry.playerOutcome = `Production outcome for ${domainId}`;
+      entry.journeyEvidence = [`production-browser:fixture:${domainId}`];
+      entry.outcomeDeadlineDomainId = domainId;
+    }
+  }
+  return {
+    id: 'O4P',
+    domainIds,
+    authority: { localWrites: true, commit: false, push: false, deploy: false, ship: false },
+    autonomy: { mode: 'complete' },
+    journeyPolicy: {
+      maxConsecutiveSubstrate: 2,
+      enforceFromDomainId: domainIds[0],
+      legacyDebtDomainIds: [],
+    },
+    usagePolicy: { enforceFromDomainId: domainIds[0] },
+  };
+};
+
 describe('review.codex-ops usage isolation', () => {
   it('excludes copied parent usage and never exposes transcript contents', () => {
     const records = [
@@ -346,10 +373,6 @@ describe('review.codex-ops context projection', () => {
 
   it('keeps an active program ahead of an eligible lower-CR domain', () => {
     const ledger = baseLedger();
-    ledger.goalPolicy.activeProgram = {
-      id: 'O4P',
-      domainIds: ['O4P-02A', 'O4P-02B'],
-    };
     ledger.plannedSequence.push(
       {
         domainId: 'O4P-02A',
@@ -378,6 +401,7 @@ describe('review.codex-ops context projection', () => {
         dependsOn: ['O4P-02A'],
       },
     );
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['O4P-02A', 'O4P-02B']);
 
     const projection = buildContextProjection({
       ledger,
@@ -407,7 +431,7 @@ describe('review.codex-ops context projection', () => {
 
   it('fails closed for a completed active-program cycle or malformed dependency list', () => {
     const cyclic = baseLedger();
-    cyclic.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    cyclic.goalPolicy.activeProgram = activeProgramPolicy(cyclic, ['early', 'later']);
     for (const collection of [cyclic.domains, cyclic.plannedSequence]) {
       collection.find((entry) => (entry.id ?? entry.domainId) === 'early').status = 'shipped';
       collection.find((entry) => (entry.id ?? entry.domainId) === 'later').status = 'shipped';
@@ -427,7 +451,7 @@ describe('review.codex-ops context projection', () => {
     expect(contextExitCode(cyclicProjection)).toBe(2);
 
     const malformed = baseLedger();
-    malformed.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    malformed.goalPolicy.activeProgram = activeProgramPolicy(malformed, ['early']);
     malformed.domains.find((entry) => entry.id === 'early').dependsOn = 'dep';
     malformed.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = 'dep';
     const malformedProjection = buildContextProjection({
@@ -446,7 +470,7 @@ describe('review.codex-ops context projection', () => {
   it('fails closed when either ledger collection alone declares an active-program dependency', () => {
     for (const mismatchDirection of ['planned-only', 'domain-only']) {
       const ledger = baseLedger();
-      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+      ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['early']);
       ledger.domains.push({ id: 'extra', status: 'pending', crOrder: 500 });
       ledger.plannedSequence.push({
         domainId: 'extra',
@@ -491,7 +515,7 @@ describe('review.codex-ops context projection', () => {
   it('accepts a shipped external active-program prerequisite retained in either ledger collection', () => {
     for (const retainedCollection of ['domains', 'plannedSequence']) {
       const ledger = baseLedger();
-      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+      ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['early']);
       if (retainedCollection === 'domains') {
         ledger.plannedSequence = ledger.plannedSequence.filter(
           (entry) => entry.domainId !== 'dep',

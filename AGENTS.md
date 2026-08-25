@@ -52,6 +52,7 @@
 - 編集前にcleanな宣言base SHAと検証済み`codex:context -- --domain <id>`を要求する。別候補、壊れたauthority、staleな未出荷resume stateがあれば混在させない。
 - agent lineage、修正、compaction、continuation、wait、full check、push/CIの上限とpreflightは`document-governance.md`だけで定義し、task名・metadata commit・continuationでcounterをリセットしない。
 - context compactionは回復checkpointとする。現在の原子的操作を閉じ、`AGENTS.md`→検証済み`codex:context`→active brief→`docs/judge-protocol.md`該当節→Skill referenceの順で復旧する。圧縮要約のnext stepを正本扱いしない。
+- active programは`domainIds`、個別`authority`、`autonomy`、`journeyPolicy`、`usagePolicy`を機械可読で持つ。`autonomy.mode=complete`はtrueのauthority内の修正・repair・遷移の再許諾を省くが、falseのcommit/push/deploy/ship権限を生成しない。counter上限は費用計測とcandidate境界であり、同一candidateを黙ってresetせず累積usage付きrepair candidateへ移す。新規programは3件連続substrateを禁止し、player outcomeのproduction証拠を最大2 slice以内に要求する。
 - UI・音・演出は専用worktree/dev fixtureの試作と本実装を分離し、人間承認した値とscreenshotを凍結してから本実装を始める。
 
 ## 不可侵

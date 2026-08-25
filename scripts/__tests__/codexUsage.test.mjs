@@ -31,13 +31,14 @@ describe('codex usage analysis', () => {
     const records = [
       {
         type: 'session_meta',
+        timestamp: '2026-08-26T00:00:00.000Z',
         payload: { id: 'child', source: { subagent: { thread_spawn: {} } } },
       },
       {
         type: 'turn_context',
         payload: { model: 'test-model', effort: 'high' },
       },
-      tokenRecord(100, 60, 10, 3),
+      { ...tokenRecord(100, 60, 10, 3), timestamp: '2026-08-26T00:00:00.000Z' },
       {
         type: 'response_item',
         payload: {
@@ -65,7 +66,7 @@ describe('codex usage analysis', () => {
         },
       },
       { type: 'response_item', payload: { type: 'function_call', arguments: '{}' } },
-      tokenRecord(80, 50, 8, 2),
+      { ...tokenRecord(80, 50, 8, 2), timestamp: '2026-08-26T00:00:01.250Z' },
     ];
 
     const report = analyzeSessionRecords(records);
@@ -87,6 +88,21 @@ describe('codex usage analysis', () => {
       nestedToolCalls: 2,
       directFunctionCalls: 1,
       fullCheckInvocations: 1,
+      terminalUsage: {
+        cachedInputTokens: 110,
+        uncachedInputTokens: 70,
+        modelCycles: 2,
+        compactions: 0,
+        repairWaves: null,
+        fullChecks: 1,
+        ciRuns: null,
+        elapsedMs: 1250,
+      },
+    });
+    expect(report.terminalUsageAvailability).toMatchObject({
+      repairWaves: { available: false, source: 'platform-unavailable' },
+      ciRuns: { available: false, source: 'platform-unavailable' },
+      elapsedMs: { available: true },
     });
     expect(JSON.stringify(report)).not.toContain('SECRET');
     expect(JSON.stringify(report)).not.toContain('npm run check');
@@ -299,6 +315,18 @@ describe('codex usage analysis', () => {
     expect(comparison.percentageDeltas.inputTokens).toBe(-25);
     expect(comparison.efficiencySignal).toBe('positive');
     expect(comparison.qualityGate).toBe('external');
+  });
+
+  it('marks elapsed time unavailable instead of inventing zero', () => {
+    const report = analyzeSessionRecords([
+      { type: 'session_meta', payload: { id: 'session', source: 'desktop' } },
+      tokenRecord(4, 1, 1),
+    ]);
+    expect(report.terminalUsage.elapsedMs).toBeNull();
+    expect(report.terminalUsageAvailability.elapsedMs).toMatchObject({
+      available: false,
+      source: 'platform-unavailable',
+    });
   });
 
   it('locates a rollout only when the first metadata id exactly matches', () => {

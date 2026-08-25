@@ -14,6 +14,25 @@ const isObject = (value) => value !== null && typeof value === 'object';
 const numberOrZero = (value) =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
+const recordTimestamp = (record) => {
+  const raw = record?.timestamp ?? record?.payload?.timestamp;
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
+  const value = typeof raw === 'number' ? raw : Date.parse(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+};
+
+const elapsedFromRecords = (records) => {
+  const timestamps = records.map(recordTimestamp).filter((value) => value !== null);
+  if (timestamps.length < 2) return null;
+  return Math.max(...timestamps) - Math.min(...timestamps);
+};
+
+const availability = (available, source, error) => ({
+  available,
+  source,
+  ...(error ? { error } : {}),
+});
+
 const sessionMetaId = (record) =>
   record?.type === 'session_meta' && typeof record.payload?.id === 'string'
     ? record.payload.id
@@ -296,6 +315,52 @@ export function analyzeSessionRecords(records, options = {}) {
     parentSessionId,
     ...records.map(sessionMetaId),
   ].filter((id, index, values) => typeof id === 'string' && values.indexOf(id) === index);
+  const elapsedMs = elapsedFromRecords(currentRecords);
+  const tokenUsageAvailable = modelCycles > 0;
+  const terminalUsage = {
+    cachedInputTokens: tokenUsageAvailable ? usage.cachedInputTokens : null,
+    uncachedInputTokens: tokenUsageAvailable ? usage.uncachedInputTokens : null,
+    modelCycles,
+    compactions: currentRecords.filter(
+      (record) =>
+        record?.type === 'compacted' ||
+        (record?.type === 'event_msg' && record.payload?.type === 'context_compacted'),
+    ).length,
+    repairWaves: null,
+    fullChecks: fullCheckInvocations,
+    ciRuns: null,
+    elapsedMs,
+  };
+  const terminalUsageAvailability = {
+    cachedInputTokens: availability(
+      tokenUsageAvailable,
+      tokenUsageAvailable ? 'token_count.last_token_usage.cached_input_tokens' : 'platform-unavailable',
+      tokenUsageAvailable ? undefined : 'no current token_count records',
+    ),
+    uncachedInputTokens: availability(
+      tokenUsageAvailable,
+      tokenUsageAvailable ? 'input_tokens-minus-cached_input_tokens' : 'platform-unavailable',
+      tokenUsageAvailable ? undefined : 'no current token_count records',
+    ),
+    modelCycles: availability(true, 'token_count-record-count'),
+    compactions: availability(true, 'compaction-record-count'),
+    repairWaves: availability(
+      false,
+      'platform-unavailable',
+      'session records have no authoritative repair-wave event',
+    ),
+    fullChecks: availability(true, 'call-scoped-observed-machine-check-start'),
+    ciRuns: availability(
+      false,
+      'platform-unavailable',
+      'tool calls do not establish a unique completed CI run',
+    ),
+    elapsedMs: availability(
+      elapsedMs !== null,
+      elapsedMs !== null ? 'first-to-last-current-record-timestamp' : 'platform-unavailable',
+      elapsedMs === null ? 'fewer than two current records have timestamps' : undefined,
+    ),
+  };
 
   return {
     sessionId,
@@ -343,6 +408,8 @@ export function analyzeSessionRecords(records, options = {}) {
       confidence: 'high',
       caveat: 'output-suppressed or dynamically-built invocations are not observable',
     },
+    terminalUsage,
+    terminalUsageAvailability,
   };
 }
 

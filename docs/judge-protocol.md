@@ -30,8 +30,10 @@ standing 裁定(2026-07-23ユーザー裁定): 最終ゴールを「通常Comman
 **優先度式** = ① fake-green/壊れた既存自動化/未監査実装を先に閉じる → ② 通常Commander/EDH scope 内で前提が満たされた**最若番CR章・節** → ③ 前提不足なら、そのCRを閉じるために必要な最小substrateだけ先行して元のCRへ戻る → ④ 同一CR・同一依存順位ならMyDeck実プレイ摩擦 → ⑤ さらに同値ならCommander実カードコーパス頻度(`score.ts` demandを含む) → ⑥ `edhValue`。
 
 - この式で一意に決まる限り**自走してよい**(STOP しない)。
-- 明示的なprogram優先は台帳の`goalPolicy.activeProgram.id`と順序付き`domainIds`だけを機械権威とする。`nextGate`、note、草稿、会話文は選定器が解釈しない。active programの先頭未完了entryがblockedなら別entryへskipせずfail closedし、全entryが`shipped`なら通常CR列へ戻る。
+- 明示的なprogram優先は台帳の`goalPolicy.activeProgram.id`と順序付き`domainIds`だけを選定権威とする。外部書込は同objectの`authority`だけを権威とし、`autonomy.mode=complete`はtrueのauthority内で再許諾を省くだけでfalseをtrueにしない。`journeyPolicy`は次の技術sliceと次のplayer outcomeを別々に投影する。`nextGate`、note、草稿、会話文は選定器が解釈しない。active programの先頭未完了entryがblockedなら別entryへskipせずfail closedし、全entryが`shipped`なら通常CR列へ戻る。
 - ユーザーがactive program全体の完遂を明示認可した場合、判定者は同じsupervisor taskでserial cycleを継続してよい。各cycleのship後にexact-head release証拠・clean worktree・次domainの明示投影・新base/fingerprint/六項目envelopeを要求し、前cycle未完了中の後続作業は禁止する。
+- `autonomy.mode=complete`のactive programでは、受け入れ修正、意味不変の再認証、candidate上限到達後の同一acceptance repair candidate、milestone遷移を人間へ形式的に再質問しない。counterと累積usageは保持し、品質ゲートは弱めない。真の価値/scope/北極星判断、契約矛盾、秘密・購入・不可逆、falseの外部authorityだけSTOPする。
+- `journeyPolicy.enforceFromDomainId`以降はsubstrateを3件連続で完了させない。各substrateは`outcomeDeadlineDomainId`、各player-outcomeはproduction `journeyEvidence`を持つ。historical debtは固定配列でのみ保持し、後から増やさない。
 - ユーザーがprogram継続を明示しているのに`activeProgram`が未設定、壊れている、または自動投影がprogram外を返す場合、その自動選定は採用しない。在席判定者が`--domain <adjudicated-id>`で一意な対象を投影し、active-program台帳更新をjudge-owned作業として別に閉じる。
 - design-slice(D0〜D7)の standing 裁定は `docs/design-playbook.md` にあるが、同文書は **historical**(D4 回復契約の再承認まで新規実行に使わない。現況 = `docs/README.md`)。新規 D-slice はこの式と北極星②で裁定する。
 - STOP① に該当するのは次の3つだけ: (a) 上式でも真の同点かつ性質の異なる分岐 (b) 通常Commander/EDH scopeそのものの拡張・縮小 (c) 北極星・契約原則そのものの変更。旧 `judge: user-stop` / demand gateは、variant等のscope判断を表すものだけ維持する。

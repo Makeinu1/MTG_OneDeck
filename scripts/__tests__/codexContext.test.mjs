@@ -47,6 +47,33 @@ const ledgerFixture = () => ({
   ],
 });
 
+const activeProgramPolicy = (ledger, domainIds) => {
+  for (const domainId of domainIds) {
+    for (const entry of [
+      ledger.domains.find((candidate) => candidate.id === domainId),
+      ledger.plannedSequence.find((candidate) => candidate.domainId === domainId),
+    ]) {
+      if (!entry) continue;
+      entry.deliveryClass = 'player-outcome';
+      entry.playerOutcome = `Production outcome for ${domainId}`;
+      entry.journeyEvidence = [`production-browser:fixture:${domainId}`];
+      entry.outcomeDeadlineDomainId = domainId;
+    }
+  }
+  return {
+    id: 'O4P',
+    domainIds,
+    authority: { localWrites: true, commit: false, push: false, deploy: false, ship: false },
+    autonomy: { mode: 'complete' },
+    journeyPolicy: {
+      maxConsecutiveSubstrate: 2,
+      enforceFromDomainId: domainIds[0],
+      legacyDebtDomainIds: [],
+    },
+    usagePolicy: { enforceFromDomainId: domainIds[0] },
+  };
+};
+
 const project = (ledger, overrides = {}) =>
   buildContextProjection({
     ledger,
@@ -69,6 +96,7 @@ describe('codex context projection', () => {
       reason: 'earliest-eligible-cr-order',
     });
     expect(projection.dependencies.map((entry) => entry.id)).toEqual(['dep']);
+    expect(projection.dependencies[0]).not.toHaveProperty('dependsOn');
     expect(projection.loopState.status).toBe('current');
     expect(Buffer.byteLength(JSON.stringify(projection))).toBeLessThan(12 * 1024);
   });
@@ -83,10 +111,7 @@ describe('codex context projection', () => {
 
   it('selects an active-program entry before an eligible lower-CR-order entry', () => {
     const ledger = ledgerFixture();
-    ledger.goalPolicy.activeProgram = {
-      id: 'O4P',
-      domainIds: ['later'],
-    };
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
     ledger.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = ['dep'];
     ledger.domains.find((entry) => entry.id === 'later').dependsOn = ['dep'];
     const projection = project(ledger);
@@ -97,17 +122,109 @@ describe('codex context projection', () => {
       domainId: 'later',
       reason: 'active-program-order',
     });
-    expect(projection.activeProgram).toEqual({
+    expect(projection.activeProgram).toMatchObject({
       id: 'O4P',
       domainIds: ['later'],
       status: 'active',
       nextDomainId: 'later',
     });
+    expect(projection.nextTechnicalSlice).toMatchObject({ domainId: 'later' });
+    expect(projection.nextPlayerOutcome).toMatchObject({
+      domainId: 'later',
+      playerOutcome: 'Production outcome for later',
+    });
+  });
+
+  it.each(['authority', 'autonomy', 'journeyPolicy', 'usagePolicy'])(
+    'fails malformed active-program %s closed',
+    (field) => {
+      const ledger = ledgerFixture();
+      ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
+      ledger.goalPolicy.activeProgram[field] = {};
+      const projection = project(ledger);
+      expect(projection.health.ok).toBe(false);
+      expect(projection.selection.kind).toBe('integrity-error');
+    },
+  );
+
+  it('keeps legacy journey debt contiguous, shipped, bounded, and immutable from HEAD', () => {
+    const ledger = ledgerFixture();
+    const ids = ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI'];
+    for (let index = 0; index < ids.length; index += 1) {
+      const id = ids[index];
+      const dependsOn = [index === 0 ? 'dep' : ids[index - 1]];
+      ledger.domains.push({ id, status: index < 3 ? 'shipped' : 'pending', dependsOn });
+      ledger.plannedSequence.push({ domainId: id, status: index < 3 ? 'shipped' : 'pending', dependsOn });
+    }
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ids);
+    ledger.goalPolicy.activeProgram.id = 'O4P-09';
+    ledger.goalPolicy.activeProgram.journeyPolicy.enforceFromDomainId = 'O4P-09C-UI';
+    ledger.goalPolicy.activeProgram.journeyPolicy.legacyDebtDomainIds = ids.slice(0, 3);
+    for (const id of ids.slice(0, 3)) {
+      for (const entry of [
+        ledger.domains.find((item) => item.id === id),
+        ledger.plannedSequence.find((item) => item.domainId === id),
+      ]) {
+        entry.deliveryClass = 'substrate';
+        entry.playerOutcome = 'Historical substrate only';
+        entry.journeyEvidence = [];
+        entry.outcomeDeadlineDomainId = 'O4P-09C-UI';
+      }
+    }
+    const headLedger = structuredClone(ledger);
+    expect(project(ledger, { headLedger }).health.ok).toBe(true);
+
+    const moved = structuredClone(ledger);
+    moved.goalPolicy.activeProgram.journeyPolicy.enforceFromDomainId = 'O4P-09C';
+    moved.goalPolicy.activeProgram.journeyPolicy.legacyDebtDomainIds = [];
+    expect(project(moved, { headLedger }).health.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'ACTIVE_PROGRAM_LEGACY_POLICY_CHANGED_FROM_HEAD' }),
+    ]));
+
+    const unshipped = structuredClone(ledger);
+    for (const entry of [
+      unshipped.domains.find((item) => item.id === 'O4P-09C'),
+      unshipped.plannedSequence.find((item) => item.domainId === 'O4P-09C'),
+    ]) entry.status = 'pending';
+    expect(project(unshipped, { headLedger: structuredClone(unshipped) }).health.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'INVALID_ACTIVE_PROGRAM_LEGACY_DEBT' })]),
+    );
+
+    const arbitrary = ledgerFixture();
+    const legacyIds = ['legacy-1', 'legacy-2', 'legacy-3'];
+    for (let index = 0; index < legacyIds.length; index += 1) {
+      const id = legacyIds[index];
+      const dependsOn = [index === 0 ? 'dep' : legacyIds[index - 1]];
+      arbitrary.domains.push({ id, status: 'shipped', dependsOn });
+      arbitrary.plannedSequence.push({ domainId: id, status: 'shipped', dependsOn });
+    }
+    for (const entry of [
+      arbitrary.domains.find((item) => item.id === 'later'),
+      arbitrary.plannedSequence.find((item) => item.domainId === 'later'),
+    ]) entry.dependsOn = ['legacy-3'];
+    arbitrary.goalPolicy.activeProgram = activeProgramPolicy(arbitrary, [...legacyIds, 'later']);
+    arbitrary.goalPolicy.activeProgram.id = 'NEW-PROGRAM';
+    arbitrary.goalPolicy.activeProgram.journeyPolicy.enforceFromDomainId = 'later';
+    arbitrary.goalPolicy.activeProgram.journeyPolicy.legacyDebtDomainIds = legacyIds;
+    for (const id of legacyIds) {
+      for (const entry of [
+        arbitrary.domains.find((item) => item.id === id),
+        arbitrary.plannedSequence.find((item) => item.domainId === id),
+      ]) {
+        entry.deliveryClass = 'substrate';
+        entry.playerOutcome = 'Historical substrate only';
+        entry.journeyEvidence = [];
+        entry.outcomeDeadlineDomainId = 'later';
+      }
+    }
+    expect(project(arbitrary, { headLedger: ledgerFixture() }).health.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'INVALID_ACTIVE_PROGRAM_LEGACY_DEBT' })]),
+    );
   });
 
   it('returns to normal CR order after every active-program entry ships', () => {
     const ledger = ledgerFixture();
-    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
     ledger.plannedSequence.find((entry) => entry.domainId === 'later').status = 'shipped';
     ledger.domains.find((entry) => entry.id === 'later').status = 'shipped';
     const projection = project(ledger);
@@ -125,7 +242,7 @@ describe('codex context projection', () => {
 
   it('fails closed rather than skipping a blocked active-program entry', () => {
     const ledger = ledgerFixture();
-    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
     const projection = project(ledger);
 
     expect(projection.selection).toMatchObject({
@@ -143,7 +260,7 @@ describe('codex context projection', () => {
 
   it('fails integrity for missing, duplicate, and non-linear active-program declarations', () => {
     const missing = ledgerFixture();
-    missing.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['missing'] };
+    missing.goalPolicy.activeProgram = activeProgramPolicy(missing, ['missing']);
     expect(project(missing).health.errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'ACTIVE_PROGRAM_DOMAIN_MISSING_FROM_COLLECTION' }),
@@ -151,7 +268,7 @@ describe('codex context projection', () => {
     );
 
     const duplicate = ledgerFixture();
-    duplicate.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'early'] };
+    duplicate.goalPolicy.activeProgram = activeProgramPolicy(duplicate, ['early', 'early']);
     expect(project(duplicate).health.errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'DUPLICATE_ACTIVE_PROGRAM_DOMAIN_ID' }),
@@ -159,7 +276,7 @@ describe('codex context projection', () => {
     );
 
     const nonLinear = ledgerFixture();
-    nonLinear.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    nonLinear.goalPolicy.activeProgram = activeProgramPolicy(nonLinear, ['early', 'later']);
     nonLinear.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = ['dep'];
     expect(project(nonLinear).health.errors).toEqual(
       expect.arrayContaining([
@@ -170,7 +287,7 @@ describe('codex context projection', () => {
 
   it('fails closed for malformed, unknown, and cyclic active-program dependencies', () => {
     const malformed = ledgerFixture();
-    malformed.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    malformed.goalPolicy.activeProgram = activeProgramPolicy(malformed, ['early', 'later']);
     malformed.plannedSequence.find((entry) => entry.domainId === 'later').dependsOn = 'early';
     const malformedProjection = project(malformed);
     expect(malformedProjection.health.errors).toEqual(
@@ -180,7 +297,7 @@ describe('codex context projection', () => {
     expect(contextExitCode(malformedProjection)).toBe(2);
 
     const unknown = ledgerFixture();
-    unknown.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    unknown.goalPolicy.activeProgram = activeProgramPolicy(unknown, ['early']);
     unknown.domains.find((entry) => entry.id === 'early').dependsOn = ['missing'];
     unknown.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = ['missing'];
     const unknownProjection = project(unknown);
@@ -193,7 +310,7 @@ describe('codex context projection', () => {
     expect(contextExitCode(unknownProjection)).toBe(2);
 
     const cyclic = ledgerFixture();
-    cyclic.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early', 'later'] };
+    cyclic.goalPolicy.activeProgram = activeProgramPolicy(cyclic, ['early', 'later']);
     for (const entry of cyclic.plannedSequence) {
       if (entry.domainId === 'early') {
         entry.status = 'shipped';
@@ -229,7 +346,7 @@ describe('codex context projection', () => {
     }],
   ])('accepts a shipped external dependency present only in %s', (collection, externalEntry) => {
     const ledger = ledgerFixture();
-    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['early'] };
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['early']);
     ledger.domains.find((entry) => entry.id === 'early').dependsOn = ['external'];
     ledger.plannedSequence.find((entry) => entry.domainId === 'early').dependsOn = ['external'];
     ledger[collection].push(externalEntry);
@@ -250,7 +367,7 @@ describe('codex context projection', () => {
     'fails integrity for a %s active-program dependency',
     (_, collection, presentKey, absentKey) => {
       const ledger = ledgerFixture();
-      ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+      ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
       const entry = ledger[collection].find((candidate) =>
         collection === 'domains' ? candidate.id === 'later' : candidate.domainId === 'later',
       );
@@ -274,7 +391,7 @@ describe('codex context projection', () => {
 
   it('keeps explicit domain selection ahead of active-program selection', () => {
     const ledger = ledgerFixture();
-    ledger.goalPolicy.activeProgram = { id: 'O4P', domainIds: ['later'] };
+    ledger.goalPolicy.activeProgram = activeProgramPolicy(ledger, ['later']);
     const projection = project(ledger, { domainId: 'early' });
 
     expect(projection.selection).toMatchObject({

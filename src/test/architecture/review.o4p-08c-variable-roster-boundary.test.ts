@@ -44,9 +44,17 @@ describe('O4P-08C variable roster and genesis architecture review', () => {
     expect(candidatePaths).toContain('src/components/online/PublicOnlineApp.tsx');
     expect(candidatePaths).toContain('src/online/tableDisplay/model.ts');
     expect(candidatePaths).toContain('src/online/workbench/model.ts');
-    expect(candidatePaths).not.toContain('package.json');
+    expect(candidatePaths).toContain('package.json');
     expect(candidatePaths).not.toContain('package-lock.json');
     expect(candidatePaths).not.toContain('wrangler.jsonc');
+    const packageBefore = JSON.parse(execFileSync('git', ['show', `${BASE_SHA}:package.json`], {
+      encoding: 'utf8',
+    })) as { dependencies?: unknown; devDependencies?: unknown; scripts?: Record<string, unknown> };
+    const packageAfter = JSON.parse(source('package.json')) as typeof packageBefore;
+    expect(packageAfter.dependencies).toEqual(packageBefore.dependencies);
+    expect(packageAfter.devDependencies).toEqual(packageBefore.devDependencies);
+    expect(packageAfter.scripts?.['check:release-preflight']).toBe('node scripts/checks/release-preflight.mjs');
+    expect(packageAfter.scripts?.['check:terminal-metadata']).toBe('node scripts/checks/terminal-metadata.mjs');
     expect(() => execFileSync('git', ['diff', '--check'])).not.toThrow();
   });
 });

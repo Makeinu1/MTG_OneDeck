@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      lane: ${{ steps.change-lane.outputs.lane }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -26,18 +28,29 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run check -- --build-base=/MTG_OneDeck/
       - id: diff-base
         run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - id: change-lane
+        run: |
+          lane_report="$RUNNER_TEMP/mtg-onedeck-terminal-lane.json"
+          npm run check:terminal-metadata -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --json > "$lane_report"
+          echo "lane=$(jq -r .lane "$lane_report")" >> "$GITHUB_OUTPUT"
+      - if: steps.change-lane.outputs.lane == 'semantic'
+        run: npm run check -- --build-base=/MTG_OneDeck/
+      - if: steps.change-lane.outputs.lane == 'terminal'
+        run: npm run check:terminal-metadata -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --require-terminal
       - run: npm run check:forbidden -- --diff "${{ steps.diff-base.outputs.base }}"
-      - uses: actions/configure-pages@v6
+      - if: steps.change-lane.outputs.lane == 'semantic'
+        uses: actions/configure-pages@v6
         with:
           enablement: true
-      - uses: actions/upload-pages-artifact@v5
+      - if: steps.change-lane.outputs.lane == 'semantic'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
   deploy:
     needs: build
+    if: needs.build.outputs.lane == 'semantic'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

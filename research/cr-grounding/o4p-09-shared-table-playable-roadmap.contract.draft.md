@@ -111,6 +111,12 @@ chooser arbitrary manipulation authority.
 
 ## Serial milestones
 
+Each milestone declares either technical substrate or a production player
+outcome in the live ledger. O4P-09A through C are retained as shipped substrate;
+they do not by themselves claim a new playable production journey. The exact
+historical three-slice debt is closed by O4P-09C-UI. From that point onward,
+every remaining O4P-09 milestone lands executable player-journey evidence.
+
 ### O4P-09A — Unified Game Surface seam
 
 Extract a mode-neutral interaction/presentation port from the existing
@@ -127,13 +133,22 @@ rules. Protocol changes remain versioned and fail closed.
 
 Add `Pregame` as a first-class state between lobby and play: commander reveal,
 starting player and turn order, shuffle, opening seven, mulligan, pregame
-actions, readiness, and game start.
+actions, readiness, and game start. This shipped slice is the headless lifecycle
+substrate; it does not claim a production Pregame UI.
+
+### O4P-09C-UI — Production Pregame player journey
+
+Connect the shipped Pregame lifecycle to the sole production `GameScreen`.
+Two- and four-player tables complete commander reveal, server-authoritative
+starting order, opening seven, mulligan, readiness, and turn-one entry without a
+developer-only surface. Acceptance requires Local/Remote replay parity,
+375x812, 812x375, and 1440x900, console error 0, and secret leakage 0.
 
 ### O4P-09D — Tabletop primitive operations
 
 Freeze and implement the safe public/shared-state primitive algebra and the
-Structured Manual / Freeform Manual distinction. Hidden-zone disclosure stays
-fail closed until O4P-09E.
+Structured Manual / Freeform Manual distinction on the production player
+surface. Hidden-zone disclosure stays fail closed until O4P-09E.
 
 ### O4P-09E — Visibility, Look, Reveal, and Choose
 

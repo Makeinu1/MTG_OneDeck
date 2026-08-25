@@ -98,12 +98,14 @@ describe('GitHub Pages verification gates', () => {
     expect(labels[0]).toMatch(/^actions\/checkout@/);
     expect(labels[1]).toMatch(/^actions\/setup-node@/);
     expect(labels[2]).toBe('npm ci');
-    expect(labels[3]).toBe('npm run check -- --build-base=/MTG_OneDeck/');
-    expect(labels[4]).toContain('node scripts/checks/resolve-diff-base.mjs --before');
-    expect(labels[5]).toContain('npm run check:forbidden -- --diff');
-    expect(labels[6]).toMatch(/^actions\/configure-pages@/);
-    expect(labels[7]).toMatch(/^actions\/upload-pages-artifact@/);
-    expect(labels).toHaveLength(8);
+    expect(labels[3]).toContain('node scripts/checks/resolve-diff-base.mjs --before');
+    expect(labels[4]).toBe('|');
+    expect(labels[5]).toBe('npm run check -- --build-base=/MTG_OneDeck/');
+    expect(labels[6]).toContain('npm run check:terminal-metadata');
+    expect(labels[7]).toContain('npm run check:forbidden -- --diff');
+    expect(labels[8]).toMatch(/^actions\/configure-pages@/);
+    expect(labels[9]).toMatch(/^actions\/upload-pages-artifact@/);
+    expect(labels).toHaveLength(10);
 
     const checkIndex = labels.indexOf('npm run check -- --build-base=/MTG_OneDeck/');
     const forbiddenIndex = labels.findIndex((label) => label.startsWith('npm run check:forbidden -- --diff'));
@@ -115,6 +117,9 @@ describe('GitHub Pages verification gates', () => {
     expect(text).not.toContain('--policy governance-reset');
     expect(text).toContain('id: diff-base');
     expect(deploy.fields.get('needs')).toBe('build');
+    expect(deploy.fields.get('if')).toContain("needs.build.outputs.lane == 'semantic");
+    expect(text).toContain("steps.change-lane.outputs.lane == 'terminal'");
+    expect(text).toContain("steps.change-lane.outputs.lane == 'semantic'");
     expect(deploy.steps.some((step) => step.fields.has('uses'))).toBe(true);
   });
 

@@ -33,8 +33,11 @@ describe('O4P-05D production-release closure boundary', () => {
       { id: 'O4P-06', domainIds: ['O4P-06A', 'O4P-06B', 'O4P-06C', 'O4P-06D', 'O4P-06E', 'O4P-06F'] },
       { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
       { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
-      { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
-    ]).toContainEqual(ledger.goalPolicy?.activeProgram);
+      { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
+    ]).toContainEqual({
+      id: ledger.goalPolicy?.activeProgram?.id,
+      domainIds: ledger.goalPolicy?.activeProgram?.domainIds,
+    });
     for (const [index, id] of ids.entries()) {
       const domains = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -69,6 +72,7 @@ describe('O4P-05D production-release closure boundary', () => {
     }).trim().split(/\r?\n/).filter(Boolean);
     expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
     expect([
+      ['src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts'],
       [],
       ['src/test/architecture/review.o4p-09-roadmap-registration.test.ts'],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],

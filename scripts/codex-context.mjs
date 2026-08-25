@@ -17,7 +17,11 @@ const REQUIRED_LEDGER_KEYS = [
 ];
 
 const isObject = (value) => value !== null && typeof value === 'object';
+const isNonEmptyString = (value) => typeof value === 'string' && value.length > 0;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+const SEALED_LEGACY_PROGRAM_ID = 'O4P-09';
+const SEALED_LEGACY_DEBT = ['O4P-09A', 'O4P-09B', 'O4P-09C'];
+const SEALED_LEGACY_ENFORCEMENT = 'O4P-09C-UI';
 
 export function hashTreeEntries(entries) {
   const hash = createHash('sha256');
@@ -57,7 +61,7 @@ const compactDomain = (entry, { dependency = false } = {}) => {
   if (!entry) return null;
   const result = {};
   const keys = dependency
-    ? ['id', 'type', 'status', 'crOrder', 'dependsOn']
+    ? ['id', 'type', 'status', 'crOrder']
     : [
         'id',
         'type',
@@ -233,15 +237,23 @@ const mergeLedgerEntries = (ledger, errors) => {
   return { merged, domainMap, sequenceMap };
 };
 
-const validateActiveProgram = (ledger, domainMap, sequenceMap, errors) => {
+const validateActiveProgram = (ledger, headLedger, domainMap, sequenceMap, errors) => {
   const activeProgram = ledger.goalPolicy?.activeProgram;
   if (activeProgram === undefined) return null;
   if (!isObject(activeProgram) || Array.isArray(activeProgram)) {
     errors.push({ code: 'INVALID_ACTIVE_PROGRAM', message: 'activeProgram must be an object' });
     return null;
   }
+  const expectedKeys = [
+    'authority',
+    'autonomy',
+    'domainIds',
+    'id',
+    'journeyPolicy',
+    'usagePolicy',
+  ];
   const keys = Object.keys(activeProgram).sort();
-  if (keys.length !== 2 || keys[0] !== 'domainIds' || keys[1] !== 'id') {
+  if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) {
     errors.push({ code: 'INVALID_ACTIVE_PROGRAM', message: 'activeProgram has an invalid shape' });
     return null;
   }
@@ -251,6 +263,50 @@ const validateActiveProgram = (ledger, domainMap, sequenceMap, errors) => {
   if (!Array.isArray(activeProgram.domainIds) || activeProgram.domainIds.length === 0) {
     errors.push({ code: 'INVALID_ACTIVE_PROGRAM_DOMAIN_IDS' });
     return null;
+  }
+
+  const authorityKeys = ['commit', 'deploy', 'localWrites', 'push', 'ship'];
+  if (
+    !isObject(activeProgram.authority) ||
+    Array.isArray(activeProgram.authority) ||
+    JSON.stringify(Object.keys(activeProgram.authority).sort()) !== JSON.stringify(authorityKeys) ||
+    authorityKeys.some((key) => typeof activeProgram.authority[key] !== 'boolean')
+  ) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_AUTHORITY' });
+  }
+  if (
+    !isObject(activeProgram.autonomy) ||
+    Array.isArray(activeProgram.autonomy) ||
+    Object.keys(activeProgram.autonomy).length !== 1 ||
+    activeProgram.autonomy.mode !== 'complete'
+  ) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_AUTONOMY' });
+  }
+  const journeyPolicy = activeProgram.journeyPolicy;
+  const journeyKeys = [
+    'enforceFromDomainId',
+    'legacyDebtDomainIds',
+    'maxConsecutiveSubstrate',
+  ];
+  if (
+    !isObject(journeyPolicy) ||
+    Array.isArray(journeyPolicy) ||
+    JSON.stringify(Object.keys(journeyPolicy).sort()) !== JSON.stringify(journeyKeys) ||
+    journeyPolicy.maxConsecutiveSubstrate !== 2 ||
+    !isNonEmptyString(journeyPolicy.enforceFromDomainId) ||
+    !Array.isArray(journeyPolicy.legacyDebtDomainIds) ||
+    journeyPolicy.legacyDebtDomainIds.some((id) => !isNonEmptyString(id))
+  ) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_JOURNEY_POLICY' });
+  }
+  const usagePolicy = activeProgram.usagePolicy;
+  if (
+    !isObject(usagePolicy) ||
+    Array.isArray(usagePolicy) ||
+    Object.keys(usagePolicy).length !== 1 ||
+    !isNonEmptyString(usagePolicy.enforceFromDomainId)
+  ) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_USAGE_POLICY' });
   }
 
   const seen = new Set();
@@ -271,6 +327,36 @@ const validateActiveProgram = (ledger, domainMap, sequenceMap, errors) => {
       errors.push({ code: 'ACTIVE_PROGRAM_DOMAIN_MISSING_FROM_COLLECTION', domainId });
       continue;
     }
+    for (const [collection, entry] of [['domains', domain], ['plannedSequence', sequence]]) {
+      if (!['substrate', 'player-outcome'].includes(entry.deliveryClass)) {
+        errors.push({ code: 'INVALID_DELIVERY_CLASS', collection, domainId });
+      }
+      if (!isNonEmptyString(entry.playerOutcome)) {
+        errors.push({ code: 'INVALID_PLAYER_OUTCOME', collection, domainId });
+      }
+      if (
+        !Array.isArray(entry.journeyEvidence) ||
+        (entry.deliveryClass === 'player-outcome' && entry.journeyEvidence.length === 0) ||
+        entry.journeyEvidence.some((item) => !isNonEmptyString(item)) ||
+        (entry.deliveryClass === 'player-outcome' &&
+          !entry.journeyEvidence.some((item) => item.includes('production')))
+      ) {
+        errors.push({ code: 'INVALID_JOURNEY_EVIDENCE', collection, domainId });
+      }
+      if (!isNonEmptyString(entry.outcomeDeadlineDomainId)) {
+        errors.push({ code: 'INVALID_OUTCOME_DEADLINE', collection, domainId });
+      }
+    }
+    for (const key of [
+      'deliveryClass',
+      'playerOutcome',
+      'journeyEvidence',
+      'outcomeDeadlineDomainId',
+    ]) {
+      if (JSON.stringify(domain[key]) !== JSON.stringify(sequence[key])) {
+        errors.push({ code: 'ACTIVE_PROGRAM_JOURNEY_MISMATCH', domainId, key });
+      }
+    }
     if (index > 0) {
       const predecessor = activeProgram.domainIds[index - 1];
       const domainDependencies = Array.isArray(domain.dependsOn) ? domain.dependsOn : [];
@@ -284,9 +370,72 @@ const validateActiveProgram = (ledger, domainMap, sequenceMap, errors) => {
       }
     }
   }
+  const programIds = activeProgram.domainIds;
+  const enforceIndex = programIds.indexOf(journeyPolicy?.enforceFromDomainId);
+  const usageIndex = programIds.indexOf(usagePolicy?.enforceFromDomainId);
+  if (enforceIndex < 0) errors.push({ code: 'ACTIVE_PROGRAM_JOURNEY_ENFORCEMENT_UNKNOWN' });
+  if (usageIndex < 0) errors.push({ code: 'ACTIVE_PROGRAM_USAGE_ENFORCEMENT_UNKNOWN' });
+  const legacyDebt = journeyPolicy?.legacyDebtDomainIds ?? [];
+  const sealedLegacyValid = activeProgram.id === SEALED_LEGACY_PROGRAM_ID
+    ? (
+        JSON.stringify(legacyDebt) === JSON.stringify(SEALED_LEGACY_DEBT) &&
+        journeyPolicy?.enforceFromDomainId === SEALED_LEGACY_ENFORCEMENT
+      )
+    : legacyDebt.length === 0;
+  if (
+    !sealedLegacyValid ||
+    new Set(legacyDebt).size !== legacyDebt.length ||
+    legacyDebt.length > (journeyPolicy?.maxConsecutiveSubstrate ?? -1) + 1 ||
+    enforceIndex < 0 ||
+    JSON.stringify(legacyDebt) !== JSON.stringify(programIds.slice(0, enforceIndex)) ||
+    legacyDebt.some((id) => {
+      const domain = domainMap.get(id);
+      const sequence = sequenceMap.get(id);
+      return domain?.status !== 'shipped' || sequence?.status !== 'shipped' ||
+        domain?.deliveryClass !== 'substrate' || sequence?.deliveryClass !== 'substrate';
+    })
+  ) {
+    errors.push({ code: 'INVALID_ACTIVE_PROGRAM_LEGACY_DEBT' });
+  }
+  const headProgram = headLedger?.goalPolicy?.activeProgram;
+  if (isObject(headProgram?.journeyPolicy) && !Array.isArray(headProgram.journeyPolicy)) {
+    if (
+      headProgram.journeyPolicy.enforceFromDomainId !== journeyPolicy?.enforceFromDomainId ||
+      JSON.stringify(headProgram.journeyPolicy.legacyDebtDomainIds) !== JSON.stringify(legacyDebt)
+    ) {
+      errors.push({ code: 'ACTIVE_PROGRAM_LEGACY_POLICY_CHANGED_FROM_HEAD' });
+    }
+  }
+  let consecutiveSubstrate = 0;
+  for (let index = Math.max(0, enforceIndex); index < programIds.length; index += 1) {
+    const domain = domainMap.get(programIds[index]);
+    if (domain?.deliveryClass === 'substrate') consecutiveSubstrate += 1;
+    else consecutiveSubstrate = 0;
+    if (consecutiveSubstrate > journeyPolicy?.maxConsecutiveSubstrate) {
+      errors.push({ code: 'ACTIVE_PROGRAM_SUBSTRATE_LIMIT_EXCEEDED', domainId: programIds[index] });
+    }
+    if (domain?.deliveryClass === 'substrate') {
+      const deadlineIndex = programIds.indexOf(domain.outcomeDeadlineDomainId);
+      if (deadlineIndex <= index) {
+        errors.push({ code: 'INVALID_SUBSTRATE_OUTCOME_DEADLINE', domainId: programIds[index] });
+      }
+    } else if (
+      domain?.deliveryClass === 'player-outcome' &&
+      domain.outcomeDeadlineDomainId !== programIds[index]
+    ) {
+      errors.push({ code: 'INVALID_PLAYER_OUTCOME_DEADLINE', domainId: programIds[index] });
+    }
+  }
   return {
     id: activeProgram.id,
     domainIds: [...activeProgram.domainIds],
+    authority: { ...activeProgram.authority },
+    autonomy: { ...activeProgram.autonomy },
+    journeyPolicy: {
+      ...activeProgram.journeyPolicy,
+      legacyDebtDomainIds: [...(activeProgram.journeyPolicy?.legacyDebtDomainIds ?? [])],
+    },
+    usagePolicy: { ...activeProgram.usagePolicy },
   };
 };
 
@@ -543,6 +692,16 @@ const summarizeActiveProgram = (activeProgram, merged) => {
   return { ...activeProgram, status: 'complete', nextDomainId: null };
 };
 
+const summarizeJourney = (entry) =>
+  entry
+    ? {
+        domainId: entry.id,
+        deliveryClass: entry.deliveryClass ?? null,
+        playerOutcome: entry.playerOutcome ?? null,
+        outcomeDeadlineDomainId: entry.outcomeDeadlineDomainId ?? null,
+      }
+    : null;
+
 export function buildContextProjection({
   ledger,
   headLedger,
@@ -589,7 +748,7 @@ export function buildContextProjection({
       }
     : { domains: [], plannedSequence: [] };
   const { merged, domainMap, sequenceMap } = mergeLedgerEntries(safeLedger, errors);
-  const activeProgram = validateActiveProgram(safeLedger, domainMap, sequenceMap, errors);
+  const activeProgram = validateActiveProgram(safeLedger, headLedger, domainMap, sequenceMap, errors);
   validateActiveProgramDependencyGraph(activeProgram, domainMap, sequenceMap, errors);
   let selection;
   if (errors.length > 0) {
@@ -621,6 +780,16 @@ export function buildContextProjection({
     [...merged].map(([id, entry]) => [id, entry.status]),
   );
   const activeProgramSummary = summarizeActiveProgram(activeProgram, merged);
+  const nextTechnicalEntry = activeProgramSummary?.nextDomainId
+    ? merged.get(activeProgramSummary.nextDomainId)
+    : selected;
+  const nextPlayerEntry = activeProgram
+    ? activeProgram.domainIds
+        .map((id) => merged.get(id))
+        .find((entry) => entry?.status !== 'shipped' && entry?.deliveryClass === 'player-outcome')
+    : selected?.deliveryClass === 'player-outcome'
+      ? selected
+      : null;
 
   return {
     ledgerSha256: sourceSha256,
@@ -633,6 +802,8 @@ export function buildContextProjection({
     health: { ok: errors.length === 0, errors },
     selection,
     activeProgram: activeProgramSummary,
+    nextTechnicalSlice: summarizeJourney(nextTechnicalEntry),
+    nextPlayerOutcome: summarizeJourney(nextPlayerEntry),
     domain: compactDomain(selected),
     dependencies: dependencies.map((entry) => compactDomain(entry, { dependency: true })),
     canonicalPaths: [

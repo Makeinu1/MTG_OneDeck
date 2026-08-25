@@ -209,13 +209,13 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       kind: 'selected', domainId: 'O4P-06F', reason: 'explicit-domain',
     });
     const o4p09Ids = [
-      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E',
+      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
       ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
     )) ?? null;
-    expect(projection.activeProgram).toEqual({
+    expect(projection.activeProgram).toMatchObject({
       id: 'O4P-09',
       domainIds: o4p09Ids,
       status: nextDomainId === null ? 'complete' : 'active',
@@ -236,7 +236,7 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       expect(source).toContain("id: 'O4P-08'");
       expect(source).toContain("['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D']");
       expect(source).toContain("id: 'O4P-09'");
-      expect(source).toContain("['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J']");
+      expect(source).toContain("['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J']");
     }
   });
 
