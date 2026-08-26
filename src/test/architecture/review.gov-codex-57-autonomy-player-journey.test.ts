@@ -41,7 +41,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     });
   });
 
-  it('keeps both ledger collections synchronized and selects C-UI before D', () => {
+  it('keeps both ledger collections synchronized and advances from C-UI to D only after shipment', () => {
     for (const id of [...IDS, 'GOV-CODEX-57-2026-08']) {
       const domain = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -52,11 +52,13 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     const cUi = ledger.domains.find((entry) => entry.id === 'O4P-09C-UI');
     const d = ledger.domains.find((entry) => entry.id === 'O4P-09D');
     expect(cUi).toMatchObject({
-      status: 'pending', dependsOn: ['O4P-09C'], deliveryClass: 'player-outcome',
+      dependsOn: ['O4P-09C'], deliveryClass: 'player-outcome',
     });
+    expect(['pending', 'audited', 'shipped']).toContain(cUi?.status);
     expect(d).toMatchObject({ dependsOn: ['O4P-09C-UI'], deliveryClass: 'player-outcome' });
 
-    const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-09C-UI'], {
+    const expectedNextDomainId = cUi?.status === 'shipped' ? 'O4P-09D' : 'O4P-09C-UI';
+    const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', expectedNextDomainId], {
       cwd: ROOT, encoding: 'utf8',
     });
     const projection = JSON.parse(context.stdout) as Record<string, unknown> & {
@@ -65,10 +67,10 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
     expect(projection).toMatchObject({
       health: { ok: true, errors: [] },
-      selection: { kind: 'selected', domainId: 'O4P-09C-UI', reason: 'explicit-domain' },
-      activeProgram: { nextDomainId: 'O4P-09C-UI' },
-      nextTechnicalSlice: { domainId: 'O4P-09C-UI' },
-      nextPlayerOutcome: { domainId: 'O4P-09C-UI' },
+      selection: { kind: 'selected', domainId: expectedNextDomainId, reason: 'explicit-domain' },
+      activeProgram: { nextDomainId: expectedNextDomainId },
+      nextTechnicalSlice: { domainId: expectedNextDomainId },
+      nextPlayerOutcome: { domainId: expectedNextDomainId },
     });
   });
 
