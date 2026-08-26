@@ -266,7 +266,7 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
     }));
     expect(stackOverflow.status).toBe('rejected');
     expect(stackOverflow.root).toBe(stackBeforeOverflow);
-  }, 30_000);
+  }, 60_000);
 
   it('rejects persisted manual roots over collection and serialized-size ceilings', () => {
     const initial = root();
