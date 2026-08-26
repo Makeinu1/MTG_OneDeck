@@ -15,8 +15,9 @@ candidate fingerprint supplied by the Judge.
 Compare the candidate with base
 36edfe95a26b53fd312df520c2e998ca4ade2205 and verify:
 
-1. Executable changes are confined to the nine Judge-owned architecture guard
-   files named by the authority.
+1. Relative to the repair base, executable changes are confined to the nine
+   Judge-owned architecture guards and the five historical verifier files
+   named by the authority's deterministic frozen-hash reanchor.
 2. The two Cloudflare file lists add only projectionBudgetV1.ts; the three
    Cloudflare import sets add only ../tabletopManual/index.
 3. The three Online-root enumerations add only tabletopManual.
@@ -34,6 +35,11 @@ Compare the candidate with base
 8. The record retains cumulative repair-wave and full-check counters and cites
    explicit user authority for repair candidate 3 plus additional
    commit/push/CI.
+9. Exact-head run 33021844744 at 785a5315d77f287767c121dd553890537bf8aa61
+   failed only on the pre-reownership 03A guard hash. The candidate changes only
+   the exact 03A/03B/03C guard pins, their three O4P-05C verifier pins, and the
+   resulting O4P-05C pin in O4P-05D; assertions and accepted paths are byte
+   unchanged.
 
 Return O4P-09D-FULL-CHECK-REPAIR-3-AUDIT-OK only when
 BLOCKER/HIGH/MEDIUM/LOW are all zero. Full check and live release evidence

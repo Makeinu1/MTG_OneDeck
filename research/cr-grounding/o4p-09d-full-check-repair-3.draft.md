@@ -20,6 +20,15 @@ only in nine legacy Judge-owned architecture guard files, producing eleven
 assertion failures. Product tests, product bytes, and the already accepted
 O4P-09D semantics are not the repair target.
 
+The reowned guard candidate was committed and pushed at exact head
+785a5315d77f287767c121dd553890537bf8aa61 after final exact-byte audit
+e1d8b86b92a57813e20dd2088726f749003604ca04491ebfd0ab7e440eda8ba3.
+Workflow-dispatch run 33021844744, build job 98353857805, then reached the
+canonical full check and stopped only because the historical O4P-03A verifier
+still pinned the pre-reownership SHA-256 of its Judge guard. That failure is a
+deterministic transitive ownership consequence of the same nine-guard repair,
+not a product, acceptance, dependency, or test-semantics failure.
+
 ## Bounded deterministic repair
 
 Change exactly these nine Judge-owned files:
@@ -55,10 +64,27 @@ No wildcard, prefix, directory-wide Core exemption, regex weakening, product
 source, ordinary product test, package, config, dependency, contract,
 acceptance meaning, or O4P-09E byte is changed.
 
+## Deterministic frozen-hash reanchor
+
+Reanchor only the literal frozen SHA-256 chain invalidated by the already
+audited 03A, 03B, and 03C guard bytes:
+
+1. Re-pin each changed 03A/03B/03C boundary guard in its matching historical
+   Cloudflare verifier.
+2. Re-pin those three resulting verifier hashes in
+   scripts/checks/verify-o4p-05c-release-gates.ts.
+3. Re-pin the resulting O4P-05C verifier hash in
+   scripts/checks/verify-o4p-05d-production-release-closure.ts.
+
+The remaining six reowned guards have no executable downstream hash pin. No
+assertion, path set, accepted behavior, product byte, review byte, or dependency
+is changed by this reanchor.
+
 ## Verification and release boundary
 
-The nine exact guard files pass 49/49 focused tests. Scoped ESLint and
-git diff --check pass. No local canonical npm run check is authorized for this
-repair; the additional exact-head CI cycle owns the canonical full-check
-evidence after fresh-context cold audit, release preflight, fingerprint freeze,
-commit, and push.
+The nine exact guard files pass their focused suite. The affected historical
+03A/03B/03C, O4P-05C, and O4P-05D verifiers, scoped ESLint, docs validation,
+and git diff --check must pass. No local canonical npm run check is authorized
+for this repair; exact-head CI owns the canonical full-check evidence after
+fresh-context cold audit, release preflight, fingerprint freeze, commit, and
+push.

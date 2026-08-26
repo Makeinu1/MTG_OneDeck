@@ -116,6 +116,29 @@ efbc605410de2b748df6cd0f400f4302c98f15c64bff0f1394ac4128fb162f11
 and returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0 with verdict
 O4P-09D-FULL-CHECK-REPAIR-3-AUDIT-OK.
 
+The final exact-byte successor re-audit matched fingerprint
+e1d8b86b92a57813e20dd2088726f749003604ca04491ebfd0ab7e440eda8ba3
+and returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0 with verdict
+FINAL-EXACT-BYTE-AUDIT-OK. The Judge committed and pushed that candidate at
+785a5315d77f287767c121dd553890537bf8aa61.
+
+Fresh workflow-dispatch run 33021844744, build job 98353857805, reached the
+canonical full check and stopped only at the historical O4P-03A verifier's
+pre-reownership hash for its Judge guard. The transitive frozen chain is exact:
+the changed 03A/03B/03C guard pins flow into their three verifiers, those three
+verifier hashes flow into O4P-05C, and the resulting O4P-05C hash flows into
+O4P-05D. The other six reowned guards have no executable frozen-hash consumer.
+Correction wave 3 therefore reanchors only those five verifier literal files;
+it changes no assertion, accepted path, product byte, review byte, dependency,
+or acceptance meaning.
+
+The fresh-context successor auditor then matched semantic fingerprint
+bbe785fc4a5dbc37ffcc83673d5a0bcb664b5d7434aead6745f2c066be80cc55
+and returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0 with verdict
+O4P-09D-FULL-CHECK-REPAIR-3-REANCHOR-AUDIT-OK. All six affected historical
+verifiers, the nine guards at 49/49, scoped ESLint, docs validation,
+git diff --check, and release preflight passed.
+
 Final exact-byte successor re-audit, replacement exact-head CI, Pages served
 assets, and terminal metadata remain pending.
 

@@ -31,7 +31,7 @@ const frozenHashes = Object.freeze({
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': 'c2c3d75d5816547db13a835ba9c9ffec921ab5620caf5192daacbeff579ecb19',
-  'scripts/checks/verify-o4p-05c-release-gates.ts': '680db98d1346d3d8c2b81a158623e6089bdee8526e48ff978b25371ed7fa7079',
+  'scripts/checks/verify-o4p-05c-release-gates.ts': 'b5ef0da5d98c2124016100222641a3338fe801f46f9440b62c06a7bbcdcc2c15',
 });
 
 function readText(path: string): string {
