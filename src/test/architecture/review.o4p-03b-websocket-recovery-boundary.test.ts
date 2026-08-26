@@ -81,6 +81,7 @@ describe('O4P-03B architecture boundary', () => {
       '../lobby/index',
       '../deckSubmission/index',
       '../genesis/index',
+      '../pregame/index',
       '../../engine/core/index',
     ]);
     for (const file of productionFiles(cloudflareRoot)) {

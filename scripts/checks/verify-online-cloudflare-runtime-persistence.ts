@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
     '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    'b7d69c3a71e77373c8722db99182d0074f38d18bb309c7229724b1272875fb12',
+    '18f062337aed02af96afc156afc3440f26da6bcf0cc9613ada6fb815048eb306',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -155,6 +155,7 @@ const allowedImports = new Set([
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',
+  '../pregame/index',
   '../../engine/core/index',
 ]);
 const forbiddenSource =

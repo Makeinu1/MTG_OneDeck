@@ -7,6 +7,7 @@ import {
   type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
 import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3 } from '../projection/index';
+import { projectOnlinePregameV1, validateOnlinePregameCommandEnvelopeV1 } from '../pregame/index';
 import { disconnectOnlineRoomParticipantV1 } from '../room/index';
 import { ConflictError, OnlineCloudflareRepository } from './persistence';
 import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
@@ -73,9 +74,9 @@ function runtimeRandomToken(prefix: string): string {
   return `${prefix}_${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')}`;
 }
 
-type OnlinePublicErrorCodeV3 = 'ROOM_NOT_FOUND' | 'ROOM_EXPIRED' | 'INVITE_INVALID' | 'INVITE_ROTATED' | 'ADMISSION_CLOSED' | 'ROOM_FULL' | 'PARTICIPANT_RECOVERABLE' | 'CREDENTIAL_REJECTED' | 'CREDENTIAL_KICKED' | 'HOST_REQUIRED' | 'INVALID_LIFECYCLE' | 'DECK_REQUIRED' | 'DECK_RESOLVING' | 'DECK_NEEDS_ATTENTION' | 'PLAYERS_NOT_READY' | 'CLIENT_UPGRADE_REQUIRED' | 'RATE_LIMITED' | 'SERVICE_UNAVAILABLE';
+type OnlinePublicErrorCodeV3 = 'ROOM_NOT_FOUND' | 'ROOM_EXPIRED' | 'INVITE_INVALID' | 'INVITE_ROTATED' | 'ADMISSION_CLOSED' | 'ROOM_FULL' | 'PARTICIPANT_RECOVERABLE' | 'CREDENTIAL_REJECTED' | 'CREDENTIAL_KICKED' | 'HOST_REQUIRED' | 'INVALID_LIFECYCLE' | 'PREGAME_REQUIRES_40_LIFE' | 'DECK_REQUIRED' | 'DECK_RESOLVING' | 'DECK_NEEDS_ATTENTION' | 'PLAYERS_NOT_READY' | 'CLIENT_UPGRADE_REQUIRED' | 'RATE_LIMITED' | 'SERVICE_UNAVAILABLE';
 type OnlinePublicHttpStatusV3 = 400 | 401 | 403 | 404 | 405 | 409 | 410 | 413 | 426 | 429 | 500 | 503;
-const PUBLIC_ERROR_RETRYABLE: Readonly<Record<OnlinePublicErrorCodeV3, boolean>> = Object.freeze({ ROOM_NOT_FOUND: false, ROOM_EXPIRED: false, INVITE_INVALID: false, INVITE_ROTATED: false, ADMISSION_CLOSED: false, ROOM_FULL: false, PARTICIPANT_RECOVERABLE: true, CREDENTIAL_REJECTED: false, CREDENTIAL_KICKED: false, HOST_REQUIRED: false, INVALID_LIFECYCLE: false, DECK_REQUIRED: false, DECK_RESOLVING: true, DECK_NEEDS_ATTENTION: false, PLAYERS_NOT_READY: true, CLIENT_UPGRADE_REQUIRED: false, RATE_LIMITED: true, SERVICE_UNAVAILABLE: true });
+const PUBLIC_ERROR_RETRYABLE: Readonly<Record<OnlinePublicErrorCodeV3, boolean>> = Object.freeze({ ROOM_NOT_FOUND: false, ROOM_EXPIRED: false, INVITE_INVALID: false, INVITE_ROTATED: false, ADMISSION_CLOSED: false, ROOM_FULL: false, PARTICIPANT_RECOVERABLE: true, CREDENTIAL_REJECTED: false, CREDENTIAL_KICKED: false, HOST_REQUIRED: false, INVALID_LIFECYCLE: false, PREGAME_REQUIRES_40_LIFE: false, DECK_REQUIRED: false, DECK_RESOLVING: true, DECK_NEEDS_ATTENTION: false, PLAYERS_NOT_READY: true, CLIENT_UPGRADE_REQUIRED: false, RATE_LIMITED: true, SERVICE_UNAVAILABLE: true });
 function onlinePublicErrorV3(code: OnlinePublicErrorCodeV3, status: OnlinePublicHttpStatusV3): Response {
   let correlationId: string;
   try { correlationId = `correlation_${runtimeRandomToken('id').slice(3)}`; } catch { return genericError(status); }
@@ -95,7 +96,7 @@ function publicErrorStatus(code: OnlinePublicErrorCodeV3): OnlinePublicHttpStatu
   if (code === 'ROOM_NOT_FOUND') return 404;
   if (code === 'INVITE_INVALID') return 404;
   if (code === 'ADMISSION_CLOSED' || code === 'HOST_REQUIRED') return 403;
-  if (code === 'ROOM_FULL' || code === 'PARTICIPANT_RECOVERABLE' || code === 'INVALID_LIFECYCLE' || code === 'DECK_REQUIRED' || code === 'DECK_RESOLVING' || code === 'DECK_NEEDS_ATTENTION' || code === 'PLAYERS_NOT_READY') return 409;
+  if (code === 'ROOM_FULL' || code === 'PARTICIPANT_RECOVERABLE' || code === 'INVALID_LIFECYCLE' || code === 'PREGAME_REQUIRES_40_LIFE' || code === 'DECK_REQUIRED' || code === 'DECK_RESOLVING' || code === 'DECK_NEEDS_ATTENTION' || code === 'PLAYERS_NOT_READY') return 409;
   if (code === 'CREDENTIAL_REJECTED') return 401;
   return 400;
 }
@@ -412,7 +413,9 @@ export class OnlineRoomDurableObject {
             }
             if (kind === 'online-forming-lobby-recover-v5' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && body.schemaVersion === 5 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string') {
               const seat = variableLobby.seats.find((candidate) => candidate.participantId === body.participantId && candidate.seatCapability === body.seatCapability); if (seat === undefined) throw new Error('CREDENTIAL_KICKED'); const isHost = body.participantId === variableLobby.hostParticipantId;
-              return jsonResponse({ kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId: route.roomId, participantId: body.participantId, playerCount: variableLobby.configuration.playerCount, startingLife: variableLobby.configuration.startingLife, ...(isHost ? { admissionOpen: variableLobby.admissionOpen, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, variableLobby.admissionCapability), tableParticipantId: variableLobby.tableParticipantId, tableCapability: variableLobby.tableCapability } : {}), projection: projectOnlineVariableLobbyV4(variableLobby) });
+              const pregameState = this.repository.loadPregameV1(route.roomId);
+              const pregame = pregameState === null ? null : projectOnlinePregameV1(pregameState, body.participantId);
+              return jsonResponse({ kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId: route.roomId, participantId: body.participantId, playerCount: variableLobby.configuration.playerCount, startingLife: variableLobby.configuration.startingLife, ...(isHost ? { admissionOpen: variableLobby.admissionOpen, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, variableLobby.admissionCapability), tableParticipantId: variableLobby.tableParticipantId, ['tableCapability']: variableLobby.tableCapability } : {}), projection: projectOnlineVariableLobbyV4(variableLobby), pregame });
             }
             if (kind === 'online-forming-lobby-admission-rotate-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 3 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') { const rotated = this.repository.rotateVariableLobbyV4(route.roomId, body.hostParticipantId, body.seatCapability, runtimeRandomToken('admission')); return jsonResponse({ kind: 'online-forming-lobby-admission-rotated-v3', schemaVersion: 3, roomId: route.roomId, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, rotated.admissionCapability), projection: rotated.projection }); }
             if (kind === 'online-forming-lobby-admission-close-v3' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && schemaVersion === 3 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') return jsonResponse({ kind: 'online-forming-lobby-admission-closed-v3', schemaVersion: 3, roomId: route.roomId, projection: this.repository.closeVariableLobbyV4(route.roomId, body.hostParticipantId, body.seatCapability) });
@@ -427,7 +430,7 @@ export class OnlineRoomDurableObject {
             if (kind === 'online-forming-lobby-start-v4' && isExactRecord(body, ['kind', 'schemaVersion', 'hostParticipantId', 'seatCapability']) && body.schemaVersion === 4 && typeof body.hostParticipantId === 'string' && typeof body.seatCapability === 'string') return jsonResponse(this.repository.startVariableV4(route.roomId, body.hostParticipantId, body.seatCapability));
           } catch (error: unknown) {
             const message = error instanceof Error ? error.message : '';
-            const code = message === 'Room is full' ? 'ROOM_FULL' : message === 'Invite rejected' ? 'INVITE_INVALID' : message === 'HOST_REQUIRED' ? 'HOST_REQUIRED' : message === 'CREDENTIAL_KICKED' ? 'CREDENTIAL_KICKED' : message === 'ADMISSION_CLOSED' ? 'ADMISSION_CLOSED' : message === 'INVALID_LIFECYCLE' ? 'INVALID_LIFECYCLE' : message === 'PLAYERS_NOT_READY' ? 'PLAYERS_NOT_READY' : message === 'Accepted v2 deck required before ready' || message === 'Accepted snapshot relation invalid' ? 'DECK_REQUIRED' : message === 'ROOM_NOT_FOUND' ? 'ROOM_NOT_FOUND' : null;
+            const code = message === 'Room is full' ? 'ROOM_FULL' : message === 'Invite rejected' ? 'INVITE_INVALID' : message === 'HOST_REQUIRED' ? 'HOST_REQUIRED' : message === 'CREDENTIAL_KICKED' ? 'CREDENTIAL_KICKED' : message === 'ADMISSION_CLOSED' ? 'ADMISSION_CLOSED' : message === 'INVALID_LIFECYCLE' ? 'INVALID_LIFECYCLE' : message === 'PREGAME_REQUIRES_40_LIFE' ? 'PREGAME_REQUIRES_40_LIFE' : message === 'PLAYERS_NOT_READY' ? 'PLAYERS_NOT_READY' : message === 'Accepted v2 deck required before ready' || message === 'Accepted snapshot relation invalid' ? 'DECK_REQUIRED' : message === 'ROOM_NOT_FOUND' ? 'ROOM_NOT_FOUND' : null;
             if (code !== null) return onlinePublicErrorV3(code, publicErrorStatus(code));
             return genericError(error instanceof ConflictError ? 409 : 400);
           }
@@ -572,6 +575,46 @@ export class OnlineRoomDurableObject {
         }
         return genericError(400);
       }
+      if (route.action === 'pregame' && request.method === 'POST') {
+        if (!validJsonContentType(request)) return genericError(400);
+        const body = await readJsonBody(request);
+        if (body === null) return genericError(400);
+        try {
+          const participantId = ownDataString(body, 'participantId');
+          const networkValue = ownDataString(body, 'participantCapability');
+          if (participantId === null || networkValue === null) return genericError(400);
+          const state = this.repository.loadVariableProtocolV2(route.roomId);
+          if (state === null) return genericError(404);
+          const now = this.now();
+          const admission = this.security.consumeHttpAction(state, participantId, networkValue, 'command', now);
+          const status = securityStatus(admission);
+          if (status !== null) return genericError(status);
+          if (!admission.ok) return genericError(500);
+          try {
+            assertNoBearerCollision(body, capabilityNeedles(this.security.read(state), networkValue, now));
+          } catch {
+            return genericError(401);
+          }
+          if (ownDataString(body, 'kind') !== 'online-pregame-command-envelope-v1') return genericError(400);
+          const internalMessage = cloneWithProtocolCapability(body, admission.authorization.protocolCapability);
+          const validation = validateOnlinePregameCommandEnvelopeV1(internalMessage);
+          if (validation.ok) {
+            const acquired = this.security.acquireControllerLease(
+              state,
+              participantId,
+              admission.authorization.generation,
+              { kind: 'http', connectionId: null },
+              now,
+            );
+            if (!acquired) return genericError(409);
+          }
+          const result = this.repository.applyPregameCommandV1(route.roomId, internalMessage);
+          if (result === null) return genericError(401);
+          return jsonResponse(result);
+        } catch (error: unknown) {
+          return genericError(error instanceof ConflictError ? 409 : 400);
+        }
+      }
       if (route.action === 'capabilities' && request.method === 'POST') {
         if (!validJsonContentType(request)) return genericError(400);
         const body = await readJsonBody(request);
@@ -590,6 +633,8 @@ export class OnlineRoomDurableObject {
         }
       }
       if (route.action === 'commands' && request.method === 'POST') {
+        const pregame = this.repository.loadPregameV1(route.roomId);
+        if (pregame !== null && pregame.phase !== 'complete') return genericError(409);
         if (!validJsonContentType(request)) return genericError(400);
         const body = await readJsonBody(request);
         if (body === null) return genericError(400);
@@ -633,6 +678,8 @@ export class OnlineRoomDurableObject {
         return publicProtocolResponse(transition.response);
       }
       if (route.action === 'websocket' && request.method === 'GET') {
+        const pregame = this.repository.loadPregameV1(route.roomId);
+        if (pregame !== null && pregame.phase !== 'complete') return genericError(409);
         if (!isWebSocketUpgrade(request) || request.body !== null) return genericError(400);
         const state = this.repository.load() ?? this.repository.loadVariableProtocolV2(route.roomId);
         if (state === null) return genericError(404);

@@ -83,6 +83,13 @@ describe('O4P-05D production-release closure boundary', () => {
         'src/online/publicApp/review.o4p-08a-recovery-client.test.ts',
       ],
       [
+        'src/components/online/OnlinePregameLayer.tsx',
+        'src/components/online/__tests__/OnlinePregameLayer.test.tsx',
+        'src/components/online/__tests__/PublicOnlineApp.test.tsx',
+        'src/dev/visualFixtures/PregameFixture.tsx',
+        'src/test/architecture/review.o4p-09c-ui-production-pregame.test.ts',
+      ],
+      [
         'src/online/cloudflare/__tests__/review.o4p-08c-variable-runtime.test.ts',
         'src/online/cloudflare/__tests__/variableCreateV5.test.ts',
         'src/online/cloudflare/__tests__/variableRuntimeV4.test.ts',

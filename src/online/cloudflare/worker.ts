@@ -49,11 +49,11 @@ function preflight(origin: string, method: string, headersValue: string | null):
   }});
 }
 
-function preflightMethodAllowed(route: Readonly<{ readonly action: 'create' | 'room' | 'lobby' | 'commands' | 'capabilities' | 'websocket' }>, method: string): boolean {
+function preflightMethodAllowed(route: Readonly<{ readonly action: 'create' | 'room' | 'lobby' | 'pregame' | 'commands' | 'capabilities' | 'websocket' }>, method: string): boolean {
   if (route.action === 'create') return method === 'POST';
   if (route.action === 'room') return method === 'GET';
   if (route.action === 'lobby') return method === 'GET' || method === 'POST';
-  if (route.action === 'commands' || route.action === 'capabilities') return method === 'POST';
+  if (route.action === 'pregame' || route.action === 'commands' || route.action === 'capabilities') return method === 'POST';
   return false;
 }
 
@@ -197,7 +197,7 @@ export default {
         else {
           roomId = route.roomId;
           action = route.action;
-          const methodAllowed = route.action === 'room' ? request.method === 'GET' || (request.method === 'PUT' && origin === null) : route.action === 'lobby' ? request.method === 'GET' || request.method === 'POST' : route.action === 'commands' ? request.method === 'POST' : route.action === 'capabilities' ? request.method === 'POST' : request.method === 'GET';
+          const methodAllowed = route.action === 'room' ? request.method === 'GET' || (request.method === 'PUT' && origin === null) : route.action === 'lobby' ? request.method === 'GET' || request.method === 'POST' : route.action === 'pregame' || route.action === 'commands' ? request.method === 'POST' : route.action === 'capabilities' ? request.method === 'POST' : request.method === 'GET';
           if (!methodAllowed) response = genericError(405);
           else if (route.action === 'websocket' && (!isWebSocketUpgrade(request) || request.body !== null)) response = genericError(400);
           else if (route.action !== 'websocket' && (request.method === 'POST' || request.method === 'PUT') && (!validJsonContentType(request) || !validContentLength(request))) response = genericError(400);

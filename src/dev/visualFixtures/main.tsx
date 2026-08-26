@@ -20,6 +20,7 @@ import {
   resolveTabletopPrototypeMode,
 } from './tabletopPrototype';
 import { AmbientMacroFixture } from './AmbientMacroFixture';
+import { PregameFixture } from './PregameFixture';
 import './tabletopPrototype.css';
 
 function queryValue(name: string): string | null {
@@ -33,6 +34,7 @@ function fixtureScenario(): VisualFixtureScenario {
 
 const requestedScenario = queryValue('scenario');
 const isAmbientMacroFixture = requestedScenario === 'ambient-macro';
+const isPregameFixture = requestedScenario === 'pregame';
 const scenario = fixtureScenario();
 const tabletopMode = resolveTabletopPrototypeMode(queryValue('tabletop'));
 applyTabletopPrototypeMode(document.documentElement, tabletopMode);
@@ -117,6 +119,11 @@ if (isAmbientMacroFixture) {
   document.documentElement.dataset.fixtureScenario = 'ambient-macro';
   document.title = 'MTG OneDeck — 長周期アンビエント比較fixture';
   createRoot(rootElement).render(<AmbientMacroFixture />);
+} else if (isPregameFixture) {
+  const playerCount = queryValue('players') === '4' ? 4 : 2;
+  document.documentElement.dataset.fixtureScenario = `pregame-${playerCount}`;
+  document.title = `MTG OneDeck — Pregame ${playerCount}P fixture`;
+  createRoot(rootElement).render(<PregameFixture playerCount={playerCount} />);
 } else {
   void renderFixture().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : 'fixtureの表示に失敗しました。';

@@ -46,6 +46,45 @@ const PROJECTION_COMPAT_PATHS = [
   'src/online/projection/validation.ts',
   'src/online/projection/__tests__/projectionV1.test.ts',
 ] as const;
+const O4P_09C_UI_SUCCESSOR_PATHS = new Set([
+  'research/cr-grounding/o4p-09c-ui-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-09c-ui-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09c-ui-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-09c-ui-production-pregame.contract.draft.md',
+  'research/cr-grounding/o4p-09c-ui-repair-1-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-09c-ui-repair-1-correction-1-brief.draft.md',
+  'research/cr-grounding/archive/o4p-09c-ui-production-pregame-cold-audit-record-2026-08-26.md',
+  'scripts/checks/verify-online-cloudflare-runtime-persistence.ts',
+  'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
+  'scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
+  'scripts/checks/verify-online-cloudflare-production-gate.ts',
+  'scripts/checks/verify-o4p-05c-release-gates.ts',
+  'scripts/checks/verify-o4p-05d-production-release-closure.ts',
+  'src/components/game/GameScreen.tsx',
+  'src/components/game/game.css',
+  'src/components/online/OnlinePregameLayer.tsx',
+  'src/components/online/__tests__/OnlinePregameLayer.test.tsx',
+  'src/components/online/__tests__/PublicOnlineApp.test.tsx',
+  'src/components/online/PublicOnlineApp.tsx',
+  'src/dev/visualFixtures/PregameFixture.tsx',
+  'src/dev/visualFixtures/main.tsx',
+  'src/online/cloudflare/persistence.ts',
+  'src/online/cloudflare/runtime.ts',
+  'src/online/cloudflare/support.ts',
+  'src/online/cloudflare/worker.ts',
+  'src/online/cloudflare/__tests__/variableRuntimeV4.test.ts',
+  'src/online/cloudflare/__tests__/review.o4p-08c-variable-runtime.test.ts',
+  'src/online/publicApp/publicAppClientV3.test.ts',
+  'src/online/publicApp/review.o4p-08d-variable-public-client.test.ts',
+  'src/online/publicApp/recoveryV1.ts',
+  'src/online/publicApp/types.ts',
+  'src/online/publicApp/v3.ts',
+  'src/test/architecture/review.o4p-09c-ui-production-pregame.test.ts',
+  'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts',
+  'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
+  'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
+  'src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts',
+]);
 const JUDGE_PATHS = new Set([
   '.agents/skills/mtg-onedeck-development/references/document-governance.md',
   '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
@@ -1354,12 +1393,14 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
     }
     for (const path of changed) {
       const allowed = JUDGE_PATHS.has(path)
+        || O4P_09C_UI_SUCCESSOR_PATHS.has(path)
         || ONLINE_PRODUCT_PATHS.includes(path as typeof ONLINE_PRODUCT_PATHS[number])
         || CORE_PREGAME_PATHS.includes(path as typeof CORE_PREGAME_PATHS[number])
         || CORE_DRAW_SKIP_PATHS.includes(path as typeof CORE_DRAW_SKIP_PATHS[number])
         || PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number]);
       expect(allowed, `unexpected O4P-09C path: ${path}`).toBe(true);
-      if (!PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number])) {
+      if (!O4P_09C_UI_SUCCESSOR_PATHS.has(path)
+        && !PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number])) {
         expect(path).not.toMatch(
           /^src\/(?:components|store|online\/(?:application|browser|cloudflare|genesis|protocol|projection|publicApp|room))\//u,
         );

@@ -74,6 +74,7 @@ export interface GameScreenProps {
   keybindings: KeybindingsMap;
   onOpenOpponentSetup?: () => void;
   interactionPort?: GameScreenInteractionPort;
+  presentation?: ReactNode;
 }
 
 export function TabletopSurface() {
@@ -120,6 +121,7 @@ export function GameScreen({
   keybindings,
   onOpenOpponentSetup,
   interactionPort,
+  presentation,
 }: GameScreenProps) {
   const initialHandLayout = useMemo(
     () => new URLSearchParams(window.location.search).get('hand'),
@@ -133,6 +135,7 @@ export function GameScreen({
     handWorkspaceOpen,
     setHandWorkspaceOpen,
   };
+  if (presentation !== undefined) return <div className="game-screen game-screen--pregame" data-testid="game-screen">{presentation}</div>;
   return interactionPort
     ? <GameScreenSurface interactionPort={interactionPort} {...surfaceProps} />
     : <LocalGameScreen keybindings={keybindings} {...surfaceProps} />;

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { DEFAULT_KEYBINDINGS, type KeybindingsMap } from '../../data/keybindings';
+import { GameScreen } from '../game/GameScreen';
 import {
   createPublicOnlineControllerV3,
   encodeOnlineSharedInviteCodeV3,
@@ -11,9 +13,11 @@ import './publicOnlineApp.css';
 import { OnlineDisplayPairing } from './OnlineDisplayPairing';
 import { OnlineGuidedActions } from './OnlineGuidedActions';
 import { PersonalWorkbench } from './PersonalWorkbench';
+import { PregameLayer } from './OnlinePregameLayer';
 
 export type PublicOnlineAppProps = Readonly<{
   decks: readonly PublicOnlineDeckOptionV2[];
+  keybindings?: KeybindingsMap;
   initialDeckId?: string;
   selectedDeckId?: string;
   onDeckSelect?: (deckId: string) => void;
@@ -34,6 +38,7 @@ function allReady(snapshot: PublicOnlineSnapshotV3): boolean {
 
 export function PublicOnlineApp({
   decks,
+  keybindings = DEFAULT_KEYBINDINGS,
   initialDeckId = '',
   selectedDeckId: controlledDeckId,
   onDeckSelect,
@@ -86,6 +91,7 @@ export function PublicOnlineApp({
     : controller.displayDeckName(selectedDeck.name, selectedDeckIndex);
   const admitted = snapshot.roomId !== null && snapshot.mode !== 'entry';
   const started = snapshot.lifecycle === 'started';
+  const pregamePending = started && snapshot.pregame !== null && snapshot.pregame.phase !== 'complete';
   const local =
     snapshot.ownSeatIndex === null
       ? null
@@ -576,12 +582,45 @@ export function PublicOnlineApp({
           {actionError('もう一度退出')}
         </section>
       )}
-      {started && snapshot.configuration && (
+      {started && snapshot.configuration && !pregamePending && (
         <p className="public-online-app__authoritative-configuration" data-testid="online-authoritative-configuration">
           {snapshot.configuration.playerCount}人・開始ライフ{snapshot.configuration.startingLife}
         </p>
       )}
-      {started &&
+      {pregamePending && snapshot.pregame && (
+        <GameScreen
+          key={`${snapshot.pregame.revision}-${snapshot.pregame.phase}`}
+          keybindings={keybindings}
+          presentation={(
+            <PregameLayer
+              port={{
+                projection: snapshot.pregame,
+                busy: snapshot.busy !== null,
+                connection: snapshot.connection === 'online'
+                  ? 'online'
+                  : snapshot.connection === 'reconnecting'
+                    ? 'reconnecting'
+                    : snapshot.connection === 'failed'
+                      ? 'failed'
+                      : 'connecting',
+                error: snapshot.error,
+                onConfirmCommanders: () => { void controller.submitPregame({ kind: 'confirm-commanders' }); },
+                onMulliganDecision: (decision) => { void controller.submitPregame({ kind: 'declare-mulligan', decision }); },
+                onSubmitMulliganBottom: (objectIds) => { void controller.submitPregame({ kind: 'submit-mulligan-bottom', objectIds: objectIds as never }); },
+                onRecordPregameAction: () => { void controller.submitPregame({ kind: 'record-manual-pregame-action' }); },
+                onCompletePregameActions: () => { void controller.submitPregame({ kind: 'complete-pregame-actions' }); },
+                onSetReady: () => { void controller.submitPregame({ kind: 'set-ready', ready: true }); },
+              }}
+            />
+          )}
+        />
+      )}
+      {started && !pregamePending && (snapshot.player === null || snapshot.player.projection === null) && (
+        <p className="public-online-app__authoritative-configuration" role="status">
+          対戦画面を準備しています。接続が完了するまでお待ちください。
+        </p>
+      )}
+      {started && !pregamePending &&
         snapshot.player?.projection &&
         (snapshot.table?.projection ? (
           <OnlineDisplayPairing

@@ -27,11 +27,11 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: 'd8ecf72193ce55ae28e70af7d6de3ddfd5d50ceada757778f7284d2088ccde39',
+  [reviewPath]: '04efa6520b4c461b3d19eb9aa464278bc8432ccaecea8d6f9be2bb34a33ed6e9',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': 'c2c3d75d5816547db13a835ba9c9ffec921ab5620caf5192daacbeff579ecb19',
-  'scripts/checks/verify-o4p-05c-release-gates.ts': '7a7707bdcd6bea841f8cdc707a15c7dd21d694f845da71897cd4f4f0a0e77a7b',
+  'scripts/checks/verify-o4p-05c-release-gates.ts': '2205de42e08ce630d8e71c28bb4151e7cfb62c9448869b999230be61f47a44cc',
 });
 
 function readText(path: string): string {
@@ -99,6 +99,13 @@ assert.equal(
       'src/online/protocol/variableCommand.ts',
       'src/online/room/variable.ts',
       'src/test/architecture/review.o4p-08c-variable-roster-boundary.test.ts',
+    ],
+    [
+      'src/components/online/OnlinePregameLayer.tsx',
+      'src/components/online/__tests__/OnlinePregameLayer.test.tsx',
+      'src/components/online/__tests__/PublicOnlineApp.test.tsx',
+      'src/dev/visualFixtures/PregameFixture.tsx',
+      'src/test/architecture/review.o4p-09c-ui-production-pregame.test.ts',
     ],
   ].some((allowed) => JSON.stringify(allowed) === JSON.stringify(untrackedProtectedDrift)),
   true,

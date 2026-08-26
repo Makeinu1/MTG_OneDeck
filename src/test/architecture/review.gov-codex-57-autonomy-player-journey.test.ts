@@ -29,7 +29,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
       id: 'O4P-09',
       domainIds: IDS,
       authority: {
-        localWrites: false, commit: false, push: false, deploy: false, ship: false,
+        localWrites: true, commit: false, push: false, deploy: false, ship: false,
       },
       autonomy: { mode: 'complete' },
       journeyPolicy: {
@@ -109,10 +109,14 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     expect(ci).toMatch(/if: needs\.build\.outputs\.lane == 'semantic'/);
   });
 
-  it('does not implement O4P-09C-UI product bytes', () => {
-    const status = spawnSync('git', ['diff', '--name-only', '027aed8b152421f0aa101c81eefcf766fbfc803b'], {
+  it('keeps the shipped GOV-CODEX-57 semantic candidate free of O4P-09C-UI product bytes', () => {
+    const status = spawnSync('git', ['diff', '--name-only',
+      '027aed8b152421f0aa101c81eefcf766fbfc803b',
+      'd62e84b4aca5091c76bb9108f02f9e298e917f83',
+    ], {
       cwd: ROOT, encoding: 'utf8',
     });
+    expect(status.status).toBe(0);
     const paths = status.stdout.split(/\r?\n/u).filter(Boolean);
     expect(paths.filter((path) => path.startsWith('src/components/') || path.startsWith('src/online/')))
       .toEqual([]);

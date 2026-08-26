@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    'e827a7c722cd1f44d401f57f7f2f304bd91e080f2e6e963457a6f3f62bbb2b53',
+    '85cd795e5793601a4ab893696993b994fca44c9f48b1408836067738e8456117',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -148,6 +148,7 @@ const allowedImports = new Set([
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',
+  '../pregame/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {

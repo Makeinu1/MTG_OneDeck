@@ -359,7 +359,7 @@ describe('O4P-08D Judge: public variable-room client', () => {
     bodyTimeout.disconnect();
   });
 
-  it('accepts exact variable start status and enters started browser mode', async () => {
+  it('fails a 40-life start closed when the required Pregame projection is absent', async () => {
     const guestId = 'participant-o4p08d-public-guest';
     let participantId = '';
     vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
@@ -411,8 +411,10 @@ describe('O4P-08D Judge: public variable-room client', () => {
     expect(controller.getSnapshot().lifecycle).toBe('ready');
     await controller.start();
     expect(controller.getSnapshot()).toMatchObject({
-      mode: 'started', lifecycle: 'started', configuration: { playerCount: 2, startingLife: 40 },
+      mode: 'forming', lifecycle: 'ready', configuration: { playerCount: 2, startingLife: 40 },
+      player: null,
     });
+    expect(controller.getSnapshot().error).not.toBeNull();
     controller.disconnect();
   });
 

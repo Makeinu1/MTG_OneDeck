@@ -140,6 +140,7 @@ const allowedImports = new Set([
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',
+  '../pregame/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {

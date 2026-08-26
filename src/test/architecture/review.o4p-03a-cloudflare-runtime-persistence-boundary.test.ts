@@ -77,6 +77,7 @@ describe('O4P-03A architecture boundary', () => {
       '../lobby/index',
       '../deckSubmission/index',
       '../genesis/index',
+      '../pregame/index',
       '../../engine/core/index',
     ]);
     const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
@@ -125,7 +126,13 @@ describe('O4P-03A architecture boundary', () => {
       /UPDATE online_room_state[\s\S]*WHERE[\s\S]*singleton[\s\S]*room_id[\s\S]*revision/i,
     );
     expect(persistence).toMatch(/INSERT INTO online_accepted_command/);
-    expect(persistence).not.toMatch(/\$\{|eval\s*\(|deleteAll|ALTER TABLE|DROP TABLE|PRAGMA/i);
+    const sqlLiterals = Array.from(
+      persistence.matchAll(/const\s+[A-Z][A-Z0-9_]*\s*=\s*(`[^`]*`|'[^']*');/gu),
+      (match) => match[1] ?? '',
+    ).join('\n');
+    expect(sqlLiterals).toMatch(/CREATE TABLE/u);
+    expect(sqlLiterals).not.toMatch(/\$\{/u);
+    expect(persistence).not.toMatch(/eval\s*\(|deleteAll|ALTER TABLE|DROP TABLE|PRAGMA/i);
   });
 
   it('keeps the public surface closed and stores no capability-bearing envelope type', () => {

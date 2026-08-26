@@ -139,7 +139,7 @@ describe('O4P-08C Judge: variable Worker and Durable Object runtime', () => {
       },
     ), env)).json() as Json;
     expect(Object.keys(recovered).sort()).toEqual([
-      'kind', 'participantId', 'playerCount', 'projection', 'roomId',
+      'kind', 'participantId', 'playerCount', 'pregame', 'projection', 'roomId',
       'schemaVersion', 'startingLife',
     ]);
     expect(recovered).not.toHaveProperty('inviteCode');

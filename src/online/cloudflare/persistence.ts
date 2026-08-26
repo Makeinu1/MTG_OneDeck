@@ -57,10 +57,24 @@ import { buildDynamicRoomGenesisV2, buildVariableRoomGenesisV3, type DynamicGene
 import { handleOnlineVariableCommandEnvelopeV2, validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
 import type { OnlineDynamicStartResultV2 } from './types';
 import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4, setOnlineVariableLobbyDeckAcceptedV4, setOnlineVariableLobbyReadyV4, rotateOnlineVariableLobbyAdmissionV4, closeOnlineVariableLobbyAdmissionV4, replaceOnlineVariableLobbySeatV4, type OnlineVariableLobbyV4, type OnlineVariableLobbyProjectionV4 } from '../lobby/index';
+import {
+  createOnlinePregameLifecycleV1,
+  handleOnlinePregameCommandEnvelopeV1,
+  projectOnlinePregameV1,
+  replayOnlinePregameLifecycleV1,
+  validateOnlinePregameCommandEnvelopeV1,
+  validateOnlinePregameStateV1,
+  type OnlinePregameCommandResponseV1,
+  type OnlinePregameProjectionV1,
+  type OnlinePregameRandomPlanV1,
+  type OnlinePregameStateV1,
+} from '../pregame/index';
 
 const CREATE_ROOM = `CREATE TABLE IF NOT EXISTS online_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, accepted_command_count INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_VARIABLE_ROOM = `CREATE TABLE IF NOT EXISTS online_variable_room_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, room_lifecycle TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const SELECT_VARIABLE_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, state_json FROM online_variable_room_state WHERE singleton = 1`;
+const CREATE_PREGAME = `CREATE TABLE IF NOT EXISTS online_pregame_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, phase TEXT NOT NULL, initial_state_json TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
+const SELECT_PREGAME = `SELECT singleton, schema_version, room_id, revision, phase, initial_state_json, state_json FROM online_pregame_state WHERE singleton = 1`;
 const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
 const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migration (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL) STRICT`;
 const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
@@ -130,6 +144,7 @@ type DeckHeadRow = { room_id: unknown; seat_index: unknown; participant_id: unkn
 type DeckHistoryRow = DeckHeadRow & { canonical_input: unknown; issues_json: unknown };
 type DeckSnapshotRow = { room_id: unknown; seat_index: unknown; snapshot_digest: unknown; snapshot_json: unknown };
 type DeckReadyRow = { room_id: unknown; seat_index: unknown; ready: unknown };
+type PregameRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; phase: unknown; initial_state_json: unknown; state_json: unknown };
 type RecoveryVerificationResult = Readonly<{ readonly checkpointRevision: number; readonly replayCount: number }>;
 type MigrationRecoveryHandoff = RecoveryVerificationResult & Readonly<{ readonly roomId: string; readonly currentRevision: number; readonly versionIdentifier: string | null }>;
 
@@ -170,6 +185,53 @@ function exactOwnKeys(value: unknown, keys: readonly string[]): value is Record<
     const own = Reflect.ownKeys(value);
     return own.length === keys.length && own.every((key) => typeof key === 'string' && keys.includes(key) && Object.prototype.propertyIsEnumerable.call(value, key));
   } catch { return false; }
+}
+
+function secureRandomIndex(limit: number): number {
+  if (!Number.isSafeInteger(limit) || limit <= 0 || limit > 0x1_0000_0000) throw new Error('Invalid random range');
+  const cryptoObject = globalThis.crypto;
+  if (cryptoObject === undefined || typeof cryptoObject.getRandomValues !== 'function') throw new Error('Randomness unavailable');
+  const range = 0x1_0000_0000;
+  const ceiling = range - (range % limit);
+  const sample = new Uint32Array(1);
+  do { cryptoObject.getRandomValues(sample); } while ((sample[0] ?? range) >= ceiling);
+  return (sample[0] ?? 0) % limit;
+}
+
+function shuffled<T>(values: readonly T[]): readonly T[] {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = secureRandomIndex(index + 1);
+    const current = result[index];
+    result[index] = result[swapIndex];
+    result[swapIndex] = current;
+  }
+  return Object.freeze(result);
+}
+
+function createServerPregamePlanV1(state: OnlineVariableProtocolStateV2): OnlinePregameRandomPlanV1 {
+  const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+  const seatOrder = registry.turnOrder;
+  const startingPlayerId = seatOrder[secureRandomIndex(seatOrder.length)];
+  if (startingPlayerId === undefined) throw new Error('Missing starting player');
+  const startIndex = seatOrder.indexOf(startingPlayerId);
+  const turnOrder = Object.freeze([...seatOrder.slice(startIndex), ...seatOrder.slice(0, startIndex)]);
+  const orderCount = seatOrder.length === 2 ? 8 : 9;
+  const decisionBytes = new Uint32Array(4);
+  globalThis.crypto.getRandomValues(decisionBytes);
+  const decisionId = `pregame-${Array.from(decisionBytes, (value) => value.toString(16).padStart(8, '0')).join('')}`;
+  const libraryPlans = seatOrder.map((playerId) => {
+    const zones = registry.zones.byPlayer[playerId];
+    if (zones === undefined) throw new Error('Missing player zones');
+    const physicalIds = [...zones.library, ...zones.hand].map((objectId) => {
+      const object = registry.objects[objectId];
+      if (object?.kind !== 'card') throw new Error('Pregame library contains a non-card object');
+      return object.physicalCardId;
+    });
+    const orders = Array.from({ length: orderCount }, () => shuffled(physicalIds));
+    return Object.freeze({ playerId, orders: Object.freeze(orders) });
+  });
+  return Object.freeze({ kind: 'online-pregame-random-plan-v1', schemaVersion: 1, decisionId, startingPlayerId, turnOrder, libraryPlans: Object.freeze(libraryPlans) });
 }
 
 function denseArray(value: unknown): value is readonly unknown[] {
@@ -695,6 +757,72 @@ export class OnlineCloudflareRepository {
     return checked.value;
   }
 
+  loadPregameV1(roomId: string): OnlinePregameStateV1 | null {
+    let rows: readonly PregameRow[];
+    try { rows = this.storage.sql.exec<PregameRow>(SELECT_PREGAME).toArray(); }
+    catch (error: unknown) {
+      if (error instanceof Error && (/no such table/i.test(error.message) || /Unexpected SQL/i.test(error.message))) return null;
+      throw error;
+    }
+    if (rows.length === 0) return null;
+    const row = rows[0];
+    if (rows.length !== 1 || row === undefined || row.singleton !== 1 || row.schema_version !== 1 || row.room_id !== roomId || typeof row.initial_state_json !== 'string' || typeof row.state_json !== 'string') throw new Error('Invalid Pregame row');
+    let initialInput: unknown;
+    let stateInput: unknown;
+    try { initialInput = JSON.parse(row.initial_state_json); stateInput = JSON.parse(row.state_json); }
+    catch { throw new Error('Invalid Pregame JSON'); }
+    const initial = validateOnlineVariableProtocolStateV2(initialInput);
+    const state = validateOnlinePregameStateV1(stateInput);
+    if (!initial.ok || !state.ok || initial.value.room.roomId !== roomId || state.value.protocolState.room.roomId !== roomId || row.revision !== state.value.revision || row.phase !== state.value.phase || JSON.stringify(initial.value) !== row.initial_state_json || JSON.stringify(state.value) !== row.state_json) throw new Error('Invalid Pregame state');
+    const replay = replayOnlinePregameLifecycleV1(initial.value, state.value.randomPlan, state.value.journal);
+    if (!replay.ok || JSON.stringify(replay.value) !== row.state_json) throw new Error('Invalid Pregame replay');
+    return state.value;
+  }
+
+  projectPregameV1(roomId: string, participantId: string): OnlinePregameProjectionV1 | null {
+    const state = this.loadPregameV1(roomId);
+    if (state === null) return null;
+    const projection = projectOnlinePregameV1(state, participantId);
+    return projection;
+  }
+
+  applyPregameCommandV1(roomId: string, input: unknown): Readonly<{
+    readonly response: OnlinePregameCommandResponseV1;
+    readonly projection: OnlinePregameProjectionV1;
+  }> | null {
+    const state = this.loadPregameV1(roomId);
+    if (state === null) throw new Error('PREGAME_NOT_FOUND');
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) return null;
+    let inputRoomId: unknown;
+    let participantId: unknown;
+    let providedSeatValue: unknown;
+    try {
+      inputRoomId = Object.getOwnPropertyDescriptor(input, 'roomId')?.value;
+      participantId = Object.getOwnPropertyDescriptor(input, 'participantId')?.value;
+      providedSeatValue = Object.getOwnPropertyDescriptor(input, 'participantCapability')?.value;
+    } catch { return null; }
+    if (inputRoomId !== roomId || typeof participantId !== 'string' || typeof providedSeatValue !== 'string') return null;
+    const seat = state.protocolState.room.seats.find((candidate) => candidate.participantId === participantId && candidate['seatCapability'] === providedSeatValue);
+    if (seat === undefined) return null;
+    const checkedEnvelope = validateOnlinePregameCommandEnvelopeV1(input);
+    const transition = handleOnlinePregameCommandEnvelopeV1(state, checkedEnvelope.ok ? checkedEnvelope.value : input);
+    if (transition.response.kind === 'online-pregame-command-ack-v1' && !transition.response.duplicate) {
+      const previousJson = JSON.stringify(state);
+      const nextJson = JSON.stringify(transition.state);
+      this.storage.transactionSync(() => {
+        const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_pregame_state SET revision = ?, phase = ?, state_json = ? WHERE singleton = 1 AND schema_version = 1 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', transition.state.revision, transition.state.phase, nextJson, roomId, state.revision, previousJson).toArray();
+        if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+        if (transition.state.phase === 'complete') {
+          const protocolJson = JSON.stringify(transition.state.protocolState);
+          const protocolRows = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = 0, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = 0 RETURNING singleton', transition.state.protocolState.room.lifecycle, protocolJson, roomId).toArray();
+          const checkpointRows = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_recovery_checkpoint SET checkpoint_revision = 0, state_json = ? WHERE singleton = 1 AND room_id = ? AND checkpoint_revision = 0 RETURNING singleton', protocolJson, roomId).toArray();
+          if (protocolRows.length !== 1 || protocolRows[0]?.singleton !== 1 || checkpointRows.length !== 1 || checkpointRows[0]?.singleton !== 1) throw new ConflictError();
+        }
+      });
+    }
+    return Object.freeze({ response: transition.response, projection: projectOnlinePregameV1(transition.state, participantId) });
+  }
+
   initializeVariableProtocolV2(stateInput: OnlineVariableProtocolStateV2): Readonly<{ readonly kind: 'online-cloudflare-room-status-v2'; readonly schemaVersion: 2; readonly roomId: string; readonly playerCount: 2 | 4; readonly startingLife: 20 | 40; readonly revision: number; readonly roomLifecycle: string }> {
     const checked = validateOnlineVariableProtocolStateV2(stateInput); if (!checked.ok) throw new Error('Invalid variable protocol state');
     const state = checked.value; const stateJson = JSON.stringify(state);
@@ -1113,9 +1241,35 @@ export class OnlineCloudflareRepository {
     const lobby = this.loadVariableLobbyV4(roomId); if (lobby === null) throw new Error('Missing variable lobby');
     if (lobby.hostParticipantId !== hostParticipantId || lobby.seats[0]?.seatCapability !== seatCapability) throw new Error('HOST_REQUIRED');
     if (lobby.seats.some((seat) => seat.participantId === null || !seat.acceptedDeck || !seat.ready)) throw new Error('PLAYERS_NOT_READY');
+    if (lobby.configuration.startingLife !== 40) throw new Error('PREGAME_REQUIRES_40_LIFE');
     const seats: VariableGenesisSeatInputV3[] = lobby.seats.map((seat, index) => { const head = this.deckHead(roomId, index); const loaded = this.loadDeckSnapshotV2(roomId, index); if (head === null || loaded === null || head.state !== 'accepted' || head.snapshotDigest !== loaded.digest || seat.participantId === null) throw new Error('Accepted snapshot relation invalid'); let parsed: unknown; try { parsed = JSON.parse(loaded.serialized); } catch { throw new Error('Invalid variable snapshot JSON'); } if (!exactOwnKeys(parsed, ['entries']) || !Array.isArray(parsed.entries)) throw new Error('Invalid variable snapshot shape'); return Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, seatCapability: seat.seatCapability, snapshotDigest: loaded.digest, snapshot: Object.freeze({ entries: parsed.entries as never, digest: loaded.digest, serialized: loaded.serialized }) }); });
     const genesis = buildVariableRoomGenesisV3({ roomId, serverBuildId: lobby.serverBuildId, configuration: lobby.configuration, seats, tableParticipantId: lobby.tableParticipantId ?? undefined, tableCapability: lobby.tableCapability ?? undefined }); if (!genesis.ok) throw new Error(genesis.issues[0]?.code ?? 'VARIABLE_GENESIS_FAILED');
-    const status = this.initializeVariableProtocolV2(genesis.protocolState); const nextLobby = { ...lobby, lifecycle: 'started' as const, admissionOpen: false }; this.persistVariableLobbyV4(lobby, nextLobby); return status;
+    const randomPlan = createServerPregamePlanV1(genesis.protocolState);
+    const created = createOnlinePregameLifecycleV1({ initialState: genesis.protocolState, randomPlan });
+    if (!created.ok) throw new Error('PREGAME_INITIALIZATION_FAILED');
+    const pregame = created.value;
+    const protocolJson = JSON.stringify(genesis.protocolState);
+    const pregameJson = JSON.stringify(pregame);
+    const lobbyJson = JSON.stringify(lobby);
+    const nextLobby = Object.freeze({ ...lobby, lifecycle: 'started' as const, admissionOpen: false });
+    const nextLobbyJson = JSON.stringify(nextLobby);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(CREATE_VARIABLE_ROOM);
+      this.storage.sql.exec(CREATE_JOURNAL);
+      this.storage.sql.exec(CREATE_CHECKPOINT);
+      this.storage.sql.exec(CREATE_PREGAME);
+      this.securityRepository.createSchemaInTransaction();
+      const protocolRows = this.storage.sql.exec<{ readonly singleton: unknown }>(SELECT_VARIABLE_ROOM).toArray();
+      const pregameRows = this.storage.sql.exec<PregameRow>(SELECT_PREGAME).toArray();
+      if (protocolRows.length !== 0 || pregameRows.length !== 0) throw new ConflictError();
+      this.storage.sql.exec('INSERT INTO online_variable_room_state (singleton, schema_version, room_id, revision, room_lifecycle, state_json) VALUES (1, 2, ?, 0, ?, ?)', roomId, genesis.protocolState.room.lifecycle, protocolJson);
+      this.storage.sql.exec(INSERT_CHECKPOINT, roomId, 0, protocolJson);
+      this.securityRepository.initializeInTransaction(roomId, genesis.protocolState, Date.now());
+      const updatedLobby = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_forming_lobby SET state_json = ?, schema_version = 4 WHERE singleton = 1 AND room_id = ? AND schema_version = 4 AND state_json = ? RETURNING singleton', nextLobbyJson, roomId, lobbyJson).toArray();
+      if (updatedLobby.length !== 1 || updatedLobby[0]?.singleton !== 1) throw new ConflictError();
+      this.storage.sql.exec('INSERT INTO online_pregame_state (singleton, schema_version, room_id, revision, phase, initial_state_json, state_json) VALUES (1, 1, ?, 0, ?, ?, ?)', roomId, pregame.phase, protocolJson, pregameJson);
+    });
+    return Object.freeze({ kind: 'online-cloudflare-room-status-v2', schemaVersion: 2, roomId, playerCount: genesis.protocolState.configuration.playerCount, startingLife: genesis.protocolState.configuration.startingLife, revision: 0, roomLifecycle: genesis.protocolState.room.lifecycle, pregame: projectOnlinePregameV1(pregame, hostParticipantId) });
   }
 
   private initializeDynamicRoomV2(roomId: string, state: OnlineProtocolStateV1, expectedLobby: OnlineFormingLobbyV1, expectedSeats: readonly DynamicGenesisSeatInputV2[]): OnlineCloudflareRoomStatusV1 {

@@ -29,7 +29,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
     '40a8a37f7348ed8bc553df3db9823b8b31ef190a36beb90604d3766b7c466d16',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
-    'ff8761e7eb46a81cb855b87891f9b48219aef425e1c3eafe1d51ce1e14698f94',
+    'aa5da8b3aff203afa7ecd6013e2c313c1485572c68167aa6339727f45471efcf',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -155,6 +155,7 @@ const allowedImports = new Set([
   '../lobby/index',
   '../deckSubmission/index',
   '../genesis/index',
+  '../pregame/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {

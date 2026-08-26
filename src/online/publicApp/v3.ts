@@ -21,6 +21,12 @@ import {
 } from './types';
 import { PUBLIC_ONLINE_ENDPOINT_V1 } from './index';
 import type { OnlineBrowserStateV1 } from '../browser/index';
+import {
+  validateOnlinePregameProjectionV1,
+  type OnlinePregameCommandResponseV1,
+  type OnlinePregameCommandV1,
+  type OnlinePregameProjectionV1,
+} from '../pregame/index';
 
 const RECOVERY_KEY = 'mtg-onedeck:online-recovery-v2';
 const MAX_RESPONSE_BYTES = 1_048_576;
@@ -223,7 +229,7 @@ function normalizeLegacyProjection(input: unknown, roomId: string, hostParticipa
 }
 
 export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
-  let snapshot: PublicOnlineSnapshotV3 = Object.freeze({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: Object.freeze([]), selectedDeckId: '', busy: null, connection: 'lobby', error: null, errorIssue: null, recoveryAvailable: loadRecovery() !== null || loadLegacyRecovery() !== null, ownerIssue: null, admissionOpen: null, player: null as OnlineBrowserStateV1 | null, table: null as OnlineBrowserStateV1 | null });
+  let snapshot: PublicOnlineSnapshotV3 = Object.freeze({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: Object.freeze([]), selectedDeckId: '', busy: null, connection: 'lobby', error: null, errorIssue: null, recoveryAvailable: loadRecovery() !== null || loadLegacyRecovery() !== null, ownerIssue: null, admissionOpen: null, player: null as OnlineBrowserStateV1 | null, table: null as OnlineBrowserStateV1 | null, pregame: null });
   let secrets: Readonly<{ participantId: string; seatCapability: string; tableParticipantId: string; tableCapability: string }> | null = null;
   let playerClient: OnlineBrowserWebSocketClientV1 | null = null;
   let tableClient: OnlineBrowserWebSocketClientV1 | null = null;
@@ -270,7 +276,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
     }
   };
   const startBrowsers = (): void => {
-    if (secrets === null || snapshot.roomId === null || snapshot.lifecycle !== 'started') return;
+    if (secrets === null || snapshot.roomId === null || snapshot.lifecycle !== 'started' || (snapshot.pregame !== null && snapshot.pregame.phase !== 'complete')) return;
     const webSocketUrl = `${PUBLIC_ONLINE_ENDPOINT_V1.replace(/^http/u, 'ws')}/api/online/rooms/${encodeURIComponent(snapshot.roomId)}/websocket`;
     const common = { webSocketUrl, protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion, roomId: snapshot.roomId as never, clientBuildId: 'o4p-08d-client' as never };
     playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
@@ -285,23 +291,25 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
     }
   };
   const schedulePoll = (): void => {
-    if (pollTimer !== null || snapshot.mode !== 'forming') return;
+    const pregamePending = snapshot.mode === 'started' && snapshot.pregame !== null && snapshot.pregame.phase !== 'complete';
+    if (pollTimer !== null || (snapshot.mode !== 'forming' && !pregamePending)) return;
     pollTimer = setTimeout(() => {
       pollTimer = null;
       if (snapshot.busy === null) void recover();
-      if (snapshot.mode === 'forming') schedulePoll();
+      if (snapshot.mode === 'forming' || (snapshot.mode === 'started' && snapshot.pregame !== null && snapshot.pregame.phase !== 'complete')) schedulePoll();
     }, 2_000);
   };
-  const applyLobby = (value: PublicOnlineProjectionV3, participantId: string, isHost: boolean, invites: readonly string[], admissionOpen: boolean | null = isHost ? true : null): void => {
+  const applyLobby = (value: PublicOnlineProjectionV3, participantId: string, isHost: boolean, invites: readonly string[], admissionOpen: boolean | null = isHost ? true : null, pregame: OnlinePregameProjectionV1 | null = null): void => {
+    if (value.lifecycle === 'started' && value.configuration.startingLife === 40 && pregame === null) throw new Error('対戦準備の状態を確認できませんでした。');
     const ownSeat = value.seats.find((entry) => entry.participantId === participantId)?.seatIndex ?? null;
     const serverSaysHost = value.hostParticipantId === participantId;
     if (ownSeat === null || serverSaysHost !== isHost || (isHost && ownSeat !== 0) || (!isHost && ownSeat === 0)) {
       throw new Error('参加席とホスト権限を確認できませんでした。');
     }
     retryOperation = null;
-    publish({ mode: value.lifecycle === 'started' ? 'started' : 'forming', roomId: value.roomId, participantId, isHost, ownSeatIndex: ownSeat, lifecycle: value.lifecycle, configuration: value.configuration, projection: value, invites, connection: value.lifecycle === 'started' ? 'connecting' : 'lobby', error: null, errorIssue: null, admissionOpen });
+    publish({ mode: value.lifecycle === 'started' ? 'started' : 'forming', roomId: value.roomId, participantId, isHost, ownSeatIndex: ownSeat, lifecycle: value.lifecycle, configuration: value.configuration, projection: value, invites, connection: value.lifecycle === 'started' && pregame !== null && pregame.phase !== 'complete' ? 'online' : value.lifecycle === 'started' ? 'connecting' : 'lobby', error: null, errorIssue: null, admissionOpen, pregame });
     if (value.lifecycle === 'started') startBrowsers();
-    else schedulePoll();
+    schedulePoll();
   };
   const createShared = async (configuration: PublicOnlineConfigurationV3 = { playerCount: 2, startingLife: 40 }): Promise<void> => {
     if (snapshot.busy !== null || !configurations(configuration)) return;
@@ -355,8 +363,9 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
         : { kind: 'online-forming-lobby-recover-v5', schemaVersion: 5, participantId: record.participantId, seatCapability: record.seatCapability }, [record.seatCapability, ...(record.tableCapability === null ? [] : [record.tableCapability])]);
       const responseFields = legacy
         ? ['kind', 'schemaVersion', 'roomId', 'participantId', 'seatCapability', ...(record.isHost ? ['admissionOpen', 'inviteCode', 'tableParticipantId', 'tableCapability'] : []), 'projection']
-        : ['kind', 'schemaVersion', 'roomId', 'participantId', 'playerCount', 'startingLife', ...(record.isHost ? ['admissionOpen', 'inviteCode', 'tableParticipantId', 'tableCapability'] : []), 'projection'];
-      if (!exact(value, responseFields) || own(value, 'kind') !== (legacy ? 'online-forming-lobby-recovered-v4' : 'online-forming-lobby-recovered-v5') || own(value, 'schemaVersion') !== (legacy ? 4 : 5) || own(value, 'roomId') !== record.roomId || own(value, 'participantId') !== record.participantId) throw new Error('対戦に戻れませんでした。');
+        : ['kind', 'schemaVersion', 'roomId', 'participantId', 'playerCount', 'startingLife', ...(record.isHost ? ['admissionOpen', 'inviteCode', 'tableParticipantId', 'tableCapability'] : []), 'projection', 'pregame'];
+      const compatibleResponseFields = legacy ? responseFields : responseFields.filter((field) => field !== 'pregame');
+      if ((!exact(value, responseFields) && !exact(value, compatibleResponseFields)) || own(value, 'kind') !== (legacy ? 'online-forming-lobby-recovered-v4' : 'online-forming-lobby-recovered-v5') || own(value, 'schemaVersion') !== (legacy ? 4 : 5) || own(value, 'roomId') !== record.roomId || own(value, 'participantId') !== record.participantId) throw new Error('対戦に戻れませんでした。');
       const legacyProjection = own(value, 'projection');
       const legacyProjectionHeader = legacy && exact(legacyProjection, ['kind', 'schemaVersion', 'lifecycle', 'roomId', 'serverBuildId', 'hostParticipantId', 'seats']) ? own(legacyProjection, 'hostParticipantId') : null;
       const legacyHost = legacy && typeof legacyProjectionHeader === 'string' ? legacyProjectionHeader : record.participantId;
@@ -386,14 +395,18 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       secrets = Object.freeze({ participantId: record.participantId, seatCapability: record.seatCapability, tableParticipantId: record.tableParticipantId ?? '', tableCapability: record.tableCapability ?? '' });
       const admissionOpen = record.isHost && typeof own(value, 'admissionOpen') === 'boolean' ? own(value, 'admissionOpen') as boolean : null;
       const invite = record.isHost && admissionOpen === true && typeof own(value, 'inviteCode') === 'string' ? [own(value, 'inviteCode') as string] : [];
-      applyLobby(checked.value, record.participantId, record.isHost, invite, admissionOpen);
+      const rawPregame = legacy ? null : own(value, 'pregame');
+      const checkedPregame = rawPregame === null || rawPregame === undefined ? null : validateOnlinePregameProjectionV1(rawPregame);
+      if (checkedPregame !== null && (!checkedPregame.ok || checkedPregame.value.protocol.roomId !== record.roomId || checkedPregame.value.protocol.participantId !== record.participantId || checkedPregame.value.protocol.configuration.playerCount !== checked.value.configuration.playerCount || checkedPregame.value.protocol.configuration.startingLife !== checked.value.configuration.startingLife)) throw new Error('対戦準備の状態を検証できませんでした。');
+      if (checked.value.lifecycle === 'started' && checked.value.configuration.startingLife === 40 && checkedPregame === null) throw new Error('対戦準備の状態を確認できませんでした。');
+      applyLobby(checked.value, record.participantId, record.isHost, invite, admissionOpen, checkedPregame?.ok === true ? checkedPregame.value : null);
     } catch (error: unknown) {
       const issue = clientIssue(error, '対戦に戻る');
       if (['CREDENTIAL_KICKED', 'CREDENTIAL_REJECTED', 'ROOM_NOT_FOUND', 'ROOM_EXPIRED'].includes(issue.code)) {
         clearRecoveryRecords();
       }
       if (issue.retryable) retryOperation = () => recover();
-      publish({ error: issue.message, errorIssue: issue });
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
     }
     finally { publish({ busy: null }); }
   };
@@ -453,9 +466,13 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       } else if (kind.includes('leave') && exact(value, ['kind', 'schemaVersion', 'roomId', 'closed']) && own(value, 'kind') === 'online-forming-lobby-left-v3' && own(value, 'schemaVersion') === 3 && own(value, 'roomId') === snapshot.roomId && own(value, 'closed') === true) {
         clearRecoveryRecords();
         disconnect();
-      } else if (kind === 'online-forming-lobby-start-v4' && exact(value, ['kind', 'schemaVersion', 'roomId', 'playerCount', 'startingLife', 'revision', 'roomLifecycle']) && own(value, 'kind') === 'online-cloudflare-room-status-v2' && own(value, 'schemaVersion') === 2 && own(value, 'roomId') === snapshot.roomId && own(value, 'playerCount') === snapshot.configuration?.playerCount && own(value, 'startingLife') === snapshot.configuration?.startingLife && own(value, 'revision') === 0 && own(value, 'roomLifecycle') === 'active' && snapshot.projection !== null) {
+      } else if (kind === 'online-forming-lobby-start-v4' && (exact(value, ['kind', 'schemaVersion', 'roomId', 'playerCount', 'startingLife', 'revision', 'roomLifecycle']) || exact(value, ['kind', 'schemaVersion', 'roomId', 'playerCount', 'startingLife', 'revision', 'roomLifecycle', 'pregame'])) && own(value, 'kind') === 'online-cloudflare-room-status-v2' && own(value, 'schemaVersion') === 2 && own(value, 'roomId') === snapshot.roomId && own(value, 'playerCount') === snapshot.configuration?.playerCount && own(value, 'startingLife') === snapshot.configuration?.startingLife && own(value, 'revision') === 0 && own(value, 'roomLifecycle') === 'active' && snapshot.projection !== null) {
         const started = Object.freeze({ ...snapshot.projection, lifecycle: 'started' as const });
-        applyLobby(started, activeSecrets.participantId, snapshot.isHost, snapshot.invites);
+        const rawPregame = own(value, 'pregame');
+        const checkedPregame = rawPregame === undefined ? null : validateOnlinePregameProjectionV1(rawPregame);
+        if (checkedPregame !== null && (!checkedPregame.ok || checkedPregame.value.protocol.roomId !== snapshot.roomId || checkedPregame.value.protocol.participantId !== activeSecrets.participantId || checkedPregame.value.protocol.configuration.startingLife !== 40)) throw new Error('対戦準備の応答を検証できませんでした。');
+        if (snapshot.configuration?.startingLife === 40 && checkedPregame === null) throw new Error('対戦準備の応答を検証できませんでした。');
+        applyLobby(started, activeSecrets.participantId, snapshot.isHost, snapshot.invites, snapshot.admissionOpen, checkedPregame?.ok === true ? checkedPregame.value : null);
       } else throw new Error('オンライン操作の応答を検証できませんでした。');
     } catch (error: unknown) {
       const issue = clientIssue(error, action);
@@ -474,6 +491,39 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
   const closeAdmission = async (): Promise<void> => { await simple('online-forming-lobby-admission-close-v3', 3, {}, 'host'); };
   const kick = async (targetParticipantId: string): Promise<void> => { await simple('online-forming-lobby-kick-v3', 3, { targetParticipantId }, 'host'); };
   const leave = async (): Promise<void> => { await simple('online-forming-lobby-leave-v3', 3); };
+  const submitPregame = async (command: OnlinePregameCommandV1, commandId = generatedId('pregame-command')): Promise<void> => {
+    const activeSecrets = secrets;
+    const current = snapshot.pregame;
+    if (activeSecrets === null || snapshot.roomId === null || current === null || current.phase === 'complete' || snapshot.busy !== null) return;
+    retryOperation = null;
+    const body = { kind: 'online-pregame-command-envelope-v1', schemaVersion: 1, roomId: snapshot.roomId, participantId: activeSecrets.participantId, ['participantCapability']: activeSecrets.seatCapability, commandId, baseRevision: current.revision, command };
+    publish({ busy: 'pregame', error: null, errorIssue: null });
+    try {
+      const { value } = await request(`/api/online/rooms/${encodeURIComponent(snapshot.roomId)}/pregame`, body, [activeSecrets.seatCapability, activeSecrets.tableCapability]);
+      if (!exact(value, ['response', 'projection'])) throw new Error('対戦準備の応答を検証できませんでした。');
+      const rawResponse = own(value, 'response');
+      const rawProjection = own(value, 'projection');
+      const checkedProjection = validateOnlinePregameProjectionV1(rawProjection);
+      if (!checkedProjection.ok || checkedProjection.value.protocol.roomId !== snapshot.roomId || checkedProjection.value.protocol.participantId !== activeSecrets.participantId || checkedProjection.value.protocol.configuration.startingLife !== 40) throw new Error('対戦準備の状態を検証できませんでした。');
+      let response: OnlinePregameCommandResponseV1;
+      if (exact(rawResponse, ['kind', 'schemaVersion', 'commandId', 'acceptedRevision', 'currentRevision', 'duplicate']) && own(rawResponse, 'kind') === 'online-pregame-command-ack-v1' && own(rawResponse, 'schemaVersion') === 1 && own(rawResponse, 'commandId') === commandId && typeof own(rawResponse, 'acceptedRevision') === 'number' && typeof own(rawResponse, 'currentRevision') === 'number' && typeof own(rawResponse, 'duplicate') === 'boolean') {
+        response = rawResponse as OnlinePregameCommandResponseV1;
+      } else if (exact(rawResponse, ['kind', 'schemaVersion', 'commandId', 'currentRevision', 'resyncRequired', 'issues']) && own(rawResponse, 'kind') === 'online-pregame-command-reject-v1' && own(rawResponse, 'schemaVersion') === 1 && (own(rawResponse, 'commandId') === commandId || own(rawResponse, 'commandId') === null) && typeof own(rawResponse, 'currentRevision') === 'number' && typeof own(rawResponse, 'resyncRequired') === 'boolean' && Array.isArray(own(rawResponse, 'issues'))) {
+        response = rawResponse as OnlinePregameCommandResponseV1;
+      } else throw new Error('対戦準備の結果を検証できませんでした。');
+      retryOperation = null;
+      publish({ pregame: checkedProjection.value, connection: 'online' });
+      if (response.kind === 'online-pregame-command-reject-v1') {
+        const code = response.issues[0]?.code;
+        const message = code === 'STALE_REVISION' ? '対戦準備が更新されました。表示を確認してもう一度操作してください。' : code === 'ACTOR_MISMATCH' ? '現在は別のプレイヤーの操作を待っています。' : code === 'INVALID_BOTTOM' || code === 'INVALID_CHOICE' ? '選択数または選択内容を確認してください。' : '現在の対戦準備ではこの操作を実行できません。';
+        publish({ error: message });
+      } else if (checkedProjection.value.phase === 'complete') startBrowsers();
+    } catch (error: unknown) {
+      const issue = clientIssue(error, '対戦準備を再試行');
+      if (issue.retryable) retryOperation = () => submitPregame(command, commandId);
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
+    } finally { publish({ busy: null }); }
+  };
   const retry = async (): Promise<void> => { if (retryOperation !== null) await retryOperation(); else await refresh(); };
   const submitAction = (action: unknown, guided: boolean): void => {
     const client = playerClient;
@@ -499,8 +549,8 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       publish({ error: '操作を送信できませんでした。' });
     }
   };
-  const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null }); };
-  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, displayDeckName: (name: string, index: number) => {
+  const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
+  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, displayDeckName: (name: string, index: number) => {
     const fallback = `保存済みデッキ ${index + 1}`;
     try {
       if (!Number.isSafeInteger(index) || index < 0 || typeof name !== 'string' ||

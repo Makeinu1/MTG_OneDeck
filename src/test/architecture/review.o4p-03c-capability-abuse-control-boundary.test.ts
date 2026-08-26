@@ -63,7 +63,7 @@ describe('O4P-03C architecture boundary', () => {
   });
 
   it('keeps lower imports one-way and production free of runtime-only authority', () => {
-    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../room/validationSupport', '../lobby/index', '../deckSubmission/index', '../genesis/index', '../../engine/core/index']);
+    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../room/validationSupport', '../lobby/index', '../deckSubmission/index', '../genesis/index', '../pregame/index', '../../engine/core/index']);
     for (const path of productionFiles(cloudflareRoot)) {
       const text = readFileSync(path, 'utf8');
       if (normalized(path) === 'src/online/cloudflare/facts.ts') {
@@ -114,7 +114,7 @@ describe('O4P-03C architecture boundary', () => {
     expect(security).toMatch(/DELETE FROM online_controller_lease[\s\S]*RETURNING participant_id/);
     expect(security).toMatch(/grant_count INTEGER NOT NULL/);
     expect(security).toMatch(/retired_tokens_json TEXT NOT NULL/);
-    expect(support).toMatch(/'room' \| 'lobby' \| 'commands' \| 'capabilities' \| 'websocket'/);
+    expect(support).toMatch(/'room' \| 'lobby' \| 'pregame' \| 'commands' \| 'capabilities' \| 'websocket'/);
     expect(runtime).toMatch(/route\.action === 'capabilities' && request\.method === 'POST'/);
     for (const field of ['connectionId', 'capabilityGeneration', 'capabilityExpiresAt', 'messageWindowStartedAt', 'messageCount', 'malformedWindowStartedAt', 'malformedCount']) {
       expect(types).toContain(`readonly ${field}`);

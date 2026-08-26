@@ -250,6 +250,103 @@ html[data-theme='light'] .game-screen {
 .presentation-layer[data-active-draw='true'] .turn-transition-cue {
   translate: 0 clamp(-150px, -16vh, -80px);
 }
+
+/* The production Pregame journey reuses GameScreen's root and semantic tree.
+   Keep the layer compact at phone widths while preserving a 44px target for
+   every keyboard/touch action. */
+.game-screen.game-screen--pregame {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  overflow: auto;
+  isolation: isolate;
+  background: var(--surface-0);
+}
+.pregame-layer {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--space-4, 16px);
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 36px);
+  color: var(--text);
+}
+.pregame-layer__header,
+.pregame-layer__order,
+.pregame-layer__commanders,
+.pregame-layer__players,
+.pregame-layer__action,
+.pregame-layer__notice {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  padding: clamp(14px, 2vw, 24px);
+}
+.pregame-layer__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pregame-layer__eyebrow {
+  margin: 0 0 4px;
+  color: var(--gold-bright);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+}
+.pregame-layer h1,
+.pregame-layer h2,
+.pregame-layer p { margin-top: 0; }
+.pregame-layer h1 { margin-bottom: 0; font-size: clamp(1.35rem, 4vw, 2.1rem); }
+.pregame-layer h2 { margin-bottom: 12px; font-size: 1rem; }
+.pregame-layer__order ol,
+.pregame-layer__commanders ul { margin: 8px 0 0; padding-left: 1.25rem; }
+.pregame-layer__players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 10px;
+}
+.pregame-layer__players article {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.pregame-layer__players article[data-current-actor='true'] { border-color: var(--gold); }
+.pregame-layer__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.pregame-layer button,
+.pregame-layer input { min-height: 44px; }
+.pregame-layer button { min-width: 44px; }
+.pregame-layer__hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+}
+.pregame-layer__hand label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.pregame-layer__hand input { width: 20px; height: 20px; }
+.pregame-layer__notice { color: var(--text-dim); }
+@media (max-width: 560px) {
+  .pregame-layer { padding: 12px; gap: 10px; }
+  .pregame-layer__header { align-items: flex-start; }
+  .pregame-layer__actions { display: grid; grid-template-columns: 1fr; }
+  .pregame-layer__actions .btn { width: 100%; }
+}
 body:has(.commander-cutin) .presentation-layer,
 .turn-transition-cue__track { display: flex; gap: var(--space-1); margin-top: var(--space-1); }
 .turn-transition-cue__track span {
