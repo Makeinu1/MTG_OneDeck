@@ -9,6 +9,7 @@ export type {
   OnlineBrowserClientV1,
   OnlineBrowserCommandIntent,
   OnlineBrowserCommandIntentV1,
+  OnlineBrowserTabletopIntentV1,
   OnlineBrowserIssueCodeV1,
   OnlineBrowserPendingCommandV1,
   OnlineBrowserPhaseV1,

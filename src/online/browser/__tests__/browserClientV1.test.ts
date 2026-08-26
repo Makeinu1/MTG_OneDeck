@@ -20,6 +20,7 @@ import {
   readyAllPlayers,
 } from '../../room/__tests__/testHelpers';
 import * as Browser from '../index';
+import type { OnlineTabletopIntentEnvelopeV1 } from '../../tabletopManual/types';
 
 const ROOM_ID = 'room-02b';
 const PARTICIPANT_ID = PARTICIPANTS[0];
@@ -143,6 +144,86 @@ function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: Test
 }
 
 describe('O4P-06D ordinary browser client coverage', () => {
+  it('queues a high-level tabletop intent on the same authenticated socket and replays it without Core data', () => {
+    const { client, sockets } = harness();
+    const intent: OnlineTabletopIntentEnvelopeV1 = {
+      kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+      commandId: 'browser-tabletop-shuffle', baseRevision: 0, mode: 'structured',
+      primitive: { kind: 'shuffle' },
+    };
+    expect(client.submitTabletop(intent)).toEqual({ ok: true });
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    const frame = JSON.parse(socket.sent.at(-1) ?? '{}') as Record<string, unknown>;
+    expect(frame).toMatchObject({ kind: 'online-tabletop-intent-envelope-v1', protocolVersion: 1, commandId: intent.commandId, baseRevision: 0, mode: 'structured', primitive: { kind: 'shuffle' } });
+    expect(frame.command).toBeUndefined();
+    expect(frame.participantCapability).toBe(CAPABILITY);
+    expect(JSON.stringify(frame)).not.toContain('order');
+    socket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: intent.commandId, baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false });
+    expect(client.getSnapshot().pendingCommands).toEqual([]);
+    socket.frame(projectionResponseAt(1));
+    expect(client.getSnapshot().phase).toBe('open');
+    const normal = { commandId: 'browser-after-tabletop' as never, baseRevision: 1, command: command(2) };
+    expect(client.submit(normal)).toEqual({ ok: true });
+    expect(JSON.parse(socket.sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-envelope-v1', commandId: normal.commandId, baseRevision: 1 });
+  });
+
+  it('sends an exact ten-field Shuffle frame after opening and authenticating', () => {
+    const { client, sockets } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    const intent: OnlineTabletopIntentEnvelopeV1 = {
+      kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+      commandId: 'browser-live-shuffle', baseRevision: 0, mode: 'freeform',
+      primitive: { kind: 'shuffle' },
+    };
+    expect(client.submitTabletop(intent)).toEqual({ ok: true });
+    const frame = JSON.parse(socket.sent.at(-1) ?? '{}') as Record<string, unknown>;
+    expect(Object.keys(frame).sort()).toEqual([
+      'baseRevision', 'commandId', 'kind', 'mode', 'participantCapability',
+      'participantId', 'primitive', 'protocolVersion', 'roomId', 'schemaVersion',
+    ]);
+    expect(frame).toMatchObject({
+      kind: 'online-tabletop-intent-envelope-v1',
+      schemaVersion: 1,
+      protocolVersion: 1,
+      roomId: ROOM_ID,
+      participantId: PARTICIPANT_ID,
+      commandId: intent.commandId,
+      baseRevision: 0,
+      mode: 'freeform',
+      primitive: { kind: 'shuffle' },
+    });
+    expect(frame.command).toBeUndefined();
+  });
+
+  it('replays an unacknowledged tabletop intent byte-for-byte after reconnect', () => {
+    const { client, sockets, scheduled } = harness();
+    const intent: OnlineTabletopIntentEnvelopeV1 = {
+      kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+      commandId: 'browser-tabletop-reconnect', baseRevision: 0, mode: 'freeform', primitive: { kind: 'shuffle' },
+    };
+    expect(client.submitTabletop(intent)).toEqual({ ok: true });
+    client.connect();
+    const first = sockets[0];
+    if (first === undefined) throw new Error('Missing first socket');
+    openClient(client, first);
+    const firstFrame = first.sent.at(-1);
+    if (firstFrame === undefined) throw new Error('Missing first tabletop frame');
+    first.closeUnexpectedly();
+    scheduled[0]?.task();
+    const second = sockets[1];
+    if (second === undefined) throw new Error('Missing reconnect socket');
+    openClient(client, second);
+    expect(second.sent.at(-1)).toBe(firstFrame);
+    const reconnectFrame: unknown = JSON.parse(second.sent.at(-1) ?? '{}');
+    expect(reconnectFrame !== null && typeof reconnectFrame === 'object' && !Array.isArray(reconnectFrame) && !Object.prototype.hasOwnProperty.call(reconnectFrame, 'command')).toBe(true);
+  });
+
   it('uses the shipped projection operation and never optimistically changes authority', () => {
     const { client, sockets } = harness();
     const intent = { commandId: 'browser-test-command' as never, baseRevision: 0, command: command(1) };

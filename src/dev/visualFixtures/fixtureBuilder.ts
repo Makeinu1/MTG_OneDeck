@@ -24,6 +24,7 @@ export const VISUAL_FIXTURE_SCENARIOS = [
   'lands',
   'mana-multicolor',
   'battlefield',
+  'tabletop-manual',
   'commander-battlefield',
   'stack',
   'trigger-order',
@@ -574,6 +575,7 @@ function buildState(scenario: VisualFixtureScenario, initialState: GameState): G
   }
   if (
     scenario === 'battlefield'
+    || scenario === 'tabletop-manual'
     || scenario === 'commander-battlefield'
     || scenario === 'board-dense'
     || scenario === 'board-sparse'

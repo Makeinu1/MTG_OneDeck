@@ -56,6 +56,7 @@ import {
 import { buildDynamicRoomGenesisV2, buildVariableRoomGenesisV3, type DynamicGenesisSeatInputV2, type VariableGenesisSeatInputV3 } from '../genesis/index';
 import { handleOnlineVariableCommandEnvelopeV2, validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
 import type { OnlineDynamicStartResultV2 } from './types';
+import { isOnlineVariableProjectionWithinFrameBudgetV1 } from './projectionBudgetV1';
 import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4, setOnlineVariableLobbyDeckAcceptedV4, setOnlineVariableLobbyReadyV4, rotateOnlineVariableLobbyAdmissionV4, closeOnlineVariableLobbyAdmissionV4, replaceOnlineVariableLobbySeatV4, type OnlineVariableLobbyV4, type OnlineVariableLobbyProjectionV4 } from '../lobby/index';
 import {
   createOnlinePregameLifecycleV1,
@@ -757,6 +758,16 @@ export class OnlineCloudflareRepository {
     return checked.value;
   }
 
+  findVariableAcceptedCommandV2(roomId: string, participantId: string, commandId: string): unknown {
+    if (roomId.length === 0) return null;
+    try {
+      const rows = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
+      const row = rows.find((entry) => entry.participant_id === participantId && entry.command_id === commandId);
+      if (row === undefined || typeof row.command_json !== 'string') return null;
+      return JSON.parse(row.command_json) as unknown;
+    } catch { return null; }
+  }
+
   loadPregameV1(roomId: string): OnlinePregameStateV1 | null {
     let rows: readonly PregameRow[];
     try { rows = this.storage.sql.exec<PregameRow>(SELECT_PREGAME).toArray(); }
@@ -807,6 +818,7 @@ export class OnlineCloudflareRepository {
     const checkedEnvelope = validateOnlinePregameCommandEnvelopeV1(input);
     const transition = handleOnlinePregameCommandEnvelopeV1(state, checkedEnvelope.ok ? checkedEnvelope.value : input);
     if (transition.response.kind === 'online-pregame-command-ack-v1' && !transition.response.duplicate) {
+      if (transition.state.phase === 'complete' && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state.protocolState)) throw new Error('Variable projection exceeds frame budget');
       const previousJson = JSON.stringify(state);
       const nextJson = JSON.stringify(transition.state);
       this.storage.transactionSync(() => {
@@ -826,6 +838,7 @@ export class OnlineCloudflareRepository {
   initializeVariableProtocolV2(stateInput: OnlineVariableProtocolStateV2): Readonly<{ readonly kind: 'online-cloudflare-room-status-v2'; readonly schemaVersion: 2; readonly roomId: string; readonly playerCount: 2 | 4; readonly startingLife: 20 | 40; readonly revision: number; readonly roomLifecycle: string }> {
     const checked = validateOnlineVariableProtocolStateV2(stateInput); if (!checked.ok) throw new Error('Invalid variable protocol state');
     const state = checked.value; const stateJson = JSON.stringify(state);
+    if (!isOnlineVariableProjectionWithinFrameBudgetV1(state)) throw new Error('Variable projection exceeds frame budget');
     this.storage.transactionSync(() => {
       this.storage.sql.exec(CREATE_VARIABLE_ROOM);
       this.storage.sql.exec(CREATE_JOURNAL);
@@ -844,6 +857,7 @@ export class OnlineCloudflareRepository {
   commitVariableAcceptedV2(previousInput: OnlineVariableProtocolStateV2, nextInput: OnlineVariableProtocolStateV2, envelope: OnlineCommandEnvelopeV1): void {
     const previous = validateOnlineVariableProtocolStateV2(previousInput); const next = validateOnlineVariableProtocolStateV2(nextInput);
     if (!previous.ok || !next.ok || previous.value.room.roomId !== envelope.roomId || next.value.room.roomId !== envelope.roomId || previous.value.revision !== envelope.baseRevision || next.value.revision !== envelope.baseRevision + 1) throw new Error('Invalid variable accepted transition');
+    if (!isOnlineVariableProjectionWithinFrameBudgetV1(next.value)) throw new Error('Variable projection exceeds frame budget');
     const capabilities = [...next.value.room.seats.map((seat) => seat.seatCapability), ...next.value.observerAuthorizations.map((entry) => entry.observerCapability)];
     assertNoConfiguredCapabilityFragmentV1(envelope.commandId, capabilities); assertNoConfiguredCapabilityFragmentV1(envelope.participantId, capabilities);
     const commandJson = serializeAcceptedCoreCommandV1(envelope.command, capabilities); const previousJson = JSON.stringify(previous.value); const nextJson = JSON.stringify(next.value);
@@ -1244,6 +1258,7 @@ export class OnlineCloudflareRepository {
     if (lobby.configuration.startingLife !== 40) throw new Error('PREGAME_REQUIRES_40_LIFE');
     const seats: VariableGenesisSeatInputV3[] = lobby.seats.map((seat, index) => { const head = this.deckHead(roomId, index); const loaded = this.loadDeckSnapshotV2(roomId, index); if (head === null || loaded === null || head.state !== 'accepted' || head.snapshotDigest !== loaded.digest || seat.participantId === null) throw new Error('Accepted snapshot relation invalid'); let parsed: unknown; try { parsed = JSON.parse(loaded.serialized); } catch { throw new Error('Invalid variable snapshot JSON'); } if (!exactOwnKeys(parsed, ['entries']) || !Array.isArray(parsed.entries)) throw new Error('Invalid variable snapshot shape'); return Object.freeze({ seatIndex: index as 0 | 1 | 2 | 3, corePlayerId: seat.corePlayerId, participantId: seat.participantId, seatCapability: seat.seatCapability, snapshotDigest: loaded.digest, snapshot: Object.freeze({ entries: parsed.entries as never, digest: loaded.digest, serialized: loaded.serialized }) }); });
     const genesis = buildVariableRoomGenesisV3({ roomId, serverBuildId: lobby.serverBuildId, configuration: lobby.configuration, seats, tableParticipantId: lobby.tableParticipantId ?? undefined, tableCapability: lobby.tableCapability ?? undefined }); if (!genesis.ok) throw new Error(genesis.issues[0]?.code ?? 'VARIABLE_GENESIS_FAILED');
+    if (!isOnlineVariableProjectionWithinFrameBudgetV1(genesis.protocolState)) throw new Error('Variable projection exceeds frame budget');
     const randomPlan = createServerPregamePlanV1(genesis.protocolState);
     const created = createOnlinePregameLifecycleV1({ initialState: genesis.protocolState, randomPlan });
     if (!created.ok) throw new Error('PREGAME_INITIALIZATION_FAILED');

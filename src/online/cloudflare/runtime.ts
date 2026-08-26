@@ -46,6 +46,11 @@ import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4 } from '../
 import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../room/validationSupport';
 import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
 import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
+import { bindOnlineTabletopIntentOnServerV1 } from '../tabletopManual/index';
+import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
+import { coreCanonicalDigestFromValueV1 } from '../../engine/core/index';
+import type { CoreCommandV1, CoreObjectId, CorePlayerId } from '../../engine/core/index';
+import { isOnlineVariableProjectionWithinFrameBudgetV1 } from './projectionBudgetV1';
 import {
   createAuthenticatedOnlineCloudflareSocketAttachmentV1,
   createOnlineCloudflareRevisionNoticeV1,
@@ -72,6 +77,151 @@ function runtimeRandomToken(prefix: string): string {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return `${prefix}_${btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')}`;
+}
+
+function serverShuffleOrder(order: readonly CoreObjectId[]): readonly CoreObjectId[] {
+  const values = order.slice();
+  const bytes = new Uint32Array(1);
+  const cryptoObject = globalThis.crypto;
+  if (cryptoObject === undefined || typeof cryptoObject.getRandomValues !== 'function') throw new Error('Randomness unavailable');
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const limit = index + 1;
+    const range = 0x1_0000_0000;
+    const ceiling = range - (range % limit);
+    do { cryptoObject.getRandomValues(bytes); } while ((bytes[0] ?? range) >= ceiling);
+    const selected = (bytes[0] ?? 0) % limit;
+    const current = values[index]; values[index] = values[selected]; values[selected] = current;
+  }
+  return Object.freeze(values);
+}
+
+type VariableTabletopBindingInputV1 = Readonly<{
+  readonly state: OnlineVariableProtocolStateV2;
+  readonly participantId: string;
+  readonly transportCredential: string;
+  readonly frame: OnlineCloudflareWebSocketFrameV1;
+  readonly findAccepted: (commandId: string) => unknown;
+}>;
+
+function extractTabletopIntentV1(frame: OnlineCloudflareWebSocketFrameV1): OnlineTabletopIntentEnvelopeV1 {
+  const intent = Object.freeze({
+    kind: ownDataValue(frame, 'kind'),
+    schemaVersion: ownDataValue(frame, 'schemaVersion'),
+    commandId: ownDataValue(frame, 'commandId'),
+    baseRevision: ownDataValue(frame, 'baseRevision'),
+    mode: ownDataValue(frame, 'mode'),
+    primitive: ownDataValue(frame, 'primitive'),
+  });
+  const checked = validateOnlineTabletopIntentEnvelopeV1(intent);
+  if (!checked.ok) throw new Error('Invalid tabletop intent');
+  return checked.value;
+}
+
+function coreCommandRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Readonly<Record<string, unknown>>;
+}
+
+function coreCommandPayload(value: unknown): Readonly<Record<string, unknown>> | null {
+  const command = coreCommandRecord(value);
+  if (command === null) return null;
+  const payload = command.payload;
+  return coreCommandRecord(payload);
+}
+
+/**
+ * Ordinary command envelopes are a legacy compatibility wire.  They must not
+ * become an authority/randomness bypass for the public tabletop lane: random
+ * order is server-bound, while these legacy tabletop families require explicit
+ * manual provenance before they reach the protocol reducer.
+ */
+function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
+  const payload = coreCommandPayload(command);
+  if (payload === null || typeof payload.kind !== 'string') return false;
+  if (payload.kind === 'random-zone-order' || payload.kind === 'table-shuffle') return true;
+  if (
+    payload.kind === 'table-zone-move'
+    || payload.kind === 'table-tap'
+    || payload.kind === 'table-counter-adjust'
+    || payload.kind === 'table-token-remove'
+  ) {
+    return payload.manualMode !== 'structured' && payload.manualMode !== 'freeform';
+  }
+  return false;
+}
+
+function shuffleDuplicateCommandV1(
+  command: unknown,
+  envelope: OnlineTabletopIntentEnvelopeV1,
+  actorPlayerId: CorePlayerId,
+): CoreCommandV1 | null {
+  const record = coreCommandRecord(command);
+  const payload = coreCommandPayload(command);
+  if (record === null || payload === null
+    || payload.kind !== 'random-zone-order'
+    || payload.manualMode !== envelope.mode
+    || record.actorPlayerId !== actorPlayerId
+    || record.decisionMakerPlayerId !== actorPlayerId
+    || record.sequence !== envelope.baseRevision + 1
+    || payload.randomDecisionId !== `manual-shuffle-${coreCanonicalDigestFromValueV1(envelope.commandId).slice(0, 96)}`) return null;
+  return command as CoreCommandV1;
+}
+
+function alterManualModeForReuseV1(command: unknown, mode: OnlineTabletopIntentEnvelopeV1['mode']): unknown {
+  const record = coreCommandRecord(command);
+  const payload = coreCommandPayload(command);
+  if (record === null || payload === null) return command;
+  const sequence = record.sequence;
+  const changedSequence = typeof sequence === 'number' && Number.isSafeInteger(sequence)
+    ? sequence === Number.MAX_SAFE_INTEGER ? sequence - 1 : sequence + 1
+    : sequence;
+  return Object.freeze({ ...record, sequence: changedSequence, payload: Object.freeze({ ...payload, manualMode: mode }) });
+}
+
+/**
+ * Converts the public six-field intent into the ordinary protocol envelope.
+ * Validation and journal lookup happen before server entropy is requested.
+ */
+function bindVariableTabletopIntentV1(input: VariableTabletopBindingInputV1): Readonly<Record<string, unknown>> {
+  const envelope = extractTabletopIntentV1(input.frame);
+  const participant = input.state.room.participants.find((entry) => entry.participantId === input.participantId);
+  const seat = participant === undefined || participant.role !== 'player' || participant.seatIndex === null
+    ? undefined
+    : input.state.room.seats[participant.seatIndex];
+  if (seat === undefined) throw new Error('Participant is not an authorized player');
+  const existing = input.findAccepted(envelope.commandId);
+  let command: unknown;
+  if (existing === null && envelope.primitive.kind === 'shuffle' && envelope.baseRevision !== input.state.revision) {
+    throw new Error('Stale tabletop revision');
+  }
+  if (existing !== null && envelope.primitive.kind === 'shuffle') {
+    const exact = shuffleDuplicateCommandV1(existing, envelope, seat.corePlayerId);
+    command = exact ?? alterManualModeForReuseV1(existing, envelope.mode);
+  } else {
+    // Non-shuffle retries are rebound without entropy; the protocol digest then
+    // rejects any changed primitive, mode, or base revision deterministically.
+    // The binder's current-revision guard is evaluated against the request's
+    // historical base for an exact retry; Core/protocol remains authoritative.
+    const bindState = envelope.baseRevision === input.state.revision
+      ? input.state
+      : Object.freeze({ ...input.state, revision: envelope.baseRevision });
+    command = bindOnlineTabletopIntentOnServerV1({
+      state: bindState,
+      participantId: input.participantId,
+      envelope,
+      randomize: serverShuffleOrder,
+    }).command;
+  }
+  return Object.freeze({
+    kind: 'online-command-envelope-v1',
+    protocolVersion: input.state.protocolVersion,
+    roomId: input.state.room.roomId,
+    participantId: input.participantId,
+    ['participantCapability']: input.transportCredential,
+    commandId: envelope.commandId,
+    baseRevision: envelope.baseRevision,
+    command,
+  });
 }
 
 type OnlinePublicErrorCodeV3 = 'ROOM_NOT_FOUND' | 'ROOM_EXPIRED' | 'INVITE_INVALID' | 'INVITE_ROTATED' | 'ADMISSION_CLOSED' | 'ROOM_FULL' | 'PARTICIPANT_RECOVERABLE' | 'CREDENTIAL_REJECTED' | 'CREDENTIAL_KICKED' | 'HOST_REQUIRED' | 'INVALID_LIFECYCLE' | 'PREGAME_REQUIRES_40_LIFE' | 'DECK_REQUIRED' | 'DECK_RESOLVING' | 'DECK_NEEDS_ATTENTION' | 'PLAYERS_NOT_READY' | 'CLIENT_UPGRADE_REQUIRED' | 'RATE_LIMITED' | 'SERVICE_UNAVAILABLE';
@@ -140,7 +290,7 @@ function cloneWithProtocolCapability(frame: OnlineCloudflareWebSocketFrameV1, ca
     if (descriptor === undefined || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) throw new Error('Hostile frame descriptor');
     copy[key] = descriptor.value;
   }
-  copy.participantCapability = capability;
+  copy['participantCapability'] = capability;
   return copy;
 }
 
@@ -196,11 +346,33 @@ function isExactRecord(value: Record<string, unknown>, expected: readonly string
     if (Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length !== 0) return false;
     const names = Object.getOwnPropertyNames(value).sort();
     const keys = [...expected].sort();
-    return names.length === keys.length && names.every((name, index) => name === keys[index]);
+    if (names.length !== keys.length || !names.every((name, index) => name === keys[index])) return false;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<string, PropertyDescriptor>;
+    return names.every((name) => {
+      const descriptor = descriptors[name];
+      return descriptor !== undefined
+        && descriptor.enumerable === true
+        && 'value' in descriptor
+        && descriptor.get === undefined
+        && descriptor.set === undefined;
+    });
   } catch {
     return false;
   }
 }
+
+const TABLETOP_INTENT_FIELDS_V1 = Object.freeze([
+  'kind',
+  'schemaVersion',
+  'protocolVersion',
+  'roomId',
+  'participantId',
+  'participantCapability',
+  'commandId',
+  'baseRevision',
+  'mode',
+  'primitive',
+]);
 
 const LEGACY_UPGRADE_REQUIRED = Object.freeze({
   kind: 'online-forming-lobby-upgrade-required-v1',
@@ -656,8 +828,37 @@ export class OnlineRoomDurableObject {
         } catch {
           return genericError(401);
         }
-        const internalMessage = cloneWithProtocolCapability(body, admission.authorization.protocolCapability);
+        const tabletopIntent = ownDataString(body, 'kind') === 'online-tabletop-intent-envelope-v1';
+        if (tabletopIntent && !isExactRecord(body, TABLETOP_INTENT_FIELDS_V1)) return genericError(400);
+        if (tabletopIntent && ownDataValue(body, 'protocolVersion') !== state.protocolVersion) return genericError(400);
+        if (tabletopIntent && roomId !== route.roomId) return genericError(400);
+        let internalMessage: Record<string, unknown>;
+        try {
+          internalMessage = cloneWithProtocolCapability(body, admission.authorization.protocolCapability);
+        } catch {
+          return genericError(400);
+        }
+        if (tabletopIntent) {
+          if (state.kind !== 'online-protocol-state-v2') return genericError(426);
+          try {
+            const bound = bindVariableTabletopIntentV1({
+              state,
+              participantId,
+              transportCredential: admission.authorization.protocolCapability,
+              frame: body,
+              findAccepted: (commandId) => this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, commandId),
+            });
+            internalMessage = bound;
+          } catch (error: unknown) {
+            return genericError(error instanceof ConflictError ? 409 : 400);
+          }
+        }
+        if (!tabletopIntent && rejectsClientTabletopAuthorityBypass(internalMessage.command)) return genericError(400);
         const validation = validateOnlineCommandEnvelopeV1(internalMessage);
+        const transition = state.kind === 'online-protocol-state-v2'
+          ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage)
+          : handleOnlineCommandEnvelopeV1(state, internalMessage);
+        if (validation.ok && state.kind === 'online-protocol-state-v2' && transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state as OnlineVariableProtocolStateV2)) return genericError(413);
         if (validation.ok) {
           const acquired = this.security.acquireControllerLease(
             state,
@@ -668,12 +869,11 @@ export class OnlineRoomDurableObject {
           );
           if (!acquired) return genericError(409);
         }
-        const transition = state.kind === 'online-protocol-state-v2'
-          ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage)
-          : handleOnlineCommandEnvelopeV1(state, internalMessage);
         if (validation.ok && transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
-          if (state.kind === 'online-protocol-state-v2') this.repository.commitVariableAcceptedV2(state, transition.state as OnlineVariableProtocolStateV2, validation.value);
-          else this.repository.commitAccepted(transition.state as typeof state, validation.value);
+          if (state.kind === 'online-protocol-state-v2') {
+            this.repository.commitVariableAcceptedV2(state, transition.state as OnlineVariableProtocolStateV2, validation.value);
+            this.broadcastRevision(state.room.roomId, transition.state.revision);
+          } else this.repository.commitAccepted(transition.state as typeof state, validation.value);
         }
         return publicProtocolResponse(transition.response);
       }
@@ -762,7 +962,7 @@ export class OnlineRoomDurableObject {
     }
     const frame = parsed.value;
     const kind = frameKind(frame);
-    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1') {
+    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1') {
       this.malformedMessage(socket, counted.attachment, now);
       return;
     }
@@ -794,7 +994,44 @@ export class OnlineRoomDurableObject {
         this.sendError(socket, 'CAPABILITY_REJECTED');
         return;
       }
-      const internalMessage = cloneWithProtocolCapability(frame, admission.authorization.protocolCapability);
+      const tabletopIntent = kind === 'online-tabletop-intent-envelope-v1';
+      if (tabletopIntent && !isExactRecord(frame, TABLETOP_INTENT_FIELDS_V1)) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (tabletopIntent && ownDataValue(frame, 'protocolVersion') !== state.protocolVersion) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      let internalMessage: Record<string, unknown>;
+      try {
+        internalMessage = cloneWithProtocolCapability(frame, admission.authorization.protocolCapability);
+      } catch {
+        this.sendError(socket, tabletopIntent ? 'INVALID_MESSAGE' : 'INTERNAL_ERROR');
+        return;
+      }
+      if (state.kind === 'online-protocol-state-v2' && tabletopIntent) {
+        try {
+          internalMessage = bindVariableTabletopIntentV1({
+            state,
+            participantId,
+            transportCredential: admission.authorization.protocolCapability,
+            frame,
+            findAccepted: (commandId) => this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, commandId),
+          });
+        } catch {
+          this.sendError(socket, 'INVALID_MESSAGE');
+          return;
+        }
+      }
+      if (kind === 'online-tabletop-intent-envelope-v1' && state.kind !== 'online-protocol-state-v2') {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (!tabletopIntent && kind === 'online-command-envelope-v1' && rejectsClientTabletopAuthorityBypass(internalMessage.command)) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
       if (state.kind === 'online-protocol-state-v2') {
         if (kind === 'online-client-hello-v1') this.handleVariableHello(socket, internalMessage, currentAttachment, state, admission.authorization);
         else if (kind === 'online-projection-request-v1') this.handleVariableProjection(socket, internalMessage, state);
@@ -1026,6 +1263,10 @@ export class OnlineRoomDurableObject {
   ): void {
     const validation = validateOnlineCommandEnvelopeV1(frame); const transition = handleOnlineVariableCommandEnvelopeV2(state, frame);
     if (!validation.ok) { this.sendApplicationValue(socket, transition.response); return; }
+    if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state)) {
+      this.sendError(socket, 'INVALID_MESSAGE');
+      return;
+    }
     const acquired = this.security.acquireControllerLease(state, authorization.participantId, authorization.generation, { kind: 'socket', connectionId: this.attachment(socket)?.connectionId ?? null }, now);
     if (!acquired) { this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED'); return; }
     if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {

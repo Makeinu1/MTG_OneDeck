@@ -113,7 +113,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/applyCommandV1.ts`
 
-- line 255: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 290: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -149,7 +149,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 28: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
 - line 29: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
 - line 30: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
-- line 31: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;`
+- line 31: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;`
 - line 32: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
 - line 33: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
 - line 35: `export type CoreCommandPayloadV1 =`
@@ -157,9 +157,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 45: `export type CoreCommandV1 = Readonly<{`
 - line 55: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
 - line 56: `export type CoreCommandValidationResultV1 =`
-- line 326: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 396: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 400: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 381: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 471: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 475: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -171,9 +171,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/domainEventV1.ts`
 
-- line 4: `export type CoreDomainEventPayloadV1 =`
-- line 24: `export type CoreDomainEventV1 = Readonly<{`
-- line 34: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
+- line 5: `export type CoreDomainEventPayloadV1 =`
+- line 35: `export type CoreDomainEventV1 = Readonly<{`
+- line 45: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
 
 ## `src/engine/core/closure/headlessClosureV1.ts`
 
@@ -209,16 +209,16 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/rootV1.ts`
 
-- line 10: `export type ModeNeutralCoreRootV1 = Readonly<{`
-- line 24: `export type { CoreRootValidationIssueV1, CoreRootValidationResultV1 } from './rootValidationV1';`
+- line 11: `export type ModeNeutralCoreRootV1 = Readonly<{`
+- line 27: `export type { CoreRootValidationIssueV1, CoreRootValidationResultV1 } from './rootValidationV1';`
 
 ## `src/engine/core/closure/rootValidationV1.ts`
 
-- line 21: `export type CoreRootValidationIssueV1 = Readonly<{`
-- line 26: `export type CoreRootValidationResultV1 =`
-- line 122: `export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {`
-- line 194: `export class CoreRootCreationErrorV1 extends Error {`
-- line 199: `export function createModeNeutralCoreRootV1(input: Omit<ModeNeutralCoreRootV1, 'kind'>): ModeNeutralCoreRootV1 {`
+- line 24: `export type CoreRootValidationIssueV1 = Readonly<{`
+- line 29: `export type CoreRootValidationResultV1 =`
+- line 223: `export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {`
+- line 300: `export class CoreRootCreationErrorV1 extends Error {`
+- line 305: `export function createModeNeutralCoreRootV1(input: Omit<ModeNeutralCoreRootV1, 'kind'>): ModeNeutralCoreRootV1 {`
 
 ## `src/engine/core/closure/versionsV1.ts`
 
@@ -969,26 +969,45 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/tabletop/commandV1.ts`
 
-- line 9: `export type CoreTabletopTurnPositionV1 =`
-- line 21: `export type CoreTabletopDrawPayloadV1 = Readonly<{`
-- line 26: `export type CoreTabletopZoneMovePayloadV1 = Readonly<{`
-- line 32: `export type CoreTabletopTapPayloadV1 = Readonly<{`
-- line 38: `export type CoreTabletopManaPayloadV1 = Readonly<{`
-- line 44: `export type CoreTabletopCounterPayloadV1 = Readonly<{`
-- line 51: `export type CoreTabletopTokenCreatePayloadV1 = Readonly<{`
-- line 58: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
-- line 63: `export type CoreTabletopTurnTransitionV1 =`
-- line 69: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
-- line 74: `export type CoreTabletopCommandPayloadV1 =`
-- line 84: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+- line 9: `export type { CoreTabletopManualModeV1 } from './manualStateV1';`
+- line 11: `export type CoreTabletopTurnPositionV1 =`
+- line 23: `export type CoreTabletopDrawPayloadV1 = Readonly<{`
+- line 29: `export type CoreTabletopZoneMovePayloadV1 = Readonly<{`
+- line 36: `export type CoreTabletopTapPayloadV1 = Readonly<{`
+- line 43: `export type CoreTabletopManaPayloadV1 = Readonly<{`
+- line 50: `export type CoreTabletopCounterPayloadV1 = Readonly<{`
+- line 58: `export type CoreTabletopTokenCreatePayloadV1 = Readonly<{`
+- line 66: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
+- line 72: `export type CoreTabletopTurnTransitionV1 =`
+- line 78: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
+- line 83: `export type CoreTabletopShufflePayloadV1 = Readonly<{`
+- line 87: `export type CoreTabletopReorderPayloadV1 = Readonly<{`
+- line 93: `export type CoreTabletopLifePayloadV1 = Readonly<{`
+- line 99: `export type CoreTabletopControllerPayloadV1 = Readonly<{`
+- line 105: `export type CoreTabletopAttachPayloadV1 = Readonly<{`
+- line 111: `export type CoreTabletopDamagePayloadV1 = Readonly<{`
+- line 117: `export type CoreTabletopNoteSetPayloadV1 = Readonly<{`
+- line 123: `export type CoreTabletopNoteClearPayloadV1 = Readonly<{`
+- line 128: `export type CoreTabletopStackEntryPayloadV1 = Readonly<{`
+- line 135: `export type CoreTabletopManualResolvePayloadV1 = Readonly<{`
+- line 141: `export type CoreTabletopCommandPayloadV1 =`
+- line 161: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+
+## `src/engine/core/tabletop/manualStateV1.ts`
+
+- line 4: `export type CoreTabletopManualModeV1 = 'structured' | 'freeform';`
+- line 6: `export type CoreTabletopNoteV1 = Readonly<{`
+- line 13: `export type CoreTabletopManualStackEntryV1 = Readonly<{`
+- line 22: `export type CoreTabletopManualStateV1 = Readonly<{`
+- line 48: `export function createCoreTabletopManualStateV1(input?: Partial<CoreTabletopManualStateV1>): CoreTabletopManualStateV1 {`
 
 ## `src/engine/core/tabletop/operationsV1.ts`
 
-- line 48: `export type CoreTabletopOperationResultV1 = Readonly<{`
-- line 53: `export class CoreTabletopOperationErrorV1 extends Error {`
-- line 287: `export function drawCoreTabletopCardsV1(`
-- line 510: `export function untapCoreTabletopPermanentsV1(`
-- line 530: `export function applyCoreTabletopPayloadV1(`
+- line 106: `export type CoreTabletopOperationResultV1 = Readonly<{`
+- line 111: `export class CoreTabletopOperationErrorV1 extends Error {`
+- line 364: `export function drawCoreTabletopCardsV1(`
+- line 746: `export function untapCoreTabletopPermanentsV1(`
+- line 766: `export function applyCoreTabletopPayloadV1(`
 
 ## `src/engine/core/transition/cardReincarnation.ts`
 

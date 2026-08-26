@@ -28,7 +28,7 @@ export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-
 export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;
 export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;
 export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;
-export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[] }>;
+export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;
 export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
 export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
 
@@ -58,6 +58,15 @@ export type CoreCommandValidationResultV1 =
   | Readonly<{ readonly ok: false; readonly issues: readonly CoreCommandValidationIssueV1[] }>;
 
 const MAX_CORE_COMMAND_ARRAY_LENGTH_V1 = 10_000;
+// A tabletop token definition is copied into the public projection.  Keep its
+// shape deliberately small so a single accepted command cannot overflow the
+// browser's 65,536-byte frame budget.
+const TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1 = 8_192;
+const TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 = 512;
+const TOKEN_DEFINITION_MAX_KEYWORDS_V1 = 16;
+const TOKEN_DEFINITION_MAX_FACES_V1 = 2;
+const TOKEN_DEFINITION_MAX_COLORS_V1 = 5;
+const TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1 = 6;
 
 function issue(code: string, path: string, message: string): CoreCommandValidationIssueV1 { return Object.freeze({ code, path, message }); }
 function compare(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
@@ -84,6 +93,8 @@ function exact(value: unknown, fields: readonly string[], path: string, issues: 
 function validBaseId(value: unknown): value is string { return isCoreBaseId(value) && !isCoreUnsafeRecordKey(value); }
 function validObjectId(value: unknown): value is CoreObjectId { return isCanonicalCoreObjectIdV2(value); }
 function requireBaseId(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void { if (!validBaseId(value)) issues.push(issue('INVALID_ID', path, 'Invalid Core base ID')); }
+function validApplicationId(value: unknown): value is string { return validBaseId(value) && value.length <= 80; }
+function requireApplicationId(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void { if (!validApplicationId(value)) issues.push(issue('INVALID_ID', path, 'Invalid application ID')); }
 function requireObjectId(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void { if (!validObjectId(value)) issues.push(issue('INVALID_ID', path, 'Invalid canonical Core object ID')); }
 function requireRuleKey(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void {
   const checked = validateCoreRuleKeyV1(value, path);
@@ -183,6 +194,42 @@ function normalizeRecordValues(row: Record<string, unknown>, path: string, issue
   return Object.freeze(normalized);
 }
 
+function validateTokenDefinitionBounds(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): void {
+  const fields = ['source', 'name', 'layout', 'manaValue', 'colorIdentity', 'typeLine', 'keywords', 'producedMana', 'tokenKind', 'faces'] as const;
+  const row = exact(value, fields, path, issues);
+  if (row === null) return;
+  const boundedText = (candidate: unknown, candidatePath: string, allowEmpty = false): void => {
+    if (typeof candidate !== 'string' || (!allowEmpty && candidate.length === 0) || candidate.length > TOKEN_DEFINITION_MAX_STRING_LENGTH_V1) {
+      issues.push(issue('INVALID_STRING', candidatePath, 'Token definition text exceeds the bounded limit'));
+    }
+  };
+  boundedText(row.name, `${path}/name`);
+  boundedText(row.layout, `${path}/layout`);
+  boundedText(row.typeLine, `${path}/typeLine`);
+  const colors = validArray(row.colorIdentity, `${path}/colorIdentity`, issues);
+  if (colors !== null && colors.length > TOKEN_DEFINITION_MAX_COLORS_V1) issues.push(issue('INVALID_ARRAY', `${path}/colorIdentity/length`, 'Token color identity exceeds the bounded limit'));
+  const keywords = validArray(row.keywords, `${path}/keywords`, issues);
+  if (keywords !== null) {
+    if (keywords.length > TOKEN_DEFINITION_MAX_KEYWORDS_V1) issues.push(issue('INVALID_ARRAY', `${path}/keywords/length`, 'Token keywords exceed the bounded limit'));
+    keywords.forEach((entry, index) => boundedText(entry, `${path}/keywords/${index}`));
+  }
+  const producedMana = validArray(row.producedMana, `${path}/producedMana`, issues);
+  if (producedMana !== null && producedMana.length > TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1) issues.push(issue('INVALID_ARRAY', `${path}/producedMana/length`, 'Token produced mana exceeds the bounded limit'));
+  const faces = validArray(row.faces, `${path}/faces`, issues);
+  if (faces === null) return;
+  if (faces.length === 0 || faces.length > TOKEN_DEFINITION_MAX_FACES_V1) issues.push(issue('INVALID_ARRAY', `${path}/faces/length`, 'Token faces exceed the bounded limit'));
+  const faceFields = ['name', 'manaCost', 'typeLine', 'oracleText', 'power', 'toughness', 'loyalty', 'defense'] as const;
+  faces.forEach((entry, index) => {
+    const face = exact(entry, faceFields, `${path}/faces/${index}`, issues);
+    if (face === null) return;
+    boundedText(face.name, `${path}/faces/${index}/name`);
+    boundedText(face.typeLine, `${path}/faces/${index}/typeLine`);
+    for (const key of ['manaCost', 'oracleText', 'power', 'toughness', 'loyalty', 'defense'] as const) {
+      if (face[key] !== null) boundedText(face[key], `${path}/faces/${index}/${key}`, true);
+    }
+  });
+}
+
 function normalizeRemovalInput(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
   const row = exact(value, ['kind', 'objectId', 'destination'], path, issues, ['kind', 'objectId']);
   if (!row) return null;
@@ -242,6 +289,7 @@ function normalizePayloadNested(kind: string, row: Record<string, unknown>, issu
 function normalizeTabletopDefinition(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
   const row = exact(value, ['source', 'name', 'layout', 'manaValue', 'colorIdentity', 'typeLine', 'keywords', 'producedMana', 'tokenKind', 'faces'], path, issues);
   if (!row) return null;
+  validateTokenDefinitionBounds(value, path, issues);
   const normalized: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   for (const key of Object.keys(row)) normalized[key] = normalizeValue(row[key], `${path}/${key}`, issues);
   const source = exact(row.source, ['kind'], `${path}/source`, issues);
@@ -255,7 +303,14 @@ function normalizeTabletopDefinition(value: unknown, path: string, issues: CoreC
       return checked === null ? Object.freeze({}) : Object.freeze(normalizeRecordValues(checked, `${path}/faces/${faceIndex}`, issues));
     }));
   }
-  return Object.freeze(normalized);
+  const frozen = Object.freeze(normalized);
+  let serialized: string;
+  try { serialized = JSON.stringify(frozen); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Token definition could not be serialized safely')); return null; }
+  if (new TextEncoder().encode(serialized).length > TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1) {
+    issues.push(issue('INVALID_SIZE', path, 'Token definition exceeds the bounded projection budget'));
+    return null;
+  }
+  return frozen;
 }
 function normalizeTabletopTransition(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
   const row = exact(value, ['kind', 'nextPosition'], path, issues, ['kind']);
@@ -339,7 +394,7 @@ export function validateCoreCommandV1(input: unknown): CoreCommandValidationResu
   let payload: CoreCommandPayloadV1 | null = null;
   if (payloadRecord) {
     const kind = readKind(payloadRecord, issues);
-    const requireRecord = (fields: readonly string[]): Record<string, unknown> | null => exact(payloadRecord, fields, '/payload', issues);
+    const requireRecord = (fields: readonly string[], optionalFields: readonly string[] = []): Record<string, unknown> | null => exact(payloadRecord, fields, '/payload', issues, fields.filter((field) => !optionalFields.includes(field)));
     const requirePlayerId = (value: unknown, path: string): void => requireBaseId(value, path, issues);
     if (kind === 'stack-commit-card-spell') {
       const row = requireRecord(['kind', 'input']); if (row) { const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, input: nested.input as CoreCardSpellCommitInputV1 }); }
@@ -366,25 +421,45 @@ export function validateCoreCommandV1(input: unknown): CoreCommandValidationResu
     } else if (kind === 'player-exit') {
       const row = requireRecord(['kind', 'playerId', 'cause']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); if (row.cause !== 'concession' && row.cause !== 'defeat') issues.push(issue('INVALID_LITERAL', '/payload/cause', 'Invalid exit cause')); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId, cause: row.cause as 'concession' | 'defeat' }); }
     } else if (kind === 'random-zone-order') {
-      const row = requireRecord(['kind', 'randomDecisionId', 'zone', 'beforeOrder', 'afterOrder']); if (row) { requireRuleKey(row.randomDecisionId, '/payload/randomDecisionId', issues); const before = validArray(row.beforeOrder, '/payload/beforeOrder', issues); const after = validArray(row.afterOrder, '/payload/afterOrder', issues); before?.forEach((id, index) => requireObjectId(id, `/payload/beforeOrder/${index}`, issues)); after?.forEach((id, index) => requireObjectId(id, `/payload/afterOrder/${index}`, issues)); const nested = normalizePayloadNested(kind, row, issues); const zone = nested.zone as CoreRuleZoneRefV1 | null; if (zone && (zone.kind !== 'player-zone' || zone.zone !== 'library')) issues.push(issue('INVALID_RANDOM_ZONE', '/payload/zone', 'V1 random zone order is limited to a player library')); if (before && after && zone) payload = Object.freeze({ kind, randomDecisionId: row.randomDecisionId as CoreRuleKeyV1, zone, beforeOrder: Object.freeze(before as CoreObjectId[]), afterOrder: Object.freeze(after as CoreObjectId[]) }); }
+      const row = requireRecord(['kind', 'randomDecisionId', 'zone', 'beforeOrder', 'afterOrder', 'manualMode'], ['manualMode']); if (row) { requireRuleKey(row.randomDecisionId, '/payload/randomDecisionId', issues); const before = validArray(row.beforeOrder, '/payload/beforeOrder', issues); const after = validArray(row.afterOrder, '/payload/afterOrder', issues); before?.forEach((id, index) => requireObjectId(id, `/payload/beforeOrder/${index}`, issues)); after?.forEach((id, index) => requireObjectId(id, `/payload/afterOrder/${index}`, issues)); const nested = normalizePayloadNested(kind, row, issues); const zone = nested.zone as CoreRuleZoneRefV1 | null; if (zone && (zone.kind !== 'player-zone' || zone.zone !== 'library')) issues.push(issue('INVALID_RANDOM_ZONE', '/payload/zone', 'V1 random zone order is limited to a player library')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); if (before && after && zone) payload = Object.freeze({ kind, randomDecisionId: row.randomDecisionId as CoreRuleKeyV1, zone, beforeOrder: Object.freeze(before as CoreObjectId[]), afterOrder: Object.freeze(after as CoreObjectId[]), ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'correct-player-life') {
       const row = requireRecord(['kind', 'playerId', 'replacementLifeTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); if (typeof row.replacementLifeTotal !== 'number' || !Number.isSafeInteger(row.replacementLifeTotal)) issues.push(issue('INVALID_INTEGER', '/payload/replacementLifeTotal', 'Life must be a safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId, replacementLifeTotal: row.replacementLifeTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
     } else if (kind === 'correct-commander-damage') {
       const row = requireRecord(['kind', 'physicalCardId', 'defendingPlayerId', 'replacementDamageTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requireBaseId(row.physicalCardId, '/payload/physicalCardId', issues); requirePlayerId(row.defendingPlayerId, '/payload/defendingPlayerId'); if (typeof row.replacementDamageTotal !== 'number' || !Number.isSafeInteger(row.replacementDamageTotal) || row.replacementDamageTotal < 0) issues.push(issue('INVALID_DAMAGE', '/payload/replacementDamageTotal', 'Damage must be a nonnegative safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, physicalCardId: row.physicalCardId as CorePhysicalCardId, defendingPlayerId: row.defendingPlayerId as CorePlayerId, replacementDamageTotal: row.replacementDamageTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
     } else if (kind === 'table-draw') {
-      const row = requireRecord(['kind', 'count']); if (row) { if (typeof row.count !== 'number' || !Number.isSafeInteger(row.count) || row.count < 1 || row.count > 100 || Object.is(row.count, -0)) issues.push(issue('INVALID_INTEGER', '/payload/count', 'Draw count must be 1 through 100')); payload = Object.freeze({ kind, count: row.count as number }); }
+      const row = requireRecord(['kind', 'count', 'manualMode'], ['manualMode']); if (row) { if (typeof row.count !== 'number' || !Number.isSafeInteger(row.count) || row.count < 1 || row.count > 100 || Object.is(row.count, -0)) issues.push(issue('INVALID_INTEGER', '/payload/count', 'Draw count must be 1 through 100')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, count: row.count as number, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-zone-move') {
-      const row = requireRecord(['kind', 'objectId', 'destination']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); const destination = validateCoreCardZoneDestinationV1(row.destination); if (!destination.ok) issues.push(...destination.issues.map((current) => issue(current.code, `/payload/destination${current.path}`, current.message))); else { if (destination.value.kind === 'battlefield' || destination.value.kind === 'stack') requireBaseId(destination.value.baseControllerPlayerId, '/payload/destination/baseControllerPlayerId', issues); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, destination: destination.value }); } }
+      const row = requireRecord(['kind', 'objectId', 'destination', 'manualMode'], ['manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); const destination = validateCoreCardZoneDestinationV1(row.destination); if (!destination.ok) issues.push(...destination.issues.map((current) => issue(current.code, `/payload/destination${current.path}`, current.message))); else { if (destination.value.kind === 'battlefield' || destination.value.kind === 'stack') requireBaseId(destination.value.baseControllerPlayerId, '/payload/destination/baseControllerPlayerId', issues); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, destination: destination.value, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); } }
     } else if (kind === 'table-tap') {
-      const row = requireRecord(['kind', 'objectId', 'tapped']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (typeof row.tapped !== 'boolean') issues.push(issue('INVALID_TYPE', '/payload/tapped', 'Tapped must be boolean')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, tapped: row.tapped as boolean }); }
+      const row = requireRecord(['kind', 'objectId', 'tapped', 'manualMode'], ['manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (typeof row.tapped !== 'boolean') issues.push(issue('INVALID_TYPE', '/payload/tapped', 'Tapped must be boolean')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, tapped: row.tapped as boolean, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-mana-adjust') {
-      const row = requireRecord(['kind', 'color', 'delta']); if (row) { if (row.color !== 'W' && row.color !== 'U' && row.color !== 'B' && row.color !== 'R' && row.color !== 'G' && row.color !== 'C') issues.push(issue('INVALID_LITERAL', '/payload/color', 'Invalid mana color')); if (typeof row.delta !== 'number' || !Number.isSafeInteger(row.delta) || row.delta === 0 || Object.is(row.delta, -0)) issues.push(issue('INVALID_INTEGER', '/payload/delta', 'Mana delta must be a non-zero safe integer')); payload = Object.freeze({ kind, color: row.color as 'W' | 'U' | 'B' | 'R' | 'G' | 'C', delta: row.delta as number }); }
+      const row = requireRecord(['kind', 'color', 'delta', 'manualMode'], ['manualMode']); if (row) { if (row.color !== 'W' && row.color !== 'U' && row.color !== 'B' && row.color !== 'R' && row.color !== 'G' && row.color !== 'C') issues.push(issue('INVALID_LITERAL', '/payload/color', 'Invalid mana color')); if (typeof row.delta !== 'number' || !Number.isSafeInteger(row.delta) || row.delta === 0 || Object.is(row.delta, -0)) issues.push(issue('INVALID_INTEGER', '/payload/delta', 'Mana delta must be a non-zero safe integer')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, color: row.color as 'W' | 'U' | 'B' | 'R' | 'G' | 'C', delta: row.delta as number, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-counter-adjust') {
-      const row = requireRecord(['kind', 'objectId', 'counterKind', 'delta']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); const counterKind = typeof row.counterKind === 'string' ? row.counterKind : ''; const hasControl = [...counterKind].some((character) => { const codePoint = character.codePointAt(0) ?? 0; return codePoint <= 0x1f || codePoint === 0x7f || (codePoint >= 0x80 && codePoint <= 0x9f); }); if (counterKind.length === 0 || counterKind.trim() !== counterKind || counterKind.length > 80 || hasControl) issues.push(issue('INVALID_STRING', '/payload/counterKind', 'Invalid counter kind')); if (typeof row.delta !== 'number' || !Number.isSafeInteger(row.delta) || row.delta === 0 || Object.is(row.delta, -0)) issues.push(issue('INVALID_INTEGER', '/payload/delta', 'Counter delta must be a non-zero safe integer')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, counterKind: counterKind, delta: row.delta as number }); }
+      const row = requireRecord(['kind', 'objectId', 'counterKind', 'delta', 'manualMode'], ['manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); const counterKind = typeof row.counterKind === 'string' ? row.counterKind : ''; const hasControl = [...counterKind].some((character) => { const codePoint = character.codePointAt(0) ?? 0; return codePoint <= 0x1f || codePoint === 0x7f || (codePoint >= 0x80 && codePoint <= 0x9f); }); if (counterKind.length === 0 || counterKind.trim() !== counterKind || counterKind.length > 80 || hasControl) issues.push(issue('INVALID_STRING', '/payload/counterKind', 'Invalid counter kind')); if (typeof row.delta !== 'number' || !Number.isSafeInteger(row.delta) || row.delta === 0 || Object.is(row.delta, -0)) issues.push(issue('INVALID_INTEGER', '/payload/delta', 'Counter delta must be a non-zero safe integer')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, counterKind: counterKind, delta: row.delta as number, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-token-create') {
-      const row = requireRecord(['kind', 'tokenSeed', 'definitionId', 'definition']); if (row) { requireBaseId(row.tokenSeed, '/payload/tokenSeed', issues); requireBaseId(row.definitionId, '/payload/definitionId', issues); const definition = normalizeTabletopDefinition(row.definition, '/payload/definition', issues); if (definition !== null) payload = Object.freeze({ kind, tokenSeed: row.tokenSeed as string, definitionId: row.definitionId as never, definition: definition as CoreCardDefinitionSnapshotV1 }); }
+      const row = requireRecord(['kind', 'tokenSeed', 'definitionId', 'definition', 'manualMode'], ['manualMode']); if (row) { requireBaseId(row.tokenSeed, '/payload/tokenSeed', issues); requireBaseId(row.definitionId, '/payload/definitionId', issues); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); const definition = normalizeTabletopDefinition(row.definition, '/payload/definition', issues); if (definition !== null) payload = Object.freeze({ kind, tokenSeed: row.tokenSeed as string, definitionId: row.definitionId as never, definition: definition as CoreCardDefinitionSnapshotV1, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-token-remove') {
-      const row = requireRecord(['kind', 'objectId']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId }); }
+      const row = requireRecord(['kind', 'objectId', 'manualMode'], ['manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
+    } else if (kind === 'table-shuffle') {
+      const row = requireRecord(['kind', 'manualMode']); if (row) { if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-reorder') {
+      const row = requireRecord(['kind', 'zone', 'order', 'manualMode']); if (row) { const zone = normalizeZone(row.zone, '/payload/zone', issues); const order = validArray(row.order, '/payload/order', issues); order?.forEach((id, index) => requireObjectId(id, `/payload/order/${index}`, issues)); if (zone === null || order === null) { /* issues already recorded */ } else if (zone.kind !== 'shared-zone' || !['battlefield', 'stack', 'exile', 'command'].includes(zone.zone)) issues.push(issue('INVALID_LITERAL', '/payload/zone', 'Reorder is limited to public zones')); else if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); else payload = Object.freeze({ kind, zone, order: Object.freeze(order as CoreObjectId[]), manualMode: row.manualMode }); }
+    } else if (kind === 'table-life-adjust') {
+      const row = requireRecord(['kind', 'field', 'delta', 'manualMode']); if (row) { if (!['life', 'poison', 'energy', 'experience'].includes(String(row.field))) issues.push(issue('INVALID_LITERAL', '/payload/field', 'Invalid player fact')); if (typeof row.delta !== 'number' || !Number.isSafeInteger(row.delta) || row.delta === 0 || Object.is(row.delta, -0)) issues.push(issue('INVALID_INTEGER', '/payload/delta', 'Delta must be a non-zero safe integer')); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, field: row.field as 'life' | 'poison' | 'energy' | 'experience', delta: row.delta as number, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-controller-change') {
+      const row = requireRecord(['kind', 'objectId', 'gainingControllerPlayerId', 'manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); requirePlayerId(row.gainingControllerPlayerId, '/payload/gainingControllerPlayerId'); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, gainingControllerPlayerId: row.gainingControllerPlayerId as CorePlayerId, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-attach') {
+      const row = requireRecord(['kind', 'objectId', 'targetObjectId', 'manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (row.targetObjectId !== null) requireObjectId(row.targetObjectId, '/payload/targetObjectId', issues); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, targetObjectId: row.targetObjectId as CoreObjectId | null, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-damage-mark') {
+      const row = requireRecord(['kind', 'objectId', 'amount', 'manualMode']); if (row) { requireObjectId(row.objectId, '/payload/objectId', issues); if (typeof row.amount !== 'number' || !Number.isSafeInteger(row.amount) || row.amount === 0 || Object.is(row.amount, -0)) issues.push(issue('INVALID_INTEGER', '/payload/amount', 'Damage amount must be a non-zero safe integer')); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, objectId: row.objectId as CoreObjectId, amount: row.amount as number, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-note-set') {
+      const row = requireRecord(['kind', 'noteId', 'text', 'manualMode']); if (row) { const textValue = typeof row.text === 'string' ? row.text : ''; const hasControl = [...textValue].some((character) => { const codePoint = character.codePointAt(0) ?? 0; return codePoint <= 0x1f || codePoint === 0x7f || (codePoint >= 0x80 && codePoint <= 0x9f); }); requireApplicationId(row.noteId, '/payload/noteId', issues); if (textValue.trim() !== textValue || textValue.length < 1 || textValue.length > 160 || hasControl) issues.push(issue('INVALID_STRING', '/payload/text', 'Invalid note text')); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, noteId: row.noteId as string, text: textValue, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-note-clear') {
+      const row = requireRecord(['kind', 'noteId', 'manualMode']); if (row) { requireApplicationId(row.noteId, '/payload/noteId', issues); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, noteId: row.noteId as string, manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-stack-entry') {
+      const row = requireRecord(['kind', 'entryId', 'label', 'sourceObjectId', 'manualMode']); if (row) { const label = typeof row.label === 'string' ? row.label : ''; const hasControl = [...label].some((character) => { const codePoint = character.codePointAt(0) ?? 0; return codePoint <= 0x1f || codePoint === 0x7f || (codePoint >= 0x80 && codePoint <= 0x9f); }); requireApplicationId(row.entryId, '/payload/entryId', issues); if (label.trim() !== label || label.length < 1 || label.length > 160 || hasControl) issues.push(issue('INVALID_STRING', '/payload/label', 'Invalid stack label')); if (row.sourceObjectId !== undefined && row.sourceObjectId !== null) requireObjectId(row.sourceObjectId, '/payload/sourceObjectId', issues); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, entryId: row.entryId as string, label, ...(row.sourceObjectId === undefined ? {} : { sourceObjectId: row.sourceObjectId as CoreObjectId | null }), manualMode: row.manualMode as 'structured' | 'freeform' }); }
+    } else if (kind === 'table-manual-resolve') {
+      const row = requireRecord(['kind', 'entryId', 'manualMode'], ['entryId']); if (row) { if (row.entryId !== undefined) requireApplicationId(row.entryId, '/payload/entryId', issues); if (row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, ...(row.entryId === undefined ? {} : { entryId: row.entryId as string }), manualMode: row.manualMode as 'structured' | 'freeform' }); }
     } else if (kind === 'table-turn-progress') {
       const row = requireRecord(['kind', 'transition']); if (row) { const transition = normalizeTabletopTransition(row.transition, '/payload/transition', issues); if (transition !== null) payload = Object.freeze({ kind, transition: transition as CoreTabletopTurnPayloadV1['transition'] }); }
     } else issues.push(issue('UNKNOWN_PAYLOAD_KIND', '/payload/kind', 'Unknown Core command payload kind'));

@@ -21,6 +21,7 @@ import {
 } from './types';
 import { PUBLIC_ONLINE_ENDPOINT_V1 } from './index';
 import type { OnlineBrowserStateV1 } from '../browser/index';
+import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import {
   validateOnlinePregameProjectionV1,
   type OnlinePregameCommandResponseV1,
@@ -107,6 +108,7 @@ const exact = (value: unknown, fields: readonly string[]): value is Record<strin
     });
   } catch { return false; }
 };
+
 function denseArray(value: unknown): readonly unknown[] | null {
   if (!Array.isArray(value)) return null;
   try {
@@ -549,8 +551,27 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       publish({ error: '操作を送信できませんでした。' });
     }
   };
+  const submitTabletopIntent = async (input: OnlineTabletopIntentEnvelopeV1): Promise<void> => {
+    const activeSecrets = secrets;
+    const client = playerClient;
+    if (activeSecrets === null || client === null || snapshot.roomId === null || snapshot.busy !== null || snapshot.lifecycle !== 'started') return;
+    const checked = validateOnlineTabletopIntentEnvelopeV1(input);
+    if (!checked.ok) { publish({ error: '操作内容を確認して再試行してください。' }); return; }
+    publish({ busy: 'tabletop', error: null, errorIssue: null });
+    try {
+      await Promise.resolve();
+      const result = client.submitTabletop(checked.value);
+      if (!result.ok) publish({ error: '操作を送信できませんでした。表示を確認して再試行してください。' });
+    } catch (error: unknown) {
+      const issue = clientIssue(error, '操作を再試行');
+      if (issue.retryable) retryOperation = () => submitTabletopIntent(checked.value);
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
+    } finally {
+      publish({ busy: null });
+    }
+  };
   const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
-  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, displayDeckName: (name: string, index: number) => {
+  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, displayDeckName: (name: string, index: number) => {
     const fallback = `保存済みデッキ ${index + 1}`;
     try {
       if (!Number.isSafeInteger(index) || index < 0 || typeof name !== 'string' ||

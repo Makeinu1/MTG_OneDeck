@@ -434,6 +434,53 @@ describe('O4P-02D audience projection', () => {
     )).toBe(true);
   });
 
+  it('rejects a projected definition whose attacker-controlled snapshot exceeds the bounded frame budget', () => {
+    const transition = handleOnlineProjectedSnapshotRequestV1(state(), request());
+    if (transition.response.status !== 'accepted') throw new Error('Expected projection');
+    type MutableDefinition = { faces: Array<Record<string, unknown>> };
+    const drifted = structuredClone(transition.response.projection) as unknown as {
+      game: { zones: { battlefield: { entries: Array<{ kind: string; definition?: MutableDefinition | null }> } } };
+    };
+    const card = drifted.game.zones.battlefield.entries.find(
+      (entry) => entry.kind === 'visible-object' && entry.definition !== null,
+    );
+    if (card?.definition == null) throw new Error('Expected visible card definition');
+    const face = card.definition.faces[0];
+    if (face === undefined) throw new Error('Expected visible card face');
+    face.oracleText = 'x'.repeat(100_000);
+    const result = validateOnlineParticipantProjectionV1(drifted);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('Expected oversized definition rejection');
+    expect(result.issues.some(
+      (issue) => issue.path.endsWith('/definition/faces/0/oracleText'),
+    )).toBe(true);
+  });
+
+  it('rejects over-cap public notes and manual-stack collections', () => {
+    const transition = handleOnlineProjectedSnapshotRequestV1(state(), request());
+    if (transition.response.status !== 'accepted') throw new Error('Expected projection');
+    const drifted = structuredClone(transition.response.projection) as unknown as {
+      game: { notes?: unknown[]; manualStack?: unknown[] };
+    };
+    drifted.game.notes = Array.from({ length: 216 }, (_, index) => ({
+      id: `projection-note-${String(index)}`,
+      authorPlayerId: 'P1',
+      text: 'x'.repeat(160),
+      creationRevision: 1,
+    }));
+    expect(validateOnlineParticipantProjectionV1(drifted).ok).toBe(false);
+    drifted.game.notes = [];
+    drifted.game.manualStack = Array.from({ length: 216 }, (_, index) => ({
+      id: `projection-entry-${String(index)}`,
+      label: 'x'.repeat(160),
+      provenance: 'structured',
+      sourceObjectId: null,
+      authorPlayerId: 'P1',
+      creationRevision: 1,
+    }));
+    expect(validateOnlineParticipantProjectionV1(drifted).ok).toBe(false);
+  });
+
   it('accepts a semantically identical search candidate with reversed property insertion order', () => {
     const root = makeCoreRoot();
     const searchSessions = Core.createModeNeutralCoreSearchSessionSliceV1({

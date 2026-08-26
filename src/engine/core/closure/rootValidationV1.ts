@@ -17,6 +17,9 @@ import {
 import type { CoreClosureVersionVectorV1 } from './versionsV1';
 import { isCoreClosureVersionVectorV1 } from './versionsV1';
 import type { ModeNeutralCoreRootV1 } from './rootV1';
+import { createCoreTabletopManualStateV1, type CoreTabletopManualStateV1 } from '../tabletop/manualStateV1';
+import { isCoreBaseId, isCoreUnsafeRecordKey } from '../ids';
+import { isCanonicalCoreObjectIdV2 } from '../object/objectIdV2';
 
 export type CoreRootValidationIssueV1 = Readonly<{
   readonly code: string;
@@ -30,7 +33,13 @@ export type CoreRootValidationResultV1 =
 const ROOT_FIELDS = [
   'kind', 'versions', 'acceptedCommandCount', 'ruleAuthority', 'playerLifecycle', 'commanders',
   'commanderCastLedgers', 'commanderDamage', 'commanderDamageProvenance', 'combatContext',
+  'tabletopManual',
 ] as const;
+const MANUAL_NOTES_MAX_COUNT_V1 = 128;
+const MANUAL_STACK_MAX_COUNT_V1 = 128;
+const MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STACK_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STATE_MAX_SERIALIZED_BYTES_V1 = 32_768;
 
 function compare(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -47,7 +56,7 @@ function plain(value: unknown): value is Record<string, unknown> {
       && (Reflect.getPrototypeOf(value) === Object.prototype || Reflect.getPrototypeOf(value) === null);
   } catch { return false; }
 }
-function readExact(value: unknown, fields: readonly string[], path: string, issues: CoreRootValidationIssueV1[]): Record<string, unknown> | null {
+function readExact(value: unknown, fields: readonly string[], path: string, issues: CoreRootValidationIssueV1[], optionalFields: readonly string[] = []): Record<string, unknown> | null {
   if (!plain(value)) { issues.push(issue('INVALID_TYPE', path, 'Expected a plain record')); return null; }
   let keys: readonly PropertyKey[];
   try { keys = Reflect.ownKeys(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Record keys are not readable')); return null; }
@@ -61,10 +70,10 @@ function readExact(value: unknown, fields: readonly string[], path: string, issu
     if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) { issues.push(issue('INVALID_DESCRIPTOR', `${path}/${key}`, 'Field must be an enumerable data property')); continue; }
     result[key] = descriptor.value;
   }
-  for (const field of fields) if (!Object.prototype.hasOwnProperty.call(result, field)) issues.push(issue('MISSING_FIELD', `${path}/${field}`, 'Required field is missing'));
+  for (const field of fields) if (!optionalFields.includes(field) && !Object.prototype.hasOwnProperty.call(result, field)) issues.push(issue('MISSING_FIELD', `${path}/${field}`, 'Required field is missing'));
   return result;
 }
-function dense(value: unknown, path: string, issues: CoreRootValidationIssueV1[]): readonly unknown[] | null {
+function dense(value: unknown, path: string, issues: CoreRootValidationIssueV1[], maxLength = 10_000): readonly unknown[] | null {
   let array: boolean;
   try { array = Array.isArray(value); } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Array inspection is not safe')); return null; }
   if (!array) { issues.push(issue('INVALID_ARRAY', path, 'Expected an array')); return null; }
@@ -78,6 +87,7 @@ function dense(value: unknown, path: string, issues: CoreRootValidationIssueV1[]
     length = descriptor.value;
   } catch { issues.push(issue('INVALID_DESCRIPTOR', path, 'Array descriptors are not readable')); return null; }
   if (!Number.isSafeInteger(length) || length < 0) { issues.push(issue('INVALID_ARRAY', `${path}/length`, 'Array length must be a non-negative safe integer')); return null; }
+  if (length > maxLength) { issues.push(issue('INVALID_ARRAY', `${path}/length`, 'Array exceeds the bounded Core root limit')); return null; }
   const allowed = new Set(['length', ...Array.from({ length }, (_, index) => String(index))]);
   for (const key of keys) if (typeof key !== 'string' || !allowed.has(key)) issues.push(issue('UNKNOWN_FIELD', `${path}/${String(key)}`, 'Array has an unknown field'));
   const output: unknown[] = [];
@@ -119,9 +129,100 @@ function nested<T>(factory: () => T, path: string, issues: CoreRootValidationIss
   try { return factory(); } catch (error: unknown) { issues.push(...nestedIssues(error, path)); return null; }
 }
 
+function manualText(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 160 || value.trim() !== value) return false;
+  return ![...value].some((character) => { const codePoint = character.codePointAt(0) ?? 0; return codePoint <= 0x1f || codePoint === 0x7f || (codePoint >= 0x80 && codePoint <= 0x9f); });
+}
+
+function serializedBytes(value: unknown): number | null {
+  try {
+    const serialized = JSON.stringify(value);
+    return serialized === undefined ? null : new TextEncoder().encode(serialized).length;
+  } catch {
+    return null;
+  }
+}
+
+function applicationId(value: unknown): value is string {
+  return isCoreBaseId(value) && !isCoreUnsafeRecordKey(value) && value.length <= 80;
+}
+
+function validateTabletopManualState(
+  input: unknown,
+  acceptedCommandCount: unknown,
+  registry: ReturnType<typeof createCoreRuleAuthorityBundleV1>['turnPriorityBundle']['stackBundle']['objectRegistry'] | null,
+  path: string,
+  issues: CoreRootValidationIssueV1[],
+): CoreTabletopManualStateV1 | undefined {
+  const record = readExact(input, ['kind', 'notes', 'noteOrder', 'stackEntries'], path, issues);
+  if (record === null) return undefined;
+  if (record.kind !== 'core-tabletop-manual-state-v1') issues.push(issue('INVALID_LITERAL', `${path}/kind`, 'Invalid tabletop manual state kind'));
+  const notes = plain(record.notes) ? record.notes : null;
+  const noteValues: Record<string, CoreTabletopManualStateV1['notes'][string]> = Object.create(null) as Record<string, CoreTabletopManualStateV1['notes'][string]>;
+  const noteKeys = new Set<string>();
+  if (notes === null) issues.push(issue('INVALID_TYPE', `${path}/notes`, 'Notes must be a plain record'));
+  else {
+    let keys: readonly PropertyKey[] = [];
+    try { keys = Reflect.ownKeys(notes); } catch { issues.push(issue('INVALID_DESCRIPTOR', `${path}/notes`, 'Notes descriptors are not readable')); }
+    for (const key of keys) {
+      if (typeof key !== 'string' || !applicationId(key)) { issues.push(issue('INVALID_ID', `${path}/notes/${String(key)}`, 'Invalid note ID')); continue; }
+      noteKeys.add(key);
+      let noteValue: unknown;
+      try {
+        const descriptor = Object.getOwnPropertyDescriptor(notes, key);
+        if (descriptor === undefined || descriptor.enumerable !== true || !('value' in descriptor)) { issues.push(issue('INVALID_DESCRIPTOR', `${path}/notes/${key}`, 'Note value descriptor is not readable')); continue; }
+        noteValue = descriptor.value;
+      } catch { issues.push(issue('INVALID_DESCRIPTOR', `${path}/notes/${key}`, 'Note value descriptor is not readable')); continue; }
+      const note = readExact(noteValue, ['id', 'authorPlayerId', 'text', 'creationRevision'], `${path}/notes/${key}`, issues);
+      if (note === null) continue;
+      if (note.id !== key || !applicationId(note.id)) issues.push(issue('INVALID_ID', `${path}/notes/${key}/id`, 'Note ID must match its map key'));
+      if (!isCoreBaseId(note.authorPlayerId) || (registry !== null && !Object.prototype.hasOwnProperty.call(registry.players, note.authorPlayerId))) issues.push(issue('INVALID_ID', `${path}/notes/${key}/authorPlayerId`, 'Note author must be seated'));
+      if (!manualText(note.text)) issues.push(issue('INVALID_STRING', `${path}/notes/${key}/text`, 'Invalid note text'));
+      if (typeof note.creationRevision !== 'number' || !Number.isSafeInteger(note.creationRevision) || note.creationRevision < 1 || typeof acceptedCommandCount !== 'number' || note.creationRevision > acceptedCommandCount) issues.push(issue('INVALID_INTEGER', `${path}/notes/${key}/creationRevision`, 'Invalid note creation revision'));
+      noteValues[key] = Object.freeze({ id: key, authorPlayerId: note.authorPlayerId as CoreTabletopManualStateV1['notes'][string]['authorPlayerId'], text: note.text as string, creationRevision: note.creationRevision as number });
+    }
+  }
+  if (noteKeys.size > MANUAL_NOTES_MAX_COUNT_V1) issues.push(issue('INVALID_ARRAY', `${path}/notes`, 'Manual notes exceed the bounded collection limit'));
+  const noteOrderValues = dense(record.noteOrder, `${path}/noteOrder`, issues, MANUAL_NOTES_MAX_COUNT_V1) ?? [];
+  const noteOrder: string[] = [];
+  for (let index = 0; index < noteOrderValues.length; index += 1) {
+    const value = noteOrderValues[index];
+    if (!applicationId(value)) issues.push(issue('INVALID_ID', `${path}/noteOrder/${index}`, 'Invalid note order ID'));
+    else if (!noteKeys.has(value)) issues.push(issue('INVALID_RELATION', `${path}/noteOrder/${index}`, 'Note order must cover note map keys'));
+    else if (noteOrder.includes(value)) issues.push(issue('DUPLICATE_VALUE', `${path}/noteOrder/${index}`, 'Duplicate note order ID'));
+    else noteOrder.push(value);
+  }
+  if (noteOrder.length !== noteKeys.size) issues.push(issue('INVALID_RELATION', `${path}/noteOrder`, 'Note order must exactly cover notes'));
+
+  const stackValues = dense(record.stackEntries, `${path}/stackEntries`, issues, MANUAL_STACK_MAX_COUNT_V1) ?? [];
+  if (stackValues.length > MANUAL_STACK_MAX_COUNT_V1) issues.push(issue('INVALID_ARRAY', `${path}/stackEntries`, 'Manual stack exceeds the bounded collection limit'));
+  const stackEntries: CoreTabletopManualStateV1['stackEntries'][number][] = [];
+  const stackIds = new Set<string>();
+  for (let index = 0; index < stackValues.length; index += 1) {
+    const entry = readExact(stackValues[index], ['id', 'label', 'provenance', 'sourceObjectId', 'authorPlayerId', 'creationRevision'], `${path}/stackEntries/${index}`, issues);
+    if (entry === null) continue;
+    if (!applicationId(entry.id) || stackIds.has(entry.id)) issues.push(issue('INVALID_ID', `${path}/stackEntries/${index}/id`, 'Invalid or duplicate stack entry ID')); else stackIds.add(entry.id);
+    if (!manualText(entry.label)) issues.push(issue('INVALID_STRING', `${path}/stackEntries/${index}/label`, 'Invalid stack label'));
+    if (entry.provenance !== 'structured' && entry.provenance !== 'freeform') issues.push(issue('INVALID_LITERAL', `${path}/stackEntries/${index}/provenance`, 'Invalid stack provenance'));
+    if (entry.sourceObjectId !== null && (!isCanonicalCoreObjectIdV2(entry.sourceObjectId) || registry === null || !registry.zones.shared.stack.includes(entry.sourceObjectId))) issues.push(issue('INVALID_RELATION', `${path}/stackEntries/${index}/sourceObjectId`, 'Stack source must be a public stack object'));
+    if (!isCoreBaseId(entry.authorPlayerId) || (registry !== null && !Object.prototype.hasOwnProperty.call(registry.players, entry.authorPlayerId))) issues.push(issue('INVALID_ID', `${path}/stackEntries/${index}/authorPlayerId`, 'Stack author must be seated'));
+    if (typeof entry.creationRevision !== 'number' || !Number.isSafeInteger(entry.creationRevision) || entry.creationRevision < 1 || typeof acceptedCommandCount !== 'number' || entry.creationRevision > acceptedCommandCount) issues.push(issue('INVALID_INTEGER', `${path}/stackEntries/${index}/creationRevision`, 'Invalid stack creation revision'));
+    stackEntries.push(Object.freeze({ id: entry.id as string, label: entry.label as string, provenance: entry.provenance as 'structured' | 'freeform', sourceObjectId: entry.sourceObjectId as CoreTabletopManualStateV1['stackEntries'][number]['sourceObjectId'], authorPlayerId: entry.authorPlayerId as CoreTabletopManualStateV1['stackEntries'][number]['authorPlayerId'], creationRevision: entry.creationRevision as number }));
+  }
+  if (issues.some((entry) => entry.path.startsWith(path))) return undefined;
+  const notesBytes = serializedBytes({ notes: noteValues, noteOrder });
+  if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', `${path}/notes`, 'Manual notes exceed the bounded serialized size'));
+  const stackBytes = serializedBytes({ stackEntries });
+  if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', `${path}/stackEntries`, 'Manual stack exceeds the bounded serialized size'));
+  const aggregateBytes = serializedBytes({ notes: noteValues, noteOrder, stackEntries });
+  if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', path, 'Manual state exceeds the bounded serialized size'));
+  if (issues.some((entry) => entry.path.startsWith(path))) return undefined;
+  return createCoreTabletopManualStateV1({ notes: noteValues, noteOrder, stackEntries });
+}
+
 export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {
   const issues: CoreRootValidationIssueV1[] = [];
-  const root = readExact(input, ROOT_FIELDS, '', issues);
+  const root = readExact(input, ROOT_FIELDS, '', issues, ['tabletopManual']);
   if (root === null) return { ok: false, issues: sorted(issues) };
   if (root.kind !== 'mode-neutral-core-root-v1') issues.push(issue('INVALID_LITERAL', '/kind', 'Invalid Core root kind'));
   if (!isCoreClosureVersionVectorV1(root.versions)) issues.push(issue('INVALID_VERSION', '/versions', 'Invalid Core closure version vector'));
@@ -144,6 +245,10 @@ export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidatio
   const provenance = nested(() => createCoreCommanderDamageProvenanceLedgerV1(root.commanderDamageProvenance), '/commanderDamageProvenance', issues);
   let combatContext: CoreCombatContextV1 | null = null;
   if (root.combatContext !== null) combatContext = nested(() => createCoreCombatContextV1(root.combatContext), '/combatContext', issues);
+  let tabletopManual: CoreTabletopManualStateV1 | undefined;
+  if (root.tabletopManual !== undefined) {
+    tabletopManual = validateTabletopManualState(root.tabletopManual, root.acceptedCommandCount, ruleAuthority?.turnPriorityBundle.stackBundle.objectRegistry ?? null, '/tabletopManual', issues);
+  }
 
   if (ruleAuthority && playerLifecycle) {
     const registry = ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
@@ -187,6 +292,7 @@ export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidatio
     commanderDamage,
     commanderDamageProvenance: provenance,
     combatContext,
+    ...(tabletopManual === undefined ? {} : { tabletopManual }),
   });
   return { ok: true, value };
 }

@@ -143,6 +143,7 @@ export function readDenseArray(
   input: unknown,
   path: string,
   issues: OnlineProjectionIssueV1[],
+  maxLength = Number.MAX_SAFE_INTEGER,
 ): DenseArrayRead | null {
   let array: boolean;
   try {
@@ -175,6 +176,10 @@ export function readDenseArray(
   const length = lengthDescriptor.value;
   if (!Number.isSafeInteger(length) || length < 0) {
     issues.push(projectionIssue('INVALID_ARRAY', pointer(path, 'length'), 'Invalid array length'));
+    return null;
+  }
+  if (length > maxLength) {
+    issues.push(projectionIssue('INVALID_ARRAY', pointer(path, 'length'), 'Array exceeds the bounded projection limit'));
     return null;
   }
   const values: unknown[] = [];

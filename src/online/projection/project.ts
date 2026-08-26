@@ -412,6 +412,7 @@ function game(ctx: ProjectionContext): OnlineProjectedGameV1 {
   }
   const publicHandles = allPublic as ReadonlySet<CoreObjectId>;
   const lifecycle = ctx.state.coreRoot.playerLifecycle;
+  const manual = ctx.state.coreRoot.tabletopManual;
   return Object.freeze({
     turnOrder: Object.freeze(registry.turnOrder.slice()),
     turn: Object.freeze({
@@ -449,6 +450,10 @@ function game(ctx: ProjectionContext): OnlineProjectedGameV1 {
     visibilityGrants: visibilityGrants(ctx),
     searchSessions: searchSessions(ctx, publicHandles),
     playPermissions: playPermissions(ctx),
+    ...(manual === undefined ? {} : {
+      notes: Object.freeze(manual.noteOrder.map((id) => manual.notes[id]).filter((entry): entry is NonNullable<typeof entry> => entry !== undefined).map((entry) => Object.freeze({ ...entry }))),
+      manualStack: Object.freeze(manual.stackEntries.map((entry) => Object.freeze({ ...entry }))),
+    }),
   });
 }
 

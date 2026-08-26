@@ -195,6 +195,50 @@ describe('O4P-01N repair wave 1', () => {
     if (exited.status === 'accepted') expect(Closure.applyCoreCommandV1(exited.root, command(2, 'P2', { kind: 'commander-damage-record', physicalCardId: 'PC6', defendingPlayerId: 'P4', damage: 1, combatObjectId: 'PC6:0' }))).toMatchObject({ status: 'rejected', issues: [{ code: 'PLAYER_INACTIVE' }] });
   });
 
+  it('reconciles authored manual facts and removed stack sources when a four-player seat exits', () => {
+    const initial = makeRoot({ priorityHolder: 'P3' });
+    const firstCommand = command(1, 'P2', { kind: 'table-note-set', noteId: 'survivor-note', text: 'Surviving public fact', manualMode: 'structured' });
+    const first = Closure.applyCoreCommandV1(initial, firstCommand);
+    expect(first.status).toBe('accepted');
+    if (first.status !== 'accepted') return;
+    const secondCommand = command(2, 'P2', { kind: 'table-stack-entry', entryId: 'survivor-entry', label: 'Surviving label', sourceObjectId: null, manualMode: 'structured' });
+    const second = Closure.applyCoreCommandV1(first.root, secondCommand);
+    expect(second.status).toBe('accepted');
+    if (second.status !== 'accepted') return;
+    const thirdCommand = command(3, 'P4', { kind: 'table-note-set', noteId: 'exiting-note', text: 'Exiting public fact', manualMode: 'freeform' });
+    const third = Closure.applyCoreCommandV1(second.root, thirdCommand);
+    expect(third.status).toBe('accepted');
+    if (third.status !== 'accepted') return;
+    const fourthCommand = command(4, 'P4', { kind: 'table-stack-entry', entryId: 'exiting-null-entry', label: 'Exiting label', sourceObjectId: null, manualMode: 'structured' });
+    const fourth = Closure.applyCoreCommandV1(third.root, fourthCommand);
+    expect(fourth.status).toBe('accepted');
+    if (fourth.status !== 'accepted') return;
+    const fifthCommand = command(5, 'P4', { kind: 'table-stack-entry', entryId: 'exiting-source-entry', label: 'Removed source label', sourceObjectId: '@triggered-ability:fixture-trigger' as never, manualMode: 'freeform' });
+    const fifth = Closure.applyCoreCommandV1(fourth.root, fifthCommand);
+    expect(fifth.status).toBe('accepted');
+    if (fifth.status !== 'accepted') return;
+    const exitCommand = command(6, 'P4', { kind: 'player-exit', playerId: 'P4', cause: 'concession' });
+    const exited = Closure.applyCoreCommandV1(fifth.root, exitCommand);
+    expect(exited.status).toBe('accepted');
+    if (exited.status !== 'accepted') return;
+    expect(exited.root.tabletopManual?.noteOrder).toEqual(['survivor-note']);
+    const survivingNote = exited.root.tabletopManual?.notes['survivor-note'];
+    expect(survivingNote?.authorPlayerId).toBe('P2');
+    expect(survivingNote?.text).toBe('Surviving public fact');
+    expect(survivingNote?.creationRevision).toBe(1);
+    expect(exited.root.tabletopManual?.stackEntries.map((entry) => entry.id)).toEqual(['survivor-entry']);
+    expect(Closure.validateModeNeutralCoreRootV1(exited.root)).toMatchObject({ ok: true });
+    const journal = Closure.appendCoreCommandJournalEntryV1([], firstCommand, first);
+    const withSecond = Closure.appendCoreCommandJournalEntryV1(journal, secondCommand, second);
+    const withThird = Closure.appendCoreCommandJournalEntryV1(withSecond, thirdCommand, third);
+    const withFourth = Closure.appendCoreCommandJournalEntryV1(withThird, fourthCommand, fourth);
+    const withFifth = Closure.appendCoreCommandJournalEntryV1(withFourth, fifthCommand, fifth);
+    const complete = Closure.appendCoreCommandJournalEntryV1(withFifth, exitCommand, exited);
+    const replay = Closure.replayCoreCommandsFromRootV1(initial, complete);
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.finalStateDigest).toBe(exited.afterStateDigest);
+  });
+
   it('retains rejected journal sequence, hides correction reason metadata, and hardens identifier grammars', () => {
     const root = makeRoot({ priorityHolder: 'P2' });
     const rejectedCommand = command(1, 'P2', { kind: 'priority-pass', playerId: 'P3' });

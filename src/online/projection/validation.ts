@@ -30,12 +30,23 @@ import { ONLINE_PROJECTION_SCHEMA_VERSION_V3 } from './variable';
 import type { OnlineVariableParticipantProjectionV3 } from './variable';
 
 const LOWER_CASE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1 = 8_192;
+const TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 = 512;
+const TOKEN_DEFINITION_MAX_KEYWORDS_V1 = 16;
+const TOKEN_DEFINITION_MAX_FACES_V1 = 2;
+const TOKEN_DEFINITION_MAX_COLORS_V1 = 5;
+const TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1 = 6;
+const MANUAL_NOTES_MAX_COUNT_V1 = 128;
+const MANUAL_STACK_MAX_COUNT_V1 = 128;
+const MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STACK_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STATE_MAX_SERIALIZED_BYTES_V1 = 32_768;
 
 function invalid(issues: OnlineProjectionIssueV1[], code: OnlineProjectionIssueV1['code'], path: string, message: string): void {
   issues.push(projectionIssue(code, path, message));
 }
-function arrayValues(input: unknown, path: string, issues: OnlineProjectionIssueV1[]): readonly unknown[] {
-  return readDenseArray(input, path, issues)?.values ?? [];
+function arrayValues(input: unknown, path: string, issues: OnlineProjectionIssueV1[], maxLength = Number.MAX_SAFE_INTEGER): readonly unknown[] {
+  return readDenseArray(input, path, issues, maxLength)?.values ?? [];
 }
 function player(value: unknown, path: string, issues: OnlineProjectionIssueV1[]): value is CorePlayerId {
   if (!isCoreBaseId(value)) invalid(issues, 'INVALID_ID', path, 'Invalid Core player ID');
@@ -230,6 +241,7 @@ function duration(input: unknown, path: string, issues: OnlineProjectionIssueV1[
 }
 
 function definition(input: unknown, path: string, issues: OnlineProjectionIssueV1[]): void {
+  const issueCount = issues.length;
   const record = readExactRecord(input, ['source', 'name', 'layout', 'manaValue', 'colorIdentity', 'typeLine', 'keywords', 'producedMana', 'tokenKind', 'faces'], path, issues);
   if (record === null) return;
   const source = readExactRecord(record.source, ['kind', 'scryfallId', 'oracleId'], `${path}/source`, issues, ['kind']);
@@ -245,16 +257,20 @@ function definition(input: unknown, path: string, issues: OnlineProjectionIssueV
       if (Object.keys(source).length !== 1) invalid(issues, 'UNKNOWN_FIELD', `${path}/source`, 'Synthetic source has extra fields');
     } else invalid(issues, 'INVALID_LITERAL', `${path}/source/kind`, 'Invalid definition source kind');
   }
-  const validText = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value === value.trim() && !value.includes('\0') && !value.includes('\r');
+  const synthetic = source?.kind === 'engine-synthetic';
+  const maxStringLength = synthetic ? TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 : Number.MAX_SAFE_INTEGER;
+  const maxCollectionLength = (limit: number): number => synthetic ? limit : Number.MAX_SAFE_INTEGER;
+  const validText = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= maxStringLength && value === value.trim() && !value.includes('\0') && !value.includes('\r');
+  const validOptionalText = (value: unknown): value is string => typeof value === 'string' && value.length <= maxStringLength && !value.includes('\0') && !value.includes('\r');
   for (const key of ['name', 'layout', 'typeLine'] as const) if (!validText(record[key])) invalid(issues, 'INVALID_TYPE', `${path}/${key}`, 'Expected canonical nonempty text');
   if (typeof record.manaValue !== 'number' || !Number.isFinite(record.manaValue) || record.manaValue < 0) invalid(issues, 'INVALID_TYPE', `${path}/manaValue`, 'Invalid mana value');
-  const colors = arrayValues(record.colorIdentity, `${path}/colorIdentity`, issues);
+  const colors = arrayValues(record.colorIdentity, `${path}/colorIdentity`, issues, maxCollectionLength(TOKEN_DEFINITION_MAX_COLORS_V1));
   colors.forEach((value, index) => literal(value, ['W', 'U', 'B', 'R', 'G'], `${path}/colorIdentity/${index}`, issues));
   if (new Set(colors).size !== colors.length) invalid(issues, 'DUPLICATE_VALUE', `${path}/colorIdentity`, 'Color identity must be unique');
   validateCanonicalLiteralOrder(colors, ['W', 'U', 'B', 'R', 'G'], `${path}/colorIdentity`, 'Color identity', issues);
-  const keywords = arrayValues(record.keywords, `${path}/keywords`, issues);
+  const keywords = arrayValues(record.keywords, `${path}/keywords`, issues, maxCollectionLength(TOKEN_DEFINITION_MAX_KEYWORDS_V1));
   keywords.forEach((value, index) => {
-    if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 || value.trim() !== value || value.includes('\0') || value.includes('\r')) {
       invalid(issues, 'INVALID_TYPE', `${path}/keywords/${index}`, 'Expected canonical nonempty text');
     }
   });
@@ -268,21 +284,59 @@ function definition(input: unknown, path: string, issues: OnlineProjectionIssueV
       compareCodeUnits(previous, current) > 0
     ) invalid(issues, 'INVALID_RELATION', `${path}/keywords/${index}`, 'Keywords must be code-unit sorted');
   }
-  const mana = arrayValues(record.producedMana, `${path}/producedMana`, issues);
+  const mana = arrayValues(record.producedMana, `${path}/producedMana`, issues, maxCollectionLength(TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1));
   mana.forEach((value, index) => literal(value, ['W', 'U', 'B', 'R', 'G', 'C'], `${path}/producedMana/${index}`, issues));
   if (new Set(mana).size !== mana.length) invalid(issues, 'DUPLICATE_VALUE', `${path}/producedMana`, 'Produced mana must be unique');
   validateCanonicalLiteralOrder(mana, ['W', 'U', 'B', 'R', 'G', 'C'], `${path}/producedMana`, 'Produced mana', issues);
   const tokenKinds = ['treasure', 'clue', 'food', 'blood', 'cursed-role', 'monster-role', 'royal-role', 'sorcerer-role', 'virtuous-role', 'wicked-role', 'young-hero-role'];
   if (record.tokenKind !== null) literal(record.tokenKind, tokenKinds, `${path}/tokenKind`, issues);
-  const faces = arrayValues(record.faces, `${path}/faces`, issues);
+  const faces = arrayValues(record.faces, `${path}/faces`, issues, maxCollectionLength(TOKEN_DEFINITION_MAX_FACES_V1));
   if (faces.length === 0) invalid(issues, 'INVALID_RELATION', `${path}/faces`, 'Definition must have at least one face');
+  const normalizedFaces: Array<Record<string, unknown>> = [];
   faces.forEach((face, index) => {
     const entry = readExactRecord(face, ['name', 'manaCost', 'typeLine', 'oracleText', 'power', 'toughness', 'loyalty', 'defense'], `${path}/faces/${index}`, issues);
     if (entry === null) return;
     for (const key of ['name', 'typeLine'] as const) if (!validText(entry[key])) invalid(issues, 'INVALID_TYPE', `${path}/faces/${index}/${key}`, 'Expected canonical nonempty text');
-    if (typeof entry.oracleText !== 'string' || entry.oracleText.includes('\0') || entry.oracleText.includes('\r')) invalid(issues, 'INVALID_TYPE', `${path}/faces/${index}/oracleText`, 'Expected canonical text');
-    for (const key of ['manaCost', 'power', 'toughness', 'loyalty', 'defense'] as const) if (entry[key] !== null && typeof entry[key] !== 'string') invalid(issues, 'INVALID_TYPE', `${path}/faces/${index}/${key}`, 'Expected string or null');
+    if (!validOptionalText(entry.oracleText)) invalid(issues, 'INVALID_TYPE', `${path}/faces/${index}/oracleText`, 'Expected canonical text');
+    for (const key of ['manaCost', 'power', 'toughness', 'loyalty', 'defense'] as const) {
+      if (entry[key] !== null && !validOptionalText(entry[key])) invalid(issues, 'INVALID_TYPE', `${path}/faces/${index}/${key}`, 'Expected bounded string or null');
+    }
+    normalizedFaces.push({
+      name: entry.name,
+      manaCost: entry.manaCost,
+      typeLine: entry.typeLine,
+      oracleText: entry.oracleText,
+      power: entry.power,
+      toughness: entry.toughness,
+      loyalty: entry.loyalty,
+      defense: entry.defense,
+    });
   });
+  if (issues.length === issueCount) {
+    const normalizedSource = source?.kind === 'scryfall'
+      ? { kind: 'scryfall', scryfallId: source.scryfallId, oracleId: source.oracleId }
+      : { kind: 'engine-synthetic' };
+    const candidate = {
+      source: normalizedSource,
+      name: record.name,
+      layout: record.layout,
+      manaValue: record.manaValue,
+      colorIdentity: colors,
+      typeLine: record.typeLine,
+      keywords,
+      producedMana: mana,
+      tokenKind: record.tokenKind,
+      faces: normalizedFaces,
+    };
+    try {
+      const serialized = JSON.stringify(candidate);
+      if (new TextEncoder().encode(serialized).length > TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1) {
+        invalid(issues, 'INVALID_TYPE', path, 'Definition exceeds the bounded projection budget');
+      }
+    } catch {
+      invalid(issues, 'INVALID_DESCRIPTOR', path, 'Definition could not be serialized safely');
+    }
+  }
 }
 
 function manaPool(input: unknown, path: string, issues: OnlineProjectionIssueV1[]): void {
@@ -360,6 +414,77 @@ function permissionSubject(input: unknown, path: string, issues: OnlineProjectio
   } else invalid(issues, 'INVALID_LITERAL', `${path}/kind`, 'Invalid permission subject kind');
 }
 
+function publicManualFacts(
+  game: Record<string, unknown>,
+  revision: unknown,
+  path: string,
+  issues: OnlineProjectionIssueV1[],
+  order: readonly string[],
+  handles: ReadonlySet<string>,
+  zoneByHandle: ReadonlyMap<string, Readonly<{ readonly zone: string; readonly playerId: string | null; readonly index: number }>>,
+  playerRefs: Array<Readonly<{ value: string; path: string }>>,
+): void {
+  const issueCount = issues.length;
+  const noteIds = new Set<string>();
+  const normalizedNotes: Array<Record<string, unknown>> = [];
+  if (Object.prototype.hasOwnProperty.call(game, 'notes')) {
+    const notes = arrayValues(game.notes, `${path}/notes`, issues, MANUAL_NOTES_MAX_COUNT_V1);
+    notes.forEach((value, index) => {
+      const note = readExactRecord(value, ['id', 'authorPlayerId', 'text', 'creationRevision'], `${path}/notes/${index}`, issues);
+      if (note === null) return;
+      if (!isApplicationId(note.id)) invalid(issues, 'INVALID_ID', `${path}/notes/${index}/id`, 'Invalid note ID');
+      else if (noteIds.has(note.id)) invalid(issues, 'DUPLICATE_VALUE', `${path}/notes/${index}/id`, 'Duplicate note ID');
+      else noteIds.add(note.id);
+      if (player(note.authorPlayerId, `${path}/notes/${index}/authorPlayerId`, issues)) {
+        playerRefs.push({ value: note.authorPlayerId, path: `${path}/notes/${index}/authorPlayerId` });
+        if (!order.includes(note.authorPlayerId)) invalid(issues, 'INVALID_RELATION', `${path}/notes/${index}/authorPlayerId`, 'Note author must be seated');
+      }
+      if (typeof note.text !== 'string' || note.text.length < 1 || note.text.length > 160 || note.text.trim() !== note.text || [...note.text].some((character) => { const cp = character.codePointAt(0) ?? 0; return cp <= 0x1f || cp === 0x7f || (cp >= 0x80 && cp <= 0x9f); })) invalid(issues, 'INVALID_TYPE', `${path}/notes/${index}/text`, 'Invalid note text');
+      if (!positiveInteger(note.creationRevision, `${path}/notes/${index}/creationRevision`, issues) || typeof revision !== 'number' || typeof note.creationRevision !== 'number' || note.creationRevision > revision) invalid(issues, 'INVALID_RELATION', `${path}/notes/${index}/creationRevision`, 'Note creation revision must be within projection revision');
+      normalizedNotes.push({ id: note.id, authorPlayerId: note.authorPlayerId, text: note.text, creationRevision: note.creationRevision });
+    });
+  }
+  const stackIds = new Set<string>();
+  const normalizedStack: Array<Record<string, unknown>> = [];
+  if (Object.prototype.hasOwnProperty.call(game, 'manualStack')) {
+    const entries = arrayValues(game.manualStack, `${path}/manualStack`, issues, MANUAL_STACK_MAX_COUNT_V1);
+    entries.forEach((value, index) => {
+      const entry = readExactRecord(value, ['id', 'label', 'provenance', 'sourceObjectId', 'authorPlayerId', 'creationRevision'], `${path}/manualStack/${index}`, issues);
+      if (entry === null) return;
+      if (!isApplicationId(entry.id)) invalid(issues, 'INVALID_ID', `${path}/manualStack/${index}/id`, 'Invalid stack entry ID');
+      else if (stackIds.has(entry.id)) invalid(issues, 'DUPLICATE_VALUE', `${path}/manualStack/${index}/id`, 'Duplicate stack entry ID');
+      else stackIds.add(entry.id);
+      if (typeof entry.label !== 'string' || entry.label.length < 1 || entry.label.length > 160 || entry.label.trim() !== entry.label || [...entry.label].some((character) => { const cp = character.codePointAt(0) ?? 0; return cp <= 0x1f || cp === 0x7f || (cp >= 0x80 && cp <= 0x9f); })) invalid(issues, 'INVALID_TYPE', `${path}/manualStack/${index}/label`, 'Invalid stack label');
+      literal(entry.provenance, ['structured', 'freeform'], `${path}/manualStack/${index}/provenance`, issues);
+      if (entry.sourceObjectId !== null) {
+        if (objectId(entry.sourceObjectId, `${path}/manualStack/${index}/sourceObjectId`, issues) && (!handles.has(entry.sourceObjectId) || zoneByHandle.get(entry.sourceObjectId)?.zone !== 'stack')) invalid(issues, 'INVALID_RELATION', `${path}/manualStack/${index}/sourceObjectId`, 'Stack source must be a projected stack handle');
+      }
+      if (player(entry.authorPlayerId, `${path}/manualStack/${index}/authorPlayerId`, issues)) {
+        playerRefs.push({ value: entry.authorPlayerId, path: `${path}/manualStack/${index}/authorPlayerId` });
+        if (!order.includes(entry.authorPlayerId)) invalid(issues, 'INVALID_RELATION', `${path}/manualStack/${index}/authorPlayerId`, 'Stack author must be seated');
+      }
+      if (!positiveInteger(entry.creationRevision, `${path}/manualStack/${index}/creationRevision`, issues) || typeof revision !== 'number' || typeof entry.creationRevision !== 'number' || entry.creationRevision > revision) invalid(issues, 'INVALID_RELATION', `${path}/manualStack/${index}/creationRevision`, 'Stack creation revision must be within projection revision');
+      normalizedStack.push({ id: entry.id, label: entry.label, provenance: entry.provenance, sourceObjectId: entry.sourceObjectId, authorPlayerId: entry.authorPlayerId, creationRevision: entry.creationRevision });
+    });
+  }
+  if (issues.length === issueCount) {
+    const serializedBytes = (value: unknown): number | null => {
+      try {
+        const serialized = JSON.stringify(value);
+        return serialized === undefined ? null : new TextEncoder().encode(serialized).length;
+      } catch {
+        return null;
+      }
+    };
+    const notesBytes = serializedBytes(normalizedNotes);
+    if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', `${path}/notes`, 'Manual notes exceed the bounded serialized size');
+    const stackBytes = serializedBytes(normalizedStack);
+    if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', `${path}/manualStack`, 'Manual stack exceeds the bounded serialized size');
+    const aggregateBytes = serializedBytes({ notes: normalizedNotes, manualStack: normalizedStack });
+    if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', path, 'Manual state exceeds the bounded serialized size');
+  }
+}
+
 export function validateOnlineParticipantProjectionV1(
   input: unknown,
 ): OnlineParticipantProjectionValidationResultV1 {
@@ -432,7 +557,7 @@ export function validateOnlineParticipantProjectionV1(
         if (typeof seatIndex !== 'number' || seatPlayers[seatIndex] !== root.corePlayerId) invalid(issues, 'INVALID_RELATION', '/corePlayerId', 'Audience Core player must match its seat');
       }
     }
-    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions'], '/game', issues);
+    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions', 'notes', 'manualStack'], '/game', issues, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions']);
     const handles = new Set<string>();
     const attachmentTargets = new Set<string>();
     const entriesByHandle = new Map<string, OnlineProjectedZoneEntryV1>();
@@ -575,6 +700,7 @@ export function validateOnlineParticipantProjectionV1(
         }
         duration(permission.duration, `/game/playPermissions/${index}/duration`, issues);
       });
+      publicManualFacts(game, root.revision, '/game', issues, order, handles, zoneByHandle, playerRefs);
       for (const target of attachmentTargets) if (!handles.has(target)) invalid(issues, 'INVALID_RELATION', '/game/zones', 'Attachment target must have a public projected handle');
       for (const reference of playerRefs) if (!order.includes(reference.value)) invalid(issues, 'INVALID_RELATION', reference.path, 'Referenced player must be in turn order');
     }
@@ -717,8 +843,10 @@ export function validateOnlineParticipantProjectionV3(
     if (game === null || typeof game !== 'object' || Array.isArray(game)) invalid('/game', 'Invalid game projection');
     else {
       const g = game as Record<string, unknown>;
-      const expected = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
-      if (Object.keys(g).sort().join(',') !== expected.sort().join(',')) invalid('/game', 'Game has unknown or missing fields');
+      const required = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
+      const optional = ['manualStack', 'notes'];
+      const keys = Object.keys(g);
+      if (keys.some((key) => !required.includes(key) && !optional.includes(key)) || required.some((key) => !keys.includes(key))) invalid('/game', 'Game has unknown or missing fields');
       if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || new Set(g.turnOrder).size !== playerCount || g.turnOrder.some((id) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || Array.from({ length: playerCount }, (_, i) => `P${i + 1}`).some((id) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact seated-player permutation');
       if (!Array.isArray(g.players) || g.players.length !== playerCount) invalid('/game/players', 'Player coverage must match exact roster');
       if (!Array.isArray(g.visibilityGrants) || !Array.isArray(g.searchSessions) || !Array.isArray(g.playPermissions)) invalid('/game', 'Invalid game authority arrays');

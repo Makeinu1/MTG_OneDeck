@@ -14,6 +14,7 @@ import { OnlineDisplayPairing } from './OnlineDisplayPairing';
 import { OnlineGuidedActions } from './OnlineGuidedActions';
 import { PersonalWorkbench } from './PersonalWorkbench';
 import { PregameLayer } from './OnlinePregameLayer';
+import { OnlineTabletopManual } from './OnlineTabletopManual';
 
 export type PublicOnlineAppProps = Readonly<{
   decks: readonly PublicOnlineDeckOptionV2[];
@@ -124,8 +125,17 @@ export function PublicOnlineApp({
       .filter(Boolean) ?? [];
   const emptySeatCount =
     snapshot.projection?.seats.filter((seat) => seat.participantId === null).length ?? 0;
+  const playerBrowser = snapshot.player;
+  const playerSynchronizing = playerBrowser !== null && (
+    playerBrowser.pendingCommands.length > 0
+    || playerBrowser.phase === 'resyncing'
+    || (playerBrowser.projection !== null && playerBrowser.knownRevision > playerBrowser.projection.revision)
+  );
+  const tabletopBusy = snapshot.busy !== null || playerSynchronizing;
   const interactionState =
-    snapshot.connection === 'online'
+    playerSynchronizing
+      ? 'updating'
+      : snapshot.connection === 'online'
       ? 'ready'
       : snapshot.connection === 'reconnecting'
         ? 'offline'
@@ -620,32 +630,47 @@ export function PublicOnlineApp({
           対戦画面を準備しています。接続が完了するまでお待ちください。
         </p>
       )}
-      {started && !pregamePending &&
-        snapshot.player?.projection &&
-        (snapshot.table?.projection ? (
-          <OnlineDisplayPairing
-            personalProjection={snapshot.player.projection}
-            tableProjection={snapshot.table.projection}
-            interactionState={interactionState}
-            focusedPlayerId={null}
-            onFocus={() => undefined}
-            onAction={controller.submitPersonalAction}
-            onGuidedAction={controller.submitGuidedAction}
-          />
-        ) : (
-          <div className="public-online-app__player-surfaces">
-            <PersonalWorkbench
-              projection={snapshot.player.projection}
-              interactionState={interactionState}
-              onAction={controller.submitPersonalAction}
-            />
-            <OnlineGuidedActions
-              projection={snapshot.player.projection}
-              interactionState={interactionState}
-              onAction={controller.submitGuidedAction}
-            />
-          </div>
-        ))}
+      {started && !pregamePending && snapshot.player?.projection && (
+        <GameScreen
+          key={`online-game-${snapshot.player.projection.revision}`}
+          keybindings={keybindings}
+          presentation={(
+            <div className="public-online-app__active-table" data-testid="online-active-table">
+              {snapshot.table?.projection ? (
+                <OnlineDisplayPairing
+                  personalProjection={snapshot.player.projection}
+                  tableProjection={snapshot.table.projection}
+                  interactionState={interactionState}
+                  focusedPlayerId={null}
+                  onFocus={() => undefined}
+                  onAction={controller.submitPersonalAction}
+                  onGuidedAction={controller.submitGuidedAction}
+                />
+              ) : (
+                <div className="public-online-app__player-surfaces">
+                  <PersonalWorkbench
+                    projection={snapshot.player.projection}
+                    interactionState={interactionState}
+                    onAction={controller.submitPersonalAction}
+                  />
+                  <OnlineGuidedActions
+                    projection={snapshot.player.projection}
+                    interactionState={interactionState}
+                    onAction={controller.submitGuidedAction}
+                  />
+                </div>
+              )}
+              <OnlineTabletopManual
+                projection={snapshot.player.projection}
+                interactionState={interactionState}
+                busy={tabletopBusy}
+                error={snapshot.error}
+                onSubmit={controller.submitTabletopIntent}
+              />
+            </div>
+          )}
+        />
+      )}
       {started && actionError('盤面を確認')}
     </main>
   );

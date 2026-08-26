@@ -242,6 +242,8 @@ export type OnlineProjectedGameV1 = Readonly<{
   readonly visibilityGrants: readonly OnlineProjectedVisibilityGrantV1[];
   readonly searchSessions: readonly OnlineProjectedSearchSessionV1[];
   readonly playPermissions: readonly OnlineProjectedPlayPermissionV1[];
+  readonly notes?: readonly Readonly<{ readonly id: string; readonly authorPlayerId: CorePlayerId; readonly text: string; readonly creationRevision: number }>[];
+  readonly manualStack?: readonly Readonly<{ readonly id: string; readonly label: string; readonly provenance: 'structured' | 'freeform'; readonly sourceObjectId: CoreObjectId | null; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number }>[];
 }>;
 
 export type OnlineParticipantProjectionV1 = Readonly<{

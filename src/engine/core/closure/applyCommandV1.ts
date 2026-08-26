@@ -24,6 +24,8 @@ import { applyCoreRecordedZoneOrderV1, validateCoreRandomZoneOrderV1 } from './r
 import { coreCanonicalDigestFromValueV1 } from './canonicalV1';
 import { createCoreDomainEventV1, type CoreDomainEventPayloadV1 } from './domainEventV1';
 import { validateCoreCommandV1, type CoreCommandPayloadV1, type CoreCommandV1 } from './commandV1';
+import type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';
+import { createCoreTabletopManualStateV1, type CoreTabletopManualStateV1 } from '../tabletop/manualStateV1';
 import { createCoreCorrectionWarningV1, validateCoreCorrectionReasonV1 } from './correctionV1';
 import { createModeNeutralCoreRootV1, validateModeNeutralCoreRootV1 } from './rootValidationV1';
 import type { ModeNeutralCoreRootV1 } from './rootV1';
@@ -38,6 +40,9 @@ import {
 } from '../turn/turnAdvanceV1';
 
 type Raw = Record<string, unknown>;
+function isTabletopPayload(value: CoreCommandPayloadV1): value is CoreTabletopCommandPayloadV1 {
+  return value.kind.startsWith('table-');
+}
 type HandlerResult = Readonly<{ readonly root: ModeNeutralCoreRootV1; readonly payloads: readonly CoreDomainEventPayloadV1[]; readonly warnings: readonly CoreCommandWarningV1[] }>;
 
 function safeIssue(error: unknown, fallbackPath = ''): CoreCommandIssueV1 {
@@ -96,6 +101,27 @@ function replaceAuthority(root: ModeNeutralCoreRootV1, patch: Partial<ModeNeutra
   return createModeNeutralCoreRootV1({ ...root, ruleAuthority: createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, ...patch }) });
 }
 function activePlayerIds(root: ModeNeutralCoreRootV1): readonly CorePlayerId[] { return root.playerLifecycle.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId); }
+function reconcileTabletopManualStateForPlayerExit(
+  state: CoreTabletopManualStateV1 | undefined,
+  exitingPlayerId: CorePlayerId,
+  survivingPublicStackObjectIds: readonly CoreObjectId[],
+): CoreTabletopManualStateV1 | undefined {
+  if (state === undefined) return undefined;
+  const survivingSources = new Set(survivingPublicStackObjectIds);
+  const notes: Record<string, CoreTabletopManualStateV1['notes'][string]> = Object.create(null) as Record<string, CoreTabletopManualStateV1['notes'][string]>;
+  const noteOrder: string[] = [];
+  for (const noteId of state.noteOrder) {
+    const note = state.notes[noteId];
+    if (note === undefined || note.authorPlayerId === exitingPlayerId) continue;
+    notes[noteId] = note;
+    noteOrder.push(noteId);
+  }
+  const stackEntries = state.stackEntries.filter((entry) => (
+    entry.authorPlayerId !== exitingPlayerId
+      && (entry.sourceObjectId === null || survivingSources.has(entry.sourceObjectId))
+  ));
+  return createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries });
+}
 function zoneIds(registry: ModeNeutralCoreObjectRegistryStateV2, zone: CoreRuleZoneRefV1Like): readonly CoreObjectId[] { return zone.kind === 'player-zone' ? registry.zones.byPlayer[zone.playerId][zone.zone] : registry.zones.shared[zone.zone]; }
 function objectOwner(registry: ModeNeutralCoreObjectRegistryStateV2, objectId: CoreObjectId): CorePlayerId | null {
   const object = registry.objects[objectId] as unknown as Raw | undefined;
@@ -248,7 +274,16 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
   const nextCombatContext = root.combatContext === null
     ? null
     : reconcileCoreCombatContextForPlayerExitV1(root.combatContext, { exitingPlayerId: payload.playerId, participantObjectIdsToClear: reconciliation.combatParticipantObjectIdsToClear });
-  const nextRoot = createModeNeutralCoreRootV1({ ...root, ruleAuthority: nextAuthority, playerLifecycle: reconciliation.lifecycleState, commanderDamage: nextCommanderDamage, commanderDamageProvenance: nextProvenance, combatContext: nextCombatContext });
+  const nextManualState = reconcileTabletopManualStateForPlayerExit(root.tabletopManual, payload.playerId, nextRegistry.zones.shared.stack);
+  const nextRoot = createModeNeutralCoreRootV1({
+    ...root,
+    ruleAuthority: nextAuthority,
+    playerLifecycle: reconciliation.lifecycleState,
+    commanderDamage: nextCommanderDamage,
+    commanderDamageProvenance: nextProvenance,
+    combatContext: nextCombatContext,
+    ...(nextManualState === undefined ? {} : { tabletopManual: nextManualState }),
+  });
   return { root: nextRoot, payloads: [{ kind: 'player-exited', playerId: payload.playerId, cause: payload.cause }], warnings: [] };
 }
 
@@ -286,7 +321,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
   if (payloadBinding.kind === 'player-exit' && (payloadBinding.playerId !== checked.actorPlayerId || payloadBinding.playerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/playerId', message: 'Exit actor and decision maker must equal the exiting player' }], before);
   if (payloadBinding.kind === 'correct-player-life' && (payloadBinding.playerId !== checked.actorPlayerId || payloadBinding.playerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/playerId', message: 'Life correction actor and decision maker must equal the corrected player' }], before);
   if (payloadBinding.kind === 'correct-commander-damage' && (payloadBinding.defendingPlayerId !== checked.actorPlayerId || payloadBinding.defendingPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/defendingPlayerId', message: 'Commander-damage correction actor and decision maker must equal the defending player' }], before);
-  if ((payloadBinding.kind === 'table-draw' || payloadBinding.kind === 'table-mana-adjust' || payloadBinding.kind === 'table-turn-progress' || payloadBinding.kind === 'table-token-create') && checked.actorPlayerId !== checked.decisionMakerPlayerId) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/decisionMakerPlayerId', message: 'This ordinary tabletop command requires actor and decision maker to match' }], before);
+  if (isTabletopPayload(payloadBinding) && checked.actorPlayerId !== checked.decisionMakerPlayerId) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/decisionMakerId', message: 'This ordinary tabletop command requires actor and decision maker to match' }], before);
   if (payloadBinding.kind === 'search-complete') {
     const session = current.ruleAuthority.searchSessions.bySession[payloadBinding.sessionKey];
     if (session && (session.rulesActorPlayerId !== checked.actorPlayerId || session.selectorPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/sessionKey', message: 'Search completion authority does not match the session actors' }], before);
@@ -316,15 +351,22 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'combat-attack-add') { if (!current.combatContext) throw new Error('Combat context is not active'); handled = { root: createModeNeutralCoreRootV1({ ...current, combatContext: addCoreCombatContextAttackV1(current.combatContext, payload.attack) }), payloads: [{ kind: 'combat-changed', operation: 'attack' }], warnings: [] }; }
     else if (payload.kind === 'combat-block-add') { if (!current.combatContext) throw new Error('Combat context is not active'); handled = { root: createModeNeutralCoreRootV1({ ...current, combatContext: addCoreCombatContextBlockV1(current.combatContext, payload.block) }), payloads: [{ kind: 'combat-changed', operation: 'block' }], warnings: [] }; }
     else if (payload.kind === 'player-exit') handled = handlePlayerExit(current, payload);
-    else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length }], warnings: [] }; }
+    else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); const manualMode = payload.manualMode === 'structured' || payload.manualMode === 'freeform' ? payload.manualMode : undefined; handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length, ...(manualMode === undefined ? {} : { manualMode }) }], warnings: [] }; }
     else if (payload.kind === 'correct-player-life') { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); const registry = stackBundle(current).objectRegistry; const player = registry.players[payload.playerId]; if (!player) throw new Error('Correction player is not registered'); const players = { ...registry.players, [payload.playerId]: { ...player, life: payload.replacementLifeTotal } }; handled = { root: updateRegistryInRoot(current, registryWith(registry, { players })), payloads: [{ kind: 'manual-correction-applied', correction: 'player-life' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
     else if (payload.kind === 'table-turn-progress') handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload);
-    else if (payload.kind === 'table-draw' || payload.kind === 'table-zone-move' || payload.kind === 'table-tap' || payload.kind === 'table-mana-adjust' || payload.kind === 'table-counter-adjust' || payload.kind === 'table-token-create' || payload.kind === 'table-token-remove') {
+    else if (payload.kind === 'table-shuffle') adapterFailure('SHUFFLE_REQUIRES_SERVER_RANDOM', '/payload', 'Shuffle must be bound to a server-authoritative random order');
+    else if (isTabletopPayload(payload)) {
       const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);
       handled = { root: result.root, payloads: result.payloads, warnings: [] };
     }
     else { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); if (validateCoreCorrectionReasonV1(payload.reason).length) throw new Error('Correction reason is invalid'); const state = current.commanderDamage; const entries = state.entries.filter((entry) => !(entry.commanderPhysicalCardId === payload.physicalCardId && entry.defendingPlayerId === payload.defendingPlayerId)); if (payload.replacementDamageTotal > 0) entries.push({ commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.replacementDamageTotal }); const damage = createCoreCommanderDamageStateV1({ commanders: state.commanders, defendingPlayerIds: state.defendingPlayerIds, entries }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderDamage: damage }), payloads: [{ kind: 'manual-correction-applied', correction: 'commander-damage' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
-    const acceptedRoot = createModeNeutralCoreRootV1({ ...handled.root, acceptedCommandCount: current.acceptedCommandCount + 1 });
+    // Manual note/stack operations validate their intermediate root against
+    // the command's eventual revision. Preserve that revision here while
+    // retaining the ordinary +1 boundary for every other Core operation.
+    const acceptedCommandCount = handled.root.acceptedCommandCount === current.acceptedCommandCount
+      ? current.acceptedCommandCount + 1
+      : handled.root.acceptedCommandCount;
+    const acceptedRoot = createModeNeutralCoreRootV1({ ...handled.root, acceptedCommandCount });
     return eventRoot(acceptedRoot, checked, handled.payloads, handled.warnings, before);
   } catch (error: unknown) { return reject(root, [safeIssue(error)], before); }
 }

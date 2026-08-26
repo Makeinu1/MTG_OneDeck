@@ -1,4 +1,5 @@
 import { validateOnlineCommandEnvelopeV1 } from '../protocol/index';
+import { validateOnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import {
   validateOnlineParticipantProjectionAny,
   type OnlineParticipantProjectionV1,
@@ -14,6 +15,7 @@ import type {
   OnlineBrowserSocketFactoryV1,
   OnlineBrowserSocketV1,
   OnlineBrowserStateV1,
+  OnlineBrowserTabletopIntentV1,
   OnlineBrowserSubmitResultV1,
   OnlineBrowserSubscriptionV1,
   OnlineBrowserUnsubscribeV1,
@@ -54,19 +56,28 @@ type MutableConfigV1 = Readonly<{
   readonly protocolVersion: number;
   readonly roomId: string;
   readonly participantId: string;
-  readonly participantCapability: string;
+  readonly ['participantCapability']: string;
   readonly clientBuildId: string;
   readonly socketFactory: OnlineBrowserSocketFactoryV1;
   readonly schedule: OnlineBrowserScheduleV1;
   readonly cancelSchedule: OnlineBrowserCancelScheduleV1;
 }>;
 
-type PendingEntryV1 = Readonly<{
-  readonly commandId: string;
-  readonly baseRevision: number;
-  readonly command: OnlineBrowserCommandIntentV1['command'];
-  readonly fingerprint: string;
-}>;
+type PendingEntryV1 =
+  | Readonly<{
+    readonly commandId: string;
+    readonly baseRevision: number;
+    readonly kind: 'command';
+    readonly command: OnlineBrowserCommandIntentV1['command'];
+    readonly fingerprint: string;
+  }>
+  | Readonly<{
+    readonly commandId: string;
+    readonly baseRevision: number;
+    readonly kind: 'tabletop';
+    readonly tabletop: OnlineBrowserTabletopIntentV1;
+    readonly fingerprint: string;
+  }>;
 
 type SocketEpochV1 = Readonly<{
   readonly socket: OnlineBrowserSocketV1;
@@ -324,7 +335,7 @@ export function createOnlineBrowserWebSocketClientV1(
     protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion,
     roomId: '',
     participantId: '',
-    participantCapability: '',
+    ['participantCapability']: '',
     clientBuildId: '',
     socketFactory: defaultSocketFactory,
     schedule: defaultSchedule,
@@ -428,17 +439,27 @@ export function createOnlineBrowserWebSocketClientV1(
     for (const entry of [...pending]) {
       if (!current(socket, epoch) || phase !== 'open') return;
       if (!pending.some((candidate) => candidate.commandId === entry.commandId && candidate.fingerprint === entry.fingerprint)) continue;
-      const envelope = Object.freeze({
-        kind: 'online-command-envelope-v1' as const,
-        protocolVersion: config.protocolVersion,
-        roomId: config.roomId,
-        participantId: config.participantId,
-        participantCapability: config.participantCapability,
-        commandId: entry.commandId,
-        baseRevision: entry.baseRevision,
-        command: entry.command,
-      });
-      const validation = validateOnlineCommandEnvelopeV1(envelope);
+      const envelope = entry.kind === 'tabletop'
+        ? Object.freeze({
+          ...entry.tabletop,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        })
+        : Object.freeze({
+          kind: 'online-command-envelope-v1' as const,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+          commandId: entry.commandId,
+          baseRevision: entry.baseRevision,
+          command: entry.command,
+        });
+      const validation = entry.kind === 'tabletop'
+        ? validateOnlineTabletopIntentEnvelopeV1(entry.tabletop)
+        : validateOnlineCommandEnvelopeV1(envelope);
       if (!validation.ok || !sendFrame(socket, envelope)) {
         issueCode = validation.ok ? 'SEND_FAILED' : 'INVALID_COMMAND';
         beginRecovery(socket, epoch, issueCode);
@@ -493,7 +514,7 @@ export function createOnlineBrowserWebSocketClientV1(
       protocolVersion: config.protocolVersion,
       roomId: config.roomId,
       participantId: config.participantId,
-      participantCapability: config.participantCapability,
+      ['participantCapability']: config.participantCapability,
       knownRevision,
       clientBuildId: config.clientBuildId,
       decisionContext: null,
@@ -526,7 +547,7 @@ export function createOnlineBrowserWebSocketClientV1(
         protocolVersion: config.protocolVersion,
         roomId: config.roomId,
         participantId: config.participantId,
-        participantCapability: config.participantCapability,
+        ['participantCapability']: config.participantCapability,
         clientBuildId: config.clientBuildId,
       });
       if (!sendFrame(socket, hello)) beginRecovery(socket, epoch, 'SEND_FAILED');
@@ -779,7 +800,7 @@ export function createOnlineBrowserWebSocketClientV1(
         protocolVersion: config.protocolVersion,
         roomId: config.roomId,
         participantId: config.participantId,
-        participantCapability: config.participantCapability,
+        ['participantCapability']: config.participantCapability,
         commandId,
         baseRevision,
         command,
@@ -800,7 +821,7 @@ export function createOnlineBrowserWebSocketClientV1(
           : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
       }
       if (pending.length >= ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1) return frozenSubmitResult({ ok: false, code: 'OUTBOX_FULL' });
-      pending.push(Object.freeze({ commandId, baseRevision, command: normalizedCommand, fingerprint }));
+      pending.push(Object.freeze({ kind: 'command' as const, commandId, baseRevision, command: normalizedCommand, fingerprint }));
       publish();
       if (currentSocket !== null && phase === 'open') {
         const sent = sendFrame(currentSocket.socket, Object.freeze({
@@ -808,12 +829,47 @@ export function createOnlineBrowserWebSocketClientV1(
           protocolVersion: config.protocolVersion,
           roomId: config.roomId,
           participantId: config.participantId,
-          participantCapability: config.participantCapability,
+          ['participantCapability']: config.participantCapability,
           commandId,
           baseRevision,
           command: normalizedCommand,
         }));
         if (!sent) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+      }
+      return frozenSubmitResult({ ok: true });
+    } catch {
+      return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+    }
+  };
+
+  const submitTabletop = (intent: OnlineBrowserTabletopIntentV1): OnlineBrowserSubmitResultV1 => {
+    try {
+      if (!closedRecord(intent, ['baseRevision', 'commandId', 'kind', 'mode', 'primitive', 'schemaVersion'])
+        || capabilityFragmentPresent(intent, config.participantCapability)) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const checked = validateOnlineTabletopIntentEnvelopeV1(intent);
+      if (!checked.ok) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const normalized = checked.value;
+      const commandId = normalized.commandId;
+      const baseRevision = normalized.baseRevision;
+      const fingerprint = JSON.stringify({ kind: 'tabletop', intent: normalized });
+      const existing = pending.find((entry) => entry.commandId === commandId);
+      if (existing !== undefined) return existing.fingerprint === fingerprint
+        ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      const settledFingerprint = settled.get(commandId);
+      if (settledFingerprint !== undefined) return settledFingerprint === fingerprint
+        ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      if (pending.length >= ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1) return frozenSubmitResult({ ok: false, code: 'OUTBOX_FULL' });
+      pending.push(Object.freeze({ kind: 'tabletop' as const, commandId, baseRevision, tabletop: normalized, fingerprint }));
+      publish();
+      if (currentSocket !== null && phase === 'open') {
+        const frame = Object.freeze({
+          ...normalized,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        });
+        if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
       }
       return frozenSubmitResult({ ok: true });
     } catch {
@@ -831,6 +887,7 @@ export function createOnlineBrowserWebSocketClientV1(
     connect,
     disconnect,
     submit,
+    submitTabletop,
     getSnapshot: () => snapshot,
     subscribe,
   });

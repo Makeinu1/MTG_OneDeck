@@ -19,6 +19,7 @@ import type {
   CoreObjectId,
   CorePlayerId,
 } from '../ids';
+import { isCoreBaseId, isCoreUnsafeRecordKey } from '../ids';
 import {
   createModeNeutralCoreObjectRegistryStateV2,
   createModeNeutralCoreObjectRuntimeStateV2,
@@ -36,14 +37,71 @@ import {
   createCoreRuleAuthorityBundleV1,
 } from '../rules/ruleAuthorityBundleV1';
 import { createModeNeutralCoreControlSliceV1 } from '../rules/controlEffectV1';
+import { applyCoreControlEffectV1 } from '../rules/controlEffectV1';
 import { createCoreCombatContextV1 } from '../combat/combatContextV1';
 import type { CoreCardZoneDestinationV1 } from '../transition/zoneDestination';
 import { nextCoreCardIncarnationV1 } from '../transition/cardReincarnation';
+import { removeCoreStackObjectV1 } from '../stack/transaction/stackRemovalV1';
 import type { CoreTabletopCommandPayloadV1 } from './commandV1';
+import { createCoreTabletopManualStateV1, type CoreTabletopManualModeV1, type CoreTabletopManualStateV1 } from './manualStateV1';
 
 type ObjectRecord = Record<CoreObjectId, CoreGameObjectIdentityV2>;
 type RuntimeRecord = Record<CoreObjectId, CoreCardObjectRuntimeStateV1>;
 type DefinitionRecord = Record<CoreCardDefinitionId, CoreCardDefinitionSnapshotV1>;
+
+const TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1 = 8_192;
+const TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 = 512;
+const TOKEN_DEFINITION_MAX_KEYWORDS_V1 = 16;
+const TOKEN_DEFINITION_MAX_FACES_V1 = 2;
+const TOKEN_DEFINITION_MAX_COLORS_V1 = 5;
+const TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1 = 6;
+const MANUAL_NOTES_MAX_COUNT_V1 = 128;
+const MANUAL_STACK_MAX_COUNT_V1 = 128;
+const MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STACK_MAX_SERIALIZED_BYTES_V1 = 24_576;
+const MANUAL_STATE_MAX_SERIALIZED_BYTES_V1 = 32_768;
+
+function applicationId(value: string): boolean {
+  return isCoreBaseId(value) && !isCoreUnsafeRecordKey(value) && value.length <= 80;
+}
+
+function boundedTokenDefinition(definition: CoreCardDefinitionSnapshotV1): void {
+  if (definition.source.kind !== 'engine-synthetic') fail('INVALID_DEFINITION', '/payload/definition/source', 'Token definitions must be engine-synthetic');
+  if (definition.colorIdentity.length > TOKEN_DEFINITION_MAX_COLORS_V1) fail('INVALID_DEFINITION', '/payload/definition/colorIdentity', 'Token color identity exceeds the bounded limit');
+  if (definition.keywords.length > TOKEN_DEFINITION_MAX_KEYWORDS_V1) fail('INVALID_DEFINITION', '/payload/definition/keywords', 'Token keywords exceed the bounded limit');
+  if (definition.producedMana.length > TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1) fail('INVALID_DEFINITION', '/payload/definition/producedMana', 'Token produced mana exceeds the bounded limit');
+  if (definition.faces.length === 0 || definition.faces.length > TOKEN_DEFINITION_MAX_FACES_V1) fail('INVALID_DEFINITION', '/payload/definition/faces', 'Token faces exceed the bounded limit');
+  const textFields: readonly (string | null)[] = [
+    definition.name,
+    definition.layout,
+    definition.typeLine,
+    ...definition.faces.flatMap((face) => [face.name, face.manaCost, face.typeLine, face.oracleText, face.power, face.toughness, face.loyalty, face.defense]),
+  ];
+  if (textFields.some((value) => value !== null && (typeof value !== 'string' || value.length > TOKEN_DEFINITION_MAX_STRING_LENGTH_V1))) fail('INVALID_DEFINITION', '/payload/definition', 'Token definition text exceeds the bounded limit');
+  let serialized: string;
+  try { serialized = JSON.stringify(definition); } catch { fail('INVALID_DEFINITION', '/payload/definition', 'Token definition could not be serialized safely'); }
+  if (new TextEncoder().encode(serialized).length > TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1) fail('INVALID_DEFINITION', '/payload/definition', 'Token definition exceeds the bounded projection budget');
+}
+
+function serializedBytes(value: unknown): number | null {
+  try {
+    const serialized = JSON.stringify(value);
+    return serialized === undefined ? null : new TextEncoder().encode(serialized).length;
+  } catch {
+    return null;
+  }
+}
+
+function assertManualStateBudget(state: CoreTabletopManualStateV1): void {
+  if (state.noteOrder.length > MANUAL_NOTES_MAX_COUNT_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/notes', 'Manual notes exceed the bounded collection limit');
+  if (state.stackEntries.length > MANUAL_STACK_MAX_COUNT_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/stackEntries', 'Manual stack exceeds the bounded collection limit');
+  const notesBytes = serializedBytes({ notes: state.notes, noteOrder: state.noteOrder });
+  if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/notes', 'Manual notes exceed the bounded serialized size');
+  const stackBytes = serializedBytes({ stackEntries: state.stackEntries });
+  if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/stackEntries', 'Manual stack exceeds the bounded serialized size');
+  const aggregateBytes = serializedBytes({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: state.stackEntries });
+  if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual', 'Manual state exceeds the bounded serialized size');
+}
 
 export type CoreTabletopOperationResultV1 = Readonly<{
   readonly root: ModeNeutralCoreRootV1;
@@ -238,7 +296,9 @@ function controllerOf(root: ModeNeutralCoreRootV1, objectId: CoreObjectId): Core
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
   if (object === undefined) return null;
-  let controller = object.kind === 'card' || object.kind === 'token' ? object.baseControllerPlayerId : null;
+  let controller = object.kind === 'card' || object.kind === 'token'
+    ? object.baseControllerPlayerId
+    : object.controllerPlayerId;
   for (const key of root.ruleAuthority.control.effectOrder) {
     const effect = root.ruleAuthority.control.byEffect[key];
     if (effect.targetObjectId === objectId) controller = effect.gainingControllerPlayerId;
@@ -282,6 +342,23 @@ function playerWith(
     drawnThisTurn: changes.drawnThisTurn ?? player.drawnThisTurn,
     maximumHandSizeOverride: player.maximumHandSizeOverride,
   };
+}
+
+function manualStateOf(root: ModeNeutralCoreRootV1): CoreTabletopManualStateV1 {
+  return root.tabletopManual ?? createCoreTabletopManualStateV1();
+}
+
+function withManualState(root: ModeNeutralCoreRootV1, state: CoreTabletopManualStateV1): ModeNeutralCoreRootV1 {
+  // Manual facts record the revision that the enclosing command is about to
+  // accept. Build the intermediate root at that revision so the root
+  // validator can enforce the same invariant used by persisted state.
+  assertManualStateBudget(state);
+  return createModeNeutralCoreRootV1({ ...root, acceptedCommandCount: root.acceptedCommandCount + 1, tabletopManual: state });
+}
+
+function manualModeOf(payload: CoreTabletopCommandPayloadV1): CoreTabletopManualModeV1 | undefined {
+  if (!('manualMode' in payload)) return undefined;
+  return payload.manualMode === 'structured' || payload.manualMode === 'freeform' ? payload.manualMode : undefined;
 }
 
 export function drawCoreTabletopCardsV1(
@@ -334,6 +411,7 @@ function moveCard(
   actorPlayerId: CorePlayerId,
   objectId: CoreObjectId,
   destination: CoreCardZoneDestinationV1,
+  requireAuthority = false,
 ): CoreTabletopOperationResultV1 {
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
@@ -341,6 +419,29 @@ function moveCard(
   const locations = locationsOf(registry, objectId);
   if (locations.length !== 1) fail('INVALID_TARGET', '/payload/objectId', 'Card object must be present in exactly one zone');
   const source = locations[0];
+  if (requireAuthority) {
+    if (source.scope === 'player' && source.playerId !== actorPlayerId) {
+      fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not own the source zone');
+    }
+    if (source.scope === 'player' && source.zone === 'library') {
+      fail('HIDDEN_SOURCE_UNAVAILABLE', '/payload/objectId', 'Library objects may only be addressed by Draw or Shuffle');
+    }
+    if (source.scope === 'shared' && (source.zone === 'battlefield' || source.zone === 'stack')
+      && controllerOf(root, objectId) !== actorPlayerId) {
+      fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control the public object');
+    }
+    if (source.scope === 'shared' && (source.zone === 'exile' || source.zone === 'command')) {
+      const owner = registry.physicalCards[object.physicalCardId]?.ownerPlayerId;
+      if (owner !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not own the public object');
+    }
+    if (destination.kind === 'owner-library' && destination.placement.kind === 'index') {
+      fail('INVALID_DESTINATION', '/payload/destination/placement', 'Indexed library placement is not available to manual operations');
+    }
+    if ((destination.kind === 'battlefield' || destination.kind === 'stack')
+      && destination.baseControllerPlayerId !== actorPlayerId) {
+      fail('UNAUTHORIZED_OBJECT', '/payload/destination/baseControllerPlayerId', 'Actor must remain the destination controller');
+    }
+  }
   if (source.scope === 'player' && (source.zone === 'library' || source.zone === 'hand') && source.playerId !== actorPlayerId) {
     fail('HIDDEN_SOURCE_AUTHORITY', '/payload/objectId', 'The actor does not own the hidden source zone');
   }
@@ -376,13 +477,16 @@ function moveCard(
 
 function tapPermanent(
   root: ModeNeutralCoreRootV1,
+  actorPlayerId: CorePlayerId,
   objectId: CoreObjectId,
   tapped: boolean,
+  requireAuthority = false,
 ): CoreTabletopOperationResultV1 {
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
   if (object === undefined || (object.kind !== 'card' && object.kind !== 'token')) fail('INVALID_TARGET', '/payload/objectId', 'Tap target must be a card or token');
   if (!registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Tap target must be on the battlefield');
+  if (requireAuthority && controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control tap target');
   const current = stackBundle(root).objectRuntime.byObject[objectId];
   if (current === undefined) fail('INVALID_TARGET', '/payload/objectId', 'Tap target runtime is missing');
   if (current.orientation.tapped === tapped) fail('NO_OP', '/payload/tapped', 'Tap command would not change orientation');
@@ -423,14 +527,17 @@ function adjustMana(
 
 function adjustCounter(
   root: ModeNeutralCoreRootV1,
+  actorPlayerId: CorePlayerId,
   objectId: CoreObjectId,
   counterKind: string,
   delta: number,
+  requireAuthority = false,
 ): CoreTabletopOperationResultV1 {
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
   if (object === undefined || (object.kind !== 'card' && object.kind !== 'token')) fail('INVALID_TARGET', '/payload/objectId', 'Counter target must be a card or token');
   if (!registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Counter target must be on the battlefield');
+  if (requireAuthority && controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control counter target');
   const current = stackBundle(root).objectRuntime.byObject[objectId];
   if (current === undefined) fail('INVALID_TARGET', '/payload/objectId', 'Counter target runtime is missing');
   const existing = current.counterDamage.counters.find((entry) => entry.kind === counterKind)?.count ?? 0;
@@ -460,6 +567,7 @@ function createToken(
   definitionId: CoreCardDefinitionId,
   definition: CoreCardDefinitionSnapshotV1,
 ): CoreTabletopOperationResultV1 {
+  boundedTokenDefinition(definition);
   const registry = stackBundle(root).objectRegistry;
   const tokenId = coreTokenObjectIdOfV2(tokenSeed, 0);
   if (Object.prototype.hasOwnProperty.call(registry.objects, tokenId)
@@ -487,11 +595,12 @@ function createToken(
   };
 }
 
-function removeToken(root: ModeNeutralCoreRootV1, objectId: CoreObjectId): CoreTabletopOperationResultV1 {
+function removeToken(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, objectId: CoreObjectId, requireAuthority = false): CoreTabletopOperationResultV1 {
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
   if (object === undefined || object.kind !== 'token') fail('INVALID_TARGET', '/payload/objectId', 'Token object does not exist');
   if (!registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Token must be on the battlefield');
+  if (requireAuthority && controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control token');
   const zones = cloneZones(registry);
   zones.shared.battlefield = zones.shared.battlefield.filter((candidate) => candidate !== objectId);
   const objects: ObjectRecord = { ...registry.objects };
@@ -505,6 +614,133 @@ function removeToken(root: ModeNeutralCoreRootV1, objectId: CoreObjectId): CoreT
     root: rebuildRoot(root, nextRegistry, nextRuntime),
     payloads: [{ kind: 'table-token-removed', objectId }],
   };
+}
+
+function reorderPublicZone(root: ModeNeutralCoreRootV1, zone: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-reorder' }>['zone'], order: readonly CoreObjectId[]): CoreTabletopOperationResultV1 {
+  if (zone.kind !== 'shared-zone') fail('INVALID_ZONE', '/payload/zone', 'Reorder is limited to a public zone');
+  const registry = stackBundle(root).objectRegistry;
+  const current = registry.zones.shared[zone.zone];
+  if (order.length !== current.length || new Set(order).size !== current.length || order.some((id) => !current.includes(id))) fail('INVALID_ORDER', '/payload/order', 'Order must be an exact public-zone permutation');
+  const zones = cloneZones(registry); zones.shared[zone.zone] = order.slice();
+  const nextRegistry = replaceRegistry(registry, { zones: zonesValue(zones) });
+  return { root: rebuildRoot(root, nextRegistry, stackBundle(root).objectRuntime), payloads: [{ kind: 'table-reordered', zone: zone.zone, count: order.length }] };
+}
+
+function adjustLife(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, field: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-life-adjust' }>['field'], delta: number): CoreTabletopOperationResultV1 {
+  const registry = stackBundle(root).objectRegistry;
+  const player = registry.players[actorPlayerId];
+  if (player === undefined) fail('PLAYER_NOT_SEATED', '/actorPlayerId', 'Actor is not seated');
+  const current = player[field];
+  const next = current + delta;
+  if (!Number.isSafeInteger(next) || next < 0) fail('PLAYER_FACT_UNDERFLOW', '/payload/delta', 'Player fact cannot become negative');
+  const players = { ...registry.players, [actorPlayerId]: { ...player, [field]: next } };
+  const nextRegistry = replaceRegistry(registry, { players });
+  return { root: rebuildRoot(root, nextRegistry, stackBundle(root).objectRuntime), payloads: [{ kind: 'table-life-adjusted', playerId: actorPlayerId, field, delta, resultingAmount: next }] };
+}
+
+function changeController(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, objectId: CoreObjectId, gainingControllerPlayerId: CorePlayerId): CoreTabletopOperationResultV1 {
+  const registry = stackBundle(root).objectRegistry;
+  const object = registry.objects[objectId];
+  if (object === undefined || !registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Controller target must be public battlefield object');
+  if (controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control object');
+  if (!registry.players[gainingControllerPlayerId]) fail('PLAYER_NOT_SEATED', '/payload/gainingControllerPlayerId', 'Gaining controller is not seated');
+  if (root.playerLifecycle.players.find((entry) => entry.playerId === gainingControllerPlayerId)?.status !== 'active') {
+    fail('PLAYER_NOT_ACTIVE', '/payload/gainingControllerPlayerId', 'Gaining controller is not active');
+  }
+  const effect = { targetObjectId: objectId, gainingControllerPlayerId, sourceObjectId: null, duration: { kind: 'manual' as const } };
+  const effectKey = (`manual-control-${root.acceptedCommandCount + 1}`) as never;
+  const result = applyCoreControlEffectV1(root.ruleAuthority.control, effectKey, effect);
+  const nextRoot = createModeNeutralCoreRootV1({ ...root, ruleAuthority: createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, control: result.value }) });
+  return { root: nextRoot, payloads: [{ kind: 'table-controller-changed', objectId, gainingControllerPlayerId }] };
+}
+
+function changeAttachment(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, objectId: CoreObjectId, targetObjectId: CoreObjectId | null): CoreTabletopOperationResultV1 {
+  const registry = stackBundle(root).objectRegistry;
+  if (!registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Attachment source must be public battlefield object');
+  if (controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control attaching object');
+  if (targetObjectId !== null && (!registry.zones.shared.battlefield.includes(targetObjectId) || targetObjectId === objectId)) fail('INVALID_TARGET', '/payload/targetObjectId', 'Attachment target must be another public battlefield object');
+  const current = stackBundle(root).objectRuntime.byObject[objectId];
+  if (current === undefined) fail('INVALID_TARGET', '/payload/objectId', 'Attachment runtime is missing');
+  const runtimeEntries: RuntimeRecord = { ...stackBundle(root).objectRuntime.byObject, [objectId]: { orientation: current.orientation, counterDamage: current.counterDamage, attachment: createCoreAttachmentStateV1({ attachedTo: targetObjectId === null ? null : { kind: 'object', objectId: targetObjectId } }) } };
+  const nextRuntime = replaceRuntime(registry, createModeNeutralCoreObjectRuntimeStateV2(registry, { byObject: runtimeEntries }));
+  return { root: rebuildRoot(root, registry, nextRuntime), payloads: [{ kind: 'table-attachment-changed', objectId, targetObjectId }] };
+}
+
+function markDamage(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, objectId: CoreObjectId, amount: number): CoreTabletopOperationResultV1 {
+  const registry = stackBundle(root).objectRegistry;
+  if (!registry.zones.shared.battlefield.includes(objectId)) fail('INVALID_TARGET', '/payload/objectId', 'Damage target must be public battlefield object');
+  if (controllerOf(root, objectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/objectId', 'Actor does not control damage target');
+  const current = stackBundle(root).objectRuntime.byObject[objectId];
+  if (current === undefined) fail('INVALID_TARGET', '/payload/objectId', 'Damage runtime is missing');
+  const next = current.counterDamage.markedDamage + amount;
+  if (!Number.isSafeInteger(next) || next < 0) fail('DAMAGE_UNDERFLOW', '/payload/amount', 'Marked damage cannot become negative');
+  const runtimeEntries: RuntimeRecord = { ...stackBundle(root).objectRuntime.byObject, [objectId]: { orientation: current.orientation, counterDamage: createCoreCounterDamageStateV1({ counters: current.counterDamage.counters, markedDamage: next }), attachment: current.attachment } };
+  const nextRuntime = replaceRuntime(registry, createModeNeutralCoreObjectRuntimeStateV2(registry, { byObject: runtimeEntries }));
+  return { root: rebuildRoot(root, registry, nextRuntime), payloads: [{ kind: 'table-damage-marked', objectId, amount, resultingAmount: next }] };
+}
+
+function setNote(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-note-set' }>): CoreTabletopOperationResultV1 {
+  if (!applicationId(payload.noteId)) fail('INVALID_ID', '/payload/noteId', 'Invalid application ID');
+  const state = manualStateOf(root);
+  const existing = state.notes[payload.noteId];
+  if (existing !== undefined && existing.authorPlayerId !== actorPlayerId) {
+    fail('UNAUTHORIZED_NOTE', '/payload/noteId', 'Only note author may update it');
+  }
+  const creationRevision = existing?.creationRevision ?? root.acceptedCommandCount + 1;
+  const notes = { ...state.notes, [payload.noteId]: Object.freeze({ id: payload.noteId, authorPlayerId: existing?.authorPlayerId ?? actorPlayerId, text: payload.text, creationRevision }) };
+  const noteOrder = state.noteOrder.includes(payload.noteId) ? state.noteOrder : [...state.noteOrder, payload.noteId];
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries: state.stackEntries })), payloads: [{ kind: 'table-note-set', noteId: payload.noteId, authorPlayerId: existing?.authorPlayerId ?? actorPlayerId, creationRevision }] };
+}
+
+function clearNote(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-note-clear' }>): CoreTabletopOperationResultV1 {
+  if (!applicationId(payload.noteId)) fail('INVALID_ID', '/payload/noteId', 'Invalid application ID');
+  const state = manualStateOf(root); const note = state.notes[payload.noteId];
+  if (note === undefined) fail('NOTE_NOT_FOUND', '/payload/noteId', 'Note does not exist');
+  if (note.authorPlayerId !== actorPlayerId) fail('UNAUTHORIZED_NOTE', '/payload/noteId', 'Only note author may clear it');
+  const notes = { ...state.notes }; delete notes[payload.noteId];
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder: state.noteOrder.filter((id) => id !== payload.noteId), stackEntries: state.stackEntries })), payloads: [{ kind: 'table-note-cleared', noteId: payload.noteId, authorPlayerId: actorPlayerId }] };
+}
+
+function addStackEntry(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-stack-entry' }>): CoreTabletopOperationResultV1 {
+  if (!applicationId(payload.entryId)) fail('INVALID_ID', '/payload/entryId', 'Invalid application ID');
+  const state = manualStateOf(root);
+  if (state.stackEntries.some((entry) => entry.id === payload.entryId)) fail('ENTRY_COLLISION', '/payload/entryId', 'Manual stack entry ID is already in use');
+  if (payload.sourceObjectId !== undefined && payload.sourceObjectId !== null) {
+    const registry = stackBundle(root).objectRegistry;
+    const source = registry.objects[payload.sourceObjectId];
+    if (source === undefined || !registry.zones.shared.stack.includes(payload.sourceObjectId)) fail('INVALID_TARGET', '/payload/sourceObjectId', 'Manual stack source must be a public stack object');
+    if (controllerOf(root, payload.sourceObjectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/sourceObjectId', 'Actor does not control manual stack source');
+  }
+  const provenance: CoreTabletopManualModeV1 = payload.manualMode === 'structured' ? 'structured' : 'freeform';
+  const entry = Object.freeze({ id: payload.entryId, label: payload.label, provenance, sourceObjectId: payload.sourceObjectId ?? null, authorPlayerId: actorPlayerId, creationRevision: root.acceptedCommandCount + 1 });
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: [...state.stackEntries, entry] })), payloads: [{ kind: 'table-stack-entry-added', entryId: entry.id, authorPlayerId: actorPlayerId, creationRevision: entry.creationRevision }] };
+}
+
+function resolveManual(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-manual-resolve' }>): CoreTabletopOperationResultV1 {
+  if (payload.entryId !== undefined && !applicationId(payload.entryId)) fail('INVALID_ID', '/payload/entryId', 'Invalid application ID');
+  const state = manualStateOf(root); const top = state.stackEntries[state.stackEntries.length - 1];
+  if (top === undefined || (payload.entryId !== undefined && payload.entryId !== top.id)) fail('STACK_TOP_ONLY', '/payload/entryId', 'Only the current manual stack top may resolve');
+  if (top.authorPlayerId !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload', 'Only the entry author may resolve this manual entry');
+  const entries = state.stackEntries.slice(0, -1);
+  // Remove the metadata entry before moving its represented stack object so
+  // the intermediate root remains internally consistent at every boundary.
+  let workingRoot = withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: entries }));
+  if (top.sourceObjectId !== null) {
+    if (controllerOf(workingRoot, top.sourceObjectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload', 'Actor does not control manual stack source');
+    const source = stackBundle(workingRoot).objectRegistry.objects[top.sourceObjectId];
+    if (source === undefined) fail('INVALID_TARGET', '/payload', 'Manual stack source is missing');
+    if (source.kind === 'card') {
+      const destination = { kind: 'owner-graveyard' as const };
+      const moved = moveCard(workingRoot, actorPlayerId, top.sourceObjectId, destination, true);
+      workingRoot = moved.root;
+    } else if (source.kind === 'spell-copy' || source.kind === 'activated-ability' || source.kind === 'triggered-ability') {
+      const removed = removeCoreStackObjectV1(stackBundle(workingRoot), { kind: 'cease', objectId: top.sourceObjectId });
+      workingRoot = rebuildRoot(workingRoot, removed.bundle.objectRegistry, removed.bundle.objectRuntime, workingRoot.ruleAuthority.turnPriorityBundle.lifecycle, new Set([top.sourceObjectId]));
+    } else {
+      fail('INVALID_TARGET', '/payload', 'Manual stack source is not resolvable');
+    }
+  }
+  return { root: workingRoot, payloads: [{ kind: 'table-manual-resolved', entryId: top.id, objectId: top.sourceObjectId }] };
 }
 
 export function untapCoreTabletopPermanentsV1(
@@ -532,14 +768,29 @@ export function applyCoreTabletopPayloadV1(
   actorPlayerId: CorePlayerId,
   payload: CoreTabletopCommandPayloadV1,
 ): CoreTabletopOperationResultV1 {
+  let result: CoreTabletopOperationResultV1;
+  const requireAuthority = manualModeOf(payload) !== undefined;
   switch (payload.kind) {
-    case 'table-draw': return drawCoreTabletopCardsV1(root, actorPlayerId, payload.count);
-    case 'table-zone-move': return moveCard(root, actorPlayerId, payload.objectId, payload.destination);
-    case 'table-tap': return tapPermanent(root, payload.objectId, payload.tapped);
-    case 'table-mana-adjust': return adjustMana(root, actorPlayerId, payload.color, payload.delta);
-    case 'table-counter-adjust': return adjustCounter(root, payload.objectId, payload.counterKind, payload.delta);
-    case 'table-token-create': return createToken(root, actorPlayerId, payload.tokenSeed, payload.definitionId, payload.definition);
-    case 'table-token-remove': return removeToken(root, payload.objectId);
+    case 'table-draw': result = drawCoreTabletopCardsV1(root, actorPlayerId, payload.count); break;
+    case 'table-zone-move': result = moveCard(root, actorPlayerId, payload.objectId, payload.destination, requireAuthority); break;
+    case 'table-tap': result = tapPermanent(root, actorPlayerId, payload.objectId, payload.tapped, requireAuthority); break;
+    case 'table-mana-adjust': result = adjustMana(root, actorPlayerId, payload.color, payload.delta); break;
+    case 'table-counter-adjust': result = adjustCounter(root, actorPlayerId, payload.objectId, payload.counterKind, payload.delta, requireAuthority); break;
+    case 'table-token-create': result = createToken(root, actorPlayerId, payload.tokenSeed, payload.definitionId, payload.definition); break;
+    case 'table-token-remove': result = removeToken(root, actorPlayerId, payload.objectId, requireAuthority); break;
+    case 'table-shuffle': fail('SHUFFLE_REQUIRES_SERVER_RANDOM', '/payload', 'Shuffle must be bound to a server-authoritative random order'); break;
+    case 'table-reorder': result = reorderPublicZone(root, payload.zone, payload.order); break;
+    case 'table-life-adjust': result = adjustLife(root, actorPlayerId, payload.field, payload.delta); break;
+    case 'table-controller-change': result = changeController(root, actorPlayerId, payload.objectId, payload.gainingControllerPlayerId); break;
+    case 'table-attach': result = changeAttachment(root, actorPlayerId, payload.objectId, payload.targetObjectId); break;
+    case 'table-damage-mark': result = markDamage(root, actorPlayerId, payload.objectId, payload.amount); break;
+    case 'table-note-set': result = setNote(root, actorPlayerId, payload); break;
+    case 'table-note-clear': result = clearNote(root, actorPlayerId, payload); break;
+    case 'table-stack-entry': result = addStackEntry(root, actorPlayerId, payload); break;
+    case 'table-manual-resolve': result = resolveManual(root, actorPlayerId, payload); break;
     case 'table-turn-progress': fail('TURN_PROGRESS_REQUIRES_CLOSURE', '/payload', 'Turn progression is composed by the Core closure');
   }
+  const mode = manualModeOf(payload);
+  if (mode === undefined) return result;
+  return { root: result.root, payloads: result.payloads.map((entry) => ({ ...entry, manualMode: mode })) };
 }

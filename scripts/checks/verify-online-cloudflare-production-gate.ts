@@ -124,6 +124,7 @@ assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/index.ts',
   'src/online/cloudflare/outbox.ts',
   'src/online/cloudflare/persistence.ts',
+  'src/online/cloudflare/projectionBudgetV1.ts',
   'src/online/cloudflare/runtime.ts',
   'src/online/cloudflare/scryfallResolver.ts',
   'src/online/cloudflare/security.ts',
@@ -141,6 +142,7 @@ const allowedImports = new Set([
   '../deckSubmission/index',
   '../genesis/index',
   '../pregame/index',
+  '../tabletopManual/index',
   '../../engine/core/index',
 ]);
 for (const path of production) {

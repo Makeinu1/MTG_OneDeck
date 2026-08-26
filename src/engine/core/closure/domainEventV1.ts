@@ -1,5 +1,6 @@
 import type { CoreObjectId, CorePhysicalCardId, CorePlayerId } from '../ids';
 import type { CoreCommandV1 } from './commandV1';
+import type { CoreTabletopManualModeV1 } from '../tabletop/manualStateV1';
 
 export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'stack-changed'; readonly operation: 'commit' | 'remove'; readonly objectId: CoreObjectId }>
@@ -10,15 +11,25 @@ export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'commander-damage-recorded'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>
   | Readonly<{ readonly kind: 'combat-changed'; readonly operation: 'step' | 'attack' | 'block' }>
   | Readonly<{ readonly kind: 'player-exited'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>
-  | Readonly<{ readonly kind: 'zone-randomized'; readonly randomDecisionId: string; readonly zoneKind: string; readonly count: number }>
+  | Readonly<{ readonly kind: 'zone-randomized'; readonly randomDecisionId: string; readonly zoneKind: string; readonly count: number; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'manual-correction-applied'; readonly correction: 'player-life' | 'commander-damage' }>
-  | Readonly<{ readonly kind: 'table-draw'; readonly playerId: CorePlayerId; readonly count: number }>
-  | Readonly<{ readonly kind: 'table-zone-moved'; readonly objectId: CoreObjectId; readonly newObjectId: CoreObjectId; readonly destination: string }>
-  | Readonly<{ readonly kind: 'table-tap-changed'; readonly objectId: CoreObjectId; readonly tapped: boolean }>
-  | Readonly<{ readonly kind: 'table-mana-adjusted'; readonly playerId: CorePlayerId; readonly color: string; readonly delta: number; readonly resultingAmount: number }>
-  | Readonly<{ readonly kind: 'table-counter-adjusted'; readonly objectId: CoreObjectId; readonly counterKind: string; readonly delta: number; readonly resultingCount: number }>
-  | Readonly<{ readonly kind: 'table-token-created'; readonly objectId: CoreObjectId; readonly definitionId: string; readonly controllerPlayerId: CorePlayerId }>
-  | Readonly<{ readonly kind: 'table-token-removed'; readonly objectId: CoreObjectId }>
+  | Readonly<{ readonly kind: 'table-draw'; readonly playerId: CorePlayerId; readonly count: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-zone-moved'; readonly objectId: CoreObjectId; readonly newObjectId: CoreObjectId; readonly destination: string; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-tap-changed'; readonly objectId: CoreObjectId; readonly tapped: boolean; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-mana-adjusted'; readonly playerId: CorePlayerId; readonly color: string; readonly delta: number; readonly resultingAmount: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-counter-adjusted'; readonly objectId: CoreObjectId; readonly counterKind: string; readonly delta: number; readonly resultingCount: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-token-created'; readonly objectId: CoreObjectId; readonly definitionId: string; readonly controllerPlayerId: CorePlayerId; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-token-removed'; readonly objectId: CoreObjectId; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-shuffled'; readonly playerId: CorePlayerId; readonly count: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-reordered'; readonly zone: string; readonly count: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-life-adjusted'; readonly playerId: CorePlayerId; readonly field: 'life' | 'poison' | 'energy' | 'experience'; readonly delta: number; readonly resultingAmount: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-controller-changed'; readonly objectId: CoreObjectId; readonly gainingControllerPlayerId: CorePlayerId; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-attachment-changed'; readonly objectId: CoreObjectId; readonly targetObjectId: CoreObjectId | null; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-damage-marked'; readonly objectId: CoreObjectId; readonly amount: number; readonly resultingAmount: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-note-set'; readonly noteId: string; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-note-cleared'; readonly noteId: string; readonly authorPlayerId: CorePlayerId; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-stack-entry-added'; readonly entryId: string; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-manual-resolved'; readonly entryId: string; readonly objectId: CoreObjectId | null; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'table-turn-progressed'; readonly transition: Readonly<Record<string, unknown>> }>;
 
 export type CoreDomainEventV1 = Readonly<{

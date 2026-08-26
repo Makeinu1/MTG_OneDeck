@@ -2,6 +2,7 @@ import type { OnlineParticipantProjectionV1 } from '../projection/index';
 import type { OnlineBrowserStateV1 } from '../browser/index';
 import type { SavedDeckEntry } from '../../data/savedDecks';
 import type { OnlinePregameCommandV1, OnlinePregameProjectionV1 } from '../pregame/index';
+import type { OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 
 export const PUBLIC_ONLINE_ERROR_V1 = 'オンライン操作を完了できませんでした。' as const;
 
@@ -182,7 +183,7 @@ export type PublicOnlineSnapshotV3 = Readonly<{
   readonly projection: PublicOnlineProjectionV3 | null;
   readonly invites: readonly string[];
   readonly selectedDeckId: string;
-  readonly busy: 'create' | 'join' | 'refresh' | 'deck' | 'ready' | 'start' | 'rotate' | 'close' | 'kick' | 'leave' | 'pregame' | null;
+  readonly busy: 'create' | 'join' | 'refresh' | 'deck' | 'ready' | 'start' | 'rotate' | 'close' | 'kick' | 'leave' | 'pregame' | 'tabletop' | null;
   readonly connection: 'lobby' | 'connecting' | 'online' | 'reconnecting' | 'failed';
   readonly error: string | null;
   readonly errorIssue: PublicOnlineErrorIssueV2 | null;
@@ -212,6 +213,7 @@ export type PublicOnlineControllerV3 = Readonly<{
   readonly copyInvite: (invite: string) => Promise<boolean>;
   readonly submitPersonalAction: (action: unknown) => void;
   readonly submitGuidedAction: (action: unknown) => void;
+  readonly submitTabletopIntent: (intent: OnlineTabletopIntentEnvelopeV1) => Promise<void>;
   readonly submitPregame: (command: OnlinePregameCommandV1) => Promise<void>;
   readonly disconnect: () => void;
 }>;

@@ -6,6 +6,7 @@ import type { CoreCombatContextV1 } from '../combat/combatContextV1';
 import type { CorePlayerLifecycleStateV1 } from '../player-lifecycle/playerLifecycleV1';
 import type { CoreRuleAuthorityBundleV1 } from '../rules/ruleAuthorityBundleV1';
 import type { CoreClosureVersionVectorV1 } from './versionsV1';
+import type { CoreTabletopManualStateV1 } from '../tabletop/manualStateV1';
 
 export type ModeNeutralCoreRootV1 = Readonly<{
   readonly kind: 'mode-neutral-core-root-v1';
@@ -18,6 +19,8 @@ export type ModeNeutralCoreRootV1 = Readonly<{
   readonly commanderDamage: CoreCommanderDamageStateV1;
   readonly commanderDamageProvenance: CoreCommanderDamageProvenanceLedgerV1;
   readonly combatContext: CoreCombatContextV1 | null;
+  /** Optional additive D tabletop provenance/state. Legacy roots omit it. */
+  readonly tabletopManual?: CoreTabletopManualStateV1;
 }>;
 
 export { createModeNeutralCoreRootV1, CoreRootCreationErrorV1, validateModeNeutralCoreRootV1 } from './rootValidationV1';
