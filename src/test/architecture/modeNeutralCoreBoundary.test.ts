@@ -449,6 +449,42 @@ function isFrozenCloudflareCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenO4p09DCoreImports = new Map<string, ReadonlySet<string>>([
+  ['src/online/cloudflare/runtime.ts|src/engine/core/index.ts|import', new Set(['coreCanonicalDigestFromValueV1'])],
+  ['src/online/cloudflare/runtime.ts|src/engine/core/index.ts|import-type', new Set(['CoreCommandV1', 'CoreObjectId', 'CorePlayerId'])],
+  ['src/components/online/OnlineTabletopManual.tsx|src/engine/core/index.ts|import-type', new Set(['CoreCardDefinitionSnapshotV1', 'CoreManaColorV1', 'CoreObjectId', 'CorePlayerId'])],
+  ['src/components/online/OnlineTabletopManual.tsx|src/engine/core/transition/zoneDestination.ts|import-type', new Set(['CoreCardZoneDestinationV1'])],
+  ['src/components/online/tabletopManualViewTypes.ts|src/engine/core/index.ts|import-type', new Set(['CoreCardDefinitionSnapshotV1', 'CoreManaColorV1', 'CoreObjectId', 'CoreObjectIdKindV2', 'CorePlayerId'])],
+  ['src/components/online/tabletopManualViewTypes.ts|src/engine/core/transition/zoneDestination.ts|import-type', new Set(['CoreCardZoneDestinationV1'])],
+  ['src/dev/visualFixtures/TabletopManualFixture.tsx|src/engine/core/index.ts|import-type', new Set(['CoreCardDefinitionSnapshotV1', 'CoreManaPoolV1', 'CoreObjectId', 'CorePlayerId'])],
+  ['src/online/tabletopManual/binding.ts|src/engine/core/index.ts|import', new Set(['CoreCommandPayloadV1', 'CoreCommandV1', 'CoreObjectId', 'CorePlayerId', 'createCoreCommandV1', 'validateCoreCommandV1'])],
+  ['src/online/tabletopManual/binding.ts|src/engine/core/rules/decisionAuthorityV1.ts|import-type', new Set(['CoreDecisionContextV1'])],
+  ['src/online/tabletopManual/binding.ts|src/engine/core/rules/ruleZoneRefV1.ts|import-type', new Set(['CoreRuleZoneRefV1'])],
+  ['src/online/tabletopManual/server.ts|src/engine/core/index.ts|import', new Set(['CoreCommandV1', 'CoreObjectId', 'coreCanonicalDigestFromValueV1'])],
+  ['src/online/tabletopManual/types.ts|src/engine/core/cardDefinition.ts|import-type', new Set(['CoreManaColorV1'])],
+  ['src/online/tabletopManual/types.ts|src/engine/core/index.ts|import-type', new Set(['CoreObjectId', 'CorePlayerId', 'CoreRuleZoneRefV1'])],
+  ['src/online/tabletopManual/types.ts|src/engine/core/transition/zoneDestination.ts|import-type', new Set(['CoreCardZoneDestinationV1'])],
+  ['src/online/tabletopManual/validation.ts|src/engine/core/cardDefinition.ts|import-type', new Set(['CoreCardDefinitionSnapshotV1'])],
+  ['src/online/tabletopManual/validation.ts|src/engine/core/ids.ts|import', new Set(['isCoreBaseId', 'isCoreUnsafeRecordKey'])],
+  ['src/online/tabletopManual/validation.ts|src/engine/core/object/objectIdV2.ts|import', new Set(['isCanonicalCoreObjectIdV2'])],
+  ['src/online/tabletopManual/validation.ts|src/engine/core/transition/zoneDestination.ts|import', new Set(['validateCoreCardZoneDestinationV1'])],
+]);
+
+function isFrozenO4p09DCoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null) return false;
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenO4p09DCoreImports.get(
+    [normalizePath(path), relativeRepositoryPath(target), reference.kind].join('|'),
+  );
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
   [
     'src/online/projection/variable.ts',
@@ -888,6 +924,7 @@ function inspectReference(
     && !isFrozenApplicationCoreConsumer(unitPath, target, reference)
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
+    && !isFrozenO4p09DCoreConsumer(unitPath, target, reference)
     && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)
     && !isFrozenGenesisCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)

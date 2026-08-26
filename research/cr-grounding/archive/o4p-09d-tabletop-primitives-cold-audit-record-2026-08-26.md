@@ -82,6 +82,43 @@ The same successor auditor accepted canonical fingerprint
 with `BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0` and verdict
 `O4P-09D-FULL-CHECK-REPAIR-2-AUDIT-OK`.
 
+## Exact-head architecture-guard repair
+
+Exact-head Actions run 32981379929, build job 98218614567, then exposed only
+nine stale legacy Judge-owned architecture guards: eleven assertions had not
+registered the already accepted O4P-09D projection-budget file, tabletopManual
+directory and public barrel, exact stack consumer, exact CSS ownership, or the
+file-target-symbol Core import surface.
+
+On 2026-08-27 the user explicitly authorized a new repair candidate, correction
+wave 3, Judge reownership of those exact nine guards, and an additional commit,
+push, and CI cycle. The repair preserves cumulative counters and changes no
+product byte, ordinary product test, dependency, config, contract, acceptance
+meaning, or O4P-09E byte. It uses fixed file, directory, target, import-kind,
+and symbol entries; it adds no wildcard, prefix, or regex exemption.
+
+The exact nine guard files pass 49/49 focused tests. Scoped ESLint and
+git diff --check pass. Authority and cold-audit scope are recorded in
+research/cr-grounding/o4p-09d-full-check-repair-3.draft.md and
+research/cr-grounding/o4p-09d-full-check-repair-3-cold-audit-brief.draft.md.
+
+The first fresh-context repair audit at semantic fingerprint
+d4850c970cddd2f984206ebd9b110fdf9c25b385c92b6e0f8e31945d2e00adc0
+returned BLOCKER/HIGH/MEDIUM/LOW = 0/1/0/0 because the new mode-neutral map
+pinned source, resolved target, and symbols but not import versus import-type.
+The Judge closed that finding inside correction wave 3 by making import kind
+part of every new O4P-09D map key, including the two Cloudflare runtime imports.
+The same nine files remain green at 49/49 with scoped ESLint and
+git diff --check passing.
+
+The fresh-context replacement audit matched semantic fingerprint
+efbc605410de2b748df6cd0f400f4302c98f15c64bff0f1394ac4128fb162f11
+and returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0 with verdict
+O4P-09D-FULL-CHECK-REPAIR-3-AUDIT-OK.
+
+Final exact-byte successor re-audit, replacement exact-head CI, Pages served
+assets, and terminal metadata remain pending.
+
 ## Release status
 
 The user explicitly authorized end-to-end O4P-09D shipment on 2026-08-26. The

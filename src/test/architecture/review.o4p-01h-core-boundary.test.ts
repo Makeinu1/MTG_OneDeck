@@ -142,6 +142,9 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
           || targetPath === 'src/components/online/onlineDisplayPairing.css'
         )
       ) || (
+        sourcePath === 'src/components/online/OnlineTabletopManual.tsx'
+        && targetPath === 'src/components/online/onlineTabletopManual.css'
+      ) || (
         sourcePath === 'src/App.tsx'
         && targetPath === 'src/components/online/PublicOnlineApp.tsx'
       ) || (

@@ -12,6 +12,7 @@ const coreRoot = resolve(repositoryRoot, 'src/engine/core');
 const closureTransactionConsumers = new Set([
   resolve(coreRoot, 'closure/applyCommandV1.ts'),
   resolve(coreRoot, 'closure/commandV1.ts'),
+  resolve(coreRoot, 'tabletop/operationsV1.ts'),
 ]);
 
 function sourceFiles(root: string): SourceFile[] {

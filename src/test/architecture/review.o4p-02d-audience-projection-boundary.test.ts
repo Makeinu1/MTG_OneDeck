@@ -309,6 +309,6 @@ describe('O4P-02D audience projection architecture boundary', () => {
       .filter((entry) => entry.isDirectory())
       .map(({ name }) => name)
       .sort();
-    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'workbench']);
+    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'workbench']);
   });
 });

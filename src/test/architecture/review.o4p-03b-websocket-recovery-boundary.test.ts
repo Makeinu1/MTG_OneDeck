@@ -43,6 +43,7 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/cloudflare/index.ts',
       'src/online/cloudflare/outbox.ts',
       'src/online/cloudflare/persistence.ts',
+      'src/online/cloudflare/projectionBudgetV1.ts',
       'src/online/cloudflare/runtime.ts',
       'src/online/cloudflare/scryfallResolver.ts',
       'src/online/cloudflare/security.ts',
@@ -82,6 +83,7 @@ describe('O4P-03B architecture boundary', () => {
       '../deckSubmission/index',
       '../genesis/index',
       '../pregame/index',
+      '../tabletopManual/index',
       '../../engine/core/index',
     ]);
     for (const file of productionFiles(cloudflareRoot)) {
