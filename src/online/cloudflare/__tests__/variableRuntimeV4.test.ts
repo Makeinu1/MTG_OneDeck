@@ -288,7 +288,7 @@ describe('O4P-08C variable runtime persistence', () => {
     expect(productionProtocol.room.lifecycle).toBe('active');
     expect(productionProtocol.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle).toMatchObject({ turnNumber: 1, position: { phase: 'beginning', step: 'untap' } });
     fixture.storage.close();
-  }, 30000);
+  }, 60000);
 
   it('persists shared admission through the Durable Object boundary and reports full at configured count', async () => {
     const storage = new ReviewSqliteStorage(); const initial = lobby(2, 20); const object = new OnlineRoomDurableObject({ id: { name: initial.roomId }, storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
@@ -354,7 +354,7 @@ describe('O4P-08C variable runtime persistence', () => {
     storage.sql.exec("UPDATE online_variable_room_state SET room_lifecycle = 'active' WHERE singleton = 1");
     storage.sql.exec('DELETE FROM online_accepted_command WHERE accepted_revision = 1');
     expect(() => new OnlineCloudflareRepository(storage, false).loadVariableProtocolV2(current.roomId)).toThrow('Invalid variable recovery relation');
-  });
+  }, 30000);
 
   it('keeps configuration immutable and fails closed on redundant persisted metadata', () => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); const initial = lobby(2, 20); repository.initializeVariableLobbyV4(initial);

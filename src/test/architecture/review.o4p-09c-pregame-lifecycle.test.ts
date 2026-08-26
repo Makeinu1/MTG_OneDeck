@@ -53,6 +53,7 @@ const O4P_09C_UI_SUCCESSOR_PATHS = new Set([
   'research/cr-grounding/o4p-09c-ui-production-pregame.contract.draft.md',
   'research/cr-grounding/o4p-09c-ui-repair-1-implementation-brief.draft.md',
   'research/cr-grounding/o4p-09c-ui-repair-1-correction-1-brief.draft.md',
+  'research/cr-grounding/o4p-09c-ui-ci-timeout-repair-brief.draft.md',
   'research/cr-grounding/archive/o4p-09c-ui-production-pregame-cold-audit-record-2026-08-26.md',
   'scripts/checks/verify-online-cloudflare-runtime-persistence.ts',
   'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
