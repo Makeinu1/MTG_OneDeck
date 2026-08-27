@@ -286,11 +286,11 @@ const frozenProtocolCoreImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'src/online/protocol/variable.ts',
-    new Set(['ModeNeutralCoreRootV1', 'validateModeNeutralCoreRootV1']),
+    new Set(['CoreObjectId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'validateModeNeutralCoreRootV1']),
   ],
   [
     'src/online/protocol/variableCommand.ts',
-    new Set(['applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
+    new Set(['CoreDomainEventV1', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
   ],
 ]);
 
@@ -485,7 +485,48 @@ function isFrozenO4p09DCoreConsumer(
     && reference.importedNames.every((name) => allowed.has(name));
 }
 
+const frozenO4p09ECoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/visibilityDecisions/binding.ts|src/engine/core/index.ts|import',
+    new Set([
+      'CoreCommandV1',
+      'CoreObjectId',
+      'CoreRuleDurationV1',
+      'coreCanonicalDigestFromValueV1',
+      'coreVisibilityTopLibraryPrefixDigestV1',
+      'createCoreCommandV1',
+    ]),
+  ],
+  [
+    'src/online/visibilityDecisions/sessionHandle.ts|src/engine/core/index.ts|import',
+    new Set(['coreCanonicalDigestFromValueV1']),
+  ],
+  [
+    'src/online/visibilityDecisions/types.ts|src/engine/core/index.ts|import-type',
+    new Set(['CoreCommandV1', 'CorePlayerId']),
+  ],
+]);
+
+function isFrozenO4p09ECoreConsumer(
+  path: string,
+  target: string | null,
+  reference: ImportReference,
+): boolean {
+  if (target === null) return false;
+  if (reference.kind !== 'import' && reference.kind !== 'import-type') return false;
+  const allowed = frozenO4p09ECoreImports.get(
+    [normalizePath(path), relativeRepositoryPath(target), reference.kind].join('|'),
+  );
+  return allowed !== undefined
+    && reference.importedNames.length > 0
+    && reference.importedNames.every((name) => allowed.has(name));
+}
+
 const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
+  [
+    'src/online/projection/requestTypes.ts',
+    new Set(['CoreDecisionContextV1']),
+  ],
   [
     'src/online/projection/variable.ts',
     new Set(['CorePlayerId']),
@@ -925,6 +966,7 @@ function inspectReference(
     && !isFrozenProtocolCoreConsumer(unitPath, target, reference)
     && !isFrozenCloudflareCoreConsumer(unitPath, target, reference)
     && !isFrozenO4p09DCoreConsumer(unitPath, target, reference)
+    && !isFrozenO4p09ECoreConsumer(unitPath, target, reference)
     && !isFrozenDeckSubmissionCoreConsumer(unitPath, target, reference)
     && !isFrozenGenesisCoreConsumer(unitPath, target, reference)
     && !isFrozenProjectionCoreConsumer(unitPath, target, reference)

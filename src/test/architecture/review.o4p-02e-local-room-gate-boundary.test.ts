@@ -372,6 +372,6 @@ describe('O4P-02E local headless room gate architecture boundary', () => {
       .filter((entry) => entry.isDirectory())
       .map(({ name }) => name)
       .sort();
-    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'workbench']);
+    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'visibilityDecisions', 'workbench']);
   });
 });

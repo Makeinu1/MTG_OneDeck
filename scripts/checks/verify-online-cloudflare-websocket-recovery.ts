@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    'b6a8a884195816e477f0b19b0c5f8bbea441b27843ba735e565f032c89a6b994',
+    'dfe2e4432c20330afaf45078277f3f9e4dead6dcf1ddcfa180285a2c9cdfe6a8',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -151,6 +151,8 @@ const allowedImports = new Set([
   '../genesis/index',
   '../pregame/index',
   '../tabletopManual/index',
+  '../visibilityDecisions/index',
+  '../visibilityDecisions/types',
   '../../engine/core/index',
 ]);
 for (const path of production) {
@@ -200,7 +202,17 @@ assert.match(
 );
 assert.match(persistence, /comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/);
 assert.doesNotMatch(persistence, /commitPresence\s*\(|persistPresence\s*\(|commitPresenceSameRevision\s*\(/);
-assert.doesNotMatch(persistence, /ALTER TABLE|DROP TABLE|PRAGMA|setTimeout|setInterval/i);
+assert.doesNotMatch(persistence, /eval\s*\(|deleteAll|setTimeout|setInterval/i);
+assert.equal(persistence.match(/DROP TABLE/giu)?.length, 2);
+assert.match(persistence, /DROP TABLE IF EXISTS online_accepted_command_migration/u);
+assert.match(persistence, /this\.storage\.sql\.exec\('DROP TABLE online_accepted_command'\)/u);
+assert.equal(persistence.match(/ALTER TABLE/giu)?.length, 1);
+assert.match(persistence, /ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command/u);
+assert.equal(persistence.match(/pragma_index_/giu)?.length, 2);
+assert.match(persistence, /pragma_index_list\('online_accepted_command'\)/u);
+assert.match(persistence, /pragma_index_info\(il\.name\)/u);
+assert.match(persistence, /Journal migration verification failed/u);
+assert.match(persistence, /Journal migration final verification failed/u);
 
 assert.doesNotMatch(barrel, /export\s+\*/);
 for (const name of [

@@ -88,11 +88,11 @@ const exactCoreImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'src/online/protocol/variable.ts',
-    new Set(['ModeNeutralCoreRootV1', 'validateModeNeutralCoreRootV1']),
+    new Set(['CoreObjectId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'validateModeNeutralCoreRootV1']),
   ],
   [
     'src/online/protocol/variableCommand.ts',
-    new Set(['applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
+    new Set(['CoreDomainEventV1', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
   ],
 ]);
 

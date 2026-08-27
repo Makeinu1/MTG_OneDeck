@@ -132,6 +132,49 @@ const O4P_09D_SUCCESSOR_PATHS = new Set([
   'src/test/architecture/review.o4p-01j-stack-transaction-boundary.test.ts',
   'src/test/architecture/review.o4p-09d-tabletop-primitives.test.ts',
 ]);
+const O4P_09E_SUCCESSOR_PATHS = new Set([
+  'research/cr-grounding/o4p-09e-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-09e-browser-evidence.draft.md',
+  'research/cr-grounding/o4p-09e-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09e-full-check-repair-1-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09e-full-check-repair-1.draft.md',
+  'research/cr-grounding/o4p-09e-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-09e-repair-record.draft.md',
+  'research/cr-grounding/o4p-09e-visibility-decisions.contract.draft.md',
+  'src/components/online/OnlineVisibilityDecisions.tsx',
+  'src/components/online/__tests__/OnlineVisibilityDecisions.test.tsx',
+  'src/components/online/onlineVisibilityDecisions.css',
+  'src/engine/core/closure/__tests__/commandV1.test.ts',
+  'src/engine/core/closure/applyCommandV1.ts',
+  'src/engine/core/closure/commandV1.ts',
+  'src/engine/core/rules/__tests__/searchSessionV1.test.ts',
+  'src/engine/core/rules/__tests__/visibilityGrantOperationsV1.test.ts',
+  'src/engine/core/rules/index.ts',
+  'src/engine/core/rules/ruleDurationV1.ts',
+  'src/engine/core/rules/searchSessionOperationsV1.ts',
+  'src/engine/core/rules/visibilityGrantOperationsV1.ts',
+  'src/engine/core/rules/visibilityGrantV1.ts',
+  'src/online/cloudflare/__tests__/journalMigrationV1.test.ts',
+  'src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts',
+  'src/online/cloudflare/__tests__/securitySqlFixture.ts',
+  'src/online/projection/__tests__/review.o4p-02d-audience-projection.test.ts',
+  'src/online/projection/index.ts',
+  'src/online/projection/requestTypes.ts',
+  'src/online/projection/variable.ts',
+  'src/online/protocol/variable.ts',
+  'src/online/protocol/variableCommand.ts',
+  'src/online/visibilityDecisions/__tests__/binding.test.ts',
+  'src/online/visibilityDecisions/__tests__/validation.test.ts',
+  'src/online/visibilityDecisions/binding.ts',
+  'src/online/visibilityDecisions/index.ts',
+  'src/online/visibilityDecisions/sessionHandle.ts',
+  'src/online/visibilityDecisions/types.ts',
+  'src/online/visibilityDecisions/validation.ts',
+  'src/test/architecture/review.o4p-09e-visibility-decisions.test.ts',
+  'src/test/architecture/review.o4p-01l-rule-authority-boundary.test.ts',
+  'src/test/architecture/review.o4p-02c-in-memory-protocol-boundary.test.ts',
+  'src/test/architecture/soloOnlineBoundary.test.ts',
+]);
 const JUDGE_PATHS = new Set([
   '.agents/skills/mtg-onedeck-development/references/document-governance.md',
   '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
@@ -1448,6 +1491,7 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
       const allowed = JUDGE_PATHS.has(path)
         || O4P_09C_UI_SUCCESSOR_PATHS.has(path)
         || O4P_09D_SUCCESSOR_PATHS.has(path)
+        || O4P_09E_SUCCESSOR_PATHS.has(path)
         || ONLINE_PRODUCT_PATHS.includes(path as typeof ONLINE_PRODUCT_PATHS[number])
         || CORE_PREGAME_PATHS.includes(path as typeof CORE_PREGAME_PATHS[number])
         || CORE_DRAW_SKIP_PATHS.includes(path as typeof CORE_DRAW_SKIP_PATHS[number])
@@ -1455,6 +1499,7 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
       expect(allowed, `unexpected O4P-09C path: ${path}`).toBe(true);
       if (!O4P_09C_UI_SUCCESSOR_PATHS.has(path)
         && !O4P_09D_SUCCESSOR_PATHS.has(path)
+        && !O4P_09E_SUCCESSOR_PATHS.has(path)
         && !PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number])) {
         expect(path).not.toMatch(
           /^src\/(?:components|store|online\/(?:application|browser|cloudflare|genesis|protocol|projection|publicApp|room))\//u,

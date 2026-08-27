@@ -235,6 +235,7 @@ describe('O4P-02D audience projection architecture boundary', () => {
       '../../versioning/index',
       '../protocol/index',
       '../room/index',
+      '../visibilityDecisions/sessionHandle',
     ]);
     const forbiddenSource = /Math\.random|Date\.now|new\s+Date|setTimeout|setInterval|fetch\s*\(|WebSocket|cloudflare:|@cloudflare|localStorage|indexedDB|sessionStorage|process\.env|import\.meta\.env|from\s+['"](?:react|react-dom|zustand|idb)|console\./i;
     for (const filePath of files) {
@@ -285,6 +286,7 @@ describe('O4P-02D audience projection architecture boundary', () => {
           '../../versioning/index',
           '../protocol/index',
           '../room/index',
+          '../visibilityDecisions/sessionHandle',
         ].includes(specifier)),
       );
       const allowedBindings = bindings.every(({ imported }) =>
@@ -309,6 +311,6 @@ describe('O4P-02D audience projection architecture boundary', () => {
       .filter((entry) => entry.isDirectory())
       .map(({ name }) => name)
       .sort();
-    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'workbench']);
+    expect(onlineKinds).toEqual(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'visibilityDecisions', 'workbench']);
   });
 });

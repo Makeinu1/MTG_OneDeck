@@ -221,6 +221,12 @@ function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: str
       || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/guidedActions/index'))
     )
   ) || (
+    sourcePath === 'src/components/online/OnlineVisibilityDecisions.tsx'
+    && (
+      sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/projection/index'))
+      || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/visibilityDecisions/index'))
+    )
+  ) || (
     sourcePath === 'src/components/online/PublicOnlineApp.tsx'
     && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/publicApp/index'))
   );

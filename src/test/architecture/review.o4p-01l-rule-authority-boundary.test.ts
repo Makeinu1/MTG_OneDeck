@@ -115,7 +115,10 @@ describe('O4P-01L additive Core rule-authority architecture boundary', () => {
     expect(source).toMatch(/continuityByObject/);
     expect(source).not.toMatch(/activePlayerId\s*:\s*[^,}]+/);
     expect(source).not.toMatch(/(?:^|[,{])\s*zones\s*:/m);
-    expect(source).not.toMatch(/\b(move|shuffle)\b|Reveal Event|\bCast\s+command\b|Play command/i);
+    const authorizedOrderChangeComment = 'Accepted library shuffle/reorder operations invalidate every top grant,';
+    expect(source.split(authorizedOrderChangeComment)).toHaveLength(2);
+    expect(source.replace(authorizedOrderChangeComment, ''))
+      .not.toMatch(/\b(move|shuffle)\b|Reveal Event|\bCast\s+command\b|Play command/i);
     expect(source).not.toMatch(/O4P-01[GHJK]|O4P-01G|O4P-01H|O4P-01I|O4P-01J|O4P-01K/);
     for (const directory of [
       'src/online/domain',

@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
     '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    '1519f4f98cdfb5075c7103063b463a448a3bcc372103d0bed4f073fa0abce487',
+    'c1d3633f5596454d340e2658681e054f393c1cd5207115c48c3c7332540921f0',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -158,6 +158,8 @@ const allowedImports = new Set([
   '../genesis/index',
   '../pregame/index',
   '../tabletopManual/index',
+  '../visibilityDecisions/index',
+  '../visibilityDecisions/types',
   '../../engine/core/index',
 ]);
 const forbiddenSource =

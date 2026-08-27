@@ -36,7 +36,7 @@ const closureStackConsumers = new Set([
   resolve(coreRoot, 'tabletop/operationsV1.ts'),
 ]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '__tests__']);
-const allowedOnlineRootNames = new Set(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'workbench']);
+const allowedOnlineRootNames = new Set(['application', 'architecture', 'bootstrap', 'browser', 'cloudflare', 'deckSubmission', 'displayPairing', 'genesis', 'guidedActions', 'headless', 'lobby', 'pregame', 'projection', 'protocol', 'publicApp', 'room', 'tableDisplay', 'tabletopManual', 'visibilityDecisions', 'workbench']);
 const categoryOrder = [
   'stack-edge',
   'forbidden-import',
@@ -335,6 +335,7 @@ describe('O4P-01I-K architecture boundary gate', () => {
       'room',
       'tableDisplay',
       'tabletopManual',
+      'visibilityDecisions',
       'workbench',
     ]);
     expect(allowedOnlineRootNames.has('unreviewed-runtime')).toBe(false);

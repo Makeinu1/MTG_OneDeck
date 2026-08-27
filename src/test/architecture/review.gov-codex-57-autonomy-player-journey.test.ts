@@ -41,7 +41,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     });
   });
 
-  it('keeps both ledger collections synchronized and advances from C-UI to D only after shipment', () => {
+  it('keeps both ledger collections synchronized and advances the program only after shipment', () => {
     for (const id of [...IDS, 'GOV-CODEX-57-2026-08']) {
       const domain = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
@@ -57,7 +57,10 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     expect(['pending', 'audited', 'shipped']).toContain(cUi?.status);
     expect(d).toMatchObject({ dependsOn: ['O4P-09C-UI'], deliveryClass: 'player-outcome' });
 
-    const expectedNextDomainId = cUi?.status === 'shipped' ? 'O4P-09D' : 'O4P-09C-UI';
+    const expectedNextDomainId = IDS.find((id) =>
+      ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
+    expect(expectedNextDomainId).toEqual(expect.any(String));
+    if (expectedNextDomainId === undefined) throw new Error('Active O4P-09 program requires a next domain');
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', expectedNextDomainId], {
       cwd: ROOT, encoding: 'utf8',
     });

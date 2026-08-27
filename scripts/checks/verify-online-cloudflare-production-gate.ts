@@ -24,7 +24,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-03d-production-evidence-repair-1.draft.md':
     '3ace5dbd1089412ef61a5009da51a96eded5a99501bef0fb02f83e93f212b13b',
   'src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts':
-    '4c8043575d9d2652d1bf46fd94df73b5a1d24c10c3afa285c204e79f01c01b62',
+    '88ae11bda323a8ba737828454080595e582212e21d5e35a13705b63f878acffd',
   'src/test/architecture/review.o4p-03d-cloudflare-production-gate.test.ts':
     'e3e06a3e7e0257337755ceff6dfad433f5cda5f6ce22663aed4521684ab341a3',
   'wrangler.jsonc':
@@ -143,6 +143,8 @@ const allowedImports = new Set([
   '../genesis/index',
   '../pregame/index',
   '../tabletopManual/index',
+  '../visibilityDecisions/index',
+  '../visibilityDecisions/types',
   '../../engine/core/index',
 ]);
 for (const path of production) {

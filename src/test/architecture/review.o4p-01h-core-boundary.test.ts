@@ -145,6 +145,13 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
         sourcePath === 'src/components/online/OnlineTabletopManual.tsx'
         && targetPath === 'src/components/online/onlineTabletopManual.css'
       ) || (
+        sourcePath === 'src/components/online/OnlineVisibilityDecisions.tsx'
+        && (
+          targetPath === 'src/online/projection/index.ts'
+          || targetPath === 'src/online/visibilityDecisions/index.ts'
+          || targetPath === 'src/components/online/onlineVisibilityDecisions.css'
+        )
+      ) || (
         sourcePath === 'src/App.tsx'
         && targetPath === 'src/components/online/PublicOnlineApp.tsx'
       ) || (
