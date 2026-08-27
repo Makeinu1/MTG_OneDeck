@@ -51,3 +51,69 @@ global timeout increase and does not turn a hang into a pass.
 - Complete Core project: 229/229 files, 2119/2119 tests PASS; 142.69 seconds.
 - Complete architecture suite: 52/52 files, 233/233 tests PASS; 102.17 seconds.
 - `check:docs`, affected ESLint, and `git diff --check`: PASS.
+
+## Exact-head CI ownership stop and Judge reauthorization
+
+- Actions run: `33087655508`
+- Build job: `98571631262`
+- Diff base: `b8f851794ce8051811093093adc8b22196f3d4c2`
+- Exact head: `f9f1f961b318a0498691b454d1d4d9592cb461d7`
+- Exact-head `npm run check`: PASS
+- Sole stop: `npm run check:forbidden -- --diff b8f851794ce8051811093093adc8b22196f3d4c2`
+- Pages: skipped because ownership stopped the build job
+
+The Judge reowns exactly the following already audited bytes under the user's
+2026-08-27 end-to-end release authority. No wildcard or unstated path is
+authorized.
+
+### NEEDS-REAUTH (12)
+
+- `docs/contracts/manifest.json`
+- `docs/generated/engine-api.md`
+- `research/cr-grounding/cr-backbone-ledger.json`
+- `research/cr-grounding/o4p-09e-acceptance-brief.draft.md`
+- `research/cr-grounding/o4p-09e-browser-evidence.draft.md`
+- `research/cr-grounding/o4p-09e-cold-audit-brief.draft.md`
+- `research/cr-grounding/o4p-09e-full-check-repair-1-cold-audit-brief.draft.md`
+- `research/cr-grounding/o4p-09e-full-check-repair-1.draft.md`
+- `research/cr-grounding/o4p-09e-full-check-repair-2-cold-audit-brief.draft.md`
+- `research/cr-grounding/o4p-09e-full-check-repair-2.draft.md`
+- `research/cr-grounding/o4p-09e-implementation-brief.draft.md`
+- `research/cr-grounding/o4p-09e-repair-record.draft.md`
+
+### FORBIDDEN / Judge-owned (29)
+
+- `research/cr-grounding/o4p-09e-visibility-decisions.contract.draft.md`
+- `src/engine/core/closure/__tests__/commandV1.test.ts`
+- `src/engine/core/closure/applyCommandV1.ts`
+- `src/engine/core/closure/commandV1.ts`
+- `src/engine/core/closure/domainEventV1.ts`
+- `src/engine/core/rules/__tests__/searchSessionV1.test.ts`
+- `src/engine/core/rules/__tests__/visibilityGrantOperationsV1.test.ts`
+- `src/engine/core/rules/index.ts`
+- `src/engine/core/rules/ruleDurationV1.ts`
+- `src/engine/core/rules/searchSessionOperationsV1.ts`
+- `src/engine/core/rules/visibilityGrantOperationsV1.ts`
+- `src/engine/core/rules/visibilityGrantV1.ts`
+- `src/engine/core/tabletop/operationsV1.ts`
+- `src/engine/core/turn/__tests__/turnPriorityBundleValidationV1.test.ts`
+- `src/online/cloudflare/__tests__/review.o4p-03d-cloudflare-production-gate.test.ts`
+- `src/online/projection/__tests__/review.o4p-02d-audience-projection.test.ts`
+- `src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts`
+- `src/test/architecture/review.o4p-01h-core-boundary.test.ts`
+- `src/test/architecture/review.o4p-01l-rule-authority-boundary.test.ts`
+- `src/test/architecture/review.o4p-02c-in-memory-protocol-boundary.test.ts`
+- `src/test/architecture/review.o4p-02d-audience-projection-boundary.test.ts`
+- `src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts`
+- `src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts`
+- `src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts`
+- `src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts`
+- `src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts`
+- `src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts`
+- `src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts`
+- `src/test/architecture/review.o4p-09e-visibility-decisions.test.ts`
+
+This reauthorization derives only from the product/evidence audit, repair 1
+bytes audit, manifest-reanchor audit, repair 2 audit, local canonical full-check
+PASS, and exact-head CI full-check PASS already recorded for these immutable
+bytes. The replacement commit changes only this record and its audit addendum.

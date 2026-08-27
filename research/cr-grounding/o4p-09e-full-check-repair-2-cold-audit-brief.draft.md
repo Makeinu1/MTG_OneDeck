@@ -42,3 +42,33 @@ git diff --check
 Return `O4P-09E-FULL-CHECK-REPAIR-2-AUDIT-OK` only when
 BLOCKER/HIGH/MEDIUM/LOW are all zero. Full check and live release evidence
 remain out of scope.
+
+## CI reauthorization audit addendum
+
+Read only. Audit the `Exact-head CI ownership stop and Judge reauthorization`
+section in the paired authority record against Actions run `33087655508`, job
+`98571631262`, base `b8f851794ce8051811093093adc8b22196f3d4c2`, and head
+`f9f1f961b318a0498691b454d1d4d9592cb461d7`.
+
+Verify:
+
+1. The exact-head CI full check passed and the sole failing step was
+   `check:forbidden`; Pages was skipped.
+2. The NEEDS-REAUTH 12 and FORBIDDEN 29 lists equal the CI log byte-for-byte,
+   with no omitted, additional, wildcard, renamed, or secret-bearing path.
+3. Every reowned path belongs to the already audited O4P-09E product,
+   evidence, guard repair, manifest reanchor, or timeout repair bytes at the
+   exact head. Prior 0/0/0/0 fingerprints and local/CI full-check evidence are
+   not overstated.
+4. The replacement diff contains only this authority record and audit addendum;
+   it changes no product, review, generated API, manifest, contract, dependency,
+   workflow, or acceptance byte.
+5. With diff base `f9f1f961b318a0498691b454d1d4d9592cb461d7`, local
+   `check:forbidden` exits successfully and release preflight passes with only
+   the two research-record paths. Those paths are outside the terminal-only
+   allowlist, so the successor uses the semantic CI/build/Pages lane without
+   suppressing any gate.
+
+Return `O4P-09E-CI-REAUTH-AUDIT-OK` only when
+BLOCKER/HIGH/MEDIUM/LOW are all zero. Do not edit, commit, push, deploy, publish,
+or run the release full check.
