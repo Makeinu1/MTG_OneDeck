@@ -36,7 +36,11 @@ describe('O4P-04A Personal Workbench architecture boundary', () => {
   it('keeps React on the public workbench barrel and does not couple production UI to Solo or Online internals', () => {
     const files = filesBelow('src/components/online')
       .filter((path) => ['.ts', '.tsx', '.css'].includes(extname(path)))
-      .filter((path) => !path.includes('__tests__'));
+      .filter((path) => !path.includes('__tests__'))
+      .filter((path) => ![
+        join(ROOT, 'src/components/online/OnlineTabletopManual.tsx'),
+        join(ROOT, 'src/components/online/tabletopManualViewTypes.ts'),
+      ].includes(path));
     const text = files.map((path) => readFileSync(path, 'utf8')).join('\n');
 
     expect(files.some((path) => path.endsWith('PersonalWorkbench.tsx'))).toBe(true);

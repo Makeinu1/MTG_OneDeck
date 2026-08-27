@@ -270,7 +270,7 @@ function definition(input: unknown, path: string, issues: OnlineProjectionIssueV
   validateCanonicalLiteralOrder(colors, ['W', 'U', 'B', 'R', 'G'], `${path}/colorIdentity`, 'Color identity', issues);
   const keywords = arrayValues(record.keywords, `${path}/keywords`, issues, maxCollectionLength(TOKEN_DEFINITION_MAX_KEYWORDS_V1));
   keywords.forEach((value, index) => {
-    if (typeof value !== 'string' || value.length === 0 || value.length > TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 || value.trim() !== value || value.includes('\0') || value.includes('\r')) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > TOKEN_DEFINITION_MAX_STRING_LENGTH_V1 || value.trim() !== value || value.includes('\0')) {
       invalid(issues, 'INVALID_TYPE', `${path}/keywords/${index}`, 'Expected canonical nonempty text');
     }
   });

@@ -139,13 +139,69 @@ O4P-09D-FULL-CHECK-REPAIR-3-REANCHOR-AUDIT-OK. All six affected historical
 verifiers, the nine guards at 49/49, scoped ESLint, docs validation,
 git diff --check, and release preflight passed.
 
-Final exact-byte successor re-audit, replacement exact-head CI, Pages served
-assets, and terminal metadata remain pending.
+The final exact-byte reanchor audit matched fingerprint
+64986d11c72130a04136c97a97585edb8e86bae8e91dba5f519e06b0c2e525c4
+and returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0 with verdict
+FINAL-EXACT-BYTE-REANCHOR-AUDIT-OK. The audited reanchor was committed and
+pushed at a95c9b2177bd1e33d8438ff3f6f7dc4bb7895657.
+
+## Core/projection parity and successor-guard repair
+
+Exact-head Actions run 33023118482, build job 98358061795, passed the complete
+historical verifier chain, docs validation, and lint. Its DOM project then
+exposed five bounded failures. The unchanged O4P-02D review proved that Core
+accepted the keyword Alpha\rBeta while O4P-09D projection validation rejected
+the same projected keyword. Four historical architecture guards also lacked
+the now-shipped D successor paths and tabletopManual type/barrel ownership.
+
+On 2026-08-27 the user explicitly authorized correction wave 4: a fresh-context
+Luna/xhigh implementer changes only the keyword predicate in
+src/online/projection/validation.ts, the Judge reowns exactly four guards,
+repair records and independent cold audit are required, and one additional
+commit, push, and CI cycle is authorized. All counters remain cumulative.
+
+The product repair removes only carriage-return rejection from projected token
+keywords. NUL, nonempty, length, trim, unique, sorted, and serialized-size
+checks remain, and every non-keyword text field still rejects carriage return.
+The O4P-02D review remains byte-unchanged. Projection validation passes 3 files
+and 42 tests.
+
+The Judge registers the complete literal O4P-09D successor path set in the 09C
+guard, the exact tabletopManual index/type surfaces in 06D/07A, and excludes
+only OnlineTabletopManual.tsx and tabletopManualViewTypes.ts from the legacy
+04A aggregate. The four guards pass 4 files and 19 tests. Scoped ESLint and
+git diff --check pass. No wildcard, prefix, regex weakening, dependency,
+contract, UI, or O4P-09E change is present.
+
+The first fresh-context repair-4 audit matched semantic fingerprint
+ca7451544bf2c240b4e336c53bbdc615abba97b34fd552070187f6d367a1f5f5 and
+returned BLOCKER/HIGH/MEDIUM/LOW = 0/2/0/0. It found that the 04A basename
+suffix filter was broader than the required two exact files and that the
+successful context projection exceeded its 12 KiB output ceiling by 381
+bytes. The Judge closes both findings inside correction wave 4: the 04A
+exclusions now compare the two complete absolute file paths, and newly
+duplicated repair-3-final/repair-4 evidence strings are retained in this
+archive and terminal evidence rather than duplicated in the compact domain
+evidence list. No previously committed history, product byte, acceptance
+assertion, dependency, contract, UI, or O4P-09E byte is removed.
+
+The replacement fresh-context audit independently matched semantic
+fingerprint
+a078a026bc2f69a540437327976e6f4010910856e2673d61072ff3c4fcb879d4,
+returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0, and issued verdict
+O4P-09D-FULL-CHECK-REPAIR-4-AUDIT-OK.
+
+Authority and audit scope are recorded in
+research/cr-grounding/o4p-09d-full-check-repair-4.draft.md,
+research/cr-grounding/o4p-09d-full-check-repair-4-implementation-brief.draft.md,
+and research/cr-grounding/o4p-09d-full-check-repair-4-cold-audit-brief.draft.md.
+Cold audit, replacement exact-head CI, Pages served assets, and terminal
+metadata remain pending.
 
 ## Release status
 
 The user explicitly authorized end-to-end O4P-09D shipment on 2026-08-26. The
 generated engine API manifest is re-anchored to the semantic commit above. This
-record and the synchronized audited ledger remain pending final exact-byte
-successor re-audit, replacement exact-head CI full check, Pages served assets,
-and terminal shipped metadata.
+record and the synchronized audited ledger remain pending repair-4 cold audit,
+replacement exact-head CI full check, Pages served assets, and terminal shipped
+metadata.

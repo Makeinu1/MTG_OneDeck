@@ -86,6 +86,52 @@ const O4P_09C_UI_SUCCESSOR_PATHS = new Set([
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
   'src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts',
 ]);
+const O4P_09D_SUCCESSOR_PATHS = new Set([
+  'research/cr-grounding/o4p-09d-acceptance-brief.draft.md',
+  'research/cr-grounding/o4p-09d-browser-evidence.draft.md',
+  'research/cr-grounding/o4p-09d-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-1-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-1.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-2-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-2.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-3-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-3.draft.md',
+  'research/cr-grounding/o4p-09d-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-09d-tabletop-primitives.contract.draft.md',
+  'src/components/online/OnlineTabletopManual.tsx',
+  'src/components/online/__tests__/OnlineTabletopManual.test.tsx',
+  'src/components/online/onlineTabletopManual.css',
+  'src/components/online/tabletopManualViewTypes.ts',
+  'src/dev/visualFixtures/TabletopManualFixture.test.tsx',
+  'src/dev/visualFixtures/TabletopManualFixture.tsx',
+  'src/dev/visualFixtures/fixtureBuilder.ts',
+  'src/dev/visualFixtures/tabletopManualFixture.css',
+  'src/engine/core/closure/domainEventV1.ts',
+  'src/engine/core/closure/rootV1.ts',
+  'src/engine/core/tabletop/__tests__/tabletopCommandsV1.test.ts',
+  'src/engine/core/tabletop/index.ts',
+  'src/engine/core/tabletop/manualStateV1.ts',
+  'src/engine/core/tabletop/operationsV1.ts',
+  'src/online/browser/__tests__/browserClientV1.test.ts',
+  'src/online/browser/client.ts',
+  'src/online/browser/index.ts',
+  'src/online/browser/types.ts',
+  'src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts',
+  'src/online/cloudflare/projectionBudgetV1.ts',
+  'src/online/projection/project.ts',
+  'src/online/projection/support.ts',
+  'src/online/projection/types.ts',
+  'src/online/tabletopManual/__tests__/serverV1.test.ts',
+  'src/online/tabletopManual/__tests__/validationV1.test.ts',
+  'src/online/tabletopManual/binding.ts',
+  'src/online/tabletopManual/index.ts',
+  'src/online/tabletopManual/server.ts',
+  'src/online/tabletopManual/types.ts',
+  'src/online/tabletopManual/validation.ts',
+  'src/test/architecture/review.o4p-01h-core-boundary.test.ts',
+  'src/test/architecture/review.o4p-01j-stack-transaction-boundary.test.ts',
+  'src/test/architecture/review.o4p-09d-tabletop-primitives.test.ts',
+]);
 const JUDGE_PATHS = new Set([
   '.agents/skills/mtg-onedeck-development/references/document-governance.md',
   '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
@@ -106,10 +152,14 @@ const JUDGE_PATHS = new Set([
   'research/cr-grounding/o4p-09-shared-table-playable-roadmap.contract.draft.md',
   'research/cr-grounding/planned-sequence-batch-o4p-09.draft.md',
   'research/cr-grounding/archive/o4p-09c-pregame-lifecycle-cold-audit-record-2026-08-26.md',
+  'research/cr-grounding/archive/o4p-09d-tabletop-primitives-cold-audit-record-2026-08-26.md',
   'research/cr-grounding/o4p-09c-pregame-lifecycle.contract.draft.md',
   'research/cr-grounding/o4p-09c-acceptance-brief.draft.md',
   'research/cr-grounding/o4p-09c-implementation-brief.draft.md',
   'research/cr-grounding/o4p-09c-cold-audit-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-4.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-4-implementation-brief.draft.md',
+  'research/cr-grounding/o4p-09d-full-check-repair-4-cold-audit-brief.draft.md',
   'scripts/__tests__/codexContext.test.mjs',
   'scripts/__tests__/codexUsage.test.mjs',
   'scripts/__tests__/governanceReleaseTools.test.mjs',
@@ -135,8 +185,10 @@ const JUDGE_PATHS = new Set([
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
   'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts',
+  'src/test/architecture/review.o4p-04a-personal-workbench-boundary.test.ts',
   'src/test/architecture/review.o4p-05d-production-release-closure.test.ts',
   'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
+  'src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts',
   'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
   'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',
@@ -1395,12 +1447,14 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
     for (const path of changed) {
       const allowed = JUDGE_PATHS.has(path)
         || O4P_09C_UI_SUCCESSOR_PATHS.has(path)
+        || O4P_09D_SUCCESSOR_PATHS.has(path)
         || ONLINE_PRODUCT_PATHS.includes(path as typeof ONLINE_PRODUCT_PATHS[number])
         || CORE_PREGAME_PATHS.includes(path as typeof CORE_PREGAME_PATHS[number])
         || CORE_DRAW_SKIP_PATHS.includes(path as typeof CORE_DRAW_SKIP_PATHS[number])
         || PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number]);
       expect(allowed, `unexpected O4P-09C path: ${path}`).toBe(true);
       if (!O4P_09C_UI_SUCCESSOR_PATHS.has(path)
+        && !O4P_09D_SUCCESSOR_PATHS.has(path)
         && !PROJECTION_COMPAT_PATHS.includes(path as typeof PROJECTION_COMPAT_PATHS[number])) {
         expect(path).not.toMatch(
           /^src\/(?:components|store|online\/(?:application|browser|cloudflare|genesis|protocol|projection|publicApp|room))\//u,
